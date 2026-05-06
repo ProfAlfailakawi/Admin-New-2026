@@ -1414,7 +1414,7 @@ const App: React.FC = () => {
             {(sidebarOpen || isMobile) && (
               <div className="text-right whitespace-nowrap overflow-hidden">
                   <div className="font-black text-xl tracking-tight bg-gradient-to-l from-white via-amber-200 to-amber-500 bg-clip-text text-transparent">التراث الكويتي</div>
-                  <div className="text-[10px] text-amber-500/80 font-black uppercase tracking-[0.2em] leading-none mt-1">المحرك الذهبي - اختبار Google AI Studio</div>
+                  <div className="text-[10px] text-amber-500/80 font-black uppercase tracking-[0.2em] leading-none mt-1">المحرك الذهبي</div>
               </div>
             )}
           </div>

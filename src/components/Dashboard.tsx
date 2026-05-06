@@ -523,7 +523,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
 
           <div className="text-center sm:text-right flex-1 min-w-0 order-1 sm:order-2">
             <h3 className="text-slate-400 text-[10px] sm:text-xs font-black uppercase mb-2 sm:mb-3 flex items-center justify-center sm:justify-end gap-2">
-              تحليل الذكاء الفوري - اختبار Google AI Studio
+              تحليل الذكاء الفوري
               <Sparkles size={14} className="text-amber-400" />
             </h3>
             <p className="text-white text-sm sm:text-lg lg:text-xl font-black leading-relaxed sm:leading-tight">
