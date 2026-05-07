@@ -38,6 +38,9 @@ export async function getFirebaseMessaging(): Promise<Messaging | null> {
   return getMessaging(app);
 }
 
+export const FALLBACK_VAPID_KEY = "BGBVGMmmiXqCYZW3NaiCY1ipGqDYBQnFFVYSB3JNR9jLbf9cdblfOQAYIM0519CnFusu27PrtJItk0t4QBYmejc";
+export const RESOLVED_VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || FALLBACK_VAPID_KEY;
+
 export async function registerPushNotifications({
   userId,
   restaurantId,
@@ -73,15 +76,12 @@ export async function registerPushNotifications({
 
   let token;
   try {
-    const HARDCODED_VAPID_KEY = "BGBVGMmmiXqCYZW3NaiCY1ipGqDYBQnFFVYSB3JNR9jLbf9cdblfOQAYIM0519CnFusu27PrtJItk0t4QBYmejc";
-    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || HARDCODED_VAPID_KEY;
-
-    if (!vapidKey || vapidKey.includes("YOUR_")) {
+    if (!RESOLVED_VAPID_KEY || RESOLVED_VAPID_KEY.includes("YOUR_")) {
       throw new Error("VAPID Key غير مضبوط. أضف VITE_FIREBASE_VAPID_KEY في Environment Secrets ثم أعد النشر.");
     }
 
     token = await getToken(messaging, {
-      vapidKey,
+      vapidKey: RESOLVED_VAPID_KEY,
       serviceWorkerRegistration: registration,
     });
   } catch (err: any) {
