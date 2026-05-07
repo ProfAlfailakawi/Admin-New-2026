@@ -184,6 +184,91 @@ async function startServer() {
     next();
   });
 
+  // API TEST ROUTES (PROMINENTLY PLACED AFTER LOGGING)
+  app.get("/api/debug/push-secret", (req, res) => {
+    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
+    res.json({
+      adminTestSecretExists: Boolean(process.env.ADMIN_TEST_SECRET),
+      expectedLength: expectedSecret.length,
+      serverVersion: "push-debug-2026-05-08-v1"
+    });
+  });
+
+  app.post("/api/push/test-new-order", async (req, res) => {
+    console.log("PUSH TEST VERSION", "push-debug-2026-05-08-v1");
+    const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
+    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
+    console.log("ADMIN_TEST_SECRET exists:", Boolean(process.env.ADMIN_TEST_SECRET));
+    console.log("received x-admin-secret exists:", Boolean(req.headers["x-admin-secret"]));
+    console.log("match:", receivedSecret === expectedSecret);
+
+    if (!expectedSecret) {
+      return res.status(500).json({ error: "ADMIN_TEST_SECRET is not configured" });
+    }
+
+    if (receivedSecret !== expectedSecret) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        debug: {
+          receivedExists: Boolean(receivedSecret),
+          expectedExists: Boolean(expectedSecret),
+          receivedLength: receivedSecret.length,
+          expectedLength: expectedSecret.length
+        }
+      });
+    }
+
+    try {
+      const { orderId, total, restaurantId, orderNumber } = req.body;
+      if (!orderId) {
+        return res.status(400).json({ error: "orderId required" });
+      }
+      
+      console.log("Triggering test-new-order push...");
+      await sendNewOrderPushNotification({ orderId, total: total || 0, restaurantId, orderNumber });
+      res.json({ success: true, message: "Push notification triggered" });
+    } catch (error: any) {
+      console.error("Send push error:", error);
+      res.status(500).json({ error: "Failed to send push notification", details: error.message });
+    }
+  });
+
+  app.post("/api/push/test-smart-alert", async (req, res) => {
+    console.log("PUSH TEST VERSION", "push-debug-2026-05-08-v1");
+    const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
+    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
+    console.log("ADMIN_TEST_SECRET exists:", Boolean(process.env.ADMIN_TEST_SECRET));
+    console.log("received x-admin-secret exists:", Boolean(req.headers["x-admin-secret"]));
+    console.log("match:", receivedSecret === expectedSecret);
+
+    if (!expectedSecret) {
+      return res.status(500).json({ error: "ADMIN_TEST_SECRET is not configured" });
+    }
+
+    if (receivedSecret !== expectedSecret) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        debug: {
+          receivedExists: Boolean(receivedSecret),
+          expectedExists: Boolean(expectedSecret),
+          receivedLength: receivedSecret.length,
+          expectedLength: expectedSecret.length
+        }
+      });
+    }
+
+    try {
+      const { title, body, alertType, url } = req.body;
+      
+      console.log("Triggering test-smart-alert push...");
+      await sendSmartAlertPushNotification({ title, body, alertType, url });
+      res.json({ success: true, message: "Smart alert notification triggered" });
+    } catch (error: any) {
+      console.error("Send smart alert error:", error);
+      res.status(500).json({ error: "Failed to send smart alert notification", details: error.message });
+    }
+  });
+
   app.post("/api/push/save-token", async (req, res) => {
     try {
       const { token, userId, restaurantId, platform, userAgent } = req.body;
