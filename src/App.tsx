@@ -606,7 +606,7 @@ const App: React.FC = () => {
             <span className="text-slate-600 font-medium">2. اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).</span>
             <span className="text-slate-600 font-medium mt-1 text-xs bg-slate-50 p-2 rounded-lg text-center">بمجرد تثبيته، ستتمكن من استقبال التنبيهات والأصوات!</span>
             <button 
-              onClick={() => toast.dismiss((t as any).id)}
+              onClick={() => toast.dismiss(t)}
               className="mt-2 text-xs text-slate-400 hover:text-slate-600"
             >
               إغلاق

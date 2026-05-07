@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Lock, User, ArrowLeft, Chrome, Download, Share, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { ShoppingCart, Lock, User, ArrowLeft, Chrome, DownloadCloud, Share, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { loginWithGoogle } from '../firebase';
@@ -147,12 +148,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  try {
  localStorage.setItem('appMode', 'cloud');
  await loginWithGoogle();
- // onLogin is removed here because App.tsx will handle the state transition 
- // via onAuthStateChanged only after verifying the email against AUTHORIZED_EMAILS
  } catch (err: any) {
  const errString = String(err).toLowerCase();
  if (errString.includes('popup-closed-by-user') || errString.includes('cancelled by the user')) {
- // Do nothing if user closed the popup or cancelled - no need to log
  return;
  }
  if (errString.includes('popup-blocked')) {
@@ -183,13 +181,11 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  >
  <div className="bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden border border-slate-200/60 relative">
  <div className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 p-3 md:p-4 md:p-3 md:p-4 text-center text-white relative overflow-hidden">
- {/* Ambient Background Glows */}
  <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
  <div className="absolute -top-3 md:p-4 -left-10 w-64 h-64 bg-indigo-500 rounded-full blur-[100px] animate-pulse" />
  <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-amber-500 rounded-full blur-[100px]" />
  </div>
  
- {/* Smart Logo Treatment Engine (Main Logo) */}
  <LogoEngine 
  src={logo} 
  size="xl" 
@@ -206,7 +202,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  <div className="bg-blue-50 text-blue-800 p-3 rounded-xl text-sm font-bold text-center border border-blue-100">
  لقد استخدمت التخزين السحابي مؤخراً. يرجى تسجيل الدخول بـ Google للوصول لبياناتك.
  </div>
-)}
+ )}
  <button 
  onClick={handleGoogleLogin}
  disabled={loading}
@@ -264,7 +260,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  <span className="w-1.5 h-1.5 bg-red-600 rounded-full" />
  {error}
  </motion.div>
-)}
+ )}
 
  <button 
  type="submit"
@@ -275,17 +271,32 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  </button>
 
  {!isStandalone && (
-   <button
-     type="button"
-     onClick={() => {
-       alert("لتثبيت التطبيق على جهازك: من المتصفح، اختر خيار 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen).");
-     }}
-     className="w-full bg-indigo-50 text-indigo-700 font-bold py-3 rounded-xl border border-indigo-100 mt-3 flex items-center justify-center gap-2 hover:bg-indigo-100 transition-all"
-   >
-     <Download size={18} />
-     <span>تثبيت التطبيق على الجهاز</span>
-   </button>
- )}
+    <button
+      type="button"
+      onClick={() => {
+        toast.custom((t) => (
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xl flex flex-col gap-2 font-bold text-sm min-w-[300px]" dir="rtl">
+            <span className="text-slate-900 border-b border-slate-100 pb-2 mb-1 flex items-center gap-2">
+              <DownloadCloud size={16} className="text-amber-500" />
+              لتثبيت التطبيق والسماح بالإشعارات:
+            </span>
+            <span className="text-slate-600 font-medium">1. من المتصفح (Safari / Chrome) اضغط على زر المشاركة أو الخيارات.</span>
+            <span className="text-slate-600 font-medium">2. اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).</span>
+            <span className="text-slate-600 font-medium mt-1 text-xs bg-slate-50 p-2 rounded-lg text-center">بمجرد تثبيته، ستتمكن من استقبال التنبيهات والأصوات!</span>
+            <button 
+              onClick={() => toast.dismiss(t)}
+              className="mt-2 text-xs text-slate-400 hover:text-slate-600"
+            >
+              إغلاق
+            </button>
+          </div>
+        ), { duration: 10000 });
+      }}
+      className="p-3 text-indigo-600 rounded-xl border border-indigo-100 hover:bg-indigo-50 transition-all mx-auto mt-6"
+    >
+      <DownloadCloud size={24} />
+    </button>
+  )}
  </form>
  
  <p className="text-center text-slate-400 text-[10px] font-medium leading-relaxed">
