@@ -66,6 +66,7 @@ import CommandBar from './components/CommandBar';
 import ProactiveAlerts from './components/ProactiveAlerts';
 import InstallPrompt from './components/InstallPrompt';
 import CloudStatus from './components/CloudStatus';
+import PushDebug from './components/PushDebug';
 import { InstagramMagicWand } from './components/InstagramMagicWand';
 import { recalculateStateBalances } from './lib/business-logic';
 import { INITIAL_DATA, GET_DEMO_DATA } from './data';
@@ -1220,6 +1221,10 @@ const App: React.FC = () => {
   if (normalizedPath === '/success' || normalizedPath === '/cancel' || normalizedPath === '/failed' || normalizedPath === '/error' || isUpaymentsCallback || normalizedPath.startsWith('/invoice/')) {
     const invoiceId = searchParams.get('invoice') || searchParams.get('requested_order_id') || searchParams.get('order_id') || path.split('/invoice/')[1];
     return <PaymentFeedbackView invoiceId={invoiceId} path={normalizedPath} searchParams={searchParams} isUpaymentsCallback={isUpaymentsCallback} />;
+  }
+
+  if (normalizedPath === '/push-debug') {
+    return <PushDebug />;
   }
 
   if (showSplash) {
