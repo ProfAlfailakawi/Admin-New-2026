@@ -1323,6 +1323,7 @@ const App: React.FC = () => {
             setCurrentPage('dashboard');
           }} 
         />
+        <Toaster richColors position="bottom-right" closeButton />
       </>
     );
   }

@@ -51,6 +51,7 @@
   "devDependencies": {
     "@typescript-eslint/parser": "^8.59.1",
     "eslint": "^10.3.0",
+    "sharp": "^0.34.5",
     "typescript-eslint": "^8.59.1"
   }
 }
