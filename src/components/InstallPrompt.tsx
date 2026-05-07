@@ -10,11 +10,12 @@ export default function InstallPrompt() {
 
   useEffect(() => {
     // 1. Prevent showing if already installed (standalone mode)
-    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    if (isStandalone) return;
 
-    // 2. Check if dismissed recently (within 24 hours)
-    const dismissedAt = localStorage.getItem('pwa_prompt_dismissed');
-    if (dismissedAt && Date.now() - parseInt(dismissedAt) < 86400000) return;
+    // 2. Check if dismissed recently (within session)
+    const dismissedAt = sessionStorage.getItem('pwa_prompt_dismissed');
+    if (dismissedAt) return;
 
     // 3. Listen for the native install prompt
     const handler = (e: Event) => {
@@ -33,24 +34,18 @@ export default function InstallPrompt() {
     
     if (isIOS) {
       fallbackTimer = setTimeout(() => {
-        if (!window.matchMedia('(display-mode: standalone)').matches) {
+        const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+        if (!checkStandalone && !sessionStorage.getItem('pwa_prompt_dismissed')) {
           setShowPrompt(true);
         }
       }, 4000);
-    } else {
-      // General fallback to demo the UI during development
-      fallbackTimer = setTimeout(() => {
-        if (!deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
-           setShowPrompt(true);
-        }
-      }, 6000);
-    }
+    } // Removed general fallback to strictly avoid annoying prompts on desktop
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
       clearTimeout(fallbackTimer);
     };
-  }, [deferredPrompt]);
+  }, []);
 
   const handleInstall = async () => {
     if (!deferredPrompt) {
@@ -62,6 +57,8 @@ export default function InstallPrompt() {
           <span className="text-slate-600 font-medium">2. اختر "إضافة للشاشة الرئيسية" (Add to Home Screen).</span>
         </div>
       ), { duration: 6000 });
+      setShowPrompt(false);
+      sessionStorage.setItem('pwa_prompt_dismissed', 'true');
       return;
     }
 
@@ -72,6 +69,7 @@ export default function InstallPrompt() {
     if (outcome === 'accepted') {
       console.log('User accepted the install prompt');
       setShowPrompt(false);
+      sessionStorage.setItem('pwa_prompt_dismissed', 'true');
     } else {
       console.log('User dismissed the install prompt');
     }
@@ -81,7 +79,7 @@ export default function InstallPrompt() {
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    localStorage.setItem('pwa_prompt_dismissed', Date.now().toString());
+    sessionStorage.setItem('pwa_prompt_dismissed', 'true');
   };
 
   return (
