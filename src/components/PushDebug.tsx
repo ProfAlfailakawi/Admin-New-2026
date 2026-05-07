@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getToken } from 'firebase/messaging';
 import { messaging } from '../firebase';
 import firebaseConfig from '../../firebase-applet-config.json';
+import { RESOLVED_VAPID_KEY } from '../lib/pushNotifications';
 
 const PushDebug: React.FC = () => {
   const [debugInfo, setDebugInfo] = useState<any>({});
@@ -14,9 +15,6 @@ const PushDebug: React.FC = () => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
-    const HARDCODED_VAPID_KEY = "BGBVGMmmiXqCYZW3NaiCY1ipGqDYBQnFFVYSB3JNR9jLbf9cdblfOQAYIM0519CnFusu27PrtJItk0t4QBYmejc";
-    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || HARDCODED_VAPID_KEY;
-
     setDebugInfo({
       origin: window.location.origin,
       userAgent: navigator.userAgent,
@@ -26,9 +24,9 @@ const PushDebug: React.FC = () => {
       permission: 'Notification' in window ? Notification.permission : 'not-supported',
       isStandalone,
       isIOS,
-      vapidKeyPresent: !!vapidKey,
-      vapidKeyLength: vapidKey ? vapidKey.length : 0,
-      vapidPrefix: vapidKey ? vapidKey.substring(0, 8) : 'MISSING',
+      vapidKeyPresent: !!RESOLVED_VAPID_KEY,
+      vapidKeyLength: RESOLVED_VAPID_KEY ? RESOLVED_VAPID_KEY.length : 0,
+      vapidPrefix: RESOLVED_VAPID_KEY ? RESOLVED_VAPID_KEY.substring(0, 8) : 'MISSING',
       firebase: {
         projectId: firebaseConfig.projectId,
         messagingSenderId: firebaseConfig.messagingSenderId,
@@ -57,10 +55,8 @@ const PushDebug: React.FC = () => {
     setTokenResult(null);
     setRegistrationResult(null);
 
-    const HARDCODED_VAPID_KEY = "BGBVGMmmiXqCYZW3NaiCY1ipGqDYBQnFFVYSB3JNR9jLbf9cdblfOQAYIM0519CnFusu27PrtJItk0t4QBYmejc";
-    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || HARDCODED_VAPID_KEY;
-    if (!vapidKey) {
-      setTokenResult({ error: "VITE_FIREBASE_VAPID_KEY is missing from environment" });
+    if (!RESOLVED_VAPID_KEY) {
+      setTokenResult({ error: "RESOLVED_VAPID_KEY is missing" });
       setLoading(false);
       return;
     }
@@ -80,7 +76,7 @@ const PushDebug: React.FC = () => {
 
       // 2. Get Token
       const token = await getToken(messaging, {
-        vapidKey: vapidKey,
+        vapidKey: RESOLVED_VAPID_KEY,
         serviceWorkerRegistration: registration
       });
       setTokenResult({ token: token.substring(0, 10) + '...' });
