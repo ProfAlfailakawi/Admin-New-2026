@@ -271,8 +271,18 @@ async function startServer() {
   }
 
   app.post("/api/push/test-new-order", async (req, res) => {
-    const adminSecret = req.headers["x-admin-secret"];
-    if (adminSecret !== process.env.ADMIN_TEST_SECRET) {
+    const receivedSecret = (Array.isArray(req.headers["x-admin-secret"]) ? req.headers["x-admin-secret"][0] : req.headers["x-admin-secret"]) || "";
+    const expectedSecret = process.env.ADMIN_TEST_SECRET || "";
+
+    console.log("ADMIN_TEST_SECRET exists:", Boolean(expectedSecret));
+    console.log("received x-admin-secret exists:", Boolean(receivedSecret));
+    console.log("secret match (trimmed):", receivedSecret.trim() === expectedSecret.trim());
+
+    if (!expectedSecret) {
+      return res.status(500).json({ error: "ADMIN_TEST_SECRET is not configured" });
+    }
+
+    if (receivedSecret.trim() !== expectedSecret.trim()) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -291,8 +301,18 @@ async function startServer() {
   });
 
   app.post("/api/push/test-smart-alert", async (req, res) => {
-    const adminSecret = req.headers["x-admin-secret"];
-    if (adminSecret !== process.env.ADMIN_TEST_SECRET) {
+    const receivedSecret = (Array.isArray(req.headers["x-admin-secret"]) ? req.headers["x-admin-secret"][0] : req.headers["x-admin-secret"]) || "";
+    const expectedSecret = process.env.ADMIN_TEST_SECRET || "";
+
+    console.log("ADMIN_TEST_SECRET exists:", Boolean(expectedSecret));
+    console.log("received x-admin-secret exists:", Boolean(receivedSecret));
+    console.log("secret match (trimmed):", receivedSecret.trim() === expectedSecret.trim());
+
+    if (!expectedSecret) {
+      return res.status(500).json({ error: "ADMIN_TEST_SECRET is not configured" });
+    }
+
+    if (receivedSecret.trim() !== expectedSecret.trim()) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
