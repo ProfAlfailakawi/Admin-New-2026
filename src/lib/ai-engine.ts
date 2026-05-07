@@ -608,10 +608,10 @@ export function generateRealProfitAnalysis(data: AppState): RealProfitInsight[] 
 }
 
 export async function generateMarketingCampaign(data: AppState, customPrompt?: string): Promise<AICampaign> {
-  const cacheKey = `marketing-camp-${customPrompt || 'default'}-${generateStateHash(data)}`;
+  const cacheKey = `marketing-camp-v4-${customPrompt || 'default'}-${generateStateHash(data)}`;
   const cached = getCached<AICampaign>(cacheKey);
   if (cached) return cached;
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (process as any).env?.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   
   if (apiKey && apiKey !== 'undefined' && apiKey !== 'MISSING_API_KEY') {
     try {
@@ -1526,7 +1526,7 @@ export async function generatePulseArchiveAnalysis(allComments: string[]): Promi
     }
     
     try {
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (process as any).env?.GEMINI_API_KEY;
+        const apiKey = process.env.GEMINI_API_KEY;
         
         if (!apiKey || apiKey === 'undefined') throw new Error("No API key");
         

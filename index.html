@@ -9,53 +9,43 @@
     <title>شركة مطبخ التراث الكويتي</title>
 
     <!-- PWA Settings -->
-    <link rel="manifest" href="/manifest.json?v=12" />
-    <link rel="icon" type="image/svg+xml" href="/app-icon-square.svg?v=12" />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="192x192"
-      href="/icon-192-v12.png?v=12"
-    />
-    <link rel="apple-touch-icon" href="/apple-touch-icon-v12.png?v=12" />
-    <meta name="theme-color" content="#ffffff" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    
+    <meta name="theme-color" content="#E9163D" />
     <meta name="apple-mobile-web-app-title" content="التراث" />
     <meta name="application-name" content="التراث" />
-    <meta
-      name="description"
-      content="Turaath AI Business Intelligence Engine"
-    />
+    <meta name="description" content="لوحة إدارة طلبات مطبخ التراث الكويتي" />
+    
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta
-      http-equiv="Cache-Control"
-      content="no-cache, no-store, must-revalidate"
-    />
+    
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
+    
     <script>
-      // 1. Register Service Worker and manage caches
+      // Aggressive Service Worker Cleanup
       if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("/sw.js")
-            .then((registration) => {
-              console.log("SW registered:", registration);
-            })
-            .catch((error) => {
-              console.log("SW registration failed:", error);
-            });
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (let registration of registrations) {
+            // Unregister old generic sw.js
+            if (registration.active && registration.active.scriptURL.includes('sw.js') && !registration.active.scriptURL.includes('firebase-messaging-sw.js')) {
+              registration.unregister();
+              console.log("Unregistered old SW:", registration);
+            }
+          }
         });
       }
-
-      // 2. Clear all PWA/Browser caches if we encounter older caches
+      
+      // Clear older caches
       if ("caches" in window) {
         caches.keys().then(function (names) {
           for (let name of names) {
-            if (name !== "turaath-cache-v12") {
-              caches.delete(name);
-            }
+            caches.delete(name);
           }
         });
       }

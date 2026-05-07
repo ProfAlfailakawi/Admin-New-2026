@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Play, TrendingUp, TrendingDown, RefreshCw, BarChart3, Tag, Truck, Sparkles, AlertCircle, Info, Calculator, Zap, ArrowRight, CheckCircle2, Rocket, Megaphone, Target, Users, Layout, MessageCircle, Clock } from 'lucide-react';
+import { Play, TrendingUp, TrendingDown, RefreshCw, BarChart3, Tag, Truck, Sparkles, AlertCircle, Info, Calculator, Zap, ArrowRight, CheckCircle2, Rocket, Megaphone, Target, Users, Layout, MessageCircle, Clock, Copy } from 'lucide-react';
 import { cn, safeFormatCurrency } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppState, SimulationResult, AICampaign } from '../types';
@@ -52,12 +52,17 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  setIsGenerating(true);
  try {
  const product = (data?.products || []).find(p => p.id === selectedProductId) || data.products[0];
+ const companyName = data?.settings?.companyName || 'مطبخ التراث الكويتي';
+ const companyPhones = (data?.settings?.restaurantNumbers || []).join(', ');
+
  const customPrompt = `
  بصفتك خبير تسويق استراتيجي لمحلات الحلويات والمطاعم في الكويت. قم بإنشاء خطة حملة ترويجية للمنتج التالي بناءً على البيانات:
  المنتج: ${product.name}
  السعر الحالي: ${product.price} د.ك
  التكلفة: ${product.cost} د.ك
  إجمالي المبيعات التاريخية لهذا المتجر: ${data.invoices.length} فاتورة.
+ اسم المحل: ${companyName}
+ رقم التواصل / الواتساب: ${companyPhones}
  
  المطلوب إنشاء خطة حملة ترويجية شاملة تتضمن:
  1. نوع الحملة (campaignType)
@@ -66,11 +71,25 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  4. الجمهور المستهدف بدقة (Target Audience)
  5. التوقيت المناسب (Timing)
  6. الهدف (Goal)
- 7. النتيجة المتوقعة (Expected Outcome)
- 8. رسالة واتساب جاهزة (WhatsApp Message)
- 
- يجب أن يكون الإخراج بصيغة JSON حصراً باللغة العربية.
- `;
+        7. النتيجة المتوقعة (Expected Outcome)
+        8. رسالة واتساب جاهزة (WhatsApp Message)
+
+        *ملاحظة هامة جداً*: نوع في أسلوب رسائل الواتساب وصياغتها في كل مرة. لا تستخدم قالباً ثابتاً. مرة استخدم لهجة رسمية، مرة كاجوال (كويتي عامي)، مرة حماسية قصيرة، ومرة بأسلوب دعوة حصرية. وتأكد من تضمين اسم المحل (${companyName}) ورقم الطلب (${companyPhones}) بطريقة طبيعية داخل رسالة الواتساب الجاهزة.
+
+        رد بصيغة JSON فقط بالتنسيق التالي:
+        {
+          "campaignType": "(نوع الحملة)",
+          "idea": "(فكرة العرض)",
+          "message": "(رسالة إعلانية قصيرة)",
+          "targetAudience": "(الجمهور المستهدف)",
+          "timing": "(التوقيت المناسب)",
+          "goal": "(الهدف)",
+          "expectedOutcome": "(النتيجة المتوقعة)",
+          "whatsappMessage": "(رسالة واتساب مخصصة جاهزة ومتنوعة الأسلوب)"
+        }
+        
+        يجب أن يكون الإخراج بصيغة JSON حصراً باللغة العربية.
+        `;
 
  const { generateMarketingCampaign } = await import('../lib/ai-engine');
  const plan = await generateMarketingCampaign(data, customPrompt);
@@ -364,9 +383,12 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <p className="text-slate-200 font-bold text-sm md:text-base leading-relaxed whitespace-pre-wrap">{campaignPlan.idea}</p>
  </div>
  <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm md:col-span-2 relative hover:border-indigo-500/30 transition-all">
- <p className="text-[10px] md:text-xs font-black text-emerald-400 uppercase mb-3 flex items-center gap-2"><MessageCircle size={14}/> رسالة واتساب جاهزة للنسخ والمبيعات</p>
+ <div className="flex flex-wrap items-center justify-between mb-3 gap-2">
+  <p className="text-[10px] md:text-xs font-black text-emerald-400 uppercase flex items-center gap-2"><MessageCircle size={14}/> رسالة واتساب جاهزة للنسخ والمبيعات</p>
+  <button onClick={() => { navigator.clipboard.writeText(campaignPlan.marketingMessage || campaignPlan.message || ''); toast.success('تم النسخ بنجاح'); }} className="text-slate-400 hover:text-white bg-slate-800 hover:bg-emerald-600 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold transition-all"><Copy size={14} /> نسخ</button>
+ </div>
  <div className="bg-slate-950 p-3 rounded-xl text-xs sm:text-sm font-bold text-slate-300 border border-emerald-500/20 leading-relaxed overflow-x-hidden break-words whitespace-pre-wrap">
- {campaignPlan.marketingMessage}
+ {campaignPlan.marketingMessage || campaignPlan.message || 'جاري صياغة الرسالة... أو يرجى المحاولة مرة أخرى.'}
  </div>
  </div>
  <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">

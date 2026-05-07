@@ -63,7 +63,7 @@ export async function registerPushNotifications({
     throw new Error("لم يتم منح إذن الإشعارات.");
   }
 
-  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: '/' });
 
   const messaging = await getFirebaseMessaging();
 
@@ -130,8 +130,8 @@ export async function listenToForegroundMessages(
     if (Notification.permission === "granted") {
       new Notification(title, {
         body,
-        icon: payload.data?.icon || "/vite.svg",
-        badge: payload.data?.badge || "/vite.svg",
+        icon: payload.data?.icon || "/icons/icon-192.png",
+        badge: payload.data?.badge || "/icons/icon-192.png",
         data: {
           url: payload.data?.url || "/",
         },
