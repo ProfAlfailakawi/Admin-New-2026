@@ -25,6 +25,60 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // API TEST ROUTES (PROMINENTLY PLACED)
+  app.post("/api/push/test-new-order", async (req, res) => {
+    console.log("RECEIVED REQUEST: /api/push/test-new-order");
+    const receivedSecret = (Array.isArray(req.headers["x-admin-secret"]) ? req.headers["x-admin-secret"][0] : req.headers["x-admin-secret"]) || "";
+    const expectedSecret = process.env.ADMIN_TEST_SECRET || "";
+
+    if (!expectedSecret) {
+      return res.status(500).json({ error: "ADMIN_TEST_SECRET is not configured" });
+    }
+
+    if (receivedSecret.trim() !== expectedSecret.trim()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { orderId, total, restaurantId, orderNumber } = req.body;
+      if (!orderId) {
+        return res.status(400).json({ error: "orderId required" });
+      }
+      
+      console.log("Triggering test-new-order push...");
+      await sendNewOrderPushNotification({ orderId, total: total || 0, restaurantId, orderNumber });
+      res.json({ success: true, message: "Push notification triggered" });
+    } catch (error: any) {
+      console.error("Send push error:", error);
+      res.status(500).json({ error: "Failed to send push notification", details: error.message });
+    }
+  });
+
+  app.post("/api/push/test-smart-alert", async (req, res) => {
+    console.log("RECEIVED REQUEST: /api/push/test-smart-alert");
+    const receivedSecret = (Array.isArray(req.headers["x-admin-secret"]) ? req.headers["x-admin-secret"][0] : req.headers["x-admin-secret"]) || "";
+    const expectedSecret = process.env.ADMIN_TEST_SECRET || "";
+
+    if (!expectedSecret) {
+      return res.status(500).json({ error: "ADMIN_TEST_SECRET is not configured" });
+    }
+
+    if (receivedSecret.trim() !== expectedSecret.trim()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { title, body, alertType, url } = req.body;
+      
+      console.log("Triggering test-smart-alert push...");
+      await sendSmartAlertPushNotification({ title, body, alertType, url });
+      res.json({ success: true, message: "Smart alert notification triggered" });
+    } catch (error: any) {
+      console.error("Send smart alert error:", error);
+      res.status(500).json({ error: "Failed to send smart alert notification", details: error.message });
+    }
+  });
+
   // Webhook for payment gateway
   // It synchronizes payment results to the database even if the user doesn't return to the app.
   const handlePaymentUpdate = async (params: any) => {
@@ -269,62 +323,6 @@ async function startServer() {
       console.error("Sending smart alert push error:", e);
     }
   }
-
-  app.post("/api/push/test-new-order", async (req, res) => {
-    const receivedSecret = (Array.isArray(req.headers["x-admin-secret"]) ? req.headers["x-admin-secret"][0] : req.headers["x-admin-secret"]) || "";
-    const expectedSecret = process.env.ADMIN_TEST_SECRET || "";
-
-    console.log("ADMIN_TEST_SECRET exists:", Boolean(expectedSecret));
-    console.log("received x-admin-secret exists:", Boolean(receivedSecret));
-    console.log("secret match (trimmed):", receivedSecret.trim() === expectedSecret.trim());
-
-    if (!expectedSecret) {
-      return res.status(500).json({ error: "ADMIN_TEST_SECRET is not configured" });
-    }
-
-    if (receivedSecret.trim() !== expectedSecret.trim()) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    try {
-      const { orderId, total, restaurantId, orderNumber } = req.body;
-      if (!orderId) {
-        return res.status(400).json({ error: "orderId required" });
-      }
-
-      await sendNewOrderPushNotification({ orderId, total: total || 0, restaurantId, orderNumber });
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Send push error:", error);
-      res.status(500).json({ error: "Failed to send push notification", details: error.message });
-    }
-  });
-
-  app.post("/api/push/test-smart-alert", async (req, res) => {
-    const receivedSecret = (Array.isArray(req.headers["x-admin-secret"]) ? req.headers["x-admin-secret"][0] : req.headers["x-admin-secret"]) || "";
-    const expectedSecret = process.env.ADMIN_TEST_SECRET || "";
-
-    console.log("ADMIN_TEST_SECRET exists:", Boolean(expectedSecret));
-    console.log("received x-admin-secret exists:", Boolean(receivedSecret));
-    console.log("secret match (trimmed):", receivedSecret.trim() === expectedSecret.trim());
-
-    if (!expectedSecret) {
-      return res.status(500).json({ error: "ADMIN_TEST_SECRET is not configured" });
-    }
-
-    if (receivedSecret.trim() !== expectedSecret.trim()) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    try {
-      const { title, body, alertType, url } = req.body;
-      await sendSmartAlertPushNotification({ title, body, alertType, url });
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Send smart alert error:", error);
-      res.status(500).json({ error: "Failed to send smart alert notification", details: error.message });
-    }
-  });
 
   app.get("/api/test", (req, res) => {
     res.json({ message: "BACKEND OK", status: 200, time: new Date().toISOString() });
