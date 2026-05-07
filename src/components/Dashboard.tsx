@@ -118,7 +118,7 @@ const SmartOffersCalculator = React.lazy(() =>
 );
 import { FutureForecast } from "./FutureForecast";
 import { CommandBrief } from "./CommandBrief";
-import { ProfitGuardFeature, SupplierNegotiatorFeature, BusinessHealthFeature } from "./DashboardFeatures";
+import { ProfitGuardFeature, SupplierNegotiatorFeature, BusinessHealthFeature, SmartOffersCalculatorFeature } from "./DashboardFeatures";
 const BusinessHealthIndex = React.lazy(() =>
   import("./BusinessHealthIndex").then((m) => ({
     default: m.BusinessHealthIndex,
@@ -2487,6 +2487,16 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                     }
                   >
                     <WhatIfSimulator data={data} onUpdateData={onUpdateData} />
+                  </React.Suspense>
+                </div>
+
+                <div id="smart-offers-section" className="mt-8">
+                  <React.Suspense
+                    fallback={
+                      <div className="h-64 animate-pulse bg-slate-100 rounded-2xl" />
+                    }
+                  >
+                    <SmartOffersCalculatorFeature data={data} />
                   </React.Suspense>
                 </div>
 
