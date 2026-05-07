@@ -30,6 +30,7 @@ import { AppState, Product, InvoiceItem, Invoice, Customer, DeliveryType, PromoC
 import { cn, normalizeArabic, robustNormalize } from '../lib/utils';
 // import { getDeduplicatedProducts } from '../lib/deduplication';
 import { NumericInput } from './ui/NumericInput';
+import { MagneticButton } from './ui/MagneticButton';
 import { getPublicUrl, getWebhookUrl } from '../lib/urlUtils';
 import { recalculateStateBalances } from '../lib/business-logic';
 import { toast } from 'sonner';
@@ -74,6 +75,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  // Address and Notes
  const [addressText, setAddressText] = useState('');
  const [notesText, setNotesText] = useState('');
+ const [isZenMode, setIsZenMode] = useState(false);
 
  const getWhatsAppLink = (invoice: Invoice) => {
  const customer = (data?.customers || []).find(c => c.id === invoice.customerId);
@@ -112,14 +114,14 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
 
  useEffect(() => {
  if (editingInvoiceId) {
- const inv = data.invoices.find(i => i.id === editingInvoiceId);
+ const inv = (data.invoices || []).find(i => i.id === editingInvoiceId);
  if (inv) {
  setSelectedCustomerId(inv.customerId);
  setDeliveryFee(inv.deliveryFee);
  setDeliveryType(inv.deliveryType || 'company');
  if (inv.deliveryInfo) {
  setDeliveryCompany(inv.deliveryInfo.company || '');
- const matchedZone = data.zones?.find(z => z.name === inv.deliveryInfo?.zoneName);
+ const matchedZone = (data.zones || []).find(z => z.name === inv.deliveryInfo?.zoneName);
  if (matchedZone) {
  setSelectedZoneId(matchedZone.id);
  setIsManualDelivery(false);
@@ -136,9 +138,9 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  let guessedProfit = 0;
  let isManual = true;
 
- const cust = data.customers?.find(c => c.id === inv.customerId);
+ const cust = data.customers.find(c => c.id === inv.customerId);
  if (cust && cust.area) {
- const matchedZone = data.zones?.find(z => z.name === cust.area || (z.finalPrice || (z.cost + z.profit)) === inv.deliveryFee);
+ const matchedZone = (data.zones || []).find(z => z.name === cust.area || (z.finalPrice || (z.cost + z.profit)) === inv.deliveryFee);
  if (matchedZone) {
  guessedZoneId = matchedZone.id;
  guessedCost = matchedZone.cost;
@@ -147,7 +149,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  }
  }
  if (!guessedZoneId) {
- const matchedByFee = data.zones?.find(z => (z.finalPrice || (z.cost + z.profit)) === inv.deliveryFee);
+ const matchedByFee = (data.zones || []).find(z => (z.finalPrice || (z.cost + z.profit)) === inv.deliveryFee);
  if (matchedByFee) {
  guessedZoneId = matchedByFee.id;
  guessedCost = matchedByFee.cost;
@@ -165,7 +167,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
 
  const newCart: Record<string, { quantity: number, priceAtTime: number, costAtTime: number, itemNotes?: string }> = {};
  inv.items.forEach(item => {
- const p = data.products.find(prod => prod.id === item.productId);
+ const p = (data.products || []).find(prod => prod.id === item.productId);
  newCart[item.productId] = { 
  quantity: item.quantity || 1, 
  priceAtTime: item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (p?.price || 0)), 
@@ -208,7 +210,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const val = e.target.value;
  setIsManualDelivery(false);
  setSelectedZoneId(val);
- const zone = data.zones?.find(z => z.id === val);
+ const zone = (data.zones || []).find(z => z.id === val);
  
  if (zone) {
  setDeliveryCost(zone.cost);
@@ -254,7 +256,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  // For now, we'll keep the current cost/profit split for standard manual.
  }
  } else {
- const zone = data.zones?.find(z => z.id === selectedZoneId);
+ const zone = (data.zones || []).find(z => z.id === selectedZoneId);
  if (zone) {
  setDeliveryCost(zone.cost);
  const fPrice = zone.finalPrice !== undefined ? zone.finalPrice : (zone.cost + zone.profit);
@@ -285,7 +287,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
 
  useEffect(() => {
  if (selectedCustomerId) {
- const customer = data.customers.find(c => c.id === selectedCustomerId);
+ const customer = (data.customers || []).find(c => c.id === selectedCustomerId);
  if (customer) {
  setCustomerPhone(customer.phone);
  
@@ -297,7 +299,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const addrStr = `${addressObject.region || ''} ق${addressObject.block || ''} ش${addressObject.street || ''} م${addressObject.building || ''}`.trim();
  if (addrStr) setAddressText(addrStr);
  
- const matchedZone = data.zones?.find(z => z.name === addressObject.region);
+ const matchedZone = (data.zones || []).find(z => z.name === addressObject.region);
  if (matchedZone) {
  setSelectedZoneId(matchedZone.id);
  }
@@ -329,7 +331,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  }, [data.products, searchQuery, supplierFilter]);
 
  const addToCart = (productId: string) => {
- const product = data.products.find(p => p.id === productId);
+ const product = (data.products || []).find(p => p.id === productId);
  if (!product) return;
  
  setCart(prev => {
@@ -403,7 +405,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const others = data.products.filter(p => p.name === product.name && p.id !== product.id);
  const best = others.reduce((min, cur) => (cur.cost < min.cost ? cur : min), product);
  if (best.cost < product.cost) {
- return { cost: best.cost, supplier: data.suppliers.find(s => s.id === best.supplierId)?.name };
+ return { cost: best.cost, supplier: (data.suppliers || []).find(s => s.id === best.supplierId)?.name };
  }
  return null;
  };
@@ -458,7 +460,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  };
 
  const cartItems = Object.entries(cart).map(([id, dataItem]) => {
- const product = data.products.find(p => p.id === id);
+ const product = (data.products || []).find(p => p.id === id);
  return { 
  product, 
  qty: dataItem.quantity, 
@@ -468,7 +470,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  };
  }).filter((item): item is { product: Product; qty: number; priceAtTime: number; costAtTime: number; itemNotes: string | undefined } => !!item.product);
 
- const currentInvoice = editingInvoiceId ? data.invoices.find(i => i.id === editingInvoiceId) : null;
+ const currentInvoice = editingInvoiceId ? (data.invoices || []).find(i => i.id === editingInvoiceId) : null;
  const isPaid = currentInvoice?.paymentStatus === 'paid';
 
  const subtotal = Math.round(cartItems.reduce((acc, item) => acc + (Number(item.priceAtTime) || 0) * (Number(item.qty) || 0), 0) * 1000) / 1000;
@@ -535,9 +537,9 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
  amount: finalInvoiceAmount,
- customerName: data.customers.find(c => c.id === selectedCustomerId)?.name || 'Customer',
- customerEmail: data.customers.find(c => c.id === selectedCustomerId)?.email || 'no-email@example.com',
- customerMobile: data.customers.find(c => c.id === selectedCustomerId)?.phone || '+96500000000',
+ customerName: (data.customers || []).find(c => c.id === selectedCustomerId)?.name || 'Customer',
+ customerEmail: (data.customers || []).find(c => c.id === selectedCustomerId)?.email || 'no-email@example.com',
+ customerMobile: (data.customers || []).find(c => c.id === selectedCustomerId)?.phone || '+96500000000',
  orderId: invoiceId,
  description: `Invoice ${invoiceId}`,
  returnUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
@@ -570,7 +572,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  // Create the optional delivery info object
  const finalDeliveryInfo = (deliveryCompany || selectedZoneId || isManualDelivery || deliveryFee > 0) ? {
  company: deliveryCompany,
- zoneName: isManualDelivery ? 'يدوي' : (data.zones?.find(z => z.id === selectedZoneId)?.name || 'غير معروف'),
+ zoneName: isManualDelivery ? 'يدوي' : ((data.zones || []).find(z => z.id === selectedZoneId)?.name || 'غير معروف'),
  cost: deliveryCost,
  profit: deliveryProfit,
  finalPrice: deliveryFee
@@ -586,7 +588,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  id: invoiceId,
  customerId: selectedCustomerId,
    address: addressText || (() => {
-    const custAddr = (data.customers.find(c => c.id === selectedCustomerId) as any)?.address;
+    const custAddr = ((data.customers || []).find(c => c.id === selectedCustomerId) as any)?.address;
     if (custAddr) {
       if (typeof custAddr === 'object') {
         const addrStr = [`${custAddr.region||''}`, `ق${custAddr.block||''}`, `ش${custAddr.street||''}`, `م${custAddr.building||''}`].filter(Boolean).join(' ');
@@ -644,7 +646,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
   if (!editingInvoiceId && selectedCustomerId && addressText.trim()) {
     updatedCustomers = updatedCustomers.map(cust => {
       if (cust.id === selectedCustomerId) {
-        const zone = data.zones?.find(z => z.id === selectedZoneId);
+        const zone = (data.zones || []).find(z => z.id === selectedZoneId);
         const regionName = (zone && !isManualDelivery) ? zone.name : (cust.area || '');
         const custAddr = (cust as any).address;
         return {
@@ -656,7 +658,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
             street: addressText.trim(),
             building: typeof custAddr === 'object' ? custAddr.building : ''
           }
-        };
+        } as any;
       }
       return cust;
     });
@@ -1139,7 +1141,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
 
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-3 p-1 overflow-y-auto max-h-[750px] pr-1 sm:pr-2 custom-scrollbar">
   {filteredProducts.slice(0, 50).map(product => {
-  const supplierName = data.suppliers.find(s => s.id === product.supplierId)?.name || 'غير محدد';
+  const supplierName = (data.suppliers || []).find(s => s.id === product.supplierId)?.name || 'غير محدد';
   return (
   <motion.button
   key={product.id}
@@ -1244,7 +1246,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
  <input 
  type="text"
- value={showCustomerDropdown ? customerSearch : (data.customers.find(c => c.id === selectedCustomerId)?.name || '')}
+ value={showCustomerDropdown ? customerSearch : ((data.customers || []).find(c => c.id === selectedCustomerId)?.name || '')}
  onChange={(e) => {
  if (isPaid) return;
  setCustomerSearch(e.target.value);
@@ -1605,11 +1607,12 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  </div>
  </div>
 
- <button 
+ <MagneticButton 
  disabled={!selectedCustomerId || cartItems.length === 0 || isPaid}
  onClick={handleCreateInvoice}
+ intensity={0.15}
  className={cn(
-"w-full py-5 rounded-2xl font-black shadow-2xl transition-all active:scale-[0.97] flex items-center justify-center gap-3 text-lg",
+"w-full py-5 rounded-2xl font-black shadow-2xl transition-all active:scale-[0.97] flex items-center justify-center gap-3 text-lg relative z-50",
  !selectedCustomerId || cartItems.length === 0 || isPaid
  ?"bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
  :"bg-primary text-white shadow-primary/30 hover:bg-primary-dark"
@@ -1617,7 +1620,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  >
  <span>{isPaid ? 'الفاتورة مدفوعة ولا يمكن تعديلها ✅' : editingInvoiceId ? 'تعديل الفاتورة' : 'اعتماد وإصدار الفاتورة'}</span>
  <CheckCircle2 size={24} />
- </button>
+ </MagneticButton>
  </div>
  </div>
  </div>

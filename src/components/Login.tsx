@@ -10,11 +10,8 @@ const PWAInstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    // Only show on mobile
-    if (window.innerWidth > 768) return;
-
-    // Check if already installed or dismissed
-    if (window.matchMedia('(display-mode: standalone)').matches || localStorage.getItem('pwa_prompt_dismissed') === 'true') {
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
       return;
     }
 
@@ -44,7 +41,6 @@ const PWAInstallPrompt = () => {
 
   const handleDismiss = () => {
     setShow(false);
-    localStorage.setItem('pwa_prompt_dismissed', 'true');
   };
 
   const handleInstallClick = async () => {
@@ -130,6 +126,11 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  const [password, setPassword] = useState('Alturath');
  const [error, setError] = useState('');
  const [loading, setLoading] = useState(false);
+ const [isStandalone, setIsStandalone] = useState(true);
+
+ useEffect(() => {
+   setIsStandalone(window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true);
+ }, []);
 
  const handleLogin = (e: React.FormEvent) => {
  e.preventDefault();
@@ -272,6 +273,19 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  <span>دخول محلي</span>
  <ArrowLeft size={18} />
  </button>
+
+ {!isStandalone && (
+   <button
+     type="button"
+     onClick={() => {
+       alert("لتثبيت التطبيق على جهازك: من المتصفح، اختر خيار 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen).");
+     }}
+     className="w-full bg-indigo-50 text-indigo-700 font-bold py-3 rounded-xl border border-indigo-100 mt-3 flex items-center justify-center gap-2 hover:bg-indigo-100 transition-all"
+   >
+     <Download size={18} />
+     <span>تثبيت التطبيق على الجهاز</span>
+   </button>
+ )}
  </form>
  
  <p className="text-center text-slate-400 text-[10px] font-medium leading-relaxed">

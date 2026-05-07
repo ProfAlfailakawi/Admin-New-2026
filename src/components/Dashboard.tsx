@@ -37,6 +37,7 @@ import {
   X,
   RefreshCw,
   Send,
+  CheckCircle,
   CheckCircle2,
   MessageSquare,
   Plus,
@@ -834,6 +835,8 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     setDeepLinkData,
   }) => {
     const [isPending, startTransition] = useTransition();
+    const [isExecutiveMode, setIsExecutiveMode] = useState(false);
+    const [showContextualAssist, setShowContextualAssist] = useState(false);
     const [isLoyaltyAnalyzing, setIsLoyaltyAnalyzing] = useState(false);
     const [showLoyaltyResult, setShowLoyaltyResult] = useState(false);
     const [showTabsDropdown, setShowTabsDropdown] = useState(false);
@@ -1430,7 +1433,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
         order.totalAmount || order.total || order.total_amount || 0;
       if (amount > 0) return amount;
       return (order.items || []).reduce((sum: number, item: any) => {
-        const p = data.products.find((prod) => prod.id === item.productId);
+        const p = (data?.products || []).find((prod) => prod.id === item.productId);
         const itemPrice =
           item.priceAtTime !== undefined
             ? item.priceAtTime
@@ -1446,7 +1449,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
       if (type === "free") return 0;
       const addr = order.address;
       const zoneNameStr = addr?.region || order.regionId;
-      const zone = data.zones?.find(
+      const zone = (data?.zones || []).find(
         (z) => z.id === order.regionId || z.name === zoneNameStr,
       );
       const dCost = zone ? zone.cost : 1.0;
@@ -1718,13 +1721,62 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
       }
     };
 
+    // Force cache invalidation 2
     const isMonthEnd = () => {
       const today = new Date();
       const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
       return today.getDate() >= lastDay - 2; // last 3 days of the month
     };
 
-    const [isExecutiveMode, setIsExecutiveMode] = useState(false);
+    const totals = {
+      orders: data?.orders?.length || 0,
+      revenue: totalSalesVal || 0,
+    };
+
+    const nowObj = new Date();
+    const todayStart = new Date(nowObj.getFullYear(), nowObj.getMonth(), nowObj.getDate()).getTime();
+    const yesterdayStart = todayStart - 86400000;
+    
+    let tRev = 0;
+    let yRev = 0;
+    
+    data?.invoices?.forEach(inv => {
+      // paymentStatus can be under 'status' in some models
+      const status = inv.paymentStatus || (inv as any).status;
+      if (status !== 'paid' && status !== 'partial' && status !== 'completed' && inv.paymentStatus !== undefined) return;
+      const t = new Date(inv.date).getTime();
+      const amount = Number(inv.totalAmount || (inv as any).total || 0);
+      if (t >= todayStart) tRev += amount;
+      else if (t >= yesterdayStart && t < todayStart) yRev += amount;
+    });
+
+    let rawGrowthText = "لا توجد بيانات كافية لاحتساب النمو مقارنة بالأمس";
+    let growthValText = "0%";
+    let isGrowthPos = true;
+
+    if (yRev > 0) {
+      const g = ((tRev - yRev) / yRev) * 100;
+      isGrowthPos = g >= 0;
+      growthValText = `${g > 0 ? '+' : ''}${g.toFixed(1)}%`;
+      rawGrowthText = g >= 0 
+        ? `المبيعات تتجاوز الأمس بـ ${g.toFixed(1)}%` 
+        : `المبيعات تتأخر عن الأمس بـ ${Math.abs(g).toFixed(1)}%`;
+    } else if (tRev > 0) {
+      isGrowthPos = true;
+      growthValText = "+100%";
+      rawGrowthText = `مبيعات اليوم ${tRev.toFixed(0)} د.ك (لا توجد مبيعات في الأمس)`;
+    }
+
+    useEffect(() => {
+      // Simulate system 'sensing' user's workflow and offering proactive help based on time
+      const timer = setTimeout(() => {
+        // Show assistant after a natural delay if there's actionable data
+        if (totals.orders > 0 && !isExecutiveMode) {
+           setShowContextualAssist(true);
+        }
+      }, 3500);
+      return () => clearTimeout(timer);
+    }, [totals.orders, isExecutiveMode]);
 
     const greeting = getContextualGreeting();
     const systemMoodClass = getSystemMoodStyles();
@@ -1777,7 +1829,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:scale-105"
               )}
             >
-              <Eye size={18} className={cn(isExecutiveMode ? "text-amber-400" : "text-slate-400")} />
+              <ShieldAlert size={18} className={cn(isExecutiveMode ? "text-amber-400" : "text-slate-400")} />
               <span>{isExecutiveMode ? "خروج من القيادة" : "وضع القيادة"}</span>
             </button>
           </div>
@@ -1844,7 +1896,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
             {["day", "week", "month", "year", "all"].map((tf) => (
               <button
                 key={tf}
-                onClick={() => startTransition(() => setDateFilter(tf))}
+                onClick={() => startTransition(() => setDateFilter(tf as any))}
                 className={cn(
                   "flex-1 min-w-max flex items-center justify-center px-4 py-3.5 rounded-2xl text-[12px] uppercase font-black transition-all duration-300 outline-none whitespace-nowrap border border-slate-200",
                   dateFilter === tf
@@ -1890,10 +1942,10 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
               >
                 <div className="flex flex-col items-center justify-center space-y-6 text-center">
                   <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
-                    الأداء اليوم ممتاز.
+                    {isGrowthPos ? 'الأداء اليوم ممتاز.' : 'أداء اليوم يحتاج انتباه.'}
                   </h2>
                   <p className="text-2xl text-slate-500 font-bold max-w-2xl">
-                    المبيعات تتجاوز الأمس بـ <span className="text-emerald-500">15%</span>، ولا يوجد أي تأخير في العمليات. النظام مستقر.
+                    {rawGrowthText}، ولا يوجد أي تأخير في العمليات. النظام مستقر.
                   </p>
                 </div>
                 
@@ -1908,7 +1960,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   </div>
                   <div className="bg-slate-900 rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center">
                     <p className="text-slate-400 font-bold mb-4 uppercase tracking-widest text-sm">معدل النمو</p>
-                    <p className="text-5xl font-black text-emerald-400">+12%</p>
+                    <p className={cn("text-5xl font-black", isGrowthPos ? "text-emerald-400" : "text-rose-400")}>{growthValText}</p>
                   </div>
                 </div>
               </motion.div>
@@ -5046,6 +5098,52 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
             )}
           </AnimatePresence>
         </div>
+
+        {/* Anticipatory Intelligence: Smart Assistant */}
+        <AnimatePresence>
+          {showContextualAssist && !isExecutiveMode && false && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed bottom-24 left-4 md:left-8 z-40 bg-white border border-slate-100 p-4 md:pl-6 rounded-2xl md:rounded-full shadow-[0_20px_60px_rgba(0,0,0,0.12)] flex flex-col md:flex-row items-start md:items-center gap-4 max-w-[90vw] md:max-w-none"
+              dir="rtl"
+            >
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                 <div className="relative flex-shrink-0 w-10 h-10 flex items-center justify-center bg-indigo-50 rounded-full">
+                   <div className="absolute inset-0 border border-indigo-200 rounded-full animate-ping opacity-50" />
+                   <Sparkles size={20} className="text-indigo-600 relative z-10" />
+                 </div>
+                 <div className="flex flex-col">
+                   <p className="text-slate-900 font-black text-[13px] md:text-sm">حركة نشطة اليوم!</p>
+                   <p className="text-slate-500 text-[11px] md:text-xs font-bold leading-relaxed">
+                     تم تسجيل {totals.orders} طلبات، هل أقوم بتصدير قائمة التجهيز للمطبخ؟
+                   </p>
+                 </div>
+              </div>
+              <div className="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0 border-t border-slate-100 md:border-t-0 md:mr-4">
+                <button 
+                  onClick={() => {
+                    toast.success("تم إرسال القائمة بتنسيق فوري للمطبخ!", {
+                      icon: <CheckCircle className="text-emerald-500" />
+                    });
+                    setShowContextualAssist(false);
+                  }}
+                  className="flex-1 md:flex-none bg-slate-900 text-white px-5 py-2.5 rounded-full font-black text-[13px] shadow-lg shadow-slate-900/20 hover:scale-105 active:scale-95 transition-all"
+                >
+                  نعم، تصدير
+                </button>
+                <button 
+                  onClick={() => setShowContextualAssist(false)}
+                  className="px-4 py-2.5 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors rounded-full font-bold text-[13px]"
+                >
+                  تجاهل
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Anticipatory Intelligence: EOM Report */}
         <AnimatePresence>

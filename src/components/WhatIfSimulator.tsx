@@ -51,7 +51,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
 
  setIsGenerating(true);
  try {
- const product = data.products.find(p => p.id === selectedProductId) || data.products[0];
+ const product = (data?.products || []).find(p => p.id === selectedProductId) || data.products[0];
  const customPrompt = `
  بصفتك خبير تسويق استراتيجي لمحلات الحلويات والمطاعم في الكويت. قم بإنشاء خطة حملة ترويجية للمنتج التالي بناءً على البيانات:
  المنتج: ${product.name}
@@ -297,7 +297,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <input 
  type="number"
  step="0.25"
- value={customValue || data.products.find(p => p.id === selectedProductId)?.cost}
+ value={customValue || (data?.products || []).find(p => p.id === selectedProductId)?.cost}
  onChange={(e) => setCustomValue(parseFloat(e.target.value))}
  className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 font-black text-base md:text-lg text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[44px]"
  />

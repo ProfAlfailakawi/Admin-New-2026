@@ -61,7 +61,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
  const [analyzingCustomer, setAnalyzingCustomer] = useState<Customer | null>(null);
 
- const cancelledOrderInvoiceIds = new Set(data.orders.filter(o => o.status === 'cancelled' && o.isConvertedToInvoice && o.linkedInvoiceId).map(o => o.linkedInvoiceId));
+ const cancelledOrderInvoiceIds = new Set((data.orders || []).filter(o => o.status === 'cancelled' && o.isConvertedToInvoice && o.linkedInvoiceId).map(o => o.linkedInvoiceId));
  const activeInvoices = (data?.invoices || []).filter(inv => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id) && (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined));
 
  const getCustomerStats = (customerId: string) => {

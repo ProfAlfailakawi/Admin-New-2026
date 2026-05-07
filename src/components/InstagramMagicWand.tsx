@@ -64,7 +64,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
  </div>
 
  {/* Floating Action Button (Mobile) */}
- <div className="fixed bottom-12 left-6 z-[60] md:hidden">
+ <div className="fixed bottom-40 left-6 z-[60] md:hidden">
  <motion.button
  whileTap={{ scale: 0.8 }}
  onClick={() => setIsOpen(true)}

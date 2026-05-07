@@ -4,6 +4,7 @@ import { AppState, SupplierTransfer, PaymentMethod } from '../types';
 import { cn, normalizeArabic } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
+import { MagneticButton } from './ui/MagneticButton';
 import { toast } from 'sonner';
 
 interface SupplierAuditProps {
@@ -514,12 +515,13 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  >
  إلغاء التعديلات
  </button>
- <button 
+ <MagneticButton 
  onClick={handleAddTransfer}
+ intensity={0.15}
  className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
  >
  {transferForm.id ?"حفظ التعديلات" :"تأكيد وبدء التحويل"}
- </button>
+ </MagneticButton>
  </div>
  </motion.div>
  </motion.div>

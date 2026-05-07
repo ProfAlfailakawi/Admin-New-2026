@@ -402,9 +402,6 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
  </button>
  <div className={cn("transition-all duration-300 relative", activeSection === 'profile' ? "block" : "hidden")}>
- {appMode === 'local' && (
- <div className="absolute inset-0 bg-slate-50/10 backdrop-blur-[0.5px] z-20 cursor-not-allowed" />
- )}
  <div className="p-3 md:p-4 space-y-4">
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
  <div className="space-y-2">
@@ -413,7 +410,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  type="text"
  value={settings.companyName}
  onChange={e => setSettings({ ...settings, companyName: e.target.value })}
- className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
+ disabled={appMode === 'local'}
+ className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
  />
  </div>
  <div className="space-y-2">
@@ -424,7 +422,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  step="0.25"
  value={settings.gatewayFeeAmount}
  onChange={e => setSettings({ ...settings, gatewayFeeAmount: parseFloat(e.target.value) })}
- className="w-full p-2.5 pl-12 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
+ disabled={appMode === 'local'}
+ className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 pl-12 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
  />
  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">
  فلس
@@ -443,19 +442,20 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  />
  <div className="flex-1 space-y-2">
  <div className="flex items-center gap-3">
- <label className="flex items-center gap-2 text-secondary font-bold text-sm bg-secondary/5 px-4 py-2 rounded-lg border border-secondary/20 hover:bg-secondary/10 transition-colors cursor-pointer w-fit">
+ <label className={cn("flex items-center gap-2 text-sm px-4 py-2 rounded-lg border transition-colors w-fit", appMode === 'local' ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "text-secondary font-bold bg-secondary/5 border-secondary/20 hover:bg-secondary/10 cursor-pointer")}>
  <Upload size={16} />
- تغيير الشعار
- <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+ {appMode === 'local' ? 'مغلق في التجريبي' : 'تغيير الشعار'}
+ <input type="file" disabled={appMode === 'local'} accept="image/*" className="hidden" onChange={handleLogoUpload} />
  </label>
  
  {settings.companyLogo && (
  <button 
+ disabled={appMode === 'local'}
  onClick={() => setSettings({ ...settings, companyLogo: '' })}
- className="flex items-center gap-2 text-rose-500 font-bold text-sm bg-rose-50 px-4 py-2 rounded-lg border border-rose-100 hover:bg-rose-100 transition-colors cursor-pointer w-fit"
+ className={cn("flex items-center gap-2 text-sm px-4 py-2 rounded-lg border transition-colors w-fit", appMode === 'local' ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "text-rose-500 font-bold bg-rose-50 border-rose-100 hover:bg-rose-100 cursor-pointer")}
  >
  <RefreshCw size={16} />
- إزالة الشعار والعودة للافتراضي
+ إزالة الشعار
  </button>
 )}
  </div>
@@ -472,7 +472,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  placeholder="أضف أرقام (مثال: 96512345678, 96587654321)"
  value={settings.restaurantNumbers.join(', ')}
  onChange={e => setSettings({ ...settings, restaurantNumbers: e.target.value.split(',').map(s => s.trim()) })}
- className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
+ disabled={appMode === 'local'}
+ className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
  />
  </div>
  </div>
@@ -673,9 +674,6 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
  </button>
  <div className={cn("transition-all duration-300 relative", activeSection === 'store-status' ? "block" : "hidden")}>
- {appMode === 'local' && (
- <div className="absolute inset-0 bg-slate-50/10 backdrop-blur-[0.5px] z-20 cursor-not-allowed" />
- )}
  <div className="p-3 md:p-4 space-y-6">
  
  <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
@@ -703,7 +701,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <textarea 
  value={settings.storeStatus?.closeMessage || ''}
  onChange={e => setSettings(p => ({ ...p, storeStatus: { ...p.storeStatus!, closeMessage: e.target.value } }))}
- className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold"
+ disabled={appMode === 'local'}
+ className="disabled:opacity-50 w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold"
  placeholder="رسالة تظهر للعميل بدلاً من المتجر. مثال: عذراً المتجر مغلق، نعود قريباً."
  rows={2}
  />
@@ -711,11 +710,16 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 )}
 
  <div className="border border-slate-200 rounded-xl overflow-hidden mt-6">
- <div className="bg-slate-50 p-3 border-b border-slate-200">
+ <div className="bg-slate-50 p-3 border-b border-slate-200 flex justify-between items-center">
+ <div>
  <h3 className="font-bold text-slate-800">أوقات العمل المجدولة (حسب أيام الأسبوع)</h3>
  <p className="text-xs text-slate-500 mt-1">يتم فتح وإغلاق المتجر آلياً حسب هذه الأوقات إذا لم يكن الإغلاق اليدوي مفعلاً.</p>
  </div>
- <div className="overflow-x-auto">
+ {appMode === 'local' && (
+ <span className="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded font-bold">مغلق في التجريبي</span>
+ )}
+ </div>
+ <div className={cn("overflow-x-auto relative", appMode === 'local' ? "opacity-60 pointer-events-none" : "")}>
  <div className="divide-y divide-slate-100 min-w-[350px]">
  {[
  { id: 'sunday', name: 'الأحد' },
