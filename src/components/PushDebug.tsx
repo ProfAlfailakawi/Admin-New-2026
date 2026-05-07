@@ -14,7 +14,8 @@ const PushDebug: React.FC = () => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
-    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+    const HARDCODED_VAPID_KEY = "BGBVGMmmiXqCYZW3NaiCY1ipGqDYBQnFFVYSB3JNR9jLbf9cdblfOQAYIM0519CnFusu27PrtJItk0t4QBYmejc";
+    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || HARDCODED_VAPID_KEY;
 
     setDebugInfo({
       origin: window.location.origin,
@@ -56,7 +57,8 @@ const PushDebug: React.FC = () => {
     setTokenResult(null);
     setRegistrationResult(null);
 
-    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+    const HARDCODED_VAPID_KEY = "BGBVGMmmiXqCYZW3NaiCY1ipGqDYBQnFFVYSB3JNR9jLbf9cdblfOQAYIM0519CnFusu27PrtJItk0t4QBYmejc";
+    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || HARDCODED_VAPID_KEY;
     if (!vapidKey) {
       setTokenResult({ error: "VITE_FIREBASE_VAPID_KEY is missing from environment" });
       setLoading(false);
