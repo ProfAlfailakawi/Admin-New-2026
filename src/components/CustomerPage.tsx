@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import { toast } from 'sonner';
 import { NumericInput } from './ui/NumericInput';
+import TestimonialsManager from './TestimonialsManager';
 
 interface CustomerPageProps {
  data: AppState;
@@ -60,6 +61,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  const [shakingId, setShakingId] = useState<string | null>(null);
  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
  const [analyzingCustomer, setAnalyzingCustomer] = useState<Customer | null>(null);
+ const [showTestimonials, setShowTestimonials] = useState(false);
 
  const cancelledOrderInvoiceIds = new Set((data.orders || []).filter(o => o.status === 'cancelled' && o.isConvertedToInvoice && o.linkedInvoiceId).map(o => o.linkedInvoiceId));
  const activeInvoices = (data?.invoices || []).filter(inv => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id) && (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined));
@@ -271,13 +273,22 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
  />
  </div>
- <button 
- onClick={openAddModal}
- className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] w-full"
- >
- <UserPlus size={20} />
- <span>إضافة عميل جديد</span>
- </button>
+  <div className="flex gap-2">
+  <button 
+  onClick={openAddModal}
+  className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] flex-1"
+  >
+  <UserPlus size={20} />
+  <span>إضافة عميل جديد</span>
+  </button>
+  <button 
+  onClick={() => setShowTestimonials(true)}
+  className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98]"
+  title="إدارة آراء العملاء"
+  >
+  <MessageSquare size={20} className="text-amber-500" />
+  </button>
+  </div>
  </div>
  
  <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full lg:w-auto">
@@ -888,6 +899,60 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  </motion.div>
  </motion.div>
 )}
+ </AnimatePresence>
+
+ <AnimatePresence>
+  {showTestimonials && (
+   <motion.div 
+    initial={{ opacity: 0 }} 
+    animate={{ opacity: 1 }} 
+    exit={{ opacity: 0 }} 
+    className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[150] flex items-center justify-center p-4 md:p-8"
+    onClick={() => setShowTestimonials(false)}
+   >
+    <motion.div 
+     initial={{ opacity: 0, scale: 0.9, y: 40 }}
+     animate={{ opacity: 1, scale: 1, y: 0 }}
+     exit={{ opacity: 0, scale: 0.9, y: 40 }}
+     className="bg-slate-50 rounded-[2.5rem] w-full max-w-6xl h-full max-h-[90dvh] shadow-3xl p-6 md:p-10 border border-white/20 text-right overflow-hidden relative flex flex-col"
+     onClick={e => e.stopPropagation()}
+    >
+     <div className="flex justify-between items-center mb-8 shrink-0 flex-row-reverse">
+      <button 
+       onClick={() => setShowTestimonials(false)}
+       className="p-3 bg-white rounded-2xl shadow-sm hover:bg-slate-100 transition-all text-slate-400 hover:text-slate-600"
+      >
+       <X size={24} />
+      </button>
+     </div>
+     
+     <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+      <TestimonialsManager 
+       testimonials={data.testimonials || []}
+       onClose={() => setShowTestimonials(false)}
+       onAdd={(newT) => {
+        setData(prev => ({
+         ...prev,
+         testimonials: [newT, ...(prev.testimonials || [])]
+        }));
+       }}
+       onUpdate={(updatedT) => {
+        setData(prev => ({
+         ...prev,
+         testimonials: (prev.testimonials || []).map(t => t.id === updatedT.id ? updatedT : t)
+        }));
+       }}
+       onDelete={(id) => {
+        setData(prev => ({
+         ...prev,
+         testimonials: (prev.testimonials || []).filter(t => t.id !== id)
+        }));
+       }}
+      />
+     </div>
+    </motion.div>
+   </motion.div>
+  )}
  </AnimatePresence>
  </div>
 );
