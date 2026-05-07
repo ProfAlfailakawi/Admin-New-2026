@@ -11,6 +11,29 @@ type RegisterPushParams = {
 // Please configure this VAPID key using your Firebase Console
 const VAPID_KEY = process.env.VITE_FIREBASE_VAPID_KEY || "YOUR_PUBLIC_VAPID_KEY_FROM_FIREBASE"; // User should change this as needed if using another VAPID key. Wait, user config doesn't have it.
 
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+function isStandalonePWA() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as any).standalone === true
+  );
+}
+
+export function getPushSupportStatus() {
+  return {
+    notification: "Notification" in window,
+    serviceWorker: "serviceWorker" in navigator,
+    pushManager: "PushManager" in window,
+    standalone: isStandalonePWA(),
+    ios: isIOS(),
+    permission: "Notification" in window ? Notification.permission : "unsupported",
+    userAgent: navigator.userAgent,
+  };
+}
+
 export async function getFirebaseMessaging(): Promise<Messaging | null> {
   const supported = await isSupported();
   if (!supported) {
@@ -26,12 +49,17 @@ export async function registerPushNotifications({
 }: RegisterPushParams) {
   if (typeof window === "undefined") return null;
 
-  if (!("serviceWorker" in navigator)) {
-    throw new Error("هذا المتصفح لا يدعم Service Worker.");
+  const status = getPushSupportStatus();
+  console.log("Push Support Status:", status);
+
+  if (status.ios && !status.standalone) {
+    throw new Error(
+      "على الآيفون، أضف التطبيق إلى الشاشة الرئيسية ثم افتحه من الأيقونة لتفعيل الإشعارات."
+    );
   }
 
-  if (!("Notification" in window)) {
-    throw new Error("هذا المتصفح لا يدعم الإشعارات.");
+  if (!status.notification || !status.serviceWorker || !status.pushManager) {
+    throw new Error("هذا المتصفح لا يدعم إشعارات الويب على هذا الجهاز.");
   }
 
   const permission = await Notification.requestPermission();

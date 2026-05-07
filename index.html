@@ -6,9 +6,10 @@
     <title>شركة مطبخ التراث الكويتي</title>
     
     <!-- PWA Settings -->
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" type="image/svg+xml" href="/app-icon-v3.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon-v4.png" />
+    <link rel="manifest" href="/manifest.json?v=7" />
+    <link rel="icon" type="image/svg+xml" href="/app-icon-v3.svg?v=7" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=7" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=7" />
     <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-title" content="التراث" />
     <meta name="application-name" content="التراث" />
@@ -35,7 +36,7 @@
       if ('caches' in window) {
         caches.keys().then(function(names) {
           for (let name of names) {
-            if (name !== 'turaath-cache-v4') {
+            if (name !== 'turaath-cache-v7') {
               caches.delete(name);
             }
           }

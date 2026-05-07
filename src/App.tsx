@@ -64,6 +64,7 @@ const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'))
 const SupplierAudit = React.lazy(() => import('./components/SupplierAudit'));
 import CommandBar from './components/CommandBar';
 import ProactiveAlerts from './components/ProactiveAlerts';
+import InstallPrompt from './components/InstallPrompt';
 import { InstagramMagicWand } from './components/InstagramMagicWand';
 import { recalculateStateBalances } from './lib/business-logic';
 import { INITIAL_DATA, GET_DEMO_DATA } from './data';
@@ -243,6 +244,12 @@ const App: React.FC = () => {
     return localStorage.getItem('isAuthenticated') === 'true';
   });
   
+  // App mode & standalone
+  const [isStandalone, setIsStandalone] = useState(false);
+  useEffect(() => {
+    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
+  }, []);
+  
   // Persist app mode state
   const [appMode, setAppMode] = useState<'local' | 'cloud'>(() => {
     const savedMode = localStorage.getItem('appMode') as 'local' | 'cloud' | null;
@@ -303,6 +310,18 @@ const App: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+
+  const closeAllMenus = () => {
+    if (isMobile) setSidebarOpen(false);
+    setNotifOpen(false);
+    setCommandBarOpen(false);
+  };
+
+  // Global behavior: Close all menus on page change
+  useEffect(() => {
+    closeAllMenus();
+  }, [currentPage]);
 
   // Extreme Cache clearing for major updates
   useEffect(() => {
@@ -366,13 +385,21 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (notifOpen && notifRef.current && !notifRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      
+      // Close notifications if clicked outside
+      if (notifOpen && notifRef.current && !notifRef.current.contains(target)) {
         setNotifOpen(false);
+      }
+      
+      // Close mobile sidebar if clicked outside
+      if (isMobile && sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(target)) {
+        setSidebarOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [notifOpen]);
+  }, [notifOpen, isMobile, sidebarOpen]);
   
   useEffect(() => {
     const checkMobile = () => {
@@ -437,10 +464,10 @@ const App: React.FC = () => {
         const normalizedOrders = data.orders.map(o => {
             let correctName = o.customerName;
             if (o.customerId) {
-                const c = data.customers.find(c => c.id === o.customerId);
+                const c = (data?.customers || []).find(c => c.id === o.customerId);
                 if (c && c.name && c.name !== o.customerName) { correctName = c.name; }
             } else if (o.customerPhone) {
-                const c = data.customers.find(c => c.phone === o.customerPhone);
+                const c = (data?.customers || []).find(c => c.phone === o.customerPhone);
                 if (c && c.name && c.name !== o.customerName) { correctName = c.name; }
             }
             if (correctName && correctName !== o.customerName) {
@@ -550,7 +577,46 @@ const App: React.FC = () => {
     };
   }, [isAuthenticated, dataLoading]);
   
-  // Global Alert Engine - Analyzes data and generates AI notifications
+  // PWA Install Prompt Logic
+  const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  const sensitivePages = ['new-invoice', 'track'];
+  
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    const hasSeenPrompt = sessionStorage.getItem('pwa_install_prompt_seen') === 'true';
+
+    if (!isStandalone && !hasSeenPrompt && !sensitivePages.includes(currentPage)) {
+      const timer = setTimeout(() => {
+        setShowPwaPrompt(true);
+        sessionStorage.setItem('pwa_install_prompt_seen', 'true');
+      }, 5000); // Show after 5 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (showPwaPrompt) {
+        toast.custom((t) => (
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xl flex flex-col gap-2 font-bold text-sm min-w-[300px]" dir="rtl">
+            <span className="text-slate-900 border-b border-slate-100 pb-2 mb-1 flex items-center gap-2">
+              <DownloadCloud size={16} className="text-amber-500" />
+              لتثبيت التطبيق والسماح بالإشعارات:
+            </span>
+            <span className="text-slate-600 font-medium">1. من المتصفح (Safari / Chrome) اضغط على زر المشاركة أو الخيارات.</span>
+            <span className="text-slate-600 font-medium">2. اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).</span>
+            <span className="text-slate-600 font-medium mt-1 text-xs bg-slate-50 p-2 rounded-lg text-center">بمجرد تثبيته، ستتمكن من استقبال التنبيهات والأصوات!</span>
+            <button 
+              onClick={() => toast.dismiss((t as any).id)}
+              className="mt-2 text-xs text-slate-400 hover:text-slate-600"
+            >
+              إغلاق
+            </button>
+          </div>
+        ), { duration: 10000 });
+        setShowPwaPrompt(false);
+    }
+  }, [showPwaPrompt]);
+
   useEffect(() => {
     if (dataLoading) return;
 
@@ -1390,6 +1456,7 @@ const App: React.FC = () => {
 
       {/* Sidebar Navigation */}
       <motion.aside 
+        ref={sidebarRef}
         initial={false}
         animate={{ 
           width: isMobile ? (sidebarOpen ? 280 : 0) : (sidebarOpen ? 280 : 80),
@@ -1557,7 +1624,10 @@ const App: React.FC = () => {
         "flex-1 flex flex-col relative overflow-hidden transition-colors duration-1000"
       )}>
         {/* Top Header */}
-        <header className="h-12 md:h-20 bg-white/70 backdrop-blur-3xl border-b border-slate-200/50 flex items-center justify-between px-4 lg:px-10 z-[100] sticky top-0 shadow-sm">
+        <header 
+          onClick={closeAllMenus}
+          className="h-12 md:h-20 bg-white/70 backdrop-blur-3xl border-b border-slate-200/50 flex items-center justify-between px-4 lg:px-10 z-[100] sticky top-0 shadow-sm"
+        >
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-4 md:p-8 overflow-hidden shrink min-w-0">
             {userRole !== 'partner' && (
               <button 
@@ -1597,7 +1667,7 @@ const App: React.FC = () => {
              {/* Magic Command Bar Trigger */}
              {userRole !== 'partner' && (
               <button 
-                onClick={() => setCommandBarOpen(true)}
+                onClick={(e) => { e.stopPropagation(); setCommandBarOpen(true); }}
                 title="البحث السريع (Ctrl+K)"
                 className="flex items-center gap-2 sm:gap-4 bg-slate-50/80 hover:bg-white p-3 sm:px-5 sm:py-3 rounded-[1rem] sm:rounded-2xl border border-slate-200/50 transition-all group overflow-hidden shadow-sm hover:shadow-md hover:border-amber-400"
               >
@@ -1610,6 +1680,8 @@ const App: React.FC = () => {
                   </div>
                </button>
              )}
+
+              {/* Removed isStandalone button from header */}
 
               <button 
                 onClick={() => {
@@ -1643,7 +1715,7 @@ const App: React.FC = () => {
             {/* Notifications */}
             <div className="relative shrink-0" ref={notifRef}>
               <button 
-                onClick={() => setNotifOpen(!notifOpen)}
+                onClick={(e) => { e.stopPropagation(); setNotifOpen(!notifOpen); }}
                 className={cn(
                   "p-2 rounded-full transition-colors relative z-50",
                   notifOpen ? "bg-slate-100" : "hover:bg-slate-100"
@@ -1822,6 +1894,7 @@ const App: React.FC = () => {
           {/* Global Background Accents - Removed for performance */}
           <div className="fixed inset-0 pointer-events-none z-0">
           </div>
+          <InstallPrompt />
           <ProactiveAlerts 
             userRole={userRole}
             notifications={data.notifications || []} 

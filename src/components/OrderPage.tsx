@@ -29,6 +29,7 @@ import { db, auth } from '../firebase';
 import { getPublicUrl, getWebhookUrl } from '../lib/urlUtils';
 import { collection, query, onSnapshot, doc, updateDoc, setDoc, Timestamp, getDocs } from 'firebase/firestore';
 import { toast } from 'sonner';
+import { MagneticButton } from './ui/MagneticButton';
 
 enum OperationType {
  CREATE = 'create',
@@ -154,7 +155,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  setOrderDeliveryType(selectedOrder.isConvertedToInvoice ? (selectedOrder.deliveryType || 'company') : 'company');
  const addr = (selectedOrder as any).address;
  const zoneNameStr = addr?.region || selectedOrder.regionId;
- const zone = data.zones?.find(z => z.id === selectedOrder.regionId || z.name === zoneNameStr);
+ const zone = (data?.zones || []).find(z => z.id === selectedOrder.regionId || z.name === zoneNameStr);
  if (zone) {
  setOrderZoneId(zone.id);
  } else {
@@ -205,11 +206,11 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
 
  const getOrderCustomerName = (order: Order) => {
  if (order.customerId) {
- const c = data.customers.find(c => c.id === order.customerId);
+ const c = (data?.customers || []).find(c => c.id === order.customerId);
  if (c && c.name) return c.name;
  }
  if (order.customerPhone) {
- const c = data.customers.find(c => c.phone === order.customerPhone);
+ const c = (data?.customers || []).find(c => c.phone === order.customerPhone);
  if (c && c.name) return c.name;
  }
  return order.customerName;
@@ -269,7 +270,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
 
  const hasUnselectedSuppliers = (order: Order) => {
  const unresolved = order.items.some((item) => {
- const product = data.products.find(p => p.id === item.productId);
+ const product = (data?.products || []).find(p => p.id === item.productId);
  const productName = product?.name || (item as any).name || (item as any).productName || 'منتج غير معروف';
  const supplierOptions = data.products.filter(p => 
  p.isActive !== false && robustNormalize(p.name) === robustNormalize(productName)
@@ -302,11 +303,11 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  let itemsTotal = 0;
  try {
  itemsTotal = (order.items || []).reduce((sum, item) => {
- let p = data.products.find(prod => prod.id === item.productId);
+ let p = (data?.products || []).find(prod => prod.id === item.productId);
  if (!p) {
  const productName = (item as any).name || (item as any).productName || '';
  if (productName) {
- p = data.products.find(prod => 
+ p = (data?.products || []).find(prod => 
  prod.isActive !== false && robustNormalize(prod.name) === robustNormalize(productName)
  );
  }
@@ -341,7 +342,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  if (type === 'free') return 0;
  const addr = (order as any).address;
  const zoneNameStr = addr?.region || order.regionId;
- const zone = data.zones?.find(z => z.id === (overrideZoneId || order.regionId) || (!overrideZoneId && z.name === zoneNameStr));
+ const zone = (data?.zones || []).find(z => z.id === (overrideZoneId || order.regionId) || (!overrideZoneId && z.name === zoneNameStr));
  const dCost = zone ? zone.cost : 1.0;
  const dProfit = zone ? zone.profit : 0;
  return zone && zone.finalPrice !== undefined ? zone.finalPrice : (dCost + dProfit);
@@ -351,7 +352,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  if (type !== 'standard') return 0;
  const addr = (order as any).address;
  const zoneNameStr = addr?.region || order.regionId;
- const zone = data.zones?.find(z => z.id === (overrideZoneId || order.regionId) || (!overrideZoneId && z.name === zoneNameStr));
+ const zone = (data?.zones || []).find(z => z.id === (overrideZoneId || order.regionId) || (!overrideZoneId && z.name === zoneNameStr));
  return zone ? zone.profit : 0;
  };
 
@@ -362,7 +363,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
 
  // Handle Cancellation logic for converted orders
  if (newStatus === 'cancelled' && order.isConvertedToInvoice && order.linkedInvoiceId) {
- const linkedInv = data.invoices.find(inv => inv.id === order.linkedInvoiceId && !inv.isDeleted);
+ const linkedInv = (data?.invoices || []).find(inv => inv.id === order.linkedInvoiceId && !inv.isDeleted);
  
  if (linkedInv) {
  setData(prev => {
@@ -443,14 +444,14 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  const validName = orderNameStr.length > 0 && orderNameStr !== 'undefined' && orderNameStr !== 'null';
 
  // Prefer explicit customer ID if passed by mobile app and exists
- const existingById = order.customerId ? data.customers.find(c => c.id === order.customerId) : undefined;
+ const existingById = order.customerId ? (data?.customers || []).find(c => c.id === order.customerId) : undefined;
  
  const existingByName = (!existingById && validName)
- ? data.customers.find(c => c.name && normalizeArabic(String(c.name)) === normalizeArabic(orderNameStr))
+ ? (data?.customers || []).find(c => c.name && normalizeArabic(String(c.name)) === normalizeArabic(orderNameStr))
  : undefined;
 
  const existingByPhone = (!existingById && validPhone && orderPhoneStr !== '00000000') 
- ? data.customers.find(c => c.phone && String(c.phone).trim() === orderPhoneStr) 
+ ? (data?.customers || []).find(c => c.phone && String(c.phone).trim() === orderPhoneStr) 
  : undefined;
 
  // Priority logic:
@@ -509,12 +510,12 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  const addr = (order as any).address;
  const zoneNameStr = addr?.region || order.regionId;
  const effectiveZoneId = order.id === selectedOrder?.id && orderZoneId ? orderZoneId : order.regionId;
- const zone = data.zones?.find(z => z.id === effectiveZoneId || (!orderZoneId && z.name === zoneNameStr));
+ const zone = (data?.zones || []).find(z => z.id === effectiveZoneId || (!orderZoneId && z.name === zoneNameStr));
 
  const invoiceDeliveryFee = getOrderDeliveryFee(order, orderDeliveryType, effectiveZoneId);
  const invoiceDeliveryProfit = getOrderDeliveryProfit(order, orderDeliveryType, effectiveZoneId);
 
- const totalCost = order.items.reduce((sum, item) => sum + ((item.costAtTime || data.products.find(p => p.id === item.productId)?.cost || 0) * (item.quantity || 0)), 0);
+ const totalCost = order.items.reduce((sum, item) => sum + ((item.costAtTime || (data?.products || []).find(p => p.id === item.productId)?.cost || 0) * (item.quantity || 0)), 0);
  const gatewayFee = 0.250;
  const subtotalAmount = getOrderSubtotal(order);
  const discountVal = (order as any).discount || 0;
@@ -532,7 +533,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  if (!isActuallyPaid) {
  if (totalAmount > 0) {
  try {
- const customer = data.customers.find(c => c.id === targetCustomerId);
+ const customer = (data?.customers || []).find(c => c.id === targetCustomerId);
  const response = await fetch('/api/create-payment', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
@@ -569,7 +570,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  }
 
  const itemsWithPrices = order.items.map(item => {
- let p = data.products.find(prod => prod.id === item.productId);
+ let p = (data?.products || []).find(prod => prod.id === item.productId);
  let finalProductId = item.productId;
 
  // Auto-resolve unified product if there's exactly 1 supplier
@@ -601,7 +602,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
 
  // Check if there are any products that have multiple suppliers but haven't been selected yet
  const hasUnresolvedItems = order.items.some(it => {
- const product = data.products.find(p => p.id === it.productId);
+ const product = (data?.products || []).find(p => p.id === it.productId);
  const productName = product?.name || (it as any).name || (it as any).productName || '';
  const supplierOptions = data.products.filter(p => p.isActive !== false && robustNormalize(p.name) === robustNormalize(productName));
  return supplierOptions.length > 1 && !(it as any).supplierSelected;
@@ -722,7 +723,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  const discount = (order as any).discount || 0;
  const total = Math.max(0, subtotal + deliveryFee - discount);
 
- const linkedInvoice = order.linkedInvoiceId ? data.invoices.find(inv => inv.id === order.linkedInvoiceId) : undefined;
+ const linkedInvoice = order.linkedInvoiceId ? (data?.invoices || []).find(inv => inv.id === order.linkedInvoiceId) : undefined;
  console.log("DEBUG: Order:", order.id,"linkedInvoiceId:", order.linkedInvoiceId,"linkedInvoice:", linkedInvoice);
  const paymentLink = linkedInvoice?.paymentLink;
  console.log("DEBUG: Found paymentLink:", paymentLink);
@@ -739,7 +740,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  const addressLine = (order as any).address ? `\nالعنوان: ${(order as any).address}` : (linkedInvoice?.address && linkedInvoice.address !== 'غير محدد') ? `\nالعنوان: ${typeof linkedInvoice.address === 'object' ? [`${linkedInvoice.address.region||''}`, `ق${linkedInvoice.address.block||''}`, `ش${linkedInvoice.address.street||''}`, `م${linkedInvoice.address.building||''}`].filter(Boolean).join(' ') : linkedInvoice.address}` : linkedInvoice?.deliveryInfo?.zoneName ? `\nالعنوان: ${linkedInvoice.deliveryInfo.zoneName}` : '';
 const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 'عميل'} ${addressLine}\n${headerLine}\nالطلب:\n${items}\n\nالمجموع: ${subtotal.toFixed(3)} د.ك\nرسوم التوصيل: ${Number(deliveryFee).toFixed(3)} د.ك\n${promoLine}${footerLine}${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
 
- const phoneUsed = order.customerPhone || data.customers.find(c => c.id === order.customerId)?.phone || '';
+ const phoneUsed = order.customerPhone || (data?.customers || []).find(c => c.id === order.customerId)?.phone || '';
  return `https://wa.me/${phoneUsed.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
  };
 
@@ -1007,7 +1008,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  </thead>
  <tbody className="text-[11px] md:text-sm font-bold text-slate-700">
  {selectedOrder.items.map((item, idx) => {
- const product = data.products.find(p => p.id === item.productId);
+ const product = (data?.products || []).find(p => p.id === item.productId);
  const productName = product?.name || (item as any).name || (item as any).productName || 'منتج غير معروف';
  const supplierOptions = data.products.filter(p => 
  p.isActive !== false && robustNormalize(p.name) === robustNormalize(productName)
@@ -1042,7 +1043,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  if (selectedSupp) {
  const updatedItems = [...selectedOrder.items];
  updatedItems[idx] = { ...updatedItems[idx], productId: selectedSupp.id, priceAtTime: selectedSupp.price, costAtTime: selectedSupp.cost, supplierSelected: true } as any;
- const newSubtotal = updatedItems.reduce((sum, it) => sum + ((it.priceAtTime !== undefined ? it.priceAtTime : (data.products.find(p => p.id === it.productId)?.price || 0)) * (it.quantity || 0)), 0);
+ const newSubtotal = updatedItems.reduce((sum, it) => sum + ((it.priceAtTime !== undefined ? it.priceAtTime : ((data?.products || []).find(p => p.id === it.productId)?.price || 0)) * (it.quantity || 0)), 0);
  
  const newOrder = { ...selectedOrder, items: updatedItems, totalAmount: newSubtotal };
  setSelectedOrder(newOrder);
@@ -1052,11 +1053,11 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  orders: (prev.orders || []).map(o => o.id === selectedOrder.id ? { ...o, items: updatedItems, totalAmount: newSubtotal, updatedAt: new Date().toISOString() } : o)
  }));
  
- toast.success(`تم اختيار المورد: ${data.suppliers.find(s => s.id === selectedSupp.supplierId)?.name || 'غير معروف'}`);
+ toast.success(`تم اختيار المورد: ${(data?.suppliers || []).find(s => s.id === selectedSupp.supplierId)?.name || 'غير معروف'}`);
  
  // Auto-convert to invoice if all suppliers are selected and order is paid
  const stillNeedsSelection = updatedItems.some((it) => {
- const p = data.products.find(prod => prod.id === it.productId);
+ const p = (data?.products || []).find(prod => prod.id === it.productId);
  const pName = p?.name || (it as any).name || (it as any).productName || '';
  const options = data.products.filter(prod => prod.isActive !== false && robustNormalize(prod.name) === robustNormalize(pName));
  return options.length > 1 && !(it as any).supplierSelected;
@@ -1080,7 +1081,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <option value="" disabled>تحديد المورد</option>
  {supplierOptions.map(p => (
  <option key={p.id} value={p.id}>
- {data.suppliers.find(s => s.id === p.supplierId)?.name || 'مورد'} ({p.price.toFixed(3)})
+ {(data?.suppliers || []).find(s => s.id === p.supplierId)?.name || 'مورد'} ({p.price.toFixed(3)})
  </option>
 ))}
  </select>
@@ -1088,7 +1089,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  
  {(supplierOptions.length === 1 || isReadOnly) && (
  <div className="text-[9px] md:text-[11px] font-bold text-slate-500 bg-slate-100/80 px-1.5 md:px-3 py-1 md:py-2 rounded-md md:rounded-xl w-fit">
- المورد: {data.suppliers.find(s => s.id === data.products.find(p => p.id === item.productId)?.supplierId)?.name || 'غير معروف'}
+ المورد: {(data?.suppliers || []).find(s => s.id === (data?.products || []).find(p => p.id === item.productId)?.supplierId)?.name || 'غير معروف'}
  </div>
 )}
  
@@ -1205,7 +1206,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  إرسال فاتورة جديدة 💬
  </button>
  
- <button 
+ <MagneticButton 
   onClick={() => {
     if (isConfirmingCancel) return;
     if (!!(selectedOrder as any).paymentLink && isMarkedAsPaid) return;
@@ -1213,9 +1214,10 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
     setIsMarkedAsPaid(nPaid);
     updateOrderStatus(selectedOrder.id, nPaid ? 'paid' : 'pending');
   }}
+  intensity={0.2}
   disabled={!!(selectedOrder as any).paymentLink && isMarkedAsPaid}
   className={cn(
-    "w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-xs md:text-sm flex items-center justify-center gap-2 transition-all",
+    "w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-xs md:text-sm flex items-center justify-center gap-2 transition-all relative z-50",
     isMarkedAsPaid 
       ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" 
       : "bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95",
@@ -1224,7 +1226,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
 >
   <Wallet size={16} className="md:w-[18px]" />
   {isMarkedAsPaid ? "تم الدفع وتأكيد الحجز ✅" : "تأكيد استلام المبلغ 💰"}
-</button>
+</MagneticButton>
  
  <button 
  onClick={() => {
@@ -1286,7 +1288,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  if (addr.apartment) addrParts.push(`شقة ${addr.apartment}`);
  if (addr.time) timeStr = addr.time;
  } else {
- addrParts.push(addr || (selectedOrder as any).area || data.zones?.find(z => z.id === selectedOrder.regionId)?.name || selectedOrder.regionId || 'غير محدد');
+ addrParts.push(addr || (selectedOrder as any).area || (data?.zones || []).find(z => z.id === selectedOrder.regionId)?.name || selectedOrder.regionId || 'غير محدد');
  }
 
  // If there's a selectedOrder.createdAt or date, show the time alongside the address

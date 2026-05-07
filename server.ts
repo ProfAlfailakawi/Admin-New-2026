@@ -187,8 +187,8 @@ async function startServer() {
           notification: {
             icon: "/vite.svg",
             badge: "/vite.svg",
-            requireInteraction: "true",
-            vibrate: "200, 100, 200",
+            requireInteraction: true,
+            vibrate: [200, 100, 200],
           },
         },
       };
@@ -254,7 +254,7 @@ async function startServer() {
           notification: {
             icon: "/vite.svg",
             badge: "/vite.svg",
-            vibrate: "200, 100, 200",
+            vibrate: [200, 100, 200],
           },
         },
       };
