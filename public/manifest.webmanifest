@@ -1,0 +1,33 @@
+{
+  "name": "شركة مطبخ التراث الكويتي",
+  "short_name": "التراث",
+  "description": "لوحة إدارة طلبات مطبخ التراث الكويتي",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar-KW",
+  "background_color": "#ffffff",
+  "theme_color": "#E9163D",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -29,8 +29,8 @@ messaging.onBackgroundMessage((payload) => {
 
   self.registration.showNotification(title, {
     body,
-    icon: payload.data?.icon || "/vite.svg", // standard icon or adjust if they have another
-    badge: payload.data?.badge || "/vite.svg",
+    icon: payload.data?.icon || "/icons/icon-192.png", 
+    badge: payload.data?.badge || "/icons/icon-192.png",
     data: {
       url,
       orderId,
