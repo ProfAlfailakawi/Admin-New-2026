@@ -73,7 +73,8 @@ export async function registerPushNotifications({
 
   let token;
   try {
-    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+    const HARDCODED_VAPID_KEY = "BGBVGMmmiXqCYZW3NaiCY1ipGqDYBQnFFVYSB3JNR9jLbf9cdblfOQAYIM0519CnFusu27PrtJItk0t4QBYmejc";
+    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || HARDCODED_VAPID_KEY;
 
     if (!vapidKey || vapidKey.includes("YOUR_")) {
       throw new Error("VAPID Key غير مضبوط. أضف VITE_FIREBASE_VAPID_KEY في Environment Secrets ثم أعد النشر.");

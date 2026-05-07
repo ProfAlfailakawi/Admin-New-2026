@@ -90,7 +90,7 @@ export const EnableNotificationsButton: React.FC<Props> = ({ userId, restaurantI
             <p><span className="text-slate-500">Display Mode (Standalone):</span> {JSON.stringify(debugInfo.standalone)}</p>
             <p><span className="text-slate-500">iOS Detected:</span> {JSON.stringify(debugInfo.ios)}</p>
             <p><span className="text-slate-500">Current Permission:</span> {debugInfo.permission}</p>
-            <p><span className="text-slate-500">VAPID Key Exists:</span> {import.meta.env.VITE_FIREBASE_VAPID_KEY ? 'Yes' : 'No'}</p>
+            <p><span className="text-slate-500">VAPID Key Exists:</span> {(import.meta.env.VITE_FIREBASE_VAPID_KEY || "BGBVGMmmiXqCYZW3NaiCY1ipGqDYBQnFFVYSB3JNR9jLbf9cdblfOQAYIM0519CnFusu27PrtJItk0t4QBYmejc") ? 'Yes' : 'No'}</p>
             {debugInfo.token && <p><span className="text-slate-500">FCM Token:</span> {debugInfo.token}</p>}
             {debugInfo.error && <p className="text-red-400"><span className="text-red-500/50">Error:</span> {debugInfo.error}</p>}
           </div>
