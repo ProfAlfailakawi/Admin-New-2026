@@ -20,8 +20,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
  const [showIOSPrompt, setShowIOSPrompt] = useState(false);
 
- useEffect(() => {
-   setIsStandalone(window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true);
+  useEffect(() => {
+   const checkIsStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+   setIsStandalone(checkIsStandalone);
    
    const handleBeforeInstallPrompt = (e: Event) => {
      e.preventDefault();
@@ -30,12 +31,11 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
    // One-time prompt on load
-   if (!sessionStorage.getItem('pwa_install_prompt_seen')) {
+   if (!checkIsStandalone && !sessionStorage.getItem('pwa_prompt_dismissed')) {
       // Small timeout to not block initial render
       setTimeout(() => {
         showInstallToast();
       }, 2000);
-      sessionStorage.setItem('pwa_install_prompt_seen', 'true');
    }
 
    return () => {
@@ -44,12 +44,18 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  }, []);
 
   const showInstallToast = async () => {
+    const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    if (checkStandalone) return;
+    
     if (deferredPrompt) {
       try {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
+          sessionStorage.setItem('pwa_prompt_dismissed', 'true');
           setDeferredPrompt(null);
+        } else {
+          sessionStorage.setItem('pwa_prompt_dismissed', 'true');
         }
       } catch (e) {
         console.error("PWA prompt error", e);
@@ -59,6 +65,11 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
     }
     
     setShowIOSPrompt(true);
+  };
+  
+  const handleCloseIOSPrompt = () => {
+    setShowIOSPrompt(false);
+    sessionStorage.setItem('pwa_prompt_dismissed', 'true');
   };
 
  const handleLogin = (e: React.FormEvent) => {
@@ -230,7 +241,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
            className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm w-full relative"
            dir="rtl"
          >
-           <button onClick={() => setShowIOSPrompt(false)} className="absolute top-4 left-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors">
+           <button onClick={handleCloseIOSPrompt} className="absolute top-4 left-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors">
              <X size={20} />
            </button>
            <div className="flex items-center gap-3 mb-4 border-b border-slate-100 pb-4">
@@ -258,7 +269,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
                </li>
              </ul>
            </div>
-           <button onClick={() => setShowIOSPrompt(false)} className="mt-6 w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-sm active:scale-95">
+           <button onClick={handleCloseIOSPrompt} className="mt-6 w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-sm active:scale-95">
              حسناً، فهمت
            </button>
          </motion.div>

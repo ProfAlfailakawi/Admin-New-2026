@@ -73,7 +73,10 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const [discountValue, setDiscountValue] = useState(0);
 
  // Address and Notes
- const [addressText, setAddressText] = useState('');
+ const [addressDetails, setAddressDetails] = useState({
+  block: '', street: '', jaddah: '', building: '', floor: '', apartment: ''
+ });
+ const [addressModified, setAddressModified] = useState(false);
  const [notesText, setNotesText] = useState('');
  const [isZenMode, setIsZenMode] = useState(false);
 
@@ -182,11 +185,20 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  
  let addrStr = '';
  if (inv.address && typeof inv.address === 'object') {
+ setAddressDetails({
+   block: inv.address.block || '',
+   street: inv.address.street || '',
+   jaddah: inv.address.jaddah || '',
+   building: inv.address.building || inv.address.house || '',
+   floor: inv.address.floor || '',
+   apartment: inv.address.apartment || ''
+ });
  addrStr = `${inv.address.region || ''} ق${inv.address.block || ''} ش${inv.address.street || ''} م${inv.address.building || ''}`.trim();
  } else {
+ setAddressDetails({block: '', street: '', jaddah: '', building: '', floor: '', apartment: ''});
  addrStr = inv.address || '';
  }
- setAddressText(addrStr);
+ setAddressModified(false);
  setNotesText(inv.notes || '');
  }
  } else {
@@ -200,7 +212,8 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  setIsManualDelivery(false);
  setCart({});
  setInvoiceDate(new Date().toISOString().slice(0, 10));
- setAddressText('');
+ setAddressDetails({block: '', street: '', jaddah: '', building: '', floor: '', apartment: ''});
+ setAddressModified(false);
  setNotesText('');
  }
  }, [editingInvoiceId, data.invoices, data.zones, data.products]);
@@ -291,18 +304,27 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  if (customer) {
  setCustomerPhone(customer.phone);
  
- // Auto-fill address if not already manually set
- if (!addressText) {
+ // Auto-fill address if not already manually modified
+ if (!addressModified) {
  // Check if the order/invoice has raw address object or inferred area
  const addressObject = (customer as any).address;
  if (addressObject && typeof addressObject === 'object') {
+ setAddressDetails({
+   block: addressObject.block || '',
+   street: addressObject.street || '',
+   jaddah: addressObject.jaddah || '',
+   building: addressObject.building || addressObject.house || '',
+   floor: addressObject.floor || '',
+   apartment: addressObject.apartment || ''
+ });
  const addrStr = `${addressObject.region || ''} ق${addressObject.block || ''} ش${addressObject.street || ''} م${addressObject.building || ''}`.trim();
- if (addrStr) setAddressText(addrStr);
  
  const matchedZone = (data.zones || []).find(z => z.name === addressObject.region);
  if (matchedZone) {
  setSelectedZoneId(matchedZone.id);
  }
+ } else {
+ setAddressDetails({block: '', street: '', jaddah: '', building: '', floor: '', apartment: ''});
  }
  }
  }
@@ -517,8 +539,22 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const [paymentLink, setPaymentLink] = useState<string | null>(null);
 
  const handleCreateInvoice = async () => {
+  if (!selectedCustomerId || cartItems.length === 0) {
+    toast.error('يرجى اختيار العميل وإضافة منتجات');
+    return;
+  }
+  
+  if (!selectedZoneId && !isManualDelivery) {
+    toast.error("يجب اختيار منطقة أو تفعيل الإدخال اليدوي");
+    return;
+  }
+
+  if (!addressDetails.block.trim() || !addressDetails.street.trim() || !addressDetails.building.trim()) {
+    toast.error('يرجى تعبئة الحقول الإلزامية للعنوان (القطعة، الشارع، المنزل)');
+    return;
+  }
+
   setLoading(true);
- if (!selectedCustomerId || cartItems.length === 0) return;
 
  const gatewayFee = data.settings.gatewayFeeAmount || 0;
  const invoiceId = editingInvoiceId || `INV-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
@@ -563,11 +599,6 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  toast.error("خطأ في الاتصال بخادم الدفع");
  }
  }
-
- if (!selectedZoneId && !isManualDelivery) {
- toast.warning("يجب اختيار منطقة أو تفعيل الإدخال اليدوي");
- return;
- }
  
  // Create the optional delivery info object
  const finalDeliveryInfo = (deliveryCompany || selectedZoneId || isManualDelivery || deliveryFee > 0) ? {
@@ -587,18 +618,15 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const newInvoice: Invoice = {
  id: invoiceId,
  customerId: selectedCustomerId,
-   address: addressText || (() => {
-    const custAddr = ((data.customers || []).find(c => c.id === selectedCustomerId) as any)?.address;
-    if (custAddr) {
-      if (typeof custAddr === 'object') {
-        const addrStr = [`${custAddr.region||''}`, `ق${custAddr.block||''}`, `ش${custAddr.street||''}`, `م${custAddr.building||''}`].filter(Boolean).join(' ');
-        if (addrStr.trim()) return addrStr;
-      } else {
-        return custAddr;
-      }
-    }
-    return finalDeliveryInfo?.zoneName;
-  })() || "غير محدد",
+ address: {
+   region: (data.zones || []).find(z => z.id === selectedZoneId)?.name || 'غير محدد',
+   block: addressDetails.block,
+   street: addressDetails.street,
+   jaddah: addressDetails.jaddah,
+   building: addressDetails.building,
+   floor: addressDetails.floor,
+   apartment: addressDetails.apartment
+ },
  notes: notesText ||"---",
  items: cartItems.map(item => ({
  productId: item.product!.id,
@@ -643,22 +671,30 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
 
   // Update customer address if changed or missing
   let updatedCustomers = [...(prev?.customers || [])];
-  if (!editingInvoiceId && selectedCustomerId && addressText.trim()) {
+  if (!editingInvoiceId && selectedCustomerId) {
     updatedCustomers = updatedCustomers.map(cust => {
       if (cust.id === selectedCustomerId) {
-        const zone = (data.zones || []).find(z => z.id === selectedZoneId);
-        const regionName = (zone && !isManualDelivery) ? zone.name : (cust.area || '');
         const custAddr = (cust as any).address;
-        return {
-          ...cust,
-          area: regionName,
-          address: {
-            region: regionName,
-            block: typeof custAddr === 'object' ? custAddr.block : '',
-            street: addressText.trim(),
-            building: typeof custAddr === 'object' ? custAddr.building : ''
-          }
-        } as any;
+        const hasExistingValidAddress = custAddr && typeof custAddr === 'object' && custAddr.block && custAddr.street && custAddr.building;
+        
+        if (addressModified || !hasExistingValidAddress) {
+          const zone = (data.zones || []).find(z => z.id === selectedZoneId);
+          const regionName = (zone && !isManualDelivery) ? zone.name : (cust.area || '');
+          
+          return {
+            ...cust,
+            area: regionName,
+            address: {
+              region: regionName,
+              block: addressDetails.block,
+              street: addressDetails.street,
+              jaddah: addressDetails.jaddah,
+              building: addressDetails.building,
+              floor: addressDetails.floor,
+              apartment: addressDetails.apartment
+            }
+          } as any;
+        }
       }
       return cust;
     });
@@ -1396,17 +1432,64 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  </div>
 
  {/* Address */}
- <div className="space-y-1.5 pt-4 border-t border-slate-100">
+ <div className="space-y-3 pt-4 border-t border-slate-100">
  <label className="text-[10px] font-black text-slate-400 mr-2 flex items-center justify-end gap-1">
- <MapPin size={10} /> العنوان التفصيلي (اختياري)
+ <MapPin size={10} /> تفاصيل العنوان (يتم حفظها للعميل)
  </label>
- <input 
- type="text" 
- value={addressText}
- onChange={(e) => setAddressText(e.target.value)}
- placeholder="قطعة، شارع، منزل..."
- className="w-full bg-white border border-slate-200 rounded-2xl py-3.5 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
- />
+ <div className="grid grid-cols-2 gap-2">
+   <input 
+     type="text" 
+     value={addressDetails.block}
+     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, block: e.target.value}))}}
+     placeholder="القطعة *"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
+     dir="rtl"
+   />
+   <input 
+     type="text" 
+     value={addressDetails.street}
+     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, street: e.target.value}))}}
+     placeholder="الشارع *"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
+     dir="rtl"
+   />
+ </div>
+ <div className="grid grid-cols-2 gap-2">
+   <input 
+     type="text" 
+     value={addressDetails.jaddah}
+     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, jaddah: e.target.value}))}}
+     placeholder="الجادة (اختياري)"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
+     dir="rtl"
+   />
+   <input 
+     type="text" 
+     value={addressDetails.building}
+     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, building: e.target.value}))}}
+     placeholder="المنزل *"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
+     dir="rtl"
+   />
+ </div>
+ <div className="grid grid-cols-2 gap-2">
+   <input 
+     type="text" 
+     value={addressDetails.floor}
+     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, floor: e.target.value}))}}
+     placeholder="الدور (اختياري)"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
+     dir="rtl"
+   />
+   <input 
+     type="text" 
+     value={addressDetails.apartment}
+     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, apartment: e.target.value}))}}
+     placeholder="الشقة (اختياري)"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
+     dir="rtl"
+   />
+ </div>
  </div>
  </div>
 
