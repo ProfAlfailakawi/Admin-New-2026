@@ -18,6 +18,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  const [loading, setLoading] = useState(false);
  const [isStandalone, setIsStandalone] = useState(true);
  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+ const [showIOSPrompt, setShowIOSPrompt] = useState(false);
 
  useEffect(() => {
    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true);
@@ -42,34 +43,23 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
    };
  }, []);
 
- const showInstallToast = async () => {
-   if (deferredPrompt) {
-     deferredPrompt.prompt();
-     const { outcome } = await deferredPrompt.userChoice;
-     if (outcome === 'accepted') {
-       setDeferredPrompt(null);
-     }
-     return;
-   }
-   
-   toast.custom((t) => (
-     <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xl flex flex-col gap-2 font-bold text-sm min-w-[300px] z-[9999]" dir="rtl">
-       <span className="text-slate-900 border-b border-slate-100 pb-2 mb-1 flex items-center gap-2">
-         <DownloadCloud size={16} className="text-amber-500" />
-         لتثبيت التطبيق والسماح بالإشعارات:
-       </span>
-       <span className="text-slate-600 font-medium">1. من المتصفح (Safari / Chrome) اضغط على زر المشاركة أو الخيارات.</span>
-       <span className="text-slate-600 font-medium">2. اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).</span>
-       <span className="text-slate-600 font-medium mt-1 text-xs bg-slate-50 p-2 rounded-lg text-center">بمجرد تثبيته، ستتمكن من استقبال التنبيهات والأصوات!</span>
-       <button 
-         onClick={() => toast.dismiss(t)}
-         className="mt-2 text-xs text-slate-400 hover:text-slate-600"
-       >
-         إغلاق
-       </button>
-     </div>
-   ), { duration: 10000 });
- };
+  const showInstallToast = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setDeferredPrompt(null);
+        }
+      } catch (e) {
+        console.error("PWA prompt error", e);
+        setShowIOSPrompt(true);
+      }
+      return;
+    }
+    
+    setShowIOSPrompt(true);
+  };
 
  const handleLogin = (e: React.FormEvent) => {
  e.preventDefault();
@@ -229,6 +219,53 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  شركة مطبخ التراث الكويتي &copy; {new Date().getFullYear()}
  </div>
  </motion.div>
+
+  <AnimatePresence>
+    {showIOSPrompt && (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+         <motion.div 
+           initial={{ opacity: 0, scale: 0.95 }}
+           animate={{ opacity: 1, scale: 1 }}
+           exit={{ opacity: 0, scale: 0.95 }}
+           className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm w-full relative"
+           dir="rtl"
+         >
+           <button onClick={() => setShowIOSPrompt(false)} className="absolute top-4 left-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors">
+             <X size={20} />
+           </button>
+           <div className="flex items-center gap-3 mb-4 border-b border-slate-100 pb-4">
+             <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600">
+               <DownloadCloud size={20} />
+             </div>
+             <h3 className="font-black text-lg text-slate-800">تثبيت التطبيق</h3>
+           </div>
+           <div className="space-y-4">
+             <p className="text-slate-600 font-medium text-sm leading-relaxed">
+               لتثبيت التطبيق على جهازك للوصول السريع وتفعيل الإشعارات:
+             </p>
+             <ul className="text-sm font-medium text-slate-600 space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100 mt-2">
+               <li className="flex items-center gap-2">
+                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-black text-slate-500">1</span>
+                 <span>اضغط على زر المشاركة <Share size={14} className="inline text-blue-500 mx-0.5" /> المتصفح</span>
+               </li>
+               <li className="flex items-center gap-2">
+                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-black text-slate-500">2</span>
+                 <span>اختر "إضافة إلى الشاشة الرئيسية"</span>
+               </li>
+               <li className="flex items-center gap-2">
+                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-black text-slate-500">3</span>
+                 <span>اضغط "إضافة" (Add) في الأعلى</span>
+               </li>
+             </ul>
+           </div>
+           <button onClick={() => setShowIOSPrompt(false)} className="mt-6 w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-sm active:scale-95">
+             حسناً، فهمت
+           </button>
+         </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
+
  </div>
 );
 };
