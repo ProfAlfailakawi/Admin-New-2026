@@ -118,6 +118,7 @@ const SmartOffersCalculator = React.lazy(() =>
 );
 import { FutureForecast } from "./FutureForecast";
 import { CommandBrief } from "./CommandBrief";
+import { ProfitGuardFeature, SupplierNegotiatorFeature, BusinessHealthFeature } from "./DashboardFeatures";
 const BusinessHealthIndex = React.lazy(() =>
   import("./BusinessHealthIndex").then((m) => ({
     default: m.BusinessHealthIndex,
@@ -2503,6 +2504,15 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         style={{ animationDuration: "3s" }}
                       />
                     </h2>
+                    <p className="text-slate-400 font-bold mb-8 relative z-10">
+                      مجموعة من الأدوات المتطورة التي تراقب صحة عملك بشكل آلي وتحذرك قبل وقوع الأزمات.
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full relative z-10">
+                      <ProfitGuardFeature data={data} />
+                      <SupplierNegotiatorFeature data={data} />
+                      <BusinessHealthFeature data={data} />
+                    </div>
                     <p className="text-indigo-200 text-lg font-medium leading-relaxed max-w-2xl relative z-10 mb-8">
                       النظام لا يقف ثابتاً أبداً. إنه يتتبع كل توقع قام به،
                       يقارنه بالنتائج الحقيقية على أرض الواقع، يكتشف الأخطاء،

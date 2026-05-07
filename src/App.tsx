@@ -65,6 +65,7 @@ const SupplierAudit = React.lazy(() => import('./components/SupplierAudit'));
 import CommandBar from './components/CommandBar';
 import ProactiveAlerts from './components/ProactiveAlerts';
 import InstallPrompt from './components/InstallPrompt';
+import CloudStatus from './components/CloudStatus';
 import { InstagramMagicWand } from './components/InstagramMagicWand';
 import { recalculateStateBalances } from './lib/business-logic';
 import { INITIAL_DATA, GET_DEMO_DATA } from './data';
@@ -1444,9 +1445,14 @@ const App: React.FC = () => {
            <div className="flex items-center gap-4 w-full justify-center lg:justify-start">
             <LogoEngine src={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO} variant="royal" />
             {(sidebarOpen || isMobile) && (
-              <div className="text-right whitespace-nowrap overflow-hidden">
-                  <div className="font-black text-xl tracking-tight bg-gradient-to-l from-white via-amber-200 to-amber-500 bg-clip-text text-transparent">التراث الكويتي</div>
-                  <div className="text-[10px] text-amber-500/80 font-black uppercase tracking-[0.2em] leading-none mt-1">المحرك الذهبي</div>
+              <div className="flex flex-col">
+                <div className="text-right whitespace-nowrap overflow-hidden">
+                    <div className="font-black text-xl tracking-tight bg-gradient-to-l from-white via-amber-200 to-amber-500 bg-clip-text text-transparent">التراث الكويتي</div>
+                    <div className="text-[10px] text-amber-500/80 font-black uppercase tracking-[0.2em] leading-none mt-1">المحرك الذهبي</div>
+                </div>
+                <div className="mt-1">
+                  <CloudStatus />
+                </div>
               </div>
             )}
           </div>
