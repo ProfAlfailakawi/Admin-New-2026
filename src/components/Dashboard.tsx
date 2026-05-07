@@ -280,7 +280,7 @@ export type DashboardTab =
   | "loyalty"
   | "promocodes";
 
-// Build Version: 2026-04-21-PULSE-4X3-STRICT-V3.1.5
+// Build Version: 2026-04-21-PULSE-4X3-STRICT-V3.2.0
 // Helper for dynamic supplier pricing analysis
 const getSupplierPriceIndicator = (s: any) => {
   if (!s || !s.name) return { val: "0.0%", type: "stable" };
@@ -549,7 +549,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
       <div className="absolute top-3 md:p-4 left-10 flex gap-4">
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
         <div className="text-[10px] font-mono text-slate-600">
-          REACTOR_STABLE_V3.1.5
+          REACTOR_STABLE_V3.2.0
         </div>
       </div>
       <div className="absolute bottom-10 right-10 flex items-center gap-4">

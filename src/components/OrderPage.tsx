@@ -17,8 +17,7 @@ import {
  MapPin,
  Package,
  TrendingUp,
- Wallet,
- RefreshCw
+ Wallet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, normalizeArabic, robustNormalize } from '../lib/utils';
@@ -360,6 +359,22 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  try {
  const order = orders.find(o => o.id === orderId);
  if (!order) return;
+
+  if (typeof window !== 'undefined') {
+    import('../lib/haptics').then(m => {
+      // big sum -> premium
+      const orderTotal = (order.total || 0).valueOf();
+      if (newStatus === 'cancelled') {
+        m.triggerHaptic('heavy');
+      } else if (orderTotal > 50) {
+        m.triggerHaptic('success');
+        m.playPremiumSound('vip');
+      } else {
+        m.triggerHaptic('medium');
+        m.playPremiumSound('normal');
+      }
+    });
+  }
 
  // Handle Cancellation logic for converted orders
  if (newStatus === 'cancelled' && order.isConvertedToInvoice && order.linkedInvoiceId) {
@@ -762,19 +777,6 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  </div>
  </div>
  
- <button 
- onClick={() => {
- toast.promise(new Promise(r => setTimeout(r, 1000)), {
- loading: 'جاري تحديث البيانات...',
- success: 'تم التحديث بنجاح',
- error: 'فشل التحديث'
- });
- }}
- className="p-3 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded-2xl transition-all border border-white/5"
- title="تحديث يدوي"
- >
- <RefreshCw size={24} />
- </button>
  </div>
  </div>
 
@@ -818,13 +820,38 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <p className="text-slate-400 font-black text-xl animate-pulse">جاري مزامنة الطلبات الفورية...</p>
  </div>
 ) : filteredOrders.length === 0 ? (
- <div className="text-center py-40">
- <div className="w-32 h-32 bg-slate-50 flex items-center justify-center rounded-full mx-auto mb-8 border border-slate-100">
- <ClipboardList size={56} className="text-slate-200" />
- </div>
- <h3 className="text-slate-900 font-black text-2xl mb-3">السجل فارغ حالياً</h3>
- <p className="text-slate-400 font-bold max-w-sm mx-auto">لا توجد طلبات تطابق اختياراتك. جرب تغيير الفلتر.</p>
- </div>
+  <motion.div 
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="flex flex-col items-center justify-center py-40 min-h-[50vh]"
+  >
+    {statusFilter === 'pending' || activeTab === 'pending' ? (
+      <>
+        <motion.div
+          animate={{
+            scale: [1, 1.05, 1],
+            opacity: [0.6, 1, 0.6],
+            filter: ["blur(0px)", "blur(4px)", "blur(0px)"]
+          }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          className="w-32 h-32 bg-emerald-100 rounded-full flex items-center justify-center mb-8 relative"
+        >
+          <div className="absolute inset-0 bg-emerald-300 rounded-full blur-2xl opacity-50" />
+          <p className="text-5xl relative z-10">✨</p>
+        </motion.div>
+        <h3 className="text-emerald-600 font-black text-3xl mb-4 tracking-tight">إنجاز مبهر!</h3>
+        <p className="text-emerald-500/80 font-bold max-w-sm mx-auto text-lg text-center">لا توجد طلبات معلقة والعمليات تعمل بهدوء تام. استمتع بلحظات النجاح الصافية.</p>
+      </>
+    ) : (
+      <>
+        <div className="w-32 h-32 bg-slate-50 flex items-center justify-center rounded-full mx-auto mb-8 border border-slate-100">
+          <ClipboardList size={56} className="text-slate-200" />
+        </div>
+        <h3 className="text-slate-900 font-black text-2xl mb-3">السجل فارغ حالياً</h3>
+        <p className="text-slate-400 font-bold max-w-sm mx-auto">لا توجد طلبات تطابق اختياراتك. جرب تغيير الفلتر.</p>
+      </>
+    )}
+  </motion.div>
 ) : (
  <div className="grid grid flex-col md:grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 space-y-3 md:space-y-0 gap-3 md:p-4 lg:gap-4 md:p-3">
  {filteredOrders.map((order) => {
