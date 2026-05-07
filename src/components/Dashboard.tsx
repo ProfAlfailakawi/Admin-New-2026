@@ -836,6 +836,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     const [isPending, startTransition] = useTransition();
     const [isLoyaltyAnalyzing, setIsLoyaltyAnalyzing] = useState(false);
     const [showLoyaltyResult, setShowLoyaltyResult] = useState(false);
+    const [showTabsDropdown, setShowTabsDropdown] = useState(false);
     const [activeAdviceContent, setActiveAdviceContent] = useState<
       string | null
     >(null);
@@ -1699,111 +1700,224 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
         };
       }
     };
+    
+    const getSystemMoodStyles = () => {
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 12) {
+        // Morning: Soft, glowing, fresh
+        return "from-amber-100/60 via-slate-50/40 to-transparent";
+      } else if (hour >= 12 && hour < 17) {
+        // Afternoon: Active, bright
+        return "from-blue-50/60 via-slate-50/40 to-transparent";
+      } else if (hour >= 17 && hour < 20) {
+        // Sunset: Warm, relaxing transition
+        return "from-orange-50/50 via-slate-50/30 to-transparent";
+      } else {
+        // Night/Quiet: Deep, minimal, focus
+        return "from-indigo-900/10 via-slate-900/5 to-transparent";
+      }
+    };
+
+    const isMonthEnd = () => {
+      const today = new Date();
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+      return today.getDate() >= lastDay - 2; // last 3 days of the month
+    };
+
+    const [isExecutiveMode, setIsExecutiveMode] = useState(false);
+
     const greeting = getContextualGreeting();
+    const systemMoodClass = getSystemMoodStyles();
 
     return (
-      <div className="space-y-12 pb-32 animate-in fade-in duration-500 relative overflow-visible">
+      <div className={cn("dashboard w-full pb-32 animate-in fade-in duration-500 relative overflow-visible transition-colors", isExecutiveMode ? "bg-slate-50 min-h-screen" : "")}>
         {/* Dynamic Background Pattern */}
-        <div className="absolute -top-32 right-0 left-0 h-[800px] pointer-events-none -z-10 opacity-70">
-          <div className="absolute inset-0 bg-gradient-to-b from-amber-50/40 via-slate-50/20 to-transparent" />
+        <div className="absolute -top-32 right-0 left-0 h-[800px] pointer-events-none -z-10 opacity-70 transition-all duration-1000 ease-in-out">
+          <div className={cn("absolute inset-0 bg-gradient-to-b transition-colors duration-1000 ease-in-out", systemMoodClass)} />
           <div
             className="absolute inset-0 opacity-[0.03]"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M30 30L60 0H0z'/%3E%3C/g%3E%3C/svg%3E")`,
             }}
           />
-          {/* Animated Orbs - Removed for performance */}
         </div>
 
         {/* Main Dashboard Header & Navigation */}
         <div
-          className="flex flex-col gap-6 w-full relative z-40 mb-8 border-b border-slate-200 bg-white/90 backdrop-blur-md px-4 lg:px-8 py-6 pb-8"
+          className="container relative z-40 border-b border-slate-200 bg-white/90 backdrop-blur-md py-4 transition-all duration-500"
           dir="rtl"
         >
-          {/* 1) HEADER - Full Width Title */}
-          <div className="flex items-center gap-4 w-full">
-            <div
-              onClick={() => setActiveTab("pulse")}
-              className="flex shrink-0 items-center justify-center w-14 h-14 bg-slate-900 text-white rounded-2xl shadow-xl transition-all cursor-pointer"
+          {/* TOP ROW: HEADER */}
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-4">
+              <div
+                onClick={() => setActiveTab("pulse")}
+                className="flex shrink-0 items-center justify-center w-14 h-14 bg-slate-900 text-white rounded-2xl shadow-xl transition-all cursor-pointer hover:scale-105 active:scale-95"
+              >
+                <Sparkles size={28} className="text-amber-400 animate-pulse" />
+              </div>
+              <div className="flex flex-col">
+                <h1 className="text-xl md:text-3xl font-black text-slate-900 leading-tight">
+                  {greeting.title}
+                </h1>
+                <p className="text-slate-500 text-sm font-black flex items-center gap-2 mt-1">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
+                  {greeting.sub}
+                </p>
+              </div>
+            </div>
+            
+            {/* Executive Mode Toggle */}
+            <button
+              onClick={() => setIsExecutiveMode(!isExecutiveMode)}
+              className={cn(
+                "hidden md:flex items-center gap-2 px-4 py-2 rounded-2xl font-black text-sm transition-all duration-500",
+                isExecutiveMode 
+                  ? "bg-slate-900 text-white shadow-lg scale-105" 
+                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:scale-105"
+              )}
             >
-              <Sparkles size={28} className="text-amber-400 animate-pulse" />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-xl md:text-3xl font-black text-slate-900 leading-tight">
-                {greeting.title}
-              </h1>
-              <p className="text-slate-500 text-sm font-black flex items-center gap-2 mt-1">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
-                {greeting.sub}
-              </p>
-            </div>
+              <Eye size={18} className={cn(isExecutiveMode ? "text-amber-400" : "text-slate-400")} />
+              <span>{isExecutiveMode ? "خروج من القيادة" : "وضع القيادة"}</span>
+            </button>
           </div>
 
-          {/* TABS & FILTER - Horizontal on Desktop */}
-          <div className="flex flex-col lg:flex-row items-center gap-4 w-full justify-between mt-4">
-            {/* 2) TABS - Full Width Mobile, Flex-1 Desktop */}
-            <div className="flex gap-2 w-full lg:w-auto overflow-x-auto scrollbar-hide py-1 flex-1">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={cn(
-                    "flex-1 min-w-max flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-[14px] font-black transition-all duration-300 outline-none whitespace-nowrap",
-                    activeTab === tab.id
-                      ? "bg-slate-900 text-white shadow-xl scale-100 relative z-10"
-                      : "bg-slate-100 hover:bg-slate-200 text-slate-600",
-                  )}
-                >
-                  {React.cloneElement(tab.icon, {
-                    size: 18,
-                    className: cn(
-                      "transition-transform duration-500 group-hover:scale-110 relative z-10",
-                      activeTab === tab.id
-                        ? "text-amber-400"
-                        : "text-slate-400",
-                    ),
-                  })}
-                  <span className="relative z-10">{tab.label}</span>
-                </button>
-              ))}
-            </div>
+          <AnimatePresence>
+            {!isExecutiveMode && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }} 
+                animate={{ opacity: 1, height: 'auto' }} 
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                {/* SINGLE ACTIVE TAB - Dropdown */}
+                <div className="relative w-full mt-4">
+                  <button
+                    onClick={() => setShowTabsDropdown(!showTabsDropdown)}
+              className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-[14px] font-black bg-slate-900 text-white shadow-xl outline-none"
+            >
+              <div className="flex items-center gap-2">
+                {tabs.find(t => t.id === activeTab)?.icon && React.cloneElement(tabs.find(t => t.id === activeTab)!.icon, {
+                  size: 18,
+                  className: "text-amber-400"
+                })}
+                <span className="relative z-10">{tabs.find(t => t.id === activeTab)?.label}</span>
+              </div>
+              <ChevronDown size={18} className={cn("transition-transform duration-300", showTabsDropdown ? "rotate-180" : "")} />
+            </button>
 
-            {/* 3) FILTER - Full Width Mobile, Auto Desktop */}
-            <div className="flex gap-2 w-full lg:w-auto overflow-x-auto scrollbar-hide py-1 shrink-0">
-              {["day", "week", "month", "year", "all"].map((tf) => (
-                <button
-                  key={tf}
-                  onClick={() => startTransition(() => setDateFilter(tf))}
-                  className={cn(
-                    "flex-1 lg:flex-none min-w-max flex items-center justify-center px-4 py-3.5 rounded-2xl text-[12px] uppercase font-black transition-all duration-300 outline-none whitespace-nowrap border border-slate-200",
-                    dateFilter === tf
-                      ? "border-slate-800 text-slate-900 bg-white shadow-sm ring-1 ring-slate-800"
-                      : "border-transparent text-slate-500 bg-slate-50 hover:bg-slate-100 hover:text-slate-800",
-                  )}
-                >
-                  {tf === "day"
-                    ? "يوم"
-                    : tf === "week"
-                      ? "أسبوع"
-                      : tf === "month"
-                        ? "شهر"
-                        : tf === "year"
-                          ? "سنة"
-                          : "الكل"}
-                </button>
-              ))}
-            </div>
+            <AnimatePresence>
+            {showTabsDropdown && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100/50 z-50 py-2 flex flex-col max-h-[60vh] overflow-y-auto origin-top"
+              >
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id as any);
+                      setShowTabsDropdown(false);
+                    }}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors w-full text-right outline-none",
+                      activeTab === tab.id ? "text-amber-500 bg-amber-50/30" : "text-slate-600"
+                    )}
+                  >
+                    {React.cloneElement(tab.icon, {
+                      size: 18,
+                      className: activeTab === tab.id ? "text-amber-500" : "text-slate-400"
+                    })}
+                    <span className="font-black text-[14px]">{tab.label}</span>
+                  </button>
+                ))}
+              </motion.div>
+            )}
+            </AnimatePresence>
           </div>
+
+          {/* FILTER - Underneath Tabs */}
+          <div className="flex gap-2 w-full overflow-x-auto scrollbar-hide py-1 mt-4 shrink-0">
+            {["day", "week", "month", "year", "all"].map((tf) => (
+              <button
+                key={tf}
+                onClick={() => startTransition(() => setDateFilter(tf))}
+                className={cn(
+                  "flex-1 min-w-max flex items-center justify-center px-4 py-3.5 rounded-2xl text-[12px] uppercase font-black transition-all duration-300 outline-none whitespace-nowrap border border-slate-200",
+                  dateFilter === tf
+                    ? "border-slate-800 text-slate-900 bg-white shadow-sm ring-1 ring-slate-800"
+                    : "border-transparent text-slate-500 bg-slate-50 hover:bg-slate-100 hover:text-slate-800",
+                )}
+              >
+                {tf === "day"
+                  ? "يوم"
+                  : tf === "week"
+                    ? "أسبوع"
+                    : tf === "month"
+                      ? "شهر"
+                      : tf === "year"
+                        ? "سنة"
+                        : "الكل"}
+              </button>
+            ))}
+          </div>
+
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* 4) CONTENT - Full Width */}
         <div
           className={cn(
-            "px-4 lg:px-8 w-full flex flex-col transition-opacity duration-300",
+            "container flex flex-col transition-opacity duration-300 relative",
             isPending ? "opacity-50" : "opacity-100",
+            isExecutiveMode ? "py-12" : ""
           )}
         >
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+          <AnimatePresence>
+            {isExecutiveMode && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="absolute inset-x-4 top-0 space-y-12 py-12"
+                dir="rtl"
+              >
+                <div className="flex flex-col items-center justify-center space-y-6 text-center">
+                  <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+                    الأداء اليوم ممتاز.
+                  </h2>
+                  <p className="text-2xl text-slate-500 font-bold max-w-2xl">
+                    المبيعات تتجاوز الأمس بـ <span className="text-emerald-500">15%</span>، ولا يوجد أي تأخير في العمليات. النظام مستقر.
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                  <div className="bg-white rounded-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col items-center text-center">
+                    <p className="text-slate-400 font-bold mb-4 uppercase tracking-widest text-sm">صافي الإيرادات</p>
+                    <p className="text-5xl font-black text-slate-900">{totals.revenue.toFixed(2)} د.ك</p>
+                  </div>
+                  <div className="bg-white rounded-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col items-center text-center">
+                    <p className="text-slate-400 font-bold mb-4 uppercase tracking-widest text-sm">الطلبات المنجزة</p>
+                    <p className="text-5xl font-black text-slate-900">{totals.orders}</p>
+                  </div>
+                  <div className="bg-slate-900 rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center">
+                    <p className="text-slate-400 font-bold mb-4 uppercase tracking-widest text-sm">معدل النمو</p>
+                    <p className="text-5xl font-black text-emerald-400">+12%</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {!isExecutiveMode && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="animate-in fade-in slide-in-from-bottom-4 duration-500 mt-4">
             {/* Removed duplicate pulse block */}
 
             {activeTab === "financials" && (
@@ -4928,8 +5042,45 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                 </React.Suspense>
               </div>
             )}
-          </div>
+          </motion.div>
+            )}
+          </AnimatePresence>
         </div>
+
+        {/* Anticipatory Intelligence: EOM Report */}
+        <AnimatePresence>
+          {isMonthEnd() && !isExecutiveMode && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.9 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200, delay: 1 }}
+              className="fixed bottom-24 left-8 z-50 flex items-center gap-4 bg-slate-900/90 backdrop-blur-xl border border-white/10 p-4 pl-6 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)]"
+              dir="rtl"
+            >
+              <div className="relative">
+                <Sparkles size={24} className="text-amber-400 absolute inset-0 animate-ping opacity-50" />
+                <Sparkles size={24} className="text-amber-400 relative z-10" />
+              </div>
+              <div className="flex flex-col">
+                <p className="text-white font-black text-sm">شارف الشهر على الانتهاء</p>
+                <p className="text-slate-300 text-xs font-medium">هل نُعدّ تقرير الإقفال المالي الذكي؟</p>
+              </div>
+              <button 
+                onClick={() => {
+                  toast.success("جاري إعداد تقرير الإقفال المالي الشامل...", {
+                    icon: <CheckCircle className="text-emerald-500" />
+                  });
+                  setTimeout(() => window.print(), 1000);
+                }}
+                className="ml-2 mr-6 bg-white text-slate-900 px-5 py-2.5 rounded-full font-black text-sm shadow-xl hover:scale-105 active:scale-95 transition-all"
+              >
+                إعداد التقرير
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       </div>
     );
   },
