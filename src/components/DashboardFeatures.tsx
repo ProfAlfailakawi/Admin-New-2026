@@ -22,3 +22,7 @@ export const BusinessHealthFeature = ({ data }: { data: any }) => {
  const health = useMemo(() => calculateBusinessHealthIndex(data), [data]);
  return <BusinessHealthIndex health={health} />;
 };
+
+export const SmartOffersCalculatorFeature = ({ data }: { data: any }) => {
+  return <SmartOffersCalculator data={data} />;
+};

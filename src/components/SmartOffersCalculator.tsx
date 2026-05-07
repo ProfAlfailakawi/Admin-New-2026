@@ -86,8 +86,15 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  advice +=" بس انتبه ⚠️ هامش الربح شوي نزل عن 30%.. تأكد إن الكمية اللي بتبيعها بتعوض النزول بالربحية.";
  }
 
+ // User philosophy: Price must be accessible (under 15 KWD)
+ if (offerPrice > 15) {
+   advice += " 💡 نصيحة التراث: السعر حالياً فوق 15 د.ك. حاول تدمج أصناف مختلفة أو تزيد الخصم عشان يوصل السعر لمستوى 'متناول الجميع' ويجذب شريحة أكبر.";
+ } else if (offerPrice > 0) {
+   advice += " ✅ السعر ممتاز (أقل من 15 د.ك).. هذا النوع من العروض يعتبر 'بمتناول الجميع' وسهل القرار فيه للعملاء.";
+ }
+
  return { title, advice };
- }, [selectedProducts, offerMargin]);
+ }, [selectedProducts, offerMargin, offerPrice]);
 
  return (
  <div className="bg-white/60 backdrop-blur-3xl rounded-3xl md:rounded-2xl border border-white/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] p-3 md:p-4 md:p-3 relative overflow-hidden" dir="rtl">
