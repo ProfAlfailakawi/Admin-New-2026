@@ -22,15 +22,21 @@ const PWAInstallPrompt = () => {
     const isSafari = /safari/.test(ua.toLowerCase()) && !/chrome|crios|crmo/.test(ua.toLowerCase());
     
     if (isIosDevice && isSafari) {
-      setIsIOS(true);
-      setShow(true);
+      if (!sessionStorage.getItem('pwa_install_prompt_seen')) {
+        setIsIOS(true);
+        setShow(true);
+        sessionStorage.setItem('pwa_install_prompt_seen', 'true');
+      }
     }
 
     // Detect Android / Chrome
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShow(true);
+      if (!sessionStorage.getItem('pwa_install_prompt_seen')) {
+        setShow(true);
+        sessionStorage.setItem('pwa_install_prompt_seen', 'true');
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
