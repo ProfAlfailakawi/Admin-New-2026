@@ -11,8 +11,8 @@
       {
         "source": "/api/**",
         "run": {
-          "serviceId": "order",
-          "region": "europe-west3"
+          "serviceId": "service",
+          "region": "europe-west2"
         }
       },
       {

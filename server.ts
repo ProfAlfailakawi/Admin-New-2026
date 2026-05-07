@@ -132,27 +132,31 @@ async function startServer() {
 
   app.post("/api/push/save-token", async (req, res) => {
     try {
-      const { token, restaurantId, userId } = req.body;
-      if (!token || !restaurantId || !userId) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const { token, userId, restaurantId, platform, userAgent } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ error: "token is required" });
       }
 
       if (db) {
         await db.collection("pushTokens").doc(token).set({
           token,
-          userId, // Still trust client userId, but add a note that this should be validated against session/auth
-          restaurantId,
-          platform: req.body.platform || "web",
-          userAgent: req.headers['user-agent'] || "",
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          userId: userId || null,
+          restaurantId: restaurantId || "kitchen_default",
+          platform: platform || "web-pwa",
+          userAgent: userAgent || "",
           active: true,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
-        console.log("Push token saved for restaurant:", restaurantId);
       }
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Save token error:", error);
-      res.status(500).json({ error: "Failed to save push token" });
+
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error("save-token error:", error);
+      return res.status(500).json({
+        error: "Failed to save token",
+        message: error.message
+      });
     }
   });
 
