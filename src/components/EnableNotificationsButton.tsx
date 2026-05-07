@@ -26,7 +26,12 @@ export const EnableNotificationsButton: React.FC<Props> = ({ userId, restaurantI
       setMessage('تم تفعيل إشعارات الطلبات بنجاح ✅');
       setIsSuccess(true);
     } catch (error: any) {
-      setMessage(error.message || 'فشل تفعيل الإشعارات.');
+      const errMessage = error.message || 'فشل تفعيل الإشعارات.';
+      if (errMessage.includes('CORS') || errMessage.includes('VAPID')) {
+        setMessage('فشل التفعيل. تأكد من إنشاء VAPID Key في إعدادات Firebase Cloud Messaging.');
+      } else {
+        setMessage(errMessage);
+      }
       setIsSuccess(false);
     } finally {
       setLoading(false);

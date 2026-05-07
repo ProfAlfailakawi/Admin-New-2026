@@ -6,11 +6,6 @@ type RegisterPushParams = {
   restaurantId: string;
 };
 
-// To obtain a VAPID key: you must go to Firebase Console > Project Settings > Cloud Messaging > Web configuration -> Generate key pair
-// If you do not have one yet, use this placeholder or add a real one
-// Please configure this VAPID key using your Firebase Console
-const VAPID_KEY = process.env.VITE_FIREBASE_VAPID_KEY || "YOUR_PUBLIC_VAPID_KEY_FROM_FIREBASE"; // User should change this as needed if using another VAPID key. Wait, user config doesn't have it.
-
 function isIOS() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
@@ -78,14 +73,19 @@ export async function registerPushNotifications({
 
   let token;
   try {
+    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+
+    if (!vapidKey || vapidKey.includes("YOUR_")) {
+      throw new Error("VAPID Key غير مضبوط. أضف VITE_FIREBASE_VAPID_KEY في Environment Secrets ثم أعد النشر.");
+    }
+
     token = await getToken(messaging, {
-      vapidKey: VAPID_KEY, // Note: Without a valid VAPID Key, getToken will fail with 'SenderId mismtach' or similar if they use a custom push service. But let's leave it as they requested. 
-                           // Actually, let's leave it undefined if they don't have it yet, wait, VAPID key is required for FCM Web Push.
+      vapidKey,
       serviceWorkerRegistration: registration,
     });
   } catch (err: any) {
     console.error("Get Token Error:", err);
-    throw new Error("فشل إنشاء Token الإشعارات. يرجى التأكد من الـ VAPID Key وان الموقع آمن.");
+    throw new Error(err.message || "فشل إنشاء Token الإشعارات. يرجى التأكد من الـ VAPID Key وان الموقع آمن.");
   }
 
   if (!token) {
