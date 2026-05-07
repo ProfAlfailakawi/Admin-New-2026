@@ -25,6 +25,10 @@ import {
   Check,
   X,
   Loader2,
+  Eye,
+  EyeOff,
+  PackageX,
+  PackageCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppState, Product } from "../types";
@@ -810,6 +814,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     {/* Modern Status Badge (Top-Left) */}
                     <div className="absolute top-2.5 left-2.5 z-30 flex flex-row gap-2">
                        <button 
+                         title={product.isOutOfStock ? 'إتاحة المنتج للبيع' : 'إيقاف البيع (نفدت الكمية)'}
                          onClick={(e) => {
                            e.stopPropagation();
                            setData((prev) => ({
@@ -821,14 +826,15 @@ const ProductPage: React.FC<ProductPageProps> = ({
                            toast.info(product.isOutOfStock ? '✅ المادة متوفرة الآن' : '🚫 سجلت كنفدت الكمية');
                          }}
                          className={cn(
-                           "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all active:scale-90 text-[10px] font-black w-8 h-8",
-                           product.isOutOfStock ? "bg-rose-500 border-rose-400 text-white" : "bg-emerald-500 border-emerald-400 text-white"
+                           "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[10px] font-black w-8 h-8",
+                           product.isOutOfStock ? "bg-rose-500 hover:bg-rose-600 border-rose-400 text-white" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-400 text-white"
                          )}
                        >
-                         {product.isOutOfStock ? <Slash size={16} /> : <CheckCircle2 size={16} />}
+                         {product.isOutOfStock ? <PackageCheck size={16} /> : <PackageX size={16} />}
                        </button>
 
                        <button 
+                         title={product.isActive !== false ? 'إخفاء المنتج من القائمة' : 'إظهار المنتج في القائمة'}
                          onClick={(e) => {
                            e.stopPropagation();
                            setData((prev) => ({
@@ -840,11 +846,11 @@ const ProductPage: React.FC<ProductPageProps> = ({
                            toast.info(product.isActive !== false ? '👁️ تم إخفاء المنتج' : '👁️ تم إظهار المنتج');
                          }}
                          className={cn(
-                           "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all active:scale-90 text-[10px] font-black w-8 h-8",
-                           product.isActive !== false ? "bg-slate-700 border-slate-600 text-white" : "bg-amber-500 border-amber-400 text-white"
+                           "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[10px] font-black w-8 h-8",
+                           product.isActive !== false ? "bg-slate-700 hover:bg-slate-800 border-slate-600 text-white" : "bg-amber-500 hover:bg-amber-600 border-amber-400 text-white"
                          )}
                        >
-                         {product.isActive !== false ? <Slash size={16} /> : <Check size={16} />}
+                         {product.isActive !== false ? <EyeOff size={16} /> : <Eye size={16} />}
                        </button>
                     </div>
 
