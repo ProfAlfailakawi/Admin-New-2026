@@ -5,123 +5,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { loginWithGoogle } from '../firebase';
 
-const PWAInstallPrompt = () => {
-  const [show, setShow] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-
-  useEffect(() => {
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
-      return;
-    }
-
-    // Detect iOS Safari
-    const ua = window.navigator.userAgent;
-    const isIosDevice = /iphone|ipad|ipod/.test(ua.toLowerCase());
-    const isSafari = /safari/.test(ua.toLowerCase()) && !/chrome|crios|crmo/.test(ua.toLowerCase());
-    
-    if (isIosDevice && isSafari) {
-      if (!sessionStorage.getItem('pwa_install_prompt_seen')) {
-        setIsIOS(true);
-        setShow(true);
-        sessionStorage.setItem('pwa_install_prompt_seen', 'true');
-      }
-    }
-
-    // Detect Android / Chrome
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      if (!sessionStorage.getItem('pwa_install_prompt_seen')) {
-        setShow(true);
-        sessionStorage.setItem('pwa_install_prompt_seen', 'true');
-      }
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleDismiss = () => {
-    setShow(false);
-  };
-
-  const handleInstallClick = async () => {
-    if (isIOS) {
-      // iOS has no programmatic install prompt, user uses browser share sheet directly
-    } else if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setShow(false);
-      }
-      setDeferredPrompt(null);
-    }
-  };
-
-  if (!show) return null;
-
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 50 }}
-          className="fixed bottom-4 left-4 right-4 bg-white rounded-3xl shadow-2xl border border-slate-200 p-4 z-[9999] flex flex-col gap-3 max-w-sm mx-auto"
-          dir="rtl"
-        >
-          <button 
-            onClick={handleDismiss}
-            className="absolute top-3 left-3 p-1.5 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors outline-none"
-          >
-            <X size={16} />
-          </button>
-          
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 bg-indigo-50 border border-indigo-100/50 rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
-              <Download className="text-indigo-600" size={26} />
-            </div>
-            <div className="flex-1 mt-1">
-              <h3 className="font-black text-slate-800 text-base mb-1 pr-2">ثبّت تطبيق الإدارة</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed mb-4 pr-2">
-                للوصول السريع ومتابعة طلباتك بسهولة
-              </p>
-              
-              {isIOS ? (
-                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-[11px] font-bold text-slate-600 space-y-2.5 shadow-sm">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-5 h-5 bg-white shadow-sm border border-slate-100 rounded flex items-center justify-center font-black text-slate-400">1</span>
-                    <span>اضغط زر المشاركة <Share size={12} className="inline mx-1 text-blue-500" /></span>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-5 h-5 bg-white shadow-sm border border-slate-100 rounded flex items-center justify-center font-black text-slate-400">2</span>
-                    <span>اختر "إضافة إلى الشاشة الرئيسية"</span>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-5 h-5 bg-white shadow-sm border border-slate-100 rounded flex items-center justify-center font-black text-slate-400">3</span>
-                    <span>اضغط "إضافة" (Add)</span>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={handleInstallClick}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-2xl text-sm transition-transform active:scale-95 shadow-lg shadow-indigo-600/20"
-                >
-                  تثبيت التطبيق
-                </button>
-              )}
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
 
 interface LoginProps {
  onLogin: (mode: 'local' | 'cloud') => void;
@@ -137,7 +20,36 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
 
  useEffect(() => {
    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true);
+   
+   // One-time prompt on load
+   if (!sessionStorage.getItem('pwa_install_prompt_seen')) {
+      // Small timeout to not block initial render
+      setTimeout(() => {
+        showInstallToast();
+      }, 2000);
+      sessionStorage.setItem('pwa_install_prompt_seen', 'true');
+   }
  }, []);
+
+ const showInstallToast = () => {
+   toast.custom((t) => (
+     <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xl flex flex-col gap-2 font-bold text-sm min-w-[300px] z-[9999]" dir="rtl">
+       <span className="text-slate-900 border-b border-slate-100 pb-2 mb-1 flex items-center gap-2">
+         <DownloadCloud size={16} className="text-amber-500" />
+         لتثبيت التطبيق والسماح بالإشعارات:
+       </span>
+       <span className="text-slate-600 font-medium">1. من المتصفح (Safari / Chrome) اضغط على زر المشاركة أو الخيارات.</span>
+       <span className="text-slate-600 font-medium">2. اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).</span>
+       <span className="text-slate-600 font-medium mt-1 text-xs bg-slate-50 p-2 rounded-lg text-center">بمجرد تثبيته، ستتمكن من استقبال التنبيهات والأصوات!</span>
+       <button 
+         onClick={() => toast.dismiss(t)}
+         className="mt-2 text-xs text-slate-400 hover:text-slate-600"
+       >
+         إغلاق
+       </button>
+     </div>
+   ), { duration: 10000 });
+ };
 
  const handleLogin = (e: React.FormEvent) => {
  e.preventDefault();
@@ -276,31 +188,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  <ArrowLeft size={18} />
  </button>
 
- {!isStandalone && (
+  {!isStandalone && (
     <button
       type="button"
-      onClick={() => {
-        toast.custom((t) => (
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xl flex flex-col gap-2 font-bold text-sm min-w-[300px]" dir="rtl">
-            <span className="text-slate-900 border-b border-slate-100 pb-2 mb-1 flex items-center gap-2">
-              <DownloadCloud size={16} className="text-amber-500" />
-              لتثبيت التطبيق والسماح بالإشعارات:
-            </span>
-            <span className="text-slate-600 font-medium">1. من المتصفح (Safari / Chrome) اضغط على زر المشاركة أو الخيارات.</span>
-            <span className="text-slate-600 font-medium">2. اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).</span>
-            <span className="text-slate-600 font-medium mt-1 text-xs bg-slate-50 p-2 rounded-lg text-center">بمجرد تثبيته، ستتمكن من استقبال التنبيهات والأصوات!</span>
-            <button 
-              onClick={() => toast.dismiss(t)}
-              className="mt-2 text-xs text-slate-400 hover:text-slate-600"
-            >
-              إغلاق
-            </button>
-          </div>
-        ), { duration: 10000 });
-      }}
-      className="p-3 text-indigo-600 rounded-xl border border-indigo-100 hover:bg-indigo-50 transition-all mx-auto mt-6"
+      onClick={showInstallToast}
+      className="p-2.5 text-indigo-500 rounded-full border border-slate-200 hover:bg-slate-50 hover:text-indigo-600 transition-all mx-auto block mt-6 shadow-sm"
     >
-      <DownloadCloud size={24} />
+      <DownloadCloud size={20} />
     </button>
   )}
  </form>
@@ -315,7 +209,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  شركة مطبخ التراث الكويتي &copy; {new Date().getFullYear()}
  </div>
  </motion.div>
- <PWAInstallPrompt />
  </div>
 );
 };
