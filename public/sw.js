@@ -1,4 +1,4 @@
-const CACHE_NAME = 'turaath-cache-v7';
+const CACHE_NAME = 'turaath-cache-v11';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

@@ -17,10 +17,17 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  const [error, setError] = useState('');
  const [loading, setLoading] = useState(false);
  const [isStandalone, setIsStandalone] = useState(true);
+ const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
  useEffect(() => {
    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true);
    
+   const handleBeforeInstallPrompt = (e: Event) => {
+     e.preventDefault();
+     setDeferredPrompt(e);
+   };
+   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
    // One-time prompt on load
    if (!sessionStorage.getItem('pwa_install_prompt_seen')) {
       // Small timeout to not block initial render
@@ -29,9 +36,22 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
       }, 2000);
       sessionStorage.setItem('pwa_install_prompt_seen', 'true');
    }
+
+   return () => {
+     window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+   };
  }, []);
 
- const showInstallToast = () => {
+ const showInstallToast = async () => {
+   if (deferredPrompt) {
+     deferredPrompt.prompt();
+     const { outcome } = await deferredPrompt.userChoice;
+     if (outcome === 'accepted') {
+       setDeferredPrompt(null);
+     }
+     return;
+   }
+   
    toast.custom((t) => (
      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xl flex flex-col gap-2 font-bold text-sm min-w-[300px] z-[9999]" dir="rtl">
        <span className="text-slate-900 border-b border-slate-100 pb-2 mb-1 flex items-center gap-2">
