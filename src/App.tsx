@@ -46,7 +46,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, normalizeArabic } from './lib/utils';
-const Dashboard = React.lazy(() => import('./components/Dashboard'));
+import Dashboard from './components/Dashboard';
 import LogoEngine from './components/ui/LogoEngine';
 const InvoicePage = React.lazy(() => import('./components/InvoicePage'));
 const CustomerPage = React.lazy(() => import('./components/CustomerPage'));
@@ -58,7 +58,7 @@ import OrderPage from './components/OrderPage';
 import { isPendingStatus, isFailedStatus, isPaidStatus } from './lib/status-utils';
 const TrackPage = React.lazy(() => import('./components/TrackPage'));
 const AIAssistant = React.lazy(() => import('./components/AIAssistant'));
-const PartnerDashboard = React.lazy(() => import('./components/PartnerDashboard'));
+import PartnerDashboard from './components/PartnerDashboard';
 import Login from './components/Login';
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
 const SupplierAudit = React.lazy(() => import('./components/SupplierAudit'));

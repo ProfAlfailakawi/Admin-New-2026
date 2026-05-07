@@ -611,7 +611,7 @@ export async function generateMarketingCampaign(data: AppState, customPrompt?: s
   const cacheKey = `marketing-camp-${customPrompt || 'default'}-${generateStateHash(data)}`;
   const cached = getCached<AICampaign>(cacheKey);
   if (cached) return cached;
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (process as any).env?.GEMINI_API_KEY;
   
   if (apiKey && apiKey !== 'undefined' && apiKey !== 'MISSING_API_KEY') {
     try {
@@ -661,17 +661,21 @@ export async function generateMarketingCampaign(data: AppState, customPrompt?: s
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) jsonPayload = jsonMatch[0];
       
-      const plan = JSON.parse(jsonPayload);
+      let plan = JSON.parse(jsonPayload);
+      if (plan.campaign) plan = plan.campaign;
+      if (plan.marketingPlan) plan = plan.marketingPlan;
+      if (plan.plan) plan = plan.plan;
+      if (plan.MarketingCampaign) plan = plan.MarketingCampaign;
       
       const finalResult: AICampaign = {
         id: `camp-${Date.now()}`,
-        topic: plan.campaignType,
-        idea: plan.idea,
-        message: plan.message,
-        marketingMessage: plan.whatsappMessage || plan.message,
-        targetAudience: plan.targetAudience,
-        timing: plan.timing,
-        expectedOutcome: plan.expectedOutcome,
+        topic: plan.campaignType || plan.topic || plan.campaign_type || plan.type || plan['نوع الحملة'] || '',
+        idea: plan.idea || plan.Idea || plan.IDEA || plan['فكرة العرض'] || '',
+        message: plan.message || plan.Message || plan['رسالة إعلانية'] || '',
+        marketingMessage: plan.whatsappMessage || plan.whatsapp_message || plan.marketingMessage || plan.message || plan['رسالة واتساب'] || '',
+        targetAudience: plan.targetAudience || plan.target_audience || plan.TargetAudience || plan['الجمهور المستهدف'] || '',
+        timing: plan.timing || plan.Timing || plan['التوقيت المناسب'] || '',
+        expectedOutcome: plan.expectedOutcome || plan.expected_outcome || plan.ExpectedOutcome || plan['النتيجة المتوقعة'] || '',
         status: 'draft',
         createdAt: new Date().toISOString()
       };
@@ -1522,8 +1526,7 @@ export async function generatePulseArchiveAnalysis(allComments: string[]): Promi
     }
     
     try {
-        const { GoogleGenAI } = await import('@google/genai');
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (process as any).env?.GEMINI_API_KEY;
         
         if (!apiKey || apiKey === 'undefined') throw new Error("No API key");
         

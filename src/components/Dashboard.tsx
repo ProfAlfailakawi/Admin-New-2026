@@ -90,9 +90,7 @@ const LoyaltyProgramPage = React.lazy(() =>
 const PromoCodePage = React.lazy(() =>
   import("./PromoCodePage").then((m) => ({ default: m.PromoCodePage })),
 );
-const MarketingLab = React.lazy(() =>
-  import("./MarketingLab").then((m) => ({ default: m.MarketingLab })),
-);
+import { MarketingLab } from "./MarketingLab";
 const GoalManager = React.lazy(() =>
   import("./GoalManager").then((m) => ({ default: m.GoalManager })),
 );
@@ -117,9 +115,7 @@ const SmartOffersCalculator = React.lazy(() =>
     default: m.SmartOffersCalculator,
   })),
 );
-const FutureForecast = React.lazy(() =>
-  import("./FutureForecast").then((m) => ({ default: m.FutureForecast })),
-);
+import { FutureForecast } from "./FutureForecast";
 const BusinessHealthIndex = React.lazy(() =>
   import("./BusinessHealthIndex").then((m) => ({
     default: m.BusinessHealthIndex,
