@@ -578,44 +578,8 @@ const App: React.FC = () => {
   }, [isAuthenticated, dataLoading]);
   
   // PWA Install Prompt Logic
-  const [showPwaPrompt, setShowPwaPrompt] = useState(false);
-  const sensitivePages = ['new-invoice', 'track'];
-  
-  useEffect(() => {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-    const hasSeenPrompt = sessionStorage.getItem('pwa_install_prompt_seen') === 'true';
+  /* Removed PWA Install Prompt Logic in favor of Login component implementation */
 
-    if (!isStandalone && !hasSeenPrompt && !sensitivePages.includes(currentPage)) {
-      const timer = setTimeout(() => {
-        setShowPwaPrompt(true);
-        sessionStorage.setItem('pwa_install_prompt_seen', 'true');
-      }, 5000); // Show after 5 seconds
-      return () => clearTimeout(timer);
-    }
-  }, [currentPage]);
-
-  useEffect(() => {
-    if (showPwaPrompt) {
-        toast.custom((t) => (
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xl flex flex-col gap-2 font-bold text-sm min-w-[300px]" dir="rtl">
-            <span className="text-slate-900 border-b border-slate-100 pb-2 mb-1 flex items-center gap-2">
-              <DownloadCloud size={16} className="text-amber-500" />
-              لتثبيت التطبيق والسماح بالإشعارات:
-            </span>
-            <span className="text-slate-600 font-medium">1. من المتصفح (Safari / Chrome) اضغط على زر المشاركة أو الخيارات.</span>
-            <span className="text-slate-600 font-medium">2. اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).</span>
-            <span className="text-slate-600 font-medium mt-1 text-xs bg-slate-50 p-2 rounded-lg text-center">بمجرد تثبيته، ستتمكن من استقبال التنبيهات والأصوات!</span>
-            <button 
-              onClick={() => toast.dismiss(t)}
-              className="mt-2 text-xs text-slate-400 hover:text-slate-600"
-            >
-              إغلاق
-            </button>
-          </div>
-        ), { duration: 10000 });
-        setShowPwaPrompt(false);
-    }
-  }, [showPwaPrompt]);
 
   useEffect(() => {
     if (dataLoading) return;
