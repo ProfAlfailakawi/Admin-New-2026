@@ -10,6 +10,7 @@ import { cn } from '../lib/utils';
 import { isPaidStatus } from '../lib/status-utils';
 import { MarketingLab } from './MarketingLab';
 import { FutureForecast } from './FutureForecast';
+import { CommandBrief } from './CommandBrief';
 import { registerPushNotifications, getPushSupportStatus } from '../lib/pushNotifications';
 import { toast } from 'sonner';
 
@@ -407,6 +408,10 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
       ))}
        </div>
       
+       <div className="mb-8">
+         <CommandBrief data={data} dateFilter={filter} />
+       </div>
+
         {/* Stats Grid - Exactly like Admin */}
         <motion.div layout className="mb-12 bg-white rounded-3xl p-2 md:p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden relative z-10">
           <button 

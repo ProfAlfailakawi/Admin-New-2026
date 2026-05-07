@@ -363,7 +363,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
   if (typeof window !== 'undefined') {
     import('../lib/haptics').then(m => {
       // big sum -> premium
-      const orderTotal = (order.total || 0).valueOf();
+      const orderTotal = Number(getOrderSubtotal(order) + getOrderDeliveryFee(order, order.deliveryType || 'company'));
       if (newStatus === 'cancelled') {
         m.triggerHaptic('heavy');
       } else if (orderTotal > 50) {
@@ -825,7 +825,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
     animate={{ opacity: 1, scale: 1 }}
     className="flex flex-col items-center justify-center py-40 min-h-[50vh]"
   >
-    {statusFilter === 'pending' || activeTab === 'pending' ? (
+    {filterStatus === 'pending' ? (
       <>
         <motion.div
           animate={{

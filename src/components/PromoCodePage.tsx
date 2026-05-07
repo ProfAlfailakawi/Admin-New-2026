@@ -26,10 +26,42 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  };
  }, [coupons, data.invoices]);
 
+  const analysis = useMemo(() => {
+  if (!newCode.value || isNaN(parseFloat(newCode.value)) || parseFloat(newCode.value) <= 0) return null;
+  const invoices = data.invoices || [];
+  let totalRevenue = 0, totalCost = 0, validOrders = 0;
+  invoices.forEach(inv => {
+     if (!inv.isDeleted) {
+        totalRevenue += inv.totalAmount;
+        validOrders++;
+        inv.items?.forEach(item => {
+           const p = data.products?.find(prod => prod.id === item.productId);
+           totalCost += ((item.costAtTime !== undefined ? item.costAtTime : p?.cost) || (item.priceAtTime * 0.6)) * item.quantity;
+        });
+     }
+  });
+  const aov = validOrders > 0 ? totalRevenue / validOrders : 15;
+  const avgCost = validOrders > 0 ? totalCost / validOrders : aov * 0.6;
+  const profitBefore = aov - avgCost - 2.5;
+  const val = parseFloat(newCode.value);
+  const expectedDiscount = newCode.type === 'fixed' ? val : (aov * (val / 100));
+  const profitAfter = profitBefore - expectedDiscount;
+  const marginPercentAfter = (profitAfter / aov) * 100;
+  let suggestion = "";
+  if (profitAfter <= 0) suggestion = "مرفوض حمايةً للربح: الخصم يسبب خسارة محققة بناءً على التكلفة ومتوسط سلة العميل. الأفضل تقديم منتج جانبي وتحديد حد أدنى للطلب.";
+  else if (marginPercentAfter < 15) suggestion = "تحذير: هذا الخصم سيخفض هامش الربح لمستوى خطير (أقل من 15%). نقترح تقليل نسبة الخصم لرفع الأرباح.";
+  return { aov, profitBefore, profitAfter, expectedDiscount, isLosing: profitAfter <= 0, isWarning: marginPercentAfter > 0 && marginPercentAfter < 15, marginPercentAfter, suggestion };
+ }, [newCode.value, newCode.type, data.orders, data.products]);
+
  const handleCreateCode = () => {
  if (!newCode.code || !newCode.value) {
  toast.error('يرجى ملء جميع الحقول المطلوبة');
  return;
+ }
+
+ if (analysis?.isLosing) {
+   toast.error(analysis.suggestion, { duration: 5000, icon: '🛑' });
+   return;
  }
 
  const coupon = {
@@ -283,6 +315,31 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  className="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl font-black text-slate-700 focus:ring-2 focus:ring-slate-900 outline-none transition-all placeholder:text-slate-300 min-h-[100px] text-right"
  />
  </div>
+
+  <AnimatePresence>
+     {analysis && (
+       <motion.div
+         initial={{ opacity: 0, height: 0 }}
+         animate={{ opacity: 1, height: 'auto' }}
+         exit={{ opacity: 0, height: 0 }}
+         className={cn(
+           "rounded-2xl p-4 border overflow-hidden text-right",
+           analysis.isLosing ? "bg-rose-50 border-rose-200" : analysis.isWarning ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"
+         )}
+       >
+         <div className="flex items-center gap-2 mb-2 flex-row-reverse">
+           {analysis.isLosing ? <X className="text-rose-500" size={18} /> : analysis.isWarning ? <Activity className="text-amber-500" size={18} /> : <CheckCircle className="text-emerald-500" size={18} />}
+           <h4 className={cn("font-black", analysis.isLosing ? "text-rose-700" : analysis.isWarning ? "text-amber-700" : "text-emerald-700")}>
+             {analysis.isLosing ? 'غير آمن - خسارة محققة' : analysis.isWarning ? 'تحذير مساحة الربح' : 'آمن - خصم مقبول'}
+           </h4>
+         </div>
+         <p className={cn("text-sm font-bold leading-relaxed", analysis.isLosing ? "text-rose-600" : analysis.isWarning ? "text-amber-600" : "text-emerald-600")}>
+           {analysis.suggestion || `هامش الربح المتوقع بعد الخصم هو ${analysis.marginPercentAfter.toFixed(1)}% وهو ضمن الحد الآمن.`}
+         </p>
+       </motion.div>
+     )}
+  </AnimatePresence>
+
  <button 
  onClick={handleCreateCode}
  className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-slate-800 active:scale-[0.98] transition-all shadow-xl shadow-slate-900/20"
