@@ -1,15 +1,17 @@
-import React, { useState, useMemo, useTransition } from 'react';
+import React, { useState, useMemo, useTransition, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
  ShoppingBag, TrendingUp, Handshake, DollarSign, Target, Sparkles, Activity, 
  ChevronRight, Star, LineChart as LineChartIcon, FlaskConical, LayoutGrid, Filter, X, 
- Zap, ArrowUpRight, PieChart, Users, Truck, Briefcase, Cpu, Layers, Search
+ Zap, ArrowUpRight, PieChart, Users, Truck, Briefcase, Cpu, Layers, Search, Bell, BellRing, ChevronDown, ShieldAlert
 } from 'lucide-react';
 import { AppState } from '../types';
 import { cn } from '../lib/utils';
 import { isPaidStatus } from '../lib/status-utils';
 import { MarketingLab } from './MarketingLab';
 import { FutureForecast } from './FutureForecast';
+import { registerPushNotifications, getPushSupportStatus } from '../lib/pushNotifications';
+import { toast } from 'sonner';
 
 interface PartnerDashboardProps {
  data: AppState;
@@ -125,6 +127,31 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
  const [filter, setFilter] = useState<'day'|'week'|'month'|'year'|'all'>('month');
  const [activeWidget, setActiveWidget] = useState<string | null>(null);
  const [isPending, startTransition] = useTransition();
+ const [isPushSupported, setIsPushSupported] = useState(false);
+ const [pushEnabled, setPushEnabled] = useState(false);
+ const [isActivatingPush, setIsActivatingPush] = useState(false);
+ const [isExecutiveMode, setIsExecutiveMode] = useState(false);
+ const [showFinancialStats, setShowFinancialStats] = useState(false);
+
+ useEffect(() => {
+   if (typeof window !== 'undefined' && 'Notification' in window) {
+     setIsPushSupported(true);
+     setPushEnabled(Notification.permission === 'granted');
+   }
+ }, []);
+
+ const handleEnablePush = async () => {
+   setIsActivatingPush(true);
+   try {
+     await registerPushNotifications({ userId: data.settings?.companyName || 'partner', restaurantId: 'default' });
+     setPushEnabled(true);
+     toast.success("تم تفعيل إشعارات الطلبات بنجاح! 🔔");
+   } catch (err: any) {
+     toast.error(err.message || 'فشل تفعيل الإشعارات');
+   } finally {
+     setIsActivatingPush(false);
+   }
+ };
 
  const now = new Date();
  
@@ -226,14 +253,15 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
 
  const getContextualGreeting = () => {
  const hour = now.getHours();
+ const activeOrdersCount = data.orders?.filter(o => !['cancelled', 'delivered'].includes(o.status)).length || 0;
  if (hour >= 5 && hour < 12) {
- return { title: 'صباح الخير، يوم جديد.. خلنا نشوف مبيعاتنا وننطلق! ☀️', sub: 'المحرك الذهبي يعمل بكامل طاقته لبدء اليوم' };
+ return { title: 'صباح الخير، أداء أمس كان مبهراً بفضل مبيعات العشاء ☀️', sub: 'الطقس اليوم ممتاز والمتوقع إقبال عالي بزيادة 15%. كل تفاصيل الإيرادات جاهزة في تقريرك الناعم.' };
  } else if (hour >= 12 && hour < 17) {
- return { title: 'مرحباً، وقت الغداء والتركيز! 🍽️', sub: 'تتبع حركة المبيعات في فترة الذروة الممتازة' };
+ return { title: 'مرحباً، وقت ذروة الغداء! 🍽️', sub: `لدينا ${activeOrdersCount} طلب نشط حالياً، حافظ على هذا الزخم الممتاز.` };
  } else if (hour >= 17 && hour < 22) {
- return { title: 'مساء الخير، بيّضت الوجه اليوم.. هذي خلاصة أرباحك. 🌙', sub: 'يوم حافل بالإنجازات، راجع أهدافك بكل ثقة' };
+ return { title: 'مساء الخير، أداء استثنائي اليوم 🌙', sub: 'مبيعات العشاء تتصاعد، استمر في هذا الأداء الرائع.' };
  } else {
- return { title: 'نظرة هادية على الأرقام.. عساك على القوة! ☕', sub: 'هدوء الليل أفضل وقت للتخطيط الاستراتيجي' };
+ return { title: 'تحية مسائية هادئة ☕', sub: 'النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.' };
  }
  };
  const greeting = getContextualGreeting();
@@ -241,256 +269,409 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
  const bentoCardStyle ="bg-[#fdfbf7] p-3 md:p-4 rounded-2xl2xl lg:rounded-2xl2xl md:rounded-2xl2xl border border-[#f0e6d2] shadow-[0_4px_20px_-10px_rgba(212,192,152,0.3)] text-right relative overflow-hidden flex flex-col h-full";
  
  return (
- <div className="min-h-full bg-slate-50 p-3 md:p-3 lg:p-3 md:p-4 animate-in fade-in duration-500" dir="rtl">
+ <div className={cn("min-h-full bg-slate-50 p-3 md:p-3 lg:p-3 md:p-4 animate-in fade-in duration-500 transition-colors", isExecutiveMode ? "py-12" : "")} dir="rtl">
+  {isExecutiveMode && (
+    <div className="fixed inset-0 pointer-events-none -z-10 bg-slate-50" />
+  )}
  <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-3 md:p-4">
+ <div className="flex flex-col items-end gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0" style={{ flexWrap: 'nowrap' }}>
  <SectionHeader 
  title={greeting.title} 
  icon={Handshake} 
  color="indigo" 
  subtitle={greeting.sub} 
  />
- 
- <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md p-1.5 rounded-2xl border border-slate-100 shadow-sm">
- {(['day', 'week', 'month', 'year', 'all'] as const).map(f => (
- <button
- key={f}
- onClick={() => startTransition(() => setFilter(f))}
- className={cn(
-"px-5 py-2 text-[11px] font-black rounded-xl transition-all",
- filter === f ?"bg-slate-900 text-white shadow-lg" :"text-slate-500 hover:bg-slate-100"
-)}
- >
- {f === 'day' ? 'يوم' : f === 'week' ? 'اسبوع' : f === 'month' ? 'شهر' : f === 'year' ? 'سنة' : 'الكل'}
- </button>
-))}
+  <button
+    onClick={() => setIsExecutiveMode(!isExecutiveMode)}
+    className={cn(
+      "hidden flex-row-reverse md:flex items-center gap-2 px-4 py-2 rounded-2xl font-black text-sm transition-all duration-500 whitespace-nowrap self-end",
+      isExecutiveMode 
+        ? "bg-slate-900 text-white shadow-lg scale-105" 
+        : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:scale-105"
+    )}
+  >
+    <ShieldAlert size={18} className={cn(isExecutiveMode ? "text-amber-400" : "text-slate-400")} />
+    <span>{isExecutiveMode ? "خروج من القيادة" : "وضع القيادة"}</span>
+  </button>
  </div>
- </div>
-
- {/* Stats Grid - Exactly like Admin */}
- <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:p-4 mb-12 transition-opacity", isPending ?"opacity-50" :"opacity-100")}>
- <GlobalStatBox label="إجمالي المبيعات" value={totalSalesVal} unit="د.ك" icon={TrendingUp} color="blue" subtext="بناءً على الفلتر" />
- <GlobalStatBox label="إجمالي التكاليف" value={totalCostVal + totalExpensesVal} unit="د.ك" icon={Briefcase} color="red" subtext="متضمنة المصاريف" />
- <GlobalStatBox label="الربح المتوقع" value={netProfit} unit="د.ك" icon={Activity} color="indigo" subtext="الأرباح الصافية" />
- <GlobalStatBox label="هامش الربح" value={profitMargin} isPercent={true} icon={DollarSign} color="amber" subtext="النسبة المئوية للأرباح" />
- </div>
-
- {/* Smart Tools Cards Section */}
- <div className="mb-12">
- <h3 className="text-xl font-black text-slate-800 mb-6 tracking-tight flex items-center gap-2 flex-row-reverse justify-end pr-2">
- أدوات الإدارة الذكية <Sparkles size={24} className="text-amber-500" />
- </h3>
- <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:p-4">
- <button onClick={() => setActiveWidget('campaign')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-2xl relative overflow-hidden outline-none">
- <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-rose-500 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
- <FlaskConical size={32} className="text-rose-400 mb-4 group-hover:-translate-y-1 transition-transform" />
- <h3 className="text-lg font-black text-white mb-2 tracking-tight">مختبر الحملات</h3>
- <p className="text-[10px] font-bold text-slate-400 leading-relaxed">ابتكر حملات ذكية مبنية على أرصدتك</p>
- </button>
- 
- <button onClick={() => setActiveWidget('forecast')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-2xl relative overflow-hidden outline-none">
- <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-indigo-500 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
- <LineChartIcon size={32} className="text-indigo-400 mb-4 group-hover:-translate-y-1 transition-transform" />
- <h3 className="text-lg font-black text-white mb-2 tracking-tight">التنبؤ المالي</h3>
- <p className="text-[10px] font-bold text-slate-400 leading-relaxed">رؤية مستقبلية دقيقة لأداء مبيعاتك</p>
- </button>
-
- <button onClick={() => setActiveWidget('menu')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-2xl relative overflow-hidden outline-none">
- <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-emerald-500 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
- <Layers size={32} className="text-emerald-400 mb-4 group-hover:-translate-y-1 transition-transform" />
- <h3 className="text-lg font-black text-white mb-2 tracking-tight">هندسة المنيو الذكية</h3>
- <p className="text-[10px] font-bold text-slate-400 leading-relaxed">تحليل ربحية وشعبية كل صنف</p>
- </button>
-
- <div className={bentoCardStyle}>
- <h3 className="font-black text-lg text-[#4a3f35] mb-4 flex items-center gap-2 justify-end">نجوم التراث (الأكثر مبيعاً) <Sparkles size={18} className="text-amber-500" /></h3>
- <div className="space-y-2 flex-grow">
- {topProducts.length > 0 ? topProducts.slice(0, 3).map((p, i) => (
- <div key={p.id} className="flex justify-between items-center bg-white p-3 rounded-2xl border border-[#f0e6d2] hover:border-amber-400 transition-colors flex-row-reverse">
- <div className="flex items-center gap-2 flex-row-reverse">
- <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-black text-[10px]">#{i+1}</div>
- <div className="font-black text-slate-800 text-[11px] truncate max-w-[100px]">{p.name}</div>
- </div>
- <div className="bg-slate-50 border border-slate-100 text-slate-500 text-[8px] font-black px-2 py-1 rounded-full">{p.sold} طلب</div>
- </div>
-)) : <div className="text-center py-4 text-slate-300 font-bold text-[10px]">لا توجد بيانات</div>}
- </div>
- <button onClick={() => setActiveWidget('bestsellers')} className="mt-3 text-center text-[9px] font-black text-amber-600 hover:text-amber-700 transition-colors">عرض القائمة الكاملة</button>
- </div>
- </div>
- </div>
-
- {/* Modals for Smart Tools */}
- <AnimatePresence>
- {activeWidget && (
- <div className="fixed inset-0 z-[200] flex items-center justify-center p-3">
- <motion.div 
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- onClick={() => setActiveWidget(null)}
- className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
- />
- <motion.div 
- initial={{ scale: 0.95, opacity: 0, y: 20 }}
- animate={{ scale: 1, opacity: 1, y: 0 }}
- exit={{ scale: 0.95, opacity: 0, y: 20 }}
- className="bg-slate-50 w-full max-w-5xl rounded-2xl md:rounded-2xl shadow-[0_0_100px_rgba(0,0,0,0.5)] relative z-10 overflow-hidden border border-white/20"
- >
- <div className="p-3 md:p-4 md:p-3 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-20">
- <h2 className="text-xl md:text-2xl font-black text-slate-800">
- {activeWidget === 'campaign' &&"مختبر الحملات التسويقية الذكي"}
- {activeWidget === 'forecast' &&"التنبؤ المستقبلي الخوارزمي"}
- {activeWidget === 'bestsellers' &&"نجوم التراث (الأكثر مبيعاً)"}
- {activeWidget === 'menu' &&"مصفوفة هندسة المنيو الذكية"}
- </h2>
- <button onClick={() => setActiveWidget(null)} className="w-10 h-10 flex items-center justify-center bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-full transition-all active:scale-90">
- <X size={24} />
- </button>
- </div>
-
- <div className="p-3 md:p-4 md:p-3 max-h-[80vh] overflow-y-auto custom-scrollbar">
- {activeWidget === 'campaign' && <MarketingLab data={data} />}
- {activeWidget === 'forecast' && <FutureForecast data={data} />}
- {activeWidget === 'bestsellers' && (
- <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
- {topProducts.map((p, i) => (
- <div key={p.id} className="flex justify-between items-center bg-white p-3 md:p-4 rounded-2xl border border-slate-100 shadow-sm flex-row-reverse">
- <div className="flex items-center gap-4 flex-row-reverse">
- <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-black text-xl">#{i+1}</div>
- <div className="text-right">
- <div className="font-black text-slate-800 text-lg">{p.name}</div>
- <div className="text-[10px] text-slate-400 font-bold uppercase">{p.category || 'عام'}</div>
- </div>
- </div>
- <div className="flex flex-col items-start gap-1">
- <div className="text-indigo-600 text-lg font-black">{p.sold} طلبات</div>
- <div className="text-[10px] text-slate-300 font-bold">إجمالي المبيعات المباشرة</div>
- </div>
- </div>
-))}
- </div>
-)}
- {activeWidget === 'menu' && (
- <div id="products-matrix-section" className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl p-3 md:p-4 shadow-xl relative overflow-hidden" dir="rtl">
- <div className="absolute top-0 right-0 w-full h-2 bg-gradient-to-l from-[#0f3460] via-[#e94560] to-[#0f3460]" />
- <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
- {/* Stars */}
- <div className="bg-white/5 border border-emerald-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
- <div className="flex items-center justify-between mb-4">
- <div className="flex items-center gap-2 text-emerald-400">
- <Sparkles size={20} className="group-hover:animate-spin" />
- <h4 className="font-black text-lg">النجوم (Stars)</h4>
- </div>
- <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات عالي + ربح عالي</span>
- </div>
- <p className="text-xs text-indigo-100/70 leading-relaxed mb-4">حافظ على الترويج لها ولا تغير جودتها، هي مصدر أرباحك الرئيسي وتقود سمعة المطعم.</p>
- <div className="flex flex-wrap gap-2">
- {menuEngineering.stars.slice(0, 5).map(s => (
- <span key={s.product.id} className="text-xs font-bold text-white bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/20 shadow-sm">{s.product.name}</span>
-))}
- {menuEngineering.stars.length === 0 && <span className="text-xs text-white/30 italic">لا توجد أصناف في هذه الفئة حالياً</span>}
- </div>
- </div>
-
- {/* Plowhorses */}
- <div className="bg-white/5 border border-amber-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
- <div className="flex items-center justify-between mb-4">
- <div className="flex items-center gap-2 text-amber-400">
- <Zap size={20} className="group-hover:-translate-x-1 transition-transform" />
- <h4 className="font-black text-lg">أحصنة الحرث (Plowhorses)</h4>
- </div>
- <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات عالي + ربح منخفض</span>
- </div>
- <p className="text-xs text-indigo-100/70 leading-relaxed mb-4">منتجات محبوبة لكن أرباحها قليلة. ارفع سعرها تدريجياً أو أعد هندسة المكونات لتقليل تكلفتها.</p>
- <div className="flex flex-wrap gap-2">
- {menuEngineering.plowhorses.slice(0, 5).map(s => (
- <span key={s.product.id} className="text-xs font-bold text-white bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/20 shadow-sm">{s.product.name}</span>
-))}
- {menuEngineering.plowhorses.length === 0 && <span className="text-xs text-white/30 italic">لا توجد أصناف في هذه الفئة حالياً</span>}
- </div>
- </div>
-
- {/* Puzzles */}
- <div className="bg-white/5 border border-blue-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
- <div className="flex items-center justify-between mb-4">
- <div className="flex items-center gap-2 text-blue-400">
- <Search size={20} className="group-hover:scale-110 transition-transform" />
- <h4 className="font-black text-lg">الألغاز (Puzzles)</h4>
- </div>
- <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات منخفض + ربح عالي</span>
- </div>
- <p className="text-xs text-indigo-100/70 leading-relaxed mb-4">منتجات مربحة جداً لكن مبيعاتها نادرة. أعد صياغة وصفها وضعها في عروض لتنشيطها.</p>
- <div className="flex flex-wrap gap-2">
- {menuEngineering.puzzles.slice(0, 5).map(s => (
- <span key={s.product.id} className="text-xs font-bold text-white bg-blue-500/20 px-3 py-1.5 rounded-lg border border-blue-500/20 shadow-sm">{s.product.name}</span>
-))}
- {menuEngineering.puzzles.length === 0 && <span className="text-xs text-white/30 italic">لا توجد أصناف في هذه الفئة حالياً</span>}
- </div>
- </div>
-
- {/* Turtle */}
- <div className="bg-white/5 border border-rose-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
- <div className="flex items-center justify-between mb-4">
- <div className="flex items-center gap-2 text-rose-400">
- <Turtle size={20} className="group-hover:rotate-12 transition-transform" />
- <h4 className="font-black text-lg">سلحفاة (Turtles)</h4>
- </div>
- <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات منخفض + ربح منخفض</span>
- </div>
- <p className="text-xs text-indigo-100/70 leading-relaxed mb-4">تستنزف مساحة وجهداً بلا عائد. فكّر بإزالتها أو تقديمها بأسلوب مختلف كلياً.</p>
- <div className="flex flex-wrap gap-2">
- {menuEngineering.turtles.slice(0, 5).map(s => (
- <span key={s.product.id} className="text-xs font-bold text-white bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/20 shadow-sm">{s.product.name}</span>
-))}
- {menuEngineering.turtles.length === 0 && <span className="text-xs text-white/30 italic">لا توجد أصناف في هذه الفئة حالياً</span>}
- </div>
- </div>
- </div>
- </div>
-)}
- </div>
- </motion.div>
- </div>
-)}
- </AnimatePresence>
-
- {/* Action Card */}
- <div className="max-w-6xl mx-auto">
- <motion.div 
- whileHover={{ y: -5 }}
- className="group cursor-pointer"
- onClick={() => onNavigate('orders')}
- >
- <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 p-3 md:p-4 md:p-3 md:p-4 rounded-2xl md:rounded-2xl shadow-2xl shadow-indigo-600/30 text-white relative overflow-hidden flex flex-col justify-between">
- <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none rotate-12" style={{ backgroundImage: `url(${patternSadu})` }} />
- <div className="absolute -bottom-10 -right-10 w-64 h-64 lg:w-96 lg:h-96 bg-white/5 rounded-full blur-3xl opacity-50" />
- 
- <div className="relative z-10 flex justify-between items-start">
- <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/10 flex items-center justify-center">
- <ShoppingBag size={40} />
- </div>
- <div className={cn(
-"px-5 py-2 rounded-full text-xs font-black backdrop-blur-xl border border-white/20",
- pendingOrdersCount > 0 ?"bg-amber-500 text-white animate-pulse" :"bg-white/10 text-white"
-)}>
- {pendingOrdersCount > 0 ? `${pendingOrdersCount} طلبات معلقة` : 'السجل جاهز تماماً'}
- </div>
- </div>
-
- <div className="relative z-10 mt-6 flex justify-between items-end">
- <div className="text-right">
- <h3 className="font-black text-xl md:text-3xl md:text-xl md:text-2xl mb-2 tracking-tighter">طلبات التطبيق 📦</h3>
- <p className="text-white/70 text-base font-bold">معالجة الطلبات الواردة وتحويلها إلى فواتير</p>
- </div>
- <div className="w-12 h-12 bg-white text-indigo-600 rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:-translate-x-2">
- <ChevronRight size={24} className="rotate-180" />
- </div>
- </div>
- </div>
- </motion.div>
- </div>
- </div>
-);
+  </div>
+ {isExecutiveMode ? (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="space-y-12 py-12"
+      dir="rtl"
+    >
+      <div className="flex flex-col items-center justify-center space-y-6 text-center">
+        <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+          نبض العمليات
+        </h2>
+        <p className="text-xl text-slate-500 font-bold max-w-lg mx-auto">
+          {pendingOrdersCount === 0 ? "العمليات ممتازة والوضع مستقر تماماً. لا توجد اختناقات." : `هناك ${pendingOrdersCount} طلبات قيد الانتظار تحتاج انتباه.`}
+        </p>
+      </div>
+      
+      <div className="flex justify-center items-center py-20">
+        <div className="relative flex justify-center items-center">
+          <motion.div
+            animate={{ 
+              scale: pendingOrdersCount === 0 ? [1, 1.05, 1] : [1, 1.15, 1],
+              opacity: pendingOrdersCount === 0 ? [0.4, 0.7, 0.4] : [0.6, 1, 0.6]
+            }}
+            transition={{
+              duration: pendingOrdersCount === 0 ? 4 : 1.5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className={cn(
+              "absolute w-64 h-64 rounded-full blur-3xl",
+              pendingOrdersCount === 0 ? "bg-emerald-400/30" : "bg-amber-500/40"
+            )}
+          />
+          <motion.div
+            animate={{ 
+              scale: pendingOrdersCount === 0 ? [1, 1.02, 1] : [1, 1.08, 1],
+              boxShadow: pendingOrdersCount === 0 
+                ? ["0 4px 20px rgba(52,211,153,0.1)", "0 8px 40px rgba(52,211,153,0.3)", "0 4px 20px rgba(52,211,153,0.1)"]
+                : ["0 8px 32px rgba(245,158,11,0.2)", "0 16px 64px rgba(245,158,11,0.5)", "0 8px 32px rgba(245,158,11,0.2)"]
+            }}
+            transition={{
+              duration: pendingOrdersCount === 0 ? 4 : 1.5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className={cn(
+              "relative z-10 w-48 h-48 rounded-full flex flex-col items-center justify-center border backdrop-blur-2xl cursor-pointer hover:scale-105 transition-transform",
+              pendingOrdersCount === 0 
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]" 
+                : "bg-amber-500/20 border-amber-500/40 text-amber-600 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
+            )}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                import('../lib/haptics').then(m => m.triggerHaptic(pendingOrdersCount === 0 ? 'medium' : 'warning'));
+              }
+            }}
+          >
+            {pendingOrdersCount === 0 ? (
+              <Activity size={64} className="opacity-80" />
+            ) : (
+              <>
+                <span className="text-6xl font-black">{pendingOrdersCount}</span>
+                <span className="text-sm font-bold opacity-80 uppercase tracking-widest mt-2">اختناق</span>
+              </>
+            )}
+          </motion.div>
+        </div>
+      </div>
+    </motion.div>
+  ) : (
+    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+      {isPushSupported && !pushEnabled && (
+         <motion.div
+           initial={{ opacity: 0, scale: 0.9, y: -10 }}
+           animate={{ opacity: 1, scale: 1, y: 0 }}
+           className="bg-indigo-600 border border-indigo-500 shadow-xl shadow-indigo-600/20 text-white p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 self-stretch xl:self-auto min-w-[280px]"
+         >
+           <div className="flex items-center gap-3 w-full sm:w-auto">
+             <div className="bg-white/20 p-2 rounded-xl shrink-0">
+               <BellRing size={20} className="animate-pulse" />
+             </div>
+             <div className="text-right">
+               <h4 className="font-black text-sm">إشعارات الطلبات الجدد</h4>
+               <p className="text-[10px] text-indigo-100 font-bold">فعّل الإشعارات وتوصلك الطلبات أول بأول حتى لو البرنامج مسكر</p>
+             </div>
+           </div>
+           <button
+             onClick={handleEnablePush}
+             disabled={isActivatingPush}
+             className="w-full sm:w-auto bg-white text-indigo-600 px-4 py-2 font-black text-[11px] rounded-xl shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50 whitespace-nowrap"
+           >
+             {isActivatingPush ? 'جاري التفعيل...' : 'تفعيل الإشعارات'}
+           </button>
+         </motion.div>
+       )}
+       
+       <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md p-1.5 rounded-2xl border border-slate-100 shadow-sm">
+       {(['day', 'week', 'month', 'year', 'all'] as const).map(f => (
+       <button
+       key={f}
+       onClick={() => startTransition(() => setFilter(f))}
+       className={cn(
+      "px-5 py-2 text-[11px] font-black rounded-xl transition-all",
+       filter === f ?"bg-slate-900 text-white shadow-lg" :"text-slate-500 hover:bg-slate-100"
+      )}
+       >
+       {f === 'day' ? 'يوم' : f === 'week' ? 'اسبوع' : f === 'month' ? 'شهر' : f === 'year' ? 'سنة' : 'الكل'}
+       </button>
+      ))}
+       </div>
+      
+        {/* Stats Grid - Exactly like Admin */}
+        <motion.div layout className="mb-12 bg-white rounded-3xl p-2 md:p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden relative z-10">
+          <button 
+            onClick={() => setShowFinancialStats(!showFinancialStats)}
+            className="w-full flex items-center justify-between p-3 md:p-0 group outline-none"
+          >
+            <div className="flex items-center gap-4 flex-row-reverse">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+                <Activity size={20} />
+              </div>
+              <div className="text-right">
+                <h3 className="font-black text-slate-800 text-lg tracking-tight">
+                  الأداء المالي
+                </h3>
+                <p className="text-[10px] text-slate-500 font-bold">
+                  المبيعات، التكاليف، والأرباح
+                </p>
+              </div>
+            </div>
+            <ChevronDown
+              size={20}
+              className={cn(
+                "text-slate-400 transition-transform duration-500",
+                showFinancialStats ? "rotate-180" : ""
+              )}
+            />
+          </button>
+          <AnimatePresence initial={false}>
+            {showFinancialStats && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, filter: "blur(10px)" }}
+                animate={{ opacity: 1, height: "auto", filter: "blur(0px)" }}
+                exit={{ opacity: 0, height: 0, filter: "blur(10px)" }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="overflow-hidden mix-blend-multiply"
+              >
+                <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-6 transition-opacity", isPending ?"opacity-50" :"opacity-100")}>
+                <GlobalStatBox label="إجمالي المبيعات" value={totalSalesVal} unit="د.ك" icon={TrendingUp} color="blue" subtext="بناءً على الفلتر" />
+                <GlobalStatBox label="إجمالي التكاليف" value={totalCostVal + totalExpensesVal} unit="د.ك" icon={Briefcase} color="red" subtext="متضمنة المصاريف" />
+                <GlobalStatBox label="الربح المتوقع" value={netProfit} unit="د.ك" icon={Activity} color="indigo" subtext="الأرباح الصافية" />
+                <GlobalStatBox label="هامش الربح" value={profitMargin} isPercent={true} icon={DollarSign} color="amber" subtext="النسبة المئوية للأرباح" />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+       {/* Smart Tools Cards Section */}
+       <div className="mb-12">
+       <h3 className="text-xl font-black text-slate-800 mb-6 tracking-tight flex items-center gap-2 flex-row-reverse justify-end pr-2">
+       أدوات الإدارة الذكية <Sparkles size={24} className="text-amber-500" />
+       </h3>
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:p-4">
+       <button onClick={() => setActiveWidget('campaign')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-2xl relative overflow-hidden outline-none">
+       <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-rose-500 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
+       <FlaskConical size={32} className="text-rose-400 mb-4 group-hover:-translate-y-1 transition-transform" />
+       <h3 className="text-lg font-black text-white mb-2 tracking-tight">مختبر الحملات</h3>
+       <p className="text-[10px] font-bold text-slate-400 leading-relaxed">ابتكر حملات ذكية مبنية على أرصدتك</p>
+       </button>
+       
+       <button onClick={() => setActiveWidget('forecast')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-2xl relative overflow-hidden outline-none">
+       <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-indigo-500 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
+       <LineChartIcon size={32} className="text-indigo-400 mb-4 group-hover:-translate-y-1 transition-transform" />
+       <h3 className="text-lg font-black text-white mb-2 tracking-tight">التنبؤ المالي</h3>
+       <p className="text-[10px] font-bold text-slate-400 leading-relaxed">رؤية مستقبلية دقيقة لأداء مبيعاتك</p>
+       </button>
+      
+       <button onClick={() => setActiveWidget('menu')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-2xl relative overflow-hidden outline-none">
+       <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-emerald-500 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
+       <Layers size={32} className="text-emerald-400 mb-4 group-hover:-translate-y-1 transition-transform" />
+       <h3 className="text-lg font-black text-white mb-2 tracking-tight">هندسة المنيو الذكية</h3>
+       <p className="text-[10px] font-bold text-slate-400 leading-relaxed">تحليل ربحية وشعبية كل صنف</p>
+       </button>
+      
+       <div className={bentoCardStyle}>
+       <h3 className="font-black text-lg text-[#4a3f35] mb-4 flex items-center gap-2 justify-end">نجوم التراث (الأكثر مبيعاً) <Sparkles size={18} className="text-amber-500" /></h3>
+       <div className="space-y-2 flex-grow">
+       {topProducts.length > 0 ? topProducts.slice(0, 3).map((p, i) => (
+       <div key={p.id} className="flex justify-between items-center bg-white p-3 rounded-2xl border border-[#f0e6d2] hover:border-amber-400 transition-colors flex-row-reverse">
+       <div className="flex items-center gap-2 flex-row-reverse">
+       <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-black text-[10px]">#{i+1}</div>
+       <div className="font-black text-slate-800 text-[11px] truncate max-w-[100px]">{p.name}</div>
+       </div>
+       <div className="bg-slate-50 border border-slate-100 text-slate-500 text-[8px] font-black px-2 py-1 rounded-full">{p.sold} طلب</div>
+       </div>
+      )) : <div className="text-center py-4 text-slate-300 font-bold text-[10px]">لا توجد بيانات</div>}
+       </div>
+       <button onClick={() => setActiveWidget('bestsellers')} className="mt-3 text-center text-[9px] font-black text-amber-600 hover:text-amber-700 transition-colors">عرض القائمة الكاملة</button>
+       </div>
+       </div>
+       </div>
+      
+       {/* Modals for Smart Tools */}
+       <AnimatePresence>
+       {activeWidget && (
+       <div className="fixed inset-0 z-[200] flex items-center justify-center p-3">
+       <motion.div 
+       initial={{ opacity: 0 }}
+       animate={{ opacity: 1 }}
+       exit={{ opacity: 0 }}
+       onClick={() => setActiveWidget(null)}
+       className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
+       />
+       <motion.div 
+       initial={{ scale: 0.95, opacity: 0, y: 20 }}
+       animate={{ scale: 1, opacity: 1, y: 0 }}
+       exit={{ scale: 0.95, opacity: 0, y: 20 }}
+       className="bg-slate-50 w-full max-w-5xl rounded-2xl md:rounded-2xl shadow-[0_0_100px_rgba(0,0,0,0.5)] relative z-10 overflow-hidden border border-white/20"
+       >
+       <div className="p-3 md:p-4 md:p-3 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-20">
+       <h2 className="text-xl md:text-2xl font-black text-slate-800">
+       {activeWidget === 'campaign' &&"مختبر الحملات التسويقية الذكي"}
+       {activeWidget === 'forecast' &&"التنبؤ المستقبلي الخوارزمي"}
+       {activeWidget === 'bestsellers' &&"نجوم التراث (الأكثر مبيعاً)"}
+       {activeWidget === 'menu' &&"مصفوفة هندسة المنيو الذكية"}
+       </h2>
+       <button onClick={() => setActiveWidget(null)} className="w-10 h-10 flex items-center justify-center bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-full transition-all active:scale-90">
+       <X size={24} />
+       </button>
+       </div>
+      
+       <div className="p-3 md:p-4 md:p-3 max-h-[80vh] overflow-y-auto custom-scrollbar">
+       {activeWidget === 'campaign' && <MarketingLab data={data} />}
+       {activeWidget === 'forecast' && <FutureForecast data={data} />}
+       {activeWidget === 'bestsellers' && (
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+       {topProducts.map((p, i) => (
+       <div key={p.id} className="flex justify-between items-center bg-white p-3 md:p-4 rounded-2xl border border-slate-100 shadow-sm flex-row-reverse">
+       <div className="flex items-center gap-4 flex-row-reverse">
+       <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-black text-xl">#{i+1}</div>
+       <div className="text-right">
+       <div className="font-black text-slate-800 text-lg">{p.name}</div>
+       <div className="text-[10px] text-slate-400 font-bold uppercase">{p.category || 'عام'}</div>
+       </div>
+       </div>
+       <div className="flex flex-col items-start gap-1">
+       <div className="text-indigo-600 text-lg font-black">{p.sold} طلبات</div>
+       <div className="text-[10px] text-slate-300 font-bold">إجمالي المبيعات المباشرة</div>
+       </div>
+       </div>
+      ))}
+       </div>
+      )}
+       {activeWidget === 'menu' && (
+       <div id="products-matrix-section" className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl p-3 md:p-4 shadow-xl relative overflow-hidden" dir="rtl">
+       <div className="absolute top-0 right-0 w-full h-2 bg-gradient-to-l from-[#0f3460] via-[#e94560] to-[#0f3460]" />
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+       {/* Stars */}
+       <div className="bg-white/5 border border-emerald-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
+       <div className="flex items-center justify-between mb-4">
+       <div className="flex items-center gap-2 text-emerald-400">
+       <Sparkles size={20} className="group-hover:animate-spin" />
+       <h4 className="font-black text-lg">النجوم (Stars)</h4>
+       </div>
+       <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات عالي + ربح عالي</span>
+       </div>
+       <p className="text-xs text-indigo-100/70 leading-relaxed mb-4">حافظ على الترويج لها ولا تغير جودتها، هي مصدر أرباحك الرئيسي وتقود سمعة المطعم.</p>
+       <div className="flex flex-wrap gap-2">
+       {menuEngineering.stars.slice(0, 5).map(s => (
+       <span key={s.product.id} className="text-xs font-bold text-white bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/20 shadow-sm">{s.product.name}</span>
+      ))}
+       {menuEngineering.stars.length === 0 && <span className="text-xs text-white/30 italic">لا توجد أصناف في هذه الفئة حالياً</span>}
+       </div>
+       </div>
+      
+       {/* Plowhorses */}
+       <div className="bg-white/5 border border-amber-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
+       <div className="flex items-center justify-between mb-4">
+       <div className="flex items-center gap-2 text-amber-400">
+       <Zap size={20} className="group-hover:-translate-x-1 transition-transform" />
+       <h4 className="font-black text-lg">أحصنة الحرث (Plowhorses)</h4>
+       </div>
+       <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات عالي + ربح منخفض</span>
+       </div>
+       <p className="text-xs text-indigo-100/70 leading-relaxed mb-4">منتجات محبوبة لكن أرباحها قليلة. ارفع سعرها تدريجياً أو أعد هندسة المكونات لتقليل تكلفتها.</p>
+       <div className="flex flex-wrap gap-2">
+       {menuEngineering.plowhorses.slice(0, 5).map(s => (
+       <span key={s.product.id} className="text-xs font-bold text-white bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/20 shadow-sm">{s.product.name}</span>
+      ))}
+       {menuEngineering.plowhorses.length === 0 && <span className="text-xs text-white/30 italic">لا توجد أصناف في هذه الفئة حالياً</span>}
+       </div>
+       </div>
+      
+       {/* Puzzles */}
+       <div className="bg-white/5 border border-blue-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
+       <div className="flex items-center justify-between mb-4">
+       <div className="flex items-center gap-2 text-blue-400">
+       <Search size={20} className="group-hover:scale-110 transition-transform" />
+       <h4 className="font-black text-lg">الألغاز (Puzzles)</h4>
+       </div>
+       <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات منخفض + ربح عالي</span>
+       </div>
+       <p className="text-xs text-indigo-100/70 leading-relaxed mb-4">منتجات مربحة جداً لكن مبيعاتها نادرة. أعد صياغة وصفها وضعها في عروض لتنشيطها.</p>
+       <div className="flex flex-wrap gap-2">
+       {menuEngineering.puzzles.slice(0, 5).map(s => (
+       <span key={s.product.id} className="text-xs font-bold text-white bg-blue-500/20 px-3 py-1.5 rounded-lg border border-blue-500/20 shadow-sm">{s.product.name}</span>
+      ))}
+       {menuEngineering.puzzles.length === 0 && <span className="text-xs text-white/30 italic">لا توجد أصناف في هذه الفئة حالياً</span>}
+       </div>
+       </div>
+      
+       {/* Turtle */}
+       <div className="bg-white/5 border border-rose-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
+       <div className="flex items-center justify-between mb-4">
+       <div className="flex items-center gap-2 text-rose-400">
+       <Turtle size={20} className="group-hover:rotate-12 transition-transform" />
+       <h4 className="font-black text-lg">سلحفاة (Turtles)</h4>
+       </div>
+       <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات منخفض + ربح منخفض</span>
+       </div>
+       <p className="text-xs text-indigo-100/70 leading-relaxed mb-4">تستنزف مساحة وجهداً بلا عائد. فكّر بإزالتها أو تقديمها بأسلوب مختلف كلياً.</p>
+       <div className="flex flex-wrap gap-2">
+       {menuEngineering.turtles.slice(0, 5).map(s => (
+       <span key={s.product.id} className="text-xs font-bold text-white bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/20 shadow-sm">{s.product.name}</span>
+      ))}
+       {menuEngineering.turtles.length === 0 && <span className="text-xs text-white/30 italic">لا توجد أصناف في هذه الفئة حالياً</span>}
+       </div>
+       </div>
+       </div>
+       </div>
+      )}
+       </div>
+       </motion.div>
+       </div>
+      )}
+       </AnimatePresence>
+      
+       {/* Action Card */}
+       <div className="max-w-6xl mx-auto">
+       <motion.div 
+       whileHover={{ y: -5 }}
+       className="group cursor-pointer"
+       onClick={() => onNavigate('orders')}
+       >
+       <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 p-3 md:p-4 md:p-3 md:p-4 rounded-2xl md:rounded-2xl shadow-2xl shadow-indigo-600/30 text-white relative overflow-hidden flex flex-col justify-between">
+       <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none rotate-12" style={{ backgroundImage: `url(${patternSadu})` }} />
+       <div className="absolute -bottom-10 -right-10 w-64 h-64 lg:w-96 lg:h-96 bg-white/5 rounded-full blur-3xl opacity-50" />
+       
+       <div className="relative z-10 flex justify-between items-start">
+       <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/10 flex items-center justify-center">
+       <ShoppingBag size={40} />
+       </div>
+       <div className={cn(
+      "px-5 py-2 rounded-full text-xs font-black backdrop-blur-xl border border-white/20",
+       pendingOrdersCount > 0 ?"bg-amber-500 text-white animate-pulse" :"bg-white/10 text-white"
+      )}>
+       {pendingOrdersCount > 0 ? `${pendingOrdersCount} طلبات معلقة` : 'السجل جاهز تماماً'}
+       </div>
+       </div>
+      
+       <div className="relative z-10 mt-6 flex justify-between items-end">
+       <div className="text-right">
+       <h3 className="font-black text-xl md:text-3xl md:text-xl md:text-2xl mb-2 tracking-tighter">طلبات التطبيق 📦</h3>
+       <p className="text-white/70 text-base font-bold">معالجة الطلبات الواردة وتحويلها إلى فواتير</p>
+       </div>
+       <div className="w-12 h-12 bg-white text-indigo-600 rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:-translate-x-2">
+       <ChevronRight size={24} className="rotate-180" />
+       </div>
+       </div>
+       </div>
+       </motion.div>
+       </div>
+    </motion.div>
+  )}
+  </div>
+ );
 };
 
 const patternSadu ="data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h22v20h2V0h2v20h2V0h2v20h2V0h2v20h2V0h2v20h2V0h2v20h2V0h2v20h2v2H20v-1.5zM0 20h2v20H0V20zm4 0h2v20H4V20zm4 0h2v20H8V20zm4 0h2v20h-2V20zm4 0h2v20h-2V20zm4 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2z' fill='%239e9e9e' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E";

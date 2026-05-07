@@ -325,7 +325,7 @@ const App: React.FC = () => {
 
   // Extreme Cache clearing for major updates
   useEffect(() => {
-    const CURRENT_VERSION = '3.1.5';
+    const CURRENT_VERSION = '3.2.0';
     if (localStorage.getItem('app_version') !== CURRENT_VERSION) {
       if ('caches' in window) {
         caches.keys().then(names => {
@@ -1950,7 +1950,7 @@ const App: React.FC = () => {
       
       {/* Version Tag - Subtle but visible as requested */}
       <div className="fixed bottom-1 left-2 pointer-events-none z-[10000] select-none opacity-20">
-        <span className="text-[8px] font-mono tracking-widest text-slate-500 uppercase">Version 3.1.5.Release</span>
+        <span className="text-[8px] font-mono tracking-widest text-slate-500 uppercase">Version 3.2.0.Release</span>
       </div>
     </div>
   );
