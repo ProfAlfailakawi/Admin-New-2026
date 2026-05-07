@@ -1104,10 +1104,10 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  };
 
  return (
- <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:p-3 pb-20">
+ <div className={cn("transition-all duration-700 ease-in-out", isZenMode ? "fixed inset-0 z-[100] bg-white overflow-y-auto p-4 md:p-12 pb-32" : "")}>{isZenMode && (<div className="flex justify-between items-center mb-8 max-w-6xl mx-auto"><h2 className="text-xl md:text-3xl font-black text-slate-800">وضع التركيز المستمر</h2><button onClick={() => setIsZenMode(false)} className="flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-sm bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all active:scale-95">خروج من التركيز <X size={18} /></button></div>)}<div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-3 md:p-3 pb-20", isZenMode ? "max-w-6xl mx-auto" : "")}>
  {/* Left: Product Selection */}
  <div className="lg:col-span-2 space-y-6">
- <div className="bg-white rounded-[32px] p-3 md:p-3 shadow-sm border border-slate-200">
+ <div className="bg-white rounded-[32px] p-3 md:p-3 shadow-sm border border-slate-200 relative overflow-hidden group">{!isZenMode && (<button onClick={() => setIsZenMode(true)} className="absolute top-4 left-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all hover:bg-slate-800 hover:text-white" title="وضع التركيز"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>)}
  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-8">
  <h2 className="text-2xl font-black flex items-center gap-3">
  <Package className="text-primary" />
@@ -1621,7 +1621,8 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  </div>
  </div>
  </div>
-);
+ </div>
+ );
 });
 
 export default InvoicePage;

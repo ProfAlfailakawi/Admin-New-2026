@@ -1,8 +1,124 @@
-import React, { useState } from 'react';
-import { ShoppingCart, Lock, User, ArrowLeft, Chrome } from 'lucide-react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { ShoppingCart, Lock, User, ArrowLeft, Chrome, Download, Share, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { loginWithGoogle } from '../firebase';
+
+const PWAInstallPrompt = () => {
+  const [show, setShow] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    // Only show on mobile
+    if (window.innerWidth > 768) return;
+
+    // Check if already installed or dismissed
+    if (window.matchMedia('(display-mode: standalone)').matches || localStorage.getItem('pwa_prompt_dismissed') === 'true') {
+      return;
+    }
+
+    // Detect iOS Safari
+    const ua = window.navigator.userAgent;
+    const isIosDevice = /iphone|ipad|ipod/.test(ua.toLowerCase());
+    const isSafari = /safari/.test(ua.toLowerCase()) && !/chrome|crios|crmo/.test(ua.toLowerCase());
+    
+    if (isIosDevice && isSafari) {
+      setIsIOS(true);
+      setShow(true);
+    }
+
+    // Detect Android / Chrome
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShow(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleDismiss = () => {
+    setShow(false);
+    localStorage.setItem('pwa_prompt_dismissed', 'true');
+  };
+
+  const handleInstallClick = async () => {
+    if (isIOS) {
+      // iOS has no programmatic install prompt, user uses browser share sheet directly
+    } else if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setShow(false);
+      }
+      setDeferredPrompt(null);
+    }
+  };
+
+  if (!show) return null;
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 50 }}
+          className="fixed bottom-4 left-4 right-4 bg-white rounded-3xl shadow-2xl border border-slate-200 p-4 z-[9999] flex flex-col gap-3 max-w-sm mx-auto"
+          dir="rtl"
+        >
+          <button 
+            onClick={handleDismiss}
+            className="absolute top-3 left-3 p-1.5 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors outline-none"
+          >
+            <X size={16} />
+          </button>
+          
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 bg-indigo-50 border border-indigo-100/50 rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
+              <Download className="text-indigo-600" size={26} />
+            </div>
+            <div className="flex-1 mt-1">
+              <h3 className="font-black text-slate-800 text-base mb-1 pr-2">ثبّت تطبيق الإدارة</h3>
+              <p className="text-xs text-slate-500 font-medium leading-relaxed mb-4 pr-2">
+                للوصول السريع ومتابعة طلباتك بسهولة
+              </p>
+              
+              {isIOS ? (
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-[11px] font-bold text-slate-600 space-y-2.5 shadow-sm">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-5 h-5 bg-white shadow-sm border border-slate-100 rounded flex items-center justify-center font-black text-slate-400">1</span>
+                    <span>اضغط زر المشاركة <Share size={12} className="inline mx-1 text-blue-500" /></span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-5 h-5 bg-white shadow-sm border border-slate-100 rounded flex items-center justify-center font-black text-slate-400">2</span>
+                    <span>اختر "إضافة إلى الشاشة الرئيسية"</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-5 h-5 bg-white shadow-sm border border-slate-100 rounded flex items-center justify-center font-black text-slate-400">3</span>
+                    <span>اضغط "إضافة" (Add)</span>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={handleInstallClick}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-2xl text-sm transition-transform active:scale-95 shadow-lg shadow-indigo-600/20"
+                >
+                  تثبيت التطبيق
+                </button>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
 
 interface LoginProps {
  onLogin: (mode: 'local' | 'cloud') => void;
@@ -168,6 +284,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  شركة مطبخ التراث الكويتي &copy; {new Date().getFullYear()}
  </div>
  </motion.div>
+ <PWAInstallPrompt />
  </div>
 );
 };

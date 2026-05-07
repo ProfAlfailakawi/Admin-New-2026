@@ -1,6 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
 @import "tailwindcss";
 
+@layer utilities {
+  .dashboard .container {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 16px 24px !important;
+    margin: 0 !important;
+  }
+  
+  .dashboard {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+}
+
 @theme {
   --color-primary: #E31837; /* Vibrant Kuwaiti Red */
   --color-secondary: #0f3d1f; /* Deep Luxurious Green */

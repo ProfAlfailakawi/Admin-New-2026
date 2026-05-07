@@ -401,7 +401,10 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <ChevronDown size={20} className={cn("text-slate-400 transition-transform duration-300", activeSection === 'profile' ?"rotate-180" :"")} />
  </div>
  </button>
- <div className={cn("transition-all duration-300 relative", activeSection === 'profile' ?"block" :"hidden")}>
+ <div className={cn("transition-all duration-300 relative", activeSection === 'profile' ? "block" : "hidden")}>
+ {appMode === 'local' && (
+ <div className="absolute inset-0 bg-slate-50/10 backdrop-blur-[0.5px] z-20 cursor-not-allowed" />
+ )}
  <div className="p-3 md:p-4 space-y-4">
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
  <div className="space-y-2">
@@ -669,7 +672,10 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <ChevronDown size={20} className={cn("text-slate-400 transition-transform duration-300", activeSection === 'store-status' ?"rotate-180" :"")} />
  </div>
  </button>
- <div className={cn("transition-all duration-300 relative", activeSection === 'store-status' ?"block" :"hidden")}>
+ <div className={cn("transition-all duration-300 relative", activeSection === 'store-status' ? "block" : "hidden")}>
+ {appMode === 'local' && (
+ <div className="absolute inset-0 bg-slate-50/10 backdrop-blur-[0.5px] z-20 cursor-not-allowed" />
+ )}
  <div className="p-3 md:p-4 space-y-6">
  
  <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
