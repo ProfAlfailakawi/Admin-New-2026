@@ -117,6 +117,7 @@ const SmartOffersCalculator = React.lazy(() =>
   })),
 );
 import { FutureForecast } from "./FutureForecast";
+import { CommandBrief } from "./CommandBrief";
 const BusinessHealthIndex = React.lazy(() =>
   import("./BusinessHealthIndex").then((m) => ({
     default: m.BusinessHealthIndex,
@@ -1967,7 +1968,6 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
           <AnimatePresence>
             {!isExecutiveMode && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="animate-in fade-in slide-in-from-bottom-4 duration-500 mt-4">
-            {/* Removed duplicate pulse block */}
 
             {activeTab === "financials" && (
               <div className="space-y-8" dir="rtl">
@@ -2980,7 +2980,8 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
             {activeTab === "pulse" && (
               <React.Fragment>
-                <div className="space-y-6">
+                <CommandBrief data={data} dateFilter={dateFilter} />
+                <div className="space-y-6 mt-6">
                   <div className="flex flex-col w-full ">
                     <GlobalStatBox
                       label="إجمالي المبيعات"

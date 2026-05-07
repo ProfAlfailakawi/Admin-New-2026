@@ -721,7 +721,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  setSelectedZoneId('');
  setDeliveryCost(0);
  setDeliveryProfit(0);
- setAddressText('');
+ setAddressDetails({block: '', street: '', jaddah: '', building: '', floor: '', apartment: ''});
  }
  playTing();
  toast.success('تم الحفظ بنجاح!');
