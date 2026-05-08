@@ -225,11 +225,11 @@ async function startServer() {
       }
       
       console.log("Triggering test-new-order push...");
-      await sendNewOrderPushNotification({ orderId, total: total || 0, restaurantId, orderNumber });
-      res.json({ success: true, message: "Push notification triggered" });
+      const result = await sendNewOrderPushNotification({ orderId, total: total || 0, restaurantId, orderNumber });
+      res.json(result);
     } catch (error: any) {
       console.error("Send push error:", error);
-      res.status(500).json({ error: "Failed to send push notification", details: error.message });
+      res.status(500).json({ success: false, error: "Failed to process push notification", details: error.message });
     }
   });
 
@@ -261,11 +261,11 @@ async function startServer() {
       const { title, body, alertType, url } = req.body;
       
       console.log("Triggering test-smart-alert push...");
-      await sendSmartAlertPushNotification({ title, body, alertType, url });
-      res.json({ success: true, message: "Smart alert notification triggered" });
+      const result = await sendSmartAlertPushNotification({ title, body, alertType, url });
+      res.json(result);
     } catch (error: any) {
       console.error("Send smart alert error:", error);
-      res.status(500).json({ error: "Failed to send smart alert notification", details: error.message });
+      res.status(500).json({ success: false, error: "Failed to process smart alert notification", details: error.message });
     }
   });
 
@@ -300,36 +300,34 @@ async function startServer() {
   });
 
   async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'default', orderNumber = '' }: any) {
-    if (!admin.messaging || !db) return;
+    if (!admin.messaging || !db) return { success: false, error: "Firebase not initialized" };
     const url = `/?invoice=${orderId}`; 
     
     try {
       const snap = await db.collection("pushTokens").where("active", "==", true).get();
-      if (snap.empty) return;
+      if (snap.empty) return { success: false, error: "No active push tokens found", tokensCount: 0 };
       
       const tokens = snap.docs.map(d => d.data().token);
       
       const message = {
         tokens,
         notification: {
-          title: "طلب جديد مدفوع",
-          body: `طلب ${orderNumber ? `رقم ${orderNumber} ` : ''}بقيمة ${String(total)} — تم الدفع ويحتاج تجهيز.`,
+          title: "طلب جديد وصل",
+          body: `طلب ${orderNumber ? `رقم ${orderNumber} ` : ''}بقيمة ${String(total)}`,
         },
         data: {
           type: "new_order",
           orderId: String(orderId),
-          restaurantId: String(restaurantId),
+          restaurantId: String(restaurantId || "kitchen_default"),
           orderNumber: String(orderNumber),
           total: String(total),
           url,
-          title: "طلب جديد مدفوع",
-          body: `طلب ${orderNumber ? `رقم ${orderNumber} ` : ''}بقيمة ${String(total)} — تم الدفع ويحتاج تجهيز.`,
         },
         webpush: {
           fcmOptions: { link: url },
           notification: {
-            icon: "/vite.svg",
-            badge: "/vite.svg",
+            icon: "/icons/icon-192.png",
+            badge: "/icons/icon-192.png",
             requireInteraction: true,
             vibrate: [200, 100, 200],
           },
@@ -337,8 +335,7 @@ async function startServer() {
       };
 
       const response = await admin.messaging().sendEachForMulticast(message);
-      console.log(`Push notifications sent: ${response.successCount} success, ${response.failureCount} failed.`);
-
+      
       // Cleanup invalid tokens
       if (response.failureCount > 0) {
         const failedTokens: string[] = [];
@@ -358,16 +355,24 @@ async function startServer() {
             batch.update(db.collection("pushTokens").doc(token), { active: false });
           }
           await batch.commit();
-          console.log(`Cleaned up ${failedTokens.length} invalid tokens.`);
         }
       }
-    } catch (e) {
+
+      return {
+        success: response.successCount > 0,
+        tokensCount: tokens.length,
+        successCount: response.successCount,
+        failureCount: response.failureCount,
+        errors: response.responses.filter(r => !r.success).map(r => r.error)
+      };
+    } catch (e: any) {
       console.error("Sending push error:", e);
+      return { success: false, error: e.message };
     }
   }
 
   async function sendSmartAlertPushNotification({ token, alertType, title, body, url = '/' }: any) {
-    if (!admin.messaging || !db) return;
+    if (!admin.messaging || !db) return { success: false, error: "Firebase not initialized" };
     
     try {
       let tokens: string[] = [];
@@ -375,7 +380,7 @@ async function startServer() {
         tokens = [token];
       } else {
         const snap = await db.collection("pushTokens").where("active", "==", true).get();
-        if (snap.empty) return;
+        if (snap.empty) return { success: false, error: "No active push tokens found", tokensCount: 0 };
         tokens = snap.docs.map(d => d.data().token);
       }
 
@@ -395,17 +400,25 @@ async function startServer() {
         webpush: {
           fcmOptions: { link: url },
           notification: {
-            icon: "/vite.svg",
-            badge: "/vite.svg",
+            icon: "/icons/icon-192.png",
+            badge: "/icons/icon-192.png",
             vibrate: [200, 100, 200],
           },
         },
       };
 
       const response = await admin.messaging().sendEachForMulticast(message);
-      console.log(`Smart Alert Push notifications sent: ${response.successCount} success, ${response.failureCount} failed.`);
-    } catch (e) {
+
+      return {
+        success: response.successCount > 0,
+        tokensCount: tokens.length,
+        successCount: response.successCount,
+        failureCount: response.failureCount,
+        errors: response.responses.filter(r => !r.success).map(r => r.error)
+      };
+    } catch (e: any) {
       console.error("Sending smart alert push error:", e);
+      return { success: false, error: e.message };
     }
   }
 
