@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import { toast } from 'sonner';
 import { recalculateStateBalances } from '../lib/business-logic';
-import { isPaidStatus } from '../lib/status-utils';
+import { isPaidStatus, isPendingStatus } from '../lib/status-utils';
 import OrderPage from './OrderPage';
 
 interface ReportsPageProps {
@@ -819,7 +819,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </td>
  <td className="p-3 md:p-3 text-left">
  <div className="flex items-center gap-2 justify-end">
- {inv.paymentLink && !isPaidStatus(inv.paymentStatus) && (
+ {isPendingStatus(inv.paymentStatus as string || (inv as any).status) && (
  <button 
  onClick={(e) => { 
  e.stopPropagation(); 

@@ -581,7 +581,7 @@ async function startServer() {
       notificationUrl
     } = req.body;
     
-    const apiKey = process.env.UPAYMENTS_API_KEY;
+    const apiKey = process.env.UPAYMENTS_API_KEY?.replace(/[^\x20-\x7E]/g, '')?.replace(/\s+/g, '')?.trim();
 
     if (!apiKey) {
       console.error("UPAYMENTS_API_KEY is not defined");
@@ -721,7 +721,7 @@ async function startServer() {
         return res.status(400).json({ error: "Missing or invalid parameters" });
     }
 
-    const apiKey = process.env.UPAYMENTS_API_KEY;
+    const apiKey = process.env.UPAYMENTS_API_KEY?.replace(/[^\x20-\x7E]/g, '')?.replace(/\s+/g, '')?.trim();
     if (!apiKey) return res.status(500).json({ error: "Missing config" });
 
     try {

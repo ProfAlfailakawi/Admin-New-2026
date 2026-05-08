@@ -125,7 +125,7 @@ const InsightCard = ({ label, value, icon: Icon, color, onClick }: { label: stri
 );
 };
 
-import { isPaidStatus, isPendingStatus, isFailedStatus } from '../lib/status-utils';
+import { isPaidStatus, isPendingStatus, isFailedStatus, isCancelledStatus } from '../lib/status-utils';
 
 const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, setDeepLinkData, isPartner }) => {
  const orders = React.useMemo(() => {
@@ -145,7 +145,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  const [isMarkedAsPaid, setIsMarkedAsPaid] = useState<boolean>(false);
  const [isConfirmingCancel, setIsConfirmingCancel] = useState<boolean>(false);
 
- const isReadOnly = selectedOrder?.isConvertedToInvoice || selectedOrder?.status === 'cancelled' || selectedOrder?.status === 'paid';
+ const isReadOnly = selectedOrder?.isConvertedToInvoice || isCancelledStatus(selectedOrder?.status as string) || isPaidStatus(selectedOrder?.status as string);
 
  useEffect(() => {
  if (selectedOrder) {
@@ -244,7 +244,8 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  (filterStatus === 'today' ? isToday(order.date, order) : 
  (filterStatus === 'failed' ? isFailedStatus(order.status) :
  (filterStatus === 'pending' ? isPendingStatus(order.status) : 
- (filterStatus === 'paid' ? isPaidStatus(order.status) : order.status === filterStatus))));
+ (filterStatus === 'paid' ? isPaidStatus(order.status) : 
+ (filterStatus === 'cancelled' ? isCancelledStatus(order.status) : order.status === filterStatus)))));
  
  return matchesSearch && matchesFilter;
  });
@@ -259,7 +260,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  }
  if (isFailedStatus(status)) return 'bg-amber-100 text-amber-700 border-amber-200';
  if (isPendingStatus(status)) return 'bg-violet-100 text-violet-700 border-violet-200';
- if (status === 'cancelled') return 'bg-rose-100 text-rose-700 border-rose-200';
+ if (isCancelledStatus(status)) return 'bg-rose-100 text-rose-700 border-rose-200';
  
  switch (status) {
  case 'processed': return 'bg-blue-100 text-blue-700 border-blue-200';
@@ -282,7 +283,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
 
  const getStatusLabel = (status: string, order?: Order) => {
  if (status === 'today') return 'طلبات اليوم';
- if (status === 'cancelled') return 'ملغي';
+ if (isCancelledStatus(status)) return 'ملغي';
  if (isPaidStatus(status)) {
  const isVerifiedPaid = order && (order as any).paymentStatus === 'paid';
  const needsSupplier = order && !order.isConvertedToInvoice && hasUnselectedSuppliers(order) && !isVerifiedPaid;
@@ -440,7 +441,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
 
  const convertToInvoice = async (order: Order) => {
   setLoading(true);
- if (order.status === 'cancelled') {
+ if (isCancelledStatus(order.status)) {
  toast.error("لا يمكن تحويل طلب ملغي إلى فاتورة");
  return;
  }
@@ -566,8 +567,8 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  });
  
  const paymentData = await response.json();
- if (response.ok && paymentData.data?.link) {
- createdLink = paymentData.data.link;
+ if (response.ok && (paymentData.data?.link || paymentData.link || typeof paymentData.data === 'string')) {
+ createdLink = paymentData.data?.link || paymentData.link || (typeof paymentData.data === 'string' ? paymentData.data : undefined);
  if (paymentData.data) {
  createdPaymentId = paymentData.data.payment_id || paymentData.data.id || paymentData.data.transaction_id || paymentData.data.transactionId;
  }
@@ -714,7 +715,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  paymentId: createdPaymentId
  });
  
- toast.success("تم تحويل الطلب إلى فاتورة وتعديل المخزون بنجاح ✅"); if (createdLink) { window.top.location.href = createdLink; return; }
+ toast.success("تم تحويل الطلب إلى فاتورة وتعديل المخزون بنجاح ✅");
  if (setDeepLinkData) {
  setDeepLinkData({ search: getOrderCustomerName(order) });
  }
@@ -740,7 +741,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
 
  const linkedInvoice = order.linkedInvoiceId ? (data?.invoices || []).find(inv => inv.id === order.linkedInvoiceId) : undefined;
  console.log("DEBUG: Order:", order.id,"linkedInvoiceId:", order.linkedInvoiceId,"linkedInvoice:", linkedInvoice);
- const paymentLink = linkedInvoice?.paymentLink;
+ const paymentLink = linkedInvoice?.paymentLink || (order as any).paymentLink;
  console.log("DEBUG: Found paymentLink:", paymentLink);
 
  const titleLine = `*فاتورة من شركة مطبخ التراث الكويتي*`;
@@ -797,8 +798,8 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  }).length} icon={Calendar} color="text-indigo-500" onClick={() => setFilterStatus('today')} />
  <InsightCard label="بانتظار الدفع" value={data.orders.filter(o => isPendingStatus(o.status as string)).length} icon={Clock} color="text-violet-500" onClick={() => setFilterStatus('pending')} />
  <InsightCard label="فشل في عملية الدفع" value={data.orders.filter(o => isFailedStatus(o.status as string)).length} icon={AlertCircle} color="text-amber-500" onClick={() => setFilterStatus('failed')} />
- <InsightCard label="تم الدفع وجاري التوصيل" value={data.orders.filter(o => o.status === 'paid').length} icon={CheckCircle2} color="text-emerald-500" onClick={() => setFilterStatus('paid')} />
- <InsightCard label="ملغي" value={data.orders.filter(o => o.status === 'cancelled').length} icon={XCircle} color="text-rose-500" onClick={() => setFilterStatus('cancelled')} />
+ <InsightCard label="تم الدفع وجاري التوصيل" value={data.orders.filter(o => isPaidStatus(o.status as string)).length} icon={CheckCircle2} color="text-emerald-500" onClick={() => setFilterStatus('paid')} />
+ <InsightCard label="ملغي" value={data.orders.filter(o => isCancelledStatus(o.status as string)).length} icon={XCircle} color="text-rose-500" onClick={() => setFilterStatus('cancelled')} />
  </div>
 
  {/* Main Container */}
@@ -1407,16 +1408,16 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  {!selectedOrder.isConvertedToInvoice ? (
  <button
  onClick={() => convertToInvoice(selectedOrder)}
- disabled={selectedOrder.status === 'cancelled' || !isMarkedAsPaid || hasUnselectedSuppliers(selectedOrder)}
+ disabled={isCancelledStatus(selectedOrder.status as string) || !isMarkedAsPaid || hasUnselectedSuppliers(selectedOrder)}
  className={cn(
 "flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-white text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-xl shadow-primary/20",
- (selectedOrder.status === 'cancelled' || !isMarkedAsPaid || hasUnselectedSuppliers(selectedOrder))
+ (isCancelledStatus(selectedOrder.status as string) || !isMarkedAsPaid || hasUnselectedSuppliers(selectedOrder))
  ?"bg-slate-300 cursor-not-allowed shadow-none" 
  :"bg-primary hover:bg-primary-dark active:scale-95"
 )}
  >
  <ArrowRightLeft className="w-4 h-4 sm:w-5 sm:h-5" />
- {selectedOrder.status === 'cancelled'
+ {isCancelledStatus(selectedOrder.status as string)
  ? 'طلب ملغي'
  : !isMarkedAsPaid
  ? 'يرجى تأكيد الدفع للتحويل'
