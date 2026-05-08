@@ -251,6 +251,7 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
  }, [data?.products, productPerformance]);
 
  const pendingOrdersCount = (data.orders || []).filter(o => o.status === 'pending').length;
+ const totalOrdersCount = data.orders?.length || 0;
 
  const getContextualGreeting = () => {
  const hour = now.getHours();
@@ -650,8 +651,11 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
        <div className="absolute -bottom-10 -right-10 w-64 h-64 lg:w-96 lg:h-96 bg-white/5 rounded-full blur-3xl opacity-50" />
        
        <div className="relative z-10 flex justify-between items-start">
-       <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/10 flex items-center justify-center">
+       <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/10 flex items-center justify-center relative">
        <ShoppingBag size={40} />
+       <div className="absolute -top-2 -right-2 bg-white text-indigo-600 text-[11px] font-black w-7 h-7 rounded-full flex items-center justify-center shadow-xl border-2 border-indigo-500">
+         {totalOrdersCount}
+       </div>
        </div>
        <div className={cn(
       "px-5 py-2 rounded-full text-xs font-black backdrop-blur-xl border border-white/20",
@@ -664,7 +668,7 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
        <div className="relative z-10 mt-6 flex justify-between items-end">
        <div className="text-right">
        <h3 className="font-black text-xl md:text-3xl md:text-xl md:text-2xl mb-2 tracking-tighter">طلبات التطبيق 📦</h3>
-       <p className="text-white/70 text-base font-bold">معالجة الطلبات الواردة وتحويلها إلى فواتير</p>
+       <p className="text-white/70 text-base font-bold">معالجة الطلبات الواردة وتحويلها إلى فواتير (إجمالي {totalOrdersCount} طلب)</p>
        </div>
        <div className="w-12 h-12 bg-white text-indigo-600 rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:-translate-x-2">
        <ChevronRight size={24} className="rotate-180" />
