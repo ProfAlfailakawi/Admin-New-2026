@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { 
   getFirestore,
   initializeFirestore,
@@ -27,6 +27,7 @@ setLogLevel('error');
 const activeConfig = firebaseConfig;
 export const app = getApps().length === 0 ? initializeApp(activeConfig) : getApp();
 export const auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence).catch(console.error);
 export const storage = getStorage(app);
 
 console.log("Firebase App Initialized with project:", activeConfig.projectId);
