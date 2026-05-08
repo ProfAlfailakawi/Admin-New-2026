@@ -2490,15 +2490,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   </React.Suspense>
                 </div>
 
-                <div id="smart-offers-section" className="mt-8">
-                  <React.Suspense
-                    fallback={
-                      <div className="h-64 animate-pulse bg-slate-100 rounded-2xl" />
-                    }
-                  >
-                    <SmartOffersCalculatorFeature data={data} />
-                  </React.Suspense>
-                </div>
+
 
                 <div className="space-y-8" dir="rtl">
                   <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-2xl relative overflow-hidden flex flex-col items-start">
@@ -2543,7 +2535,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                     </div>
                   </div>
 
-                  <div className="flex flex-col w-full ">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full mt-4">
                     {aiLearningLogs.length > 0 ? (
                       aiLearningLogs.map((log, i) => (
                         <motion.div
@@ -2551,82 +2543,83 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: i * 0.1 }}
-                          className="bg-[#fdfbf7] p-3 md:p-4 rounded-2xl md:rounded-2xl border border-[#f0e6d2] shadow-[0_4px_25px_-5px_rgba(0,0,0,0.05)] relative overflow-hidden flex flex-col group hover:shadow-xl transition-all"
+                          className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col group hover:shadow-md transition-all gap-4"
                         >
-                          <div className="absolute top-3 md:p-4 left-6 flex items-center gap-2">
-                            {log.isAccurate ? (
-                              <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
-                                <CheckCircle2 size={12} /> توقع دقيق
-                              </span>
-                            ) : (
-                              <span className="bg-rose-100 text-rose-700 text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
-                                <AlertCircle size={12} /> خطأ تم تصحيحه
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="mb-6 border-b border-dashed border-slate-200 pb-6">
-                            <div className="text-[10px] font-black text-slate-400 uppercase mb-2">
-                              التوقع الأصلي:
+                          <div className="flex justify-between items-start gap-4">
+                            <div className="flex-1">
+                              <div className="text-xs font-bold text-slate-400 capitalize mb-1">
+                                التوقع الأصلي:
+                              </div>
+                              <h3 className="text-base md:text-lg font-black text-slate-800 leading-snug">
+                                {log.prediction}
+                              </h3>
                             </div>
-                            <h3 className="text-lg font-black text-[#1a1a2e] leading-snug">
-                              {log.prediction}
-                            </h3>
+                            <div className="shrink-0">
+                              {log.isAccurate ? (
+                                <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-md flex items-center gap-1">
+                                  <CheckCircle2 size={12} /> توقع دقيق
+                                </span>
+                              ) : (
+                                <span className="bg-rose-100 text-rose-700 text-xs font-bold px-2.5 py-1 rounded-md flex items-center gap-1">
+                                  <AlertCircle size={12} /> خطأ مصحح
+                                </span>
+                              )}
+                            </div>
                           </div>
 
-                          <div className="space-y-4 mb-6 flex-1">
-                            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                              <span className="text-[10px] font-black text-indigo-500 mb-1 block">
-                                الإجراء المتخذ بناءً عليه:
+                          <div className="flex flex-col gap-3">
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                              <span className="text-xs font-bold text-indigo-500 mb-1 block">
+                                الإجراء المتخذ:
                               </span>
-                              <p className="text-sm font-bold text-slate-700">
+                              <p className="text-sm font-semibold text-slate-700">
                                 {log.actionTaken}
                               </p>
                             </div>
 
                             <div
                               className={cn(
-                                "p-3 rounded-2xl border flex items-start gap-3",
+                                "p-3 rounded-xl border flex items-start gap-2.5",
                                 log.isAccurate
                                   ? "bg-emerald-50/50 border-emerald-100"
-                                  : "bg-rose-50/50 border-rose-100",
+                                  : "bg-rose-50/50 border-rose-100"
                               )}
                             >
-                              <div className="shrink-0 mt-1">
+                              <div className="shrink-0 mt-0.5">
                                 {log.isAccurate ? (
                                   <Target
-                                    size={16}
+                                    size={14}
                                     className="text-emerald-500"
                                   />
                                 ) : (
-                                  <X size={16} className="text-rose-500" />
+                                  <X size={14} className="text-rose-500" />
                                 )}
                               </div>
                               <div>
                                 <span
                                   className={cn(
-                                    "text-[10px] font-black block mb-1",
+                                    "text-xs font-bold block mb-1",
                                     log.isAccurate
-                                      ? "text-emerald-500"
-                                      : "text-rose-500",
+                                      ? "text-emerald-600"
+                                      : "text-rose-600"
                                   )}
                                 >
                                   النتيجة الحقيقية بعد التنفيذ:
                                 </span>
-                                <p className="text-sm font-bold text-slate-700 leading-relaxed">
+                                <p className="text-sm font-semibold text-slate-700 leading-relaxed">
                                   {log.realResult}
                                 </p>
                               </div>
                             </div>
                           </div>
 
-                          <div className="bg-[#1a1a2e] text-white p-3 md:p-3 rounded-2xl relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-2 h-full bg-[#e94560]"></div>
-                            <span className="text-[10px] font-black text-indigo-300 mb-2 flex items-center gap-2">
-                              <RefreshCw size={12} className="text-[#e94560]" />{" "}
-                              الاستنتاج الذاتي (خوارزمية محدثة):
+                          <div className="bg-slate-900 text-white p-4 rounded-xl mt-auto relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-1.5 h-full bg-emerald-500"></div>
+                            <span className="text-xs font-bold text-slate-400 mb-2 flex items-center gap-1.5">
+                              <RefreshCw size={12} className="text-emerald-500" />{" "}
+                              تحديث الخوارزمية (تعلم ذاتي):
                             </span>
-                            <p className="text-sm font-bold leading-relaxed pr-2">
+                            <p className="text-sm font-semibold leading-relaxed pr-2">
                               {log.correction}
                             </p>
                           </div>

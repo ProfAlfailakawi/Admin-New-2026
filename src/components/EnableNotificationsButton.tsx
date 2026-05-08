@@ -49,18 +49,26 @@ export const EnableNotificationsButton: React.FC<Props> = ({ userId, restaurantI
         </div>
       </div>
       
-      <button 
-        onClick={handleEnable} 
-        disabled={loading}
-        className="w-full bg-primary text-white py-2 px-4 rounded-lg font-bold disabled:opacity-50 transition-opacity"
-      >
-        {loading ? 'جاري التفعيل...' : 'تفعيل إشعارات الطلبات'}
-      </button>
+      {isSuccess ? (
+        <div className="w-full bg-emerald-50 text-emerald-700 py-3 md:py-2 px-4 rounded-lg font-bold text-center border border-emerald-100 flex items-center justify-center gap-2">
+          تم تفعيل الإشعارات بنجاح ✅
+        </div>
+      ) : (
+        <>
+          <button 
+            onClick={handleEnable} 
+            disabled={loading}
+            className="w-full bg-primary text-white py-2 px-4 rounded-lg font-bold disabled:opacity-50 transition-opacity"
+          >
+            {loading ? 'جاري التفعيل...' : 'تفعيل إشعارات الطلبات'}
+          </button>
 
-      {message && (
-        <p className={`text-sm mt-2 text-center font-bold ${isSuccess ? 'text-green-600' : 'text-red-500'}`}>
-          {message}
-        </p>
+          {message && (
+            <p className="text-sm mt-2 text-center font-bold text-red-500">
+              {message}
+            </p>
+          )}
+        </>
       )}
     </div>
   );

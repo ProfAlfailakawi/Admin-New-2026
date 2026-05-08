@@ -572,7 +572,8 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
- amount: finalInvoiceAmount,
+ amount: Number(Number(finalInvoiceAmount).toFixed(3)),
+ isAdmin: true,
  customerName: (data.customers || []).find(c => c.id === selectedCustomerId)?.name || 'Customer',
  customerEmail: (data.customers || []).find(c => c.id === selectedCustomerId)?.email || 'no-email@example.com',
  customerMobile: (data.customers || []).find(c => c.id === selectedCustomerId)?.phone || '+96500000000',
@@ -585,15 +586,15 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  });
  
  const paymentData = await response.json();
- if (response.ok && (paymentData.data?.link || paymentData.link || typeof paymentData.data === 'string')) {
- createdLink = paymentData.data?.link || paymentData.link || (typeof paymentData.data === 'string' ? paymentData.data : undefined);
+ if (response.ok && (paymentData.data?.link || paymentData.data?.paymentURL || paymentData.data?.paymentUrl || paymentData.link || typeof paymentData.data === 'string')) {
+ createdLink = paymentData.data?.link || paymentData.data?.paymentURL || paymentData.data?.paymentUrl || paymentData.link || (typeof paymentData.data === 'string' ? paymentData.data : undefined);
  if (paymentData.data) {
  createdPaymentId = paymentData.data.payment_id || paymentData.data.id || paymentData.data.transaction_id;
  }
  setPaymentLink(createdLink);
  } else {
- const errorMessage = paymentData.details ? JSON.stringify(paymentData.details) : (paymentData.error || 'خطأ غير معروف');
- toast.error("فشل في إنشاء رابط الدفع:" + errorMessage);
+ const errorMessage = paymentData.details ? JSON.stringify(paymentData.details) : (paymentData.message || paymentData.error || 'خطأ في إنشاء الرابط');
+ toast.error("خطأ: " + errorMessage);
  }
  } catch (e) {
  toast.error("خطأ في الاتصال بخادم الدفع");
@@ -728,10 +729,13 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  
  // Auto-open WhatsApp link for the customer
  if (newInvoice) {
- const waLink = getWhatsAppLink(newInvoice);
- if (waLink && waLink !== '#') {
- window.open(waLink, '_blank', 'noopener,noreferrer');
- }
+   if (!newInvoice.paymentLink || newInvoice.paymentLink.trim() === '') {
+     toast.warning("لم يتم إنشاء رابط الدفع بعد"); return;
+   }
+   const waLink = getWhatsAppLink(newInvoice);
+   if (waLink && waLink !== '#') {
+     window.open(waLink, '_blank', 'noopener,noreferrer');
+   }
  }
  
  if (onFinished) {

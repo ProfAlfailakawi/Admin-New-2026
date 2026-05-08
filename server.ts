@@ -500,6 +500,15 @@ async function startServer() {
     }
   }
 
+  app.get("/api/test-upayments-raw", async (req, res) => {
+    try {
+      const apiKey = process.env.UPAYMENTS_API_KEY?.replace(/[^\x20-\x7E]/g, '')?.replace(/\s+/g, '')?.trim();
+      res.send(`Key length: ${apiKey?.length}, first 3: ${apiKey?.substring(0,3)}`);
+    } catch(e: any) {
+      res.send("Error: " + e.message);
+    }
+  });
+
   app.get("/api/test", (req, res) => {
     res.json({ message: "BACKEND OK", status: 200, time: new Date().toISOString() });
   });
@@ -592,7 +601,7 @@ async function startServer() {
       return res.status(400).json({ error: "Missing required payment fields" });
     }
 
-    if (db) {
+    if (db && !req.body.isAdmin) {
         try {
             const appDataSnap = await db.collection('appData').limit(1).get();
             if (!appDataSnap.empty) {

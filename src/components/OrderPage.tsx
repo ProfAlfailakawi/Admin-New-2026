@@ -554,7 +554,8 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
- amount: totalAmount,
+ amount: Number(Number(totalAmount).toFixed(3)),
+ isAdmin: true,
  customerName: customer?.name || 'Customer',
  customerEmail: customer?.email || 'no-email@example.com',
  customerMobile: customer?.phone || '+96500000000',
@@ -567,14 +568,14 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  });
  
  const paymentData = await response.json();
- if (response.ok && (paymentData.data?.link || paymentData.link || typeof paymentData.data === 'string')) {
- createdLink = paymentData.data?.link || paymentData.link || (typeof paymentData.data === 'string' ? paymentData.data : undefined);
+ if (response.ok && (paymentData.data?.link || paymentData.data?.paymentURL || paymentData.data?.paymentUrl || paymentData.link || typeof paymentData.data === 'string')) {
+ createdLink = paymentData.data?.link || paymentData.data?.paymentURL || paymentData.data?.paymentUrl || paymentData.link || (typeof paymentData.data === 'string' ? paymentData.data : undefined);
  if (paymentData.data) {
  createdPaymentId = paymentData.data.payment_id || paymentData.data.id || paymentData.data.transaction_id || paymentData.data.transactionId;
  }
  } else {
- console.error("Failed to generate payment link:", paymentData.error);
- toast.error("فشل في إنشاء رابط الدفع التلقائي");
+ console.error("Failed to generate payment link:", paymentData);
+ toast.error("خطأ إنشاء الرابط: " + (paymentData.message || paymentData.error || 'غير معروف'));
  }
  } catch (e) {
  console.error("Error creating payment link:", e);
@@ -1227,7 +1228,13 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  {!isReadOnly && selectedOrder.status !== 'cancelled' && (
  <div className="flex flex-col gap-2.5 md:gap-3">
  <button 
- onClick={() => window.open(getWhatsAppLink(selectedOrder), '_blank')}
+ onClick={() => {
+ const paymentLink = selectedOrder.linkedInvoiceId ? (data?.invoices || []).find(inv => inv.id === selectedOrder.linkedInvoiceId)?.paymentLink : (selectedOrder as any).paymentLink;
+ if (!paymentLink || paymentLink.trim() === '') {
+ toast.warning("لم يتم إنشاء رابط الدفع بعد"); return;
+ }
+ window.open(getWhatsAppLink(selectedOrder), '_blank');
+ }}
  className="w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-xs md:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 bg-indigo-600 text-white shadow-lg hover:bg-indigo-700"
  >
  <MessageSquare size={16} />
