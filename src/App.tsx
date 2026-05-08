@@ -73,7 +73,7 @@ import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PAR
 import { AppState, Notification } from './types';
 import { auth, db, logout } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { onSnapshot, setDoc, updateDoc, getDoc, getDocs, query, collection, where, doc } from 'firebase/firestore';
+import { onSnapshot, setDoc, updateDoc, getDoc, getDocs, query, collection, where, doc, limit, orderBy } from 'firebase/firestore';
 import { getSmartDoc, deleteDoc } from './firebase';
 import { Toaster, toast } from 'sonner';
 import { playNewOrderAlert } from './lib/sounds';
@@ -986,6 +986,38 @@ const App: React.FC = () => {
       
       // Run real-time listener if we are a shared user
       const email = user.email?.toLowerCase() || '';
+
+      // Sync customer app orders independently
+      try {
+         const qOrders = query(collection(db, 'orders'), orderBy('date', 'desc'), limit(300));
+         ordersUnsubscribe = onSnapshot(qOrders, (snap) => {
+            const externalOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setData(prev => {
+                const prevOrders = prev.orders || [];
+                let changed = false;
+                const combined = [...prevOrders];
+                externalOrders.forEach((eo: any) => {
+                     const idx = combined.findIndex(o => o.id === eo.id);
+                     if (idx === -1) {
+                         combined.push(eo);
+                         changed = true;
+                     } else {
+                         if (combined[idx].status !== eo.status || combined[idx].paymentStatus !== eo.paymentStatus || (combined[idx] as any).paymentId !== (eo as any).paymentId) {
+                             combined[idx] = { ...combined[idx], ...eo };
+                             changed = true;
+                         }
+                     }
+                });
+                if (changed) {
+                    combined.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                    return { ...prev, orders: combined };
+                }
+                return prev;
+            });
+         }, (err) => console.error("orders sync error: ", err));
+      } catch (e) {
+          console.error("Failed to sync orders collection:", e);
+      }
       
       // Listen for real-time updates
       syncUnsubscribe = onSnapshot(dataRef, (docSnap) => {
@@ -1072,6 +1104,7 @@ const App: React.FC = () => {
 
     return () => {
       if (syncUnsubscribe) syncUnsubscribe();
+      if (ordersUnsubscribe) ordersUnsubscribe();
     };
   }, [user, appMode]);
 

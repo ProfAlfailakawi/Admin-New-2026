@@ -585,8 +585,8 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  });
  
  const paymentData = await response.json();
- if (response.ok && paymentData.data?.link) {
- createdLink = paymentData.data.link;
+ if (response.ok && (paymentData.data?.link || paymentData.link || typeof paymentData.data === 'string')) {
+ createdLink = paymentData.data?.link || paymentData.link || (typeof paymentData.data === 'string' ? paymentData.data : undefined);
  if (paymentData.data) {
  createdPaymentId = paymentData.data.payment_id || paymentData.data.id || paymentData.data.transaction_id;
  }

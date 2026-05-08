@@ -15,3 +15,9 @@ export const isFailedStatus = (s: string | undefined | null) => {
   const str = String(s).toLowerCase().replace(/_/g, ' ').trim();
   return ['failed', 'declined', 'rejected', 'expired', 'voided', 'فشل', 'فشلت', 'فشل في عملية الدفع', 'فشلت عملية الدفع', 'cancelled by customer'].includes(str);
 };
+
+export const isCancelledStatus = (s: string | undefined | null) => {
+  if (!s) return false;
+  const str = String(s).toLowerCase().replace(/_/g, ' ').trim();
+  return ['cancelled', 'canceled', 'ملغي', 'تم الإلغاء', 'cancel'].includes(str);
+};
