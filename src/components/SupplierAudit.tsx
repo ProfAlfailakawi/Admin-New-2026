@@ -450,9 +450,9 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </select>
  </div>
 
- <div className="grid grid-cols-2 gap-3 md:p-4 text-right">
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-right">
  <div className="space-y-2">
- <div className="flex justify-between items-center mb-1">
+ <div className="flex justify-between items-center h-6">
  {transferForm.supplierId && (
  <button 
  onClick={() => {
@@ -467,7 +467,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  >
  كامل المبلغ
  </button>
-)}
+ )}
  <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">مبلغ التحويل</label>
  </div>
  <input 
@@ -480,7 +480,9 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  />
  </div>
  <div className="space-y-2">
+ <div className="flex justify-end items-center h-6">
  <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">طريقة الدفع</label>
+ </div>
  <select 
  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all font-black text-slate-800 text-right"
  value={transferForm.method}

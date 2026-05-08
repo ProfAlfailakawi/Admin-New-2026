@@ -823,6 +823,9 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <button 
  onClick={(e) => { 
  e.stopPropagation(); 
+ if (!inv.paymentLink || inv.paymentLink.trim() === '') {
+ toast.warning("لم يتم إنشاء رابط الدفع بعد"); return;
+ }
  const waLink = getWhatsAppLink(inv);
  window.open(waLink, '_blank', 'noopener,noreferrer');
  }}

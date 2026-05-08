@@ -51,18 +51,29 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
       });
       const sortedZones = Object.keys(zoneCounts).sort((a, b) => zoneCounts[b] - zoneCounts[a]);
       const topZoneName = sortedZones[0];
+      
+      const dateText = dateFilter === 'day' ? 'اليوم' : 
+                       dateFilter === 'week' ? 'هذا الأسبوع' : 
+                       dateFilter === 'month' ? 'هذا الشهر' : 
+                       dateFilter === 'year' ? 'هذا العام' : 'كل الأوقات';
+
       if (topZoneName && zoneCounts[topZoneName] >= 2) {
         lines.push({
           icon: <TrendingUp size={16} className="text-amber-500" />,
-          text: `الطلب متزايد على منطقة ${topZoneName} خلال ${dateFilter === 'day' ? 'اليوم' : 'الفترة المحددة'} (${zoneCounts[topZoneName]} طلبات).`
+          text: `الطلب متزايد على منطقة ${topZoneName} خلال ${dateText} (${zoneCounts[topZoneName]} طلبات).`
         });
       }
     }
     
     if (lines.length === 0) {
+      const dateText = dateFilter === 'day' ? 'اليوم' : 
+                       dateFilter === 'week' ? 'هذا الأسبوع' : 
+                       dateFilter === 'month' ? 'هذا الشهر' : 
+                       dateFilter === 'year' ? 'هذا العام' : 'كل الأوقات';
+      
       lines.push({
         icon: <TrendingUp size={16} className="text-blue-500" />,
-        text: `لا توجد بيانات كافية لتوقع ذروة الطلبات خلال ${dateFilter === 'day' ? 'اليوم' : 'الفترة المحددة'}.`
+        text: `لا توجد بيانات كافية لتوقع ذروة الطلبات خلال ${dateText}.`
       });
     }
 
