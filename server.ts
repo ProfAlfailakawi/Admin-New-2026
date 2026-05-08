@@ -225,7 +225,13 @@ async function startServer() {
       }
       
       console.log("Triggering test-new-order push...");
-      const result = await sendNewOrderPushNotification({ orderId, total: total || 0, restaurantId, orderNumber });
+      const result = await sendNewOrderPushNotification({ 
+        orderId, 
+        total: total || 0, 
+        restaurantId, 
+        orderNumber, 
+        testNotificationOnly: req.body.testNotificationOnly 
+      });
       res.json(result);
     } catch (error: any) {
       console.error("Send push error:", error);
@@ -299,7 +305,7 @@ async function startServer() {
     }
   });
 
-  async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'default', orderNumber = '' }: any) {
+  async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'default', orderNumber = '', testNotificationOnly = false }: any) {
     if (!admin.messaging || !db) return { success: false, error: "Firebase not initialized" };
     const url = `/?invoice=${orderId}`; 
     
@@ -309,22 +315,17 @@ async function startServer() {
       
       const tokens = snap.docs.map(d => d.data().token);
       
-      const message = {
+      const message: any = {
         tokens,
-        notification: {
+        notification: testNotificationOnly ? {
+          title: "اختبار طلب جديد",
+          body: "هذا اختبار إشعار بالخلفية"
+        } : {
           title: "طلب جديد وصل",
           body: `طلب ${orderNumber ? `رقم ${orderNumber} ` : ''}بقيمة ${String(total)}`,
         },
-        data: {
-          type: "new_order",
-          orderId: String(orderId),
-          restaurantId: String(restaurantId || "kitchen_default"),
-          orderNumber: String(orderNumber),
-          total: String(total),
-          url,
-        },
         webpush: {
-          fcmOptions: { link: url },
+          fcmOptions: { link: testNotificationOnly ? "https://admin.alturathkw.shop/?invoice=ord_123" : url },
           notification: {
             icon: "/icons/icon-192.png",
             badge: "/icons/icon-192.png",
@@ -333,6 +334,17 @@ async function startServer() {
           },
         },
       };
+
+      if (!testNotificationOnly) {
+        message.data = {
+          type: "new_order",
+          orderId: String(orderId),
+          restaurantId: String(restaurantId || "kitchen_default"),
+          orderNumber: String(orderNumber),
+          total: String(total),
+          url,
+        };
+      }
 
       const response = await admin.messaging().sendEachForMulticast(message);
       
@@ -343,7 +355,8 @@ async function startServer() {
           if (!resp.success) {
             const errorCode = resp.error?.code;
             if (errorCode === "messaging/registration-token-not-registered" || 
-                errorCode === "messaging/invalid-registration-token") {
+                errorCode === "messaging/invalid-registration-token" ||
+                errorCode === "messaging/invalid-argument") {
               failedTokens.push(tokens[idx]);
             }
           }
@@ -408,6 +421,29 @@ async function startServer() {
       };
 
       const response = await admin.messaging().sendEachForMulticast(message);
+      
+      // Cleanup invalid tokens
+      if (response.failureCount > 0) {
+        const failedTokens: string[] = [];
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            const errorCode = resp.error?.code;
+            if (errorCode === "messaging/registration-token-not-registered" || 
+                errorCode === "messaging/invalid-registration-token" ||
+                errorCode === "messaging/invalid-argument") {
+              failedTokens.push(tokens[idx]);
+            }
+          }
+        });
+
+        if (failedTokens.length > 0) {
+          const batch = db.batch();
+          for (const token of failedTokens) {
+            batch.update(db.collection("pushTokens").doc(token), { active: false });
+          }
+          await batch.commit();
+        }
+      }
 
       return {
         success: response.successCount > 0,
