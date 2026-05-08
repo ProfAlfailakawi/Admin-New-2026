@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
- FileText, Search, Printer, Trash2, Edit2, ChevronDown, ChevronUp, Package, User, CreditCard, Clock, CheckCircle2, X, TrendingUp, Plus,
+ FileText, Search, RefreshCw, Printer, Trash2, Edit2, ChevronDown, ChevronUp, Package, User, CreditCard, Clock, CheckCircle2, X, TrendingUp, Plus,
  MessageSquare, 
  ClipboardList
 } from 'lucide-react';
@@ -93,7 +93,6 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  const dateA = new Date(a.date).getTime();
  const dateB = new Date(b.date).getTime();
  if (dateB !== dateA) return dateB - dateA;
- // Tie-breaker: reverse lexicographical ID (newer IDs likely higher lexicographically if sequential)
  return b.id.localeCompare(a.id);
  });
 
@@ -102,12 +101,9 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  if (!invoiceToDeleteObj) return;
 
  setData(prev => {
- // 1. Mark invoice as deleted
  const updatedInvoices = (prev?.invoices || []).map(inv => 
  inv.id === id ? { ...inv, isDeleted: true } : inv
 );
-
- // 2. Restore product stock levels
  const updatedProducts = (prev?.products || []).map(p => {
  const item = invoiceToDeleteObj.items.find(it => it.productId === p.id);
  if (item) {
@@ -115,17 +111,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  }
  return p;
  });
-
  const nextState = {
  ...prev,
  invoices: updatedInvoices,
  products: updatedProducts
  };
-
- // 3. Centralized calculation for customers and suppliers
  return recalculateStateBalances(nextState);
  });
-
  toast.info("تم حذف الفاتورة", { 
  description: `تم إخفاء الفاتورة #${id} واستعادة المخزون وتحديث الحسابات بنجاح.`,
  position: 'bottom-right'
@@ -535,36 +527,100 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  toast.success(currentStatus === 'paid' ?"تم تغيير حالة الدفع إلى معلق" :"تمت عملية الدفع بنجاح 💸");
  };
 
+ const handleRegeneratePayment = async (invoice: Invoice) => {
+   const customer = (data.customers || []).find(c => c.id === invoice.customerId);
+   const invoiceId = invoice.id;
+   const loadingToast = toast.loading("جاري إنشاء رابط دفع جديد...");
+   try {
+     const response = await fetch('/api/create-payment', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+         amount: Number(Number(invoice.totalAmount).toFixed(3)),
+         isAdmin: true,
+         customerName: customer?.name || 'Customer',
+         customerEmail: customer?.email || 'no-email@example.com',
+         customerMobile: customer?.phone || '+96500000000',
+         orderId: invoiceId,
+         description: `Invoice ${invoiceId} (Regenerated)`,
+         returnUrl: `${window.location.origin}/api/payment-return/${invoiceId}`,
+         cancelUrl: `${window.location.origin}/api/payment-return/${invoiceId}`,
+         notificationUrl: `https://order-951671626657.europe-west3.run.app/api/webhook/upayments`
+       })
+     });
+     const paymentData = await response.json();
+     if (response.ok) {
+       const createdLink = paymentData.paymentLink || paymentData.payment_url || paymentData.paymentUrl || paymentData.url || paymentData.link || paymentData.data?.paymentLink || paymentData.data?.payment_url || paymentData.data?.paymentUrl || paymentData.data?.url || paymentData.data?.link || "";
+       const createdPaymentId = paymentData.paymentId || paymentData.payment_id || paymentData.session_id || paymentData.data?.paymentId || paymentData.data?.payment_id || paymentData.data?.session_id || "";
+       if (createdLink) {
+         setData(prev => {
+           const newInvoices = (prev?.invoices || []).map(inv => inv.id === invoiceId ? { ...inv, paymentLink: createdLink, paymentId: createdPaymentId, paymentStatus: 'pending', status: 'بانتظار الدفع' } : inv);
+           return { ...prev, invoices: newInvoices };
+         });
+         toast.dismiss(loadingToast);
+         toast.success("تم إنشاء رابط الدفع الجديد بنجاح!");
+         setTimeout(() => {
+           const waLink = getWhatsAppLink({ ...invoice, paymentLink: createdLink });
+           if (waLink && waLink !== '#') window.open(waLink, '_blank', 'noopener,noreferrer');
+         }, 500);
+       } else {
+         toast.dismiss(loadingToast);
+         toast.error("فشل الحصول على الرابط من الرد");
+       }
+     } else {
+       toast.dismiss(loadingToast);
+       toast.error("خطأ: " + (paymentData.message || "فشل إنشاء الرابط"));
+     }
+   } catch (error) {
+     console.error("Regenerate Error:", error);
+     toast.dismiss(loadingToast);
+     toast.error("خطأ في الاتصال بخادم الدفع");
+   }
+ };
+
  const getWhatsAppLink = (invoice: Invoice) => {
- const customer = (data?.customers || []).find(c => c.id === invoice.customerId);
- const phone = customer?.phone || '';
- 
- // Safety check 
- if (!phone) {
- return '#';
- }
+  const customer = (data?.customers || []).find(c => c.id === invoice.customerId);
+  const order = (data?.orders || []).find(o => o.linkedInvoiceId === invoice.id || o.id === (invoice as any).linkedOrderId);
+  
+  let phone = customer?.phone || (order as any)?.customerPhone || (invoice as any).customerPhone || (invoice as any).phone || '';
+  let cleanPhone = phone.replace(/[^0-9]/g, '');
+  if (cleanPhone.length === 8) {
+    cleanPhone = '965' + cleanPhone;
+  }
 
- const items = (invoice?.items || []).map(item => {
- const product = (data?.products || []).find(p => p.id === item.productId);
- const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (product?.price || 0));
- return `- ${product?.name || 'منتج غير معروف'} (${item.quantity || 1} × ${Number(price).toFixed(3)})`;
- }).join('\n');
+  if (!cleanPhone) {
+    return '#';
+  }
 
- const subtotal = (invoice?.items || []).reduce((acc, item) => {
- const p = (data?.products || []).find(prod => prod.id === item.productId);
- const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (p?.price || 0));
- return acc + (price * (item.quantity || 1));
- }, 0);
- 
- const total = Math.max(0, subtotal + (Number(invoice.deliveryFee) || 0) - (Number(invoice.discount) || 0));
+  const items = (invoice?.items || []).map(item => {
+    const product = (data?.products || []).find(p => p.id === item.productId);
+    const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (product?.price || 0));
+    return `- ${product?.name || 'منتج غير معروف'} (${item.quantity || 1} × ${Number(price).toFixed(3)})`;
+  }).join('\n');
 
- const paymentLinkLine = invoice.paymentLink && invoice.paymentLink.trim() !== '' ? `\nرابط الدفع: ${invoice.paymentLink}` : '';
+  const subtotal = (invoice?.items || []).reduce((acc, item) => {
+    const p = (data?.products || []).find(prod => prod.id === item.productId);
+    const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (p?.price || 0));
+    return acc + (price * (item.quantity || 1));
+  }, 0);
+  
+  const total = invoice.totalAmount || Math.max(0, subtotal + (Number(invoice.deliveryFee) || 0) - (Number(invoice.discount) || 0));
+  const paymentLink = invoice.paymentLink;
+  
+  const titleLine = `*فاتورة من شركة مطبخ التراث الكويتي*`;
+  const headerLine = `رقم الفاتورة: ${invoice.id}`;
+  const footerLine = `إجمالي الفاتورة: ${Number(total).toFixed(3)} د.ك`;
+  const paymentLinkLine = (paymentLink && paymentLink.trim() !== '') ? `\nرابط الدفع: ${paymentLink}` : '';
+  
+  const promoCodeName = invoice.appliedPromoCodeName;
+  const discount = Number(invoice.discount) || 0;
+  const promoLine = discount > 0 ? `*قيمة الخصم* ${promoCodeName ? `(${promoCodeName})` : ''}: ${Number(discount).toFixed(3)} د.ك\n` : '';
 
- const promoLabel = invoice.appliedPromoCodeName ? `قيمة الخصم (${invoice.appliedPromoCodeName})` : 'قيمة الخصم';
- const promoLine = (Number(invoice.discount) || 0) > 0 ? `*${promoLabel}*: ${Number(invoice.discount).toFixed(3)} د.ك\n` : '';
+  const addressLine = (invoice.address && invoice.address !== 'غير محدد') ? `\nالعنوان: ${typeof invoice.address === 'object' ? [`${invoice.address.region||''}`, `ق${invoice.address.block||''}`, `ش${invoice.address.street||''}`, `م${invoice.address.building||''}`].filter(Boolean).join(' ') : invoice.address}` : invoice.deliveryInfo?.zoneName ? `\nالعنوان: ${invoice.deliveryInfo.zoneName}` : '';
 
- const message = `*فاتورة من شركة مطبخ التراث الكويتي*\n\nالعميل: ${customer?.name || 'عميل'}\nرقم الفاتورة: ${invoice.id}\nالعنوان: ${invoice.address && invoice.address !== 'غير محدد' ? (typeof invoice.address === 'object' ? [`${invoice.address.region||''}`, `ق${invoice.address.block||''}`, `ش${invoice.address.street||''}`, `م${invoice.address.building||''}`].filter(Boolean).join(' ') : invoice.address) : (invoice.deliveryInfo?.zoneName || 'غير محدد')}\nالطلب:\n${items}\n\nالمجموع: ${subtotal.toFixed(3)} د.ك\nرسوم التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}إجمالي الفاتورة: ${Number(total).toFixed(3)} د.ك${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
- return `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+  const message = `${titleLine}\n\nالعميل: ${customer?.name || 'عميل'} ${addressLine}\n${headerLine}\nالطلب:\n${items}\n\nالمجموع: ${subtotal.toFixed(3)} د.ك\nرسوم التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}${footerLine}${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
+
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
  };
 
  return (
@@ -742,7 +798,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </div>
  </td>
  </tr>
-) : (filteredInvoices || []).map(inv => {
+ ) : (filteredInvoices || []).map(inv => {
  const customer = (data?.customers || []).find(c => c.id === inv.customerId);
  const isExpanded = expandedInvoiceId === inv.id;
  return (
@@ -819,22 +875,37 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </td>
  <td className="p-3 md:p-3 text-left">
  <div className="flex items-center gap-2 justify-end">
- {isPendingStatus(inv.paymentStatus as string || (inv as any).status) && (
- <button 
- onClick={(e) => { 
- e.stopPropagation(); 
- if (!inv.paymentLink || inv.paymentLink.trim() === '') {
- toast.warning("لم يتم إنشاء رابط الدفع بعد"); return;
- }
- const waLink = getWhatsAppLink(inv);
- window.open(waLink, '_blank', 'noopener,noreferrer');
- }}
- className="p-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-emerald-700 transition-colors"
- title="إعادة إرسال الرابط عبر واتس اب"
- >
- <MessageSquare size={16} />
- </button>
-)}
+      {isPendingStatus(inv.paymentStatus as string || (inv as any).status) && (
+        <div className="flex items-center gap-1">
+          {(!inv.paymentLink || inv.paymentLink.trim() === '') ? (
+            <button 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                handleRegeneratePayment(inv);
+              }}
+              className="p-2 bg-amber-50 hover:bg-amber-100 rounded-lg text-amber-700 transition-colors flex items-center gap-1 text-[10px] font-bold"
+              title="إنشاء رابط دفع وإرسال واتس اب"
+            >
+              <RefreshCw size={14} />
+              رابط
+            </button>
+          ) : (
+            <button 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                const waLink = getWhatsAppLink(inv);
+                if (waLink && waLink !== '#') {
+                  window.open(waLink, '_blank', 'noopener,noreferrer');
+                }
+              }}
+              className="p-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-emerald-700 transition-colors"
+              title="إعادة إرسال الرابط عبر واتس اب"
+            >
+              <MessageSquare size={16} />
+            </button>
+          )}
+        </div>
+      )}
  <button 
  onClick={(e) => { e.stopPropagation(); handlePrint(inv); }}
  className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
@@ -895,7 +966,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <span className="text-primary">{Number(item.priceAtTime || 0).toFixed(3)} د.ك</span>
  </div>
  </div>
-);
+ );
  })}
  </div>
  
@@ -905,7 +976,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <FileText size={12} /> ملاحظات عامة للطلب
  </h4>
  <p className="text-sm font-bold text-amber-900 leading-relaxed italic pr-3 border-r-2 border-amber-300">
-"{inv.notes}"
+ "{inv.notes}"
  </p>
  </div>
 )}
@@ -939,10 +1010,10 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </motion.div>
  </td>
  </tr>
-)}
+ )}
  </AnimatePresence>
  </React.Fragment>
-);
+ );
  })}
  {filteredInvoices.length === 0 && (
  <tr>
@@ -950,7 +1021,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  لا توجد فواتير مطابقة للبحث.
  </td>
  </tr>
-)}
+ )}
  </tbody>
  </table>
  </div>
