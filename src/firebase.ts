@@ -16,7 +16,6 @@ import {
   setLogLevel
 } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { getMessaging } from 'firebase/messaging';
 import { toast } from 'sonner';
 import firebaseConfig from '../firebase-applet-config.json';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS } from './constants';
@@ -29,7 +28,6 @@ const activeConfig = firebaseConfig;
 export const app = getApps().length === 0 ? initializeApp(activeConfig) : getApp();
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-export const messaging = getMessaging(app);
 
 console.log("Firebase App Initialized with project:", activeConfig.projectId);
 

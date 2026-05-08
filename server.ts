@@ -277,19 +277,39 @@ async function startServer() {
 
   app.post("/api/push/save-token", async (req, res) => {
     try {
-      const { token, userId, restaurantId, platform, userAgent } = req.body;
+      const { token, userId, restaurantId, platform, userAgent, vendor, language, standalone, notificationPermission, serviceWorkerController, currentUrl, screen, savedAtClient } = req.body;
 
       if (!token) {
         return res.status(400).json({ error: "token is required" });
       }
+
+      const ua = userAgent || "";
+      const isIPhone = /iPhone/i.test(ua);
+      const isIOS = /iPad|iPhone|iPod/.test(ua);
+      const isSafariLike = /Safari/i.test(ua);
+      const isProbablyPwa = !!standalone;
+      const deviceType = isIPhone ? "iphone" : (isIOS ? "ios" : "other");
 
       if (db) {
         await db.collection("pushTokens").doc(token).set({
           token,
           userId: userId || null,
           restaurantId: restaurantId || "kitchen_default",
-          platform: platform || "web-pwa",
-          userAgent: userAgent || "",
+          platform: platform || "",
+          userAgent: ua,
+          vendor,
+          language,
+          standalone,
+          notificationPermission,
+          serviceWorkerController,
+          currentUrl,
+          screen,
+          savedAtClient,
+          deviceType,
+          isIPhone,
+          isIOS,
+          isSafariLike,
+          isProbablyPwa,
           active: true,
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true });

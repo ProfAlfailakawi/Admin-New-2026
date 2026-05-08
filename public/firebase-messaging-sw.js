@@ -1,4 +1,4 @@
-// SW VERSION 2026-05-08-FINAL-1
+// SW VERSION 2026-05-08-FINAL-2
 
 self.addEventListener("install", function () {
   self.skipWaiting();
