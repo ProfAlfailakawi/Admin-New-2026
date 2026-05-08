@@ -126,6 +126,16 @@ export async function registerPushNotifications({
 export async function listenToForegroundMessages(
   callback: (payload: any) => void
 ) {
+  // Listen to native SW messages (for iOS PWA bypass fallback)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data && event.data.type === 'PUSH_RECEIVED') {
+        callback(event.data.payload);
+        // Do not display new Notification here, SW handles the display
+      }
+    });
+  }
+
   const messaging = await getFirebaseMessaging();
 
   if (!messaging) return;

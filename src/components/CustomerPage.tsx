@@ -933,7 +933,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
        onAdd={(newT) => {
         setData(prev => ({
          ...prev,
-         testimonials: [newT, ...(prev.testimonials || [])]
+         testimonials: [{ ...newT, id: crypto.randomUUID() }, ...(prev.testimonials || [])]
         }));
        }}
        onUpdate={(updatedT) => {

@@ -25,60 +25,6 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // API TEST ROUTES (PROMINENTLY PLACED)
-  app.post("/api/push/test-new-order", async (req, res) => {
-    console.log("RECEIVED REQUEST: /api/push/test-new-order");
-    const receivedSecret = (Array.isArray(req.headers["x-admin-secret"]) ? req.headers["x-admin-secret"][0] : req.headers["x-admin-secret"]) || "";
-    const expectedSecret = process.env.ADMIN_TEST_SECRET || "";
-
-    if (!expectedSecret) {
-      return res.status(500).json({ error: "ADMIN_TEST_SECRET is not configured" });
-    }
-
-    if (receivedSecret.trim() !== expectedSecret.trim()) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    try {
-      const { orderId, total, restaurantId, orderNumber } = req.body;
-      if (!orderId) {
-        return res.status(400).json({ error: "orderId required" });
-      }
-      
-      console.log("Triggering test-new-order push...");
-      await sendNewOrderPushNotification({ orderId, total: total || 0, restaurantId, orderNumber });
-      res.json({ success: true, message: "Push notification triggered" });
-    } catch (error: any) {
-      console.error("Send push error:", error);
-      res.status(500).json({ error: "Failed to send push notification", details: error.message });
-    }
-  });
-
-  app.post("/api/push/test-smart-alert", async (req, res) => {
-    console.log("RECEIVED REQUEST: /api/push/test-smart-alert");
-    const receivedSecret = (Array.isArray(req.headers["x-admin-secret"]) ? req.headers["x-admin-secret"][0] : req.headers["x-admin-secret"]) || "";
-    const expectedSecret = process.env.ADMIN_TEST_SECRET || "";
-
-    if (!expectedSecret) {
-      return res.status(500).json({ error: "ADMIN_TEST_SECRET is not configured" });
-    }
-
-    if (receivedSecret.trim() !== expectedSecret.trim()) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    try {
-      const { title, body, alertType, url } = req.body;
-      
-      console.log("Triggering test-smart-alert push...");
-      await sendSmartAlertPushNotification({ title, body, alertType, url });
-      res.json({ success: true, message: "Smart alert notification triggered" });
-    } catch (error: any) {
-      console.error("Send smart alert error:", error);
-      res.status(500).json({ error: "Failed to send smart alert notification", details: error.message });
-    }
-  });
-
   // Webhook for payment gateway
   // It synchronizes payment results to the database even if the user doesn't return to the app.
   const handlePaymentUpdate = async (params: any) => {
@@ -194,6 +140,61 @@ async function startServer() {
     });
   });
 
+  app.get("/api/debug/push-tokens", async (req, res) => {
+    const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
+    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
+    if (!expectedSecret || receivedSecret !== expectedSecret) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    try {
+      if (!db) return res.status(500).json({ error: "DB not initialized" });
+      const snap = await db.collection("pushTokens").orderBy("updatedAt", "desc").limit(10).get();
+      const tokens = snap.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          active: data.active,
+          deviceType: data.deviceType,
+          isIPhone: data.isIPhone,
+          isIOS: data.isIOS,
+          isProbablyPwa: data.isProbablyPwa,
+          standalone: data.standalone,
+          notificationPermission: data.notificationPermission,
+          serviceWorkerController: data.serviceWorkerController,
+          platform: data.platform,
+          currentUrl: data.currentUrl,
+          userAgent: data.userAgent,
+          updatedAt: data.updatedAt?.toDate()
+        };
+      });
+      res.json(tokens);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/debug/delete-push-tokens", async (req, res) => {
+    const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
+    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
+    if (!expectedSecret || receivedSecret !== expectedSecret) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    try {
+      if (!db) return res.status(500).json({ error: "DB not initialized" });
+      const snap = await db.collection("pushTokens").get();
+      const batch = db.batch();
+      let count = 0;
+      snap.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+        count++;
+      });
+      await batch.commit();
+      res.json({ success: true, count, message: `Deleted ${count} tokens.` });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post("/api/push/test-new-order", async (req, res) => {
     console.log("PUSH TEST VERSION", "push-debug-2026-05-08-v1");
     const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
@@ -289,10 +290,17 @@ async function startServer() {
       const isSafariLike = /Safari/i.test(ua);
       const isProbablyPwa = !!standalone;
       const deviceType = isIPhone ? "iphone" : (isIOS ? "ios" : "other");
+      
+      const crypto = require('crypto');
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
       if (db) {
-        await db.collection("pushTokens").doc(token).set({
+        const tokenRef = db.collection("pushTokens").doc(token);
+        const tokenDoc = await tokenRef.get();
+
+        const data: any = {
           token,
+          tokenHash,
           userId: userId || null,
           restaurantId: restaurantId || "kitchen_default",
           platform: platform || "",
@@ -312,7 +320,13 @@ async function startServer() {
           isProbablyPwa,
           active: true,
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
+        };
+
+        if (!tokenDoc.exists) {
+          data.createdAt = admin.firestore.FieldValue.serverTimestamp();
+        }
+
+        await tokenRef.set(data, { merge: true });
       }
 
       return res.json({ success: true });
@@ -345,10 +359,14 @@ async function startServer() {
           body: `طلب ${orderNumber ? `رقم ${orderNumber} ` : ''}بقيمة ${String(total)}`,
         },
         webpush: {
+          headers: {
+            Urgency: "high",
+            TTL: "86400"
+          },
           fcmOptions: { link: testNotificationOnly ? "https://admin.alturathkw.shop/?invoice=ord_123" : url },
           notification: {
-            icon: "/icons/icon-192.png",
-            badge: "/icons/icon-192.png",
+            icon: "https://admin.alturathkw.shop/icons/icon-192.png",
+            badge: "https://admin.alturathkw.shop/icons/icon-192.png",
             requireInteraction: true,
             vibrate: [200, 100, 200],
           },
@@ -431,10 +449,14 @@ async function startServer() {
           body: String(body),
         },
         webpush: {
+          headers: {
+            Urgency: "high",
+            TTL: "86400"
+          },
           fcmOptions: { link: url },
           notification: {
-            icon: "/icons/icon-192.png",
-            badge: "/icons/icon-192.png",
+            icon: "https://admin.alturathkw.shop/icons/icon-192.png",
+            badge: "https://admin.alturathkw.shop/icons/icon-192.png",
             vibrate: [200, 100, 200],
           },
         },
