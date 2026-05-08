@@ -1,6 +1,5 @@
 {
   "hosting": {
-    "site": "alturath-admin",
     "public": "dist",
     "ignore": [
       "firebase.json",
@@ -27,6 +26,13 @@
       }
     ],
     "rewrites": [
+      {
+        "source": "/api/create-payment",
+        "run": {
+          "serviceId": "order",
+          "region": "europe-west3"
+        }
+      },
       {
         "source": "/api/**",
         "run": {

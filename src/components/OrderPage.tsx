@@ -561,21 +561,41 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  customerMobile: customer?.phone || '+96500000000',
  orderId: newInvoiceId,
  description: `Invoice from Order ${order.id.slice(-6)}`,
- returnUrl: `https://alturathkw.shop/api/payment-return/${newInvoiceId}`,
- cancelUrl: `https://alturathkw.shop/api/payment-return/${newInvoiceId}`,
+ returnUrl: `${window.location.origin}/api/payment-return/${newInvoiceId}`,
+ cancelUrl: `${window.location.origin}/api/payment-return/${newInvoiceId}`,
  notificationUrl: getWebhookUrl('/api/webhook/upayments')
  })
  });
  
  const paymentData = await response.json();
- if (response.ok && (paymentData.data?.link || paymentData.data?.paymentURL || paymentData.data?.paymentUrl || paymentData.link || typeof paymentData.data === 'string')) {
- createdLink = paymentData.data?.link || paymentData.data?.paymentURL || paymentData.data?.paymentUrl || paymentData.link || (typeof paymentData.data === 'string' ? paymentData.data : undefined);
- if (paymentData.data) {
- createdPaymentId = paymentData.data.payment_id || paymentData.data.id || paymentData.data.transaction_id || paymentData.data.transactionId;
- }
+ if (response.ok) {
+   createdLink = 
+     paymentData.paymentLink ||
+     paymentData.payment_url ||
+     paymentData.paymentUrl ||
+     paymentData.url ||
+     paymentData.link ||
+     paymentData.data?.paymentLink ||
+     paymentData.data?.payment_url ||
+     paymentData.data?.paymentUrl ||
+     paymentData.data?.url ||
+     paymentData.data?.link ||
+     "";
+
+   if (paymentData.data) {
+    createdPaymentId = 
+      paymentData.paymentId ||
+      paymentData.payment_id ||
+      paymentData.session_id ||
+      paymentData.data?.paymentId ||
+      paymentData.data?.payment_id ||
+      paymentData.data?.session_id ||
+      "";
+   }
  } else {
- console.error("Failed to generate payment link:", paymentData);
- toast.error("خطأ إنشاء الرابط: " + (paymentData.message || paymentData.error || 'غير معروف'));
+   console.error("Failed to generate payment link:", paymentData);
+   const errorMessage = paymentData.details ? (typeof paymentData.details === 'object' ? JSON.stringify(paymentData.details) : paymentData.details) : (paymentData.message || paymentData.error || 'غير معروف');
+   toast.error("خطأ إنشاء الرابط: " + errorMessage);
  }
  } catch (e) {
  console.error("Error creating payment link:", e);

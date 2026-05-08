@@ -1760,3 +1760,49 @@ export function analyzeKuwaitiSentiment(text: string): KuwaitiSentimentResult {
         level2: Array.from(foundTopics)
     };
 }
+
+
+// --- Turaath Engine: Coordinated Brain ---
+// This object organizes the disjointed functions into logical categories.
+// It serves as the primary "arranged" interface for the platform's self-learning brain.
+export const TuraathEngine = {
+    /**
+     * Core Business Analysis & Intelligence
+     */
+    Analyst: {
+        calculateBusinessHealthIndex,
+        generateRealProfitAnalysis,
+        generateSupplierNegotiationAnalysis,
+        generateHiddenRisks,
+        simulateWhatIfScenario,
+        performArchiveAnalysis,
+        generatePulseArchiveAnalysis,
+        analyzeKuwaitiSentiment
+    },
+    
+    /**
+     * Strategic Planning & Self-Learning
+     */
+    Strategist: {
+        generateAutoStrategies,
+        generateAIBusinessRecommendation,
+        generateAILearningInsights
+    },
+    
+    /**
+     * Creative Marketing & Growth
+     */
+    Marketing: {
+        generateMarketingCampaign,
+        generateQuickInstagramMessages,
+        generateStructuredCampaign
+    },
+    
+    /**
+     * Engine Utilities
+     */
+    Utils: {
+        normalizeArabic,
+        generateStateHash
+    }
+};

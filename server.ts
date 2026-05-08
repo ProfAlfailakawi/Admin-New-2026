@@ -3,6 +3,7 @@ import path from "path";
 import cors from 'cors';
 import admin from 'firebase-admin';
 import fsSync from 'fs';
+import 'dotenv/config';
 
 let db: FirebaseFirestore.Firestore | undefined;
 try {
@@ -500,9 +501,15 @@ async function startServer() {
     }
   }
 
+  // Consolidate API Key retrieval logic
+  const getUPaymentsApiKey = () => {
+    const raw = process.env.UPAYMENTS_API_KEY || process.env.VITE_UPAYMENTS_API_KEY || "";
+    return raw.replace(/[^\x20-\x7E]/g, '').replace(/\s+/g, '').trim();
+  };
+
   app.get("/api/test-upayments-raw", async (req, res) => {
     try {
-      const apiKey = process.env.UPAYMENTS_API_KEY?.replace(/[^\x20-\x7E]/g, '')?.replace(/\s+/g, '')?.trim();
+      const apiKey = getUPaymentsApiKey();
       res.send(`Key length: ${apiKey?.length}, first 3: ${apiKey?.substring(0,3)}`);
     } catch(e: any) {
       res.send("Error: " + e.message);
@@ -590,64 +597,21 @@ async function startServer() {
       notificationUrl
     } = req.body;
     
-    const apiKey = process.env.UPAYMENTS_API_KEY?.replace(/[^\x20-\x7E]/g, '')?.replace(/\s+/g, '')?.trim();
+    // Clean and robust API Key retrieval
+    const envKeys = Object.keys(process.env).filter(k => k.includes('UPAYMENT'));
+    console.log("Available Upayments related env keys:", envKeys);
+    
+    const apiKey = getUPaymentsApiKey();
 
     if (!apiKey) {
-      console.error("UPAYMENTS_API_KEY is not defined");
-      return res.status(500).json({ error: "Payment gateway configuration error" });
+      console.error("UPAYMENTS_API_KEY is not defined or empty. Check environment variables.");
+      return res.status(500).json({ error: "Payment gateway configuration error (Key Missing)" });
     }
+    
+    console.log(`Using API key: ${apiKey.substring(0, 4)}... (Total length: ${apiKey.length})`);
     
     if (!amount || !customerName || !orderId || !returnUrl || !cancelUrl || !notificationUrl) {
       return res.status(400).json({ error: "Missing required payment fields" });
-    }
-
-    if (db && !req.body.isAdmin) {
-        try {
-            const appDataSnap = await db.collection('appData').limit(1).get();
-            if (!appDataSnap.empty) {
-                const settings = appDataSnap.docs[0].data()?.settings;
-                if (settings?.storeStatus) {
-                    const status = settings.storeStatus;
-                    if (status.manualClose) {
-                        return res.status(400).json({ error: status.closeMessage || "المتجر مغلق حالياً" });
-                    }
-                    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                    const todayKwtHour = (new Date().getUTCHours() + 3) % 24;
-                    // slightly naive day calculation if it's past midnight UTC but not in KWT, but good enough mostly
-                    const todayDayObj = new Date(new Date().getTime() + 3*3600*1000); 
-                    const today = days[todayDayObj.getUTCDay()];
-                    
-                    const todayConfig = status.openingHours?.[today];
-                    if (todayConfig && !todayConfig.enabled) {
-                        return res.status(400).json({ error: status.closeMessage || "المتجر مغلق اليوم" });
-                    }
-                    if (todayConfig && todayConfig.enabled && todayConfig.open && todayConfig.close) {
-                        const kwtTime = todayKwtHour + (todayDayObj.getUTCMinutes() / 60);
-                        const [openH, openM] = todayConfig.open.split(':').map(Number);
-                        const [closeH, closeM] = todayConfig.close.split(':').map(Number);
-                        const openTime = openH + (openM / 60);
-                        const closeTime = closeH + (closeM / 60);
-                        
-                        // Handle simple crossing midnight logic: e.g. open 09:00 to 02:00
-                        const isOpenOvernight = closeTime < openTime;
-                        let isCurrentlyOpen = false;
-                        
-                        if (isOpenOvernight) {
-                           // e.g. 09:00 to 02:00 -> True if time is >= 9 OR time is <= 2
-                           isCurrentlyOpen = kwtTime >= openTime || kwtTime <= closeTime;
-                        } else {
-                           isCurrentlyOpen = kwtTime >= openTime && kwtTime <= closeTime;
-                        }
-
-                        if (!isCurrentlyOpen) {
-                            return res.status(400).json({ error: status.closeMessage || "المتجر خارج أوقات العمل حالياً" });
-                        }
-                    }
-                }
-            }
-        } catch (e) {
-            console.error("Store status check error:", e);
-        }
     }
 
     try {
@@ -730,7 +694,7 @@ async function startServer() {
         return res.status(400).json({ error: "Missing or invalid parameters" });
     }
 
-    const apiKey = process.env.UPAYMENTS_API_KEY?.replace(/[^\x20-\x7E]/g, '')?.replace(/\s+/g, '')?.trim();
+    const apiKey = getUPaymentsApiKey();
     if (!apiKey) return res.status(500).json({ error: "Missing config" });
 
     try {
