@@ -103,8 +103,16 @@ export async function registerPushNotifications({
       token,
       userId,
       restaurantId,
-      platform: "web-pwa",
       userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      vendor: navigator.vendor,
+      language: navigator.language,
+      standalone: (window.navigator as any).standalone === true || window.matchMedia("(display-mode: standalone)").matches,
+      notificationPermission: Notification.permission,
+      serviceWorkerController: !!navigator.serviceWorker.controller,
+      currentUrl: window.location.href,
+      screen: { width: screen.width, height: screen.height },
+      savedAtClient: new Date().toISOString()
     }),
   });
 

@@ -15,7 +15,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  const [selectedAlert, setSelectedAlert] = useState<Notification | null>(null);
  const [showHub, setShowHub] = useState(false);
 
- if (activeAlerts.length === 0) return null;
+ if (userRole === 'partner' || activeAlerts.length === 0) return null;
 
  const getIcon = (type: string) => {
  if (type === 'خطر') return <AlertCircle size={24} className="text-rose-500" />;

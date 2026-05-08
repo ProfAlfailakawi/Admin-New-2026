@@ -343,46 +343,8 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Auto-logout after 5 minutes of inactivity
-  useEffect(() => {
-    if (!isAuthenticated) return;
+  // Auto-logout removed to ensure persistent PWA session
 
-    let inactivityTimer: NodeJS.Timeout;
-    const INACTIVITY_TIME_LIMIT = 5 * 60 * 1000; // 5 minutes
-
-    const performAutoLogout = async () => {
-      await logout();
-      setIsAuthenticated(false);
-      localStorage.removeItem('isAuthenticated');
-      setCurrentPage('dashboard');
-      toast("تنبيه أمني", {
-         description: "تم تسجيل خروجك بسبب عدم وجود نشاط لمدة 5 دقائق لحماية بياناتك.",
-         icon: <ShieldAlert className="text-amber-500" />
-      });
-    };
-
-    const resetInactivityTimer = () => {
-      clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(performAutoLogout, INACTIVITY_TIME_LIMIT);
-    };
-
-    // Events that denote user activity
-    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
-
-    activityEvents.forEach(event => {
-      window.addEventListener(event, resetInactivityTimer);
-    });
-
-    // Initialize timer
-    resetInactivityTimer();
-
-    return () => {
-      clearTimeout(inactivityTimer);
-      activityEvents.forEach(event => {
-        window.removeEventListener(event, resetInactivityTimer);
-      });
-    };
-  }, [isAuthenticated]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
