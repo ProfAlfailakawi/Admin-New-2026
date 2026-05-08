@@ -1543,6 +1543,8 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     const isGrowth = activeTab === "growth";
     const isSuppliers = activeTab === "suppliers";
     const isCustomers = activeTab === "customers";
+    const pendingOrdersCount = useMemo(() => (data.orders || []).filter(o => o.status === 'pending').length, [data.orders]);
+    const totalOrdersCount = useMemo(() => data.orders?.length || 0, [data.orders]);
 
     const QuickActions = () => (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -1558,12 +1560,22 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
         <MagneticButton
           onClick={() => onNavigate!("orders")}
-          className="flex flex-col items-center justify-center p-6 bg-slate-800 text-white rounded-[2rem] shadow-xl shadow-slate-800/20 hover:-translate-y-1 transition-all active:scale-95 group"
+          className="flex flex-col items-center justify-center p-6 bg-slate-800 text-white rounded-[2rem] shadow-xl shadow-slate-800/20 hover:-translate-y-1 transition-all active:scale-95 group relative"
         >
-          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-3 group-hover:-rotate-12 transition-transform">
+          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-3 group-hover:-rotate-12 transition-transform relative">
             <ShoppingCart size={24} strokeWidth={2} />
+            <div className="absolute -top-1.5 -right-1.5 bg-white text-slate-900 text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-800">
+              {totalOrdersCount}
+            </div>
           </div>
-          <span className="font-black text-sm">طلبات التطبيق</span>
+          <div className="flex flex-col items-center">
+            <span className="font-black text-sm">طلبات التطبيق</span>
+            {pendingOrdersCount > 0 && (
+              <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-full mt-1 animate-pulse">
+                {pendingOrdersCount} معلق
+              </span>
+            )}
+          </div>
         </MagneticButton>
 
         <MagneticButton
