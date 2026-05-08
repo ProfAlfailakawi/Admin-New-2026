@@ -917,11 +917,11 @@ const App: React.FC = () => {
       } else {
         setTimeout(() => {
           setUser(null);
-          // Do not force logout if they are in local mode, but clear cloud user
-          if (localStorage.getItem('appMode') === 'cloud') {
-             setIsAuthenticated(false);
-             localStorage.setItem('isAuthenticated', 'false');
-          }
+          // Auto-logout removed as requested by the user
+          // if (localStorage.getItem('appMode') === 'cloud') {
+          //    setIsAuthenticated(false);
+          //    localStorage.setItem('isAuthenticated', 'false');
+          // }
           setAuthLoading(false);
         }, 0);
       }
