@@ -475,8 +475,119 @@ async function startServer() {
   });
 
 
+
+  app.get("/api/debug/recent-orders", async (req, res) => {
+    try {
+      const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
+
+      if (receivedSecret !== process.env.ADMIN_TEST_SECRET) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+
+      if (!db) {
+        return res.status(500).json({
+          success: false,
+          message: "Firestore is not initialized",
+        });
+      }
+
+      function normalizeDate(value: any) {
+        if (!value) return null;
+        if (value.toDate) return value.toDate().toISOString();
+        if (value instanceof Date) return value.toISOString();
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? null : d.toISOString();
+      }
+
+      const ordersSnap = await db.collection("orders").limit(20).get();
+
+      const orders = ordersSnap.docs.map((doc) => {
+        const data = doc.data() || {};
+
+        return {
+          docId: doc.id,
+          id: data.id || null,
+          orderId: data.orderId || null,
+          orderNumber: data.orderNumber || null,
+          invoiceNo: data.invoiceNo || null,
+          invoiceNumber: data.invoiceNumber || null,
+          status: data.status || null,
+          paymentStatus: data.paymentStatus || null,
+          total: data.total || null,
+          totalAmount: data.totalAmount || null,
+          finalTotal: data.finalTotal || null,
+          amount: data.amount || null,
+          createdAt: normalizeDate(data.createdAt),
+          orderDate: normalizeDate(data.orderDate),
+          timestamp: normalizeDate(data.timestamp),
+          created_at: normalizeDate(data.created_at),
+          rawKeys: Object.keys(data).slice(0, 40),
+        };
+      });
+
+      const appDataSnap = await db.collection("appData").doc("shared_company_data").get();
+
+      let appDataArrays: any[] = [];
+
+      if (appDataSnap.exists) {
+        const appData = appDataSnap.data() || {};
+
+        appDataArrays = Object.entries(appData)
+          .filter(([_, value]) => Array.isArray(value))
+          .map(([key, value]: any) => ({
+            key,
+            count: value.length,
+            sample: value.slice(-3).map((item: any) => ({
+              id: item?.id || null,
+              orderId: item?.orderId || null,
+              orderNumber: item?.orderNumber || null,
+              invoiceNo: item?.invoiceNo || null,
+              invoiceNumber: item?.invoiceNumber || null,
+              status: item?.status || null,
+              paymentStatus: item?.paymentStatus || null,
+              total: item?.total || null,
+              totalAmount: item?.totalAmount || null,
+              finalTotal: item?.finalTotal || null,
+              amount: item?.amount || null,
+              createdAt: normalizeDate(item?.createdAt),
+              orderDate: normalizeDate(item?.orderDate),
+              timestamp: normalizeDate(item?.timestamp),
+              created_at: normalizeDate(item?.created_at),
+              rawKeys: item && typeof item === "object" ? Object.keys(item).slice(0, 30) : [],
+            })),
+          }));
+      }
+
+      return res.json({
+        success: true,
+        ordersCollectionCount: orders.length,
+        orders,
+        appDataArrays,
+      });
+    } catch (error: any) {
+      console.error("recent-orders debug error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  });
+
   app.post("/api/push/run-business-alerts", async (req, res) => {
     try {
+      const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
+
+      if (receivedSecret !== process.env.ADMIN_TEST_SECRET) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+
       if (!db) {
         return res.status(500).json({
           success: false,
@@ -485,16 +596,30 @@ async function startServer() {
       }
 
       const now = new Date();
-      const todayKey = now.toISOString().slice(0, 10);
+
+      const kuwaitParts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kuwait",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        hour12: false,
+      }).formatToParts(now).reduce((acc: any, part) => {
+        if (part.type !== "literal") acc[part.type] = part.value;
+        return acc;
+      }, {});
+
+      const todayKey = `${kuwaitParts.year}-${kuwaitParts.month}-${kuwaitParts.day}`;
+      const kuwaitHour = Number(kuwaitParts.hour);
+
+      const dayStart = new Date(`${todayKey}T00:00:00.000+03:00`);
+      const dayEnd = new Date(`${todayKey}T23:59:59.999+03:00`);
+
+      const newOrderWindowStart = new Date(now.getTime() - 15 * 60 * 1000);
+      const pendingPaymentWindowStart = new Date(now.getTime() - 30 * 60 * 1000);
       const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
       const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-
-      const dayStart = new Date(now);
-      dayStart.setHours(0, 0, 0, 0);
-
-      const dayEnd = new Date(now);
-      dayEnd.setHours(23, 59, 59, 999);
 
       const results: any[] = [];
 
@@ -558,13 +683,78 @@ async function startServer() {
         );
       }
 
-      // Fetch recent orders once.
+      // Fetch recent orders from both sources:
+      // 1) Root collection: orders
+      // 2) appData/shared_company_data.orders array
       const ordersSnap = await db.collection("orders").limit(500).get();
 
-      const orders = ordersSnap.docs.map((doc) => ({
+      const rootOrders = ordersSnap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
+        __source: "orders_collection",
       }));
+
+      let appDataOrders: any[] = [];
+
+      const sharedDataSnap = await db.collection("appData").doc("shared_company_data").get();
+
+      if (sharedDataSnap.exists) {
+        const sharedData = sharedDataSnap.data() || {};
+        const sharedOrders = Array.isArray(sharedData.orders) ? sharedData.orders : [];
+
+        appDataOrders = sharedOrders.map((order: any) => ({
+          ...order,
+          id: order.id || order.orderId || order.orderNumber,
+          __source: "appData_orders",
+        }));
+      }
+
+      const ordersMap = new Map<string, any>();
+
+      for (const order of [...rootOrders, ...appDataOrders]) {
+        const key = String(order.id || order.orderId || order.orderNumber || "");
+        if (!key) continue;
+        ordersMap.set(key, order);
+      }
+
+      const orders = Array.from(ordersMap.values());
+
+      // 0) طلب جديد بانتظار الدفع - server-side, works even if admin app is closed
+      for (const order of orders) {
+        const createdAt =
+          getDateValue((order as any).createdAt) ||
+          getDateValue((order as any).orderDate) ||
+          getDateValue((order as any).timestamp) ||
+          getDateValue((order as any).created_at);
+
+        if (!createdAt) continue;
+        if (createdAt < newOrderWindowStart || createdAt > now) continue;
+        if (!isPendingPayment(order)) continue;
+
+        const eventId = `order-created-${(order as any).id}`;
+
+        if (await alreadySent(eventId)) {
+          continue;
+        }
+
+        const orderNumber = getOrderNumber(order, (order as any).id);
+        const total = getTotal(order);
+
+        const result = await sendSmartAlertPushNotification({
+          title: "🚨 طلب جديد بانتظار الدفع",
+          body: `طلب ${orderNumber} وصل الآن بانتظار الدفع${total ? ` — القيمة ${total.toFixed(3)} د.ك` : ""} ⏳`,
+          alertType: "new_order_pending_payment",
+          url: `/?order=${encodeURIComponent((order as any).id)}`
+        });
+
+        await markSent(eventId, {
+          type: "order_created_pending_payment_server",
+          orderId: (order as any).id,
+          orderNumber,
+        }, result);
+
+        results.push({ eventId, result });
+      }
 
       // 1) طلب لم يدفع بعد 10 دقائق
       for (const order of orders) {
@@ -575,7 +765,13 @@ async function startServer() {
           getDateValue((order as any).created_at);
 
         if (!createdAt) continue;
+
+        // Only alert for recent pending payments:
+        // older than 10 minutes, but not older than 30 minutes.
+        // This prevents sending a backlog of old pending orders all at once.
         if (createdAt > tenMinutesAgo) continue;
+        if (createdAt < pendingPaymentWindowStart) continue;
+
         if (!isPendingPayment(order)) continue;
 
         const eventId = `payment-pending-10min-${(order as any).id}`;
@@ -632,7 +828,7 @@ async function startServer() {
 
       // 2) ملخص اليوم الساعة 11 مساءً
       // حتى لا يرسل قبل 11:00 مساءً
-      if (now.getHours() >= 23) {
+      if (kuwaitHour >= 23) {
         const eventId = `daily-summary-${todayKey}`;
 
         if (!(await alreadySent(eventId))) {

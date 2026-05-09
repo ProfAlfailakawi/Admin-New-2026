@@ -4,7 +4,8 @@ export const AUTHORIZED_EMAILS = [
 export const AUTHORIZED_PARTNERS = [
   'dr.ahmad.alfailakawi@gmail.com',
   'alfailakawidrahmad@gmail.com',
-  'mfq241188@gmail.com'
+  'mfq241188@gmail.com',
+  'omaralawadhi67@gmail.com'
 ];
 export const AUTHORIZED_UIDS = [
   'abi4lzKo4VfiLkrBAkYfK8NjtLS2',
