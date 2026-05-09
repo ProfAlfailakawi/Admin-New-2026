@@ -130,6 +130,7 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
  const [isPending, startTransition] = useTransition();
  const [isPushSupported, setIsPushSupported] = useState(false);
  const [pushEnabled, setPushEnabled] = useState(false);
+  const [showPushModal, setShowPushModal] = useState(false);
  const [isActivatingPush, setIsActivatingPush] = useState(false);
  const [showFinancialStats, setShowFinancialStats] = useState(false);
 
@@ -162,9 +163,7 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
        } else if (permission === 'granted' || hasSubscription || isStoredEnabled) {
          setPushDenied(false);
          setPushEnabled(true);
-      localStorage.setItem("push_notifications_enabled", "true");
-      localStorage.setItem("push_notifications_enabled", "true");
-         localStorage.setItem("push_notifications_enabled", "true");
+          localStorage.setItem("push_notifications_enabled", "true");
        } else {
          setPushDenied(false);
          setPushEnabled(false);
@@ -369,6 +368,34 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
             </div>
           </motion.div>
         )}
+
+        <AnimatePresence>
+          {showPushModal && (
+            <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    className="bg-white rounded-3xl p-6 shadow-2xl max-w-sm w-full text-center"
+                >
+                    <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Bell size={32} />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-800 mb-2">فعّل الإشعارات</h3>
+                    <p className="text-slate-600 text-sm font-bold mb-6">لتصلك طلباتك الجديدة أول بأول حتى والتطبيق مغلق.</p>
+                    <div className="flex flex-col gap-3">
+                        <button
+                          onClick={handleModalEnable}
+                          disabled={isActivatingPush}
+                          className="bg-indigo-600 text-white py-3 rounded-xl font-black shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 transition-colors"
+                        >
+                          {isActivatingPush ? 'جاري التفعيل...' : 'تفعيل الإشعارات الآن'}
+                        </button>
+                    </div>
+                </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
        
        <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md p-1.5 rounded-2xl border border-slate-100 shadow-sm">
        {(['day', 'week', 'month', 'year', 'all'] as const).map(f => (
