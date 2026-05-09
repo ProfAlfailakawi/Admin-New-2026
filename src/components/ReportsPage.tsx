@@ -543,8 +543,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
          customerMobile: customer?.phone || '+96500000000',
          orderId: invoiceId,
          description: `Invoice ${invoiceId} (Regenerated)`,
-         returnUrl: `${window.location.origin}/api/payment-return/${invoiceId}`,
-         cancelUrl: `${window.location.origin}/api/payment-return/${invoiceId}`,
+         returnUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
+         cancelUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
          notificationUrl: `https://order-951671626657.europe-west3.run.app/api/webhook/upayments`
        })
      });
