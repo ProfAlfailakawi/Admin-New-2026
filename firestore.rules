@@ -14,7 +14,8 @@ service cloud.firestore {
         request.auth.token.email == "dr.ahmad.alfailakawi@gmail.com" ||
         request.auth.token.email == "alfailakawidrahmad@gmail.com" ||
         request.auth.token.email == "mfq241188@gmail.com" ||
-        request.auth.token.email == "omaralawadhi67@gmail.com"
+        request.auth.token.email == "omaralawadhi67@gmail.com" ||
+        request.auth.uid == "L4qKc2PsZXamk96nvGTqPLjYhI03"
       );
     }
     

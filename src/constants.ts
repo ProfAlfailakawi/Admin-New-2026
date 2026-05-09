@@ -13,6 +13,7 @@ export const AUTHORIZED_UIDS = [
 ];
 export const AUTHORIZED_PARTNER_UIDS = [
   '0v30UI3SYyfzuGO15i5qRqejif62',
-  '2qUU5RXByXPkQASR1mJR9krryPd2'
+  '2qUU5RXByXPkQASR1mJR9krryPd2',
+  'L4qKc2PsZXamk96nvGTqPLjYhI03'
 ];
 export const DEFAULT_GLOBAL_LOGO = '/logo.png';
