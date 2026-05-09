@@ -133,11 +133,48 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
  const [isActivatingPush, setIsActivatingPush] = useState(false);
  const [showFinancialStats, setShowFinancialStats] = useState(false);
 
+ const [pushDenied, setPushDenied] = useState(false);
+
  useEffect(() => {
-   if (typeof window !== 'undefined' && 'Notification' in window) {
-     setIsPushSupported(true);
-     setPushEnabled(Notification.permission === 'granted');
-   }
+   const checkPush = async () => {
+     if (typeof window !== 'undefined' && 'navigator' in window && 'serviceWorker' in navigator && 'PushManager' in window) {
+       setIsPushSupported(true);
+       
+       let permission = 'default';
+       if ('Notification' in window) {
+         permission = Notification.permission;
+       }
+
+       let hasSubscription = false;
+       try {
+         const registration = await navigator.serviceWorker.ready;
+         const subscription = await registration.pushManager.getSubscription();
+         hasSubscription = !!subscription;
+       } catch (e) {
+         console.warn("Check push subscription failed", e);
+       }
+
+       const isStoredEnabled = localStorage.getItem("push_notifications_enabled") === "true";
+
+       if (permission === 'denied') {
+         setPushDenied(true);
+         setPushEnabled(false); // Make sure it's false
+       } else if (permission === 'granted' || hasSubscription || isStoredEnabled) {
+         setPushDenied(false);
+         setPushEnabled(true);
+      localStorage.setItem("push_notifications_enabled", "true");
+      localStorage.setItem("push_notifications_enabled", "true");
+         localStorage.setItem("push_notifications_enabled", "true");
+       } else {
+         setPushDenied(false);
+         setPushEnabled(false);
+       }
+     } else {
+       setIsPushSupported(false);
+     }
+   };
+   
+   checkPush();
  }, []);
 
  const handleEnablePush = async () => {
@@ -282,8 +319,8 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
  </div>
   </div>
 
-    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
-      {isPushSupported && !pushEnabled && (
+    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex flex-col gap-3 mb-8">
+      {isPushSupported && !pushEnabled && !pushDenied && (
          <motion.div
            initial={{ opacity: 0, scale: 0.9, y: -10 }}
            animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -307,6 +344,31 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
            </button>
          </motion.div>
        )}
+
+        {isPushSupported && pushDenied && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-2xl flex items-center justify-between gap-4 self-stretch xl:self-auto"
+          >
+            <div className="flex items-center justify-between w-full h-full text-right text-[11px] font-black">
+               <span>الإشعارات موقوفة من إعدادات الجهاز</span>
+            </div>
+          </motion.div>
+        )}
+
+        {isPushSupported && pushEnabled && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-emerald-50 border border-emerald-100 text-emerald-600 p-3 rounded-2xl flex items-center justify-between gap-4 self-stretch xl:self-auto"
+          >
+            <div className="flex items-center gap-2 text-right text-[11px] font-black">
+               <Bell size={16} />
+               <span>الإشعارات مفعلة بنجاح</span>
+            </div>
+          </motion.div>
+        )}
        
        <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md p-1.5 rounded-2xl border border-slate-100 shadow-sm">
        {(['day', 'week', 'month', 'year', 'all'] as const).map(f => (
