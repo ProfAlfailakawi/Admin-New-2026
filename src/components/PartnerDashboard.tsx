@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
  ShoppingBag, TrendingUp, Handshake, DollarSign, Target, Sparkles, Activity, 
  ChevronRight, Star, LineChart as LineChartIcon, FlaskConical, LayoutGrid, Filter, X, 
- Zap, ArrowUpRight, PieChart, Users, Truck, Briefcase, Cpu, Layers, Search, Bell, BellRing, ChevronDown, ShieldAlert
+ Zap, ArrowUpRight, PieChart, Users, Truck, Briefcase, Cpu, Layers, Search, Bell, BellRing, ChevronDown
 } from 'lucide-react';
 import { AppState } from '../types';
 import { cn } from '../lib/utils';
@@ -131,7 +131,6 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
  const [isPushSupported, setIsPushSupported] = useState(false);
  const [pushEnabled, setPushEnabled] = useState(false);
  const [isActivatingPush, setIsActivatingPush] = useState(false);
- const [isExecutiveMode, setIsExecutiveMode] = useState(false);
  const [showFinancialStats, setShowFinancialStats] = useState(false);
 
  useEffect(() => {
@@ -271,10 +270,7 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
  const bentoCardStyle ="bg-[#fdfbf7] p-3 md:p-4 rounded-2xl2xl lg:rounded-2xl2xl md:rounded-2xl2xl border border-[#f0e6d2] shadow-[0_4px_20px_-10px_rgba(212,192,152,0.3)] text-right relative overflow-hidden flex flex-col h-full";
  
  return (
- <div className={cn("min-h-full bg-slate-50 p-3 md:p-3 lg:p-3 md:p-4 animate-in fade-in duration-500 transition-colors", isExecutiveMode ? "py-12" : "")} dir="rtl">
-  {isExecutiveMode && (
-    <div className="fixed inset-0 pointer-events-none -z-10 bg-slate-50" />
-  )}
+ <div className="min-h-full bg-slate-50 p-3 md:p-3 lg:p-3 md:p-4 animate-in fade-in duration-500 transition-colors" dir="rtl">
  <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-3 md:p-4">
  <div className="flex flex-col items-end gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0" style={{ flexWrap: 'nowrap' }}>
  <SectionHeader 
@@ -283,91 +279,9 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
  color="indigo" 
  subtitle={greeting.sub} 
  />
-  <button
-    onClick={() => setIsExecutiveMode(!isExecutiveMode)}
-    className={cn(
-      "hidden flex-row-reverse md:flex items-center gap-2 px-4 py-2 rounded-2xl font-black text-sm transition-all duration-500 whitespace-nowrap self-end",
-      isExecutiveMode 
-        ? "bg-slate-900 text-white shadow-lg scale-105" 
-        : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:scale-105"
-    )}
-  >
-    <ShieldAlert size={18} className={cn(isExecutiveMode ? "text-amber-400" : "text-slate-400")} />
-    <span>{isExecutiveMode ? "خروج من القيادة" : "وضع القيادة"}</span>
-  </button>
  </div>
   </div>
- {isExecutiveMode ? (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className="space-y-12 py-12"
-      dir="rtl"
-    >
-      <div className="flex flex-col items-center justify-center space-y-6 text-center">
-        <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
-          نبض العمليات
-        </h2>
-        <p className="text-xl text-slate-500 font-bold max-w-lg mx-auto">
-          {pendingOrdersCount === 0 ? "العمليات ممتازة والوضع مستقر تماماً. لا توجد اختناقات." : `هناك ${pendingOrdersCount} طلبات قيد الانتظار تحتاج انتباه.`}
-        </p>
-      </div>
-      
-      <div className="flex justify-center items-center py-20">
-        <div className="relative flex justify-center items-center">
-          <motion.div
-            animate={{ 
-              scale: pendingOrdersCount === 0 ? [1, 1.05, 1] : [1, 1.15, 1],
-              opacity: pendingOrdersCount === 0 ? [0.4, 0.7, 0.4] : [0.6, 1, 0.6]
-            }}
-            transition={{
-              duration: pendingOrdersCount === 0 ? 4 : 1.5,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-            className={cn(
-              "absolute w-64 h-64 rounded-full blur-3xl",
-              pendingOrdersCount === 0 ? "bg-emerald-400/30" : "bg-amber-500/40"
-            )}
-          />
-          <motion.div
-            animate={{ 
-              scale: pendingOrdersCount === 0 ? [1, 1.02, 1] : [1, 1.08, 1],
-              boxShadow: pendingOrdersCount === 0 
-                ? ["0 4px 20px rgba(52,211,153,0.1)", "0 8px 40px rgba(52,211,153,0.3)", "0 4px 20px rgba(52,211,153,0.1)"]
-                : ["0 8px 32px rgba(245,158,11,0.2)", "0 16px 64px rgba(245,158,11,0.5)", "0 8px 32px rgba(245,158,11,0.2)"]
-            }}
-            transition={{
-              duration: pendingOrdersCount === 0 ? 4 : 1.5,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-            className={cn(
-              "relative z-10 w-48 h-48 rounded-full flex flex-col items-center justify-center border backdrop-blur-2xl cursor-pointer hover:scale-105 transition-transform",
-              pendingOrdersCount === 0 
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]" 
-                : "bg-amber-500/20 border-amber-500/40 text-amber-600 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
-            )}
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                import('../lib/haptics').then(m => m.triggerHaptic(pendingOrdersCount === 0 ? 'medium' : 'warning'));
-              }
-            }}
-          >
-            {pendingOrdersCount === 0 ? (
-              <Activity size={64} className="opacity-80" />
-            ) : (
-              <>
-                <span className="text-6xl font-black">{pendingOrdersCount}</span>
-                <span className="text-sm font-bold opacity-80 uppercase tracking-widest mt-2">اختناق</span>
-              </>
-            )}
-          </motion.div>
-        </div>
-      </div>
-    </motion.div>
-  ) : (
+
     <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
       {isPushSupported && !pushEnabled && (
          <motion.div
@@ -657,13 +571,8 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
          {totalOrdersCount}
        </div>
        </div>
-       <div className={cn(
-      "px-5 py-2 rounded-full text-xs font-black backdrop-blur-xl border border-white/20",
-       pendingOrdersCount > 0 ?"bg-amber-500 text-white animate-pulse" :"bg-white/10 text-white"
-      )}>
-       {pendingOrdersCount > 0 ? `${pendingOrdersCount} طلبات معلقة` : 'السجل جاهز تماماً'}
        </div>
-       </div>
+      
       
        <div className="relative z-10 mt-6 flex justify-between items-end">
        <div className="text-right">
@@ -678,7 +587,6 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
        </motion.div>
        </div>
     </motion.div>
-  )}
   </div>
  );
 };
