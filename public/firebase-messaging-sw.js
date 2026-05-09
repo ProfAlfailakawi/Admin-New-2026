@@ -1,108 +1,74 @@
-// SW VERSION 2026-05-08-FINAL-4
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
-self.addEventListener("install", function (event) {
-  self.skipWaiting();
+firebase.initializeApp({
+  apiKey: "AIzaSyB5kYVcJYxQ1sZxv_N5r54rDHsODKVep14",
+  authDomain: "gen-lang-client-0878573239.firebaseapp.com",
+  projectId: "gen-lang-client-0878573239",
+  storageBucket: "gen-lang-client-0878573239.firebasestorage.app",
+  messagingSenderId: "938552047102",
+  appId: "1:938552047102:web:b4e388d47c492b83e9c8db"
 });
 
-self.addEventListener("activate", function (event) {
-  event.waitUntil(self.clients.claim());
+const messaging = firebase.messaging();
+
+function showPush(payload) {
+  console.log('[firebase-messaging-sw.js] payload:', payload);
+
+  const data = payload.data || {};
+  const notification = payload.notification || {};
+
+  const title = data.title || notification.title || 'تنبيه جديد';
+  const body = data.body || notification.body || 'يوجد تحديث جديد';
+  const url = data.url || payload?.fcmOptions?.link || '/';
+
+  return self.registration.showNotification(title, {
+    body,
+    icon: data.icon || '/icons/icon-192.png',
+    badge: data.badge || '/icons/icon-192.png',
+    requireInteraction: true,
+    vibrate: [200, 100, 200],
+    data: { url, ...data }
+  });
+}
+
+messaging.onBackgroundMessage((payload) => {
+  return showPush(payload);
 });
 
-// Intercept push events immediately for fast processing on iOS (bypasses Firebase compat delay)
-self.addEventListener("push", function (event) {
+self.addEventListener('push', (event) => {
   if (!event.data) return;
 
+  let payload = {};
   try {
-    const payload = event.data.json();
-    console.log("[SW] Raw Push Payload:", payload);
-
-    let title = "تنبيه جديد";
-    let body = "إشعار جديد من النظام";
-    let icon = "https://admin.alturathkw.shop/icons/icon-192.png";
-    let badge = "https://admin.alturathkw.shop/icons/icon-192.png";
-    let url = "/";
-    let orderId = "";
-    let type = "general";
-
-    // Extract Firebase payload structure
-    if (payload.notification) {
-      title = payload.notification.title || title;
-      body = payload.notification.body || body;
-      icon = payload.notification.icon || icon;
-    }
-    
-    // Notification could also be nested in data for data-only messages
-    if (payload.data) {
-      title = payload.data.title || title;
-      body = payload.data.body || body;
-      url = payload.data.url || url;
-      orderId = payload.data.orderId || orderId;
-      type = payload.data.type || type;
-    }
-
-    if (payload.fcmOptions && payload.fcmOptions.link) {
-      url = payload.fcmOptions.link;
-    }
-
-    const options = {
-      body: body,
-      icon: icon,
-      badge: badge,
-      data: {
-        url: url,
-        orderId: orderId,
-        type: type
-      },
-      requireInteraction: true // Safe extra for Web Push
-    };
-
-    const showPromise = self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
-      let isFocused = false;
-      for (var i = 0; i < clientList.length; i++) {
-        clientList[i].postMessage({ type: 'PUSH_RECEIVED', payload: payload });
-        if (clientList[i].focused) {
-          isFocused = true;
-        }
-      }
-      
-      // Always show system notification to guarantee delivery on iOS PWA
-      return self.registration.showNotification(title, options);
-    });
-
-    event.waitUntil(showPromise);
-    event.stopImmediatePropagation(); // Prevent Firebase compat from handling it
+    payload = event.data.json();
   } catch (e) {
-    console.error("[SW] Custom Push Error:", e);
+    payload = { data: { title: 'تنبيه جديد', body: event.data.text(), url: '/' } };
   }
+
+  event.waitUntil(showPush(payload));
 });
 
-self.addEventListener("notificationclick", function (event) {
+self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  var notificationData = event.notification && event.notification.data ? event.notification.data : {};
-  var urlToOpen = notificationData.url || "/";
+  const urlToOpen = event.notification?.data?.url || '/';
 
   event.waitUntil(
-    self.clients.matchAll({
-      type: "window",
-      includeUncontrolled: true
-    }).then(function (clientList) {
-      for (var i = 0; i < clientList.length; i++) {
-        var client = clientList[i];
-        if ("focus" in client) {
-          if ("navigate" in client) {
-            return client.navigate(urlToOpen).then(function (navigatedClient) {
-              return navigatedClient.focus();
-            });
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.focus();
+          if ('navigate' in client) {
+            return client.navigate(urlToOpen);
           }
-          return client.focus();
+          return;
         }
       }
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(urlToOpen);
+
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
       }
     })
   );
 });
-
-// End of Service Worker
