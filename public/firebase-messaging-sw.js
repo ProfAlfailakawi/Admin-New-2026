@@ -32,9 +32,7 @@ function showPush(payload) {
   });
 }
 
-messaging.onBackgroundMessage((payload) => {
-  return showPush(payload);
-});
+messaging.onBackgroundMessage((payload) => showPush(payload));
 
 self.addEventListener('push', (event) => {
   if (!event.data) return;
@@ -59,16 +57,12 @@ self.addEventListener('notificationclick', (event) => {
       for (const client of clientList) {
         if ('focus' in client) {
           client.focus();
-          if ('navigate' in client) {
-            return client.navigate(urlToOpen);
-          }
+          if ('navigate' in client) return client.navigate(urlToOpen);
           return;
         }
       }
 
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
+      if (clients.openWindow) return clients.openWindow(urlToOpen);
     })
   );
 });

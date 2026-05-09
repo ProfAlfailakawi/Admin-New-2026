@@ -1,44 +1,38 @@
-# ملفات الرفع لمسارات مشروع الأدمن
+# Latest Admin Push Fixes
 
-ارفع محتويات هذا ZIP داخل جذر مشروع الأدمن.
-
-## المسارات داخل المشروع
+## المسارات داخل ZIP
 
 ```text
 public/firebase-messaging-sw.js
-scripts/apply-admin-push-fixes.js
+scripts/apply-latest-admin-push-fixes.js
 README_UPLOAD.md
 ```
 
-## خطوات التطبيق
+## طريقة التطبيق
 
-من جذر مشروع الأدمن شغل:
+فك الضغط داخل جذر مشروع الأدمن، ثم شغل:
 
 ```bash
-node scripts/apply-admin-push-fixes.js
+node scripts/apply-latest-admin-push-fixes.js
 ```
 
-هذا السكربت يعدل ملف:
+بعدها تحقق:
 
-```text
-server.ts
+```bash
+grep -n "order-created-\|payment-failed-\|payment-paid-\|فشل في عملية الدفع\|paidStatusText" server.ts
 ```
 
-بعدها ارفع/انشر:
+ثم ارفع/انشر:
 
 ```text
 server.ts
 public/firebase-messaging-sw.js
 ```
 
-ثم اعمل build/restart/deploy حسب الاستضافة.
+واعمل restart/deploy للإنتاج.
 
-## مهم جدًا
-
-لا ترفع ملف الصلاحيات داخل public أو GitHub:
+## لا ترفع
 
 ```text
 secrets/serviceAccountKey.json
 ```
-
-إذا الإنتاج يحتاج Firebase credentials، ضعه كـ Secret/Environment Variable آمن في لوحة الاستضافة.
