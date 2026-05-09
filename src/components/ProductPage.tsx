@@ -86,6 +86,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
     imageUrl: "",
     isActive: true,
     isOutOfStock: false,
+    preparationInstructions: "",
   });
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -495,6 +496,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       imageUrl: "",
       isActive: true,
       isOutOfStock: false,
+      preparationInstructions: "",
     });
     setShowModal(true);
   };
@@ -511,6 +513,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       imageUrl: product.imageUrl || "",
       isActive: product.isActive !== false,
       isOutOfStock: !!product.isOutOfStock,
+      preparationInstructions: product.preparationInstructions || "",
     });
     setShowModal(true);
   };
@@ -580,9 +583,14 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 key={p.id}
                 className="bg-white border border-amber-100/50 p-3 rounded-2xl flex items-center justify-between text-right shadow-sm hover:-translate-y-1 transition-all"
               >
-                 <div className="flex flex-col gap-1 w-full pl-2">
-                  <h4 className="font-bold text-slate-800 text-[13px] sm:text-[14px] leading-tight text-right line-clamp-1">{p.name}</h4>
-                  <div className="flex items-center gap-1 flex-row-reverse text-slate-500">
+                  <div className="flex flex-col gap-1 w-full pl-2 items-end">
+                   <h4 className="font-bold text-slate-800 text-[13px] sm:text-[14px] leading-tight text-right line-clamp-1">{p.name}</h4>
+                   {p.preparationInstructions && (
+                      <span className="text-[8px] bg-amber-50 border border-amber-200 text-amber-700 font-medium px-1.5 py-0.5 rounded flex items-center gap-1 flex-row-reverse w-fit text-right shadow-sm mt-0.5">
+                        <AlertCircle size={8} className="shrink-0" /> <span className="line-clamp-1">{p.preparationInstructions}</span>
+                      </span>
+                   )}
+                   <div className="flex items-center gap-1 flex-row-reverse text-slate-500">
                      <Truck size={10} />
                      <span className="text-[10px] font-bold">
                        {data.suppliers?.find((s) => s.id === p.supplierId)?.name || "مورد"}
@@ -883,6 +891,14 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       <h3 className="font-black text-slate-800 text-[13px] sm:text-lg leading-[1.4] mb-0.5 sm:mb-1 line-clamp-2 min-h-[36px] sm:min-h-[50px] text-right">
                         {product.name}
                       </h3>
+                      {product.preparationInstructions && (
+                        <div className="flex justify-end mt-1">
+                          <span className="text-[9px] md:text-[10px] bg-amber-50 border border-amber-200/60 text-amber-700 font-medium px-2 py-0.5 rounded-md flex items-center gap-1 w-fit flex-row-reverse shadow-sm text-right">
+                            <AlertCircle size={10} className="text-amber-500 shrink-0" />
+                            <span className="line-clamp-2 leading-snug">{product.preparationInstructions}</span>
+                          </span>
+                        </div>
+                      )}
                       <div className="flex flex-col gap-1 items-end">
                         <div className="flex items-center gap-1 sm:gap-1.5 flex-row-reverse justify-end text-slate-400 group-hover:text-primary transition-colors">
                           <Truck size={10} className="sm:size-[12px] shrink-0" />
@@ -1171,7 +1187,20 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-2 md:p-3">
+                  <div className="grid grid-cols-1 gap-2 md:p-3">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">
+                      إرشادات التحضير (اختياري)
+                    </label>
+                    <textarea
+                      value={(productForm as any).preparationInstructions || ""}
+                      onChange={(e) =>
+                        setProductForm({ ...productForm, preparationInstructions: e.target.value })
+                      }
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right min-h-[60px]"
+                      placeholder="مثال: يطلب قبلها بيوم، يحتاج ساعتين للتجهيز..."
+                    />
+                  </div>
                   <div className="space-y-2">
                     <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">
                       المورد المعتمد
