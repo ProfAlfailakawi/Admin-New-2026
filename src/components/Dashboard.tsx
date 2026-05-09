@@ -1373,15 +1373,49 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     }, [activeInvoices]);
 
     const topProducts = useMemo(() => {
-      return (data?.products || [])
-        .map((p) => ({
-          ...p,
-          sold: productPerformance[p.id]?.sold || 0,
-        }))
-        .filter((p) => p.sold > 0)
-        .sort((a, b) => b.sold - a.sold)
-        .slice(0, 4);
-    }, [data?.products, productPerformance]);
+    const allTimeMap: Record<string, number> = {};
+    
+    const paidInvoices = (data?.invoices || []).filter(inv => {
+      if (inv.isDeleted) return false;
+      // Use status-utils compatible checks or fallback for demo data
+      const st1 = String(inv.paymentStatus || '').toLowerCase();
+      const st2 = String((inv as any).status || '').toLowerCase();
+      const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع وجاري التوصيل', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
+      
+      if (isPaid) return true;
+      if (!inv.paymentStatus && !(inv as any).status) return true; // demo data
+      return false;
+    });
+
+    const completedOrders = (data?.orders || []).filter(o => {
+      if (o.isConvertedToInvoice) return false;
+      const st1 = String((o as any).paymentStatus || '').toLowerCase();
+      const st2 = String(o.status || '').toLowerCase();
+      const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع وجاري التوصيل', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
+      return isPaid;
+    });
+    
+    paidInvoices.forEach(inv => {
+      (inv.items || []).forEach(item => {
+        allTimeMap[item.productId] = (allTimeMap[item.productId] || 0) + (item.quantity || 0);
+      });
+    });
+    
+    completedOrders.forEach(o => {
+      (o.items || []).forEach(item => {
+        allTimeMap[item.productId] = (allTimeMap[item.productId] || 0) + (item.quantity || 0);
+      });
+    });
+
+    return (data?.products || [])
+      .map(p => ({
+        ...p,
+        sold: allTimeMap[p.id] || 0
+      }))
+      .filter(p => p.sold > 0 && p.isActive !== false)
+      .sort((a,b) => b.sold - a.sold)
+      .slice(0, 5);
+  }, [data?.products, data?.invoices, data?.orders]);
 
     const profitableProducts = useMemo(() => {
       return (data?.products || [])
