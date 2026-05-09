@@ -885,7 +885,7 @@ async function startServer() {
         tokensCount: tokens.length,
         successCount: response.successCount,
         failureCount: response.failureCount,
-        errors: response.responses.filter(r => !r.success).map(r => r.error)
+        errors: response.responses.filter(r => !r.success).map(r => (r.error ? { code: r.error.code, message: r.error.message } : { message: "Unknown error" }))
       };
     } catch (e: any) {
       console.error("Sending push error:", e);
@@ -963,7 +963,7 @@ async function startServer() {
         tokensCount: tokens.length,
         successCount: response.successCount,
         failureCount: response.failureCount,
-        errors: response.responses.filter(r => !r.success).map(r => r.error)
+        errors: response.responses.filter(r => !r.success).map(r => (r.error ? { code: r.error.code, message: r.error.message } : { message: "Unknown error" }))
       };
     } catch (e: any) {
       console.error("Sending smart alert push error:", e);

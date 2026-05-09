@@ -1243,13 +1243,20 @@ setPaymentLink(createdLink);
                     {/* Supplier Alert */}
                     <div className="z-20 absolute -top-1 sm:-top-2 right-1 sm:right-2">
                     {getBestPriceInfo(product) && (
-                      <div className="relative group/radar">
-                        <div className="bg-rose-50 text-rose-500 p-1 rounded-full border border-rose-100 animate-pulse cursor-pointer shadow-sm">
+                      <div 
+                        className="relative group/radar outline-none"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        <div className="bg-rose-50 text-rose-500 p-1.5 rounded-full border border-rose-100 animate-pulse cursor-pointer shadow-sm">
                           <AlertCircle size={12} className="sm:size-[14px]" />
                         </div>
-                        <div className="absolute top-0 right-full mr-1.5 hidden group-hover/radar:block bg-slate-900 text-white text-[8px] md:text-[9px] p-2.5 rounded-xl z-[100] whitespace-nowrap shadow-2xl font-bold border border-white/10 ring-4 ring-rose-500/10">
-                          انتبه! المورد ({getBestPriceInfo(product)?.supplier}) <br/>
-                          يبيعه أرخص بسعر {Number(getBestPriceInfo(product)?.cost || 0).toFixed(3)} د.ك
+                        <div className="absolute bottom-full mb-2 right-1/2 translate-x-[75%] sm:translate-x-[60%] hidden group-hover/radar:flex group-focus/radar:flex focus-within:flex flex-col bg-white text-slate-700 text-[8px] md:text-[9px] p-2 w-[110px] sm:w-[130px] rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-black border border-slate-200 pointer-events-none items-center gap-1 text-center">
+                          <span className="bg-rose-50 text-rose-600 px-2 py-1.5 rounded-lg leading-relaxed w-full whitespace-normal break-words">{getBestPriceInfo(product)?.supplier}</span>
+                          <span className="w-full">يبيعه أرخص</span>
+                          <span className="text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg leading-none w-full">{Number(getBestPriceInfo(product)?.cost || 0).toFixed(3)} د.ك</span>
                         </div>
                       </div>
                     )}

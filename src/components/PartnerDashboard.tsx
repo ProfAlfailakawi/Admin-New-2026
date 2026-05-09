@@ -290,9 +290,28 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
 
  const getContextualGreeting = () => {
  const hour = now.getHours();
- const activeOrdersCount = data.orders?.filter(o => !['cancelled', 'delivered'].includes(o.status)).length || 0;
+ const activeOrdersCount = data.orders?.filter(o => !['cancelled', 'delivered', 'تم التوصيل', 'تم الإلغاء', 'ملغي'].includes(o.status)).length || 0;
+ 
+ const yesterday = new Date();
+ yesterday.setDate(yesterday.getDate() - 1);
+ yesterday.setHours(0, 0, 0, 0);
+ const yesterdayEnd = new Date(yesterday);
+ yesterdayEnd.setHours(23, 59, 59, 999);
+ 
+ const validInvoices = data.invoices?.filter(inv => !inv.isDeleted) || [];
+ const yesterdayInvoices = validInvoices.filter(inv => {
+   const d = new Date(inv.date).getTime();
+   return (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && d >= yesterday.getTime() && d <= yesterdayEnd.getTime();
+ });
+ 
+ const yesterdaySales = yesterdayInvoices.reduce((acc, inv) => acc + (inv.totalAmount || 0) + (inv.deliveryFee || 0), 0);
+
  if (hour >= 5 && hour < 12) {
- return { title: 'صباح الخير، أداء أمس كان مبهراً بفضل مبيعات العشاء ☀️', sub: 'الطقس اليوم ممتاز والمتوقع إقبال عالي بزيادة 15%. كل تفاصيل الإيرادات جاهزة في تقريرك الناعم.' };
+   if (yesterdaySales > 0) {
+     return { title: `صباح الخير، مبيعات أمس بلغت ${yesterdaySales.toFixed(3)} د.ك ☀️`, sub: 'بداية يوم موفق. التفاصيل كاملة في تقريرك.' };
+   } else {
+     return { title: 'صباح الخير، يوم جديد وفرص جديدة ☀️', sub: 'بانتظار وصول أول طلبات اليوم. بالتوفيق!' };
+   }
  } else if (hour >= 12 && hour < 17) {
  return { title: 'مرحباً، وقت ذروة الغداء! 🍽️', sub: `لدينا ${activeOrdersCount} طلب نشط حالياً، حافظ على هذا الزخم الممتاز.` };
  } else if (hour >= 17 && hour < 22) {

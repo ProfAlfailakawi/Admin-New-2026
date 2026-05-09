@@ -827,17 +827,17 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <div className="p-3 md:p-4 space-y-6">
  <div className={cn(
 "p-3 rounded-2xl flex items-center justify-between",
- appMode === 'cloud' ?"bg-emerald-50 border border-emerald-100" :"bg-red-50 border border-red-100"
+ appMode === 'cloud' ?"bg-emerald-50 border border-emerald-100" :"bg-amber-50 border border-amber-100"
 )}>
  <div className="text-right">
- <div className={cn("text-sm font-black", appMode === 'cloud' ?"text-emerald-800" :"text-red-800")}>حالة الربط السحابي</div>
- <div className={cn("text-[10px] font-bold mt-0.5", appMode === 'cloud' ?"text-emerald-600" :"text-red-600")}>
+ <div className={cn("text-sm font-black", appMode === 'cloud' ?"text-emerald-800" :"text-amber-800")}>حالة الربط السحابي</div>
+ <div className={cn("text-[10px] font-bold mt-0.5", appMode === 'cloud' ?"text-emerald-600" :"text-amber-600")}>
  {appMode === 'cloud' ?"يعمل الآن بميزة المزامنة اللحظية (Real-time Sync)" :"تعمل الآن بوضع التخزين المحلي (Offline Mode)"}
  </div>
  </div>
  <div className={cn(
 "flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black text-white",
- appMode === 'cloud' ?"bg-emerald-500" :"bg-red-500"
+ appMode === 'cloud' ?"bg-emerald-500" :"bg-amber-500"
 )}>
  {appMode === 'cloud' ? (
  <>
