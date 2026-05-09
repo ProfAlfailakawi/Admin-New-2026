@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Latest admin push fixes.
+ * Latest admin push fixes + rawStatus fix.
+ *
  * Run from admin project root:
  *   node scripts/apply-latest-admin-push-fixes.js
  *
@@ -50,7 +51,7 @@ applyReplace(
 `
 );
 
-// 2) If previous script already removed isPendingPayment but still uses newOrderWindowStart, widen to dayStart.
+// 2) If prior patch removed isPendingPayment but kept narrow window, widen to dayStart.
 applyReplace(
   "widen new order window to today",
 `        if (!createdAt) continue;
@@ -119,7 +120,16 @@ applyReplace(
 `
 );
 
-// 4) Broaden paid detector while keeping isPaidOrder fallback.
+// 4) Critical fix: rawStatus no longer exists after broad detector, use statusText.
+if (text.includes("          status: rawStatus,")) {
+  text = text.replace(/          status: rawStatus,/g, "          status: statusText,");
+  changed = true;
+  console.log("OK applied: rawStatus -> statusText");
+} else {
+  console.log("OK: no rawStatus reference found.");
+}
+
+// 5) Broaden paid detector while keeping isPaidOrder fallback.
 applyReplace(
   "broaden paid detector",
 `        if (!isPaidOrder(order)) continue;
@@ -155,7 +165,7 @@ applyReplace(
 `
 );
 
-// 5) Fix order spike repeated alerts and hourKey reference.
+// 6) Fix order spike repeated alerts and hourKey reference.
 applyReplace(
   "order spike once every 2 hours",
 `      if (suddenSpike) {
@@ -191,7 +201,7 @@ if (text.includes("hour: hourKey,")) {
   console.log("OK applied: hourKey -> twoHourBucket");
 }
 
-// 6) Optional: improve SW notification options in smart alert payload if exact old block exists.
+// 7) Optional: improve smart alert webpush options.
 applyReplace(
   "smart alert webpush options",
 `          headers: {
@@ -228,4 +238,4 @@ if (changed) {
 
 console.log("");
 console.log("Verify with:");
-console.log('grep -n "order-created-\\\\|payment-failed-\\\\|payment-paid-\\\\|فشل في عملية الدفع\\\\|paidStatusText" server.ts');
+console.log('grep -n "rawStatus\\\\|statusText\\\\|order-created-\\\\|payment-failed-\\\\|payment-paid-\\\\|paidStatusText" server.ts');
