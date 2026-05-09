@@ -1,32 +1,39 @@
-# Latest Admin Push Fixes + rawStatus fix
+# Complete Admin Push Fixes
 
-## المسارات داخل ZIP
+## ماذا يحتوي هذا ZIP؟
 
 ```text
 public/firebase-messaging-sw.js
-scripts/apply-latest-admin-push-fixes.js
+scripts/apply-complete-admin-push-fixes.js
 README_UPLOAD.md
 FILE_TREE.txt
 ```
+
+## هل هذا فقط لتعديل "طلب جديد"؟
+
+لا. هذا يشمل كل التعديلات الأخيرة:
+
+- دعم حقل `date` في طلبات `appData/shared_company_data.orders`
+- اعتبار `status: "جديد"` كطلب جديد/بانتظار الدفع
+- كشف `cancelled` كفشل/إلغاء دفع
+- كشف `paid` كنجاح دفع
+- إصلاح `rawStatus -> statusText`
+- تقليل تكرار تنبيه "آخر ساعة فيها طلبات"
+- ملف Service Worker بإعدادات Firebase الصحيحة:
+  - messagingSenderId: `951671626657`
 
 ## طريقة التطبيق
 
 فك الضغط داخل جذر مشروع الأدمن، ثم شغل:
 
 ```bash
-node scripts/apply-latest-admin-push-fixes.js
+node scripts/apply-complete-admin-push-fixes.js
 ```
 
 بعدها تحقق:
 
 ```bash
-grep -n "rawStatus\|statusText\|order-created-\|payment-failed-\|payment-paid-\|paidStatusText" server.ts
-```
-
-المهم: لا يظهر `rawStatus` كمتغير مستخدم داخل `markSent`. يجب أن يكون:
-
-```text
-status: statusText
+grep -n "getDateValue((order as any).date)\|status.includes("جديد")\|payment-failed-\|payment-paid-\|paidStatusText\|rawStatus" server.ts
 ```
 
 ثم ارفع/انشر:
@@ -38,7 +45,9 @@ public/firebase-messaging-sw.js
 
 واعمل restart/deploy للإنتاج.
 
-## لا ترفع
+## مهم
+
+لا ترفع:
 
 ```text
 secrets/serviceAccountKey.json

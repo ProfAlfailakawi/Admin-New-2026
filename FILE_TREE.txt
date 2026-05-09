@@ -1,6 +1,6 @@
-admin_push_latest_fixed_upload/
+admin_push_complete_latest/
 ├── public/
 │   └── firebase-messaging-sw.js
 ├── scripts/
-│   └── apply-latest-admin-push-fixes.js
+│   └── apply-complete-admin-push-fixes.js
 └── README_UPLOAD.md
