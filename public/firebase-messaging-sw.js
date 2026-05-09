@@ -14,10 +14,8 @@ const messaging = firebase.messaging();
 
 function showPush(payload) {
   console.log('[firebase-messaging-sw.js] payload:', payload);
-
   const data = payload.data || {};
   const notification = payload.notification || {};
-
   const title = data.title || notification.title || 'تنبيه جديد';
   const body = data.body || notification.body || 'يوجد تحديث جديد';
   const url = data.url || payload?.fcmOptions?.link || '/';
@@ -32,43 +30,32 @@ function showPush(payload) {
   });
 }
 
-messaging.onBackgroundMessage((payload) => {
-  return showPush(payload);
-});
+messaging.onBackgroundMessage((payload) => showPush(payload));
 
 self.addEventListener('push', (event) => {
   if (!event.data) return;
-
   let payload = {};
   try {
     payload = event.data.json();
   } catch (e) {
     payload = { data: { title: 'تنبيه جديد', body: event.data.text(), url: '/' } };
   }
-
   event.waitUntil(showPush(payload));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-
   const urlToOpen = event.notification?.data?.url || '/';
-
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if ('focus' in client) {
           client.focus();
-          if ('navigate' in client) {
-            return client.navigate(urlToOpen);
-          }
+          if ('navigate' in client) return client.navigate(urlToOpen);
           return;
         }
       }
-
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
+      if (clients.openWindow) return clients.openWindow(urlToOpen);
     })
   );
 });
