@@ -182,6 +182,7 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
      await registerPushNotifications({ userId: data.settings?.companyName || 'partner', restaurantId: 'default' });
      setPushEnabled(true);
      toast.success("تم تفعيل إشعارات الطلبات بنجاح! 🔔");
+     setShowPushModal(false);
    } catch (err: any) {
      toast.error(err.message || 'فشل تفعيل الإشعارات');
    } finally {
@@ -339,6 +340,30 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
 
     <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex flex-col gap-3 mb-8">
 
+        {isPushSupported && !pushEnabled && !pushDenied && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-indigo-50 border border-indigo-100 text-indigo-800 p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 self-stretch xl:self-auto"
+          >
+            <div className="flex items-center gap-3 text-right">
+              <div className="bg-indigo-100 p-2 rounded-xl text-indigo-600">
+                <Bell size={20} className="animate-pulse" />
+              </div>
+              <div>
+                <h4 className="text-[12px] font-black border-b border-indigo-200/50 pb-1 mb-1 inline-block">تفعيل الإشعارات</h4>
+                <p className="text-[10px] sm:text-[11px] font-bold text-indigo-600/80 mt-0.5">احصل على تنبيهات فورية عند وصول طلبات جديدة</p>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => setShowPushModal(true)}
+              className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 w-full sm:w-auto hover:bg-indigo-700 hover:scale-[0.98] transition-all active:scale-95"
+            >
+              <Bell size={14} /> تفعيل الآن
+            </button>
+          </motion.div>
+        )}
 
         {isPushSupported && pushDenied && (
           <motion.div
@@ -381,11 +406,18 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
                     <p className="text-slate-600 text-sm font-bold mb-6">لتصلك طلباتك الجديدة أول بأول حتى والتطبيق مغلق.</p>
                     <div className="flex flex-col gap-3">
                         <button
-                          onClick={handleModalEnable}
+                          onClick={handleEnablePush}
                           disabled={isActivatingPush}
                           className="bg-indigo-600 text-white py-3 rounded-xl font-black shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 transition-colors"
                         >
                           {isActivatingPush ? 'جاري التفعيل...' : 'تفعيل الإشعارات الآن'}
+                        </button>
+                        <button
+                          onClick={() => setShowPushModal(false)}
+                          disabled={isActivatingPush}
+                          className="text-slate-500 py-2 text-xs font-bold hover:text-slate-800 transition-colors"
+                        >
+                          ليس الآن
                         </button>
                     </div>
                 </motion.div>
