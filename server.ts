@@ -28,6 +28,33 @@ async function startServer() {
 
   // Webhook for payment gateway
   // It synchronizes payment results to the database even if the user doesn't return to the app.
+  const sendOrderPaymentFailedPushNotification = async ({ orderId, total, orderNumber = '' }: any) => {
+    if (!admin.messaging || !db) return;
+    try {
+      const snap = await db.collection("pushTokens").where("active", "==", true).get();
+      if (snap.empty) return;
+      const tokens = snap.docs.map(d => d.data().token);
+
+      const message = {
+        tokens,
+        notification: {
+          title: "فشلت عملية الدفع لطلب",
+          body: `رقم ${orderNumber || orderId} بقيمة ${String(total)}`
+        },
+        data: {
+          type: "payment_failed",
+          orderId: String(orderId),
+          orderNumber: String(orderNumber),
+          total: String(total),
+          url: `/?invoice=${orderId}`
+        }
+      };
+      await admin.messaging().sendEachForMulticast(message);
+    } catch (e) {
+      console.error("Failed notification error:", e);
+    }
+  };
+
   const handlePaymentUpdate = async (params: any) => {
     if (!db) return;
 
@@ -76,6 +103,7 @@ async function startServer() {
                         const oData = doc.data();
                         if (oData.status !== 'تم الدفع وجاري التوصيل' && oData.status !== 'paid') {
                             await doc.ref.update({ status: 'فشلت عملية الدفع', paymentStatus: 'failed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                            sendOrderPaymentFailedPushNotification({ orderId: oData.id, total: oData.total, orderNumber: oData.orderNumber }).catch(console.error);
                         }
                     }
                 }
@@ -86,6 +114,7 @@ async function startServer() {
                     const data = ordSnap.data();
                     if (data?.status !== 'تم الدفع وجاري التوصيل' && data?.status !== 'paid') {
                         await orderRef.update({ status: 'فشلت عملية الدفع', paymentStatus: 'failed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                        sendOrderPaymentFailedPushNotification({ orderId: orderId, total: data?.total, orderNumber: data?.orderNumber }).catch(console.error);
                     }
                 }
             }
