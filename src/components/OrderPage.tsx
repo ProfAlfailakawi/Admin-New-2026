@@ -550,7 +550,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  if (totalAmount > 0) {
  try {
  const customer = (data?.customers || []).find(c => c.id === targetCustomerId);
- const response = await fetch('/api/create-payment', {
+ const response = await fetch("/api/create-payment", {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
@@ -561,41 +561,46 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  customerMobile: customer?.phone || '+96500000000',
  orderId: newInvoiceId,
  description: `Invoice from Order ${order.id.slice(-6)}`,
- returnUrl: `${window.location.origin}/api/payment-return/${newInvoiceId}`,
- cancelUrl: `${window.location.origin}/api/payment-return/${newInvoiceId}`,
+ returnUrl: `https://alturathkw.shop/api/payment-return/${newInvoiceId}`,
+ cancelUrl: `https://alturathkw.shop/api/payment-return/${newInvoiceId}`,
  notificationUrl: getWebhookUrl('/api/webhook/upayments')
  })
  });
  
  const paymentData = await response.json();
- if (response.ok) {
-   createdLink = 
-     paymentData.paymentLink ||
-     paymentData.payment_url ||
-     paymentData.paymentUrl ||
-     paymentData.url ||
-     paymentData.link ||
-     paymentData.data?.paymentLink ||
-     paymentData.data?.payment_url ||
-     paymentData.data?.paymentUrl ||
-     paymentData.data?.url ||
-     paymentData.data?.link ||
-     "";
-
-   if (paymentData.data) {
-    createdPaymentId = 
-      paymentData.paymentId ||
-      paymentData.payment_id ||
-      paymentData.session_id ||
-      paymentData.data?.paymentId ||
-      paymentData.data?.payment_id ||
-      paymentData.data?.session_id ||
-      "";
-   }
+ if (response.ok && (
+ paymentData.paymentLink ||
+ paymentData.payment_url ||
+ paymentData.paymentUrl ||
+ paymentData.url ||
+ paymentData.link ||
+ paymentData.data?.paymentLink ||
+ paymentData.data?.payment_url ||
+ paymentData.data?.paymentURL ||
+ paymentData.data?.paymentUrl ||
+ paymentData.data?.url ||
+ paymentData.data?.link ||
+ typeof paymentData.data === 'string'
+ )) {
+ createdLink =
+paymentData.paymentLink ||
+paymentData.payment_url ||
+paymentData.paymentUrl ||
+paymentData.url ||
+paymentData.link ||
+paymentData.data?.paymentLink ||
+paymentData.data?.payment_url ||
+paymentData.data?.paymentURL ||
+paymentData.data?.paymentUrl ||
+paymentData.data?.url ||
+paymentData.data?.link ||
+(typeof paymentData.data === 'string' ? paymentData.data : undefined);
+ if (paymentData.data) {
+ createdPaymentId = paymentData.data.payment_id || paymentData.data.id || paymentData.data.transaction_id || paymentData.data.transactionId;
+ }
  } else {
-   console.error("Failed to generate payment link:", paymentData);
-   const errorMessage = paymentData.details ? (typeof paymentData.details === 'object' ? JSON.stringify(paymentData.details) : paymentData.details) : (paymentData.message || paymentData.error || 'غير معروف');
-   toast.error("خطأ إنشاء الرابط: " + errorMessage);
+ console.error("Failed to generate payment link:", paymentData);
+ toast.error("خطأ إنشاء الرابط: " + (paymentData.message || paymentData.error || 'غير معروف'));
  }
  } catch (e) {
  console.error("Error creating payment link:", e);
@@ -735,6 +740,25 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  paymentLink: createdLink,
  paymentId: createdPaymentId
  });
+
+ // Auto-open WhatsApp after converting app order to invoice
+ if (createdLink && createdLink.trim() !== '') {
+   const orderForWhatsApp = {
+     ...order,
+     linkedInvoiceId: newInvoice.id,
+     paymentLink: createdLink,
+     paymentId: createdPaymentId,
+     total: updatedOrderTotal,
+     totalAmount: subtotal,
+     deliveryFee: invoiceDeliveryFee,
+     isConvertedToInvoice: true
+   } as Order;
+
+   const waLink = getWhatsAppLink(orderForWhatsApp);
+   if (waLink && waLink !== '#') {
+     window.open(waLink, '_blank', 'noopener,noreferrer');
+   }
+ }
  
  toast.success("تم تحويل الطلب إلى فاتورة وتعديل المخزون بنجاح ✅");
  if (setDeepLinkData) {
@@ -1248,12 +1272,16 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  {!isReadOnly && selectedOrder.status !== 'cancelled' && (
  <div className="flex flex-col gap-2.5 md:gap-3">
  <button 
- onClick={() => {
+ onClick={async () => {
  const paymentLink = selectedOrder.linkedInvoiceId ? (data?.invoices || []).find(inv => inv.id === selectedOrder.linkedInvoiceId)?.paymentLink : (selectedOrder as any).paymentLink;
+
  if (!paymentLink || paymentLink.trim() === '') {
- toast.warning("لم يتم إنشاء رابط الدفع بعد"); return;
+   toast.info("سيتم إنشاء رابط دفع جديد ثم فتح واتساب...");
+   await convertToInvoice(selectedOrder);
+   return;
  }
- window.open(getWhatsAppLink(selectedOrder), '_blank');
+
+ window.open(getWhatsAppLink(selectedOrder), '_blank', 'noopener,noreferrer');
  }}
  className="w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-xs md:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 bg-indigo-600 text-white shadow-lg hover:bg-indigo-700"
  >
