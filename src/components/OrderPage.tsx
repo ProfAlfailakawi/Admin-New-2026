@@ -982,10 +982,18 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <div className="space-y-1.5 border-t border-slate-50 pt-2 opacity-80">
  {order.items?.slice(0, 2).map((it, idx) => {
  const p = data.products?.find(p => p.id === it.productId);
+ const prepInstructions = p?.preparationInstructions || (it as any).preparationInstructions;
  return (
- <div key={idx} className="text-[10px] font-medium text-slate-600 flex justify-between">
- <span className="truncate">{p?.name || 'منتج'}</span>
- <span className="text-indigo-600 font-black">x{it.quantity}</span>
+ <div key={idx} className="flex flex-col gap-1">
+   <div className="text-[10px] font-medium text-slate-600 flex justify-between items-center">
+     <span className="truncate">{p?.name || 'منتج'}</span>
+     <span className="text-indigo-600 font-black shrink-0">x{it.quantity}</span>
+   </div>
+   {prepInstructions && (
+     <div className="text-[8px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-100 flex items-center gap-1 w-fit">
+       <AlertCircle size={8} className="shrink-0" /> <span className="truncate max-w-[150px]">{prepInstructions}</span>
+     </div>
+   )}
  </div>
 );
  })}
@@ -993,13 +1001,21 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <div className="text-[9px] text-slate-400 hover:text-indigo-500 font-black text-center relative group cursor-pointer w-fit mx-auto transition-colors px-2 py-0.5 rounded-full hover:bg-indigo-50">
  + {order.items.length - 2} أصناف
  
- <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-white rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.12)] border border-slate-100 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-[100] flex flex-col gap-1.5">
+ <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-white rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.12)] border border-slate-100 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-[100] flex flex-col gap-1.5">
  {order.items.slice(2).map((hiddenItem, hiddenIdx) => {
  const hiddenProduct = data.products?.find(p => p.id === hiddenItem.productId);
+ const prepInstructions = hiddenProduct?.preparationInstructions || (hiddenItem as any).preparationInstructions;
  return (
- <div key={hiddenIdx} className="flex justify-between items-center text-[10px] bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
- <span className="font-bold text-slate-700 truncate text-right max-w-[100px]">{hiddenProduct?.name || 'منتج غير معروف'}</span>
- <span className="text-indigo-600 font-black shrink-0" dir="ltr">x{hiddenItem.quantity}</span>
+ <div key={hiddenIdx} className="flex flex-col gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+   <div className="flex justify-between items-center text-[10px]">
+     <span className="font-bold text-slate-700 truncate text-right max-w-[120px]">{hiddenProduct?.name || 'منتج غير معروف'}</span>
+     <span className="text-indigo-600 font-black shrink-0" dir="ltr">x{hiddenItem.quantity}</span>
+   </div>
+   {prepInstructions && (
+     <div className="text-[8px] text-amber-600 flex items-center gap-1">
+       <AlertCircle size={8} className="shrink-0" /> <span className="truncate text-right">{prepInstructions}</span>
+     </div>
+   )}
  </div>
 );
  })}
@@ -1083,6 +1099,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  {selectedOrder.items.map((item, idx) => {
  const product = (data?.products || []).find(p => p.id === item.productId);
  const productName = product?.name || (item as any).name || (item as any).productName || 'منتج غير معروف';
+ const prepInstructions = product?.preparationInstructions || (item as any).preparationInstructions;
  const supplierOptions = data.products.filter(p => 
  p.isActive !== false && robustNormalize(p.name) === robustNormalize(productName)
 );
@@ -1093,18 +1110,26 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <tr key={idx} className="border-t border-slate-50 hover:bg-slate-50/50 transition-colors">
  <td className="p-3 md:p-4">
  <div className="flex flex-col gap-1 md:gap-2">
- <div className="font-black text-slate-800 flex items-center gap-1.5 text-[11px] md:text-sm">
- {productName}
- {needsSelection && (
- <motion.span 
+ <div className="font-black text-slate-800 flex flex-col items-start gap-1.5 text-[11px] md:text-sm">
+                                            <div className="flex items-center gap-1.5">
+                                              {productName}
+                                              {needsSelection && (
+                                                <motion.span 
  animate={{ scale: [1, 1.1, 1], rotate: [0, -2, 2, 0] }}
  transition={{ duration: 0.5, repeat: Infinity }}
  className="text-[7px] md:text-[9px] font-black px-2 md:px-3 py-1 rounded-full bg-rose-500 text-white shadow-lg shadow-rose-500/30"
  >
  تحديد مورد مطلوب ⚠️
  </motion.span>
-)}
- </div>
+                                              )}
+                                            </div>
+                                            {prepInstructions && (
+                                              <span className="text-[9px] md:text-[10px] bg-amber-100/90 border border-amber-200 text-amber-800 font-black px-2 py-1 rounded-lg mt-1 w-fit flex items-center gap-1.5 shadow-sm">
+                                                <AlertCircle size={12} className="text-amber-600" />
+                                                طبيعة خاصة: {prepInstructions}
+                                              </span>
+                                            )}
+                                          </div>
  
  {supplierOptions.length > 1 && !isReadOnly && (
  <select 

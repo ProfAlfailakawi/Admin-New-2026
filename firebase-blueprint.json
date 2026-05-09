@@ -41,7 +41,8 @@
         "category": { "type": "string" },
         "supplierId": { "type": "string" },
         "lastSaleDate": { "type": "string" },
-        "stock": { "type": "number" }
+        "stock": { "type": "number" },
+        "preparationInstructions": { "type": "string" }
       },
       "required": ["id", "name", "cost", "price", "category", "supplierId"]
     },

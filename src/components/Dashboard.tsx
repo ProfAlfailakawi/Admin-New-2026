@@ -1373,49 +1373,57 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     }, [activeInvoices]);
 
     const topProducts = useMemo(() => {
-    const allTimeMap: Record<string, number> = {};
+    const soldMap: Record<string, number> = {};
     
-    const paidInvoices = (data?.invoices || []).filter(inv => {
-      if (inv.isDeleted) return false;
-      // Use status-utils compatible checks or fallback for demo data
-      const st1 = String(inv.paymentStatus || '').toLowerCase();
-      const st2 = String((inv as any).status || '').toLowerCase();
-      const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع وجاري التوصيل', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
-      
-      if (isPaid) return true;
-      if (!inv.paymentStatus && !(inv as any).status) return true; // demo data
-      return false;
-    });
+    for (const [pId, perf] of Object.entries(productPerformance)) {
+       soldMap[pId] = perf.sold || 0;
+    }
+
+    const now = new Date().getTime();
+    const MS_PER_DAY = 86400000;
+    const thresholds: Record<string, number> = {
+      day: MS_PER_DAY,
+      week: 7 * MS_PER_DAY,
+      month: 30 * MS_PER_DAY,
+      year: 365 * MS_PER_DAY,
+    };
+    const threshold = thresholds[dateFilter];
 
     const completedOrders = (data?.orders || []).filter(o => {
       if (o.isConvertedToInvoice) return false;
       const st1 = String((o as any).paymentStatus || '').toLowerCase();
       const st2 = String(o.status || '').toLowerCase();
       const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع وجاري التوصيل', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
-      return isPaid;
+      if (!isPaid) return false;
+      
+      if (threshold) {
+         const getTimestamp = (obj: any) => {
+           if (obj.createdAt && typeof obj.createdAt === 'object' && obj.createdAt.seconds) return obj.createdAt.seconds * 1000;
+           if (obj.date) return new Date(obj.date).getTime();
+           if (obj.createdAt) return new Date(obj.createdAt).getTime();
+           return 0;
+         };
+         const t = getTimestamp(o);
+         if (t === 0 || (now - t > threshold)) return false;
+      }
+      return true;
     });
-    
-    paidInvoices.forEach(inv => {
-      (inv.items || []).forEach(item => {
-        allTimeMap[item.productId] = (allTimeMap[item.productId] || 0) + (item.quantity || 0);
-      });
-    });
-    
+
     completedOrders.forEach(o => {
       (o.items || []).forEach(item => {
-        allTimeMap[item.productId] = (allTimeMap[item.productId] || 0) + (item.quantity || 0);
+        soldMap[item.productId] = (soldMap[item.productId] || 0) + (Number(item.quantity) || 0);
       });
     });
 
     return (data?.products || [])
       .map(p => ({
         ...p,
-        sold: allTimeMap[p.id] || 0
+        sold: soldMap[p.id] || 0
       }))
       .filter(p => p.sold > 0 && p.isActive !== false)
       .sort((a,b) => b.sold - a.sold)
       .slice(0, 5);
-  }, [data?.products, data?.invoices, data?.orders]);
+  }, [data?.products, data?.orders, productPerformance, dateFilter]);
 
     const profitableProducts = useMemo(() => {
       return (data?.products || [])
@@ -1460,10 +1468,46 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     }, [data?.customers]);
 
     const recentOrders = useMemo(() => {
-      return (data?.orders || [])
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      const allOrders = (data?.orders || []).map(o => ({ ...o, _type: 'order' as const }));
+      const linkedInvoiceIds = new Set(allOrders.map(o => o.linkedInvoiceId).filter(Boolean));
+      
+      const allInvoices = (data?.invoices || [])
+        .filter(i => !i.isDeleted && !linkedInvoiceIds.has(i.id))
+        .map(i => ({ ...i, _type: 'invoice' as const }));
+      
+      const combined = [...allOrders, ...allInvoices];
+      
+      const getTimestamp = (obj: any) => {
+        if (obj.createdAt && typeof obj.createdAt === 'object' && obj.createdAt.seconds) return obj.createdAt.seconds * 1000;
+        if (obj.updatedAt && typeof obj.updatedAt === 'object' && obj.updatedAt.seconds) return obj.updatedAt.seconds * 1000;
+        if (obj.timestamp && typeof obj.timestamp === 'object' && obj.timestamp.seconds) return obj.timestamp.seconds * 1000;
+        if (obj.createdAt) {
+          const t = new Date(obj.createdAt).getTime();
+          if (!isNaN(t)) return t;
+        }
+        if (obj.updatedAt) {
+          const t = new Date(obj.updatedAt).getTime();
+          if (!isNaN(t)) return t;
+        }
+        if (obj.invoiceDate) {
+          const t = new Date(obj.invoiceDate).getTime();
+          if (!isNaN(t)) return t;
+        }
+        if (obj.orderDate) {
+          const t = new Date(obj.orderDate).getTime();
+          if (!isNaN(t)) return t;
+        }
+        if (obj.date) {
+          const t = new Date(obj.date).getTime();
+          if (!isNaN(t)) return t;
+        }
+        return 0;
+      };
+
+      return combined
+        .sort((a, b) => getTimestamp(b) - getTimestamp(a))
         .slice(0, 10);
-    }, [data?.orders]);
+    }, [data?.orders, data?.invoices]);
 
     const getOrderSubtotal = (order: any) => {
       const amount =
@@ -4349,10 +4393,10 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                     </div>
                                     <div className="text-right">
                                       <div className="font-black text-sm text-slate-800 group-hover:text-amber-900 transition-colors truncate max-w-[120px]">
-                                        {customer?.name ||
+                                        {customer?.name || (inv as any).customerName ||
                                           (inv.customerId
                                             ? `عميل غير مسجل #${inv.customerId.slice(-4)}`
-                                            : "عميل مفقود")}
+                                            : "طلب جديد")}
                                       </div>
                                       <div className="flex flex-col items-end gap-1 mt-1">
                                         <div className="flex items-center gap-2 flex-row-reverse">

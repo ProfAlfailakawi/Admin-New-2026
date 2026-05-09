@@ -63,6 +63,7 @@ export interface Product {
   description?: string;
   calories?: number;
   stock?: number;
+  preparationInstructions?: string;
 }
 
 export interface Order {

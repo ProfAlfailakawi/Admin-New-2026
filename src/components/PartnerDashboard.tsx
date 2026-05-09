@@ -276,49 +276,57 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
  }, [activeInvoices, data?.expenses, data?.products]);
 
  const topProducts = useMemo(() => {
-    const allTimeMap: Record<string, number> = {};
+    const soldMap: Record<string, number> = {};
     
-    const paidInvoices = (data?.invoices || []).filter(inv => {
-      if (inv.isDeleted) return false;
-      // Use status-utils compatible checks or fallback for demo data
-      const st1 = String(inv.paymentStatus || '').toLowerCase();
-      const st2 = String((inv as any).status || '').toLowerCase();
-      const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع وجاري التوصيل', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
-      
-      if (isPaid) return true;
-      if (!inv.paymentStatus && !(inv as any).status) return true; // demo data
-      return false;
-    });
+    for (const [pId, perf] of Object.entries(productPerformance as Record<string, {sold: number}>)) {
+       soldMap[pId] = perf.sold || 0;
+    }
+
+    const now = new Date().getTime();
+    const MS_PER_DAY = 86400000;
+    const thresholds: Record<string, number> = {
+      day: MS_PER_DAY,
+      week: 7 * MS_PER_DAY,
+      month: 30 * MS_PER_DAY,
+      year: 365 * MS_PER_DAY,
+    };
+    const threshold = thresholds[filter];
 
     const completedOrders = (data?.orders || []).filter(o => {
       if (o.isConvertedToInvoice) return false;
       const st1 = String((o as any).paymentStatus || '').toLowerCase();
       const st2 = String(o.status || '').toLowerCase();
       const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع وجاري التوصيل', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
-      return isPaid;
+      if (!isPaid) return false;
+      
+      if (threshold) {
+         const getTimestamp = (obj: any) => {
+           if (obj.createdAt && typeof obj.createdAt === 'object' && obj.createdAt.seconds) return obj.createdAt.seconds * 1000;
+           if (obj.date) return new Date(obj.date).getTime();
+           if (obj.createdAt) return new Date(obj.createdAt).getTime();
+           return 0;
+         };
+         const t = getTimestamp(o);
+         if (t === 0 || (now - t > threshold)) return false;
+      }
+      return true;
     });
-    
-    paidInvoices.forEach(inv => {
-      (inv.items || []).forEach(item => {
-        allTimeMap[item.productId] = (allTimeMap[item.productId] || 0) + (item.quantity || 0);
-      });
-    });
-    
+
     completedOrders.forEach(o => {
       (o.items || []).forEach(item => {
-        allTimeMap[item.productId] = (allTimeMap[item.productId] || 0) + (item.quantity || 0);
+        soldMap[item.productId] = (soldMap[item.productId] || 0) + (Number(item.quantity) || 0);
       });
     });
 
     return (data?.products || [])
       .map(p => ({
         ...p,
-        sold: allTimeMap[p.id] || 0
+        sold: soldMap[p.id] || 0
       }))
       .filter(p => p.sold > 0 && p.isActive !== false)
       .sort((a,b) => b.sold - a.sold)
       .slice(0, 5);
-  }, [data?.products, data?.invoices, data?.orders]);
+  }, [data?.products, data?.orders, productPerformance, filter]);
 
  const pendingOrdersCount = (data.orders || []).filter(o => o.status === 'pending').length;
  const totalOrdersCount = data.orders?.length || 0;
