@@ -1041,9 +1041,21 @@ const App: React.FC = () => {
             if (newOrders.length > 0) {
                const newlyCreatedOrders = newOrders.filter((no: any) => !prevOrders.some((po: any) => po.id === no.id));
                if (newlyCreatedOrders.length > 0) {
-                  if (hasLoadedDataRef.current && isSoundEnabled) {
-                     playNewOrderAlert();
-                     setTimeout(playNewOrderAlert, 2000);
+                  if (hasLoadedDataRef.current) {
+                     newlyCreatedOrders.forEach((order: any) => {
+                        fetch('/api/push/order-created-alert', {
+                           method: 'POST',
+                           headers: { 'Content-Type': 'application/json' },
+                           body: JSON.stringify({ orderId: order.id }),
+                        }).catch((error) => {
+                           console.error('Failed to send order-created push alert:', error);
+                        });
+                     });
+
+                     if (isSoundEnabled) {
+                        playNewOrderAlert();
+                        setTimeout(playNewOrderAlert, 2000);
+                     }
                   }
                }
             }

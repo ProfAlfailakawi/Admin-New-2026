@@ -20,7 +20,7 @@ try {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(cors());
   app.use(express.json());
@@ -28,43 +28,43 @@ async function startServer() {
 
   // Webhook for payment gateway
   // It synchronizes payment results to the database even if the user doesn't return to the app.
-  const sendOrderPaymentFailedPushNotification = async ({ orderId, total, orderNumber = '' }: any) => {
-    if (!admin.messaging || !db) return;
-    try {
-      const snap = await db.collection("pushTokens").where("active", "==", true).get();
-      if (snap.empty) return;
-      const tokens = snap.docs.map(d => d.data().token);
-
-      const message = {
-        tokens,
-        notification: {
-          title: "فشلت عملية الدفع لطلب",
-          body: `رقم ${orderNumber || orderId} بقيمة ${String(total)}`
-        },
-        data: {
-          type: "payment_failed",
-          orderId: String(orderId),
-          orderNumber: String(orderNumber),
-          total: String(total),
-          url: `/?invoice=${orderId}`
-        }
-      };
-      await admin.messaging().sendEachForMulticast(message);
-    } catch (e) {
-      console.error("Failed notification error:", e);
-    }
-  };
-
   const handlePaymentUpdate = async (params: any) => {
     if (!db) return;
 
-    const result = params.result || params.status || params.payment;
-    const paymentId = params.payment_id || params.track_id;
-    const orderId = params.track_id || params.order_id || params.reference?.id || params.reference_id;
-    
-    if (!orderId) return;
+    const rawResult = String(params.result || params.status || params.payment || "").replace(/\+/g, " ").trim();
+    const normalizedResult = rawResult.toUpperCase();
 
-    const isPaid = (result === 'CAPTURED' || result === 'SUCCESS' || result === 'success');
+    const paymentId = params.payment_id || params.track_id || params.tran_id || "";
+
+    const orderId =
+      params.invoiceNo ||
+      params.invoice_no ||
+      params.invoice ||
+      params.orderId ||
+      params.order_id ||
+      params.requested_order_id ||
+      params.merchant_order_id ||
+      params.reference?.id ||
+      params.reference_id ||
+      params.track_id;
+
+    if (!orderId) {
+      console.warn("Payment update ignored: missing orderId/invoiceNo", params);
+      return;
+    }
+
+    const isPaid =
+      normalizedResult === "CAPTURED" ||
+      normalizedResult === "SUCCESS" ||
+      normalizedResult === "PAID";
+
+    const isFailed =
+      normalizedResult === "NOT CAPTURED" ||
+      normalizedResult === "FAILED" ||
+      normalizedResult === "CANCELLED" ||
+      normalizedResult === "CANCELED" ||
+      normalizedResult === "DECLINED" ||
+      normalizedResult === "ERROR";
     
     try {
         if (isPaid) {
@@ -91,7 +91,7 @@ async function startServer() {
                     }
                 }
             }
-        } else if (result === 'NOT CAPTURED' || result === 'FAILED' || result === 'failed' || result === 'CANCELLED' || result === 'cancelled') {
+        } else if (isFailed) {
             const invoiceRef = db.collection('invoices').doc(orderId);
             const invSnap = await invoiceRef.get();
             if (invSnap.exists) {
@@ -103,9 +103,15 @@ async function startServer() {
                         const oData = doc.data();
                         if (oData.status !== 'تم الدفع وجاري التوصيل' && oData.status !== 'paid') {
                             await doc.ref.update({ status: 'فشلت عملية الدفع', paymentStatus: 'failed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-                            sendOrderPaymentFailedPushNotification({ orderId: oData.id, total: oData.total, orderNumber: oData.orderNumber }).catch(console.error);
                         }
                     }
+
+                    sendSmartAlertPushNotification({
+                      title: "❌ فشل دفع فاتورة",
+                      body: `الفاتورة ${orderId} فشل دفعها — راجعوا الطلب وأعيدوا إرسال الرابط عند الحاجة`,
+                      alertType: "payment_failed",
+                      url: `/?invoice=${orderId}`
+                    }).catch(console.error);
                 }
             } else {
                 const orderRef = db.collection('orders').doc(orderId);
@@ -114,7 +120,13 @@ async function startServer() {
                     const data = ordSnap.data();
                     if (data?.status !== 'تم الدفع وجاري التوصيل' && data?.status !== 'paid') {
                         await orderRef.update({ status: 'فشلت عملية الدفع', paymentStatus: 'failed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-                        sendOrderPaymentFailedPushNotification({ orderId: orderId, total: data?.total, orderNumber: data?.orderNumber }).catch(console.error);
+
+                        sendSmartAlertPushNotification({
+                          title: "❌ فشل دفع طلب",
+                          body: `الطلب ${orderId} فشل دفعه — يحتاج متابعة`,
+                          alertType: "payment_failed",
+                          url: `/?invoice=${orderId}`
+                        }).catch(console.error);
                     }
                 }
             }
@@ -306,6 +318,435 @@ async function startServer() {
     }
   });
 
+
+  app.post("/api/push/order-created-alert", async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({
+          success: false,
+          message: "Firestore is not initialized",
+        });
+      }
+
+      const { orderId } = req.body || {};
+
+      if (!orderId || typeof orderId !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: "orderId is required",
+        });
+      }
+
+      let orderSnap: any = await db.collection("orders").doc(orderId).get();
+      let resolvedOrderId = orderId;
+
+      if (!orderSnap.exists) {
+        const searchableFields = [
+          "orderNumber",
+          "orderId",
+          "id",
+          "invoiceNo",
+          "invoiceNumber",
+          "linkedInvoiceId"
+        ];
+
+        for (const field of searchableFields) {
+          const querySnap = await db
+            .collection("orders")
+            .where(field, "==", orderId)
+            .limit(1)
+            .get();
+
+          if (!querySnap.empty) {
+            orderSnap = querySnap.docs[0];
+            resolvedOrderId = orderSnap.id;
+            break;
+          }
+        }
+      }
+
+      let order: any = null;
+
+      if (orderSnap.exists) {
+        order = orderSnap.data() || {};
+      } else {
+        // Fallback: some app orders are stored inside appData/shared_company_data arrays
+        const appDataSnap = await db.collection("appData").doc("shared_company_data").get();
+
+        if (appDataSnap.exists) {
+          const appData = appDataSnap.data() || {};
+
+          for (const [key, value] of Object.entries(appData)) {
+            if (!Array.isArray(value)) continue;
+
+            const found = value.find((item: any) => {
+              if (!item || typeof item !== "object") return false;
+
+              return (
+                item.id === orderId ||
+                item.orderId === orderId ||
+                item.orderNumber === orderId ||
+                item.invoiceNo === orderId ||
+                item.invoiceNumber === orderId ||
+                item.linkedInvoiceId === orderId
+              );
+            });
+
+            if (found) {
+              order = found;
+              resolvedOrderId = found.id || found.orderId || found.orderNumber || orderId;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found",
+          searchedFor: orderId,
+        });
+      }
+      const paymentStatus = String(order.paymentStatus || "").toLowerCase();
+      const status = String(order.status || "");
+
+      const isAlreadyPaid =
+        paymentStatus === "paid" ||
+        paymentStatus === "captured" ||
+        status.includes("تم الدفع");
+
+      if (isAlreadyPaid) {
+        return res.json({
+          success: true,
+          skipped: true,
+          reason: "Order is already paid",
+        });
+      }
+
+      const eventId = `order-created-${resolvedOrderId}`;
+      const eventRef = db.collection("pushEvents").doc(eventId);
+      const eventSnap = await eventRef.get();
+
+      if (eventSnap.exists) {
+        return res.json({
+          success: true,
+          skipped: true,
+          reason: "Notification already sent",
+        });
+      }
+
+      const orderNumber =
+        order.orderNumber ||
+        order.invoiceNo ||
+        order.invoiceNumber ||
+        orderId;
+
+      const total =
+        order.total ||
+        order.totalAmount ||
+        order.finalTotal ||
+        order.amount ||
+        "";
+
+      const result = await sendSmartAlertPushNotification({
+        title: "🚨 طلب جديد بانتظار الدفع",
+        body: `طلب ${orderNumber} وصل الآن بانتظار الدفع${total ? ` — القيمة ${total} د.ك` : ""} ⏳`,
+        alertType: "new_order_pending_payment",
+        url: `/?order=${encodeURIComponent(resolvedOrderId)}`
+      });
+
+      await eventRef.set({
+        orderId,
+        type: "order_created_pending_payment",
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        result,
+      });
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error("order-created-alert error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  });
+
+
+  app.post("/api/push/run-business-alerts", async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({
+          success: false,
+          message: "Firestore is not initialized",
+        });
+      }
+
+      const now = new Date();
+      const todayKey = now.toISOString().slice(0, 10);
+      const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+      const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+
+      const dayStart = new Date(now);
+      dayStart.setHours(0, 0, 0, 0);
+
+      const dayEnd = new Date(now);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const results: any[] = [];
+
+      async function alreadySent(eventId: string) {
+        const snap = await db!.collection("pushEvents").doc(eventId).get();
+        return snap.exists;
+      }
+
+      async function markSent(eventId: string, payload: any, result: any) {
+        await db!.collection("pushEvents").doc(eventId).set({
+          ...payload,
+          result,
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+
+      function getDateValue(value: any): Date | null {
+        if (!value) return null;
+        if (value.toDate) return value.toDate();
+        if (value instanceof Date) return value;
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      function getOrderNumber(order: any, fallback: string) {
+        return order.orderNumber || order.invoiceNo || order.invoiceNumber || order.orderId || fallback;
+      }
+
+      function getTotal(order: any) {
+        const raw = order.total || order.totalAmount || order.finalTotal || order.amount || 0;
+        const n = Number(raw);
+        return isNaN(n) ? 0 : n;
+      }
+
+      function isPaidOrder(order: any) {
+        const paymentStatus = String(order.paymentStatus || "").toLowerCase();
+        const status = String(order.status || "");
+        return (
+          paymentStatus === "paid" ||
+          paymentStatus === "captured" ||
+          paymentStatus === "success" ||
+          status.includes("تم الدفع") ||
+          status.toLowerCase().includes("paid")
+        );
+      }
+
+      function isPendingPayment(order: any) {
+        const paymentStatus = String(order.paymentStatus || "").toLowerCase();
+        const status = String(order.status || "").toLowerCase();
+
+        if (isPaidOrder(order)) return false;
+
+        return (
+          paymentStatus === "" ||
+          paymentStatus === "pending" ||
+          paymentStatus === "unpaid" ||
+          paymentStatus === "not_paid" ||
+          status.includes("بانتظار") ||
+          status.includes("pending") ||
+          status.includes("لم يدفع")
+        );
+      }
+
+      // Fetch recent orders once.
+      const ordersSnap = await db.collection("orders").limit(500).get();
+
+      const orders = ordersSnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // 1) طلب لم يدفع بعد 10 دقائق
+      for (const order of orders) {
+        const createdAt =
+          getDateValue((order as any).createdAt) ||
+          getDateValue((order as any).orderDate) ||
+          getDateValue((order as any).timestamp) ||
+          getDateValue((order as any).created_at);
+
+        if (!createdAt) continue;
+        if (createdAt > tenMinutesAgo) continue;
+        if (!isPendingPayment(order)) continue;
+
+        const eventId = `payment-pending-10min-${(order as any).id}`;
+
+        if (await alreadySent(eventId)) {
+          continue;
+        }
+
+        const orderNumber = getOrderNumber(order, (order as any).id);
+        const total = getTotal(order);
+
+        const result = await sendSmartAlertPushNotification({
+          title: "⏳ طلب لم يُدفع بعد",
+          body: `الطلب ${orderNumber} صار له 10 دقائق بدون دفع${total ? ` — القيمة ${total.toFixed(3)} د.ك` : ""}`,
+          alertType: "payment_pending_10min",
+          url: `/?order=${encodeURIComponent((order as any).id)}`
+        });
+
+        await markSent(eventId, {
+          type: "payment_pending_10min",
+          orderId: (order as any).id,
+          orderNumber,
+        }, result);
+
+        results.push({ eventId, result });
+      }
+
+      // حساب طلبات ومبيعات اليوم
+      const todayOrders = orders.filter((order: any) => {
+        const d =
+          getDateValue(order.createdAt) ||
+          getDateValue(order.orderDate) ||
+          getDateValue(order.timestamp) ||
+          getDateValue(order.created_at);
+
+        return d && d >= dayStart && d <= dayEnd;
+      });
+
+      const paidTodayOrders = todayOrders.filter((order: any) => isPaidOrder(order));
+      const todaySales = paidTodayOrders.reduce((sum: number, order: any) => sum + getTotal(order), 0);
+
+      // محاولة صافي الربح: إن توفر profit/netProfit نستخدمه، وإلا 0
+      const todayNetProfit = paidTodayOrders.reduce((sum: number, order: any) => {
+        const raw =
+          order.netProfit ??
+          order.profit ??
+          order.totalProfit ??
+          order.grossProfit ??
+          0;
+
+        const n = Number(raw);
+        return sum + (isNaN(n) ? 0 : n);
+      }, 0);
+
+      // 2) ملخص اليوم الساعة 11 مساءً
+      // حتى لا يرسل قبل 11:00 مساءً
+      if (now.getHours() >= 23) {
+        const eventId = `daily-summary-${todayKey}`;
+
+        if (!(await alreadySent(eventId))) {
+          const result = await sendSmartAlertPushNotification({
+            title: "🌙 ملخص اليوم — مطبخ التراث",
+            body: `الطلبات: ${todayOrders.length} ✅ | المبيعات: ${todaySales.toFixed(3)} د.ك | الربح: ${todayNetProfit.toFixed(3)} د.ك — يعطيكم العافية يا أبطال 🔥`,
+            alertType: "daily_summary",
+            url: "/"
+          });
+
+          await markSent(eventId, {
+            type: "daily_summary",
+            date: todayKey,
+            ordersCount: todayOrders.length,
+            sales: todaySales,
+            netProfit: todayNetProfit,
+          }, result);
+
+          results.push({ eventId, result });
+        }
+      }
+
+      // 3) المبيعات اليوم أعلى من 200 د.ك
+      if (todaySales >= 200) {
+        const eventId = `sales-over-200-${todayKey}`;
+
+        if (!(await alreadySent(eventId))) {
+          const result = await sendSmartAlertPushNotification({
+            title: "🔥 المبيعات كسرت 200 د.ك",
+            body: `وصلنا ${todaySales.toFixed(3)} د.ك اليوم — شدوا حيلكم يا شباب 🔥`,
+            alertType: "sales_over_200",
+            url: "/"
+          });
+
+          await markSent(eventId, {
+            type: "sales_over_200",
+            date: todayKey,
+            sales: todaySales,
+          }, result);
+
+          results.push({ eventId, result });
+        }
+      }
+
+      // 4) عدد الطلبات زاد فجأة خلال ساعة
+      const lastHourOrders = orders.filter((order: any) => {
+        const d =
+          getDateValue(order.createdAt) ||
+          getDateValue(order.orderDate) ||
+          getDateValue(order.timestamp) ||
+          getDateValue(order.created_at);
+
+        return d && d >= oneHourAgo && d <= now;
+      });
+
+      const previousHourOrders = orders.filter((order: any) => {
+        const d =
+          getDateValue(order.createdAt) ||
+          getDateValue(order.orderDate) ||
+          getDateValue(order.timestamp) ||
+          getDateValue(order.created_at);
+
+        return d && d >= twoHoursAgo && d < oneHourAgo;
+      });
+
+      const lastHourCount = lastHourOrders.length;
+      const previousHourCount = previousHourOrders.length;
+
+      const suddenSpike =
+        lastHourCount >= 5 &&
+        (
+          previousHourCount === 0 ||
+          lastHourCount >= previousHourCount * 2
+        );
+
+      if (suddenSpike) {
+        const hourKey = now.toISOString().slice(0, 13);
+        const eventId = `order-spike-${hourKey}`;
+
+        if (!(await alreadySent(eventId))) {
+          const result = await sendSmartAlertPushNotification({
+            title: "⚡ ضغط طلبات عالي",
+            body: `آخر ساعة فيها ${lastHourCount} طلب — جهزوا المطبخ يا أبطال ⚡`,
+            alertType: "order_spike",
+            url: "/"
+          });
+
+          await markSent(eventId, {
+            type: "order_spike",
+            hour: hourKey,
+            lastHourCount,
+            previousHourCount,
+          }, result);
+
+          results.push({ eventId, result });
+        }
+      }
+
+      return res.json({
+        success: true,
+        checkedAt: now.toISOString(),
+        resultsCount: results.length,
+        results,
+      });
+    } catch (error: any) {
+      console.error("run-business-alerts error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  });
+
   app.post("/api/push/save-token", async (req, res) => {
     try {
       const { token, userId, restaurantId, platform, userAgent, vendor, language, standalone, notificationPermission, serviceWorkerController, currentUrl, screen, savedAtClient } = req.body;
@@ -321,8 +762,8 @@ async function startServer() {
       const isProbablyPwa = !!standalone;
       const deviceType = isIPhone ? "iphone" : (isIOS ? "ios" : "other");
       
-      const crypto = require('crypto');
-      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const { createHash } = await import("crypto");
+      const tokenHash = createHash("sha256").update(token).digest("hex");
 
       if (db) {
         const tokenRef = db.collection("pushTokens").doc(token);
@@ -385,8 +826,8 @@ async function startServer() {
           title: "اختبار طلب جديد",
           body: "هذا اختبار إشعار بالخلفية"
         } : {
-          title: "طلب جديد وصل",
-          body: `طلب ${orderNumber ? `رقم ${orderNumber} ` : ''}بقيمة ${String(total)}`,
+          title: "✅ طلب مدفوع جديد",
+          body: `تم دفع الطلب ${orderNumber || orderId} — القيمة ${String(total)} د.ك. جهزوا الطلب يا أبطال 🔥`,
         },
         webpush: {
           headers: {
