@@ -1,4 +1,4 @@
-# Latest Admin Push Fixes
+# Latest Admin Push Fixes + rawStatus fix
 
 ## المسارات داخل ZIP
 
@@ -6,6 +6,7 @@
 public/firebase-messaging-sw.js
 scripts/apply-latest-admin-push-fixes.js
 README_UPLOAD.md
+FILE_TREE.txt
 ```
 
 ## طريقة التطبيق
@@ -19,7 +20,13 @@ node scripts/apply-latest-admin-push-fixes.js
 بعدها تحقق:
 
 ```bash
-grep -n "order-created-\|payment-failed-\|payment-paid-\|فشل في عملية الدفع\|paidStatusText" server.ts
+grep -n "rawStatus\|statusText\|order-created-\|payment-failed-\|payment-paid-\|paidStatusText" server.ts
+```
+
+المهم: لا يظهر `rawStatus` كمتغير مستخدم داخل `markSent`. يجب أن يكون:
+
+```text
+status: statusText
 ```
 
 ثم ارفع/انشر:
