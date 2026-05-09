@@ -81,51 +81,38 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const [isZenMode, setIsZenMode] = useState(false);
 
  const getWhatsAppLink = (invoice: Invoice) => {
-  const customer = (data?.customers || []).find(c => c.id === invoice.customerId);
-  const order = (data?.orders || []).find(o => o.linkedInvoiceId === invoice.id || o.id === (invoice as any).linkedOrderId);
-  
-  // Get phone and clean it: remove non-nums, handle 8 digits prefix
-  let phone = customer?.phone || (order as any)?.customerPhone || (invoice as any).customerPhone || (invoice as any).phone || '';
-  let cleanPhone = phone.replace(/[^0-9]/g, '');
-  if (cleanPhone.length === 8) {
-    cleanPhone = '965' + cleanPhone;
-  }
+ const customer = (data?.customers || []).find(c => c.id === invoice.customerId);
+ const order = (data?.orders || []).find(o => o.linkedInvoiceId === invoice.id || o.id === (invoice as any).linkedOrderId);
+ const phone = customer?.phone || (order as any)?.customerPhone || '';
+ 
+ console.log("Debug getWhatsAppLink: invoice =", invoice,"customerPhone =", phone);
+ 
+ // Safety check as requested
+ if (!phone) {
+ console.error("WhatsApp Link Error: No phone number found for invoice", invoice.id);
+ return '#';
+ }
 
-  // Safety check
-  if (!cleanPhone) {
-    console.error("WhatsApp Link Error: No phone number found for invoice", invoice.id);
-    return '#';
-  }
+ const items = (invoice?.items || []).map(item => {
+ const p = (data?.products || []).find(prod => prod.id === item.productId);
+ const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (p?.price || 0));
+ return `- ${p?.name || 'منتج غير معروف'} (${item.quantity || 1} × ${Number(price).toFixed(3)})`;
+ }).join('\n');
 
-  const items = (invoice?.items || []).map(item => {
-    const p = (data?.products || []).find(prod => prod.id === item.productId);
-    const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (p?.price || 0));
-    return `- ${p?.name || 'منتج غير معروف'} (${item.quantity || 1} × ${Number(price).toFixed(3)})`;
-  }).join('\n');
+ const subtotal = (invoice?.items || []).reduce((acc, item) => {
+ const p = (data?.products || []).find(prod => prod.id === item.productId);
+ const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (p?.price || 0));
+ return acc + (price * (item.quantity || 1));
+ }, 0);
+ 
+ const total = Math.max(0, subtotal + (Number(invoice.deliveryFee) || 0) - (Number(invoice.discount) || 0));
+ const paymentLinkLine = (invoice.paymentLink && invoice.paymentLink.trim() !== '') ? `\nرابط الدفع: ${invoice.paymentLink}` : '';
 
-  const subtotal = (invoice?.items || []).reduce((acc, item) => {
-    const p = (data?.products || []).find(prod => prod.id === item.productId);
-    const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (p?.price || 0));
-    return acc + (price * (item.quantity || 1));
-  }, 0);
-  
-  const total = invoice.totalAmount || Math.max(0, subtotal + (Number(invoice.deliveryFee) || 0) - (Number(invoice.discount) || 0));
-  const paymentLink = invoice.paymentLink;
-  
-  const titleLine = `*فاتورة من شركة مطبخ التراث الكويتي*`;
-  const headerLine = `رقم الفاتورة: ${invoice.id}`;
-  const footerLine = `إجمالي الفاتورة: ${Number(total).toFixed(3)} د.ك`;
-  const paymentLinkLine = (paymentLink && paymentLink.trim() !== '') ? `\nرابط الدفع: ${paymentLink}` : '';
-  
-  const promoCodeName = invoice.appliedPromoCodeName;
-  const discount = Number(invoice.discount) || 0;
-  const promoLine = discount > 0 ? `*قيمة الخصم* ${promoCodeName ? `(${promoCodeName})` : ''}: ${Number(discount).toFixed(3)} د.ك\n` : '';
-
-  const addressLine = (invoice.address && invoice.address !== 'غير محدد') ? `\nالعنوان: ${typeof invoice.address === 'object' ? [`${invoice.address.region||''}`, `ق${invoice.address.block||''}`, `ش${invoice.address.street||''}`, `م${invoice.address.building||''}`].filter(Boolean).join(' ') : invoice.address}` : invoice.deliveryInfo?.zoneName ? `\nالعنوان: ${invoice.deliveryInfo.zoneName}` : '';
-
-  const message = `${titleLine}\n\nالعميل: ${customer?.name || 'عميل'} ${addressLine}\n${headerLine}\nالطلب:\n${items}\n\nالمجموع: ${subtotal.toFixed(3)} د.ك\nرسوم التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}${footerLine}${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
-
-  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+ const promoLabel = invoice.appliedPromoCodeName ? `قيمة الخصم (${invoice.appliedPromoCodeName})` : 'قيمة الخصم';
+ const promoLine = (Number(invoice.discount) || 0) > 0 ? `*${promoLabel}*: ${Number(invoice.discount).toFixed(3)} د.ك\n` : '';
+ 
+ const message = `*فاتورة من شركة مطبخ التراث الكويتي*\n\nالعميل: ${customer?.name || 'عميل'}\nرقم الفاتورة: ${invoice.id}\nالعنوان: ${invoice.address && invoice.address !== 'غير محدد' ? (typeof invoice.address === 'object' ? [`${invoice.address.region||''}`, `ق${invoice.address.block||''}`, `ش${invoice.address.street||''}`, `م${invoice.address.building||''}`].filter(Boolean).join(' ') : invoice.address) : (invoice.deliveryInfo?.zoneName || 'غير محدد')}\nالطلب:\n${items}\n\nالمجموع: ${subtotal.toFixed(3)} د.ك\nرسوم التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}إجمالي الفاتورة: ${Number(total).toFixed(3)} د.ك${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
+ return `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
  };
 
  useEffect(() => {
@@ -581,7 +568,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
 
  if (finalInvoiceAmount > 0) {
  try {
- const response = await fetch('/api/create-payment', {
+ const response = await fetch("/api/create-payment", {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
@@ -592,42 +579,56 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  customerMobile: (data.customers || []).find(c => c.id === selectedCustomerId)?.phone || '+96500000000',
  orderId: invoiceId,
  description: `Invoice ${invoiceId}`,
- returnUrl: `${window.location.origin}/api/payment-return/${invoiceId}`,
- cancelUrl: `${window.location.origin}/api/payment-return/${invoiceId}`,
+ returnUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
+ cancelUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
  notificationUrl: getWebhookUrl('/api/webhook/upayments')
  })
  });
  
  const paymentData = await response.json();
- if (response.ok) {
-   createdLink = 
-     paymentData.paymentLink ||
-     paymentData.payment_url ||
-     paymentData.paymentUrl ||
-     paymentData.url ||
-     paymentData.link ||
-     paymentData.data?.paymentLink ||
-     paymentData.data?.payment_url ||
-     paymentData.data?.paymentUrl ||
-     paymentData.data?.url ||
-     paymentData.data?.link ||
-     "";
+ if (response.ok && (
+paymentData.paymentLink ||
+paymentData.payment_url ||
+paymentData.paymentUrl ||
+paymentData.url ||
+paymentData.link ||
+paymentData.data?.paymentLink ||
+paymentData.data?.payment_url ||
+paymentData.data?.paymentURL ||
+paymentData.data?.paymentUrl ||
+paymentData.data?.url ||
+paymentData.data?.link ||
+typeof paymentData.data === 'string'
+)) {
+createdLink =
+paymentData.paymentLink ||
+paymentData.payment_url ||
+paymentData.paymentUrl ||
+paymentData.url ||
+paymentData.link ||
+paymentData.data?.paymentLink ||
+paymentData.data?.payment_url ||
+paymentData.data?.paymentURL ||
+paymentData.data?.paymentUrl ||
+paymentData.data?.url ||
+paymentData.data?.link ||
+(typeof paymentData.data === 'string' ? paymentData.data : undefined);
 
-    createdPaymentId = 
-      paymentData.paymentId ||
-      paymentData.payment_id ||
-      paymentData.session_id ||
-      paymentData.data?.paymentId ||
-      paymentData.data?.payment_id ||
-      paymentData.data?.session_id ||
-      "";
-    if (createdLink) setPaymentLink(createdLink);
-  } else {
-    // Better error display
-    const errorMessage = paymentData.details ? (typeof paymentData.details === 'object' ? JSON.stringify(paymentData.details) : paymentData.details) : (paymentData.message || paymentData.error || 'خطأ في إنشاء الرابط');
-    console.error("Payment creation error:", paymentData);
-    toast.error("خطأ: " + errorMessage);
-  }
+createdPaymentId =
+paymentData.paymentId ||
+paymentData.payment_id ||
+paymentData.session_id ||
+paymentData.data?.paymentId ||
+paymentData.data?.payment_id ||
+paymentData.data?.id ||
+paymentData.data?.transaction_id ||
+paymentData.data?.session_id;
+
+setPaymentLink(createdLink);
+ } else {
+ const errorMessage = paymentData.details ? JSON.stringify(paymentData.details) : (paymentData.message || paymentData.error || 'خطأ في إنشاء الرابط');
+ toast.error("خطأ: " + errorMessage);
+ }
  } catch (e) {
  toast.error("خطأ في الاتصال بخادم الدفع");
  }
@@ -759,23 +760,16 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  playTing();
  toast.success('تم الحفظ بنجاح!');
  
-  // Auto-open WhatsApp link for the customer after creating invoice
-  if (!editingInvoiceId && newInvoice) {
-    const invoiceForWhatsApp = {
-      ...newInvoice,
-      paymentLink: createdLink || newInvoice.paymentLink,
-      paymentId: createdPaymentId || newInvoice.paymentId
-    };
-
-    if (!invoiceForWhatsApp.paymentLink || invoiceForWhatsApp.paymentLink.trim() === '') {
-      toast.warning("تنبيه: لم يتم إنشاء رابط الدفع بعد، سيتم إرسال الفاتورة بدون رابط");
-    }
-    
-    const waLink = getWhatsAppLink(invoiceForWhatsApp);
-    if (waLink && waLink !== '#') {
-      window.open(waLink, '_blank', 'noopener,noreferrer');
-    }
-  }
+ // Auto-open WhatsApp link for the customer
+ if (newInvoice) {
+   if (!newInvoice.paymentLink || newInvoice.paymentLink.trim() === '') {
+     toast.warning("لم يتم إنشاء رابط الدفع بعد"); return;
+   }
+   const waLink = getWhatsAppLink(newInvoice);
+   if (waLink && waLink !== '#') {
+     window.open(waLink, '_blank', 'noopener,noreferrer');
+   }
+ }
  
  if (onFinished) {
  onFinished();
