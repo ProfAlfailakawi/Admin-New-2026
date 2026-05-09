@@ -883,11 +883,37 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       <h3 className="font-black text-slate-800 text-[13px] sm:text-lg leading-[1.4] mb-0.5 sm:mb-1 line-clamp-2 min-h-[36px] sm:min-h-[50px] text-right">
                         {product.name}
                       </h3>
-                      <div className="flex items-center gap-1 sm:gap-1.5 flex-row-reverse justify-end text-slate-400 group-hover:text-primary transition-colors">
-                        <Truck size={10} className="sm:size-[12px] shrink-0" />
-                        <span className="text-[9px] sm:text-xs font-bold leading-tight">
-                          {supplier?.name || "مورد مجهول"}
-                        </span>
+                      <div className="flex flex-col gap-1 items-end">
+                        <div className="flex items-center gap-1 sm:gap-1.5 flex-row-reverse justify-end text-slate-400 group-hover:text-primary transition-colors">
+                          <Truck size={10} className="sm:size-[12px] shrink-0" />
+                          <span className="text-[9px] sm:text-xs font-bold leading-tight">
+                            {supplier?.name || "مورد مجهول"}
+                          </span>
+                        </div>
+                        {(() => {
+                           const bestPrice = getBestPriceInfo(product);
+                           if (bestPrice) {
+                             return (
+                               <div 
+                                  className="relative group/badge outline-none"
+                                  tabIndex={0}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                  }}
+                                >
+                                  <div className="bg-rose-50 border border-rose-100 text-rose-600 p-1.5 rounded-full cursor-pointer shadow-sm">
+                                    <AlertCircle size={14} className="shrink-0 animate-pulse" />
+                                  </div>
+                                  <div className="absolute bottom-full mb-2 right-1/2 translate-x-[75%] sm:translate-x-[60%] hidden group-hover/badge:flex group-focus/badge:flex focus-within:flex flex-col bg-white text-slate-700 text-[9px] sm:text-[10px] w-[110px] sm:w-[130px] p-2 rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-black border border-slate-200 pointer-events-none items-center gap-1.5 text-center">
+                                    <span className="bg-rose-50 text-rose-600 px-2 py-1.5 rounded-lg leading-relaxed w-full break-words whitespace-normal">{bestPrice.supplier}</span>
+                                    <span className="w-full">يبيعه أرخص</span>
+                                    <span className="text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg leading-none w-full">{Number(bestPrice.cost || 0).toFixed(3)} د.ك</span>
+                                  </div>
+                                </div>
+                             );
+                           }
+                           return null;
+                        })()}
                       </div>
                     </div>
 

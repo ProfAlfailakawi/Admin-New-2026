@@ -1741,11 +1741,31 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
     const getContextualGreeting = () => {
       const hour = new Date().getHours();
+      
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      yesterday.setHours(0, 0, 0, 0);
+      const yesterdayEnd = new Date(yesterday);
+      yesterdayEnd.setHours(23, 59, 59, 999);
+      
+      const yesterdayInvoices = activeInvoices.filter(inv => {
+        const d = new Date(inv.date).getTime();
+        return d >= yesterday.getTime() && d <= yesterdayEnd.getTime();
+      });
+      const yesterdaySales = yesterdayInvoices.reduce((acc, inv) => acc + (inv.totalAmount || 0) + (inv.deliveryFee || 0), 0);
+
       if (hour >= 5 && hour < 12) {
-        return {
-          title: "صباح الخير، يوم جديد.. خلنا نشوف مبيعاتنا وننطلق! ☀️",
-          sub: "المحرك الذهبي يعمل بكامل طاقته لبدء اليوم",
-        };
+        if (yesterdaySales > 0) {
+          return {
+            title: `صباح الخير، مبيعات أمس بلغت ${yesterdaySales.toFixed(3)} د.ك ☀️`,
+            sub: "بداية يوم موفق. كل تفاصيل الإيرادات جاهزة.",
+          };
+        } else {
+          return {
+            title: "صباح الخير، يوم جديد وفرص جديدة ☀️",
+            sub: "بانتظار وصول أول طلبات اليوم. بالتوفيق!",
+          };
+        }
       } else if (hour >= 12 && hour < 17) {
         return {
           title: "مرحباً، وقت الغداء والتركيز! 🍽️",
