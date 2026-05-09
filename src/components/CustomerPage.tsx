@@ -281,14 +281,8 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
   <UserPlus size={20} />
   <span>إضافة عميل جديد</span>
   </button>
-  <button 
-  onClick={() => setShowTestimonials(true)}
-  className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98]"
-  title="إدارة آراء العملاء"
-  >
-  <MessageSquare size={20} className="text-amber-500" />
-  </button>
   </div>
+
  </div>
  
  <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full lg:w-auto">

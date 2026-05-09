@@ -873,7 +873,9 @@ const App: React.FC = () => {
       const currentMode = localStorage.getItem('appMode');
       
       if (currentUser) {
-          const email = (currentUser.email || currentUser.providerData?.[0]?.email || '').toLowerCase().trim();
+          const rawEmail = (currentUser.email || currentUser.providerData?.[0]?.email || '');
+          const email = rawEmail.toLowerCase().trim();
+          
           const isAuthorized = AUTHORIZED_EMAILS.some(e => e.toLowerCase().trim() === email) || 
             AUTHORIZED_UIDS.includes(currentUser.uid);
           
@@ -881,7 +883,7 @@ const App: React.FC = () => {
             AUTHORIZED_PARTNER_UIDS.includes(currentUser.uid);
 
         if (currentMode === 'cloud' && !isAuthorized && !isPartner) {
-            toast.error("هذا البريد الإلكتروني غير مصرح له باستخدام الوضع السحابي");
+            toast.error(`البريد (${email}) غير مصرح له باستخدام الوضع السحابي`);
             await logout();
             setTimeout(() => {
               setAuthError(`تم إنهاء الجلسة لأن حسابك غير مصرح له.`);

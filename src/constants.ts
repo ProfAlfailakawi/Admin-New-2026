@@ -1,5 +1,6 @@
 export const AUTHORIZED_EMAILS = [
-  'volcanokw@gmail.com'
+  'volcanokw@gmail.com',
+  'omaralawadhi67@gmail.com'
 ];
 export const AUTHORIZED_PARTNERS = [
   'dr.ahmad.alfailakawi@gmail.com',
