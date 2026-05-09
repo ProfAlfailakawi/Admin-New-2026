@@ -1257,8 +1257,8 @@ setPaymentLink(createdLink);
                   
                   <div className="flex-1 min-w-0 pr-2 flex flex-col justify-center h-full">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-bold text-[13px] sm:text-[15px] text-slate-800 line-clamp-2 text-right leading-tight mb-1">{product.name}</h3>
-                      <div className="text-[10px] text-slate-400 truncate font-bold shrink-0">{supplierName}</div>
+                      <h3 className="font-bold text-[13px] sm:text-[15px] text-slate-800 line-clamp-2 text-right leading-tight mb-[2px]">{product.name}</h3>
+                      <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold leading-tight mb-2 opacity-80">{supplierName}</div>
                     </div>
                     <div className="flex items-center justify-between w-full mt-auto">
                         <div className="text-primary font-black text-[14px] sm:text-[16px] tracking-tighter">
