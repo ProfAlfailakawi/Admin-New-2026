@@ -319,30 +319,7 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
   </div>
 
     <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex flex-col gap-3 mb-8">
-      {isPushSupported && !pushEnabled && !pushDenied && (
-         <motion.div
-           initial={{ opacity: 0, scale: 0.9, y: -10 }}
-           animate={{ opacity: 1, scale: 1, y: 0 }}
-           className="bg-indigo-600 border border-indigo-500 shadow-xl shadow-indigo-600/20 text-white p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 self-stretch xl:self-auto min-w-[280px]"
-         >
-           <div className="flex items-center gap-3 w-full sm:w-auto">
-             <div className="bg-white/20 p-2 rounded-xl shrink-0">
-               <BellRing size={20} className="animate-pulse" />
-             </div>
-             <div className="text-right">
-               <h4 className="font-black text-sm">إشعارات الطلبات الجدد</h4>
-               <p className="text-[10px] text-indigo-100 font-bold">فعّل الإشعارات وتوصلك الطلبات أول بأول حتى لو البرنامج مسكر</p>
-             </div>
-           </div>
-           <button
-             onClick={handleEnablePush}
-             disabled={isActivatingPush}
-             className="w-full sm:w-auto bg-white text-indigo-600 px-4 py-2 font-black text-[11px] rounded-xl shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50 whitespace-nowrap"
-           >
-             {isActivatingPush ? 'جاري التفعيل...' : 'تفعيل الإشعارات'}
-           </button>
-         </motion.div>
-       )}
+
 
         {isPushSupported && pushDenied && (
           <motion.div
