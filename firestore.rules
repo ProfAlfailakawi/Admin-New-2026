@@ -12,7 +12,8 @@ service cloud.firestore {
     
     function isPartner() {
       return request.auth != null && (
-        request.auth.token.email == "mfq241188@gmail.com"
+        request.auth.token.email == "mfq241188@gmail.com" ||
+        request.auth.token.email == "omaralawadhi67@gmail.com"
       );
     }
     
