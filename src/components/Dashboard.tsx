@@ -875,7 +875,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     useEffect(() => {
       // Prompt for sample data on local mode if empty & not dismissed
       if (appMode === 'local' && (data.invoices?.length === 0 || !data.invoices) && (data.products?.length === 0 || !data.products)) {
-        if (!localStorage.getItem('hideSampleDataPrompt')) {
+        if (!sessionStorage.getItem('hideSampleDataPrompt')) {
           setShowSampleDataPrompt(true);
         }
       } else {
@@ -887,13 +887,13 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
       const demo = GET_DEMO_DATA();
       onUpdateData(demo);
       setShowSampleDataPrompt(false);
-      localStorage.setItem('hideSampleDataPrompt', 'true');
+      sessionStorage.setItem('hideSampleDataPrompt', 'true');
       toast.success("تم تحميل البيانات التجريبية بنجاح! 🎉");
     }, [onUpdateData]);
 
     const handleDismissDemoData = React.useCallback(() => {
       setShowSampleDataPrompt(false);
-      localStorage.setItem('hideSampleDataPrompt', 'true');
+      sessionStorage.setItem('hideSampleDataPrompt', 'true');
     }, []);
 
     useEffect(() => {
@@ -1986,34 +1986,34 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
           dir="rtl"
         >
           {showSampleDataPrompt && (
-            <div className="mb-4 bg-indigo-50 border border-indigo-100 rounded-3xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-4 fade-in duration-500 text-right w-full overflow-hidden relative shadow-sm">
-              <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] bg-indigo-500/20 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-              <div className="flex-1 relative z-10 w-full flex items-start flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="bg-indigo-500 text-white p-2 rounded-xl">
-                    <Database size={20} />
-                  </div>
-                  <h3 className="text-xl font-black text-slate-900">مرحباً بك في النسخة التجريبية!</h3>
+            <div className="mb-4 bg-indigo-50/80 border border-indigo-100 rounded-xl p-2.5 flex flex-row items-center justify-between gap-3 animate-in slide-in-from-top-4 fade-in duration-500 text-right w-full overflow-hidden relative shadow-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] bg-indigo-500/10 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+              <div className="flex-1 relative z-10 flex items-center gap-3">
+                <div className="bg-indigo-500 text-white p-1.5 rounded-lg shrink-0">
+                  <Database size={16} />
                 </div>
-                <p className="text-slate-600 font-bold text-sm leading-relaxed pr-10 md:pr-12">
-                  يبدو أن النظام فارغ حالياً. لاستكشاف المميزات الذكية وتقارير المبيعات، قمنا بتجهيز <strong className="text-indigo-700">بيانات تجريبية شاملة</strong> جاهزة للتحميل.
-                </p>
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 leading-tight mb-0.5">النظام فارغ حالياً</h3>
+                  <p className="text-slate-600 font-bold text-[10px] leading-relaxed">
+                    هل ترغب في تحميل <strong className="text-indigo-700">بيانات تجريبية</strong> لاستكشاف المميزات؟
+                  </p>
+                </div>
               </div>
-              <div className="flex justify-end gap-2 shrink-0 relative z-10 w-full md:w-auto mt-2 md:mt-0">
+              <div className="flex justify-end gap-2 shrink-0 relative z-10 w-auto">
                 <button
                   onClick={handleLoadDemoData}
-                  className="bg-indigo-600 outline-none text-white font-black text-sm px-6 py-3 rounded-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 flex-1 md:flex-initial"
+                  className="bg-indigo-600 outline-none text-white font-black text-[11px] px-3 py-1.5 rounded-md hover:bg-indigo-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95"
                 >
-                  <Download size={18} />
-                  <span>تحميل البيانات التجريبية</span>
+                  <Download size={14} />
+                  <span>تحميل</span>
                 </button>
                 <button
                   onClick={handleDismissDemoData}
-                  className="bg-white text-slate-500 outline-none border border-slate-200 hover:text-slate-700 hover:bg-slate-50 p-3 rounded-xl transition-all flex items-center justify-center hover:scale-[1.02] active:scale-95 shrink-0"
+                  className="bg-white text-slate-500 outline-none border border-slate-200 hover:text-slate-700 hover:bg-slate-50 p-1.5 rounded-md transition-all flex items-center justify-center hover:scale-[1.02] active:scale-95 shrink-0"
                   aria-label="لاحقاً"
                   title="لاحقاً"
                 >
-                  <X size={18} />
+                  <X size={14} />
                 </button>
               </div>
             </div>
