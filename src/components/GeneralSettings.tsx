@@ -50,6 +50,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  
  // 2. Clear Local Storage App Data
  localStorage.removeItem('ktk_accounting_data');
+  localStorage.removeItem('hideSampleDataPrompt');
  
  // 3. Clear Connection Overrides (Force use of new config)
  localStorage.removeItem('active_firestore_db_id');
@@ -82,7 +83,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  }
  const demo = GET_DEMO_DATA();
  setData(demo);
- addToast("تم تحميل البيانات","تم ملء النظام ببيانات تجريبية شاملة للمعاينة.","info");
+  localStorage.setItem('hideSampleDataPrompt', 'true');
+  addToast("تم تحميل البيانات","تم ملء النظام ببيانات تجريبية شاملة للمعاينة.","info");
  };
 
  const handleSave = () => {
@@ -852,22 +854,37 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
 
  <div className="space-y-3">
- <button 
- onClick={handleLoadDemo}
- disabled={appMode === 'cloud'}
- className={cn(
-"w-full flex items-center justify-between p-3 border rounded-2xl group transition-all shadow-sm",
- appMode === 'cloud' 
- ?"bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60"
- :"bg-indigo-50 border-indigo-100 hover:bg-indigo-100 text-indigo-700 active:scale-[0.98]"
-)}
- >
- <Sparkles size={18} className={appMode === 'cloud' ?"" :"group-hover:rotate-12 transition-transform"} />
- <div className="text-right">
- <div className="text-xs font-black">تحميل بيانات تجريبية (Demo)</div>
- <div className="text-[9px] opacity-80">{appMode === 'cloud' ?"غير متاح في وضع التزامن السحابي" :"لمعاينة النظام ببيانات واقعية جاهزة"}</div>
- </div>
- </button>
+ {(() => {
+    const hasData = (data.invoices && data.invoices.length > 0) || (data.products && data.products.length > 0);
+    const isDisabled = appMode === 'cloud' || hasData;
+    
+    return (
+      <button 
+        onClick={handleLoadDemo}
+        disabled={isDisabled}
+        className={cn(
+          "w-full flex items-center justify-between p-3 border rounded-2xl group transition-all shadow-sm",
+          appMode === 'cloud' 
+            ? "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60"
+            : hasData
+            ? "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60"
+            : "bg-indigo-50 border-indigo-100 hover:bg-indigo-100 text-indigo-700 active:scale-[0.98]"
+        )}
+      >
+        <Sparkles size={18} className={appMode === 'cloud' || hasData ? "" : "group-hover:rotate-12 transition-transform"} />
+        <div className="text-right">
+          <div className="text-xs font-black">تحميل بيانات تجريبية (Demo)</div>
+          <div className="text-[9px] opacity-80">
+            {appMode === 'cloud' 
+              ? "غير متاح في وضع التزامن السحابي" 
+              : hasData 
+              ? "النظام يحتوي على بيانات مسبقاً" 
+              : "لمعاينة النظام ببيانات واقعية جاهزة"}
+          </div>
+        </div>
+      </button>
+    );
+  })()}
 
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
  <button 

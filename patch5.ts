@@ -1,38 +1,60 @@
-import * as fs from 'fs';
+import fs from 'fs';
 
-const filePath = 'src/components/OrderPage.tsx';
-let content = fs.readFileSync(filePath, 'utf8');
+let content = fs.readFileSync('src/components/GeneralSettings.tsx', 'utf-8');
 
-// 1. Insert prepInstructions right before supplierOptions
 content = content.replace(
-  /(const productName = [^;]+;)/,
-  '$1\n                                  const prepInstructions = product?.preparationInstructions || (item as any).preparationInstructions;'
-);
-
-// 2. Modify the product name div to include the preparation instructions
-content = content.replace(
-  /<div className="font-black text-slate-800 flex items-center gap-1\.5 text-\[11px\] md:text-sm">\s*\{productName\}\s*\{needsSelection && \(\s*<motion\.span/,
-  `<div className="font-black text-slate-800 flex flex-col items-start gap-1.5 text-[11px] md:text-sm">
-                                            <div className="flex items-center gap-1.5">
-                                              {productName}
-                                              {needsSelection && (
-                                                <motion.span`
+  "localStorage.removeItem('ktk_accounting_data');",
+  "localStorage.removeItem('ktk_accounting_data');\n  localStorage.removeItem('hideSampleDataPrompt');"
 );
 
 content = content.replace(
-  /<\/motion\.span>\s*\)\}\s*<\/div>/,
-  `</motion.span>
-                                              )}
-                                            </div>
-                                            {prepInstructions && (
-                                              <span className="text-[9px] md:text-[10px] bg-amber-100/90 border border-amber-200 text-amber-800 font-black px-2 py-1 rounded-lg mt-1 w-fit flex items-center gap-1.5 shadow-sm">
-                                                <AlertCircle size={12} className="text-amber-600" />
-                                                طبيعة خاصة: {prepInstructions}
-                                              </span>
-                                            )}
-                                          </div>`
+  "const demo = GET_DEMO_DATA();\n  setData(demo);\n  addToast(\"تم تحميل البيانات\",\"تم ملء النظام ببيانات تجريبية شاملة للمعاينة.\",\"info\");",
+  "const demo = GET_DEMO_DATA();\n  setData(demo);\n  localStorage.setItem('hideSampleDataPrompt', 'true');\n  addToast(\"تم تحميل البيانات\",\"تم ملء النظام ببيانات تجريبية شاملة للمعاينة.\",\"info\");"
 );
 
+content = content.replace(
+  "<button \n  onClick={handleLoadDemo}\n  disabled={appMode === 'cloud'}\n  className={cn(\n \"w-full flex items-center justify-between p-3 border rounded-2xl group transition-all shadow-sm\",\n  appMode === 'cloud' \n  ?\"bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60\"\n  :\"bg-indigo-50 border-indigo-100 hover:bg-indigo-100 text-indigo-700 active:scale-[0.98]\"\n )}\n  >\n  <Sparkles size={18} className={appMode === 'cloud' ?\"\" :\"group-hover:rotate-12 transition-transform\"} />\n  <div className=\"text-right\">\n  <div className=\"text-xs font-black\">تحميل بيانات تجريبية (Demo)</div>\n  <div className=\"text-[9px] opacity-80\">{appMode === 'cloud' ?\"غير متاح في وضع التزامن السحابي\" :\"لمعاينة النظام ببيانات واقعية جاهزة\"}</div>\n  </div>\n  </button>",
+  `{(() => {
+    const hasData = (data.invoices && data.invoices.length > 0) || (data.products && data.products.length > 0);
+    const isDisabled = appMode === 'cloud' || hasData;
+    
+    return (
+      <button 
+        onClick={handleLoadDemo}
+        disabled={isDisabled}
+        className={cn(
+          "w-full flex items-center justify-between p-3 border rounded-2xl group transition-all shadow-sm",
+          appMode === 'cloud' 
+            ? "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60"
+            : hasData
+            ? "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60"
+            : "bg-indigo-50 border-indigo-100 hover:bg-indigo-100 text-indigo-700 active:scale-[0.98]"
+        )}
+      >
+        <Sparkles size={18} className={appMode === 'cloud' || hasData ? "" : "group-hover:rotate-12 transition-transform"} />
+        <div className="text-right">
+          <div className="text-xs font-black">تحميل بيانات تجريبية (Demo)</div>
+          <div className="text-[9px] opacity-80">
+            {appMode === 'cloud' 
+              ? "غير متاح في وضع التزامن السحابي" 
+              : hasData 
+              ? "النظام يحتوي على بيانات مسبقاً" 
+              : "لمعاينة النظام ببيانات واقعية جاهزة"}
+          </div>
+        </div>
+      </button>
+    );
+  })()}`
+);
 
-fs.writeFileSync(filePath, content);
-console.log('Fixed OrderPage.tsx');
+fs.writeFileSync('src/components/GeneralSettings.tsx', content);
+
+let appContent = fs.readFileSync('src/App.tsx', 'utf-8');
+appContent = appContent.replace(
+  "// 1. Clear Local Storage\n        localStorage.removeItem('ktk_accounting_data');\n        \n        // 2. Clear Cloud Dev Data",
+  "// 1. (REMOVED: do not clear local storage on logout to preserve demo data)\n        // localStorage.removeItem('ktk_accounting_data');\n        \n        // 2. Clear Cloud Dev Data"
+);
+
+fs.writeFileSync('src/App.tsx', appContent);
+
+console.log("Patch applied.");

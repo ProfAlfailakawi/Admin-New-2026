@@ -1184,11 +1184,11 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    // Implement user's request: If logging out from local mode, delete all data from LocalStorage and Cloud (if manual sync was used)
+    // Implement user's request: Keep local mode data preserved across sessions
     if (appMode === 'local') {
       try {
-        // 1. Clear Local Storage
-        localStorage.removeItem('ktk_accounting_data');
+        // 1. (REMOVED: do not clear local storage on logout to preserve demo data)
+        // localStorage.removeItem('ktk_accounting_data');
         
         // 2. Clear Cloud Dev Data (if it exists)
         if (user) {
@@ -1196,11 +1196,8 @@ const App: React.FC = () => {
           await deleteDoc(dataRef).catch(e => console.warn("Cloud cleanup skipped:", e));
         }
         
-        // 3. Reset internal state immediately
-        setData(INITIAL_DATA);
-        toast.info("تم مسح البيانات بنجاح", { 
-          description: "تم حذف كافة البيانات المحلية والاحتياطية التجريبية فور تسجيل الخروج." 
-        });
+        // 3. Keep internal state intact so it saves to local storage properly upon exit
+        // setData(INITIAL_DATA);
       } catch (e) {
         console.error("Logout cleanup failed", e);
       }
