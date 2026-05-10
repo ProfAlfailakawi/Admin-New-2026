@@ -16,10 +16,11 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
 
  // Analyze customers to find"Sleeping VIPs"
  // A VIP is someone with high total spend, but hasn't had an invoice in 30+ days.
- const sleepingVIPs = useMemo(() => {
+ const radarTargets = useMemo(() => {
  if (!data.customers || !data.invoices) return [];
  
  const now = new Date();
+ const daysOfWeekAr = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
  
  return data.customers.map(customer => {
  // Find all invoices for this customer
@@ -31,6 +32,45 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  ? Math.floor((now.getTime() - new Date(lastInvoice.date).getTime()) / (1000 * 60 * 60 * 24))
  : 999;
  
+ // PRE-EMPTIVE SNIPER LOGIC
+ const dayItemCounts: Record<string, { count: number; dayOfWeek: number }> = {};
+ customerInvoices.forEach(inv => {
+ const date = new Date(inv.date);
+ const docDay = date.getDay(); // 0 to 6
+ inv.items.forEach(item => {
+ const key = `${docDay}-${item.productId}`;
+ if (!dayItemCounts[key]) dayItemCounts[key] = { count: 0, dayOfWeek: docDay };
+ dayItemCounts[key].count += 1;
+ });
+ });
+
+ let preemptiveMatch = null;
+ for (let key in dayItemCounts) {
+ if (dayItemCounts[key].count >= 2) {
+ const productId = key.split('-')[1];
+ const product = data.products?.find(p => p.id === productId);
+ if (product) {
+ const dayOfWeek = dayItemCounts[key].dayOfWeek;
+ preemptiveMatch = {
+ productName: product.name,
+ dayOfWeekInt: dayOfWeek,
+ dayOfWeekStr: daysOfWeekAr[dayOfWeek],
+ isTomorrow: (now.getDay() + 1) % 7 === dayOfWeek 
+ };
+ if (preemptiveMatch.isTomorrow) break;
+ }
+ }
+ }
+
+ let riskLevel = 'safe';
+ if (preemptiveMatch) {
+ riskLevel = 'preemptive';
+ } else if (totalSpend > 500 && daysSinceLastOrder > 30) {
+ riskLevel = 'critical';
+ } else if (totalSpend > 200 && daysSinceLastOrder > 15) {
+ riskLevel = 'warning';
+ }
+ 
  return {
  ...customer,
  totalSpend,
@@ -39,11 +79,11 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  // Random placement on the radar
  x: Math.random() * 80 + 10, // 10% to 90%
  y: Math.random() * 80 + 10,
- // Calculate risk level. Higher spend + higher days = higher risk/value
- riskLevel: totalSpend > 500 && daysSinceLastOrder > 30 ? 'critical' : totalSpend > 200 && daysSinceLastOrder > 15 ? 'warning' : 'safe'
+ riskLevel,
+ preemptiveMatch
  };
  }).filter(c => c.riskLevel !== 'safe').slice(0, 8); // Top 8 targets
- }, [data.customers, data.invoices]);
+ }, [data.customers, data.invoices, data.products]);
 
  useEffect(() => {
  // Pulse scanning effect
@@ -54,10 +94,17 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  }, []);
 
  const handleLaunchMessage = (target: any) => {
- const text = encodeURIComponent(`أهلاً بك يا ${target.name} في مطبخ التراث الكويتي! 🌟\n\nفقدناك من فترة طويلة، ولأنك من عملائنا المميزين، حضرنا لك عرض خاص جداً بانتظارك..\n\nتقدر تطلب الحين ونضبطك أضبط شي! 👨🏻‍🍳`);
+ let text = '';
+ if (target.riskLevel === 'preemptive') {
+ const dayText = target.preemptiveMatch.isTomorrow ? 'باجر' : `يوم ${target.preemptiveMatch.dayOfWeekStr}`;
+ text = encodeURIComponent(`هلا ${target.name.split(' ')[0]}، زوارتكم ${dayText} العصر؟ ${target.preemptiveMatch.productName} الزين زاهب وفيه خصم خاص لعيونكم.. نزهبه لك؟`);
+ toast.success(`تم قنص ${target.name} استباقياً`);
+ } else {
+ text = encodeURIComponent(`أهلاً بك يا ${target.name} في مطبخ التراث الكويتي! 🌟\n\nفقدناك من فترة طويلة، ولأنك من عملائنا المميزين، حضرنا لك عرض خاص جداً بانتظارك..\n\nتقدر تطلب الحين ونضبطك أضبط شي! 👨🏻‍🍳`);
+ toast.success(`تم تشغيل بروتوكول الاستعادة للعميل ${target.name}`);
+ }
  const waUrl = `https://wa.me/${target.phone.replace(/\D/g, '')}?text=${text}`;
  window.open(waUrl, '_blank');
- toast.success(`تم تشغيل بروتوكول الاستعادة للعميل ${target.name}`);
  setSelectedTarget(null);
  };
 
@@ -96,7 +143,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
 
  {/* Targets */}
  <AnimatePresence>
- {sleepingVIPs.map((target, idx) => (
+ {radarTargets.map((target, idx) => (
  <motion.div
  key={target.id}
  initial={{ scale: 0, opacity: 0 }}
@@ -117,14 +164,14 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  onClick={() => setSelectedTarget(target)}
  className={cn(
 "w-4 h-4 rounded-full -ml-2 -mt-2 shadow-[0_0_15px]",
- target.riskLevel === 'critical' ? 'bg-rose-500 shadow-rose-500/50' : 'bg-amber-500 shadow-amber-500/50',
+ target.riskLevel === 'preemptive' ? 'bg-indigo-500 shadow-indigo-500/50' : target.riskLevel === 'critical' ? 'bg-rose-500 shadow-rose-500/50' : 'bg-amber-500 shadow-amber-500/50',
  selectedTarget?.id === target.id && 'ring-4 ring-white animate-pulse'
 )}
  >
  {/* Ping effect */}
  <span className={cn(
 "absolute inset-0 rounded-full animate-ping opacity-75",
- target.riskLevel === 'critical' ? 'bg-rose-500' : 'bg-amber-500'
+ target.riskLevel === 'preemptive' ? 'bg-indigo-500' : target.riskLevel === 'critical' ? 'bg-rose-500' : 'bg-amber-500'
 )}></span>
  </button>
  </motion.div>
@@ -140,8 +187,8 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  <Target className="text-emerald-500" />
  </h3>
  <p className="text-slate-400 text-sm italic font-bold">
- النظام يرصد عملاء"VIP" نائمين.. لديهم قوة شرائية عالية ولم يطلبوا منذ فترة طويلة. 
- الفرصة مهيأة لإطلاق حملات استعادة.
+ النظام يرصد عملاء "VIP" نائمين وفرص مبيعات استباقية مبنية على الذكاء الاصطناعي.. 
+ الفرصة مهيأة لزيادة المبيعات.
  </p>
  </div>
 
@@ -155,7 +202,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  >
  <div className={cn(
 "absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] -translate-y-1/2 translate-x-1/2 pointer-events-none",
- selectedTarget.riskLevel === 'critical' ? 'bg-rose-500/20' : 'bg-amber-500/20'
+ target.riskLevel === 'preemptive' ? 'bg-indigo-500/20' : selectedTarget.riskLevel === 'critical' ? 'bg-rose-500/20' : 'bg-amber-500/20'
 )} />
  
  <div className="flex justify-between items-start mb-6">
@@ -175,13 +222,17 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  <div className="flex items-center gap-3">
  <div className={cn(
 "px-3 py-1 rounded-full text-[10px] font-black uppercase",
- selectedTarget.riskLevel === 'critical' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'
+ selectedTarget.riskLevel === 'preemptive' ? 'bg-indigo-500/20 text-indigo-400' : selectedTarget.riskLevel === 'critical' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'
 )}>
- {selectedTarget.riskLevel === 'critical' ? 'خطر فقدان عالي' : 'فرصة استعادة'}
+ {selectedTarget.riskLevel === 'preemptive' ? 'توقع استباقي 🎯' : selectedTarget.riskLevel === 'critical' ? 'خطر فقدان عالي' : 'فرصة استعادة'}
  </div>
  </div>
  <div className="text-slate-300 font-bold text-sm flex items-center gap-2">
+ {selectedTarget.riskLevel === 'preemptive' ? (
+ <span>عادة يطلب ({selectedTarget.preemptiveMatch.productName}) كل {selectedTarget.preemptiveMatch.dayOfWeekStr}</span>
+ ) : (
  <span>غائب منذ {selectedTarget.daysSinceLastOrder} يوم</span>
+ )}
  <AlertCircle size={16} className="text-slate-500" />
  </div>
  </div>
@@ -201,7 +252,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-5 md:py-10 bg-slate-900/50 rounded-3xl border border-slate-800 border-dashed">
  <Target size={48} className="mb-4 opacity-20" />
  <p className="font-bold">اختر هدفاً من الرادار لاختراق نظامه</p>
- <p className="text-xs mt-2 opacity-60">تم رصد {sleepingVIPs.length} أهداف نائمة</p>
+ <p className="text-xs mt-2 opacity-60">تم رصد {radarTargets.length} أهداف (نائمة + استباقية)</p>
  </div>
 )}
  </div>
