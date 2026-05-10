@@ -202,7 +202,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  >
  <div className={cn(
 "absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] -translate-y-1/2 translate-x-1/2 pointer-events-none",
- target.riskLevel === 'preemptive' ? 'bg-indigo-500/20' : selectedTarget.riskLevel === 'critical' ? 'bg-rose-500/20' : 'bg-amber-500/20'
+ selectedTarget.riskLevel === 'preemptive' ? 'bg-indigo-500/20' : selectedTarget.riskLevel === 'critical' ? 'bg-rose-500/20' : 'bg-amber-500/20'
 )} />
  
  <div className="flex justify-between items-start mb-6">
