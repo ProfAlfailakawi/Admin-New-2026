@@ -865,7 +865,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </td>
  <td className="p-3 md:p-3 font-black text-slate-900 group-hover:text-primary transition-colors">
  <div className="flex flex-col items-start gap-1">
- <span>{Math.max(0, Number(inv.totalAmount || (inv.items.reduce((acc: number, item: any) => acc + (Number(item.priceAtTime) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
+ <span>{Math.max(0, Number(inv.totalAmount || ((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
  {(inv.discount || 0) > 0 && (
  <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 whitespace-nowrap">
  خصم مفعّل {inv.appliedPromoCodeName ? `(${inv.appliedPromoCodeName})` : ''}
@@ -970,7 +970,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  })}
  </div>
  
- {inv.notes && inv.notes !== '---' && inv.notes.trim() !== '' && (
+ {inv.notes && inv.notes !== '---' && (typeof inv.notes === 'string' ? inv.notes.trim() : '') !== '' && (
  <div className="mt-4 bg-amber-50/80 border border-amber-100 p-3 rounded-xl">
  <h4 className="text-[10px] font-black uppercase text-amber-600 mb-2 flex items-center gap-2">
  <FileText size={12} /> ملاحظات عامة للطلب
@@ -985,7 +985,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <div className="bg-white p-3 rounded-2xl border border-slate-100 space-y-2">
  <div className="flex justify-between text-xs font-bold">
  <span className="text-slate-400">المجموع:</span>
- <span>{Number(inv.items.reduce((acc: number, item: any) => acc + (Number(item.priceAtTime) || 0) * (item.quantity || 1), 0)).toFixed(3)} د.ك</span>
+ <span>{Number((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime) || 0) * (item.quantity || 1), 0)).toFixed(3)} د.ك</span>
  </div>
  {(inv.discount || 0) > 0 && (
  <div className="flex justify-between text-xs font-bold text-rose-600">
@@ -1002,7 +1002,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </div>
  <div className="flex justify-between text-base font-black border-t pt-2 mt-2">
  <span>الإجمالي:</span>
- <span className="text-primary">{Math.max(0, Number(inv.totalAmount || (inv.items.reduce((acc: number, item: any) => acc + (Number(item.priceAtTime) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
+ <span className="text-primary">{Math.max(0, Number(inv.totalAmount || ((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
  </div>
  </div>
  </div>
