@@ -619,7 +619,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 
  <div className="flex-1 overflow-y-auto min-h-0 p-3 md:p-3 space-y-4 custom-scrollbar">
  {selectedCustomerInvoices.invoices.length === 0 && (
- <div className="text-center py-20 text-slate-300 font-bold italic">لا توجد فواتير سابقة لهذا العميل.</div>
+ <SmartEmptyState subtitle="لا توجد فواتير سابقة لهذا العميل." className="py-20" />
 )}
  {(selectedCustomerInvoices.invoices || []).map((inv) => (
  <div key={inv.id} className="bg-slate-50 border border-slate-100 rounded-3xl p-3 md:p-3 hover:bg-white hover:border-primary/30 transition-all hover:shadow-md text-right cursor-default"

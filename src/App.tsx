@@ -47,6 +47,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, normalizeArabic } from './lib/utils';
 import Dashboard from './components/Dashboard';
+import SystemPulseOrb from './components/SystemPulseOrb';
 import LogoEngine from './components/ui/LogoEngine';
 const InvoicePage = React.lazy(() => import('./components/InvoicePage'));
 const CustomerPage = React.lazy(() => import('./components/CustomerPage'));
@@ -71,6 +72,7 @@ import { recalculateStateBalances } from './lib/business-logic';
 import { INITIAL_DATA, GET_DEMO_DATA } from './data';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from './constants';
 import { AppState, Notification } from './types';
+import { playSuccessAction } from './lib/sonic';
 import { auth, db, logout } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { onSnapshot, setDoc, updateDoc, getDoc, getDocs, query, collection, where, doc, limit, orderBy } from 'firebase/firestore';
@@ -226,19 +228,35 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
   );
 };
 
-const App: React.FC = () => {
+const AmbientBackground = () => {
+    const [timePhase, setTimePhase] = useState('morning');
+    useEffect(() => {
+        const updateTime = () => {
+            const h = new Date().getHours();
+            if (h >= 5 && h < 14) setTimePhase('morning');
+            else if (h >= 14 && h < 18) setTimePhase('afternoon');
+            else setTimePhase('evening');
+        };
+        updateTime();
+        const t = setInterval(updateTime, 60000);
+        return () => clearInterval(t);
+    }, []);
+
+    return (
+        <div className="fixed inset-0 pointer-events-none z-[1] transition-colors duration-[3000ms]">
+          {timePhase === 'morning' && <div className="absolute inset-0 bg-gradient-to-br from-sky-100/30 to-transparent mix-blend-multiply" />}
+          {timePhase === 'afternoon' && <div className="absolute inset-0 bg-gradient-to-br from-amber-200/20 via-orange-50/20 to-transparent mix-blend-multiply" />}
+          {timePhase === 'evening' && <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/10 via-slate-800/10 to-transparent mix-blend-multiply" />}
+        </div>
+    );
+};
+
+const MainApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
   
   // Persist authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -766,6 +784,9 @@ const App: React.FC = () => {
   }, [dataLoading, data.invoices, data.suppliers, data.customers, data.testimonials]);
 
   const addToast = (title: string, message: string, type: 'info' | 'success' | 'warning' = 'info') => {
+    if (type === 'success') {
+      playSuccessAction();
+    }
     const toastFn = type === 'success' ? toast.success : type === 'warning' ? toast.warning : toast.info;
     toastFn(title, {
       description: message,
@@ -1229,64 +1250,6 @@ const App: React.FC = () => {
     return <PaymentFeedbackView invoiceId={invoiceId} path={normalizedPath} searchParams={searchParams} isUpaymentsCallback={isUpaymentsCallback} />;
   }
 
-  if (showSplash) {
-    return (
-      <div className="h-[100dvh] w-full flex flex-col items-center justify-center bg-slate-50 gap-4 md:p-6 arabic-font relative overflow-hidden" dir="rtl">
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-50 to-white flex flex-col items-center justify-center">
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-100 rounded-full blur-[100px] opacity-50 animate-pulse" />
-        </div>
-        
-        <div className="relative z-10 flex flex-col items-center">
-            <div className="mb-6 relative">
-                 <div className="absolute inset-0 bg-amber-400 rounded-full blur-[40px] opacity-20 animate-pulse" />
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                  className="relative"
-                >
-                  <LogoEngine src={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO} variant="royal" className="w-32 h-32 md:w-40 md:h-40 relative z-10 drop-shadow-2xl" />
-                </motion.div>
-            </div>
-            
-            <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-                className="text-center mt-6 lg:mt-8"
-            >
-              <h1 className="text-2xl md:text-4xl md:text-5xl font-black bg-gradient-to-l from-slate-900 via-amber-700 to-amber-500 bg-clip-text text-transparent mb-2 leading-[1.6]">
-                {data?.settings?.companyName || 'التراث الكويتي'}
-              </h1>
-            </motion.div>
-            
-            <motion.div 
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ duration: 0.5, delay: 0.8 }}
-               className="mt-12 w-56 md:w-72 h-1.5 bg-slate-200/50 rounded-full overflow-hidden relative"
-            >
-                <motion.div 
-                    initial={{ x: '100%' }}
-                    animate={{ x: '-10%' }}
-                    transition={{ duration: 2, ease: "easeInOut", repeat: Infinity }}
-                    className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)]"
-                />
-            </motion.div>
-            
-            <motion.p 
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ duration: 0.5, delay: 1 }}
-               className="text-slate-400 font-bold text-xs mt-4 tracking-widest animate-pulse"
-            >
-                جاري التحميل...
-            </motion.p>
-        </div>
-      </div>
-    );
-  }
-
   if (authLoading) {
     return (
       <div className="h-[100dvh] w-full flex flex-col items-center justify-center bg-slate-50 gap-4 arabic-font">
@@ -1413,6 +1376,8 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font" dir="rtl">
+      <AmbientBackground />
+      
       {renderAuthError()}
       {/* Sidebar Overlay (Mobile Only) */}
       <AnimatePresence>
@@ -1603,7 +1568,7 @@ const App: React.FC = () => {
           onClick={closeAllMenus}
           className="h-12 md:h-20 bg-white/70 backdrop-blur-3xl border-b border-slate-200/50 flex items-center justify-between px-4 lg:px-10 z-[100] sticky top-0 shadow-sm"
         >
-          <div className="flex items-center gap-2 sm:gap-4 lg:gap-4 md:p-8 overflow-hidden shrink min-w-0">
+          <div className="flex items-center gap-2 sm:gap-4 lg:gap-4 md:p-8 shrink min-w-0">
             {userRole !== 'partner' && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setSidebarOpen(!sidebarOpen); }}
@@ -1629,13 +1594,18 @@ const App: React.FC = () => {
               <Home size={18} className="group-hover:scale-110 transition-transform" />
             </button>
             
-            <div className="flex items-center gap-2 py-1.5 px-3 rounded-full bg-slate-50 border border-slate-100 shrink-0" title={appMode === 'cloud' ? "تم الاتصال بالسحابة" : "تعمل بوضع غير متصل"}>
-               {dataLoading ? (
+            <div className="flex items-center gap-2 py-1.5 px-3 rounded-full bg-slate-50 border border-slate-100 shrink-0 shadow-sm" title={appMode === 'cloud' ? "تم الاتصال بالسحابة بنجاح" : "تعمل بوضع غير متصل"}>
+              {dataLoading ? (
                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping" />
-               ) : (
-                  <div className={cn("w-2 h-2 rounded-full", appMode === 'cloud' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" : "bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]")} />
-               )}
+              ) : (
+                <div className="relative flex items-center justify-center">
+                   <div className={cn("w-2 h-2 rounded-full", appMode === 'cloud' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse-slow" : "bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]")} />
+                </div>
+              )}
+              <span className="text-[10px] font-bold text-slate-400 hidden sm:inline-block">{appMode === 'cloud' ? 'متصل' : 'مفصول'}</span>
             </div>
+            
+            <SystemPulseOrb data={data} />
           </div>
 
           <div className="flex items-center gap-3 lg:gap-4 md:p-6 shrink-0">
@@ -2005,4 +1975,116 @@ const SubNavItem: React.FC<{ label: string; active?: boolean; onClick: () => voi
   </button>
 );
 
+
+const ZEN_QUOTES = [
+  "رؤية واضحة.. تبيان لكل شيء",
+  "النجاح ليس صدفة، بل هو قرار وتبيان",
+  "حيث تتضح الرؤية، يولد الإنجاز",
+  "كل تفصيل يصنع فارقاً",
+  "بوضوح الرؤية، نرتقي",
+  "نضيء الدرب بخطى واثقة",
+  "الإتقان لغة لا تحتاج إلى ترجمة",
+  "نحن لا ننتظر المستقبل، بل نصنعه"
+];
+
+const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ show, logo, name }) => {
+  const [quote, setQuote] = useState(ZEN_QUOTES[0]);
+  useEffect(() => {
+    setQuote(ZEN_QUOTES[Math.floor(Math.random() * ZEN_QUOTES.length)]);
+  }, []);
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+           initial={{ opacity: 1 }}
+           exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
+           className="fixed inset-0 z-[99999] flex flex-col items-center justify-center overflow-hidden bg-slate-50"
+           dir="rtl"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/5 via-slate-50 to-emerald-900/5 flex flex-col items-center justify-center">
+             <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] opacity-60 animate-pulse" />
+             <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] opacity-60 animate-pulse" style={{ animationDuration: '3s' }} />
+          </div>
+
+          <div className="relative z-10 flex flex-col items-center">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="mb-8 relative"
+            >
+              <div className="absolute inset-0 bg-emerald-400 rounded-full blur-[40px] opacity-20 animate-pulse" />
+              <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="w-32 h-32 md:w-40 md:h-40 relative z-10 drop-shadow-2xl" />
+            </motion.div>
+
+            <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+                className="text-center"
+            >
+              <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-l from-slate-900 via-indigo-800 to-emerald-700 bg-clip-text text-transparent mb-4 leading-relaxed tracking-tight">
+                {name || 'تبيان'}
+              </h1>
+            </motion.div>
+
+            <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               transition={{ duration: 0.5, delay: 0.8 }}
+               className="mt-8 w-56 md:w-72 h-1.5 bg-slate-200/50 rounded-full overflow-hidden relative"
+            >
+                <motion.div 
+                    initial={{ x: '100%' }}
+                    animate={{ x: '-10%' }}
+                    transition={{ duration: 2, ease: "easeInOut", repeat: Infinity }}
+                    className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-r from-emerald-400 via-emerald-500 to-indigo-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                />
+            </motion.div>
+
+            <motion.div
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               transition={{ duration: 0.8, delay: 1 }}
+               className="text-center mt-6 px-6"
+            >
+               <p className="text-slate-500 font-bold text-sm md:text-base italic animate-pulse">
+                 "{quote}"
+               </p>
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+const App: React.FC = () => {
+   const [showSplash, setShowSplash] = useState(true);
+   const [logo, setLogo] = useState(DEFAULT_GLOBAL_LOGO);
+   const [name, setName] = useState('تبيان');
+
+   useEffect(() => {
+     try {
+       const raw = localStorage.getItem('ktk_accounting_data');
+       if (raw) {
+         const parsed = JSON.parse(raw);
+         if (parsed?.settings?.companyLogo) setLogo(parsed.settings.companyLogo);
+         if (parsed?.settings?.companyName) setName(parsed.settings.companyName);
+       }
+     } catch(e) {}
+     const timer = setTimeout(() => setShowSplash(false), 2500);
+     return () => clearTimeout(timer);
+   }, []);
+
+   return (
+     <>
+       <MainApp />
+       <ZenSplash show={showSplash} logo={logo} name={name} />
+     </>
+   );
+};
+
 export default App;
+

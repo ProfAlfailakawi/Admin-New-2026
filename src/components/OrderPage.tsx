@@ -531,7 +531,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  const invoiceDeliveryFee = getOrderDeliveryFee(order, orderDeliveryType, effectiveZoneId);
  const invoiceDeliveryProfit = getOrderDeliveryProfit(order, orderDeliveryType, effectiveZoneId);
 
- const totalCost = order.items.reduce((sum, item) => sum + ((item.costAtTime || (data?.products || []).find(p => p.id === item.productId)?.cost || 0) * (item.quantity || 0)), 0);
+ const totalCost = (order.items || []).reduce((sum, item) => sum + ((item.costAtTime || (data?.products || []).find(p => p.id === item.productId)?.cost || 0) * (item.quantity || 0)), 0);
  const gatewayFee = 0.250;
  const subtotalAmount = getOrderSubtotal(order);
  const discountVal = (order as any).discount || 0;
