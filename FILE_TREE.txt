@@ -1,6 +1,6 @@
-admin_push_final_no_duplicates/
+admin_push_final_stable_files/
 ├── public/
 │   └── firebase-messaging-sw.js
 ├── scripts/
-│   └── apply-final-admin-push-fix.js
+│   └── apply-final-stable-admin-push.js
 └── README_UPLOAD.md

@@ -12,8 +12,8 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-function showPush(payload) {
-  console.log('[firebase-messaging-sw.js] payload:', payload);
+messaging.onBackgroundMessage((payload) => {
+  console.log('[firebase-messaging-sw.js] background payload:', payload);
 
   const data = payload.data || {};
   const notification = payload.notification || {};
@@ -22,29 +22,15 @@ function showPush(payload) {
   const body = data.body || notification.body || 'يوجد تحديث جديد';
   const url = data.url || payload?.fcmOptions?.link || '/';
 
-  return self.registration.showNotification(title, {
+  self.registration.showNotification(title, {
     body,
     icon: data.icon || '/icons/icon-192.png',
     badge: data.badge || '/icons/icon-192.png',
     requireInteraction: true,
-    vibrate: [200, 100, 200],
+    tag: data.eventId || data.alertType || title,
+    renotify: false,
     data: { url, ...data }
   });
-}
-
-messaging.onBackgroundMessage((payload) => showPush(payload));
-
-self.addEventListener('push', (event) => {
-  if (!event.data) return;
-
-  let payload = {};
-  try {
-    payload = event.data.json();
-  } catch (e) {
-    payload = { data: { title: 'تنبيه جديد', body: event.data.text(), url: '/' } };
-  }
-
-  event.waitUntil(showPush(payload));
 });
 
 self.addEventListener('notificationclick', (event) => {

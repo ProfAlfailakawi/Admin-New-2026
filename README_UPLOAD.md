@@ -1,61 +1,68 @@
-# Final Admin Push Fix - No Duplicates
+# Final Stable Admin Push Files
 
-## المسارات
+## الملفات
 
 ```text
 public/firebase-messaging-sw.js
-scripts/apply-final-admin-push-fix.js
+scripts/apply-final-stable-admin-push.js
 README_UPLOAD.md
 FILE_TREE.txt
 ```
 
-## ماذا يشمل؟
+## يشمل آخر نسخة مستقرة
 
-- يمنع التكرار نهائيًا عبر `claimPushEvent` في `pushEvents`
-- يرسل فقط للطلبات الحديثة خلال آخر 20 دقيقة
-- يدعم `appData/shared_company_data.orders`
-- يدعم `status: "جديد"` كطلب جديد
-- يدعم `paymentStatus: "failed"` و `status: "فشل في عملية الدفع"`
-- يدعم `paid`
-- يقلل تنبيه ضغط الطلبات إلى مرة كل ساعتين
-- Service Worker بإعدادات Firebase الصحيحة `951671626657`
+- Data-only FCM: لا يوجد `notification:` في `server.ts`
+- Service Worker يعرض من `messaging.onBackgroundMessage` فقط
+- لا يوجد `addEventListener('push')` في Service Worker
+- `claimPushEvent` لمنع تكرار نفس الحدث
+- إرسال لآخر push token واحد فقط
+- ترتيب Firestore Timestamp صحيح للتوكنات
+- `businessSince = lastCheckedAt - 5 minutes`
+- تحديث `lastCheckedAt` بعد كل فحص ناجح
+- دعم `appData/shared_company_data.orders`
+- دعم `status: "جديد"`
+- دعم `status: "فشل في عملية الدفع"` و `paymentStatus: "failed"`
+- دعم `paid`
+- `order_spike` كل ساعتين باستخدام `twoHourBucket`
 
 ## التطبيق
 
-فك الضغط داخل جذر مشروع الأدمن ثم شغل:
+من جذر مشروع الأدمن:
 
 ```bash
-node scripts/apply-final-admin-push-fix.js
+node scripts/apply-final-stable-admin-push.js
 ```
 
 تحقق:
 
 ```bash
-grep -n "claimPushEvent\|20 \* 60 \* 1000\|payment-failed-\|payment-paid-\|payment-pending-10min-\|order-created-" server.ts
+grep -n "notification:" server.ts
+grep -n "claimPushEvent\|slice(0, 1)\|lastCheckedAt: now.toISOString\|businessSince\|business-order-created" server.ts
 ```
 
-ثم ارفع/انشر:
+الأمر الأول لازم لا يرجع شيئًا.
 
-```text
-server.ts
-public/firebase-messaging-sw.js
+## النشر
+
+Cloud Run:
+
+```bash
+gcloud run deploy service \
+  --source . \
+  --region europe-west2 \
+  --project gen-lang-client-0878573239 \
+  --allow-unauthenticated \
+  --set-env-vars ADMIN_TEST_SECRET=123456
 ```
 
-واعمل restart/deploy للإنتاج.
+Hosting:
 
-## مهم للإنتاج
-
-Environment Variable:
-
-```text
-ADMIN_TEST_SECRET=قيمة_سرية
+```bash
+cp public/firebase-messaging-sw.js dist/firebase-messaging-sw.js
+firebase deploy --only hosting
 ```
 
-والـcron أو المستدعي لازم يرسل:
-
-```text
-x-admin-secret: نفس_القيمة
-```
+## مهم
 
 لا ترفع:
 
