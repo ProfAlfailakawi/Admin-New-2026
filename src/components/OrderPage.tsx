@@ -243,7 +243,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  const matchesFilter = filterStatus === 'all' || 
  (filterStatus === 'today' ? isToday(order.date, order) : 
  (filterStatus === 'failed' ? isFailedStatus(order.status) :
- (filterStatus === 'pending' ? isPendingStatus(order.status) : 
+ (filterStatus === 'pending' ? (isPendingStatus(order.status) || isFailedStatus(order.status)) : 
  (filterStatus === 'paid' ? isPaidStatus(order.status) : 
  (filterStatus === 'cancelled' ? isCancelledStatus(order.status) : order.status === filterStatus)))));
  
@@ -259,7 +259,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  return 'bg-emerald-100 text-emerald-700 border-emerald-200';
  }
  if (isFailedStatus(status)) return 'bg-amber-100 text-amber-700 border-amber-200';
- if (isPendingStatus(status)) return 'bg-violet-100 text-violet-700 border-violet-200';
+ if ((isPendingStatus(status) || isFailedStatus(status))) return 'bg-violet-100 text-violet-700 border-violet-200';
  if (isCancelledStatus(status)) return 'bg-rose-100 text-rose-700 border-rose-200';
  
  switch (status) {
@@ -294,7 +294,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  return 'تم الدفع وجاري التوصيل';
  }
  if (isFailedStatus(status)) return 'فشل في عملية الدفع';
- if (isPendingStatus(status)) return 'بانتظار الدفع';
+ if ((isPendingStatus(status) || isFailedStatus(status))) return 'بانتظار الدفع';
  return status;
  };
 
@@ -841,7 +841,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  const today = new Date();
  return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
  }).length} icon={Calendar} color="text-indigo-500" onClick={() => setFilterStatus('today')} />
- <InsightCard label="بانتظار الدفع" value={data.orders.filter(o => isPendingStatus(o.status as string)).length} icon={Clock} color="text-violet-500" onClick={() => setFilterStatus('pending')} />
+ <InsightCard label="بانتظار الدفع" value={data.orders.filter(o => (isPendingStatus(o.status as string) || isFailedStatus(o.status as string))).length} icon={Clock} color="text-violet-500" onClick={() => setFilterStatus('pending')} />
  <InsightCard label="فشل في عملية الدفع" value={data.orders.filter(o => isFailedStatus(o.status as string)).length} icon={AlertCircle} color="text-amber-500" onClick={() => setFilterStatus('failed')} />
  <InsightCard label="تم الدفع وجاري التوصيل" value={data.orders.filter(o => isPaidStatus(o.status as string)).length} icon={CheckCircle2} color="text-emerald-500" onClick={() => setFilterStatus('paid')} />
  <InsightCard label="ملغي" value={data.orders.filter(o => isCancelledStatus(o.status as string)).length} icon={XCircle} color="text-rose-500" onClick={() => setFilterStatus('cancelled')} />
@@ -901,7 +901,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
 ) : (
  <div className="grid grid flex-col md:grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 space-y-3 md:space-y-0 gap-3 md:p-4 lg:gap-4 md:p-3">
  {filteredOrders.map((order) => {
- const isPending = isPendingStatus(order.status as string);
+ const isPending = (isPendingStatus(order.status as string) || isFailedStatus(order.status as string));
  return (
  <motion.div
  layout
@@ -937,7 +937,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <div 
  className={cn(
 "px-2 py-0.5 rounded-lg text-[9px] font-black relative z-20 transition-all",
- (isPendingStatus(order.status as string) || (isPaidStatus(order.status) && hasUnselectedSuppliers(order) && (order as any).paymentStatus !== 'paid')) ?"animate-bounce" :"",
+ ((isPendingStatus(order.status as string) || isFailedStatus(order.status as string)) || (isPaidStatus(order.status) && hasUnselectedSuppliers(order) && (order as any).paymentStatus !== 'paid')) ?"animate-bounce" :"",
  getStatusColor(order.status as string, order)
 )}>
  {getStatusLabel(order.status, order)}
@@ -1284,9 +1284,9 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <div 
  className={cn(
 "px-2.5 py-0.5 md:px-3 md:py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase text-white transition-all shadow-md",
- (isPendingStatus(selectedOrder.status as string) || (isPaidStatus(selectedOrder.status) && hasUnselectedSuppliers(selectedOrder))) ?"animate-bounce" :"",
+ ((isPendingStatus(selectedOrder.status as string) || isFailedStatus(selectedOrder.status as string)) || (isPaidStatus(selectedOrder.status) && hasUnselectedSuppliers(selectedOrder))) ?"animate-bounce" :"",
  isFailedStatus(selectedOrder.status as string) ?"bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]" :
- isPendingStatus(selectedOrder.status as string) ?"bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.5)]" :
+ (isPendingStatus(selectedOrder.status as string) || isFailedStatus(selectedOrder.status as string)) ?"bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.5)]" :
  (isPaidStatus(selectedOrder.status) && hasUnselectedSuppliers(selectedOrder) && !selectedOrder.isConvertedToInvoice) ?"bg-gradient-to-r from-rose-500 to-rose-600 shadow-[0_0_20px_rgba(244,63,94,0.5)]" :
  isPaidStatus(selectedOrder.status) ?"bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" :"bg-slate-500"
 )}>
