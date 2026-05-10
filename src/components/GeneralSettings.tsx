@@ -50,7 +50,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  
  // 2. Clear Local Storage App Data
  localStorage.removeItem('ktk_accounting_data');
-  localStorage.removeItem('hideSampleDataPrompt');
+ sessionStorage.removeItem('hideSampleDataPrompt');
  
  // 3. Clear Connection Overrides (Force use of new config)
  localStorage.removeItem('active_firestore_db_id');
@@ -83,7 +83,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  }
  const demo = GET_DEMO_DATA();
  setData(demo);
-  localStorage.setItem('hideSampleDataPrompt', 'true');
+ sessionStorage.setItem('hideSampleDataPrompt', 'true');
   addToast("تم تحميل البيانات","تم ملء النظام ببيانات تجريبية شاملة للمعاينة.","info");
  };
 

@@ -884,7 +884,8 @@ const App: React.FC = () => {
 
         if (currentMode === 'cloud' && !isAuthorized && !isPartner) {
             toast.error(`البريد (${email}) غير مصرح له باستخدام الوضع السحابي`);
-            await logout();
+            sessionStorage.removeItem('hideSampleDataPrompt');
+    await logout();
             setTimeout(() => {
               setAuthError(`تم إنهاء الجلسة لأن حسابك غير مصرح له.`);
               setAuthLoading(false);
