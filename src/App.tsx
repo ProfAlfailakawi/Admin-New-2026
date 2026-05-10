@@ -1602,7 +1602,6 @@ const MainApp: React.FC = () => {
                    <div className={cn("w-2 h-2 rounded-full", appMode === 'cloud' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse-slow" : "bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]")} />
                 </div>
               )}
-              <span className="text-[10px] font-bold text-slate-400 hidden sm:inline-block">{appMode === 'cloud' ? 'متصل' : 'مفصول'}</span>
             </div>
             
             <SystemPulseOrb data={data} />
