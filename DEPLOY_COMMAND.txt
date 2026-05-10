@@ -1,0 +1,1 @@
+cd ~/Downloads/Tebyan && npm run build && firebase deploy --only hosting --project gen-lang-client-0579828362
