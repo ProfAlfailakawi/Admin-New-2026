@@ -1,6 +1,4 @@
-admin_push_all_final_upload/
-├── public/
-│   └── firebase-messaging-sw.js
-├── scripts/
-│   └── apply-all-final-admin-push.js
-└── README_UPLOAD.md
+.
+├── README_DEEPLINK_PATCH.md
+└── scripts/
+    └── apply-final-pwa-deeplink-patch.cjs
