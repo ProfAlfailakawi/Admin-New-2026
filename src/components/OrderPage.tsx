@@ -660,47 +660,14 @@ paymentData.data?.link ||
  return typeof val === 'string' ? val : (val ? JSON.stringify(val) : '');
  })();
 
- const newInvoice: any = {
- id: newInvoiceId,
- customerId: targetCustomerId,
- customerPhone: orderPhoneStr || (matchedCustomer ? matchedCustomer.phone : ''),
- address: (order as any).address,
- notes: orderNotesAggregated || '---',
- items: itemsWithPrices,
- totalAmount: totalAmount,
- finalPrice: totalAmount,
- total: totalAmount,
- totalCost,
- profit,
- deliveryFee: invoiceDeliveryFee,
- deliveryType: orderDeliveryType,
- deliveryInfo: zone ? {
- company: '',
- zoneName: zone.name,
- cost: zone.cost,
- profit: invoiceDeliveryProfit,
- finalPrice: invoiceDeliveryFee
- } : undefined,
- gatewayFee,
- discount: discountVal,
- appliedPromoCodeName: (order as any).appliedPromoCodeName,
- paymentMethod: (isActuallyPaid || isZeroPaid) ? 'KNet' : 'Link',
- date: new Date().toISOString(),
- isDeleted: false,
- paymentStatus: (isActuallyPaid || isZeroPaid) ? 'paid' : 'pending',
- status: (isActuallyPaid || isZeroPaid) ? 'مدفوعة' : 'بانتظار الدفع',
- paymentLink: createdLink,
- paymentId: createdPaymentId,
- };
+   // disabled newInvoice creation
 
 
  // 3. Update local state
  setData(prev => {
- const updatedInvoices = [...prev.invoices, newInvoice];
- 
- // Decrement stock levels
- const updatedProducts = prev.products.map(p => {
- const item = newInvoice.items.find(it => it.productId === p.id);
+  // Decrement stock levels
+  const updatedProducts = prev.products.map(p => {
+  const item = itemsWithPrices.find((it: any) => it.productId === p.id);
  if (item) {
  return { ...p, stock: (p.stock || 0) - item.quantity };
  }
@@ -713,11 +680,10 @@ paymentData.data?.link ||
  }
 
  const nextState = {
- ...prev,
- invoices: updatedInvoices,
- products: updatedProducts,
- customers: updatedCustomers
- };
+  ...prev,
+  products: updatedProducts,
+  customers: updatedCustomers
+  };
 
  return recalculateStateBalances(nextState);
  });
@@ -730,22 +696,39 @@ paymentData.data?.link ||
  const updatedOrderTotal = subtotal + invoiceDeliveryFee;
 
  await updateOrderStatus(order.id, finalStatus, { 
- isConvertedToInvoice: true,
- linkedInvoiceId: newInvoice.id,
- deliveryType: orderDeliveryType,
- deliveryFee: invoiceDeliveryFee,
- isFreeDelivery: orderDeliveryType === 'free',
- total: updatedOrderTotal, // Sync field for customer app
- totalAmount: subtotal, // Sync field for admin/reports
- paymentLink: createdLink,
- paymentId: createdPaymentId
- });
+  isConvertedToInvoice: true,
+  customerId: targetCustomerId,
+  customerPhone: orderPhoneStr || (matchedCustomer ? matchedCustomer.phone : ""),
+  address: (order as any).address,
+  notes: orderNotesAggregated || "---",
+  items: itemsWithPrices,
+  totalCost,
+  profit,
+  gatewayFee,
+  discount: discountVal,
+  paymentMethod: (isActuallyPaid || isZeroPaid) ? "KNet" : "Link",
+  deliveryType: orderDeliveryType,
+  deliveryFee: invoiceDeliveryFee,
+  deliveryInfo: zone ? {
+    company: "",
+    zoneName: zone.name,
+    cost: zone.cost,
+    profit: invoiceDeliveryProfit,
+    finalPrice: invoiceDeliveryFee
+  } : undefined,
+  isFreeDelivery: orderDeliveryType === 'free',
+  total: updatedOrderTotal, 
+  totalAmount: subtotal,
+  finalPrice: updatedOrderTotal,
+  paymentLink: createdLink,
+  paymentId: createdPaymentId
+  });
 
  // Auto-open WhatsApp after converting app order to invoice
  if (createdLink && createdLink.trim() !== '') {
    const orderForWhatsApp = {
-     ...order,
-     linkedInvoiceId: newInvoice.id,
+      ...order,
+
      paymentLink: createdLink,
      paymentId: createdPaymentId,
      total: updatedOrderTotal,
