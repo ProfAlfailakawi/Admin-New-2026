@@ -536,7 +536,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
        method: 'POST',
        headers: { 'Content-Type': 'application/json' },
        body: JSON.stringify({
-         amount: Number(Math.max(0, Number(invoice.totalAmount || ((invoice.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime) || 0) * (item.quantity || 1), 0) + Number(invoice.deliveryFee || 0) - Number(invoice.discount || 0)))).toFixed(3)),
+         amount: Number(Number(invoice.totalAmount).toFixed(3)),
          isAdmin: true,
          customerName: customer?.name || 'Customer',
          customerEmail: customer?.email || 'no-email@example.com',
