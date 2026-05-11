@@ -1,4 +1,5 @@
 // invalidated cache 2026-05-07 14:18
+import { getUnifiedInvoices } from '../lib/utils';
 import React, {
   useState,
   useMemo,
@@ -313,7 +314,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
       )
       .map((o) => o.linkedInvoiceId),
   );
-  const activeInvoices = (data.invoices || []).filter(
+  const activeInvoices = getUnifiedInvoices(data).filter(
     (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
   );
   const paidInvoices = activeInvoices.filter(
@@ -479,7 +480,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
               label: "نبض",
               color: "text-rose-400",
               angle: 225,
-              val: data.invoices?.length || 0,
+              val: getUnifiedInvoices(data)?.length || 0,
             },
             {
               icon: <Zap />,
@@ -586,7 +587,7 @@ const BusinessStatusMirror: React.FC<{
       )
       .map((o) => o.linkedInvoiceId),
   );
-  const activeInvoices = (data.invoices || []).filter(
+  const activeInvoices = getUnifiedInvoices(data).filter(
     (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
   );
   const paidInvoices = activeInvoices.filter(
@@ -874,14 +875,14 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
     useEffect(() => {
       // Prompt for sample data on local mode if empty & not dismissed
-      if (appMode === 'local' && (data.invoices?.length === 0 || !data.invoices) && (data.products?.length === 0 || !data.products)) {
+      if (appMode === 'local' && (getUnifiedInvoices(data)?.length === 0 || !getUnifiedInvoices(data)) && (data.products?.length === 0 || !data.products)) {
         if (!sessionStorage.getItem('hideSampleDataPrompt')) {
           setShowSampleDataPrompt(true);
         }
       } else {
         setShowSampleDataPrompt(false);
       }
-    }, [appMode, data.invoices?.length, data.products?.length]);
+    }, [appMode, getUnifiedInvoices(data)?.length, data.products?.length]);
 
     const handleLoadDemoData = React.useCallback(() => {
       const demo = GET_DEMO_DATA();
@@ -1212,7 +1213,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
           )
           .map((o) => o.linkedInvoiceId),
       );
-      const invs = (data?.invoices || []).filter(
+      const invs = getUnifiedInvoices(data).filter(
         (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
       );
       if (dateFilter === "all") return invs;
@@ -1233,7 +1234,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
         const d = new Date(inv.date).getTime();
         return now - d <= threshold;
       });
-    }, [data?.invoices, dateFilter]);
+    }, [getUnifiedInvoices(data), dateFilter]);
 
     // Derived Financial Metrics
     const {
@@ -1498,14 +1499,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     }, [data?.customers]);
 
     const recentOrders = useMemo(() => {
-      const allOrders = (data?.orders || []).map(o => ({ ...o, _type: 'order' as const }));
-      const linkedInvoiceIds = new Set(allOrders.map(o => o.linkedInvoiceId).filter(Boolean));
+      const allOrdersOriginal = data?.orders || [];
+      const linkedInvoiceIds = new Set(allOrdersOriginal.map(o => o.linkedInvoiceId).filter(Boolean));
       
-      const allInvoices = (data?.invoices || [])
+      const combined = getUnifiedInvoices(data)
         .filter(i => !i.isDeleted && !linkedInvoiceIds.has(i.id))
-        .map(i => ({ ...i, _type: 'invoice' as const }));
-      
-      const combined = [...allOrders, ...allInvoices];
+        .map(i => ({ ...i, _type: i.id?.startsWith('ORD-') ? 'order' : 'invoice' }));
       
       const getTimestamp = (obj: any) => {
         if (obj.createdAt && typeof obj.createdAt === 'object' && obj.createdAt.seconds) return obj.createdAt.seconds * 1000;
@@ -1537,7 +1536,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
       return combined
         .sort((a, b) => getTimestamp(b) - getTimestamp(a))
         .slice(0, 10);
-    }, [data?.orders, data?.invoices]);
+    }, [data?.orders, getUnifiedInvoices(data)]);
 
     const getOrderSubtotal = (order: any) => {
       const amount =
@@ -1928,7 +1927,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     let tRev = 0;
     let yRev = 0;
     
-    data?.invoices?.forEach(inv => {
+    getUnifiedInvoices(data)?.forEach(inv => {
       // paymentStatus can be under 'status' in some models
       const status = inv.paymentStatus || (inv as any).status;
       if (status !== 'paid' && status !== 'partial' && status !== 'completed' && inv.paymentStatus !== undefined) return;
@@ -4045,7 +4044,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         </div>
                         <p className="text-xs text-slate-300 font-medium leading-relaxed mb-6">
                           يقوم الذكاء الاصطناعي الآن بمسح شامل لـ{" "}
-                          {(data.invoices || []).length} فاتورة و{" "}
+                          {getUnifiedInvoices(data).length} فاتورة و{" "}
                           {reviews.length} تعليق عميل لاستخراج الأنماط الخفية.
                         </p>
                       </div>
@@ -4573,7 +4572,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             const updatedInvoices =
-                                              data.invoices.map((i) =>
+                                              (data.invoices || []).map((i) =>
                                                 i.id === inv.id
                                                   ? {
                                                       ...i,
@@ -4583,8 +4582,8 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                                   : i,
                                               );
                                             const updatedOrders =
-                                              data.orders.map((o) =>
-                                                o.linkedInvoiceId === inv.id
+                                              (data.orders || []).map((o) =>
+                                                o.linkedInvoiceId === inv.id || o.id === inv.id
                                                   ? {
                                                       ...o,
                                                       status:

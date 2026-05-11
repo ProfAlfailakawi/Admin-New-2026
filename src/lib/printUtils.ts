@@ -320,8 +320,8 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
               <div class="customer-date-section">
                   <div class="info-col">
                       <span class="info-label">معلومات العميل</span>
-                      <span class="info-val">الاسم: ${customer?.name || 'عميل نقدي (Walk-in)'}</span>
-                      <span class="info-val">رقم الهاتف: ${customer?.phone || '---'}</span>
+                      <span class="info-val">الاسم: ${customer?.name || (invoice as any).customerName || 'عميل نقدي (Walk-in)'}</span>
+                      <span class="info-val">رقم الهاتف: ${customer?.phone || (invoice as any).customerPhone || '---'}</span>
                       ${invoice.address ? `<span class="info-val" style="margin-top:4px; font-size:12px;">العنوان: ${typeof invoice.address === 'object' ? [`${invoice.address.region||''}`, `ق${invoice.address.block||''}`, `ش${invoice.address.street||''}`, `م${invoice.address.building||''}`].filter(Boolean).join(' ') : invoice.address}</span>` : '<span class="info-val" style="margin-top:4px; font-size:12px;">العنوان: غير محدد</span>'}
                   </div>
                   <div class="info-col" style="text-align: left;">

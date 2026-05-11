@@ -18,6 +18,7 @@ import { cn, normalizeArabic } from '../lib/utils';
 import { isPaidStatus } from '../lib/status-utils';
 import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
+import SmartEmptyState from './SmartEmptyState';
 import { toast } from 'sonner';
 import { NumericInput } from './ui/NumericInput';
 import TestimonialsManager from './TestimonialsManager';

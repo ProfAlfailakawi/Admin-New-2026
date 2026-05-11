@@ -104,4 +104,61 @@ export function joinProductsFromDatabase(data: any): any {
   return result;
 }
 
+export function getUnifiedInvoices(data: any): any[] {
+  const invs = Array.isArray(data?.invoices) ? data.invoices : [];
+  const ords = Array.isArray(data?.orders) ? data.orders : [];
+
+  const invIds = new Set(invs.map((i: any) => i.id));
+  const mappedOrdOrders = ords
+    .filter((o: any) => o.id?.startsWith('ORD-') && !invIds.has(o.id))
+    .map((o: any) => {
+    let pStatus = o.paymentStatus || 'pending';
+    const sTxt = String(o.status || '').toLowerCase();
+    const pTxt = String(o.paymentStatus || '').toLowerCase();
+    
+    if (sTxt.includes('مدفوع') || sTxt.includes('paid') || sTxt === 'تم الدفع وجاري التوصيل' || pTxt === 'paid') {
+      pStatus = 'paid';
+    } else if (sTxt.includes('فشل') || sTxt.includes('fail') || pTxt.includes('fail') || sTxt.includes('مرفوض') || sTxt.includes('ملغي')) {
+      pStatus = 'failed';
+    }
+    
+    const itemsCost = (o.items || []).reduce((acc: number, item: any) => acc + ((item.costAtTime || 0) * (item.quantity || 1)), 0);
+    const amount = Number(o.totalAmount || 0);
+
+    let finalCustomerName = o.customerName || o.customerInfo?.name || o.customer?.name || '';
+    if (finalCustomerName === 'بيانات مفقودة') finalCustomerName = o.customerInfo?.name || o.customer?.name || 'عميل عام';
+    
+    let finalCustomerPhone = o.customerPhone || o.customerInfo?.phone || o.customer?.phone || '';
+
+    return {
+      ...o,
+      customerName: finalCustomerName,
+      customerPhone: finalCustomerPhone,
+      paymentStatus: pStatus,
+      isORDOrder: true,
+      deliveryType: o.deliveryType || 'standard',
+      deliveryFee: o.deliveryInfo?.cost || typeof o.deliveryFee === 'number' ? o.deliveryFee : 0,
+      totalCost: itemsCost,
+      profit: amount - itemsCost,
+      discount: o.discount || 0,
+      gatewayFee: 0,
+      paymentMethod: o.paymentMethod || 'KNet',
+      date: o.date || o.createdAt || new Date().toISOString()
+    };
+  });
+
+  const combined = [...invs, ...mappedOrdOrders];
+  const unique = [];
+  const handled = new Set();
+  for (const item of combined) {
+    if (item && item.id && !handled.has(item.id)) {
+      handled.add(item.id);
+      unique.push(item);
+    } else if (!item || !item.id) {
+      unique.push(item);
+    }
+  }
+  return unique;
+}
+
 

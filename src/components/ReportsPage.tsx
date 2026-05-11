@@ -1,3 +1,4 @@
+import { getUnifiedInvoices } from '../lib/utils';
 import React, { useState } from 'react';
 import { 
  FileText, Search, RefreshCw, Printer, Trash2, Edit2, ChevronDown, ChevronUp, Package, User, CreditCard, Clock, CheckCircle2, X, TrendingUp, Plus,
@@ -58,7 +59,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
  const cancelledOrderInvoiceIds = new Set((data?.orders || []).filter(o => o.status === 'cancelled' && o.isConvertedToInvoice && o.linkedInvoiceId).map(o => (o.linkedInvoiceId as string)));
- const activeInvoices = (data?.invoices || []).filter(inv => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id));
+ const activeInvoices = getUnifiedInvoices(data).filter(inv => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id));
 
  const filteredInvoices = activeInvoices.filter(inv => {
  const customer = (data?.customers || []).find(c => c.id === inv.customerId);
@@ -97,7 +98,10 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  });
 
  const handleDeleteInvoice = (id: string) => {
- const invoiceToDeleteObj = (data?.invoices || []).find(inv => inv.id === id);
+  if (id.startsWith('ORD-')) { import('sonner').then(m => m.toast.error('ممنوع حذف طلبات التطبيق من سجل الفواتير. يرجى تعديلها من الطلبات.')); 
+  return;
+ }
+  const invoiceToDeleteObj = getUnifiedInvoices(data).find(inv => inv.id === id);
  if (!invoiceToDeleteObj) return;
 
  setData(prev => {
@@ -507,7 +511,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  };
 
  const handleEditInvoice = (invoice: Invoice) => {
- if (onEditInvoice) {
+  if (invoice.id.startsWith('ORD-')) { import('sonner').then(m => m.toast.error('لا يمكن تعديل طلبات التطبيق من سجل الفواتير. يرجى تعديلها من قسم الطلبات.')); return; }
+  if (onEditInvoice) {
  onEditInvoice(invoice.id);
  } else {
  alert('ميزة تعديل الفاتورة ستكون متوفرة من خلال الصفحة الرئيسية.');
@@ -519,7 +524,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  const newStatus = currentStatus === 'paid' ? 'pending' : 'paid';
  const newInvoices = prev.invoices.map(inv => inv.id === invoiceId ? { ...inv, paymentStatus: newStatus as any, status: newStatus === 'paid' ? 'مدفوعة' : 'بانتظار الدفع' } : inv);
  const newOrders = (prev.orders || []).map(order => 
- order.linkedInvoiceId === invoiceId ? { ...order, status: newStatus === 'paid' ? 'تم الدفع وجاري التوصيل' : 'بانتظار الدفع', paymentStatus: newStatus as any } : order
+ order.linkedInvoiceId === invoiceId || order.id === invoiceId ? { ...order, status: newStatus === 'paid' ? 'تم الدفع وجاري التوصيل' : 'بانتظار الدفع', paymentStatus: newStatus as any } : order
 );
  const newState = { ...prev, invoices: newInvoices, orders: newOrders };
  return recalculateStateBalances(newState as AppState);
@@ -555,7 +560,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
        if (createdLink) {
          setData(prev => {
            const newInvoices = (prev?.invoices || []).map(inv => inv.id === invoiceId ? { ...inv, paymentLink: createdLink, paymentId: createdPaymentId, paymentStatus: 'pending', status: 'بانتظار الدفع' } : inv);
-           return { ...prev, invoices: newInvoices };
+           const newOrders = (prev?.orders || []).map(o => o.linkedInvoiceId === invoiceId || o.id === invoiceId ? { ...o, paymentLink: createdLink, paymentId: createdPaymentId, paymentStatus: 'pending', status: 'بانتظار الدفع' } : o);
+            return { ...prev, invoices: newInvoices, orders: newOrders };
          });
          toast.dismiss(loadingToast);
          toast.success("تم إنشاء رابط الدفع الجديد بنجاح!");
@@ -822,8 +828,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  #{inv.id}
  </td>
  <td className="p-3 md:p-3">
- <div className="font-bold text-slate-800">{customer?.name || (inv.customerId ? `عميل #${inv.customerId.slice(-4)}` : 'بيانات مفقودة')}</div>
- <div className="text-[10px] text-slate-400 font-medium">{customer?.phone}</div>
+ <div className="font-bold text-slate-800">{customer?.name || (inv as any).customerName || (inv.customerId ? `عميل #${inv.customerId.slice(-4)}` : 'عميل عام (غير مسجل)')}</div>
+ <div className="text-[10px] text-slate-400 font-medium">{customer?.phone || (inv as any).customerPhone}</div>
  </td>
  <td className="p-3 md:p-3 text-slate-500 text-xs font-bold">
  <div className="flex flex-col gap-1 items-start">
@@ -846,26 +852,18 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase">
  {inv.paymentMethod}
  </span>
-    <button
-   onClick={(e) => { 
-     e.stopPropagation(); 
-     if (inv.paymentLink && isPaidStatus(inv.paymentStatus as string || (inv as any).status)) return;
-     handleTogglePaymentStatus(inv.id, inv.paymentStatus as string || (inv as any).status); 
-   }}
-   disabled={!!inv.paymentLink && isPaidStatus(inv.paymentStatus as string || (inv as any).status)}
-   className={cn(
-  "px-3 py-1 text-[10px] font-black rounded-lg transition-all",
-  isPaidStatus(inv.paymentStatus as string || (inv as any).status) ?"bg-emerald-100 text-emerald-700" :"bg-amber-100 text-amber-700 hover:bg-amber-200",
-  (!!inv.paymentLink && isPaidStatus(inv.paymentStatus as string || (inv as any).status)) ? "cursor-not-allowed opacity-90" : ""
- )}
-   >
-   {isPaidStatus(inv.paymentStatus as string || (inv as any).status) ? 'مدفوع ✓' : 'في إنتظار الدفع ⏳'}
-   </button>
+    <div className={cn(
+   "px-3 py-1 text-[10px] font-black rounded-lg transition-all w-fit",
+   isPaidStatus(inv.paymentStatus as string || (inv as any).status) ?"bg-emerald-100 text-emerald-700" : (inv.paymentStatus === 'failed' || String((inv as any).status).toLowerCase().includes('fail') || String((inv as any).status).includes('فشل') ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700")
+  )}
+    >
+    {isPaidStatus(inv.paymentStatus as string || (inv as any).status) ? 'مدفوع ✓' : (inv.paymentStatus === 'failed' || String((inv as any).status).toLowerCase().includes('fail') || String((inv as any).status).includes('فشل') ? 'فشلت عملية الدفع ❌' : 'في إنتظار الدفع ⏳')}
+    </div>
  </div>
  </td>
  <td className="p-3 md:p-3 font-black text-slate-900 group-hover:text-primary transition-colors">
  <div className="flex flex-col items-start gap-1">
- <span>{Math.max(0, Number(inv.totalAmount || ((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
+ <span>{Math.max(0, Number(typeof inv.totalAmount === 'number' ? inv.totalAmount : ((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : ((data?.products || []).find(p => p.id === item.productId)?.price || 0))) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
  {(inv.discount || 0) > 0 && (
  <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 whitespace-nowrap">
  خصم مفعّل {inv.appliedPromoCodeName ? `(${inv.appliedPromoCodeName})` : ''}
@@ -875,37 +873,6 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </td>
  <td className="p-3 md:p-3 text-left">
  <div className="flex items-center gap-2 justify-end">
-      {(isPendingStatus(inv.paymentStatus as string || (inv as any).status) || isFailedStatus(inv.paymentStatus as string || (inv as any).status)) && (
-        <div className="flex items-center gap-1">
-          {(!inv.paymentLink || inv.paymentLink.trim() === '') ? (
-            <button 
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                handleRegeneratePayment(inv);
-              }}
-              className="p-2 bg-amber-50 hover:bg-amber-100 rounded-lg text-amber-700 transition-colors flex items-center gap-1 text-[10px] font-bold"
-              title="إنشاء رابط دفع وإرسال واتس اب"
-            >
-              <RefreshCw size={14} />
-              رابط
-            </button>
-          ) : (
-            <button 
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                const waLink = getWhatsAppLink(inv);
-                if (waLink && waLink !== '#') {
-                  window.open(waLink, '_blank', 'noopener,noreferrer');
-                }
-              }}
-              className="p-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-emerald-700 transition-colors"
-              title="إعادة إرسال الرابط عبر واتس اب"
-            >
-              <MessageSquare size={16} />
-            </button>
-          )}
-        </div>
-      )}
  <button 
  onClick={(e) => { e.stopPropagation(); handlePrint(inv); }}
  className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
@@ -950,7 +917,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </h4>
  <div className="space-y-2">
  {(inv.items || []).map((item, idx) => {
- const product = (data?.products || []).find(p => p.id === item.productId);
+  const product = (data?.products || []).find(p => p.id === item.productId);
+  const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (product?.price || 0));
  return (
  <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100">
  <div className="flex flex-col">
@@ -961,9 +929,9 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </span>
 )}
  </div>
- <div className="flex gap-4 text-xs font-bold">
- <span className="text-slate-400">الكمية: {item.quantity}</span>
- <span className="text-primary">{Number(item.priceAtTime || 0).toFixed(3)} د.ك</span>
+ <div className="flex gap-4 text-[10px] md:text-xs font-bold items-center">
+ <span className="text-slate-400">الكمية: {item.quantity} × {Number(price || 0).toFixed(3)}</span>
+ <span className="text-primary font-black">{(Number(price || 0) * (item.quantity || 1)).toFixed(3)} د.ك</span>
  </div>
  </div>
  );
@@ -985,7 +953,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <div className="bg-white p-3 rounded-2xl border border-slate-100 space-y-2">
  <div className="flex justify-between text-xs font-bold">
  <span className="text-slate-400">المجموع:</span>
- <span>{Number((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime) || 0) * (item.quantity || 1), 0)).toFixed(3)} د.ك</span>
+ <span>{Number(((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : ((data?.products || []).find(p => p.id === item.productId)?.price || 0))) || 0) * (item.quantity || 1), 0))).toFixed(3)} د.ك</span>
  </div>
  {(inv.discount || 0) > 0 && (
  <div className="flex justify-between text-xs font-bold text-rose-600">
@@ -1002,7 +970,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </div>
  <div className="flex justify-between text-base font-black border-t pt-2 mt-2">
  <span>الإجمالي:</span>
- <span className="text-primary">{Math.max(0, Number(inv.totalAmount || ((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
+ <span className="text-primary">{Math.max(0, Number(typeof inv.totalAmount === 'number' ? inv.totalAmount : ((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : ((data?.products || []).find(p => p.id === item.productId)?.price || 0))) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
  </div>
  </div>
  </div>
