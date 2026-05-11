@@ -255,7 +255,7 @@ const GlobalStatBox = React.memo(
             <div className="text-lg min-[360px]:text-xl sm:text-3xl font-black text-slate-900 tracking-tighter group-hover:scale-105 transition-transform origin-right truncate overflow-hidden text-ellipsis whitespace-nowrap auto-cols-min">
               {isPercent
                 ? `${value.toFixed(1)}%`
-                : Number(value).toLocaleString("en-US", {
+                : Number(value).toLocaleString("en-GB", {
                     minimumFractionDigits: 3,
                     maximumFractionDigits: 3,
                   })}
@@ -1146,7 +1146,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
         topics: topicsLabel,
         sentimentLabel: analysis.label,
         sentimentAlert: analysis.alert,
-        date: new Date().toLocaleString("en-US", {
+        date: new Date().toLocaleString("en-GB", {
           timeZone: "Asia/Kuwait",
           hour: "2-digit",
           minute: "2-digit",
@@ -3269,11 +3269,13 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           </div>
 
                           <div className="mt-8 pt-4 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 font-bold">
-                            <span>
+                            <span className="flex items-center gap-1">
                               توليد تلقائي:{" "}
-                              {new Date(strat.createdAt).toLocaleTimeString(
-                                "en-US",
-                              )}
+                              <span dir="ltr" className="inline-block text-left">
+                                {new Date(strat.createdAt).toLocaleTimeString(
+                                  "en-GB",
+                                )}
+                              </span>
                             </span>
                             <span>{strat.dataReference}</span>
                           </div>
@@ -4468,34 +4470,36 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                           </span>
                                           <span className="text-[9px] text-slate-400 font-bold flex items-center gap-1">
                                             <Clock size={10} />
-                                            {(() => {
-                                              const addr = (inv as any).address;
-                                              if (addr && addr.time)
-                                                return addr.time;
-                                              if ((inv as any).time)
-                                                return (inv as any).time;
-                                              let dateObj = new Date();
-                                              const ca = (inv as any).createdAt;
-                                              if (ca) {
-                                                if (ca.seconds)
-                                                  dateObj = new Date(
-                                                    ca.seconds * 1000,
-                                                  );
-                                                else dateObj = new Date(ca);
-                                              } else if (inv.date) {
-                                                dateObj = new Date(inv.date);
-                                              }
-                                              if (isNaN(dateObj.getTime()))
-                                                return "---";
-                                              return dateObj.toLocaleTimeString(
-                                                "ar-KW",
-                                                {
-                                                  hour: "2-digit",
-                                                  minute: "2-digit",
-                                                  hour12: true,
-                                                },
-                                              );
-                                            })()}
+                                            <span dir="ltr" className="inline-block text-left">
+                                              {(() => {
+                                                const addr = (inv as any).address;
+                                                if (addr && addr.time)
+                                                  return addr.time;
+                                                if ((inv as any).time)
+                                                  return (inv as any).time;
+                                                let dateObj = new Date();
+                                                const ca = (inv as any).createdAt;
+                                                if (ca) {
+                                                  if (ca.seconds)
+                                                    dateObj = new Date(
+                                                      ca.seconds * 1000,
+                                                    );
+                                                  else dateObj = new Date(ca);
+                                                } else if (inv.date) {
+                                                  dateObj = new Date(inv.date);
+                                                }
+                                                if (isNaN(dateObj.getTime()))
+                                                  return "---";
+                                                return dateObj.toLocaleTimeString(
+                                                  "en-GB",
+                                                  {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                    hour12: true,
+                                                  },
+                                                );
+                                              })()}
+                                            </span>
                                           </span>
                                         </div>
                                         <div className="text-[10px] text-slate-500 font-bold flex items-center gap-1 line-clamp-1">
@@ -5094,7 +5098,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                     const newRecord: PulseAnalysisRecord = {
                                       ...analysis,
                                       id: Date.now().toString(),
-                                      date: new Date().toLocaleString("en-US", {
+                                      date: new Date().toLocaleString("en-GB", {
                                         timeZone: "Asia/Kuwait",
                                       }),
                                       commentsSnapshot: allComments,

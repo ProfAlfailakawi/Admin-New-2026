@@ -651,7 +651,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  </div>
  <div className="text-right">
  <div className="font-black text-slate-800 text-base md:text-lg">فاتورة #{inv.id}</div>
- <div className="text-[10px] md:text-xs text-slate-400 font-bold">{new Date(inv.date).toLocaleString('en-US')}</div>
+ <div className="text-[10px] md:text-xs text-slate-400 font-bold">{new Date(inv.date).toLocaleString('en-GB')}</div>
  </div>
  </div>
  <div className="flex flex-wrap gap-2 justify-end pt-4 border-t border-slate-200/50">

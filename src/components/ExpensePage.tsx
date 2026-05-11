@@ -186,7 +186,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <td className="p-3 md:p-3">
  <div className="flex items-center gap-2 font-black text-slate-600">
  <Calendar size={14} className="text-slate-400" />
- {new Date(expense.date).toLocaleDateString('en-US')}
+ {new Date(expense.date).toLocaleDateString('en-GB')}
  </div>
  </td>
  <td className="p-3 md:p-3">
