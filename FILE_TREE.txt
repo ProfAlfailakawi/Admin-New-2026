@@ -1,4 +1,4 @@
 .
-├── README_UI_CSS_CACHE_FIX.md
+├── README_ADMIN_PARTNER_DEEPLINK_FINAL.md
 └── scripts/
-    └── apply-admin-ui-css-cache-fix.cjs
+    └── apply-admin-partner-deeplink-final.cjs
