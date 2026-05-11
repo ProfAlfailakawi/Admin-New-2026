@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
  ShoppingBag, TrendingUp, Handshake, DollarSign, Target, Sparkles, Activity, 
  ChevronRight, Star, LineChart as LineChartIcon, FlaskConical, LayoutGrid, Filter, X, 
- Zap, ArrowUpRight, PieChart, Users, Truck, Briefcase, Cpu, Layers, Search, Bell, BellRing, ChevronDown
+ Zap, ArrowUpRight, PieChart, Users, Truck, Briefcase, Cpu, Layers, Search, Bell, BellRing, ChevronDown, FileText
 } from 'lucide-react';
 import { AppState } from '../types';
 import { cn } from '../lib/utils';
@@ -712,14 +712,14 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
       )}
        </AnimatePresence>
       
-       {/* Action Card */}
-       <div className="max-w-6xl mx-auto">
+       {/* Action Cards */}
+       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
        <motion.div 
        whileHover={{ y: -5 }}
-       className="group cursor-pointer"
+       className="group cursor-pointer h-full"
        onClick={() => onNavigate('orders')}
        >
-       <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 p-3 md:p-4 md:p-3 md:p-4 rounded-2xl md:rounded-2xl shadow-2xl shadow-indigo-600/30 text-white relative overflow-hidden flex flex-col justify-between">
+       <div className="h-full bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 p-6 rounded-2xl shadow-2xl shadow-indigo-600/30 text-white relative overflow-hidden flex flex-col justify-between">
        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none rotate-12" style={{ backgroundImage: `url(${patternSadu})` }} />
        <div className="absolute -bottom-10 -right-10 w-64 h-64 lg:w-96 lg:h-96 bg-white/5 rounded-full blur-3xl opacity-50" />
        
@@ -735,10 +735,38 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
       
        <div className="relative z-10 mt-6 flex justify-between items-end">
        <div className="text-right">
-       <h3 className="font-black text-xl md:text-3xl md:text-xl md:text-2xl mb-2 tracking-tighter">طلبات التطبيق 📦</h3>
+       <h3 className="font-black text-xl md:text-3xl mb-2 tracking-tighter">طلبات التطبيق 📦</h3>
        <p className="text-white/70 text-base font-bold">معالجة الطلبات الواردة وتحويلها إلى فواتير (إجمالي {totalOrdersCount} طلب)</p>
        </div>
-       <div className="w-12 h-12 bg-white text-indigo-600 rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:-translate-x-2">
+       <div className="w-12 h-12 bg-white text-indigo-600 rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:-translate-x-2 shrink-0 mr-4">
+       <ChevronRight size={24} className="rotate-180" />
+       </div>
+       </div>
+       </div>
+       </motion.div>
+
+       <motion.div 
+       whileHover={{ y: -5 }}
+       className="group cursor-pointer h-full"
+       onClick={() => onNavigate('invoices-list')}
+       >
+       <div className="h-full bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl shadow-slate-900/30 text-white relative overflow-hidden flex flex-col justify-between border border-slate-700/50">
+       <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none rotate-12" style={{ backgroundImage: `url(${patternSadu})` }} />
+       <div className="absolute -bottom-10 -right-10 w-64 h-64 lg:w-96 lg:h-96 bg-white/5 rounded-full blur-3xl opacity-50" />
+       
+       <div className="relative z-10 flex justify-between items-start">
+       <div className="p-3 bg-slate-700/50 rounded-2xl backdrop-blur-xl border border-white/10 flex items-center justify-center relative">
+       <FileText size={40} />
+       </div>
+       </div>
+      
+      
+       <div className="relative z-10 mt-6 flex justify-between items-end">
+       <div className="text-right">
+       <h3 className="font-black text-xl md:text-3xl mb-2 tracking-tighter">سجل الفواتير 📋</h3>
+       <p className="text-slate-300 text-base font-bold">عرض وتتبع حالة جميع الفواتير السابقة</p>
+       </div>
+       <div className="w-12 h-12 bg-slate-700 text-white rounded-full flex items-center justify-center shadow-lg border border-slate-600 transform transition-transform group-hover:-translate-x-2 shrink-0 mr-4">
        <ChevronRight size={24} className="rotate-180" />
        </div>
        </div>

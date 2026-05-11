@@ -17,7 +17,8 @@ import {
  Activity,
  DollarSign,
  Home,
- ShoppingBag
+ ShoppingBag,
+ FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -51,7 +52,8 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
  { id: 'customers-page', label: 'بيانات العملاء 👥', icon: <Users size={18} />, category: 'التنقل', action: () => onNavigate('customers', {}), roles: ['admin'] },
  { id: 'products-page', label: 'إدارة المنتجات 📦', icon: <Package size={18} />, category: 'التنقل', action: () => onNavigate('products', {}), roles: ['admin'] },
  { id: 'expenses', label: 'تسجيل مصروفات 💸', icon: <PieChart size={18} />, category: 'الإجراءات السريعة', action: () => onNavigate('expenses', {}), roles: ['admin'] },
- { id: 'orders', label: 'عرض الطلبات 🛍️', icon: <ShoppingBag size={18} />, category: 'التنقل', action: () => onNavigate('orders', {}), roles: ['partner'] },
+ { id: 'orders', label: 'عرض الطلبات 🛍️', icon: <ShoppingBag size={18} />, category: 'التنقل', action: () => onNavigate('orders', {}), roles: ['partner', 'admin'] },
+ { id: 'invoices-list', label: 'سجل الفواتير 📋', icon: <FileText size={18} />, category: 'التنقل', action: () => onNavigate('invoices-list', {}), roles: ['partner', 'admin'] },
  ];
 
  const mainTabs = allTabs.filter(tab => tab.roles.includes(userRole));
