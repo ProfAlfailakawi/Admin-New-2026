@@ -176,7 +176,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  </div>
  <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20 whitespace-nowrap text-center">
  <div className="text-[10px] opacity-80 font-black mb-1">إجمالي نقاط النظام</div>
- <div className="text-xl font-black">{stats.totalSystemPoints.toLocaleString()}</div>
+ <div className="text-xl font-black">{stats.totalSystemPoints.toLocaleString('en-GB')}</div>
  </div>
  </div>
  </div>

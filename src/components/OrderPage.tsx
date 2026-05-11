@@ -934,7 +934,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <div className="space-y-1.5 md:space-y-2 mb-2 md:mb-4">
  <div className="flex items-center text-[9px] md:text-[10px] text-slate-500 font-bold gap-1.5 md:gap-2">
  <Clock size={10} className="md:w-[12px] opacity-40" />
- <span>{(() => {
+ <span dir="ltr" className="inline-block text-left">{(() => {
  const ca = (order as any).createdAt;
  let d = null;
  if (ca) {
@@ -944,7 +944,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  d = new Date(order.date);
  }
  if (!d || isNaN(d.getTime())) return '---';
- return d.toLocaleDateString('ar-KW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+ return d.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
  })()}</span>
  </div>
  <div className="flex items-start text-[9px] md:text-[10px] text-slate-500 font-bold gap-1.5 md:gap-2">
@@ -1393,7 +1393,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  dateObj = new Date(selectedOrder.date);
  }
  if (dateObj && !isNaN(dateObj.getTime())) {
- timeStr = dateObj.toLocaleDateString('ar-KW', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+ timeStr = dateObj.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
  }
  } else {
  // If timeStr came from addr.time, append the date if possible
@@ -1406,7 +1406,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  dateObj = new Date(selectedOrder.date);
  }
  if (dateObj && !isNaN(dateObj.getTime())) {
- const dateOnly = dateObj.toLocaleDateString('ar-KW', { year: 'numeric', month: 'short', day: 'numeric' });
+ const dateOnly = dateObj.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
  timeStr = `${dateOnly} - ${timeStr}`;
  }
  }
@@ -1417,7 +1417,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  {timeStr && (
  <div className="flex items-center gap-1.5 text-[10px] md:text-xs text-white/60 bg-white/5 py-1 px-3 rounded-lg w-fit mt-1">
  <Clock size={10} className="md:w-[12px]" />
- <span>تاريخ ووقت الطلب: {timeStr}</span>
+ <span className="flex items-center gap-1">تاريخ ووقت الطلب: <span dir="ltr" className="inline-block text-left">{timeStr}</span></span>
  </div>
 )}
  </div>

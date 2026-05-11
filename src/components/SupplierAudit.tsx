@@ -133,7 +133,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  const supTransfers = (data?.supplierTransfers || []).filter(t => t.supplierId === supId);
  if (supTransfers.length === 0) return '—';
  const last = supTransfers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
- return new Date(last.date).toLocaleDateString('en-US');
+ return new Date(last.date).toLocaleDateString('en-GB');
  };
 
  const handleAddTransfer = () => {
@@ -327,7 +327,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <td className="p-3 md:p-3">
  <div className="flex items-center gap-2 font-bold text-slate-600">
  <Calendar size={14} className="text-slate-400" />
- {new Date(transaction.date).toLocaleDateString('en-US')}
+ {new Date(transaction.date).toLocaleDateString('en-GB')}
  </div>
  </td>
  <td className="p-3 md:p-3">

@@ -95,7 +95,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  
  for (let i = 1; i <= monthsToProject; i++) {
  const futureDate = new Date(now.getFullYear(), now.getMonth() + i, 1);
- const monthName = futureDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+ const monthName = futureDate.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
  
  // Add some slight seasonality / randomness so it's not a perfectly straight line
  const randomFactor = 1 + (Math.random() * 0.04 - 0.02); // +/- 2%

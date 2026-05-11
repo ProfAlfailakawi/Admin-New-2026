@@ -1113,8 +1113,8 @@ setPaymentLink(createdLink);
  </div>
  <div class="info-col" style="text-align: left;">
  <span class="info-label">تاريخ الإصدار</span>
- <span class="info-val">${new Date(lastInvoice.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
- <span class="info-val" style="font-size: 11px; font-weight: normal; color: #64748b; margin-top: 4px;">${new Date(lastInvoice.date).toLocaleTimeString('ar-KW', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+ <span class="info-val">${new Date(lastInvoice.date).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+ <span class="info-val" dir="ltr" style="font-size: 11px; font-weight: normal; color: #64748b; margin-top: 4px; display: inline-block; text-align: left;">${new Date(lastInvoice.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
  </div>
  </div>
 

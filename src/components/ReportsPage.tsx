@@ -461,8 +461,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </div>
  <div class="info-col" style="text-align: left;">
  <span class="info-label">تاريخ الإصدار</span>
- <span class="info-val">${new Date(invoice.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
- <span class="info-val" dir="ltr" style="font-size: 11px; font-weight: normal; color: #64748b; margin-top: 4px; display: inline-block; text-align: left;">${new Date(invoice.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+ <span class="info-val">${new Date(invoice.date).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+ <span class="info-val" dir="ltr" style="font-size: 11px; font-weight: normal; color: #64748b; margin-top: 4px; display: inline-block; text-align: left;">${new Date(invoice.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
  </div>
  </div>
 
@@ -855,7 +855,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <td className="p-3 md:p-3 text-slate-500 text-xs font-bold">
  <div className="flex flex-col gap-1 items-start">
  <span>{new Date(inv.date).toLocaleDateString('en-GB')}</span>
- <span dir="ltr" className="text-[9px] font-medium text-slate-400 m-0 p-0 leading-none inline-block text-left">{new Date(inv.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+ <span dir="ltr" className="text-[9px] font-medium text-slate-400 m-0 p-0 leading-none inline-block text-left">{new Date(inv.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
  <span className={cn(
 "px-2 py-0.5 rounded-md font-black text-[9px] uppercase",
  inv.deliveryType === 'company' ?"bg-blue-50 text-blue-500" :

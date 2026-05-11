@@ -81,6 +81,44 @@ import { Toaster, toast } from 'sonner';
 import { playNewOrderAlert } from './lib/sounds';
 import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils';
 
+const getInitialPushDeepLink = () => {
+  const params = new URLSearchParams(window.location.search);
+  const path = window.location.pathname;
+
+  const targetId =
+    params.get('invoice') ||
+    params.get('order') ||
+    params.get('tracked_order') ||
+    params.get('requested_order_id') ||
+    params.get('order_id');
+
+  if (targetId) {
+    const payload = {
+      tab: 'invoices',
+      search: String(targetId),
+      source: path === '/track' ? 'track' : 'push',
+      fullId: String(targetId),
+      pushNotificationDeepLinkHandled: true
+    };
+
+    try {
+      sessionStorage.setItem('adminPushDeepLink', JSON.stringify(payload));
+    } catch {}
+
+    return payload;
+  }
+
+  try {
+    const saved = sessionStorage.getItem('adminPushDeepLink');
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+};
+
+const hasInitialPushDeepLink = () => Boolean(getInitialPushDeepLink());
+
+
 // Remove deduplication import as requested
 // import { getDeduplicatedProducts } from './lib/deduplication';
 
@@ -286,7 +324,7 @@ const MainApp: React.FC = () => {
   }, [isSoundEnabled]);
 
 
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState(hasInitialPushDeepLink() ? 'reports' : 'dashboard');
   const mainRef = useRef<HTMLElement>(null);
 
   // CRITICAL: Ensure app always returns to dashboard on logout and clear any stale navigation state
@@ -322,7 +360,36 @@ const MainApp: React.FC = () => {
   }, [currentPage]);
 
   const [isAIThinking, setIsAIThinking] = useState(false);
-  const [deepLinkData, setDeepLinkData] = useState<{ supplierId?: string, openModal?: boolean, search?: string, exactId?: string, scrollTarget?: string, _t?: number }>({});
+  const [deepLinkData, setDeepLinkData] = useState<any>(getInitialPushDeepLink() || {});
+
+  // ADMIN_PUSH_DEEPLINK_FORCE_REPORTS_EFFECT
+  // Auth/data initialization may reset currentPage to dashboard.
+  // If a push/track deep link exists, always force ReportsPage back.
+  useEffect(() => {
+    const saved = getInitialPushDeepLink();
+    if (!saved?.search) return;
+
+    setDeepLinkData(saved);
+
+    if (currentPage !== 'reports') {
+      setCurrentPage('reports');
+    }
+  }, [currentPage]);
+
+
+  // Handle push notification deep links:
+  // ORD + INV must both open ReportsPage invoices tab and search by full ID.
+  // Old /track?tracked_order=... links are also supported.
+  useEffect(() => {
+    const saved = getInitialPushDeepLink();
+    if (!saved?.search) return;
+
+    setDeepLinkData(saved);
+    setCurrentPage('reports');
+
+    window.history.replaceState({}, '', '/');
+  }, []);
+
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false); // Default to closed on mobile
   const [commandBarOpen, setCommandBarOpen] = useState(false);
@@ -682,7 +749,7 @@ const MainApp: React.FC = () => {
                     type: 'warning',
                     insightType: 'خطر',
                     explanation: `هذا العميل (إجمالي مشترياته ${cust.totalSpent.toFixed(3)} د.ك) اختفى ولم يجرِ أي عملية تسوق رغم أنه كان معتاداً على الطلب المتكرر.`,
-                    dataReference: `قاعدة بيانات العملاء توضح أن آخر طلب لهذا الـVIP كان بتاريخ ${new Date(cust.lastActive!).toLocaleDateString('ar-KW')}.`,
+                    dataReference: `قاعدة بيانات العملاء توضح أن آخر طلب لهذا الـVIP كان بتاريخ ${new Date(cust.lastActive!).toLocaleDateString('en-GB')}.`,
                     recommendedAction: 'توليد رسالة استعادة فورية عبر الواتساب وتقديم خصم شخصي له باستخدام لوحة (نخبة VIP الغائبين).',
                     date: new Date().toISOString(),
                     read: false,
@@ -1233,7 +1300,7 @@ const MainApp: React.FC = () => {
 
   const path = window.location.pathname;
   const searchParams = new URLSearchParams(window.location.search);
-  const isUpaymentsCallback = searchParams.has('payment_id') || searchParams.has('result') || searchParams.has('invoice');
+  const isUpaymentsCallback = searchParams.has('payment_id') || searchParams.has('result');
 
   const normalizedPath = path.replace(/\/$/, '');
   
@@ -1246,7 +1313,7 @@ const MainApp: React.FC = () => {
   }
 
   if (normalizedPath === '/success' || normalizedPath === '/cancel' || normalizedPath === '/failed' || normalizedPath === '/error' || isUpaymentsCallback || normalizedPath.startsWith('/invoice/')) {
-    const invoiceId = searchParams.get('invoice') || searchParams.get('requested_order_id') || searchParams.get('order_id') || path.split('/invoice/')[1];
+    const invoiceId = searchParams.get('requested_order_id') || searchParams.get('order_id') || path.split('/invoice/')[1];
     return <PaymentFeedbackView invoiceId={invoiceId} path={normalizedPath} searchParams={searchParams} isUpaymentsCallback={isUpaymentsCallback} />;
   }
 
@@ -1309,7 +1376,7 @@ const MainApp: React.FC = () => {
             setData={setData} 
             defaultTab="invoices" 
             deepLinkData={deepLinkData}
-            onClearDeepLink={() => setDeepLinkData({})}
+            onClearDeepLink={() => {}}
             isPartner={true}
           />
         );
@@ -1359,15 +1426,22 @@ const MainApp: React.FC = () => {
             setCurrentPage('new-invoice');
           }}
           deepLinkData={deepLinkData}
-          onClearDeepLink={() => setDeepLinkData({})}
+          onClearDeepLink={() => {}}
         />
       );
-      case 'customers': return <CustomerPage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={() => setDeepLinkData({})} />;
-      case 'products': return <ProductPage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={() => setDeepLinkData({})} />;
-      case 'suppliers': return <SupplierPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} deepLinkData={deepLinkData} onClearDeepLink={() => setDeepLinkData({})} />;
-      case 'expenses': return <ExpensePage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={() => setDeepLinkData({})} />;
+      case 'customers': return <CustomerPage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
+      case 'products': return <ProductPage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
+      case 'suppliers': return <SupplierPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
+      case 'expenses': return <ExpensePage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
       case 'orders': return <OrderPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} isPartner={false} />;
-      case 'reports': return <ReportsPage data={data} setData={setData} />;
+      case 'reports': return (
+        <ReportsPage
+          data={data}
+          setData={setData}
+          deepLinkData={deepLinkData}
+          onClearDeepLink={() => {}}
+        />
+      );
       case 'ai': return <AIAssistant data={data} />;
       case 'settings': return <GeneralSettings data={data} setData={setData} appMode={appMode} switchMode={switchMode} addToast={addToast} />;
       case 'suppliers-audit': return (
@@ -1376,7 +1450,7 @@ const MainApp: React.FC = () => {
           setData={setData} 
           initialSupplierId={deepLinkData.supplierId} 
           autoOpenModal={deepLinkData.openModal}
-          onClearDeepLink={() => setDeepLinkData({})}
+          onClearDeepLink={() => {}}
           deepLinkData={deepLinkData}
         />
       );
@@ -1775,7 +1849,7 @@ const MainApp: React.FC = () => {
                                 <div className="text-[11px] text-slate-500 leading-relaxed break-words whitespace-normal">{notif.message}</div>
                                 <div className="text-[9px] text-slate-400 mt-1.5 font-medium flex items-center gap-1">
                                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                                  {new Date(notif.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
+                                  {new Date(notif.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
                                 </div>
                               </div>
                               {!notif.read && (

@@ -64,7 +64,7 @@ const GlobalStatBox = React.memo(({ label, value, color, icon: Icon, isPercent =
  <div className="flex items-baseline justify-end gap-1 mb-1">
  <span className="text-[10px] font-black opacity-40 uppercase tracking-tighter">{unit}</span>
  <div className="text-xl lg:text-3xl font-black text-slate-800 tracking-tighter group-hover:scale-105 transition-transform origin-right">
- {isPercent ? `${value.toFixed(1)}%` : Number(value).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+ {isPercent ? `${value.toFixed(1)}%` : Number(value).toLocaleString('en-GB', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
  </div>
  </div>
  <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] group-hover:text-slate-600 transition-colors">{label}</div>

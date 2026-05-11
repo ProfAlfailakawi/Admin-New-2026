@@ -322,7 +322,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-8">
  <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/20 transition-all hover:bg-white/20">
  <span className="text-[10px] font-black text-amber-200 block mb-1">إجمالي النقاط الفعالة</span>
- <div className="text-xl md:text-2xl font-black">{stats.totalPoints.toLocaleString()} <span className="text-[10px] opacity-70 font-bold">نقطة</span></div>
+ <div className="text-xl md:text-2xl font-black">{stats.totalPoints.toLocaleString('en-GB')} <span className="text-[10px] opacity-70 font-bold">نقطة</span></div>
  </div>
  <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/20 transition-all hover:bg-emerald-500/20">
  <span className="text-[10px] font-black text-emerald-200 block mb-1">نشط / جديد</span>
@@ -724,7 +724,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
  <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">آخر طلب</span>
  <div className="text-lg font-black text-slate-500">
- {selectedCustomer.lastOrderDate ? new Date(selectedCustomer.lastOrderDate).toLocaleDateString('ar-KW') : 'لا يوجد'}
+ {selectedCustomer.lastOrderDate ? new Date(selectedCustomer.lastOrderDate).toLocaleDateString('en-GB') : 'لا يوجد'}
  </div>
  </div>
  </div>
@@ -742,7 +742,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  </div>
  <div>
  <div className="font-black text-slate-800 text-sm">{h.type}</div>
- <div className="text-[10px] text-slate-400 font-bold">{new Date(h.date).toLocaleDateString('ar-KW')}</div>
+ <div className="text-[10px] text-slate-400 font-bold">{new Date(h.date).toLocaleDateString('en-GB')}</div>
  </div>
  </div>
  <div className="text-rose-600 font-black text-sm">-{h.amount.toFixed(3)} د.ك</div>
