@@ -1924,6 +1924,38 @@ const MainApp: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* --- MOBILE QUICK NAVIGATION TRIGGER --- */}
+      <AnimatePresence>
+        {isMobile && userRole !== 'partner' && !commandBarOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 100, scale: 0.5 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 100, scale: 0.5 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] sm:hidden"
+          >
+            <button
+              onClick={() => setCommandBarOpen(true)}
+              className="flex items-center justify-center w-14 h-14 bg-slate-900/95 backdrop-blur-2xl rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.6)] border border-white/20 active:scale-95 transition-all relative group overflow-hidden"
+            >
+              <motion.div 
+                className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/20 to-indigo-500/0 opacity-50"
+                animate={{ x: ['-100%', '100%'] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+              />
+              <div className="relative z-10 flex items-center justify-center bg-white/10 rounded-full w-8 h-8 backdrop-blur-sm border border-white/5">
+                <Search className="text-amber-400" size={16} />
+              </div>
+              <div className="absolute top-3 right-3 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </div>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {(isAuthenticated || appMode === 'local') && <InstagramMagicWand data={data} />}
       <Toaster richColors position="bottom-right" closeButton />
       
@@ -2024,7 +2056,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
                 className="text-center"
             >
               <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-l from-slate-900 via-indigo-800 to-emerald-700 bg-clip-text text-transparent mb-4 leading-relaxed tracking-tight">
-                {name || 'التراث'}
+                {name || 'شركة مطبخ التراث الكويتي'}
               </h1>
             </motion.div>
 
@@ -2062,7 +2094,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
 const App: React.FC = () => {
    const [showSplash, setShowSplash] = useState(true);
    const [logo, setLogo] = useState(DEFAULT_GLOBAL_LOGO);
-   const [name, setName] = useState('التراث');
+   const [name, setName] = useState('شركة مطبخ التراث الكويتي');
 
    useEffect(() => {
      try {
