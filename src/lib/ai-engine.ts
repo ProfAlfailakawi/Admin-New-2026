@@ -1659,11 +1659,54 @@ export function normalizeArabic(text: string): string {
 export interface KuwaitiSentimentResult {
   level1: 'إيجابي' | 'سلبي' | 'محايد' | 'ملاحظة عامة';
   level2: string[];
+  label: string;
+  alert: string;
 }
 
 export function analyzeKuwaitiSentiment(text: string): KuwaitiSentimentResult {
     const t = normalizeArabic(text.toLowerCase());
     
+    // Better deterministic hash based on text content
+    let hash = 0;
+    for (let i = 0; i < t.length; i++) {
+        hash = (hash << 5) - hash + t.charCodeAt(i);
+        hash |= 0;
+    }
+    hash = Math.abs(hash) || 1;
+    
+    const positiveAlerts = [
+        'عاشوا.. استمروا على هالخلطة! 🔥👨🏻‍🍳',
+        'بيضتوا الوجه، خلكم على نفس المستوى! 👏',
+        'شغل ناطع ويبرد الجبد.. للأمام! 🚀',
+        'يا سلام، العميل راضي جداً عن شغلكم 💯',
+        'كفو عليكم، تجربة ممتازة ترفع الراس ✨'
+    ];
+    const positiveLabels = ['شغل عدل (أعلى درجات الرضا)', 'نطاعة وتميز (إيجابي جداً)', 'ولا غلطة (ممتاز)', 'إرضاء تام (تقييم عالي)'];
+
+    const negativeAlerts = [
+        'ترا في خلل، تواصل مع العميل فوراً قبل لا تخسره! ⚠️',
+        'الوضع ما يطمن، راجع الطلب وشوف الخلل وين! 🚨',
+        'في مشكلة قوية هني.. تدارك الموضوع بسرعة! ❌',
+        'مو هذا مستواكم، عوضوا العميل ضروري! ❗️',
+        'العميل مو راضي كلش، لازم تشوفون حل للمشكلة ⚠️'
+    ];
+    const negativeLabels = ['جرس إنذار (استياء)', 'تدخل سريع (تقييم سلبي)', 'مشكلة تشغيلية (انتباه)', 'استياء تام (مراجعة)'];
+
+    const getOutputs = (sentiment: KuwaitiSentimentResult['level1']) => {
+        if (sentiment === 'إيجابي') {
+            return {
+                label: positiveLabels[hash % positiveLabels.length],
+                alert: positiveAlerts[hash % positiveAlerts.length]
+            };
+        } else if (sentiment === 'سلبي') {
+            return {
+                label: negativeLabels[hash % negativeLabels.length],
+                alert: negativeAlerts[hash % negativeAlerts.length]
+            };
+        }
+        return { label: 'ملاحظة', alert: 'ملاحظة عامة' };
+    };
+
     // 1. Intensive Multi-word Expressions (Priority over single words)
     const contextRules = [
         { patterns: ['ولا غلطه', 'ولا غلطة', 'بدون غلطة', 'بدون غلطه', 'غلطه ما تضر', 'غلطه وحده ما تخرب', 'مو مشكله الغلطه', 'ما عليه غلطه', 'ولا روعه الاكل'], sentiment: 'إيجابي' as const },
@@ -1673,7 +1716,7 @@ export function analyzeKuwaitiSentiment(text: string): KuwaitiSentimentResult {
         { patterns: ['راح نطلب', 'نكرر الطلب', 'اعتمدناكم', 'الطلب الجاي', 'راح نطلبكم'], sentiment: 'إيجابي' as const },
         { patterns: ['يلوع الجبد', 'ما يسوى', 'طاح من عيني', 'الله يسامحكم', 'حسافه عليه', 'خربتوه', 'فشلتونا', 'مو ذاك الزود', 'دعاية على الفاضي'], sentiment: 'سلبي' as const },
         { patterns: ['مو حلو', 'مو زين', 'مو شي', 'مو مرتب', 'مو راهي', 'مو راهي كلش', 'مو مضبوط', 'مو ناطع', 'مو خنين'], sentiment: 'سلبي' as const },
-        { patterns: ['ناطع', 'خنين', 'يهبل', 'خيال', 'روعه', 'جميل', 'الاكل حلو', 'قوي حيل', 'عجيب'], sentiment: 'إيجابي' as const },
+        { patterns: ['الاكل حلو', 'قوي حيل'], sentiment: 'إيجابي' as const },
         { patterns: ['عادي', 'يمشي الحال', 'نص ونص', 'مو بطال'], sentiment: 'محايد' as const },
     ];
 
@@ -1682,7 +1725,8 @@ export function analyzeKuwaitiSentiment(text: string): KuwaitiSentimentResult {
         if (rule.patterns.some(p => t.includes(normalizeArabic(p)))) {
             return {
                 level1: rule.sentiment,
-                level2: [rule.sentiment === 'إيجابي' ? 'تجربة ممتازة' : 'شكوى تشغيلية']
+                level2: [rule.sentiment === 'إيجابي' ? 'تجربة ممتازة' : 'شكوى تشغيلية'],
+                ...getOutputs(rule.sentiment)
             };
         }
     }
@@ -1757,7 +1801,8 @@ export function analyzeKuwaitiSentiment(text: string): KuwaitiSentimentResult {
 
     return {
         level1,
-        level2: Array.from(foundTopics)
+        level2: Array.from(foundTopics),
+        ...getOutputs(level1)
     };
 }
 

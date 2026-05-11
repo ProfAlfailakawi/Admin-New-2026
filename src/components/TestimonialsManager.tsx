@@ -17,6 +17,7 @@ import {
 import { Testimonial } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { analyzeKuwaitiSentiment } from '../lib/ai-engine';
 
 interface Props {
  testimonials: Testimonial[];
@@ -140,6 +141,29 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  <div className="bg-slate-50/50 rounded-2xl p-3 mb-4 text-right">
  <p className="text-[11px] font-bold text-slate-600 leading-relaxed italic line-clamp-4">"{t.content}"</p>
  </div>
+
+ {(() => {
+   const sentiment = analyzeKuwaitiSentiment(t.content);
+   if (sentiment.level1 === 'محايد' || sentiment.level1 === 'ملاحظة عامة') return null;
+   
+   return (
+     <div className={cn("mb-4 px-3 py-2.5 rounded-xl text-right text-[10px] font-bold border shadow-sm", sentiment.level1 === 'إيجابي' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700')}>
+       <span className="block font-black mb-1 text-xs flex items-center justify-end gap-1">
+         {sentiment.label}
+         <span className="relative flex h-2 w-2">
+           <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping", sentiment.level1 === 'إيجابي' ? 'bg-emerald-400' : 'bg-rose-400')}></span>
+           <span className={cn("relative inline-flex rounded-full h-2 w-2", sentiment.level1 === 'إيجابي' ? 'bg-emerald-500' : 'bg-rose-500')}></span>
+         </span>
+       </span>
+       {sentiment.alert}
+       <div className="mt-1 flex flex-wrap justify-end gap-1">
+         {sentiment.level2.map(topic => (
+            <span key={topic} className="px-1.5 py-0.5 rounded-md bg-white/50 border border-white/40 text-[9px]">{topic}</span>
+         ))}
+       </div>
+     </div>
+   );
+ })()}
 
  <div className="flex items-center justify-between text-[10px] font-black text-slate-400 border-t border-slate-50 pt-4 flex-row-reverse">
  <div className="flex items-center gap-1">

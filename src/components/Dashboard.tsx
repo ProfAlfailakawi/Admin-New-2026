@@ -1143,6 +1143,8 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
         sentiment: displayLabel,
         level1: analysis.level1,
         topics: topicsLabel,
+        sentimentLabel: analysis.label,
+        sentimentAlert: analysis.alert,
         date: new Date().toLocaleString("en-US", {
           timeZone: "Asia/Kuwait",
           hour: "2-digit",
@@ -5229,6 +5231,32 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                       {r.sentiment}
                                     </span>
                                   </div>
+
+                                  {(r.level1 === 'إيجابي' || (r.sentiment && r.sentiment.includes("إيجابي"))) && (
+                                    <div className="mt-3 px-3 py-2.5 rounded-xl text-right text-[10px] font-bold border shadow-sm bg-emerald-50 border-emerald-100 text-emerald-700 w-full">
+                                      <span className="font-black mb-1 text-xs flex items-center justify-end gap-1">
+                                        {r.sentimentLabel || analyzeKuwaitiSentiment(r.text).label}
+                                        <span className="relative flex h-2 w-2">
+                                          <span className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping bg-emerald-400"></span>
+                                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                        </span>
+                                      </span>
+                                      <span className="block mt-1 opacity-90">{r.sentimentAlert || analyzeKuwaitiSentiment(r.text).alert}</span>
+                                    </div>
+                                  )}
+                                  
+                                  {(r.level1 === 'سلبي' || (r.sentiment && r.sentiment.includes("سلبي"))) && (
+                                    <div className="mt-3 px-3 py-2.5 rounded-xl text-right text-[10px] font-bold border shadow-sm bg-rose-50 border-rose-100 text-rose-700 w-full">
+                                      <span className="font-black mb-1 text-xs flex items-center justify-end gap-1">
+                                        {r.sentimentLabel || analyzeKuwaitiSentiment(r.text).label}
+                                        <span className="relative flex h-2 w-2">
+                                          <span className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping bg-rose-400"></span>
+                                          <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                                        </span>
+                                      </span>
+                                      <span className="block mt-1 opacity-90">{r.sentimentAlert || analyzeKuwaitiSentiment(r.text).alert}</span>
+                                    </div>
+                                  )}
                                 </div>
                                 <button
                                   onClick={(e) => {
