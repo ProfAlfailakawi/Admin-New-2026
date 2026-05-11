@@ -1,4 +1,4 @@
 .
-├── README_DEEPLINK_PATCH.md
+├── README_UI_CSS_CACHE_FIX.md
 └── scripts/
-    └── apply-final-pwa-deeplink-patch.cjs
+    └── apply-admin-ui-css-cache-fix.cjs
