@@ -1303,6 +1303,16 @@ const MainApp: React.FC = () => {
     if (userRole === 'partner') {
       switch (currentPage) {
         case 'orders': return <OrderPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} isPartner={true} />;
+        case 'invoices-list': return (
+          <ReportsPage 
+            data={data} 
+            setData={setData} 
+            defaultTab="invoices" 
+            deepLinkData={deepLinkData}
+            onClearDeepLink={() => setDeepLinkData({})}
+            isPartner={true}
+          />
+        );
         case 'new-invoice': return (
           <InvoicePage 
             data={data} 

@@ -24,6 +24,7 @@ interface ReportsPageProps {
  onClearDeepLink?: () => void;
  setCurrentPage?: (page: string) => void;
  setDeepLinkData?: (data: any) => void;
+ isPartner?: boolean;
 }
 
 const ReportsPage: React.FC<ReportsPageProps> = React.memo(({ 
@@ -34,7 +35,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  deepLinkData, 
  onClearDeepLink,
  setCurrentPage,
- setDeepLinkData 
+ setDeepLinkData,
+ isPartner = false
 }) => {
  const [activeTab, setActiveTab] = useState<'invoices' | 'tax' | 'pnl' | 'orders'>(defaultTab);
  const [search, setSearch] = useState('');
@@ -444,6 +446,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <div class="info-col" style="text-align: left;">
  <span class="info-label">تاريخ الإصدار</span>
  <span class="info-val">${new Date(invoice.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+ <span class="info-val" style="font-size: 11px; font-weight: normal; color: #64748b; margin-top: 4px;">${new Date(invoice.date).toLocaleTimeString('ar-KW', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
  </div>
  </div>
 
@@ -794,13 +797,15 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </div>
  <h3 className="text-xl md:text-3xl font-black text-slate-800 mb-3 tracking-tight">لا توجد فواتير!</h3>
  <p className="text-slate-500 font-bold mb-8 leading-relaxed">لم تقم بإصدار أي فاتورة حتى الآن. أضف أول فاتورة لتطلق العنان لتحليلات الذكاء الاصطناعي.</p>
- <button 
- onClick={() => { if(onEditInvoice) onEditInvoice('new'); }} 
- className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1 mx-auto"
- >
- <Plus size={24} />
- <span>ابدأ رحلتك وضيف أول فاتورة الآن!</span>
- </button>
+ {!isPartner && (
+  <button 
+  onClick={() => { if(onEditInvoice) onEditInvoice('new'); }} 
+  className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1 mx-auto"
+  >
+  <Plus size={24} />
+  <span>ابدأ رحلتك وضيف أول فاتورة الآن!</span>
+  </button>
+ )}
  </div>
  </td>
  </tr>
@@ -834,6 +839,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <td className="p-3 md:p-3 text-slate-500 text-xs font-bold">
  <div className="flex flex-col gap-1 items-start">
  <span>{new Date(inv.date).toLocaleDateString('en-GB')}</span>
+ <span className="text-[9px] font-medium text-slate-400 m-0 p-0 leading-none">{new Date(inv.date).toLocaleTimeString('ar-KW', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
  <span className={cn(
 "px-2 py-0.5 rounded-md font-black text-[9px] uppercase",
  inv.deliveryType === 'company' ?"bg-blue-50 text-blue-500" :
@@ -874,29 +880,48 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <td className="p-3 md:p-3 text-left">
  <div className="flex items-center gap-2 justify-end">
  <button 
+ onClick={(e) => { 
+   e.stopPropagation(); 
+   const waLink = getWhatsAppLink(inv);
+   if (waLink && waLink !== '#') {
+     window.open(waLink, '_blank', 'noopener,noreferrer');
+   } else {
+     import('sonner').then(m => m.toast.error('لا يمكن فتح واتساب لعدم توفر رقم عميل'));
+   }
+ }}
+ className="p-2 hover:bg-emerald-50 rounded-lg text-slate-400 hover:text-emerald-500 transition-colors"
+ title="إرسال الفاتورة عبر واتساب"
+ >
+ <MessageSquare size={16} />
+ </button>
+ <button 
  onClick={(e) => { e.stopPropagation(); handlePrint(inv); }}
  className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
  title="طباعة"
  >
  <Printer size={16} />
  </button>
- <button 
- onClick={(e) => { e.stopPropagation(); handleEditInvoice(inv); }}
- className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
- title="تعديل"
- >
- <Edit2 size={16} />
- </button>
- <button 
- onClick={(e) => {
- e.stopPropagation();
- setInvoiceToDelete(inv.id);
- }}
- className="p-2 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-500 transition-colors"
- title="حذف"
- >
- <Trash2 size={16} />
- </button>
+ {!isPartner && (
+  <>
+  <button 
+  onClick={(e) => { e.stopPropagation(); handleEditInvoice(inv); }}
+  className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
+  title="تعديل"
+  >
+  <Edit2 size={16} />
+  </button>
+  <button 
+  onClick={(e) => {
+  e.stopPropagation();
+  setInvoiceToDelete(inv.id);
+  }}
+  className="p-2 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-500 transition-colors"
+  title="حذف"
+  >
+  <Trash2 size={16} />
+  </button>
+  </>
+ )}
  </div>
  </td>
  </motion.tr>
