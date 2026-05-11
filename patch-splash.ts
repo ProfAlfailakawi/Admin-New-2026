@@ -31,8 +31,8 @@ if (oldSplashStart !== -1 && oldSplashEnd !== -1) {
 // 4. Add new ZenSplash and wrapper at bottom
 const newCode = `
 const ZEN_QUOTES = [
-  "رؤية واضحة.. تبيان لكل شيء",
-  "النجاح ليس صدفة، بل هو قرار وتبيان",
+  "رؤية واضحة.. التراث في كل تفصيلة",
+  "النجاح ليس صدفة، بل هو قرار وتراث",
   "حيث تتضح الرؤية، يولد الإنجاز",
   "كل تفصيل يصنع فارقاً",
   "بوضوح الرؤية، نرتقي",
@@ -79,7 +79,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
                 className="text-center"
             >
               <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-l from-slate-900 via-indigo-800 to-emerald-700 bg-clip-text text-transparent mb-4 leading-relaxed tracking-tight">
-                {name || 'تبيان'}
+                {name || 'التراث'}
               </h1>
             </motion.div>
 
@@ -117,7 +117,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
 const App: React.FC = () => {
    const [showSplash, setShowSplash] = useState(true);
    const [logo, setLogo] = useState(DEFAULT_GLOBAL_LOGO);
-   const [name, setName] = useState('تبيان');
+   const [name, setName] = useState('التراث');
 
    useEffect(() => {
      try {

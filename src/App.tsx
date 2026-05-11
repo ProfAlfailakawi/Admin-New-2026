@@ -344,7 +344,7 @@ const MainApp: React.FC = () => {
 
   // Extreme Cache clearing for major updates
   useEffect(() => {
-    const CURRENT_VERSION = '3.2.0';
+    const CURRENT_VERSION = '4.0.0';
     if (localStorage.getItem('app_version') !== CURRENT_VERSION) {
       if ('caches' in window) {
         caches.keys().then(names => {
@@ -1929,7 +1929,7 @@ const MainApp: React.FC = () => {
       
       {/* Version Tag - Subtle but visible as requested */}
       <div className="fixed bottom-1 left-2 pointer-events-none z-[10000] select-none opacity-20">
-        <span className="text-[8px] font-mono tracking-widest text-slate-500 uppercase">Version 3.2.0.Release</span>
+        <span className="text-[8px] font-mono tracking-widest text-slate-500 uppercase">Version 4.0.0.Release</span>
       </div>
     </div>
   );
@@ -1976,8 +1976,8 @@ const SubNavItem: React.FC<{ label: string; active?: boolean; onClick: () => voi
 
 
 const ZEN_QUOTES = [
-  "رؤية واضحة.. تبيان لكل شيء",
-  "النجاح ليس صدفة، بل هو قرار وتبيان",
+  "رؤية واضحة.. التراث في كل تفصيلة",
+  "النجاح ليس صدفة، بل هو قرار وتراث",
   "حيث تتضح الرؤية، يولد الإنجاز",
   "كل تفصيل يصنع فارقاً",
   "بوضوح الرؤية، نرتقي",
@@ -2024,7 +2024,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
                 className="text-center"
             >
               <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-l from-slate-900 via-indigo-800 to-emerald-700 bg-clip-text text-transparent mb-4 leading-relaxed tracking-tight">
-                {name || 'تبيان'}
+                {name || 'التراث'}
               </h1>
             </motion.div>
 
@@ -2062,7 +2062,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
 const App: React.FC = () => {
    const [showSplash, setShowSplash] = useState(true);
    const [logo, setLogo] = useState(DEFAULT_GLOBAL_LOGO);
-   const [name, setName] = useState('تبيان');
+   const [name, setName] = useState('التراث');
 
    useEffect(() => {
      try {
