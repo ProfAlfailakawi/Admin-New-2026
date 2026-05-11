@@ -1,54 +1,50 @@
-# ALL FINAL Admin Push Upload
+# Final Stable Admin Push Files
 
 ## الملفات
 
 ```text
 public/firebase-messaging-sw.js
-scripts/apply-all-final-admin-push.js
+scripts/apply-final-stable-admin-push.js
 README_UPLOAD.md
 FILE_TREE.txt
 ```
 
-## يشمل
+## يشمل آخر نسخة مستقرة
 
-- Service Worker نهائي بدون `addEventListener('push')`
-- `server.ts` data-only بدون `notification:`
-- منع التكرار عبر `pushEvents`
-- أحدث push token واحد فقط
-- `lastCheckedAt` + `businessSince` 15 دقيقة
-- ORD:
-  - طلب جديد
-  - فشل الدفع
-  - الدفع الناجح
-  - لم يدفع بعد 10 دقائق
-- INV:
-  - فشل دفع فاتورة
-  - تم دفع فاتورة
-  - فاتورة لم تُدفع بعد 10 دقائق
-- Debug:
-  - `/api/debug/shared-invoice/:invoiceId`
-  - `/api/debug/push-event/:eventId`
+- Data-only FCM: لا يوجد `notification:` في `server.ts`
+- Service Worker يعرض من `messaging.onBackgroundMessage` فقط
+- لا يوجد `addEventListener('push')` في Service Worker
+- `claimPushEvent` لمنع تكرار نفس الحدث
+- إرسال لآخر push token واحد فقط
+- ترتيب Firestore Timestamp صحيح للتوكنات
+- `businessSince = lastCheckedAt - 5 minutes`
+- تحديث `lastCheckedAt` بعد كل فحص ناجح
+- دعم `appData/shared_company_data.orders`
+- دعم `status: "جديد"`
+- دعم `status: "فشل في عملية الدفع"` و `paymentStatus: "failed"`
+- دعم `paid`
+- `order_spike` كل ساعتين باستخدام `twoHourBucket`
 
 ## التطبيق
 
+من جذر مشروع الأدمن:
+
 ```bash
-cd ~/Downloads/New
-node scripts/apply-all-final-admin-push.js
+node scripts/apply-final-stable-admin-push.js
 ```
 
-## التحقق
+تحقق:
 
 ```bash
 grep -n "notification:" server.ts
+grep -n "claimPushEvent\|slice(0, 1)\|lastCheckedAt: now.toISOString\|businessSince\|business-order-created" server.ts
 ```
 
-لازم لا يرجع شيء.
-
-```bash
-grep -n "claimPushEvent\|claimDirectInvoiceEvent\|slice(0, 1)\|lastCheckedAt: now.toISOString\|businessSince\|business-order-created\|invoice-failed-\|invoice-paid-\|invoice-pending-10min" server.ts
-```
+الأمر الأول لازم لا يرجع شيئًا.
 
 ## النشر
+
+Cloud Run:
 
 ```bash
 gcloud run deploy service \
@@ -59,7 +55,7 @@ gcloud run deploy service \
   --set-env-vars ADMIN_TEST_SECRET=123456
 ```
 
-ثم:
+Hosting:
 
 ```bash
 cp public/firebase-messaging-sw.js dist/firebase-messaging-sw.js

@@ -21,7 +21,6 @@ import ConfirmModal from './ui/ConfirmModal';
 import { toast } from 'sonner';
 import { NumericInput } from './ui/NumericInput';
 import TestimonialsManager from './TestimonialsManager';
-import SmartEmptyState from './SmartEmptyState';
 
 interface CustomerPageProps {
  data: AppState;

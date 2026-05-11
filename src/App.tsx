@@ -1928,8 +1928,8 @@ const MainApp: React.FC = () => {
       <Toaster richColors position="bottom-right" closeButton />
       
       {/* Version Tag - Subtle but visible as requested */}
-      <div className="fixed bottom-2 left-2 z-[10000] select-none opacity-30">
-        <span className="text-[8px] font-mono tracking-widest text-slate-500 uppercase">Version 4.0.0</span>
+      <div className="fixed bottom-1 left-2 pointer-events-none z-[10000] select-none opacity-20">
+        <span className="text-[8px] font-mono tracking-widest text-slate-500 uppercase">Version 3.2.0.Release</span>
       </div>
     </div>
   );
@@ -1976,11 +1976,11 @@ const SubNavItem: React.FC<{ label: string; active?: boolean; onClick: () => voi
 
 
 const ZEN_QUOTES = [
-  "أصالة الماضي.. برؤية المستقبل",
-  "الجودة شعارنا.. والتميز مسارنا",
-  "حيث يلتقي الطعم الأصيل.. بالإتقان",
-  "كل تفصيل في التراث يصنع فارقاً",
-  "بوضوح الرؤية، نرتقي بالخدمة",
+  "رؤية واضحة.. تبيان لكل شيء",
+  "النجاح ليس صدفة، بل هو قرار وتبيان",
+  "حيث تتضح الرؤية، يولد الإنجاز",
+  "كل تفصيل يصنع فارقاً",
+  "بوضوح الرؤية، نرتقي",
   "نضيء الدرب بخطى واثقة",
   "الإتقان لغة لا تحتاج إلى ترجمة",
   "نحن لا ننتظر المستقبل، بل نصنعه"
@@ -2024,7 +2024,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
                 className="text-center"
             >
               <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-l from-slate-900 via-indigo-800 to-emerald-700 bg-clip-text text-transparent mb-4 leading-relaxed tracking-tight">
-                {name || 'مطبخ التراث الكويتي'}
+                {name || 'تبيان'}
               </h1>
             </motion.div>
 
@@ -2062,7 +2062,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
 const App: React.FC = () => {
    const [showSplash, setShowSplash] = useState(true);
    const [logo, setLogo] = useState(DEFAULT_GLOBAL_LOGO);
-   const [name, setName] = useState('مطبخ التراث الكويتي');
+   const [name, setName] = useState('تبيان');
 
    useEffect(() => {
      try {
