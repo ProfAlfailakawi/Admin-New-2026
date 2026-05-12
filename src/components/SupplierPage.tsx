@@ -191,14 +191,14 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
 
  <div className="grid grid-cols-1 gap-2 md:p-3 text-right">
- <div className="bg-white p-3 md:p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
- <div className="w-10 md:w-12 h-10 md:h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 shadow-inner mb-4">
- <Wallet size={40} />
+ <div className="bg-white p-3 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200 shadow-sm flex flex-row md:flex-col items-center md:justify-center text-right md:text-center gap-3 md:gap-0">
+ <div className="w-10 h-10 md:w-12 md:h-12 bg-red-50 rounded-lg md:rounded-2xl flex items-center justify-center text-red-500 shadow-inner md:mb-4 shrink-0 [&>svg]:w-5 [&>svg]:h-5 md:[&>svg]:w-6 md:[&>svg]:h-6">
+ <Wallet size={24} />
  </div>
- <div>
- <div className="text-sm font-black text-slate-400 uppercase mb-1">إجمالي مديونية الموردين (المجموع الكلي)</div>
- <div className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter">{Number(totalOutstanding || 0).toFixed(3)} <span className="text-xl">د.ك</span></div>
- <p className="text-xs text-slate-400 font-medium mt-2">إجمالي المبالغ المستحقة لجميع الموردين المسجلين</p>
+ <div className="flex-1">
+ <div className="text-[10px] md:text-sm font-black text-slate-400 uppercase mb-0.5 md:mb-1">إجمالي المديونية</div>
+ <div className="text-lg md:text-3xl font-black text-slate-900 tracking-tighter leading-none">{Number(totalOutstanding || 0).toFixed(3)} <span className="text-sm md:text-xl font-bold">د.ك</span></div>
+ <p className="hidden md:block text-xs text-slate-400 font-medium mt-2 leading-tight">إجمالي المبالغ المستحقة لجميع الموردين المسجلين</p>
  </div>
  </div>
  </div>

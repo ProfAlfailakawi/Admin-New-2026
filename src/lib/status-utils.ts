@@ -7,7 +7,7 @@ export const isPaidStatus = (s: string | undefined | null) => {
 export const isPendingStatus = (s: string | undefined | null) => {
   if (!s) return true; // Default to pending if no status
   const str = String(s).toLowerCase().replace(/_/g, ' ').trim();
-  return ['pending', 'new', 'جديد', 'awaiting payment', 'processing', 'بانتظار الدفع', 'انتظار'].includes(str);
+  return ['pending', 'new', 'جديد', 'awaiting payment', 'processing', 'بانتظار الدفع', 'انتظار', 'قيد تجميع القطية'].includes(str);
 };
 
 export const isFailedStatus = (s: string | undefined | null) => {
@@ -19,5 +19,5 @@ export const isFailedStatus = (s: string | undefined | null) => {
 export const isCancelledStatus = (s: string | undefined | null) => {
   if (!s) return false;
   const str = String(s).toLowerCase().replace(/_/g, ' ').trim();
-  return ['cancelled', 'canceled', 'ملغي', 'تم الإلغاء', 'cancel'].includes(str);
+  return ['cancelled', 'canceled', 'ملغي', 'تم الإلغاء', 'cancel', 'ملغي - انتهى وقت القطية', 'انتهى وقت القطية'].includes(str) || str.includes('ملغي');
 };

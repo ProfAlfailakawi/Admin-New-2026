@@ -17,7 +17,10 @@ import {
  MapPin,
  Package,
  TrendingUp,
- Wallet
+ Wallet,
+ RefreshCw,
+ Users,
+ Dices
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, normalizeArabic, robustNormalize } from '../lib/utils';
@@ -89,9 +92,10 @@ interface OrderPageProps {
 const InsightCard = ({ label, value, icon: Icon, color, onClick }: { label: string, value: any, icon: any, color: string, onClick?: () => void }) => {
  const isFailedCard = label ==="فشل في عملية الدفع" && value > 0;
  const isPendingCard = label ==="بانتظار الدفع" && value > 0;
- const needsPulse = isFailedCard || isPendingCard;
- const glowColorClass = isFailedCard ?"bg-amber-500" : isPendingCard ?"bg-violet-500" :"";
- const bgGlowColorClass = isFailedCard ?"bg-amber-500/10" : isPendingCard ?"bg-violet-500/10" :"";
+ const isSplitPendingCard = label ==="قيد تجميع القطية" && value > 0;
+ const needsPulse = isFailedCard || isPendingCard || isSplitPendingCard;
+ const glowColorClass = isFailedCard ?"bg-amber-500" : isPendingCard ?"bg-violet-500" : isSplitPendingCard ?"bg-purple-500" :"";
+ const bgGlowColorClass = isFailedCard ?"bg-amber-500/10" : isPendingCard ?"bg-violet-500/10" : isSplitPendingCard ?"bg-purple-500/10" :"";
 
  return (
  <div onClick={onClick} className={cn("bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 relative overflow-hidden", onClick ?"cursor-pointer hover:shadow-md transition-all active:scale-95" :"")}>
@@ -243,9 +247,10 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  const matchesFilter = filterStatus === 'all' || 
  (filterStatus === 'today' ? isToday(order.date, order) : 
  (filterStatus === 'failed' ? isFailedStatus(order.status) :
- (filterStatus === 'pending' ? (isPendingStatus(order.status) || isFailedStatus(order.status)) : 
+ (filterStatus === 'pending' ? ((isPendingStatus(order.status) || isFailedStatus(order.status)) && !String(order.status).includes('تجميع القطية') && order.status !== 'split_pending') : 
+ (filterStatus === 'split_pending' ? (String(order.status).includes('تجميع القطية') || order.status === 'split_pending') :
  (filterStatus === 'paid' ? isPaidStatus(order.status) : 
- (filterStatus === 'cancelled' ? isCancelledStatus(order.status) : order.status === filterStatus)))));
+ (filterStatus === 'cancelled' ? isCancelledStatus(order.status) : order.status === filterStatus))))));
  
  return matchesSearch && matchesFilter;
  });
@@ -259,6 +264,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  return 'bg-emerald-100 text-emerald-700 border-emerald-200';
  }
  if (isFailedStatus(status)) return 'bg-amber-100 text-amber-700 border-amber-200';
+ if (String(status).includes('تجميع القطية') || status === 'split_pending') return 'bg-purple-100 text-purple-700 border-purple-200';
  if ((isPendingStatus(status) || isFailedStatus(status))) return 'bg-violet-100 text-violet-700 border-violet-200';
  if (isCancelledStatus(status)) return 'bg-rose-100 text-rose-700 border-rose-200';
  
@@ -283,7 +289,10 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
 
  const getStatusLabel = (status: string, order?: Order) => {
  if (status === 'today') return 'طلبات اليوم';
- if (isCancelledStatus(status)) return 'ملغي';
+ if (isCancelledStatus(status)) {
+   if (status === 'انتهى وقت القطية' || status === 'ملغي - انتهى وقت القطية') return 'ملغي - انتهى وقت القطية';
+   return 'ملغي';
+ }
  if (isPaidStatus(status)) {
  const isVerifiedPaid = order && (order as any).paymentStatus === 'paid';
  const needsSupplier = order && !order.isConvertedToInvoice && hasUnselectedSuppliers(order) && !isVerifiedPaid;
@@ -294,6 +303,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  return 'تم الدفع وجاري التوصيل';
  }
  if (isFailedStatus(status)) return 'فشل في عملية الدفع';
+ if (String(status).includes('تجميع القطية') || status === 'split_pending') return 'قيد تجميع القطية 🔄';
  if ((isPendingStatus(status) || isFailedStatus(status))) return 'بانتظار الدفع';
  return status;
  };
@@ -708,6 +718,7 @@ paymentData.data?.link ||
   discount: discountVal,
   paymentMethod: (isActuallyPaid || isZeroPaid) ? "KNet" : "Link",
   deliveryType: orderDeliveryType,
+  manuallyModifiedDeliveryType: true,
   deliveryFee: invoiceDeliveryFee,
   deliveryInfo: zone ? {
     company: "",
@@ -769,13 +780,14 @@ paymentData.data?.link ||
 
  const linkedInvoice = order.linkedInvoiceId ? (data?.invoices || []).find(inv => inv.id === order.linkedInvoiceId) : undefined;
  console.log("DEBUG: Order:", order.id,"linkedInvoiceId:", order.linkedInvoiceId,"linkedInvoice:", linkedInvoice);
- const paymentLink = linkedInvoice?.paymentLink || (order as any).paymentLink;
+ const paymentLink = linkedInvoice?.paymentLink || (order as any).paymentLink || (linkedInvoice as any)?.splitLink || (linkedInvoice as any)?.split_link || (order as any).splitLink || (order as any).split_link || (order as any).splitPaymentLink || (order as any).split_payment_link || (order as any).paymentUrl || (order as any).payment_url || (order as any).url || (order as any).link;
  console.log("DEBUG: Found paymentLink:", paymentLink);
 
  const titleLine = `*فاتورة من شركة مطبخ التراث الكويتي*`;
  const headerLine = `رقم الفاتورة: ${linkedInvoice?.id || `INV-${order.id.slice(-6)}`}`;
  const footerLine = `إجمالي الفاتورة: ${Number(total).toFixed(3)} د.ك`;
- const paymentLinkLine = (paymentLink && paymentLink.trim() !== '') ? `\nرابط الدفع: ${paymentLink}` : '';
+ const isPaidNow = isPaidStatus(order.status) && !(String(order.status).includes('تجميع القطية') || order.status === 'split_pending');
+ const paymentLinkLine = (paymentLink && paymentLink.trim() !== '' && !isPaidNow) ? `\nرابط الدفع: ${paymentLink}` : '';
  
  // Explicitly add coupon if present
  const promoCodeName = (order as any).appliedPromoCodeName || linkedInvoice?.appliedPromoCodeName;
@@ -785,7 +797,19 @@ paymentData.data?.link ||
 const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 'عميل'} ${addressLine}\n${headerLine}\nالطلب:\n${items}\n\nالمجموع: ${subtotal.toFixed(3)} د.ك\nرسوم التوصيل: ${Number(deliveryFee).toFixed(3)} د.ك\n${promoLine}${footerLine}${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
 
  const phoneUsed = order.customerPhone || (data?.customers || []).find(c => c.id === order.customerId)?.phone || '';
- return `https://wa.me/${phoneUsed.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+
+  let finalMessage = message;
+  const targetObj = linkedInvoice || order;
+  if ((targetObj as any).splitType === 'traditional' && Array.isArray((targetObj as any).splitPayments)) {
+    const splitText = `\n\n*المشاركين بالقطية:*\n` + ((targetObj as any).splitPayments).map((sp:any) => `- ${sp.name || 'مشارك'} (${sp.phone||'بدون رقم'}) - ${Number(sp.amount||0).toFixed(3)} د.ك`).join('\n');
+    finalMessage = message.replace('شكراً لتعاملكم', splitText + '\n\nشكراً لتعاملكم');
+  } else if ((targetObj as any).splitType === 'roulette' && Array.isArray((targetObj as any).splitParticipants)) {
+    const participants = ((targetObj as any).splitParticipants).map((p:any) => typeof p === 'object' ? `${p.name||''} ${p.phone?`(${p.phone})`:''}`.trim() : p).join('، ');
+    const splitText = `\n\n*🎲 روليت الحظ 🎲*\nالمشاركون: ${participants}\n*بطل الليلة اللي دفعها:* ${(targetObj as any).rouletteLoser || 'غير معروف'}`;
+    finalMessage = message.replace('شكراً لتعاملكم', splitText + '\n\nشكراً لتعاملكم');
+  }
+
+ return `https://wa.me/${phoneUsed.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(finalMessage)}`;
  };
 
  return (
@@ -810,8 +834,11 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  </div>
 
  {/* Quick Insights Bar */}
- <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+ <div className="flex overflow-x-auto lg:grid lg:grid-cols-7 gap-3 md:gap-4 pb-2 -mx-3 px-3 md:mx-0 md:px-0 md:pb-0 hide-scrollbar">
+ <div className="min-w-[140px] md:min-w-0">
  <InsightCard label="إجمالي الطلبات" value={orders.length} icon={ClipboardList} color="text-slate-400" onClick={() => setFilterStatus('all')} />
+ </div>
+ <div className="min-w-[140px] md:min-w-0">
  <InsightCard label="طلبات اليوم" value={data.orders.filter(o => {
  let d = new Date();
  const oAsAny = o as any;
@@ -824,10 +851,22 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  const today = new Date();
  return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
  }).length} icon={Calendar} color="text-indigo-500" onClick={() => setFilterStatus('today')} />
- <InsightCard label="بانتظار الدفع" value={data.orders.filter(o => (isPendingStatus(o.status as string) || isFailedStatus(o.status as string))).length} icon={Clock} color="text-violet-500" onClick={() => setFilterStatus('pending')} />
- <InsightCard label="فشل في عملية الدفع" value={data.orders.filter(o => isFailedStatus(o.status as string)).length} icon={AlertCircle} color="text-amber-500" onClick={() => setFilterStatus('failed')} />
- <InsightCard label="تم الدفع وجاري التوصيل" value={data.orders.filter(o => isPaidStatus(o.status as string)).length} icon={CheckCircle2} color="text-emerald-500" onClick={() => setFilterStatus('paid')} />
+ </div>
+ <div className="min-w-[140px] md:min-w-0">
+ <InsightCard label="قيد تجميع القطية" value={data.orders.filter(o => String(o.status).includes('تجميع القطية') || o.status === 'split_pending').length} icon={RefreshCw} color="text-purple-500" onClick={() => setFilterStatus('split_pending')} />
+ </div>
+ <div className="min-w-[140px] md:min-w-0">
+ <InsightCard label="بانتظار الدفع" value={data.orders.filter(o => (isPendingStatus(o.status as string) || isFailedStatus(o.status as string)) && !(String(o.status).includes('تجميع القطية') || o.status === 'split_pending')).length} icon={Clock} color="text-violet-500" onClick={() => setFilterStatus('pending')} />
+ </div>
+ <div className="min-w-[140px] md:min-w-0">
+ <InsightCard label="فشل في الدفع" value={data.orders.filter(o => isFailedStatus(o.status as string)).length} icon={AlertCircle} color="text-amber-500" onClick={() => setFilterStatus('failed')} />
+ </div>
+ <div className="min-w-[140px] md:min-w-0">
+ <InsightCard label="جاري التوصيل" value={data.orders.filter(o => isPaidStatus(o.status as string)).length} icon={CheckCircle2} color="text-emerald-500" onClick={() => setFilterStatus('paid')} />
+ </div>
+ <div className="min-w-[140px] md:min-w-0">
  <InsightCard label="ملغي" value={data.orders.filter(o => isCancelledStatus(o.status as string)).length} icon={XCircle} color="text-rose-500" onClick={() => setFilterStatus('cancelled')} />
+ </div>
  </div>
 
  {/* Main Container */}
@@ -912,8 +951,8 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  {isPending && (
  <div 
  className={cn(
-"absolute inset-0 rounded-lg filter blur-md animate-pulse",
- isFailedStatus(order.status as string) ?"bg-amber-500" :"bg-violet-500"
+ "absolute inset-0 rounded-lg filter blur-md animate-pulse",
+ isFailedStatus(order.status as string) ?"bg-amber-500" : (String(order.status).includes('تجميع القطية') || order.status === 'split_pending') ? "bg-purple-500" : "bg-violet-500"
 )}
  />
 )}
@@ -1064,6 +1103,71 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <div className="lg:col-span-2 space-y-6 md:space-y-8">
  {/* Items List */}
  <div className="space-y-3 md:space-y-4">
+ {(selectedOrder as any).splitType === 'traditional' && Array.isArray((selectedOrder as any).splitPayments) && (selectedOrder as any).splitPayments.length > 0 && (
+ <div className="mb-4 bg-purple-50/50 border border-purple-100 p-3 md:p-4 rounded-xl">
+ <h4 className="text-[12px] md:text-sm font-black uppercase text-purple-600 mb-3 flex items-center gap-2">
+ <Users className="w-4 h-4 md:w-5 md:h-5" /> المشاركين بالقطية
+ </h4>
+ <div className="space-y-2">
+ {((selectedOrder as any).splitPayments).map((sp: any, i: number) => (
+ <div key={i} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-purple-50 shadow-sm">
+ <div className="flex flex-col">
+ <span className="font-bold text-sm md:text-base text-slate-800">{sp.name || 'مشارك'}</span>
+ <span className="text-[10px] md:text-xs text-slate-500">{sp.phone || 'بدون رقم'}</span>
+ </div>
+ <div className="flex flex-col items-end gap-1">
+ <span className="font-black text-primary text-sm md:text-base">{Number(sp.amount || 0).toFixed(3)} د.ك</span>
+ {sp.status === 'paid' ? (
+ <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <CheckCircle2 className="w-3 h-3" /> مدفوع
+ </span>
+ ) : isCancelledStatus(sp.status) ? (
+ <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <XCircle className="w-3 h-3" /> ملغي
+ </span>
+ ) : sp.status === 'failed' ? (
+ <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <AlertCircle className="w-3 h-3" /> فشل الدفع
+ </span>
+ ) : (
+ <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <Clock className="w-3 h-3" /> بانتظار الدفع
+ </span>
+ )}
+ </div>
+ </div>
+ ))}
+ </div>
+ </div>
+ )}
+
+ {(selectedOrder as any).splitType === 'roulette' && Array.isArray((selectedOrder as any).splitParticipants) && (selectedOrder as any).splitParticipants.length > 0 && (
+ <div className="mb-4 bg-purple-100 border-2 border-purple-400 p-4 rounded-xl shadow-inner relative overflow-hidden">
+ <div className="absolute -right-2 -top-2 md:-right-4 md:-top-4 opacity-10 pointer-events-none text-8xl md:text-9xl">🎲</div>
+ <h4 className="text-xs md:text-sm font-black uppercase text-purple-900 mb-3 md:mb-4 flex items-center gap-2">
+ <Dices className="w-4 h-4 md:w-5 md:h-5 text-purple-600" /> روليت الحظ
+ </h4>
+ 
+ <div className="bg-white rounded-xl p-3 border-2 border-purple-200 mb-3 text-center">
+ <div className="text-[10px] md:text-xs font-bold text-purple-400 mb-1">بطل الليلة (الخاسر اللي دفعها)</div>
+ <div className="text-base md:text-lg font-black text-purple-700">{(selectedOrder as any).rouletteLoser || 'غير معروف'}</div>
+ </div>
+
+ <div className="space-y-1">
+ <div className="text-[10px] font-bold text-purple-600 mb-2">المشاركون باللعب:</div>
+ <div className="flex flex-wrap gap-2">
+ {((selectedOrder as any).splitParticipants).map((pName: any, idx: number) => {
+ const pVal = typeof pName === 'object' ? `${pName.name || 'مجهول'} ${pName.phone ? `(${pName.phone})` : ''}` : pName;
+ return (
+ <span key={idx} className="bg-white/60 text-purple-800 text-[10px] md:text-xs font-bold px-2 py-1 rounded-md border border-purple-200">
+ {pVal}
+ </span>
+ );
+ })}
+ </div>
+ </div>
+ </div>
+ )}
  <h3 className="font-black text-slate-800 flex items-center gap-2 text-lg md:text-xl">
  <Package size={20} className="text-indigo-600 md:w-6 md:h-6" /> الأصناف المطلوبة
  </h3>
@@ -1269,6 +1373,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
 "px-2.5 py-0.5 md:px-3 md:py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase text-white transition-all shadow-md",
  ((isPendingStatus(selectedOrder.status as string) || isFailedStatus(selectedOrder.status as string)) || (isPaidStatus(selectedOrder.status) && hasUnselectedSuppliers(selectedOrder))) ?"animate-bounce" :"",
  isFailedStatus(selectedOrder.status as string) ?"bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]" :
+ (String(selectedOrder.status).includes('تجميع القطية') || selectedOrder.status === 'split_pending') ? "bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.5)]" :
  (isPendingStatus(selectedOrder.status as string) || isFailedStatus(selectedOrder.status as string)) ?"bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.5)]" :
  (isPaidStatus(selectedOrder.status) && hasUnselectedSuppliers(selectedOrder) && !selectedOrder.isConvertedToInvoice) ?"bg-gradient-to-r from-rose-500 to-rose-600 shadow-[0_0_20px_rgba(244,63,94,0.5)]" :
  isPaidStatus(selectedOrder.status) ?"bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" :"bg-slate-500"
@@ -1281,7 +1386,8 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <div className="flex flex-col gap-2.5 md:gap-3">
  <button 
  onClick={async () => {
- const paymentLink = selectedOrder.linkedInvoiceId ? (data?.invoices || []).find(inv => inv.id === selectedOrder.linkedInvoiceId)?.paymentLink : (selectedOrder as any).paymentLink;
+ const linkedInvoice = selectedOrder.linkedInvoiceId ? (data?.invoices || []).find(inv => inv.id === selectedOrder.linkedInvoiceId) : undefined;
+ const paymentLink = linkedInvoice?.paymentLink || (selectedOrder as any).paymentLink || (linkedInvoice as any)?.splitLink || (linkedInvoice as any)?.split_link || (selectedOrder as any).splitLink || (selectedOrder as any).split_link || (selectedOrder as any).splitPaymentLink || (selectedOrder as any).split_payment_link || (selectedOrder as any).paymentUrl || (selectedOrder as any).payment_url || (selectedOrder as any).url || (selectedOrder as any).link;
 
  if (!paymentLink || paymentLink.trim() === '') {
    toast.info("سيتم إنشاء رابط دفع جديد ثم فتح واتساب...");

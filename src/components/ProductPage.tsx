@@ -610,7 +610,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       )}
 
       {/* Analytics Cards */}
-      <div className="grid grid-cols-1 gap-2 md:p-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 md:p-3 mb-2 md:mb-0">
         <StatCardComponent
           label="إجمالي المنتجات"
           value={(data?.products || []).length}

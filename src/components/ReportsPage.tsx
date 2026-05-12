@@ -2,7 +2,7 @@ import { getUnifiedInvoices } from '../lib/utils';
 import React, { useState } from 'react';
 import { 
  FileText, Search, RefreshCw, Printer, Trash2, Edit2, ChevronDown, ChevronUp, Package, User, CreditCard, Clock, CheckCircle2, X, TrendingUp, Plus,
- MessageSquare, 
+ MessageSquare, Users, Dices, XCircle, AlertCircle,
  ClipboardList
 } from 'lucide-react';
 import { AppState, Invoice } from '../types';
@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import { toast } from 'sonner';
 import { recalculateStateBalances } from '../lib/business-logic';
-import { isPaidStatus, isPendingStatus, isFailedStatus } from '../lib/status-utils';
+import { isPaidStatus, isPendingStatus, isFailedStatus, isCancelledStatus } from '../lib/status-utils';
 import OrderPage from './OrderPage';
 
 interface ReportsPageProps {
@@ -84,9 +84,19 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  const noteValue = inv.notes || (inv as any).customerNotes || (inv as any).instruction || (inv as any).note || (inv as any).comments;
  const noteStr = typeof noteValue === 'string' ? noteValue : (noteValue ? JSON.stringify(noteValue) : '');
  
- const matchesSearch = (inv.id || '').includes(search) || 
- (customer?.name || '').includes(search) ||
- noteStr.includes(search);
+ const productNames = (inv.items || []).map((item: any) => {
+   const p = (data?.products || []).find((prod: any) => prod.id === item.productId);
+   return (p?.name || '').toLowerCase();
+ }).join(' ');
+
+ const lowerSearch = search.toLowerCase();
+ const matchesSearch = (inv.id || '').toLowerCase().includes(lowerSearch) || 
+ (customer?.name || '').toLowerCase().includes(lowerSearch) ||
+ (customer?.phone || '').includes(lowerSearch) ||
+ ((inv as any).customerName || '').toLowerCase().includes(lowerSearch) ||
+ ((inv as any).customerPhone || '').includes(lowerSearch) ||
+ productNames.includes(lowerSearch) ||
+ noteStr.toLowerCase().includes(lowerSearch);
  
  if (timeFilter === 'all') return matchesSearch;
  const invDate = new Date(inv.date);
@@ -630,12 +640,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   }, 0);
   
   const total = invoice.totalAmount || Math.max(0, subtotal + (Number(invoice.deliveryFee) || 0) - (Number(invoice.discount) || 0));
-  const paymentLink = invoice.paymentLink;
+  const paymentLink = invoice.paymentLink || (invoice as any).splitLink || (invoice as any).split_link || (invoice as any).splitPaymentLink || (invoice as any).split_payment_link || (invoice as any).paymentUrl || (invoice as any).payment_url || (invoice as any).url || (invoice as any).link;
   
   const titleLine = `*فاتورة من شركة مطبخ التراث الكويتي*`;
   const headerLine = `رقم الفاتورة: ${invoice.id}`;
   const footerLine = `إجمالي الفاتورة: ${Number(total).toFixed(3)} د.ك`;
-  const paymentLinkLine = (paymentLink && paymentLink.trim() !== '') ? `\nرابط الدفع: ${paymentLink}` : '';
+ const isPaidNow = isPaidStatus(invoice.paymentStatus) && !(String(invoice.status).includes('تجميع القطية') || invoice.status === 'split_pending');
+ const paymentLinkLine = (paymentLink && paymentLink.trim() !== '' && !isPaidNow) ? `\nرابط الدفع: ${paymentLink}` : '';
   
   const promoCodeName = invoice.appliedPromoCodeName;
   const discount = Number(invoice.discount) || 0;
@@ -645,7 +656,17 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
 
   const message = `${titleLine}\n\nالعميل: ${customer?.name || 'عميل'} ${addressLine}\n${headerLine}\nالطلب:\n${items}\n\nالمجموع: ${subtotal.toFixed(3)} د.ك\nرسوم التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}${footerLine}${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
 
-  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+  let finalMessage = message;
+  if ((invoice as any).splitType === 'traditional' && Array.isArray((invoice as any).splitPayments)) {
+    const splitText = `\n\n*المشاركين بالقطية:*\n` + ((invoice as any).splitPayments).map((sp:any) => `- ${sp.name || 'مشارك'} (${sp.phone||'بدون رقم'}) - ${Number(sp.amount||0).toFixed(3)} د.ك`).join('\n');
+    finalMessage = message.replace('شكراً لتعاملكم', splitText + '\n\nشكراً لتعاملكم');
+  } else if ((invoice as any).splitType === 'roulette' && Array.isArray((invoice as any).splitParticipants)) {
+    const participants = ((invoice as any).splitParticipants).map((p:any) => typeof p === 'object' ? `${p.name||''} ${p.phone?`(${p.phone})`:''}`.trim() : p).join('، ');
+    const splitText = `\n\n*🎲 روليت الحظ 🎲*\nالمشاركون: ${participants}\n*بطل الليلة اللي دفعها:* ${(invoice as any).rouletteLoser || 'غير معروف'}`;
+    finalMessage = message.replace('شكراً لتعاملكم', splitText + '\n\nشكراً لتعاملكم');
+  }
+
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(finalMessage)}`;
  };
 
  return (
@@ -721,29 +742,31 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   
   
 
- <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:p-4">
- <div className="bg-white p-3 md:p-4 rounded-2xl border border-slate-200 shadow-sm text-right">
- <div className="text-[10px] font-black text-slate-400 uppercase mb-1">عدد الفواتير</div>
- <div className="text-xl md:text-3xl font-black text-slate-900">{filteredInvoices.length}</div>
+ <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 mb-3 md:mb-0">
+ <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200 shadow-sm text-right flex flex-col justify-center">
+ <div className="text-[10px] font-black text-slate-400 uppercase mb-0.5 md:mb-1">عدد الفواتير</div>
+ <div className="text-xl md:text-3xl font-black text-slate-900 tracking-tighter">{filteredInvoices.length}</div>
  </div>
- <div className="bg-white p-3 md:p-4 rounded-2xl border border-slate-200 shadow-sm text-right">
- <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي المبيعات</div>
- <div className="text-xl md:text-3xl font-black text-primary">
+ <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200 shadow-sm text-right flex flex-col justify-center">
+ <div className="text-[10px] font-black text-slate-400 uppercase mb-0.5 md:mb-1">إجمالي المبيعات</div>
+ <div className="text-xl md:text-3xl font-black text-primary tracking-tighter truncate">
  {Math.max(0, filteredInvoices
- .filter(inv => isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined)
+ .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
  .reduce((a, b) => a + Math.max(0, Number(b.totalAmount || 0)), 0))
  .toFixed(3)
  }
+ <span className="text-sm font-bold mr-1">د.ك</span>
  </div>
  </div>
- <div className="bg-white p-3 md:p-4 rounded-2xl border border-slate-200 shadow-sm text-right">
- <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي الربح</div>
- <div className="text-xl md:text-3xl font-black text-emerald-600">
+ <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200 shadow-sm text-right flex flex-col justify-center col-span-2 md:col-span-1">
+ <div className="text-[10px] font-black text-slate-400 uppercase mb-0.5 md:mb-1">إجمالي الربح</div>
+ <div className="text-xl md:text-3xl font-black text-emerald-600 tracking-tighter truncate">
  {Math.max(0, filteredInvoices
- .filter(inv => isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined)
+ .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
  .reduce((a, b) => a + Math.max(0, Number(b.profit || 0)), 0))
  .toFixed(3)
  }
+ <span className="text-sm font-bold mr-1">د.ك</span>
  </div>
  </div>
  </div>
@@ -858,14 +881,14 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <span dir="ltr" className="text-[9px] font-medium text-slate-400 m-0 p-0 leading-none inline-block text-left">{new Date(inv.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
  <span className={cn(
 "px-2 py-0.5 rounded-md font-black text-[9px] uppercase",
- inv.deliveryType === 'company' ?"bg-blue-50 text-blue-500" :
+ inv.deliveryType === 'standard' ?"bg-emerald-50 text-emerald-500" :
  inv.deliveryType === 'special' ?"bg-purple-50 text-purple-500" :
  inv.deliveryType === 'free' ?"bg-amber-50 text-amber-500" :
-"bg-emerald-50 text-emerald-500"
+"bg-blue-50 text-blue-500"
 )}>
- {inv.deliveryType === 'company' ? 'شركة' : 
+ {inv.deliveryType === 'standard' ? 'ربح' : 
  inv.deliveryType === 'special' ? 'خاص' :
- inv.deliveryType === 'free' ? 'مجاني' : 'ربح'}
+ inv.deliveryType === 'free' ? 'مجاني' : 'شركة'}
  </span>
  </div>
  </td>
@@ -876,10 +899,10 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </span>
     <div className={cn(
    "px-3 py-1 text-[10px] font-black rounded-lg transition-all w-fit",
-   isPaidStatus(inv.paymentStatus as string || (inv as any).status) ?"bg-emerald-100 text-emerald-700" : (inv.paymentStatus === 'failed' || String((inv as any).status).toLowerCase().includes('fail') || String((inv as any).status).includes('فشل') ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700")
+   (isPaidStatus(inv.paymentStatus as string) || isPaidStatus((inv as any).status)) ?"bg-emerald-100 text-emerald-700" : ((isCancelledStatus(inv.paymentStatus as string) || isCancelledStatus((inv as any).status)) ? "bg-rose-100 text-rose-700" : (isFailedStatus(inv.paymentStatus as string) || isFailedStatus((inv as any).status)) ? "bg-amber-100 text-amber-700" : String((inv as any).status).includes('تجميع القطية') || String(inv.paymentStatus).includes('تجميع القطية') ? "bg-purple-100 text-purple-700" : "bg-violet-100 text-violet-700")
   )}
     >
-    {isPaidStatus(inv.paymentStatus as string || (inv as any).status) ? 'مدفوع ✓' : (inv.paymentStatus === 'failed' || String((inv as any).status).toLowerCase().includes('fail') || String((inv as any).status).includes('فشل') ? 'فشلت عملية الدفع ❌' : 'في إنتظار الدفع ⏳')}
+    {(isPaidStatus(inv.paymentStatus as string) || isPaidStatus((inv as any).status)) ? 'مدفوع ✓' : ((isCancelledStatus(inv.paymentStatus as string) || isCancelledStatus((inv as any).status)) ? (((inv as any).status === 'انتهى وقت القطية' || (inv as any).status === 'ملغي - انتهى وقت القطية') ? 'ملغي - انتهى وقت القطية 🚫' : 'ملغي 🚫') : (isFailedStatus(inv.paymentStatus as string) || isFailedStatus((inv as any).status)) ? 'فشلت عملية الدفع ❌' : String((inv as any).status).includes('تجميع القطية') || String(inv.paymentStatus).includes('تجميع القطية') ? 'قيد تجميع القطية 🔄' : 'في إنتظار الدفع ⏳')}
     </div>
  </div>
  </td>
@@ -989,6 +1012,72 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </p>
  </div>
 )}
+
+ {(inv as any).splitType === 'traditional' && Array.isArray((inv as any).splitPayments) && (inv as any).splitPayments.length > 0 && (
+ <div className="mt-4 bg-purple-50/50 border border-purple-100 p-3 md:p-4 rounded-xl">
+ <h4 className="text-[12px] font-black uppercase text-purple-600 mb-3 flex items-center gap-2">
+ <Users className="w-4 h-4" /> المشاركين بالقطية
+ </h4>
+ <div className="space-y-2">
+ {((inv as any).splitPayments).map((sp: any, i: number) => (
+ <div key={i} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-purple-50 shadow-sm">
+ <div className="flex flex-col">
+ <span className="font-bold text-sm text-slate-800">{sp.name || 'مشارك'}</span>
+ <span className="text-[10px] text-slate-500">{sp.phone || 'بدون رقم'}</span>
+ </div>
+ <div className="flex flex-col items-end gap-1">
+ <span className="font-black text-primary">{Number(sp.amount || 0).toFixed(3)} د.ك</span>
+ {sp.status === 'paid' ? (
+ <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <CheckCircle2 className="w-3 h-3" /> مدفوع
+ </span>
+ ) : isCancelledStatus(sp.status) ? (
+ <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <XCircle className="w-3 h-3" /> ملغي
+ </span>
+ ) : sp.status === 'failed' ? (
+ <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <AlertCircle className="w-3 h-3" /> فشل الدفع
+ </span>
+ ) : (
+ <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <Clock className="w-3 h-3" /> بانتظار الدفع
+ </span>
+ )}
+ </div>
+ </div>
+ ))}
+ </div>
+ </div>
+ )}
+
+ {(inv as any).splitType === 'roulette' && Array.isArray((inv as any).splitParticipants) && (inv as any).splitParticipants.length > 0 && (
+ <div className="mt-4 bg-purple-100 border-2 border-purple-400 p-4 rounded-xl shadow-inner relative overflow-hidden">
+ <div className="absolute -right-4 -top-4 opacity-10 pointer-events-none text-9xl">🎲</div>
+ <h4 className="text-sm font-black uppercase text-purple-900 mb-4 flex items-center gap-2">
+ <Dices className="w-5 h-5 text-purple-600" /> روليت الحظ
+ </h4>
+ 
+ <div className="bg-white rounded-xl p-3 border-2 border-purple-200 mb-3 text-center">
+ <div className="text-[10px] font-bold text-purple-400 mb-1">بطل الليلة (الخاسر اللي دفعها)</div>
+ <div className="text-lg font-black text-purple-700">{(inv as any).rouletteLoser || 'غير معروف'}</div>
+ </div>
+
+ <div className="space-y-1">
+ <div className="text-[10px] font-bold text-purple-600 mb-2">المشاركون باللعب:</div>
+ <div className="flex flex-wrap gap-2">
+ {((inv as any).splitParticipants).map((pName: any, idx: number) => {
+ const pVal = typeof pName === 'object' ? `${pName.name || 'مجهول'} ${pName.phone ? `(${pName.phone})` : ''}` : pName;
+ return (
+ <span key={idx} className="bg-white/60 text-purple-800 text-[10px] font-bold px-2 py-1 rounded-md border border-purple-200">
+ {pVal}
+ </span>
+ );
+ })}
+ </div>
+ </div>
+ </div>
+ )}
  </div>
  <div className="flex flex-col justify-center gap-4">
  <div className="bg-white p-3 rounded-2xl border border-slate-100 space-y-2">

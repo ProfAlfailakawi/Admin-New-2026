@@ -4,7 +4,7 @@ import { cn } from '../lib/utils';
 import { Toaster, toast } from 'sonner';
 import { db } from '../firebase';
 import { collection, query, where, getDocs, orderBy, doc, getDoc, limit } from 'firebase/firestore';
-import { isPendingStatus, isFailedStatus, isPaidStatus } from '../lib/status-utils';
+import { isPendingStatus, isFailedStatus, isPaidStatus, isCancelledStatus } from '../lib/status-utils';
 
 export default function TrackPage() {
  const [phoneNumber, setPhoneNumber] = useState('');
@@ -123,8 +123,16 @@ export default function TrackPage() {
  // Limit locally to 100 recent orders for performance
  const allSnap = await getDocs(allQ);
  allSnap.docs.forEach((docSnap) => {
- if (docSnap.id.endsWith(queryStr) || docSnap.id.includes(queryStr)) {
- userOrders.push({ id: docSnap.id, ...docSnap.data() });
+ const data = docSnap.data();
+ const isParticipantMatch = 
+ (Array.isArray(data.participantPhones) && data.participantPhones.some((p: string) => String(p).includes(queryStr))) ||
+ (Array.isArray(data.splitPayments) && data.splitPayments.some((sp: any) => String(sp.phone || '').includes(queryStr))) ||
+ (Array.isArray(data.splitParticipants) && data.splitParticipants.some((sp: any) => String(typeof sp === 'object' ? sp.phone : sp || '').includes(queryStr))) ||
+ (data.customerPhone && data.customerPhone.includes(queryStr)) ||
+ (data.mobile && data.mobile.includes(queryStr));
+ 
+ if ((docSnap.id.endsWith(queryStr) || docSnap.id.includes(queryStr) || isParticipantMatch) && !userOrders.find(u => u.id === docSnap.id)) {
+ userOrders.push({ id: docSnap.id, ...data });
  }
  });
  // Sort locally to avoid firestore index requirement
@@ -134,7 +142,7 @@ export default function TrackPage() {
  return tB - tA;
  });
  } catch(e) {
- console.warn("Suffix matching failed:", e);
+ console.warn("Suffix/Participant matching failed:", e);
  }
  }
 
@@ -162,7 +170,11 @@ export default function TrackPage() {
  const invSnap = await getDocs(invQ);
  invSnap.docs.forEach((docSnap) => {
  const data = docSnap.data();
- const isPhoneMatch = (data.customerPhone && data.customerPhone.includes(queryStr)) || (data.mobile && data.mobile.includes(queryStr));
+ const isPhoneMatch = (data.customerPhone && data.customerPhone.includes(queryStr)) || (data.mobile && data.mobile.includes(queryStr)) ||
+ (Array.isArray(data.participantPhones) && data.participantPhones.some((p: string) => String(p).includes(queryStr))) ||
+ (Array.isArray(data.splitPayments) && data.splitPayments.some((sp: any) => String(sp.phone || '').includes(queryStr))) ||
+ (Array.isArray(data.splitParticipants) && data.splitParticipants.some((sp: any) => String(typeof sp === 'object' ? sp.phone : sp || '').includes(queryStr)));
+ 
  if ((docSnap.id.endsWith(queryStr) || docSnap.id.includes(queryStr) || isPhoneMatch) && !userOrders.find(o => o.id === docSnap.id)) {
  userOrders.push({ id: docSnap.id, ...data });
  }
@@ -243,15 +255,16 @@ export default function TrackPage() {
  orders.map((order: any) => {
  const isZeroOrder = Number(order.totalAmount || order.finalPrice || order.total || order.total_amount || 0) === 0;
  const isPaidOrCompleted = isPaidStatus(order.paymentStatus) || isPaidStatus(order.status);
- const isFailed = !isPaidOrCompleted && (isFailedStatus(order.paymentStatus) || isFailedStatus(order.status));
- const isPending = !isPaidOrCompleted && !isFailed;
+ const isCancelled = isCancelledStatus(order.paymentStatus) || isCancelledStatus(order.status);
+ const isFailed = !isPaidOrCompleted && !isCancelled && (isFailedStatus(order.paymentStatus) || isFailedStatus(order.status));
+ const isPending = !isPaidOrCompleted && !isFailed && !isCancelled;
  const isTrulyFree = isZeroOrder && isPaidOrCompleted;
  return (
- <div key={order.id} className={cn("bg-white border-2 p-3 md:p-4 rounded-2xl shadow-sm text-right space-y-4 transition-all", isFailed ? "border-red-100 bg-red-50/5" : "border-emerald-100")}>
+ <div key={order.id} className={cn("bg-white border-2 p-3 md:p-4 rounded-2xl shadow-sm text-right space-y-4 transition-all", isFailed ?"border-red-100 bg-red-50/5" : isCancelled ?"border-rose-100 bg-rose-50/5" :"border-emerald-100")}>
  <div className="flex justify-between items-center pb-4 border-b border-slate-100">
  <span className="text-sm font-black text-slate-800">طلب #{order.id.slice(-6)}</span>
  <div className="flex items-center gap-2">
- {(isPending || isFailed) && order.paymentLink && (
+ {(isPending || isFailed) && order.paymentLink && !isCancelled && (
  <button 
  onClick={() => window.location.href = order.paymentLink}
  className="text-xs font-black px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg active:scale-95"
@@ -259,8 +272,8 @@ export default function TrackPage() {
  إعادة محاولة الدفع
  </button>
  )}
- <span className={cn("text-xs font-black px-3 py-1 rounded-full", isPaidOrCompleted ?"bg-emerald-100 text-emerald-800" : isFailed ?"bg-red-100 text-red-800" :"bg-violet-100 text-violet-800 animate-pulse")}>
- {isTrulyFree ? 'طلب مجاني - جاري التجهيز' : (isPaidOrCompleted ? 'تم الدفع وجاري التوصيل' : isFailed ? 'فشلت عملية الدفع' : 'بانتظار الدفع')}
+ <span className={cn("text-xs font-black px-3 py-1 rounded-full", isPaidOrCompleted ?"bg-emerald-100 text-emerald-800" : isFailed ?"bg-red-100 text-red-800" : isCancelled ?"bg-rose-100 text-rose-800" :"bg-violet-100 text-violet-800 animate-pulse")}>
+ {isTrulyFree ? 'طلب مجاني - جاري التجهيز' : (isPaidOrCompleted ? 'تم الدفع وجاري التوصيل' : isCancelled ? ((order.status === 'انتهى وقت القطية' || order.status === 'ملغي - انتهى وقت القطية') ? 'ملغي - انتهى وقت القطية' : 'طلب ملغي') : isFailed ? 'فشلت عملية الدفع' : 'بانتظار الدفع')}
  </span>
  </div>
  </div>

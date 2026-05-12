@@ -318,7 +318,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
     (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
   );
   const paidInvoices = activeInvoices.filter(
-    (inv) => isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined,
+    (inv) => (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending',
   );
   const totalSales = paidInvoices.reduce(
     (acc, inv) => acc + Math.max(0, inv.totalAmount || 0),
@@ -591,7 +591,7 @@ const BusinessStatusMirror: React.FC<{
     (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
   );
   const paidInvoices = activeInvoices.filter(
-    (inv) => isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined,
+    (inv) => (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending',
   );
   const totalSales = paidInvoices.reduce(
     (acc, inv) => acc + Math.max(0, inv.totalAmount || 0),
@@ -1260,7 +1260,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     } = useMemo(() => {
       const invoices = activeInvoices.filter(
         (inv) =>
-          isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined,
+          (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending',
       );
 
       // Food sales (excluding delivery)
@@ -1385,7 +1385,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
       > = {};
       const paidInvoices = activeInvoices.filter(
         (inv) =>
-          isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined,
+          (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending',
       );
       paidInvoices.forEach((inv) => {
         (inv.items || []).forEach((item) => {
@@ -1856,6 +1856,8 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
       yesterdayEnd.setHours(23, 59, 59, 999);
       
       const yesterdayInvoices = activeInvoices.filter(inv => {
+        const isPaid = (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending';
+        if (!isPaid) return false;
         const d = new Date(inv.date).getTime();
         return d >= yesterday.getTime() && d <= yesterdayEnd.getTime();
       });
