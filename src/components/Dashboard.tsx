@@ -2742,29 +2742,29 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           <BrainCircuit size={400} />
                         </div>
 
-                        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-10">
+                        <div className="relative z-10 flex flex-col xl:flex-row xl:items-end justify-between gap-10">
                           <div>
-                            <div className="flex items-center gap-4 mb-6">
-                              <div className="bg-rose-500/20 p-3.5 rounded-2xl border border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,0.3)]">
-                                <BrainCircuit className="text-rose-500" size={32} />
+                            <div className="flex items-center gap-3 lg:gap-4 mb-4 lg:mb-6">
+                              <div className="bg-rose-500/20 p-2.5 lg:p-3.5 rounded-2xl border border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,0.3)] shrink-0">
+                                <BrainCircuit className="text-rose-500 w-6 h-6 lg:w-8 lg:h-8" />
                               </div>
-                              <h2 className="text-4xl font-black text-white tracking-tighter">
+                              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tighter">
                                 عقل النظام ذاتي التعلم
                               </h2>
                             </div>
-                            <p className="text-slate-400 font-bold text-xl max-w-3xl leading-relaxed">
+                            <p className="text-slate-400 font-bold text-sm sm:text-base lg:text-xl max-w-3xl leading-relaxed">
                               محرك التفكير المركزي الذي يراقب صحة عملك بشكل آلي، يكتشف الأنماط الخفية، ويقوم بتصحيح مساره ذاتياً ليصبح أكثر دقة مع كل قرار يتخذه.
                             </p>
                           </div>
-                          <div className="bg-white/5 backdrop-blur-2xl px-10 py-7 rounded-[2.5rem] flex items-center gap-6 border border-white/10 shadow-2xl">
+                          <div className="bg-white/5 backdrop-blur-2xl px-6 lg:px-10 py-5 lg:py-7 rounded-3xl lg:rounded-[2.5rem] flex items-center gap-4 lg:gap-6 border border-white/10 shadow-2xl self-start xl:self-auto">
                             <div className="shrink-0">
-                               <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                                  <History className="text-emerald-400" size={32} />
+                               <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-xl lg:rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                                  <History className="text-emerald-400 w-6 h-6 lg:w-8 lg:h-8" />
                                </div>
                             </div>
                             <div>
-                              <div className="text-xs font-black text-emerald-400 uppercase tracking-[0.3em] mb-1.5 opacity-80">ذاكرة النظام</div>
-                              <div className="text-3xl font-black text-white tabular-nums">{aiLearningLogs.length} دراسة متعلمة</div>
+                              <div className="text-[10px] lg:text-xs font-black text-emerald-400 uppercase tracking-[0.2em] lg:tracking-[0.3em] mb-1 lg:mb-1.5 opacity-80">ذاكرة النظام</div>
+                              <div className="text-xl lg:text-3xl font-black text-white tabular-nums">{aiLearningLogs.length} دراسة متعلمة</div>
                             </div>
                           </div>
                         </div>
@@ -2810,18 +2810,18 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                       </div>
 
                       {/* Learning Logs Section */}
-                      <div className="space-y-8 bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100">
-                         <div className="flex items-center justify-between px-4">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                                <RefreshCcw className="text-white animate-spin" size={20} style={{ animationDuration: '4s' }} />
+                      <div className="space-y-6 lg:space-y-8 bg-slate-50/50 p-4 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[3rem] border border-slate-100">
+                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-2 lg:px-4 gap-4">
+                            <div className="flex items-center gap-3 lg:gap-4">
+                              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0">
+                                <RefreshCcw className="text-white animate-spin w-4 h-4 lg:w-5 lg:h-5" style={{ animationDuration: '4s' }} />
                               </div>
                               <div>
-                                <h3 className="font-black text-2xl text-slate-800 tracking-tight">سجل التطور الذاتي</h3>
-                                <p className="text-slate-500 text-sm font-bold mt-1">تتبع رحلة نضج النظام من البيانات الخام إلى قرارات ذكية</p>
+                                <h3 className="font-black text-lg sm:text-xl lg:text-2xl text-slate-800 tracking-tight">سجل التطور الذاتي</h3>
+                                <p className="text-slate-500 text-[10px] sm:text-xs lg:text-sm font-bold mt-0.5 lg:mt-1">تتبع رحلة نضج النظام من البيانات الخام إلى قرارات ذكية</p>
                               </div>
                             </div>
-                            <div className="hidden md:block bg-indigo-50 text-indigo-600 px-4 py-2 rounded-full text-xs font-black border border-indigo-100">
+                            <div className="hidden sm:block bg-indigo-50 text-indigo-600 px-3 lg:px-4 py-1.5 lg:py-2 rounded-full text-[10px] lg:text-xs font-black border border-indigo-100">
                               تحديث لحظي
                             </div>
                          </div>
@@ -2902,12 +2902,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               </motion.div>
                             ))
                           ) : (
-                            <div className="col-span-1 lg:col-span-2 bg-white/50 border-4 border-dashed border-slate-200 rounded-[3rem] p-24 flex flex-col items-center justify-center text-center group hover:border-indigo-200 transition-colors">
-                              <div className="w-24 h-24 bg-slate-100 rounded-[2rem] flex items-center justify-center mb-8 text-slate-300 group-hover:scale-110 group-hover:text-indigo-300 transition-all duration-500">
-                                 <BrainCircuit size={48} />
+                            <div className="col-span-1 lg:col-span-2 bg-white/50 border-4 border-dashed border-slate-200 rounded-3xl lg:rounded-[3rem] p-8 sm:p-12 lg:p-24 flex flex-col items-center justify-center text-center group hover:border-indigo-200 transition-colors">
+                              <div className="w-16 h-16 lg:w-24 lg:h-24 bg-slate-100 rounded-2xl lg:rounded-[2rem] flex items-center justify-center mb-4 lg:mb-8 text-slate-300 group-hover:scale-110 group-hover:text-indigo-300 transition-all duration-500">
+                                 <BrainCircuit className="w-8 h-8 lg:w-12 lg:h-12" />
                               </div>
-                              <h3 className="text-3xl font-black text-slate-800 mb-4 tracking-tight">جاري البناء المعرفي العميق</h3>
-                              <p className="text-slate-500 font-bold text-lg max-w-lg mx-auto leading-relaxed">
+                              <h3 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-800 mb-2 lg:mb-4 tracking-tight">جاري البناء المعرفي العميق</h3>
+                              <p className="text-slate-500 font-bold text-xs sm:text-sm lg:text-lg max-w-lg mx-auto leading-relaxed">
                                 بمجرد إصدار القرارات وتتبع نتائجها، سيقوم النظام بعرض رحلة تطوره وتحسن دقته هنا بشكل آلي عبر معالجة البيانات التاريخية.
                               </p>
                             </div>
@@ -2919,41 +2919,41 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                   {/* Hidden Risks Section */}
                   <div className="pt-16 pb-8">
-                    <div className="bg-gradient-to-br from-rose-950 via-slate-950 to-slate-900 rounded-[3.5rem] p-10 md:p-16 shadow-2xl relative overflow-hidden border border-rose-900/30">
+                    <div className="bg-gradient-to-br from-rose-950 via-slate-950 to-slate-900 rounded-3xl lg:rounded-[3.5rem] p-6 sm:p-10 lg:p-16 shadow-2xl relative overflow-hidden border border-rose-900/30">
                       <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-600 via-rose-500 to-amber-500" />
                       <div className="absolute -top-20 -right-20 opacity-[0.05] text-rose-500 rotate-12 pointer-events-none">
-                        <ShieldAlert size={450} />
+                        <ShieldAlert className="w-[300px] h-[300px] lg:w-[450px] lg:h-[450px]" />
                       </div>
 
-                      <div className="relative z-10 flex flex-col lg:flex-row items-center gap-12">
-                        <div className="flex-1 space-y-8">
-                          <div className="flex items-center gap-5">
-                            <div className="bg-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.7)] p-4 rounded-2xl border border-rose-400/30">
-                              <AlertCircle className="text-white" size={32} />
+                      <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center gap-8 lg:gap-12">
+                        <div className="flex-1 space-y-6 lg:space-y-8">
+                          <div className="flex items-center gap-3 lg:gap-5">
+                            <div className="bg-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.7)] p-2.5 lg:p-4 rounded-xl lg:rounded-2xl border border-rose-400/30 shrink-0">
+                              <AlertCircle className="text-white w-6 h-6 lg:w-8 lg:h-8" />
                             </div>
                             <div>
-                              <h2 className="text-3xl md:text-4xl font-black text-white tracking-tighter leading-none mb-1.5">
+                              <h2 className="text-xl sm:text-3xl lg:text-4xl font-black text-white tracking-tighter leading-none mb-1 lg:mb-1.5">
                                 كاشف المخاطر والخسائر الخفية
                               </h2>
                               <div className="flex items-center gap-2">
-                                <div className="h-1 w-10 bg-rose-500 rounded-full" />
-                                <span className="text-rose-400 text-xs font-black uppercase tracking-[0.3em]">Real-Time Risk Guardian</span>
+                                <div className="h-1 w-6 lg:w-10 bg-rose-500 rounded-full" />
+                                <span className="text-rose-400 text-[10px] lg:text-xs font-black uppercase tracking-[0.1em] lg:tracking-[0.3em]">Real-Time Risk Guardian</span>
                               </div>
                             </div>
                           </div>
                           
-                          <p className="text-rose-100/90 text-2xl font-black leading-tight tracking-tight">
-                            يحلل هذا النظام ما وراء الأرقام السطحية. <span className="bg-rose-500/20 text-white px-2 rounded-lg">فهو لا يكتفي بإخبارك بحجم المبيعات</span>، بل يغوص في هوامش الربح الفردية، سلوكيات العملاء المكلِفة، وتلاعب الموردين، ليكشف لك تماماً أين تتسرب أموالك.
+                          <p className="text-rose-100/90 text-sm sm:text-lg lg:text-2xl font-black leading-snug lg:leading-tight tracking-tight">
+                            يحلل هذا النظام ما وراء الأرقام السطحية. <span className="bg-rose-500/20 text-white px-1.5 lg:px-2 rounded-md lg:rounded-lg">فهو لا يكتفي بإخبارك بحجم المبيعات</span>، بل يغوص في هوامش الربح الفردية، سلوكيات العملاء المكلِفة، وتلاعب الموردين، ليكشف لك تماماً أين تتسرب أموالك.
                           </p>
 
-                          <div className="flex flex-wrap gap-4">
-                            <div className="bg-white/5 backdrop-blur-md border border-white/10 px-5 py-3 rounded-2xl flex items-center gap-3">
-                              <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse" />
-                              <span className="text-rose-100 font-bold text-sm">تسرب الأرباح</span>
+                          <div className="flex flex-wrap gap-2 lg:gap-4">
+                            <div className="bg-white/5 backdrop-blur-md border border-white/10 px-3 lg:px-5 py-2 lg:py-3 rounded-xl lg:rounded-2xl flex items-center gap-2 lg:gap-3">
+                              <div className="w-1.5 lg:w-2.5 h-1.5 lg:h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse" />
+                              <span className="text-rose-100 font-bold text-xs lg:text-sm">تسرب الأرباح</span>
                             </div>
-                            <div className="bg-white/5 backdrop-blur-md border border-white/10 px-5 py-3 rounded-2xl flex items-center gap-3">
-                              <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
-                              <span className="text-amber-100 font-bold text-sm">مخاطر الموردين</span>
+                            <div className="bg-white/5 backdrop-blur-md border border-white/10 px-3 lg:px-5 py-2 lg:py-3 rounded-xl lg:rounded-2xl flex items-center gap-2 lg:gap-3">
+                              <div className="w-1.5 lg:w-2.5 h-1.5 lg:h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
+                              <span className="text-amber-100 font-bold text-xs lg:text-sm">مخاطر الموردين</span>
                             </div>
                             <div className="bg-white/5 backdrop-blur-md border border-white/10 px-5 py-3 rounded-2xl flex items-center gap-3">
                               <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)] animate-pulse" />
