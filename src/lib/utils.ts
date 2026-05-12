@@ -105,7 +105,13 @@ export function joinProductsFromDatabase(data: any): any {
 }
 
 export function getUnifiedInvoices(data: any): any[] {
-  const invs = Array.isArray(data?.invoices) ? data.invoices : [];
+  const invs = Array.isArray(data?.invoices) ? data.invoices.map((i: any) => {
+    // Fix for older invoices that incorrectly got 'standard' default from orders
+    if (i.deliveryType === 'standard' && (i.linkedOrderId?.startsWith('ORD-') || (i as any).isConvertedFromWebsite) && !i.manuallyModifiedDeliveryType) {
+      return { ...i, deliveryType: 'company' };
+    }
+    return i;
+  }) : [];
   const ords = Array.isArray(data?.orders) ? data.orders : [];
 
   const invIds = new Set(invs.map((i: any) => i.id));
@@ -118,7 +124,9 @@ export function getUnifiedInvoices(data: any): any[] {
     
     if (sTxt.includes('مدفوع') || sTxt.includes('paid') || sTxt === 'تم الدفع وجاري التوصيل' || pTxt === 'paid') {
       pStatus = 'paid';
-    } else if (sTxt.includes('فشل') || sTxt.includes('fail') || pTxt.includes('fail') || sTxt.includes('مرفوض') || sTxt.includes('ملغي')) {
+    } else if (sTxt.includes('ملغي') || sTxt.includes('انتهى وقت') || sTxt.includes('cancel') || pTxt.includes('cancel')) {
+      pStatus = 'cancelled';
+    } else if (sTxt.includes('فشل') || sTxt.includes('fail') || pTxt.includes('fail') || sTxt.includes('مرفوض')) {
       pStatus = 'failed';
     }
     
@@ -136,7 +144,7 @@ export function getUnifiedInvoices(data: any): any[] {
       customerPhone: finalCustomerPhone,
       paymentStatus: pStatus,
       isORDOrder: true,
-      deliveryType: o.deliveryType || 'standard',
+      deliveryType: (o.deliveryType === 'standard' && o.id?.startsWith('ORD-')) ? 'company' : (o.deliveryType || 'company'),
       deliveryFee: o.deliveryInfo?.cost || typeof o.deliveryFee === 'number' ? o.deliveryFee : 0,
       totalCost: itemsCost,
       profit: amount - itemsCost,

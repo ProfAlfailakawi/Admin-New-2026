@@ -33,6 +33,7 @@ import { NumericInput } from './ui/NumericInput';
 import { MagneticButton } from './ui/MagneticButton';
 import { getPublicUrl, getWebhookUrl } from '../lib/urlUtils';
 import { recalculateStateBalances } from '../lib/business-logic';
+import { isPaidStatus } from '../lib/status-utils';
 import { toast } from 'sonner';
 
 interface InvoicePageProps {
@@ -106,13 +107,27 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  }, 0);
  
  const total = Math.max(0, subtotal + (Number(invoice.deliveryFee) || 0) - (Number(invoice.discount) || 0));
- const paymentLinkLine = (invoice.paymentLink && invoice.paymentLink.trim() !== '') ? `\nرابط الدفع: ${invoice.paymentLink}` : '';
+ const pLink = invoice.paymentLink || (invoice as any).splitLink || (invoice as any).split_link || (invoice as any).splitPaymentLink || (invoice as any).paymentUrl || (invoice as any).payment_url || (invoice as any).url || (invoice as any).link;
+ const isPaidNow = isPaidStatus(invoice.paymentStatus) && !(String(invoice.status).includes('تجميع القطية') || invoice.status === 'split_pending');
+ const paymentLinkLine = (pLink && pLink.trim() !== '' && !isPaidNow) ? `\nرابط الدفع: ${pLink}` : '';
 
  const promoLabel = invoice.appliedPromoCodeName ? `قيمة الخصم (${invoice.appliedPromoCodeName})` : 'قيمة الخصم';
  const promoLine = (Number(invoice.discount) || 0) > 0 ? `*${promoLabel}*: ${Number(invoice.discount).toFixed(3)} د.ك\n` : '';
  
  const message = `*فاتورة من شركة مطبخ التراث الكويتي*\n\nالعميل: ${customer?.name || 'عميل'}\nرقم الفاتورة: ${invoice.id}\nالعنوان: ${invoice.address && invoice.address !== 'غير محدد' ? (typeof invoice.address === 'object' ? [`${invoice.address.region||''}`, `ق${invoice.address.block||''}`, `ش${invoice.address.street||''}`, `م${invoice.address.building||''}`].filter(Boolean).join(' ') : invoice.address) : (invoice.deliveryInfo?.zoneName || 'غير محدد')}\nالطلب:\n${items}\n\nالمجموع: ${subtotal.toFixed(3)} د.ك\nرسوم التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}إجمالي الفاتورة: ${Number(total).toFixed(3)} د.ك${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
- return `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+
+  let finalMessage = message;
+  const targetObj = invoice || order;
+  if ((targetObj as any).splitType === 'traditional' && Array.isArray((targetObj as any).splitPayments)) {
+    const splitText = `\n\n*المشاركين بالقطية:*\n` + ((targetObj as any).splitPayments).map((sp:any) => `- ${sp.name || 'مشارك'} (${sp.phone||'بدون رقم'}) - ${Number(sp.amount||0).toFixed(3)} د.ك`).join('\n');
+    finalMessage = message.replace('شكراً لتعاملكم', splitText + '\n\nشكراً لتعاملكم');
+  } else if ((targetObj as any).splitType === 'roulette' && Array.isArray((targetObj as any).splitParticipants)) {
+    const participants = ((targetObj as any).splitParticipants).map((p:any) => typeof p === 'object' ? `${p.name||''} ${p.phone?`(${p.phone})`:''}`.trim() : p).join('، ');
+    const splitText = `\n\n*🎲 روليت الحظ 🎲*\nالمشاركون: ${participants}\n*بطل الليلة اللي دفعها:* ${(targetObj as any).rouletteLoser || 'غير معروف'}`;
+    finalMessage = message.replace('شكراً لتعاملكم', splitText + '\n\nشكراً لتعاملكم');
+  }
+
+ return `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(finalMessage)}`;
  };
 
  useEffect(() => {

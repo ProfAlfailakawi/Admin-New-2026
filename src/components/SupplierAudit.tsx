@@ -223,18 +223,18 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </button>
  </div>
 
- <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-right">
- <div className="bg-emerald-600 p-3 md:p-4 rounded-[32px] text-white shadow-xl shadow-emerald-600/20">
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-right">
+ <div className="bg-emerald-600 p-3 md:p-4 rounded-[20px] md:rounded-[32px] text-white shadow-xl shadow-emerald-600/20">
  <div className="text-[10px] font-black uppercase opacity-60 mb-2">إجمالي المحول</div>
- <div className="text-xl md:text-3xl font-black">{Number(totalTransferred || 0).toFixed(3)} <span className="text-xs">د.ك</span></div>
+ <div className="text-2xl md:text-3xl font-black">{Number(totalTransferred || 0).toFixed(3)} <span className="text-xs">د.ك</span></div>
  <div className="flex items-center gap-2 text-[10px] font-bold mt-3 opacity-80">
  <CheckCircle2 size={12} />
  عدد التحويلات: {(data?.supplierTransfers || []).length}
  </div>
  </div>
- <div className="bg-slate-900 p-3 md:p-4 rounded-[32px] text-white shadow-xl shadow-slate-900/20 relative">
+ <div className="bg-slate-900 p-3 md:p-4 rounded-[20px] md:rounded-[32px] text-white shadow-xl shadow-slate-900/20 relative">
  <div className="text-[10px] font-black uppercase opacity-40 mb-2">إجمالي المستحق</div>
- <div className="text-xl md:text-3xl font-black text-red-500">{Number(totalOutstanding || 0).toFixed(3)} <span className="text-xs">د.ك</span></div>
+ <div className="text-2xl md:text-3xl font-black text-red-500">{Number(totalOutstanding || 0).toFixed(3)} <span className="text-xs">د.ك</span></div>
  <button 
  onClick={() => setShowWaitingList(prev => !prev)}
  className="flex items-center gap-2 text-[10px] font-bold mt-3 text-slate-400 cursor-pointer hover:text-white transition-colors p-1 -ml-1 rounded"
