@@ -1,0 +1,188 @@
+{
+  "entities": {
+    "Customer": {
+      "title": "Customer",
+      "description": "App customer details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "slow", "inactive"] },
+        "lastOrderDate": { "type": "string" },
+        "totalOrders": { "type": "number" },
+        "totalSpent": { "type": "number" }
+      },
+      "required": ["id", "name", "phone", "status", "totalOrders", "totalSpent"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Supplier information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "paymentMethods": { "type": "array", "items": { "type": "string" } },
+        "balance": { "type": "number" },
+        "status": { "type": "string", "enum": ["paid", "pending", "partially_paid"] }
+      },
+      "required": ["id", "name", "phone", "paymentMethods", "balance", "status"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Kitchen products and stock",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "cost": { "type": "number" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "lastSaleDate": { "type": "string" },
+        "stock": { "type": "number" },
+        "preparationInstructions": { "type": "string" }
+      },
+      "required": ["id", "name", "cost", "price", "category", "supplierId"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Sales invoices",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerId": { "type": "string" },
+        "items": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "productId": { "type": "string" },
+              "quantity": { "type": "number" },
+              "priceAtTime": { "type": "number" },
+              "costAtTime": { "type": "number" }
+            }
+          }
+        },
+        "deliveryFee": { "type": "number" },
+        "gatewayFee": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "date": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "totalCost": { "type": "number" },
+        "profit": { "type": "number" },
+        "isDeleted": { "type": "boolean" },
+        "userId": { "type": "string", "description": "Owner of the invoice" }
+      },
+      "required": ["id", "customerId", "items", "date", "totalAmount", "totalCost", "profit", "userId"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Business expenses",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "date": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "description", "category", "amount", "paymentMethod", "date", "userId"]
+    },
+    "SupplierTransfer": {
+      "title": "SupplierTransfer",
+      "description": "Transfers to suppliers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "amount": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "method": { "type": "string" },
+        "date": { "type": "string" },
+        "notes": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "supplierId", "amount", "method", "date", "userId"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User notifications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "date": { "type": "string" },
+        "read": { "type": "boolean" },
+        "type": { "type": "string", "enum": ["info", "warning", "success"] },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "title", "message", "date", "read", "type", "userId"]
+    },
+    "AppSettings": {
+      "title": "AppSettings",
+      "description": "Global application settings per user",
+      "type": "object",
+      "properties": {
+        "gatewayFeeAmount": { "type": "number" },
+        "companyLogo": { "type": "string" },
+        "companyName": { "type": "string" },
+        "notifications": {
+          "type": "object",
+          "properties": {
+            "lowStock": { "type": "boolean" },
+            "lateInvoices": { "type": "boolean" },
+            "salesGoals": { "type": "boolean" },
+            "newCustomers": { "type": "boolean" }
+          }
+        }
+      },
+      "required": ["gatewayFeeAmount", "companyName", "notifications"]
+    },
+    "Region": {
+      "title": "Region",
+      "description": "Delivery regions and pricing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "deliveryFee": { "type": "number" }
+      },
+      "required": ["id", "name", "deliveryFee"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer orders submitted from client app",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "regionId": { "type": "string" },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "processed", "cancelled"] },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "items", "totalAmount", "date", "status"]
+    }
+  },
+  "firestore": {
+    "/customers/{customerId}": { "schema": "Customer", "description": "Global customers list" },
+    "/suppliers/{supplierId}": { "schema": "Supplier", "description": "Global suppliers list" },
+    "/products/{productId}": { "schema": "Product", "description": "Global products list" },
+    "/invoices/{invoiceId}": { "schema": "Invoice", "description": "Sales invoices tied to users" },
+    "/expenses/{expenseId}": { "schema": "Expense", "description": "Transfers tied to users" },
+    "/supplierTransfers/{transferId}": { "schema": "SupplierTransfer", "description": "Supplier transfers tied to users" },
+    "/notifications/{notificationId}": { "schema": "Notification", "description": "User notifications" },
+    "/settings/{userId}": { "schema": "AppSettings", "description": "User specific app settings" },
+    "/regions/{regionId}": { "schema": "Region", "description": "Delivery regions" },
+    "/app_products/{productId}": { "schema": "Product", "description": "Filtered products for client app" },
+    "/orders/{orderId}": { "schema": "Order", "description": "Client app orders" }
+  }
+}

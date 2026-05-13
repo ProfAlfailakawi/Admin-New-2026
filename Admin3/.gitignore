@@ -1,0 +1,16 @@
+node_modules/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+dist/
+_security_backup/
+*.disabled
+.env
+.env.*
+test*.js
+test*.cjs
+test*.ts
+*dump*.json
