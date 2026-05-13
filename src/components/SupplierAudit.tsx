@@ -87,7 +87,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  if (inv.isDeleted) return;
  
  const supplierTotals: Record<string, number> = {};
- inv.items.forEach(item => {
+ (inv.items || []).forEach(item => {
  const product = (data.products || []).find(p => p.id === item.productId);
  if (product?.supplierId) {
  const cost = (item.costAtTime || product.cost || 0) * (item.quantity || 1);
