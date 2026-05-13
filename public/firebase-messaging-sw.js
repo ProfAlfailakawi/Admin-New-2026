@@ -7,7 +7,7 @@ firebase.initializeApp({
   projectId: "gen-lang-client-0200723670",
   storageBucket: "gen-lang-client-0200723670.firebasestorage.app",
   messagingSenderId: "119610604304",
-  appId: "1:b:55eba98b72a9a7f98d4395"
+  appId: "1:119610604304:web:55eba98b72a9a7f98d4395"
 });
 
 const messaging = firebase.messaging();
