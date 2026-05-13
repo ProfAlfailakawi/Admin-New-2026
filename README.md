@@ -16,7 +16,7 @@ node scripts/apply-admin-push-final-fix.js
 بعدها اختبر تشغيل السيرفر:
 
 ```bash
-GOOGLE_APPLICATION_CREDENTIALS="$PWD/secrets/serviceAccountKey.json" npx tsx server.ts
+npx tsx server.ts
 ```
 
 ثم ارفع للإنتاج واعمل deploy/restart.
@@ -31,4 +31,4 @@ GOOGLE_APPLICATION_CREDENTIALS="$PWD/secrets/serviceAccountKey.json" npx tsx ser
 ## مهم
 
 لا ترفع:
-`secrets/serviceAccountKey.json`
+`Use Secret Manager / environment variables only. Do not store service account keys in the repository.`
