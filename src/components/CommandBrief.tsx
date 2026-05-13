@@ -81,7 +81,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
     const productSales: Record<string, number> = {};
     (data.invoices || []).forEach(inv => {
       if (inv.isDeleted) return;
-      inv.items.forEach(item => {
+      (inv.items || []).forEach(item => {
          productSales[item.productId] = (productSales[item.productId] || 0) + item.quantity;
       });
     });

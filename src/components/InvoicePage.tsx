@@ -184,7 +184,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  }
 
  const newCart: Record<string, { quantity: number, priceAtTime: number, costAtTime: number, itemNotes?: string }> = {};
- inv.items.forEach(item => {
+ (inv.items || []).forEach(item => {
  const p = (data.products || []).find(prod => prod.id === item.productId);
  newCart[item.productId] = { 
  quantity: item.quantity || 1, 

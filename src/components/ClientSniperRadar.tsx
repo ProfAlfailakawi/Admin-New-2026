@@ -37,7 +37,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  customerInvoices.forEach(inv => {
  const date = new Date(inv.date);
  const docDay = date.getDay(); // 0 to 6
- inv.items.forEach(item => {
+ (inv.items || []).forEach(item => {
  const key = `${docDay}-${item.productId}`;
  if (!dayItemCounts[key]) dayItemCounts[key] = { count: 0, dayOfWeek: docDay };
  dayItemCounts[key].count += 1;
