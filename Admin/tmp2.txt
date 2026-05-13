@@ -1,6 +1,0 @@
-src/components/OrderPage.tsx:30:import { collection, query, onSnapshot, doc, updateDoc, setDoc, Timestamp, getDocs } from 'firebase/firestore';
-src/components/GeneralSettings.tsx:10:import { doc, setDoc, deleteDoc } from 'firebase/firestore'; 
-src/firebase.ts:8:  setDoc, 
-src/App.tsx:75:import { onSnapshot, setDoc, updateDoc, getDoc, getDocs, query, collection, where, doc } from 'firebase/firestore';
-src/App.tsx:843:      await setDoc(dataRef, sanitizedData, { merge: true });
-src/App.tsx:1093:          await setDoc(dataRef, sanitizedData, { merge: true });

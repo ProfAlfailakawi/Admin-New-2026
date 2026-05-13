@@ -1,4 +1,0 @@
-.
-├── README_ADMIN_PARTNER_DEEPLINK_FINAL.md
-└── scripts/
-    └── apply-admin-partner-deeplink-final.cjs
