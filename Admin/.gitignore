@@ -8,3 +8,7 @@ coverage/
 dist/
 *.disabled
 _security_backup/
+*dump*.json
+test*.js
+test*.cjs
+test*.ts
