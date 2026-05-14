@@ -159,19 +159,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  const validatedData: AppState = {
  ...INITIAL_DATA,
- products: importedData.products || INITIAL_DATA.products,
- customers: importedData.customers || INITIAL_DATA.customers,
- invoices: importedData.invoices || INITIAL_DATA.invoices,
- expenses: importedData.expenses || INITIAL_DATA.expenses,
- suppliers: importedData.suppliers || INITIAL_DATA.suppliers,
- testimonials: importedData.testimonials || INITIAL_DATA.testimonials,
- settings: importedData.settings || INITIAL_DATA.settings,
- zones: processedZones,
- pulseReviews: importedData.pulseReviews || INITIAL_DATA.pulseReviews,
- pulseAnalysisHistory: importedData.pulseAnalysisHistory || INITIAL_DATA.pulseAnalysisHistory,
- pulseArchiveAnalysis: importedData.pulseArchiveAnalysis || INITIAL_DATA.pulseArchiveAnalysis,
- campaigns: importedData.campaigns || INITIAL_DATA.campaigns,
- aiLearningMemory: importedData.aiLearningMemory || INITIAL_DATA.aiLearningMemory
+ ...importedData,
+ zones: processedZones
  };
  setData(validatedData);
  addToast('تمت العملية', 'تم استيراد البيانات والتحليلات بنجاح', 'success');

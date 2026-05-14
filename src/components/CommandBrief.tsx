@@ -12,7 +12,7 @@ interface Props {
 export function CommandBrief({ data, dateFilter = 'day' }: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const brief = useMemo(() => {
+   const brief = useMemo(() => {
     const lines = [];
     const now = new Date();
     
@@ -35,6 +35,35 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
       const d = new Date(i.date);
       return d >= cutoff && !i.isDeleted;
     }) || [];
+
+    const totalSales = filteredInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
+
+    // 0. Humanized Kuwaiti System Voice (صديق صدوق)
+    if (dateFilter === 'day') {
+        if (totalSales > 100) {
+            lines.push({
+               icon: <TrendingUp size={16} className="text-emerald-400" />,
+               text: `كفو! اليوم كسرنا حاجز المبيعات، عساها مداخيل العافية 🚀`
+            });
+        } else if (totalSales > 0 && totalSales <= 100) {
+            lines.push({
+               icon: <TrendingUp size={16} className="text-blue-400" />,
+               text: `ماشيين صح، المبيعات زينة اليوم، بس نقدر نشد حيلنا أكثر! 💪`
+            });
+        } else {
+            lines.push({
+               icon: <Zap size={16} className="text-amber-400" />,
+               text: `الوضع هادي شوي اليوم ☕.. تبيني أطلع لك قائمة بالعملاء اللي قاطعونا من شهرين وندز لهم رسالة كود خصم، ونحرّك السوق؟`
+            });
+        }
+    } else {
+        if (totalSales > 500) {
+            lines.push({
+               icon: <TrendingUp size={16} className="text-emerald-400" />,
+               text: `أرقام تبيض الوجه، الأداء قوي جداً 🏆 استمر على هالمستوى!`
+            });
+        }
+    }
 
     // 1. Demand Prediction
     // Find the zone with the most recent orders based on the filter
