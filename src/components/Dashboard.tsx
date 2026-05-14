@@ -2262,51 +2262,65 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
           </AnimatePresence>
         </div>
 
-        {/* FINANCIAL TIME MACHINE (Slider) */}
-        <div className="fixed bottom-0 left-0 right-0 z-[100] p-4 pointer-events-none flex justify-center">
-          <div className="bg-white/80 backdrop-blur-3xl border border-white/50 shadow-2xl rounded-full px-6 py-4 w-full max-w-lg flex items-center gap-4 pointer-events-auto interactive-hover">
-            <span className="text-[10px] sm:text-xs font-black uppercase text-slate-500 whitespace-nowrap">
-              آلة الزمن:
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="4"
-              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
-              value={
-                dateFilter === "day"
-                  ? 0
+        {/* FINANCIAL TIME MACHINE (Slider) - Creative Mobile OS Integration */}
+        <div className="fixed bottom-24 md:bottom-0 left-0 right-0 z-[100] p-4 pointer-events-none flex justify-center">
+          <div className="relative bg-white/95 backdrop-blur-3xl border border-slate-200/60 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] rounded-[2rem] md:rounded-full px-4 sm:px-5 py-3 w-full max-w-lg flex items-center justify-between gap-3 pointer-events-auto transition-transform hover:scale-[1.01]">
+            <div className="flex items-center gap-2 shrink-0">
+               <div className="bg-amber-100 p-1.5 rounded-xl border border-amber-200 hidden sm:block">
+                  <Clock size={14} className="text-amber-600" />
+               </div>
+               <span className="text-[10px] sm:text-xs font-black uppercase text-slate-700 whitespace-nowrap">
+                 آلة الزمن
+               </span>
+            </div>
+            
+            <div className="flex-1 px-1 sm:px-2 flex items-center">
+              <input
+                type="range"
+                min="0"
+                max="4"
+                className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-amber-500 shadow-inner"
+                value={
+                  dateFilter === "day"
+                    ? 0
+                    : dateFilter === "week"
+                      ? 1
+                      : dateFilter === "month"
+                        ? 2
+                        : dateFilter === "year"
+                          ? 3
+                          : 4
+                }
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  const mapping: any = {
+                    0: "day",
+                    1: "week",
+                    2: "month",
+                    3: "year",
+                    4: "all",
+                  };
+                  startTransition(() => setDateFilter(mapping[val]));
+                }}
+              />
+            </div>
+            
+            <div className="bg-amber-50 text-amber-600 px-3 sm:px-4 py-1.5 rounded-xl border border-amber-100/50 flex items-center justify-center min-w-[3.5rem] sm:min-w-[4rem] shadow-sm shrink-0">
+              <span className="text-[10px] sm:text-xs font-black whitespace-nowrap">
+                {dateFilter === "day"
+                  ? "يوم"
                   : dateFilter === "week"
-                    ? 1
+                    ? "أسبوع"
                     : dateFilter === "month"
-                      ? 2
+                      ? "شهر"
                       : dateFilter === "year"
-                        ? 3
-                        : 4
-              }
-              onChange={(e) => {
-                const val = parseInt(e.target.value);
-                const mapping: any = {
-                  0: "day",
-                  1: "week",
-                  2: "month",
-                  3: "year",
-                  4: "all",
-                };
-                startTransition(() => setDateFilter(mapping[val]));
-              }}
-            />
-            <span className="text-xs font-black text-amber-500 whitespace-nowrap w-16 text-center">
-              {dateFilter === "day"
-                ? "يوم"
-                : dateFilter === "week"
-                  ? "أسبوع"
-                  : dateFilter === "month"
-                    ? "شهر"
-                    : dateFilter === "year"
-                      ? "سنة"
-                      : "الكل"}
-            </span>
+                        ? "سنة"
+                        : "الكل"}
+              </span>
+            </div>
+
+            {/* Decorative wire connecting the slider to the main Search FAB strictly on mobile, creating a connected "Command Center" feel */}
+            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[2px] h-6 bg-gradient-to-b from-amber-300 to-transparent md:hidden opacity-50" />
           </div>
         </div>
 
