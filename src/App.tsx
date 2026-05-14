@@ -1567,7 +1567,7 @@ const MainApp: React.FC = () => {
         }}
         transition={{ type: 'tween', ease: "easeOut", duration: 0.3 }}
         className={cn(
-          "bg-slate-950 text-white flex flex-col transition-all relative",
+          "glass-dark text-white flex flex-col transition-all relative",
           isMobile ? "fixed right-0 top-0 bottom-0 shadow-[0_0_80px_rgba(0,0,0,0.8)] z-[1001]" : "relative z-40 border-l border-white/5 overflow-hidden"
         )}
       >
@@ -1730,7 +1730,7 @@ const MainApp: React.FC = () => {
         {/* Top Header */}
         <header 
           onClick={closeAllMenus}
-          className="h-12 md:h-20 bg-white/70 backdrop-blur-3xl border-b border-slate-200/50 flex items-center justify-between px-4 lg:px-10 z-[100] sticky top-0 shadow-sm"
+          className="h-12 md:h-20 glass-surface flex items-center justify-between px-4 lg:px-10 z-[100] sticky top-0"
         >
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-4 md:p-8 shrink min-w-0">
             {userRole !== 'partner' && (
@@ -1997,7 +1997,7 @@ const MainApp: React.FC = () => {
               setSidebarOpen(false);
             }
           }}
-          className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 relative bg-slate-50/50"
+          className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 relative bg-atmospheric custom-scrollbar"
         >
           {/* Global Background Accents - Removed for performance */}
           <div className="fixed inset-0 pointer-events-none z-0">
