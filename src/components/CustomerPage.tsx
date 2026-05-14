@@ -381,8 +381,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 "hover:bg-slate-50/80 transition-colors group",
  shakingId === customer.id &&"bg-red-50/50"
 )}
- >
- <td className="p-3">
+ ><td className="p-3">
  <div className="flex items-center gap-2">
  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-bold text-slate-500 group-hover:bg-primary group-hover:text-white transition-colors">
  {customer.name[0]}

@@ -827,8 +827,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </thead>
  <tbody className="divide-y divide-slate-100">
  {(filteredInvoices || []).length === 0 ? (
- <tr key="empty-state">
- <td colSpan={6} className="py-20 px-4 text-center">
+ <tr key="empty-state"><td colSpan={6} className="py-20 px-4 text-center">
  <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
  <div className="w-24 h-24 mb-6 rounded-3xl bg-primary/5 flex items-center justify-center text-primary/40 relative">
  <div className="absolute inset-0 bg-primary/10 rounded-3xl animate-ping opacity-20" />
@@ -866,8 +865,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  isExpanded &&"bg-slate-50/50",
  shakingId === inv.id &&"bg-red-50/50"
 )}
- >
- <td className="p-3 md:p-3 font-bold text-primary flex items-center gap-2">
+ ><td className="p-3 md:p-3 font-bold text-primary flex items-center gap-2">
  {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
  #{inv.id}
  </td>
@@ -966,8 +964,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </motion.tr>
  <AnimatePresence>
  {isExpanded && (
- <tr key={`details-${inv.id}`}>
- <td colSpan={6} className="p-0">
+ <tr key={`details-${inv.id}`}><td colSpan={6} className="p-0">
  <motion.div 
  initial={{ height: 0, opacity: 0 }}
  animate={{ height: 'auto', opacity: 1 }}

@@ -2398,8 +2398,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           <tr
                             key={p.id}
                             className="group hover:bg-[#f7f2e8] transition-colors"
-                          >
-                            <td className="py-4 pr-2">
+                          ><td className="py-4 pr-2">
                               <div className="flex flex-col">
                                 <span className="font-black text-slate-800">
                                   {p.name}
@@ -2579,8 +2578,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                             <tr
                               key={s.id}
                               className="hover:bg-slate-50/80 transition-all group"
-                            >
-                              <td className="p-3 md:p-4">
+                            ><td className="p-3 md:p-4">
                                 <div className="flex items-center gap-4 flex-row-reverse">
                                   <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 font-black text-xl group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner border border-indigo-100">
                                     <Truck size={24} className="opacity-80" />
