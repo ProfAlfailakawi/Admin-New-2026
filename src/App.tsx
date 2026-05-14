@@ -80,6 +80,7 @@ import { getSmartDoc, deleteDoc } from './firebase';
 import { Toaster, toast } from 'sonner';
 import { playNewOrderAlert } from './lib/sounds';
 import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils';
+import LZString from 'lz-string';
 
 const getInitialPushDeepLink = () => {
   const params = new URLSearchParams(window.location.search);
@@ -938,8 +939,11 @@ const MainApp: React.FC = () => {
       const dataRef = getSmartDoc('appData', user.uid, user.email);
       const splitData = splitProductsForDatabase(data);
       let sanitizedData = JSON.parse(JSON.stringify(splitData));
+      
+      const compressedPayload = LZString.compressToUTF16(JSON.stringify(sanitizedData));
+      const dataToSave = { appDataPayload: compressedPayload };
 
-      await setDoc(dataRef, sanitizedData, { merge: true });
+      await setDoc(dataRef, dataToSave, { merge: true });
       addToast("تمت المزامنة ✨", "تم حفظ كافة البيانات في السحابة بنجاح.", "success");
     } catch (err) {
       console.error(err);
@@ -1114,7 +1118,17 @@ const MainApp: React.FC = () => {
         console.log("Firestore update received for path:", dataRef.path);
         if (docSnap.exists()) {
           const rawData = docSnap.data() as any;
-          const remoteDataRaw = joinProductsFromDatabase(rawData);
+          let parsedData = rawData;
+          if (rawData.appDataPayload) {
+             try {
+                parsedData = JSON.parse(LZString.decompressFromUTF16(rawData.appDataPayload) || "{}");
+                parsedData = { ...parsedData, ...rawData }; // merge uncompressed updates if any
+                delete parsedData.appDataPayload;
+             } catch(e) {
+                console.error("Decompression failed", e);
+             }
+          }
+          const remoteDataRaw = joinProductsFromDatabase(parsedData);
           console.log("Data received, product count:", remoteDataRaw.products?.length);
           
           setData(prev => {
@@ -1236,7 +1250,11 @@ const MainApp: React.FC = () => {
           console.log("Auto-saving to Firestore:", dataRef.path);
           const splitData = splitProductsForDatabase(data);
           const sanitizedData = JSON.parse(JSON.stringify(splitData));
-          await setDoc(dataRef, sanitizedData, { merge: true });
+          
+          const compressedPayload = LZString.compressToUTF16(JSON.stringify(sanitizedData));
+          const dataToSave = { appDataPayload: compressedPayload };
+
+          await setDoc(dataRef, dataToSave, { merge: true });
           console.log("Auto-save successful");
           
         } catch (e) {

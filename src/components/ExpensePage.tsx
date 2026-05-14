@@ -183,8 +183,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
 "hover:bg-slate-50/80 transition-colors group",
  shakingId === expense.id &&"bg-red-50/50"
 )}
- >
- <td className="p-3 md:p-3">
+ ><td className="p-3 md:p-3">
  <div className="flex items-center gap-2 font-black text-slate-600">
  <Calendar size={14} className="text-slate-400" />
  {new Date(expense.date).toLocaleDateString('en-GB')}
@@ -223,8 +222,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  </motion.tr>
 ))}
  {(filteredExpenses || []).length === 0 && (
- <tr key="empty-state">
- <td colSpan={5} className="py-20 px-4 text-center">
+ <tr key="empty-state"><td colSpan={5} className="py-20 px-4 text-center">
  <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
  <div className="w-24 h-24 mb-6 rounded-3xl bg-primary/5 flex items-center justify-center text-primary/40 relative">
  <div className="absolute inset-0 bg-primary/10 rounded-3xl animate-ping opacity-20" />

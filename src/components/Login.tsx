@@ -92,6 +92,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  if (errString.includes('popup-closed-by-user') || errString.includes('cancelled by the user')) {
  return;
  }
+ if (errString.includes('unauthorized-domain')) {
+ setError('هذا النطاق غير مصرح له بتسجيل الدخول. يرجى إضافة النطاق الحالي إلى قائمة النطاقات المصرح بها في إعدادات Firebase Auth.');
+ return;
+ }
  if (errString.includes('popup-blocked')) {
  setError('تم فتح النافذة في وضع مقيد. يرجى الضغط على زر"Open in new tab" في أعلى اليمين (AI Studio)، أو السماح بالنوافذ المنبثقة.');
  return;
