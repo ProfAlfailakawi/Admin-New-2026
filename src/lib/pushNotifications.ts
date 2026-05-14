@@ -109,21 +109,31 @@ export async function registerPushNotifications(options?: {
   error?: string;
 }> {
   try {
-    const support = await getPushSupportStatus();
-
-    if (!support.supported) {
+    if (typeof Notification === "undefined") {
       return {
         success: false,
         error: "الإشعارات غير مدعومة على هذا الجهاز أو المتصفح",
       };
     }
 
-    const permission = await Notification.requestPermission();
+    let permission = Notification.permission;
+    if (permission === "default") {
+        permission = await Notification.requestPermission();
+    }
 
     if (permission !== "granted") {
       return {
         success: false,
         error: "لم يتم السماح بالإشعارات",
+      };
+    }
+
+    const support = await getPushSupportStatus();
+
+    if (!support.supported) {
+      return {
+        success: false,
+        error: "الإشعارات غير مدعومة على هذا الجهاز أو المتصفح",
       };
     }
 

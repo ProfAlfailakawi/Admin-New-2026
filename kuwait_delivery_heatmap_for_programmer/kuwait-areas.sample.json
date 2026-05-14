@@ -1,0 +1,62 @@
+[
+  {
+    "region": "السالمية",
+    "name_en": "Salmiya",
+    "lat": 29.3375,
+    "lng": 48.0763
+  },
+  {
+    "region": "حولي",
+    "name_en": "Hawalli",
+    "lat": 29.3328,
+    "lng": 48.0286
+  },
+  {
+    "region": "الفروانية",
+    "name_en": "Farwaniya",
+    "lat": 29.2775,
+    "lng": 47.9586
+  },
+  {
+    "region": "الجهراء",
+    "name_en": "Jahra",
+    "lat": 29.3375,
+    "lng": 47.6581
+  },
+  {
+    "region": "الأحمدي",
+    "name_en": "Ahmadi",
+    "lat": 29.0769,
+    "lng": 48.0839
+  },
+  {
+    "region": "مدينة الكويت",
+    "name_en": "Kuwait City",
+    "lat": 29.3759,
+    "lng": 47.9774
+  },
+  {
+    "region": "الشامية",
+    "name_en": "Shamiya",
+    "lat": 29.347,
+    "lng": 47.9618
+  },
+  {
+    "region": "بيان",
+    "name_en": "Bayan",
+    "lat": 29.3032,
+    "lng": 48.0488
+  },
+  {
+    "region": "مشرف",
+    "name_en": "Mishref",
+    "lat": 29.2774,
+    "lng": 48.0663
+  },
+  {
+    "region": "صباح السالم",
+    "name_en": "Sabah Al Salem",
+    "lat": 29.2572,
+    "lng": 48.0572
+  }
+]
