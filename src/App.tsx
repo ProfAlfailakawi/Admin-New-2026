@@ -2097,7 +2097,10 @@ const MainApp: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.5 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] md:hidden"
+            className={cn(
+              "fixed left-1/2 -translate-x-1/2 z-[100] md:hidden transition-all duration-500 ease-in-out",
+              currentPage === 'dashboard' ? 'bottom-[4.25rem]' : 'bottom-8'
+            )}
           >
             <button
               onClick={() => setCommandBarOpen(true)}
