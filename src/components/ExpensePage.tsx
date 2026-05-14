@@ -122,9 +122,9 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <div className="space-y-6">
  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-right">
  <div className="order-2 md:order-1 flex-1">
- <h1 className="text-xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-3 justify-end leading-tight">
+ <h1 className="text-xl md:text-3xl font-extrabold text-slate-900 flex items-center gap-3 justify-end leading-snug">
  سجل المصروفات
- <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
+ <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-[0_2px_10px_rgb(0,0,0,0.04)]">
  <Wallet className="text-white" />
  </div>
  </h1>
@@ -132,42 +132,42 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  </div>
  </div>
 
- <div className="grid grid-cols-2 gap-2 md:gap-3 md:p-3 mb-2 md:mb-0 text-right">
+ <div className="grid grid-cols-2 gap-2 md:gap-4 md:p-5 lg:p-6 mb-2 md:mb-0 text-right">
  <StatCard label="إجمالي المصروفات" value={Number(totalExpenses || 0).toFixed(3)} icon={<Wallet />} color="red" description="كامل المصاريف المسجلة" />
  <StatCard label="مصروف اليوم" value={Number(todayExpenses || 0).toFixed(3)} icon={<ArrowDownRight />} color="amber" description="إجمالي الصرف لليوم الحالي" />
  </div>
 
- <div className="bg-white rounded-[32px] p-3 md:p-3 border border-slate-200 shadow-sm text-right">
+ <div className="bg-white rounded-3xl lg:rounded-[2rem] p-4 md:p-5 lg:p-6 border border-slate-200 shadow-sm text-right">
  <div className="flex flex-col md:flex-row md:items-center gap-3 mb-10">
  <div className="relative flex-1">
- <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+ <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
  <input 
  id="search-input"
  type="text" 
  placeholder="ابحث في بيان المصروف..."
  value={search}
  onChange={(e) => setSearch(e.target.value)}
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
+ className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
  />
  </div>
  <button 
  onClick={openAddModal}
- className="bg-slate-900 text-white px-4 md:px-8 py-3.5 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95 shrink-0"
+ className="bg-slate-900 text-white px-4 md:px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-[0_4px_20px_rgb(0,0,0,0.05)] active:scale-[0.98] transition-all duration-200 shrink-0"
  >
  <Plus size={20} />
  <span>إضافة مصروف جديد</span>
  </button>
  </div>
 
- <div className="overflow-x-auto rounded-3xl border border-slate-100">
+ <div className="overflow-x-auto w-full max-w-full rounded-2xl md:rounded-3xl border border-slate-200/60">
  <table className="w-full text-right min-w-[800px]" dir="rtl">
  <thead>
- <tr className="bg-slate-50 border-b border-slate-100 font-black text-slate-400 text-[10px] uppercase text-right">
- <th className="p-3 md:p-3">التاريخ</th>
- <th className="p-3 md:p-3">بيان المصروف</th>
- <th className="p-3 md:p-3">المبلغ الصافي</th>
- <th className="p-3 md:p-3">طريقة الدفع</th>
- <th className="p-3 md:p-3 text-left pr-10">إجراءات</th>
+ <tr className="bg-slate-50 border-b border-slate-200/60 font-bold text-slate-500 text-[11px] sm:text-xs uppercase text-right">
+ <th className="p-4 md:p-5 lg:p-6">التاريخ</th>
+ <th className="p-4 md:p-5 lg:p-6">بيان المصروف</th>
+ <th className="p-4 md:p-5 lg:p-6">المبلغ الصافي</th>
+ <th className="p-4 md:p-5 lg:p-6">طريقة الدفع</th>
+ <th className="p-4 md:p-5 lg:p-6 text-left pr-10">إجراءات</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-slate-100">
@@ -183,37 +183,37 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
 "hover:bg-slate-50/80 transition-colors group",
  shakingId === expense.id &&"bg-red-50/50"
 )}
- ><td className="p-3 md:p-3">
- <div className="flex items-center gap-2 font-black text-slate-600">
- <Calendar size={14} className="text-slate-400" />
+ ><td className="p-4 md:p-5 lg:p-6">
+ <div className="flex items-center gap-2 font-bold text-slate-600">
+ <Calendar size={14} className="text-slate-500" />
  {new Date(expense.date).toLocaleDateString('en-GB')}
  </div>
  </td>
- <td className="p-3 md:p-3">
- <div className="font-black text-slate-800 text-lg">{expense.description}</div>
+ <td className="p-4 md:p-5 lg:p-6">
+ <div className="font-black text-slate-900 text-lg">{expense.description}</div>
  </td>
- <td className="p-3 md:p-3 font-black text-red-500 text-lg">
+ <td className="p-4 md:p-5 lg:p-6 font-black text-red-500 text-lg">
  {Number(Math.abs(expense.amount || 0)).toFixed(3)} د.ك
  </td>
- <td className="p-3 md:p-3">
- <div className="flex items-center gap-2 text-slate-500 font-black text-[10px] uppercase tracking-tighter">
- <CreditCard size={12} className="text-slate-400" />
+ <td className="p-4 md:p-5 lg:p-6">
+ <div className="flex items-center gap-2 text-slate-500 font-bold text-[11px] sm:text-xs uppercase tracking-tighter">
+ <CreditCard size={12} className="text-slate-500" />
  {expense.paymentMethod === 'BankTransfer' ? 'حوالة' : 
  expense.paymentMethod === 'KNet' ? 'KNET' :
  expense.paymentMethod === 'Cash' ? 'كاش' : expense.paymentMethod}
  </div>
  </td>
- <td className="p-3 md:p-3 text-left">
+ <td className="p-4 md:p-5 lg:p-6 text-left">
  <div className="flex items-center gap-2 justify-end pr-5">
  <button 
  onClick={() => openEditModal(expense)}
- className="p-2 hover:bg-slate-100 rounded-xl text-slate-300 hover:text-slate-600 transition-colors"
+ className="p-2 hover:bg-slate-100 rounded-xl text-slate-300 hover:text-slate-600 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
  >
  <Edit2 size={16} />
  </button>
  <button 
  onClick={() => setExpenseToDelete(expense.id)}
- className="p-2 hover:bg-red-50 rounded-xl text-red-300 hover:text-red-500 transition-colors"
+ className="p-2 hover:bg-red-50 rounded-xl text-red-300 hover:text-red-500 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
  >
  <Trash2 size={16} />
  </button>
@@ -228,11 +228,11 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <div className="absolute inset-0 bg-primary/10 rounded-3xl animate-ping opacity-20" />
  <Wallet size={48} />
  </div>
- <h3 className="text-xl md:text-3xl font-black text-slate-800 mb-3 tracking-tight">لا توجد مصاريف!</h3>
+ <h3 className="text-xl md:text-3xl font-black text-slate-900 mb-3 tracking-tight">لا توجد مصاريف!</h3>
  <p className="text-slate-500 font-bold mb-8 leading-relaxed">لم تسجل أي مصروفات حتى الآن. أضف أول مصروف لتبدأ بتتبع تدفقاتك النقدية بدقة.</p>
  <button 
  onClick={() => { setShowModal(true); }} 
- className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1 mx-auto"
+ className="bg-primary text-white hover:bg-primary/90 px-5 md:px-6 py-3 rounded-2xl font-bold flex items-center gap-3 shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-primary/20 hover:-translate-y-1 transition-all active:scale-[0.98] transition-all duration-200 hover:rotate-1 mx-auto"
  >
  <Plus size={24} />
  <span>سجل أول مصروف!</span>
@@ -259,41 +259,41 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  initial={{ opacity: 0, scale: 0.95, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95, y: 20 }}
- className="bg-white rounded-[40px] w-[95%] max-w-lg shadow-2xl p-3 md:p-3 border border-slate-100 text-right flex flex-col max-h-[85vh] overflow-hidden"
+ className="bg-white rounded-3xl lg:rounded-[2rem] w-full max-w-[95%] sm:max-w-lg shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-4 md:p-5 lg:p-6 border border-slate-200/60 text-right flex flex-col max-h-[85vh] overflow-hidden"
  onClick={e => e.stopPropagation()}
  >
- <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
- <h2 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3 justify-end leading-tight text-right">
+ <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar pr-2">
+ <h2 className="text-2xl font-black text-slate-900 mb-8 flex items-center gap-3 justify-end leading-snug text-right">
  {editingId ? 'تحرير المصروف' : 'إضافة مصروف جديد'}
  <PlusCircle className="text-primary" />
  </h2>
  
  <div className="space-y-6">
  <div className="space-y-2">
- <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">بيان المصروف</label>
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">بيان المصروف</label>
  <input 
  type="text" 
  value={expenseForm.description}
  onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-800 text-right text-lg"
+ className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-900 text-right text-lg"
  placeholder="مثال: فاتورة كهرباء، كرتون دجاج..."
  />
  </div>
 
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:p-3 text-right">
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:p-5 lg:p-6 text-right">
  <div className="space-y-2">
- <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">المبلغ (د.ك)</label>
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">المبلغ (د.ك)</label>
  <NumericInput 
  value={expenseForm.amount === 0 ? '' : expenseForm.amount}
  onChange={(val) => setExpenseForm({ ...expenseForm, amount: val as any })}
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-800 text-right"
+ className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-900 text-right"
  placeholder="0.000"
  />
  </div>
  <div className="space-y-2">
- <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">طريقة الصرف</label>
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">طريقة الصرف</label>
  <select 
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-800 text-right"
+ className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-900 text-right"
  value={expenseForm.paymentMethod}
  onChange={(e) => setExpenseForm({ ...expenseForm, paymentMethod: e.target.value as any })}
  >
@@ -305,13 +305,14 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  </div>
  </div>
 
- <div className="space-y-2">
- <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">تاريخ المصروف</label>
+ <div className="space-y-2 relative overflow-hidden">
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">تاريخ المصروف</label>
  <input 
  type="date" 
  value={expenseForm.date.split('T')[0]}
  onChange={(e) => setExpenseForm({ ...expenseForm, date: new Date(e.target.value).toISOString() })}
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-800 text-right"
+ dir="ltr"
+ className="block w-full min-w-0 max-w-full appearance-none bg-slate-50/50 border border-slate-200/60 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-900 text-center"
  />
  </div>
  </div>
@@ -326,7 +327,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  </button>
  <button 
  onClick={handleSaveExpense}
- className="flex-1 py-4 bg-slate-900 text-white font-black rounded-2xl transition-all shadow-xl active:scale-95"
+ className="flex-1 py-4 bg-slate-900 text-white font-bold rounded-2xl transition-all shadow-[0_4px_20px_rgb(0,0,0,0.05)] active:scale-[0.98] transition-all duration-200"
  >
  {editingId ?"تحديث السجل" :"تأكيد المصروف"}
  </button>

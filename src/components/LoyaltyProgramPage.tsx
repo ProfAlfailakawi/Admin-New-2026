@@ -312,7 +312,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  return (
  <div className="space-y-8" dir="rtl">
  {/* Header Stats */}
- <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-2 md:p-6 text-white shadow-xl relative overflow-hidden">
+ <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-2 md:p-6 text-white shadow-[0_4px_20px_rgb(0,0,0,0.05)] relative overflow-hidden min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
  <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
  <Award size={300} className="absolute -bottom-20 -right-20" />
  </div>
@@ -328,7 +328,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
 
  <button 
  onClick={() => setShowSettings(true)}
- className="bg-white/20 hover:bg-white/30 backdrop-blur-md px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 transition-all"
+ className="bg-white/20 hover:bg-white/30 backdrop-blur-md px-6 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-all"
  >
  <Settings size={18} /> إعدادات النقاط
  </button>
@@ -340,36 +340,36 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  </p>
  
  <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-8">
- <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/20 transition-all hover:bg-white/20">
- <span className="text-[10px] font-black text-amber-200 block mb-1">إجمالي النقاط الفعالة</span>
- <div className="text-xl md:text-2xl font-black">{stats.totalPoints.toLocaleString('en-GB')} <span className="text-[10px] opacity-70 font-bold">نقطة</span></div>
+ <div className="bg-white/10 backdrop-blur-md p-2 md:p-5 rounded-xl md:rounded-2xl border border-white/20 transition-all hover:bg-white/20 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <span className="text-[11px] sm:text-xs font-bold text-amber-200 block mb-1">إجمالي النقاط الفعالة</span>
+ <div className="text-xl md:text-2xl font-black">{stats.totalPoints.toLocaleString('en-GB')} <span className="text-[11px] sm:text-xs opacity-70 font-bold">نقطة</span></div>
  </div>
- <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/20 transition-all hover:bg-emerald-500/20">
- <span className="text-[10px] font-black text-emerald-200 block mb-1">نشط / جديد</span>
- <div className="text-xl md:text-2xl font-black">{stats.active} <span className="text-[10px] opacity-70 font-bold">عميل</span></div>
+ <div className="bg-white/10 backdrop-blur-md p-2 md:p-5 rounded-xl md:rounded-2xl border border-white/20 transition-all hover:bg-emerald-500/20 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <span className="text-[11px] sm:text-xs font-bold text-emerald-200 block mb-1">نشط / جديد</span>
+ <div className="text-xl md:text-2xl font-black">{stats.active} <span className="text-[11px] sm:text-xs opacity-70 font-bold">عميل</span></div>
  </div>
- <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/20 transition-all hover:bg-amber-500/30">
- <span className="text-[10px] font-black text-amber-200 block mb-1">الـ VIP"الكفو"</span>
- <div className="text-xl md:text-2xl font-black">{stats.vipCount} <span className="text-[10px] opacity-70 font-bold">عميل</span></div>
+ <div className="bg-white/10 backdrop-blur-md p-2 md:p-5 rounded-xl md:rounded-2xl border border-white/20 transition-all hover:bg-amber-500/30 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <span className="text-[11px] sm:text-xs font-bold text-amber-200 block mb-1">الـ VIP"الكفو"</span>
+ <div className="text-xl md:text-2xl font-black">{stats.vipCount} <span className="text-[11px] sm:text-xs opacity-70 font-bold">عميل</span></div>
  </div>
- <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/20 transition-all hover:bg-orange-500/20">
- <span className="text-[10px] font-black text-orange-200 block mb-1">ماشي بالخطر ⚠️</span>
- <div className="text-xl md:text-2xl font-black">{stats.atRiskCount} <span className="text-[10px] opacity-70 font-bold">عميل</span></div>
+ <div className="bg-white/10 backdrop-blur-md p-2 md:p-5 rounded-xl md:rounded-2xl border border-white/20 transition-all hover:bg-orange-500/20 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <span className="text-[11px] sm:text-xs font-bold text-orange-200 block mb-1">ماشي بالخطر ⚠️</span>
+ <div className="text-xl md:text-2xl font-black">{stats.atRiskCount} <span className="text-[11px] sm:text-xs opacity-70 font-bold">عميل</span></div>
  </div>
- <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/20 transition-all hover:bg-rose-500/20">
- <span className="text-[10px] font-black text-rose-200 block mb-1">خاملون تماماً</span>
- <div className="text-xl md:text-2xl font-black">{stats.inactive} <span className="text-[10px] opacity-70 font-bold">عميل</span></div>
+ <div className="bg-white/10 backdrop-blur-md p-2 md:p-5 rounded-xl md:rounded-2xl border border-white/20 transition-all hover:bg-rose-500/20 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <span className="text-[11px] sm:text-xs font-bold text-rose-200 block mb-1">خاملون تماماً</span>
+ <div className="text-xl md:text-2xl font-black">{stats.inactive} <span className="text-[11px] sm:text-xs opacity-70 font-bold">عميل</span></div>
  </div>
  </div>
  </div>
  </div>
 
  {/* Dynamic Rewards Settings */}
- <div className="bg-white border text-right border-slate-200 rounded-2xl p-3 md:p-3 shadow-sm relative overflow-hidden">
+ <div className="bg-white border text-right border-slate-200 rounded-2xl p-4 md:p-5 lg:p-6 shadow-sm relative overflow-hidden">
  <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"/>
  <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 relative z-10">
- <h3 className="font-black text-2xl text-slate-800 flex items-center gap-2 relative z-10">المكافآت الذكية (Rewards) <Gift className="text-amber-500" /></h3>
- <div className="flex items-center gap-3 bg-slate-100 p-1.5 rounded-2xl">
+ <h3 className="font-black text-2xl text-slate-900 flex items-center gap-2 relative z-10">المكافآت الذكية (Rewards) <Gift className="text-amber-500" /></h3>
+ <div className="flex items-center gap-3 bg-slate-100 p-1.5 rounded-2xl min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
  <button 
  onClick={() => {
  setIsDynamicRewardsEnabled(true);
@@ -377,7 +377,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  }}
  className={cn(
 "px-4 py-2 rounded-xl text-xs font-black transition-all",
- isDynamicRewardsEnabled ?"bg-amber-500 text-white shadow-lg" :"text-slate-400"
+ isDynamicRewardsEnabled ?"bg-amber-500 text-white shadow-[0_2px_10px_rgb(0,0,0,0.04)]" :"text-slate-500"
 )}
  >
  مكافآت متكيفة آلياً (Pulse Mode)
@@ -389,7 +389,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  }}
  className={cn(
 "px-4 py-2 rounded-xl text-xs font-black transition-all",
- !isDynamicRewardsEnabled ?"bg-slate-900 text-white shadow-lg" :"text-slate-400"
+ !isDynamicRewardsEnabled ?"bg-slate-900 text-white shadow-[0_2px_10px_rgb(0,0,0,0.04)]" :"text-slate-500"
 )}
  >
  مكافآت ثابتة
@@ -399,13 +399,13 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
  {rewards.map((reward, i) => (
- <div key={i} className="p-3 md:p-3 bg-slate-50 border border-slate-100 rounded-3xl hover:border-amber-200 transition-all group">
- <div className="w-12 h-12 bg-white rounded-2xl border border-slate-100 flex justify-center items-center text-amber-500 mb-4 group-hover:scale-110 transition-transform shadow-sm">
+ <div key={i} className="p-4 md:p-5 lg:p-6 bg-slate-50/50 border border-slate-200/60/60 rounded-3xl hover:border-amber-200 transition-all group">
+ <div className="w-12 h-12 bg-white rounded-xl md:rounded-2xl border border-slate-200/60 flex justify-center items-center text-amber-500 mb-4 group-hover:scale-110 transition-transform shadow-sm">
  {reward.icon}
  </div>
- <h4 className="font-black text-slate-800 text-lg">{reward.name}</h4>
+ <h4 className="font-black text-slate-900 text-lg">{reward.name}</h4>
  <p className="text-slate-500 text-sm font-bold mt-1 min-h-[40px]">{reward.desc}</p>
- <div className="mt-4 pt-4 border-t border-slate-200/60 font-black text-amber-600">
+ <div className="mt-4 pt-4 border-t border-slate-200/60 font-bold text-amber-600">
  {reward.points} نقطة
  </div>
  </div>
@@ -415,7 +415,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
 
  {/* TOP 10 GAMIFICATION */}
  {loyaltyData.length > 0 && (
- <div className="bg-slate-900 rounded-3xl p-6 text-white relative overflow-hidden shadow-2xl my-8 text-right" dir="rtl">
+ <div className="bg-slate-900 rounded-3xl p-6 text-white relative overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.08)] my-8 text-right" dir="rtl">
  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
  <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 blur-[100px] rounded-full pointer-events-none" />
  <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 relative z-10">
@@ -424,32 +424,32 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  أبطال الطلبات 🏆 
  <span className="text-[11px] md:text-sm font-bold bg-amber-500/20 text-amber-200 px-3 py-1 rounded-full border border-amber-500/30">Top 10 Leaderboard</span>
  </h3>
- <p className="text-slate-400 font-bold mt-2 text-xs md:text-sm">أكثر العملاء ولاءً.. حوّلهم من أرقام هواتف إلى "شخصيات وأبطال" وارفع مبيعاتك.</p>
+ <p className="text-slate-500 font-bold mt-2 text-xs md:text-sm">أكثر العملاء ولاءً.. حوّلهم من أرقام هواتف إلى "شخصيات وأبطال" وارفع مبيعاتك.</p>
  </div>
  </div>
  
  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 relative z-10">
  {[...loyaltyData].sort((a,b) => b.totalSpent - a.totalSpent).slice(0, 10).map((hero, idx) => (
  <div key={hero.id} className="relative group bg-slate-800/80 hover:bg-slate-800 backdrop-blur-xl border border-slate-700 hover:border-amber-500/50 rounded-2xl p-4 transition-all duration-300">
- <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-900 flex items-center justify-center font-black text-xs text-amber-400 shadow-xl z-20">
+ <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-900 flex items-center justify-center font-bold text-xs text-amber-400 shadow-[0_4px_20px_rgb(0,0,0,0.05)] z-20">
  #{idx + 1}
  </div>
  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg md:text-xl font-black mb-3 border border-amber-500/20">
  {hero.name?.charAt(0) || '?'}
  </div>
- <h4 className="font-black text-xs md:text-sm text-slate-100 truncate">{hero.name || 'عميلنا الكفو'}</h4>
- <p className="text-[10px] md:text-[11px] text-slate-400 font-bold mt-1">المحفظة: {hero.totalSpent.toFixed(2)} د.ك</p>
+ <h4 className="font-bold text-xs md:text-sm text-slate-100 truncate">{hero.name || 'عميلنا الكفو'}</h4>
+ <p className="text-[11px] sm:text-xs md:text-[11px] text-slate-500 font-bold mt-1">المحفظة: {hero.totalSpent.toFixed(2)} د.ك</p>
  
  {/* Smart Action */}
  {hero.daysSinceLastOrder > 14 && (
  <div className="mt-4 pt-4 border-t border-slate-700/50">
- <p className="text-[9px] md:text-[10px] text-rose-300 font-bold mb-2">البطل غايب من {hero.daysSinceLastOrder} يوم!</p>
+ <p className="text-[9px] md:text-[11px] sm:text-xs text-rose-300 font-bold mb-2">البطل غايب من {hero.daysSinceLastOrder} يوم!</p>
  <button 
  onClick={() => {
  const msg = `عاش من شافك يا بطل 🏆! مختفي يا ${hero.name?.split(' ')[0]}.. ناطرينك ترجع مع خصم 15% يبرد الجبد!`;
  handleWhatsApp(hero.phone, msg);
  }}
- className="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 py-2 rounded-lg text-[10px] md:text-[11px] font-black transition-all"
+ className="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 py-2 rounded-lg text-[11px] sm:text-xs md:text-[11px] font-bold transition-all"
  >
  استرجاع بخصم 15%
  </button>
@@ -457,13 +457,13 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  )}
  {hero.daysSinceLastOrder <= 14 && (
  <div className="mt-4 pt-4 border-t border-slate-700/50">
- <p className="text-[9px] md:text-[10px] text-emerald-300 font-bold mb-2">في قمة النشاط 🔥</p>
+ <p className="text-[9px] md:text-[11px] sm:text-xs text-emerald-300 font-bold mb-2">في قمة النشاط 🔥</p>
  <button 
  onClick={() => {
  const msg = `كفو يا ${hero.name?.split(' ')[0]} 🥇! أنت من أبطالنا الذهبيين.. هذي هدية بسيطة لك تبيض الوجه بالطلب الياي!`;
  handleWhatsApp(hero.phone, msg);
  }}
- className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 py-2 rounded-lg text-[10px] md:text-[11px] font-black transition-all"
+ className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 py-2 rounded-lg text-[11px] sm:text-xs md:text-[11px] font-bold transition-all"
  >
  مكافأة الاستمرار
  </button>
@@ -478,22 +478,22 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  {/* Customer Segments Table */}
  <div className="bg-white border text-right border-slate-200 rounded-2xl p-3 shadow-sm">
  <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-8 gap-3 md:gap-4">
- <h3 className="font-black text-xl md:text-2xl text-slate-800 flex items-center gap-2">إدارة العملاء والولاء <Users className="text-slate-400 w-5 h-5 md:w-6 md:h-6" /></h3>
+ <h3 className="font-black text-xl md:text-2xl text-slate-900 flex items-center gap-2">إدارة العملاء والولاء <Users className="text-slate-500 w-5 h-5 md:w-6 md:h-6" /></h3>
  
  <div className="flex flex-col xl:flex-row items-center gap-2 md:gap-3 w-full md:w-auto">
  {/* Sorting */}
- <div className="flex items-center gap-1 md:gap-2 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl p-1 w-full xl:w-auto">
- <button onClick={() => setSortBy('points')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black transition-all", sortBy === 'points' ?"bg-slate-900 text-white" :"text-slate-400")}>الأعلى نقاط</button>
- <button onClick={() => setSortBy('spent')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black transition-all", sortBy === 'spent' ?"bg-slate-900 text-white" :"text-slate-400")}>الأعلى صرف</button>
- <button onClick={() => setSortBy('lastOrder')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black transition-all", sortBy === 'lastOrder' ?"bg-slate-900 text-white" :"text-slate-400")}>أحدث طلب</button>
+ <div className="flex items-center gap-1 md:gap-2 bg-slate-50/50 border border-slate-200/60 rounded-xl md:rounded-2xl p-1 w-full xl:w-auto min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <button onClick={() => setSortBy('points')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[9px] md:text-[11px] sm:text-xs font-black transition-all", sortBy === 'points' ?"bg-slate-900 text-white" :"text-slate-500")}>الأعلى نقاط</button>
+ <button onClick={() => setSortBy('spent')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[9px] md:text-[11px] sm:text-xs font-black transition-all", sortBy === 'spent' ?"bg-slate-900 text-white" :"text-slate-500")}>الأعلى صرف</button>
+ <button onClick={() => setSortBy('lastOrder')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[9px] md:text-[11px] sm:text-xs font-black transition-all", sortBy === 'lastOrder' ?"bg-slate-900 text-white" :"text-slate-500")}>أحدث طلب</button>
  </div>
 
  <div className="relative w-full lg:w-64">
- <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+ <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
  <input 
  type="text" 
  placeholder="بحث بالاسم أو الرقم..." 
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-bold text-sm placeholder:text-slate-400"
+ className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-bold text-sm placeholder:text-slate-500"
  value={searchTerm}
  onChange={(e) => {
  setSearchTerm(e.target.value);
@@ -502,7 +502,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  />
  </div>
  
- <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-1 overflow-x-auto w-full lg:w-auto max-w-full">
+ <div className="flex items-center gap-2 bg-slate-50/50 border border-slate-200/60 rounded-2xl p-1 overflow-x-auto w-full lg:w-auto max-w-full min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
  {[
  { id: 'all', label: 'الكل' },
  { id: 'VIP', label: 'VIP 👑' },
@@ -531,9 +531,9 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  </div>
  </div>
 
- <div className="overflow-x-auto rounded-2xl border border-slate-100 pb-0">
+ <div className="overflow-x-auto w-full max-w-full rounded-xl md:rounded-2xl border border-slate-200/60 pb-0">
  <table className="w-full text-right" dir="rtl">
- <thead className="bg-slate-50 text-[11px] font-black text-slate-500 uppercase">
+ <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase">
  <tr>
  <th className="p-3 pr-6">العميل</th>
  <th className="p-3 text-center">التصنيف الآلي</th>
@@ -562,18 +562,18 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  {c.name?.charAt(0)}
  </div>
  <div className="flex flex-col">
- <span className="font-black text-slate-800 text-xs md:text-sm">{c.name}</span>
+ <span className="font-bold text-slate-900 text-xs md:text-sm">{c.name}</span>
  <span className="text-[9px] md:text-[11px] text-slate-500 font-bold tracking-wide mt-0.5 md:mt-1" dir="ltr">{c.phone}</span>
  </div>
  </button>
  </td>
- <td className="p-2 md:p-3 text-center">
+ <td className="p-2 md:p-5 text-center min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
  <div className="flex flex-col items-center gap-1.5 md:gap-2">
  <span className={cn("px-2 py-1 md:px-3 md:py-1.5 rounded-lg md:rounded-xl text-[9px] md:text-xs font-black", c.classificationColor)}>
  {c.classification}
  </span>
  {c.daysSinceLastOrder !== Infinity && (
- <div className="text-[8px] md:text-[10px] text-slate-400 font-bold flex items-center gap-1">
+ <div className="text-[8px] md:text-[11px] sm:text-xs text-slate-500 font-bold flex items-center gap-1">
  <Clock size={10} /> منذ {c.daysSinceLastOrder} يوم
  </div>
 )}
@@ -583,13 +583,13 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  <div className="flex flex-col items-center">
  <span className={cn(
 "font-black text-lg flex items-center gap-1.5",
- c.pointsStatus ==="مجمدة" ?"text-slate-400 line-through" :"text-amber-600"
+ c.pointsStatus ==="مجمدة" ?"text-slate-500 line-through" :"text-amber-600"
 )}>
  {c.points} <Star size={16} className={c.pointsStatus ==="مجمدة" ?"fill-slate-400" :"fill-amber-500"} />
  </span>
  {c.pointsStatus !=="فعال" && (
  <span className={cn(
-"text-[10px] whitespace-nowrap font-bold px-2 py-0.5 rounded-lg mt-1",
+"text-[11px] sm:text-xs whitespace-nowrap font-bold px-2 py-0.5 rounded-lg mt-1",
  c.pointsStatus ==="معرضة للانتهاء" ?"bg-orange-100 text-orange-600" :"bg-slate-100 text-slate-500"
 )}>
  {c.pointsStatus}
@@ -599,15 +599,15 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  </td>
  <td className="p-3">
  <div className="flex flex-col items-center">
- <span className="font-black text-slate-800 text-sm flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
- <Tag size={14} className="text-slate-400" />
+ <span className="font-bold text-slate-900 text-sm flex items-center gap-1.5 bg-slate-50/50 border border-slate-200/60 px-3 py-1.5 rounded-xl">
+ <Tag size={14} className="text-slate-500" />
  {c.totalDiscountReceived.toFixed(2)} د.ك
  </span>
  </div>
  </td>
- <td className="p-2 md:p-3 text-right">
- <div className="bg-slate-100/50 p-2 md:p-3 rounded-xl inline-block max-w-[280px]">
- <span className="text-[10px] md:text-xs font-bold text-slate-600 leading-relaxed block">
+ <td className="p-2 md:p-5 text-right min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <div className="bg-slate-100/50 p-2 md:p-5 rounded-xl inline-block max-w-[280px] min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <span className="text-[11px] sm:text-xs md:text-xs font-bold text-slate-600 leading-relaxed block">
  {c.smartAdvice}
  </span>
  </div>
@@ -615,7 +615,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  <td className="p-3 pl-6 text-left">
  <button 
  onClick={() => handleWhatsApp(c.phone, c.whatsappMessage)}
- className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all rounded-xl font-black text-xs shadow-sm hover:shadow whitespace-nowrap min-w-[130px]"
+ className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all rounded-xl font-bold text-xs shadow-sm hover:shadow whitespace-nowrap min-w-[130px]"
  >
  <MessageCircle size={16} />
  {c.actionLabel}
@@ -624,7 +624,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  </motion.tr>
 )) : (
  <tr>
- <td colSpan={6} className="p-3 md:p-4 md:p-3 md:p-4 text-center text-slate-400 font-black">
+ <td colSpan={6} className="p-3 md:p-4 md:p-5 md:p-4 text-center text-slate-500 font-bold">
  لا يوجد عملاء في هذه الفئة.
  </td>
  </tr>
@@ -636,7 +636,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
 
  {/* Pagination Controls */}
  {totalPages > 1 && (
- <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-100 px-4">
+ <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-200/60 px-4">
  <div className="text-sm font-bold text-slate-500">
  إظهار {((currentPage - 1) * rowsPerPage) + 1} إلى {Math.min(currentPage * rowsPerPage, filteredCustomers.length)} من {filteredCustomers.length} عميل
  </div>
@@ -644,17 +644,17 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  <button 
  onClick={() => handlePageChange(currentPage - 1)}
  disabled={currentPage === 1}
- className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+ className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
  >
  <ChevronRight size={18} />
  </button>
- <div className="px-4 py-1.5 font-black text-sm bg-amber-50 text-amber-700 rounded-xl border border-amber-100">
+ <div className="px-4 py-1.5 font-bold text-sm bg-amber-50 text-amber-700 rounded-xl border border-amber-100">
  {currentPage} / {totalPages}
  </div>
  <button 
  onClick={() => handlePageChange(currentPage + 1)}
  disabled={currentPage === totalPages}
- className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+ className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
  >
  <ChevronLeft size={18} />
  </button>
@@ -679,14 +679,14 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  initial={{ opacity: 0, scale: 0.9, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.9, y: 20 }}
- className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-3 md:p-3 overflow-hidden" onClick={(e) => e.stopPropagation()}
+ className="relative w-full max-w-lg bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-4 md:p-5 lg:p-6 overflow-hidden" onClick={(e) => e.stopPropagation()}
  dir="rtl"
  >
- <h3 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-3">إعدادات برنامج الولاء <Settings size={24} className="text-primary"/></h3>
+ <h3 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3">إعدادات برنامج الولاء <Settings size={24} className="text-primary"/></h3>
  
  <div className="space-y-6">
  <div>
- <label className="text-xs font-black text-slate-400 uppercase block mb-3">صلاحية النقاط (يوم)</label>
+ <label className="text-xs font-bold text-slate-500 uppercase block mb-3">صلاحية النقاط (يوم)</label>
  <div className="flex items-center gap-4">
  <input 
  type="range" 
@@ -697,19 +697,19 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  onChange={(e) => setExpirationRule(Number(e.target.value))}
  className="flex-1 accent-amber-500"
  />
- <span className="w-16 text-center font-black text-slate-800 bg-slate-100 py-2 rounded-xl border border-slate-200">
+ <span className="w-16 text-center font-bold text-slate-900 bg-slate-100 py-2 rounded-xl border border-slate-200">
  {expirationRule === 0 ? 'لا تنتهي' : expirationRule}
  </span>
  </div>
- <p className="text-[10px] text-slate-400 font-bold mt-2">
+ <p className="text-[11px] sm:text-xs text-slate-500 font-bold mt-2">
  {expirationRule === 0 ? 'النقاط لا تنتهي أبداً.' : `تنتهي النقاط تلقائياً بعد مرور ${expirationRule} يوم من آخر طلب للعميل.`}
  </p>
  </div>
 
- <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
+ <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-200/60">
  <div>
- <div className="font-black text-slate-800 text-sm">المكافآت التكيفية (AI)</div>
- <div className="text-[10px] text-slate-400 font-bold">تعديل قيمة النقاط بناءً على ضغط الحجز والنبض الاقتصادي.</div>
+ <div className="font-bold text-slate-900 text-sm">المكافآت التكيفية (AI)</div>
+ <div className="text-[11px] sm:text-xs text-slate-500 font-bold">تعديل قيمة النقاط بناءً على ضغط الحجز والنبض الاقتصادي.</div>
  </div>
  <button 
  onClick={() => setIsDynamicRewardsEnabled(!isDynamicRewardsEnabled)}
@@ -719,20 +719,20 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  </button>
  </div>
 
- <div className="pt-6 border-t border-slate-100 flex gap-4">
+ <div className="pt-6 border-t border-slate-200/60 flex gap-4">
  <button 
  onClick={() => {
  updateLoyaltySettings(expirationRule, isDynamicRewardsEnabled);
  setShowSettings(false);
  toast.success("تم حفظ إعدادات الولاء بنجاح");
  }}
- className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-sm active:scale-95 transition-all"
+ className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-bold text-sm active:scale-[0.98] transition-all duration-200 transition-all"
  >
  حفظ التغييرات
  </button>
  <button 
  onClick={() => setShowSettings(false)}
- className="px-6 bg-slate-100 text-slate-500 py-4 rounded-2xl font-black text-sm active:scale-95 transition-all"
+ className="px-6 bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold text-sm active:scale-[0.98] transition-all duration-200 transition-all"
  >
  إلغاء
  </button>
@@ -757,14 +757,14 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  initial={{ opacity: 0, scale: 0.9, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.9, y: 20 }}
- className="relative w-full max-w-2xl bg-white rounded-3xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+ className="relative w-full max-w-2xl bg-white rounded-3xl md:rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden flex flex-col"
  dir="rtl"
  >
  {/* Modal Header */}
- <div className="bg-slate-900 p-3 md:p-3 text-white relative">
+ <div className="bg-slate-900 p-4 md:p-5 lg:p-6 text-white relative">
  <button 
  onClick={() => setSelectedCustomer(null)}
- className="absolute top-3 md:p-4 left-6 text-slate-400 hover:text-white transition-colors"
+ className="absolute top-3 md:p-4 left-6 text-slate-500 hover:text-white transition-colors"
  >
  <X size={24} />
  </button>
@@ -774,12 +774,12 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  </div>
  <div>
  <h3 className="text-2xl font-black">{selectedCustomer.name}</h3>
- <p className="text-slate-400 font-bold" dir="ltr">{selectedCustomer.phone}</p>
+ <p className="text-slate-500 font-bold" dir="ltr">{selectedCustomer.phone}</p>
  <div className="flex items-center gap-2 mt-2">
- <span className={cn("px-3 py-1 rounded-lg text-[10px] font-black", selectedCustomer.classificationColor)}>
+ <span className={cn("px-3 py-1 rounded-lg text-[11px] sm:text-xs font-black", selectedCustomer.classificationColor)}>
  {selectedCustomer.classification}
  </span>
- <span className="bg-white/10 px-3 py-1 rounded-lg text-[10px] font-black text-amber-400">
+ <span className="bg-white/10 px-3 py-1 rounded-lg text-[11px] sm:text-xs font-bold text-amber-400">
  {selectedCustomer.points} نقطة ولاء
  </span>
  </div>
@@ -788,23 +788,23 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  </div>
 
  {/* Modal Content */}
- <div className="p-3 md:p-3 overflow-y-auto max-h-[60vh] space-y-4 md:space-y-8">
+ <div className="p-4 md:p-5 lg:p-6 overflow-y-auto max-h-[60vh] space-y-4 md:space-y-8">
  {/* Key Metrics */}
  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
- <div className="bg-slate-50 p-2 md:p-3 rounded-xl md:rounded-2xl border border-slate-100 text-center">
- <span className="text-[10px] font-black text-slate-400 uppercase block mb-0.5 md:mb-1">إجمالي الصرف</span>
- <div className="text-sm md:text-lg font-black text-slate-800">{(selectedCustomer.totalSpent || 0).toFixed(3)} د.ك</div>
+ <div className="bg-slate-50 p-2 md:p-5 rounded-xl md:rounded-xl md:rounded-2xl border border-slate-200/60 text-center min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase block mb-0.5 md:mb-1">إجمالي الصرف</span>
+ <div className="text-sm md:text-lg font-black text-slate-900">{(selectedCustomer.totalSpent || 0).toFixed(3)} د.ك</div>
  </div>
- <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
- <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">عدد الطلبات</span>
- <div className="text-lg font-black text-slate-800">{selectedCustomer.ordersCount}</div>
+ <div className="bg-slate-50 p-3 rounded-xl md:rounded-2xl border border-slate-200/60 text-center">
+ <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase block mb-1">عدد الطلبات</span>
+ <div className="text-lg font-black text-slate-900">{selectedCustomer.ordersCount}</div>
  </div>
- <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
- <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">نقاط مكتسبة</span>
- <div className="text-lg font-black text-slate-800">{selectedCustomer.rawPoints}</div>
+ <div className="bg-slate-50 p-3 rounded-xl md:rounded-2xl border border-slate-200/60 text-center">
+ <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase block mb-1">نقاط مكتسبة</span>
+ <div className="text-lg font-black text-slate-900">{selectedCustomer.rawPoints}</div>
  </div>
- <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
- <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">آخر طلب</span>
+ <div className="bg-slate-50 p-3 rounded-xl md:rounded-2xl border border-slate-200/60 text-center">
+ <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase block mb-1">آخر طلب</span>
  <div className="text-lg font-black text-slate-500">
  {selectedCustomer.lastOrderDate ? new Date(selectedCustomer.lastOrderDate).toLocaleDateString('en-GB') : 'لا يوجد'}
  </div>
@@ -813,25 +813,25 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
 
  {/* Loyalty & Rewards History */}
  <div>
- <h4 className="font-black text-slate-800 mb-4 flex items-center gap-2">سجل الولاء والكوبونات <History size={18} className="text-slate-400" /></h4>
+ <h4 className="font-bold text-slate-900 mb-4 flex items-center gap-2">سجل الولاء والكوبونات <History size={18} className="text-slate-500" /></h4>
  <div className="space-y-2">
  {selectedCustomer.rewardHistory && selectedCustomer.rewardHistory.length > 0 ? (
  selectedCustomer.rewardHistory.map((h: any, idx: number) => (
- <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+ <div key={idx} className="flex items-center justify-between p-3 bg-slate-50/50 border border-slate-200/60/60 rounded-2xl">
  <div className="flex items-center gap-3">
  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-rose-500 shadow-sm">
  <Gift size={18} />
  </div>
  <div>
- <div className="font-black text-slate-800 text-sm">{h.type}</div>
- <div className="text-[10px] text-slate-400 font-bold">{new Date(h.date).toLocaleDateString('en-GB')}</div>
+ <div className="font-bold text-slate-900 text-sm">{h.type}</div>
+ <div className="text-[11px] sm:text-xs text-slate-500 font-bold">{new Date(h.date).toLocaleDateString('en-GB')}</div>
  </div>
  </div>
- <div className="text-rose-600 font-black text-sm">-{h.amount.toFixed(3)} د.ك</div>
+ <div className="text-rose-600 font-bold text-sm">-{h.amount.toFixed(3)} د.ك</div>
  </div>
 ))
 ) : (
- <div className="text-center py-4 md:py-8 text-slate-400 font-bold text-xs bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+ <div className="text-center py-4 md:py-8 text-slate-500 font-bold text-xs bg-slate-50 rounded-xl md:rounded-2xl border border-dashed border-slate-200">
  لا يوجد سجل مكافآت مستخدمة لهذا العميل حتى الآن.
  </div>
 )}
@@ -839,8 +839,8 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  </div>
 
  {/* Marketing Action */}
- <div className="bg-slate-50 p-3 md:p-4 rounded-3xl border border-slate-100">
- <h4 className="font-black text-slate-800 mb-4 flex items-center gap-2">استبدال النقاط <Zap size={18} className="text-amber-500" /></h4>
+ <div className="bg-slate-50 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-slate-200/60">
+ <h4 className="font-bold text-slate-900 mb-4 flex items-center gap-2">استبدال النقاط <Zap size={18} className="text-amber-500" /></h4>
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
  {rewards.map(r => (
  <button
@@ -848,27 +848,27 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  disabled={selectedCustomer.points < r.points}
  onClick={() => handleRedeemPoints(selectedCustomer, r)}
  className={cn(
-"p-3 rounded-2xl border text-right transition-all flex flex-col gap-1",
+"p-3 rounded-xl md:rounded-2xl border text-right transition-all flex flex-col gap-1",
  selectedCustomer.points >= r.points 
  ?"bg-white border-slate-200 hover:border-amber-400 hover:shadow-md cursor-pointer" 
- :"bg-slate-100 border-slate-100 opacity-50 cursor-not-allowed"
+ :"bg-slate-100 border-slate-200/60 opacity-50 cursor-not-allowed"
 )}
  >
- <div className="text-xs font-black text-slate-800">{r.name}</div>
- <div className="text-[10px] font-bold text-amber-600">{r.points} نقطة</div>
+ <div className="text-xs font-bold text-slate-900">{r.name}</div>
+ <div className="text-[11px] sm:text-xs font-bold text-amber-600">{r.points} نقطة</div>
  </button>
 ))}
  </div>
  </div>
 
- <div className="bg-emerald-50 p-3 md:p-4 rounded-3xl border border-emerald-100">
- <h4 className="font-black text-emerald-800 mb-2">تأثير العميل المحتمل</h4>
+ <div className="bg-emerald-50 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-emerald-100">
+ <h4 className="font-bold text-emerald-800 mb-2">تأثير العميل المحتمل</h4>
  <p className="text-xs text-emerald-700 font-bold leading-relaxed mb-4">
  {selectedCustomer.smartAdvice} - يمكنك إرسال رسالة ترويجية فورية مخصصة لهذا العميل لزيادة ولاؤه أو استعادته.
  </p>
  <button 
  onClick={() => handleWhatsApp(selectedCustomer.phone, selectedCustomer.whatsappMessage)}
- className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+ className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-bold hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
  >
  <MessageCircle size={18} />
  إرسال {selectedCustomer.actionLabel}

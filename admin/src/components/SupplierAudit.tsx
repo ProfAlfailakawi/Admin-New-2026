@@ -206,7 +206,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="space-y-6">
  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 text-right">
  <div className="order-2 md:order-1 flex-1">
- <h1 className="text-xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-3 justify-end leading-tight">
+ <h1 className="text-xl md:text-3xl font-extrabold text-slate-900 flex items-center gap-3 justify-end leading-snug">
  سجل الحساب والمستحقات
  <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center shadow-sm">
  <History className="text-emerald-600" />
@@ -216,7 +216,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </div>
  <button 
  onClick={() => setShowAddModal(true)}
- className="order-1 md:order-2 bg-slate-900 border border-slate-800 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95"
+ className="order-1 md:order-2 bg-slate-900 border border-slate-800 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-[0_4px_20px_rgb(0,0,0,0.05)] active:scale-[0.98] transition-all duration-200"
  >
  <CreditCard size={20} />
  <span>إضافة تحويل مالي</span>
@@ -224,20 +224,20 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </div>
 
  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-right">
- <div className="bg-emerald-600 p-3 md:p-4 rounded-[20px] md:rounded-[32px] text-white shadow-xl shadow-emerald-600/20">
- <div className="text-[10px] font-black uppercase opacity-60 mb-2">إجمالي المحول</div>
+ <div className="bg-emerald-600 p-3 md:p-4 rounded-[20px] md:rounded-3xl lg:rounded-[2rem] text-white shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-emerald-600/20">
+ <div className="text-[11px] sm:text-xs font-bold uppercase opacity-60 mb-2">إجمالي المحول</div>
  <div className="text-2xl md:text-3xl font-black">{Number(totalTransferred || 0).toFixed(3)} <span className="text-xs">د.ك</span></div>
- <div className="flex items-center gap-2 text-[10px] font-bold mt-3 opacity-80">
+ <div className="flex items-center gap-2 text-[11px] sm:text-xs font-bold mt-3 opacity-80">
  <CheckCircle2 size={12} />
  عدد التحويلات: {(data?.supplierTransfers || []).length}
  </div>
  </div>
- <div className="bg-slate-900 p-3 md:p-4 rounded-[20px] md:rounded-[32px] text-white shadow-xl shadow-slate-900/20 relative">
- <div className="text-[10px] font-black uppercase opacity-40 mb-2">إجمالي المستحق</div>
+ <div className="bg-slate-900 p-3 md:p-4 rounded-[20px] md:rounded-3xl lg:rounded-[2rem] text-white shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-slate-900/20 relative">
+ <div className="text-[11px] sm:text-xs font-bold uppercase opacity-40 mb-2">إجمالي المستحق</div>
  <div className="text-2xl md:text-3xl font-black text-red-500">{Number(totalOutstanding || 0).toFixed(3)} <span className="text-xs">د.ك</span></div>
  <button 
  onClick={() => setShowWaitingList(prev => !prev)}
- className="flex items-center gap-2 text-[10px] font-bold mt-3 text-slate-400 cursor-pointer hover:text-white transition-colors p-1 -ml-1 rounded"
+ className="flex items-center gap-2 text-[11px] sm:text-xs font-bold mt-3 text-slate-500 cursor-pointer hover:text-white transition-colors p-1 -ml-1 rounded min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
  >
  <Clock size={12} />
  موردين بالانتظار: {(data?.suppliers || []).filter(s => s.balance > 0).length}
@@ -248,16 +248,16 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  initial={{ opacity: 0, y: 5 }}
  animate={{ opacity: 1, y: 0 }}
  exit={{ opacity: 0, y: 5 }}
- className="absolute top-full mt-2 w-full left-0 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2"
+ className="absolute top-full mt-2 w-full left-0 bg-white border border-slate-200 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] z-50 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
  >
  {data?.suppliers && (data?.suppliers || []).filter(s => s.balance > 0).length === 0 ? (
- <div className="text-slate-400 text-xs text-center py-4 font-bold">لا يوجد موردين بالانتظار الحمدلله 🎉</div>
+ <div className="text-slate-500 text-xs text-center py-4 font-bold">لا يوجد موردين بالانتظار الحمدلله 🎉</div>
 ) : (
  <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
  {(data?.suppliers || []).filter(s => s.balance > 0).map(s => (
- <div key={s.id} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl">
+ <div key={s.id} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
  <span className="text-xs font-bold text-slate-700 truncate">{s.name}</span>
- <span className="text-xs font-black text-red-500 whitespace-nowrap">{Number(s.balance).toFixed(3)} د.ك</span>
+ <span className="text-xs font-bold text-red-500 whitespace-nowrap">{Number(s.balance).toFixed(3)} د.ك</span>
  </div>
 ))}
  </div>
@@ -271,20 +271,20 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="bg-white rounded-3xl p-3 md:p-4 border border-slate-200 shadow-sm text-right">
  <div className="flex flex-col md:flex-row md:items-center gap-4 mb-8">
  <div className="relative flex-1">
- <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+ <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
  <input 
  id="search-input"
  type="text" 
  placeholder="ابحث في سجل التحويلات أو الملاحظات..."
  value={search}
  onChange={(e) => setSearch(e.target.value)}
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium text-right"
+ className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium text-right"
  />
  </div>
  <select 
  value={selectedSupplier}
  onChange={(e) => setSelectedSupplier(e.target.value)}
- className="bg-slate-50 border border-slate-200 rounded-2xl py-3 px-6 outline-none font-bold text-slate-700 text-right"
+ className="bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-6 outline-none font-bold text-slate-700 text-right"
  >
  <option value="all">كل الموردين</option>
  {(data?.suppliers || []).map(s => (
@@ -293,17 +293,17 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </select>
  </div>
 
- <div className="overflow-x-auto rounded-2xl border border-slate-100">
+ <div className="overflow-x-auto w-full max-w-full rounded-xl md:rounded-2xl border border-slate-200/60">
  <table className="w-full text-right min-w-[1000px]" dir="rtl">
  <thead>
- <tr className="bg-slate-50 border-b border-slate-100 font-black text-slate-400 text-[10px] uppercase text-right">
- <th className="p-3 md:p-3">تاريخ الحركة</th>
- <th className="p-3 md:p-3">اسم المورد / نوع الحركة</th>
- <th className="p-3 md:p-3">المبلغ (د.ك)</th>
- <th className="p-3 md:p-3">طريقة الدفع</th>
- <th className="p-3 md:p-3">حالة الرصيد</th>
- <th className="p-3 md:p-3">ملاحظات الحساب</th>
- <th className="p-3 md:p-3">إجراءات</th>
+ <tr className="bg-slate-50 border-b border-slate-200/60 font-bold text-slate-500 text-[11px] sm:text-xs uppercase text-right">
+ <th className="p-4 md:p-5 lg:p-6">تاريخ الحركة</th>
+ <th className="p-4 md:p-5 lg:p-6">اسم المورد / نوع الحركة</th>
+ <th className="p-4 md:p-5 lg:p-6">المبلغ (د.ك)</th>
+ <th className="p-4 md:p-5 lg:p-6">طريقة الدفع</th>
+ <th className="p-4 md:p-5 lg:p-6">حالة الرصيد</th>
+ <th className="p-4 md:p-5 lg:p-6">ملاحظات الحساب</th>
+ <th className="p-4 md:p-5 lg:p-6">إجراءات</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-slate-100">
@@ -324,36 +324,36 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  shakingId === transaction.id &&"bg-red-50/50"
 )}
  >
- <td className="p-3 md:p-3">
+ <td className="p-4 md:p-5 lg:p-6">
  <div className="flex items-center gap-2 font-bold text-slate-600">
- <Calendar size={14} className="text-slate-400" />
+ <Calendar size={14} className="text-slate-500" />
  {new Date(transaction.date).toLocaleDateString('en-GB')}
  </div>
  </td>
- <td className="p-3 md:p-3">
+ <td className="p-4 md:p-5 lg:p-6">
  <div className="flex flex-col">
- <div className="font-black text-slate-900">{s?.name || 'مورد محذوف'}</div>
- <div className="text-[10px] font-bold text-slate-400">{transaction.displayType}</div>
+ <div className="font-bold text-slate-900">{s?.name || 'مورد محذوف'}</div>
+ <div className="text-[11px] sm:text-xs font-bold text-slate-500">{transaction.displayType}</div>
  </div>
  </td>
- <td className={cn("p-3 md:p-3 font-black", isInvoice ?"text-red-500" :"text-emerald-600")}>
+ <td className={cn("p-4 md:p-5 lg:p-6 font-black", isInvoice ?"text-red-500" :"text-emerald-600")}>
  {isInvoice ? '+' : '-'}{Number(transaction.rawAmount || 0).toFixed(3)} د.ك
  </td>
- <td className="p-3 md:p-3">
+ <td className="p-4 md:p-5 lg:p-6">
  <span className={cn(
-"px-3 py-1 rounded-lg text-[10px] font-black uppercase",
+"px-3 py-1 rounded-lg text-[11px] sm:text-xs font-black uppercase",
  isInvoice ?"bg-red-50 text-red-500" :"bg-emerald-50 text-emerald-500"
 )}>
  {transaction.method === 'BankTransfer' ? 'حوالة' : transaction.method === 'Cash' ? 'نقدي' : transaction.method}
  </span>
  </td>
- <td className="p-3 md:p-3 text-slate-400 text-xs font-bold">
+ <td className="p-4 md:p-5 lg:p-6 text-slate-500 text-xs font-bold">
  {getLastMovement(transaction.supplierId)}
  </td>
- <td className="p-3 md:p-3 text-slate-500 text-xs font-medium">
+ <td className="p-4 md:p-5 lg:p-6 text-slate-500 text-xs font-medium">
  {transaction.notes || '—'}
  </td>
- <td className="p-3 md:p-3">
+ <td className="p-4 md:p-5 lg:p-6">
  <div className="flex items-center gap-2">
  {!isInvoice && (
  <>
@@ -362,14 +362,14 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  setTransferForm({ ...transaction, amount: Number((transaction.rawAmount || 0).toFixed(3)), notes: transaction.notes || '' });
  setShowAddModal(true);
  }}
- className="p-2 bg-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
+ className="p-2 bg-slate-100 rounded-lg text-slate-500 hover:text-emerald-600 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
  title="تعديل التحويل"
  >
  <Edit2 size={16} />
  </button>
  <button 
  onClick={() => setTransferToDelete(transaction)}
- className="p-2 bg-red-50 rounded-lg text-red-300 hover:text-red-500 transition-colors"
+ className="p-2 bg-red-50 rounded-lg text-red-300 hover:text-red-500 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
  title="حذف التحويل"
  >
  <Trash2 size={16} />
@@ -381,7 +381,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  setTransferForm({ id: '', supplierId: transaction.supplierId, amount: 0, method: 'BankTransfer', notes: '', date: new Date().toISOString() });
  setShowAddModal(true);
  }}
- className="p-2 bg-emerald-50 rounded-lg text-emerald-500 hover:bg-emerald-100 transition-colors"
+ className="p-2 bg-emerald-50 rounded-lg text-emerald-500 hover:bg-emerald-100 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
  title="تسجيل دفعة سداد"
  >
  <ArrowUpRight size={16} />
@@ -396,7 +396,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <td colSpan={8} className="p-16 text-center">
  <div className="flex flex-col items-center justify-center opacity-60">
  <div className="w-12 md:w-20 h-12 md:h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
- <History className="text-slate-400" size={32} />
+ <History className="text-slate-500" size={32} />
  </div>
  <h4 className="text-lg font-black text-slate-700 mb-2">لا توجد سجلات للحركات المالية</h4>
  <p className="text-sm font-bold text-slate-500 max-w-md mx-auto">
@@ -424,22 +424,22 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  initial={{ opacity: 0, scale: 0.95, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95, y: 20 }}
- className="bg-white rounded-[32px] w-[95%] max-w-lg shadow-2xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+ className="bg-white rounded-3xl lg:rounded-[2rem] w-full max-w-[95%] sm:max-w-lg shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-0 border border-slate-200/60 text-right flex flex-col max-h-[90dvh] overflow-hidden"
  onClick={e => e.stopPropagation()}
  >
- <div className="p-3 md:p-4 md:p-3 pb-0 shrink-0">
- <h2 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3 justify-end leading-tight text-right">
+ <div className="p-3 md:p-4 md:p-5 pb-0 shrink-0">
+ <h2 className="text-2xl font-black text-slate-900 mb-8 flex items-center gap-3 justify-end leading-snug text-right">
  تسجيل دفعة مورد
  <CreditCard className="text-emerald-500" />
  </h2>
  </div>
  
- <div className="flex-1 overflow-y-auto custom-scrollbar p-3 md:p-4 md:p-3 pt-4 min-h-0">
+ <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-3 md:p-4 md:p-5 pt-4 min-h-0">
  <div className="space-y-6">
  <div className="space-y-2">
- <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">المورد المستهدف</label>
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">المورد المستهدف</label>
  <select 
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all font-black text-slate-800 text-right"
+ className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all font-bold text-slate-900 text-right"
  value={transferForm.supplierId}
  onChange={(e) => setTransferForm({ ...transferForm, supplierId: e.target.value })}
  >
@@ -463,17 +463,17 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  setTransferForm({ ...transferForm, amount: clean });
  }
  }}
- className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded border border-emerald-100 font-bold hover:bg-emerald-100 cursor-pointer transition-colors"
+ className="text-[11px] sm:text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded border border-emerald-100 font-bold hover:bg-emerald-100 cursor-pointer transition-colors"
  >
  كامل المبلغ
  </button>
  )}
- <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">مبلغ التحويل</label>
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">مبلغ التحويل</label>
  </div>
  <input 
  type="number" 
  step="0.25"
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all font-black text-slate-800 text-right"
+ className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all font-bold text-slate-900 text-right"
  placeholder="0.000"
  value={transferForm.amount || ''}
  onChange={(e) => setTransferForm({ ...transferForm, amount: parseFloat(e.target.value) || 0 })}
@@ -481,10 +481,10 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </div>
  <div className="space-y-2">
  <div className="flex justify-end items-center h-6">
- <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">طريقة الدفع</label>
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">طريقة الدفع</label>
  </div>
  <select 
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all font-black text-slate-800 text-right"
+ className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all font-bold text-slate-900 text-right"
  value={transferForm.method}
  onChange={(e) => setTransferForm({ ...transferForm, method: e.target.value as any })}
  >
@@ -495,10 +495,10 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </div>
 
  <div className="space-y-2">
- <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">ملاحظات / رقم المرجعي</label>
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">ملاحظات / رقم المرجعي</label>
  <textarea 
  rows={2}
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right resize-none"
+ className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all font-bold text-slate-900 text-right resize-none"
  placeholder="أدخل ملاحظات الدفعة..."
  value={transferForm.notes}
  onChange={(e) => setTransferForm({ ...transferForm, notes: e.target.value })}
@@ -507,7 +507,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </div>
  </div>
  
- <div className="flex gap-4 p-3 md:p-4 md:p-3 shrink-0 mt-auto border-t border-slate-50">
+ <div className="flex gap-4 p-3 md:p-4 md:p-5 shrink-0 mt-auto border-t border-slate-50">
  <button 
  onClick={() => {
  setShowAddModal(false);
@@ -520,7 +520,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <MagneticButton 
  onClick={handleAddTransfer}
  intensity={0.15}
- className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
+ className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-all shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-emerald-600/20 active:scale-[0.98] transition-all duration-200"
  >
  {transferForm.id ?"حفظ التعديلات" :"تأكيد وبدء التحويل"}
  </MagneticButton>

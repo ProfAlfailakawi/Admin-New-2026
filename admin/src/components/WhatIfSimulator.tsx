@@ -33,10 +33,10 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
 
  if (!data?.products || data.products.length === 0) {
  return (
- <div className="flex flex-col items-center justify-center p-3 md:p-4 bg-slate-950 rounded-3xl border border-slate-800 text-center">
+ <div className="flex flex-col items-center justify-center p-3 md:p-4 bg-slate-950 rounded-2xl md:rounded-3xl border border-slate-800 text-center">
  <AlertCircle className="text-slate-600 mb-4" size={48} />
  <h3 className="text-xl font-black text-white mb-2">لا توجد أصناف متاحة</h3>
- <p className="text-slate-400 font-bold mb-6 text-sm max-w-sm">لإجراء محاكاة"ماذا لو" أو إنشاء حملة تسويقية بالذكاء الاصطناعي، يرجى إضافة بعض الأصناف إلى المتجر أولاً.</p>
+ <p className="text-slate-500 font-bold mb-6 text-sm max-w-sm">لإجراء محاكاة"ماذا لو" أو إنشاء حملة تسويقية بالذكاء الاصطناعي، يرجى إضافة بعض الأصناف إلى المتجر أولاً.</p>
  </div>
 );
  }
@@ -174,7 +174,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  return (
  <div className="space-y-6 md:space-y-8" dir="rtl">
  {/* Header Panel */}
- <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 shadow-2xl relative overflow-hidden flex flex-col items-start">
+ <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative overflow-hidden flex flex-col items-start">
  <div className="absolute top-0 left-0 w-full h-1 md:h-2 bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-400" />
  <div className="absolute top-3 md:p-4 left-10 opacity-10 text-white rotate-12 hidden sm:block"><Calculator size={200} /></div>
  
@@ -188,23 +188,23 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <div className="flex gap-4 relative z-10 px-4">
  <div className="bg-white/10 backdrop-blur-md px-4 md:px-6 py-2 md:py-3 rounded-2xl flex items-center gap-3 border border-white/20">
  <Sparkles className="text-cyan-400" size={16} />
- <span className="text-white font-bold text-[10px] md:text-sm">نمذجة دقيقة بناءً على {data.invoices.length} عملية بيع</span>
+ <span className="text-white font-bold text-[11px] sm:text-xs md:text-sm">نمذجة دقيقة بناءً على {data.invoices.length} عملية بيع</span>
  </div>
  </div>
  </div>
 
- <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:p-4 md:gap-4 md:p-3">
+ <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:p-4 md:gap-4 md:p-5">
  {/* Controls Panel */}
- <div className="lg:col-span-1 bg-slate-950 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-2xl relative overflow-hidden group space-y-6 md:space-y-8">
+ <div className="lg:col-span-1 bg-slate-950 p-3 md:p-4 md:p-5 rounded-2xl md:rounded-xl md:rounded-2xl border border-indigo-500/20 shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative overflow-hidden group space-y-6 md:space-y-8">
  <div className="absolute inset-0 bg-[linear-gradient(to_right,#6366f1_1px,transparent_1px),linear-gradient(to_bottom,#6366f1_1px,transparent_1px)] bg-[size:30px_30px] opacity-[0.03] pointer-events-none" />
  <div className="space-y-4 relative z-10">
- <h3 className="font-black text-base md:text-lg text-white border-b border-slate-800 pb-2">1. اختر نوع السيناريو</h3>
+ <h3 className="font-bold text-base md:text-lg text-white border-b border-slate-800 pb-2">1. اختر نوع السيناريو</h3>
  <div className="grid grid-cols-1 gap-2">
  <button 
  onClick={() => { setScenarioType('price_change'); setCampaignPlan(null); }}
  className={cn(
-"p-3 rounded-2xl border text-right font-black text-sm flex items-center justify-between transition-all active:scale-95 min-h-[44px]",
- scenarioType === 'price_change' ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg' : 'bg-slate-900/50 text-slate-400 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80'
+"p-3 rounded-xl md:rounded-2xl border text-right font-bold text-sm flex items-center justify-between transition-all active:scale-[0.98] transition-all duration-200 min-h-[44px]",
+ scenarioType === 'price_change' ? 'bg-indigo-600 text-white border-indigo-500 shadow-[0_2px_10px_rgb(0,0,0,0.04)]' : 'bg-slate-900/50 text-slate-500 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80'
 )}
  >
  تغيير سعر بيع صنف <Tag size={16} />
@@ -212,8 +212,8 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <button 
  onClick={() => { setScenarioType('cost_change'); setCampaignPlan(null); }}
  className={cn(
-"p-3 rounded-2xl border text-right font-black text-sm flex items-center justify-between transition-all active:scale-95 min-h-[44px]",
- scenarioType === 'cost_change' ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg' : 'bg-slate-900/50 text-slate-400 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80'
+"p-3 rounded-xl md:rounded-2xl border text-right font-bold text-sm flex items-center justify-between transition-all active:scale-[0.98] transition-all duration-200 min-h-[44px]",
+ scenarioType === 'cost_change' ? 'bg-indigo-600 text-white border-indigo-500 shadow-[0_2px_10px_rgb(0,0,0,0.04)]' : 'bg-slate-900/50 text-slate-500 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80'
 )}
  >
  تغيير تكلفة توريد صنف <Truck size={16} />
@@ -221,8 +221,8 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <button 
  onClick={() => setScenarioType('promotion')}
  className={cn(
-"p-3 rounded-2xl border text-right font-black text-sm flex items-center justify-between transition-all active:scale-95 min-h-[44px]",
- scenarioType === 'promotion' ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg' : 'bg-slate-900/50 text-slate-400 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80'
+"p-3 rounded-xl md:rounded-2xl border text-right font-bold text-sm flex items-center justify-between transition-all active:scale-[0.98] transition-all duration-200 min-h-[44px]",
+ scenarioType === 'promotion' ? 'bg-indigo-600 text-white border-indigo-500 shadow-[0_2px_10px_rgb(0,0,0,0.04)]' : 'bg-slate-900/50 text-slate-500 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80'
 )}
  >
  إطلاق حملة ترويجية شاملة <Sparkles size={16} />
@@ -232,7 +232,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
 
  <div className="space-y-6 relative z-10">
  <div className="space-y-3 text-right">
- <label className="font-black text-[10px] md:text-xs text-slate-400 uppercase">اختر الصنف المستهدف</label>
+ <label className="font-bold text-[11px] sm:text-xs md:text-xs text-slate-500 uppercase">اختر الصنف المستهدف</label>
  <select 
  value={selectedProductId}
  onChange={(e) => { setSelectedProductId(e.target.value); setCampaignPlan(null); }}
@@ -249,14 +249,14 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <div className="space-y-6 relative z-10">
  <div className="flex justify-between items-end mb-4">
  <div className="text-right">
- <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">القرار الاستراتيجي</span>
+ <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase block mb-1">القرار الاستراتيجي</span>
  <span className={cn(
-"text-xs md:text-sm font-black px-4 py-2 rounded-2xl border transition-all duration-500",
+"text-xs md:text-sm font-black px-4 py-2 rounded-xl md:rounded-2xl border transition-all duration-500",
  percentChange > 0 
  ? (simulation.projectedMonthlyProfit > simulation.currentMonthlyProfit ?"bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :"bg-rose-500/20 text-rose-400 border-rose-500/30") 
  : percentChange < 0 
  ? (simulation.projectedMonthlyProfit > simulation.currentMonthlyProfit ?"bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :"bg-rose-500/20 text-rose-400 border-rose-500/30") 
- :"bg-slate-800 text-slate-400 border-slate-700"
+ :"bg-slate-800 text-slate-500 border-slate-700"
 )}>
  {percentChange > 0 ? (simulation.projectedMonthlyProfit > simulation.currentMonthlyProfit ? 'رفع مربح' : 'رفع يحتاج حذر') : percentChange < 0 ? 'تخفيض السعر' : 'سعر السوق الحالي'}
  </span>
@@ -294,15 +294,15 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  
  <div className="grid grid-cols-3 gap-2 px-1">
  <span className={cn("text-[9px] font-black text-right transition-colors duration-500", percentChange < -0.1 ? (isPositive ?"text-emerald-600" :"text-rose-600") :"text-slate-300")}>-50% جرأة سعرية</span>
- <span className="text-[9px] font-black text-slate-200 text-center">التوازن</span>
+ <span className="text-[9px] font-bold text-slate-200 text-center">التوازن</span>
  <span className={cn("text-[9px] font-black text-left transition-colors duration-500", percentChange > 0.1 ? (isPositive ?"text-emerald-600" :"text-rose-600") :"text-slate-300")}>+50% رفع قوي</span>
  </div>
 
  <div className={cn(
-"p-3 rounded-2xl border transition-all duration-500",
+"p-3 rounded-xl md:rounded-2xl border transition-all duration-500",
  isPositive ?"bg-emerald-50/50 border-emerald-100/50 text-emerald-900/70" :"bg-rose-50/50 border-rose-100/50 text-rose-900/70"
 )}>
- <p className="text-[10px] font-black leading-relaxed flex items-start gap-2">
+ <p className="text-[11px] sm:text-xs font-bold leading-relaxed flex items-start gap-2">
  <Sparkles size={14} className={isPositive ?"text-emerald-500" :"text-rose-500"} />
  <span>المحرك يحتسب"السحب والضغط": {simulation.explanation}</span>
  </p>
@@ -312,13 +312,13 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
 
  {scenarioType === 'cost_change' && (
  <div className="space-y-3 text-right">
- <label className="font-black text-[10px] md:text-xs text-slate-400 uppercase">التكلفة الجديدة (د.ك)</label>
+ <label className="font-bold text-[11px] sm:text-xs md:text-xs text-slate-500 uppercase">التكلفة الجديدة (د.ك)</label>
  <input 
  type="number"
  step="0.25"
  value={customValue || (data?.products || []).find(p => p.id === selectedProductId)?.cost}
  onChange={(e) => setCustomValue(parseFloat(e.target.value))}
- className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 font-black text-base md:text-lg text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[44px]"
+ className="w-full p-3 rounded-2xl bg-slate-50/50 border border-slate-200/60 font-bold text-base md:text-lg text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[44px]"
  />
  </div>
 )}
@@ -327,7 +327,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <button 
  onClick={generateCampaign}
  disabled={isGenerating}
- className="w-full bg-slate-900 text-white p-3 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50 min-h-[44px]"
+ className="w-full bg-slate-900 text-white p-3 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-[0.98] transition-all duration-200 disabled:opacity-50 min-h-[44px]"
  >
  {isGenerating ? <RefreshCw size={20} className="animate-spin" /> : <Megaphone size={20} />}
  {isGenerating ? 'جاري تحليل البيانات...' : 'إنشاء خطة الحملة بالذكاء الاصطناعي'}
@@ -339,7 +339,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  {/* Results Panel */}
  <div className="lg:col-span-2 space-y-6 md:space-y-8">
  {scenarioType === 'promotion' ? (
- <div className="bg-slate-950 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-2xl relative overflow-hidden h-full flex flex-col items-center justify-center">
+ <div className="bg-slate-950 p-3 md:p-4 md:p-5 rounded-2xl md:rounded-xl md:rounded-2xl border border-indigo-500/20 shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative overflow-hidden h-full flex flex-col items-center justify-center">
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(99,102,241,0.1)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
  {!campaignPlan ? (
  <>
@@ -347,13 +347,13 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <Rocket size={40} className={isGenerating ?"animate-bounce" :""} />
  </div>
  <h3 className="text-xl md:text-2xl font-black text-white mb-4 relative z-10 text-center">الخطة التسويقية الذكية للمنتج المختار</h3>
- <p className="text-slate-400 text-center max-w-md text-sm md:text-base font-bold leading-relaxed mb-8 relative z-10">
+ <p className="text-slate-500 text-center max-w-md text-sm md:text-base font-bold leading-relaxed mb-8 relative z-10">
  سيقوم الذكاء الاصطناعي بتحليل تاريخ مبيعات هذا الصنف، وسلوك عملاءك لبناء أفضل حملة تسويقية له مع رسائل واتساب جاهزة واستهداف دقيق.
  </p>
  <button 
  onClick={generateCampaign}
  disabled={isGenerating}
- className="bg-indigo-600 text-white px-4 md:px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-base hover:bg-indigo-500 hover:shadow-lg hover:shadow-indigo-500/30 transition-all disabled:opacity-50 active:scale-95 flex items-center gap-3 relative z-10 min-h-[44px]"
+ className="bg-indigo-600 text-white px-4 md:px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-base hover:bg-indigo-500 hover:shadow-[0_2px_10px_rgb(0,0,0,0.04)] hover:shadow-indigo-500/30 transition-all disabled:opacity-50 active:scale-[0.98] transition-all duration-200 flex items-center gap-3 relative z-10 min-h-[44px]"
  >
  {isGenerating ? <RefreshCw className="animate-spin" /> : <Sparkles />}
  {isGenerating ? 'جاري بناء الخطة والإعلانات...' : 'ابنِ الخطة الآن بضغطة زر 🚀'}
@@ -369,34 +369,34 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  </div>
  
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-3 md:p-4">
- <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">
- <p className="text-[10px] md:text-xs font-black text-indigo-400 uppercase mb-2 flex items-center gap-2"><Target size={14}/> نوع الحملة والهدف</p>
+ <div className="bg-slate-900/50 p-3 md:p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">
+ <p className="text-[11px] sm:text-xs md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Target size={14}/> نوع الحملة والهدف</p>
  <p className="text-slate-200 font-bold text-sm md:text-base mb-1 whitespace-pre-wrap">{campaignPlan.topic}</p>
- <p className="text-slate-400 text-xs md:text-sm leading-relaxed whitespace-pre-wrap">{campaignPlan.message}</p>
+ <p className="text-slate-500 text-xs md:text-sm leading-relaxed whitespace-pre-wrap">{campaignPlan.message}</p>
  </div>
- <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">
- <p className="text-[10px] md:text-xs font-black text-indigo-400 uppercase mb-2 flex items-center gap-2"><Users size={14}/> الجمهور المستهدف</p>
+ <div className="bg-slate-900/50 p-3 md:p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">
+ <p className="text-[11px] sm:text-xs md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Users size={14}/> الجمهور المستهدف</p>
  <p className="text-slate-200 font-bold text-sm md:text-base leading-relaxed whitespace-pre-wrap">{campaignPlan.targetAudience}</p>
  </div>
- <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all md:col-span-2">
- <p className="text-[10px] md:text-xs font-black text-indigo-400 uppercase mb-2 flex items-center gap-2"><Sparkles size={14}/> الفكرة الإبداعية (Idea)</p>
+ <div className="bg-slate-900/50 p-3 md:p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all md:col-span-2">
+ <p className="text-[11px] sm:text-xs md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Sparkles size={14}/> الفكرة الإبداعية (Idea)</p>
  <p className="text-slate-200 font-bold text-sm md:text-base leading-relaxed whitespace-pre-wrap">{campaignPlan.idea}</p>
  </div>
- <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm md:col-span-2 relative hover:border-indigo-500/30 transition-all">
+ <div className="bg-slate-900/50 p-3 md:p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-800 shadow-sm md:col-span-2 relative hover:border-indigo-500/30 transition-all">
  <div className="flex flex-wrap items-center justify-between mb-3 gap-2">
-  <p className="text-[10px] md:text-xs font-black text-emerald-400 uppercase flex items-center gap-2"><MessageCircle size={14}/> رسالة واتساب جاهزة للنسخ والمبيعات</p>
-  <button onClick={() => { navigator.clipboard.writeText(campaignPlan.marketingMessage || campaignPlan.message || ''); toast.success('تم النسخ بنجاح'); }} className="text-slate-400 hover:text-white bg-slate-800 hover:bg-emerald-600 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold transition-all"><Copy size={14} /> نسخ</button>
+  <p className="text-[11px] sm:text-xs md:text-xs font-bold text-emerald-400 uppercase flex items-center gap-2"><MessageCircle size={14}/> رسالة واتساب جاهزة للنسخ والمبيعات</p>
+  <button onClick={() => { navigator.clipboard.writeText(campaignPlan.marketingMessage || campaignPlan.message || ''); toast.success('تم النسخ بنجاح'); }} className="text-slate-500 hover:text-white bg-slate-800 hover:bg-emerald-600 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold transition-all"><Copy size={14} /> نسخ</button>
  </div>
  <div className="bg-slate-950 p-3 rounded-xl text-xs sm:text-sm font-bold text-slate-300 border border-emerald-500/20 leading-relaxed overflow-x-hidden break-words whitespace-pre-wrap">
  {campaignPlan.marketingMessage || campaignPlan.message || 'جاري صياغة الرسالة... أو يرجى المحاولة مرة أخرى.'}
  </div>
  </div>
- <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">
- <p className="text-[10px] md:text-xs font-black text-indigo-400 uppercase mb-2 flex items-center gap-2"><Clock size={14}/> التوقيت الأنسب</p>
+ <div className="bg-slate-900/50 p-3 md:p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">
+ <p className="text-[11px] sm:text-xs md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Clock size={14}/> التوقيت الأنسب</p>
  <p className="text-slate-200 font-bold text-sm leading-relaxed whitespace-pre-wrap">{campaignPlan.timing}</p>
  </div>
- <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">
- <p className="text-[10px] md:text-xs font-black text-indigo-400 uppercase mb-2 flex items-center gap-2"><TrendingUp size={14}/> العائد المتوقع برأيه</p>
+ <div className="bg-slate-900/50 p-3 md:p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">
+ <p className="text-[11px] sm:text-xs md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><TrendingUp size={14}/> العائد المتوقع برأيه</p>
  <p className="text-slate-200 font-bold text-sm leading-relaxed whitespace-pre-wrap">{campaignPlan.expectedOutcome}</p>
  </div>
  </div>
@@ -405,7 +405,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <button 
  onClick={handleExecute}
  disabled={isExecuting}
- className="w-full md:w-auto bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 px-4 md:px-8 py-4 rounded-xl font-black text-sm hover:bg-emerald-500 hover:text-slate-900 transition-all active:scale-95 disabled:opacity-50 min-h-[44px]"
+ className="w-full md:w-auto bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 px-5 md:px-6 py-3 rounded-xl font-bold text-sm hover:bg-emerald-500 hover:text-slate-900 transition-all active:scale-[0.98] transition-all duration-200 disabled:opacity-50 min-h-[44px]"
  >
  {isExecuting ? 'جاري التنفيذ...' : 'موافق، قم بتسجيل الحملة في خططي 🚀'}
  </button>
@@ -414,12 +414,12 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
 )}
  </div>
 ) : simulation.dataStatus === 'insufficient' ? (
- <div className="md:col-span-2 bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 text-center">
+ <div className="md:col-span-2 bg-slate-900/50 p-3 md:p-4 md:p-5 rounded-xl md:rounded-2xl border border-slate-800 text-center">
  <AlertCircle className="text-indigo-500 mx-auto mb-4" size={32} />
- <p className="text-sm font-black text-slate-400">{simulation.explanation}</p>
+ <p className="text-sm font-bold text-slate-500">{simulation.explanation}</p>
  </div>
 ) : (
- <div className="bg-slate-950 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-2xl relative overflow-hidden">
+ <div className="bg-slate-950 p-3 md:p-4 md:p-5 rounded-2xl md:rounded-xl md:rounded-2xl border border-indigo-500/20 shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative overflow-hidden">
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(99,102,241,0.1)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
  <h3 className="font-black text-xl md:text-2xl text-white mb-6 md:mb-8 text-right relative z-10 flex items-center justify-end gap-3">
  <BarChart3 className="text-indigo-400" />
@@ -428,16 +428,16 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-3 md:p-4 mb-8 md:mb-10 relative z-10">
  <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-2xl p-3 md:p-4 text-right shadow-sm group">
- <p className="text-slate-500 text-[10px] md:text-xs font-black mb-1 uppercase group-hover:text-indigo-400 transition-colors">مبيعات الصنف حالياً</p>
- <p className="text-2xl md:text-3xl font-black text-white">{safeFormatCurrency(simulation.currentMonthlyProfit)} <span className="text-sm opacity-50 font-black">د.ك</span></p>
+ <p className="text-slate-500 text-[11px] sm:text-xs md:text-xs font-bold mb-1 uppercase group-hover:text-indigo-400 transition-colors">مبيعات الصنف حالياً</p>
+ <p className="text-2xl md:text-3xl font-black text-white">{safeFormatCurrency(simulation.currentMonthlyProfit)} <span className="text-sm opacity-50 font-bold">د.ك</span></p>
  </div>
  <div className={cn(
 "rounded-2xl p-3 md:p-4 text-right shadow-sm border group relative overflow-hidden transition-all",
  isPositive ?"bg-emerald-500/10 border-emerald-500/30" :"bg-rose-500/10 border-rose-500/30"
 )}>
  <div className={cn("absolute inset-0 opacity-20 pointer-events-none transition-all group-hover:opacity-40", isPositive ?"bg-emerald-400" :"bg-rose-400")} />
- <p className={cn("text-[10px] md:text-xs font-black mb-1 uppercase transition-colors", isPositive ?"text-emerald-400/80 group-hover:text-emerald-400" :"text-rose-400/80 group-hover:text-rose-400")}>المبيعات بعد قرارك (المتوقعة)</p>
- <p className={cn("text-2xl md:text-3xl font-black relative z-10", isPositive ?"text-emerald-400" :"text-rose-400")}>{safeFormatCurrency(simulation.projectedMonthlyProfit)} <span className="text-sm opacity-50 font-black">د.ك</span></p>
+ <p className={cn("text-[11px] sm:text-xs md:text-xs font-black mb-1 uppercase transition-colors", isPositive ?"text-emerald-400/80 group-hover:text-emerald-400" :"text-rose-400/80 group-hover:text-rose-400")}>المبيعات بعد قرارك (المتوقعة)</p>
+ <p className={cn("text-2xl md:text-3xl font-black relative z-10", isPositive ?"text-emerald-400" :"text-rose-400")}>{safeFormatCurrency(simulation.projectedMonthlyProfit)} <span className="text-sm opacity-50 font-bold">د.ك</span></p>
  <div className="absolute top-3 md:p-4 left-6 text-2xl font-black opacity-30">
  {isPositive ? '+' : ''}{safeFormatCurrency(profitDiff)} د.ك
  </div>
@@ -460,13 +460,13 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  </ResponsiveContainer>
  </div>
 
- <div className="bg-slate-900/80 backdrop-blur-xl border border-indigo-500/20 p-3 md:p-4 md:p-3 rounded-2xl flex items-start gap-4 flex-row-reverse mb-6 md:mb-8 text-right relative z-10">
+ <div className="bg-slate-900/80 backdrop-blur-xl border border-indigo-500/20 p-3 md:p-4 md:p-5 rounded-2xl flex items-start gap-4 flex-row-reverse mb-6 md:mb-8 text-right relative z-10">
  <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/30">
  <Info size={24} />
  </div>
  <div>
- <h4 className="font-black text-sm md:text-base text-white mb-1">تعليق الذكاء الاصطناعي على قرارك</h4>
- <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-bold">
+ <h4 className="font-bold text-sm md:text-base text-white mb-1">تعليق الذكاء الاصطناعي على قرارك</h4>
+ <p className="text-slate-500 text-xs md:text-sm leading-relaxed font-bold">
  {simulation.explanation}
  </p>
  </div>
@@ -477,7 +477,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  onClick={handleExecute}
  disabled={isExecuting}
  className={cn(
-"w-full md:w-auto px-4 md:px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-base border shadow-xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 min-h-[44px]",
+"w-full md:w-auto px-4 md:px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-base border shadow-[0_4px_20px_rgb(0,0,0,0.05)] flex items-center justify-center gap-3 transition-all active:scale-[0.98] transition-all duration-200 disabled:opacity-50 min-h-[44px]",
  isPositive 
  ?"bg-emerald-500/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-slate-900" 
  :"bg-rose-500/20 border-rose-500/50 text-rose-400 hover:bg-rose-500 hover:text-slate-900"

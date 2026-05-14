@@ -267,13 +267,13 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
                 initial={{ opacity: 0, scale: 0.8, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8, y: -20 }}
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/95 backdrop-blur-xl px-10 py-8 rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] z-[99999] flex flex-col items-center gap-5 text-center border border-slate-100"
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/95 backdrop-blur-xl px-10 py-8 rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] z-[99999] flex flex-col items-center gap-5 text-center border border-slate-200/60"
               >
                 <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 shadow-inner">
                   <Coffee size={36} className="animate-bounce" />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-black text-slate-800 tracking-tight mb-2">تقدر تريح الحين ☕️</h2>
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-2">تقدر تريح الحين ☕️</h2>
                   <p className="text-sm font-bold text-slate-500">شطبت كل التزاماتك بنجاح، بطل!</p>
                 </div>
               </motion.div>
@@ -288,7 +288,7 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -5, scale: 0.95 }}
                 style={{ top: coords.top, left: coords.left, transform: 'translateX(-50%)' }}
-                className="fixed px-4 py-2 bg-slate-900 border border-slate-700/50 rounded-xl z-[99999] shadow-2xl min-w-[140px] text-center pointer-events-none"
+                className="fixed px-4 py-2 bg-slate-900 border border-slate-700/50 rounded-xl z-[99999] shadow-[0_8px_30px_rgb(0,0,0,0.08)] min-w-[140px] text-center pointer-events-none"
               >
                 {isBusy ? (
                    <div className="space-y-0.5 font-light tracking-wide">
