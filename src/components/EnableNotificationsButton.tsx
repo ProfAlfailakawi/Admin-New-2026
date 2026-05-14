@@ -86,11 +86,11 @@ export const EnableNotificationsButton: React.FC<Props> = ({ userId, restaurantI
     <div className="bg-white border rounded-xl p-4 shadow-sm space-y-3">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="bg-slate-100 p-2 rounded-lg text-slate-700">
+          <div className="bg-slate-100 p-2 rounded-lg text-slate-700 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
             <Bell className="w-5 h-5" />
           </div>
           <div className="text-right">
-            <h3 className="font-bold text-slate-800">إشعارات الطلبات</h3>
+            <h3 className="font-bold text-slate-900">إشعارات الطلبات</h3>
             <p className="text-xs text-slate-500 font-bold">تواصل بالإشعارات فور وصول طلبات جديدة</p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export const EnableNotificationsButton: React.FC<Props> = ({ userId, restaurantI
           className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl flex items-center gap-3"
         >
           <AlertTriangle size={18} />
-          <div className="text-right text-xs font-black">
+          <div className="text-right text-xs font-bold">
              <span>الإشعارات موقوفة من إعدادات الجهاز</span>
           </div>
         </motion.div>
@@ -115,7 +115,7 @@ export const EnableNotificationsButton: React.FC<Props> = ({ userId, restaurantI
           animate={{ opacity: 1 }}
           className="bg-emerald-50 border border-emerald-100 text-emerald-600 p-3 rounded-xl flex items-center justify-center gap-2"
         >
-          <div className="text-center text-sm font-black flex items-center gap-2">
+          <div className="text-center text-sm font-bold flex items-center gap-2">
              <Bell size={18} />
              <span>الإشعارات مفعلة بنجاح ✅</span>
           </div>
@@ -127,13 +127,13 @@ export const EnableNotificationsButton: React.FC<Props> = ({ userId, restaurantI
           <button 
             onClick={handleEnable} 
             disabled={loading}
-            className="w-full bg-slate-800 text-white py-3 px-4 rounded-xl font-bold disabled:opacity-50 transition-all hover:bg-slate-700 hover:-translate-y-0.5 active:scale-95 shadow-lg shadow-slate-200"
+            className="w-full bg-slate-800 text-white py-3 px-4 rounded-xl font-bold disabled:opacity-50 transition-all hover:bg-slate-700 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-slate-200"
           >
             {loading ? 'جاري التفعيل...' : 'تفعيل إشعارات الطلبات الآن'}
           </button>
 
           {message && (
-            <p className="text-xs mt-2 text-center font-bold text-red-500 bg-red-50 border border-red-100 p-2 rounded-lg">
+            <p className="text-xs mt-2 text-center font-bold text-red-500 bg-red-50 border border-red-100 p-2 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
               {message}
             </p>
           )}

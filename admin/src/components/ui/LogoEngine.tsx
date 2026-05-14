@@ -20,7 +20,7 @@ const LogoEngine: React.FC<LogoEngineProps> = ({
  sm: 'w-8 h-8 rounded-lg',
  md: 'w-12 h-12 rounded-2xl',
  lg: 'w-12 h-12 md:w-16 md:h-16 rounded-[24px]',
- xl: 'w-24 h-24 rounded-[32px]'
+ xl: 'w-24 h-24 rounded-3xl lg:rounded-[2rem]'
  };
 
  const logoSizeClasses = {

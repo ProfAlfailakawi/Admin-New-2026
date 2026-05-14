@@ -78,14 +78,14 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  <div className="space-y-6 animate-in fade-in duration-500 text-right">
  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 flex-row-reverse">
  <div>
- <h2 className="text-xl md:text-3xl font-black text-slate-800 flex items-center gap-3 justify-end leading-none">
+ <h2 className="text-xl md:text-3xl font-black text-slate-900 flex items-center gap-3 justify-end leading-none">
  إدارة آراء الجودة والثناء <MessageSquare className="text-emerald-500" size={32} />
  </h2>
- <p className="text-xs text-slate-400 font-bold mt-1">وثق شهادات عملائك واستخدمها لتحسين"الأسلوب" والتسويق</p>
+ <p className="text-xs text-slate-500 font-bold mt-1">وثق شهادات عملائك واستخدمها لتحسين"الأسلوب" والتسويق</p>
  </div>
  <button 
  onClick={() => { resetForm(); setShowModal(true); }}
- className="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-emerald-500/20 hover:scale-[1.02] transition-all active:scale-95"
+ className="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-emerald-500/20 hover:scale-[1.02] transition-all active:scale-[0.98] transition-all duration-200"
  >
  <Plus size={20} />
  <span>إضافة تعليق جديد</span>
@@ -95,7 +95,7 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:p-4">
  <div className="lg:col-span-3">
  <div className="relative group">
- <Search className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-focus-within:text-emerald-500 transition-colors" size={20} />
+ <Search className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-focus-within:text-emerald-500 transition-colors" size={20} />
  <input 
  type="text"
  placeholder="ابحث في محتوى التعليقات..."
@@ -114,7 +114,7 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  initial={{ opacity: 0, scale: 0.9 }}
  animate={{ opacity: 1, scale: 1 }}
  exit={{ opacity: 0, scale: 0.9 }}
- className="bg-white p-3 md:p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl transition-all relative group overflow-hidden"
+ className="bg-white p-3 md:p-4 rounded-xl md:rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-[0_4px_20px_rgb(0,0,0,0.05)] transition-all relative group overflow-hidden"
  >
  <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-bl-[4rem] -z-10 group-hover:bg-emerald-50 transition-colors" />
  
@@ -133,8 +133,8 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  </div>
  
  <div className="flex gap-1 transition-opacity">
- <button onClick={() => onDelete(t.id)} className="p-2 text-rose-400 hover:bg-rose-50 rounded-xl transition-colors"><Trash2 size={16} /></button>
- <button onClick={() => handleEdit(t)} className="p-2 text-blue-400 hover:bg-blue-50 rounded-xl transition-colors"><Edit2 size={16} /></button>
+ <button onClick={() => onDelete(t.id)} className="p-2 text-rose-400 hover:bg-rose-50 rounded-xl transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"><Trash2 size={16} /></button>
+ <button onClick={() => handleEdit(t)} className="p-2 text-blue-400 hover:bg-blue-50 rounded-xl transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"><Edit2 size={16} /></button>
  </div>
  </div>
 
@@ -147,8 +147,8 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
    if (sentiment.level1 === 'محايد' || sentiment.level1 === 'ملاحظة عامة') return null;
    
    return (
-     <div className={cn("mb-4 px-3 py-2.5 rounded-xl text-right text-[10px] font-bold border shadow-sm", sentiment.level1 === 'إيجابي' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700')}>
-       <span className="block font-black mb-1 text-xs flex items-center justify-end gap-1">
+     <div className={cn("mb-4 px-3 py-2.5 rounded-xl text-right text-[11px] sm:text-xs font-bold border shadow-sm", sentiment.level1 === 'إيجابي' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700')}>
+       <span className="block font-bold mb-1 text-xs flex items-center justify-end gap-1">
          {sentiment.label}
          <span className="relative flex h-2 w-2">
            <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping", sentiment.level1 === 'إيجابي' ? 'bg-emerald-400' : 'bg-rose-400')}></span>
@@ -165,7 +165,7 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
    );
  })()}
 
- <div className="flex items-center justify-between text-[10px] font-black text-slate-400 border-t border-slate-50 pt-4 flex-row-reverse">
+ <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold text-slate-500 border-t border-slate-50 pt-4 flex-row-reverse">
  <div className="flex items-center gap-1">
  <Calendar size={12} />
  <span>{new Date(t.date).toLocaleDateString('en-GB')}</span>
@@ -180,11 +180,11 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  </motion.div>
 )) : (
  <div className="col-span-full py-16 text-center">
- <div className="w-12 md:w-20 h-12 md:h-20 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-4 border-2 border-dashed border-slate-100">
+ <div className="w-12 md:w-20 h-12 md:h-20 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-4 border-2 border-dashed border-slate-200/60">
  <MessageSquare size={40} />
  </div>
- <h3 className="text-slate-400 font-black">لا توجد تعليقات مطابقة للبحث</h3>
- <p className="text-[10px] text-slate-300 font-bold mt-1">ابدأ بتوثيق ثناء عملائك هنا</p>
+ <h3 className="text-slate-500 font-bold">لا توجد تعليقات مطابقة للبحث</h3>
+ <p className="text-[11px] sm:text-xs text-slate-300 font-bold mt-1">ابدأ بتوثيق ثناء عملائك هنا</p>
  </div>
 )}
  </AnimatePresence>
@@ -203,37 +203,37 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  initial={{ opacity: 0, scale: 0.9, y: 30 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.9, y: 30 }}
- className="bg-white rounded-3xl md:rounded-2xl w-full max-w-lg shadow-2xl p-3 md:p-3 border border-slate-100 text-right overflow-hidden relative"
+ className="bg-white rounded-3xl md:rounded-2xl w-full max-w-lg shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-4 md:p-5 lg:p-6 border border-slate-200/60 text-right overflow-hidden relative"
  onClick={e => e.stopPropagation()}
  >
  <div className="absolute top-0 right-0 left-0 h-32 bg-gradient-to-br from-emerald-500/10 to-transparent -z-10" />
- <button onClick={() => setShowModal(false)} className="absolute top-3 md:p-4 left-6 p-2 bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-all"><X size={20} /></button>
+ <button onClick={() => setShowModal(false)} className="absolute top-3 md:p-4 left-6 p-2 bg-slate-100 rounded-full text-slate-500 hover:text-slate-600 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"><X size={20} /></button>
  
  <div className="mb-8">
- <h3 className="text-2xl font-black text-slate-800">{editingId ? 'تعديل التعليق' : 'إضافة ثناء جديد'}</h3>
- <p className="text-[10px] text-slate-400 font-bold mt-1">أدخل تفاصيل التعليق لتوثيق الجودة</p>
+ <h3 className="text-2xl font-black text-slate-900">{editingId ? 'تعديل التعليق' : 'إضافة ثناء جديد'}</h3>
+ <p className="text-[11px] sm:text-xs text-slate-500 font-bold mt-1">أدخل تفاصيل التعليق لتوثيق الجودة</p>
  </div>
 
  <form onSubmit={handleSubmit} className="space-y-5">
  <div>
- <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase">محتوى التعليق</label>
+ <label className="block text-[11px] sm:text-xs font-bold text-slate-500 mb-2 uppercase">محتوى التعليق</label>
  <textarea 
  required
  rows={6}
  value={formData.content}
  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
- className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 text-right font-bold outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all resize-none"
+ className="w-full bg-slate-50/50 border border-slate-200/60/60 rounded-2xl p-3 text-right font-bold outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all resize-none"
  placeholder="ماذا قال العميل عن الجودة أو الأكل؟ (اكتب هنا مباشرة)"
  />
  </div>
 
  <div className="grid grid-cols-2 gap-4">
  <div>
- <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase">المصدر</label>
+ <label className="block text-[11px] sm:text-xs font-bold text-slate-500 mb-2 uppercase">المصدر</label>
  <select 
  value={formData.source}
  onChange={(e) => setFormData({ ...formData, source: e.target.value as any })}
- className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3 text-right font-bold outline-none appearance-none"
+ className="w-full bg-slate-50/50 border border-slate-200/60/60 rounded-2xl p-3 text-right font-bold outline-none appearance-none"
  >
  <option value="WhatsApp">WhatsApp</option>
  <option value="Instagram">Instagram</option>
@@ -241,8 +241,8 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  </select>
  </div>
  <div>
- <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase">التقييم</label>
- <div className="flex items-center justify-end h-14 bg-slate-50 border border-slate-100 rounded-2xl px-4 gap-2">
+ <label className="block text-[11px] sm:text-xs font-bold text-slate-500 mb-2 uppercase">التقييم</label>
+ <div className="flex items-center justify-end h-14 bg-slate-50/50 border border-slate-200/60/60 rounded-2xl px-4 gap-2">
  {[1, 2, 3, 4, 5].map((star) => (
  <button 
  key={star}
@@ -260,7 +260,7 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  <div className="flex gap-3 pt-4">
  <button 
  type="submit"
- className="flex-1 bg-emerald-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-emerald-600/20 hover:-translate-y-1 transition-all active:scale-95"
+ className="flex-1 bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-emerald-600/20 hover:-translate-y-1 transition-all active:scale-[0.98] transition-all duration-200"
  >
  {editingId ? 'تحديث البيانات' : 'حفظ الثناء والأثر'}
  </button>

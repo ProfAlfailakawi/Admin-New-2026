@@ -34,7 +34,7 @@ export const VIPMissions: React.FC<VIPMissionsProps> = ({ data }) => {
  };
 
  return (
- <div className="w-full bg-slate-950 rounded-3xl md:rounded-2xl border border-amber-900/30 p-3 md:p-4 md:p-3 md:p-3 shadow-2xl overflow-hidden relative group">
+ <div className="w-full bg-slate-950 rounded-3xl md:rounded-xl md:rounded-2xl border border-amber-900/30 p-3 md:p-4 md:p-4 md:p-5 lg:p-6 shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden relative group">
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,158,11,0.08)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
  <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
  <div className="absolute inset-0 bg-[linear-gradient(to_right,#fbbf24_1px,transparent_1px),linear-gradient(to_bottom,#fbbf24_1px,transparent_1px)] bg-[size:40px_40px] opacity-[0.03] pointer-events-none" />
@@ -43,7 +43,7 @@ export const VIPMissions: React.FC<VIPMissionsProps> = ({ data }) => {
  <span className="text-amber-400">مهام العملاء السريين</span>
  <Award className="text-amber-500" />
  </h3>
- <p className="text-sm font-bold text-slate-400 text-right mb-8 relative z-10">
+ <p className="text-sm font-bold text-slate-500 text-right mb-8 relative z-10">
  توصيات ومهام حصرية موجهة لصفوة عملائك لزيادة الولاء والارتباط
  </p>
 
@@ -54,16 +54,16 @@ export const VIPMissions: React.FC<VIPMissionsProps> = ({ data }) => {
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: idx * 0.1 }}
  key={m.id} 
- className="flex flex-col md:flex-row items-center justify-between p-3 md:p-4 md:p-3 bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-amber-500/10 hover:border-amber-500/30 transition-all group/item shadow-lg"
+ className="flex flex-col md:flex-row items-center justify-between p-3 md:p-4 md:p-5 bg-slate-900/50 backdrop-blur-xl rounded-xl md:rounded-2xl border border-amber-500/10 hover:border-amber-500/30 transition-all group/item shadow-[0_2px_10px_rgb(0,0,0,0.04)]"
  >
  <div className="text-right flex-1 w-full md:mr-6 mb-4 md:mb-0">
  <div className="flex justify-end items-center gap-3 mb-2">
  <p className="font-black text-amber-50 text-lg">{m.name}</p>
  <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
  </div>
- <p className="text-xs md:text-sm text-slate-400 italic leading-relaxed">{m.mission}</p>
+ <p className="text-xs md:text-sm text-slate-500 italic leading-relaxed">{m.mission}</p>
  </div>
- <button onClick={() => handleSendMission(m)} className="w-full md:w-auto px-6 py-3 bg-amber-500/20 text-amber-400 hover:text-amber-900 hover:bg-amber-400 rounded-xl font-black transition-all active:scale-95 flex items-center justify-center gap-2 border border-amber-500/50">
+ <button onClick={() => handleSendMission(m)} className="w-full md:w-auto px-6 py-3 bg-amber-500/20 text-amber-400 hover:text-amber-900 hover:bg-amber-400 rounded-xl font-bold transition-all active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 border border-amber-500/50">
  <span className="text-sm">إرسال المهمة</span>
  <MessageCircle size={18} />
  </button>
@@ -71,8 +71,8 @@ export const VIPMissions: React.FC<VIPMissionsProps> = ({ data }) => {
 ))}
  
  {missions.length === 0 && (
- <div className="text-center p-3 md:p-3 bg-slate-900/50 rounded-2xl border border-slate-800">
- <p className="text-slate-400 font-bold">لا يوجد مهام حالية. سيقوم الذكاء الاصطناعي برصد كبار العملاء قريباً.</p>
+ <div className="text-center p-4 md:p-5 lg:p-6 bg-slate-900/50 rounded-xl md:rounded-2xl border border-slate-800">
+ <p className="text-slate-500 font-bold">لا يوجد مهام حالية. سيقوم الذكاء الاصطناعي برصد كبار العملاء قريباً.</p>
  </div>
 )}
  </div>

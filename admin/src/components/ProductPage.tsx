@@ -555,9 +555,9 @@ const ProductPage: React.FC<ProductPageProps> = ({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 text-right">
         <div className="order-2 md:order-1 flex-1">
-          <h1 className="text-xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-2 justify-end leading-tight">
+          <h1 className="text-xl md:text-3xl font-extrabold text-slate-900 flex items-center gap-2 justify-end leading-snug">
             إدارة المنتجات والأصناف
-            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-[0_2px_10px_rgb(0,0,0,0.04)]">
               <Package className="text-white" />
             </div>
           </h1>
@@ -568,12 +568,12 @@ const ProductPage: React.FC<ProductPageProps> = ({
       </div>
 
       {bestProducts.length > 0 && (
-        <div className="bg-gradient-to-br from-amber-50 to-white border border-amber-100 rounded-2xl p-3 md:p-3 shadow-sm">
+        <div className="bg-gradient-to-br from-amber-50 to-white border border-amber-100 rounded-2xl p-4 md:p-5 lg:p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4 flex-row-reverse">
             <h3 className="font-bold text-lg text-amber-800 flex items-center gap-2">
               أعلى هامش ربح (الأكثر مبيعاً) <TrendingUp size={20} />
             </h3>
-            <span className="text-xs font-black text-amber-600 bg-amber-100/50 px-3 py-1 rounded-lg border border-amber-200/50">
+            <span className="text-xs font-bold text-amber-600 bg-amber-100/50 px-3 py-1 rounded-lg border border-amber-200/50">
               أفضل 3 أصناف
             </span>
           </div>
@@ -584,7 +584,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 className="bg-white border border-amber-100/50 p-3 rounded-2xl flex items-center justify-between text-right shadow-sm hover:-translate-y-1 transition-all"
               >
                   <div className="flex flex-col gap-1 w-full pl-2 items-end">
-                   <h4 className="font-bold text-slate-800 text-[13px] sm:text-[14px] leading-tight text-right line-clamp-1">{p.name}</h4>
+                   <h4 className="font-bold text-slate-900 text-[13px] sm:text-[14px] leading-snug text-right line-clamp-1">{p.name}</h4>
                    {p.preparationInstructions && (
                       <span className="text-[8px] bg-amber-50 border border-amber-200 text-amber-700 font-medium px-1.5 py-0.5 rounded flex items-center gap-1 flex-row-reverse w-fit text-right shadow-sm mt-0.5">
                         <AlertCircle size={8} className="shrink-0" /> <span className="line-clamp-1">{p.preparationInstructions}</span>
@@ -592,14 +592,14 @@ const ProductPage: React.FC<ProductPageProps> = ({
                    )}
                    <div className="flex items-center gap-1 flex-row-reverse text-slate-500">
                      <Truck size={10} />
-                     <span className="text-[10px] font-bold">
+                     <span className="text-[11px] sm:text-xs font-bold">
                        {data.suppliers?.find((s) => s.id === p.supplierId)?.name || "مورد"}
                      </span>
                   </div>
                 </div>
                 <div className="flex flex-col items-center justify-center shrink-0 pr-3 border-r border-amber-100">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">هامش الربح</span>
-                  <span className="text-[14px] font-black text-emerald-600">%{(
+                  <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-0.5">هامش الربح</span>
+                  <span className="text-[14px] font-bold text-emerald-600">%{(
                     (((p.price || 0) - (p.cost || 0)) / (p.price || 1)) * 100
                   ).toFixed(0)}</span>
                 </div>
@@ -610,7 +610,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       )}
 
       {/* Analytics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 md:p-3 mb-2 md:mb-0">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4 md:p-5 lg:p-6 mb-2 md:mb-0">
         <StatCardComponent
           label="إجمالي المنتجات"
           value={(data?.products || []).length}
@@ -662,11 +662,11 @@ const ProductPage: React.FC<ProductPageProps> = ({
         )}
       </AnimatePresence>
 
-      <div className="bg-white rounded-[32px] p-3 md:p-3 border border-slate-200 shadow-sm text-right">
+      <div className="bg-white rounded-3xl lg:rounded-[2rem] p-4 md:p-5 lg:p-6 border border-slate-200 shadow-sm text-right">
         <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
           <div className="relative flex-1">
             <Search
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500"
               size={18}
             />
             <input
@@ -674,13 +674,13 @@ const ProductPage: React.FC<ProductPageProps> = ({
               placeholder="ابحث عن اسم المنتج..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
+              className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
             />
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={openAddModal}
-              className="bg-slate-900 text-white px-4 md:px-8 py-3.5 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95"
+              className="bg-slate-900 text-white px-4 md:px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-[0_4px_20px_rgb(0,0,0,0.05)] active:scale-[0.98] transition-all duration-200"
             >
               <Plus size={20} />
               <span>إضافة منتج جديد</span>
@@ -689,15 +689,15 @@ const ProductPage: React.FC<ProductPageProps> = ({
         </div>
 
         {/* Smart Filters Bar */}
-        <div className="flex flex-col md:flex-row flex-wrap items-stretch md:items-center justify-end gap-2 mb-10 pb-6 border-b border-slate-100 md:flex-row-reverse">
-          <div className="bg-slate-50 p-2 rounded-2xl flex items-center gap-2">
-            <span className="text-[10px] font-black text-slate-400 uppercase mr-2 text-right">
+        <div className="flex flex-col md:flex-row flex-wrap items-stretch md:items-center justify-end gap-2 mb-10 pb-6 border-b border-slate-200/60 md:flex-row-reverse">
+          <div className="bg-slate-50 p-2 rounded-2xl flex items-center gap-2 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+            <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mr-2 text-right">
               المورد:
             </span>
             <select
               value={selectedSupplierId}
               onChange={(e) => setSelectedSupplierId(e.target.value)}
-              className="bg-white border border-slate-200 rounded-xl px-4 py-2 font-black text-xs text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-right"
+              className="bg-white border border-slate-200 rounded-xl px-4 py-2 font-bold text-xs text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-right"
             >
               <option value="all">الكل</option>
               {(data?.suppliers || []).map((s) => (
@@ -708,7 +708,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
             </select>
           </div>
 
-          <div className="flex overflow-x-auto hide-scrollbar bg-slate-100 p-1.5 rounded-2xl gap-1 shrink-0 flex-row-reverse w-full md:w-auto">
+          <div className="flex overflow-x-auto custom-scrollbar bg-slate-100 p-1.5 rounded-2xl gap-1 shrink-0 flex-row-reverse w-full md:w-auto min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
             {[
               { id: "all", label: "الكل", icon: <Package size={14} /> },
               { id: "star", label: "نار 🔥", icon: <Sparkles size={14} /> },
@@ -722,7 +722,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   "flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-[11px] font-black transition-all whitespace-nowrap",
                   filterType === tab.id
                     ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800",
+                    : "text-slate-500 hover:text-slate-900",
                 )}
               >
                 <span>{tab.label}</span>
@@ -734,14 +734,14 @@ const ProductPage: React.FC<ProductPageProps> = ({
           <div className="h-8 w-[1px] bg-slate-200 hidden md:block" />
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-4 md:gap-5 md:p-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-4 md:gap-5 md:p-2 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
           {(filteredProducts || []).length === 0 ? (
-            <div className="col-span-full py-20 px-4 flex flex-col items-center justify-center text-center bg-white/50 backdrop-blur-sm border border-slate-100 border-dashed rounded-3xl md:rounded-2xl">
+            <div className="col-span-full py-20 px-4 flex flex-col items-center justify-center text-center bg-white/50 backdrop-blur-sm border border-slate-200/60 border-dashed rounded-3xl md:rounded-2xl">
               <div className="w-24 h-24 mb-6 rounded-3xl bg-primary/5 flex items-center justify-center text-primary/40 relative">
                 <div className="absolute inset-0 bg-primary/10 rounded-3xl animate-ping opacity-20" />
                 <Package size={48} />
               </div>
-              <h3 className="text-xl md:text-3xl font-black text-slate-800 mb-3 tracking-tight">
+              <h3 className="text-xl md:text-3xl font-black text-slate-900 mb-3 tracking-tight">
                 لا توجد منتجات حالياً!
               </h3>
               <p className="text-slate-500 font-bold max-w-sm mb-8 leading-relaxed">
@@ -750,7 +750,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
               </p>
               <button
                 onClick={() => setShowModal(true)}
-                className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1"
+                className="bg-primary text-white hover:bg-primary/90 px-5 md:px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-primary/20 hover:-translate-y-1 transition-all active:scale-[0.98] transition-all duration-200 hover:rotate-1"
               >
                 <Plus size={24} />
                 <span>ابدأ رحلتك وضيف أول منتج الآن!</span>
@@ -787,7 +787,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   }
                   transition={shakingId === product.id ? { duration: 0.5 } : {}}
                   className={cn(
-                    "bg-white border border-slate-200 rounded-[24px] overflow-hidden shadow-sm hover:shadow-xl transition-all relative text-right flex flex-col z-10 group",
+                    "bg-white border border-slate-200 rounded-[24px] overflow-hidden shadow-sm hover:shadow-[0_4px_20px_rgb(0,0,0,0.05)] transition-all relative text-right flex flex-col z-10 group",
                     product.isActive === false
                       ? "opacity-80 grayscale-[0.3]"
                       : "hover:border-primary/40",
@@ -797,7 +797,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 >
                   {/* FULLY CLIPPED IMAGE CONTAINER */}
                   <div 
-                    className="w-full h-[140px] overflow-hidden relative bg-slate-50 border-b border-slate-100 group/img isolate"
+                    className="w-full h-[140px] overflow-hidden relative bg-slate-50 border-b border-slate-200/60 group/img isolate"
                     style={{ borderRadius: '24px 24px 0 0' }}
                   >
                     {product.imageUrl ? (
@@ -834,7 +834,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                            toast.info(product.isOutOfStock ? '✅ المادة متوفرة الآن' : '🚫 سجلت كنفدت الكمية');
                          }}
                          className={cn(
-                           "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[10px] font-black w-8 h-8",
+                           "flex items-center justify-center p-2 rounded-xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[11px] sm:text-xs font-black w-8 h-8",
                            product.isOutOfStock ? "bg-rose-500 hover:bg-rose-600 border-rose-400 text-white" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-400 text-white"
                          )}
                        >
@@ -854,7 +854,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                            toast.info(product.isActive !== false ? '👁️ تم إخفاء المنتج' : '👁️ تم إظهار المنتج');
                          }}
                          className={cn(
-                           "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[10px] font-black w-8 h-8",
+                           "flex items-center justify-center p-2 rounded-xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[11px] sm:text-xs font-black w-8 h-8",
                            product.isActive !== false ? "bg-slate-700 hover:bg-slate-800 border-slate-600 text-white" : "bg-amber-500 hover:bg-amber-600 border-amber-400 text-white"
                          )}
                        >
@@ -863,8 +863,8 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     </div>
 
                     {/* Price Tag Overlay */}
-                    <div className="absolute bottom-2.5 right-2.5 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-[12px] shadow-xl border border-white/5 z-20 pointer-events-none">
-                      <span className="text-[14px] font-black text-white tracking-widest leading-none">
+                    <div className="absolute bottom-2.5 right-2.5 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-[12px] shadow-[0_4px_20px_rgb(0,0,0,0.05)] border border-white/5 z-20 pointer-events-none">
+                      <span className="text-[14px] font-bold text-white tracking-widest leading-none">
                         {Number(product.price || 0).toFixed(3)}
                       </span>
                     </div>
@@ -874,12 +874,12 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       {isSlow && (
                         <span 
                           title="هذا المنتج حركته بطيئة مقارنة بباقي المنتجات"
-                          className="bg-rose-500/80 backdrop-blur-sm text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase cursor-help pointer-events-auto">
+                          className="bg-rose-500/80 backdrop-blur-sm text-white text-[8px] font-bold px-2 py-0.5 rounded-full shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/10 uppercase cursor-help pointer-events-auto">
                           بطيء الحركة
                         </span>
                       )}
                       {sales > 10 && (
-                        <span className="bg-emerald-500/80 backdrop-blur-sm text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase pointer-events-auto">
+                        <span className="bg-emerald-500/80 backdrop-blur-sm text-white text-[8px] font-bold px-2 py-0.5 rounded-full shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/10 uppercase pointer-events-auto">
                           Hot
                         </span>
                       )}
@@ -888,21 +888,21 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
                   <div className="p-4 flex flex-col flex-1 gap-4">
                     <div className="space-y-0.5 sm:space-y-1">
-                      <h3 className="font-black text-slate-800 text-[13px] sm:text-lg leading-[1.4] mb-0.5 sm:mb-1 line-clamp-2 min-h-[36px] sm:min-h-[50px] text-right">
+                      <h3 className="font-black text-slate-900 text-[13px] sm:text-lg leading-[1.4] mb-0.5 sm:mb-1 line-clamp-2 min-h-[36px] sm:min-h-[50px] text-right">
                         {product.name}
                       </h3>
                       {product.preparationInstructions && (
                         <div className="flex justify-end mt-1">
-                          <span className="text-[9px] md:text-[10px] bg-amber-50 border border-amber-200/60 text-amber-700 font-medium px-2 py-0.5 rounded-md flex items-center gap-1 w-fit flex-row-reverse shadow-sm text-right">
+                          <span className="text-[9px] md:text-[11px] sm:text-xs bg-amber-50 border border-amber-200/60 text-amber-700 font-medium px-2 py-0.5 rounded-md flex items-center gap-1 w-fit flex-row-reverse shadow-sm text-right">
                             <AlertCircle size={10} className="text-amber-500 shrink-0" />
                             <span className="line-clamp-2 leading-snug">{product.preparationInstructions}</span>
                           </span>
                         </div>
                       )}
                       <div className="flex flex-col gap-1 items-end">
-                        <div className="flex items-center gap-1 sm:gap-1.5 flex-row-reverse justify-end text-slate-400 group-hover:text-primary transition-colors">
+                        <div className="flex items-center gap-1 sm:gap-1.5 flex-row-reverse justify-end text-slate-500 group-hover:text-primary transition-colors">
                           <Truck size={10} className="sm:size-[12px] shrink-0" />
-                          <span className="text-[9px] sm:text-xs font-bold leading-tight">
+                          <span className="text-[9px] sm:text-xs font-bold leading-snug">
                             {supplier?.name || "مورد مجهول"}
                           </span>
                         </div>
@@ -917,10 +917,10 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                     e.stopPropagation();
                                   }}
                                 >
-                                  <div className="bg-rose-50 border border-rose-100 text-rose-600 p-1.5 rounded-full cursor-pointer shadow-sm">
+                                  <div className="bg-rose-50 border border-rose-100 text-rose-600 p-1.5 rounded-full cursor-pointer shadow-sm min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
                                     <AlertCircle size={14} className="shrink-0 animate-pulse" />
                                   </div>
-                                  <div className="absolute bottom-full mb-2 right-1/2 translate-x-[75%] sm:translate-x-[60%] hidden group-hover/badge:flex group-focus/badge:flex focus-within:flex flex-col bg-white text-slate-700 text-[9px] sm:text-[10px] w-[110px] sm:w-[130px] p-2 rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-black border border-slate-200 pointer-events-none items-center gap-1.5 text-center">
+                                  <div className="absolute bottom-full mb-2 right-1/2 translate-x-[75%] sm:translate-x-[60%] hidden group-hover/badge:flex group-focus/badge:flex focus-within:flex flex-col bg-white text-slate-700 text-[9px] sm:text-[11px] sm:text-xs w-[110px] sm:w-[130px] p-2 rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-bold border border-slate-200 pointer-events-none items-center gap-1.5 text-center min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
                                     <span className="bg-rose-50 text-rose-600 px-2 py-1.5 rounded-lg leading-relaxed w-full break-words whitespace-normal">{bestPrice.supplier}</span>
                                     <span className="w-full">يبيعه أرخص</span>
                                     <span className="text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg leading-none w-full">{Number(bestPrice.cost || 0).toFixed(3)} د.ك</span>
@@ -933,25 +933,25 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1 sm:gap-1.5 bg-slate-50/50 p-1 sm:p-1.5 rounded-[16px] sm:rounded-[24px] border border-slate-100 shadow-inner">
-                      <div className="bg-white rounded-[12px] sm:rounded-[18px] p-1.5 sm:p-3 shadow-sm border border-slate-100 flex flex-col items-center justify-center">
-                        <span className="text-[7px] sm:text-[10px] font-black text-slate-400 uppercase mb-0.5">
+                    <div className="grid grid-cols-2 gap-1 sm:gap-1.5 bg-slate-50/50 p-1 sm:p-1.5 rounded-[16px] sm:rounded-[24px] border border-slate-200/60 shadow-inner min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+                      <div className="bg-white rounded-[12px] sm:rounded-[18px] p-1.5 sm:p-3 shadow-sm border border-slate-200/60 flex flex-col items-center justify-center min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+                        <span className="text-[7px] sm:text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-0.5">
                           البيع
                         </span>
-                        <span className="text-[10px] sm:text-base font-black text-slate-900 tracking-tight">
+                        <span className="text-[11px] sm:text-xs sm:text-base font-bold text-slate-900 tracking-tight">
                           {Number(product.price || 0).toFixed(3)}
                         </span>
                       </div>
-                      <div className="bg-white rounded-[12px] sm:rounded-[18px] p-1.5 sm:p-3 shadow-sm border border-slate-100 flex flex-col items-center justify-center">
-                        <span className="text-[7px] sm:text-[10px] font-black text-slate-400 uppercase mb-0.5">
+                      <div className="bg-white rounded-[12px] sm:rounded-[18px] p-1.5 sm:p-3 shadow-sm border border-slate-200/60 flex flex-col items-center justify-center min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+                        <span className="text-[7px] sm:text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-0.5">
                           التكلفة
                         </span>
-                        <span className="text-[10px] sm:text-base font-black text-slate-500 tracking-tight">
+                        <span className="text-[11px] sm:text-xs sm:text-base font-bold text-slate-500 tracking-tight">
                           {Number(product.cost || 0).toFixed(3)}
                         </span>
                       </div>
                       <div className="col-span-2 bg-emerald-500/10 rounded-[12px] sm:rounded-[18px] p-1.5 sm:p-3 border border-emerald-500/20 flex items-center justify-between px-2 sm:px-6">
-                        <span className="text-[8px] sm:text-xs font-black text-emerald-600 uppercase">
+                        <span className="text-[8px] sm:text-xs font-bold text-emerald-600 uppercase">
                           هامش الربح
                         </span>
                         <span className="text-[11px] sm:text-lg font-black text-emerald-600 tracking-tighter">
@@ -960,12 +960,12 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       </div>
                     </div>
 
-                    <div className="mt-auto flex flex-col gap-2 pt-2 sm:pt-3 border-t border-slate-100/50">
+                    <div className="mt-auto flex flex-col gap-2 pt-2 sm:pt-3 border-t border-slate-200/60/50">
                       {/* Marketing / Edit / Delete */}
                       <div className="grid grid-cols-4 gap-2">
                         <button
                           onClick={() => generateMarketing(product)}
-                          className="h-10 sm:h-12 bg-pink-50 text-pink-500 border border-pink-100 rounded-xl flex items-center justify-center hover:bg-pink-500 hover:text-white transition-all shadow-sm active:scale-95 group/btn"
+                          className="h-10 sm:h-12 bg-pink-50 text-pink-500 border border-pink-100 rounded-xl flex items-center justify-center hover:bg-pink-500 hover:text-white transition-all shadow-sm active:scale-[0.98] transition-all duration-200 group/btn"
                           title="تسويق"
                         >
                           <Camera
@@ -975,7 +975,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         </button>
                         <button
                           onClick={() => setSmartOfferTarget(product)}
-                          className="h-10 sm:h-12 bg-indigo-50 text-indigo-500 border border-indigo-100 rounded-xl flex items-center justify-center hover:bg-indigo-500 hover:text-white transition-all shadow-sm active:scale-95 group/btn"
+                          className="h-10 sm:h-12 bg-indigo-50 text-indigo-500 border border-indigo-100 rounded-xl flex items-center justify-center hover:bg-indigo-500 hover:text-white transition-all shadow-sm active:scale-[0.98] transition-all duration-200 group/btn"
                           title="خصومات"
                         >
                           <Tag
@@ -988,7 +988,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                             e.stopPropagation();
                             openEditModal(product);
                           }}
-                          className="h-10 sm:h-12 flex items-center justify-center bg-white border border-slate-200 text-slate-700 hover:bg-slate-900 hover:text-white hover:border-slate-900 rounded-xl transition-all shadow-sm active:scale-95 group/btn"
+                          className="h-10 sm:h-12 flex items-center justify-center bg-white border border-slate-200 text-slate-700 hover:bg-slate-900 hover:text-white hover:border-slate-900 rounded-xl transition-all shadow-sm active:scale-[0.98] transition-all duration-200 group/btn"
                           title="تعديل البيانات"
                         >
                           <Edit2 size={16} className="sm:size-[20px] group-hover/btn:scale-110 transition-transform" />
@@ -998,7 +998,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                             e.stopPropagation();
                             setProductToDelete(product);
                           }}
-                          className="h-10 sm:h-12 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:bg-red-50 hover:text-red-500 hover:border-red-200 rounded-xl transition-all shadow-sm active:scale-95 group/btn"
+                          className="h-10 sm:h-12 flex items-center justify-center bg-white border border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 rounded-xl transition-all shadow-sm active:scale-[0.98] transition-all duration-200 group/btn"
                           title="حذف المنتج"
                         >
                           <Trash2 size={16} className="sm:size-[20px] group-hover/btn:scale-110 transition-transform" />
@@ -1026,18 +1026,18 @@ const ProductPage: React.FC<ProductPageProps> = ({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-[40px] w-[95%] max-w-lg shadow-2xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+              className="bg-white rounded-3xl lg:rounded-[2rem] w-full max-w-[95%] sm:max-w-lg shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-0 border border-slate-200/60 text-right flex flex-col max-h-[90dvh] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header - Fixed */}
-              <div className="p-3 md:p-3 pb-0 shrink-0">
-                <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2 justify-end leading-tight">
+              <div className="p-4 md:p-5 lg:p-6 pb-0 shrink-0">
+                <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2 justify-end leading-snug">
                   {editingId ? "تعديل بيانات المنتج" : "إضافة منتج جديد كلياً"}
                   <PlusCircle className="text-primary" />
                 </h2>
               </div>
 
-              <div className="overflow-y-auto custom-scrollbar flex-1 p-3 md:p-3 pt-6 min-h-0">
+              <div className="overflow-y-auto custom-scrollbar flex-1 p-4 md:p-5 lg:p-6 pt-6 min-h-0">
                 {priceError && (
                   <div className="bg-red-50 text-red-600 p-3 rounded-xl border border-red-100 flex items-center gap-2 text-sm font-bold text-right mb-6">
                     <AlertCircle size={18} className="shrink-0" />
@@ -1055,7 +1055,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         className="overflow-hidden mb-4"
                       >
                         <div
-                          className="p-3 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-between gap-2 group/suggestion cursor-pointer hover:bg-indigo-100 transition-all active:scale-95"
+                          className="p-3 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-between gap-2 group/suggestion cursor-pointer hover:bg-indigo-100 transition-all active:scale-[0.98] transition-all duration-200"
                           onClick={() => {
                             setProductForm({
                               ...productForm,
@@ -1069,15 +1069,15 @@ const ProductPage: React.FC<ProductPageProps> = ({
                               <Sparkles size={16} />
                             </div>
                             <div className="text-right">
-                              <p className="text-[10px] font-black text-indigo-400 uppercase">
+                              <p className="text-[11px] sm:text-xs font-bold text-indigo-400 uppercase">
                                 توجيه الذكاء: هل تقصد هذا المنتج؟
                               </p>
-                              <p className="text-sm font-black text-indigo-900">
+                              <p className="text-sm font-bold text-indigo-900">
                                 {suggestion}
                               </p>
                             </div>
                           </div>
-                          <div className="text-xs font-black text-indigo-600 bg-white px-3 py-1 rounded-full border border-indigo-200">
+                          <div className="text-xs font-bold text-indigo-600 bg-white px-3 py-1 rounded-full border border-indigo-200">
                             اختيار الاسم الموحد
                           </div>
                         </div>
@@ -1086,7 +1086,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   </AnimatePresence>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase mr-1 block">
+                    <label className="text-xs font-bold text-slate-500 uppercase mr-1 block">
                       اسم المنتج بالكامل
                     </label>
                     <input
@@ -1095,22 +1095,22 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       onChange={(e) =>
                         setProductForm({ ...productForm, name: e.target.value })
                       }
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-800 text-right text-lg"
+                      className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-4 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-900 text-right text-lg"
                       placeholder="مثال: مجبوس دجاج عائلي..."
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">
+                    <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">
                       صورة المنتج
                     </label>
-                    <label className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-2xl py-4 px-4 cursor-pointer hover:border-primary transition-all">
+                    <label className="flex items-center justify-between bg-slate-50/50 border border-slate-200/60 rounded-2xl py-4 px-4 cursor-pointer hover:border-primary transition-all">
                       <span
                         className={cn(
                           "font-bold",
                           productForm.imageUrl
                             ? "text-primary"
-                            : "text-slate-400",
+                            : "text-slate-500",
                         )}
                       >
                         {uploading
@@ -1130,7 +1130,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         className={cn(
                           productForm.imageUrl
                             ? "text-primary"
-                            : "text-slate-400",
+                            : "text-slate-500",
                         )}
                       />
                     </label>
@@ -1139,7 +1139,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         <img
                           src={productForm.imageUrl}
                           alt="Product"
-                          className="w-full h-full object-contain bg-slate-50 border border-slate-100 p-1 rounded-xl"
+                          className="w-full h-full object-contain bg-slate-50/50 border border-slate-200/60/60 p-1 rounded-xl"
                         />
                         <button
                           onClick={(e) => {
@@ -1149,7 +1149,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                               imageUrl: "",
                             }));
                           }}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
                         >
                           <X size={12} />
                         </button>
@@ -1158,9 +1158,9 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid flex-col md:grid md:grid-cols-2 gap-2 md:p-3">
+                <div className="grid grid-cols-1 sm:grid flex-col md:grid md:grid-cols-2 gap-2 md:p-5">
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">
+                    <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">
                       سعر البيع للعميل
                     </label>
                     <NumericInput
@@ -1168,12 +1168,12 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       onChange={(val) =>
                         setProductForm({ ...productForm, price: val as any })
                       }
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-800 text-right"
+                      className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-900 text-right"
                       placeholder="0.000"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">
+                    <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">
                       تكلفة المواد
                     </label>
                     <NumericInput
@@ -1181,15 +1181,15 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       onChange={(val) =>
                         setProductForm({ ...productForm, cost: val as any })
                       }
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-800 text-right"
+                      className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-900 text-right"
                       placeholder="0.000"
                     />
                   </div>
                 </div>
 
-                  <div className="grid grid-cols-1 gap-2 md:p-3">
+                  <div className="grid grid-cols-1 gap-2 md:p-5">
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">
+                    <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">
                       إرشادات التحضير (اختياري)
                     </label>
                     <textarea
@@ -1197,12 +1197,12 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       onChange={(e) =>
                         setProductForm({ ...productForm, preparationInstructions: e.target.value })
                       }
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right min-h-[60px]"
+                      className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-900 text-right min-h-[60px]"
                       placeholder="مثال: يطلب قبلها بيوم، يحتاج ساعتين للتجهيز..."
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">
+                    <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">
                       المورد المعتمد
                     </label>
                     <select
@@ -1213,7 +1213,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                           supplierId: e.target.value,
                         })
                       }
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-800 text-right"
+                      className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-900 text-right"
                     >
                       <option value="">— اختر مورد —</option>
                       {(data?.suppliers || []).map((s) => (
@@ -1226,7 +1226,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 </div>
               </div>
 
-              <div className="flex gap-2 p-3 md:p-3 shrink-0 mt-auto border-t border-slate-100">
+              <div className="flex gap-2 p-4 md:p-5 lg:p-6 shrink-0 mt-auto border-t border-slate-200/60">
                 <button
                   onClick={closeModal}
                   className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-2xl transition-all"
@@ -1237,7 +1237,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   disabled={uploading || isSaving}
                   onClick={() => handleSaveProduct(false)}
                   className={cn(
-                    "flex-1 py-4 bg-slate-900 text-white font-bold rounded-2xl transition-all shadow-lg shadow-slate-900/20 active:scale-95",
+                    "flex-1 py-4 bg-slate-900 text-white font-bold rounded-2xl transition-all shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-slate-900/20 active:scale-[0.98] transition-all duration-200",
                     (uploading || isSaving) && "opacity-50 cursor-not-allowed",
                   )}
                 >
@@ -1299,42 +1299,42 @@ const ProductPage: React.FC<ProductPageProps> = ({
               initial={{ opacity: 0, y: 30, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 30, scale: 0.95 }}
-              className="bg-white rounded-[40px] w-[min(96vw,720px)] shadow-2xl p-0 border border-slate-100 text-right relative flex flex-col max-h-[90dvh] overflow-hidden"
+              className="bg-white rounded-3xl lg:rounded-[2rem] w-full max-w-[95%] sm:max-w-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-0 border border-slate-200/60 text-right relative flex flex-col max-h-[90dvh] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="absolute top-0 right-0 left-0 h-40 bg-gradient-to-br from-pink-500/10 to-indigo-500/10 -z-10" />
 
               <button
                 onClick={() => setShowMarketingModal(null)}
-                className="absolute top-2 left-4 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-400 hover:text-slate-600 hover:bg-white transition-all z-20 shadow-sm border border-slate-100"
+                className="absolute top-2 left-4 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-500 hover:text-slate-600 hover:bg-white transition-all z-20 shadow-sm border border-slate-200/60 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
               >
                 <X size={18} />
               </button>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-3 md:p-3 pt-10 min-h-0">
+              <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-4 md:p-5 lg:p-6 pt-10 min-h-0">
                 <div className="flex items-center gap-2 mb-6 justify-end">
                   <div className="text-right">
-                    <h3 className="text-2xl font-black text-slate-800">
+                    <h3 className="text-2xl font-black text-slate-900">
                       المسوق التراثي الذكي 📸
                     </h3>
-                    <p className="text-xs text-slate-400 font-bold">
+                    <p className="text-xs text-slate-500 font-bold">
                       محتوى جاهز للنشر في إنستقرام
                     </p>
                   </div>
-                  <div className="w-14 h-14 bg-pink-100 rounded-2xl flex items-center justify-center text-pink-500 shadow-lg shadow-pink-500/10 shrink-0">
+                  <div className="w-14 h-14 bg-pink-100 rounded-2xl flex items-center justify-center text-pink-500 shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-pink-500/10 shrink-0">
                     <Sparkles size={28} />
                   </div>
                 </div>
 
                 <div
-                  className="bg-slate-50 border border-slate-100 rounded-2xl p-3 md:p-3 mb-4 text-right font-bold text-slate-700 leading-loose whitespace-pre-wrap text-sm relative group w-full"
+                  className="bg-slate-50/50 border border-slate-200/60/60 rounded-2xl p-4 md:p-5 lg:p-6 mb-4 text-right font-bold text-slate-700 leading-loose whitespace-pre-wrap text-sm relative group w-full"
                   dir="rtl"
                 >
                   {marketingContent}
                 </div>
               </div>
 
-              <div className="p-3 md:p-3 mt-auto border-t border-slate-50 shrink-0">
+              <div className="p-4 md:p-5 lg:p-6 mt-auto border-t border-slate-50 shrink-0">
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(marketingContent);
@@ -1342,7 +1342,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     setTimeout(() => setCopySuccess(false), 2000);
                   }}
                   className={cn(
-                    "w-full py-4 px-6 rounded-2xl font-black flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95",
+                    "w-full py-4 px-6 rounded-2xl font-black flex items-center justify-center gap-2 transition-all shadow-[0_2px_10px_rgb(0,0,0,0.04)] active:scale-[0.98] transition-all duration-200",
                     copySuccess
                       ? "bg-emerald-500 text-white shadow-emerald-500/20"
                       : "bg-pink-500 text-white shadow-pink-500/20 hover:bg-pink-600",

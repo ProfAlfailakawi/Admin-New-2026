@@ -190,7 +190,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
   }, [data, dateFilter]);
 
   return (
-    <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden" dir="rtl">
+    <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative overflow-hidden" dir="rtl">
       {/* Decorative effect */}
       <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-500/10 blur-3xl rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-amber-500 to-indigo-500 opacity-50" />
@@ -200,7 +200,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
-          <div className="bg-amber-500/20 text-amber-300 p-2 rounded-xl group-hover:bg-amber-500/30 transition-colors">
+          <div className="bg-amber-500/20 text-amber-300 p-2 rounded-xl group-hover:bg-amber-500/30 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
             <ArrowUpRight size={20} />
           </div>
           <h2 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
@@ -213,7 +213,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
             </span>
           </h2>
         </div>
-        <button className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full">
+        <button className="text-slate-500 hover:text-white transition-colors bg-white/5 p-2 rounded-full min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
           {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
       </div>
@@ -232,9 +232,9 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.05 }}
                 key={idx} 
-                className="flex items-start gap-3 bg-white/5 p-3 rounded-2xl border border-white/5 hover:border-white/10 transition-colors"
+                className="flex items-start gap-3 bg-white/5 p-3 rounded-xl md:rounded-2xl border border-white/5 hover:border-white/10 transition-colors"
               >
-                <div className="bg-white/10 p-1.5 rounded-lg mt-0.5 shrink-0">
+                <div className="bg-white/10 p-1.5 rounded-lg mt-0.5 shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
                   {item.icon}
                 </div>
                 <p className="text-slate-200 text-sm font-bold leading-relaxed">

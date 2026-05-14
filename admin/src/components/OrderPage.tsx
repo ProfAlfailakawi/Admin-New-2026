@@ -98,7 +98,7 @@ const InsightCard = ({ label, value, icon: Icon, color, onClick }: { label: stri
  const bgGlowColorClass = isFailedCard ?"bg-amber-500/10" : isPendingCard ?"bg-violet-500/10" : isSplitPendingCard ?"bg-purple-500/10" :"";
 
  return (
- <div onClick={onClick} className={cn("bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 relative overflow-hidden", onClick ?"cursor-pointer hover:shadow-md transition-all active:scale-95" :"")}>
+ <div onClick={onClick} className={cn("bg-white p-3 rounded-xl md:rounded-2xl border border-slate-200/60 shadow-sm flex items-center gap-4 relative overflow-hidden", onClick ?"cursor-pointer hover:shadow-md transition-all active:scale-[0.98] transition-all duration-200" :"")}>
  {needsPulse && (
  <motion.div 
  animate={{ opacity: [0.05, 0.15, 0.05] }}
@@ -117,7 +117,7 @@ const InsightCard = ({ label, value, icon: Icon, color, onClick }: { label: stri
 )}
  </div>
  <div className="relative z-10">
- <div className="text-[10px] font-black text-slate-400 uppercase leading-none mb-1">{label}</div>
+ <div className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase leading-none mb-1">{label}</div>
  <div className="text-lg font-black text-slate-900 leading-none flex items-center gap-2">
  {value}
  {needsPulse && (
@@ -813,8 +813,8 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  };
 
  return (
- <section className="p-3 md:p-4 lg:p-3 md:p-3 space-y-6 animate-in fade-in duration-500" dir="rtl">
- <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:p-4 bg-slate-900 p-3 md:p-4 md:p-3 rounded-3xl shadow-xl relative overflow-hidden group">
+ <section className="p-3 md:p-4 lg:p-4 md:p-5 lg:p-6 space-y-6 animate-in fade-in duration-500" dir="rtl">
+ <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:p-4 bg-slate-900 p-3 md:p-4 md:p-5 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] relative overflow-hidden group">
  <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
  
  <div className="relative z-10 w-full flex items-center justify-between">
@@ -826,7 +826,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <h1 className="text-xl md:text-3xl md:text-xl md:text-2xl font-black text-white tracking-tighter">
  طلبات التطبيق
  </h1>
- <p className="text-slate-400 font-bold text-sm md:text-base mt-1">إدارة الطلبات القادمة من تطبيق العملاء</p>
+ <p className="text-slate-500 font-bold text-sm md:text-base mt-1">إدارة الطلبات القادمة من تطبيق العملاء</p>
  </div>
  </div>
  
@@ -834,9 +834,9 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  </div>
 
  {/* Quick Insights Bar */}
- <div className="flex overflow-x-auto lg:grid lg:grid-cols-7 gap-3 md:gap-4 pb-2 -mx-3 px-3 md:mx-0 md:px-0 md:pb-0 hide-scrollbar">
+ <div className="flex overflow-x-auto lg:grid lg:grid-cols-7 gap-3 md:gap-4 pb-2 -mx-3 px-3 md:mx-0 md:px-0 md:pb-0 custom-scrollbar">
  <div className="min-w-[140px] md:min-w-0">
- <InsightCard label="إجمالي الطلبات" value={orders.length} icon={ClipboardList} color="text-slate-400" onClick={() => setFilterStatus('all')} />
+ <InsightCard label="إجمالي الطلبات" value={orders.length} icon={ClipboardList} color="text-slate-500" onClick={() => setFilterStatus('all')} />
  </div>
  <div className="min-w-[140px] md:min-w-0">
  <InsightCard label="طلبات اليوم" value={data.orders.filter(o => {
@@ -870,13 +870,13 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  </div>
 
  {/* Main Container */}
- <div className="bg-white rounded-2xl p-3 md:p-4 lg:p-3 md:p-3 shadow-lg border border-slate-100">
+ <div className="bg-white rounded-2xl p-3 md:p-4 lg:p-4 md:p-5 lg:p-6 shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-slate-200/60">
  <div className="max-w-2xl mx-auto relative mb-8">
  <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
  <input
  type="text"
  placeholder="ابحث بالاسم، الهاتف..."
- className="w-full pl-4 pr-12 py-3.5 bg-slate-50 rounded-2xl border border-transparent focus:border-indigo-600/20 focus:bg-white transition-all font-black text-sm shadow-sm"
+ className="w-full pl-4 pr-12 py-3.5 bg-slate-50 rounded-xl md:rounded-2xl border border-transparent focus:border-indigo-600/20 focus:bg-white transition-all font-bold text-sm shadow-sm"
  value={searchTerm}
  onChange={(e) => setSearchTerm(e.target.value)}
  />
@@ -885,7 +885,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  {loading ? (
  <div className="flex flex-col items-center justify-center py-40">
  <Loader2 className="animate-spin text-indigo-600 w-12 h-12 md:w-16 md:h-16 mb-6" />
- <p className="text-slate-400 font-black text-xl animate-pulse">جاري مزامنة الطلبات الفورية...</p>
+ <p className="text-slate-500 font-black text-xl animate-pulse">جاري مزامنة الطلبات الفورية...</p>
  </div>
 ) : filteredOrders.length === 0 ? (
   <motion.div 
@@ -905,23 +905,23 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
           className="w-32 h-32 bg-emerald-100 rounded-full flex items-center justify-center mb-8 relative"
         >
           <div className="absolute inset-0 bg-emerald-300 rounded-full blur-2xl opacity-50" />
-          <p className="text-5xl relative z-10">✨</p>
+          <p className="text-3xl sm:text-4xl sm:text-5xl relative z-10">✨</p>
         </motion.div>
         <h3 className="text-emerald-600 font-black text-3xl mb-4 tracking-tight">إنجاز مبهر!</h3>
         <p className="text-emerald-500/80 font-bold max-w-sm mx-auto text-lg text-center">لا توجد طلبات معلقة والعمليات تعمل بهدوء تام. استمتع بلحظات النجاح الصافية.</p>
       </>
     ) : (
       <>
-        <div className="w-32 h-32 bg-slate-50 flex items-center justify-center rounded-full mx-auto mb-8 border border-slate-100">
+        <div className="w-32 h-32 bg-slate-50 flex items-center justify-center rounded-full mx-auto mb-8 border border-slate-200/60">
           <ClipboardList size={56} className="text-slate-200" />
         </div>
         <h3 className="text-slate-900 font-black text-2xl mb-3">السجل فارغ حالياً</h3>
-        <p className="text-slate-400 font-bold max-w-sm mx-auto">لا توجد طلبات تطابق اختياراتك. جرب تغيير الفلتر.</p>
+        <p className="text-slate-500 font-bold max-w-sm mx-auto">لا توجد طلبات تطابق اختياراتك. جرب تغيير الفلتر.</p>
       </>
     )}
   </motion.div>
 ) : (
- <div className="grid grid flex-col md:grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 space-y-3 md:space-y-0 gap-3 md:p-4 lg:gap-4 md:p-3">
+ <div className="grid grid flex-col md:grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 space-y-3 md:space-y-0 gap-3 md:p-4 lg:gap-4 md:p-5">
  {filteredOrders.map((order) => {
  const isPending = (isPendingStatus(order.status as string) || isFailedStatus(order.status as string));
  return (
@@ -931,7 +931,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  onClick={() => setSelectedOrder(order)}
  whileHover={{ y: -4 }}
  className={cn(
-"p-3 rounded-2xl border-2 transition-all cursor-pointer group h-full flex flex-col",
+"p-3 rounded-xl md:rounded-2xl border-2 transition-all cursor-pointer group h-full flex flex-col",
  selectedOrder?.id === order.id 
  ?"border-indigo-600 bg-indigo-50/30 shadow-md" 
  :"border-slate-50 bg-white hover:border-indigo-100 shadow-sm"
@@ -940,10 +940,10 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <div className="flex-grow">
  <div className="flex justify-between items-start mb-3">
  <div className="space-y-0.5">
- <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-1.5 py-0.5 rounded-md">
+ <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50 px-1.5 py-0.5 rounded-md">
  #{order.id.slice(-6)}
  </span>
- <h3 className="font-black text-slate-800 text-sm group-hover:text-indigo-600 transition-colors line-clamp-1">
+ <h3 className="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition-colors line-clamp-1">
  {getOrderCustomerName(order)}
  </h3>
  </div>
@@ -971,7 +971,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  </div>
 
  <div className="space-y-1.5 md:space-y-2 mb-2 md:mb-4">
- <div className="flex items-center text-[9px] md:text-[10px] text-slate-500 font-bold gap-1.5 md:gap-2">
+ <div className="flex items-center text-[9px] md:text-[11px] sm:text-xs text-slate-500 font-bold gap-1.5 md:gap-2">
  <Clock size={10} className="md:w-[12px] opacity-40" />
  <span dir="ltr" className="inline-block text-left">{(() => {
  const ca = (order as any).createdAt;
@@ -986,7 +986,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  return d.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
  })()}</span>
  </div>
- <div className="flex items-start text-[9px] md:text-[10px] text-slate-500 font-bold gap-1.5 md:gap-2">
+ <div className="flex items-start text-[9px] md:text-[11px] sm:text-xs text-slate-500 font-bold gap-1.5 md:gap-2">
  <MapPin size={10} className="md:w-[12px] opacity-40 shrink-0 mt-0.5" />
  <span className="line-clamp-1">{(() => {
  const addr = (order as any).address;
@@ -1007,9 +1007,9 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  const prepInstructions = p?.preparationInstructions || (it as any).preparationInstructions;
  return (
  <div key={idx} className="flex flex-col gap-1">
-   <div className="text-[10px] font-medium text-slate-600 flex justify-between items-center">
+   <div className="text-[11px] sm:text-xs font-medium text-slate-600 flex justify-between items-center">
      <span className="truncate">{p?.name || 'منتج'}</span>
-     <span className="text-indigo-600 font-black shrink-0">x{it.quantity}</span>
+     <span className="text-indigo-600 font-bold shrink-0">x{it.quantity}</span>
    </div>
    {prepInstructions && (
      <div className="text-[8px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-100 flex items-center gap-1 w-fit">
@@ -1020,18 +1020,18 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
 );
  })}
  {order.items?.length > 2 && (
- <div className="text-[9px] text-slate-400 hover:text-indigo-500 font-black text-center relative group cursor-pointer w-fit mx-auto transition-colors px-2 py-0.5 rounded-full hover:bg-indigo-50">
+ <div className="text-[9px] text-slate-500 hover:text-indigo-500 font-bold text-center relative group cursor-pointer w-fit mx-auto transition-colors px-2 py-0.5 rounded-full hover:bg-indigo-50">
  + {order.items.length - 2} أصناف
  
- <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-white rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.12)] border border-slate-100 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-[100] flex flex-col gap-1.5">
+ <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-white rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.12)] border border-slate-200/60 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-[100] flex flex-col gap-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
  {order.items.slice(2).map((hiddenItem, hiddenIdx) => {
  const hiddenProduct = data.products?.find(p => p.id === hiddenItem.productId);
  const prepInstructions = hiddenProduct?.preparationInstructions || (hiddenItem as any).preparationInstructions;
  return (
- <div key={hiddenIdx} className="flex flex-col gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
-   <div className="flex justify-between items-center text-[10px]">
+ <div key={hiddenIdx} className="flex flex-col gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-200/60">
+   <div className="flex justify-between items-center text-[11px] sm:text-xs">
      <span className="font-bold text-slate-700 truncate text-right max-w-[120px]">{hiddenProduct?.name || 'منتج غير معروف'}</span>
-     <span className="text-indigo-600 font-black shrink-0" dir="ltr">x{hiddenItem.quantity}</span>
+     <span className="text-indigo-600 font-bold shrink-0" dir="ltr">x{hiddenItem.quantity}</span>
    </div>
    {prepInstructions && (
      <div className="text-[8px] text-amber-600 flex items-center gap-1">
@@ -1051,11 +1051,11 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  </div>
 
  <div className="mt-4 pt-3 border-t border-slate-50 flex justify-between items-center bg-slate-50/50 -mx-4 -mb-4 px-4 py-2 rounded-b-2xl">
- <div className="text-base font-black text-slate-900">
+ <div className="text-base font-bold text-slate-900">
  {Number(getOrderSubtotal(order) + getOrderDeliveryFee(order, order.deliveryType || 'company') - ((order as any).discount || 0)).toFixed(3)}
  <span className="text-[9px] font-bold mr-1 opacity-40">د.ك</span>
  </div>
- <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all">
+ <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-500 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all">
  <ChevronRight size={14} className="rotate-180" />
  </div>
  </div>
@@ -1081,56 +1081,56 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  initial={{ opacity: 0, scale: 0.9, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.9, y: 20 }}
- className="bg-white w-full max-w-5xl rounded-2xl md:rounded-2xl shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col max-h-[95dvh] md:max-h-[90dvh] border border-white/20 mx-auto"
+ className="bg-white w-full max-w-5xl rounded-2xl md:rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative overflow-hidden flex flex-col max-h-[95dvh] md:max-h-[90dvh] border border-white/20 mx-auto"
  >
  {/* Modal Header */}
- <div className="p-3 md:p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+ <div className="p-3 md:p-4 border-b border-slate-200/60 flex items-center justify-between bg-slate-50/50">
  <div>
  <h2 className="text-lg md:text-xl font-black text-slate-900">تفاصيل الطلب #{selectedOrder.id.slice(-6)}</h2>
  </div>
  <button 
  onClick={() => setSelectedOrder(null)}
- className="p-2 hover:bg-slate-100 rounded-xl transition-all"
+ className="p-2 hover:bg-slate-100 rounded-xl transition-all min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
  >
- <XCircle className="text-slate-400" size={24} />
+ <XCircle className="text-slate-500" size={24} />
  </button>
  </div>
  
  {/* Modal Body */}
- <div className="flex-1 overflow-y-auto p-3 md:p-3 custom-scrollbar relative">
- <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-4 md:p-3">
+ <div className="flex-1 min-w-0 overflow-y-auto p-4 md:p-5 lg:p-6 custom-scrollbar relative">
+ <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-4 md:p-5">
  {/* Right Column: Items */}
  <div className="lg:col-span-2 space-y-6 md:space-y-8">
  {/* Items List */}
  <div className="space-y-3 md:space-y-4">
  {(selectedOrder as any).splitType === 'traditional' && Array.isArray((selectedOrder as any).splitPayments) && (selectedOrder as any).splitPayments.length > 0 && (
  <div className="mb-4 bg-purple-50/50 border border-purple-100 p-3 md:p-4 rounded-xl">
- <h4 className="text-[12px] md:text-sm font-black uppercase text-purple-600 mb-3 flex items-center gap-2">
+ <h4 className="text-[12px] md:text-sm font-bold uppercase text-purple-600 mb-3 flex items-center gap-2">
  <Users className="w-4 h-4 md:w-5 md:h-5" /> المشاركين بالقطية
  </h4>
  <div className="space-y-2">
  {((selectedOrder as any).splitPayments).map((sp: any, i: number) => (
- <div key={i} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-purple-50 shadow-sm">
+ <div key={i} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-purple-50 shadow-sm min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
  <div className="flex flex-col">
- <span className="font-bold text-sm md:text-base text-slate-800">{sp.name || 'مشارك'}</span>
- <span className="text-[10px] md:text-xs text-slate-500">{sp.phone || 'بدون رقم'}</span>
+ <span className="font-bold text-sm md:text-base text-slate-900">{sp.name || 'مشارك'}</span>
+ <span className="text-[11px] sm:text-xs md:text-xs text-slate-500">{sp.phone || 'بدون رقم'}</span>
  </div>
  <div className="flex flex-col items-end gap-1">
- <span className="font-black text-primary text-sm md:text-base">{Number(sp.amount || 0).toFixed(3)} د.ك</span>
+ <span className="font-bold text-primary text-sm md:text-base">{Number(sp.amount || 0).toFixed(3)} د.ك</span>
  {sp.status === 'paid' ? (
- <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <span className="text-[11px] sm:text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
  <CheckCircle2 className="w-3 h-3" /> مدفوع
  </span>
  ) : isCancelledStatus(sp.status) ? (
- <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <span className="text-[11px] sm:text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
  <XCircle className="w-3 h-3" /> ملغي
  </span>
  ) : sp.status === 'failed' ? (
- <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <span className="text-[11px] sm:text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
  <AlertCircle className="w-3 h-3" /> فشل الدفع
  </span>
  ) : (
- <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <span className="text-[11px] sm:text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
  <Clock className="w-3 h-3" /> بانتظار الدفع
  </span>
  )}
@@ -1144,22 +1144,22 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  {(selectedOrder as any).splitType === 'roulette' && Array.isArray((selectedOrder as any).splitParticipants) && (selectedOrder as any).splitParticipants.length > 0 && (
  <div className="mb-4 bg-purple-100 border-2 border-purple-400 p-4 rounded-xl shadow-inner relative overflow-hidden">
  <div className="absolute -right-2 -top-2 md:-right-4 md:-top-4 opacity-10 pointer-events-none text-8xl md:text-9xl">🎲</div>
- <h4 className="text-xs md:text-sm font-black uppercase text-purple-900 mb-3 md:mb-4 flex items-center gap-2">
+ <h4 className="text-xs md:text-sm font-bold uppercase text-purple-900 mb-3 md:mb-4 flex items-center gap-2">
  <Dices className="w-4 h-4 md:w-5 md:h-5 text-purple-600" /> روليت الحظ
  </h4>
  
  <div className="bg-white rounded-xl p-3 border-2 border-purple-200 mb-3 text-center">
- <div className="text-[10px] md:text-xs font-bold text-purple-400 mb-1">بطل الليلة (الخاسر اللي دفعها)</div>
+ <div className="text-[11px] sm:text-xs md:text-xs font-bold text-purple-400 mb-1">بطل الليلة (الخاسر اللي دفعها)</div>
  <div className="text-base md:text-lg font-black text-purple-700">{(selectedOrder as any).rouletteLoser || 'غير معروف'}</div>
  </div>
 
  <div className="space-y-1">
- <div className="text-[10px] font-bold text-purple-600 mb-2">المشاركون باللعب:</div>
+ <div className="text-[11px] sm:text-xs font-bold text-purple-600 mb-2">المشاركون باللعب:</div>
  <div className="flex flex-wrap gap-2">
  {((selectedOrder as any).splitParticipants).map((pName: any, idx: number) => {
  const pVal = typeof pName === 'object' ? `${pName.name || 'مجهول'} ${pName.phone ? `(${pName.phone})` : ''}` : pName;
  return (
- <span key={idx} className="bg-white/60 text-purple-800 text-[10px] md:text-xs font-bold px-2 py-1 rounded-md border border-purple-200">
+ <span key={idx} className="bg-white/60 text-purple-800 text-[11px] sm:text-xs md:text-xs font-bold px-2 py-1 rounded-md border border-purple-200">
  {pVal}
  </span>
  );
@@ -1168,13 +1168,13 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  </div>
  </div>
  )}
- <h3 className="font-black text-slate-800 flex items-center gap-2 text-lg md:text-xl">
+ <h3 className="font-black text-slate-900 flex items-center gap-2 text-lg md:text-xl">
  <Package size={20} className="text-indigo-600 md:w-6 md:h-6" /> الأصناف المطلوبة
  </h3>
- <div className="border border-slate-100 rounded-xl md:rounded-2xl overflow-hidden shadow-sm">
- <div className="overflow-x-auto hide-scrollbar">
+ <div className="border border-slate-200/60 rounded-xl md:rounded-2xl overflow-hidden shadow-sm">
+ <div className="overflow-x-auto w-full max-w-full custom-scrollbar">
  <table className="w-full text-right border-collapse min-w-[340px] md:min-w-[500px]">
- <thead className="bg-slate-50 text-slate-500 text-[8px] md:text-[10px] font-black uppercase tracking-wider">
+ <thead className="bg-slate-50 text-slate-500 text-[8px] md:text-[11px] sm:text-xs font-bold uppercase tracking-wider">
  <tr>
  <th className="p-3 md:p-4">الصنف والمورد</th>
  <th className="p-3 md:p-4 text-center">الكمية</th>
@@ -1197,21 +1197,21 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <tr key={idx} className="border-t border-slate-50 hover:bg-slate-50/50 transition-colors">
  <td className="p-3 md:p-4">
  <div className="flex flex-col gap-1 md:gap-2">
- <div className="font-black text-slate-800 flex flex-col items-start gap-1.5 text-[11px] md:text-sm">
+ <div className="font-bold text-slate-900 flex flex-col items-start gap-1.5 text-[11px] md:text-sm">
                                             <div className="flex items-center gap-1.5">
                                               {productName}
                                               {needsSelection && (
                                                 <motion.span 
  animate={{ scale: [1, 1.1, 1], rotate: [0, -2, 2, 0] }}
  transition={{ duration: 0.5, repeat: Infinity }}
- className="text-[7px] md:text-[9px] font-black px-2 md:px-3 py-1 rounded-full bg-rose-500 text-white shadow-lg shadow-rose-500/30"
+ className="text-[7px] md:text-[9px] font-bold px-2 md:px-3 py-1 rounded-full bg-rose-500 text-white shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-rose-500/30"
  >
  تحديد مورد مطلوب ⚠️
  </motion.span>
                                               )}
                                             </div>
                                             {prepInstructions && (
-                                              <span className="text-[9px] md:text-[10px] bg-amber-100/90 border border-amber-200 text-amber-800 font-black px-2 py-1 rounded-lg mt-1 w-fit flex items-center gap-1.5 shadow-sm">
+                                              <span className="text-[9px] md:text-[11px] sm:text-xs bg-amber-100/90 border border-amber-200 text-amber-800 font-bold px-2 py-1 rounded-lg mt-1 w-fit flex items-center gap-1.5 shadow-sm">
                                                 <AlertCircle size={12} className="text-amber-600" />
                                                 طبيعة خاصة: {prepInstructions}
                                               </span>
@@ -1220,7 +1220,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  
  {supplierOptions.length > 1 && !isReadOnly && (
  <select 
- className="text-[9px] md:text-[11px] p-1.5 md:p-2 pr-7 md:pr-8 w-full border border-slate-200 rounded-lg md:rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-600/20 appearance-none cursor-pointer transition-all"
+ className="text-[9px] md:text-[11px] p-1.5 md:p-2 pr-7 md:pr-8 w-full border border-slate-200 rounded-lg md:rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-600/20 appearance-none cursor-pointer transition-all min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
  style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0\' stroke=\'currentColor\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'left 0.5rem md:left 0.75rem center', backgroundSize: '0.7rem md:0.8rem' }}
  value={(item as any).supplierSelected ? item.productId : ''}
  onChange={async (e) => {
@@ -1282,7 +1282,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  const noteValue = item.itemNotes || (item as any).note || (item as any).notes || (item as any).special_instructions || (item as any).instructions;
  if (noteValue) {
  return (
- <div className="text-[8px] md:text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded-md md:rounded-lg w-fit flex items-center gap-1">
+ <div className="text-[8px] md:text-[11px] sm:text-xs text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded-md md:rounded-lg w-fit flex items-center gap-1">
  <MessageSquare size={8} className="md:w-[10px]" /> {noteValue}
  </div>
 )
@@ -1291,11 +1291,11 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  })()}
  </div>
  </td>
- <td className="p-3 md:p-4 text-center font-black text-slate-800">x{item.quantity}</td>
- <td className="p-3 md:p-4 text-center font-bold text-slate-500 text-[10px] md:text-sm">
+ <td className="p-3 md:p-4 text-center font-bold text-slate-900">x{item.quantity}</td>
+ <td className="p-3 md:p-4 text-center font-bold text-slate-500 text-[11px] sm:text-xs md:text-sm">
  {Number(item.priceAtTime !== undefined ? item.priceAtTime : (product?.price || 0)).toFixed(3)}
  </td>
- <td className="p-3 md:p-4 text-left font-black text-slate-900 text-[10px] md:text-sm">
+ <td className="p-3 md:p-4 text-left font-bold text-slate-900 text-[11px] sm:text-xs md:text-sm">
  {Number((item.priceAtTime !== undefined ? item.priceAtTime : (product?.price || 0)) * item.quantity).toFixed(3)}
  </td>
  </tr>
@@ -1306,29 +1306,29 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  {/* Show Discount if present */}
  {((selectedOrder as any).discount > 0) && (
  <tr>
- <td colSpan={3} className="p-2 md:p-3 font-black text-rose-500">
+ <td colSpan={3} className="p-2 md:p-5 font-bold text-rose-500 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
  الخصم {(selectedOrder as any).appliedPromoCodeName ? `(${ (selectedOrder as any).appliedPromoCodeName })` : ''}
  </td>
- <td className="p-2 md:p-3 text-left font-black text-rose-600">
+ <td className="p-2 md:p-5 text-left font-bold text-rose-600 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
  - {Number((selectedOrder as any).discount).toFixed(3)}
  </td>
  </tr>
 )}
  <tr>
- <td colSpan={3} className="p-3 md:p-4 font-black text-slate-400">إجمالي الأصناف</td>
- <td className="p-3 md:p-4 text-left font-black text-slate-700">{Number(getOrderSubtotal(selectedOrder)).toFixed(3)}</td>
+ <td colSpan={3} className="p-3 md:p-4 font-bold text-slate-500">إجمالي الأصناف</td>
+ <td className="p-3 md:p-4 text-left font-bold text-slate-700">{Number(getOrderSubtotal(selectedOrder)).toFixed(3)}</td>
  </tr>
  <tr>
- <td colSpan={3} className="p-3 md:p-4 font-black text-slate-400">
+ <td colSpan={3} className="p-3 md:p-4 font-bold text-slate-500">
  رسوم التوصيل ({orderDeliveryType === 'standard' ? 'بربح' : orderDeliveryType === 'company' ? 'شركة' : orderDeliveryType === 'free' ? 'مجاني' : 'خاص'})
  </td>
- <td className="p-3 md:p-4 text-left font-black text-slate-700">
+ <td className="p-3 md:p-4 text-left font-bold text-slate-700">
  {Number(getOrderDeliveryFee(selectedOrder, orderDeliveryType, orderZoneId)).toFixed(3)}
  </td>
  </tr>
  <tr className="bg-indigo-600 text-white">
- <td colSpan={3} className="p-3 md:p-4 font-black text-xs md:text-lg">المبلغ النهائي بعد الخصم</td>
- <td className="p-3 md:p-4 text-left font-black text-base md:text-2xl">
+ <td colSpan={3} className="p-3 md:p-4 font-bold text-xs md:text-lg">المبلغ النهائي بعد الخصم</td>
+ <td className="p-3 md:p-4 text-left font-bold text-base md:text-2xl">
  {Number(Math.max(0, getOrderSubtotal(selectedOrder) + getOrderDeliveryFee(selectedOrder, orderDeliveryType, orderZoneId) - ((selectedOrder as any).discount || 0))).toFixed(3)}
  <span className="text-[9px] md:text-xs mr-1 md:mr-2 opacity-60">د.ك</span>
  </td>
@@ -1350,7 +1350,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  return (
  <div className="bg-indigo-50 border border-indigo-100 p-3 md:p-4 rounded-2xl md:rounded-2xl shadow-sm space-y-3 md:space-y-4">
  <div className="space-y-2 md:space-y-3">
- <h4 className="text-indigo-600 font-black text-[10px] md:text-[11px] uppercase tracking-wider flex items-center gap-2">
+ <h4 className="text-indigo-600 font-bold text-[11px] sm:text-xs md:text-[11px] uppercase tracking-wider flex items-center gap-2">
  <MessageSquare size={12} className="md:w-[14px]" /> ملاحظات العميل الخاصة
  </h4>
  <p className="text-indigo-900 text-xs md:text-sm font-bold leading-relaxed italic pr-3 md:pr-4 border-r-2 border-indigo-300">
@@ -1365,12 +1365,12 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  {/* Left Column: Info & Actions */}
  <div className="space-y-6 md:space-y-8">
  {/* Status Card */}
- <div className="bg-white p-3 md:p-4 rounded-2xl md:rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/50 space-y-3 md:space-y-6">
+ <div className="bg-white p-3 md:p-4 rounded-2xl md:rounded-xl md:rounded-2xl border border-slate-200/60 shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-slate-200/50 space-y-3 md:space-y-6">
  <div className="flex items-center justify-between">
- <h4 className="font-black text-slate-800 text-xs md:text-base">حالة الطلب</h4>
+ <h4 className="font-bold text-slate-900 text-xs md:text-base">حالة الطلب</h4>
  <div 
  className={cn(
-"px-2.5 py-0.5 md:px-3 md:py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase text-white transition-all shadow-md",
+"px-2.5 py-0.5 md:px-3 md:py-1 rounded-full text-[9px] md:text-[11px] sm:text-xs font-black uppercase text-white transition-all shadow-md",
  ((isPendingStatus(selectedOrder.status as string) || isFailedStatus(selectedOrder.status as string)) || (isPaidStatus(selectedOrder.status) && hasUnselectedSuppliers(selectedOrder))) ?"animate-bounce" :"",
  isFailedStatus(selectedOrder.status as string) ?"bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]" :
  (String(selectedOrder.status).includes('تجميع القطية') || selectedOrder.status === 'split_pending') ? "bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.5)]" :
@@ -1397,7 +1397,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
 
  window.open(getWhatsAppLink(selectedOrder), '_blank', 'noopener,noreferrer');
  }}
- className="w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-xs md:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 bg-indigo-600 text-white shadow-lg hover:bg-indigo-700"
+ className="w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] transition-all duration-200 bg-indigo-600 text-white shadow-[0_2px_10px_rgb(0,0,0,0.04)] hover:bg-indigo-700"
  >
  <MessageSquare size={16} />
  إرسال فاتورة جديدة 💬
@@ -1414,10 +1414,10 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
   intensity={0.2}
   disabled={!!(selectedOrder as any).paymentLink && isMarkedAsPaid}
   className={cn(
-    "w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-xs md:text-sm flex items-center justify-center gap-2 transition-all relative z-50",
+    "w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition-all relative z-50",
     isMarkedAsPaid 
-      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" 
-      : "bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95",
+      ? "bg-emerald-600 text-white shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-emerald-600/20" 
+      : "bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-[0.98] transition-all duration-200",
     (!!(selectedOrder as any).paymentLink && isMarkedAsPaid) ? "cursor-not-allowed opacity-90 active:scale-100" : ""
   )}
 >
@@ -1436,9 +1436,9 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  }
  }}
  className={cn(
-"w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-xs md:text-sm flex items-center justify-center gap-2 transition-all active:scale-95",
+"w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] transition-all duration-200",
  isConfirmingCancel 
- ?"bg-rose-600 text-white shadow-lg shadow-rose-600/20" 
+ ?"bg-rose-600 text-white shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-rose-600/20" 
  :"bg-white text-rose-500 border border-thin border-rose-100 hover:bg-rose-50"
 )}
  >
@@ -1450,19 +1450,19 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  </div>
 
  {/* Customer & Address Card */}
- <div className="bg-slate-900 p-3 md:p-3 rounded-2xl md:rounded-2xl shadow-xl text-white space-y-3 md:space-y-6 relative overflow-hidden">
+ <div className="bg-slate-900 p-4 md:p-5 lg:p-6 rounded-2xl md:rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] text-white space-y-3 md:space-y-6 relative overflow-hidden">
  <div className="absolute top-0 right-0 w-12 md:w-20 md:w-32 h-12 md:h-20 md:h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
  
  <div className="relative z-10">
- <h4 className="text-white/60 font-black text-[9px] md:text-[10px] uppercase tracking-widest mb-3 md:mb-4">بيانات العميل والتوصيل</h4>
+ <h4 className="text-white/60 font-bold text-[9px] md:text-[11px] sm:text-xs uppercase tracking-widest mb-3 md:mb-4">بيانات العميل والتوصيل</h4>
  <div className="space-y-4 md:space-y-5">
  <div className="flex items-center gap-3 md:gap-4">
  <div className="w-10 h-10 md:w-12 md:h-12 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center text-white">
  <User size={20} className="md:w-6 md:h-6" />
  </div>
  <div>
- <div className="font-black text-base md:text-lg">{getOrderCustomerName(selectedOrder)}</div>
- <div className="text-[10px] md:text-xs text-white/50 font-bold">{selectedOrder.customerPhone || 'لا يوجد رقم هاتف'}</div>
+ <div className="font-bold text-base md:text-lg">{getOrderCustomerName(selectedOrder)}</div>
+ <div className="text-[11px] sm:text-xs md:text-xs text-white/50 font-bold">{selectedOrder.customerPhone || 'لا يوجد رقم هاتف'}</div>
  </div>
  </div>
  <div className="flex items-start gap-3 md:gap-4">
@@ -1521,7 +1521,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <div className="flex flex-col gap-1.5 md:gap-2">
  <div>{addrParts.join(' - ')}</div>
  {timeStr && (
- <div className="flex items-center gap-1.5 text-[10px] md:text-xs text-white/60 bg-white/5 py-1 px-3 rounded-lg w-fit mt-1">
+ <div className="flex items-center gap-1.5 text-[11px] sm:text-xs md:text-xs text-white/60 bg-white/5 py-1 px-3 rounded-lg w-fit mt-1">
  <Clock size={10} className="md:w-[12px]" />
  <span className="flex items-center gap-1">تاريخ ووقت الطلب: <span dir="ltr" className="inline-block text-left">{timeStr}</span></span>
  </div>
@@ -1533,7 +1533,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  </div>
  {!isReadOnly && !isPartner && (
  <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-white/10 space-y-2 md:space-y-3">
- <label className="text-white/50 font-black text-[9px] md:text-[10px] uppercase block">طريقة التوصيل</label>
+ <label className="text-white/50 font-bold text-[9px] md:text-[11px] sm:text-xs uppercase block">طريقة التوصيل</label>
  <div className="grid grid-cols-2 gap-2">
  {[
  { id: 'company', label: 'توصيل شركة' },
@@ -1545,10 +1545,10 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  key={type.id}
  onClick={(e) => { e.preventDefault(); setOrderDeliveryType(type.id as any); }}
  className={cn(
-"flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-2 md:px-3 rounded-lg md:rounded-xl border text-[10px] md:text-xs font-bold transition-all",
+"flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-2 md:px-3 rounded-lg md:rounded-xl border text-[11px] sm:text-xs md:text-xs font-bold transition-all",
  orderDeliveryType === type.id
  ? cn(
-"shadow-lg",
+"shadow-[0_2px_10px_rgb(0,0,0,0.04)]",
  type.id === 'company' ?"bg-blue-500 border-blue-500 text-white shadow-blue-500/20" :
  type.id === 'special' ?"bg-purple-500 border-purple-500 text-white shadow-purple-500/20" :
  type.id === 'free' ?"bg-amber-500 border-amber-500 text-white shadow-amber-500/20" :
@@ -1573,16 +1573,16 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  </div>
 
  {/* Modal Footer */}
- <div className="p-3 sm:p-3 md:p-3 border-t border-slate-100 flex flex-col sm:flex-row gap-3 sm:gap-4 bg-slate-50/50">
+ <div className="p-3 sm:p-4 md:p-5 lg:p-6 border-t border-slate-200/60 flex flex-col sm:flex-row gap-3 sm:gap-4 bg-slate-50/50">
  {!selectedOrder.isConvertedToInvoice ? (
  <button
  onClick={() => convertToInvoice(selectedOrder)}
  disabled={isCancelledStatus(selectedOrder.status as string) || !isMarkedAsPaid || hasUnselectedSuppliers(selectedOrder)}
  className={cn(
-"flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-white text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-xl shadow-primary/20",
+"flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-white text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-primary/20",
  (isCancelledStatus(selectedOrder.status as string) || !isMarkedAsPaid || hasUnselectedSuppliers(selectedOrder))
  ?"bg-slate-300 cursor-not-allowed shadow-none" 
- :"bg-primary hover:bg-primary-dark active:scale-95"
+ :"bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all duration-200"
 )}
  >
  <ArrowRightLeft className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -1600,7 +1600,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  if (setDeepLinkData) setDeepLinkData({ search: selectedOrder.linkedInvoiceId || selectedOrder.id });
  setCurrentPage('invoices-list');
  }}
- className="flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-sm sm:text-base text-emerald-700 bg-emerald-100 border border-emerald-200 flex items-center justify-center gap-2 hover:bg-emerald-200 transition-all active:scale-95"
+ className="flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base text-emerald-700 bg-emerald-100 border border-emerald-200 flex items-center justify-center gap-2 hover:bg-emerald-200 transition-all active:scale-[0.98] transition-all duration-200"
  >
  <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />
  مشاهدة الفاتورة
@@ -1611,7 +1611,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  href={getWhatsAppLink(selectedOrder)}
  target="_blank"
  rel="noreferrer"
- className="px-4 sm:px-6 py-3 sm:py-4 bg-emerald-100 text-emerald-700 text-sm sm:text-base rounded-xl sm:rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-emerald-200 transition-all active:scale-95 border border-emerald-200"
+ className="px-4 sm:px-6 py-3 sm:py-4 bg-emerald-100 text-emerald-700 text-sm sm:text-base rounded-xl sm:rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-200 transition-all active:scale-[0.98] transition-all duration-200 border border-emerald-200"
  >
  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
  إرسال الفاتورة والرابط

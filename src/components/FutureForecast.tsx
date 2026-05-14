@@ -139,28 +139,28 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
 
  if (!isSufficientData) {
  return (
- <div className="bg-white rounded-2xl border border-slate-200 p-3 md:p-3 shadow-sm flex flex-col items-center justify-center text-center">
+ <div className="bg-white rounded-xl md:rounded-2xl border border-slate-200 p-4 md:p-5 lg:p-6 shadow-sm flex flex-col items-center justify-center text-center">
  <LineChartIcon className="text-slate-200 mb-4" size={48} />
  <h3 className="font-black text-slate-700 text-lg mb-2">التنبؤ المستقبلي</h3>
- <p className="text-sm font-bold text-slate-400">لا توجد بيانات كافية لإجراء التنبؤ المستقبلي</p>
+ <p className="text-sm font-bold text-slate-500">لا توجد بيانات كافية لإجراء التنبؤ المستقبلي</p>
  <p className="text-xs text-slate-300 mt-2 max-w-sm leading-relaxed">يتطلب النظام المزيد من السجلات والمبيعات الفعلية لبناء نموذج تنبؤ دقيق للسنوات القادمة.</p>
  </div>
 );
  }
 
  return (
- <div className="bg-white rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 border border-slate-200 shadow-sm flex flex-col gap-3 md:p-4" dir="rtl">
+ <div className="bg-white rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-5 border border-slate-200 shadow-sm flex flex-col gap-3 md:p-4" dir="rtl">
  {/* Header */}
- <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-6">
+ <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200/60 pb-6">
  <div>
- <h3 className="font-black text-xl md:text-2xl text-slate-800 flex items-center gap-3">
+ <h3 className="font-black text-xl md:text-2xl text-slate-900 flex items-center gap-3">
  التنبؤ المستقبلي الخوارزمي <TrendingUp className="text-indigo-500" size={24} />
  </h3>
- <p className="text-xs font-bold text-slate-400 mt-2">توقعات الذكاء الاصطناعي للأداء المالي مبنية على البيانات الفعلية</p>
+ <p className="text-xs font-bold text-slate-500 mt-2">توقعات الذكاء الاصطناعي للأداء المالي مبنية على البيانات الفعلية</p>
  </div>
  
  {/* Range Selector */}
- <div className="flex bg-slate-50 border border-slate-200 rounded-xl p-1 shrink-0">
+ <div className="flex bg-slate-50/50 border border-slate-200/60 rounded-xl p-1 shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
  {(['6_months', '1_year', '2_years', '3_years'] as ForecastPeriod[]).map((p) => {
  const label = p === '6_months' ? '6 أشهر' : p === '1_year' ? 'سنة' : p === '2_years' ? 'سنتين' : '3 سنوات';
  return (
@@ -170,8 +170,8 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  className={cn(
 "text-xs font-black px-4 py-2 rounded-lg transition-all",
  period === p 
- ?"bg-white text-indigo-600 shadow-sm border border-slate-100" 
- :"text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+ ?"bg-white text-indigo-600 shadow-sm border border-slate-200/60" 
+ :"text-slate-500 hover:text-slate-900 hover:bg-slate-100"
 )}
  >
  {label}
@@ -183,7 +183,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
 
  {/* AI Insight Box */}
  <div className={cn(
-"p-3 md:p-4 md:p-3 rounded-2xl flex items-start gap-4 border",
+"p-3 md:p-4 md:p-5 rounded-2xl flex items-start gap-4 border",
  trend === 'up' ?"bg-emerald-50 border-emerald-100" :"bg-rose-50 border-rose-100"
 )}>
  <div className={cn(
