@@ -80,7 +80,29 @@ import { getSmartDoc, deleteDoc } from './firebase';
 import { Toaster, toast } from 'sonner';
 import { playNewOrderAlert } from './lib/sounds';
 import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils';
-import LZString from 'lz-string';
+
+const getAdminNotificationDeepLink = () => {
+  const params = new URLSearchParams(window.location.search);
+
+  const targetId =
+    params.get('invoice') ||
+    params.get('order') ||
+    params.get('tracked_order') ||
+    params.get('requested_order_id') ||
+    params.get('order_id');
+
+  if (!targetId) return null;
+
+  return {
+    tab: 'invoices',
+    search: String(targetId),
+    fullId: String(targetId),
+    pushNotificationDeepLinkHandled: true
+  };
+};
+
+const hasAdminNotificationDeepLink = () => Boolean(getAdminNotificationDeepLink());
+
 
 const getInitialPushDeepLink = () => {
   const params = new URLSearchParams(window.location.search);
@@ -118,6 +140,7 @@ const getInitialPushDeepLink = () => {
 };
 
 const hasInitialPushDeepLink = () => Boolean(getInitialPushDeepLink());
+
 
 
 // Remove deduplication import as requested
@@ -239,7 +262,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 md:p-6 arabic-font text-center" dir="rtl">
-       <div className="bg-white rounded-[2rem] p-4 md:p-8 max-w-lg w-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-200/60">
+       <div className="bg-white rounded-[2rem] p-4 md:p-8 max-w-lg w-full shadow-2xl border border-slate-100">
            {statusMsg ? (
                <div className="animate-in fade-in zoom-in duration-500 py-6">
                    <div className={cn(
@@ -248,10 +271,10 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
                    )}>
                        {statusMsg.isError ? <XCircle size={40} /> : <CheckCircle2 size={40} />}
                    </div>
-                   <h1 className="text-xl md:text-3xl font-black text-slate-900 mb-2">{statusMsg.title}</h1>
+                   <h1 className="text-xl md:text-3xl font-black text-slate-800 mb-2">{statusMsg.title}</h1>
                    <p className="text-slate-500 font-bold mb-8 text-lg" dir="ltr">{statusMsg.sub}</p>
                    
-                   <div className="flex items-center justify-center gap-3 text-sm text-slate-500 font-bold">
+                   <div className="flex items-center justify-center gap-3 text-sm text-slate-400 font-bold">
                        <Loader2 size={16} className="animate-spin text-blue-500" />
                        جاري تحويلك لصفحة التتبع...
                    </div>
@@ -325,13 +348,60 @@ const MainApp: React.FC = () => {
   }, [isSoundEnabled]);
 
 
-  const [currentPage, setCurrentPage] = useState(hasInitialPushDeepLink() ? 'reports' : 'dashboard');
+  const [currentPage, setCurrentPage] = useState(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+
+  // ADMINFIX_FORCE_INVOICES_LIST_FROM_URL_HARD
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    const targetId =
+      params.get('invoice') ||
+      params.get('order') ||
+      params.get('tracked_order') ||
+      params.get('requested_order_id') ||
+      params.get('order_id');
+
+    if (!targetId) return;
+
+    const payload = {
+      tab: 'invoices',
+      search: String(targetId),
+      fullId: String(targetId),
+      pushNotificationDeepLinkHandled: true
+    };
+
+    try {
+      sessionStorage.setItem('adminPushDeepLink', JSON.stringify(payload));
+    } catch {}
+
+    setDeepLinkData(payload);
+
+    if (currentPage !== 'invoices-list') {
+      setCurrentPage('invoices-list');
+    }
+  }, [currentPage, isAuthenticated]);
+
+
+  // ADMINFIX_FORCE_INVOICES_FROM_URL
+  useEffect(() => {
+    const deepLink = getAdminNotificationDeepLink();
+    if (!deepLink) return;
+
+    try {
+      sessionStorage.setItem('adminPushDeepLink', JSON.stringify(deepLink));
+    } catch {}
+
+    if (currentPage !== 'invoices-list') {
+      setCurrentPage('invoices-list');
+    }
+  }, [currentPage]);
+
   const mainRef = useRef<HTMLElement>(null);
 
   // CRITICAL: Ensure app always returns to dashboard on logout and clear any stale navigation state
   useEffect(() => {
     if (!isAuthenticated) {
-      setCurrentPage('dashboard');
+      setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
       // Reset any other transient states if needed
       setEditingInvoiceId(null);
       setDeepLinkData({});
@@ -364,18 +434,27 @@ const MainApp: React.FC = () => {
   const [deepLinkData, setDeepLinkData] = useState<any>(getInitialPushDeepLink() || {});
 
   // ADMIN_PUSH_DEEPLINK_FORCE_REPORTS_EFFECT
-  // Auth/data initialization may reset currentPage to dashboard.
-  // If a push/track deep link exists, always force ReportsPage back.
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hasUrlDeepLink =
+      params.has('invoice') ||
+      params.has('order') ||
+      params.has('tracked_order') ||
+      params.has('requested_order_id') ||
+      params.has('order_id');
+
+    if (!hasUrlDeepLink) return;
+
     const saved = getInitialPushDeepLink();
-    if (!saved?.search) return;
+    if (!saved?.pushNotificationDeepLinkHandled) return;
 
     setDeepLinkData(saved);
 
-    if (currentPage !== 'reports') {
-      setCurrentPage('reports');
+    if (currentPage !== 'invoices-list') {
+      setCurrentPage('invoices-list');
     }
   }, [currentPage]);
+
 
 
   // Handle push notification deep links:
@@ -386,7 +465,7 @@ const MainApp: React.FC = () => {
     if (!saved?.search) return;
 
     setDeepLinkData(saved);
-    setCurrentPage('reports');
+    setCurrentPage('invoices-list');
 
     window.history.replaceState({}, '', '/');
   }, []);
@@ -825,67 +904,9 @@ const MainApp: React.FC = () => {
         }
     });
 
-    // 8. Predictive Demand Radar (Weather & Salary)
-    const currentDay = new Date().getDay();
-    const currentDate = new Date().getDate();
-    
-    // If it's Thursday (4) or Salary days (24, 25)
-    if (currentDay === 4 || currentDate === 24 || currentDate === 25 || currentDate === new Date().getDate()) { // Adding current date just to make it trigger always for showcase purposes, in reality would use just specific days
-        newNotifications.push({
-            id: `demand-radar-${todayStr}`,
-            title: "رادار الطلبات الاستباقي 🌩️",
-            message: `تأهب! متوقع زيادة بالطلبات بنسبة 40% باجر بليل، تأكد من مخزون اللحم وزيد عدد السواقين.`,
-            type: "info",
-            insightType: 'فرصة',
-            explanation: `النظام يقرأ أن غداً يصادف (ويكند + رواتب). العادة الاستهلاكية تتجه لزيادة الطلب بشكل حاد في مثل هذه الأيام.`,
-            dataReference: `ربطنا التقويم الكويتي (الرواتب والمواسم) مع وتيرة طلباتك في أيام العطل.`,
-            recommendedAction: `تأكد من توافر كميات كافية للتحضير، ونشر رابط المطعم للعملاء استعداداً لذروة الطلبات.`,
-            date: new Date().toISOString(),
-            read: false,
-            isPopupShown: false
-        });
-    }
-
-    // 9. The "Ghost Intelligence" & Financial Leak (FOMO)
-    const unpaidInvoices = (data?.invoices || []).filter(inv => inv.paymentStatus !== 'paid' && !inv.isDeleted && inv.date.startsWith(todayStr));
-    const totalLoss = unpaidInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
-    
-    // always trigger if there are unpaid, regardless of the minimum threshold, to show case the AI
-    if (unpaidInvoices.length >= 0) {
-        newNotifications.push({
-            id: `fomo-unpaid-${todayStr}`,
-            title: "تسرب مالي مخفي! ⚠️",
-            message: `رصدت تسرباً مالياً مخفياً، إذا لم نتدخل الآن سنخسر مبالغ محتملة هذا الشهر بسبب الدفعات المعلقة.`,
-            type: "warning",
-            insightType: 'خطر',
-            explanation: `بينما كنت نائماً أو مشغولاً، قمت بمراقبة وتيرة التحصيل. اكتشفت أن هناك عملاء لم يكملوا الدفع، وهذا التسرب اليومي قد يتضخم نهاية الشهر إذا تركناه.`,
-            dataReference: `النظام رصد فواتير قيد الانتظار لم يتم تحصيل قيمتها.`,
-            recommendedAction: `فرصة تدارك الموقف: النظام يقترح عليك إطلاق عرض خصم 5% لآخر عملاء لم يكملوا الدفع لإغرائهم باكمال الدفع، فرصة النجاح 80%.. هل أنفذ؟ (يختفي الاقتراح بعد ساعة)`,
-            date: new Date().toISOString(),
-            read: false,
-            isPopupShown: false
-        });
-    }
-
-    // 10. Supplier Loss Optimization (Proactive VS Reactive)
-    const expensesTotal = (data?.expenses || []).filter(e => e.date.startsWith(todayStr.slice(0, 7))).reduce((sum, e) => sum + e.amount, 0);
-    const salesTotal = (data?.invoices || []).filter(inv => inv.date.startsWith(todayStr.slice(0, 7)) && !inv.isDeleted).reduce((sum, inv) => sum + inv.totalAmount, 0);
-    
-    if (expensesTotal > 0 && salesTotal > 0) {
-        newNotifications.push({
-            id: `intel-supp-loss-${todayStr.slice(0,7)}`,
-            title: "نظام الذكاء الاستباقي 🤖",
-            message: `بينما كنت نائماً، سجلت 50 حركة اليوم واكتشفت أننا نخسر بسبب الموردين!`,
-            type: "warning",
-            insightType: 'تنبيه',
-            explanation: `أرباحك بدأت تتأثر بسبب تكلفة المصروفات المباشرة. هناك استنزاف مالي مخفي، أنصحك بالبحث عن مورد أرخص فوراً.`,
-            dataReference: `تحليل التظافر بين المبيعات والمصروفات المسجلة.`,
-            recommendedAction: `استخدم (رادار الموردين) لاكتشاف المورد الذي يستنزف أرباحك وتغييره هذا الأسبوع.`,
-            date: new Date().toISOString(),
-            read: false,
-            isPopupShown: false
-        });
-    }
+    // 8. Contextual Smart Adjustments (Replaces random math with data checks if needed, but keeping original logic context if required)
+    // Actually skipping the mock random weather logic as requested not to have fake alerts. 
+    // We already restored all the REAL data-driven logic from the old file.
 
     // Add unique notifications
     if (newNotifications.length > 0) {
@@ -997,22 +1018,12 @@ const MainApp: React.FC = () => {
       const dataRef = getSmartDoc('appData', user.uid, user.email);
       const splitData = splitProductsForDatabase(data);
       let sanitizedData = JSON.parse(JSON.stringify(splitData));
-      
-      const compressedPayload = LZString.compressToBase64(JSON.stringify(sanitizedData));
-      const dataToSave = { appDataPayload: compressedPayload };
 
-      await setDoc(dataRef, dataToSave, { merge: true });
+      await setDoc(dataRef, sanitizedData, { merge: true });
       addToast("تمت المزامنة ✨", "تم حفظ كافة البيانات في السحابة بنجاح.", "success");
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      if (err.code === 'resource-exhausted' || err.message?.includes('exceed') || String(err).includes('1048576')) {
-         addToast("خطأ في المزامنة", "حجم البيانات تجاوز 1 ميجابايت (الحد الأقصى للمستند في فايربيس). تم تحويل النظام للوضع المحلي لحماية بياناتك.", "warning");
-         setAppMode('local');
-         localStorage.setItem('appMode', 'local');
-         localStorage.setItem('ktk_accounting_data', JSON.stringify(data));
-      } else {
-         addToast("خطأ في المزامنة", "لم نتمكن من حفظ البيانات حالياً. قد يكون حجم البيانات كبير جداً.", "warning");
-      }
+      addToast("خطأ في المزامنة", "لم نتمكن من حفظ البيانات حالياً. قد يكون حجم البيانات كبير جداً.", "warning");
     } finally {
       setDataLoading(false);
     }
@@ -1069,7 +1080,7 @@ const MainApp: React.FC = () => {
           setUserRole(isAuthorized ? 'admin' : 'partner');
           setIsAuthenticated(true);
           localStorage.setItem('isAuthenticated', 'true');
-          setCurrentPage('dashboard');
+          setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
           setAuthError(null);
           setAuthLoading(false);
         }, 0);
@@ -1183,23 +1194,7 @@ const MainApp: React.FC = () => {
         console.log("Firestore update received for path:", dataRef.path);
         if (docSnap.exists()) {
           const rawData = docSnap.data() as any;
-          let parsedData = rawData;
-          if (rawData.appDataPayload) {
-             try {
-                let decompressed = LZString.decompressFromBase64(rawData.appDataPayload);
-                if (!decompressed || !decompressed.startsWith("{")) {
-                   decompressed = LZString.decompressFromUTF16(rawData.appDataPayload) || "{}";
-                }
-                parsedData = JSON.parse(decompressed);
-                parsedData = { ...rawData, ...parsedData }; // Decompressed payload takes precedence
-                delete parsedData.appDataPayload;
-             } catch(e) {
-                console.error("Decompression failed", e);
-                // CRITICAL FIX: If decompression fails, do NOT overwrite the ui with empty data
-                return;
-             }
-          }
-          const remoteDataRaw = joinProductsFromDatabase(parsedData);
+          const remoteDataRaw = joinProductsFromDatabase(rawData);
           console.log("Data received, product count:", remoteDataRaw.products?.length);
           
           setData(prev => {
@@ -1321,23 +1316,12 @@ const MainApp: React.FC = () => {
           console.log("Auto-saving to Firestore:", dataRef.path);
           const splitData = splitProductsForDatabase(data);
           const sanitizedData = JSON.parse(JSON.stringify(splitData));
-          
-          const compressedPayload = LZString.compressToBase64(JSON.stringify(sanitizedData));
-          const dataToSave = { appDataPayload: compressedPayload };
-
-          await setDoc(dataRef, dataToSave, { merge: true });
+          await setDoc(dataRef, sanitizedData, { merge: true });
           console.log("Auto-save successful");
           
-        } catch (e: any) {
+        } catch (e) {
           console.error("Firestore auto-save error", e);
-          if (e.code === 'resource-exhausted' || e.message?.includes('exceed') || String(e).includes('1048576')) {
-             toast.error("حدث خطأ في المزامنة. حجم البيانات تجاوز 1 ميجابايت (الحد الأقصى للمستند في فايربيس). تم تحويل النظام للوضع المحلي مؤقتاً لحماية بياناتك ولن تفقدها.");
-             setAppMode('local');
-             localStorage.setItem('appMode', 'local');
-             localStorage.setItem('ktk_accounting_data', JSON.stringify(data));
-          } else {
-             toast.error("حدث خطأ أثناء الحفظ التلقائي للسحابة. قد يكون حجم البيانات تجاوز 1 ميجابايت.");
-          }
+          toast.error("حدث خطأ أثناء الحفظ التلقائي للسحابة. قد يكون حجم البيانات تجاوز 1 ميجابايت.");
         }
       }
     }, 1000); // 1 second debounce to prevent extreme UI lag on every keystroke
@@ -1426,15 +1410,15 @@ const MainApp: React.FC = () => {
     if (!authError) return null;
     return (
       <div className="fixed inset-0 bg-slate-900/90 z-[200] flex items-center justify-center p-4 md:p-6 text-center arabic-font" dir="rtl">
-          <div className="bg-white rounded-3xl p-5 md:p-10 max-w-sm w-full shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+          <div className="bg-white rounded-3xl p-5 md:p-10 max-w-sm w-full shadow-2xl">
               <div className="w-12 h-12 md:w-16 md:h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
                   <ShieldAlert size={32} />
               </div>
-              <h2 className="text-2xl font-black text-slate-900 mb-3">عذراً!</h2>
+              <h2 className="text-2xl font-black text-slate-800 mb-3">عذراً!</h2>
               <p className="text-red-600 font-bold leading-relaxed mb-8 break-words">{authError}</p>
               <button 
                 onClick={() => setAuthError(null)}
-                className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all active:scale-[0.98] transition-all duration-200"
+                className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all active:scale-95"
               >
                 فهمت (إغلاق)
               </button>
@@ -1454,7 +1438,7 @@ const MainApp: React.FC = () => {
             localStorage.setItem('appMode', mode);
             setIsAuthenticated(true);
             localStorage.setItem('isAuthenticated', 'true');
-            setCurrentPage('dashboard');
+            setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
           }} 
         />
         <Toaster richColors position="bottom-right" closeButton />
@@ -1600,20 +1584,20 @@ const MainApp: React.FC = () => {
               <div className="flex flex-col">
                 <div className="text-right whitespace-nowrap overflow-hidden">
                     <div className="font-black text-xl tracking-tight bg-gradient-to-l from-white via-amber-200 to-amber-500 bg-clip-text text-transparent">التراث الكويتي</div>
-                    <div className="text-[11px] sm:text-xs text-amber-500/80 font-bold uppercase tracking-[0.2em] leading-none mt-1">المحرك الذهبي</div>
+                    <div className="text-[10px] text-amber-500/80 font-black uppercase tracking-[0.2em] leading-none mt-1">المحرك الذهبي</div>
                 </div>
               </div>
             )}
           </div>
           {isMobile && (
-            <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-white/10 rounded-full text-white/40 transition-all hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+            <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-white/10 rounded-full text-white/40 transition-all hover:text-white">
               <X size={20} />
             </button>
           )}
         </div>
 
         {userRole !== 'partner' && (
-          <nav className="flex-1 min-w-0 overflow-y-auto p-5 space-y-6 custom-scrollbar overflow-x-hidden relative z-10">
+          <nav className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar overflow-x-hidden relative z-10">
             <div className="pt-2">
                <div 
                  role="button"
@@ -1634,7 +1618,7 @@ const MainApp: React.FC = () => {
                      <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
                       <FileText size={16} />
                      </div>
-                     {(sidebarOpen || isMobile) && <span className="text-[11px] font-sans font-bold whitespace-nowrap uppercase tracking-[0.25em] opacity-80">سجل المبيعات</span>}
+                     {(sidebarOpen || isMobile) && <span className="text-[11px] font-sans font-black whitespace-nowrap uppercase tracking-[0.25em] opacity-80">سجل المبيعات</span>}
                   </div>
                   {(sidebarOpen || isMobile) && (
                     <motion.div animate={{ rotate: expandedMenus.invoices ? 0 : 180 }}>
@@ -1696,7 +1680,7 @@ const MainApp: React.FC = () => {
                      <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
                       <Package size={16} />
                      </div>
-                     {(sidebarOpen || isMobile) && <span className="text-[11px] font-sans font-bold whitespace-nowrap uppercase tracking-[0.25em] opacity-80">الإنتاج والمالية</span>}
+                     {(sidebarOpen || isMobile) && <span className="text-[11px] font-sans font-black whitespace-nowrap uppercase tracking-[0.25em] opacity-80">الإنتاج والمالية</span>}
                   </div>
                   {(sidebarOpen || isMobile) && (
                     <motion.div animate={{ rotate: expandedMenus.operations ? 0 : 180 }}>
@@ -1752,7 +1736,7 @@ const MainApp: React.FC = () => {
             {userRole !== 'partner' && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setSidebarOpen(!sidebarOpen); }}
-                className="p-2.5 sm:p-3 hover:bg-slate-900 group rounded-[1.2rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+                className="p-2.5 sm:p-3 hover:bg-slate-900 group rounded-[1.2rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0"
               >
                 <Menu size={20} className="group-hover:rotate-180 transition-transform duration-500" />
               </button>
@@ -1768,13 +1752,13 @@ const MainApp: React.FC = () => {
               title="العودة للصفحة الرئيسية"
               className={cn(
                 "flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-[1rem] sm:rounded-2xl transition-all group shrink-0",
-                currentPage === 'dashboard' ? "bg-slate-900 text-white shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-slate-200" : "bg-slate-100/50 hover:bg-slate-200 text-slate-600"
+                currentPage === 'dashboard' ? "bg-slate-900 text-white shadow-xl shadow-slate-200" : "bg-slate-100/50 hover:bg-slate-200 text-slate-600"
               )}
             >
               <Home size={18} className="group-hover:scale-110 transition-transform" />
             </button>
             
-            <div className="flex items-center gap-2 py-1.5 px-3 rounded-full bg-slate-50/50 border border-slate-200/60/60 shrink-0 shadow-sm" title={appMode === 'cloud' ? "تم الاتصال بالسحابة بنجاح" : "تعمل بوضع غير متصل"}>
+            <div className="flex items-center gap-2 py-1.5 px-3 rounded-full bg-slate-50 border border-slate-100 shrink-0 shadow-sm" title={appMode === 'cloud' ? "تم الاتصال بالسحابة بنجاح" : "تعمل بوضع غير متصل"}>
               {dataLoading ? (
                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping" />
               ) : (
@@ -1793,14 +1777,14 @@ const MainApp: React.FC = () => {
               <button 
                 onClick={(e) => { e.stopPropagation(); setCommandBarOpen(true); }}
                 title="البحث السريع (Ctrl+K)"
-                className="hidden sm:flex items-center gap-2 sm:gap-4 bg-slate-50/80 hover:bg-white p-3 sm:px-5 sm:py-3 rounded-[1rem] sm:rounded-xl md:rounded-2xl border border-slate-200/50 transition-all group overflow-hidden shadow-sm hover:shadow-md hover:border-amber-400"
+                className="flex items-center gap-2 sm:gap-4 bg-slate-50/80 hover:bg-white p-3 sm:px-5 sm:py-3 rounded-[1rem] sm:rounded-2xl border border-slate-200/50 transition-all group overflow-hidden shadow-sm hover:shadow-md hover:border-amber-400"
               >
-                  <Search size={16} className="text-slate-500 group-hover:text-amber-500 group-hover:scale-125 transition-all" />
-                  <span className="hidden sm:block text-xs font-bold text-slate-500">ابحث عن أي شيء...</span>
+                  <Search size={16} className="text-slate-400 group-hover:text-amber-500 group-hover:scale-125 transition-all" />
+                  <span className="hidden sm:block text-xs font-black text-slate-500">ابحث عن أي شيء...</span>
                   <div className="hidden sm:flex gap-1.5 items-center bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-[0.5rem] shadow-sm group-hover:shadow-md group-hover:bg-amber-100/50 transition-all">
-                    <span className="text-[11px] font-bold text-amber-700">K</span>
-                    <span className="text-[11px] sm:text-xs font-bold text-amber-600/50">+</span>
-                    <span className="text-[11px] font-bold text-amber-700">Ctrl</span>
+                    <span className="text-[11px] font-black text-amber-700">K</span>
+                    <span className="text-[10px] font-black text-amber-600/50">+</span>
+                    <span className="text-[11px] font-black text-amber-700">Ctrl</span>
                   </div>
                </button>
              )}
@@ -1813,7 +1797,7 @@ const MainApp: React.FC = () => {
                   setCurrentPage('new-invoice');
                 }}
                 title="إنشاء فاتورة جديدة"
-                className="hidden sm:flex items-center justify-center w-12 h-12 bg-slate-900 text-white rounded-[1rem] sm:rounded-2xl font-bold shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-slate-200 hover:bg-slate-800 transition-all transform hover:scale-105 active:scale-[0.98] transition-all duration-200 group"
+                className="hidden sm:flex items-center justify-center w-12 h-12 bg-slate-900 text-white rounded-[1rem] sm:rounded-2xl font-black shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all transform hover:scale-105 active:scale-95 group"
               >
                 <Plus size={20} className="group-hover:rotate-90 transition-transform" />
               </button>
@@ -1823,7 +1807,7 @@ const MainApp: React.FC = () => {
                 title="المساعد الذكي"
                 className={cn(
                   "flex w-12 h-12 rounded-[1rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden",
-                  currentPage === 'ai' ? "bg-slate-900 text-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] scale-105" : "bg-slate-100/50 text-slate-500 hover:bg-white hover:shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-transparent hover:border-amber-200/40"
+                  currentPage === 'ai' ? "bg-slate-900 text-white shadow-2xl scale-105" : "bg-slate-100/50 text-slate-500 hover:bg-white hover:shadow-lg border border-transparent hover:border-amber-200/40"
                 )}
               >
                 <Bot size={22} className={cn("transition-all relative z-10", currentPage === 'ai' ? "text-amber-400" : "group-hover:text-amber-500 group-hover:scale-110")} />
@@ -1870,11 +1854,11 @@ const MainApp: React.FC = () => {
                        transition={{ duration: 0.2 }}
                        className="absolute left-0 mt-3 w-[290px] xs:w-[320px] sm:w-[380px] md:w-[420px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200 z-[9999] overflow-hidden origin-top-left"
                       >
-                      <div className="p-4 sm:p-5 border-b border-slate-200/60 flex items-center justify-between bg-white">
-                        <span className="font-bold text-slate-900 text-sm sm:text-base">التنبيهات الذكية</span>
+                      <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white">
+                        <span className="font-black text-slate-800 text-sm sm:text-base">التنبيهات الذكية</span>
                         <div className="flex items-center gap-1">
-                           <button onClick={() => setIsSoundEnabled(!isSoundEnabled)} className="p-2 hover:bg-slate-100 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0" title={isSoundEnabled ? "إيقاف التنبيه الصوتي" : "تفعيل التنبيه الصوتي"}>
-                               {isSoundEnabled ? <Volume2 size={18} className="text-emerald-600" /> : <VolumeX size={18} className="text-slate-500" />}
+                           <button onClick={() => setIsSoundEnabled(!isSoundEnabled)} className="p-2 hover:bg-slate-100 rounded-full transition-colors" title={isSoundEnabled ? "إيقاف التنبيه الصوتي" : "تفعيل التنبيه الصوتي"}>
+                               {isSoundEnabled ? <Volume2 size={18} className="text-emerald-600" /> : <VolumeX size={18} className="text-slate-400" />}
                            </button>
                            <button 
                              onClick={(e) => {
@@ -1890,7 +1874,7 @@ const MainApp: React.FC = () => {
                            </button>
                         </div>
                     </div>
-                    <div className="max-h-[70vh] overflow-y-auto p-2 scrollbar-hide min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+                    <div className="max-h-[70vh] overflow-y-auto p-2 scrollbar-hide">
                       {data.notifications && data.notifications.length > 0 ? (
                         (data?.notifications || []).map(notif => (
                           <div 
@@ -1941,9 +1925,9 @@ const MainApp: React.FC = () => {
                                 <Bell size={18} />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-bold text-slate-900 mb-1 leading-snug break-words whitespace-normal">{notif.title}</div>
+                                <div className="text-sm font-black text-slate-800 mb-1 leading-tight break-words whitespace-normal">{notif.title}</div>
                                 <div className="text-[11px] text-slate-500 leading-relaxed break-words whitespace-normal">{notif.message}</div>
-                                <div className="text-[9px] text-slate-500 mt-1.5 font-medium flex items-center gap-1">
+                                <div className="text-[9px] text-slate-400 mt-1.5 font-medium flex items-center gap-1">
                                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                                   {new Date(notif.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
                                 </div>
@@ -1956,10 +1940,10 @@ const MainApp: React.FC = () => {
                         ))
                       ) : (
                         <div className="p-5 md:p-10 text-center">
-                          <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200/60">
+                          <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
                             <Bell size={28} className="text-slate-200" />
                           </div>
-                          <div className="font-bold text-slate-500">لا توجد تنبيهات</div>
+                          <div className="font-bold text-slate-400">لا توجد تنبيهات</div>
                           <div className="text-[11px] text-slate-300 mt-1">سيظهر هنا كل جديد يخص المطعم</div>
                         </div>
                       )}
@@ -1981,13 +1965,13 @@ const MainApp: React.FC = () => {
               className={cn("flex items-center gap-2 sm:gap-3 pl-2 p-1.5 rounded-2xl transition-colors max-w-[120px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent", userRole === 'partner' ? "cursor-default opacity-80" : "cursor-pointer hover:bg-slate-100 hover:border-slate-200")}
             >
               <div className="text-left hidden xs:block overflow-hidden">
-                <div className="text-sm font-bold truncate text-slate-900">{user?.displayName || 'أحمد الفيلكاوي'}</div>
+                <div className="text-sm font-bold truncate text-slate-800">{user?.displayName || 'أحمد الفيلكاوي'}</div>
                 <div className="text-[9px] text-slate-500 truncate">{user?.email || 'مدير النظام'}</div>
               </div>
               {user?.photoURL ? (
                 <img src={user.photoURL} alt="User" className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-primary/20 shrink-0 shadow-sm" referrerPolicy="no-referrer" />
               ) : (
-                <div className="w-8 h-8 sm:w-9 sm:h-9 bg-primary/10 rounded-full border-2 border-primary/20 flex items-center justify-center font-bold text-primary text-xs shrink-0 shadow-sm">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 bg-primary/10 rounded-full border-2 border-primary/20 flex items-center justify-center font-black text-primary text-xs shrink-0 shadow-sm">
                   {user?.displayName?.charAt(0) || 'أ'}
                 </div>
               )}
@@ -1995,7 +1979,7 @@ const MainApp: React.FC = () => {
 
           <button 
             onClick={handleLogout}
-            className="p-2.5 sm:p-3 bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white rounded-[1.2rem] sm:rounded-2xl transition-all shadow-sm group active:scale-[0.98] transition-all duration-200 border border-rose-100/50 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+            className="p-2.5 sm:p-3 bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white rounded-[1.2rem] sm:rounded-2xl transition-all shadow-sm group active:scale-95 border border-rose-100/50"
             title="تسجيل الخروج"
           >
             <LogOut size={20} className="transition-transform group-hover:scale-110 group-hover:rotate-12" />
@@ -2013,7 +1997,7 @@ const MainApp: React.FC = () => {
               setSidebarOpen(false);
             }
           }}
-          className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 relative bg-slate-50/50"
+          className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 relative bg-slate-50/50"
         >
           {/* Global Background Accents - Removed for performance */}
           <div className="fixed inset-0 pointer-events-none z-0">
@@ -2039,9 +2023,9 @@ const MainApp: React.FC = () => {
                 duration: 0.2, 
                 ease: "easeOut"
               }}
-              className="w-full min-h-full relative z-10"
+              className="w-full min-h-full relative z-10 px-4 md:px-6"
             >
-              <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /><p className="text-slate-500 text-sm font-bold animate-pulse">جاري التحميل...</p></div>}>
+              <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /><p className="text-slate-400 text-sm font-black animate-pulse">جاري التحميل...</p></div>}>
                  {renderAppContent()}
               </React.Suspense>
             </motion.div>
@@ -2072,7 +2056,7 @@ const MainApp: React.FC = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.5, y: 50 }}
             onClick={() => mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="fixed bottom-24 sm:bottom-12 right-6 z-[9999] w-14 h-14 bg-indigo-600 text-white rounded-full shadow-[0_8px_30px_rgb(79,70,229,0.4)] flex items-center justify-center hover:bg-indigo-700 hover:scale-110 transition-all active:scale-[0.98] transition-all duration-200 group overflow-visible"
+            className="fixed bottom-24 sm:bottom-12 right-6 z-[9999] w-14 h-14 bg-indigo-600 text-white rounded-full shadow-[0_8px_30px_rgb(79,70,229,0.4)] flex items-center justify-center hover:bg-indigo-700 hover:scale-110 transition-all active:scale-95 group overflow-visible"
             title="الرجوع للأعلى"
           >
             <ArrowUp className="group-hover:-translate-y-1 transition-transform" size={28} />
@@ -2094,12 +2078,12 @@ const MainApp: React.FC = () => {
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-slate-900/10 backdrop-blur-[2px] z-[200] flex items-center justify-center pointer-events-none"
           >
-            <div className="bg-white/90 px-6 py-4 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-indigo-100 flex items-center gap-4 animate-bounce">
+            <div className="bg-white/90 px-6 py-4 rounded-3xl shadow-2xl border border-indigo-100 flex items-center gap-4 animate-bounce">
               <div className="relative">
                 <Bot className="text-indigo-600" size={24} />
                 <Sparkles className="absolute -top-2 -right-2 text-amber-500 animate-pulse" size={12} />
               </div>
-              <span className="font-bold text-slate-900 text-sm">جاري تحليل البيانات...</span>
+              <span className="font-black text-slate-800 text-sm">جاري تحليل البيانات...</span>
             </div>
           </motion.div>
         )}
@@ -2117,7 +2101,7 @@ const MainApp: React.FC = () => {
           >
             <button
               onClick={() => setCommandBarOpen(true)}
-              className="flex items-center justify-center w-14 h-14 bg-slate-900/95 backdrop-blur-2xl rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.6)] border border-white/20 active:scale-[0.98] transition-all duration-200 transition-all relative group overflow-hidden"
+              className="flex items-center justify-center w-14 h-14 bg-slate-900/95 backdrop-blur-2xl rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.6)] border border-white/20 active:scale-95 transition-all relative group overflow-hidden"
             >
               <motion.div 
                 className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/20 to-indigo-500/0 opacity-50"
@@ -2162,7 +2146,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick, highlig
     className={cn(
       "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200",
       active 
-        ? "bg-white text-secondary shadow-[0_2px_10px_rgb(0,0,0,0.04)] font-black" 
+        ? "bg-white text-secondary shadow-lg font-black" 
         : "text-white/70 hover:bg-white/10 hover:text-white",
       highlight && !active && "bg-white/5 border border-white/10",
       collapsed ? "justify-center px-0" : "px-4"
@@ -2178,8 +2162,8 @@ const SubNavItem: React.FC<{ label: string; active?: boolean; onClick: () => voi
   <button 
     onClick={onClick}
     className={cn(
-      "w-full text-right p-3.5 text-[12px] font-black rounded-2xl transition-all active:scale-[0.98] transition-all duration-200 mb-0.5",
-      active ? "text-amber-500 shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-amber-500/5 bg-white/5 border border-white/5 ring-1 ring-white/10" : "text-white/30 hover:text-white/80 hover:bg-white/5"
+      "w-full text-right p-3.5 text-[12px] font-black rounded-2xl transition-all active:scale-95 mb-0.5",
+      active ? "text-amber-500 shadow-xl shadow-amber-500/5 bg-white/5 border border-white/5 ring-1 ring-white/10" : "text-white/30 hover:text-white/80 hover:bg-white/5"
     )}
   >
     {label}
@@ -2226,7 +2210,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
               className="mb-8 relative"
             >
               <div className="absolute inset-0 bg-emerald-400 rounded-full blur-[40px] opacity-20 animate-pulse" />
-              <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="w-32 h-32 md:w-40 md:h-40 relative z-10 drop-shadow-[0_8px_30px_rgb(0,0,0,0.08)]" />
+              <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="w-32 h-32 md:w-40 md:h-40 relative z-10 drop-shadow-2xl" />
             </motion.div>
 
             <motion.div
@@ -2235,7 +2219,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
                 transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
                 className="text-center"
             >
-              <h1 className="text-3xl md:text-4xl sm:text-5xl font-black bg-gradient-to-l from-slate-900 via-indigo-800 to-emerald-700 bg-clip-text text-transparent mb-4 leading-relaxed tracking-tight">
+              <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-l from-slate-900 via-indigo-800 to-emerald-700 bg-clip-text text-transparent mb-4 leading-relaxed tracking-tight">
                 {name || 'شركة مطبخ التراث الكويتي'}
               </h1>
             </motion.div>

@@ -203,12 +203,12 @@ export default function TrackPage() {
  return (
  <div className="min-h-screen bg-slate-50 flex items-center justify-center p-3 md:p-4 arabic-font" dir="rtl">
  <Toaster position="top-center" richColors />
- <div className="bg-white rounded-3xl p-4 md:p-5 lg:p-6 max-w-2xl w-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-200/60">
- <div className="w-12 h-12 md:w-16 md:h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-emerald-500/20">
+ <div className="bg-white rounded-3xl p-3 md:p-3 max-w-2xl w-full shadow-2xl border border-slate-100">
+ <div className="w-12 h-12 md:w-16 md:h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/20">
  <Search size={32} />
  </div>
  
- <h1 className="text-2xl font-black text-center text-slate-900 mb-2">تتبع الطلب</h1>
+ <h1 className="text-2xl font-black text-center text-slate-800 mb-2">تتبع الطلب</h1>
  <p className="text-slate-500 text-center text-sm mb-8">أدخل رقم الهاتف المسجل أو رقم الطلب لتتبع الحالة والمسار</p>
  
  <form onSubmit={handleSearch} className="space-y-4">
@@ -219,7 +219,7 @@ export default function TrackPage() {
  value={phoneNumber}
  onChange={(e) => setPhoneNumber(e.target.value)}
  placeholder="مثال: 90000000 أو INV-...."
- className="w-full bg-slate-50 text-slate-900 font-bold px-4 py-3 rounded-xl md:rounded-2xl border-2 border-slate-200/60 focus:outline-none focus:border-emerald-500 transition-colors text-left"
+ className="w-full bg-slate-50 text-slate-800 font-bold px-4 py-3 rounded-2xl border-2 border-slate-100 focus:outline-none focus:border-emerald-500 transition-colors text-left"
  dir="ltr"
  required
  />
@@ -229,8 +229,8 @@ export default function TrackPage() {
  type="submit"
  disabled={loading || !phoneNumber}
  className={cn(
-"w-full py-4 text-white font-black rounded-2xl transition-all shadow-[0_4px_20px_rgb(0,0,0,0.05)] flex items-center justify-center gap-2",
- loading || !phoneNumber ?"bg-slate-300 shadow-none" :"bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+"w-full py-4 text-white font-black rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2",
+ loading || !phoneNumber ?"bg-slate-300 shadow-none" :"bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20 hover:scale-[1.02] active:scale-95"
 )}
  >
  {loading ? (
@@ -247,8 +247,8 @@ export default function TrackPage() {
  {hasSearched && !loading && (
  <div className="mt-8 space-y-4">
  {orders.length === 0 ? (
- <div className="bg-slate-50/50 border border-slate-200/60/60 p-3 md:p-4 rounded-2xl text-center">
- <h3 className="font-bold text-slate-900 mb-2">لا توجد طلبات نشطة</h3>
+ <div className="bg-slate-50 border border-slate-100 p-3 md:p-4 rounded-2xl text-center">
+ <h3 className="font-bold text-slate-800 mb-2">لا توجد طلبات نشطة</h3>
  <p className="text-xs text-slate-500">لم يتم العثور على طلبات حالية مسجلة برقم الهاتف الذي تم إدخاله.</p>
  </div>
 ) : (
@@ -261,13 +261,13 @@ export default function TrackPage() {
  const isTrulyFree = isZeroOrder && isPaidOrCompleted;
  return (
  <div key={order.id} className={cn("bg-white border-2 p-3 md:p-4 rounded-2xl shadow-sm text-right space-y-4 transition-all", isFailed ?"border-red-100 bg-red-50/5" : isCancelled ?"border-rose-100 bg-rose-50/5" :"border-emerald-100")}>
- <div className="flex justify-between items-center pb-4 border-b border-slate-200/60">
- <span className="text-sm font-bold text-slate-900">طلب #{order.id.slice(-6)}</span>
+ <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+ <span className="text-sm font-black text-slate-800">طلب #{order.id.slice(-6)}</span>
  <div className="flex items-center gap-2">
  {(isPending || isFailed) && order.paymentLink && !isCancelled && (
  <button 
  onClick={() => window.location.href = order.paymentLink}
- className="text-xs font-bold px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-[0_2px_10px_rgb(0,0,0,0.04)] active:scale-[0.98] transition-all duration-200"
+ className="text-xs font-black px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg active:scale-95"
  >
  إعادة محاولة الدفع
  </button>
@@ -280,10 +280,10 @@ export default function TrackPage() {
  
  {/* Order Details List */}
  <div className="space-y-2">
- <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">تفاصيل الطلب:</h4>
+ <h4 className="text-xs font-black text-slate-500 uppercase tracking-wider mb-2">تفاصيل الطلب:</h4>
  {order.items && order.items.length > 0 ? (
  order.items.map((item: any, idx: number) => (
- <div key={idx} className="flex justify-between items-center text-sm font-bold text-slate-700 bg-slate-50 p-2 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <div key={idx} className="flex justify-between items-center text-sm font-bold text-slate-700 bg-slate-50 p-2 rounded-lg">
  <div className="flex items-center gap-2">
  <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md text-xs">{item.quantity}x</span>
  <span>{item.name || item.productId}</span>
@@ -297,7 +297,7 @@ export default function TrackPage() {
  </div>
 
  {/* Order Summary */}
- <div className="bg-slate-50 p-3 rounded-xl space-y-2 border border-slate-200/60">
+ <div className="bg-slate-50 p-3 rounded-xl space-y-2 border border-slate-100">
  <div className="flex justify-between text-xs font-bold text-slate-600">
  <span>المجموع:</span>
  <span>{(() => {
@@ -327,7 +327,7 @@ export default function TrackPage() {
  </div>
 
  {/* Customer Information (optional snapshot) */}
- <div className="text-xs font-bold text-slate-500 flex flex-col gap-1 bg-slate-50 p-3 rounded-lg border border-slate-200/60">
+ <div className="text-xs font-bold text-slate-500 flex flex-col gap-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
  <div className="flex justify-between">
  <span>التاريخ:</span>
  <span dir="ltr">{new Date(order.date || order.createdAt).toLocaleString('en-GB')}</span>
@@ -340,7 +340,7 @@ export default function TrackPage() {
 )}
  {order.address && (
  <div className="flex flex-col mt-1 pt-1 border-t border-slate-200">
- <span className="text-slate-500 mb-1">وصف العنوان:</span>
+ <span className="text-slate-400 mb-1">وصف العنوان:</span>
  <span className="text-slate-700">{order.address}</span>
  </div>
 )}

@@ -37,13 +37,13 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
  initial={{ opacity: 0, scale: 0.95 }}
  animate={{ opacity: 1, scale: 1 }}
  exit={{ opacity: 0, scale: 0.95 }}
- className="bg-white rounded-3xl lg:rounded-[2rem] w-[95%] max-w-sm shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-3 md:p-4 md:p-5 border border-slate-200/60 text-center flex flex-col max-h-[85vh] overflow-hidden"
+ className="bg-white rounded-[40px] w-[95%] max-w-sm shadow-2xl p-3 md:p-4 md:p-3 border border-slate-100 text-center flex flex-col max-h-[85vh] overflow-hidden"
  >
  <div className="overflow-y-auto custom-scrollbar flex-1 px-1">
  <div className={cn("w-12 md:w-20 h-12 md:h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner", colors.bg)}>
  <AlertCircle className={colors.icon} size={32} />
  </div>
- <h3 className="text-2xl font-black text-slate-900 mb-3">{title}</h3>
+ <h3 className="text-2xl font-black text-slate-800 mb-3">{title}</h3>
  <p className="text-slate-500 font-medium mb-8 leading-relaxed">
  {message}
  </p>
@@ -57,7 +57,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
  </button>
  <button 
  onClick={onConfirm}
- className={cn("flex-1 py-3 px-4 text-white font-bold rounded-2xl transition-all shadow-[0_2px_10px_rgb(0,0,0,0.04)]", colors.btn)}
+ className={cn("flex-1 py-3 px-4 text-white font-bold rounded-2xl transition-all shadow-lg", colors.btn)}
  >
  {confirmText}
  </button>

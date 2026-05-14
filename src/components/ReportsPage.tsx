@@ -1,5 +1,5 @@
 import { getUnifiedInvoices } from '../lib/utils';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
  FileText, Search, RefreshCw, Printer, Trash2, Edit2, ChevronDown, ChevronUp, Package, User, CreditCard, Clock, CheckCircle2, X, TrendingUp, Plus,
  MessageSquare, Users, Dices, XCircle, AlertCircle,
@@ -41,9 +41,83 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  const [activeTab, setActiveTab] = useState<'invoices' | 'tax' | 'pnl' | 'orders'>(defaultTab);
  const [search, setSearch] = useState('');
 
+  // ADMINFIX_REPORTS_READ_URL_ORDER_INVOICE
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    let targetId =
+      params.get('invoice') ||
+      params.get('order') ||
+      params.get('tracked_order') ||
+      params.get('requested_order_id') ||
+      params.get('order_id') ||
+      '';
+
+    if (!targetId) {
+      try {
+        const saved = sessionStorage.getItem('adminPushDeepLink');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          targetId = parsed?.search || parsed?.fullId || '';
+        }
+      } catch {}
+    }
+
+    if (!targetId) return;
+
+    setActiveTab('invoices');
+    setSearch(String(targetId));
+
+    try {
+      sessionStorage.removeItem('adminPushDeepLink');
+      window.history.replaceState({}, '', '/');
+    } catch {}
+  }, []);
+
+
+  // REPORTS_PAGE_DIRECT_URL_DEEPLINK
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    let targetId =
+      params.get('invoice') ||
+      params.get('order') ||
+      params.get('tracked_order') ||
+      params.get('requested_order_id') ||
+      params.get('order_id') ||
+      '';
+
+    if (!targetId) {
+      try {
+        const saved = sessionStorage.getItem('adminPushDeepLink');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          targetId = parsed?.search || parsed?.fullId || '';
+        }
+      } catch {}
+    }
+
+    if (!targetId && !deepLinkData?.search) return;
+
+    const finalSearch = String(targetId || deepLinkData?.search || '');
+
+    setActiveTab('invoices');
+    setSearch(finalSearch);
+
+    try {
+      sessionStorage.removeItem('adminPushDeepLink');
+      window.history.replaceState({}, '', '/');
+    } catch {}
+
+    if (typeof onClearDeepLink === "function") {
+      setTimeout(() => onClearDeepLink(), 300);
+    }
+  }, [deepLinkData?.search]);
+
+
   // reportsPushDeepLinkHandled
   // Push/PWA click deep links open ReportsPage -> invoices tab -> full ID search.
-  React.useEffect(() => {
+  useEffect(() => {
     if (!deepLinkData?.search) return;
 
     const searchValue = String(deepLinkData.search || "");
@@ -59,7 +133,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  const [deleteError, setDeleteError] = useState<string | null>(null);
  const [shakingId, setShakingId] = useState<string | null>(null);
  
- React.useEffect(() => {
+ useEffect(() => {
  if (deepLinkData?.search) {
  setSearch(deepLinkData.search);
  setTimeout(() => {
@@ -579,7 +653,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
          description: `Invoice ${invoiceId} (Regenerated)`,
          returnUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
          cancelUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
-         notificationUrl: `https://order-119610604304.europe-west3.run.app/api/webhook/upayments`
+         notificationUrl: `https://order-951671626657.europe-west3.run.app/api/webhook/upayments`
        })
      });
      const paymentData = await response.json();
@@ -674,9 +748,9 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  {/* Header */}
  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 text-right">
  <div className="order-2 md:order-1 flex-1">
- <h1 className="text-xl md:text-3xl font-extrabold text-slate-900 flex items-center gap-3 justify-end leading-snug">
+ <h1 className="text-xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-3 justify-end leading-tight">
  {activeTab === 'orders' ? 'طلبات التطبيق' : 'سجل المبيعات'}
- <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-[0_2px_10px_rgb(0,0,0,0.04)]">
+ <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
  <FileText className="text-white" />
  </div>
  </h1>
@@ -685,11 +759,11 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   </div>
 
   {/* Tab Selector */}
-  <div className="flex items-center gap-4 bg-slate-100 p-2 rounded-2xl w-fit self-end shadow-inner min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+  <div className="flex items-center gap-4 bg-slate-100 p-2 rounded-2xl w-fit self-end shadow-inner">
   <button
   onClick={() => setActiveTab('invoices')}
   className={cn(
-  "px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2",
+  "px-6 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2",
   activeTab === 'invoices' ? "bg-white text-slate-900 shadow-md scale-105" : "text-slate-500 hover:text-slate-700"
   )}
   >
@@ -699,14 +773,14 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   <button
   onClick={() => setActiveTab('orders')}
   className={cn(
-  "px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 relative",
+  "px-6 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 relative",
   activeTab === 'orders' ? "bg-white text-slate-900 shadow-md scale-105" : "text-slate-500 hover:text-slate-700"
   )}
   >
   <ClipboardList size={16} />
   <span>طلبات التطبيق</span>
   { (data.orders || []).filter(o => !o.isConvertedToInvoice && o.status !== 'cancelled').length > 0 && (
-  <span className="absolute -top-1 -left-1 bg-amber-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[11px] sm:text-xs shadow-sm animate-pulse">
+  <span className="absolute -top-1 -left-1 bg-amber-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-sm animate-pulse">
   {(data.orders || []).filter(o => !o.isConvertedToInvoice && o.status !== 'cancelled').length}
   </span>
   )}
@@ -743,12 +817,12 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   
 
  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 mb-3 md:mb-0">
- <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-xl md:rounded-2xl border border-slate-200 shadow-sm text-right flex flex-col justify-center min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
- <div className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-0.5 md:mb-1">عدد الفواتير</div>
+ <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200 shadow-sm text-right flex flex-col justify-center">
+ <div className="text-[10px] font-black text-slate-400 uppercase mb-0.5 md:mb-1">عدد الفواتير</div>
  <div className="text-xl md:text-3xl font-black text-slate-900 tracking-tighter">{filteredInvoices.length}</div>
  </div>
- <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-xl md:rounded-2xl border border-slate-200 shadow-sm text-right flex flex-col justify-center min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
- <div className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي المبيعات</div>
+ <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200 shadow-sm text-right flex flex-col justify-center">
+ <div className="text-[10px] font-black text-slate-400 uppercase mb-0.5 md:mb-1">إجمالي المبيعات</div>
  <div className="text-xl md:text-3xl font-black text-primary tracking-tighter truncate">
  {Math.max(0, filteredInvoices
  .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
@@ -758,8 +832,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <span className="text-sm font-bold mr-1">د.ك</span>
  </div>
  </div>
- <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-xl md:rounded-2xl border border-slate-200 shadow-sm text-right flex flex-col justify-center col-span-2 md:col-span-1 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
- <div className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي الربح</div>
+ <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200 shadow-sm text-right flex flex-col justify-center col-span-2 md:col-span-1">
+ <div className="text-[10px] font-black text-slate-400 uppercase mb-0.5 md:mb-1">إجمالي الربح</div>
  <div className="text-xl md:text-3xl font-black text-emerald-600 tracking-tighter truncate">
  {Math.max(0, filteredInvoices
  .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
@@ -771,27 +845,27 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </div>
  </div>
 
- <div className="bg-white rounded-3xl lg:rounded-[2rem] p-4 md:p-5 lg:p-6 border border-slate-200 shadow-sm text-right">
+ <div className="bg-white rounded-[32px] p-3 md:p-3 border border-slate-200 shadow-sm text-right">
  <div className="flex flex-col md:flex-row md:items-center gap-4 mb-8">
  <div className="relative flex-1">
- <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+ <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
  <input 
  id="search-input"
  type="text" 
  placeholder="ابحث برقم الفاتورة أو اسم العميل..."
  value={search}
  onChange={(e) => setSearch(e.target.value)}
- className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
+ className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
  />
  </div>
- <div className="flex p-1 bg-slate-100 rounded-xl min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <div className="flex p-1 bg-slate-100 rounded-xl">
  {['all', 'today', 'week', 'month', 'custom'].map((f) => (
  <button
  key={f}
  onClick={() => setTimeFilter(f as any)}
  className={cn(
-"px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-black uppercase transition-all",
- timeFilter === f ?"bg-white text-slate-900 shadow-sm" :"text-slate-500 hover:text-slate-600"
+"px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all",
+ timeFilter === f ?"bg-white text-slate-900 shadow-sm" :"text-slate-400 hover:text-slate-600"
 )}
  >
  {f === 'all' ? 'الكل' : f === 'today' ? 'اليوم' : f === 'week' ? 'أسبوع' : f === 'month' ? 'شهر' : 'مخصص'}
@@ -801,44 +875,45 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </div>
  
  {timeFilter === 'custom' && (
- <div className="flex items-center gap-4 mb-8 bg-slate-50 p-3 rounded-xl md:rounded-2xl border border-slate-200">
- <div className="flex-1 text-right relative overflow-hidden">
+ <div className="flex items-center gap-4 mb-8 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+ <div className="flex-1 text-right">
  <label className="block text-xs font-bold text-slate-500 mb-1">من</label>
- <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} dir="ltr" className="block w-full min-w-0 max-w-full appearance-none p-2 rounded-lg border border-slate-200 outline-none text-center" />
+ <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full p-2 rounded-lg border border-slate-200 outline-none" />
  </div>
- <div className="flex-1 text-right relative overflow-hidden">
+ <div className="flex-1 text-right">
  <label className="block text-xs font-bold text-slate-500 mb-1">إلى</label>
- <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} dir="ltr" className="block w-full min-w-0 max-w-full appearance-none p-2 rounded-lg border border-slate-200 outline-none text-center" />
+ <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full p-2 rounded-lg border border-slate-200 outline-none" />
  </div>
  </div>
 )}
 
- <div className="overflow-x-auto w-full max-w-full rounded-xl md:rounded-2xl border border-slate-200/60">
+ <div className="overflow-x-auto rounded-2xl border border-slate-100">
  <table className="w-full text-right min-w-[900px]" dir="rtl">
  <thead>
- <tr className="bg-slate-50 border-b border-slate-200/60 font-bold text-slate-500 text-[11px] sm:text-xs uppercase text-right">
- <th className="p-4 md:p-5 lg:p-6">رقم الفاتورة</th>
- <th className="p-4 md:p-5 lg:p-6">العميل</th>
- <th className="p-4 md:p-5 lg:p-6">التاريخ</th>
- <th className="p-4 md:p-5 lg:p-6">طريقة الدفع</th>
- <th className="p-4 md:p-5 lg:p-6">المستحق</th>
- <th className="p-4 md:p-5 lg:p-6 text-left pr-10">إجراءات</th>
+ <tr className="bg-slate-50 border-b border-slate-100 font-black text-slate-400 text-[10px] uppercase text-right">
+ <th className="p-3 md:p-3">رقم الفاتورة</th>
+ <th className="p-3 md:p-3">العميل</th>
+ <th className="p-3 md:p-3">التاريخ</th>
+ <th className="p-3 md:p-3">طريقة الدفع</th>
+ <th className="p-3 md:p-3">المستحق</th>
+ <th className="p-3 md:p-3 text-left pr-10">إجراءات</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-slate-100">
  {(filteredInvoices || []).length === 0 ? (
- <tr key="empty-state"><td colSpan={6} className="py-20 px-4 text-center">
+ <tr key="empty-state">
+ <td colSpan={6} className="py-20 px-4 text-center">
  <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
  <div className="w-24 h-24 mb-6 rounded-3xl bg-primary/5 flex items-center justify-center text-primary/40 relative">
  <div className="absolute inset-0 bg-primary/10 rounded-3xl animate-ping opacity-20" />
  <TrendingUp size={48} />
  </div>
- <h3 className="text-xl md:text-3xl font-black text-slate-900 mb-3 tracking-tight">لا توجد فواتير!</h3>
+ <h3 className="text-xl md:text-3xl font-black text-slate-800 mb-3 tracking-tight">لا توجد فواتير!</h3>
  <p className="text-slate-500 font-bold mb-8 leading-relaxed">لم تقم بإصدار أي فاتورة حتى الآن. أضف أول فاتورة لتطلق العنان لتحليلات الذكاء الاصطناعي.</p>
  {!isPartner && (
   <button 
   onClick={() => { if(onEditInvoice) onEditInvoice('new'); }} 
-  className="bg-primary text-white hover:bg-primary/90 px-5 md:px-6 py-3 rounded-2xl font-bold flex items-center gap-3 shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-primary/20 hover:-translate-y-1 transition-all active:scale-[0.98] transition-all duration-200 hover:rotate-1 mx-auto"
+  className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1 mx-auto"
   >
   <Plus size={24} />
   <span>ابدأ رحلتك وضيف أول فاتورة الآن!</span>
@@ -865,18 +940,19 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  isExpanded &&"bg-slate-50/50",
  shakingId === inv.id &&"bg-red-50/50"
 )}
- ><td className="p-4 md:p-5 lg:p-6 font-bold text-primary flex items-center gap-2">
+ >
+ <td className="p-3 md:p-3 font-bold text-primary flex items-center gap-2">
  {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
  #{inv.id}
  </td>
- <td className="p-4 md:p-5 lg:p-6">
- <div className="font-bold text-slate-900">{customer?.name || (inv as any).customerName || (inv.customerId ? `عميل #${inv.customerId.slice(-4)}` : 'عميل عام (غير مسجل)')}</div>
- <div className="text-[11px] sm:text-xs text-slate-500 font-medium">{customer?.phone || (inv as any).customerPhone}</div>
+ <td className="p-3 md:p-3">
+ <div className="font-bold text-slate-800">{customer?.name || (inv as any).customerName || (inv.customerId ? `عميل #${inv.customerId.slice(-4)}` : 'عميل عام (غير مسجل)')}</div>
+ <div className="text-[10px] text-slate-400 font-medium">{customer?.phone || (inv as any).customerPhone}</div>
  </td>
- <td className="p-4 md:p-5 lg:p-6 text-slate-500 text-xs font-bold">
+ <td className="p-3 md:p-3 text-slate-500 text-xs font-bold">
  <div className="flex flex-col gap-1 items-start">
  <span>{new Date(inv.date).toLocaleDateString('en-GB')}</span>
- <span dir="ltr" className="text-[9px] font-medium text-slate-500 m-0 p-0 leading-none inline-block text-left">{new Date(inv.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+ <span dir="ltr" className="text-[9px] font-medium text-slate-400 m-0 p-0 leading-none inline-block text-left">{new Date(inv.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
  <span className={cn(
 "px-2 py-0.5 rounded-md font-black text-[9px] uppercase",
  inv.deliveryType === 'standard' ?"bg-emerald-50 text-emerald-500" :
@@ -890,13 +966,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </span>
  </div>
  </td>
- <td className="p-4 md:p-5 lg:p-6">
+ <td className="p-3 md:p-3">
  <div className="flex flex-col gap-2 items-start">
- <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[11px] sm:text-xs font-bold uppercase">
+ <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase">
  {inv.paymentMethod}
  </span>
     <div className={cn(
-   "px-3 py-1 text-[11px] sm:text-xs font-black rounded-lg transition-all w-fit",
+   "px-3 py-1 text-[10px] font-black rounded-lg transition-all w-fit",
    (isPaidStatus(inv.paymentStatus as string) || isPaidStatus((inv as any).status)) ?"bg-emerald-100 text-emerald-700" : ((isCancelledStatus(inv.paymentStatus as string) || isCancelledStatus((inv as any).status)) ? "bg-rose-100 text-rose-700" : (isFailedStatus(inv.paymentStatus as string) || isFailedStatus((inv as any).status)) ? "bg-amber-100 text-amber-700" : String((inv as any).status).includes('تجميع القطية') || String(inv.paymentStatus).includes('تجميع القطية') ? "bg-purple-100 text-purple-700" : "bg-violet-100 text-violet-700")
   )}
     >
@@ -904,17 +980,17 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
     </div>
  </div>
  </td>
- <td className="p-4 md:p-5 lg:p-6 font-bold text-slate-900 group-hover:text-primary transition-colors">
+ <td className="p-3 md:p-3 font-black text-slate-900 group-hover:text-primary transition-colors">
  <div className="flex flex-col items-start gap-1">
  <span>{Math.max(0, Number(typeof inv.totalAmount === 'number' ? inv.totalAmount : ((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : ((data?.products || []).find(p => p.id === item.productId)?.price || 0))) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
  {(inv.discount || 0) > 0 && (
- <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 whitespace-nowrap">
+ <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 whitespace-nowrap">
  خصم مفعّل {inv.appliedPromoCodeName ? `(${inv.appliedPromoCodeName})` : ''}
  </span>
 )}
  </div>
  </td>
- <td className="p-4 md:p-5 lg:p-6 text-left">
+ <td className="p-3 md:p-3 text-left">
  <div className="flex items-center gap-2 justify-end">
  <button 
  onClick={(e) => { 
@@ -926,14 +1002,14 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
      import('sonner').then(m => m.toast.error('لا يمكن فتح واتساب لعدم توفر رقم عميل'));
    }
  }}
- className="p-2 hover:bg-emerald-50 rounded-lg text-slate-500 hover:text-emerald-500 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+ className="p-2 hover:bg-emerald-50 rounded-lg text-slate-400 hover:text-emerald-500 transition-colors"
  title="إرسال الفاتورة عبر واتساب"
  >
  <MessageSquare size={16} />
  </button>
  <button 
  onClick={(e) => { e.stopPropagation(); handlePrint(inv); }}
- className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-600 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+ className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
  title="طباعة"
  >
  <Printer size={16} />
@@ -942,7 +1018,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   <>
   <button 
   onClick={(e) => { e.stopPropagation(); handleEditInvoice(inv); }}
-  className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-600 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+  className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
   title="تعديل"
   >
   <Edit2 size={16} />
@@ -952,7 +1028,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   e.stopPropagation();
   setInvoiceToDelete(inv.id);
   }}
-  className="p-2 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-500 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+  className="p-2 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-500 transition-colors"
   title="حذف"
   >
   <Trash2 size={16} />
@@ -964,16 +1040,17 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </motion.tr>
  <AnimatePresence>
  {isExpanded && (
- <tr key={`details-${inv.id}`}><td colSpan={6} className="p-0">
+ <tr key={`details-${inv.id}`}>
+ <td colSpan={6} className="p-0">
  <motion.div 
  initial={{ height: 0, opacity: 0 }}
  animate={{ height: 'auto', opacity: 1 }}
  exit={{ height: 0, opacity: 0 }}
- className="bg-slate-50/80 px-4 py-4 md:px-8 md:py-6 border-b border-slate-200/60"
+ className="bg-slate-50/80 px-4 py-4 md:px-8 md:py-6 border-b border-slate-100"
  >
- <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4 md:p-5 mt-4">
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4 md:p-3 mt-4">
  <div>
- <h4 className="text-[11px] sm:text-xs font-bold uppercase text-slate-500 mb-4 flex items-center gap-2">
+ <h4 className="text-[10px] font-black uppercase text-slate-400 mb-4 flex items-center gap-2">
  <Package size={12} /> محتويات الطلب
  </h4>
  <div className="space-y-2">
@@ -981,18 +1058,18 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   const product = (data?.products || []).find(p => p.id === item.productId);
   const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (product?.price || 0));
  return (
- <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-200/60">
+ <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100">
  <div className="flex flex-col">
  <span className="font-bold text-sm">{product?.name || 'منتج غير معروف'}</span>
  {item.itemNotes && (
- <span className="text-[11px] sm:text-xs text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded mt-1 inline-block w-fit">
+ <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded mt-1 inline-block w-fit">
  ملاحظة: {item.itemNotes}
  </span>
 )}
  </div>
- <div className="flex gap-4 text-[11px] sm:text-xs md:text-xs font-bold items-center">
- <span className="text-slate-500">الكمية: {item.quantity} × {Number(price || 0).toFixed(3)}</span>
- <span className="text-primary font-bold">{(Number(price || 0) * (item.quantity || 1)).toFixed(3)} د.ك</span>
+ <div className="flex gap-4 text-[10px] md:text-xs font-bold items-center">
+ <span className="text-slate-400">الكمية: {item.quantity} × {Number(price || 0).toFixed(3)}</span>
+ <span className="text-primary font-black">{(Number(price || 0) * (item.quantity || 1)).toFixed(3)} د.ك</span>
  </div>
  </div>
  );
@@ -1001,7 +1078,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  
  {inv.notes && inv.notes !== '---' && (typeof inv.notes === 'string' ? inv.notes.trim() : '') !== '' && (
  <div className="mt-4 bg-amber-50/80 border border-amber-100 p-3 rounded-xl">
- <h4 className="text-[11px] sm:text-xs font-bold uppercase text-amber-600 mb-2 flex items-center gap-2">
+ <h4 className="text-[10px] font-black uppercase text-amber-600 mb-2 flex items-center gap-2">
  <FileText size={12} /> ملاحظات عامة للطلب
  </h4>
  <p className="text-sm font-bold text-amber-900 leading-relaxed italic pr-3 border-r-2 border-amber-300">
@@ -1012,32 +1089,32 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
 
  {(inv as any).splitType === 'traditional' && Array.isArray((inv as any).splitPayments) && (inv as any).splitPayments.length > 0 && (
  <div className="mt-4 bg-purple-50/50 border border-purple-100 p-3 md:p-4 rounded-xl">
- <h4 className="text-[12px] font-bold uppercase text-purple-600 mb-3 flex items-center gap-2">
+ <h4 className="text-[12px] font-black uppercase text-purple-600 mb-3 flex items-center gap-2">
  <Users className="w-4 h-4" /> المشاركين بالقطية
  </h4>
  <div className="space-y-2">
  {((inv as any).splitPayments).map((sp: any, i: number) => (
- <div key={i} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-purple-50 shadow-sm min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <div key={i} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-purple-50 shadow-sm">
  <div className="flex flex-col">
- <span className="font-bold text-sm text-slate-900">{sp.name || 'مشارك'}</span>
- <span className="text-[11px] sm:text-xs text-slate-500">{sp.phone || 'بدون رقم'}</span>
+ <span className="font-bold text-sm text-slate-800">{sp.name || 'مشارك'}</span>
+ <span className="text-[10px] text-slate-500">{sp.phone || 'بدون رقم'}</span>
  </div>
  <div className="flex flex-col items-end gap-1">
- <span className="font-bold text-primary">{Number(sp.amount || 0).toFixed(3)} د.ك</span>
+ <span className="font-black text-primary">{Number(sp.amount || 0).toFixed(3)} د.ك</span>
  {sp.status === 'paid' ? (
- <span className="text-[11px] sm:text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
  <CheckCircle2 className="w-3 h-3" /> مدفوع
  </span>
  ) : isCancelledStatus(sp.status) ? (
- <span className="text-[11px] sm:text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
  <XCircle className="w-3 h-3" /> ملغي
  </span>
  ) : sp.status === 'failed' ? (
- <span className="text-[11px] sm:text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
  <AlertCircle className="w-3 h-3" /> فشل الدفع
  </span>
  ) : (
- <span className="text-[11px] sm:text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+ <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
  <Clock className="w-3 h-3" /> بانتظار الدفع
  </span>
  )}
@@ -1051,22 +1128,22 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  {(inv as any).splitType === 'roulette' && Array.isArray((inv as any).splitParticipants) && (inv as any).splitParticipants.length > 0 && (
  <div className="mt-4 bg-purple-100 border-2 border-purple-400 p-4 rounded-xl shadow-inner relative overflow-hidden">
  <div className="absolute -right-4 -top-4 opacity-10 pointer-events-none text-9xl">🎲</div>
- <h4 className="text-sm font-bold uppercase text-purple-900 mb-4 flex items-center gap-2">
+ <h4 className="text-sm font-black uppercase text-purple-900 mb-4 flex items-center gap-2">
  <Dices className="w-5 h-5 text-purple-600" /> روليت الحظ
  </h4>
  
  <div className="bg-white rounded-xl p-3 border-2 border-purple-200 mb-3 text-center">
- <div className="text-[11px] sm:text-xs font-bold text-purple-400 mb-1">بطل الليلة (الخاسر اللي دفعها)</div>
+ <div className="text-[10px] font-bold text-purple-400 mb-1">بطل الليلة (الخاسر اللي دفعها)</div>
  <div className="text-lg font-black text-purple-700">{(inv as any).rouletteLoser || 'غير معروف'}</div>
  </div>
 
  <div className="space-y-1">
- <div className="text-[11px] sm:text-xs font-bold text-purple-600 mb-2">المشاركون باللعب:</div>
+ <div className="text-[10px] font-bold text-purple-600 mb-2">المشاركون باللعب:</div>
  <div className="flex flex-wrap gap-2">
  {((inv as any).splitParticipants).map((pName: any, idx: number) => {
  const pVal = typeof pName === 'object' ? `${pName.name || 'مجهول'} ${pName.phone ? `(${pName.phone})` : ''}` : pName;
  return (
- <span key={idx} className="bg-white/60 text-purple-800 text-[11px] sm:text-xs font-bold px-2 py-1 rounded-md border border-purple-200">
+ <span key={idx} className="bg-white/60 text-purple-800 text-[10px] font-bold px-2 py-1 rounded-md border border-purple-200">
  {pVal}
  </span>
  );
@@ -1077,9 +1154,9 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  )}
  </div>
  <div className="flex flex-col justify-center gap-4">
- <div className="bg-white p-3 rounded-xl md:rounded-2xl border border-slate-200/60 space-y-2">
+ <div className="bg-white p-3 rounded-2xl border border-slate-100 space-y-2">
  <div className="flex justify-between text-xs font-bold">
- <span className="text-slate-500">المجموع:</span>
+ <span className="text-slate-400">المجموع:</span>
  <span>{Number(((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : ((data?.products || []).find(p => p.id === item.productId)?.price || 0))) || 0) * (item.quantity || 1), 0))).toFixed(3)} د.ك</span>
  </div>
  {(inv.discount || 0) > 0 && (
@@ -1089,13 +1166,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </div>
 )}
  <div className="flex justify-between text-xs font-bold">
- <span className="text-slate-500">التوصيل
+ <span className="text-slate-400">التوصيل
  {inv.deliveryInfo?.zoneName ? ` (${inv.deliveryInfo.zoneName})` : ''}
  {inv.deliveryInfo?.company ? ` - ${inv.deliveryInfo.company}` : ''}
  :</span>
  <span>{Number(inv.deliveryFee || 0).toFixed(3)} د.ك</span>
  </div>
- <div className="flex justify-between text-base font-bold border-t pt-2 mt-2">
+ <div className="flex justify-between text-base font-black border-t pt-2 mt-2">
  <span>الإجمالي:</span>
  <span className="text-primary">{Math.max(0, Number(typeof inv.totalAmount === 'number' ? inv.totalAmount : ((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : ((data?.products || []).find(p => p.id === item.productId)?.price || 0))) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
  </div>
@@ -1112,7 +1189,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  })}
  {filteredInvoices.length === 0 && (
  <tr>
- <td colSpan={6} className="p-3 md:p-4 md:p-5 md:p-4 text-center text-slate-500 font-bold italic">
+ <td colSpan={6} className="p-3 md:p-4 md:p-3 md:p-4 text-center text-slate-400 font-bold italic">
  لا توجد فواتير مطابقة للبحث.
  </td>
  </tr>

@@ -229,7 +229,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  {/* Header */}
  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 text-right">
  <div className="order-2 md:order-1 flex-1">
- <h1 className="text-xl md:text-3xl font-extrabold text-slate-900 flex items-center gap-2 justify-end">
+ <h1 className="text-xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-2 justify-end">
  إدارة العملاء
  <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center shadow-sm">
  <Users className="text-indigo-600" />
@@ -240,7 +240,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  </div>
 
  {/* Stats Cards */}
- <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 mb-3 md:mb-0 md:p-5">
+ <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 mb-3 md:mb-0 md:p-3">
  <StatCard label="إجمالي المسجلين" value={totalCustomers} icon={<Users size={16} className="md:w-5 md:h-5" />} color="blue" description="كامل قاعدة البيانات" />
  <StatCard label="كبار الشخصيات (VIP)" value={vipCustomers} icon={<Crown size={16} className="md:w-5 md:h-5" />} color="accent" description="أكثر من 800 د.ك أو 20 طلب" />
  <StatCard label="عملاء متباطئون" value={slowCustomers} icon={<Clock size={16} className="md:w-5 md:h-5" />} color="amber" description="منذ 30 إلى 90 يوم" />
@@ -261,24 +261,24 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 )}
  </AnimatePresence>
 
- <div className="bg-white rounded-3xl p-4 md:p-5 lg:p-6 border border-slate-200 shadow-sm">
+ <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200 shadow-sm">
  <div className="flex flex-col md:flex-row md:items-center gap-2 mb-6">
  <div className="relative flex-1 flex flex-col gap-2">
  <div className="relative">
- <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+ <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
  <input 
  id="search-input"
  type="text" 
  placeholder="ابحث بالاسم أو رقم الهاتف..."
  value={search}
  onChange={(e) => setSearch(e.target.value)}
- className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
+ className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
  />
  </div>
   <div className="flex gap-2">
   <button 
   onClick={openAddModal}
-  className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-primary/20 transition-all active:scale-[0.98] flex-1"
+  className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] flex-1"
   >
   <UserPlus size={20} />
   <span>إضافة عميل جديد</span>
@@ -288,7 +288,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  </div>
  
  <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full lg:w-auto">
- <div className="flex overflow-x-auto custom-scrollbar bg-slate-100 p-1.5 rounded-2xl gap-1 border border-slate-200 w-full max-w-full sm:w-auto min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <div className="flex overflow-x-auto hide-scrollbar bg-slate-100 p-1.5 rounded-2xl gap-1 border border-slate-200 w-full sm:w-auto">
  {[
  { id: 'all', label: 'الكل', icon: <Users size={14} /> },
  { id: 'vip', label: 'VIP', icon: <Crown size={14} className="text-accent" /> },
@@ -317,7 +317,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  <select 
  value={sentimentFilter}
  onChange={(e) => setSentimentFilter(e.target.value)}
- className="bg-slate-100 border border-slate-200 rounded-2xl py-2.5 pr-10 pl-4 w-full text-xs font-bold text-slate-600 outline-none cursor-pointer hover:bg-slate-200 transition-all appearance-none"
+ className="bg-slate-100 border border-slate-200 rounded-2xl py-2.5 pr-10 pl-4 w-full text-xs font-black text-slate-600 outline-none cursor-pointer hover:bg-slate-200 transition-all appearance-none"
  >
  <option value="all">كل المشاعر</option>
  <option value="positive">سعيد جداً 😊</option>
@@ -328,10 +328,10 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  </div>
  </div>
 
- <div className="overflow-x-auto w-full max-w-full rounded-2xl md:rounded-3xl border border-slate-200">
+ <div className="overflow-x-auto rounded-3xl border border-slate-200">
  <table className="w-full text-right min-w-[800px]" dir="rtl">
  <thead>
- <tr className="bg-slate-50 border-b border-slate-200/60 font-bold text-slate-500 text-xs uppercase tracking-wider text-right">
+ <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-400 text-xs uppercase tracking-wider text-right">
  <th className="p-3 mr-2">الاسم</th>
  <th className="p-3">إجمالي الفواتير</th>
  <th className="p-3">رقم الهاتف</th>
@@ -349,11 +349,11 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  <div className="absolute inset-0 bg-primary/10 rounded-3xl animate-ping opacity-20" />
  <Users size={48} />
  </div>
- <h3 className="text-xl md:text-3xl font-black text-slate-900 mb-3 tracking-tight">لا يوجد عملاء!</h3>
+ <h3 className="text-xl md:text-3xl font-black text-slate-800 mb-3 tracking-tight">لا يوجد عملاء!</h3>
  <p className="text-slate-500 font-bold mb-8 leading-relaxed">قائمة عملائك فارغة. أضف أول عميل وابدأ ببناء قاعدة ذهبية لولاء العملاء.</p>
  <button 
  onClick={() => setShowModal(true)} 
- className="bg-primary text-white hover:bg-primary/90 px-5 md:px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-primary/20 hover:-translate-y-1 transition-all active:scale-[0.98] transition-all duration-200 hover:rotate-1 mx-auto"
+ className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1 mx-auto"
  >
  <Plus size={24} />
  <span>ابدأ رحلتك وضيف أول عميل الآن!</span>
@@ -393,26 +393,26 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  {customer.name}
  </span>
  {(getCustomerStats(customer.id).totalSpent >= 1000 && getCustomerStats(customer.id).totalOrders >= 10) && (
- <span className="bg-accent/10 text-accent-dark text-[11px] sm:text-xs font-bold px-2 py-0.5 rounded-full border border-accent/20 flex items-center gap-1">
+ <span className="bg-accent/10 text-accent-dark text-[10px] font-black px-2 py-0.5 rounded-full border border-accent/20 flex items-center gap-1">
  <Crown size={10} />
  VIP
  </span>
 )}
  </div>
  </td>
- <td className="p-3 font-bold text-slate-900 border-l border-slate-50">
+ <td className="p-3 font-black text-slate-900 border-l border-slate-50">
  {Number(stats.totalSpent || 0).toFixed(3)} د.ك
  </td>
  <td className="p-3">
  <div className="flex items-center gap-2 text-slate-600 font-medium">
- <Phone size={14} className="text-slate-500" />
+ <Phone size={14} className="text-slate-400" />
  {customer.phone}
  </div>
  </td>
  <td className="p-3">
  <div className="flex flex-col gap-1 items-end">
  <span className={cn(
-"px-3 py-1 rounded-full text-[11px] sm:text-xs font-black uppercase w-fit",
+"px-3 py-1 rounded-full text-[10px] font-black uppercase w-fit",
  (customer.status === 'active') ?"bg-green-100 text-green-700" : 
  (customer.status === 'slow') ?"bg-amber-100 text-amber-700" : 
 "bg-red-100 text-red-700"
@@ -420,7 +420,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  {customer.status === 'active' ? 'نشط' : customer.status === 'slow' ? 'متباطئ' : 'منقطع'}
  </span>
  {customer.status === 'inactive' && (
- <div className="bg-red-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 w-fit animate-pulse border border-red-800 shadow-md">
+ <div className="bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1 w-fit animate-pulse border border-red-800 shadow-md">
  <AlertCircle size={10} />
  <span>صياد العملاء</span>
  </div>
@@ -429,7 +429,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  </td>
  <td className="p-3">
  <div className="flex flex-col items-end gap-1">
- <div className="flex items-center gap-2 font-bold text-rose-500 bg-rose-50 px-3 py-1 rounded-xl border border-rose-100 w-fit">
+ <div className="flex items-center gap-2 font-black text-rose-500 bg-rose-50 px-3 py-1 rounded-xl border border-rose-100 w-fit">
  <Heart size={14} fill="currentColor" />
  {Math.floor(stats.totalSpent || 0)} نقطة
  </div>
@@ -437,10 +437,10 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  </td>
  <td className="p-3">
  <div className={cn(
-"flex items-center gap-2 px-3 py-1 rounded-xl border text-[11px] sm:text-xs font-black w-fit",
+"flex items-center gap-2 px-3 py-1 rounded-xl border text-[10px] font-black w-fit",
  customer.sentiment === 'positive' ?"bg-green-50 text-green-600 border-green-100" :
  customer.sentiment === 'negative' ?"bg-red-50 text-red-600 border-red-100" :
-"bg-slate-50 text-slate-500 border-slate-200/60"
+"bg-slate-50 text-slate-500 border-slate-100"
 )}>
  {customer.sentiment === 'positive' ? 'سعيد جداً' : customer.sentiment === 'negative' ? 'غير راضٍ' : 'محايد'}
  </div>
@@ -462,7 +462,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  
  window.open(`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
  }}
- className="p-2 bg-pink-50 hover:bg-pink-100 rounded-lg text-pink-500 hover:text-pink-600 transition-all active:scale-90 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+ className="p-2 bg-pink-50 hover:bg-pink-100 rounded-lg text-pink-500 hover:text-pink-600 transition-all active:scale-90"
  >
  <Gift size={18} />
  </button>
@@ -488,61 +488,61 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
      initial={{ opacity: 0, scale: 0.9, y: 40 }}
      animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95, y: 20 }}
- className="bg-white rounded-3xl lg:rounded-[2rem] w-full max-w-[95%] sm:max-w-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-0 border border-slate-200/60 flex flex-col max-h-[90dvh] overflow-hidden"
+ className="bg-white rounded-[32px] w-[min(96vw,720px)] shadow-2xl p-0 border border-slate-100 flex flex-col max-h-[90dvh] overflow-hidden"
  onClick={e => e.stopPropagation()}
  >
- <div className="p-4 md:p-5 lg:p-6 pb-0 shrink-0">
- <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2 justify-end text-right">
+ <div className="p-3 md:p-3 pb-0 shrink-0">
+ <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2 justify-end text-right">
  {editingId ? 'تعديل بيانات العميل' : 'إضافة عميل جديد'}
  <UserPlus className="text-primary" />
  </h2>
  </div>
 
- <div className="overflow-y-auto custom-scrollbar flex-1 p-4 md:p-5 lg:p-6 pt-4 min-h-0">
+ <div className="overflow-y-auto custom-scrollbar flex-1 p-3 md:p-3 pt-4 min-h-0">
  <div className="space-y-6 text-right">
  <div className="space-y-2">
- <label className="text-xs font-bold text-slate-500 uppercase mr-1 block">اسم العميل بالكامل</label>
+ <label className="text-xs font-black text-slate-400 uppercase mr-1 block">اسم العميل بالكامل</label>
  <input 
  type="text" 
  value={customerForm.name}
  onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
- className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-900 text-right"
+ className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right"
  placeholder="أدخل الاسم..."
  />
  </div>
  <div className="space-y-2">
- <label className="text-xs font-bold text-slate-500 uppercase mr-1 block">رقم الهاتف الكويتي</label>
+ <label className="text-xs font-black text-slate-400 uppercase mr-1 block">رقم الهاتف الكويتي</label>
  <NumericInput 
  value={customerForm.phone}
  onChange={(val) => setCustomerForm({ ...customerForm, phone: val.toString() })}
- className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-900 text-right font-mono"
+ className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right font-mono"
  placeholder="99XXXXXX"
  maxLength={8}
  />
  </div>
  <div className="space-y-2">
- <label className="text-xs font-bold text-slate-500 uppercase mr-1 block">المنطقة</label>
+ <label className="text-xs font-black text-slate-400 uppercase mr-1 block">المنطقة</label>
  <input 
  type="text" 
  value={customerForm.area}
  onChange={(e) => setCustomerForm({ ...customerForm, area: e.target.value })}
- className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-900 text-right"
+ className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right"
  placeholder="أدخل المنطقة (اختياري)..."
  />
  </div>
  <div className="space-y-2">
- <label className="text-xs font-bold text-slate-500 uppercase mr-1 block">العنوان والتفاصيل</label>
+ <label className="text-xs font-black text-slate-400 uppercase mr-1 block">العنوان والتفاصيل</label>
  <textarea 
  value={customerForm.address}
  onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
- className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-900 text-right resize-none h-20"
+ className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right resize-none h-20"
  placeholder="أدخل العنوان والتفاصيل كاملة (اختياري)..."
  />
  </div>
  </div>
  </div>
  
- <div className="flex gap-2 p-4 md:p-5 lg:p-6 shrink-0 mt-auto border-t border-slate-50">
+ <div className="flex gap-2 p-3 md:p-3 shrink-0 mt-auto border-t border-slate-50">
  <button 
  onClick={closeModal}
  className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-2xl transition-all"
@@ -551,7 +551,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  </button>
  <button 
  onClick={handleSaveCustomer}
- className="flex-1 py-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-2xl transition-all shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-primary/20 active:scale-[0.98] transition-all duration-200"
+ className="flex-1 py-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-2xl transition-all shadow-lg shadow-primary/20 active:scale-95"
  >
  تأكيد العملية
  </button>
@@ -574,31 +574,31 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  initial={{ opacity: 0, y: 30, scale: 0.95 }}
  animate={{ opacity: 1, y: 0, scale: 1 }}
  exit={{ opacity: 0, y: 30, scale: 0.95 }}
- className="bg-white rounded-3xl lg:rounded-[2rem] w-full max-w-[95%] sm:max-w-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-0 border border-slate-200/60 max-h-[90dvh] flex flex-col overflow-hidden"
+ className="bg-white rounded-[40px] w-[95%] max-w-2xl shadow-2xl p-0 border border-slate-100 max-h-[90dvh] flex flex-col overflow-hidden"
  onClick={e => e.stopPropagation()}
  >
- <div className="p-4 md:p-5 lg:p-6 pb-4 border-b border-slate-200/60 flex items-center justify-between flex-row-reverse text-right shrink-0">
+ <div className="p-3 md:p-3 pb-4 border-b border-slate-100 flex items-center justify-between flex-row-reverse text-right shrink-0">
  <div className="text-right">
- <h2 className="text-xl md:text-2xl font-black text-slate-900 leading-snug">سجل فواتير العميل</h2>
+ <h2 className="text-xl md:text-2xl font-black text-slate-800 leading-tight">سجل فواتير العميل</h2>
  <p className="font-bold text-primary text-sm">{selectedCustomerInvoices.name}</p>
  </div>
- <button onClick={() => setSelectedCustomerInvoices(null)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <button onClick={() => setSelectedCustomerInvoices(null)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
  <X />
  </button>
  </div>
 
- <div className="flex-1 min-w-0 overflow-y-auto min-h-0 p-4 md:p-5 lg:p-6 space-y-4 custom-scrollbar">
+ <div className="flex-1 overflow-y-auto min-h-0 p-3 md:p-3 space-y-4 custom-scrollbar">
  {selectedCustomerInvoices.invoices.length === 0 && (
  <SmartEmptyState subtitle="لا توجد فواتير سابقة لهذا العميل." className="py-20" />
 )}
  {(selectedCustomerInvoices.invoices || []).map((inv) => (
- <div key={inv.id} className="bg-slate-50/50 border border-slate-200/60/60 rounded-3xl p-4 md:p-5 lg:p-6 hover:bg-white hover:border-primary/30 transition-all hover:shadow-md text-right cursor-default"
+ <div key={inv.id} className="bg-slate-50 border border-slate-100 rounded-3xl p-3 md:p-3 hover:bg-white hover:border-primary/30 transition-all hover:shadow-md text-right cursor-default"
  >
  <div className="flex justify-between items-start mb-4 gap-2">
  <div className="flex flex-col gap-2 shrink-0">
  <div className="text-left">
  <div className="text-lg md:text-xl font-black text-slate-900">{Number(inv.totalAmount || 0).toFixed(3)} د.ك</div>
- <div className="text-[11px] sm:text-xs text-slate-500 font-bold uppercase">{inv.paymentMethod}</div>
+ <div className="text-[10px] text-slate-400 font-bold uppercase">{inv.paymentMethod}</div>
  </div>
  <button
  onClick={(e) => {
@@ -612,15 +612,15 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  }
  });
  }}
- className="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 hover:bg-indigo-100 transition-colors text-xs font-bold shadow-sm"
+ className="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 hover:bg-indigo-100 transition-colors text-xs font-black shadow-sm"
  >
  <Printer size={12} />
  طباعة
  </button>
  </div>
  <div className="text-right">
- <div className="font-black text-slate-900 text-base md:text-lg">فاتورة #{inv.id}</div>
- <div className="text-[11px] sm:text-xs md:text-xs text-slate-500 font-bold">{new Date(inv.date).toLocaleString('en-GB')}</div>
+ <div className="font-black text-slate-800 text-base md:text-lg">فاتورة #{inv.id}</div>
+ <div className="text-[10px] md:text-xs text-slate-400 font-bold">{new Date(inv.date).toLocaleString('en-GB')}</div>
  </div>
  </div>
  <div className="flex flex-wrap gap-2 justify-end pt-4 border-t border-slate-200/50">
@@ -634,7 +634,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  }, {})).map((item: any, idx: number) => {
  const product = (data?.products || []).find(p => p.id === item.productId);
  return (
- <span key={idx} className="bg-white border border-slate-200/60 px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold text-slate-500">
+ <span key={idx} className="bg-white border border-slate-200/60 px-2 py-1 rounded-lg text-[10px] font-bold text-slate-500">
  {product?.name || 'منتج'} ({item.quantity || 0})
  </span>
 );
@@ -644,10 +644,10 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 ))}
  </div>
  
- <div className="p-4 md:p-5 lg:p-6 shrink-0 mt-auto border-t border-slate-200/60">
+ <div className="p-3 md:p-3 shrink-0 mt-auto border-t border-slate-100">
  <button 
  onClick={() => setSelectedCustomerInvoices(null)}
- className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] active:scale-[0.98] transition-all duration-200 transition-all"
+ className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl shadow-xl active:scale-95 transition-all"
  >
  إغلاق السجل
  </button>
@@ -683,32 +683,32 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  initial={{ opacity: 0, scale: 0.9, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.9, y: 20 }}
- className="bg-white rounded-2xl w-full max-w-[95%] sm:max-w-lg shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-0 border border-slate-200/60 text-right relative flex flex-col max-h-[90dvh] overflow-hidden"
+ className="bg-white rounded-2xl w-[95%] max-w-lg shadow-2xl p-0 border border-slate-100 text-right relative flex flex-col max-h-[90dvh] overflow-hidden"
  onClick={e => e.stopPropagation()}
  >
  <div className="p-3 pb-3 shrink-0 border-b border-slate-50 flex items-center justify-between flex-row-reverse">
- <h2 className="text-lg md:text-2xl font-black text-slate-900 flex items-center gap-2 justify-end text-right">
+ <h2 className="text-lg md:text-2xl font-black text-slate-800 flex items-center gap-2 justify-end text-right">
  <Sparkles className="text-indigo-500 shrink-0" size={20} />
  تحليل المستشار الذكي
  </h2>
  <button 
  onClick={() => setAnalyzingCustomer(null)}
- className="p-1.5 hover:bg-slate-100 rounded-full text-slate-500 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+ className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
  >
  <X size={20} />
  </button>
  </div>
  
- <div className="flex-1 min-w-0 overflow-y-auto min-h-0 custom-scrollbar p-2 md:p-5 space-y-2 md:space-y-4 pt-2 md:pt-4">
- <div className="bg-slate-50 p-2 md:p-5 rounded-xl border border-slate-200/60 text-indigo-600 font-bold text-xs md:text-sm min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar p-2 md:p-3 space-y-2 md:space-y-4 pt-2 md:pt-4">
+ <div className="bg-slate-50 p-2 md:p-3 rounded-xl border border-slate-100 text-indigo-600 font-bold text-xs md:text-sm">
  جاري تحليل بيانات العميل: {analyzingCustomer.name}
  </div>
  {(() => {
  const custInvoices = activeInvoices.filter(inv => inv.customerId === analyzingCustomer.id);
  if (custInvoices.length === 0) {
  return (
- <div className="p-4 md:p-5 lg:p-6 text-center bg-slate-50/50 border border-slate-200/60/60 rounded-2xl">
- <AlertCircle className="mx-auto mb-4 text-slate-500" size={32} />
+ <div className="p-3 md:p-3 text-center bg-slate-50 border border-slate-100 rounded-2xl">
+ <AlertCircle className="mx-auto mb-4 text-slate-400" size={32} />
  <p className="text-slate-500 font-bold mb-4">لا توجد بيانات كافية للتحليل. العميل لم يقم بأي طلبات سابقة موثقة في النظام.</p>
  </div>
 );
@@ -767,22 +767,22 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 
  return (
  <>
- <div className="p-4 md:p-5 lg:p-6 bg-indigo-50 border border-indigo-100 rounded-2xl text-right">
- <h4 className="text-[11px] sm:text-xs font-bold text-indigo-400 uppercase mb-2">💡 التوصية الذكية للمستشار</h4>
- <p className="text-sm font-bold text-slate-900 mb-2">{analyzingCustomer.name}</p>
+ <div className="p-3 md:p-3 bg-indigo-50 border border-indigo-100 rounded-2xl text-right">
+ <h4 className="text-[10px] font-bold text-indigo-400 uppercase mb-2">💡 التوصية الذكية للمستشار</h4>
+ <p className="text-sm font-black text-slate-800 mb-2">{analyzingCustomer.name}</p>
  <div className="text-sm text-indigo-900 leading-relaxed font-medium whitespace-pre-line">
  {logicText}
  </div>
  </div>
 
  <div className="grid grid-cols-2 gap-1.5 md:gap-2 mt-4 md:mt-6">
- <div className="p-2 md:p-5 bg-emerald-50 rounded-xl md:rounded-xl md:rounded-2xl border border-emerald-100 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
- <div className="text-[9px] md:text-[11px] sm:text-xs text-emerald-600 font-bold mb-0.5 md:mb-1">صافي الربح التراكمي</div>
- <div className="text-xs md:text-sm font-bold text-emerald-900">{Number(totalLifetimeProfit || 0).toFixed(2)} د.ك</div>
+ <div className="p-2 md:p-3 bg-emerald-50 rounded-xl md:rounded-2xl border border-emerald-100">
+ <div className="text-[9px] md:text-[10px] text-emerald-600 font-bold mb-0.5 md:mb-1">صافي الربح التراكمي</div>
+ <div className="text-xs md:text-sm font-black text-emerald-900">{Number(totalLifetimeProfit || 0).toFixed(2)} د.ك</div>
  </div>
- <div className="p-2 md:p-5 bg-sky-50 rounded-xl md:rounded-xl md:rounded-2xl border border-sky-100 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
- <div className="text-[9px] md:text-[11px] sm:text-xs text-sky-600 font-bold mb-0.5 md:mb-1">القيمة الحياتية (LTV)</div>
- <div className="text-xs md:text-sm font-bold text-sky-900">{Number(totalLifetimeRevenue || 0).toFixed(2)} د.ك</div>
+ <div className="p-2 md:p-3 bg-sky-50 rounded-xl md:rounded-2xl border border-sky-100">
+ <div className="text-[9px] md:text-[10px] text-sky-600 font-bold mb-0.5 md:mb-1">القيمة الحياتية (LTV)</div>
+ <div className="text-xs md:text-sm font-black text-sky-900">{Number(totalLifetimeRevenue || 0).toFixed(2)} د.ك</div>
  </div>
  </div>
 
@@ -796,7 +796,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  window.open(`https://wa.me/${phoneSafe}?text=${encodeURIComponent(actionMsg)}`,"_blank");
  setAnalyzingCustomer(null);
  }}
- className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 transition-colors flex items-center justify-center gap-2 text-sm shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-indigo-600/30"
+ className="w-full py-3 bg-indigo-600 text-white font-black rounded-xl hover:bg-indigo-500 transition-colors flex items-center justify-center gap-2 text-sm shadow-xl shadow-indigo-600/30"
  >
  <Sparkles size={18} /> تفعيل خطة استعادة العميل
  </button>
@@ -812,7 +812,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  window.open(`https://wa.me/${phoneSafe}?text=${encodeURIComponent(actionMsg)}`,"_blank");
  setAnalyzingCustomer(null);
  }}
- className="w-full py-3 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-400 transition-colors flex items-center justify-center gap-2 text-sm shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-amber-500/30"
+ className="w-full py-3 bg-amber-500 text-white font-black rounded-xl hover:bg-amber-400 transition-colors flex items-center justify-center gap-2 text-sm shadow-xl shadow-amber-500/30"
  >
  <Gift size={18} /> إرسال مكافأة العميل VIP
  </button>
@@ -828,7 +828,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  window.open(`https://wa.me/${phoneSafe}?text=${encodeURIComponent(actionMsg)}`,"_blank");
  setAnalyzingCustomer(null);
  }}
- className="w-full py-3 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-400 transition-colors flex items-center justify-center gap-2 text-sm shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-blue-500/30"
+ className="w-full py-3 bg-blue-500 text-white font-black rounded-xl hover:bg-blue-400 transition-colors flex items-center justify-center gap-2 text-sm shadow-xl shadow-blue-500/30"
  >
  <Gift size={18} /> إرسال رسالة تذكير
  </button>
