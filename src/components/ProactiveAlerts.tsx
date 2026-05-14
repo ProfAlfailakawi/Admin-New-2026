@@ -53,7 +53,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  <button 
  onClick={() => setShowHub(true)}
  className={cn(
-"relative w-12 h-12 md:w-16 md:h-16 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-center transition-all hover:scale-110 active:scale-[0.98] transition-all duration-200 group overflow-hidden",
+"relative w-12 h-12 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 group overflow-hidden",
  activeAlerts[0].insightType === 'خطر' ?"bg-rose-500" : 
  activeAlerts[0].insightType === 'فرصة' ?"bg-indigo-600" : 
 "bg-amber-500"
@@ -64,7 +64,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  
  {/* Badge */}
  <div className="absolute -top-1 -left-1 w-6 h-6 bg-white rounded-full flex items-center justify-center border-2 border-indigo-600 shadow-sm">
- <span className={cn("text-[11px] sm:text-xs font-black", activeAlerts[0].insightType === 'خطر' ?"text-rose-600" :"text-indigo-600")}>
+ <span className={cn("text-[10px] font-black", activeAlerts[0].insightType === 'خطر' ?"text-rose-600" :"text-indigo-600")}>
  {activeAlerts.length}
  </span>
  </div>
@@ -93,19 +93,19 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  className="fixed top-0 bottom-0 right-0 w-full max-w-sm bg-white shadow-[0_0_100px_rgba(0,0,0,0.3)] z-[102] flex flex-col"
  dir="rtl"
  >
- <div className="p-3 md:p-4 border-b border-slate-200/60 flex items-center justify-between bg-slate-50">
+ <div className="p-3 md:p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
  <div className="text-right">
- <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+ <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
  رادار الذكاء
  </h3>
- <p className="text-[11px] sm:text-xs text-slate-500 font-bold uppercase mt-0.5">نبض العمليات الفوري</p>
+ <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">نبض العمليات الفوري</p>
  </div>
- <button onClick={() => setShowHub(false)} className="p-2 hover:bg-white rounded-full text-slate-500 border border-transparent hover:border-slate-200 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <button onClick={() => setShowHub(false)} className="p-2 hover:bg-white rounded-full text-slate-400 border border-transparent hover:border-slate-200 transition-all">
  <X size={20} />
  </button>
  </div>
 
- <div className="flex-1 min-w-0 overflow-y-auto p-4 md:p-5 lg:p-6 space-y-4 custom-scrollbar">
+ <div className="flex-1 overflow-y-auto p-3 md:p-3 space-y-4 custom-scrollbar">
  {activeAlerts.map((alert, idx) => {
  const colors = getColors(alert.insightType!);
  return (
@@ -121,7 +121,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  onClick={() => setSelectedAlert(alert)}
  >
  <div className="flex items-start gap-4">
- <div className="w-10 h-10 rounded-xl bg-white border border-slate-200/60 flex items-center justify-center shadow-sm shrink-0">
+ <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center shadow-sm shrink-0">
  {getIcon(alert.insightType!)}
  </div>
  <div className="text-right flex-1 min-w-0">
@@ -129,9 +129,9 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-full text-white uppercase tracking-tighter", colors.bg)}>
  {alert.insightType}
  </span>
- <span className="text-[9px] text-slate-500 font-bold">بناءً على {alert.dataReference.split(' ').slice(0, 2).join(' ')}</span>
+ <span className="text-[9px] text-slate-400 font-bold">بناءً على {alert.dataReference.split(' ').slice(0, 2).join(' ')}</span>
  </div>
- <h4 className="text-sm font-bold text-slate-900 leading-snug mb-1">{alert.title}</h4>
+ <h4 className="text-sm font-black text-slate-800 leading-snug mb-1">{alert.title}</h4>
  <p className="text-[11px] text-slate-500 font-medium leading-relaxed">{alert.message}</p>
  </div>
  </div>
@@ -140,7 +140,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  })}
  </div>
 
- <div className="p-3 md:p-4 bg-slate-50 border-t border-slate-200/60 italic text-[11px] sm:text-xs text-slate-500 font-medium text-center">
+ <div className="p-3 md:p-4 bg-slate-50 border-t border-slate-100 italic text-[10px] text-slate-400 font-medium text-center">
  هذا الرادار يحلل البيانات التشغيلية لتوجيه قراراتك الاستراتيجية.
  </div>
  </motion.div>
@@ -162,35 +162,35 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  initial={{ opacity: 0, scale: 0.9, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.9, y: 20 }}
- className="bg-white max-w-lg w-full rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden flex flex-col max-h-[90vh]"
+ className="bg-white max-w-lg w-full rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
  >
- <div className={cn("p-3 md:p-4 md:p-5 flex items-center gap-4 text-white relative overflow-hidden", getColors(selectedAlert.insightType!).bg)}>
+ <div className={cn("p-3 md:p-4 md:p-3 flex items-center gap-4 text-white relative overflow-hidden", getColors(selectedAlert.insightType!).bg)}>
  <div className="absolute top-0 right-0 p-3 opacity-20 pointer-events-none scale-150 transform translate-x-4 -translate-y-4">
  {selectedAlert.insightType === 'خطر' ? <AlertCircle size={100} /> : selectedAlert.insightType === 'فرصة' ? <TrendingUp size={100} /> : <Bell size={100} />}
  </div>
- <div className="relative z-10 w-12 h-12 md:w-16 md:h-16 bg-white/20 rounded-xl md:rounded-2xl border border-white/30 flex items-center justify-center backdrop-blur-md shrink-0">
+ <div className="relative z-10 w-12 h-12 md:w-16 md:h-16 bg-white/20 rounded-2xl border border-white/30 flex items-center justify-center backdrop-blur-md shrink-0">
  {selectedAlert.insightType === 'خطر' ? <AlertCircle size={32} /> : selectedAlert.insightType === 'فرصة' ? <TrendingUp size={32} /> : <Bell size={32} />}
  </div>
  <div className="relative z-10 text-right">
- <div className="inline-block px-3 py-1 bg-white/20 rounded-full text-[11px] sm:text-xs font-bold uppercase mb-2 border border-white/20 backdrop-blur-sm">
+ <div className="inline-block px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase mb-2 border border-white/20 backdrop-blur-sm">
  {selectedAlert.insightType} مستكشف
  </div>
- <h2 className="text-xl md:text-2xl font-black leading-snug text-white">{selectedAlert.title}</h2>
+ <h2 className="text-xl md:text-2xl font-black leading-tight text-white">{selectedAlert.title}</h2>
  </div>
  </div>
 
- <div className="p-3 md:p-4 md:p-5 overflow-y-auto space-y-6">
+ <div className="p-3 md:p-4 md:p-3 overflow-y-auto space-y-6">
  <div className="space-y-2 text-right">
- <h3 className="text-[11px] font-bold text-slate-500 uppercase flex items-center justify-end gap-2">
+ <h3 className="text-[11px] font-black text-slate-400 uppercase flex items-center justify-end gap-2">
  تحليل الذكاء الاصطناعي <Zap size={14} className={getColors(selectedAlert.insightType!).text} /> 
  </h3>
- <p className="text-sm md:text-base font-bold text-slate-900 leading-relaxed bg-slate-50 p-3 rounded-xl md:rounded-2xl border border-slate-200/60">
+ <p className="text-sm md:text-base font-bold text-slate-800 leading-relaxed bg-slate-50 p-3 rounded-2xl border border-slate-100">
  {selectedAlert.explanation}
  </p>
  </div>
 
  <div className="space-y-2 text-right">
- <h3 className="text-[11px] font-bold text-slate-500 uppercase flex items-center justify-end gap-2">
+ <h3 className="text-[11px] font-black text-slate-400 uppercase flex items-center justify-end gap-2">
  مرجع البيانات (المصدر) <Database size={14} className="text-slate-500" />
  </h3>
  <div className="text-xs font-bold text-slate-600 leading-relaxed bg-blue-50/50 p-3 rounded-xl border border-blue-100/50 flex items-start justify-end gap-2 text-right">
@@ -199,29 +199,29 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  </div>
  </div>
 
- <div className="space-y-2 text-right pt-4 border-t border-slate-200/60">
- <h3 className="text-[11px] font-bold text-slate-500 uppercase flex items-center justify-end gap-2">
+ <div className="space-y-2 text-right pt-4 border-t border-slate-100">
+ <h3 className="text-[11px] font-black text-slate-400 uppercase flex items-center justify-end gap-2">
  الإجراء الموصى به <CheckCircle2 size={14} className="text-emerald-500" />
  </h3>
- <div className="text-sm font-bold text-emerald-800 bg-emerald-50 p-3 rounded-xl md:rounded-2xl border border-emerald-100/50">
+ <div className="text-sm font-black text-emerald-800 bg-emerald-50 p-3 rounded-2xl border border-emerald-100/50">
  {selectedAlert.recommendedAction}
  </div>
  </div>
  </div>
 
- <div className="p-3 md:p-4 bg-slate-50 border-t border-slate-200/60 flex flex-col md:flex-row gap-3">
+ <div className="p-3 md:p-4 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row gap-3">
  <button 
  onClick={() => {
  onMarkAsRead(selectedAlert.id);
  setSelectedAlert(null);
  }}
- className={cn("flex-1 text-white py-3 md:py-4 rounded-xl font-bold text-sm transition-all hover:opacity-90 active:scale-[0.98] transition-all duration-200 shadow-[0_2px_10px_rgb(0,0,0,0.04)]", getColors(selectedAlert.insightType!).bg)}
+ className={cn("flex-1 text-white py-3 md:py-4 rounded-xl font-black text-sm transition-all hover:opacity-90 active:scale-95 shadow-lg", getColors(selectedAlert.insightType!).bg)}
  >
  فهمت ومستعد للعمل
  </button>
  <button 
  onClick={() => setSelectedAlert(null)}
- className="flex-1 bg-white text-slate-600 border border-slate-200 py-3 md:py-4 rounded-xl font-bold text-sm transition-all hover:bg-slate-50 active:scale-[0.98] transition-all duration-200"
+ className="flex-1 bg-white text-slate-600 border border-slate-200 py-3 md:py-4 rounded-xl font-black text-sm transition-all hover:bg-slate-50 active:scale-95"
  >
  تذكيري لاحقاً
  </button>

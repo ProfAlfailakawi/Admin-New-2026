@@ -19,19 +19,19 @@ export const StatCardComponent: React.FC<StatCardProps> = ({ label, value, icon,
   };
 
   return (
-    <div className={cn("p-2.5 md:p-4 rounded-[14px] md:rounded-xl md:rounded-2xl border text-right group flex md:block items-center justify-between gap-2", colorMap[color] || colorMap.blue)}>
+    <div className={cn("p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border text-right group flex md:block items-center justify-between gap-2", colorMap[color] || colorMap.blue)}>
       <div className="flex md:block items-center gap-2 md:mb-2">
         <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white border border-inherit flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform shrink-0 [&>svg]:w-4 [&>svg]:h-4 md:[&>svg]:w-5 md:[&>svg]:h-5">
           {icon}
         </div>
-        <div className="hidden md:block text-[11px] sm:text-xs font-bold uppercase opacity-60 leading-snug">
+        <div className="hidden md:block text-[10px] font-black uppercase opacity-60 leading-tight">
           {label}
         </div>
       </div>
       <div className="flex flex-col text-left md:text-right">
-        <div className="md:hidden text-[9px] font-bold uppercase opacity-60 leading-snug mb-0.5">{label}</div>
+        <div className="md:hidden text-[9px] font-black uppercase opacity-60 leading-tight mb-0.5">{label}</div>
         <div className="text-sm md:text-2xl font-black tracking-tighter mb-0.5 md:mb-1">{value}</div>
-        {description && <div className="hidden md:block text-[11px] sm:text-xs font-bold opacity-40 leading-snug">{description}</div>}
+        {description && <div className="hidden md:block text-[10px] font-bold opacity-40 leading-tight">{description}</div>}
       </div>
     </div>
   );

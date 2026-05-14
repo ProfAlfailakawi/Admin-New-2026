@@ -28,22 +28,20 @@ interface Props {
 const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, addToast }) => {
  const [settings, setSettings] = useState<AppSettings>(data.settings);
  const [showConfirm, setShowConfirm] = useState(false);
+
+ useEffect(() => {
+   const isSame = JSON.stringify(data.settings) === JSON.stringify(settings);
+   if (!isSame) {
+     setData(prev => ({ ...prev, settings }));
+   }
+ }, [settings, data.settings, setData]);
  const [showResetConfirm, setShowResetConfirm] = useState(false);
  const [isSyncing, setIsSyncing] = useState(false);
 
  const [activeSection, setActiveSection] = useState<string>('');
  const [searchZoneTerm, setSearchZoneTerm] = useState('');
 
- // Auto-save settings to global state when modified
- useEffect(() => {
-   setData(prev => {
-     if (JSON.stringify(prev.settings) === JSON.stringify(settings)) return prev;
-     return { ...prev, settings };
-   });
- }, [settings, setData]);
-
  const handleSyncBalances = () => {
-
  setIsSyncing(true);
  setTimeout(() => {
  setData(prev => recalculateStateBalances(prev));
@@ -372,12 +370,12 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
  <div className="flex items-center gap-4">
  {appMode === 'local' && (
- <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 text-[11px] sm:text-xs font-bold mr-auto">
+ <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 text-[10px] font-black mr-auto">
  <AlertTriangle size={12} />
  <span>مغلق في النسخة التجريبية</span>
  </div>
 )}
- <ChevronDown size={20} className={cn("text-slate-500 transition-transform duration-300", activeSection === 'profile' ?"rotate-180" :"")} />
+ <ChevronDown size={20} className={cn("text-slate-400 transition-transform duration-300", activeSection === 'profile' ?"rotate-180" :"")} />
  </div>
  </button>
  <div className={cn("transition-all duration-300 relative", activeSection === 'profile' ? "block" : "hidden")}>
@@ -390,7 +388,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  value={settings.companyName}
  onChange={e => setSettings({ ...settings, companyName: e.target.value })}
  
- className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+ className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
  />
  </div>
  <div className="space-y-2">
@@ -402,9 +400,9 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  value={settings.gatewayFeeAmount}
  onChange={e => setSettings({ ...settings, gatewayFeeAmount: parseFloat(e.target.value) })}
  
- className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 pl-12 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+ className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 pl-12 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
  />
- <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">
+ <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">
  فلس
  </div>
  </div>
@@ -421,7 +419,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  />
  <div className="flex-1 space-y-2">
  <div className="flex items-center gap-3">
- <label className={cn("flex items-center gap-2 text-sm px-4 py-2 rounded-lg border transition-colors w-fit", appMode === 'local' ? "bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed" : "text-secondary font-bold bg-secondary/5 border-secondary/20 hover:bg-secondary/10 cursor-pointer")}>
+ <label className={cn("flex items-center gap-2 text-sm px-4 py-2 rounded-lg border transition-colors w-fit", appMode === 'local' ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "text-secondary font-bold bg-secondary/5 border-secondary/20 hover:bg-secondary/10 cursor-pointer")}>
  <Upload size={16} />
  {appMode === 'local' ? 'مغلق في التجريبي' : 'تغيير الشعار'}
  <input type="file"  accept="image/*" className="hidden" onChange={handleLogoUpload} />
@@ -431,7 +429,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <button 
  
  onClick={() => setSettings({ ...settings, companyLogo: '' })}
- className={cn("flex items-center gap-2 text-sm px-4 py-2 rounded-lg border transition-colors w-fit", appMode === 'local' ? "bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed" : "text-rose-500 font-bold bg-rose-50 border-rose-100 hover:bg-rose-100 cursor-pointer")}
+ className={cn("flex items-center gap-2 text-sm px-4 py-2 rounded-lg border transition-colors w-fit", appMode === 'local' ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "text-rose-500 font-bold bg-rose-50 border-rose-100 hover:bg-rose-100 cursor-pointer")}
  >
  <RefreshCw size={16} />
  إزالة الشعار
@@ -452,7 +450,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  value={settings.restaurantNumbers.join(', ')}
  onChange={e => setSettings({ ...settings, restaurantNumbers: e.target.value.split(',').map(s => s.trim()) })}
  
- className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+ className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
  />
  </div>
  </div>
@@ -471,13 +469,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <MapIcon size={18} className="text-secondary" />
  <h2 className="font-bold">قائمة مناطق التوصيل</h2>
  </div>
- <ChevronDown size={20} className={cn("text-slate-500 transition-transform duration-300 absolute left-4", activeSection === 'zones' ?"rotate-180" :"")} />
+ <ChevronDown size={20} className={cn("text-slate-400 transition-transform duration-300 absolute left-4", activeSection === 'zones' ?"rotate-180" :"")} />
  </button>
  <div className={cn("transition-all duration-300", activeSection === 'zones' ?"block" :"hidden")}>
  <div className="p-3 border-b border-slate-200 bg-slate-50/50 flex flex-wrap justify-between items-center gap-3">
  <div className="flex items-center gap-3 flex-1 min-w-[200px]">
  <div className="relative w-full max-w-sm">
- <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+ <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
  <input 
  type="text"
  placeholder="بحث عن منطقة..."
@@ -487,7 +485,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  />
  </div>
  {appMode === 'local' && (
- <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 text-[11px] sm:text-xs font-bold">
+ <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 text-[10px] font-black">
  <AlertTriangle size={12} />
  <span>مغلق التجريبية</span>
  </div>
@@ -510,7 +508,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  className={cn(
 "px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-2 transition-colors",
  appMode === 'local' 
- ?"bg-slate-100 text-slate-500 cursor-not-allowed opacity-60"
+ ?"bg-slate-100 text-slate-400 cursor-not-allowed opacity-60"
  :"bg-primary/10 text-primary hover:bg-primary hover:text-white"
 )}
  >
@@ -523,7 +521,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <div className="absolute inset-0 bg-slate-50/10 backdrop-blur-[0.5px] z-20 cursor-not-allowed cursor-not-allowed" />
 )}
  <table className="w-full text-right min-w-[600px]" dir="rtl">
- <thead className="bg-slate-100 text-[11px] sm:text-xs font-bold text-slate-500 uppercase sticky top-0 z-10 shadow-sm shadow-slate-200/50">
+ <thead className="bg-slate-100 text-[10px] font-black text-slate-500 uppercase sticky top-0 z-10 shadow-sm shadow-slate-200/50">
  <tr>
  <th className="p-3">اسم المنطقة</th>
  <th className="p-3 text-center">تكلفة التوصيل</th>
@@ -600,7 +598,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  zones: (prev?.zones || []).map(z => z.id === zone.id ? { ...z, finalPrice: val, profit: val - z.cost } : z)
  }));
  }}
- className="w-12 md:w-20 text-center bg-primary/5 border border-primary/20 text-primary font-bold rounded-lg py-1 px-2 focus:ring-2 focus:ring-primary/20 outline-none disabled:opacity-50"
+ className="w-12 md:w-20 text-center bg-primary/5 border border-primary/20 text-primary font-black rounded-lg py-1 px-2 focus:ring-2 focus:ring-primary/20 outline-none disabled:opacity-50"
  />
  </div>
  </td>
@@ -613,7 +611,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  zones: (prev?.zones || []).map(z => z.id === zone.id ? { ...z, isActive: !z.isActive } : z)
  }));
  }}
- className={cn("text-[11px] sm:text-xs px-3 py-1.5 rounded-lg border shadow-sm transition-all active:scale-[0.98] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed", zone.isActive ?"bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100" :"bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200")}
+ className={cn("text-[10px] px-3 py-1.5 rounded-lg border shadow-sm transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed", zone.isActive ?"bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100" :"bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200")}
  >
  {zone.isActive ? 'مفعل' : 'معطل'}
  </button>
@@ -622,7 +620,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 ))}
  {(data.zones || []).length === 0 && (
  <tr key="empty-state">
- <td colSpan={5} className="p-3 md:p-4 text-center text-slate-500 font-bold text-xs">لا يوجد مناطق، الرجاء إضافة منطقة أو استعادة البيانات.</td>
+ <td colSpan={5} className="p-3 md:p-4 text-center text-slate-400 font-bold text-xs">لا يوجد مناطق، الرجاء إضافة منطقة أو استعادة البيانات.</td>
  </tr>
 )}
  </tbody>
@@ -644,12 +642,12 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
  <div className="flex items-center gap-4">
  {appMode === 'local' && (
- <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 text-[11px] sm:text-xs font-bold mr-auto">
+ <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 text-[10px] font-black mr-auto">
  <AlertTriangle size={12} />
  <span>مغلق في النسخة التجريبية</span>
  </div>
 )}
- <ChevronDown size={20} className={cn("text-slate-500 transition-transform duration-300", activeSection === 'store-status' ?"rotate-180" :"")} />
+ <ChevronDown size={20} className={cn("text-slate-400 transition-transform duration-300", activeSection === 'store-status' ?"rotate-180" :"")} />
  </div>
  </button>
  <div className={cn("transition-all duration-300 relative", activeSection === 'store-status' ? "block" : "hidden")}>
@@ -657,7 +655,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  
  <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
  <div>
- <h3 className="font-bold text-slate-900">حالة المتجر الفعلية</h3>
+ <h3 className="font-bold text-slate-800">حالة المتجر الفعلية</h3>
  <p className="text-xs text-slate-500">إغلاق وتوقيف استقبال الطلبات من تطبيق العميل بشكل فوري.</p>
  </div>
  <label className="relative inline-flex items-center cursor-pointer">
@@ -681,7 +679,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  value={settings.storeStatus?.closeMessage || ''}
  onChange={e => setSettings(p => ({ ...p, storeStatus: { ...p.storeStatus!, closeMessage: e.target.value } }))}
  
- className="disabled:opacity-50 w-full bg-slate-50/50 border border-slate-200/60 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold"
+ className="disabled:opacity-50 w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold"
  placeholder="رسالة تظهر للعميل بدلاً من المتجر. مثال: عذراً المتجر مغلق، نعود قريباً."
  rows={2}
  />
@@ -691,11 +689,11 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <div className="border border-slate-200 rounded-xl overflow-hidden mt-6">
  <div className="bg-slate-50 p-3 border-b border-slate-200 flex justify-between items-center">
  <div>
- <h3 className="font-bold text-slate-900">أوقات العمل المجدولة (حسب أيام الأسبوع)</h3>
+ <h3 className="font-bold text-slate-800">أوقات العمل المجدولة (حسب أيام الأسبوع)</h3>
  <p className="text-xs text-slate-500 mt-1">يتم فتح وإغلاق المتجر آلياً حسب هذه الأوقات إذا لم يكن الإغلاق اليدوي مفعلاً.</p>
  </div>
  {appMode === 'local' && (
- <span className="text-[11px] sm:text-xs bg-slate-200 text-slate-500 px-2 py-0.5 rounded font-bold">مغلق في التجريبي</span>
+ <span className="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded font-bold">مغلق في التجريبي</span>
  )}
  </div>
  <div className={cn("overflow-x-auto relative", appMode === 'local' ? "opacity-60 pointer-events-none" : "")}>
@@ -731,7 +729,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  />
  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
  </label>
- <span className={cn("font-bold text-sm", hours.enabled ?"text-slate-700" :"text-slate-500 line-through")}>{day.name}</span>
+ <span className={cn("font-bold text-sm", hours.enabled ?"text-slate-700" :"text-slate-400 line-through")}>{day.name}</span>
  </div>
  
  <div className="flex items-center gap-4 flex-1 justify-end">
@@ -777,7 +775,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
  </>
 ) : (
- <span className="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-lg">إجازة (مغلق)</span>
+ <span className="text-sm font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-lg">إجازة (مغلق)</span>
 )}
  </div>
  </div>
@@ -800,7 +798,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <Database size={18} className="text-secondary" />
  <h2 className="font-bold">إدارة البيانات والمزامنة</h2>
  </div>
- <ChevronDown size={20} className={cn("text-slate-500 transition-transform duration-300 absolute left-4", activeSection === 'data' ?"rotate-180" :"")} />
+ <ChevronDown size={20} className={cn("text-slate-400 transition-transform duration-300 absolute left-4", activeSection === 'data' ?"rotate-180" :"")} />
  </button>
  <div  className={cn("transition-all duration-300", activeSection === 'data' ?"block" :"hidden")}>
  <div className="p-3 md:p-4 space-y-6">
@@ -810,12 +808,12 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 )}>
  <div className="text-right">
  <div className={cn("text-sm font-black", appMode === 'cloud' ?"text-emerald-800" :"text-amber-800")}>حالة الربط السحابي</div>
- <div className={cn("text-[11px] sm:text-xs font-bold mt-0.5", appMode === 'cloud' ?"text-emerald-600" :"text-amber-600")}>
+ <div className={cn("text-[10px] font-bold mt-0.5", appMode === 'cloud' ?"text-emerald-600" :"text-amber-600")}>
  {appMode === 'cloud' ?"يعمل الآن بميزة المزامنة اللحظية (Real-time Sync)" :"تعمل الآن بوضع التخزين المحلي (Offline Mode)"}
  </div>
  </div>
  <div className={cn(
-"flex items-center gap-2 px-3 py-1 rounded-full text-[11px] sm:text-xs font-black text-white",
+"flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black text-white",
  appMode === 'cloud' ?"bg-emerald-500" :"bg-amber-500"
 )}>
  {appMode === 'cloud' ? (
@@ -842,15 +840,15 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
         className={cn(
           "w-full flex items-center justify-between p-3 border rounded-2xl group transition-all shadow-sm",
           appMode === 'cloud' 
-            ? "bg-slate-50 border-slate-200 text-slate-500 cursor-not-allowed opacity-60"
+            ? "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60"
             : hasData
-            ? "bg-slate-50 border-slate-200 text-slate-500 cursor-not-allowed opacity-60"
+            ? "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60"
             : "bg-indigo-50 border-indigo-100 hover:bg-indigo-100 text-indigo-700 active:scale-[0.98]"
         )}
       >
         <Sparkles size={18} className={appMode === 'cloud' || hasData ? "" : "group-hover:rotate-12 transition-transform"} />
         <div className="text-right">
-          <div className="text-xs font-bold">تحميل بيانات تجريبية (Demo)</div>
+          <div className="text-xs font-black">تحميل بيانات تجريبية (Demo)</div>
           <div className="text-[9px] opacity-80">
             {appMode === 'cloud' 
               ? "غير متاح في وضع التزامن السحابي" 
@@ -881,13 +879,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  className={cn(
 "w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group",
  appMode === 'local'
- ?"bg-slate-50 border-slate-200 text-slate-500 cursor-not-allowed opacity-60"
+ ?"bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60"
  :"bg-primary/5 border-primary/10 hover:bg-primary/10 text-primary"
 )}
  >
  {isSyncing ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} className={cn("transition-transform duration-700", appMode !== 'local' &&"group-hover:rotate-180")} />}
  <div className="text-right">
- <div className="text-xs font-bold">مزامنة تطبيق العميل</div>
+ <div className="text-xs font-black">مزامنة تطبيق العميل</div>
  <div className="text-[9px] opacity-70 italic">
  {appMode === 'local' ?"مغلق في النسخة التجريبية" :"نشر المنتجات والمناطق للتطبيق"}
  </div>
@@ -904,7 +902,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  >
  <DownloadCloud size={18} className={cn("transition-transform", appMode !== 'local' &&"group-hover:-translate-y-1")} />
  <div className="text-right">
- <div className="text-xs font-bold">تصدير نسخة احتياطية</div>
+ <div className="text-xs font-black">تصدير نسخة احتياطية</div>
  <div className="text-[9px] opacity-70 italic">
  {appMode === 'local' ?"مغلق حماية للبيانات" :"نسخة شاملة تشمل (نبض العملاء)"}
  </div>
@@ -919,7 +917,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  >
  <Upload size={18} className={cn("transition-transform", appMode !== 'local' &&"group-hover:-translate-y-1")} />
  <div className="text-right">
- <div className="text-xs font-bold">استيراد نسخة سابقة</div>
+ <div className="text-xs font-black">استيراد نسخة سابقة</div>
  <div className="text-[9px] opacity-70">
  {appMode === 'local' ?"مغلق حماية من العبث" :"رفع (JSON, Excel) لمزامنة النظام"}
  </div>
@@ -939,13 +937,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  className={cn(
 "w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group",
  appMode === 'local'
- ?"bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed opacity-60"
+ ?"bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60"
  :"bg-rose-50 border-rose-100 hover:bg-rose-100 text-rose-700"
 )}
  >
  <Trash2 size={18} className={cn("transition-transform", appMode !== 'local' &&"group-hover:rotate-12")} />
  <div className="text-right">
- <div className="text-xs font-bold">تصفير النظام</div>
+ <div className="text-xs font-black">تصفير النظام</div>
  <div className="text-[9px] opacity-70">
  {appMode === 'local' ?"مغلق حماية من العبث" :"مسح كافة البيانات للبدء من جديد"}
  </div>
@@ -955,7 +953,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  {/* Developer Info - Hidden as requested */}
  {false && (
- <div className="mt-8 p-3 md:p-4 bg-slate-900 text-white rounded-3xl space-y-4 border border-slate-700 shadow-[0_4px_20px_rgb(0,0,0,0.05)]">
+ <div className="mt-8 p-3 md:p-4 bg-slate-900 text-white rounded-3xl space-y-4 border border-slate-700 shadow-xl">
  {/* ... hidden content ... */}
  </div>
 )}
@@ -970,14 +968,14 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <motion.div 
  initial={{ opacity: 0, scale: 0.9, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
- className="bg-white rounded-3xl md:rounded-2xl p-3 md:p-4 md:p-5 max-w-sm w-[95%] shadow-[0_8px_30px_rgb(0,0,0,0.08)] text-center border border-slate-200/60 flex flex-col max-h-[85vh] overflow-hidden"
+ className="bg-white rounded-3xl md:rounded-2xl p-3 md:p-4 md:p-3 max-w-sm w-[95%] shadow-2xl text-center border border-slate-100 flex flex-col max-h-[85vh] overflow-hidden"
  
  >
  <div className="overflow-y-auto custom-scrollbar flex-1 px-1">
  <div className="w-12 md:w-20 h-12 md:h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500">
  <Trash2 size={40} />
  </div>
- <h3 className="text-2xl font-black text-slate-900 mb-4">هل أنت متأكد؟</h3>
+ <h3 className="text-2xl font-black text-slate-800 mb-4">هل أنت متأكد؟</h3>
  <p className="text-slate-500 font-bold mb-8 leading-relaxed">
  هذا الإجراء سيقوم بحذف <span className="text-rose-600 underline">كافة</span> بيانات المبيعات والعملاء والمصروفات نهائياً.
  </p>
@@ -985,7 +983,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <div className="flex flex-col gap-3 pt-6 mt-auto border-t border-slate-50">
  <button 
  onClick={handleResetData}
- className="w-full py-4 bg-rose-500 text-white rounded-2xl font-bold shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-rose-500/30 hover:bg-rose-600 transition-all active:scale-[0.98] transition-all duration-200"
+ className="w-full py-4 bg-rose-500 text-white rounded-2xl font-black shadow-xl shadow-rose-500/30 hover:bg-rose-600 transition-all active:scale-95"
  >
  نعم، بمسح كل شيء
  </button>
@@ -1014,7 +1012,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <div className="space-y-6">
 
 
- <section className="bg-gradient-to-br from-secondary to-secondary/80 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] p-3 md:p-4 text-white text-center">
+ <section className="bg-gradient-to-br from-secondary to-secondary/80 rounded-2xl shadow-lg p-3 md:p-4 text-white text-center">
  <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
  <Settings className="animate-spin-slow" size={32} />
  </div>

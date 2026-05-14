@@ -1195,10 +1195,10 @@ setPaymentLink(createdLink);
  };
 
  return (
- <div className={cn("transition-all duration-700 ease-in-out", isZenMode ? "fixed inset-0 z-[100] bg-white overflow-y-auto p-4 md:p-12 pb-32" : "")}>{isZenMode && (<div className="flex justify-between items-center mb-8 max-w-6xl mx-auto"><h2 className="text-xl md:text-3xl font-black text-slate-900">وضع التركيز المستمر</h2><button onClick={() => setIsZenMode(false)} className="flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all active:scale-[0.98] transition-all duration-200">خروج من التركيز <X size={18} /></button></div>)}<div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-4 md:p-5 lg:p-6 pb-20", isZenMode ? "max-w-6xl mx-auto" : "")}>
+ <div className={cn("transition-all duration-700 ease-in-out", isZenMode ? "fixed inset-0 z-[100] bg-white overflow-y-auto p-4 md:p-12 pb-32" : "")}>{isZenMode && (<div className="flex justify-between items-center mb-8 max-w-6xl mx-auto"><h2 className="text-xl md:text-3xl font-black text-slate-800">وضع التركيز المستمر</h2><button onClick={() => setIsZenMode(false)} className="flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-sm bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all active:scale-95">خروج من التركيز <X size={18} /></button></div>)}<div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-3 md:p-3 pb-20", isZenMode ? "max-w-6xl mx-auto" : "")}>
  {/* Left: Product Selection */}
  <div className="lg:col-span-2 space-y-6">
- <div className="bg-white rounded-3xl lg:rounded-[2rem] p-4 md:p-6 shadow-sm border border-slate-200 relative overflow-hidden group">{!isZenMode && (<button onClick={() => setIsZenMode(true)} className="absolute top-4 left-4 bg-slate-50/50 border border-slate-200/60 text-slate-500 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all hover:bg-slate-800 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0" title="وضع التركيز"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>)}
+ <div className="bg-white rounded-[32px] p-3 md:p-3 shadow-sm border border-slate-200 relative overflow-hidden group">{!isZenMode && (<button onClick={() => setIsZenMode(true)} className="absolute top-4 left-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all hover:bg-slate-800 hover:text-white" title="وضع التركيز"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>)}
  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-8">
  <h2 className="text-2xl font-black flex items-center gap-3">
  <Package className="text-primary" />
@@ -1206,19 +1206,19 @@ setPaymentLink(createdLink);
  </h2>
  <div className="flex flex-col gap-3 flex-1">
  <div className="relative w-full">
- <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+ <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
  <input 
  type="text" 
  placeholder="ابحث عن وجبة..."
  value={searchQuery}
  onChange={(e) => setSearchQuery(e.target.value)}
- className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 focus:ring-2 focus:ring-primary/20 outline-none font-medium transition-all"
+ className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 focus:ring-2 focus:ring-primary/20 outline-none font-medium transition-all"
  />
  </div>
  <select 
  value={supplierFilter}
  onChange={(e) => setSupplierFilter(e.target.value)}
- className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-xs text-slate-700 text-right"
+ className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-black text-xs text-slate-700 text-right"
  >
  <option value="all">كل الموردين</option>
  {(data?.suppliers || []).map(s => (
@@ -1228,7 +1228,7 @@ setPaymentLink(createdLink);
  </div>
  </div>
 
- <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-3 p-1 overflow-y-auto max-h-[750px] pr-1 sm:pr-2 custom-scrollbar min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-3 p-1 overflow-y-auto max-h-[750px] pr-1 sm:pr-2 custom-scrollbar">
   {filteredProducts.slice(0, 50).map(product => {
   const supplierName = (data.suppliers || []).find(s => s.id === product.supplierId)?.name || 'غير محدد';
   return (
@@ -1242,7 +1242,7 @@ setPaymentLink(createdLink);
     "bg-white border p-2 sm:p-3 rounded-2xl text-right transition-all group relative flex flex-col shadow-sm md:rounded-2xl",
     product.isOutOfStock 
       ? "border-rose-100 opacity-[0.8] cursor-not-allowed" 
-      : "border-slate-200/60 hover:border-primary/50 cursor-pointer"
+      : "border-slate-100 hover:border-primary/50 cursor-pointer"
   )}
   >
                 {/* Unified Compact Layout */}
@@ -1250,7 +1250,7 @@ setPaymentLink(createdLink);
                   
                     {product.isOutOfStock && (
                       <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none rounded-xl backdrop-blur-[1.5px]">
-                        <span className="bg-black/60 text-white text-[11px] sm:text-xs sm:text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-md tracking-wider">
+                        <span className="bg-black/60 text-white text-[10px] sm:text-[11px] font-black px-3 py-1.5 rounded-lg shadow-md tracking-wider">
                           SOLD OUT
                         </span>
                       </div>
@@ -1266,10 +1266,10 @@ setPaymentLink(createdLink);
                           e.stopPropagation();
                         }}
                       >
-                        <div className="bg-rose-50 text-rose-500 p-1.5 rounded-full border border-rose-100 animate-pulse cursor-pointer shadow-sm min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+                        <div className="bg-rose-50 text-rose-500 p-1.5 rounded-full border border-rose-100 animate-pulse cursor-pointer shadow-sm">
                           <AlertCircle size={12} className="sm:size-[14px]" />
                         </div>
-                        <div className="absolute bottom-full mb-2 right-1/2 translate-x-[75%] sm:translate-x-[60%] hidden group-hover/radar:flex group-focus/radar:flex focus-within:flex flex-col bg-white text-slate-700 text-[8px] md:text-[9px] p-2 w-[110px] sm:w-[130px] rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-bold border border-slate-200 pointer-events-none items-center gap-1 text-center min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+                        <div className="absolute bottom-full mb-2 right-1/2 translate-x-[75%] sm:translate-x-[60%] hidden group-hover/radar:flex group-focus/radar:flex focus-within:flex flex-col bg-white text-slate-700 text-[8px] md:text-[9px] p-2 w-[110px] sm:w-[130px] rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-black border border-slate-200 pointer-events-none items-center gap-1 text-center">
                           <span className="bg-rose-50 text-rose-600 px-2 py-1.5 rounded-lg leading-relaxed w-full whitespace-normal break-words">{getBestPriceInfo(product)?.supplier}</span>
                           <span className="w-full">يبيعه أرخص</span>
                           <span className="text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg leading-none w-full">{Number(getBestPriceInfo(product)?.cost || 0).toFixed(3)} د.ك</span>
@@ -1280,14 +1280,14 @@ setPaymentLink(createdLink);
                   
                   <div className="flex-1 min-w-0 pr-2 flex flex-col justify-center h-full">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-bold text-[13px] sm:text-[15px] text-slate-900 line-clamp-2 text-right leading-snug mb-1">{product.name}</h3>
-                      <div className="text-[11px] sm:text-xs text-slate-500 truncate font-bold shrink-0">{supplierName}</div>
+                      <h3 className="font-bold text-[13px] sm:text-[15px] text-slate-800 line-clamp-2 text-right leading-tight mb-1">{product.name}</h3>
+                      <div className="text-[10px] text-slate-400 truncate font-bold shrink-0">{supplierName}</div>
                     </div>
                     <div className="flex items-center justify-between w-full mt-auto">
-                        <div className="text-primary font-bold text-[14px] sm:text-[16px] tracking-tighter">
-                          {Number(product.price || 0).toFixed(3)} <span className="text-[9px] sm:text-[11px] sm:text-xs">د.ك</span>
+                        <div className="text-primary font-black text-[14px] sm:text-[16px] tracking-tighter">
+                          {Number(product.price || 0).toFixed(3)} <span className="text-[9px] sm:text-[10px]">د.ك</span>
                         </div>
-                        <div className="bg-slate-50 text-slate-500 group-hover:bg-primary group-hover:text-white p-1.5 sm:p-2 border border-slate-200/60 group-hover:border-primary rounded-xl transition-all shadow-sm min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+                        <div className="bg-slate-50 text-slate-400 group-hover:bg-primary group-hover:text-white p-1.5 sm:p-2 border border-slate-100 group-hover:border-primary rounded-xl transition-all shadow-sm">
                           <Plus size={14} className="sm:size-[16px]" />
                         </div>
                     </div>
@@ -1303,9 +1303,9 @@ setPaymentLink(createdLink);
 
   {/* Right: Cart & Customer */}
  <div className="lg:col-span-1 space-y-6">
- <div className="bg-white rounded-3xl md:rounded-3xl lg:rounded-[2rem] p-5 md:p-6 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-200 sticky top-24">
- <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate-200/60">
- <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-800 p-2 shrink-0">
+ <div className="bg-white rounded-[40px] p-3 md:p-3 shadow-2xl border border-slate-200 sticky top-24">
+ <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate-100">
+ <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-800 p-2">
  <img 
  src={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO} 
  className="w-full h-full object-contain" 
@@ -1315,30 +1315,29 @@ setPaymentLink(createdLink);
  </div>
  <div>
  <h2 className="text-xl font-black mb-1">{data.settings.companyName || 'فاتورة'}</h2>
- <p className="text-[11px] sm:text-xs text-slate-500 font-bold uppercase">{cartItems.length} {cartItems.length === 1 ? 'وجبة مختارة' : 'وجبات مختارة'}</p>
+ <p className="text-[10px] text-slate-400 font-bold uppercase">{cartItems.length} وجبات مختارة</p>
  </div>
  </div>
 
  {/* Customer Selection */}
  <div className="space-y-6 mb-10">
  {/* Date Selection */}
- <div className="space-y-2 relative overflow-hidden">
- <label className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mr-1 block">تاريخ الفاتورة</label>
+ <div className="space-y-2">
+ <label className="text-[10px] font-black text-slate-400 uppercase mr-1 block">تاريخ الفاتورة</label>
  <input 
  type="date"
  value={invoiceDate}
  onChange={(e) => !isPaid && setInvoiceDate(e.target.value)}
  readOnly={isPaid}
- dir="ltr"
  className={cn(
- "block w-full min-w-0 max-w-full appearance-none bg-slate-50/50 border border-slate-200/60 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-900 text-center",
+"w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-800 text-right",
  isPaid &&"opacity-60 cursor-not-allowed"
- )}
+)}
  />
  </div>
  
- <div className="space-y-2 relative max-w-full">
- <label className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mr-1 block">العميل</label>
+ <div className="space-y-2">
+ <label className="text-[10px] font-black text-slate-400 uppercase mr-1 block">العميل</label>
  <div className="relative">
  <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
  <input 
@@ -1353,13 +1352,13 @@ setPaymentLink(createdLink);
  readOnly={isPaid}
  placeholder="ابحث عن عميل بالاسم..."
  className={cn(
- "block w-full min-w-0 max-w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-4 pr-11 pl-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-900 text-right",
+"w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pr-11 pl-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-800 text-right",
  isPaid &&"opacity-60 cursor-not-allowed"
- )}
+)}
  />
  
  {showCustomerDropdown && (
- <div className="absolute top-full right-0 left-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] z-50 max-h-60 overflow-y-auto">
+ <div className="absolute top-full right-0 left-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto">
  {data.customers
  .filter(c => {
  const normalizedQuery = normalizeArabic(customerSearch);
@@ -1375,7 +1374,7 @@ setPaymentLink(createdLink);
  setCustomerSearch('');
  setShowCustomerDropdown(false);
  }}
- className="px-5 py-3 hover:bg-slate-50 cursor-pointer font-bold text-slate-900 border-b last:border-b-0 border-slate-200/60 text-right"
+ className="px-5 py-3 hover:bg-slate-50 cursor-pointer font-bold text-slate-800 border-b last:border-b-0 border-slate-100 text-right"
  >
  {c.name}
  </div>
@@ -1384,7 +1383,7 @@ setPaymentLink(createdLink);
  const normalizedQuery = normalizeArabic(customerSearch);
  return normalizeArabic(c.name || '').includes(normalizedQuery) || (c.phone || '').includes(customerSearch);
  }).length === 0 && (
- <div className="px-5 py-3 text-slate-500 text-center">لا يوجد عميل بهذا الاسم</div>
+ <div className="px-5 py-3 text-slate-400 text-center">لا يوجد عميل بهذا الاسم</div>
 )}
  </div>
 )}
@@ -1402,7 +1401,7 @@ setPaymentLink(createdLink);
  onChange={(e) => !isPaid && setDeliveryCompany(e.target.value)}
  readOnly={isPaid}
  className={cn(
-"w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-900 text-right text-sm",
+"w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-800 text-right text-sm",
  isPaid &&"opacity-60 cursor-not-allowed"
 )}
  placeholder="شركة التوصيل (اختياري)"
@@ -1413,7 +1412,7 @@ setPaymentLink(createdLink);
  <div className="grid grid-cols-2 gap-3">
  {!isPartner && (
  <div className="space-y-2 mb-2 col-span-2">
- <label className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mr-1 block text-right">طريقة التوصيل</label>
+ <label className="text-[10px] font-black text-slate-400 uppercase mr-1 block text-right">طريقة التوصيل</label>
  <div className={cn("grid grid-cols-2 lg:grid-cols-4 gap-2", isPaid &&"opacity-50 pointer-events-none")}>
  {[
  { id: 'company', label: 'توصيل شركة' },
@@ -1450,7 +1449,7 @@ setPaymentLink(createdLink);
  onChange={handleZoneChange}
  disabled={isPaid}
  className={cn(
-"col-span-2 w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-900 text-right text-sm appearance-none",
+"col-span-2 w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-800 text-right text-sm appearance-none",
  isPaid &&"opacity-60 cursor-not-allowed"
 )}
  dir="rtl"
@@ -1463,7 +1462,7 @@ setPaymentLink(createdLink);
 
  {isManualDelivery && (
  <div className="space-y-1 col-span-2">
- <label className="text-[9px] font-bold text-slate-500 text-right block">سعر التوصيل اليدوي (د.ك)</label>
+ <label className="text-[9px] font-bold text-slate-400 text-right block">سعر التوصيل اليدوي (د.ك)</label>
  <NumericInput 
  value={deliveryFee || ''}
  disabled={isPaid}
@@ -1480,21 +1479,21 @@ setPaymentLink(createdLink);
  setDeliveryProfit(numVal * 0.3);
  }
  }}
- className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-900 text-center text-sm"
+ className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-black text-slate-800 text-center text-sm"
  placeholder="0.000"
  />
  </div>
 )}
  </div>
 
- <div className="flex justify-between items-center bg-slate-100 p-3 rounded-xl md:rounded-2xl border border-slate-200">
- <span className="font-bold text-primary text-sm">{Number(deliveryFee || 0).toFixed(3)} د.ك</span>
- <span className="text-[11px] sm:text-xs font-bold text-slate-500">سعر التوصيل</span>
+ <div className="flex justify-between items-center bg-slate-100 p-3 rounded-2xl border border-slate-200">
+ <span className="font-black text-primary text-sm">{Number(deliveryFee || 0).toFixed(3)} د.ك</span>
+ <span className="text-[10px] font-black text-slate-500">سعر التوصيل</span>
  </div>
 
  {/* Address */}
- <div className="space-y-3 pt-4 border-t border-slate-200/60">
- <label className="text-[11px] sm:text-xs font-bold text-slate-500 mr-2 flex items-center justify-end gap-1">
+ <div className="space-y-3 pt-4 border-t border-slate-100">
+ <label className="text-[10px] font-black text-slate-400 mr-2 flex items-center justify-end gap-1">
  <MapPin size={10} /> تفاصيل العنوان (يتم حفظها للعميل)
  </label>
  <div className="grid grid-cols-2 gap-2">
@@ -1503,7 +1502,7 @@ setPaymentLink(createdLink);
      value={addressDetails.block}
      onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, block: e.target.value}))}}
      placeholder="القطعة *"
-     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-900 text-right shadow-sm"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
      dir="rtl"
    />
    <input 
@@ -1511,7 +1510,7 @@ setPaymentLink(createdLink);
      value={addressDetails.street}
      onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, street: e.target.value}))}}
      placeholder="الشارع *"
-     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-900 text-right shadow-sm"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
      dir="rtl"
    />
  </div>
@@ -1521,7 +1520,7 @@ setPaymentLink(createdLink);
      value={addressDetails.jaddah}
      onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, jaddah: e.target.value}))}}
      placeholder="الجادة (اختياري)"
-     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-900 text-right shadow-sm"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
      dir="rtl"
    />
    <input 
@@ -1529,7 +1528,7 @@ setPaymentLink(createdLink);
      value={addressDetails.building}
      onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, building: e.target.value}))}}
      placeholder="المنزل *"
-     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-900 text-right shadow-sm"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
      dir="rtl"
    />
  </div>
@@ -1539,7 +1538,7 @@ setPaymentLink(createdLink);
      value={addressDetails.floor}
      onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, floor: e.target.value}))}}
      placeholder="الدور (اختياري)"
-     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-900 text-right shadow-sm"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
      dir="rtl"
    />
    <input 
@@ -1547,7 +1546,7 @@ setPaymentLink(createdLink);
      value={addressDetails.apartment}
      onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, apartment: e.target.value}))}}
      placeholder="الشقة (اختياري)"
-     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-900 text-right shadow-sm"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
      dir="rtl"
    />
  </div>
@@ -1555,19 +1554,19 @@ setPaymentLink(createdLink);
  </div>
 
  {/* Discount Section */}
- <div className="space-y-3 pt-4 border-t border-slate-200/60">
+ <div className="space-y-3 pt-4 border-t border-slate-100">
  {/* Promo Code Section */}
  <div className="pb-6 mb-4 border-b border-dashed border-slate-200 bg-slate-50/50 p-3 rounded-3xl space-y-3">
- <label className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mr-1 block text-right">كوبون الخصم (Promo Code)</label>
+ <label className="text-[10px] font-black text-slate-400 uppercase mr-1 block text-right">كوبون الخصم (Promo Code)</label>
  <div className="flex gap-2">
  <button 
  onClick={(e) => { e.preventDefault(); handleApplyPromoCode(); }}
- className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-slate-800 transition-all active:scale-[0.98] transition-all duration-200 shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-slate-100"
+ className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-black hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-100"
  >
  تفعيل
  </button>
  <div className="relative flex-1">
- <Tag className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={14} />
+ <Tag className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
  <input 
  type="text"
  value={promoCodeInput}
@@ -1579,7 +1578,7 @@ setPaymentLink(createdLink);
  }
  }}
  placeholder="أدخل الكود هنا..."
- className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pr-9 pl-3 text-right text-xs font-bold outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all shadow-sm"
+ className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pr-9 pl-3 text-right text-xs font-black outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all shadow-sm"
  />
  </div>
  </div>
@@ -1592,25 +1591,25 @@ setPaymentLink(createdLink);
  <X size={12} />
  </button>
  <div className="flex items-center gap-2">
- <span className="text-[11px] font-bold">كود مفعّل: {appliedPromoCode.code}</span>
+ <span className="text-[11px] font-black">كود مفعّل: {appliedPromoCode.code}</span>
  <CheckCircle2 size={12} className="text-emerald-500" />
  </div>
  </div>
 )}
  </div>
 
- <label className="text-[9px] font-bold text-slate-500 uppercase mr-1 block flex items-center justify-end gap-2">
+ <label className="text-[9px] font-black text-slate-400 uppercase mr-1 block flex items-center justify-end gap-2">
  خصم إضافي (اختياري)
  <Tag size={10} className="text-rose-400" />
  </label>
  
- <div className="flex items-center bg-slate-50/50 border border-slate-200/60 rounded-2xl overflow-hidden focus-within:ring-4 focus-within:ring-rose-500/5 focus-within:border-rose-500 transition-all p-1 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
- <div className="flex bg-slate-200/50 rounded-xl p-1 shadow-inner shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+ <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden focus-within:ring-4 focus-within:ring-rose-500/5 focus-within:border-rose-500 transition-all p-1">
+ <div className="flex bg-slate-200/50 rounded-xl p-1 shadow-inner shrink-0">
  <button 
  onClick={() => setDiscountType('amount')}
  className={cn(
 "px-4 py-2 rounded-lg text-xs font-black transition-all whitespace-nowrap",
- discountType === 'amount' ?"bg-white text-rose-600 shadow-sm" :"text-slate-500"
+ discountType === 'amount' ?"bg-white text-rose-600 shadow-sm" :"text-slate-400"
 )}
  >
  د.ك
@@ -1619,7 +1618,7 @@ setPaymentLink(createdLink);
  onClick={() => setDiscountType('percentage')}
  className={cn(
 "px-4 py-2 rounded-lg text-xs font-black transition-all whitespace-nowrap",
- discountType === 'percentage' ?"bg-white text-rose-600 shadow-sm" :"text-slate-500"
+ discountType === 'percentage' ?"bg-white text-rose-600 shadow-sm" :"text-slate-400"
 )}
  >
  %
@@ -1628,7 +1627,7 @@ setPaymentLink(createdLink);
  <NumericInput 
  value={discountValue || ''}
  onChange={(val) => setDiscountValue(parseFloat(val as string) || 0)}
- className="flex-1 bg-transparent py-2.5 px-4 outline-none font-bold text-rose-600 text-left text-sm"
+ className="flex-1 bg-transparent py-2.5 px-4 outline-none font-black text-rose-600 text-left text-sm"
  placeholder="0.000"
  />
  </div>
@@ -1638,7 +1637,7 @@ setPaymentLink(createdLink);
  {/* Cart Items List */}
  <div className="space-y-4 mb-10 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
  {cartItems.map(item => (
- <div key={item.product!.id} className="flex flex-col p-3 gap-3 bg-white rounded-xl md:rounded-2xl border border-slate-200/60 shadow-sm relative">
+ <div key={item.product!.id} className="flex flex-col p-3 gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm relative">
  {/* Delete button (Optional, but good UX if they want to remove entirely, though minus works) */}
  {!isPaid && (
  <button 
@@ -1652,37 +1651,37 @@ setPaymentLink(createdLink);
  <div className="font-extrabold text-[#4a3f35] text-base md:text-lg text-right leading-snug whitespace-normal break-words pl-8">
  {item.product!.name}
  {item.priceAtTime < item.product!.price && (
- <span className="mr-2 text-[11px] sm:text-xs font-bold bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full align-middle">خصم</span>
+ <span className="mr-2 text-[10px] font-black bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full align-middle">خصم</span>
 )}
  </div>
  
  <div className="flex items-center justify-between mt-1">
  {!isPaid && (
- <div className="flex items-center gap-2 bg-slate-50/50 border border-slate-200/60 rounded-xl p-1 shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
- <button onClick={() => removeFromCart(item.product!.id)} className="p-1 hover:bg-white text-slate-500 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"><Minus size={14} /></button>
- <span className="w-8 text-center font-bold text-sm text-slate-900">{item.qty}</span>
- <button onClick={() => addToCart(item.product!.id)} className="p-1 hover:bg-white text-slate-500 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"><Plus size={14} /></button>
+ <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 shrink-0">
+ <button onClick={() => removeFromCart(item.product!.id)} className="p-1 hover:bg-white text-slate-500 rounded-lg transition-colors"><Minus size={14} /></button>
+ <span className="w-8 text-center font-black text-sm text-slate-900">{item.qty}</span>
+ <button onClick={() => addToCart(item.product!.id)} className="p-1 hover:bg-white text-slate-500 rounded-lg transition-colors"><Plus size={14} /></button>
  </div>
 )}
  {isPaid && (
  <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-1.5 shrink-0">
- <span className="font-bold text-sm text-emerald-700">{item.qty} قطعة</span>
+ <span className="font-black text-sm text-emerald-700">{item.qty} قطعة</span>
  </div>
 )}
  
  <div className="flex flex-col items-end gap-1">
  <div className="flex items-center gap-2">
- <span className="text-[11px] sm:text-xs text-slate-500 font-bold">سعر الحبة:</span>
+ <span className="text-[10px] text-slate-400 font-bold">سعر الحبة:</span>
  <input 
  type="number" 
  step="0.001"
- className="w-10 md:w-12 text-left bg-slate-50/50 border border-slate-200/60 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 transition-all"
+ className="w-10 md:w-12 text-left bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-black text-slate-700 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 transition-all"
  value={item.priceAtTime === 0 ? '' : Number(item.priceAtTime).toString()} 
  onChange={(e) => updateItemPrice(item.product!.id, parseFloat(e.target.value) || 0)}
  placeholder="السعر"
  />
  </div>
- <div className="font-bold text-primary text-sm text-left shrink-0">
+ <div className="font-black text-primary text-sm text-left shrink-0">
  {Number((item.qty * item.priceAtTime) || 0).toFixed(3)} د.ك
  </div>
  </div>
@@ -1692,7 +1691,7 @@ setPaymentLink(createdLink);
  {cartItems.length === 0 && (
  <div className="text-center py-6 md:py-12 text-slate-300">
  <ShoppingCart size={48} className="mx-auto mb-4 opacity-10" />
- <p className="text-sm font-bold uppercase">العربة فارغة حالياً</p>
+ <p className="text-sm font-black uppercase">العربة فارغة حالياً</p>
  </div>
 )}
  </div>
@@ -1703,7 +1702,7 @@ setPaymentLink(createdLink);
  initial={{ opacity: 0, y: 10, scale: 0.95 }}
  animate={{ opacity: 1, y: 0, scale: 1 }}
  className={cn(
-"mb-6 p-3 rounded-xl md:rounded-2xl border-2 flex items-center gap-3 transition-all",
+"mb-6 p-3 rounded-2xl border-2 flex items-center gap-3 transition-all",
  smartAlert.type === 'danger' ?"bg-rose-50 border-rose-100 text-rose-600" :
  smartAlert.type === 'special' ?"bg-purple-50 border-purple-100 text-purple-600" :
 "bg-amber-50 border-amber-100 text-amber-600"
@@ -1717,33 +1716,33 @@ setPaymentLink(createdLink);
 )}>
  <AlertTriangle size={18} />
  </div>
- <span className="text-[11px] font-bold leading-snug">{smartAlert.text}</span>
+ <span className="text-[11px] font-black leading-tight">{smartAlert.text}</span>
  </motion.div>
 )}
 
  {/* Totals Summary */}
- <div className="space-y-4 mb-10 pt-6 border-t border-slate-200/60">
+ <div className="space-y-4 mb-10 pt-6 border-t border-slate-100">
  <div className="flex justify-between items-center px-2">
- <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase">المجموع الفرعي</span>
- <span className="font-bold text-slate-600">{Number(subtotal || 0).toFixed(3)} د.ك</span>
+ <span className="text-[10px] font-black text-slate-400 uppercase">المجموع الفرعي</span>
+ <span className="font-black text-slate-600">{Number(subtotal || 0).toFixed(3)} د.ك</span>
  </div>
  <div className="flex justify-between items-center px-2">
- <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase">رسوم التوصيل</span>
- <span className="font-bold text-slate-600">{Number(deliveryFee || 0).toFixed(3)} د.ك</span>
+ <span className="text-[10px] font-black text-slate-400 uppercase">رسوم التوصيل</span>
+ <span className="font-black text-slate-600">{Number(deliveryFee || 0).toFixed(3)} د.ك</span>
  </div>
  {discountAmount > 0 && (
  <div className="flex justify-between items-center px-2">
- <span className="text-[11px] sm:text-xs font-bold text-rose-500 uppercase flex items-center gap-1">
+ <span className="text-[10px] font-black text-rose-500 uppercase flex items-center gap-1">
  <Tag size={10} />
  كوبون: {appliedPromoCode?.code || 'خصم مباشر'}
  </span>
- <span className="font-bold text-rose-600">-{Number(discountAmount || 0).toFixed(3)} د.ك</span>
+ <span className="font-black text-rose-600">-{Number(discountAmount || 0).toFixed(3)} د.ك</span>
  </div>
 )}
- <div className="flex justify-between items-center p-4 md:p-5 bg-primary/5 rounded-xl md:rounded-2xl border border-primary/10">
+ <div className="flex justify-between items-center p-3 md:p-3 bg-primary/5 rounded-2xl border border-primary/10">
  <div>
- <span className="text-xl font-black text-slate-900 tracking-tight">الإجمالي</span>
- <div className="text-[11px] sm:text-xs text-blue-600 font-bold mt-1">طريقة الدفع: Knet</div>
+ <span className="text-xl font-black text-slate-800 tracking-tight">الإجمالي</span>
+ <div className="text-[10px] text-blue-600 font-bold mt-1">طريقة الدفع: Knet</div>
  </div>
  <div className="text-xl md:text-3xl font-black text-primary tracking-tighter">
  {Number(total || 0).toFixed(3)} <span className="text-xs">د.ك</span>
@@ -1756,9 +1755,9 @@ setPaymentLink(createdLink);
  onClick={handleCreateInvoice}
  intensity={0.15}
  className={cn(
-"w-full py-5 rounded-2xl font-black shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all active:scale-[0.97] flex items-center justify-center gap-3 text-lg relative z-50",
+"w-full py-5 rounded-2xl font-black shadow-2xl transition-all active:scale-[0.97] flex items-center justify-center gap-3 text-lg relative z-50",
  !selectedCustomerId || cartItems.length === 0 || isPaid
- ?"bg-slate-100 text-slate-500 cursor-not-allowed shadow-none"
+ ?"bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
  :"bg-primary text-white shadow-primary/30 hover:bg-primary-dark"
 )}
  >

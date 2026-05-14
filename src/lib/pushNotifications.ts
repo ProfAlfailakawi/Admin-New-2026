@@ -1,171 +1,177 @@
-import { getToken, onMessage, getMessaging, isSupported, Messaging } from "firebase/messaging";
-import { app } from "../firebase";
+import { initializeApp, getApps } from "firebase/app";
+import { getMessaging, getToken, isSupported } from "firebase/messaging";
 
-type RegisterPushParams = {
-  userId: string;
-  restaurantId: string;
+const firebaseConfig = {
+  apiKey: "AIzaSyBBVG0C-xjkuT3WeqiNAmJjw6lI8M6Gt6k",
+  authDomain: "gen-lang-client-0200723670.firebaseapp.com",
+  projectId: "gen-lang-client-0200723670",
+  storageBucket: "gen-lang-client-0200723670.firebasestorage.app",
+  messagingSenderId: "119610604304",
+  appId: "1:119610604304:web:55eba98b72a9a7f98d4395",
 };
 
-function isIOS() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent);
-}
+export const FALLBACK_VAPID_KEY =
+  "BGL4HY3Wt_Mlvf-aOyxUJA1TwffllGlkm19H5IVijVfxBzGUWWFrIkQVlIr5-FQ_xQd2JGxsdCuZpBcjABpv3Fw";
 
-function isStandalonePWA() {
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as any).standalone === true
-  );
-}
+export async function getPushSupportStatus() {
+  const hasNotification = typeof Notification !== "undefined";
+  const hasServiceWorker = typeof navigator !== "undefined" && "serviceWorker" in navigator;
 
-export function getPushSupportStatus() {
+  const supported =
+    hasNotification &&
+    hasServiceWorker &&
+    (await isSupported().catch(() => false));
+
   return {
-    notification: "Notification" in window,
-    serviceWorker: "serviceWorker" in navigator,
-    pushManager: "PushManager" in window,
-    standalone: isStandalonePWA(),
-    ios: isIOS(),
-    permission: "Notification" in window ? Notification.permission : "unsupported",
-    userAgent: navigator.userAgent,
+    supported,
+    hasNotification,
+    hasServiceWorker,
+    permission: hasNotification ? Notification.permission : "unsupported",
+    isStandalone:
+      typeof window !== "undefined" &&
+      (window.matchMedia?.("(display-mode: standalone)")?.matches ||
+        (navigator as any).standalone === true),
   };
 }
 
-export async function getFirebaseMessaging(): Promise<Messaging | null> {
-  const supported = await isSupported();
-  if (!supported) {
-    console.warn("Firebase Messaging is not supported in this browser.");
-    return null;
+async function getFreshMessagingServiceWorkerRegistration(): Promise<ServiceWorkerRegistration> {
+  if (!("serviceWorker" in navigator)) {
+    throw new Error("Service Worker غير مدعوم في هذا المتصفح");
   }
-  return getMessaging(app);
+
+  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
+    scope: "/",
+  });
+
+  try {
+    await registration.update();
+  } catch (error) {
+    console.warn("[Push] Service Worker update failed:", error);
+  }
+
+  await navigator.serviceWorker.ready;
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+
+  return registration;
 }
 
-export const FALLBACK_VAPID_KEY = "BGBVGMmmiXqCYZW3NaiCY1ipGqDYBQnFFVYSB3JNR9jLbf9cdblfOQAYIM0519CnFusu27PrtJItk0t4QBYmejc";
-export const RESOLVED_VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || FALLBACK_VAPID_KEY;
+async function saveTokenToServer(token: string, options?: {
+  userId?: string;
+  restaurantId?: string;
+}) {
+  const payload = {
+    token,
+    userId: options?.userId || "admin",
+    restaurantId: options?.restaurantId || "default",
+    platform: /iPhone|iPad|iPod/i.test(navigator.userAgent) ? "iPhone" : "web",
+    userAgent: navigator.userAgent || null,
+    vendor: navigator.vendor || null,
+    language: navigator.language || null,
+    standalone:
+      window.matchMedia?.("(display-mode: standalone)")?.matches ||
+      (navigator as any).standalone === true ||
+      false,
+    notificationPermission: Notification.permission,
+    serviceWorkerController: Boolean(navigator.serviceWorker?.controller),
+    currentUrl: window.location.href,
+    screen: {
+      width: window.screen?.width || null,
+      height: window.screen?.height || null,
+      availWidth: window.screen?.availWidth || null,
+      availHeight: window.screen?.availHeight || null,
+    },
+    savedAtClient: new Date().toISOString(),
+  };
 
-export async function registerPushNotifications({
-  userId,
-  restaurantId,
-}: RegisterPushParams) {
-  if (typeof window === "undefined") return null;
-
-  const status = getPushSupportStatus();
-  console.log("Push Support Status:", status);
-
-  if (status.ios && !status.standalone) {
-    throw new Error(
-      "على الآيفون، أضف التطبيق إلى الشاشة الرئيسية ثم افتحه من الأيقونة لتفعيل الإشعارات."
-    );
-  }
-
-  if (!status.notification || !status.serviceWorker || !status.pushManager) {
-    throw new Error("هذا المتصفح لا يدعم إشعارات الويب على هذا الجهاز.");
-  }
-
-  let permission;
-  try {
-    permission = await Notification.requestPermission();
-  } catch (e) {
-    if (window.self !== window.top) {
-       throw new Error("لا يمكن تفعيل الإشعارات من داخل المعاينة. يرجى فتح التطبيق في نافذة جديدة.");
-    }
-    throw new Error("لم يتم منح إذن الإشعارات.");
-  }
-
-  if (permission !== "granted") {
-    if (window.self !== window.top) {
-       throw new Error("لا يمكن تفعيل الإشعارات من داخل المعاينة. يرجى فتح التطبيق في نافذة جديدة، ثم المحاولة.");
-    }
-    throw new Error("لم يتم منح إذن الإشعارات. يرجى تفعيل الإشعارات من إعدادات المتصفح.");
-  }
-
-  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: '/' });
-
-  const messaging = await getFirebaseMessaging();
-
-  if (!messaging) {
-    throw new Error("Firebase Messaging غير مدعوم في هذا المتصفح.");
-  }
-
-  let token;
-  try {
-    if (!RESOLVED_VAPID_KEY || RESOLVED_VAPID_KEY.includes("YOUR_")) {
-      throw new Error("VAPID Key غير مضبوط. أضف VITE_FIREBASE_VAPID_KEY في Environment Secrets ثم أعد النشر.");
-    }
-
-    token = await getToken(messaging, {
-      vapidKey: RESOLVED_VAPID_KEY,
-      serviceWorkerRegistration: registration,
-    });
-  } catch (err: any) {
-    console.error("Get Token Error:", err);
-    throw new Error(err.message || "فشل إنشاء Token الإشعارات. يرجى التأكد من الـ VAPID Key وان الموقع آمن.");
-  }
-
-  if (!token) {
-    throw new Error("لم يتم إنشاء FCM Token.");
-  }
-
-  // Save the token via API
   const response = await fetch("/api/push/save-token", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      token,
-      userId,
-      restaurantId,
-      userAgent: navigator.userAgent,
-      platform: navigator.platform,
-      vendor: navigator.vendor,
-      language: navigator.language,
-      standalone: (window.navigator as any).standalone === true || window.matchMedia("(display-mode: standalone)").matches,
-      notificationPermission: Notification.permission,
-      serviceWorkerController: !!navigator.serviceWorker.controller,
-      currentUrl: window.location.href,
-      screen: { width: screen.width, height: screen.height },
-      savedAtClient: new Date().toISOString()
-    }),
+    body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-     throw new Error("فشل حفظ التوكن في الخادم");
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data?.success !== true) {
+    throw new Error(data?.error || "فشل حفظ التوكن في الخادم");
   }
 
-  return token;
+  return data;
 }
 
-export async function listenToForegroundMessages(
-  callback: (payload: any) => void
-) {
-  // Listen to native SW messages (for iOS PWA bypass fallback)
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener("message", (event) => {
-      if (event.data && event.data.type === 'PUSH_RECEIVED') {
-        callback(event.data.payload);
-        // Do not display new Notification here, SW handles the display
-      }
-    });
-  }
+export async function registerPushNotifications(options?: {
+  userId?: string;
+  restaurantId?: string;
+}): Promise<{
+  success: boolean;
+  token?: string;
+  error?: string;
+}> {
+  try {
+    const support = await getPushSupportStatus();
 
-  const messaging = await getFirebaseMessaging();
+    if (!support.supported) {
+      return {
+        success: false,
+        error: "الإشعارات غير مدعومة على هذا الجهاز أو المتصفح",
+      };
+    }
 
-  if (!messaging) return;
+    const permission = await Notification.requestPermission();
 
-  onMessage(messaging, (payload) => {
-    callback(payload);
+    if (permission !== "granted") {
+      return {
+        success: false,
+        error: "لم يتم السماح بالإشعارات",
+      };
+    }
 
-    const title = payload.notification?.title || payload.data?.title || "تنبيه جديد";
-    const body = payload.notification?.body || payload.data?.body || "لديك تحديث جديد";
+    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    const messaging = getMessaging(app);
+    const registration = await getFreshMessagingServiceWorkerRegistration();
 
-    if (Notification.permission === "granted") {
-      new Notification(title, {
-        body,
-        icon: payload.data?.icon || "/icons/icon-192.png",
-        badge: payload.data?.badge || "/icons/icon-192.png",
-        data: {
-          url: payload.data?.url || "/",
-        },
+    let token = "";
+
+    try {
+      token = await getToken(messaging, {
+        vapidKey: FALLBACK_VAPID_KEY,
+        serviceWorkerRegistration: registration,
+      });
+    } catch (firstError) {
+      console.warn("[Push] First getToken failed, retrying:", firstError);
+
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+
+      token = await getToken(messaging, {
+        vapidKey: FALLBACK_VAPID_KEY,
+        serviceWorkerRegistration: registration,
       });
     }
-  });
+
+    if (!token) {
+      return {
+        success: false,
+        error: "لم يتم إنشاء توكن الإشعارات",
+      };
+    }
+
+    await saveTokenToServer(token, options);
+
+    localStorage.setItem("push_notifications_enabled", "true");
+    localStorage.setItem("last_push_token", token);
+    localStorage.setItem("push_enabled_at", new Date().toISOString());
+
+    return {
+      success: true,
+      token,
+    };
+  } catch (error: any) {
+    console.error("[Push] registerPushNotifications failed:", error);
+
+    return {
+      success: false,
+      error: error?.message || String(error),
+    };
+  }
 }

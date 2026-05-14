@@ -11,7 +11,7 @@ const CloudStatus: React.FC = () => {
  }, []);
 
  return (
- <div className="flex items-center justify-center p-2 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0" title={status === 'connected' ? 'متصل بالسحابة' : 'غير متصل بالسحابة'}>
+ <div className="flex items-center justify-center p-2" title={status === 'connected' ? 'متصل بالسحابة' : 'غير متصل بالسحابة'}>
  {status === 'connected' ? (
  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
 ) : (

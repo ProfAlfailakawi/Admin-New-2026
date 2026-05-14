@@ -54,10 +54,10 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
  whileHover={{ scale: 1.1, x: 5 }}
  whileTap={{ scale: 0.9 }}
  onClick={() => setIsOpen(true)}
- className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white p-3 rounded-r-2xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] shadow-purple-500/40 group relative"
+ className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white p-3 rounded-r-2xl shadow-xl shadow-purple-500/40 group relative"
  >
  <Sparkles className="group-hover:rotate-12 transition-transform" size={24} />
- <div className="absolute right-full mr-4 bg-slate-900 border border-white/20 text-white text-[11px] sm:text-xs font-bold px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 whitespace-nowrap pointer-events-none shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+ <div className="absolute right-full mr-4 bg-slate-900 border border-white/20 text-white text-[10px] font-black px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 whitespace-nowrap pointer-events-none shadow-2xl">
  ملهم الانستغرام الذكي ✨
  </div>
  </motion.button>
@@ -68,7 +68,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
  <motion.button
  whileTap={{ scale: 0.8 }}
  onClick={() => setIsOpen(true)}
- className="w-14 h-14 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] shadow-purple-500/40 flex items-center justify-center border-2 border-white/20"
+ className="w-14 h-14 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white rounded-full shadow-2xl shadow-purple-500/40 flex items-center justify-center border-2 border-white/20"
  >
  <Sparkles size={24} />
  </motion.button>
@@ -90,27 +90,27 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
  animate={{ x: 0 }}
  exit={{ x: '-100%' }}
  transition={{ type: 'spring', damping: 28, stiffness: 220 }}
- className="fixed left-0 top-0 bottom-0 w-full max-w-sm bg-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] z-[110] overflow-hidden flex flex-col border-r border-white/20"
+ className="fixed left-0 top-0 bottom-0 w-full max-w-sm bg-white shadow-2xl z-[110] overflow-hidden flex flex-col border-r border-white/20"
  dir="rtl"
  >
  {/* Header */}
- <div className="p-4 md:p-5 lg:p-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-950 text-white relative">
+ <div className="p-3 md:p-3 bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-950 text-white relative">
  <button 
  onClick={() => setIsOpen(false)}
- className="absolute top-3 md:p-4 left-6 p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-all active:scale-90 z-20 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+ className="absolute top-3 md:p-4 left-6 p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-all active:scale-90 z-20"
  >
  <X size={18} />
  </button>
  <div className="relative z-10">
  <div className="flex items-center gap-4 mb-4">
- <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-indigo-500/30">
+ <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-2xl shadow-lg shadow-indigo-500/30">
  <Instagram size={28} className="text-white" />
  </div>
  <div>
  <h3 className="text-2xl font-black tracking-tight">ملهم الانستغرام</h3>
  <div className="flex items-center gap-1.5 mt-1">
  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
- <span className="text-[11px] sm:text-xs font-bold text-indigo-300 uppercase">المحرك الذهبي نشط</span>
+ <span className="text-[10px] font-black text-indigo-300 uppercase">المحرك الذهبي نشط</span>
  </div>
  </div>
  </div>
@@ -131,12 +131,12 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
 "flex-1 py-3 text-[11px] font-black rounded-2xl transition-all duration-500 active:scale-90 border-2",
  activeCategory === cat 
  ? cn(
-"shadow-[0_4px_20px_rgb(0,0,0,0.05)] scale-[1.05] border-transparent text-white",
+"shadow-xl scale-[1.05] border-transparent text-white",
  cat === 'motivation' ?"bg-gradient-to-br from-rose-500 to-pink-600 shadow-rose-500/30" :
  cat === 'engagement' ?"bg-gradient-to-br from-indigo-500 to-blue-600 shadow-indigo-500/30" :
 "bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/30"
 )
- :"bg-white/80 text-slate-500 border-slate-200/60 hover:border-slate-200"
+ :"bg-white/80 text-slate-400 border-slate-100 hover:border-slate-200"
 )}
  >
  {cat === 'motivation' ? '🚀 إلهام' : cat === 'engagement' ? '💬 تفاعل' : '🎯 ترويج'}
@@ -172,17 +172,17 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
  </div>
  </div>
  <div className="text-center space-y-2">
- <h4 className="text-lg font-black text-slate-900">جاري الابتكار...</h4>
- <p className="text-xs font-bold text-slate-500">محرك الإبداع الذكي يكتب لك الآن</p>
+ <h4 className="text-lg font-black text-slate-800">جاري الابتكار...</h4>
+ <p className="text-xs font-bold text-slate-400">محرك الإبداع الذكي يكتب لك الآن</p>
  </div>
  </div>
 ) : (
  <>
  <div className="flex justify-between items-center px-2">
- <h5 className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-[0.3em]">أفكار حصرية</h5>
+ <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">أفكار حصرية</h5>
  <button 
  onClick={() => fetchMessages()}
- className="text-slate-500 hover:text-slate-900 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold transition-all active:scale-[0.98] transition-all duration-200"
+ className="text-slate-500 hover:text-slate-800 flex items-center gap-1.5 text-[10px] font-black transition-all active:scale-95"
  >
  <RefreshCw size={12} /> تحديث المقترحات
  </button>
@@ -195,7 +195,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
  initial={{ opacity: 0, scale: 0.9 }}
  animate={{ opacity: 1, scale: 1 }}
  transition={{ delay: index * 0.1 }}
- className="group bg-white border border-slate-200/60 p-4 md:p-5 lg:p-6 rounded-3xl md:rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] hover:shadow-indigo-500/10 transition-all duration-700 relative overflow-hidden"
+ className="group bg-white border border-slate-100 p-3 md:p-3 rounded-3xl md:rounded-2xl shadow-xl hover:shadow-indigo-500/10 transition-all duration-700 relative overflow-hidden"
  >
  <div className={cn(
 "absolute top-0 right-0 w-32 h-32 opacity-10 rounded-bl-[100px] transition-all duration-700",
@@ -204,17 +204,17 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
 "bg-amber-400"
 )} />
  
- <div className="relative z-10 flex flex-col gap-4 md:p-5">
+ <div className="relative z-10 flex flex-col gap-4 md:p-3">
  <div className="flex items-center justify-between flex-row-reverse">
  <div className={cn(
-"w-14 h-14 rounded-3xl flex items-center justify-center text-white shadow-[0_4px_20px_rgb(0,0,0,0.05)] transition-all duration-500 group-hover:rotate-12",
+"w-14 h-14 rounded-3xl flex items-center justify-center text-white shadow-xl transition-all duration-500 group-hover:rotate-12",
  activeCategory === 'motivation' ?"bg-gradient-to-br from-rose-400 to-pink-600 shadow-rose-500/20" :
  activeCategory === 'engagement' ?"bg-gradient-to-br from-indigo-400 to-blue-600 shadow-indigo-500/20" :
 "bg-gradient-to-br from-amber-400 to-orange-600 shadow-amber-500/20"
 )}>
  <Instagram size={24} />
  </div>
- <span className="text-[11px] sm:text-xs font-bold text-slate-300 tracking-tighter">0{index + 1} / {messages.length}</span>
+ <span className="text-[10px] font-black text-slate-300 tracking-tighter">0{index + 1} / {messages.length}</span>
  </div>
 
  <div className="text-right">
@@ -225,12 +225,12 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
  <div className="flex items-center justify-between pt-6 border-t border-black/5">
  <div className="flex gap-4">
  <Heart className="text-rose-500 fill-rose-500/10 cursor-pointer hover:scale-110 transition-transform" />
- <Send className="text-slate-500 -rotate-45 cursor-pointer hover:scale-110 transition-transform" />
+ <Send className="text-slate-400 -rotate-45 cursor-pointer hover:scale-110 transition-transform" />
  </div>
  <button 
  onClick={() => copyToClipboard(msg, index)}
  className={cn(
-"flex items-center gap-2 text-[11px] font-black px-5 md:px-6 py-3 rounded-3xl transition-all active:scale-90 shadow-[0_8px_30px_rgb(0,0,0,0.08)]",
+"flex items-center gap-2 text-[11px] font-black px-4 md:px-8 py-4 rounded-3xl transition-all active:scale-90 shadow-2xl",
  copiedIndex === index 
  ?"bg-emerald-500 text-white shadow-emerald-500/30" 
  :"bg-slate-900 text-white shadow-slate-900/40 hover:bg-black"
@@ -250,24 +250,24 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
  {messages.length > 0 && (
  <div className="mt-12 space-y-5">
  <div className="flex items-center justify-between px-3">
- <h5 className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-[0.3em]">معاينة المنشور المتوقع</h5>
+ <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">معاينة المنشور المتوقع</h5>
  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
  </div>
 
- <div className="bg-white rounded-3xl md:rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] shadow-slate-300/40 overflow-hidden border border-slate-200/60/50">
+ <div className="bg-white rounded-3xl md:rounded-2xl shadow-2xl shadow-slate-300/40 overflow-hidden border border-slate-100/50">
  {/* Post Header */}
- <div className="p-4 md:p-5 lg:p-6 flex items-center justify-between flex-row-reverse border-b border-slate-50">
+ <div className="p-3 md:p-3 flex items-center justify-between flex-row-reverse border-b border-slate-50">
  <div className="flex items-center gap-3 flex-row-reverse">
  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-yellow-400 via-rose-500 to-purple-600 p-[2.5px]">
  <div className="w-full h-full rounded-full bg-white p-[2px]">
  <div className="w-full h-full rounded-full bg-slate-100 flex items-center justify-center overflow-hidden">
- <Instagram size={16} className="text-slate-500" />
+ <Instagram size={16} className="text-slate-400" />
  </div>
  </div>
  </div>
  <div className="text-right">
- <p className="text-[11px] font-bold text-slate-900 leading-none">alturath.kw</p>
- <p className="text-[9px] font-bold text-slate-500 mt-1.5">الكويت، المحرك الذكي</p>
+ <p className="text-[11px] font-black text-slate-900 leading-none">alturath.kw</p>
+ <p className="text-[9px] font-bold text-slate-400 mt-1.5">الكويت، المحرك الذكي</p>
  </div>
  </div>
  <div className="flex gap-1">
@@ -285,7 +285,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
 )} />
  
  <div className="absolute inset-x-8 text-center space-y-4">
- <p className="text-white text-xl font-black leading-snug drop-shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+ <p className="text-white text-xl font-black leading-tight drop-shadow-2xl">
  {messages[0].split('\n')[0].substring(0, 45)}...
  </p>
  <div className="w-12 h-1 bg-white/30 mx-auto rounded-full" />
@@ -295,7 +295,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
  </div>
 
  {/* Post Interactions */}
- <div className="p-4 md:p-5 lg:p-6 flex items-center justify-between flex-row-reverse">
+ <div className="p-3 md:p-3 flex items-center justify-between flex-row-reverse">
  <div className="flex items-center gap-5 flex-row-reverse">
  <Heart size={22} className="text-slate-900 cursor-pointer hover:scale-125 transition-transform" />
  <MessageCircle size={22} className="text-slate-900 cursor-pointer hover:scale-125 transition-transform" />
@@ -306,14 +306,14 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
 
  {/* Post Caption */}
  <div className="px-6 pb-8 text-right">
- <p className="text-[12px] leading-[1.8] text-slate-900">
- <span className="font-bold ml-2 text-slate-950">alturath.kw</span>
+ <p className="text-[12px] leading-[1.8] text-slate-800">
+ <span className="font-black ml-2 text-slate-950">alturath.kw</span>
  {messages[0]}
  </p>
  <div className="flex justify-start mt-4">
- <p className="text-[11px] sm:text-xs font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">#تراث_بي #الكويت #ذكاء_أعمال</p>
+ <p className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">#تراث_بي #الكويت #ذكاء_أعمال</p>
  </div>
- <p className="text-[9px] font-bold text-slate-300 mt-4 uppercase tracking-[0.2em]">منذ لحظات عبر المحرك الذهبي</p>
+ <p className="text-[9px] font-black text-slate-300 mt-4 uppercase tracking-[0.2em]">منذ لحظات عبر المحرك الذهبي</p>
  </div>
  </div>
  </div>
@@ -323,8 +323,8 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
  </div>
 
  {/* Footer */}
- <div className="p-3 md:p-4 border-t border-slate-200/60 bg-slate-50">
- <p className="text-[9px] text-center font-bold text-slate-500 leading-relaxed">
+ <div className="p-3 md:p-4 border-t border-slate-100 bg-slate-50">
+ <p className="text-[9px] text-center font-bold text-slate-400 leading-relaxed">
  استخدم هذه الرسائل لإلهام متابعينك في انستغرام. <br/>
  هذه الخدمة تعمل بالذكاء الاصطناعي حصرياً لتراث بي.
  </p>

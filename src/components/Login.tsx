@@ -123,7 +123,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  className="max-w-md w-full"
  >
  <div className="bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden border border-slate-200/60 relative">
- <div className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 p-3 md:p-4 md:p-5 md:p-4 text-center text-white relative overflow-hidden">
+ <div className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 p-3 md:p-4 md:p-3 md:p-4 text-center text-white relative overflow-hidden">
  <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
  <div className="absolute -top-3 md:p-4 -left-10 w-64 h-64 bg-indigo-500 rounded-full blur-[100px] animate-pulse" />
  <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-amber-500 rounded-full blur-[100px]" />
@@ -137,10 +137,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  />
 
  <h1 className="text-xl md:text-3xl font-black mb-2 relative z-10 tracking-tight">نظام مطبخ التراث</h1>
- <p className="text-white/50 relative z-10 font-bold text-[11px] sm:text-xs uppercase">Smart Cloud Accounting Engine</p>
+ <p className="text-white/50 relative z-10 font-bold text-[10px] uppercase">Smart Cloud Accounting Engine</p>
  </div>
 
- <div className="p-4 md:p-5 lg:p-6 space-y-6">
+ <div className="p-3 md:p-3 space-y-6">
  {localStorage.getItem('appMode') === 'cloud' && (
  <div className="bg-blue-50 text-blue-800 p-3 rounded-xl text-sm font-bold text-center border border-blue-100">
  لقد استخدمت التخزين السحابي مؤخراً. يرجى تسجيل الدخول بـ Google للوصول لبياناتك.
@@ -149,15 +149,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  <button 
  onClick={handleGoogleLogin}
  disabled={loading}
- className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-transparent transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+ className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg border border-transparent transition-all active:scale-[0.98] flex items-center justify-center gap-3"
  >
  <Chrome size={20} className="text-white" />
  <span>{loading ? 'جاري التحميل...' : 'تسجيل الدخول السحابي (Google)'}</span>
  </button>
 
- <div className="relative flex items-center gap-4 text-slate-500 py-2">
+ <div className="relative flex items-center gap-4 text-slate-400 py-2">
  <div className="flex-1 h-[1px] bg-slate-100" />
- <span className="text-[11px] sm:text-xs font-bold uppercase">أو التخزين المحلي فقط للتجربة</span>
+ <span className="text-[10px] font-bold uppercase">أو التخزين المحلي فقط للتجربة</span>
  <div className="flex-1 h-[1px] bg-slate-100" />
  </div>
 
@@ -166,12 +166,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  <div className="relative group">
  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block mr-1">اسم المستخدم</label>
  <div className="relative">
- <User className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={18} />
+ <User className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
  <input 
  type="text" 
  value={username}
  onChange={(e) => setUsername(e.target.value)}
- className="w-full bg-slate-50/50 border border-slate-200/60 rounded-xl py-3 pr-10 pl-4 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium"
+ className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pr-10 pl-4 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium"
  placeholder="أدخل اسم المستخدم"
  required
  />
@@ -181,12 +181,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  <div className="relative group">
  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block mr-1">كلمة المرور</label>
  <div className="relative">
- <Lock className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={18} />
+ <Lock className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
  <input 
  type="password" 
  value={password}
  onChange={(e) => setPassword(e.target.value)}
- className="w-full bg-slate-50/50 border border-slate-200/60 rounded-xl py-3 pr-10 pl-4 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium"
+ className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pr-10 pl-4 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium"
  placeholder="••••••••"
  required
  />
@@ -207,7 +207,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
 
  <button 
  type="submit"
- className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-slate-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+ className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg shadow-slate-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
  >
  <span>دخول محلي</span>
  <ArrowLeft size={18} />
@@ -217,20 +217,20 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
     <button
       type="button"
       onClick={showInstallToast}
-      className="p-2.5 text-indigo-500 rounded-full border border-slate-200 hover:bg-slate-50 hover:text-indigo-600 transition-all mx-auto block mt-6 shadow-sm min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+      className="p-2.5 text-indigo-500 rounded-full border border-slate-200 hover:bg-slate-50 hover:text-indigo-600 transition-all mx-auto block mt-6 shadow-sm"
     >
       <DownloadCloud size={20} />
     </button>
   )}
  </form>
  
- <p className="text-center text-slate-500 text-[11px] sm:text-xs font-medium leading-relaxed">
+ <p className="text-center text-slate-400 text-[10px] font-medium leading-relaxed">
  عند تسجيل الدخول عبر Google، سيتم حفظ بياناتك في السحابة ومزامنتها تلقائياً عبر جميع أجهزتك لضمان عدم فقدانها.
  </p>
  </div>
  </div>
  
- <div className="mt-8 text-center text-slate-500 text-sm font-medium">
+ <div className="mt-8 text-center text-slate-400 text-sm font-medium">
  شركة مطبخ التراث الكويتي &copy; {new Date().getFullYear()}
  </div>
  </motion.div>
@@ -242,38 +242,38 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
            initial={{ opacity: 0, scale: 0.95 }}
            animate={{ opacity: 1, scale: 1 }}
            exit={{ opacity: 0, scale: 0.95 }}
-           className="bg-white rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] border border-slate-200 p-6 max-w-sm w-full relative"
+           className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm w-full relative"
            dir="rtl"
          >
-           <button onClick={handleCloseIOSPrompt} className="absolute top-4 left-4 p-2 text-slate-500 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0">
+           <button onClick={handleCloseIOSPrompt} className="absolute top-4 left-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors">
              <X size={20} />
            </button>
-           <div className="flex items-center gap-3 mb-4 border-b border-slate-200/60 pb-4">
+           <div className="flex items-center gap-3 mb-4 border-b border-slate-100 pb-4">
              <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600">
                <DownloadCloud size={20} />
              </div>
-             <h3 className="font-black text-lg text-slate-900">تثبيت التطبيق</h3>
+             <h3 className="font-black text-lg text-slate-800">تثبيت التطبيق</h3>
            </div>
            <div className="space-y-4">
              <p className="text-slate-600 font-medium text-sm leading-relaxed">
                لتثبيت التطبيق على جهازك للوصول السريع وتفعيل الإشعارات:
              </p>
-             <ul className="text-sm font-medium text-slate-600 space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-200/60 mt-2">
+             <ul className="text-sm font-medium text-slate-600 space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100 mt-2">
                <li className="flex items-center gap-2">
-                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-bold text-slate-500">1</span>
+                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-black text-slate-500">1</span>
                  <span>اضغط على زر المشاركة <Share size={14} className="inline text-blue-500 mx-0.5" /> المتصفح</span>
                </li>
                <li className="flex items-center gap-2">
-                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-bold text-slate-500">2</span>
+                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-black text-slate-500">2</span>
                  <span>اختر "إضافة إلى الشاشة الرئيسية"</span>
                </li>
                <li className="flex items-center gap-2">
-                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-bold text-slate-500">3</span>
+                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-black text-slate-500">3</span>
                  <span>اضغط "إضافة" (Add) في الأعلى</span>
                </li>
              </ul>
            </div>
-           <button onClick={handleCloseIOSPrompt} className="mt-6 w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-sm active:scale-[0.98] transition-all duration-200">
+           <button onClick={handleCloseIOSPrompt} className="mt-6 w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-sm active:scale-95">
              حسناً، فهمت
            </button>
          </motion.div>

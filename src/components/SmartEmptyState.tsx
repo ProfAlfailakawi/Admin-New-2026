@@ -41,7 +41,7 @@ const SmartEmptyState: React.FC<Props> = ({
         </div>
       </div>
       
-      <h3 className="text-xl md:text-2xl font-black text-slate-900 mb-2 leading-relaxed">
+      <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2 leading-relaxed">
         {finalTitle}
       </h3>
       
@@ -52,7 +52,7 @@ const SmartEmptyState: React.FC<Props> = ({
       {actionLabel && onAction && (
           <button 
              onClick={onAction}
-             className="px-6 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all active:scale-[0.98] transition-all duration-200 shadow-[0_2px_10px_rgb(0,0,0,0.04)] shadow-slate-900/20 animate-pulse-slow relative overflow-hidden group"
+             className="px-6 py-3 rounded-xl bg-slate-900 text-white font-black text-sm hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-900/20 animate-pulse-slow relative overflow-hidden group"
           >
              <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-[0%] transition-transform duration-300" />
              <span className="relative z-10">{actionLabel}</span>

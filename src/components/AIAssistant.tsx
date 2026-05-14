@@ -192,12 +192,12 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  {/* Page Header - More Compact */}
  <div className="flex items-center justify-between px-2 md:px-4">
  <div className="flex items-center gap-3">
- <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-[0_4px_20px_rgb(0,0,0,0.05)] transform rotate-2">
+ <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-xl transform rotate-2">
  <BrainCircuit size={24} className="text-amber-400" />
  </div>
  <div>
  <h1 className="text-xl md:text-3xl font-black tracking-tighter text-slate-900 bg-gradient-to-l from-slate-900 to-amber-900 bg-clip-text text-transparent">Alturath AI</h1>
- <p className="text-slate-500 text-xs font-bold flex items-center gap-1 opacity-80">
+ <p className="text-slate-400 text-xs font-black flex items-center gap-1 opacity-80">
  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
  المساعد الذكي للبيانات الحقيقية
  </p>
@@ -205,11 +205,11 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  </div>
  </div>
 
- <div className="flex-1 bg-white/60 backdrop-blur-3xl rounded-2xl md:rounded-xl md:rounded-2xl border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden flex flex-col relative mx-0">
+ <div className="flex-1 bg-white/60 backdrop-blur-3xl rounded-2xl md:rounded-2xl border border-slate-200/60 shadow-2xl overflow-hidden flex flex-col relative mx-0">
  <div className="absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-white/40 to-transparent pointer-events-none z-10" />
  
  {/* Chat Messages - Now naturally pushed up by input area */}
- <div className="flex-1 min-w-0 overflow-y-auto p-4 md:p-5 lg:p-6 space-y-6 md:space-y-8 custom-scrollbar relative">
+ <div className="flex-1 overflow-y-auto p-3 md:p-3 space-y-6 md:space-y-8 custom-scrollbar relative">
  <AnimatePresence initial={false}>
  {(messages || []).map((m, i) => (
  <motion.div
@@ -233,28 +233,28 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
 "p-3 md:p-4 rounded-2xl text-base leading-relaxed relative flex-1 min-w-0 shadow-sm",
  m.role === 'user' 
  ?"bg-slate-950 text-white rounded-tr-none max-w-[85%] md:max-w-[70%] ml-auto" 
- :"bg-white text-slate-900 border border-slate-200/60 rounded-tl-none max-w-full"
+ :"bg-white text-slate-800 border border-slate-100 rounded-tl-none max-w-full"
 )}>
  {m.role === 'assistant' && (
  <div className="absolute top-0 right-10 left-10 h-[1px] bg-amber-500/20" />
 )}
  <div className="prose prose-slate text-right rtl max-w-none
  prose-p:mb-3 prose-p:leading-relaxed prose-p:text-slate-700
- prose-strong:text-amber-700 prose-strong:font-bold
- prose-headings:text-slate-900 prose-headings:font-bold prose-headings:my-4
+ prose-strong:text-amber-700 prose-strong:font-black
+ prose-headings:text-slate-900 prose-headings:font-black prose-headings:my-4
  prose-li:text-slate-600 prose-li:font-medium
  prose-table:w-full prose-table:my-4 prose-table:text-sm md:prose-table:text-base">
  <Markdown components={{
- strong: ({node, ...props}) => <strong className="text-amber-600 font-bold bg-amber-50 px-1 rounded" {...props} />,
- h3: ({node, ...props}) => <h3 className="text-lg md:text-xl text-slate-900 border-r-4 border-amber-500 pr-3 my-4 font-black" {...props} />,
+ strong: ({node, ...props}) => <strong className="text-amber-600 font-black bg-amber-50 px-1 rounded" {...props} />,
+ h3: ({node, ...props}) => <h3 className="text-lg md:text-xl text-slate-800 border-r-4 border-amber-500 pr-3 my-4 font-black" {...props} />,
  li: ({node, ...props}) => <li className="list-disc list-inside marker:text-amber-500 mb-1" {...props} />,
  table: ({node, ...props}) => (
- <div className="my-4 overflow-x-auto rounded-xl border border-slate-200/60 bg-slate-50/30">
+ <div className="my-4 overflow-x-auto rounded-xl border border-slate-100 bg-slate-50/30">
  <table className="w-full text-right border-collapse" {...props} />
  </div>
 ),
- th: ({node, ...props}) => <th className="bg-slate-100/80 p-3 font-bold text-slate-900 border-b border-slate-200" {...props} />,
- td: ({node, ...props}) => <td className="p-3 border-b border-slate-200/60" {...props} />,
+ th: ({node, ...props}) => <th className="bg-slate-100/80 p-3 font-black text-slate-900 border-b border-slate-200" {...props} />,
+ td: ({node, ...props}) => <td className="p-3 border-b border-slate-100" {...props} />,
  em: ({node, ...props}) => <em className="text-emerald-600 font-bold not-italic" {...props} />
  }}>{m.content}</Markdown>
  </div>
@@ -270,7 +270,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white border border-slate-200 text-slate-900 flex items-center justify-center animate-pulse">
  <Bot size={14} className="text-amber-500" />
  </div>
- <div className="p-3 bg-slate-50/50 border border-slate-200/60/60 rounded-2xl rounded-tl-none italic text-slate-500 text-sm font-bold flex items-center gap-3">
+ <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl rounded-tl-none italic text-slate-400 text-sm font-bold flex items-center gap-3">
  <Loader2 size={14} className="animate-spin text-amber-500" />
  حلل بيانات التراث...
  </div>
@@ -280,7 +280,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  </div>
 
  {/* Input Area - Now not absolute, sits at the bottom of the column */}
- <div className="p-3 md:p-4 bg-white border-t border-slate-200/60 shrink-0">
+ <div className="p-3 md:p-4 bg-white border-t border-slate-100 shrink-0">
  <div className="max-w-4xl mx-auto space-y-4">
  {/* Quick Suggestions - Smaller & more elegant */}
  <div className="relative max-w-full">
@@ -289,7 +289,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  <button
  key={i}
  onClick={() => setInput(s)}
- className="bg-white/80 hover:bg-slate-900 hover:text-white border border-slate-200 text-slate-600 text-[11px] sm:text-xs md:text-xs py-1.5 px-3 md:px-4 rounded-full transition-all flex items-center gap-1 font-bold whitespace-nowrap active:scale-[0.98] transition-all duration-200 shadow-sm backdrop-blur-md shrink-0"
+ className="bg-white/80 hover:bg-slate-900 hover:text-white border border-slate-200 text-slate-600 text-[10px] md:text-xs py-1.5 px-3 md:px-4 rounded-full transition-all flex items-center gap-1 font-bold whitespace-nowrap active:scale-95 shadow-sm backdrop-blur-md shrink-0"
  >
  <Sparkles size={10} className="text-amber-400" />
  {s}
@@ -310,9 +310,9 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  }
  }}
  placeholder="اطلب تحليلاً أو استراتيجية..."
- className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl py-3 md:py-4 pr-10 md:pr-12 pl-12 md:pl-16 outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/50 transition-all resize-none font-bold text-slate-900 placeholder:text-slate-500 text-sm md:text-base shadow-sm"
+ className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 md:py-4 pr-10 md:pr-12 pl-12 md:pl-16 outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/50 transition-all resize-none font-bold text-slate-800 placeholder:text-slate-400 text-sm md:text-base shadow-sm"
  />
- <div className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-amber-500 transition-colors pointer-events-none">
+ <div className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
  <BrainCircuit size={18} />
  </div>
  <button
@@ -322,7 +322,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
 "absolute left-2 md:left-3 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center transition-all",
  !input.trim() || isLoading
  ?"bg-slate-100 text-slate-300"
- :"bg-slate-950 text-white shadow-[0_2px_10px_rgb(0,0,0,0.04)] hover:scale-105 active:scale-[0.98] transition-all duration-200"
+ :"bg-slate-950 text-white shadow-lg hover:scale-105 active:scale-95"
 )}
  >
  <Send size={16} className="rotate-180" />

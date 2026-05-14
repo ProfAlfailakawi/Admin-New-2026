@@ -6,40 +6,95 @@ import { getFirestore } from 'firebase-admin/firestore';
 import fsSync from 'fs';
 import 'dotenv/config';
 
-let db: FirebaseFirestore.Firestore | undefined;
+let firebaseInitialized = false;
+let db: any = null;
+
 try {
-  const configPath = fsSync.existsSync(path.join(process.cwd(), 'firebase-applet-config.json'))
-    ? path.join(process.cwd(), 'firebase-applet-config.json')
-    : './firebase-applet-config.json';
-      
-  const config = JSON.parse(fsSync.readFileSync(configPath, 'utf8'));
-  
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-    try {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-      const appInstance = admin.initializeApp({ 
-        credential: admin.credential.cert(serviceAccount),
-        projectId: config.projectId 
+  const appInstance = admin.apps.length
+    ? admin.app()
+    : admin.initializeApp({
+        projectId: process.env.GOOGLE_CLOUD_PROJECT || "gen-lang-client-0200723670",
       });
-      db = getFirestore(appInstance, config.firestoreDatabaseId);
-      console.log("Firebase Admin initialized successfully.");
-    } catch (err: any) {
-      console.warn("Failed to initialize Firebase Admin with service account. Backend Firebase access will be mocked:", err.message);
-    }
-  } else {
-    console.warn("FIREBASE_SERVICE_ACCOUNT_KEY is missing. Backend Firebase access and Push notifications will be mocked.");
-  }
-} catch (e) {
-  console.log("Could not parse firebase config or init admin", e);
+
+  db = getFirestore(appInstance);
+  firebaseInitialized = true;
+  console.log("[ADMIN020] Firebase Admin initialized with Cloud Run ADC");
+} catch (error) {
+  firebaseInitialized = false;
+  db = null;
+  console.error("[ADMIN020] Firebase Admin initialization failed:", error);
 }
 
-async function startServer() {
-  const app = express();
+
+function removeUndefinedFields(obj: any): any {
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return obj;
+
+  const cleaned: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined) continue;
+    cleaned[key] = value;
+  }
+  return cleaned;
+}
+
+
+
+function removeUndefinedDeep(value: any): any {
+  if (Array.isArray(value)) {
+    return value.map(removeUndefinedDeep).filter((v) => v !== undefined);
+  }
+
+  if (value && typeof value === "object") {
+    const cleaned: any = {};
+    for (const [key, val] of Object.entries(value)) {
+      if (val === undefined) continue;
+      cleaned[key] = removeUndefinedDeep(val);
+    }
+    return cleaned;
+  }
+
+  return value === undefined ? undefined : value;
+}
+
+
+const app = express();
+
+// ADMIN020_FORCE_CORS
+app.use((req, res, next) => {
+  const origin = String(req.headers.origin || "");
+
+  const allowedOrigins = new Set([
+    "https://alturath-admin-0200723670.web.app",
+    "https://gen-lang-client-0200723670.web.app",
+    "https://service-119610604304.europe-west3.run.app",
+    "http://localhost:5173",
+    "http://localhost:3000"
+  ]);
+
+  if (allowedOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "https://alturath-admin-0200723670.web.app");
+  }
+
+  res.setHeader("Vary", "Origin");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-admin-secret, X-Admin-Secret");
+  res.setHeader("Access-Control-Max-Age", "86400");
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).send("");
+  }
+
+  next();
+});
+
   const PORT = Number(process.env.PORT) || 3000;
 
   app.use(cors());
   app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+
+app.use(express.urlencoded({ extended: true }));
 
   // Webhook for payment gateway
   // It synchronizes payment results to the database even if the user doesn't return to the app.
@@ -218,7 +273,7 @@ async function startServer() {
           standalone: data.standalone,
           notificationPermission: data.notificationPermission,
           serviceWorkerController: data.serviceWorkerController,
-          platform: data.platform,
+          platform: data.platform || null,
           currentUrl: data.currentUrl,
           userAgent: data.userAgent,
           updatedAt: data.updatedAt?.toDate()
@@ -297,7 +352,81 @@ async function startServer() {
     }
   });
 
-  app.post("/api/push/test-smart-alert", async (req, res) => {
+  
+app.post("/api/push/clear-tokens", async (req, res) => {
+  try {
+    const secret = req.headers["x-admin-secret"] || req.query.secret;
+    if (String(secret) !== String(process.env.ADMIN_TEST_SECRET || "123456")) {
+      return res.status(403).json({ success: false, error: "Forbidden" });
+    }
+
+    if (!firebaseInitialized || !db) {
+      return res.status(500).json({ success: false, error: "Firebase not initialized" });
+    }
+
+    const snap = await db.collection("pushTokens").get();
+
+    let deleted = 0;
+    for (const doc of snap.docs) {
+      await doc.ref.delete();
+      deleted++;
+    }
+
+    return res.json({
+      success: true,
+      deleted,
+    });
+  } catch (error) {
+    console.error("[PUSH CLEAR TOKENS ERROR]", error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+app.get("/api/push/debug-tokens", async (req, res) => {
+  try {
+    const secret = req.headers["x-admin-secret"] || req.query.secret;
+    if (String(secret) !== String(process.env.ADMIN_TEST_SECRET || "123456")) {
+      return res.status(403).json({ success: false, error: "Forbidden" });
+    }
+
+    if (!firebaseInitialized || !db) {
+      return res.status(500).json({ success: false, error: "Firebase not initialized" });
+    }
+
+    const snap = await db.collection("pushTokens").get();
+
+    const tokens = snap.docs.map((doc) => {
+      const data = doc.data() || {};
+      return {
+        id: doc.id,
+        active: data.active,
+        tokenStart: String(data.token || "").slice(0, 30),
+        tokenLength: String(data.token || "").length,
+        platform: data.platform || null,
+        vendor: data.vendor || null,
+        updatedAt: data.updatedAt || null,
+      };
+    });
+
+    return res.json({
+      success: true,
+      tokensCount: tokens.length,
+      tokens,
+    });
+  } catch (error) {
+    console.error("[PUSH DEBUG TOKENS ERROR]", error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+
+app.post("/api/push/test-smart-alert", async (req, res) => {
     console.log("PUSH TEST VERSION", "push-debug-2026-05-08-v1");
     const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
     const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
@@ -979,7 +1108,21 @@ async function startServer() {
 
   app.post("/api/push/save-token", async (req, res) => {
     try {
-      const { token, userId, restaurantId, platform, userAgent, vendor, language, standalone, notificationPermission, serviceWorkerController, currentUrl, screen, savedAtClient } = req.body;
+      const {
+        token,
+        userId,
+        restaurantId,
+        platform,
+        userAgent,
+        vendor,
+        language,
+        standalone,
+        notificationPermission,
+        serviceWorkerController,
+        currentUrl,
+        screen,
+        savedAtClient
+      } = req.body;
 
       if (!token) {
         return res.status(400).json({ error: "token is required" });
@@ -1006,8 +1149,8 @@ async function startServer() {
           restaurantId: restaurantId || "kitchen_default",
           platform: platform || "",
           userAgent: ua,
-          vendor,
-          language,
+          vendor: vendor || null,
+          language: language || null,
           standalone,
           notificationPermission,
           serviceWorkerController,
@@ -1027,7 +1170,7 @@ async function startServer() {
           data.createdAt = admin.firestore.FieldValue.serverTimestamp();
         }
 
-        await tokenRef.set(data, { merge: true });
+        await tokenRef.set(removeUndefinedDeep(data), { merge: true });
       }
 
       return res.json({ success: true });
@@ -1040,7 +1183,122 @@ async function startServer() {
     }
   });
 
-  async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'default', orderNumber = '', testNotificationOnly = false }: any) {
+  
+async function sendSmartAlertPushNotification({
+  title,
+  body,
+  alertType = "general",
+  url = "https://alturath-admin-0200723670.web.app",
+  eventId = `manual-smart-alert-${Date.now()}`,
+}: {
+  title: string;
+  body: string;
+  alertType?: string;
+  url?: string;
+  eventId?: string;
+}) {
+  try {
+    if (!firebaseInitialized || !db) {
+      return {
+        success: true,
+        mocked: true,
+        error: "Firebase not initialized",
+      };
+    }
+
+    const snap = await db.collection("pushTokens")
+      .where("active", "==", true)
+      .get();
+
+    const tokens = snap.docs
+      .map((doc: any) => String((doc.data() || {}).token || ""))
+      .filter((token: string) => token.length > 50);
+
+    if (tokens.length === 0) {
+      return {
+        success: false,
+        tokensCount: 0,
+        error: "No active push tokens",
+      };
+    }
+
+    const message = {
+      tokens,
+        notification: {
+          title: String(title || "تنبيه"),
+          body: String(body || ""),
+        },
+      data: {
+        type: "smart_alert",
+        alertType: String(alertType || "general"),
+        eventId: String(eventId || `manual-smart-alert-${Date.now()}`),
+        url: String(url),
+        click_action: String(url),
+        title: String(title || "تنبيه"),
+        body: String(body || ""),
+      },
+      webpush: {
+        headers: {
+          Urgency: "high",
+          TTL: "86400",
+        },
+        fcmOptions: {
+          link: String(url),
+        },
+      },
+    };
+
+    const response = await admin.messaging().sendEachForMulticast(message);
+
+    if (response.failureCount > 0) {
+      const batch = db.batch();
+      let changed = 0;
+
+      response.responses.forEach((resp: any, idx: number) => {
+        if (!resp.success) {
+          const errorCode = resp.error?.code;
+          if (
+            errorCode === "messaging/registration-token-not-registered" ||
+            errorCode === "messaging/invalid-registration-token" ||
+            errorCode === "messaging/invalid-argument"
+          ) {
+            batch.update(db.collection("pushTokens").doc(tokens[idx]), { active: false });
+            changed++;
+          }
+        }
+      });
+
+      if (changed > 0) {
+        await batch.commit();
+      }
+    }
+
+    return {
+      success: true,
+      tokensCount: tokens.length,
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      errors: response.responses
+        .map((resp: any, idx: number) => resp.success ? null : {
+          tokenStart: tokens[idx].slice(0, 20),
+          code: resp.error?.code,
+          message: resp.error?.message,
+        })
+        .filter(Boolean),
+    };
+  } catch (error: any) {
+    console.error("[SMART ALERT PUSH ERROR]", error);
+    return {
+      success: true,
+      mocked: true,
+      error: "Failed to process smart alert notification",
+      details: error?.message || String(error),
+    };
+  }
+}
+
+
+async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'default', orderNumber = '', testNotificationOnly = false }: any) {
     if (!admin.messaging || !db) return { success: true, mocked: true, error: "Firebase not initialized" };
     const url = `/?invoice=${orderId}`; 
     
@@ -1050,115 +1308,24 @@ async function startServer() {
       
       const tokens = snap.docs.map(d => d.data().token);
       
-      const message: any = {
-        tokens,
-        notification: testNotificationOnly ? {
-          title: "اختبار طلب جديد",
-          body: "هذا اختبار إشعار بالخلفية"
-        } : {
-          title: "✅ طلب مدفوع جديد",
-          body: `تم دفع الطلب ${orderNumber || orderId} — القيمة ${String(total)} د.ك. جهزوا الطلب يا أبطال 🔥`,
-        },
-        webpush: {
-          headers: {
-            Urgency: "high",
-            TTL: "86400"
-          },
-          fcmOptions: { link: testNotificationOnly ? "https://admin.alturathkw.shop/?invoice=ord_123" : url },
-          notification: {
-            icon: "https://admin.alturathkw.shop/icons/icon-192.png",
-            badge: "https://admin.alturathkw.shop/icons/icon-192.png",
-            requireInteraction: true,
-            vibrate: [200, 100, 200],
-          },
-        },
-      };
-
-      if (!testNotificationOnly) {
-        message.data = {
-          type: "new_order",
-          orderId: String(orderId),
-          restaurantId: String(restaurantId || "kitchen_default"),
-          orderNumber: String(orderNumber),
-          total: String(total),
-          url,
-        };
-      }
-
-      const response = await admin.messaging().sendEachForMulticast(message);
-      
-      // Cleanup invalid tokens
-      if (response.failureCount > 0) {
-        const failedTokens: string[] = [];
-        response.responses.forEach((resp, idx) => {
-          if (!resp.success) {
-            const errorCode = resp.error?.code;
-            if (errorCode === "messaging/registration-token-not-registered" || 
-                errorCode === "messaging/invalid-registration-token" ||
-                errorCode === "messaging/invalid-argument") {
-              failedTokens.push(tokens[idx]);
-            }
-          }
-        });
-
-        if (failedTokens.length > 0) {
-          const batch = db.batch();
-          for (const token of failedTokens) {
-            batch.update(db.collection("pushTokens").doc(token), { active: false });
-          }
-          await batch.commit();
-        }
-      }
-
-      return {
-        success: response.successCount > 0,
-        tokensCount: tokens.length,
-        successCount: response.successCount,
-        failureCount: response.failureCount,
-        errors: response.responses.filter(r => !r.success).map(r => (r.error ? { code: r.error.code, message: r.error.message } : { message: "Unknown error" }))
-      };
-    } catch (e: any) {
-      console.warn("Sending push error suppressed in preview:", e.message);
-      return { success: true, mocked: true, warning: e.message };
-    }
-  }
-
-  async function sendSmartAlertPushNotification({ token, alertType, title, body, url = '/' }: any) {
-    if (!admin.messaging || !db) return { success: true, mocked: true, error: "Firebase not initialized" };
-    
-    try {
-      let tokens: string[] = [];
-      if (token) {
-        tokens = [token];
-      } else {
-        const snap = await db.collection("pushTokens").where("active", "==", true).get();
-        if (snap.empty) return { success: false, error: "No active push tokens found", tokensCount: 0 };
-        tokens = snap.docs.map(d => d.data().token);
-      }
-
       const message = {
         tokens,
-        notification: {
-          title: title || "تنبيه ذكي",
-          body: body || "يوجد تحديث في النظام",
-        },
         data: {
           type: "smart_alert",
-          alertType: String(alertType || 'general'),
-          url,
-          title: String(title),
-          body: String(body),
+          alertType: "new_order",
+          eventId: `new-order-${orderId}-${Date.now()}`,
+          url: String(url),
+          click_action: String(url),
+          title: "طلب جديد",
+          body: `طلب جديد ${orderNumber || orderId}`,
         },
         webpush: {
           headers: {
             Urgency: "high",
-            TTL: "86400"
+            TTL: "86400",
           },
-          fcmOptions: { link: url },
-          notification: {
-            icon: "https://admin.alturathkw.shop/icons/icon-192.png",
-            badge: "https://admin.alturathkw.shop/icons/icon-192.png",
-            vibrate: [200, 100, 200],
+          fcmOptions: {
+            link: String(url),
           },
         },
       };
@@ -1505,6 +1672,4 @@ async function startServer() {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
-}
 
-startServer();
