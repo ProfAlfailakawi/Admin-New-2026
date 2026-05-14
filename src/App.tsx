@@ -2122,11 +2122,6 @@ const MainApp: React.FC = () => {
 
       {(isAuthenticated || appMode === 'local') && <InstagramMagicWand data={data} />}
       <Toaster richColors position="bottom-right" closeButton />
-      
-      {/* Version Tag - Subtle but visible as requested */}
-      <div className="fixed bottom-1 left-2 pointer-events-none z-[10000] select-none opacity-20">
-        <span className="text-[8px] font-mono tracking-widest text-slate-500 uppercase">Version 4.0.0.Release</span>
-      </div>
     </div>
   );
 };
