@@ -32,10 +32,9 @@ export const storage = getStorage(app);
 
 console.log("Firebase App Initialized with project:", activeConfig.projectId);
 
-// For (default) database, we don't need to specify the ID.
 // Using initializeFirestore with long polling as it's more stable in this environment.
-export const db = initializeFirestore(app, { experimentalForceLongPolling: true });
-console.log("Firestore initialized (default).");
+export const db = initializeFirestore(app, { experimentalForceLongPolling: true }, (firebaseConfig as any).firestoreDatabaseId);
+console.log("Firestore initialized with DB ID:", (firebaseConfig as any).firestoreDatabaseId);
 
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
