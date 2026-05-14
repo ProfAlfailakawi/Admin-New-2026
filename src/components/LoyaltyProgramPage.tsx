@@ -50,23 +50,35 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  let classification ="غير محدد";
  let classificationColor ="text-slate-500 bg-slate-100";
 
- if (ordersCount >= 4 && totalSpent >= 200 && daysSinceLastOrder <= 60) {
- classification ="VIP";
- classificationColor ="text-amber-600 bg-amber-100 border-amber-200";
+ const isCouponHunter = totalDiscountReceived > (totalSpent * 0.15) && ordersCount > 2;
+ const isLoyalWithoutDiscounts = totalDiscountReceived === 0 && ordersCount >= 3;
+
+ if (ordersCount >= 10 && totalSpent >= 300) {
+ classification ="شريك التراث";
+ classificationColor ="text-yellow-700 bg-amber-100 border-amber-300 font-extrabold";
+ } else if (ordersCount >= 5 && totalSpent >= 150 && isLoyalWithoutDiscounts) {
+ classification ="عاشق التراث";
+ classificationColor ="text-indigo-700 bg-indigo-100 border-indigo-200 font-bold";
+ } else if (ordersCount >= 4 && totalSpent >= 200 && daysSinceLastOrder <= 60) {
+ classification ="عميل ذهبي";
+ classificationColor ="text-amber-600 bg-amber-200 border-amber-300 font-bold";
+ } else if (isCouponHunter) {
+ classification ="صياد العروض";
+ classificationColor ="text-emerald-700 bg-emerald-100 border-emerald-200";
  } else if (ordersCount === 1 && daysSinceLastOrder <= 30) {
- classification ="جديد";
+ classification ="ضيف جديد";
  classificationColor ="text-blue-600 bg-blue-100 border-blue-200";
  } else if (daysSinceLastOrder <= 45 && ordersCount > 0) {
- classification ="نشط";
- classificationColor ="text-emerald-600 bg-emerald-100 border-emerald-200";
+ classification ="عميل نشط";
+ classificationColor ="text-teal-600 bg-teal-100 border-teal-200";
  } else if (daysSinceLastOrder > 45 && daysSinceLastOrder <= 90) {
- classification ="ماشي بالخطر";
+ classification ="متباطئ";
  classificationColor ="text-orange-600 bg-orange-100 border-orange-200";
  } else if (daysSinceLastOrder > 90) {
- classification ="خامل";
+ classification ="منقطع";
  classificationColor ="text-rose-600 bg-rose-100 border-rose-200";
  } else {
- classification ="محتمَل";
+ classification ="عميل عابر";
  classificationColor ="text-slate-600 bg-slate-100 border-slate-200";
  }
 
@@ -94,13 +106,21 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
 
  const namePart = c.name?.split(' ')[0] ||"عميلنا";
 
- if (classification ==="VIP") {
- smartAdvice ="عميل مميز يستحق مكافأة ملكية";
- whatsappMessage = `هلا ${namePart} 👑، أنت من عملائنا المميزين، عندك ${activePoints} نقطة ونبي نكافئك بعرض خاص"يبرد الجبد" 🔥 اطلب الحين وازهل الباقي علينا!`;
- actionLabel ="مكافأة VIP";
- } else if (classification ==="خامل") {
+ if (classification ==="شريك التراث" || classification ==="عميل ذهبي") {
+ smartAdvice ="عميل مميز وشريك حقيقي، دلاله واجب!";
+ whatsappMessage = `هلا ${namePart} 👑، أنت من شركاء التراث المميزين، عندك ${activePoints} نقطة. جهزنا لك عرض خاص يليق بمقامك 🔥 اطلب الحين وازهل الباقي!`;
+ actionLabel ="مكافأة الشريك";
+ } else if (classification ==="عاشق التراث") {
+ smartAdvice ="ولاء مطلق للمطعم، كافئه ليصبح شريكاً";
+ whatsappMessage = `أصيل يا ${namePart} ✨، ولائك للتراث مقدر! رصيدك ${activePoints} نقطة، وعشانك غالي جهزنا لك عرض خاص اليوم 💛`;
+ actionLabel ="تقدير العاشق";
+ } else if (classification ==="صياد العروض") {
+ smartAdvice ="يعشق التوفير، ارسل له عروض حصرية ومباشرة";
+ whatsappMessage = `يا هلا ${namePart} 🎯، لأنك صايدها دايم، عرض حصري وما يتفوت طابخينه لك مخصوص! خصم قوي مع ${activePoints} نقطة برصيدك. لا يفوتك!`;
+ actionLabel ="طُعم الاقتناص";
+ } else if (classification ==="منقطع") {
  smartAdvice ="اشتقنا له، فرصة استرجاعه بكود قوي";
- whatsappMessage = `اشتقنا لك ${namePart} 😢، لك فترة ما طلبت، جهزنا لك عرض يرجعك لنا ويضبطك! عندك ${activePoints} نقطة ناطرتك 💛`;
+ whatsappMessage = `اشتقنا لك ${namePart} 😢، لك فترة ما طلبت، نبي نرجعك لزمان التراث الجميل! عندك ${activePoints} نقطة ناطرتك 💛`;
  actionLabel ="رسالة استرجاع";
  } else if (activePoints >= 150 && activePoints < 250) {
  smartAdvice ="باقي له قليل للوصول لمكافأة كبيرة";
@@ -111,9 +131,9 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  whatsappMessage = `ما شاء الله ${namePart} 🔥 رصيدك ${activePoints} نقطة"تبيض الوجه"! تقدر تستخدمها الحين كخصم مباشر 🎉 حياك الله.`;
  actionLabel ="رسالة استبدال";
  } else {
- smartAdvice ="عميل نشط، ذكره بالنقاط لتثبيت الولاء";
- whatsappMessage = `يا هلا ${namePart} ✨ رصيد نقاطك ${activePoints} نقطة. استمر بجمع النقاط لفتح عروض حصرية من برنامج ولاء التراث!`;
- actionLabel ="رسالة تذكير";
+ smartAdvice ="العميل يبني ولاءه، شجعه لتجميع النقاط";
+ whatsappMessage = `يا هلا ${namePart} ✨ رصيد نقاطك ${activePoints} نقطة. استمر بجمع النقاط لفتح عروض وشخصيات حصرية من التراث!`;
+ actionLabel ="تذكير بالولاء";
  }
 
  return {
@@ -392,6 +412,68 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
 ))}
  </div>
  </div>
+
+ {/* TOP 10 GAMIFICATION */}
+ {loyaltyData.length > 0 && (
+ <div className="bg-slate-900 rounded-3xl p-6 text-white relative overflow-hidden shadow-2xl my-8 text-right" dir="rtl">
+ <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
+ <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 blur-[100px] rounded-full pointer-events-none" />
+ <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 relative z-10">
+ <div>
+ <h3 className="text-2xl md:text-3xl font-black text-amber-400 flex flex-wrap items-center gap-3">
+ أبطال الطلبات 🏆 
+ <span className="text-[11px] md:text-sm font-bold bg-amber-500/20 text-amber-200 px-3 py-1 rounded-full border border-amber-500/30">Top 10 Leaderboard</span>
+ </h3>
+ <p className="text-slate-400 font-bold mt-2 text-xs md:text-sm">أكثر العملاء ولاءً.. حوّلهم من أرقام هواتف إلى "شخصيات وأبطال" وارفع مبيعاتك.</p>
+ </div>
+ </div>
+ 
+ <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 relative z-10">
+ {[...loyaltyData].sort((a,b) => b.totalSpent - a.totalSpent).slice(0, 10).map((hero, idx) => (
+ <div key={hero.id} className="relative group bg-slate-800/80 hover:bg-slate-800 backdrop-blur-xl border border-slate-700 hover:border-amber-500/50 rounded-2xl p-4 transition-all duration-300">
+ <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-900 flex items-center justify-center font-black text-xs text-amber-400 shadow-xl z-20">
+ #{idx + 1}
+ </div>
+ <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg md:text-xl font-black mb-3 border border-amber-500/20">
+ {hero.name?.charAt(0) || '?'}
+ </div>
+ <h4 className="font-black text-xs md:text-sm text-slate-100 truncate">{hero.name || 'عميلنا الكفو'}</h4>
+ <p className="text-[10px] md:text-[11px] text-slate-400 font-bold mt-1">المحفظة: {hero.totalSpent.toFixed(2)} د.ك</p>
+ 
+ {/* Smart Action */}
+ {hero.daysSinceLastOrder > 14 && (
+ <div className="mt-4 pt-4 border-t border-slate-700/50">
+ <p className="text-[9px] md:text-[10px] text-rose-300 font-bold mb-2">البطل غايب من {hero.daysSinceLastOrder} يوم!</p>
+ <button 
+ onClick={() => {
+ const msg = `عاش من شافك يا بطل 🏆! مختفي يا ${hero.name?.split(' ')[0]}.. ناطرينك ترجع مع خصم 15% يبرد الجبد!`;
+ handleWhatsApp(hero.phone, msg);
+ }}
+ className="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 py-2 rounded-lg text-[10px] md:text-[11px] font-black transition-all"
+ >
+ استرجاع بخصم 15%
+ </button>
+ </div>
+ )}
+ {hero.daysSinceLastOrder <= 14 && (
+ <div className="mt-4 pt-4 border-t border-slate-700/50">
+ <p className="text-[9px] md:text-[10px] text-emerald-300 font-bold mb-2">في قمة النشاط 🔥</p>
+ <button 
+ onClick={() => {
+ const msg = `كفو يا ${hero.name?.split(' ')[0]} 🥇! أنت من أبطالنا الذهبيين.. هذي هدية بسيطة لك تبيض الوجه بالطلب الياي!`;
+ handleWhatsApp(hero.phone, msg);
+ }}
+ className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 py-2 rounded-lg text-[10px] md:text-[11px] font-black transition-all"
+ >
+ مكافأة الاستمرار
+ </button>
+ </div>
+ )}
+ </div>
+ ))}
+ </div>
+ </div>
+ )}
 
  {/* Customer Segments Table */}
  <div className="bg-white border text-right border-slate-200 rounded-2xl p-3 shadow-sm">

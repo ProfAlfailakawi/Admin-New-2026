@@ -1,78 +1,34 @@
-71:"p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border bg-white relative overflow-hidden group shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer active:scale-95 flex flex-col justify-between h-full",
-154: <div className="relative flex flex-col items-center">
-204: className="flex flex-col items-center"
-262: <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 p-3 sm:p-3 rounded-2xl sm:rounded-2xl shadow-2xl flex flex-col items-center min-w-[70px] sm:min-w-[100px]">
-277: className="mt-6 sm:mt-12 mx-4 sm:mx-0 w-full max-w-none bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-8 flex flex-col gap-6 justify-between items-center relative overflow-hidden z-40"
-341: <div className="flex flex-col w-full ">
-453:  <div className="flex flex-col mb-6 lg:mb-10 px-2 relative">
-967: const bentoCardStyle ="bg-[#fdfbf7] p-4 md:p-6 rounded-3xl border border-[#f0e6d2] shadow-[0_4px_20px_-10px_rgba(212,192,152,0.3)] text-right relative overflow-hidden flex flex-col hover:shadow-xl transition-all duration-300 mb-6";
-968: const glassCardStyle ="bg-[#fdfbf7]/80 backdrop-blur-xl border border-white/50 shadow-2xl p-3 md:p-4 rounded-2xl text-right relative overflow-hidden flex flex-col text-[#4a3f35] hover:shadow-indigo-500/10 transition-all duration-300 hover:opacity-90";
-1114:  <div className="flex flex-col gap-6 w-full relative z-40 mb-8 border-b border-slate-200 bg-white/90 backdrop-blur-md px-4 lg:px-8 py-6 pb-8" dir="rtl">
-1124:      <div className="flex flex-col">
-1178:  <div className={cn("px-4 lg:px-8 w-full flex flex-col transition-opacity duration-300", isPending ?"opacity-50" :"opacity-100")}>
-1185: <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-2xl relative overflow-hidden flex flex-col items-start">
-1234: <div className="flex flex-col w-full ">
-1291: <div className="flex flex-col">
-1317: <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-2xl relative overflow-hidden flex flex-col items-start">
-1394: <div className="flex flex-col text-right">
-1418: <div className="flex flex-col items-start gap-1">
-1466: <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-2xl relative overflow-hidden flex flex-col items-start">
-1485: <div className="flex flex-col w-full ">
-1492: className="bg-[#fdfbf7] p-3 md:p-4 rounded-2xl md:rounded-2xl border border-[#f0e6d2] shadow-[0_4px_25px_-5px_rgba(0,0,0,0.05)] relative overflow-hidden flex flex-col group hover:shadow-xl transition-all"
-1529: <div className="col-span-2 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl md:rounded-2xl p-16 flex flex-col items-center justify-center text-center">
-1538: <div className="bg-gradient-to-br from-rose-900 to-slate-900 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-2xl relative overflow-hidden flex flex-col items-start">
-1557: <div className="flex flex-col w-full ">
-1573: className="bg-[#fdfbf7] p-3 md:p-4 rounded-2xl md:rounded-2xl border border-[#f0e6d2] shadow-xl relative flex flex-col group hover:border-rose-200 hover:shadow-rose-100 transition-all"
-1613: <div className="flex flex-col w-full ">
-1631: <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl md:rounded-2xl p-16 flex flex-col items-center justify-center text-center">
-1641: <div id="strategic-manager-section" className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-2xl relative overflow-hidden flex flex-col items-start">
-1660: <div className="flex flex-col w-full ">
-1667: className="bg-[#fdfbf7] p-3 md:p-4 rounded-2xl md:rounded-2xl border border-[#f0e6d2] shadow-xl relative overflow-hidden flex flex-col group hover:border-indigo-200 hover:-translate-y-1 transition-all"
-1673: <div className="flex flex-col gap-2 p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-1678: <div className="flex flex-col items-end gap-2 shrink-0 pr-4">
-1719: <div className="col-span-2 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl md:rounded-2xl p-16 flex flex-col items-center justify-center text-center">
-1751: <div className="flex flex-col w-full ">
-1842: <div className="flex flex-col w-full ">
-1882: <div className="flex flex-col w-full ">
-1896: <div className="flex flex-col gap-4 mb-8" dir="rtl">
-1917: <div className="flex flex-col text-right">
-1928: <div className="flex flex-col w-full ">
-1929: <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center items-center text-center">
-1933: <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center items-center text-center">
-1943: <div className="flex flex-col w-full " dir="rtl">
-1945: <div className="lg:col-span-4 flex flex-col w-full ">
-1969: className={cn("rounded-2xl p-3 md:p-4 border-2 flex flex-col justify-between hover:shadow-xl transition-all group relative cursor-pointer hover:opacity-95", colors.bg, colors.border, focusedInsight?.id === insight.id ?"ring-4 ring-indigo-500/20 z-10 shadow-md" :"")}
-1981: <div className="flex flex-col items-end">
-2024: <div className="flex flex-col gap-4 md:p-3 items-start">
-2035: <div className="bg-slate-50 p-3 md:p-4 rounded-3xl border border-slate-200 mt-6 flex flex-col w-full ">
-2071: <div className="mt-8 flex flex-col items-center justify-between gap-3 md:p-4 bg-indigo-600 p-3 md:p-4 rounded-2xl shadow-xl relative overflow-hidden">
-2122: <div className="relative z-10 h-full flex flex-col items-center justify-between gap-4 md:p-3 p-3 md:p-3">
-2171: <div className="flex flex-col gap-3 md:gap-3 md:p-4 md:gap-3 md:p-4 md:p-3">
-2194: <div className="flex flex-col gap-1 text-right">
-2204: <div className="w-full flex flex-col w-full ">
-2231: <div className="flex flex-col w-full ">
-2247: <div className="flex flex-col w-full ">
-2316: <div className="lg:col-span-2 flex flex-col w-full ">
-2317: <div className="md:col-span-1 flex flex-col gap-3 md:p-4">
-2349: <div className="h-full flex flex-col items-center justify-center text-slate-400 py-6 md:py-12">
-2369: <div className="flex flex-col items-end gap-1 mt-1">
-2408: <div className="flex flex-col items-start gap-1">
-2476: <div className="flex flex-col w-full space-y-3 md:space-y-0 gap-4 relative z-10">
-2487: className="flex flex-col p-3 bg-slate-900/50 backdrop-blur-sm rounded-3xl border border-slate-800/80 hover:border-amber-500/50 hover:bg-slate-800/80 transition-all group/item cursor-pointer shadow-lg active:scale-95 text-right w-full"
-2497: <div className="text-left flex flex-col items-end shrink-0 pl-2 border-l border-slate-800/50">
-2512: <div className="flex flex-col w-full ">
-2516: <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-4">
-2534: <div key={v.id} className="bg-white p-3 md:p-3 rounded-3xl border border-rose-100 flex flex-col gap-3 text-right">
-2585: <div className="flex-1 flex flex-col items-center justify-center py-5 md:py-10 relative z-10">
-2616: <div className="flex flex-col w-full ">
-2624: <div key={i} className="bg-white/5 border border-white/10 p-3 md:p-4 rounded-3xl flex flex-col gap-4 hover:bg-white/10 transition-all group">
-2672: <div className="flex flex-col w-full ">
-2673: <div className="bg-white rounded-2xl p-3 md:p-4 border border-[#f0e6d2] shadow-sm flex flex-col gap-3 md:p-4 md:gap-4 md:p-3">
-2674: <div className="flex flex-col justify-between items-center gap-4 flex-row-reverse text-center sm:text-right">
-2681: <div className="flex flex-col w-full ">
-2691: <div className="flex flex-col gap-3 mt-4 md:mt-6">
-2787: <div key={r.id} className="bg-slate-50 border border-slate-100 p-3 md:p-4 rounded-2xl flex flex-col group text-right hover:border-indigo-200 transition-all shadow-sm">
-2828: <div className="bg-white rounded-2xl p-3 md:p-4 border border-[#f0e6d2] shadow-sm flex flex-col">
-2835: <div className="flex-1 flex flex-col items-center justify-center p-3 md:p-3 text-center bg-slate-50/50 rounded-2xl border border-slate-100/50">
-2876: <div className="flex flex-col w-full ">
-2909: <div className="flex-1 flex flex-col items-center justify-center p-3 md:p-3 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+src/components/InvoicePage.tsx:811: <tr class="item-row">
+src/components/InvoicePage.tsx:1138: <tr>
+src/components/LoyaltyProgramPage.tsx:517: <tr>
+src/components/LoyaltyProgramPage.tsx:606: <tr>
+src/components/Dashboard.tsx:2389:                        <tr className="text-[#8c7b68] text-sm border-b border-[#f0e6d2]">
+src/components/Dashboard.tsx:2398:                          <tr
+src/components/Dashboard.tsx:2560:                        <tr>
+src/components/Dashboard.tsx:2578:                            <tr
+src/components/ReportsPage.tsx:176: <tr class="item-row">
+src/components/ReportsPage.tsx:488: <tr>
+src/components/ReportsPage.tsx:819: <tr className="bg-slate-50 border-b border-slate-100 font-black text-slate-400 text-[10px] uppercase text-right">
+src/components/ReportsPage.tsx:830: <tr key="empty-state"><td colSpan={6} className="py-20 px-4 text-center">
+src/components/ReportsPage.tsx:967: <tr key={`details-${inv.id}`}><td colSpan={6} className="p-0">
+src/components/ReportsPage.tsx:1114: <tr>
+src/components/CustomerPage.tsx:334: <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-400 text-xs uppercase tracking-wider text-right">
+src/components/CustomerPage.tsx:346: <tr key="empty-state"><td colSpan={7} className="py-20 px-4 text-center">
+src/components/CustomerPage.tsx.broken:333: <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-400 text-xs uppercase tracking-wider text-right">
+src/components/CustomerPage.tsx.broken:345: <tr key="empty-state">
+src/components/SupplierAudit.tsx:299: <tr className="bg-slate-50 border-b border-slate-100 font-black text-slate-400 text-[10px] uppercase text-right">
+src/components/SupplierAudit.tsx:395: <tr key="empty-state" className="hover:bg-transparent">
+src/components/GeneralSettings.tsx:550: <tr>
+src/components/GeneralSettings.tsx:560: <tr key={zone.id} className="hover:bg-slate-50 transition-colors">
+src/components/GeneralSettings.tsx:647: <tr key="empty-state">
+src/components/ExpensePage.tsx:165: <tr className="bg-slate-50 border-b border-slate-100 font-black text-slate-400 text-[10px] uppercase text-right">
+src/components/ExpensePage.tsx:225: <tr key="empty-state"><td colSpan={5} className="py-20 px-4 text-center">
+src/components/PromoCodePage.tsx:191: <tr>
+src/components/PromoCodePage.tsx:201: <tr key={c.id} className="hover:bg-slate-50/50 transition-colors group">
+src/components/PromoCodePage.tsx:238: <tr>
+src/components/OrderPage.tsx:1178: <tr>
+src/components/OrderPage.tsx:1197: <tr key={idx} className="border-t border-slate-50 hover:bg-slate-50/50 transition-colors">
+src/components/OrderPage.tsx:1308: <tr>
+src/components/OrderPage.tsx:1317: <tr>
+src/components/OrderPage.tsx:1321: <tr>
+src/components/OrderPage.tsx:1329: <tr className="bg-indigo-600 text-white">
