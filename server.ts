@@ -6,6 +6,9 @@ import { getFirestore } from 'firebase-admin/firestore';
 import fsSync from 'fs';
 import 'dotenv/config';
 
+const firebaseConfigPath = path.resolve(process.cwd(), "firebase-applet-config.json");
+const firebaseConfig = fsSync.existsSync(firebaseConfigPath) ? JSON.parse(fsSync.readFileSync(firebaseConfigPath, 'utf8')) : null;
+
 let firebaseInitialized = false;
 let db: any = null;
 
@@ -13,12 +16,17 @@ try {
   const appInstance = admin.apps.length
     ? admin.app()
     : admin.initializeApp({
-        projectId: process.env.GOOGLE_CLOUD_PROJECT || "gen-lang-client-0200723670",
+        projectId: firebaseConfig?.projectId || process.env.GOOGLE_CLOUD_PROJECT || "gen-lang-client-0200723670",
       });
 
-  db = getFirestore(appInstance);
+  if (firebaseConfig?.firestoreDatabaseId) {
+      db = getFirestore(appInstance, firebaseConfig.firestoreDatabaseId);
+  } else {
+      db = getFirestore(appInstance);
+  }
+  
   firebaseInitialized = true;
-  console.log("[ADMIN020] Firebase Admin initialized with Cloud Run ADC");
+  console.log("[ADMIN020] Firebase Admin initialized with Cloud Run ADC", firebaseConfig ? "using config file databaseId: " + firebaseConfig.firestoreDatabaseId : "");
 } catch (error) {
   firebaseInitialized = false;
   db = null;

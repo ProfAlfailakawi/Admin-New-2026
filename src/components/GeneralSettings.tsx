@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Settings, Save, Upload, Trash2, Shield, Bell, CreditCard, DownloadCloud, Database, Sparkles, RefreshCw, Loader2, Map as MapIcon, Plus, CheckCircle2, ChevronDown, ChevronRight, Edit2, X, AlertTriangle, Code, Store, Search } from 'lucide-react';
+import { Settings, Save, Upload, Trash2, TrendingUp, Users, Shield, Bell, CreditCard, DownloadCloud, Database, Sparkles, RefreshCw, Loader2, Map as MapIcon, Plus, CheckCircle2, ChevronDown, ChevronRight, Edit2, X, AlertTriangle, Code, Store, Search } from 'lucide-react';
 import { motion } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { AppState, AppSettings, Zone, Product, Customer, Expense, Supplier, Testimonial, PulseAnalysisRecord, AICampaign, SupplierTransfer } from '../types';
@@ -458,8 +458,83 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
  </section>
 
+ {/* Notifications Options */}
+ <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+ <button 
+ onClick={() => setActiveSection(activeSection === 'notifications' ? '' : 'notifications')}
+ className="w-full relative p-3 bg-slate-50 hover:bg-slate-100 transition-colors border-b border-slate-200 flex items-center justify-between"
+ >
+ <div className="flex items-center gap-3">
+ <Bell size={20} className="text-secondary" />
+ <h2 className="font-bold">إعدادات التنبيهات وإشعارات الدفع الذكية</h2>
+ </div>
+ <ChevronDown size={20} className={cn("text-slate-400 transition-transform duration-300", activeSection === 'notifications' ?"rotate-180" :"")} />
+ </button>
+ <div className={cn("transition-all duration-300 relative", activeSection === 'notifications' ? "block" : "hidden")}>
+ <div className="p-4 md:p-6 bg-white space-y-6">
+    <div className="flex items-start justify-between gap-4 p-4 rounded-xl border border-blue-100 bg-blue-50/50">
+      <div>
+        <h3 className="font-bold text-slate-800 text-sm mb-1">الإشعارات الفورية للطلبات</h3>
+        <p className="text-xs text-slate-500 mb-4 max-w-md leading-relaxed">
+          تلقى إشعارات سطح المكتب والهاتف عند استلام طلبات جديدة أو تحديث حالة الطلبات حتى وإن كان التطبيق في الخلفية.
+        </p>
+        <EnableNotificationsButton userId={auth?.currentUser?.uid || "local_user"} restaurantId="kitchen_default" />
+      </div>
+      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0 shadow-sm border border-blue-200">
+        <Bell className="text-blue-600" size={24} />
+      </div>
+    </div>
+
+    <div>
+      <h3 className="font-bold text-slate-800 text-sm mb-3">إشعارات النظام الداخلية</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {Object.entries({
+          lateInvoices: { label: 'تأخر فواتير الموردين', icon: AlertTriangle, desc: 'تنبيه عند اقتراب موعد سداد فاتورة مورد' },
+          salesGoals: { label: 'تحقيق أهداف المبيعات', icon: TrendingUp, desc: 'تنبيه عند تجاوز المستهدف اليومي' },
+          newCustomers: { label: 'العملاء الجدد', icon: Users, desc: 'تنبيه عند تسجيل عميل جديد في النظام' }
+        }).map(([key, info]) => {
+          const isEnabled = settings.notifications?.[key as keyof typeof settings.notifications] ?? false;
+          return (
+            <div key={key} className="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:border-slate-200 transition-colors bg-slate-50/30">
+              <div className="flex items-center gap-3">
+                <div className={cn("p-2 rounded-lg transition-colors", isEnabled ? 'bg-secondary/10 text-secondary' : 'bg-slate-100 text-slate-400')}>
+                  <info.icon size={20} />
+                </div>
+                <div>
+                  <p className="font-bold text-sm text-slate-700">{info.label}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">{info.desc}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSettings({
+                  ...settings,
+                  notifications: {
+                    lateInvoices: false,
+                    salesGoals: false,
+                    newCustomers: false,
+                    ...(settings.notifications || {}),
+                    [key]: !isEnabled
+                  }
+                })}
+                className={cn("relative w-12 h-6 rounded-full transition-colors duration-300",
+                  isEnabled ? 'bg-secondary' : 'bg-slate-300'
+                )}
+              >
+                <div className={cn(
+                  "absolute top-1 right-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 shadow-sm",
+                  isEnabled ? "-translate-x-6" : "translate-x-0"
+                )} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+ </div>
+ </div>
+ </section>
+
  {/* Zones Management Section */}
- <div className="mb-6"><EnableNotificationsButton userId={auth?.currentUser?.uid || "local_user"} restaurantId="kitchen_default" /></div>
  <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
  <button 
  onClick={() => setActiveSection(activeSection === 'zones' ? '' : 'zones')}
@@ -1017,7 +1092,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <Settings className="animate-spin-slow" size={32} />
  </div>
  <h3 className="font-bold text-lg mb-2">نظام مطبخ التراث</h3>
- <p className="text-white/70 text-sm mb-6">الإصدار 2.1 برو - تم تطويره بكل فخر لدعم نمو عملك.</p>
+ <p className="text-white/70 text-sm mb-6">الإصدار 2.5 برو - تم تطويره بكل فخر لدعم نمو عملك.</p>
  </section>
  </div>
  </div>
