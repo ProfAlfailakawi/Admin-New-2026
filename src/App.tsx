@@ -1777,7 +1777,7 @@ const MainApp: React.FC = () => {
               <button 
                 onClick={(e) => { e.stopPropagation(); setCommandBarOpen(true); }}
                 title="البحث السريع (Ctrl+K)"
-                className="flex items-center gap-2 sm:gap-4 bg-slate-50/80 hover:bg-white p-3 sm:px-5 sm:py-3 rounded-[1rem] sm:rounded-2xl border border-slate-200/50 transition-all group overflow-hidden shadow-sm hover:shadow-md hover:border-amber-400"
+                className="hidden md:flex items-center gap-2 sm:gap-4 bg-slate-50/80 hover:bg-white p-3 sm:px-5 sm:py-3 rounded-[1rem] sm:rounded-2xl border border-slate-200/50 transition-all group overflow-hidden shadow-sm hover:shadow-md hover:border-amber-400"
               >
                   <Search size={16} className="text-slate-400 group-hover:text-amber-500 group-hover:scale-125 transition-all" />
                   <span className="hidden sm:block text-xs font-black text-slate-500">ابحث عن أي شيء...</span>
@@ -2097,7 +2097,7 @@ const MainApp: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.5 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] sm:hidden"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] md:hidden"
           >
             <button
               onClick={() => setCommandBarOpen(true)}
