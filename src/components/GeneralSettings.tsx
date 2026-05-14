@@ -357,7 +357,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
  <button
  onClick={handleSave}
- disabled={appMode === 'local'}
+ 
  className={cn(
 "flex items-center gap-2 px-6 py-2 rounded-xl font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95",
  appMode === 'local'
@@ -401,7 +401,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  type="text"
  value={settings.companyName}
  onChange={e => setSettings({ ...settings, companyName: e.target.value })}
- disabled={appMode === 'local'}
+ 
  className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
  />
  </div>
@@ -413,7 +413,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  step="0.25"
  value={settings.gatewayFeeAmount}
  onChange={e => setSettings({ ...settings, gatewayFeeAmount: parseFloat(e.target.value) })}
- disabled={appMode === 'local'}
+ 
  className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 pl-12 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
  />
  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">
@@ -436,12 +436,12 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <label className={cn("flex items-center gap-2 text-sm px-4 py-2 rounded-lg border transition-colors w-fit", appMode === 'local' ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "text-secondary font-bold bg-secondary/5 border-secondary/20 hover:bg-secondary/10 cursor-pointer")}>
  <Upload size={16} />
  {appMode === 'local' ? 'مغلق في التجريبي' : 'تغيير الشعار'}
- <input type="file" disabled={appMode === 'local'} accept="image/*" className="hidden" onChange={handleLogoUpload} />
+ <input type="file"  accept="image/*" className="hidden" onChange={handleLogoUpload} />
  </label>
  
  {settings.companyLogo && (
  <button 
- disabled={appMode === 'local'}
+ 
  onClick={() => setSettings({ ...settings, companyLogo: '' })}
  className={cn("flex items-center gap-2 text-sm px-4 py-2 rounded-lg border transition-colors w-fit", appMode === 'local' ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "text-rose-500 font-bold bg-rose-50 border-rose-100 hover:bg-rose-100 cursor-pointer")}
  >
@@ -463,7 +463,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  placeholder="أضف أرقام (مثال: 96512345678, 96587654321)"
  value={settings.restaurantNumbers.join(', ')}
  onChange={e => setSettings({ ...settings, restaurantNumbers: e.target.value.split(',').map(s => s.trim()) })}
- disabled={appMode === 'local'}
+ 
  className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
  />
  </div>
@@ -506,7 +506,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 )}
  </div>
  <button
- disabled={appMode === 'local'}
+ 
  onClick={(e) => {
  e.stopPropagation();
  const newZone: Zone = {
@@ -550,7 +550,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <td className="p-3">
  <input 
  type="text" 
- disabled={appMode === 'local'}
+ 
  value={zone.name}
  onChange={(e) => {
  const val = e.target.value;
@@ -566,7 +566,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <div className="flex justify-center flex-row-reverse">
  <input 
  type="number"
- disabled={appMode === 'local'}
+ 
  step="0.25"
  value={zone.cost}
  onChange={(e) => {
@@ -584,7 +584,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <div className="flex justify-center flex-row-reverse">
  <input 
  type="number"
- disabled={appMode === 'local'}
+ 
  step="0.25"
  value={zone.profit}
  onChange={(e) => {
@@ -602,7 +602,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <div className="flex justify-center flex-row-reverse">
  <input 
  type="number"
- disabled={appMode === 'local'}
+ 
  step="0.25"
  value={zone.finalPrice}
  onChange={(e) => {
@@ -618,7 +618,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </td>
  <td className="p-3 text-left">
  <button 
- disabled={appMode === 'local'}
+ 
  onClick={() => {
  setData(prev => ({
  ...prev,
@@ -692,7 +692,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <textarea 
  value={settings.storeStatus?.closeMessage || ''}
  onChange={e => setSettings(p => ({ ...p, storeStatus: { ...p.storeStatus!, closeMessage: e.target.value } }))}
- disabled={appMode === 'local'}
+ 
  className="disabled:opacity-50 w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold"
  placeholder="رسالة تظهر للعميل بدلاً من المتجر. مثال: عذراً المتجر مغلق، نعود قريباً."
  rows={2}
@@ -908,12 +908,10 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  <button 
  onClick={handleDownload}
- disabled={appMode === 'local'}
+ 
  className={cn(
 "w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group",
- appMode === 'local'
- ?"bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60"
- :"bg-emerald-50 border-emerald-100 hover:bg-emerald-100 text-emerald-700"
+ "bg-emerald-50 border-emerald-100 hover:bg-emerald-100 text-emerald-700"
 )}
  >
  <DownloadCloud size={18} className={cn("transition-transform", appMode !== 'local' &&"group-hover:-translate-y-1")} />
@@ -928,9 +926,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <label 
  className={cn(
 "w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group",
- appMode === 'local'
- ?"bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60"
- :"bg-sky-50 border-sky-100 hover:bg-sky-100 text-sky-700 cursor-pointer"
+ "bg-sky-50 border-sky-100 hover:bg-sky-100 text-sky-700 cursor-pointer"
 )}
  >
  <Upload size={18} className={cn("transition-transform", appMode !== 'local' &&"group-hover:-translate-y-1")} />
@@ -942,7 +938,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
  <input 
  type="file" 
- disabled={appMode === 'local'} 
+  
  accept=".json,.xlsx,.xls,.csv" 
  className="hidden" 
  onChange={handleImport} 
@@ -951,7 +947,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  <button 
  onClick={() => setShowResetConfirm(true)}
- disabled={appMode === 'local'}
+ 
  className={cn(
 "w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group",
  appMode === 'local'
