@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Settings, Save, Upload, Trash2, Shield, Bell, CreditCard, DownloadCloud, Database, Sparkles, RefreshCw, Loader2, Map as MapIcon, Plus, CheckCircle2, ChevronDown, ChevronRight, Edit2, X, AlertTriangle, Code, Store, Search } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -27,7 +27,6 @@ interface Props {
 
 const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, addToast }) => {
  const [settings, setSettings] = useState<AppSettings>(data.settings);
- const [saved, setSaved] = useState(false);
  const [showConfirm, setShowConfirm] = useState(false);
  const [showResetConfirm, setShowResetConfirm] = useState(false);
  const [isSyncing, setIsSyncing] = useState(false);
@@ -35,7 +34,16 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const [activeSection, setActiveSection] = useState<string>('');
  const [searchZoneTerm, setSearchZoneTerm] = useState('');
 
+ // Auto-save settings to global state when modified
+ useEffect(() => {
+   setData(prev => {
+     if (JSON.stringify(prev.settings) === JSON.stringify(settings)) return prev;
+     return { ...prev, settings };
+   });
+ }, [settings, setData]);
+
  const handleSyncBalances = () => {
+
  setIsSyncing(true);
  setTimeout(() => {
  setData(prev => recalculateStateBalances(prev));
@@ -85,13 +93,6 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  setData(demo);
  sessionStorage.setItem('hideSampleDataPrompt', 'true');
   addToast("تم تحميل البيانات","تم ملء النظام ببيانات تجريبية شاملة للمعاينة.","info");
- };
-
- const handleSave = () => {
- setData(prev => ({ ...prev, settings }));
- setSaved(true);
- addToast("تم الحفظ بنجاح","تم حفظ إعدادات النظام وتحديثها في السحابة.","success");
- setTimeout(() => setSaved(false), 3000);
  };
 
  const handleDownload = () => {
@@ -355,19 +356,6 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <h1 className="text-2xl font-bold text-slate-900">الإعدادات العامة</h1>
  <p className="text-slate-500">تخصيص وتهيئة النظام المحاسبي لشركة مطبخ التراث الكويتي</p>
  </div>
- <button
- onClick={handleSave}
- 
- className={cn(
-"flex items-center gap-2 px-6 py-2 rounded-xl font-bold shadow-[0_2px_10px_rgb(0,0,0,0.04)] transition-all transform hover:scale-105 active:scale-[0.98] transition-all duration-200",
- appMode === 'local'
- ?"bg-slate-200 text-slate-500 cursor-not-allowed shadow-none"
- :"bg-secondary text-white hover:bg-secondary/90"
-)}
- >
- <Save size={20} />
- {appMode === 'local' ? 'مغلق في التجريبي' : (saved ? 'تم الحفظ!' : 'حفظ التغييرات')}
- </button>
  </div>
 
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:p-4">
