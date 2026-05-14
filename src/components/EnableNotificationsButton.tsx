@@ -26,9 +26,6 @@ export function EnableNotificationsButton(_props?: {
   }, []);
 
   const handleEnable = () => {
-    setLoading(true);
-    setMessage("");
-
     if (typeof Notification === 'undefined') {
         setEnabled(false);
         setMessage("الإشعارات غير مدعومة");
@@ -36,26 +33,27 @@ export function EnableNotificationsButton(_props?: {
         return;
     }
 
-    const requestAndRegister = async () => {
-        try {
-            const result = await registerPushNotifications();
-            if (result.success) {
-                setEnabled(true);
-                setMessage("تم تفعيل الإشعارات بنجاح");
-            } else {
-                setEnabled(false);
-                setMessage(result.error || "فشل تفعيل الإشعارات");
-            }
-        } catch (error: any) {
-            setEnabled(false);
-            setMessage(error?.message || "فشل تفعيل الإشعارات");
-        } finally {
-            setLoading(false);
-        }
-    };
-
     Notification.requestPermission().then((permission) => {
        if (permission === 'granted') {
+           setLoading(true);
+           setMessage("");
+           const requestAndRegister = async () => {
+               try {
+                   const result = await registerPushNotifications();
+                   if (result.success) {
+                       setEnabled(true);
+                       setMessage("تم تفعيل الإشعارات بنجاح");
+                   } else {
+                       setEnabled(false);
+                       setMessage(result.error || "فشل تفعيل الإشعارات");
+                   }
+               } catch (error: any) {
+                   setEnabled(false);
+                   setMessage(error?.message || "فشل تفعيل الإشعارات");
+               } finally {
+                   setLoading(false);
+               }
+           };
            requestAndRegister();
        } else {
            setEnabled(false);

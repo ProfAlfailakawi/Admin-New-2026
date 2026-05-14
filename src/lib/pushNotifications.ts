@@ -83,7 +83,7 @@ async function saveTokenToServer(token: string, options?: {
     savedAtClient: new Date().toISOString(),
   };
 
-  const response = await fetch("/api/push/save-token", {
+  const response = await fetch(`${window.location.origin}/api/push/save-token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -116,11 +116,7 @@ export async function registerPushNotifications(options?: {
       };
     }
 
-    let permission = Notification.permission;
-    if (permission === "default") {
-        permission = await Notification.requestPermission();
-    }
-
+    const permission = Notification.permission;
     if (permission !== "granted") {
       return {
         success: false,
