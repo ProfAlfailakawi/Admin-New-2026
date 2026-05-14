@@ -2262,45 +2262,24 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
           </AnimatePresence>
         </div>
 
-        {/* FINANCIAL TIME MACHINE - Mobile Segmented Bar at absolute bottom (Under Search Compass) */}
-        <div className="fixed bottom-0 left-0 right-0 z-[90] h-10 pb-0.5 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 shadow-[0_-5px_20px_rgba(0,0,0,0.04)] md:hidden flex items-center justify-between px-6 sm:px-12 pointer-events-auto">
-          {[
-            { id: 'day', label: 'يوم' },
-            { id: 'week', label: 'أسبوع' },
-            { id: 'month', label: 'شهر' },
-            { id: 'year', label: 'سنة' },
-            { id: 'all', label: 'الكل' }
-          ].map((item) => (
-            <button 
-              key={item.id}
-              onClick={() => startTransition(() => setDateFilter(item.id as any))}
-              className={`text-[11px] sm:text-xs font-black transition-all flex h-full items-center px-2 py-1 ${
-                dateFilter === item.id ? 'text-amber-600 scale-110 opacity-100' : 'text-slate-400 opacity-70 hover:opacity-100'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        {/* FINANCIAL TIME MACHINE (Slider) - Desktop Only */}
-        <div className="hidden md:flex fixed bottom-0 left-0 right-0 z-[100] p-4 pointer-events-none justify-center">
-          <div className="relative bg-white/95 backdrop-blur-3xl border border-slate-200/60 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] rounded-full px-5 py-3 w-full max-w-lg flex items-center justify-between gap-3 pointer-events-auto transition-transform hover:scale-[1.01]">
+        {/* FINANCIAL TIME MACHINE (Slider) - Unified */}
+        <div className="fixed bottom-0 sm:bottom-4 px-2 sm:px-4 left-0 right-0 z-[90] pointer-events-none flex justify-center">
+          <div className="relative bg-white/95 backdrop-blur-3xl border border-slate-200/60 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] rounded-2xl sm:rounded-full px-4 sm:px-5 py-2.5 sm:py-3 w-full max-w-lg flex items-center justify-between gap-3 pointer-events-auto transition-transform hover:scale-[1.01] mb-2 sm:mb-0">
             <div className="flex items-center gap-2 shrink-0">
-               <div className="bg-amber-100 p-1.5 rounded-xl border border-amber-200">
+               <div className="bg-amber-100 p-1.5 rounded-xl border border-amber-200 hidden sm:block">
                   <Clock size={14} className="text-amber-600" />
                </div>
-               <span className="text-xs font-black uppercase text-slate-700 whitespace-nowrap">
+               <span className="text-[11px] sm:text-xs font-black uppercase text-slate-700 whitespace-nowrap">
                  آلة الزمن
                </span>
             </div>
             
-            <div className="flex-1 px-2 flex items-center">
+            <div className="flex-1 px-1 sm:px-2 flex items-center">
               <input
                 type="range"
                 min="0"
                 max="4"
-                className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-amber-500 shadow-inner"
+                className="w-full h-1.5 sm:h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-amber-500 shadow-inner"
                 value={
                   dateFilter === "day"
                     ? 0
@@ -2326,8 +2305,8 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
               />
             </div>
             
-            <div className="bg-amber-50 text-amber-600 px-4 py-1.5 rounded-xl border border-amber-100/50 flex items-center justify-center min-w-[4rem] shadow-sm shrink-0">
-              <span className="text-xs font-black whitespace-nowrap">
+            <div className="bg-amber-50 text-amber-600 px-3 sm:px-4 py-1.5 rounded-[0.8rem] sm:rounded-xl border border-amber-100/50 flex items-center justify-center min-w-[3.5rem] sm:min-w-[4rem] shadow-sm shrink-0">
+              <span className="text-[11px] sm:text-xs font-black whitespace-nowrap">
                 {dateFilter === "day"
                   ? "يوم"
                   : dateFilter === "week"
