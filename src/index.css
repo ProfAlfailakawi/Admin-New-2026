@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;700;800&display=swap');
 @import "tailwindcss";
 
 @layer utilities {
@@ -6,13 +6,16 @@
 
 @theme {
   --color-primary: #E31837; /* Vibrant Kuwaiti Red */
-  --color-secondary: #0f3d1f; /* Deep Luxurious Green */
-  --color-accent: #D4AF37; /* Metallic Gold */
+  --color-secondary: #0A192F; /* Deep Night Blue instead of Green */
+  --color-accent: #D4AF37; /* Metallic Gold (Saffron) */
+  --color-olive: #556B2F; /* Olive Green */
   --color-muted: #f4f4f5;
   --font-sans: "Tajawal", "Inter", "Segoe UI", Tahoma, sans-serif;
+  --font-mono: "JetBrains Mono", "Space Mono", Monaco, Consolas, monospace;
   
   --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
   --shadow-glow: 0 0 20px rgba(227, 24, 55, 0.2);
+  --shadow-layered: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05), 0 20px 25px -5px rgba(0, 0, 0, 0.08);
 }
 
 @layer base {
@@ -119,10 +122,25 @@ a {
     box-shadow: 0 0 40px rgba(212, 175, 55, 0.15);
   }
   .glass-dark {
-    @apply bg-slate-900/40 backdrop-blur-3xl border border-white/5;
+    @apply bg-[#0A192F]/80 backdrop-blur-2xl border border-white/10 shadow-[var(--shadow-layered)];
   }
   .holographic-text {
     @apply bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/40;
+  }
+  
+  .font-number {
+    font-family: var(--font-mono);
+    @apply tracking-tight;
+  }
+
+  /* Glassmorphism */
+  .glass-surface {
+    @apply bg-white/70 backdrop-blur-2xl border border-white/40 shadow-[var(--shadow-layered)];
+  }
+
+  /* Micro-Interactions */
+  .interactive-hover {
+    @apply transition-all duration-500 ease-out hover:-translate-y-1 hover:shadow-[var(--shadow-layered)] active:scale-95;
   }
 }
 
@@ -154,11 +172,6 @@ body::before {
   background: radial-gradient(circle at 0% 0%, rgba(227, 24, 55, 0.02) 0%, transparent 40%),
               radial-gradient(circle at 100% 100%, rgba(212, 175, 55, 0.02) 0%, transparent 40%);
   @apply bg-slate-50;
-}
-
-/* Glassmorphism */
-.glass-surface {
-  @apply bg-white/70 backdrop-blur-md border border-white/20;
 }
 
 /* Elegant Scrollbars */

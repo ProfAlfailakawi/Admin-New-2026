@@ -1638,9 +1638,9 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     const tabs = allDashboardTabs;
 
     const bentoCardStyle =
-      "bg-[#fdfbf7] p-4 md:p-6 rounded-3xl border border-[#f0e6d2] shadow-[0_4px_20px_-10px_rgba(212,192,152,0.3)] text-right relative overflow-hidden flex flex-col hover:shadow-xl transition-all duration-300 mb-6";
+      "glass-surface p-4 md:p-6 rounded-3xl text-right relative overflow-hidden flex flex-col interactive-hover mb-6";
     const glassCardStyle =
-      "bg-[#fdfbf7]/80 backdrop-blur-xl border border-white/50 shadow-2xl p-3 md:p-4 rounded-2xl text-right relative overflow-hidden flex flex-col text-[#4a3f35] hover:shadow-indigo-500/10 transition-all duration-300 hover:opacity-90";
+      "glass-surface p-3 md:p-4 rounded-3xl text-right relative overflow-hidden flex flex-col interactive-hover mb-6";
 
     const isLoyalty = activeTab === "loyalty";
     const isPromo = activeTab === "promocodes";
@@ -2175,15 +2175,15 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
                   <div className="bg-white rounded-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col items-center text-center">
                     <p className="text-slate-400 font-bold mb-4 uppercase tracking-widest text-sm">صافي الإيرادات</p>
-                    <p className="text-5xl font-black text-slate-900">{totals.revenue.toFixed(2)} د.ك</p>
+                    <p className="text-5xl font-black text-slate-900 font-number">{totals.revenue.toFixed(2)} د.ك</p>
                   </div>
                   <div className="bg-white rounded-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col items-center text-center">
                     <p className="text-slate-400 font-bold mb-4 uppercase tracking-widest text-sm">الطلبات المنجزة</p>
-                    <p className="text-5xl font-black text-slate-900">{totals.orders}</p>
+                    <p className="text-5xl font-black text-slate-900 font-number">{totals.orders}</p>
                   </div>
                   <div className="bg-slate-900 rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center">
                     <p className="text-slate-400 font-bold mb-4 uppercase tracking-widest text-sm">معدل النمو</p>
-                    <p className={cn("text-5xl font-black", isGrowthPos ? "text-emerald-400" : "text-rose-400")}>{growthValText}</p>
+                    <p className={cn("text-5xl font-black font-number", isGrowthPos ? "text-emerald-400" : "text-rose-400")}>{growthValText}</p>
                   </div>
                 </div>
               </motion.div>
@@ -2517,7 +2517,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                 <div
                   className={cn(
                     bentoCardStyle,
-                    "bg-white border-indigo-100 shadow-xl",
+                    "border-white/40"
                   )}
                 >
                   <div className="flex justify-between items-center mb-8 flex-row-reverse">
@@ -4358,7 +4358,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         <div
                           className={cn(
                             bentoCardStyle,
-                            "bg-[#fdf9f0] border-[#faeeda] flex-1",
+                            "border-white/40 flex-1",
                           )}
                         >
                           <div className="flex justify-between items-start mb-2 flex-row-reverse">
@@ -4392,7 +4392,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         <div
                           className={cn(
                             bentoCardStyle,
-                            "bg-amber-50/30 border-amber-100",
+                            "border-white/40",
                           )}
                         >
                           <div className="flex justify-between items-start mb-2 flex-row-reverse">
@@ -4413,7 +4413,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                       <div
                         className={cn(
                           bentoCardStyle,
-                          "bg-[#f0f4f8] border-[#e1e8ef] md:col-span-2",
+                          "border-white/40 md:col-span-2",
                         )}
                       >
                         <div className="flex justify-between items-center mb-6 flex-row-reverse">
