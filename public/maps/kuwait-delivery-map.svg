@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     id="kuwait-delivery-map"
+     width="1000"
+     height="1000"
+     viewBox="0 0 1000 1000"
+     fill="none"
+     role="img"
+     aria-label="خريطة الكويت لتوزيع طلبات التوصيل"
+     data-map-name="DeliveryHeatMapKuwait"
+     data-lon-min="46.5687134133"
+     data-lon-max="48.4160941913"
+     data-lat-min="28.5260627304"
+     data-lat-max="30.0590699326"
+     data-projection="equirectangular-cos-lat"
+     data-mean-lat="29.2993391205">
+  <defs>
+    <linearGradient id="kw-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#171943"/>
+      <stop offset="50%" stop-color="#080D2A"/>
+      <stop offset="100%" stop-color="#030816"/>
+    </linearGradient>
+
+    <radialGradient id="kw-pulse" cx="47%" cy="45%" r="58%">
+      <stop offset="0%" stop-color="#263B88" stop-opacity="0.70"/>
+      <stop offset="48%" stop-color="#112056" stop-opacity="0.26"/>
+      <stop offset="100%" stop-color="#05091E" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="kw-land" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#14264C"/>
+      <stop offset="58%" stop-color="#0B1731"/>
+      <stop offset="100%" stop-color="#061020"/>
+    </linearGradient>
+
+    <linearGradient id="kw-border" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF0A8"/>
+      <stop offset="46%" stop-color="#D7A542"/>
+      <stop offset="100%" stop-color="#956A1B"/>
+    </linearGradient>
+
+    <filter id="kw-glow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="0" stdDeviation="16" flood-color="#E7B74D" flood-opacity="0.44"/>
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+
+    <filter id="kw-soft" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <clipPath id="kuwait-country-clip">
+      <!-- Kuwait outline, normalized to this SVG's projection/viewBox. -->
+      <path id="kuwait-boundary-path"
+            d="M 837.34 97.5 L 950 369.95 L 930.52 766.81 L 0 902.5 L 48.14 641.76 L 222.45 635.61 L 571.15 510.34 L 598.42 177.76 Z"/>
+    </clipPath>
+
+    <style>
+      .kw-ar {
+        font-family: 'Tajawal','Cairo','Noto Kufi Arabic','Noto Sans Arabic','Arial',sans-serif;
+      }
+      .kw-small {
+        font-size: 18px;
+        font-weight: 700;
+        fill: #B8C4E8;
+      }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1000" height="1000" rx="44" fill="url(#kw-bg)"/>
+  <rect x="0" y="0" width="1000" height="1000" rx="44" fill="url(#kw-pulse)"/>
+
+  <!-- Subtle grid for dashboard feel. Remove if you want a plain map. -->
+  <g opacity="0.12">
+    <path d="M90 150 H910 M90 300 H910 M90 450 H910 M90 600 H910 M90 750 H910" stroke="#4D67C8" stroke-width="1"/>
+    <path d="M150 90 V910 M300 90 V910 M450 90 V910 M600 90 V910 M750 90 V910" stroke="#4D67C8" stroke-width="1"/>
+  </g>
+
+  <!-- Title. Safe to remove if component adds its own title. -->
+  <g class="kw-ar">
+    <circle cx="882" cy="92" r="7" fill="#35E29B" filter="url(#kw-soft)"/>
+    <text x="855" y="101" text-anchor="end" font-size="36" font-weight="900" fill="#FFFFFF">خريطة نبض الطلبات</text>
+    <text x="855" y="136" text-anchor="end" font-size="18" font-weight="700" fill="#D8A43D">طلبات التوصيل حسب مناطق الكويت</text>
+  </g>
+
+  <!-- Country shape. Keep id and clipPath; JS overlay uses them. -->
+  <g id="kuwait-country" filter="url(#kw-glow)">
+    <path d="M 837.34 97.5 L 950 369.95 L 930.52 766.81 L 0 902.5 L 48.14 641.76 L 222.45 635.61 L 571.15 510.34 L 598.42 177.76 Z"
+          fill="url(#kw-land)"
+          stroke="url(#kw-border)"
+          stroke-width="8"
+          stroke-linejoin="round"/>
+    <path d="M 837.34 97.5 L 950 369.95 L 930.52 766.81 L 0 902.5 L 48.14 641.76 L 222.45 635.61 L 571.15 510.34 L 598.42 177.76 Z"
+          fill="none"
+          stroke="#FFF7C4"
+          stroke-opacity="0.30"
+          stroke-width="2"
+          stroke-linejoin="round"/>
+  </g>
+
+  <!-- Decorative internal delivery-flow lines clipped inside Kuwait. -->
+  <g id="delivery-flow-decoration" clip-path="url(#kuwait-country-clip)">
+    <circle cx="580" cy="470" r="135" fill="#FFB03A" opacity="0.16" filter="url(#kw-soft)"/>
+    <circle cx="500" cy="620" r="115" fill="#35E29B" opacity="0.12" filter="url(#kw-soft)"/>
+    <circle cx="720" cy="340" r="90" fill="#29D3FF" opacity="0.10" filter="url(#kw-soft)"/>
+    <path d="M100 790 C300 575, 500 505, 850 155" stroke="#29D3FF" stroke-opacity="0.13" stroke-width="18" stroke-linecap="round"/>
+    <path d="M120 690 C420 585, 560 640, 900 745" stroke="#35E29B" stroke-opacity="0.14" stroke-width="14" stroke-linecap="round"/>
+    <path d="M520 160 C560 350, 705 475, 900 765" stroke="#FFB03A" stroke-opacity="0.16" stroke-width="10" stroke-linecap="round"/>
+  </g>
+
+  <!-- Runtime layer:
+       Programmer should inject pins/heatmap circles into this group.
+       Coordinates are SVG x/y produced by lonLatToKuwaitSvgPoint().
+  -->
+  <g id="delivery-points-layer" clip-path="url(#kuwait-country-clip)"></g>
+
+  <!-- Optional legend. Safe to remove if your UI has filters. -->
+  <g class="kw-ar" id="delivery-map-legend">
+    <rect x="56" y="804" width="436" height="86" rx="28" fill="#FFFFFF" opacity="0.075" stroke="#FFFFFF" stroke-opacity="0.12"/>
+    <circle cx="442" cy="847" r="12" fill="#FFB03A"/>
+    <text x="420" y="853" text-anchor="end" class="kw-small">طلبات أكثر</text>
+    <circle cx="282" cy="847" r="12" fill="#35E29B"/>
+    <text x="260" y="853" text-anchor="end" class="kw-small">مبيعات أعلى</text>
+    <circle cx="122" cy="847" r="12" fill="#29D3FF"/>
+    <text x="100" y="853" text-anchor="end" class="kw-small">منطقة نشطة</text>
+  </g>
+</svg>

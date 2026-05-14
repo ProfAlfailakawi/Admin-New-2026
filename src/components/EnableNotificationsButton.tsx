@@ -25,26 +25,48 @@ export function EnableNotificationsButton(_props?: {
     };
   }, []);
 
-  const handleEnable = async () => {
+  const handleEnable = () => {
     setLoading(true);
     setMessage("");
 
-    try {
-      const result = await registerPushNotifications();
-
-      if (result.success) {
-        setEnabled(true);
-        setMessage("تم تفعيل الإشعارات بنجاح");
-      } else {
+    if (typeof Notification === 'undefined') {
         setEnabled(false);
-        setMessage(result.error || "فشل تفعيل الإشعارات");
-      }
-    } catch (error: any) {
-      setEnabled(false);
-      setMessage(error?.message || "فشل تفعيل الإشعارات");
-    } finally {
-      setLoading(false);
+        setMessage("الإشعارات غير مدعومة");
+        setLoading(false);
+        return;
     }
+
+    const requestAndRegister = async () => {
+        try {
+            const result = await registerPushNotifications();
+            if (result.success) {
+                setEnabled(true);
+                setMessage("تم تفعيل الإشعارات بنجاح");
+            } else {
+                setEnabled(false);
+                setMessage(result.error || "فشل تفعيل الإشعارات");
+            }
+        } catch (error: any) {
+            setEnabled(false);
+            setMessage(error?.message || "فشل تفعيل الإشعارات");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    Notification.requestPermission().then((permission) => {
+       if (permission === 'granted') {
+           requestAndRegister();
+       } else {
+           setEnabled(false);
+           setMessage("لم يتم السماح بالإشعارات");
+           setLoading(false);
+       }
+    }).catch((e) => {
+       console.error("Permission error", e);
+       setLoading(false);
+       setMessage("حدث خطأ أثناء طلب الصلاحية");
+    });
   };
 
   return (
