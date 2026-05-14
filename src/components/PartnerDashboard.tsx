@@ -185,28 +185,26 @@ const browserAlreadyGranted =
         return;
     }
 
-    setIsActivatingPush(true);
-
-    const performRegistration = async () => {
-        try {
-            const result = await registerPushNotifications({ userId: data.settings?.companyName || 'partner', restaurantId: 'default' });
-            if (result?.success) {
-                setPushEnabled(true);
-                toast.success('تم تفعيل إشعارات الطلبات بنجاح! 🔔');
-                setShowPushModal(false);
-            } else {
-                toast.error(result?.error || 'فشل تفعيل الإشعارات');
-            }
-        } catch (err: any) {
-            toast.error(err.message || 'فشل تفعيل الإشعارات');
-        } finally {
-            setIsActivatingPush(false);
-        }
-    };
-
     Notification.requestPermission().then((permission) => {
         if (permission === "granted") {
+            setIsActivatingPush(true);
             localStorage.setItem("push_notifications_enabled", "true");
+            const performRegistration = async () => {
+                try {
+                    const result = await registerPushNotifications({ userId: data.settings?.companyName || 'partner', restaurantId: 'default' });
+                    if (result?.success) {
+                        setPushEnabled(true);
+                        toast.success('تم تفعيل إشعارات الطلبات بنجاح! 🔔');
+                        setShowPushModal(false);
+                    } else {
+                        toast.error(result?.error || 'فشل تفعيل الإشعارات');
+                    }
+                } catch (err: any) {
+                    toast.error(err.message || 'فشل تفعيل الإشعارات');
+                } finally {
+                    setIsActivatingPush(false);
+                }
+            };
             performRegistration();
         } else {
             setIsActivatingPush(false);
