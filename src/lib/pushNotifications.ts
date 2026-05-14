@@ -60,10 +60,21 @@ export async function registerPushNotifications({
     throw new Error("هذا المتصفح لا يدعم إشعارات الويب على هذا الجهاز.");
   }
 
-  const permission = await Notification.requestPermission();
+  let permission;
+  try {
+    permission = await Notification.requestPermission();
+  } catch (e) {
+    if (window.self !== window.top) {
+       throw new Error("لا يمكن تفعيل الإشعارات من داخل المعاينة. يرجى فتح التطبيق في نافذة جديدة.");
+    }
+    throw new Error("لم يتم منح إذن الإشعارات.");
+  }
 
   if (permission !== "granted") {
-    throw new Error("لم يتم منح إذن الإشعارات.");
+    if (window.self !== window.top) {
+       throw new Error("لا يمكن تفعيل الإشعارات من داخل المعاينة. يرجى فتح التطبيق في نافذة جديدة، ثم المحاولة.");
+    }
+    throw new Error("لم يتم منح إذن الإشعارات. يرجى تفعيل الإشعارات من إعدادات المتصفح.");
   }
 
   const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: '/' });
