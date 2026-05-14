@@ -66,39 +66,25 @@ async function getFreshMessagingServiceWorkerRegistration(): Promise<ServiceWork
     throw new Error("Service Worker غير مدعوم في هذا المتصفح");
   }
 
-  const swUrl = "/firebase-messaging-sw.js";
-  const scope = "/";
+  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
+    scope: "/",
+    updateViaCache: "none",
+  });
 
-  try {
-    const existing = await navigator.serviceWorker.getRegistration(scope);
+  if (registration.installing) {
+    await new Promise<void>((resolve) => {
+      const worker = registration.installing;
+      if (!worker) return resolve();
 
-    if (existing) {
-      console.log("[Push] Using existing service worker registration:", existing.scope);
-      return existing;
-    }
-  } catch (err: any) {
-    throw new Error(
-      "SW getRegistration failed: " +
-        (err?.message || err?.code || String(err))
-    );
-  }
-
-  try {
-    const registration = await navigator.serviceWorker.register(swUrl, {
-      scope,
+      worker.addEventListener("statechange", () => {
+        if (worker.state === "activated") {
+          resolve();
+        }
+      });
     });
-
-    console.log("[Push] Registered service worker:", registration.scope);
-
-    return registration;
-  } catch (err: any) {
-    throw new Error(
-      "SW register failed for " +
-        swUrl +
-        ": " +
-        (err?.message || err?.code || String(err))
-    );
   }
+
+  return registration;
 }
 
 async function saveTokenToServer(token: string, options?: {

@@ -1,19 +1,3 @@
-let pushStage = "module-start";
-
-
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-
-  return outputArray;
-}
-
 import { initializeApp, getApps } from "firebase/app";
 import { getMessaging, getToken, isSupported } from "firebase/messaging";
 
@@ -30,34 +14,23 @@ export const FALLBACK_VAPID_KEY =
   "BGL4HY3Wt_Mlvf-aOyxUJA1TwffllGlkm19H5IVijVfxBzGUWWFrIkQVlIr5-FQ_xQd2JGxsdCuZpBcjABpv3Fw";
 
 export async function getPushSupportStatus() {
-  const hasWindow = typeof window !== "undefined";
-  const hasNavigator = typeof navigator !== "undefined";
   const hasNotification = typeof Notification !== "undefined";
-  const hasServiceWorker = hasNavigator && "serviceWorker" in navigator;
-  const hasPushManager = hasWindow && "PushManager" in window;
+  const hasServiceWorker = typeof navigator !== "undefined" && "serviceWorker" in navigator;
 
-  const standalone =
-    hasWindow &&
-    (
-      window.matchMedia?.("(display-mode: standalone)")?.matches ||
-      (navigator as any).standalone === true
-    );
-
-  const permission = hasNotification ? Notification.permission : "unsupported";
+  const supported =
+    hasNotification &&
+    hasServiceWorker &&
+    (await isSupported().catch(() => false));
 
   return {
-    supported: hasNotification && hasServiceWorker && hasPushManager,
-    firebaseSupported: hasNotification && hasServiceWorker && hasPushManager,
-    permission,
-    standalone,
+    supported,
     hasNotification,
     hasServiceWorker,
-    hasPushManager,
-    platform: /iPhone|iPad|iPod/i.test(navigator.userAgent)
-      ? "iPhone"
-      : /Android/i.test(navigator.userAgent)
-        ? "Android"
-        : "Web",
+    permission: hasNotification ? Notification.permission : "unsupported",
+    isStandalone:
+      typeof window !== "undefined" &&
+      (window.matchMedia?.("(display-mode: standalone)")?.matches ||
+        (navigator as any).standalone === true),
   };
 }
 
@@ -66,39 +39,25 @@ async function getFreshMessagingServiceWorkerRegistration(): Promise<ServiceWork
     throw new Error("Service Worker غير مدعوم في هذا المتصفح");
   }
 
-  const swUrl = "/firebase-messaging-sw.js";
-  const scope = "/";
+  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
+    scope: "/",
+    updateViaCache: "none",
+  });
 
-  try {
-    const existing = await navigator.serviceWorker.getRegistration(scope);
+  if (registration.installing) {
+    await new Promise<void>((resolve) => {
+      const worker = registration.installing;
+      if (!worker) return resolve();
 
-    if (existing) {
-      console.log("[Push] Using existing service worker registration:", existing.scope);
-      return existing;
-    }
-  } catch (err: any) {
-    throw new Error(
-      "SW getRegistration failed: " +
-        (err?.message || err?.code || String(err))
-    );
-  }
-
-  try {
-    const registration = await navigator.serviceWorker.register(swUrl, {
-      scope,
+      worker.addEventListener("statechange", () => {
+        if (worker.state === "activated") {
+          resolve();
+        }
+      });
     });
-
-    console.log("[Push] Registered service worker:", registration.scope);
-
-    return registration;
-  } catch (err: any) {
-    throw new Error(
-      "SW register failed for " +
-        swUrl +
-        ": " +
-        (err?.message || err?.code || String(err))
-    );
   }
+
+  return registration;
 }
 
 async function saveTokenToServer(token: string, options?: {
@@ -162,7 +121,6 @@ export async function registerPushNotifications(options?: {
       };
     }
 
-    pushStage = "Notification.permission";
     const permission = Notification.permission;
     if (permission !== "granted") {
       return {
@@ -171,7 +129,6 @@ export async function registerPushNotifications(options?: {
       };
     }
 
-    pushStage = "getPushSupportStatus";
     const support = await getPushSupportStatus();
 
     if (!support.supported) {
@@ -181,53 +138,19 @@ export async function registerPushNotifications(options?: {
       };
     }
 
-    pushStage = "initializeApp";
     const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-    pushStage = "getMessaging";
     const messaging = getMessaging(app);
-    pushStage = "getFreshMessagingServiceWorkerRegistration";
     const registration = await getFreshMessagingServiceWorkerRegistration();
 
     let token = "";
 
     try {
-      pushStage = "Firebase getToken";
       token = await getToken(messaging, {
         vapidKey: FALLBACK_VAPID_KEY,
         serviceWorkerRegistration: registration,
       });
     } catch (getTokenError: any) {
       console.error("[Push] Firebase getToken failed:", getTokenError);
-
-      try {
-        pushStage = "Native pushManager.subscribe";
-        const nativeSub = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(FALLBACK_VAPID_KEY),
-        });
-
-        alert(
-          "NATIVE_PUSH_OK\n\n" +
-          JSON.stringify(nativeSub.toJSON()).slice(0, 1200)
-        );
-
-        return {
-          success: false,
-          error: "NATIVE_PUSH_OK - أرسل صورة هذه الرسالة"
-        };
-      } catch (nativeError: any) {
-        alert(
-          "NATIVE_PUSH_FAILED\n\nFirebase: " +
-          (getTokenError?.message || getTokenError?.code || String(getTokenError)) +
-          "\n\nNative: " +
-          (nativeError?.message || nativeError?.code || String(nativeError))
-        );
-
-        return {
-          success: false,
-          error: "NATIVE_PUSH_FAILED - أرسل صورة هذه الرسالة"
-        };
-      }
 
       const message =
         getTokenError?.message ||
@@ -245,7 +168,6 @@ export async function registerPushNotifications(options?: {
       };
     }
 
-    pushStage = "saveTokenToServer";
     await saveTokenToServer(token, options);
 
     localStorage.setItem("push_notifications_enabled", "true");
@@ -284,7 +206,6 @@ export async function registerPushNotifications(options?: {
 
     alert(
       "خطأ الإشعارات الحقيقي:\n\n" +
-      "STAGE: " + (typeof pushStage !== "undefined" ? pushStage : "unknown") + "\n\n" +
       realMessage +
       "\n\nSupport:\n" +
       JSON.stringify(supportInfo, null, 2)
