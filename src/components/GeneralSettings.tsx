@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { Settings, Save, Upload, Trash2, Shield, Bell, CreditCard, DownloadCloud, Database, Sparkles, RefreshCw, Loader2, Map as MapIcon, Plus, CheckCircle2, ChevronDown, ChevronRight, Edit2, X, AlertTriangle, Code, Store, Search } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -34,6 +34,28 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  const [activeSection, setActiveSection] = useState<string>('');
  const [searchZoneTerm, setSearchZoneTerm] = useState('');
+
+ // Sync local settings to parent state on change
+ const isInitialMount = useRef(true);
+ useEffect(() => {
+   if (isInitialMount.current) {
+     isInitialMount.current = false;
+     return;
+   }
+   setData(prev => {
+     if (JSON.stringify(prev.settings) === JSON.stringify(settings)) {
+       return prev;
+     }
+     return { ...prev, settings };
+   });
+ }, [settings, setData]);
+
+ // Sync from parent to local settings if parent receives remote updates
+ useEffect(() => {
+   if (JSON.stringify(data.settings) !== JSON.stringify(settings)) {
+     setSettings(data.settings);
+   }
+ }, [data.settings]);
 
  const handleSyncBalances = () => {
  setIsSyncing(true);
