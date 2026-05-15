@@ -1567,7 +1567,7 @@ const MainApp: React.FC = () => {
         }}
         transition={{ type: 'tween', ease: "easeOut", duration: 0.3 }}
         className={cn(
-          "glass-dark text-white flex flex-col transition-all relative",
+          "bg-slate-950 text-white flex flex-col transition-all relative",
           isMobile ? "fixed right-0 top-0 bottom-0 shadow-[0_0_80px_rgba(0,0,0,0.8)] z-[1001]" : "relative z-40 border-l border-white/5 overflow-hidden"
         )}
       >
@@ -1730,7 +1730,7 @@ const MainApp: React.FC = () => {
         {/* Top Header */}
         <header 
           onClick={closeAllMenus}
-          className="h-12 md:h-20 glass-surface flex items-center justify-between px-4 lg:px-10 z-[100] sticky top-0"
+          className="h-12 md:h-20 bg-white/70 backdrop-blur-3xl border-b border-slate-200/50 flex items-center justify-between px-4 lg:px-10 z-[100] sticky top-0 shadow-sm"
         >
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-4 md:p-8 shrink min-w-0">
             {userRole !== 'partner' && (
@@ -1777,7 +1777,7 @@ const MainApp: React.FC = () => {
               <button 
                 onClick={(e) => { e.stopPropagation(); setCommandBarOpen(true); }}
                 title="البحث السريع (Ctrl+K)"
-                className="hidden md:flex items-center gap-2 sm:gap-4 bg-slate-50/80 hover:bg-white p-3 sm:px-5 sm:py-3 rounded-[1rem] sm:rounded-2xl border border-slate-200/50 transition-all group overflow-hidden shadow-sm hover:shadow-md hover:border-amber-400"
+                className="flex items-center gap-2 sm:gap-4 bg-slate-50/80 hover:bg-white p-3 sm:px-5 sm:py-3 rounded-[1rem] sm:rounded-2xl border border-slate-200/50 transition-all group overflow-hidden shadow-sm hover:shadow-md hover:border-amber-400"
               >
                   <Search size={16} className="text-slate-400 group-hover:text-amber-500 group-hover:scale-125 transition-all" />
                   <span className="hidden sm:block text-xs font-black text-slate-500">ابحث عن أي شيء...</span>
@@ -1997,7 +1997,7 @@ const MainApp: React.FC = () => {
               setSidebarOpen(false);
             }
           }}
-          className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 relative bg-atmospheric custom-scrollbar"
+          className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 relative bg-slate-50/50"
         >
           {/* Global Background Accents - Removed for performance */}
           <div className="fixed inset-0 pointer-events-none z-0">
@@ -2097,10 +2097,7 @@ const MainApp: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.5 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className={cn(
-              "fixed left-1/2 -translate-x-1/2 z-[100] md:hidden transition-all duration-500 ease-in-out",
-              currentPage === 'dashboard' ? 'bottom-[4.25rem]' : 'bottom-8'
-            )}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] sm:hidden"
           >
             <button
               onClick={() => setCommandBarOpen(true)}
@@ -2125,6 +2122,11 @@ const MainApp: React.FC = () => {
 
       {(isAuthenticated || appMode === 'local') && <InstagramMagicWand data={data} />}
       <Toaster richColors position="bottom-right" closeButton />
+      
+      {/* Version Tag - Subtle but visible as requested */}
+      <div className="fixed bottom-1 left-2 pointer-events-none z-[10000] select-none opacity-20">
+        <span className="text-[8px] font-mono tracking-widest text-slate-500 uppercase">Version 4.0.0.Release</span>
+      </div>
     </div>
   );
 };

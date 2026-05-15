@@ -1,19 +1,3 @@
-let pushStage = "module-start";
-
-
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-
-  return outputArray;
-}
-
 import { initializeApp, getApps } from "firebase/app";
 import { getMessaging, getToken, isSupported } from "firebase/messaging";
 
@@ -30,34 +14,23 @@ export const FALLBACK_VAPID_KEY =
   "BGL4HY3Wt_Mlvf-aOyxUJA1TwffllGlkm19H5IVijVfxBzGUWWFrIkQVlIr5-FQ_xQd2JGxsdCuZpBcjABpv3Fw";
 
 export async function getPushSupportStatus() {
-  const hasWindow = typeof window !== "undefined";
-  const hasNavigator = typeof navigator !== "undefined";
   const hasNotification = typeof Notification !== "undefined";
-  const hasServiceWorker = hasNavigator && "serviceWorker" in navigator;
-  const hasPushManager = hasWindow && "PushManager" in window;
+  const hasServiceWorker = typeof navigator !== "undefined" && "serviceWorker" in navigator;
 
-  const standalone =
-    hasWindow &&
-    (
-      window.matchMedia?.("(display-mode: standalone)")?.matches ||
-      (navigator as any).standalone === true
-    );
-
-  const permission = hasNotification ? Notification.permission : "unsupported";
+  const supported =
+    hasNotification &&
+    hasServiceWorker &&
+    (await isSupported().catch(() => false));
 
   return {
-    supported: hasNotification && hasServiceWorker && hasPushManager,
-    firebaseSupported: hasNotification && hasServiceWorker && hasPushManager,
-    permission,
-    standalone,
+    supported,
     hasNotification,
     hasServiceWorker,
-    hasPushManager,
-    platform: /iPhone|iPad|iPod/i.test(navigator.userAgent)
-      ? "iPhone"
-      : /Android/i.test(navigator.userAgent)
-        ? "Android"
-        : "Web",
+    permission: hasNotification ? Notification.permission : "unsupported",
+    isStandalone:
+      typeof window !== "undefined" &&
+      (window.matchMedia?.("(display-mode: standalone)")?.matches ||
+        (navigator as any).standalone === true),
   };
 }
 
@@ -66,39 +39,20 @@ async function getFreshMessagingServiceWorkerRegistration(): Promise<ServiceWork
     throw new Error("Service Worker غير مدعوم في هذا المتصفح");
   }
 
-  const swUrl = "/firebase-messaging-sw.js";
-  const scope = "/";
+  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
+    scope: "/",
+  });
 
   try {
-    const existing = await navigator.serviceWorker.getRegistration(scope);
-
-    if (existing) {
-      console.log("[Push] Using existing service worker registration:", existing.scope);
-      return existing;
-    }
-  } catch (err: any) {
-    throw new Error(
-      "SW getRegistration failed: " +
-        (err?.message || err?.code || String(err))
-    );
+    await registration.update();
+  } catch (error) {
+    console.warn("[Push] Service Worker update failed:", error);
   }
 
-  try {
-    const registration = await navigator.serviceWorker.register(swUrl, {
-      scope,
-    });
+  await navigator.serviceWorker.ready;
+  await new Promise((resolve) => setTimeout(resolve, 1200));
 
-    console.log("[Push] Registered service worker:", registration.scope);
-
-    return registration;
-  } catch (err: any) {
-    throw new Error(
-      "SW register failed for " +
-        swUrl +
-        ": " +
-        (err?.message || err?.code || String(err))
-    );
-  }
+  return registration;
 }
 
 async function saveTokenToServer(token: string, options?: {
@@ -129,7 +83,7 @@ async function saveTokenToServer(token: string, options?: {
     savedAtClient: new Date().toISOString(),
   };
 
-  const response = await fetch(`${window.location.origin}/api/push/save-token`, {
+  const response = await fetch("/api/push/save-token", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -155,23 +109,6 @@ export async function registerPushNotifications(options?: {
   error?: string;
 }> {
   try {
-    if (typeof Notification === "undefined") {
-      return {
-        success: false,
-        error: "الإشعارات غير مدعومة على هذا الجهاز أو المتصفح",
-      };
-    }
-
-    pushStage = "Notification.permission";
-    const permission = Notification.permission;
-    if (permission !== "granted") {
-      return {
-        success: false,
-        error: "لم يتم السماح بالإشعارات",
-      };
-    }
-
-    pushStage = "getPushSupportStatus";
     const support = await getPushSupportStatus();
 
     if (!support.supported) {
@@ -181,61 +118,35 @@ export async function registerPushNotifications(options?: {
       };
     }
 
-    pushStage = "initializeApp";
+    const permission = await Notification.requestPermission();
+
+    if (permission !== "granted") {
+      return {
+        success: false,
+        error: "لم يتم السماح بالإشعارات",
+      };
+    }
+
     const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-    pushStage = "getMessaging";
     const messaging = getMessaging(app);
-    pushStage = "getFreshMessagingServiceWorkerRegistration";
     const registration = await getFreshMessagingServiceWorkerRegistration();
 
     let token = "";
 
     try {
-      pushStage = "Firebase getToken";
       token = await getToken(messaging, {
         vapidKey: FALLBACK_VAPID_KEY,
         serviceWorkerRegistration: registration,
       });
-    } catch (getTokenError: any) {
-      console.error("[Push] Firebase getToken failed:", getTokenError);
+    } catch (firstError) {
+      console.warn("[Push] First getToken failed, retrying:", firstError);
 
-      try {
-        pushStage = "Native pushManager.subscribe";
-        const nativeSub = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(FALLBACK_VAPID_KEY),
-        });
+      await new Promise((resolve) => setTimeout(resolve, 2500));
 
-        alert(
-          "NATIVE_PUSH_OK\n\n" +
-          JSON.stringify(nativeSub.toJSON()).slice(0, 1200)
-        );
-
-        return {
-          success: false,
-          error: "NATIVE_PUSH_OK - أرسل صورة هذه الرسالة"
-        };
-      } catch (nativeError: any) {
-        alert(
-          "NATIVE_PUSH_FAILED\n\nFirebase: " +
-          (getTokenError?.message || getTokenError?.code || String(getTokenError)) +
-          "\n\nNative: " +
-          (nativeError?.message || nativeError?.code || String(nativeError))
-        );
-
-        return {
-          success: false,
-          error: "NATIVE_PUSH_FAILED - أرسل صورة هذه الرسالة"
-        };
-      }
-
-      const message =
-        getTokenError?.message ||
-        getTokenError?.code ||
-        String(getTokenError) ||
-        "فشل Firebase getToken";
-
-      throw new Error("Firebase getToken failed: " + message);
+      token = await getToken(messaging, {
+        vapidKey: FALLBACK_VAPID_KEY,
+        serviceWorkerRegistration: registration,
+      });
     }
 
     if (!token) {
@@ -245,7 +156,6 @@ export async function registerPushNotifications(options?: {
       };
     }
 
-    pushStage = "saveTokenToServer";
     await saveTokenToServer(token, options);
 
     localStorage.setItem("push_notifications_enabled", "true");
@@ -259,40 +169,9 @@ export async function registerPushNotifications(options?: {
   } catch (error: any) {
     console.error("[Push] registerPushNotifications failed:", error);
 
-    const realMessage =
-      error?.message ||
-      error?.code ||
-      String(error) ||
-      "Unknown push error";
-
-    const supportInfo = {
-      notificationPermission:
-        typeof Notification !== "undefined" ? Notification.permission : "NO_NOTIFICATION",
-      hasServiceWorker:
-        typeof navigator !== "undefined" && "serviceWorker" in navigator,
-      hasPushManager:
-        typeof window !== "undefined" && "PushManager" in window,
-      userAgent:
-        typeof navigator !== "undefined" ? navigator.userAgent : "NO_UA",
-      standalone:
-        typeof window !== "undefined" &&
-        (
-          window.matchMedia?.("(display-mode: standalone)")?.matches ||
-          (navigator as any).standalone === true
-        ),
-    };
-
-    alert(
-      "خطأ الإشعارات الحقيقي:\n\n" +
-      "STAGE: " + (typeof pushStage !== "undefined" ? pushStage : "unknown") + "\n\n" +
-      realMessage +
-      "\n\nSupport:\n" +
-      JSON.stringify(supportInfo, null, 2)
-    );
-
     return {
       success: false,
-      error: realMessage,
+      error: error?.message || String(error),
     };
   }
 }

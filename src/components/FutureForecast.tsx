@@ -215,6 +215,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
  </linearGradient>
  </defs>
+ <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
  <XAxis 
  dataKey="name" 
  axisLine={false} 

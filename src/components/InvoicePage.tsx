@@ -27,7 +27,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { playTing } from '../lib/sounds';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { AppState, Product, InvoiceItem, Invoice, Customer, DeliveryType, PromoCode } from '../types';
-import { cn, normalizeArabic, robustNormalize, normalizeArabicNumerals } from '../lib/utils';
+import { cn, normalizeArabic, robustNormalize } from '../lib/utils';
 // import { getDeduplicatedProducts } from '../lib/deduplication';
 import { NumericInput } from './ui/NumericInput';
 import { MagneticButton } from './ui/MagneticButton';
@@ -1500,17 +1500,17 @@ setPaymentLink(createdLink);
    <input 
      type="text" 
      value={addressDetails.block}
-     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, block: normalizeArabicNumerals(e.target.value)}))}}
+     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, block: e.target.value}))}}
      placeholder="القطعة *"
-     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm font-number"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
      dir="rtl"
    />
    <input 
      type="text" 
      value={addressDetails.street}
-     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, street: normalizeArabicNumerals(e.target.value)}))}}
+     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, street: e.target.value}))}}
      placeholder="الشارع *"
-     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm font-number"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
      dir="rtl"
    />
  </div>
@@ -1518,17 +1518,17 @@ setPaymentLink(createdLink);
    <input 
      type="text" 
      value={addressDetails.jaddah}
-     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, jaddah: normalizeArabicNumerals(e.target.value)}))}}
+     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, jaddah: e.target.value}))}}
      placeholder="الجادة (اختياري)"
-     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm font-number"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
      dir="rtl"
    />
    <input 
      type="text" 
      value={addressDetails.building}
-     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, building: normalizeArabicNumerals(e.target.value)}))}}
+     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, building: e.target.value}))}}
      placeholder="المنزل *"
-     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm font-number"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
      dir="rtl"
    />
  </div>
@@ -1536,17 +1536,17 @@ setPaymentLink(createdLink);
    <input 
      type="text" 
      value={addressDetails.floor}
-     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, floor: normalizeArabicNumerals(e.target.value)}))}}
+     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, floor: e.target.value}))}}
      placeholder="الدور (اختياري)"
-     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm font-number"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
      dir="rtl"
    />
    <input 
      type="text" 
      value={addressDetails.apartment}
-     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, apartment: normalizeArabicNumerals(e.target.value)}))}}
+     onChange={(e) => {setAddressModified(true); setAddressDetails(p => ({...p, apartment: e.target.value}))}}
      placeholder="الشقة (اختياري)"
-     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm font-number"
+     className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold text-sm text-slate-800 text-right shadow-sm"
      dir="rtl"
    />
  </div>
