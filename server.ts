@@ -1635,7 +1635,6 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     res.status(503).json({ error: "Service unavailable without service account credentials." });
   });
 
-
   // ALERTS_WORKER_FINAL_CLEAN_V2_PUSH_ONLY_START
   // Source: alerts-worker-final-clean-v2-root. This block only adds the working alerts push runner.
   const ALERTS_LOOKBACK_MINUTES = Number(process.env.ALERTS_LOOKBACK_MINUTES || "30");
@@ -1781,13 +1780,17 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       results.push({ eventId, skipped: true, reason: "max-send-per-run-reached" });
       return;
     }
-    const ok = await alertsClaim(eventId);
-    if (!ok) {
+    const eventRef = db.collection("pushEvents").doc(eventId);
+    const eventSnap = await eventRef.get();
+    if (eventSnap.exists) {
       results.push({ eventId, skipped: true, reason: "already-sent" });
       return;
     }
     const result = await alertsSendDataOnly({ ...payload, eventId });
-    if (result.success) counters.sent += 1;
+    if (result.success) {
+      await eventRef.set({ eventId, source: "alerts-worker-final-clean-v2", createdAt: admin.firestore.FieldValue.serverTimestamp(), result });
+      counters.sent += 1;
+    }
     results.push({ eventId, result });
   }
 
@@ -2022,8 +2025,30 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     res.json({ ok: true, service: "alerts-worker-final-clean-v2-merged", lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN, startFromIso: ALERTS_START_FROM_ISO || null });
   });
 
+  app.get("/run-alerts", alertsRequireSecret, alertsRunHandler);
   app.post("/run-alerts", alertsRequireSecret, alertsRunHandler);
+  app.get("/api/push/run-alerts", alertsRequireSecret, alertsRunHandler);
   app.post("/api/push/run-alerts", alertsRequireSecret, alertsRunHandler);
+
+
+  app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
+    try {
+      if (!firebaseInitialized || !db) return res.json({ ok: false, error: "Firebase not initialized" });
+      const tokenSnap = await db.collection("pushTokens").where("active", "==", true).get();
+      const sharedSnap = await db.collection("appData").doc("shared_company_data").get();
+      const shared = sharedSnap.data() || {};
+      res.json({
+        ok: true,
+        activePushTokens: tokenSnap.size,
+        hasSharedCompanyData: sharedSnap.exists,
+        invoicesCount: Array.isArray(shared.invoices) ? shared.invoices.length : 0,
+        ordersCount: Array.isArray(shared.orders) ? shared.orders.length : 0,
+        lookbackMinutes: ALERTS_LOOKBACK_MINUTES,
+      });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message || String(e) });
+    }
+  });
   // ALERTS_WORKER_FINAL_CLEAN_V2_PUSH_ONLY_END
 
   // Specific 404 for API to prevent falling through to React
