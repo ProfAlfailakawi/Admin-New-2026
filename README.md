@@ -1,25 +1,37 @@
-# alerts_worker_final_clean_v2
+# alerts_worker_final_clean_v2 — READY 0200723670
 
-Worker نظيف. لا deploy من Downloads. لازم deploy من داخل هذا المجلد فقط.
+هذا Worker الإشعارات التلقائية فقط. لا يلمس الواجهة ولا ملفات PWA.
+
+الجذر الصحيح بعد فك الضغط يجب أن يحتوي مباشرة:
+
+- README.md
+- package.json
+- package-lock.json
+- server.mjs
+- Dockerfile
+- .dockerignore
+
+الرفع اليدوي إلى Google Cloud Run من داخل نفس المجلد:
 
 ```bash
-cd ~/Downloads/alerts_worker_final_clean_v2
+cd alerts_worker_READY_ROOT
+
 gcloud run deploy alerts-worker \
   --source . \
   --region europe-west3 \
   --project gen-lang-client-0200723670 \
   --allow-unauthenticated \
-  --set-env-vars ADMIN_TEST_SECRET=123456,ALERTS_LOOKBACK_MINUTES=30,MAX_SEND_PER_RUN=5,ALERTS_START_FROM_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  --set-env-vars ADMIN_TEST_SECRET=123456,ALERTS_LOOKBACK_MINUTES=30,MAX_SEND_PER_RUN=10,ALERTS_START_FROM_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ```
 
-بعدها:
+بعد الرفع اختبر:
+
 ```bash
-curl "<Cloud Run URL بعد الرفع>"
+curl "CLOUD_RUN_URL/"
+curl -X POST "CLOUD_RUN_URL/run-alerts?secret=123456" -H "Content-Type: application/json" -d '{"dryRun":true}'
 ```
-لازم ترى `alerts-worker-final-clean-v2`.
 
-
-## تعديل 0200723670
-- تم تغيير fallback projectId إلى `gen-lang-client-0200723670`.
-- تم تغيير روابط التنبيه من `https://admin.alturathkw.shop` إلى `https://alturath-admin-0200723670.web.app`.
-- لا ترفع `node_modules`.
+ملاحظات:
+- المشروع الصحيح: gen-lang-client-0200723670
+- رابط الأدمن الصحيح: https://alturath-admin-0200723670.web.app
+- لا ترفع node_modules.
