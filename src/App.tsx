@@ -1407,7 +1407,7 @@ const MainApp: React.FC = () => {
           />
         );
         case 'ai': return <AIAssistant data={data} />;
-        default: return <PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} />;
+        default: return <PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} />;
       }
     }
 

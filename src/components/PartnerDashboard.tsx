@@ -18,6 +18,7 @@ interface PartnerDashboardProps {
  data: AppState;
  onNavigate: (page: string) => void;
  onLogout: () => void;
+ deepLinkData?: any;
 }
 
 const GlobalStatBox = React.memo(({ label, value, color, icon: Icon, isPercent = false, subtext = '', unit = '' }: any) => {
@@ -124,7 +125,7 @@ const SectionHeader = ({ title, icon: Icon, color ="indigo", subtitle }: { title
  </motion.div>
 );
 
-const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, onLogout }) => {
+const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, onLogout, deepLinkData }) => {
  const [filter, setFilter] = useState<'day'|'week'|'month'|'year'|'all'>('month');
  const [activeWidget, setActiveWidget] = useState<string | null>(null);
  const [isPending, startTransition] = useTransition();
@@ -135,6 +136,13 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, o
  const [showFinancialStats, setShowFinancialStats] = useState(false);
 
  const [pushDenied, setPushDenied] = useState(false);
+
+ // Close modals when Home is clicked (deepLinkData updates)
+ useEffect(() => {
+   if (deepLinkData && Object.keys(deepLinkData).length > 0) {
+     setActiveWidget(null);
+   }
+ }, [deepLinkData]);
 
  useEffect(() => {
    const checkPush = async () => {

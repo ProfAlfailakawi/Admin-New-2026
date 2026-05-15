@@ -204,7 +204,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
             <ArrowUpRight size={20} />
           </div>
           <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            البوصلة
+            المساعد الذكي
             <span className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-md font-bold">
               {dateFilter === 'day' ? 'اليوم' : 
                dateFilter === 'week' ? 'هذا الأسبوع' : 
