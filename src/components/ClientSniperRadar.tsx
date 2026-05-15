@@ -241,7 +241,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  onClick={() => handleLaunchMessage(selectedTarget)}
  className="w-full relative group overflow-hidden rounded-2xl bg-gradient-to-l from-emerald-600 to-emerald-500 text-white font-black text-lg py-4 transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.3)]"
  >
- <div className="absolute inset-0  opacity-10 mix-blend-overlay" />
+ <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay" />
  <div className="relative z-10 flex items-center justify-center gap-3">
  <span>إطلاق رسالة الاستعادة (WhatsApp)</span>
  <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />

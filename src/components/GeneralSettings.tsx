@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { Settings, Save, Upload, Trash2, TrendingUp, Users, Shield, Bell, CreditCard, DownloadCloud, Database, Sparkles, RefreshCw, Loader2, Map as MapIcon, Plus, CheckCircle2, ChevronDown, ChevronRight, Edit2, X, AlertTriangle, Code, Store, Search } from 'lucide-react';
+import { Settings, Save, Upload, Trash2, Shield, Bell, CreditCard, DownloadCloud, Database, Sparkles, RefreshCw, Loader2, Map as MapIcon, Plus, CheckCircle2, ChevronDown, ChevronRight, Edit2, X, AlertTriangle, Code, Store, Search } from 'lucide-react';
 import { motion } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { AppState, AppSettings, Zone, Product, Customer, Expense, Supplier, Testimonial, PulseAnalysisRecord, AICampaign, SupplierTransfer } from '../types';
@@ -27,14 +27,8 @@ interface Props {
 
 const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, addToast }) => {
  const [settings, setSettings] = useState<AppSettings>(data.settings);
+ const [saved, setSaved] = useState(false);
  const [showConfirm, setShowConfirm] = useState(false);
-
- useEffect(() => {
-   const isSame = JSON.stringify(data.settings) === JSON.stringify(settings);
-   if (!isSame) {
-     setData(prev => ({ ...prev, settings }));
-   }
- }, [settings, data.settings, setData]);
  const [showResetConfirm, setShowResetConfirm] = useState(false);
  const [isSyncing, setIsSyncing] = useState(false);
 
@@ -91,6 +85,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  setData(demo);
  sessionStorage.setItem('hideSampleDataPrompt', 'true');
   addToast("تم تحميل البيانات","تم ملء النظام ببيانات تجريبية شاملة للمعاينة.","info");
+ };
+
+ const handleSave = () => {
+ setData(prev => ({ ...prev, settings }));
+ setSaved(true);
+ addToast("تم الحفظ بنجاح","تم حفظ إعدادات النظام وتحديثها في السحابة.","success");
+ setTimeout(() => setSaved(false), 3000);
  };
 
  const handleDownload = () => {
@@ -354,6 +355,19 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <h1 className="text-2xl font-bold text-slate-900">الإعدادات العامة</h1>
  <p className="text-slate-500">تخصيص وتهيئة النظام المحاسبي لشركة مطبخ التراث الكويتي</p>
  </div>
+ <button
+ onClick={handleSave}
+ 
+ className={cn(
+"flex items-center gap-2 px-6 py-2 rounded-xl font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95",
+ appMode === 'local'
+ ?"bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+ :"bg-secondary text-white hover:bg-secondary/90"
+)}
+ >
+ <Save size={20} />
+ {appMode === 'local' ? 'مغلق في التجريبي' : (saved ? 'تم الحفظ!' : 'حفظ التغييرات')}
+ </button>
  </div>
 
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:p-4">
@@ -458,83 +472,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
  </section>
 
- {/* Notifications Options */}
- <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
- <button 
- onClick={() => setActiveSection(activeSection === 'notifications' ? '' : 'notifications')}
- className="w-full relative p-3 bg-slate-50 hover:bg-slate-100 transition-colors border-b border-slate-200 flex items-center justify-between"
- >
- <div className="flex items-center gap-3">
- <Bell size={20} className="text-secondary" />
- <h2 className="font-bold">إعدادات التنبيهات وإشعارات الدفع الذكية</h2>
- </div>
- <ChevronDown size={20} className={cn("text-slate-400 transition-transform duration-300", activeSection === 'notifications' ?"rotate-180" :"")} />
- </button>
- <div className={cn("transition-all duration-300 relative", activeSection === 'notifications' ? "block" : "hidden")}>
- <div className="p-4 md:p-6 bg-white space-y-6">
-    <div className="flex items-start justify-between gap-4 p-4 rounded-xl border border-blue-100 bg-blue-50/50">
-      <div>
-        <h3 className="font-bold text-slate-800 text-sm mb-1">الإشعارات الفورية للطلبات</h3>
-        <p className="text-xs text-slate-500 mb-4 max-w-md leading-relaxed">
-          تلقى إشعارات سطح المكتب والهاتف عند استلام طلبات جديدة أو تحديث حالة الطلبات حتى وإن كان التطبيق في الخلفية.
-        </p>
-        <EnableNotificationsButton userId={auth?.currentUser?.uid || "local_user"} restaurantId="kitchen_default" />
-      </div>
-      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0 shadow-sm border border-blue-200">
-        <Bell className="text-blue-600" size={24} />
-      </div>
-    </div>
-
-    <div>
-      <h3 className="font-bold text-slate-800 text-sm mb-3">إشعارات النظام الداخلية</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {Object.entries({
-          lateInvoices: { label: 'تأخر فواتير الموردين', icon: AlertTriangle, desc: 'تنبيه عند اقتراب موعد سداد فاتورة مورد' },
-          salesGoals: { label: 'تحقيق أهداف المبيعات', icon: TrendingUp, desc: 'تنبيه عند تجاوز المستهدف اليومي' },
-          newCustomers: { label: 'العملاء الجدد', icon: Users, desc: 'تنبيه عند تسجيل عميل جديد في النظام' }
-        }).map(([key, info]) => {
-          const isEnabled = settings.notifications?.[key as keyof typeof settings.notifications] ?? false;
-          return (
-            <div key={key} className="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:border-slate-200 transition-colors bg-slate-50/30">
-              <div className="flex items-center gap-3">
-                <div className={cn("p-2 rounded-lg transition-colors", isEnabled ? 'bg-secondary/10 text-secondary' : 'bg-slate-100 text-slate-400')}>
-                  <info.icon size={20} />
-                </div>
-                <div>
-                  <p className="font-bold text-sm text-slate-700">{info.label}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">{info.desc}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSettings({
-                  ...settings,
-                  notifications: {
-                    lateInvoices: false,
-                    salesGoals: false,
-                    newCustomers: false,
-                    ...(settings.notifications || {}),
-                    [key]: !isEnabled
-                  }
-                })}
-                className={cn("relative w-12 h-6 rounded-full transition-colors duration-300",
-                  isEnabled ? 'bg-secondary' : 'bg-slate-300'
-                )}
-              >
-                <div className={cn(
-                  "absolute top-1 right-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 shadow-sm",
-                  isEnabled ? "-translate-x-6" : "translate-x-0"
-                )} />
-              </button>
-            </div>
-          );
-        })}
-      </div>
-    </div>
- </div>
- </div>
- </section>
-
  {/* Zones Management Section */}
+ <div className="mb-6"><EnableNotificationsButton userId={auth?.currentUser?.uid || "local_user"} restaurantId="kitchen_default" /></div>
  <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
  <button 
  onClick={() => setActiveSection(activeSection === 'zones' ? '' : 'zones')}
@@ -1092,7 +1031,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <Settings className="animate-spin-slow" size={32} />
  </div>
  <h3 className="font-bold text-lg mb-2">نظام مطبخ التراث</h3>
- <p className="text-white/70 text-sm mb-6">الإصدار 2.5 برو - تم تطويره بكل فخر لدعم نمو عملك.</p>
+ <p className="text-white/70 text-sm mb-6">الإصدار 2.1 برو - تم تطويره بكل فخر لدعم نمو عملك.</p>
  </section>
  </div>
  </div>

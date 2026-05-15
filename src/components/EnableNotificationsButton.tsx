@@ -25,69 +25,42 @@ export function EnableNotificationsButton(_props?: {
     };
   }, []);
 
-  const handleEnable = () => {
-    if (typeof Notification === 'undefined') {
-        setEnabled(false);
-        setMessage("الإشعارات غير مدعومة");
-        setLoading(false);
-        return;
-    }
+  const handleEnable = async () => {
+    setLoading(true);
+    setMessage("");
 
-    Notification.requestPermission().then((permission) => {
-       if (permission === 'granted') {
-           setLoading(true);
-           setMessage("");
-           const requestAndRegister = async () => {
-               try {
-                   const result = await registerPushNotifications();
-                   if (result.success) {
-                       setEnabled(true);
-                       setMessage("تم تفعيل الإشعارات بنجاح");
-                   } else {
-                       setEnabled(false);
-                       setMessage(result.error || "فشل تفعيل الإشعارات");
-                   }
-               } catch (error: any) {
-                   setEnabled(false);
-                   setMessage(error?.message || "فشل تفعيل الإشعارات");
-               } finally {
-                   setLoading(false);
-               }
-           };
-           requestAndRegister();
-       } else {
-           setEnabled(false);
-           setMessage("لم يتم السماح بالإشعارات");
-           setLoading(false);
-       }
-    }).catch((e) => {
-       console.error("Permission error", e);
-       setLoading(false);
-       setMessage("حدث خطأ أثناء طلب الصلاحية");
-    });
+    try {
+      const result = await registerPushNotifications();
+
+      if (result.success) {
+        setEnabled(true);
+        setMessage("تم تفعيل الإشعارات بنجاح");
+      } else {
+        setEnabled(false);
+        setMessage(result.error || "فشل تفعيل الإشعارات");
+      }
+    } catch (error: any) {
+      setEnabled(false);
+      setMessage(error?.message || "فشل تفعيل الإشعارات");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="space-y-4">
-      {enabled ? (
-        <div className="inline-flex items-center gap-2 rounded-xl bg-green-50 px-4 py-3 text-green-700 border border-green-200 w-full md:w-auto">
-          <BellRing size={20} className="text-green-600" />
-          <span className="font-bold text-sm">الإشعارات مفعّلة بنجاح</span>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={handleEnable}
-          disabled={loading}
-          className="inline-flex flex-1 md:flex-none justify-center w-full md:w-auto items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60"
-        >
-          <Bell size={18} />
-          {loading ? "جاري التفعيل..." : "تفعيل الإشعارات الآن"}
-        </button>
-      )}
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={handleEnable}
+        disabled={loading}
+        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-60"
+      >
+        {enabled ? <BellRing size={18} /> : <Bell size={18} />}
+        {loading ? "جاري التفعيل..." : enabled ? "الإشعارات مفعّلة" : "تفعيل الإشعارات"}
+      </button>
 
-      {message && !enabled && (
-        <div className="text-sm text-red-600 font-bold bg-red-50 p-3 rounded-lg border border-red-100">
+      {message && (
+        <div className={enabled ? "text-sm text-green-600" : "text-sm text-red-600"}>
           {message}
         </div>
       )}

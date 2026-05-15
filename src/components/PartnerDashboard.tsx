@@ -179,43 +179,26 @@ const browserAlreadyGranted =
    checkPush();
  }, []);
 
-  const handleEnablePush = () => {
-    if (typeof Notification === 'undefined') {
-        toast.error("الإشعارات غير مدعومة");
-        return;
+ const handleEnablePush = async () => {
+   setIsActivatingPush(true);
+   try {
+     if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      localStorage.setItem("push_notifications_enabled", "true");
+      setPushEnabled?.(true);
+      toast?.success?.("الإشعارات مفعّلة بالفعل");
+      return;
     }
 
-    Notification.requestPermission().then((permission) => {
-        if (permission === "granted") {
-            setIsActivatingPush(true);
-            localStorage.setItem("push_notifications_enabled", "true");
-            const performRegistration = async () => {
-                try {
-                    const result = await registerPushNotifications({ userId: data.settings?.companyName || 'partner', restaurantId: 'default' });
-                    if (result?.success) {
-                        setPushEnabled(true);
-                        toast.success('تم تفعيل إشعارات الطلبات بنجاح! 🔔');
-                        setShowPushModal(false);
-                    } else {
-                        toast.error(result?.error || 'فشل تفعيل الإشعارات');
-                    }
-                } catch (err: any) {
-                    toast.error(err.message || 'فشل تفعيل الإشعارات');
-                } finally {
-                    setIsActivatingPush(false);
-                }
-            };
-            performRegistration();
-        } else {
-            setIsActivatingPush(false);
-            toast.error("لم يتم السماح بالإشعارات");
-        }
-    }).catch(e => {
-        console.error(e);
-        setIsActivatingPush(false);
-        toast.error("حدث خطأ أثناء طلب الصلاحية");
-    });
-  };
+    await registerPushNotifications({ userId: data.settings?.companyName || 'partner', restaurantId: 'default' });
+     setPushEnabled(true);
+     toast.success("تم تفعيل إشعارات الطلبات بنجاح! 🔔");
+     setShowPushModal(false);
+   } catch (err: any) {
+     toast.error(err.message || 'فشل تفعيل الإشعارات');
+   } finally {
+     setIsActivatingPush(false);
+   }
+ };
 
  const now = new Date();
  
