@@ -1,37 +1,34 @@
-# alerts_worker_final_clean_v2 — READY 0200723670
+# Admin Push Final Fix
 
-هذا Worker الإشعارات التلقائية فقط. لا يلمس الواجهة ولا ملفات PWA.
+## ماذا تحتوي الحزمة؟
 
-الجذر الصحيح بعد فك الضغط يجب أن يحتوي مباشرة:
+- `public/firebase-messaging-sw.js`
+- `scripts/apply-admin-push-final-fix.js`
 
-- README.md
-- package.json
-- package-lock.json
-- server.mjs
-- Dockerfile
-- .dockerignore
+## طريقة الاستخدام
 
-الرفع اليدوي إلى Google Cloud Run من داخل نفس المجلد:
+فك الضغط داخل جذر مشروع الأدمن ثم شغل:
 
 ```bash
-cd alerts_worker_READY_ROOT
-
-gcloud run deploy alerts-worker \
-  --source . \
-  --region europe-west3 \
-  --project gen-lang-client-0200723670 \
-  --allow-unauthenticated \
-  --set-env-vars ADMIN_TEST_SECRET=123456,ALERTS_LOOKBACK_MINUTES=30,MAX_SEND_PER_RUN=10,ALERTS_START_FROM_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+node scripts/apply-admin-push-final-fix.js
 ```
 
-بعد الرفع اختبر:
+بعدها اختبر تشغيل السيرفر:
 
 ```bash
-curl "CLOUD_RUN_URL/"
-curl -X POST "CLOUD_RUN_URL/run-alerts?secret=123456" -H "Content-Type: application/json" -d '{"dryRun":true}'
+npx tsx server.ts
 ```
 
-ملاحظات:
-- المشروع الصحيح: gen-lang-client-0200723670
-- رابط الأدمن الصحيح: https://alturath-admin-0200723670.web.app
-- لا ترفع node_modules.
+ثم ارفع للإنتاج واعمل deploy/restart.
+
+## ماذا تعدل؟
+
+- تضيف/تثبت إشعار: `🚨 طلب جديد بانتظار الدفع`
+- تجعل إشعار طلب جديد في `/api/create-payment` يستخدم `await`
+- تجعل إشعارات فشل الدفع تستخدم `await`
+- لا تغير إشعار `⏳ طلب لم يُدفع بعد` لأنه شغال بالفعل
+
+## مهم
+
+لا ترفع:
+`Use Secret Manager / environment variables only. Do not store service account keys in the repository.`
