@@ -1635,8 +1635,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     res.status(503).json({ error: "Service unavailable without service account credentials." });
   });
 
-
-
+  // Specific 404 for API to prevent falling through to React
   // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_START
   const ALERTS_ADMIN_TEST_SECRET = process.env.ADMIN_TEST_SECRET || "123456";
   const ALERTS_LOOKBACK_MINUTES = Number(process.env.ALERTS_LOOKBACK_MINUTES || "30");
@@ -1897,7 +1896,6 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   app.post("/run-alerts", alertsRequireSecret, alertsRunHandler);
   // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_END
 
-  // Specific 404 for API to prevent falling through to React
   app.use("/api", (req, res) => {
     console.warn(`404 API Route Not Found: ${req.method} ${req.originalUrl}`);
     res.status(404).json({ error: "API Route Not Found", path: req.originalUrl });
