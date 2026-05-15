@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "admin-new",
+    "site": "alturath-admin-0200723670",
     "public": "dist",
     "ignore": [
       "firebase.json",
