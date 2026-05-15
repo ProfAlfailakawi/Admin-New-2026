@@ -191,14 +191,14 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
 
  <div className="grid grid-cols-1 gap-2 md:p-3 text-right">
- <div className="bg-white p-3 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200 shadow-sm flex flex-row md:flex-col items-center md:justify-center text-right md:text-center gap-3 md:gap-0">
+ <div className="bg-white p-3 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm flex flex-row md:flex-col items-center md:justify-center text-right md:text-center gap-3 md:gap-0">
  <div className="w-10 h-10 md:w-12 md:h-12 bg-red-50 rounded-lg md:rounded-2xl flex items-center justify-center text-red-500 shadow-inner md:mb-4 shrink-0 [&>svg]:w-5 [&>svg]:h-5 md:[&>svg]:w-6 md:[&>svg]:h-6">
  <Wallet size={24} />
  </div>
  <div className="flex-1">
- <div className="text-[10px] md:text-sm font-black text-slate-400 uppercase mb-0.5 md:mb-1">إجمالي المديونية</div>
- <div className="text-lg md:text-3xl font-black text-slate-900 tracking-tighter leading-none">{Number(totalOutstanding || 0).toFixed(3)} <span className="text-sm md:text-xl font-bold">د.ك</span></div>
- <p className="hidden md:block text-xs text-slate-400 font-medium mt-2 leading-tight">إجمالي المبالغ المستحقة لجميع الموردين المسجلين</p>
+ <div className="text-[10px] md:text-sm font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي المديونية</div>
+ <div className="text-lg md:text-3xl font-bold text-slate-900 tracking-tighter leading-none">{Number(totalOutstanding || 0).toFixed(3)} <span className="text-sm md:text-xl font-bold">د.ك</span></div>
+ <p className="hidden md:block text-xs text-slate-500 font-medium mt-2 leading-tight">إجمالي المبالغ المستحقة لجميع الموردين المسجلين</p>
  </div>
  </div>
  </div>
@@ -217,22 +217,22 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 )}
  </AnimatePresence>
 
- <div className="bg-white rounded-[32px] p-3 md:p-3 border border-slate-200 shadow-sm text-right">
+ <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
  <div className="flex flex-col md:flex-row md:items-center gap-2 mb-8">
  <div className="relative flex-1">
- <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+ <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
  <input 
  id="search-input"
  type="text" 
  placeholder="ابحث عن مورد بالاسم..."
  value={search}
  onChange={(e) => setSearch(e.target.value)}
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
  />
  </div>
  <button 
  onClick={openAddModal}
- className="bg-slate-900 text-white px-4 md:px-8 py-3.5 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95 shrink-0"
+ className="bg-slate-900 text-white px-4 md:px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95 shrink-0"
  >
  <Plus size={20} />
  <span>إضافة مورد جديد</span>
@@ -252,7 +252,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  } : {}}
  transition={shakingId === supplier.id ? { duration: 0.5 } : {}}
  className={cn(
-"bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-3 gap-2 md:gap-2 shadow-sm hover:shadow-2xl transition-all relative overflow-hidden group border-t-4 border-t-emerald-500/20",
+"bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-3 gap-2 md:gap-2 shadow-sm hover:shadow-xl transition-all relative overflow-hidden group border-t-4 border-t-emerald-500/20",
  shakingId === supplier.id &&"ring-2 ring-red-500 ring-offset-2"
 )}
  >
@@ -260,7 +260,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="flex gap-2 order-2 transition-opacity">
  <button 
  onClick={() => openEditModal(supplier)}
- className="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-colors"
+ className="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-600 transition-colors"
  >
  <Edit2 size={16} />
  </button>
@@ -278,9 +278,9 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
  </div>
 )}
- <h3 className="font-black text-slate-800 text-xl">{supplier.name}</h3>
+ <h3 className="font-bold text-slate-800 text-xl">{supplier.name}</h3>
  </div>
- <div className="flex items-center gap-2 justify-end text-slate-400 text-[12px] font-bold">
+ <div className="flex items-center gap-2 justify-end text-slate-500 text-[12px] font-bold">
  <span dir="ltr">{supplier.phone}</span>
  <Phone size={12} />
  </div>
@@ -296,8 +296,8 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  supplier.balance > 0 ?"bg-red-50 border-red-100 hover:border-red-300" :"bg-emerald-50 border-emerald-100 hover:border-emerald-300"
 )}
  >
- <div className="text-[10px] font-black text-slate-400 uppercase mb-1">المستحق المالي</div>
- <div className={cn("text-lg font-black tracking-tighter", supplier.balance > 0 ?"text-red-600" :"text-emerald-600")}>
+ <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">المستحق المالي</div>
+ <div className={cn("text-lg font-bold tracking-tighter", supplier.balance > 0 ?"text-red-600" :"text-emerald-600")}>
  {Number(supplier.balance || 0).toFixed(3)}
  </div>
  </div>
@@ -305,14 +305,14 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  onClick={() => setProductsToShow(supplierProducts)}
  className="flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2 bg-slate-50 border-slate-100 hover:border-slate-300 hover:bg-slate-100"
  >
- <div className="text-[10px] font-black text-slate-400 uppercase mb-1">المنتجات</div>
- <div className="text-xl font-black text-slate-800">{supplierProducts.length}</div>
+ <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">المنتجات</div>
+ <div className="text-xl font-bold text-slate-800">{supplierProducts.length}</div>
  </div>
  </div>
 
  <div className="flex flex-wrap gap-2 justify-end">
  {(supplier.paymentMethods || []).map(method => (
- <span key={method} className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl text-[10px] font-black text-slate-500 uppercase flex items-center gap-1">
+ <span key={method} className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
  <CreditCard size={12} />
  {method === 'BankTransfer' ? 'حوالة' : method === 'KNet' ? 'KNET' : 'رابط'}
  </span>
@@ -346,12 +346,12 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  initial={{ opacity: 0, scale: 0.95, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95, y: 20 }}
- className="bg-white rounded-[40px] w-[95%] max-w-lg shadow-2xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+ className="bg-white rounded-3xl md:rounded-3xl w-[95%] md:w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
  onClick={(e) => e.stopPropagation()}
  >
  {/* Header - Fixed */}
  <div className="p-3 md:p-3 pb-0 shrink-0">
- <h2 className="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2 justify-end leading-tight">
+ <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2 justify-end leading-tight">
  منتجات المورد
  <Package className="text-emerald-500" />
  </h2>
@@ -365,7 +365,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <span className="text-primary">{Number(p.price || 0).toFixed(3)} د.ك</span>
  </div>
 ))}
- {productsToShow.length === 0 && <p className="text-center text-slate-400 font-bold italic py-4 md:py-8">لا توجد منتجات مرتبطة بهذا المورد حالياً.</p>}
+ {productsToShow.length === 0 && <p className="text-center text-slate-500 font-bold italic py-4 md:py-8">لا توجد منتجات مرتبطة بهذا المورد حالياً.</p>}
  </div>
  </div>
  
@@ -395,11 +395,11 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  initial={{ opacity: 0, scale: 0.95, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95, y: 20 }}
- className="bg-white rounded-[40px] w-[95%] max-w-lg shadow-2xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+ className="bg-white rounded-3xl md:rounded-3xl w-[95%] md:w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
  onClick={e => e.stopPropagation()}
  >
  <div className="p-3 md:p-3 pb-0 shrink-0">
- <h2 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-2 justify-end leading-tight text-right">
+ <h2 className="text-2xl font-bold text-slate-800 mb-8 flex items-center gap-2 justify-end leading-tight text-right">
  {editingId ? 'تحرير بيانات المورد' : 'إضافة مورد معتمد جديد'}
  <PlusCircle className="text-emerald-500" />
  </h2>
@@ -408,36 +408,36 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="flex-1 overflow-y-auto custom-scrollbar p-3 md:p-3 pt-4 min-h-0">
  <div className="space-y-8">
  <div className="space-y-2">
- <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">اسم المورد الرسمي</label>
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">اسم المورد الرسمي</label>
  <input 
  type="text" 
  value={supplierForm.name}
  onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-black text-slate-800 text-right text-lg"
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right text-lg"
  placeholder="شركة المواد..."
  />
  </div>
 
  <div className="space-y-2">
- <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">رقم للتواصل (واتساب)</label>
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">رقم للتواصل (واتساب)</label>
  <NumericInput 
  value={supplierForm.phone}
  onChange={(val) => setSupplierForm({ ...supplierForm, phone: val.toString() })}
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-black text-slate-800 text-right"
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right"
  placeholder="99XXXXXX"
  maxLength={8}
  />
  </div>
 
  <div className="space-y-4">
- <label className="text-xs font-black text-slate-400 uppercase mr-1 block text-right">قنوات الدفع المدعومة</label>
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">قنوات الدفع المدعومة</label>
  <div className="flex flex-wrap gap-2 justify-end">
  {['BankTransfer', 'KNet', 'Link'].map((method) => (
  <label key={method} className={cn(
-"flex items-center gap-2 px-5 py-3 rounded-2xl border-2 transition-all cursor-pointer font-black text-xs uppercase tracking-tight",
+"flex items-center gap-2 px-5 py-3 rounded-2xl border-2 transition-all cursor-pointer font-bold text-xs uppercase tracking-tight",
  (supplierForm.paymentMethods || []).includes(method as any) 
  ?"border-emerald-500 bg-emerald-50 text-emerald-700 shadow-md" 
- :"border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200"
+ :"border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200/60"
 )}>
  <input 
  type="checkbox"

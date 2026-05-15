@@ -20,7 +20,7 @@ export const SupplierNegotiator: React.FC<SupplierNegotiatorProps> = ({ insights
  return (
  <div className="bg-white p-3 md:p-4 md:p-3 md:p-4 rounded-3xl md:rounded-2xl border border-[#f0e6d2] text-center shadow-sm">
  <Handshake className="mx-auto text-[#d4c098] opacity-20 mb-4" size={48} />
- <p className="text-slate-400 font-black text-sm">لا توجد ثغرات أو فرص تفاوض مع الموردين حالياً.</p>
+ <p className="text-slate-500 font-bold text-sm">لا توجد ثغرات أو فرص تفاوض مع الموردين حالياً.</p>
  </div>
 );
  }
@@ -31,12 +31,12 @@ export const SupplierNegotiator: React.FC<SupplierNegotiatorProps> = ({ insights
  <div className="space-y-6 md:space-y-8">
  <div className="flex flex-col md:flex-row justify-between items-center bg-white p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-[#f0e6d2] shadow-sm flex-row-reverse gap-4">
  <div className="text-right">
- <h3 className="font-black text-xl md:text-2xl text-slate-800">ذكاء مفاوضات الموردين</h3>
- <p className="text-slate-400 text-[10px] font-bold mt-1">AI Supplier Negotiation Intel 🤝</p>
+ <h3 className="font-bold text-xl md:text-2xl text-slate-800">ذكاء مفاوضات الموردين</h3>
+ <p className="text-slate-500 text-[10px] font-bold mt-1">AI Supplier Negotiation Intel 🤝</p>
  </div>
  <div className="flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100">
  <ShieldCheck className="text-indigo-500" size={14} />
- <span className="text-[9px] md:text-[10px] font-black text-indigo-700 uppercase">تحليل الأسعار مفعّل</span>
+ <span className="text-[10px] md:text-[11px] font-bold text-indigo-700 uppercase">تحليل الأسعار مفعّل</span>
  </div>
  </div>
 
@@ -69,12 +69,12 @@ export const SupplierNegotiator: React.FC<SupplierNegotiatorProps> = ({ insights
  <div className="text-right">
  <div className="flex items-center justify-end gap-2 mb-1">
  {insight.riskLevel === 'high' && <AlertTriangle className="text-rose-500" size={14} />}
- <span className={cn("text-[8px] md:text-[9px] font-black uppercase inline-block px-2 py-0.5 rounded-full border", insight.riskLevel === 'high' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-amber-50 text-amber-600 border-amber-100')}>
+ <span className={cn("text-[10px] md:text-[11px] font-bold uppercase inline-block px-2 py-0.5 rounded-full border", insight.riskLevel === 'high' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-amber-50 text-amber-600 border-amber-100')}>
  {insight.isUnfairPricing ? 'تسعير غير عادل' : 'ارتفاع تكلفة مستمر'}
  </span>
  </div>
- <h4 className="font-black text-lg md:text-xl text-slate-800">{insight.supplierName}</h4>
- <p className="text-[10px] md:text-xs font-bold text-slate-400 mt-1">صنف: {insight.productName}</p>
+ <h4 className="font-bold text-lg md:text-xl text-slate-800">{insight.supplierName}</h4>
+ <p className="text-[10px] md:text-xs font-bold text-slate-500 mt-1">صنف: {insight.productName}</p>
  </div>
  
  <div className={cn("flex flex-col items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-2xl border", insight.pricingTrend === 'increasing' ? 'bg-rose-50 text-rose-500 border-rose-100' : insight.pricingTrend === 'decreasing' ? 'bg-emerald-50 text-emerald-500 border-emerald-100' : 'bg-slate-50 text-slate-500 border-slate-100')}>
@@ -83,27 +83,27 @@ export const SupplierNegotiator: React.FC<SupplierNegotiatorProps> = ({ insights
  </div>
 
  <div className="bg-slate-50 p-3 md:p-4 rounded-2xl border border-slate-100 text-right">
- <h5 className="text-[9px] md:text-[10px] font-black text-slate-400 mb-2 flex items-center justify-end gap-2"><FileText size={12}/> تحليل البيانات</h5>
+ <h5 className="text-[10px] md:text-[11px] font-bold text-slate-500 mb-2 flex items-center justify-end gap-2"><FileText size={12}/> تحليل البيانات</h5>
  <p className="text-xs md:text-sm font-bold text-slate-700 leading-relaxed">{insight.explanation}</p>
  </div>
 
  <div className="flex items-center justify-between bg-white border border-[#f0e6d2] p-3 rounded-xl flex-row-reverse gap-2">
  <div className="text-right">
- <span className="text-[9px] font-black text-slate-400 block mb-1">التكلفة الحالية</span>
- <span className="text-base md:text-lg font-black text-rose-500">{Number(insight.currentCost || 0).toFixed(3)} د.ك</span>
+ <span className="text-[10px] font-bold text-slate-500 block mb-1">التكلفة الحالية</span>
+ <span className="text-base md:text-lg font-bold text-rose-500">{Number(insight.currentCost || 0).toFixed(3)} د.ك</span>
  </div>
  <ArrowLeftRight className="text-slate-300" size={14} />
  <div className="text-right">
- <span className="text-[9px] font-black text-emerald-600 block mb-1">السعر العادل المقدر</span>
- <span className="text-base md:text-lg font-black text-emerald-600">{Number(insight.fairPriceEstimate || 0).toFixed(3)} د.ك</span>
+ <span className="text-[10px] font-bold text-emerald-600 block mb-1">السعر العادل المقدر</span>
+ <span className="text-base md:text-lg font-bold text-emerald-600">{Number(insight.fairPriceEstimate || 0).toFixed(3)} د.ك</span>
  </div>
  </div>
 
  <div className="mt-auto pt-4">
  <div className="bg-indigo-50 border border-indigo-100 p-3 md:p-4 rounded-2xl relative">
  <div className="absolute top-0 right-0 w-1 h-full bg-indigo-500 rounded-r-2xl" />
- <h5 className="text-indigo-800 font-black text-[10px] mb-2 flex items-center justify-end gap-2"><Handshake size={14}/> تكتيك التفاوض المقترح</h5>
- <p className="text-xs md:text-sm font-black text-indigo-900 leading-relaxed text-right">"{insight.negotiationApproach}"</p>
+ <h5 className="text-indigo-800 font-bold text-[10px] mb-2 flex items-center justify-end gap-2"><Handshake size={14}/> تكتيك التفاوض المقترح</h5>
+ <p className="text-xs md:text-sm font-bold text-indigo-900 leading-relaxed text-right">"{insight.negotiationApproach}"</p>
  </div>
  </div>
  </div>
@@ -117,7 +117,7 @@ export const SupplierNegotiator: React.FC<SupplierNegotiatorProps> = ({ insights
  </button>
  </div>
  
- <div className="text-center text-xs font-black text-slate-400">
+ <div className="text-center text-xs font-bold text-slate-500">
  صفحة {currentPage + 1} من {totalPages}
  </div>
  </div>

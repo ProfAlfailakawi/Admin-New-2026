@@ -1,51 +1,20 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { readFileSync, writeFileSync } from 'fs';
 
-function fixModals(directory) {
-  const files = fs.readdirSync(directory);
-  let processed = 0;
+const files = [
+  'src/components/SmartOfferModal.tsx',
+  'src/components/ProductPage.tsx',
+  'src/components/SupplierAudit.tsx',
+  'src/components/SupplierPage.tsx',
+  'src/components/CustomerPage.tsx'
+];
 
-  for (const file of files) {
-    const filePath = path.join(directory, file);
-    if (fs.statSync(filePath).isDirectory()) {
-      processed += fixModals(filePath);
-      continue;
-    }
-    
-    if (!filePath.endsWith('.tsx') && !filePath.endsWith('.ts')) continue;
+for (const file of files) {
+  let content = readFileSync(file, 'utf8');
 
-    let content = fs.readFileSync(filePath, 'utf8');
-    let original = content;
+  content = content.replace(/w-\[min\(96vw\,720px\)\]/g, 'w-full max-w-[95%] md:max-w-2xl');
+  content = content.replace(/w-\[95%\]/g, 'w-[95%] md:w-full'); // Already handles max-w-* bounds
 
-    // Fix awkward hardcoded max-widths for modals
-    content = content.replace(/w-\[min\([^)]+\)\]/g, 'w-[95%] max-w-2xl');
-    content = content.replace(/w-\[95%\]/g, 'w-full max-w-[95%] sm:max-w-[lg,xl,2xl]'); // will fix below
-    content = content.replace(/w-full max-w-\[95%\] sm:max-w-\[lg,xl,2xl\]/g, 'w-[95%]'); // revert above generic
-    
-    content = content.replace(/w-\[95%\] max-w-lg/g, 'w-full max-w-[95%] sm:max-w-lg');
-    content = content.replace(/w-\[95%\] max-w-xl/g, 'w-full max-w-[95%] sm:max-w-xl');
-    content = content.replace(/w-\[95%\] max-w-2xl/g, 'w-full max-w-[95%] sm:max-w-2xl');
-
-    // Fix overall font readability, some text is text-sm on desktop where it could be better,
-    // but mostly adjusting leading is safer.
-    content = content.replace(/leading-tight/g, 'leading-snug');
-    
-    // Smooth shadows
-    content = content.replace(/shadow-2xl/g, 'shadow-[0_8px_30px_rgb(0,0,0,0.08)]');
-    content = content.replace(/border-slate-100/g, 'border-slate-200/60');
-    
-    if (content !== original) {
-      fs.writeFileSync(filePath, content, 'utf8');
-      processed++;
-    }
-  }
-  return processed;
+  writeFileSync(file, content);
 }
 
-const appDirs = [path.join(process.cwd(), 'src'), path.join(process.cwd(), 'admin/src')];
-for (const dir of appDirs) {
-  if (fs.existsSync(dir)) {
-    const count = fixModals(dir);
-    console.log(`Updated ${count} files in ${dir}.`);
-  }
-}
+console.log("Updated Modal specific dimensions");

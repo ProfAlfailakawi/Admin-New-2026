@@ -200,7 +200,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
  initial={{ opacity: 0, scale: 0.95, y: -20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95, y: -20 }}
- className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+ className="relative w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden"
  >
  <div className="p-3 border-b border-slate-100 flex items-center gap-3">
  <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
@@ -215,7 +215,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
  value={query}
  onChange={(e) => setQuery(e.target.value)}
  />
- <kbd className="hidden sm:flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-lg text-[10px] font-black text-slate-400">
+ <kbd className="hidden sm:flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-lg text-[10px] font-bold text-slate-500">
  <span>ESC</span>
  </kbd>
  </div>
@@ -230,7 +230,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
  
  return (
  <div key={category} className="space-y-1">
- <div className="px-4 py-1 text-[10px] font-black uppercase text-slate-400 text-right">
+ <div className="px-4 py-1 text-[10px] font-bold uppercase text-slate-500 text-right">
  {category}
  </div>
  {catCommands.map((cmd) => {
@@ -254,7 +254,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
  {React.cloneElement(cmd.icon as React.ReactElement, { size: 16 } as any)}
  </div>
  <div className="flex-1">
- <div className="font-black text-xs sm:text-sm">{cmd.label}</div>
+ <div className="font-bold text-xs sm:text-sm">{cmd.label}</div>
  </div>
  {isActive && <ArrowRight size={16} className="text-white/40 rotate-180" />}
  </button>
@@ -269,13 +269,13 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
  <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
  <Search size={28} className="text-slate-200" />
  </div>
- <div className="font-black text-slate-400">ما في نتائج طال عمرك!</div>
+ <div className="font-bold text-slate-500">ما في نتائج طال عمرك!</div>
  <div className="text-xs text-slate-300 mt-1">جرب كلمات ثانية مثل"فاتورة" أو"عميل"</div>
  </div>
 )}
  </div>
 
- <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[10px] font-black text-slate-400">
+ <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-500">
  <div className="flex items-center gap-3">
  <div className="flex items-center gap-1"><Command size={10} /> + K</div>
  <span>للبحث السريع</span>

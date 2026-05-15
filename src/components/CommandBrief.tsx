@@ -190,7 +190,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
   }, [data, dateFilter]);
 
   return (
-    <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden" dir="rtl">
+    <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden" dir="rtl">
       {/* Decorative effect */}
       <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-500/10 blur-3xl rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-amber-500 to-indigo-500 opacity-50" />
@@ -203,7 +203,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
           <div className="bg-amber-500/20 text-amber-300 p-2 rounded-xl group-hover:bg-amber-500/30 transition-colors">
             <ArrowUpRight size={20} />
           </div>
-          <h2 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
+          <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
             التقرير التنفيذي
             <span className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-md font-bold">
               {dateFilter === 'day' ? 'اليوم' : 
@@ -213,7 +213,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
             </span>
           </h2>
         </div>
-        <button className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full">
+        <button className="text-slate-500 hover:text-white transition-colors bg-white/5 p-2 rounded-full">
           {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
       </div>

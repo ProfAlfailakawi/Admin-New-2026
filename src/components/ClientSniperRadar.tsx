@@ -109,7 +109,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  };
 
  return (
- <div className="w-full bg-slate-950 rounded-3xl md:rounded-2xl border border-slate-800 p-3 md:p-3 shadow-2xl overflow-hidden relative group font-sans">
+ <div className="w-full bg-slate-950 rounded-3xl md:rounded-2xl border border-slate-800 p-3 md:p-3 shadow-xl overflow-hidden relative group font-sans">
  {/* Background Matrix/Night Vision Vibe */}
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.05)_0%,rgba(0,0,0,0)_70%)]" />
  <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:20px_20px] opacity-10" />
@@ -182,11 +182,11 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  {/* Info & Action Panel */}
  <div className="flex-1 flex flex-col justify-center gap-3 md:p-4">
  <div className="text-right">
- <h3 className="text-2xl font-black text-white mb-2 flex items-center justify-end gap-3">
+ <h3 className="text-2xl font-bold text-white mb-2 flex items-center justify-end gap-3">
  <span className="text-emerald-400">رادار قنص العملاء</span>
  <Target className="text-emerald-500" />
  </h3>
- <p className="text-slate-400 text-sm italic font-bold">
+ <p className="text-slate-500 text-sm italic font-bold">
  النظام يرصد عملاء "VIP" نائمين وفرص مبيعات استباقية مبنية على الذكاء الاصطناعي.. 
  الفرصة مهيأة لزيادة المبيعات.
  </p>
@@ -208,11 +208,11 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  <div className="flex justify-between items-start mb-6">
  <div className="text-left">
  <span className="block text-[10px] uppercase font-mono text-slate-500 mb-1">Total LTV</span>
- <span className="text-2xl font-black text-emerald-400">{selectedTarget.totalSpend.toFixed(3)} د.ك</span>
+ <span className="text-2xl font-bold text-emerald-400">{selectedTarget.totalSpend.toFixed(3)} د.ك</span>
  </div>
  <div>
- <h4 className="text-xl font-black text-white mb-1">{selectedTarget.name}</h4>
- <div className="flex items-center justify-end gap-2 text-slate-400 text-xs font-bold">
+ <h4 className="text-xl font-bold text-white mb-1">{selectedTarget.name}</h4>
+ <div className="flex items-center justify-end gap-2 text-slate-500 text-xs font-bold">
  <span>{selectedTarget.phone}</span>
  </div>
  </div>
@@ -221,7 +221,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  <div className="bg-slate-950 rounded-2xl p-3 mb-6 border border-slate-800 flex items-center justify-between text-right">
  <div className="flex items-center gap-3">
  <div className={cn(
-"px-3 py-1 rounded-full text-[10px] font-black uppercase",
+"px-3 py-1 rounded-full text-[10px] font-bold uppercase",
  selectedTarget.riskLevel === 'preemptive' ? 'bg-indigo-500/20 text-indigo-400' : selectedTarget.riskLevel === 'critical' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'
 )}>
  {selectedTarget.riskLevel === 'preemptive' ? 'توقع استباقي 🎯' : selectedTarget.riskLevel === 'critical' ? 'خطر فقدان عالي' : 'فرصة استعادة'}
@@ -239,7 +239,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
 
  <button 
  onClick={() => handleLaunchMessage(selectedTarget)}
- className="w-full relative group overflow-hidden rounded-2xl bg-gradient-to-l from-emerald-600 to-emerald-500 text-white font-black text-lg py-4 transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.3)]"
+ className="w-full relative group overflow-hidden rounded-2xl bg-gradient-to-l from-emerald-600 to-emerald-500 text-white font-bold text-lg py-4 transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.3)]"
  >
  <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay" />
  <div className="relative z-10 flex items-center justify-center gap-3">

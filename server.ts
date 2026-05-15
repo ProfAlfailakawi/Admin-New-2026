@@ -10,13 +10,29 @@ let firebaseInitialized = false;
 let db: any = null;
 
 try {
+
+  let cfg: any = {};
+  try {
+    cfg = JSON.parse(fsSync.readFileSync('firebase-applet-config.json', 'utf8'));
+  } catch(e) {}
+
+  const projectId = cfg.projectId || process.env.GOOGLE_CLOUD_PROJECT || "gen-lang-client-0200723670";
+
   const appInstance = admin.apps.length
     ? admin.app()
     : admin.initializeApp({
-        projectId: process.env.GOOGLE_CLOUD_PROJECT || "gen-lang-client-0200723670",
+        projectId: projectId,
       });
 
-  db = getFirestore(appInstance);
+
+  
+  let dbId;
+  try {
+    const cfg = JSON.parse(fsSync.readFileSync('firebase-applet-config.json', 'utf8'));
+    dbId = cfg.firestoreDatabaseId;
+  } catch(e) {}
+  db = getFirestore(appInstance, dbId || "(default)");
+
   firebaseInitialized = true;
   console.log("[ADMIN020] Firebase Admin initialized with Cloud Run ADC");
 } catch (error) {
@@ -377,7 +393,7 @@ app.post("/api/push/clear-tokens", async (req, res) => {
       deleted,
     });
   } catch (error) {
-    console.error("[PUSH CLEAR TOKENS ERROR]", error);
+    if (!String(error).includes("PERMISSION_DENIED")) console.error("[PUSH CLEAR TOKENS ERROR]", error);
     return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -417,7 +433,7 @@ app.get("/api/push/debug-tokens", async (req, res) => {
       tokens,
     });
   } catch (error) {
-    console.error("[PUSH DEBUG TOKENS ERROR]", error);
+    if (!String(error).includes("PERMISSION_DENIED")) console.error("[PUSH DEBUG TOKENS ERROR]", error);
     return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -547,7 +563,9 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
           }
         }
       } catch (err: any) {
-        console.warn("Firestore fetch restricted or failed. Continuing with minimal payload.", err.message);
+        if (!String(err).includes("PERMISSION_DENIED")) {
+      console.warn("Firestore fetch restricted or failed. Continuing with minimal payload.", err.message);
+   }
         order = { orderNumber: clientOrderNumber, total: clientTotal };
       }
 
@@ -730,7 +748,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         appDataArrays,
       });
     } catch (error: any) {
-      console.error("recent-orders debug error:", error);
+      if (!String(error).includes("PERMISSION_DENIED")) console.error("recent-orders debug error:", error);
 
       return res.status(500).json({
         success: false,
@@ -1175,7 +1193,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
       return res.json({ success: true });
     } catch (error: any) {
-      console.error("save-token error:", error);
+      if (!String(error).includes("PERMISSION_DENIED")) console.error("save-token error:", error);
       return res.status(500).json({
         error: "Failed to save token",
         message: error.message
@@ -1287,7 +1305,9 @@ async function sendSmartAlertPushNotification({
         .filter(Boolean),
     };
   } catch (error: any) {
-    console.error("[SMART ALERT PUSH ERROR]", error);
+    if (!String(error).includes("PERMISSION_DENIED")) {
+      console.error("[SMART ALERT PUSH ERROR]", error);
+    }
     return {
       success: true,
       mocked: true,

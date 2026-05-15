@@ -47,20 +47,29 @@ export function EnableNotificationsButton(_props?: {
     }
   };
 
+  if (enabled) {
+    return (
+      <div className="flex items-center gap-3 bg-emerald-50 text-emerald-700 px-4 py-3 rounded-xl border border-emerald-100 w-fit">
+        <BellRing size={20} className="text-emerald-500 animate-pulse" />
+        <span className="font-bold text-sm">الإشعارات مفعّلة بنجاح</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <button
         type="button"
         onClick={handleEnable}
         disabled={loading}
-        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-white disabled:opacity-60 font-bold hover:shadow-lg hover:shadow-slate-900/20 active:scale-95 transition-all w-fit"
       >
-        {enabled ? <BellRing size={18} /> : <Bell size={18} />}
-        {loading ? "جاري التفعيل..." : enabled ? "الإشعارات مفعّلة" : "تفعيل الإشعارات"}
+        <Bell size={18} />
+        {loading ? "جاري التفعيل..." : "تفعيل الإشعارات الآن"}
       </button>
 
       {message && (
-        <div className={enabled ? "text-sm text-green-600" : "text-sm text-red-600"}>
+        <div className="text-sm font-bold text-rose-500">
           {message}
         </div>
       )}

@@ -23,13 +23,13 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
 
  if (areCalculationsBroken) {
  return (
- <div className="bg-white p-3 md:p-4 rounded-2xl border border-slate-200 flex items-center justify-between flex-row-reverse w-full opacity-60">
+ <div className="bg-white p-3 md:p-4 rounded-2xl border border-slate-200/60 flex items-center justify-between flex-row-reverse w-full opacity-60">
  <div className="flex items-center gap-3">
- <Info className="text-slate-400" size={16} />
- <h4 className="font-black text-sm md:text-base text-slate-500">{insight.productName}</h4>
+ <Info className="text-slate-500" size={16} />
+ <h4 className="font-bold text-sm md:text-base text-slate-500">{insight.productName}</h4>
  </div>
  <div className="flex flex-col text-right">
- <span className="text-xs font-black text-slate-400">لا توجد بيانات كافية للتحليل</span>
+ <span className="text-xs font-bold text-slate-500">لا توجد بيانات كافية للتحليل</span>
  </div>
  </div>
 );
@@ -50,22 +50,22 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
  {insight.riskLevel === 'high' && <AlertTriangle className="text-rose-500" size={16} />}
  {insight.riskLevel === 'medium' && <Info className="text-amber-500" size={16} />}
  {insight.riskLevel === 'low' && <CheckCircle2 className="text-emerald-500" size={16} />}
- <h4 className="font-black text-sm md:text-base text-slate-800">{insight.productName}</h4>
+ <h4 className="font-bold text-sm md:text-base text-slate-800">{insight.productName}</h4>
  </div>
  <div className="flex items-center gap-4">
  <span className={cn(
-"text-[9px] md:text-[10px] font-black uppercase tracking-tighter sm:block hidden",
+"text-[10px] md:text-[11px] font-bold uppercase tracking-tighter sm:block hidden",
  insight.riskLevel === 'high' ? 'text-rose-600' : insight.riskLevel === 'medium' ? 'text-amber-600' : 'text-emerald-600'
 )}>
  {insight.riskLevel === 'high' ? 'خطورة عالية' : insight.riskLevel === 'medium' ? 'تآكل هوامش' : 'أداء مستقر'}
  </span>
  <span className={cn(
-"text-sm font-black", 
+"text-sm font-bold", 
  insight.realProfitValue < 0 ? 'text-rose-500' : insight.riskLevel === 'high' ? 'text-amber-500' : 'text-emerald-500'
 )}>
  {safeFormatCurrency(insight.realProfitValue)} د.ك
  </span>
- {isOpen ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+ {isOpen ? <ChevronUp size={20} className="text-slate-500" /> : <ChevronDown size={20} className="text-slate-500" />}
  </div>
  </div>
 
@@ -83,28 +83,28 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
  {insight.explanation}
  </p>
  <div className="bg-[#fdfbf7] p-3 rounded-xl border border-[#f0e6d2]">
- <h5 className="text-indigo-600 font-black text-[10px] uppercase mb-1 flex items-center gap-2 justify-end">💡 توصية التصحيح</h5>
- <p className="text-xs font-black text-slate-700 italic">"{insight.recommendation}"</p>
+ <h5 className="text-indigo-600 font-bold text-[10px] uppercase mb-1 flex items-center gap-2 justify-end">💡 توصية التصحيح</h5>
+ <p className="text-xs font-bold text-slate-700 italic">"{insight.recommendation}"</p>
  </div>
  </div>
  <div className="w-full lg:w-96 flex flex-col gap-3">
  <div className="grid grid-cols-3 gap-2 text-right">
  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
- <span className="text-[9px] font-black text-slate-400 block">الإيراد</span>
- <span className="text-sm font-black text-slate-700">{safeFormatCurrency(insight.revenue)} د.ك</span>
+ <span className="text-[10px] font-bold text-slate-500 block">الإيراد</span>
+ <span className="text-sm font-bold text-slate-700">{safeFormatCurrency(insight.revenue)} د.ك</span>
  </div>
  <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
- <span className="text-[9px] font-black text-indigo-400 block">الربح الظاهري</span>
- <span className="text-sm font-black text-indigo-700">{safeFormatCurrency(insight.rawProfit)} د.ك</span>
+ <span className="text-[10px] font-bold text-indigo-400 block">الربح الظاهري</span>
+ <span className="text-sm font-bold text-indigo-700">{safeFormatCurrency(insight.rawProfit)} د.ك</span>
  </div>
  <div className="bg-rose-50/50 p-3 rounded-xl border border-rose-100">
- <span className="text-[9px] font-black text-rose-400 block">تكاليف خفية</span>
- <span className="text-sm font-black text-rose-600">{safeFormatPercent(insight.hiddenCostsRatio)}</span>
+ <span className="text-[10px] font-bold text-rose-400 block">تكاليف خفية</span>
+ <span className="text-sm font-bold text-rose-600">{safeFormatPercent(insight.hiddenCostsRatio)}</span>
  </div>
  </div>
  <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center flex-row-reverse">
- <span className="text-[10px] font-black text-slate-400">الربح الحقيقي الصافي</span>
- <span className={cn("text-sm font-black", insight.realProfitValue < 0 ? 'text-rose-400' : 'text-emerald-400')}>
+ <span className="text-[10px] font-bold text-slate-500">الربح الحقيقي الصافي</span>
+ <span className={cn("text-sm font-bold", insight.realProfitValue < 0 ? 'text-rose-400' : 'text-emerald-400')}>
  {safeFormatCurrency(insight.realProfitValue)} د.ك
  </span>
  </div>
@@ -125,7 +125,7 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights }) =>
  return (
  <div className="bg-white p-3 md:p-4 md:p-3 md:p-4 rounded-2xl border border-[#f0e6d2] text-center shadow-sm">
  <DollarSign className="mx-auto text-[#d4c098] opacity-20 mb-4" size={48} />
- <p className="text-slate-400 font-black text-sm">لا توجد بيانات كافية للتحليل (يجب توفر إيرادات وتكاليف صحيحة).</p>
+ <p className="text-slate-500 font-bold text-sm">لا توجد بيانات كافية للتحليل (يجب توفر إيرادات وتكاليف صحيحة).</p>
  </div>
 );
  }
@@ -144,26 +144,26 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights }) =>
  return (
  <div className="bg-white p-3 md:p-4 md:p-3 md:p-4 rounded-2xl border border-[#f0e6d2] text-center shadow-sm">
  <AlertTriangle className="mx-auto text-amber-300 opacity-50 mb-4" size={48} />
- <p className="text-slate-400 font-black text-sm">لا توجد بيانات كافية للتحليل. (الرجاء التأكد من أسعار المنتجات وتكاليف مبيعاتها).</p>
+ <p className="text-slate-500 font-bold text-sm">لا توجد بيانات كافية للتحليل. (الرجاء التأكد من أسعار المنتجات وتكاليف مبيعاتها).</p>
  </div>
 );
  }
 
  return (
  <div className="space-y-6">
- <div className="flex flex-col md:flex-row justify-between items-center bg-slate-950 p-3 md:p-4 rounded-2xl border border-amber-500/20 shadow-2xl flex-row-reverse gap-4 relative overflow-hidden">
+ <div className="flex flex-col md:flex-row justify-between items-center bg-slate-950 p-3 md:p-4 rounded-2xl border border-amber-500/20 shadow-xl flex-row-reverse gap-4 relative overflow-hidden">
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(245,158,11,0.1)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
  <div className="text-right relative z-10">
- <h3 className="font-black text-xl text-white">حارس الأرباح الحقيقية</h3>
+ <h3 className="font-bold text-xl text-white">حارس الأرباح الحقيقية</h3>
  <p className="text-amber-400 text-[10px] font-bold mt-1">AI True Profitability Guard 🛡️</p>
  </div>
  <div className="flex items-center gap-3 bg-emerald-500/10 px-4 py-2 rounded-full border border-emerald-500/30 relative z-10">
  <CheckCircle2 className="text-emerald-400" size={14} />
- <span className="text-[9px] font-black text-emerald-300 uppercase">تحديث لحظي</span>
+ <span className="text-[10px] font-bold text-emerald-300 uppercase">تحديث لحظي</span>
  </div>
  </div>
 
- <div className="flex justify-between items-center px-1 text-[10px] font-black text-slate-400 uppercase">
+ <div className="flex justify-between items-center px-1 text-[10px] font-bold text-slate-500 uppercase">
  <span>{validInsights.length} منتج متاح للتحليل</span>
  <span>قائمة المنتجات</span>
  </div>

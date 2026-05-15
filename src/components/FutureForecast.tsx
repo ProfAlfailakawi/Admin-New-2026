@@ -139,28 +139,28 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
 
  if (!isSufficientData) {
  return (
- <div className="bg-white rounded-2xl border border-slate-200 p-3 md:p-3 shadow-sm flex flex-col items-center justify-center text-center">
+ <div className="bg-white rounded-2xl border border-slate-200/60 p-3 md:p-3 shadow-sm flex flex-col items-center justify-center text-center">
  <LineChartIcon className="text-slate-200 mb-4" size={48} />
- <h3 className="font-black text-slate-700 text-lg mb-2">التنبؤ المستقبلي</h3>
- <p className="text-sm font-bold text-slate-400">لا توجد بيانات كافية لإجراء التنبؤ المستقبلي</p>
+ <h3 className="font-bold text-slate-700 text-lg mb-2">التنبؤ المستقبلي</h3>
+ <p className="text-sm font-bold text-slate-500">لا توجد بيانات كافية لإجراء التنبؤ المستقبلي</p>
  <p className="text-xs text-slate-300 mt-2 max-w-sm leading-relaxed">يتطلب النظام المزيد من السجلات والمبيعات الفعلية لبناء نموذج تنبؤ دقيق للسنوات القادمة.</p>
  </div>
 );
  }
 
  return (
- <div className="bg-white rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 border border-slate-200 shadow-sm flex flex-col gap-3 md:p-4" dir="rtl">
+ <div className="bg-white rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 border border-slate-200/60 shadow-sm flex flex-col gap-3 md:p-4" dir="rtl">
  {/* Header */}
  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-6">
  <div>
- <h3 className="font-black text-xl md:text-2xl text-slate-800 flex items-center gap-3">
+ <h3 className="font-bold text-xl md:text-2xl text-slate-800 flex items-center gap-3">
  التنبؤ المستقبلي الخوارزمي <TrendingUp className="text-indigo-500" size={24} />
  </h3>
- <p className="text-xs font-bold text-slate-400 mt-2">توقعات الذكاء الاصطناعي للأداء المالي مبنية على البيانات الفعلية</p>
+ <p className="text-xs font-bold text-slate-500 mt-2">توقعات الذكاء الاصطناعي للأداء المالي مبنية على البيانات الفعلية</p>
  </div>
  
  {/* Range Selector */}
- <div className="flex bg-slate-50 border border-slate-200 rounded-xl p-1 shrink-0">
+ <div className="flex bg-slate-50 border border-slate-200/60 rounded-xl p-1 shrink-0">
  {(['6_months', '1_year', '2_years', '3_years'] as ForecastPeriod[]).map((p) => {
  const label = p === '6_months' ? '6 أشهر' : p === '1_year' ? 'سنة' : p === '2_years' ? 'سنتين' : '3 سنوات';
  return (
@@ -168,7 +168,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  key={p}
  onClick={() => setPeriod(p)}
  className={cn(
-"text-xs font-black px-4 py-2 rounded-lg transition-all",
+"text-xs font-bold px-4 py-2 rounded-lg transition-all",
  period === p 
  ?"bg-white text-indigo-600 shadow-sm border border-slate-100" 
  :"text-slate-500 hover:text-slate-800 hover:bg-slate-100"
@@ -194,7 +194,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  </div>
  <div>
  <h4 className={cn(
-"text-[11px] font-black uppercase mb-1",
+"text-[11px] font-bold uppercase mb-1",
  trend === 'up' ?"text-emerald-700" :"text-rose-700"
 )}>قراءة الخوارزمية المستقبلية</h4>
  <p className="text-sm font-bold leading-relaxed text-slate-700">{explanation}</p>
@@ -205,17 +205,30 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  <div className="h-[300px] md:h-[400px] w-full mt-4">
  <ResponsiveContainer width="100%" height="100%">
  <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 30, bottom: 40 }}>
- <defs>
- <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
- <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
- <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
- </linearGradient>
- <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
- <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
- <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
- </linearGradient>
- </defs>
- <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+ 
+          <defs>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+            <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+            </linearGradient>
+            <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+            </linearGradient>
+            <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+            </linearGradient>
+            <linearGradient id="colorOptimistic" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+ 
  <XAxis 
  dataKey="name" 
  axisLine={false} 
@@ -254,21 +267,21 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  formatter={(value: number) => [`${safeFormatCurrency(value)} د.ك`, '']}
  />
  <Area 
- type="monotone" 
- dataKey="المبيعات" 
- stroke="#6366f1" 
+ type="monotone"
+ dataKey="المبيعات"
+ stroke="#6366f1"
  strokeWidth={4}
- fillOpacity={1} 
- fill="url(#colorSales)" 
+ fillOpacity={1}
+ fill="url(#colorSales)" filter="url(#glow)"
  activeDot={{ r: 6, strokeWidth: 0, fill: '#4f46e5' }}
  />
  <Area 
- type="monotone" 
- dataKey="الأرباح" 
- stroke="#10b981" 
+ type="monotone"
+ dataKey="الأرباح"
+ stroke="#10b981"
  strokeWidth={3}
- fillOpacity={1} 
- fill="url(#colorProfit)" 
+ fillOpacity={1}
+ fill="url(#colorProfit)" filter="url(#glow)"
  />
  </AreaChart>
  </ResponsiveContainer>

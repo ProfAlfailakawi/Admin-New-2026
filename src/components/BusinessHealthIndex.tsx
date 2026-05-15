@@ -62,14 +62,14 @@ export const BusinessHealthIndex: React.FC<BusinessHealthIndexProps> = React.mem
  initial={{ scale: 0.8, opacity: 0 }}
  animate={{ scale: 1, opacity: 1 }}
  transition={{ type:"spring", bounce: 0.5 }}
- className={cn("p-3 md:p-4 md:p-3 rounded-2xl mb-6 relative z-10 shadow-2xl", config.bg)}
+ className={cn("p-3 md:p-4 md:p-3 rounded-2xl mb-6 relative z-10 shadow-xl", config.bg)}
  >
  <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-700" />
  {React.cloneElement(config.icon as React.ReactElement<any>, { size: 56, className:"text-white relative z-10" })}
  </motion.div>
- <h3 className="text-sm md:text-base font-black text-slate-500 uppercase mb-2 relative z-10">مؤشر عافية الشركة</h3>
- <div className={cn("text-3xl md:text-xl md:text-2xl md:text-3xl md:text-xl md:text-2xl font-black mb-4 tracking-tighter relative z-10 bg-clip-text text-transparent bg-gradient-to-br from-slate-800 to-slate-500", config.text)}>{health.score}<span className="text-2xl md:text-xl md:text-2xl text-slate-300 ml-1">%</span></div>
- <div className={cn("px-4 md:px-8 py-3 rounded-2xl font-black text-sm uppercase mb-6 text-white shadow-xl relative z-10 border border-white/20", config.bg, config.shadow)}>
+ <h3 className="text-sm md:text-base font-bold text-slate-500 uppercase mb-2 relative z-10">مؤشر عافية الشركة</h3>
+ <div className={cn("text-3xl md:text-xl md:text-2xl md:text-3xl md:text-xl md:text-2xl font-bold mb-4 tracking-tighter relative z-10 bg-clip-text text-transparent bg-gradient-to-br from-slate-800 to-slate-500", config.text)}>{health.score}<span className="text-2xl md:text-xl md:text-2xl text-slate-300 ml-1">%</span></div>
+ <div className={cn("px-4 md:px-8 py-3 rounded-2xl font-bold text-sm uppercase mb-6 text-white shadow-xl relative z-10 border border-white/10", config.bg, config.shadow)}>
  {config.label}
  </div>
  <p className="text-slate-600 font-bold leading-relaxed text-sm md:text-base relative z-10">{health.explanation}</p>
@@ -78,31 +78,31 @@ export const BusinessHealthIndex: React.FC<BusinessHealthIndexProps> = React.mem
  {/* Breakdown Panel */}
  <div className="xl:col-span-2 bg-gradient-to-br from-[#fdfbf7] to-white p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-[#f0e6d2]/50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.02)] relative overflow-hidden">
  <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
- <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-8 md:mb-10 flex items-center gap-4 relative z-10">تحليل العوامل المؤثرة 
+ <h3 className="text-xl md:text-2xl font-bold text-slate-800 mb-8 md:mb-10 flex items-center gap-4 relative z-10">تحليل العوامل المؤثرة 
  <div className="p-2 bg-indigo-100 rounded-xl"><Activity className="text-indigo-600" size={20} /></div>
  </h3>
  
  <div className="space-y-8 relative z-10">
  {health.factors.map((factor, i) => (
  <div key={i} className="space-y-3 group">
- <div className="flex justify-between items-end text-sm md:text-base font-black">
+ <div className="flex justify-between items-end text-sm md:text-base font-bold">
  <div className="flex items-center gap-3">
  <span className="text-slate-700 group-hover:text-slate-900 transition-colors">{factor.label}</span>
  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 group-hover:bg-slate-200 transition-colors">
  {factor.trend === 'improving' && <ArrowUpRight className="text-emerald-500" size={14} />}
  {factor.trend === 'declining' && <ArrowDownRight className="text-rose-500" size={14} />}
- {factor.trend === 'stable' && <Minus className="text-slate-400" size={14} />}
+ {factor.trend === 'stable' && <Minus className="text-slate-500" size={14} />}
  </span>
  </div>
  <div className="flex items-baseline gap-2">
- <span className="text-[10px] text-slate-400 font-bold uppercase">النتيجة</span>
+ <span className="text-[10px] text-slate-500 font-bold uppercase">النتيجة</span>
  <span className={cn(
 "text-xl",
  factor.score >= 80 ? 'text-emerald-500' : factor.score >= 50 ? 'text-amber-500' : 'text-rose-500'
 )}>{factor.score}%</span>
  </div>
  </div>
- <div className="h-4 md:h-5 bg-slate-100 rounded-2xl overflow-hidden flex flex-row-reverse border border-slate-200/50 shadow-inner relative">
+ <div className="h-4 md:h-5 bg-slate-100 rounded-2xl overflow-hidden flex flex-row-reverse border border-slate-200/60/50 shadow-inner relative">
  <div className="absolute inset-x-0 h-1/2 top-0 bg-white/40 z-10" />
  <motion.div 
  initial={{ width: 0 }}
@@ -118,7 +118,7 @@ export const BusinessHealthIndex: React.FC<BusinessHealthIndexProps> = React.mem
  <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%,transparent_100%)] bg-[length:20px_20px] animate-[shimmer_2s_linear_infinite]" />
  </motion.div>
  </div>
- <div className="flex justify-between items-center text-[10px] md:text-xs text-slate-400 font-black">
+ <div className="flex justify-between items-center text-[10px] md:text-xs text-slate-500 font-bold">
  <span>الوزن النسبي في التقييم: {factor.weight}%</span>
  <span className="opacity-0 group-hover:opacity-100 transition-opacity text-indigo-500">مؤشر أداء رئيسي</span>
  </div>
@@ -132,7 +132,7 @@ export const BusinessHealthIndex: React.FC<BusinessHealthIndexProps> = React.mem
  <div className="bg-slate-900 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl relative overflow-hidden group">
  <div className="absolute top-0 right-0 p-3 md:p-4 opacity-5 group-hover:scale-110 transition-transform"><TrendingUp size={150} className="text-white" /></div>
  <div className="relative z-10">
- <h3 className="text-xl md:text-2xl font-black text-white mb-6 flex items-center gap-3">خطة عمل التحسين الفوري <Sparkles className="text-amber-400" size={20} /></h3>
+ <h3 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center gap-3">خطة عمل التحسين الفوري <Sparkles className="text-amber-400" size={20} /></h3>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-3 md:p-4">
  {health.recommendations.map((rec, i) => (
  <div key={i} className="bg-white/10 backdrop-blur-md p-3 md:p-4 md:p-3 rounded-2xl border border-white/10 flex items-start gap-4">
