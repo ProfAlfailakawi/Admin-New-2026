@@ -1635,20 +1635,17 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     res.status(503).json({ error: "Service unavailable without service account credentials." });
   });
 
-  // Specific 404 for API to prevent falling through to React
 
 
-  // ALERTS_WORKER_FINAL_CLEAN_V2_PUSH_ONLY_START
-  // Push notifications only. Ported from alerts-worker-final-clean-v2-root into the existing Adminnew2 API server.
-  const alertsAdminSecret = process.env.ADMIN_TEST_SECRET || "123456";
-  const alertsLookbackMinutes = Number(process.env.ALERTS_LOOKBACK_MINUTES || "30");
-  const alertsMaxSendPerRun = Number(process.env.MAX_SEND_PER_RUN || "5");
-  const alertsStartFromIso = process.env.ALERTS_START_FROM_ISO || "";
-  const alertsAdminUrl = process.env.ADMIN_PUBLIC_URL || "https://admin.alturathkw.shop";
+  // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_START
+  const ALERTS_ADMIN_TEST_SECRET = process.env.ADMIN_TEST_SECRET || "123456";
+  const ALERTS_LOOKBACK_MINUTES = Number(process.env.ALERTS_LOOKBACK_MINUTES || "30");
+  const ALERTS_MAX_SEND_PER_RUN = Number(process.env.MAX_SEND_PER_RUN || "5");
+  const ALERTS_START_FROM_ISO = process.env.ALERTS_START_FROM_ISO || "";
 
   function alertsRequireSecret(req: any, res: any, next: any) {
-    const secret = req.headers["x-admin-secret"] || req.query.secret || req.body?.secret;
-    if (String(secret) !== String(alertsAdminSecret)) {
+    const secret = req.headers["x-admin-secret"] || req.query.secret;
+    if (String(secret) !== String(ALERTS_ADMIN_TEST_SECRET)) {
       return res.status(403).json({ success: false, error: "Forbidden" });
     }
     next();
@@ -1686,9 +1683,9 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   function alertsInWindow(itemOrId: any, now = new Date()) {
     const d = typeof itemOrId === "string" ? alertsDateFromBusinessId(itemOrId) : alertsBestDate(itemOrId);
     if (!d) return false;
-    const cutoff = alertsStartFromIso ? new Date(alertsStartFromIso) : null;
+    const cutoff = ALERTS_START_FROM_ISO ? new Date(ALERTS_START_FROM_ISO) : null;
     if (cutoff && d < cutoff) return false;
-    const lookback = new Date(now.getTime() - alertsLookbackMinutes * 60 * 1000);
+    const lookback = new Date(now.getTime() - ALERTS_LOOKBACK_MINUTES * 60 * 1000);
     return d >= lookback;
   }
 
@@ -1701,41 +1698,22 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   function alertsStatusFor(x: any) {
     return String(x?.status || x?.paymentStatus || x?.payment_status || x?.state || "").toLowerCase();
   }
-  function alertsIsPaid(s: string) {
-    return s.includes("paid") || s.includes("captured") || s.includes("تم الدفع") || s.includes("مدفوع") || s.includes("جاري التوصيل");
-  }
-  function alertsIsFailed(s: string) {
-    return s.includes("failed") || s.includes("not captured") || s.includes("declined") || s.includes("فشل") || s.includes("فشلت");
-  }
+  function alertsIsPaid(s: string) { return s.includes("paid") || s.includes("captured") || s.includes("تم الدفع") || s.includes("مدفوع") || s.includes("جاري التوصيل"); }
+  function alertsIsFailed(s: string) { return s.includes("failed") || s.includes("not captured") || s.includes("declined") || s.includes("فشل") || s.includes("فشلت"); }
   function alertsIsPending(s: string) {
     return s === "" || s.includes("pending") || s.includes("pending_payment") || s.includes("new_order_pending_payment") ||
       s.includes("order_created_pending_payment") || s.includes("unpaid") || s.includes("بانتظار") ||
       s.includes("انتظار الدفع") || s.includes("لم يدفع") || s.includes("لم تُدفع") || s.includes("waiting");
   }
-  function alertsIsCancelled(s: string) {
-    return s.includes("cancelled") || s.includes("canceled") || s.includes("ملغي") || s.includes("ملغى") ||
-      s.includes("تم الإلغاء") || s.includes("تم الالغاء");
-  }
-  function alertsIsQatiaExpired(s: string) {
-    return s.includes("انتهى وقت القطية") || s.includes("انتهى وقت القطيه") ||
-      s.includes("ملغي - انتهى وقت القطية") || s.includes("ملغي - انتهى وقت القطيه") ||
-      s.includes("qatia expired") || s.includes("split expired");
-  }
-  function alertsIsRoulette(item: any, s: string) {
-    return s.includes("روليت") || s.includes("roulette") ||
-      String(item?.type || "").toLowerCase().includes("roulette") ||
-      String(item?.orderType || "").toLowerCase().includes("roulette") ||
-      String(item?.splitType || "").toLowerCase().includes("roulette");
-  }
+  function alertsIsCancelled(s: string) { return s.includes("cancelled") || s.includes("canceled") || s.includes("ملغي") || s.includes("ملغى") || s.includes("تم الإلغاء") || s.includes("تم الالغاء"); }
+  function alertsIsQatiaExpired(s: string) { return s.includes("انتهى وقت القطية") || s.includes("انتهى وقت القطيه") || s.includes("ملغي - انتهى وقت القطية") || s.includes("ملغي - انتهى وقت القطيه") || s.includes("qatia expired") || s.includes("split expired"); }
+  function alertsIsRoulette(item: any, s: string) { return s.includes("روليت") || s.includes("roulette") || String(item?.type || "").toLowerCase().includes("roulette") || String(item?.orderType || "").toLowerCase().includes("roulette") || String(item?.splitType || "").toLowerCase().includes("roulette"); }
   function alertsIsQatiaLike(item: any, s: string) {
     return !alertsIsRoulette(item, s) && (
       s.includes("قطية") || s.includes("قطيه") || s.includes("split") ||
-      String(item?.type || "").toLowerCase().includes("qatia") ||
-      String(item?.type || "").toLowerCase().includes("split") ||
-      String(item?.orderType || "").toLowerCase().includes("qatia") ||
-      String(item?.orderType || "").toLowerCase().includes("split") ||
-      String(item?.splitType || "").toLowerCase().includes("qatia") ||
-      String(item?.splitType || "").toLowerCase().includes("split") ||
+      String(item?.type || "").toLowerCase().includes("qatia") || String(item?.type || "").toLowerCase().includes("split") ||
+      String(item?.orderType || "").toLowerCase().includes("qatia") || String(item?.orderType || "").toLowerCase().includes("split") ||
+      String(item?.splitType || "").toLowerCase().includes("qatia") || String(item?.splitType || "").toLowerCase().includes("split") ||
       Array.isArray(item?.splitParticipants) || Boolean(item?.splitPayments)
     );
   }
@@ -1745,16 +1723,31 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   }
 
   async function alertsLatestActiveToken() {
-    if (!db) return null;
     const snap = await db.collection("pushTokens").where("active", "==", true).get();
     const docs = snap.docs.map((d: any) => ({ id: d.id, data: d.data() }))
-      .filter((x: any) => Boolean(x.data.token || x.id))
+      .filter((x: any) => Boolean(x.data.token))
       .sort((a: any, b: any) => {
         const at = a.data.updatedAt?.toMillis ? a.data.updatedAt.toMillis() : 0;
         const bt = b.data.updatedAt?.toMillis ? b.data.updatedAt.toMillis() : 0;
         return bt - at;
       });
-    return docs[0]?.data?.token || docs[0]?.id || null;
+    return docs[0]?.data?.token || null;
+  }
+
+  async function alertsClaim(eventId: string) {
+    const ref = db.collection("pushEvents").doc(eventId);
+    const snap = await ref.get();
+    if (snap.exists) return false;
+    return true;
+  }
+
+  async function alertsMarkSent(eventId: string, result: any) {
+    await db.collection("pushEvents").doc(eventId).set({
+      eventId,
+      source: "alerts-worker-final-clean-v2-root-merged",
+      result,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
   }
 
   async function alertsSendDataOnly({ title, body, alertType, eventId, url }: any) {
@@ -1762,49 +1755,28 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     if (!token) return { success: false, error: "No active push token" };
     const messageId = await admin.messaging().send({
       token,
-      data: {
-        type: "smart_alert",
-        alertType: String(alertType),
-        eventId: String(eventId),
-        title: String(title),
-        body: String(body),
-        url: String(url),
-        click_action: String(url),
-      },
+      data: { type: "smart_alert", alertType: String(alertType), eventId: String(eventId), title: String(title), body: String(body), url: String(url), click_action: String(url) },
       webpush: { headers: { Urgency: "high", TTL: "86400" }, fcmOptions: { link: String(url) } },
     });
     return { success: true, messageId };
   }
 
   async function alertsSendOnce(results: any[], eventId: string, payload: any, dryRun: boolean, counters: any) {
-    if (dryRun) {
-      results.push({ eventId, dryRun: true, payload });
-      return;
-    }
-    if (counters.sent >= alertsMaxSendPerRun) {
-      results.push({ eventId, skipped: true, reason: "max-send-per-run-reached" });
-      return;
-    }
-    const eventRef = db.collection("pushEvents").doc(eventId);
-    const snap = await eventRef.get();
-    if (snap.exists) {
-      results.push({ eventId, skipped: true, reason: "already-sent" });
-      return;
-    }
+    if (dryRun) { results.push({ eventId, dryRun: true, payload }); return; }
+    if (counters.sent >= ALERTS_MAX_SEND_PER_RUN) { results.push({ eventId, skipped: true, reason: "max-send-per-run-reached" }); return; }
+    const canSend = await alertsClaim(eventId);
+    if (!canSend) { results.push({ eventId, skipped: true, reason: "already-sent" }); return; }
     const result = await alertsSendDataOnly({ ...payload, eventId });
     if (result.success) {
       counters.sent += 1;
-      await eventRef.set({ eventId, source: "alerts-worker-final-clean-v2", title: payload.title, body: payload.body, alertType: payload.alertType, url: payload.url, messageId: result.messageId, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+      await alertsMarkSent(eventId, result);
     }
     results.push({ eventId, result });
   }
 
   async function alertsReadRecentPushEvents(limit = 1000) {
-    try {
-      return await db.collection("pushEvents").orderBy("createdAt", "desc").limit(limit).get();
-    } catch {
-      return await db.collection("pushEvents").limit(limit).get();
-    }
+    try { return await db.collection("pushEvents").orderBy("createdAt", "desc").limit(limit).get(); }
+    catch { return await db.collection("pushEvents").limit(limit).get(); }
   }
 
   async function alertsGetRecentFailedInvoiceIdsFromPushEvents() {
@@ -1822,19 +1794,13 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
   async function alertsSyncFailedInvoicesFromPushEvents() {
     const failedInvoiceIds = await alertsGetRecentFailedInvoiceIdsFromPushEvents();
-    if (failedInvoiceIds.length === 0) return { updated: 0, ids: [] as string[] };
+    if (failedInvoiceIds.length === 0) return { updated: 0, ids: [] };
     const ref = db.collection("appData").doc("shared_company_data");
     const snap = await ref.get();
     const shared = snap.data() || {};
     let invoices = Array.isArray(shared.invoices) ? [...shared.invoices] : [];
     let orders = Array.isArray(shared.orders) ? [...shared.orders] : [];
-    const markFailed = (id: string, item: any = {}) => ({
-      ...item, id, invoiceId: id, invoiceNo: id, tracked_order: id, requested_order_id: id,
-      source: item?.source || "payment-return-failed-event", type: item?.type || "admin_invoice",
-      status: "فشل في عملية الدفع", paymentStatus: "failed", payment_status: "failed", paid: false, failed: true, canPay: true,
-      createdAt: item?.createdAt || alertsDateFromBusinessId(id)?.toISOString() || new Date().toISOString(),
-      failedAt: item?.failedAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
-    });
+    const markFailed = (id: string, item: any = {}) => ({ ...item, id, invoiceId: id, invoiceNo: id, tracked_order: id, requested_order_id: id, source: item?.source || "payment-return-failed-event", type: item?.type || "admin_invoice", status: "فشل في عملية الدفع", paymentStatus: "failed", payment_status: "failed", paid: false, failed: true, canPay: true, createdAt: item?.createdAt || alertsDateFromBusinessId(id)?.toISOString() || new Date().toISOString(), failedAt: item?.failedAt || new Date().toISOString(), updatedAt: new Date().toISOString() });
     let updated = 0;
     for (const id of failedInvoiceIds) {
       const invoiceMatches = invoices.filter((x: any) => alertsIdsFor(x).includes(id));
@@ -1844,9 +1810,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       orders = orders.filter((x: any) => !alertsIdsFor(x).includes(id));
       updated += 1;
     }
-    if (updated > 0) {
-      await ref.set({ invoices, orders, updatedAt: new Date().toISOString(), lastAutoSyncedFailedInvoicesFinalCleanV2: { ids: failedInvoiceIds, updated, at: new Date().toISOString() } }, { merge: true });
-    }
+    if (updated > 0) await ref.set({ invoices, orders, updatedAt: new Date().toISOString(), lastAutoSyncedFailedInvoicesFinalCleanV2: { ids: failedInvoiceIds, updated, at: new Date().toISOString() } }, { merge: true });
     return { updated, ids: failedInvoiceIds };
   }
 
@@ -1856,12 +1820,11 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   }
 
   async function alertsReconcile({ dryRun = false } = {}) {
-    if (!db) throw new Error("Firestore is not initialized");
     const counters = { sent: 0 };
     const results: any[] = [];
     const now = new Date();
     const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
-    let syncResult: any = { updated: 0, ids: [] };
+    let syncResult = { updated: 0, ids: [] as string[] };
     if (!dryRun) syncResult = await alertsSyncFailedInvoicesFromPushEvents();
     const failedInvoiceIds = new Set(await alertsGetRecentFailedInvoiceIdsFromPushEvents());
     const shared = await alertsLoadSharedData();
@@ -1871,94 +1834,70 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     for (const inv of invoices) {
       const invoiceId = alertsBusinessIdFor(inv, "INV-");
       if (!invoiceId || !alertsInWindow(inv, now)) continue;
-      const s = alertsStatusFor(inv);
-      if (failedInvoiceIds.has(invoiceId) || alertsIsFailed(s)) {
-        results.push({ eventId: `safe-worker-invoice-failed-${invoiceId}`, skipped: true, reason: "invoice-failed-notification-owned-by-payment-return-sync-only" });
-        continue;
-      }
-      if (alertsIsPaid(s)) {
-        await alertsSendOnce(results, `safe-worker-invoice-paid-${invoiceId}`, { title: "✅ تم دفع فاتورة", body: `تم دفع الفاتورة ${invoiceId}${alertsAmountText(inv)}`, alertType: "invoice_paid", url: `${alertsAdminUrl}/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
-        continue;
-      }
-      if (alertsIsPending(s)) {
-        await alertsSendOnce(results, `safe-worker-invoice-pending-immediate-${invoiceId}`, { title: "⏳ فاتورة بانتظار الدفع", body: `الفاتورة ${invoiceId} بانتظار الدفع${alertsAmountText(inv)}`, alertType: "invoice_pending_immediate", url: `${alertsAdminUrl}/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
+      const st = alertsStatusFor(inv);
+      if (failedInvoiceIds.has(invoiceId) || alertsIsFailed(st)) { results.push({ eventId: `safe-worker-invoice-failed-${invoiceId}`, skipped: true, reason: "invoice-failed-notification-owned-by-payment-return-sync-only" }); continue; }
+      if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-invoice-paid-${invoiceId}`, { title: "✅ تم دفع فاتورة", body: `تم دفع الفاتورة ${invoiceId}${alertsAmountText(inv)}`, alertType: "invoice_paid", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters); continue; }
+      if (alertsIsPending(st)) {
+        await alertsSendOnce(results, `safe-worker-invoice-pending-immediate-${invoiceId}`, { title: "⏳ فاتورة بانتظار الدفع", body: `الفاتورة ${invoiceId} بانتظار الدفع${alertsAmountText(inv)}`, alertType: "invoice_pending_immediate", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
         const d = alertsBestDate(inv) || now;
-        if (d <= tenMinutesAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-10min-${invoiceId}`, { title: "⏳ فاتورة لم تُدفع بعد 10 دقائق", body: `الفاتورة ${invoiceId} لم تُدفع بعد 10 دقائق${alertsAmountText(inv)}`, alertType: "invoice_pending_10min", url: `${alertsAdminUrl}/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
+        if (d <= tenMinutesAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-10min-${invoiceId}`, { title: "⏳ فاتورة لم تُدفع بعد 10 دقائق", body: `الفاتورة ${invoiceId} لم تُدفع بعد 10 دقائق${alertsAmountText(inv)}`, alertType: "invoice_pending_10min", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
       }
     }
 
     for (const order of orders) {
       const orderId = alertsBusinessIdFor(order, "ORD-");
       if (!orderId || !alertsInWindow(order, now)) continue;
-      const s = alertsStatusFor(order);
-      const qatia = alertsIsQatiaLike(order, s);
-      if (qatia && alertsIsPaid(s) && !alertsIsQatiaExpired(s)) {
-        await alertsSendOnce(results, `safe-worker-qatia-completed-${orderId}`, { title: "✅ اكتملت القطية", body: `اكتملت القطية للطلب ${orderId} — تم الدفع وجاري التوصيل${alertsAmountText(order)}`, alertType: "qatia_completed", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
-        continue;
-      }
-      if (qatia && alertsIsQatiaExpired(s)) {
-        await alertsSendOnce(results, `safe-worker-qatia-expired-${orderId}`, { title: "⏰ ملغي - انتهى وقت القطية", body: `الطلب ${orderId} تم إلغاؤه لانتهاء وقت القطية${alertsAmountText(order)}`, alertType: "qatia_expired", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
-        continue;
-      }
+      const st = alertsStatusFor(order);
+      const qatia = alertsIsQatiaLike(order, st);
+      if (qatia && alertsIsPaid(st) && !alertsIsQatiaExpired(st)) { await alertsSendOnce(results, `safe-worker-qatia-completed-${orderId}`, { title: "✅ اكتملت القطية", body: `اكتملت القطية للطلب ${orderId} — تم الدفع وجاري التوصيل${alertsAmountText(order)}`, alertType: "qatia_completed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
+      if (qatia && alertsIsQatiaExpired(st)) { await alertsSendOnce(results, `safe-worker-qatia-expired-${orderId}`, { title: "⏰ ملغي - انتهى وقت القطية", body: `الطلب ${orderId} تم إلغاؤه لانتهاء وقت القطية${alertsAmountText(order)}`, alertType: "qatia_expired", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
       if (qatia) continue;
-      if (alertsIsFailed(s)) {
-        await alertsSendOnce(results, `safe-worker-payment-failed-${orderId}`, { title: "❌ فشل دفع طلب", body: `فشل دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_failed", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
-        continue;
-      }
-      if (alertsIsPaid(s)) {
-        await alertsSendOnce(results, `safe-worker-payment-paid-${orderId}`, { title: "✅ تم دفع طلب", body: `تم دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_paid", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
-        continue;
-      }
-      if (alertsIsCancelled(s)) {
-        await alertsSendOnce(results, `safe-worker-order-cancelled-admin-${orderId}`, { title: "🚫 تم إلغاء طلب", body: `تم إلغاء الطلب ${orderId}${alertsAmountText(order)}`, alertType: "order_cancelled_admin", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
-        continue;
-      }
-      if (alertsIsPending(s)) {
-        await alertsSendOnce(results, `safe-worker-payment-pending-immediate-${orderId}`, { title: "⏳ طلب بانتظار الدفع", body: `الطلب ${orderId} بانتظار الدفع${alertsAmountText(order)}`, alertType: "payment_pending_immediate", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
+      if (alertsIsFailed(st)) { await alertsSendOnce(results, `safe-worker-payment-failed-${orderId}`, { title: "❌ فشل دفع طلب", body: `فشل دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_failed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
+      if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-payment-paid-${orderId}`, { title: "✅ تم دفع طلب", body: `تم دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_paid", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
+      if (alertsIsCancelled(st)) { await alertsSendOnce(results, `safe-worker-order-cancelled-admin-${orderId}`, { title: "🚫 تم إلغاء طلب", body: `تم إلغاء الطلب ${orderId}${alertsAmountText(order)}`, alertType: "order_cancelled_admin", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
+      if (alertsIsPending(st)) {
+        await alertsSendOnce(results, `safe-worker-payment-pending-immediate-${orderId}`, { title: "⏳ طلب بانتظار الدفع", body: `الطلب ${orderId} بانتظار الدفع${alertsAmountText(order)}`, alertType: "payment_pending_immediate", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
         const d = alertsBestDate(order) || now;
-        if (d <= tenMinutesAgo) await alertsSendOnce(results, `safe-worker-payment-pending-10min-${orderId}`, { title: "⏳ طلب لم يُدفع بعد 10 دقائق", body: `الطلب ${orderId} لم يُدفع بعد 10 دقائق${alertsAmountText(order)}`, alertType: "payment_pending_10min", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
+        if (d <= tenMinutesAgo) await alertsSendOnce(results, `safe-worker-payment-pending-10min-${orderId}`, { title: "⏳ طلب لم يُدفع بعد 10 دقائق", body: `الطلب ${orderId} لم يُدفع بعد 10 دقائق${alertsAmountText(order)}`, alertType: "payment_pending_10min", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
       }
     }
-    return { meta: { lookbackMinutes: alertsLookbackMinutes, maxSendPerRun: alertsMaxSendPerRun, startFromIso: alertsStartFromIso || null, sent: counters.sent, syncFailedInvoices: syncResult }, results };
+    return { meta: { lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN, startFromIso: ALERTS_START_FROM_ISO || null, sent: counters.sent, syncFailedInvoices: syncResult }, results };
   }
 
-  app.get("/api/push/alerts-status", (_req, res) => {
-    res.json({ ok: true, service: "alerts-worker-final-clean-v2-inside-adminnew2", route: "/api/push/run-alerts", firebaseInitialized, hasDb: Boolean(db), lookbackMinutes: alertsLookbackMinutes, maxSendPerRun: alertsMaxSendPerRun });
+  app.get("/api/push/alerts-status", async (_req, res) => {
+    try {
+      if (!firebaseInitialized || !db) return res.status(500).json({ ok: false, error: "Firebase Admin not initialized" });
+      res.json({ ok: true, route: "/api/push/alerts-status", service: "alerts-worker-final-clean-v2-root-merged", lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN, startFromIso: ALERTS_START_FROM_ISO || null });
+    } catch (e: any) { res.status(500).json({ ok: false, error: e?.message || String(e) }); }
   });
 
   app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
     try {
-      if (!db) return res.status(500).json({ ok: false, error: "Firestore is not initialized" });
-      const tokensSnap = await db.collection("pushTokens").where("active", "==", true).get();
+      const tokenSnap = await db.collection("pushTokens").where("active", "==", true).get();
       const sharedSnap = await db.collection("appData").doc("shared_company_data").get();
       const shared = sharedSnap.data() || {};
-      res.json({
-        ok: true,
-        service: "alerts-worker-final-clean-v2-inside-adminnew2",
-        activePushTokens: tokensSnap.size,
-        hasSharedCompanyData: sharedSnap.exists,
-        invoicesCount: Array.isArray(shared.invoices) ? shared.invoices.length : 0,
-        ordersCount: Array.isArray(shared.orders) ? shared.orders.length : 0,
-        lookbackMinutes: alertsLookbackMinutes,
-        maxSendPerRun: alertsMaxSendPerRun,
-      });
-    } catch (e: any) {
-      res.status(500).json({ ok: false, error: e?.message || String(e) });
-    }
+      res.json({ ok: true, activePushTokens: tokenSnap.docs.filter((d: any) => Boolean(d.data()?.token)).length, hasSharedCompanyData: sharedSnap.exists, invoicesCount: Array.isArray(shared.invoices) ? shared.invoices.length : 0, ordersCount: Array.isArray(shared.orders) ? shared.orders.length : 0, lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN });
+    } catch (e: any) { res.status(500).json({ ok: false, error: e?.message || String(e) }); }
   });
 
-  app.all("/api/push/run-alerts", alertsRequireSecret, async (req, res) => {
+  const alertsRunHandler = async (req: any, res: any) => {
     try {
       const dryRun = req.query.dryRun === "1" || req.body?.dryRun === true;
       const { meta, results } = await alertsReconcile({ dryRun });
       res.json({ success: true, checkedAt: new Date().toISOString(), ...meta, resultsCount: results.length, results });
     } catch (e: any) {
-      console.error("[alerts-worker-final-clean-v2-inside-adminnew2] error", e);
+      console.error("[alerts-worker-final-clean-v2-root-merged] error", e);
       res.status(500).json({ success: false, error: e?.message || String(e) });
     }
-  });
-  // ALERTS_WORKER_FINAL_CLEAN_V2_PUSH_ONLY_END
+  };
 
+  app.get("/api/push/run-alerts", alertsRequireSecret, alertsRunHandler);
+  app.post("/api/push/run-alerts", alertsRequireSecret, alertsRunHandler);
+  app.get("/run-alerts", alertsRequireSecret, alertsRunHandler);
+  app.post("/run-alerts", alertsRequireSecret, alertsRunHandler);
+  // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_END
+
+  // Specific 404 for API to prevent falling through to React
   app.use("/api", (req, res) => {
     console.warn(`404 API Route Not Found: ${req.method} ${req.originalUrl}`);
     res.status(404).json({ error: "API Route Not Found", path: req.originalUrl });
