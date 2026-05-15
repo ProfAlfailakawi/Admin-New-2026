@@ -350,51 +350,7 @@ const MainApp: React.FC = () => {
 
   const [currentPage, setCurrentPage] = useState(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
 
-  // ADMINFIX_FORCE_INVOICES_LIST_FROM_URL_HARD
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-
-    const targetId =
-      params.get('invoice') ||
-      params.get('order') ||
-      params.get('tracked_order') ||
-      params.get('requested_order_id') ||
-      params.get('order_id');
-
-    if (!targetId) return;
-
-    const payload = {
-      tab: 'invoices',
-      search: String(targetId),
-      fullId: String(targetId),
-      pushNotificationDeepLinkHandled: true
-    };
-
-    try {
-      sessionStorage.setItem('adminPushDeepLink', JSON.stringify(payload));
-    } catch {}
-
-    setDeepLinkData(payload);
-
-    if (currentPage !== 'invoices-list') {
-      setCurrentPage('invoices-list');
-    }
-  }, [currentPage, isAuthenticated]);
-
-
-  // ADMINFIX_FORCE_INVOICES_FROM_URL
-  useEffect(() => {
-    const deepLink = getAdminNotificationDeepLink();
-    if (!deepLink) return;
-
-    try {
-      sessionStorage.setItem('adminPushDeepLink', JSON.stringify(deepLink));
-    } catch {}
-
-    if (currentPage !== 'invoices-list') {
-      setCurrentPage('invoices-list');
-    }
-  }, [currentPage]);
+  // Removed buggy ADMINFIX_FORCE_INVOICES_FROM_URL effects causing navigation lock
 
   const mainRef = useRef<HTMLElement>(null);
 
@@ -433,29 +389,7 @@ const MainApp: React.FC = () => {
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [deepLinkData, setDeepLinkData] = useState<any>(getInitialPushDeepLink() || {});
 
-  // ADMIN_PUSH_DEEPLINK_FORCE_REPORTS_EFFECT
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const hasUrlDeepLink =
-      params.has('invoice') ||
-      params.has('order') ||
-      params.has('tracked_order') ||
-      params.has('requested_order_id') ||
-      params.has('order_id');
-
-    if (!hasUrlDeepLink) return;
-
-    const saved = getInitialPushDeepLink();
-    if (!saved?.pushNotificationDeepLinkHandled) return;
-
-    setDeepLinkData(saved);
-
-    if (currentPage !== 'invoices-list') {
-      setCurrentPage('invoices-list');
-    }
-  }, [currentPage]);
-
-
+  // Removed ADMIN_PUSH_DEEPLINK_FORCE_REPORTS_EFFECT causing navigation lock
 
   // Handle push notification deep links:
   // ORD + INV must both open ReportsPage invoices tab and search by full ID.
