@@ -1635,15 +1635,20 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     res.status(503).json({ error: "Service unavailable without service account credentials." });
   });
 
+  // Specific 404 for API to prevent falling through to React
+
+
   // ALERTS_WORKER_FINAL_CLEAN_V2_PUSH_ONLY_START
-  // Source: alerts-worker-final-clean-v2-root. This block only adds the working alerts push runner.
-  const ALERTS_LOOKBACK_MINUTES = Number(process.env.ALERTS_LOOKBACK_MINUTES || "30");
-  const ALERTS_MAX_SEND_PER_RUN = Number(process.env.MAX_SEND_PER_RUN || "5");
-  const ALERTS_START_FROM_ISO = process.env.ALERTS_START_FROM_ISO || "";
+  // Push notifications only. Ported from alerts-worker-final-clean-v2-root into the existing Adminnew2 API server.
+  const alertsAdminSecret = process.env.ADMIN_TEST_SECRET || "123456";
+  const alertsLookbackMinutes = Number(process.env.ALERTS_LOOKBACK_MINUTES || "30");
+  const alertsMaxSendPerRun = Number(process.env.MAX_SEND_PER_RUN || "5");
+  const alertsStartFromIso = process.env.ALERTS_START_FROM_ISO || "";
+  const alertsAdminUrl = process.env.ADMIN_PUBLIC_URL || "https://admin.alturathkw.shop";
 
   function alertsRequireSecret(req: any, res: any, next: any) {
-    const secret = req.headers["x-admin-secret"] || req.query.secret;
-    if (String(secret) !== String(process.env.ADMIN_TEST_SECRET || "123456")) {
+    const secret = req.headers["x-admin-secret"] || req.query.secret || req.body?.secret;
+    if (String(secret) !== String(alertsAdminSecret)) {
       return res.status(403).json({ success: false, error: "Forbidden" });
     }
     next();
@@ -1681,9 +1686,9 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   function alertsInWindow(itemOrId: any, now = new Date()) {
     const d = typeof itemOrId === "string" ? alertsDateFromBusinessId(itemOrId) : alertsBestDate(itemOrId);
     if (!d) return false;
-    const cutoff = ALERTS_START_FROM_ISO ? new Date(ALERTS_START_FROM_ISO) : null;
+    const cutoff = alertsStartFromIso ? new Date(alertsStartFromIso) : null;
     if (cutoff && d < cutoff) return false;
-    const lookback = new Date(now.getTime() - ALERTS_LOOKBACK_MINUTES * 60 * 1000);
+    const lookback = new Date(now.getTime() - alertsLookbackMinutes * 60 * 1000);
     return d >= lookback;
   }
 
@@ -1740,32 +1745,32 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   }
 
   async function alertsLatestActiveToken() {
+    if (!db) return null;
     const snap = await db.collection("pushTokens").where("active", "==", true).get();
     const docs = snap.docs.map((d: any) => ({ id: d.id, data: d.data() }))
-      .filter((x: any) => Boolean(x.data.token))
+      .filter((x: any) => Boolean(x.data.token || x.id))
       .sort((a: any, b: any) => {
         const at = a.data.updatedAt?.toMillis ? a.data.updatedAt.toMillis() : 0;
         const bt = b.data.updatedAt?.toMillis ? b.data.updatedAt.toMillis() : 0;
         return bt - at;
       });
-    return docs[0]?.data?.token || null;
-  }
-
-  async function alertsClaim(eventId: string) {
-    const ref = db.collection("pushEvents").doc(eventId);
-    const snap = await ref.get();
-    if (snap.exists) return false;
-    await ref.set({ eventId, source: "alerts-worker-final-clean-v2", createdAt: admin.firestore.FieldValue.serverTimestamp() });
-    return true;
+    return docs[0]?.data?.token || docs[0]?.id || null;
   }
 
   async function alertsSendDataOnly({ title, body, alertType, eventId, url }: any) {
-    if (!firebaseInitialized || !db) return { success: false, error: "Firebase not initialized" };
     const token = await alertsLatestActiveToken();
     if (!token) return { success: false, error: "No active push token" };
     const messageId = await admin.messaging().send({
       token,
-      data: { type: "smart_alert", alertType: String(alertType), eventId: String(eventId), title: String(title), body: String(body), url: String(url), click_action: String(url) },
+      data: {
+        type: "smart_alert",
+        alertType: String(alertType),
+        eventId: String(eventId),
+        title: String(title),
+        body: String(body),
+        url: String(url),
+        click_action: String(url),
+      },
       webpush: { headers: { Urgency: "high", TTL: "86400" }, fcmOptions: { link: String(url) } },
     });
     return { success: true, messageId };
@@ -1776,20 +1781,20 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       results.push({ eventId, dryRun: true, payload });
       return;
     }
-    if (counters.sent >= ALERTS_MAX_SEND_PER_RUN) {
+    if (counters.sent >= alertsMaxSendPerRun) {
       results.push({ eventId, skipped: true, reason: "max-send-per-run-reached" });
       return;
     }
     const eventRef = db.collection("pushEvents").doc(eventId);
-    const eventSnap = await eventRef.get();
-    if (eventSnap.exists) {
+    const snap = await eventRef.get();
+    if (snap.exists) {
       results.push({ eventId, skipped: true, reason: "already-sent" });
       return;
     }
     const result = await alertsSendDataOnly({ ...payload, eventId });
     if (result.success) {
-      await eventRef.set({ eventId, source: "alerts-worker-final-clean-v2", createdAt: admin.firestore.FieldValue.serverTimestamp(), result });
       counters.sent += 1;
+      await eventRef.set({ eventId, source: "alerts-worker-final-clean-v2", title: payload.title, body: payload.body, alertType: payload.alertType, url: payload.url, messageId: result.messageId, createdAt: admin.firestore.FieldValue.serverTimestamp() });
     }
     results.push({ eventId, result });
   }
@@ -1807,67 +1812,40 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     const ids = new Set<string>();
     for (const doc of snap.docs) {
       const raw = `${doc.id} ${JSON.stringify(doc.data() || {})}`;
-      const looksFailed = raw.includes("invoice-failed") || raw.includes("invoice_failed") ||
-        raw.includes("فشل دفع فاتورة") || raw.includes("فشل دفع الفاتورة");
+      const looksFailed = raw.includes("invoice-failed") || raw.includes("invoice_failed") || raw.includes("فشل دفع فاتورة") || raw.includes("فشل دفع الفاتورة");
       if (!looksFailed) continue;
       const matches = raw.match(/INV-\d{13}-[A-Z0-9]+/g) || [];
-      for (const id of matches) {
-        if (alertsInWindow(id)) ids.add(id);
-      }
+      for (const id of matches) if (alertsInWindow(id)) ids.add(id);
     }
     return Array.from(ids);
   }
 
   async function alertsSyncFailedInvoicesFromPushEvents() {
     const failedInvoiceIds = await alertsGetRecentFailedInvoiceIdsFromPushEvents();
-    if (failedInvoiceIds.length === 0) return { updated: 0, ids: [] };
-
+    if (failedInvoiceIds.length === 0) return { updated: 0, ids: [] as string[] };
     const ref = db.collection("appData").doc("shared_company_data");
     const snap = await ref.get();
     const shared = snap.data() || {};
     let invoices = Array.isArray(shared.invoices) ? [...shared.invoices] : [];
     let orders = Array.isArray(shared.orders) ? [...shared.orders] : [];
-
     const markFailed = (id: string, item: any = {}) => ({
-      ...item,
-      id,
-      invoiceId: id,
-      invoiceNo: id,
-      tracked_order: id,
-      requested_order_id: id,
-      source: item?.source || "payment-return-failed-event",
-      type: item?.type || "admin_invoice",
-      status: "فشل في عملية الدفع",
-      paymentStatus: "failed",
-      payment_status: "failed",
-      paid: false,
-      failed: true,
-      canPay: true,
+      ...item, id, invoiceId: id, invoiceNo: id, tracked_order: id, requested_order_id: id,
+      source: item?.source || "payment-return-failed-event", type: item?.type || "admin_invoice",
+      status: "فشل في عملية الدفع", paymentStatus: "failed", payment_status: "failed", paid: false, failed: true, canPay: true,
       createdAt: item?.createdAt || alertsDateFromBusinessId(id)?.toISOString() || new Date().toISOString(),
-      failedAt: item?.failedAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      failedAt: item?.failedAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
     });
-
     let updated = 0;
     for (const id of failedInvoiceIds) {
       const invoiceMatches = invoices.filter((x: any) => alertsIdsFor(x).includes(id));
       const orderMatches = orders.filter((x: any) => alertsIdsFor(x).includes(id));
-      const base = invoiceMatches[invoiceMatches.length - 1] || orderMatches[orderMatches.length - 1] || {
-        id, invoiceId: id, invoiceNo: id, tracked_order: id, requested_order_id: id,
-        source: "payment-return-failed-event", type: "admin_invoice",
-      };
+      const base = invoiceMatches[invoiceMatches.length - 1] || orderMatches[orderMatches.length - 1] || { id, invoiceId: id, invoiceNo: id, tracked_order: id, requested_order_id: id, source: "payment-return-failed-event", type: "admin_invoice" };
       invoices = [...invoices.filter((x: any) => !alertsIdsFor(x).includes(id)), markFailed(id, base)];
       orders = orders.filter((x: any) => !alertsIdsFor(x).includes(id));
       updated += 1;
     }
-
     if (updated > 0) {
-      await ref.set({
-        invoices,
-        orders,
-        updatedAt: new Date().toISOString(),
-        lastAutoSyncedFailedInvoicesFinalCleanV2: { ids: failedInvoiceIds, updated, at: new Date().toISOString() },
-      }, { merge: true });
+      await ref.set({ invoices, orders, updatedAt: new Date().toISOString(), lastAutoSyncedFailedInvoicesFinalCleanV2: { ids: failedInvoiceIds, updated, at: new Date().toISOString() } }, { merge: true });
     }
     return { updated, ids: failedInvoiceIds };
   }
@@ -1878,15 +1856,13 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   }
 
   async function alertsReconcile({ dryRun = false } = {}) {
-    if (!firebaseInitialized || !db) return { meta: { sent: 0, error: "Firebase not initialized" }, results: [] };
+    if (!db) throw new Error("Firestore is not initialized");
     const counters = { sent: 0 };
     const results: any[] = [];
     const now = new Date();
     const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
-
-    let syncResult = { updated: 0, ids: [] as string[] };
+    let syncResult: any = { updated: 0, ids: [] };
     if (!dryRun) syncResult = await alertsSyncFailedInvoicesFromPushEvents();
-
     const failedInvoiceIds = new Set(await alertsGetRecentFailedInvoiceIdsFromPushEvents());
     const shared = await alertsLoadSharedData();
     const invoices = Array.isArray(shared.invoices) ? shared.invoices : [];
@@ -1901,30 +1877,13 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         continue;
       }
       if (alertsIsPaid(s)) {
-        await alertsSendOnce(results, `safe-worker-invoice-paid-${invoiceId}`, {
-          title: "✅ تم دفع فاتورة",
-          body: `تم دفع الفاتورة ${invoiceId}${alertsAmountText(inv)}`,
-          alertType: "invoice_paid",
-          url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}`,
-        }, dryRun, counters);
+        await alertsSendOnce(results, `safe-worker-invoice-paid-${invoiceId}`, { title: "✅ تم دفع فاتورة", body: `تم دفع الفاتورة ${invoiceId}${alertsAmountText(inv)}`, alertType: "invoice_paid", url: `${alertsAdminUrl}/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
         continue;
       }
       if (alertsIsPending(s)) {
-        await alertsSendOnce(results, `safe-worker-invoice-pending-immediate-${invoiceId}`, {
-          title: "⏳ فاتورة بانتظار الدفع",
-          body: `الفاتورة ${invoiceId} بانتظار الدفع${alertsAmountText(inv)}`,
-          alertType: "invoice_pending_immediate",
-          url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}`,
-        }, dryRun, counters);
+        await alertsSendOnce(results, `safe-worker-invoice-pending-immediate-${invoiceId}`, { title: "⏳ فاتورة بانتظار الدفع", body: `الفاتورة ${invoiceId} بانتظار الدفع${alertsAmountText(inv)}`, alertType: "invoice_pending_immediate", url: `${alertsAdminUrl}/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
         const d = alertsBestDate(inv) || now;
-        if (d <= tenMinutesAgo) {
-          await alertsSendOnce(results, `safe-worker-invoice-pending-10min-${invoiceId}`, {
-            title: "⏳ فاتورة لم تُدفع بعد 10 دقائق",
-            body: `الفاتورة ${invoiceId} لم تُدفع بعد 10 دقائق${alertsAmountText(inv)}`,
-            alertType: "invoice_pending_10min",
-            url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}`,
-          }, dryRun, counters);
-        }
+        if (d <= tenMinutesAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-10min-${invoiceId}`, { title: "⏳ فاتورة لم تُدفع بعد 10 دقائق", body: `الفاتورة ${invoiceId} لم تُدفع بعد 10 دقائق${alertsAmountText(inv)}`, alertType: "invoice_pending_10min", url: `${alertsAdminUrl}/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
       }
     }
 
@@ -1934,124 +1893,72 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       const s = alertsStatusFor(order);
       const qatia = alertsIsQatiaLike(order, s);
       if (qatia && alertsIsPaid(s) && !alertsIsQatiaExpired(s)) {
-        await alertsSendOnce(results, `safe-worker-qatia-completed-${orderId}`, {
-          title: "✅ اكتملت القطية",
-          body: `اكتملت القطية للطلب ${orderId} — تم الدفع وجاري التوصيل${alertsAmountText(order)}`,
-          alertType: "qatia_completed",
-          url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
-        }, dryRun, counters);
+        await alertsSendOnce(results, `safe-worker-qatia-completed-${orderId}`, { title: "✅ اكتملت القطية", body: `اكتملت القطية للطلب ${orderId} — تم الدفع وجاري التوصيل${alertsAmountText(order)}`, alertType: "qatia_completed", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
         continue;
       }
       if (qatia && alertsIsQatiaExpired(s)) {
-        await alertsSendOnce(results, `safe-worker-qatia-expired-${orderId}`, {
-          title: "⏰ ملغي - انتهى وقت القطية",
-          body: `الطلب ${orderId} تم إلغاؤه لانتهاء وقت القطية${alertsAmountText(order)}`,
-          alertType: "qatia_expired",
-          url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
-        }, dryRun, counters);
+        await alertsSendOnce(results, `safe-worker-qatia-expired-${orderId}`, { title: "⏰ ملغي - انتهى وقت القطية", body: `الطلب ${orderId} تم إلغاؤه لانتهاء وقت القطية${alertsAmountText(order)}`, alertType: "qatia_expired", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
         continue;
       }
       if (qatia) continue;
       if (alertsIsFailed(s)) {
-        await alertsSendOnce(results, `safe-worker-payment-failed-${orderId}`, {
-          title: "❌ فشل دفع طلب",
-          body: `فشل دفع الطلب ${orderId}${alertsAmountText(order)}`,
-          alertType: "payment_failed",
-          url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
-        }, dryRun, counters);
+        await alertsSendOnce(results, `safe-worker-payment-failed-${orderId}`, { title: "❌ فشل دفع طلب", body: `فشل دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_failed", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
         continue;
       }
       if (alertsIsPaid(s)) {
-        await alertsSendOnce(results, `safe-worker-payment-paid-${orderId}`, {
-          title: "✅ تم دفع طلب",
-          body: `تم دفع الطلب ${orderId}${alertsAmountText(order)}`,
-          alertType: "payment_paid",
-          url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
-        }, dryRun, counters);
+        await alertsSendOnce(results, `safe-worker-payment-paid-${orderId}`, { title: "✅ تم دفع طلب", body: `تم دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_paid", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
         continue;
       }
       if (alertsIsCancelled(s)) {
-        await alertsSendOnce(results, `safe-worker-order-cancelled-admin-${orderId}`, {
-          title: "🚫 تم إلغاء طلب",
-          body: `تم إلغاء الطلب ${orderId}${alertsAmountText(order)}`,
-          alertType: "order_cancelled_admin",
-          url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
-        }, dryRun, counters);
+        await alertsSendOnce(results, `safe-worker-order-cancelled-admin-${orderId}`, { title: "🚫 تم إلغاء طلب", body: `تم إلغاء الطلب ${orderId}${alertsAmountText(order)}`, alertType: "order_cancelled_admin", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
         continue;
       }
       if (alertsIsPending(s)) {
-        await alertsSendOnce(results, `safe-worker-payment-pending-immediate-${orderId}`, {
-          title: "⏳ طلب بانتظار الدفع",
-          body: `الطلب ${orderId} بانتظار الدفع${alertsAmountText(order)}`,
-          alertType: "payment_pending_immediate",
-          url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
-        }, dryRun, counters);
+        await alertsSendOnce(results, `safe-worker-payment-pending-immediate-${orderId}`, { title: "⏳ طلب بانتظار الدفع", body: `الطلب ${orderId} بانتظار الدفع${alertsAmountText(order)}`, alertType: "payment_pending_immediate", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
         const d = alertsBestDate(order) || now;
-        if (d <= tenMinutesAgo) {
-          await alertsSendOnce(results, `safe-worker-payment-pending-10min-${orderId}`, {
-            title: "⏳ طلب لم يُدفع بعد 10 دقائق",
-            body: `الطلب ${orderId} لم يُدفع بعد 10 دقائق${alertsAmountText(order)}`,
-            alertType: "payment_pending_10min",
-            url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
-          }, dryRun, counters);
-        }
+        if (d <= tenMinutesAgo) await alertsSendOnce(results, `safe-worker-payment-pending-10min-${orderId}`, { title: "⏳ طلب لم يُدفع بعد 10 دقائق", body: `الطلب ${orderId} لم يُدفع بعد 10 دقائق${alertsAmountText(order)}`, alertType: "payment_pending_10min", url: `${alertsAdminUrl}/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
       }
     }
-
-    return {
-      meta: {
-        lookbackMinutes: ALERTS_LOOKBACK_MINUTES,
-        maxSendPerRun: ALERTS_MAX_SEND_PER_RUN,
-        startFromIso: ALERTS_START_FROM_ISO || null,
-        sent: counters.sent,
-        syncFailedInvoices: syncResult,
-      },
-      results,
-    };
-  }
-
-  async function alertsRunHandler(req: any, res: any) {
-    try {
-      const dryRun = req.query.dryRun === "1" || req.body?.dryRun === true;
-      const { meta, results } = await alertsReconcile({ dryRun });
-      res.json({ success: true, checkedAt: new Date().toISOString(), service: "alerts-worker-final-clean-v2-merged", ...meta, resultsCount: results.length, results });
-    } catch (e: any) {
-      console.error("[alerts-worker-final-clean-v2-merged] error", e);
-      res.status(500).json({ success: false, error: e?.message || String(e) });
-    }
+    return { meta: { lookbackMinutes: alertsLookbackMinutes, maxSendPerRun: alertsMaxSendPerRun, startFromIso: alertsStartFromIso || null, sent: counters.sent, syncFailedInvoices: syncResult }, results };
   }
 
   app.get("/api/push/alerts-status", (_req, res) => {
-    res.json({ ok: true, service: "alerts-worker-final-clean-v2-merged", lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN, startFromIso: ALERTS_START_FROM_ISO || null });
+    res.json({ ok: true, service: "alerts-worker-final-clean-v2-inside-adminnew2", route: "/api/push/run-alerts", firebaseInitialized, hasDb: Boolean(db), lookbackMinutes: alertsLookbackMinutes, maxSendPerRun: alertsMaxSendPerRun });
   });
-
-  app.get("/run-alerts", alertsRequireSecret, alertsRunHandler);
-  app.post("/run-alerts", alertsRequireSecret, alertsRunHandler);
-  app.get("/api/push/run-alerts", alertsRequireSecret, alertsRunHandler);
-  app.post("/api/push/run-alerts", alertsRequireSecret, alertsRunHandler);
-
 
   app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
     try {
-      if (!firebaseInitialized || !db) return res.json({ ok: false, error: "Firebase not initialized" });
-      const tokenSnap = await db.collection("pushTokens").where("active", "==", true).get();
+      if (!db) return res.status(500).json({ ok: false, error: "Firestore is not initialized" });
+      const tokensSnap = await db.collection("pushTokens").where("active", "==", true).get();
       const sharedSnap = await db.collection("appData").doc("shared_company_data").get();
       const shared = sharedSnap.data() || {};
       res.json({
         ok: true,
-        activePushTokens: tokenSnap.size,
+        service: "alerts-worker-final-clean-v2-inside-adminnew2",
+        activePushTokens: tokensSnap.size,
         hasSharedCompanyData: sharedSnap.exists,
         invoicesCount: Array.isArray(shared.invoices) ? shared.invoices.length : 0,
         ordersCount: Array.isArray(shared.orders) ? shared.orders.length : 0,
-        lookbackMinutes: ALERTS_LOOKBACK_MINUTES,
+        lookbackMinutes: alertsLookbackMinutes,
+        maxSendPerRun: alertsMaxSendPerRun,
       });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: e?.message || String(e) });
     }
   });
+
+  app.all("/api/push/run-alerts", alertsRequireSecret, async (req, res) => {
+    try {
+      const dryRun = req.query.dryRun === "1" || req.body?.dryRun === true;
+      const { meta, results } = await alertsReconcile({ dryRun });
+      res.json({ success: true, checkedAt: new Date().toISOString(), ...meta, resultsCount: results.length, results });
+    } catch (e: any) {
+      console.error("[alerts-worker-final-clean-v2-inside-adminnew2] error", e);
+      res.status(500).json({ success: false, error: e?.message || String(e) });
+    }
+  });
   // ALERTS_WORKER_FINAL_CLEAN_V2_PUSH_ONLY_END
 
-  // Specific 404 for API to prevent falling through to React
   app.use("/api", (req, res) => {
     console.warn(`404 API Route Not Found: ${req.method} ${req.originalUrl}`);
     res.status(404).json({ error: "API Route Not Found", path: req.originalUrl });
