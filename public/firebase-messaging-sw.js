@@ -1,62 +1,50 @@
-importScripts("https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging-compat.js");
+/* Minimal Service Worker - Alturath Admin */
 
-firebase.initializeApp({
-  apiKey: "AIzaSyBBVG0C-xjkuT3WeqiNAmJjw6lI8M6Gt6k",
-  authDomain: "gen-lang-client-0200723670.firebaseapp.com",
-  projectId: "gen-lang-client-0200723670",
-  storageBucket: "gen-lang-client-0200723670.firebasestorage.app",
-  messagingSenderId: "119610604304",
-  appId: "1:119610604304:web:55eba98b72a9a7f98d4395"
+self.addEventListener("install", (event) => {
+  self.skipWaiting();
 });
 
-const messaging = firebase.messaging();
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
 
-function normalizeUrl(rawUrl) {
+self.addEventListener("push", (event) => {
+  let payload = {};
+
   try {
-    const parsed = new URL(rawUrl || "/", self.location.origin);
-
-    if (parsed.origin !== self.location.origin) {
-      return "/";
-    }
-
-    return parsed.pathname + parsed.search + parsed.hash;
-  } catch {
-    return "/";
+    payload = event.data ? event.data.json() : {};
+  } catch (e) {
+    payload = {
+      title: "التراث",
+      body: event.data ? event.data.text() : "تنبيه جديد",
+    };
   }
-}
-
-messaging.onBackgroundMessage((payload) => {
-  const data = payload.data || {};
 
   const title =
-    data.title ||
     payload.notification?.title ||
-    "تنبيه";
+    payload.title ||
+    payload.data?.title ||
+    "التراث";
 
   const body =
-    data.body ||
     payload.notification?.body ||
-    "";
+    payload.body ||
+    payload.data?.body ||
+    "تنبيه جديد";
 
-  const url = normalizeUrl(
-    data.url ||
-    data.click_action ||
-    "/"
+  const url =
+    payload.data?.url ||
+    payload.url ||
+    "/";
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url },
+    })
   );
-
-  self.registration.showNotification(title, {
-    body,
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
-    data: {
-      url,
-      eventId: data.eventId || "",
-      alertType: data.alertType || ""
-    },
-    tag: data.eventId || url || title,
-    renotify: false
-  });
 });
 
 self.addEventListener("notificationclick", (event) => {
@@ -65,6 +53,17 @@ self.addEventListener("notificationclick", (event) => {
   const url = event.notification?.data?.url || "/";
 
   event.waitUntil(
-    clients.openWindow(url)
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ("navigate" in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(url);
+      }
+    })
   );
 });
