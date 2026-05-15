@@ -223,7 +223,7 @@ const GlobalStatBox = React.memo(
         whileTap={{ scale: 0.96 }}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
         className={cn(
-          "p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border bg-white relative overflow-hidden group shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer active:scale-95 flex flex-col justify-between h-full",
+          "p-4 sm:p-6 rounded-2xl sm:rounded-2xl border bg-white relative overflow-hidden group shadow-sm interactive-hover cursor-pointer active:scale-95 flex flex-col justify-between h-full",
           getGradient(color),
         )}
       >
@@ -245,14 +245,14 @@ const GlobalStatBox = React.memo(
         </div>
 
         <div className="text-right relative z-10">
-          <div className="text-[10px] sm:text-xs font-black uppercase opacity-60 mb-1 lg:mb-2 text-slate-500">
+          <div className="text-[10px] sm:text-xs font-bold uppercase opacity-60 mb-1 lg:mb-2 text-slate-500">
             {label}
           </div>
           <div className="flex items-baseline justify-end gap-0.5 sm:gap-1 mb-0.5 sm:mb-1">
-            <span className="text-[10px] sm:text-xs font-black opacity-40 uppercase tracking-tighter">
+            <span className="text-[10px] sm:text-xs font-bold opacity-40 uppercase tracking-tighter">
               {unit}
             </span>
-            <div className="text-lg min-[360px]:text-xl sm:text-3xl font-black text-slate-900 tracking-tighter group-hover:scale-105 transition-transform origin-right truncate overflow-hidden text-ellipsis whitespace-nowrap auto-cols-min">
+            <div className="text-lg min-[360px]:text-xl sm:text-3xl font-mono tracking-tighter font-bold text-slate-900 tracking-tighter interactive-hover origin-right truncate overflow-hidden text-ellipsis whitespace-nowrap auto-cols-min">
               {isPercent
                 ? `${value.toFixed(1)}%`
                 : Number(value).toLocaleString("en-GB", {
@@ -265,7 +265,7 @@ const GlobalStatBox = React.memo(
           {subtext && (
             <div
               className={cn(
-                "text-[9px] sm:text-[10px] mt-1.5 sm:mt-2 font-black px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-current/10 inline-block",
+                "text-[10px] sm:text-[10px] mt-1.5 sm:mt-2 font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-current/10 inline-block",
                 getGradient(color).split(" ")[2],
               )}
             >
@@ -334,7 +334,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
   return (
     <div
       id="bi-engine-core-section"
-      className="relative w-full min-h-[500px] sm:min-h-[650px] py-16 flex items-center justify-center mb-8 lg:mb-16 overflow-hidden rounded-3xl sm:rounded-[4rem] bg-slate-950 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)] border border-slate-800/50 group"
+      className="relative w-full min-h-[400px] md:min-h-[500px] lg:min-h-[650px] py-16 flex items-center justify-center mb-8 lg:mb-16 overflow-hidden rounded-3xl rounded-3xl sm:rounded-2xl bg-slate-950 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-800/20 group"
     >
       {/* Immersive Atmospheric Gradients */}
       <div
@@ -400,7 +400,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
             <div className="absolute inset-4 sm:inset-6 border-[2px] sm:border-[3px] border-slate-800 rounded-full" />
 
             {/* The Heart Reactor */}
-            <div className="w-32 h-32 sm:w-48 sm:h-48 bg-slate-900 rounded-full border border-slate-700 flex items-center justify-center relative shadow-2xl z-10 overflow-hidden translate-z-0">
+            <div className="w-32 h-32 sm:w-48 sm:h-48 bg-slate-900 rounded-full border border-slate-700 flex items-center justify-center relative shadow-xl z-10 overflow-hidden translate-z-0">
               {/* Holographic Scanline */}
               <motion.div
                 animate={{ y: [-100, 100] }}
@@ -414,14 +414,14 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
                   transition={{ duration: 0.1, repeat: Infinity }}
                   className="flex flex-col items-center"
                 >
-                  <span className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 tracking-tighter leading-none">
+                  <span className="text-3xl md:text-5xl font-mono font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 tracking-tighter leading-none">
                     {Math.round(healthScore)}
                   </span>
-                  <span className="text-sm sm:text-xl font-black text-slate-400 -mt-1">
+                  <span className="text-sm sm:text-xl font-bold text-slate-500 -mt-1">
                     %
                   </span>
                 </motion.div>
-                <p className="text-[9px] sm:text-[11px] font-black text-slate-500 uppercase mt-1 sm:mt-2 px-3 sm:px-4 py-1 bg-slate-950 rounded-full border border-slate-800">
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase mt-1 sm:mt-2 px-3 sm:px-4 py-1 bg-slate-950 rounded-full border border-slate-800">
                   استقرار النظام
                 </p>
               </div>
@@ -498,7 +498,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
               }}
               whileHover={{ scale: 1.2 }}
             >
-              <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 p-3 sm:p-3 rounded-2xl sm:rounded-2xl shadow-2xl flex flex-col items-center min-w-[70px] sm:min-w-[100px]">
+              <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 p-3 sm:p-3 rounded-2xl sm:rounded-2xl shadow-xl flex flex-col items-center min-w-[70px] sm:min-w-[100px]">
                 <div
                   className={cn(
                     "mb-1 sm:mb-2 p-1.5 sm:p-2 rounded-xl bg-white/5",
@@ -510,10 +510,10 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
                     className: "sm:w-5 sm:h-5",
                   })}
                 </div>
-                <span className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1">
+                <span className="text-[10px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1">
                   {sat.label}
                 </span>
-                <span className="text-xs sm:text-sm font-black text-white">
+                <span className="text-xs sm:text-sm font-bold text-white">
                   {sat.val}
                 </span>
               </div>
@@ -525,16 +525,16 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-6 sm:mt-12 mx-4 sm:mx-0 w-full max-w-none bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-8 flex flex-col gap-6 justify-between items-center relative overflow-hidden z-40 mb-8"
+          className="mt-6 sm:mt-12 mx-4 sm:mx-0 w-full max-w-none bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 flex flex-col gap-6 justify-between items-center relative overflow-hidden z-40 mb-8"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent pointer-events-none" />
 
           <div className="text-center sm:text-right flex-1 min-w-0 order-1 sm:order-2">
-            <h3 className="text-slate-400 text-[10px] sm:text-xs font-black uppercase mb-2 sm:mb-3 flex items-center justify-center sm:justify-end gap-2">
+            <h3 className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase mb-2 sm:mb-3 flex items-center justify-center sm:justify-end gap-2">
               تحليل الذكاء الفوري
               <Sparkles size={14} className="text-amber-400" />
             </h3>
-            <p className="text-white text-sm sm:text-lg lg:text-xl font-black leading-relaxed sm:leading-tight">
+            <p className="text-white text-sm sm:text-lg lg:text-xl font-bold leading-relaxed sm:leading-tight">
               « النظام في حالة{" "}
               {healthScore > 20 ? "ازدهار قصوى" : "استقرار تشغيلي"}.
               {profit > 0
@@ -545,10 +545,10 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
           </div>
 
           <div className="flex flex-row sm:flex-col justify-center sm:justify-start gap-3 w-full shrink-0 order-2 sm:order-1">
-            <div className="px-4 py-2 sm:px-5 sm:py-2 bg-emerald-500/20 text-emerald-400 rounded-xl sm:rounded-2xl border border-emerald-500/20 text-[9px] sm:text-[10px] font-black text-center whitespace-nowrap flex-1 sm:flex-none">
+            <div className="px-4 py-2 sm:px-5 sm:py-2 bg-emerald-500/20 text-emerald-400 rounded-xl sm:rounded-2xl border border-emerald-500/20 text-[10px] sm:text-[10px] font-bold text-center whitespace-nowrap flex-1 sm:flex-none">
               محرك AI: جاهز
             </div>
-            <div className="px-4 py-2 sm:px-5 sm:py-2 bg-blue-500/20 text-blue-400 rounded-xl sm:rounded-2xl border border-blue-500/20 text-[9px] sm:text-[10px] font-black text-center whitespace-nowrap flex-1 sm:flex-none">
+            <div className="px-4 py-2 sm:px-5 sm:py-2 bg-blue-500/20 text-blue-400 rounded-xl sm:rounded-2xl border border-blue-500/20 text-[10px] sm:text-[10px] font-bold text-center whitespace-nowrap flex-1 sm:flex-none">
               اتصال البيانات: مستقر
             </div>
           </div>
@@ -625,32 +625,32 @@ const BusinessStatusMirror: React.FC<{
     <div className="flex flex-col w-full h-full">
       <motion.div
         whileHover={{ y: -5 }}
-        className="relative flex-1 p-3 md:p-6 rounded-3xl md:rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-blue-700 text-white shadow-2xl shadow-indigo-500/20 overflow-hidden group"
+        className="relative flex-1 p-3 md:p-6 rounded-3xl md:rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-700 text-white shadow-xl shadow-indigo-500/20 overflow-hidden group"
       >
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-500" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-400/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
         <div className="relative z-10 text-right">
           <div className="flex items-center justify-end gap-3 mb-6">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">
               الوضع المالي الموحد
             </span>
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
           </div>
-          <h4 className="text-2xl md:text-3xl font-black mb-2 tracking-tighter tabular-nums">
+          <h4 className="text-2xl md:text-3xl font-bold mb-2 tracking-tighter tabular-nums">
             {totalSales.toFixed(3)}{" "}
             <span className="text-lg opacity-60">د.ك</span>
           </h4>
-          <p className="text-white/60 text-sm font-black italic">
+          <p className="text-white/60 text-sm font-bold italic">
             إجمالي التدفق المالي المسجل في النظام
           </p>
 
           <div className="mt-10 pt-8 border-t border-white/10 flex justify-between items-end">
             <div className="text-left">
-              <span className="block text-[10px] font-black uppercase opacity-40 mb-1">
+              <span className="block text-[10px] font-bold uppercase opacity-40 mb-1">
                 صافي العائد
               </span>
-              <span className="text-2xl font-black text-amber-400">
+              <span className="text-2xl font-bold text-amber-400">
                 %
                 {totalSales > 0
                   ? ((profit / totalSales) * 100).toFixed(1)
@@ -658,10 +658,10 @@ const BusinessStatusMirror: React.FC<{
               </span>
             </div>
             <div className="text-right">
-              <span className="block text-[10px] font-black uppercase opacity-40 mb-1">
+              <span className="block text-[10px] font-bold uppercase opacity-40 mb-1">
                 الربحية الإجمالية
               </span>
-              <span className="text-2xl font-black">{profit.toFixed(3)}</span>
+              <span className="text-2xl font-bold">{profit.toFixed(3)}</span>
             </div>
           </div>
         </div>
@@ -688,8 +688,8 @@ const BusinessStatusMirror: React.FC<{
 
         <div className="relative z-10 text-right">
           <div className="flex items-center justify-end gap-3 mb-6">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-              توصية النظام المتقدمة
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+              مستشارك: التاجر العود
             </span>
             <Sparkles size={16} className="text-amber-500" />
           </div>
@@ -697,13 +697,13 @@ const BusinessStatusMirror: React.FC<{
           <div className="space-y-6">
             <div className="flex items-start gap-4 justify-end">
               <div className="text-right flex-1">
-                <p className="text-slate-400 text-[10px] font-black uppercase mb-1">
+                <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">
                   {aiRecommendation.title}
                 </p>
-                <p className="text-slate-800 font-black text-lg leading-snug">
+                <p className="text-slate-800 font-bold text-lg leading-snug">
                   {aiRecommendation.recommendation}
                 </p>
-                <span className="text-indigo-600 text-xs font-black uppercase mt-2 block group-hover:translate-x-[-4px] transition-transform">
+                <span className="text-indigo-600 text-xs font-bold uppercase mt-2 block group-hover:translate-x-[-4px] transition-transform">
                   انقر لعرض الاستراتيجية الكاملة
                 </span>
               </div>
@@ -770,14 +770,14 @@ const BusinessStatusMirror: React.FC<{
                         });
                       }
                     }}
-                    className="w-11 h-11 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-600 shadow-sm hover:bg-emerald-500 hover:text-white hover:border-emerald-500 hover:scale-110 hover:z-20 transition-all cursor-pointer active:scale-95"
+                    className="w-11 h-11 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 shadow-sm hover:bg-emerald-500 hover:text-white hover:border-emerald-500 hover:scale-110 hover:z-20 transition-all cursor-pointer active:scale-95"
                     title={`استكشاف ${opp.label}`}
                   >
                     {opp.label}
                   </button>
                 ))}
               </div>
-              <span className="text-[10px] font-black text-slate-400 uppercase">
+              <span className="text-[10px] font-bold text-slate-500 uppercase">
                 فرص نمو مكتشفة اليوم
               </span>
             </div>
@@ -817,11 +817,11 @@ const SectionHeader = ({
         <Icon size={24} className="lg:w-[28px] lg:h-[28px]" strokeWidth={2.5} />
       </div>
       <div>
-        <h2 className="text-2xl lg:text-3xl font-black tracking-tighter text-slate-800">
+        <h2 className="text-2xl lg:text-3xl font-bold tracking-tighter text-slate-800">
           {title}
         </h2>
         {subtitle && (
-          <p className="text-slate-500 text-xs lg:text-[15px] font-black mt-1 opacity-60">
+          <p className="text-slate-500 text-xs lg:text-[15px] font-bold mt-1 opacity-60">
             {subtitle}
           </p>
         )}
@@ -832,7 +832,7 @@ const SectionHeader = ({
 
 const Dashboard: React.FC<DashboardProps> = React.memo(
   ({
-    data,
+    data: rawData,
     onUpdateData,
     appMode,
     onNavigate,
@@ -841,7 +841,10 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     scrollTargetTimestamp,
     setDeepLinkData,
   }) => {
-    const [isPending, startTransition] = useTransition();
+    
+    const data = rawData;
+  
+const [isPending, startTransition] = useTransition();
     const [isExecutiveMode, setIsExecutiveMode] = useState(false);
     const [showSampleDataPrompt, setShowSampleDataPrompt] = useState(false);
     const [showContextualAssist, setShowContextualAssist] = useState(false);
@@ -1638,9 +1641,9 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     const tabs = allDashboardTabs;
 
     const bentoCardStyle =
-      "bg-[#fdfbf7] p-4 md:p-6 rounded-3xl border border-[#f0e6d2] shadow-[0_4px_20px_-10px_rgba(212,192,152,0.3)] text-right relative overflow-hidden flex flex-col hover:shadow-xl transition-all duration-300 mb-6";
+      "bg-[#fdfbf7] p-4 md:p-6 rounded-3xl border border-[#f0e6d2] shadow-[0_4px_20px_-10px_rgba(212,192,152,0.3)] text-right relative overflow-hidden flex flex-col interactive-hover mb-6";
     const glassCardStyle =
-      "bg-[#fdfbf7]/80 backdrop-blur-xl border border-white/50 shadow-2xl p-3 md:p-4 rounded-2xl text-right relative overflow-hidden flex flex-col text-[#4a3f35] hover:shadow-indigo-500/10 transition-all duration-300 hover:opacity-90";
+      "bg-[#fdfbf7]/80 backdrop-blur-xl border border-white/50 shadow-xl p-3 md:p-4 rounded-2xl text-right relative overflow-hidden flex flex-col text-[#4a3f35] hover:shadow-indigo-500/10 transition-all duration-300 hover:opacity-90";
 
     const isLoyalty = activeTab === "loyalty";
     const isPromo = activeTab === "promocodes";
@@ -1657,26 +1660,26 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <MagneticButton
           onClick={() => onNavigate!("new-invoice")}
-          className="flex flex-col items-center justify-center p-6 bg-amber-500 text-white rounded-[2rem] shadow-xl shadow-amber-500/20 hover:-translate-y-1 transition-all active:scale-95 group"
+          className="flex flex-col items-center justify-center p-6 bg-amber-500 text-white rounded-2xl shadow-xl shadow-amber-500/20 interactive-hover active:scale-95 group"
         >
           <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform">
             <Plus size={24} strokeWidth={3} />
           </div>
-          <span className="font-black text-sm">فاتورة جديدة</span>
+          <span className="font-bold text-sm">فاتورة جديدة</span>
         </MagneticButton>
 
         <MagneticButton
           onClick={() => onNavigate!("orders")}
-          className="flex flex-col items-center justify-center p-6 bg-slate-800 text-white rounded-[2rem] shadow-xl shadow-slate-800/20 hover:-translate-y-1 transition-all active:scale-95 group relative"
+          className="flex flex-col items-center justify-center p-6 bg-slate-800 text-white rounded-2xl shadow-xl shadow-slate-800/20 interactive-hover active:scale-95 group relative"
         >
           <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-3 group-hover:-rotate-12 transition-transform relative">
             <ShoppingCart size={24} strokeWidth={2} />
-            <div className="absolute -top-1.5 -right-1.5 bg-white text-slate-900 text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-800">
+            <div className="absolute -top-1.5 -right-1.5 bg-white text-slate-900 text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-800">
               {totalOrdersCount}
             </div>
           </div>
           <div className="flex flex-col items-center">
-            <span className="font-black text-sm">طلبات التطبيق</span>
+            <span className="font-bold text-sm">طلبات التطبيق</span>
             {pendingOrdersCount > 0 && (
               <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-full mt-1 animate-pulse">
                 {pendingOrdersCount} معلق
@@ -1687,22 +1690,22 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
         <MagneticButton
           onClick={() => onNavigate!("reports")}
-          className="flex flex-col items-center justify-center p-6 bg-white text-slate-800 border-2 border-slate-100 rounded-[2rem] shadow-sm hover:border-amber-200 transition-all active:scale-95 group"
+          className="flex flex-col items-center justify-center p-6 bg-white text-slate-800 border-2 border-slate-100 rounded-2xl shadow-sm hover:border-amber-200 transition-all active:scale-95 group"
         >
           <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
             <FileText size={24} className="text-amber-500" />
           </div>
-          <span className="font-black text-sm text-slate-600">سجل المبيعات</span>
+          <span className="font-bold text-sm text-slate-600">سجل المبيعات</span>
         </MagneticButton>
 
         <MagneticButton
           onClick={() => onNavigate!("customers")}
-          className="flex flex-col items-center justify-center p-6 bg-white text-slate-800 border-2 border-slate-100 rounded-[2rem] shadow-sm hover:border-blue-200 transition-all active:scale-95 group"
+          className="flex flex-col items-center justify-center p-6 bg-white text-slate-800 border-2 border-slate-100 rounded-2xl shadow-sm hover:border-blue-200 transition-all active:scale-95 group"
         >
           <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-6 transition-transform">
             <User size={24} className="text-blue-500" />
           </div>
-          <span className="font-black text-sm text-slate-600">قائمة العملاء</span>
+          <span className="font-bold text-sm text-slate-600">قائمة العملاء</span>
         </MagneticButton>
       </div>
     );
@@ -1985,7 +1988,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
         {/* Main Dashboard Header & Navigation */}
         <div
-          className="container relative z-40 border-b border-slate-200 bg-white/90 backdrop-blur-md py-4 transition-all duration-500"
+          className="container relative z-40 border-b border-slate-200/60 bg-white/90 backdrop-blur-md py-4 transition-all duration-500"
           dir="rtl"
         >
           {showSampleDataPrompt && (
@@ -1996,7 +1999,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   <Database size={16} />
                 </div>
                 <div>
-                  <h3 className="text-xs font-black text-slate-900 leading-tight mb-0.5">النظام فارغ حالياً</h3>
+                  <h3 className="text-xs font-bold text-slate-900 leading-tight mb-0.5">النظام فارغ حالياً</h3>
                   <p className="text-slate-600 font-bold text-[10px] leading-relaxed">
                     هل ترغب في تحميل <strong className="text-indigo-700">بيانات تجريبية</strong> لاستكشاف المميزات؟
                   </p>
@@ -2005,14 +2008,14 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
               <div className="flex justify-end gap-2 shrink-0 relative z-10 w-auto">
                 <button
                   onClick={handleLoadDemoData}
-                  className="bg-indigo-600 outline-none text-white font-black text-[11px] px-3 py-1.5 rounded-md hover:bg-indigo-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95"
+                  className="bg-indigo-600 outline-none text-white font-bold text-[11px] px-3 py-1.5 rounded-md hover:bg-indigo-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95"
                 >
                   <Download size={14} />
                   <span>تحميل</span>
                 </button>
                 <button
                   onClick={handleDismissDemoData}
-                  className="bg-white text-slate-500 outline-none border border-slate-200 hover:text-slate-700 hover:bg-slate-50 p-1.5 rounded-md transition-all flex items-center justify-center hover:scale-[1.02] active:scale-95 shrink-0"
+                  className="bg-white text-slate-500 outline-none border border-slate-200/60 hover:text-slate-700 hover:bg-slate-50 p-1.5 rounded-md transition-all flex items-center justify-center hover:scale-[1.02] active:scale-95 shrink-0"
                   aria-label="لاحقاً"
                   title="لاحقاً"
                 >
@@ -2032,10 +2035,10 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                 <Sparkles size={28} className="text-amber-400 animate-pulse" />
               </div>
               <div className="flex flex-col">
-                <h1 className="text-xl md:text-3xl font-black text-slate-900 leading-tight">
+                <h1 className="text-xl md:text-3xl font-bold text-slate-900 leading-tight">
                   {greeting.title}
                 </h1>
-                <p className="text-slate-500 text-sm font-black flex items-center gap-2 mt-1">
+                <p className="text-slate-500 text-sm font-bold flex items-center gap-2 mt-1">
                   <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
                   {greeting.sub}
                 </p>
@@ -2046,13 +2049,13 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
             <button
               onClick={() => setIsExecutiveMode(!isExecutiveMode)}
               className={cn(
-                "hidden md:flex items-center gap-2 px-4 py-2 rounded-2xl font-black text-sm transition-all duration-500",
+                "hidden md:flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-sm transition-all duration-500",
                 isExecutiveMode 
                   ? "bg-slate-900 text-white shadow-lg scale-105" 
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:scale-105"
+                  : "bg-white border border-slate-200/60 text-slate-600 hover:bg-slate-50 hover:scale-105"
               )}
             >
-              <ShieldAlert size={18} className={cn(isExecutiveMode ? "text-amber-400" : "text-slate-400")} />
+              <ShieldAlert size={18} className={cn(isExecutiveMode ? "text-amber-400" : "text-slate-500")} />
               <span>{isExecutiveMode ? "خروج من القيادة" : "وضع القيادة"}</span>
             </button>
           </div>
@@ -2069,7 +2072,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                 <div className="relative w-full mt-4">
                   <button
                     onClick={() => setShowTabsDropdown(!showTabsDropdown)}
-              className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-[14px] font-black bg-slate-900 text-white shadow-xl outline-none"
+              className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-[14px] font-bold bg-slate-900 text-white shadow-xl outline-none"
             >
               <div className="flex items-center gap-2">
                 {tabs.find(t => t.id === activeTab)?.icon && React.cloneElement(tabs.find(t => t.id === activeTab)!.icon, {
@@ -2104,9 +2107,9 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   >
                     {React.cloneElement(tab.icon, {
                       size: 18,
-                      className: activeTab === tab.id ? "text-amber-500" : "text-slate-400"
+                      className: activeTab === tab.id ? "text-amber-500" : "text-slate-500"
                     })}
-                    <span className="font-black text-[14px]">{tab.label}</span>
+                    <span className="font-bold text-[14px]">{tab.label}</span>
                   </button>
                 ))}
               </motion.div>
@@ -2114,31 +2117,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
             </AnimatePresence>
           </div>
 
-          {/* FILTER - Underneath Tabs */}
-          <div className="flex gap-2 w-full overflow-x-auto scrollbar-hide py-1 mt-4 shrink-0">
-            {["day", "week", "month", "year", "all"].map((tf) => (
-              <button
-                key={tf}
-                onClick={() => startTransition(() => setDateFilter(tf as any))}
-                className={cn(
-                  "flex-1 min-w-max flex items-center justify-center px-4 py-3.5 rounded-2xl text-[12px] uppercase font-black transition-all duration-300 outline-none whitespace-nowrap border border-slate-200",
-                  dateFilter === tf
-                    ? "border-slate-800 text-slate-900 bg-white shadow-sm ring-1 ring-slate-800"
-                    : "border-transparent text-slate-500 bg-slate-50 hover:bg-slate-100 hover:text-slate-800",
-                )}
-              >
-                {tf === "day"
-                  ? "يوم"
-                  : tf === "week"
-                    ? "أسبوع"
-                    : tf === "month"
-                      ? "شهر"
-                      : tf === "year"
-                        ? "سنة"
-                        : "الكل"}
-              </button>
-            ))}
-          </div>
+          
 
               </motion.div>
             )}
@@ -2164,7 +2143,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                 dir="rtl"
               >
                 <div className="flex flex-col items-center justify-center space-y-6 text-center">
-                  <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+                  <h2 className="text-4xl md:text-5xl font-mono font-bold tracking-tighter text-slate-900 tracking-tight">
                     {isGrowthPos ? 'الأداء اليوم ممتاز.' : 'أداء اليوم يحتاج انتباه.'}
                   </h2>
                   <p className="text-2xl text-slate-500 font-bold max-w-2xl">
@@ -2172,18 +2151,18 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   </p>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                  <div className="bg-white rounded-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col items-center text-center">
-                    <p className="text-slate-400 font-bold mb-4 uppercase tracking-widest text-sm">صافي الإيرادات</p>
-                    <p className="text-5xl font-black text-slate-900">{totals.revenue.toFixed(2)} د.ك</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:p-8 max-w-5xl mx-auto">
+                  <div className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.03)] border border-slate-100 flex flex-col items-center text-center">
+                    <p className="text-slate-500 font-bold mb-4 uppercase tracking-widest text-sm">صافي الإيرادات</p>
+                    <p className="text-3xl md:text-5xl font-mono font-bold tracking-tighter text-slate-900">{totals.revenue.toFixed(2)} د.ك</p>
                   </div>
-                  <div className="bg-white rounded-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col items-center text-center">
-                    <p className="text-slate-400 font-bold mb-4 uppercase tracking-widest text-sm">الطلبات المنجزة</p>
-                    <p className="text-5xl font-black text-slate-900">{totals.orders}</p>
+                  <div className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.03)] border border-slate-100 flex flex-col items-center text-center">
+                    <p className="text-slate-500 font-bold mb-4 uppercase tracking-widest text-sm">الطلبات المنجزة</p>
+                    <p className="text-3xl md:text-5xl font-mono font-bold tracking-tighter text-slate-900">{totals.orders}</p>
                   </div>
-                  <div className="bg-slate-900 rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center">
-                    <p className="text-slate-400 font-bold mb-4 uppercase tracking-widest text-sm">معدل النمو</p>
-                    <p className={cn("text-5xl font-black", isGrowthPos ? "text-emerald-400" : "text-rose-400")}>{growthValText}</p>
+                  <div className="bg-slate-900 rounded-3xl p-6 md:p-8 shadow-xl flex flex-col items-center text-center">
+                    <p className="text-slate-500 font-bold mb-4 uppercase tracking-widest text-sm">معدل النمو</p>
+                    <p className={cn("text-5xl font-bold", isGrowthPos ? "text-emerald-400" : "text-rose-400")}>{growthValText}</p>
                   </div>
                 </div>
               </motion.div>
@@ -2196,7 +2175,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
             {activeTab === "orders" && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <React.Suspense fallback={<div className="h-96 flex items-center justify-center font-black text-slate-400">جاري تحميل الطلبات...</div>}>
+                <React.Suspense fallback={<div className="h-96 flex items-center justify-center font-bold text-slate-500">جاري تحميل الطلبات...</div>}>
                   <OrderPage data={data} setData={onUpdateData} setCurrentPage={onNavigate!} setDeepLinkData={setDeepLinkData} isPartner={false} />
                 </React.Suspense>
               </div>
@@ -2204,13 +2183,13 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
             {activeTab === "financials" && (
               <div className="space-y-8" dir="rtl">
-                <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-2xl relative overflow-hidden flex flex-col items-start">
+                <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-xl relative overflow-hidden flex flex-col items-start">
                   <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-indigo-500 to-amber-400" />
                   <div className="absolute top-3 md:p-4 left-10 opacity-10 text-white rotate-12">
                     <DollarSign size={200} />
                   </div>
 
-                  <h2 className="text-2xl md:text-lg md:text-xl font-black text-white mb-6 relative z-10 flex items-center gap-4">
+                  <h2 className="text-2xl md:text-lg md:text-xl font-bold text-white mb-6 relative z-10 flex items-center gap-4">
                     تحليل الربحية الحقيقية{" "}
                     <Activity className="text-emerald-400" />
                   </h2>
@@ -2221,7 +2200,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   </p>
 
                   <div className="flex gap-4 relative z-10">
-                    <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl flex items-center gap-3 border border-white/20">
+                    <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl flex items-center gap-3 border border-white/10">
                       <Percent className="text-emerald-400" size={20} />
                       <span className="text-white font-bold">
                         رصدنا {profitInsights.length} تحليلاً مالياً دقيقاً
@@ -2295,7 +2274,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                       dir="rtl"
                     >
                       <div className="absolute top-0 right-0 w-full h-2 bg-gradient-to-l from-[#0f3460] via-[#e94560] to-[#0f3460]" />
-                      <h3 className="font-black text-2xl text-white flex items-center gap-3 mb-6 relative z-10 text-right">
+                      <h3 className="font-bold text-2xl text-white flex items-center gap-3 mb-6 relative z-10 text-right">
                         مصفوفة هندسة المنيو الذكية{" "}
                         <Layers className="text-[#e94560]" size={24} />
                       </h3>
@@ -2308,7 +2287,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                 size={20}
                                 className="group-hover:animate-spin"
                               />
-                              <h4 className="font-black text-lg">
+                              <h4 className="font-bold text-lg">
                                 النجوم (Stars)
                               </h4>
                             </div>
@@ -2345,7 +2324,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                 size={20}
                                 className="group-hover:-translate-x-1 transition-transform"
                               />
-                              <h4 className="font-black text-lg">
+                              <h4 className="font-bold text-lg">
                                 أحصنة الحرث (Plowhorses)
                               </h4>
                             </div>
@@ -2379,12 +2358,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                 })()}
 
                 <div className={bentoCardStyle}>
-                  <h3 className="font-black text-xl text-[#4a3f35] mb-6 flex items-center gap-2 justify-end">
+                  <h3 className="font-bold text-xl text-[#4a3f35] mb-6 flex items-center gap-2 justify-end">
                     ربحية الأصناف (الأكثر طلباً){" "}
                     <PieChart size={24} className="text-emerald-500" />
                   </h3>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-right" dir="rtl">
+                    <table className="w-full text-right min-w-[500px]" dir="rtl">
                       <thead>
                         <tr className="text-[#8c7b68] text-sm border-b border-[#f0e6d2]">
                           <th className="pb-4">المنتج</th>
@@ -2400,12 +2379,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                             className="group hover:bg-[#f7f2e8] transition-colors"
                           ><td className="py-4 pr-2">
                               <div className="flex flex-col">
-                                <span className="font-black text-slate-800">
+                                <span className="font-bold text-slate-800">
                                   {p.name}
                                 </span>
                                 <span
                                   className={cn(
-                                    "text-[9px] font-bold px-2 py-0.5 rounded-full inline-block w-fit mt-1",
+                                    "text-[10px] font-bold px-2 py-0.5 rounded-full inline-block w-fit mt-1",
                                     p.price > p.cost * 2
                                       ? "bg-emerald-50 text-emerald-600"
                                       : "bg-slate-100 text-slate-500",
@@ -2420,11 +2399,11 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                             <td className="py-4 text-center font-bold text-slate-600 font-mono tracking-tight">
                               {p.price.toFixed(3)}
                             </td>
-                            <td className="py-4 text-center font-bold text-slate-400 font-mono tracking-tight">
+                            <td className="py-4 text-center font-bold text-slate-500 font-mono tracking-tight">
                               {p.cost.toFixed(3)}
                             </td>
                             <td className="py-4 text-left">
-                              <span className="font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg text-xs">
+                              <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg text-xs">
                                 {p.price > 0
                                   ? (
                                       ((p.price - p.cost) / p.price) *
@@ -2445,13 +2424,13 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
             {activeTab === "suppliers" && (
               <div className="space-y-8" dir="rtl">
-                <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-2xl relative overflow-hidden flex flex-col items-start">
+                <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-xl relative overflow-hidden flex flex-col items-start">
                   <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-indigo-500 to-amber-400" />
                   <div className="absolute top-3 md:p-4 left-10 opacity-10 text-white rotate-12">
                     <Handshake size={200} />
                   </div>
 
-                  <h2 className="text-2xl md:text-lg md:text-xl font-black text-white mb-6 relative z-10 flex items-center gap-4">
+                  <h2 className="text-2xl md:text-lg md:text-xl font-bold text-white mb-6 relative z-10 flex items-center gap-4">
                     ذكاء مفاوضات الموردين{" "}
                     <ArrowLeftRight className="text-emerald-400" />
                   </h2>
@@ -2462,7 +2441,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   </p>
 
                   <div className="flex gap-4 relative z-10">
-                    <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl flex items-center gap-3 border border-white/20">
+                    <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl flex items-center gap-3 border border-white/10">
                       <Truck className="text-emerald-400" size={20} />
                       <span className="text-white font-bold">
                         رصدنا {supplierNegotiationInsights.length} فرصة تفاوض
@@ -2483,7 +2462,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                 {hiddenRisks.filter((r) => r.iconType === "supplier").length >
                   0 && (
                   <div className="space-y-6" dir="rtl">
-                    <h3 className="text-2xl font-black text-slate-800 text-right pr-6">
+                    <h3 className="text-2xl font-bold text-slate-800 text-right pr-6">
                       تنبيهات مخاطر وتحديات التوريد
                     </h3>
                     {hiddenRisks
@@ -2501,7 +2480,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               colorClasses,
                             )}
                           >
-                            <h4 className="text-lg font-black">{risk.title}</h4>
+                            <h4 className="text-lg font-bold">{risk.title}</h4>
                             <p className="text-sm font-bold mt-2">
                               {risk.explanation}
                             </p>
@@ -2522,7 +2501,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                 >
                   <div className="flex justify-between items-center mb-8 flex-row-reverse">
                     <div className="text-right">
-                      <h3 className="font-black text-2xl text-slate-800 flex items-center gap-3 justify-end">
+                      <h3 className="font-bold text-2xl text-slate-800 flex items-center gap-3 justify-end">
                         رادار الموردين الذكي
                         <button
                           onClick={() =>
@@ -2538,7 +2517,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           />
                         </button>
                       </h3>
-                      <p className="text-[10px] text-slate-400 font-bold mt-1">
+                      <p className="text-[10px] text-slate-500 font-bold mt-1">
                         المقارنة اللحظية لأسعار التوريد والالتزامات المالية
                       </p>
                     </div>
@@ -2555,8 +2534,8 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                     </button>
                   </div>
                   <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-slate-50/50 p-2">
-                    <table className="w-full text-right" dir="rtl">
-                      <thead className="text-[12px] font-black text-slate-400 uppercase">
+                    <table className="w-full text-right min-w-[500px]" dir="rtl">
+                      <thead className="text-[12px] font-bold text-slate-500 uppercase">
                         <tr>
                           <th className="p-3 md:p-4">بيانات المورد</th>
                           <th className="p-3 md:p-4 text-center">مؤشر السعر</th>
@@ -2580,12 +2559,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               className="hover:bg-slate-50/80 transition-all group"
                             ><td className="p-3 md:p-4">
                                 <div className="flex items-center gap-4 flex-row-reverse">
-                                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 font-black text-xl group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner border border-indigo-100">
+                                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 font-bold text-xl group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner border border-indigo-100">
                                     <Truck size={24} className="opacity-80" />
                                   </div>
                                   <div className="flex flex-col text-right">
                                     <div className="flex items-center gap-2 flex-row-reverse">
-                                      <span className="font-black text-lg text-[#4a3f35]">
+                                      <span className="font-bold text-lg text-[#4a3f35]">
                                         {s.name}
                                       </span>
                                       {isLow && (
@@ -2600,12 +2579,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               <td className="p-3 md:p-4 text-center">
                                 <div
                                   className={cn(
-                                    "inline-flex items-center gap-1 font-black text-base px-4 py-2 rounded-xl",
+                                    "inline-flex items-center gap-1 font-bold text-base px-4 py-2 rounded-xl",
                                     isHigh
                                       ? "text-rose-600 bg-rose-50"
                                       : isLow
                                         ? "text-emerald-600 bg-emerald-50"
-                                        : "text-slate-400 bg-slate-50",
+                                        : "text-slate-500 bg-slate-50",
                                   )}
                                 >
                                   {indicator.val}
@@ -2614,12 +2593,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               <td className="p-3 md:p-4 text-center">
                                 <div
                                   className={cn(
-                                    "text-[11px] font-black px-5 py-2.5 rounded-full border shadow-sm inline-block",
+                                    "text-[11px] font-bold px-5 py-2.5 rounded-full border shadow-sm inline-block",
                                     isHigh
                                       ? "bg-rose-50 text-rose-700 border-rose-100"
                                       : isLow
                                         ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                        : "bg-slate-50 text-slate-500 border-slate-200",
+                                        : "bg-slate-50 text-slate-500 border-slate-200/60",
                                   )}
                                 >
                                   {isHigh
@@ -2631,10 +2610,10 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               </td>
                               <td className="p-3 md:p-4 text-left">
                                 <div className="flex flex-col items-start gap-1">
-                                  <span className="font-black text-lg text-slate-800">
+                                  <span className="font-bold text-lg text-slate-800">
                                     {Number(s.balance).toFixed(3)} د.ك
                                   </span>
-                                  <span className="text-[10px] text-slate-400 font-black uppercase">
+                                  <span className="text-[10px] text-slate-500 font-bold uppercase">
                                     إجمالي مستحقات
                                   </span>
                                 </div>
@@ -2651,7 +2630,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         <Cpu size={20} />
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-black text-indigo-900">
+                        <p className="text-xs font-bold text-indigo-900">
                           نصيحة المشتريات الذكية
                         </p>
                         <p className="text-[10px] text-indigo-700 font-bold mt-0.5">
@@ -2670,7 +2649,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                     </div>
                     <button
                       onClick={() => onNavigate("suppliers")}
-                      className="text-xs font-black text-indigo-600 border-b-2 border-indigo-200 hover:text-indigo-800 transition-colors"
+                      className="text-xs font-bold text-indigo-600 border-b-2 border-indigo-200 hover:text-indigo-800 transition-colors"
                     >
                       فتح سجل الطلبات
                     </button>
@@ -2682,7 +2661,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
             {activeTab === "intelligence" && (
                 <div className="space-y-12 max-w-[1600px] mx-auto px-4 md:px-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700 w-full" dir="rtl">
                   {/* Phase 1: The Core Reactor & Real-time Mirror */}
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-stretch w-full">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:p-8 items-stretch w-full">
                     <BIEngineCore data={data} />
                     <div id="status-mirror-section" className="h-full">
                       <BusinessStatusMirror
@@ -2694,21 +2673,21 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   </div>
 
                   {/* Phase 2: Analysis Frameworks */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
-                    <div id="geo-heatmap-section" className="bg-white rounded-3xl p-1 border border-slate-200 overflow-hidden shadow-sm">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:p-8 w-full">
+                    <div id="geo-heatmap-section" className="bg-white rounded-3xl p-1 border border-slate-200/60 overflow-hidden shadow-sm">
                       <div className="p-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50/50">
-                        <MapPin size={18} className="text-rose-500" />
-                        <span className="font-black text-slate-800">التوزيع الجغرافي للطلبات</span>
+                        <MapPin size={18} className="text-amber-500" />
+                        <span className="font-bold text-slate-800">خريطة نبض التراث</span>
                       </div>
                       <React.Suspense fallback={<div className="h-64 animate-pulse bg-slate-100" />}>
                         <GeoHeatmap data={data} />
                       </React.Suspense>
                     </div>
 
-                    <div id="smart-offers-section" className="bg-white rounded-3xl p-1 border border-slate-200 overflow-hidden shadow-sm">
+                    <div id="smart-offers-section" className="bg-white rounded-3xl p-1 border border-slate-200/60 overflow-hidden shadow-sm">
                       <div className="p-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50/50">
                         <Calculator size={18} className="text-amber-500" />
-                        <span className="font-black text-slate-800">حاسبة العروض الذكية</span>
+                        <span className="font-bold text-slate-800">حاسبة العروض الذكية</span>
                       </div>
                       <React.Suspense fallback={<div className="h-64 animate-pulse bg-slate-100" />}>
                         <SmartOffersCalculator data={data} />
@@ -2717,13 +2696,13 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   </div>
 
                   {/* Phase 3: The What-If Simulator (Full Width) */}
-                  <div id="what-if-section" className="bg-white rounded-[2.5rem] p-1 border border-slate-200 overflow-hidden shadow-sm mb-12">
+                  <div id="what-if-section" className="bg-white rounded-2xl p-1 border border-slate-200/60 overflow-hidden shadow-sm mb-12">
                     <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                       <div className="flex items-center gap-3">
                          <Rocket size={20} className="text-indigo-500" />
-                         <span className="font-black text-xl text-slate-800 tracking-tight">محاكي القرارات (ماذا لو؟)</span>
+                         <span className="font-bold text-xl text-slate-800 tracking-tight">محاكي القرارات (ماذا لو؟)</span>
                       </div>
-                      <div className="text-xs font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-100">تحليل احتمالي متطور</div>
+                      <div className="text-xs font-bold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-100">تحليل احتمالي متطور</div>
                     </div>
                     <React.Suspense fallback={<div className="h-96 animate-pulse bg-slate-100" />}>
                       <WhatIfSimulator data={data} onUpdateData={onUpdateData} />
@@ -2731,10 +2710,10 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   </div>
 
                   {/* Phase 4: Self-Learning Brain Cluster */}
-                  <div className="pt-16 border-t border-slate-200/50">
+                  <div className="pt-16 border-t border-slate-200/60/50">
                     <div className="space-y-12">
                       {/* Header Card */}
-                      <div className="bg-slate-950 rounded-[3rem] p-10 md:p-14 shadow-2xl relative overflow-hidden border border-slate-800">
+                      <div className="bg-slate-950 rounded-2xl p-6 md:p-14 shadow-xl relative overflow-hidden border border-slate-800">
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-rose-500 to-indigo-500" />
                         <div className="absolute -top-20 -left-20 opacity-[0.03] text-indigo-400 rotate-12 pointer-events-none">
                           <BrainCircuit size={400} />
@@ -2746,60 +2725,60 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               <div className="bg-rose-500/20 p-2.5 lg:p-3.5 rounded-2xl border border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,0.3)] shrink-0">
                                 <BrainCircuit className="text-rose-500 w-6 h-6 lg:w-8 lg:h-8" />
                               </div>
-                              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tighter">
+                              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tighter">
                                 عقل النظام ذاتي التعلم
                               </h2>
                             </div>
-                            <p className="text-slate-400 font-bold text-sm sm:text-base lg:text-xl max-w-3xl leading-relaxed">
+                            <p className="text-slate-500 font-bold text-sm sm:text-base lg:text-xl max-w-3xl leading-relaxed">
                               محرك التفكير المركزي الذي يراقب صحة عملك بشكل آلي، يكتشف الأنماط الخفية، ويقوم بتصحيح مساره ذاتياً ليصبح أكثر دقة مع كل قرار يتخذه.
                             </p>
                           </div>
-                          <div className="bg-white/5 backdrop-blur-2xl px-6 lg:px-10 py-5 lg:py-7 rounded-3xl lg:rounded-[2.5rem] flex items-center gap-4 lg:gap-6 border border-white/10 shadow-2xl self-start xl:self-auto">
+                          <div className="bg-white/5 backdrop-blur-2xl px-6 lg:px-10 py-5 lg:py-7 rounded-3xl lg:rounded-2xl flex items-center gap-4 lg:gap-6 border border-white/10 shadow-xl self-start xl:self-auto">
                             <div className="shrink-0">
                                <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-xl lg:rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
                                   <History className="text-emerald-400 w-6 h-6 lg:w-8 lg:h-8" />
                                </div>
                             </div>
                             <div>
-                              <div className="text-[10px] lg:text-xs font-black text-emerald-400 uppercase tracking-[0.2em] lg:tracking-[0.3em] mb-1 lg:mb-1.5 opacity-80">ذاكرة النظام</div>
-                              <div className="text-xl lg:text-3xl font-black text-white tabular-nums">{aiLearningLogs.length} دراسة متعلمة</div>
+                              <div className="text-[10px] lg:text-xs font-bold text-emerald-400 uppercase tracking-[0.2em] lg:tracking-[0.3em] mb-1 lg:mb-1.5 opacity-80">ذاكرة النظام</div>
+                              <div className="text-xl lg:text-3xl font-bold text-white tabular-nums">{aiLearningLogs.length} دراسة متعلمة</div>
                             </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Features Bento Grid */}
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
-                        <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden group hover:border-indigo-300 transition-all shadow-sm hover:shadow-2xl hover:-translate-y-2 duration-500">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:p-8 w-full">
+                        <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden group hover:border-indigo-300 transition-all shadow-sm hover:shadow-xl hover:-translate-y-2 duration-500">
                           <div className="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
                             <div className="p-2 bg-rose-50 rounded-lg">
                               <ShieldAlert size={20} className="text-rose-500" />
                             </div>
-                            <span className="text-sm font-black text-slate-600 uppercase tracking-widest">مقاومة النزيف المالي</span>
+                            <span className="text-sm font-bold text-slate-600 uppercase tracking-widest">مقاومة النزيف المالي</span>
                           </div>
                           <div className="p-2">
                             <ProfitGuardFeature data={data} />
                           </div>
                         </div>
 
-                        <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden group hover:border-indigo-300 transition-all shadow-sm hover:shadow-2xl hover:-translate-y-2 duration-500">
+                        <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden group hover:border-indigo-300 transition-all shadow-sm hover:shadow-xl hover:-translate-y-2 duration-500">
                           <div className="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
                             <div className="p-2 bg-amber-50 rounded-lg">
                               <Handshake size={20} className="text-amber-500" />
                             </div>
-                            <span className="text-sm font-black text-slate-600 uppercase tracking-widest">ذكاء الموردين</span>
+                            <span className="text-sm font-bold text-slate-600 uppercase tracking-widest">ذكاء الموردين</span>
                           </div>
                           <div className="p-2">
                             <SupplierNegotiatorFeature data={data} />
                           </div>
                         </div>
 
-                        <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden group hover:border-indigo-300 transition-all shadow-sm hover:shadow-2xl hover:-translate-y-2 duration-500">
+                        <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden group hover:border-indigo-300 transition-all shadow-sm hover:shadow-xl hover:-translate-y-2 duration-500">
                           <div className="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
                             <div className="p-2 bg-emerald-50 rounded-lg">
                               <Activity size={20} className="text-emerald-500" />
                             </div>
-                            <span className="text-sm font-black text-slate-600 uppercase tracking-widest">مؤشر الصحة الكلي</span>
+                            <span className="text-sm font-bold text-slate-600 uppercase tracking-widest">مؤشر الصحة الكلي</span>
                           </div>
                           <div className="p-2">
                             <BusinessHealthFeature data={data} />
@@ -2808,23 +2787,23 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                       </div>
 
                       {/* Learning Logs Section */}
-                      <div className="space-y-6 lg:space-y-8 bg-slate-50/50 p-4 sm:p-6 lg:p-8 rounded-3xl lg:rounded-[3rem] border border-slate-100">
+                      <div className="space-y-6 lg:space-y-8 bg-slate-50/50 p-4 sm:p-6 lg:p-8 rounded-3xl lg:rounded-2xl border border-slate-100">
                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-2 lg:px-4 gap-4">
                             <div className="flex items-center gap-3 lg:gap-4">
                               <div className="w-8 h-8 lg:w-10 lg:h-10 bg-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0">
                                 <RefreshCcw className="text-white animate-spin w-4 h-4 lg:w-5 lg:h-5" style={{ animationDuration: '4s' }} />
                               </div>
                               <div>
-                                <h3 className="font-black text-lg sm:text-xl lg:text-2xl text-slate-800 tracking-tight">سجل التطور الذاتي</h3>
+                                <h3 className="font-bold text-lg sm:text-xl lg:text-2xl text-slate-800 tracking-tight">سجل التطور الذاتي</h3>
                                 <p className="text-slate-500 text-[10px] sm:text-xs lg:text-sm font-bold mt-0.5 lg:mt-1">تتبع رحلة نضج النظام من البيانات الخام إلى قرارات ذكية</p>
                               </div>
                             </div>
-                            <div className="hidden sm:block bg-indigo-50 text-indigo-600 px-3 lg:px-4 py-1.5 lg:py-2 rounded-full text-[10px] lg:text-xs font-black border border-indigo-100">
+                            <div className="hidden sm:block bg-indigo-50 text-indigo-600 px-3 lg:px-4 py-1.5 lg:py-2 rounded-full text-[10px] lg:text-xs font-bold border border-indigo-100">
                               تحديث لحظي
                             </div>
                          </div>
                          
-                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:p-8">
                           {aiLearningLogs.length > 0 ? (
                             aiLearningLogs.map((log, i) => (
                               <motion.div
@@ -2833,24 +2812,24 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true, margin: "-50px" }}
                                 transition={{ delay: i * 0.1, duration: 0.5 }}
-                                className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm relative overflow-hidden flex flex-col group hover:shadow-2xl transition-all duration-500 gap-6 border-b-4 border-b-indigo-500/10 hover:border-b-indigo-500"
+                                className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200/60 shadow-sm relative overflow-hidden flex flex-col group hover:shadow-xl transition-all duration-500 gap-6 border-b-4 border-b-indigo-500/10 hover:border-b-indigo-500"
                               >
                                 {/* Accuracy Badge */}
-                                <div className="absolute top-8 left-8">
+                                <div className="absolute top-6 md:p-8 left-8">
                                   {log.isAccurate ? (
-                                    <div className="bg-emerald-50 text-emerald-600 text-[11px] font-black px-4 py-2 rounded-2xl border border-emerald-100 flex items-center gap-2 uppercase tracking-wider shadow-sm">
+                                    <div className="bg-emerald-50 text-emerald-600 text-[11px] font-bold px-4 py-2 rounded-2xl border border-emerald-100 flex items-center gap-2 uppercase tracking-wider shadow-sm">
                                       <CheckCircle2 size={14} /> توقع ناجح
                                     </div>
                                   ) : (
-                                    <div className="bg-amber-50 text-amber-600 text-[11px] font-black px-4 py-2 rounded-2xl border border-amber-100 flex items-center gap-2 uppercase tracking-wider shadow-sm">
+                                    <div className="bg-amber-50 text-amber-600 text-[11px] font-bold px-4 py-2 rounded-2xl border border-amber-100 flex items-center gap-2 uppercase tracking-wider shadow-sm">
                                       <Zap size={14} /> تحديث المنهجية
                                     </div>
                                   )}
                                 </div>
 
                                 <div className="mt-10">
-                                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3">الفرضية والنمط المكتشف:</div>
-                                  <h4 className="text-xl font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">
+                                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] mb-3">الفرضية والنمط المكتشف:</div>
+                                  <h4 className="text-xl font-bold text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">
                                     {log.prediction}
                                   </h4>
                                 </div>
@@ -2859,7 +2838,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                   <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 group-hover:bg-slate-100 transition-colors">
                                     <div className="flex items-center gap-2 mb-2">
                                       <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                                      <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest block">القرار التشغيلي المتخذ:</span>
+                                      <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest block">القرار التشغيلي المتخذ:</span>
                                     </div>
                                     <p className="text-sm font-bold text-slate-700 leading-relaxed">{log.actionTaken}</p>
                                   </div>
@@ -2876,7 +2855,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                     </div>
                                     <div className="flex-1">
                                       <span className={cn(
-                                        "text-[10px] font-black uppercase tracking-widest block mb-1.5",
+                                        "text-[10px] font-bold uppercase tracking-widest block mb-1.5",
                                         log.isAccurate ? "text-emerald-600" : "text-amber-600"
                                       )}>النتيجة الفعلية المرصودة:</span>
                                       <p className="text-sm font-bold text-slate-800 leading-snug">{log.realResult}</p>
@@ -2884,27 +2863,27 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                   </div>
                                 </div>
 
-                                <div className="bg-slate-900 text-white p-7 rounded-3xl mt-auto relative overflow-hidden group/brain shadow-2xl">
+                                <div className="bg-slate-900 text-white p-7 rounded-3xl mt-auto relative overflow-hidden group/brain shadow-xl">
                                   <div className="absolute top-0 right-0 w-full h-full bg-indigo-500/10 opacity-0 group-hover/brain:opacity-100 transition-opacity" />
                                   <div className="absolute top-0 right-0 w-2 h-full bg-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.6)]" />
                                   <div className="flex items-center gap-3 mb-4">
                                     <div className="p-1.5 bg-rose-500/20 rounded-lg border border-rose-500/20">
                                       <Cpu size={16} className="text-rose-400 animate-pulse" />
                                     </div>
-                                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.25em]">تعديل الوزن الخوارزمي في الوقت الحقيقي:</span>
+                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.25em]">تعديل الوزن الخوارزمي في الوقت الحقيقي:</span>
                                   </div>
-                                  <p className="text-sm font-black text-slate-100 leading-relaxed pr-2">
+                                  <p className="text-sm font-bold text-slate-100 leading-relaxed pr-2">
                                     {log.correction}
                                   </p>
                                 </div>
                               </motion.div>
                             ))
                           ) : (
-                            <div className="col-span-1 lg:col-span-2 bg-white/50 border-4 border-dashed border-slate-200 rounded-3xl lg:rounded-[3rem] p-8 sm:p-12 lg:p-24 flex flex-col items-center justify-center text-center group hover:border-indigo-200 transition-colors">
-                              <div className="w-16 h-16 lg:w-24 lg:h-24 bg-slate-100 rounded-2xl lg:rounded-[2rem] flex items-center justify-center mb-4 lg:mb-8 text-slate-300 group-hover:scale-110 group-hover:text-indigo-300 transition-all duration-500">
+                            <div className="col-span-1 lg:col-span-2 bg-white/50 border-4 border-dashed border-slate-200/60 rounded-3xl lg:rounded-2xl p-6 md:p-12 lg:p-24 flex flex-col items-center justify-center text-center group hover:border-indigo-200 transition-colors">
+                              <div className="w-16 h-16 lg:w-24 lg:h-24 bg-slate-100 rounded-2xl lg:rounded-2xl flex items-center justify-center mb-4 lg:mb-8 text-slate-300 group-hover:scale-110 group-hover:text-indigo-300 transition-all duration-500">
                                  <BrainCircuit className="w-8 h-8 lg:w-12 lg:h-12" />
                               </div>
-                              <h3 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-800 mb-2 lg:mb-4 tracking-tight">جاري البناء المعرفي العميق</h3>
+                              <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 mb-2 lg:mb-4 tracking-tight">جاري البناء المعرفي العميق</h3>
                               <p className="text-slate-500 font-bold text-xs sm:text-sm lg:text-lg max-w-lg mx-auto leading-relaxed">
                                 بمجرد إصدار القرارات وتتبع نتائجها، سيقوم النظام بعرض رحلة تطوره وتحسن دقته هنا بشكل آلي عبر معالجة البيانات التاريخية.
                               </p>
@@ -2917,30 +2896,30 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                   {/* Hidden Risks Section */}
                   <div className="pt-16 pb-8">
-                    <div className="bg-gradient-to-br from-rose-950 via-slate-950 to-slate-900 rounded-3xl lg:rounded-[3.5rem] p-6 sm:p-10 lg:p-16 shadow-2xl relative overflow-hidden border border-rose-900/30">
+                    <div className="bg-gradient-to-br from-rose-950 via-slate-950 to-slate-900 rounded-3xl lg:rounded-[3.5rem] p-6 sm:p-10 lg:p-16 shadow-xl relative overflow-hidden border border-rose-900/30">
                       <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-600 via-rose-500 to-amber-500" />
                       <div className="absolute -top-20 -right-20 opacity-[0.05] text-rose-500 rotate-12 pointer-events-none">
                         <ShieldAlert className="w-[300px] h-[300px] lg:w-[450px] lg:h-[450px]" />
                       </div>
 
-                      <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center gap-8 lg:gap-12">
+                      <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center gap-6 md:p-8 lg:gap-12">
                         <div className="flex-1 space-y-6 lg:space-y-8">
                           <div className="flex items-center gap-3 lg:gap-5">
                             <div className="bg-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.7)] p-2.5 lg:p-4 rounded-xl lg:rounded-2xl border border-rose-400/30 shrink-0">
                               <AlertCircle className="text-white w-6 h-6 lg:w-8 lg:h-8" />
                             </div>
                             <div>
-                              <h2 className="text-xl sm:text-3xl lg:text-4xl font-black text-white tracking-tighter leading-none mb-1 lg:mb-1.5">
+                              <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tighter leading-none mb-1 lg:mb-1.5">
                                 كاشف المخاطر والخسائر الخفية
                               </h2>
                               <div className="flex items-center gap-2">
                                 <div className="h-1 w-6 lg:w-10 bg-rose-500 rounded-full" />
-                                <span className="text-rose-400 text-[10px] lg:text-xs font-black uppercase tracking-[0.1em] lg:tracking-[0.3em]">Real-Time Risk Guardian</span>
+                                <span className="text-rose-400 text-[10px] lg:text-xs font-bold uppercase tracking-[0.1em] lg:tracking-[0.3em]">Real-Time Risk Guardian</span>
                               </div>
                             </div>
                           </div>
                           
-                          <p className="text-rose-100/90 text-sm sm:text-lg lg:text-2xl font-black leading-snug lg:leading-tight tracking-tight">
+                          <p className="text-rose-100/90 text-sm sm:text-lg lg:text-2xl font-bold leading-snug lg:leading-tight tracking-tight">
                             يحلل هذا النظام ما وراء الأرقام السطحية. <span className="bg-rose-500/20 text-white px-1.5 lg:px-2 rounded-md lg:rounded-lg">فهو لا يكتفي بإخبارك بحجم المبيعات</span>، بل يغوص في هوامش الربح الفردية، سلوكيات العملاء المكلِفة، وتلاعب الموردين، ليكشف لك تماماً أين تتسرب أموالك.
                           </p>
 
@@ -2960,9 +2939,9 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           </div>
 
                           <div className="pt-4 relative z-10 flex gap-4">
-                            <div className="bg-white/10 backdrop-blur-md px-8 py-4 rounded-2xl flex items-center gap-3 border border-white/20 shadow-xl group/badge hover:bg-white/20 transition-all cursor-default">
+                            <div className="bg-white/10 backdrop-blur-md px-8 py-4 rounded-2xl flex items-center gap-3 border border-white/10 shadow-xl group/badge hover:bg-white/20 transition-all cursor-default">
                               <Search className="text-rose-400 group-hover:scale-110 transition-transform" size={24} />
-                              <span className="text-white font-black text-lg">
+                              <span className="text-white font-bold text-lg">
                                 رصدنا {hiddenRisks.length} ثغرات خفية
                               </span>
                             </div>
@@ -2971,10 +2950,10 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                         <div className="lg:w-1/3 w-full relative">
                            <div className="absolute inset-0 bg-rose-500/10 blur-[100px] rounded-full" />
-                           <div className="relative bg-slate-950/60 backdrop-blur-3xl border border-white/10 p-2 rounded-[2.5rem] shadow-3xl overflow-hidden">
-                             <div className="bg-slate-950/90 rounded-[2.2rem] p-8 border border-white/5">
+                           <div className="relative bg-slate-950/60 backdrop-blur-3xl border border-white/10 p-2 rounded-2xl shadow-2xl overflow-hidden">
+                             <div className="bg-slate-950/90 rounded-2xl p-6 md:p-8 border border-white/5">
                                <div className="flex items-center justify-between mb-8">
-                                 <div className="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em]">مراقب الاستقرار</div>
+                                 <div className="text-[10px] font-bold text-rose-500 uppercase tracking-[0.3em]">مراقب الاستقرار</div>
                                  <div className="flex gap-1.5">
                                    {[1,2,3].map(i => <div key={i} className="w-2 h-8 bg-rose-500/20 rounded-full overflow-hidden relative">
                                      <div className="absolute bottom-0 w-full bg-rose-500 animate-pulse" style={{ height: `${30+i*20}%`, animationDelay: `${i*0.2}s` }} />
@@ -2989,9 +2968,9 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                <div className="pt-6 border-t border-white/5 flex items-center justify-between">
                                  <div className="flex items-center gap-2">
                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                   <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">تأمين الخوارزمية</span>
+                                   <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">تأمين الخوارزمية</span>
                                  </div>
-                                 <span className="text-white text-xs font-black">نشط 🟢</span>
+                                 <span className="text-white text-xs font-bold">نشط 🟢</span>
                                </div>
                              </div>
                            </div>
@@ -3036,12 +3015,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                   {icons[risk.iconType]}
                                 </div>
                                 <div>
-                                  <h3 className="text-2xl font-black text-slate-800 leading-snug">
+                                  <h3 className="text-2xl font-bold text-slate-800 leading-snug">
                                     {risk.title}
                                   </h3>
                                   <div
                                     className={cn(
-                                      "text-[10px] font-black px-3 py-1 rounded-full inline-block mt-2",
+                                      "text-[10px] font-bold px-3 py-1 rounded-full inline-block mt-2",
                                       risk.impactLevel === "high"
                                         ? "bg-red-100 text-red-700"
                                         : "bg-amber-100 text-amber-700",
@@ -3054,7 +3033,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                   {risk.affectedProductNames &&
                                     risk.affectedProductNames.length > 0 && (
                                       <div className="relative group/risk-names inline-block mr-3">
-                                        <div className="text-[9px] text-rose-500 font-black bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-100 hover:bg-rose-100 transition-all cursor-pointer flex items-center gap-2 direction-rtl active:scale-95 shadow-sm overflow-hidden relative">
+                                        <div className="text-[10px] text-rose-500 font-bold bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-100 hover:bg-rose-100 transition-all cursor-pointer flex items-center gap-2 direction-rtl active:scale-95 shadow-sm overflow-hidden relative">
                                           <span className="relative z-10">
                                             رؤية الأصناف (
                                             {risk.affectedProductNames.length})
@@ -3068,7 +3047,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                                         <div className="absolute bottom-full left-0 mb-4 invisible group-hover/risk-names:visible opacity-0 group-hover/risk-names:opacity-100 transition-all transform translate-y-4 group-hover/risk-names:translate-y-0 bg-[#1a1a2e]/90 backdrop-blur-xl border border-rose-500/40 p-3 md:p-3 rounded-2xl shadow-[0_20px_50px_rgba(225,29,72,0.3)] z-[500] min-w-[260px] max-w-[320px] text-right">
                                           <div className="flex items-center justify-between border-b border-rose-500/20 pb-3 mb-3 flex-row-reverse">
-                                            <p className="text-[11px] font-black text-rose-400">
+                                            <p className="text-[11px] font-bold text-rose-400">
                                               تحليل الأصناف الحرجة
                                             </p>
                                             <div className="w-2 h-2 bg-rose-500 rounded-full animate-ping" />
@@ -3095,7 +3074,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                             <div className="flex flex-col w-full ">
                               <div className="bg-slate-50 p-3 md:p-4 rounded-2xl border border-slate-100">
-                                <h4 className="text-sm font-black text-slate-400 mb-3 flex items-center gap-2">
+                                <h4 className="text-sm font-bold text-slate-500 mb-3 flex items-center gap-2">
                                   <Target size={16} /> التفسير التشغيلي
                                 </h4>
                                 <p className="text-sm text-slate-700 font-bold leading-relaxed">
@@ -3103,7 +3082,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                 </p>
                               </div>
                               <div className="bg-slate-50 p-3 md:p-4 rounded-2xl border border-slate-100">
-                                <h4 className="text-sm font-black text-slate-400 mb-3 flex items-center gap-2">
+                                <h4 className="text-sm font-bold text-slate-500 mb-3 flex items-center gap-2">
                                   <PieChart size={16} /> الأدلة والأرقام
                                 </h4>
                                 <p className="text-sm text-slate-700 font-bold leading-relaxed">
@@ -3118,7 +3097,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                 colorClasses,
                               )}
                             >
-                              <h4 className="text-sm font-black mb-2 flex items-center gap-2">
+                              <h4 className="text-sm font-bold mb-2 flex items-center gap-2">
                                 <CheckCircle2 size={16} /> الإجراء التصحيحي
                                 المقترح
                               </h4>
@@ -3130,12 +3109,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         );
                       })
                     ) : (
-                      <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl md:rounded-2xl p-16 flex flex-col items-center justify-center text-center">
+                      <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl md:rounded-2xl p-8 md:p-16 flex flex-col items-center justify-center text-center">
                         <CheckCircle2
                           className="text-emerald-500 mb-4"
                           size={64}
                         />
-                        <h3 className="text-2xl font-black text-emerald-800 mb-2">
+                        <h3 className="text-2xl font-bold text-emerald-800 mb-2">
                           تهانينا! عملياتك نظيفة
                         </h3>
                         <p className="text-sm font-bold text-emerald-600 max-w-lg">
@@ -3149,14 +3128,14 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                 <div
                   id="strategic-manager-section"
-                    className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-2xl relative overflow-hidden flex flex-col items-start"
+                    className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-xl relative overflow-hidden flex flex-col items-start"
                   >
                     <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 via-indigo-500 to-emerald-400" />
                     <div className="absolute top-3 md:p-4 left-10 opacity-10 text-indigo-400 rotate-12">
                       <Briefcase size={200} />
                     </div>
 
-                    <h2 className="text-2xl md:text-lg md:text-xl font-black text-white mb-6 relative z-10 flex items-center gap-4">
+                    <h2 className="text-2xl md:text-lg md:text-xl font-bold text-white mb-6 relative z-10 flex items-center gap-4">
                       المدير الاستراتيجي الآلي{" "}
                       <Zap className="text-amber-400" />
                     </h2>
@@ -3167,7 +3146,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                     </p>
 
                     <div className="flex gap-4 relative z-10">
-                      <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl flex items-center gap-3 border border-white/20">
+                      <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl flex items-center gap-3 border border-white/10">
                         <Target className="text-emerald-400" size={20} />
                         <span className="text-white font-bold">
                           {autoStrategies.length} استراتيجية جاهزة
@@ -3184,7 +3163,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: i * 0.1 }}
-                          className="bg-[#fdfbf7] p-3 md:p-4 rounded-2xl md:rounded-2xl border border-[#f0e6d2] shadow-xl relative overflow-hidden flex flex-col group hover:border-indigo-200 hover:-translate-y-1 transition-all"
+                          className="bg-[#fdfbf7] p-3 md:p-4 rounded-2xl md:rounded-2xl border border-[#f0e6d2] shadow-xl relative overflow-hidden flex flex-col group hover:border-indigo-200 interactive-hover"
                         >
                           {strat.priority === "high" && (
                             <div className="absolute top-0 right-0 left-0 h-1 bg-red-500" />
@@ -3195,10 +3174,10 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                           <div className="flex justify-between items-start mb-6 w-full">
                             <div className="flex flex-col gap-2 p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                              <div className="text-[10px] font-black text-slate-400 uppercase text-left">
+                              <div className="text-[10px] font-bold text-slate-500 uppercase text-left">
                                 الأثر المتوقع
                               </div>
-                              <div className="text-xs font-black text-slate-800 text-left leading-relaxed">
+                              <div className="text-xs font-bold text-slate-800 text-left leading-relaxed">
                                 {strat.impact}
                               </div>
                             </div>
@@ -3206,7 +3185,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                             <div className="flex flex-col items-end gap-2 shrink-0 pr-4">
                               <span
                                 className={cn(
-                                  "text-[10px] font-black px-4 py-2 rounded-2xl",
+                                  "text-[10px] font-bold px-4 py-2 rounded-2xl",
                                   strat.priority === "high"
                                     ? "bg-red-100 text-red-600"
                                     : "bg-amber-100 text-amber-600",
@@ -3219,13 +3198,13 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                             </div>
                           </div>
 
-                          <h3 className="text-2xl font-black text-slate-900 mb-6 leading-snug text-right">
+                          <h3 className="text-2xl font-bold text-slate-900 mb-6 leading-snug text-right">
                             {strat.title}
                           </h3>
 
                           <div className="space-y-4 mb-8">
                             <div className="bg-red-50/50 p-3 rounded-2xl border border-red-100/50">
-                              <h4 className="text-xs font-black text-red-800 mb-2 flex items-center gap-2 justify-end">
+                              <h4 className="text-xs font-bold text-red-800 mb-2 flex items-center gap-2 justify-end">
                                 <AlertCircle size={14} /> المشكلة المرصودة
                               </h4>
                               <p className="text-sm text-red-900 font-medium leading-relaxed text-right">
@@ -3233,7 +3212,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               </p>
                             </div>
                             <div className="bg-amber-50/50 p-3 rounded-2xl border border-amber-100/50">
-                              <h4 className="text-xs font-black text-amber-800 mb-2 flex items-center gap-2 justify-end">
+                              <h4 className="text-xs font-bold text-amber-800 mb-2 flex items-center gap-2 justify-end">
                                 <Map size={14} /> السبب الجذري (Root Cause)
                               </h4>
                               <p className="text-sm text-amber-900 font-medium leading-relaxed text-right">
@@ -3243,7 +3222,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           </div>
 
                           <div className="mt-auto">
-                            <h4 className="font-black text-slate-800 mb-4 text-right border-b border-slate-200 pb-2">
+                            <h4 className="font-bold text-slate-800 mb-4 text-right border-b border-slate-200/60 pb-2">
                               خطة العمل التنفيذية
                             </h4>
                             <div className="space-y-3">
@@ -3256,11 +3235,11 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                     <p className="text-sm font-bold text-slate-800 mb-1 leading-relaxed">
                                       {step.task}
                                     </p>
-                                    <p className="text-[10px] font-black text-emerald-600 bg-emerald-50 inline-block px-2 py-1 rounded-lg">
+                                    <p className="text-[10px] font-bold text-emerald-600 bg-emerald-50 inline-block px-2 py-1 rounded-lg">
                                       النتيجة: {step.expectedOutcome}
                                     </p>
                                   </div>
-                                  <div className="w-8 h-8 shrink-0 bg-slate-900 text-white font-black flex items-center justify-center rounded-xl text-xs">
+                                  <div className="w-8 h-8 shrink-0 bg-slate-900 text-white font-bold flex items-center justify-center rounded-xl text-xs">
                                     {stepIdx + 1}
                                   </div>
                                 </div>
@@ -3268,7 +3247,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                             </div>
                           </div>
 
-                          <div className="mt-8 pt-4 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 font-bold">
+                          <div className="mt-8 pt-4 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-500 font-bold">
                             <span className="flex items-center gap-1">
                               توليد تلقائي:{" "}
                               <span dir="ltr" className="inline-block text-left">
@@ -3282,12 +3261,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         </motion.div>
                       ))
                     ) : (
-                      <div className="col-span-2 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl md:rounded-2xl p-16 flex flex-col items-center justify-center text-center">
+                      <div className="col-span-2 bg-slate-50 border-2 border-dashed border-slate-200/60 rounded-2xl md:rounded-2xl p-8 md:p-16 flex flex-col items-center justify-center text-center">
                         <Briefcase className="text-slate-300 mb-4" size={48} />
-                        <h3 className="text-xl font-black text-slate-600 mb-2">
+                        <h3 className="text-xl font-bold text-slate-600 mb-2">
                           النظام الاستراتيجي يعمل بصمت
                         </h3>
-                        <p className="text-sm font-bold text-slate-400">
+                        <p className="text-sm font-bold text-slate-500">
                           لا توجد ثغرات أو فرص استراتيجية حرجة تتطلب تدخلك
                           حالياً. سيقوم النظام بتوليد خطط تلقائية بمجرد رصد أي
                           تغيير في مسار المبيعات أو نمط العملاء.
@@ -3329,7 +3308,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                 <div className="mb-8" dir="rtl">
                   <div className="flex items-center gap-2 mb-4 justify-end opacity-60">
                     <Zap size={14} className="text-amber-500" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">الوصول السريع للمهام</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">الوصول السريع للمهام</span>
                   </div>
                   <QuickActions />
                 </div>
@@ -3383,7 +3362,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           <Wallet size={20} />
                         </div>
                         <div className="text-right">
-                          <h4 className="font-black text-slate-800">
+                          <h4 className="font-bold text-slate-800">
                             رصيد السيولة بالبنك والخزينة
                           </h4>
                           <p className="text-[10px] text-slate-500 font-bold">
@@ -3392,14 +3371,14 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="text-lg font-black text-slate-900">
+                        <div className="text-lg font-bold text-slate-900">
                           {expectedBankBalance.toFixed(3)}{" "}
                           <span className="text-sm">د.ك</span>
                         </div>
                         <ChevronDown
                           size={20}
                           className={cn(
-                            "text-slate-400 transition-transform duration-300",
+                            "text-slate-500 transition-transform duration-300",
                             activeCategory === "liquidity" ? "rotate-180" : "",
                           )}
                         />
@@ -3468,7 +3447,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           <Truck size={20} />
                         </div>
                         <div className="text-right">
-                          <h3 className="font-black text-slate-800 text-lg tracking-tight">
+                          <h3 className="font-bold text-slate-800 text-lg tracking-tight">
                             أداء التوصيل والمدفوعات
                           </h3>
                           <p className="text-[10px] text-slate-500 font-bold">
@@ -3479,7 +3458,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                       <ChevronDown
                         size={20}
                         className={cn(
-                          "text-slate-400 transition-transform duration-300",
+                          "text-slate-500 transition-transform duration-300",
                           activeCategory === "ops" ? "rotate-180" : "",
                         )}
                       />
@@ -3546,7 +3525,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           <Users size={20} />
                         </div>
                         <div className="text-right">
-                          <h3 className="font-black text-slate-800 text-lg tracking-tight">
+                          <h3 className="font-bold text-slate-800 text-lg tracking-tight">
                             اقتصاديات العملاء والنمو
                           </h3>
                           <p className="text-[10px] text-slate-500 font-bold">
@@ -3557,7 +3536,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                       <ChevronDown
                         size={20}
                         className={cn(
-                          "text-slate-400 transition-transform duration-300",
+                          "text-slate-500 transition-transform duration-300",
                           activeCategory === "customers" ? "rotate-180" : "",
                         )}
                       />
@@ -3626,7 +3605,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         {/* Reduced Circle (No absolute SVG, just a small circular badge) */}
                         <div
                           className={cn(
-                            "w-12 h-12 rounded-full flex items-center justify-center font-black text-sm shrink-0 shadow-sm",
+                            "w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm shrink-0 shadow-sm",
                             healthIndex.status === "Healthy"
                               ? "bg-emerald-500 text-white"
                               : healthIndex.status === "Risk"
@@ -3637,7 +3616,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           {healthIndex.score}%
                         </div>
                         <div className="flex flex-col text-right">
-                          <span className="text-sm font-black uppercase text-slate-800">
+                          <span className="text-sm font-bold uppercase text-slate-800">
                             حالة النظام التشغيلي
                           </span>
                           <span
@@ -3665,21 +3644,21 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                     {/* Metrics below (grid 2 columns) */}
                     <div className="flex flex-col w-full ">
                       <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center items-center text-center">
-                        <span className="text-[10px] font-black text-slate-400 uppercase mb-1 flex items-center gap-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
                           <TrendingUp size={10} /> مبيعات الفترة
                         </span>
-                        <span className="text-lg font-black text-slate-800">
+                        <span className="text-lg font-bold text-slate-800">
                           {totalSalesVal.toFixed(1)}{" "}
                           <span className="text-[10px]">د.ك</span>
                         </span>
                       </div>
                       <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center items-center text-center">
-                        <span className="text-[10px] font-black text-slate-400 uppercase mb-1 flex items-center gap-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
                           <Target size={10} /> كفاءة الأرباح
                         </span>
                         <span
                           className={cn(
-                            "text-lg font-black",
+                            "text-lg font-bold",
                             profitMargin >= 10
                               ? "text-emerald-500"
                               : "text-amber-500",
@@ -3701,7 +3680,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                             return (
                               <div
                                 key={idx}
-                                className="bg-slate-100/50 border-2 border-dashed border-slate-200 rounded-3xl flex flex-row-reverse items-center justify-center text-slate-400 p-3 md:p-4 relative overflow-hidden"
+                                className="bg-slate-100/50 border-2 border-dashed border-slate-200/60 rounded-3xl flex flex-row-reverse items-center justify-center text-slate-500 p-3 md:p-4 relative overflow-hidden"
                               >
                                 <div
                                   className="absolute inset-0 -translate-x-full bg-gradient-to-l from-transparent via-white/80 to-transparent animate-[shimmer_1.5s_infinite]"
@@ -3711,7 +3690,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                   className="opacity-20 ml-2"
                                   size={32}
                                 />
-                                <span className="text-xs md:text-sm font-black relative z-10">
+                                <span className="text-xs md:text-sm font-bold relative z-10">
                                   جاري الاستنباط الذكي...
                                 </span>
                               </div>
@@ -3801,19 +3780,19 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                   <div className="flex flex-col items-end">
                                     <span
                                       className={cn(
-                                        "text-[10px] font-black px-3 py-1 rounded-full mb-2",
+                                        "text-[10px] font-bold px-3 py-1 rounded-full mb-2",
                                         colors.tag,
                                       )}
                                     >
                                       {insight.confidence}% موثوقية
                                     </span>
-                                    <span className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter bg-white/50 px-2 py-1 rounded-lg">
+                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter bg-white/50 px-2 py-1 rounded-lg">
                                       بناءً على بيانات حقيقية
                                     </span>
                                   </div>
                                 </div>
 
-                                <h4 className="text-base font-black text-slate-800 mb-3 leading-snug">
+                                <h4 className="text-base font-bold text-slate-800 mb-3 leading-snug">
                                   {insight.title}
                                 </h4>
                                 <p className="text-[11px] text-slate-500 font-medium leading-relaxed mb-4">
@@ -3823,7 +3802,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                               <div className="mt-auto flex items-center justify-between">
                                 <div className="flex -space-x-2 flex-row-reverse">
-                                  <div className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-[8px] font-bold">
+                                  <div className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-[10px] font-bold">
                                     AI
                                   </div>
                                 </div>
@@ -3840,7 +3819,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                     }
                                   }}
                                   className={cn(
-                                    "px-5 py-2.5 rounded-xl text-[10px] font-black text-white shadow-lg transition-all active:scale-90",
+                                    "px-5 py-2.5 rounded-xl text-[10px] font-bold text-white shadow-lg transition-all active:scale-90",
                                     colors.btn,
                                   )}
                                 >
@@ -3866,7 +3845,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                       >
                         <button
                           onClick={() => setFocusedInsight(null)}
-                          className="absolute top-3 md:p-4 left-6 p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
+                          className="absolute top-3 md:p-4 left-6 p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
                         >
                           <X size={24} />
                         </button>
@@ -3874,7 +3853,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         <div className="flex flex-col gap-4 md:p-3 items-start">
                           <div
                             className={cn(
-                              "w-12 md:w-20 h-12 md:h-20 rounded-3xl flex items-center justify-center text-white shrink-0 shadow-2xl",
+                              "w-12 md:w-20 h-12 md:h-20 rounded-3xl flex items-center justify-center text-white shrink-0 shadow-xl",
                               focusedInsight.type === "risk"
                                 ? "bg-rose-500 shadow-rose-500/30"
                                 : focusedInsight.type === "action"
@@ -3893,17 +3872,17 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                           <div className="flex-1 text-right w-full">
                             <div className="flex flex-wrap items-center gap-3 mb-2">
-                              <h4 className="text-2xl font-black text-slate-900">
+                              <h4 className="text-2xl font-bold text-slate-900">
                                 {focusedInsight.title}
                               </h4>
-                              <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black uppercase">
+                              <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
                                 {focusedInsight.source}
                               </span>
                             </div>
 
-                            <div className="bg-slate-50 p-3 md:p-4 rounded-3xl border border-slate-200 mt-6 flex flex-col w-full ">
+                            <div className="bg-slate-50 p-3 md:p-4 rounded-3xl border border-slate-200/60 mt-6 flex flex-col w-full ">
                               <div>
-                                <h5 className="text-xs font-black text-slate-400 uppercase mb-3">
+                                <h5 className="text-xs font-bold text-slate-500 uppercase mb-3">
                                   السبب والتحليل 🔍
                                 </h5>
                                 <div className="text-lg font-bold text-slate-700 leading-relaxed italic border-r-4 border-indigo-500 pr-4">
@@ -3911,12 +3890,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                   {focusedInsight.actionPayload
                                     ?.productNames && (
                                     <div className="mt-3 group relative inline-block cursor-pointer">
-                                      <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors flex items-center gap-2">
+                                      <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors flex items-center gap-2">
                                         <Package size={14} />
                                         عرض أصناف المنتجات المتأثرة
                                       </span>
-                                      <div className="absolute top-full right-0 mt-2 w-64 bg-slate-800 text-white text-[11px] p-3 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none">
-                                        <div className="font-black mb-2 text-indigo-300 border-b border-white/10 pb-1">
+                                      <div className="absolute top-full right-0 mt-2 w-64 bg-slate-800 text-white text-[11px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none">
+                                        <div className="font-bold mb-2 text-indigo-300 border-b border-white/10 pb-1">
                                           الأصناف المتأثرة:
                                         </div>
                                         <ul className="list-disc pr-4 space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
@@ -3932,7 +3911,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                 </div>
                               </div>
                               <div className="space-y-4">
-                                <h5 className="text-xs font-black text-slate-400 uppercase mb-3">
+                                <h5 className="text-xs font-bold text-slate-500 uppercase mb-3">
                                   تأثيرات حاسمة ⚡
                                 </h5>
                                 <div className="space-y-2">
@@ -3954,10 +3933,10 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                             <div className="mt-8 flex flex-col items-center justify-between gap-3 md:p-4 bg-indigo-600 p-3 md:p-4 rounded-2xl shadow-xl relative overflow-hidden">
                               <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
                               <div className="relative z-10 text-right w-full">
-                                <h5 className="text-indigo-100 text-sm font-black mb-1">
+                                <h5 className="text-indigo-100 text-sm font-bold mb-1">
                                   الإجراء التنفيذي المقترح:
                                 </h5>
-                                <p className="text-white text-xl font-black leading-tight mb-2 opacity-90">
+                                <p className="text-white text-xl font-bold leading-tight mb-2 opacity-90">
                                   {focusedInsight.impact}
                                 </p>
                                 <div className="flex items-center gap-2 bg-white/10 w-fit px-3 py-1 rounded-full text-[10px] font-bold text-white">
@@ -3996,7 +3975,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                       "تم تجهيز القالب الذكي بناءً على تحليلك الأخير.",
                                   });
                                 }}
-                                className="relative z-10 w-full w-full text-center justify-center bg-white text-indigo-700 px-6 py-4 rounded-2xl font-black text-sm shadow-2xl hover:scale-105 transition-all flex items-center gap-3 active:scale-95 group"
+                                className="relative z-10 w-full w-full text-center justify-center bg-white text-indigo-700 px-6 py-4 rounded-2xl font-bold text-sm shadow-xl hover:scale-105 transition-all flex items-center gap-3 active:scale-95 group"
                               >
                                 {focusedInsight.actionText}
                                 <ArrowUpRight className="group-hover:translate-y-[-2px] group-hover:translate-x-[2px] transition-transform" />
@@ -4012,7 +3991,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   <div
                     className={cn(
                       glassCardStyle,
-                      "bg-gradient-to-br from-slate-900 via-[#1a1f2e] to-slate-900 border-indigo-500/40 text-white shadow-2xl relative shadow-indigo-500/10 mt-8",
+                      "bg-gradient-to-br from-slate-900 via-[#1a1f2e] to-slate-900 border-indigo-500/40 text-white shadow-xl relative shadow-indigo-500/10 mt-8",
                     )}
                   >
                     <div className="absolute top-0 right-0 p-3 md:p-4 opacity-10 pointer-events-none">
@@ -4036,7 +4015,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                             />
                           </button>
                           <div className="text-right">
-                            <h3 className="text-xl font-black">
+                            <h3 className="text-xl font-bold">
                               المستشار الشامل
                             </h3>
                             <p className="text-[10px] text-indigo-300/60 font-bold uppercase mt-0.5">
@@ -4054,7 +4033,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                       <button
                         onClick={handleArchiveAnalysis}
                         disabled={isArchiving}
-                        className="w-full lg:w-auto bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900/50 text-white py-4 px-5 md:px-10 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 shadow-xl shadow-indigo-600/30 active:scale-95 group overflow-hidden relative shrink-0"
+                        className="w-full lg:w-auto bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900/50 text-white py-4 px-5 md:px-10 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-3 shadow-xl shadow-indigo-600/30 active:scale-95 group overflow-hidden relative shrink-0"
                       >
                         {isArchiving ? (
                           <>
@@ -4092,13 +4071,13 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         initial={{ opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="bg-white rounded-2xl md:rounded-2xl border-2 border-indigo-500 shadow-2xl p-3 md:p-4 lg:p-3 md:p-4 relative overflow-hidden"
+                        className="bg-white rounded-2xl md:rounded-2xl border-2 border-indigo-500 shadow-xl p-3 md:p-4 lg:p-3 md:p-4 relative overflow-hidden"
                         dir="rtl"
                       >
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500" />
                         <button
                           onClick={() => setArchiveResult(null)}
-                          className="absolute top-3 md:p-4 left-6 p-3 hover:bg-slate-100 rounded-2xl text-slate-400 transition-colors"
+                          className="absolute top-3 md:p-4 left-6 p-3 hover:bg-slate-100 rounded-2xl text-slate-500 transition-colors"
                         >
                           <X size={24} />
                         </button>
@@ -4106,14 +4085,14 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         <div className="flex flex-col gap-3 md:gap-3 md:p-4 md:gap-3 md:p-4 md:p-3">
                           <div className="lg:w-1/3">
                             <div className="flex items-center gap-4 mb-6">
-                              <div className="w-12 h-12 md:w-16 md:h-16 rounded-3xl bg-indigo-600 flex items-center justify-center text-white shadow-2xl shadow-indigo-500/40">
+                              <div className="w-12 h-12 md:w-16 md:h-16 rounded-3xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/40">
                                 <TrendingUp size={32} />
                               </div>
                               <div className="text-right">
-                                <h4 className="text-2xl font-black text-slate-900">
+                                <h4 className="text-2xl font-bold text-slate-900">
                                   تقرير النبض الكامل
                                 </h4>
-                                <p className="text-sm text-slate-400 font-bold">
+                                <p className="text-sm text-slate-500 font-bold">
                                   {archiveResult?.dataReference ||
                                     "بيانات الأرشيف"}
                                 </p>
@@ -4122,13 +4101,13 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                             <div className="bg-slate-50 p-3 md:p-4 rounded-2xl border border-slate-100 relative overflow-hidden">
                               <div className="text-right mb-6">
-                                <span className="text-[10px] font-black text-slate-400 uppercase">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">
                                   مؤشر الانطباع العام
                                 </span>
-                                <div className="text-xl md:text-3xl md:text-3xl md:text-lg md:text-xl font-black text-indigo-600 mt-2">
+                                <div className="text-xl md:text-3xl md:text-3xl md:text-lg md:text-xl font-bold text-indigo-600 mt-2">
                                   {archiveResult?.sentimentScore || 0}%
                                 </div>
-                                <div className="text-sm font-black text-slate-800 mt-1">
+                                <div className="text-sm font-bold text-slate-800 mt-1">
                                   {archiveResult?.sentiment || "قيد التحليل"}
                                 </div>
                               </div>
@@ -4148,7 +4127,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               </div>
                               <div className="mt-6 space-y-4">
                                 <div className="flex flex-col gap-1 text-right">
-                                  <span className="text-[10px] text-slate-400 font-black">
+                                  <span className="text-[10px] text-slate-500 font-bold">
                                     أبرز التعليقات المتكررة:
                                   </span>
                                   <div className="flex flex-wrap gap-2 mt-2">
@@ -4156,7 +4135,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                       (t: string, i: number) => (
                                         <span
                                           key={i}
-                                          className="bg-white px-3 py-1.5 rounded-full border border-slate-200 text-[10px] font-bold text-slate-600 shadow-sm"
+                                          className="bg-white px-3 py-1.5 rounded-full border border-slate-200/60 text-[10px] font-bold text-slate-600 shadow-sm"
                                         >
                                           {t}
                                         </span>
@@ -4170,7 +4149,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                           <div className="w-full flex flex-col w-full ">
                             <div className="space-y-6">
-                              <h5 className="text-lg font-black text-[#2d7a54] flex items-center gap-2">
+                              <h5 className="text-lg font-bold text-[#2d7a54] flex items-center gap-2">
                                 نقاط القوة الاستراتيجية{" "}
                                 <CheckCircle2 size={20} />
                               </h5>
@@ -4193,7 +4172,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               </div>
                             </div>
                             <div className="space-y-6">
-                              <h5 className="text-lg font-black text-[#b33a3a] flex items-center gap-2">
+                              <h5 className="text-lg font-bold text-[#b33a3a] flex items-center gap-2">
                                 فرص التحسين الحرجة <AlertCircle size={20} />
                               </h5>
                               <div className="space-y-3">
@@ -4214,12 +4193,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                 )}
                               </div>
                             </div>
-                            <div className="md:col-span-2 bg-indigo-900 text-white p-3 md:p-4 rounded-2xl shadow-2xl relative overflow-hidden">
+                            <div className="md:col-span-2 bg-indigo-900 text-white p-3 md:p-4 rounded-2xl shadow-xl relative overflow-hidden">
                               <div className="absolute -top-3 md:p-4 -left-10 opacity-20 text-indigo-400 rotate-12">
                                 <Cpu size={200} />
                               </div>
                               <div className="relative z-10">
-                                <h5 className="text-xl font-black mb-6 flex items-center gap-3">
+                                <h5 className="text-xl font-bold mb-6 flex items-center gap-3">
                                   توصيات المحرك الذهبي للتوسع{" "}
                                   <Zap className="text-amber-400" />
                                 </h5>
@@ -4228,9 +4207,9 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                     (rec: string, i: number) => (
                                       <div
                                         key={i}
-                                        className="bg-white/10 backdrop-blur-md p-3 md:p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition-all"
+                                        className="bg-white/10 backdrop-blur-md p-3 md:p-3 rounded-2xl border border-white/10 hover:bg-white/20 transition-all"
                                       >
-                                        <div className="text-amber-400 font-black text-lg mb-2">
+                                        <div className="text-amber-400 font-bold text-lg mb-2">
                                           0{i + 1}
                                         </div>
                                         <p className="text-xs leading-relaxed font-medium">
@@ -4270,7 +4249,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                             size={24}
                           />
                         </button>
-                        <h3 className="text-xl font-black text-right">
+                        <h3 className="text-xl font-bold text-right">
                           مقترحات الذكاء الاصطناعي 🧠
                         </h3>
                       </div>
@@ -4287,7 +4266,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               <div className="text-[10px] text-indigo-300 font-bold">
                                 النمو الاستراتيجي
                               </div>
-                              <span className="text-[8px] text-white/30 font-bold italic">
+                              <span className="text-[10px] text-white/30 font-bold italic">
                                 LTV:CAC = {ltvCacRatio.toFixed(1)}
                               </span>
                             </div>
@@ -4313,7 +4292,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               <div className="text-[10px] text-indigo-300 font-bold">
                                 كفاءة التكاليف
                               </div>
-                              <span className="text-[8px] text-white/30 font-bold italic">
+                              <span className="text-[10px] text-white/30 font-bold italic">
                                 الرسوم = {totalGatewayFees.toFixed(3)} د.ك
                               </span>
                             </div>
@@ -4337,7 +4316,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               <div className="text-[10px] text-indigo-300 font-bold">
                                 الصحة المالية
                               </div>
-                              <span className="text-[8px] text-white/30 font-bold italic">
+                              <span className="text-[10px] text-white/30 font-bold italic">
                                 هامش الربح = {profitMargin.toFixed(1)}%
                               </span>
                             </div>
@@ -4376,11 +4355,11 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                 size={24}
                               />
                             </button>
-                            <span className="bg-[#fcedce] text-[#b38026] text-[10px] font-black px-3 py-1 rounded-full">
+                            <span className="bg-[#fcedce] text-[#b38026] text-[10px] font-bold px-3 py-1 rounded-full">
                               نبض الكويت 🛰️
                             </span>
                           </div>
-                          <h3 className="text-lg font-black text-[#4a3f35] mt-2 mb-1 text-right">
+                          <h3 className="text-lg font-bold text-[#4a3f35] mt-2 mb-1 text-right">
                             موسم السفر القادم
                           </h3>
                           <p className="text-[10px] text-[#8c7b68] font-bold leading-relaxed text-right">
@@ -4397,11 +4376,11 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         >
                           <div className="flex justify-between items-start mb-2 flex-row-reverse">
                             <Cpu className="text-[#335d8a]" size={24} />
-                            <span className="bg-[#d5e0eb] text-[#2c4b6e] text-[10px] font-black px-3 py-1 rounded-full">
+                            <span className="bg-[#d5e0eb] text-[#2c4b6e] text-[10px] font-bold px-3 py-1 rounded-full">
                               النبض الاستراتيجي
                             </span>
                           </div>
-                          <h3 className="text-lg font-black text-[#4a3f35] mt-2 mb-1 text-right">
+                          <h3 className="text-lg font-bold text-[#4a3f35] mt-2 mb-1 text-right">
                             تحليل الذروة
                           </h3>
                           <p className="text-[10px] text-[#8c7b68] font-bold leading-relaxed text-right">
@@ -4417,20 +4396,20 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         )}
                       >
                         <div className="flex justify-between items-center mb-6 flex-row-reverse">
-                          <h3 className="font-black text-xl text-[#4a3f35] flex items-center gap-2">
+                          <h3 className="font-bold text-xl text-[#4a3f35] flex items-center gap-2">
                             نشاط الطلبات الأحدث
                             <span className="flex items-center gap-2 bg-amber-500/10 text-amber-600 px-3 py-1 rounded-full text-[10px] uppercase tracking-tighter">
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                               مباشر
                             </span>
                           </h3>
-                          <div className="text-[10px] font-black text-slate-400 bg-white/50 px-3 py-1 rounded-lg">
+                          <div className="text-[10px] font-bold text-slate-500 bg-white/50 px-3 py-1 rounded-lg">
                             آخر 10 طلبات
                           </div>
                         </div>
                         <div className="space-y-2.5 flex-1 overflow-y-auto custom-scrollbar pr-2 pb-2">
                           {recentOrders.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-400 py-6 md:py-12">
+                            <div className="h-full flex flex-col items-center justify-center text-slate-500 py-6 md:py-12">
                               <ShoppingBag
                                 size={48}
                                 className="opacity-10 mb-4"
@@ -4453,11 +4432,11 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                   className="group flex justify-between items-center p-3 bg-white rounded-2xl border border-[#f0e6d2] hover:border-amber-300 hover:shadow-lg hover:shadow-amber-500/5 transition-all flex-row-reverse cursor-pointer active:scale-98"
                                 >
                                   <div className="flex items-center gap-4 flex-row-reverse">
-                                    <div className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-amber-50 group-hover:text-amber-500 group-hover:border-amber-100 transition-colors">
+                                    <div className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-amber-50 group-hover:text-amber-500 group-hover:border-amber-100 transition-colors">
                                       <User size={20} />
                                     </div>
                                     <div className="text-right">
-                                      <div className="font-black text-sm text-slate-800 group-hover:text-amber-900 transition-colors truncate max-w-[120px]">
+                                      <div className="font-bold text-sm text-slate-800 group-hover:text-amber-900 transition-colors truncate max-w-[120px]">
                                         {customer?.name || (inv as any).customerName ||
                                           (inv.customerId
                                             ? `عميل غير مسجل #${inv.customerId.slice(-4)}`
@@ -4465,10 +4444,10 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                       </div>
                                       <div className="flex flex-col items-end gap-1 mt-1">
                                         <div className="flex items-center gap-2 flex-row-reverse">
-                                          <span className="text-[9px] text-slate-400 font-bold font-mono">
+                                          <span className="text-[10px] text-slate-500 font-bold font-mono">
                                             #{inv.id.slice(0, 8).toUpperCase()}
                                           </span>
-                                          <span className="text-[9px] text-slate-400 font-bold flex items-center gap-1">
+                                          <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
                                             <Clock size={10} />
                                             <span dir="ltr" className="inline-block text-left">
                                               {(() => {
@@ -4530,7 +4509,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                     </div>
                                   </div>
                                   <div className="flex flex-col items-start gap-1">
-                                    <div className="text-sm font-black text-emerald-600 font-mono tracking-tight">
+                                    <div className="text-sm font-bold text-emerald-600 font-mono tracking-tight">
                                       {Number(
                                         getOrderSubtotal(inv) +
                                           getOrderDeliveryFee(inv),
@@ -4541,7 +4520,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                     </div>
                                     <div
                                       className={cn(
-                                        "text-[8px] font-black px-2 py-0.5 rounded-md uppercase border transition-all",
+                                        "text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border transition-all",
                                         isPaidStatus(
                                           (inv as any).status ||
                                             inv.paymentStatus,
@@ -4633,7 +4612,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           <div className="mt-4 pt-4 border-t border-[#f0e6d2] flex justify-center">
                             <button
                               onClick={() => onNavigate("reports")}
-                              className="text-[10px] font-black text-amber-600 hover:text-amber-700 transition-colors flex items-center gap-2"
+                              className="text-[10px] font-bold text-amber-600 hover:text-amber-700 transition-colors flex items-center gap-2"
                             >
                               عرض كافة الطلبات بمختبر التقارير{" "}
                               <ArrowLeftRight size={12} />
@@ -4660,12 +4639,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                 </React.Suspense>
                 <div
                   id="customers-pulse-section"
-                  className="bg-slate-950 rounded-2xl md:rounded-2xl p-3 md:p-4 border border-slate-800 shadow-2xl relative overflow-hidden group"
+                  className="bg-slate-950 rounded-2xl md:rounded-2xl p-3 md:p-4 border border-slate-800 shadow-xl relative overflow-hidden group"
                 >
                   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(56,189,248,0.1)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
                   <div className="absolute top-0 right-0 w-64 h-64 bg-slate-800/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-                  <h3 className="font-black text-2xl text-white mb-8 flex items-center gap-3 justify-end relative z-10">
+                  <h3 className="font-bold text-2xl text-white mb-8 flex items-center gap-3 justify-end relative z-10">
                     أبرز عملاء التراث
                     <button
                       onClick={() =>
@@ -4698,22 +4677,22 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         className="flex flex-col p-3 bg-slate-900/50 backdrop-blur-sm rounded-3xl border border-slate-800/80 hover:border-amber-500/50 hover:bg-slate-800/80 transition-all group/item cursor-pointer shadow-lg active:scale-95 text-right w-full"
                       >
                         <div className="flex items-center gap-3 flex-row-reverse w-full">
-                          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-black text-xs shadow-inner group-hover/item:scale-110 group-hover/item:bg-amber-500/20 transition-all shrink-0">
+                          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xs shadow-inner group-hover/item:scale-110 group-hover/item:bg-amber-500/20 transition-all shrink-0">
                             {c.name.slice(0, 2).toUpperCase()}
                           </div>
                           <div className="text-right flex-1 min-w-0">
-                            <div className="font-black text-sm text-slate-100 truncate w-full">
+                            <div className="font-bold text-sm text-slate-100 truncate w-full">
                               {c.name}
                             </div>
-                            <div className="text-[9px] text-slate-500 font-bold uppercase">
+                            <div className="text-[10px] text-slate-500 font-bold uppercase">
                               {c.totalOrders || 0} طلب
                             </div>
                           </div>
-                          <div className="text-left flex flex-col items-end shrink-0 pl-2 border-l border-slate-800/50">
-                            <div className="font-black text-amber-400 text-sm">
+                          <div className="text-left flex flex-col items-end shrink-0 pl-2 border-l border-slate-800/20">
+                            <div className="font-bold text-amber-400 text-sm">
                               {Number(c.totalSpent || 0).toFixed(3)}
                             </div>
-                            <div className="text-[8px] text-amber-500/50 font-bold uppercase">
+                            <div className="text-[10px] text-amber-500/50 font-bold uppercase">
                               د.ك
                             </div>
                           </div>
@@ -4740,17 +4719,17 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                             className="animate-spin text-rose-500"
                             size={32}
                           />
-                          <span className="font-black text-sm text-rose-900">
+                          <span className="font-bold text-sm text-rose-900">
                             جاري التحليل الشخصي...
                           </span>
                         </div>
                       )}
                       <div className="flex justify-between items-start mb-6 flex-row-reverse relative z-10">
-                        <h3 className="font-black text-xl text-[#b33a3a] flex items-center gap-2">
+                        <h3 className="font-bold text-xl text-[#b33a3a] flex items-center gap-2">
                           نخبة VIP الغائبين{" "}
                           <Zap size={24} className="text-rose-500" />
                         </h3>
-                        <span className="bg-rose-100 text-rose-600 text-[10px] font-black px-2 py-1 rounded-full border border-rose-200">
+                        <span className="bg-rose-100 text-rose-600 text-[10px] font-bold px-2 py-1 rounded-full border border-rose-200">
                           تحليل الذكاء الاصطناعي
                         </span>
                       </div>
@@ -4763,7 +4742,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         >
                           {vipDisengaged.length === 0 ? (
                             <div className="text-center p-3 md:p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                              <p className="text-xs font-black text-slate-500 leading-relaxed">
+                              <p className="text-xs font-bold text-slate-500 leading-relaxed">
                                 لا توجد بيانات كافية للتحليل، أو لا يوجد عملاء
                                 VIP تنطبق عليهم شروط الغياب (أكثر من 15 يوم).
                               </p>
@@ -4775,7 +4754,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                 className="bg-white p-3 md:p-3 rounded-3xl border border-rose-100 flex flex-col gap-3 text-right"
                               >
                                 <div className="flex justify-between items-start flex-row-reverse">
-                                  <div className="font-black text-slate-800 text-sm flex gap-2 items-center flex-row-reverse">
+                                  <div className="font-bold text-slate-800 text-sm flex gap-2 items-center flex-row-reverse">
                                     {v.name}
                                     {v.totalSpent > 100 && (
                                       <span className="text-[10px] text-rose-500 font-bold bg-rose-50 px-2 py-0.5 rounded-full">
@@ -4783,7 +4762,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-[10px] font-bold text-slate-400">
+                                  <div className="text-[10px] font-bold text-slate-500">
                                     ثقة عالية
                                   </div>
                                 </div>
@@ -4817,7 +4796,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                           "_blank",
                                         );
                                       }}
-                                      className="flex-1 bg-amber-500 text-white py-2 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 hover:bg-amber-600 transition-colors"
+                                      className="flex-1 bg-amber-500 text-white py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-2 hover:bg-amber-600 transition-colors"
                                     >
                                       إرسال مكافأة <Heart size={14} />
                                     </button>
@@ -4843,7 +4822,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                           "_blank",
                                         );
                                       }}
-                                      className="flex-1 bg-emerald-500 text-white py-2 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 hover:bg-emerald-600 transition-colors"
+                                      className="flex-1 bg-emerald-500 text-white py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-2 hover:bg-emerald-600 transition-colors"
                                     >
                                       خطة الاستعادة <MessageSquare size={14} />
                                     </button>
@@ -4854,7 +4833,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           )}
                           <button
                             onClick={() => setShowLoyaltyResult(false)}
-                            className="w-full text-[10px] font-black text-slate-400 mt-2 underline"
+                            className="w-full text-[10px] font-bold text-slate-500 mt-2 underline"
                           >
                             تحليل جديد
                           </button>
@@ -4862,12 +4841,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                       ) : (
                         <div className="flex-1 flex flex-col items-center justify-center py-5 md:py-10 relative z-10">
                           <Users size={64} className="text-rose-100 mb-4" />
-                          <p className="text-xs font-bold text-slate-400 text-center mb-6">
+                          <p className="text-xs font-bold text-slate-500 text-center mb-6">
                             اكتشف العملاء VIP الغائبين لعودتهم مرة أخرى.
                           </p>
                           <button
                             onClick={handleLoyaltyAnalyze}
-                            className="bg-rose-500 hover:bg-rose-600 text-white px-5 md:px-10 py-3 rounded-2xl font-black text-sm shadow-xl shadow-rose-500/20 active:scale-95 transition-all"
+                            className="bg-rose-500 hover:bg-rose-600 text-white px-5 md:px-10 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-rose-500/20 active:scale-95 transition-all"
                           >
                             بدء تحليل الولاء 🔍
                           </button>
@@ -4876,7 +4855,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                     </div>
 
                     <div className={bentoCardStyle}>
-                      <h3 className="font-black text-xl text-[#4a3f35] mb-6 flex items-center gap-2 justify-end">
+                      <h3 className="font-bold text-xl text-[#4a3f35] mb-6 flex items-center gap-2 justify-end">
                         نجوم التراث (الأكثر مبيعاً){" "}
                         <Sparkles className="text-amber-500" />
                       </h3>
@@ -4890,14 +4869,14 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               className="flex justify-between items-center bg-white p-3 rounded-3xl border border-[#f0e6d2] hover:border-amber-400 transition-colors flex-row-reverse"
                             >
                               <div className="flex items-center gap-3 flex-row-reverse">
-                                <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-black text-sm">
+                                <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm">
                                   #{i + 1}
                                 </div>
-                                <div className="font-black text-slate-800 text-sm">
+                                <div className="font-bold text-slate-800 text-sm">
                                   {p.name}
                                 </div>
                               </div>
-                              <div className="bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-black px-3 py-1.5 rounded-full">
+                              <div className="bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1.5 rounded-full">
                                 {p.sold} طلب
                               </div>
                             </div>
@@ -4914,7 +4893,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   >
                     <div className="flex justify-between items-start mb-8 flex-row-reverse relative z-10">
                       <div className="text-right">
-                        <h3 className="text-2xl font-black flex items-center justify-end gap-3 mb-2">
+                        <h3 className="text-2xl font-bold flex items-center justify-end gap-3 mb-2">
                           توصيات ذكية من الذكاء الاصطناعي{" "}
                           <Cpu className="text-indigo-400" size={24} />
                         </h3>
@@ -4924,7 +4903,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                     <div className="flex flex-col w-full ">
                       {!allInsights || allInsights.length === 0 ? (
                         <div className="col-span-1 md:col-span-3 text-center p-3 md:p-4 bg-white/5 rounded-3xl border border-white/10">
-                          <p className="font-black text-indigo-300">
+                          <p className="font-bold text-indigo-300">
                             لا توجد بيانات كافية للتحليل الاستراتيجي.
                           </p>
                           <p className="text-[10px] text-white/50 mt-2 font-bold">
@@ -4950,7 +4929,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                             {insight.actionPayload?.productNames &&
                               insight.actionPayload.productNames.length > 0 && (
                                 <div className="relative group/prod-names self-end">
-                                  <div className="text-[9px] text-indigo-400 font-black bg-indigo-400/10 px-3 py-1.5 rounded-xl border border-indigo-400/20 hover:bg-indigo-400/20 transition-all cursor-pointer flex items-center gap-2 direction-rtl active:scale-95 shadow-sm overflow-hidden relative">
+                                  <div className="text-[10px] text-indigo-400 font-bold bg-indigo-400/10 px-3 py-1.5 rounded-xl border border-indigo-400/20 hover:bg-indigo-400/20 transition-all cursor-pointer flex items-center gap-2 direction-rtl active:scale-95 shadow-sm overflow-hidden relative">
                                     <span className="relative z-10">
                                       رؤية الأصناف (
                                       {
@@ -4968,7 +4947,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                                   <div className="absolute bottom-full left-0 mb-4 invisible group-hover/prod-names:visible opacity-0 group-hover/prod-names:opacity-100 transition-all transform translate-y-4 group-hover/prod-names:translate-y-0 bg-[#0f172a]/95 backdrop-blur-2xl border border-indigo-500/40 p-3 md:p-3 rounded-2xl shadow-[0_30px_60px_rgba(79,70,229,0.4)] z-[500] min-w-[260px] max-w-[320px] text-right">
                                     <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3 flex-row-reverse">
-                                      <p className="text-[11px] font-black text-indigo-300">
+                                      <p className="text-[11px] font-bold text-indigo-300">
                                         الأصناف قيد التحليل
                                       </p>
                                       <Sparkles
@@ -5016,7 +4995,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                   onNavigate("customers");
                                 else onNavigate("what-if");
                               }}
-                              className="w-full py-2 mt-4 bg-indigo-600 rounded-xl text-[10px] font-black uppercase hover:bg-indigo-500 transition-colors"
+                              className="w-full py-2 mt-4 bg-indigo-600 rounded-xl text-[10px] font-bold uppercase hover:bg-indigo-500 transition-colors"
                             >
                               {insight.actionText || "تفعيل الآن"}
                             </button>
@@ -5029,10 +5008,10 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   <div className="flex flex-col w-full ">
                     <div className="bg-white rounded-2xl p-3 md:p-4 border border-[#f0e6d2] shadow-sm flex flex-col gap-3 md:p-4 md:gap-4 md:p-3">
                       <div className="flex flex-col justify-between items-center gap-4 flex-row-reverse text-center sm:text-right">
-                        <h3 className="font-black text-lg md:text-xl text-slate-800">
+                        <h3 className="font-bold text-lg md:text-xl text-slate-800">
                           تحليل نبض العملاء 🛰️
                         </h3>
-                        <div className="text-[10px] md:text-[11px] font-black text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100 w-full w-full">
+                        <div className="text-[10px] md:text-[11px] font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100 w-full w-full">
                           محلل الذكاء الاصطناعي مفعّل ✅
                         </div>
                       </div>
@@ -5043,7 +5022,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                             <textarea
                               value={reviewInput}
                               onChange={(e) => setReviewInput(e.target.value)}
-                              className="w-full bg-transparent border-0 resize-none outline-none text-right font-black text-slate-700 placeholder:text-slate-300 text-sm md:text-base min-h-[120px]"
+                              className="w-full bg-transparent border-0 resize-none outline-none text-right font-bold text-slate-700 placeholder:text-slate-300 text-sm md:text-base min-h-[120px]"
                               placeholder="أدخل ملاحظة عشوائية أو تعليقاً للتحليل السريع..."
                               rows={4}
                             />
@@ -5051,7 +5030,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               <button
                                 onClick={handleAddReview}
                                 disabled={!reviewInput.trim() || isAnalyzing}
-                                className="w-full bg-[#4a3f35] text-white px-6 md:px-8 py-4 rounded-xl md:rounded-2xl text-sm font-black hover:bg-slate-800 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 min-h-[44px]"
+                                className="w-full bg-[#4a3f35] text-white px-6 md:px-8 py-4 rounded-xl md:rounded-2xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 min-h-[44px]"
                               >
                                 {isAnalyzing ? (
                                   <RefreshCw
@@ -5132,7 +5111,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                     setIsPulseAnalyzing(false);
                                   }
                                 }}
-                                className="text-xs font-black text-indigo-600 hover:bg-indigo-50 py-4 rounded-xl transition-all flex items-center justify-center gap-2 border-2 border-indigo-50 bg-white min-h-[44px]"
+                                className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 py-4 rounded-xl transition-all flex items-center justify-center gap-2 border-2 border-indigo-50 bg-white min-h-[44px]"
                               >
                                 <RefreshCw
                                   size={14}
@@ -5148,7 +5127,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                   onClick={() =>
                                     setShowPulseHistory(!showPulseHistory)
                                   }
-                                  className="text-[10px] font-black text-slate-500 hover:text-indigo-600 py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-100 bg-slate-50/50"
+                                  className="text-[10px] font-bold text-slate-500 hover:text-indigo-600 py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-100 bg-slate-50/50"
                                 >
                                   <History size={14} />
                                   {showPulseHistory
@@ -5161,7 +5140,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                           {showPulseHistory && (
                             <div className="bg-white border-2 border-indigo-50 rounded-2xl p-3 md:p-3 shadow-sm space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar">
-                              <h4 className="text-xs font-black text-indigo-600 text-right mb-4 flex items-center justify-end gap-2">
+                              <h4 className="text-xs font-bold text-indigo-600 text-right mb-4 flex items-center justify-end gap-2">
                                 سجل التقارير السابقة <History size={14} />
                               </h4>
                               {pulseAnalysisHistory.map((record) => (
@@ -5177,7 +5156,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                   className="p-3 bg-slate-50 border border-slate-100 rounded-2xl hover:border-indigo-200 cursor-pointer transition-all text-right group"
                                 >
                                   <div className="flex justify-between items-center flex-row-reverse mb-1">
-                                    <span className="text-[10px] font-black text-slate-700">
+                                    <span className="text-[10px] font-bold text-slate-700">
                                       {record.date}
                                     </span>
                                     <ArrowUpRight
@@ -5185,7 +5164,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                       className="text-slate-300 group-hover:text-indigo-500 transition-colors"
                                     />
                                   </div>
-                                  <p className="text-[9px] text-slate-400 font-bold line-clamp-1">
+                                  <p className="text-[10px] text-slate-500 font-bold line-clamp-1">
                                     {record.summary}
                                   </p>
                                 </div>
@@ -5196,7 +5175,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                         <div className="space-y-4 max-h-[400px] md:max-h-[450px] overflow-y-auto custom-scrollbar pr-0 md:pr-4 border-r-0 md:border-r border-[#f0e6d2]">
                           <div className="sticky top-0 bg-white/90 backdrop-blur-sm p-2 mb-2 text-right border-b border-slate-100 z-10 flex items-center justify-end gap-2">
-                            <span className="text-[10px] font-black text-slate-400 uppercase">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase">
                               نتائج التحليل اللحظية
                             </span>
                           </div>
@@ -5206,24 +5185,24 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               className="bg-slate-50 border border-slate-100 p-3 md:p-4 rounded-2xl flex flex-col group text-right hover:border-indigo-200 transition-all shadow-sm"
                             >
                               <div className="flex justify-between items-start flex-row-reverse w-full mb-1">
-                                <div className="text-[8px] font-bold text-slate-300 uppercase tracking-tighter">
+                                <div className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">
                                   {r.date || "منذ وقت"}
                                 </div>
                               </div>
                               <div className="flex justify-between items-start flex-row-reverse w-full">
                                 <div className="flex-1 pr-4">
-                                  <p className="font-black text-xs md:text-sm text-slate-700 leading-relaxed mb-3 whitespace-pre-wrap break-words">
+                                  <p className="font-bold text-xs md:text-sm text-slate-700 leading-relaxed mb-3 whitespace-pre-wrap break-words">
                                     {r.text}
                                   </p>
                                   <div className="flex flex-wrap gap-2 justify-end">
                                     {r.topics && (
-                                      <span className="text-[9px] md:text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 font-black px-3 py-1.5 rounded-full inline-block whitespace-normal max-w-full">
+                                      <span className="text-[10px] md:text-[11px] bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold px-3 py-1.5 rounded-full inline-block whitespace-normal max-w-full">
                                         {r.topics}
                                       </span>
                                     )}
                                     <span
                                       className={cn(
-                                        "text-[9px] md:text-[10px] font-black px-3 py-1.5 rounded-full inline-block border whitespace-normal",
+                                        "text-[10px] md:text-[11px] font-bold px-3 py-1.5 rounded-full inline-block border whitespace-normal",
                                         (r.sentiment || "").includes("إيجابي")
                                           ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                                           : (r.sentiment || "").includes("سلبي")
@@ -5237,7 +5216,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                                   {(r.level1 === 'إيجابي' || (r.sentiment && r.sentiment.includes("إيجابي"))) && (
                                     <div className="mt-3 px-3 py-2.5 rounded-xl text-right text-[10px] font-bold border shadow-sm bg-emerald-50 border-emerald-100 text-emerald-700 w-full">
-                                      <span className="font-black mb-1 text-xs flex items-center justify-end gap-1">
+                                      <span className="font-bold mb-1 text-xs flex items-center justify-end gap-1">
                                         {r.sentimentLabel || analyzeKuwaitiSentiment(r.text).label}
                                         <span className="relative flex h-2 w-2">
                                           <span className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping bg-emerald-400"></span>
@@ -5250,7 +5229,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                   
                                   {(r.level1 === 'سلبي' || (r.sentiment && r.sentiment.includes("سلبي"))) && (
                                     <div className="mt-3 px-3 py-2.5 rounded-xl text-right text-[10px] font-bold border shadow-sm bg-rose-50 border-rose-100 text-rose-700 w-full">
-                                      <span className="font-black mb-1 text-xs flex items-center justify-end gap-1">
+                                      <span className="font-bold mb-1 text-xs flex items-center justify-end gap-1">
                                         {r.sentimentLabel || analyzeKuwaitiSentiment(r.text).label}
                                         <span className="relative flex h-2 w-2">
                                           <span className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping bg-rose-400"></span>
@@ -5281,11 +5260,11 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                     {/* RIGHT PANEL FOR RESULTS */}
                     <div className="bg-white rounded-2xl p-3 md:p-4 border border-[#f0e6d2] shadow-sm flex flex-col">
                       <div className="text-right mb-6 border-b border-slate-100 pb-4">
-                        <h3 className="font-black text-xl text-slate-800 flex items-center justify-end gap-3">
+                        <h3 className="font-bold text-xl text-slate-800 flex items-center justify-end gap-3">
                           <Sparkles className="text-amber-500" size={20} />{" "}
                           تقرير التحليل الشامل
                         </h3>
-                        <p className="text-[11px] text-slate-400 font-bold mt-2 pr-8 leading-relaxed">
+                        <p className="text-[11px] text-slate-500 font-bold mt-2 pr-8 leading-relaxed">
                           يعتمد هذا التقرير على تحليل الذكاء الاصطناعي لكافة
                           التقييمات والتعليقات التاريخية في الأرشيف.
                         </p>
@@ -5296,10 +5275,10 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           <div className="w-12 h-12 md:w-16 md:h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 mb-4 mx-auto !animate-pulse">
                             <RefreshCw size={28} className="animate-spin" />
                           </div>
-                          <h4 className="font-black text-slate-700 text-lg">
+                          <h4 className="font-bold text-slate-700 text-lg">
                             جاري تحليل الأرشيف...
                           </h4>
-                          <p className="text-xs text-slate-400 font-bold mt-2">
+                          <p className="text-xs text-slate-500 font-bold mt-2">
                             يتم الآن قراءة التعليقات وفهم الانطباعات.
                           </p>
                         </div>
@@ -5307,10 +5286,10 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6 text-right">
                           {/* Summary */}
                           <div className="bg-indigo-50/50 border border-indigo-100/50 p-3 md:p-3 rounded-2xl">
-                            <h4 className="text-[11px] font-black text-indigo-600 mb-2 uppercase">
+                            <h4 className="text-[11px] font-bold text-indigo-600 mb-2 uppercase">
                               ملخص عام
                             </h4>
-                            <p className="text-sm font-black text-slate-800 leading-relaxed whitespace-pre-wrap break-words">
+                            <p className="text-sm font-bold text-slate-800 leading-relaxed whitespace-pre-wrap break-words">
                               {pulseArchiveAnalysis?.summary ||
                                 "جاري توليد الملخص..."}
                             </p>
@@ -5318,7 +5297,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                           {/* Sentiment Bar */}
                           <div className="space-y-3">
-                            <h4 className="text-[11px] font-black text-slate-400 uppercase">
+                            <h4 className="text-[11px] font-bold text-slate-500 uppercase">
                               تحليل المشاعر الإجمالي
                             </h4>
                             <div className="h-4 flex rounded-full overflow-hidden shadow-inner">
@@ -5344,7 +5323,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                 title={`سلبي ${pulseArchiveAnalysis.sentiment?.negative || 0}%`}
                               />
                             </div>
-                            <div className="flex justify-between text-[10px] font-black text-slate-500 px-1">
+                            <div className="flex justify-between text-[10px] font-bold text-slate-500 px-1">
                               <span className="text-rose-500">
                                 {pulseArchiveAnalysis.sentiment?.negative || 0}%
                                 سلبي
@@ -5362,7 +5341,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
 
                           {/* Top Keywords */}
                           <div className="space-y-3">
-                            <h4 className="text-[11px] font-black text-slate-400 uppercase">
+                            <h4 className="text-[11px] font-bold text-slate-500 uppercase">
                               أكثر الكلمات تكراراً
                             </h4>
                             <div className="flex flex-wrap gap-2 justify-end">
@@ -5370,7 +5349,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                                 (word: string, idx: number) => (
                                   <span
                                     key={idx}
-                                    className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 shadow-sm"
+                                    className="bg-white border border-slate-200/60 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 shadow-sm"
                                   >
                                     {word}
                                   </span>
@@ -5382,7 +5361,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           {/* Strengths & Weaknesses */}
                           <div className="flex flex-col w-full ">
                             <div className="bg-emerald-50/50 border border-emerald-100 p-3 rounded-2xl">
-                              <h4 className="text-[11px] font-black text-emerald-600 mb-3 flex items-center justify-end gap-2">
+                              <h4 className="text-[11px] font-bold text-emerald-600 mb-3 flex items-center justify-end gap-2">
                                 <TrendingUp size={14} /> أهم نقاط القوة
                               </h4>
                               <ul className="space-y-2 text-right text-xs font-bold text-slate-700">
@@ -5394,7 +5373,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               </ul>
                             </div>
                             <div className="bg-rose-50/50 border border-rose-100 p-3 rounded-2xl">
-                              <h4 className="text-[11px] font-black text-rose-600 mb-3 flex items-center justify-end gap-2">
+                              <h4 className="text-[11px] font-bold text-rose-600 mb-3 flex items-center justify-end gap-2">
                                 <TrendingDown size={14} /> أبرز المشاكل
                               </h4>
                               <ul className="space-y-2 text-right text-xs font-bold text-slate-700">
@@ -5410,7 +5389,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           {/* Recommendations */}
                           <div className="bg-[#fcfaf7] border border-[#f0e6d2] p-3 md:p-3 rounded-2xl relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-1 h-full bg-amber-500" />
-                            <h4 className="text-[11px] font-black text-amber-600 mb-3 flex items-center justify-end gap-2">
+                            <h4 className="text-[11px] font-bold text-amber-600 mb-3 flex items-center justify-end gap-2">
                               <CheckCircle2 size={14} /> توصيات واضحة للتحسين
                             </h4>
                             <div className="space-y-3">
@@ -5419,7 +5398,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                               ).map((rec: string, idx: number) => (
                                 <div
                                   key={idx}
-                                  className="text-sm font-black text-slate-800 bg-white p-3 rounded-xl border border-slate-100 shadow-sm leading-relaxed"
+                                  className="text-sm font-bold text-slate-800 bg-white p-3 rounded-xl border border-slate-100 shadow-sm leading-relaxed"
                                 >
                                   {rec}
                                 </div>
@@ -5428,15 +5407,15 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                           </div>
                         </div>
                       ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center p-3 md:p-3 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                        <div className="flex-1 flex flex-col items-center justify-center p-3 md:p-3 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200/60">
                           <Cpu
                             className="text-slate-300 mb-4 opacity-50"
                             size={48}
                           />
-                          <h4 className="font-black text-slate-400 text-sm">
+                          <h4 className="font-bold text-slate-500 text-sm">
                             لم يتم تشغيل تحليل الأرشيف بعد
                           </h4>
-                          <p className="text-xs text-slate-400 font-bold mt-2">
+                          <p className="text-xs text-slate-500 font-bold mt-2">
                             اضغط على زر (تحليل الأرشيف بالكامل) للحصول على تقرير
                             مفصل.
                           </p>
@@ -5497,7 +5476,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                    <Sparkles size={20} className="text-indigo-600 relative z-10" />
                  </div>
                  <div className="flex flex-col">
-                   <p className="text-slate-900 font-black text-[13px] md:text-sm">حركة نشطة اليوم!</p>
+                   <p className="text-slate-900 font-bold text-[13px] md:text-sm">حركة نشطة اليوم!</p>
                    <p className="text-slate-500 text-[11px] md:text-xs font-bold leading-relaxed">
                      تم تسجيل {totals.orders} طلبات، هل أقوم بتصدير قائمة التجهيز للمطبخ؟
                    </p>
@@ -5511,13 +5490,13 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                     });
                     setShowContextualAssist(false);
                   }}
-                  className="flex-1 md:flex-none bg-slate-900 text-white px-5 py-2.5 rounded-full font-black text-[13px] shadow-lg shadow-slate-900/20 hover:scale-105 active:scale-95 transition-all"
+                  className="flex-1 md:flex-none bg-slate-900 text-white px-5 py-2.5 rounded-full font-bold text-[13px] shadow-lg shadow-slate-900/20 hover:scale-105 active:scale-95 transition-all"
                 >
                   نعم، تصدير
                 </button>
                 <button 
                   onClick={() => setShowContextualAssist(false)}
-                  className="px-4 py-2.5 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors rounded-full font-bold text-[13px]"
+                  className="px-4 py-2.5 text-slate-500 hover:bg-slate-50 hover:text-slate-600 transition-colors rounded-full font-bold text-[13px]"
                 >
                   تجاهل
                 </button>
@@ -5542,7 +5521,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                 <Sparkles size={24} className="text-amber-400 relative z-10" />
               </div>
               <div className="flex flex-col">
-                <p className="text-white font-black text-sm">شارف الشهر على الانتهاء</p>
+                <p className="text-white font-bold text-sm">شارف الشهر على الانتهاء</p>
                 <p className="text-slate-300 text-xs font-medium">هل نُعدّ تقرير الإقفال المالي الذكي؟</p>
               </div>
               <button 
@@ -5552,13 +5531,42 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
                   });
                   setTimeout(() => window.print(), 1000);
                 }}
-                className="ml-2 mr-6 bg-white text-slate-900 px-5 py-2.5 rounded-full font-black text-sm shadow-xl hover:scale-105 active:scale-95 transition-all"
+                className="ml-2 mr-6 bg-white text-slate-900 px-5 py-2.5 rounded-full font-bold text-sm shadow-xl hover:scale-105 active:scale-95 transition-all"
               >
                 إعداد التقرير
               </button>
             </motion.div>
           )}
         </AnimatePresence>
+
+
+        {/* Time Slider (Minimalist) */}
+        <div className="fixed bottom-3 left-0 right-0 z-[90] p-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-10 duration-700 delay-500">
+          <div className="bg-white/70 backdrop-blur-3xl rounded-[2rem] py-3.5 px-6 flex flex-col items-center gap-2.5 shadow-2xl pointer-events-auto w-[90%] max-w-[340px] border border-white/50 ring-1 ring-slate-900/5 transition-all hover:bg-white/80">
+            <input 
+              type="range"
+              min="0"
+              max="4"
+              value={["all", "year", "month", "week", "day"].indexOf(dateFilter)}
+              onChange={(e) => {
+                const map = ["all", "year", "month", "week", "day"];
+                startTransition(() => setDateFilter(map[parseInt(e.target.value)] as any));
+              }}
+              className="w-full h-1 bg-slate-200/80 rounded-full appearance-none cursor-grab active:cursor-grabbing outline-none transition-all duration-300
+              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
+              [&::-webkit-slider-thumb]:bg-slate-800 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white"
+              style={{ direction: 'ltr' }}
+            />
+            
+            <div className="flex justify-between w-full text-[10px] font-sans font-extrabold text-slate-400 px-0.5" style={{ direction: 'ltr' }}>
+              <span onClick={() => startTransition(() => setDateFilter("all"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-left", dateFilter === "all" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>الكل</span>
+              <span onClick={() => startTransition(() => setDateFilter("year"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", dateFilter === "year" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>سنة</span>
+              <span onClick={() => startTransition(() => setDateFilter("month"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", dateFilter === "month" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>شهر</span>
+              <span onClick={() => startTransition(() => setDateFilter("week"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", dateFilter === "week" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>أسبوع</span>
+              <span onClick={() => startTransition(() => setDateFilter("day"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-right", dateFilter === "day" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>اليوم</span>
+            </div>
+          </div>
+        </div>
 
       </div>
     );

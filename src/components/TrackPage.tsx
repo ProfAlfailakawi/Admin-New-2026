@@ -203,12 +203,12 @@ export default function TrackPage() {
  return (
  <div className="min-h-screen bg-slate-50 flex items-center justify-center p-3 md:p-4 arabic-font" dir="rtl">
  <Toaster position="top-center" richColors />
- <div className="bg-white rounded-3xl p-3 md:p-3 max-w-2xl w-full shadow-2xl border border-slate-100">
+ <div className="bg-white rounded-3xl p-3 md:p-3 max-w-2xl w-full shadow-xl border border-slate-100">
  <div className="w-12 h-12 md:w-16 md:h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/20">
  <Search size={32} />
  </div>
  
- <h1 className="text-2xl font-black text-center text-slate-800 mb-2">تتبع الطلب</h1>
+ <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">تتبع الطلب</h1>
  <p className="text-slate-500 text-center text-sm mb-8">أدخل رقم الهاتف المسجل أو رقم الطلب لتتبع الحالة والمسار</p>
  
  <form onSubmit={handleSearch} className="space-y-4">
@@ -229,7 +229,7 @@ export default function TrackPage() {
  type="submit"
  disabled={loading || !phoneNumber}
  className={cn(
-"w-full py-4 text-white font-black rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2",
+"w-full py-4 text-white font-bold rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2",
  loading || !phoneNumber ?"bg-slate-300 shadow-none" :"bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20 hover:scale-[1.02] active:scale-95"
 )}
  >
@@ -262,17 +262,17 @@ export default function TrackPage() {
  return (
  <div key={order.id} className={cn("bg-white border-2 p-3 md:p-4 rounded-2xl shadow-sm text-right space-y-4 transition-all", isFailed ?"border-red-100 bg-red-50/5" : isCancelled ?"border-rose-100 bg-rose-50/5" :"border-emerald-100")}>
  <div className="flex justify-between items-center pb-4 border-b border-slate-100">
- <span className="text-sm font-black text-slate-800">طلب #{order.id.slice(-6)}</span>
+ <span className="text-sm font-bold text-slate-800">طلب #{order.id.slice(-6)}</span>
  <div className="flex items-center gap-2">
  {(isPending || isFailed) && order.paymentLink && !isCancelled && (
  <button 
  onClick={() => window.location.href = order.paymentLink}
- className="text-xs font-black px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg active:scale-95"
+ className="text-xs font-bold px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg active:scale-95"
  >
  إعادة محاولة الدفع
  </button>
  )}
- <span className={cn("text-xs font-black px-3 py-1 rounded-full", isPaidOrCompleted ?"bg-emerald-100 text-emerald-800" : isFailed ?"bg-red-100 text-red-800" : isCancelled ?"bg-rose-100 text-rose-800" :"bg-violet-100 text-violet-800 animate-pulse")}>
+ <span className={cn("text-xs font-bold px-3 py-1 rounded-full", isPaidOrCompleted ?"bg-emerald-100 text-emerald-800" : isFailed ?"bg-red-100 text-red-800" : isCancelled ?"bg-rose-100 text-rose-800" :"bg-violet-100 text-violet-800 animate-pulse")}>
  {isTrulyFree ? 'طلب مجاني - جاري التجهيز' : (isPaidOrCompleted ? 'تم الدفع وجاري التوصيل' : isCancelled ? ((order.status === 'انتهى وقت القطية' || order.status === 'ملغي - انتهى وقت القطية') ? 'ملغي - انتهى وقت القطية' : 'طلب ملغي') : isFailed ? 'فشلت عملية الدفع' : 'بانتظار الدفع')}
  </span>
  </div>
@@ -280,7 +280,7 @@ export default function TrackPage() {
  
  {/* Order Details List */}
  <div className="space-y-2">
- <h4 className="text-xs font-black text-slate-500 uppercase tracking-wider mb-2">تفاصيل الطلب:</h4>
+ <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">تفاصيل الطلب:</h4>
  {order.items && order.items.length > 0 ? (
  order.items.map((item: any, idx: number) => (
  <div key={idx} className="flex justify-between items-center text-sm font-bold text-slate-700 bg-slate-50 p-2 rounded-lg">
@@ -320,7 +320,7 @@ export default function TrackPage() {
  <span>-{Number(order.discount).toFixed(3)} د.ك</span>
  </div>
 )}
- <div className="flex justify-between text-lg font-black text-emerald-700 pt-2 border-t border-slate-200">
+ <div className="flex justify-between text-lg font-bold text-emerald-700 pt-2 border-t border-slate-200/60">
  <span>الإجمالي النهائي:</span>
  <span>{Number(order.totalAmount || order.finalPrice || order.total || order.total_amount || 0).toFixed(3)} د.ك</span>
  </div>
@@ -339,8 +339,8 @@ export default function TrackPage() {
  </div>
 )}
  {order.address && (
- <div className="flex flex-col mt-1 pt-1 border-t border-slate-200">
- <span className="text-slate-400 mb-1">وصف العنوان:</span>
+ <div className="flex flex-col mt-1 pt-1 border-t border-slate-200/60">
+ <span className="text-slate-500 mb-1">وصف العنوان:</span>
  <span className="text-slate-700">{order.address}</span>
  </div>
 )}

@@ -136,7 +136,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  className="mx-auto mb-8"
  />
 
- <h1 className="text-xl md:text-3xl font-black mb-2 relative z-10 tracking-tight">نظام مطبخ التراث</h1>
+ <h1 className="text-xl md:text-3xl font-bold mb-2 relative z-10 tracking-tight">نظام مطبخ التراث</h1>
  <p className="text-white/50 relative z-10 font-bold text-[10px] uppercase">Smart Cloud Accounting Engine</p>
  </div>
 
@@ -155,7 +155,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  <span>{loading ? 'جاري التحميل...' : 'تسجيل الدخول السحابي (Google)'}</span>
  </button>
 
- <div className="relative flex items-center gap-4 text-slate-400 py-2">
+ <div className="relative flex items-center gap-4 text-slate-500 py-2">
  <div className="flex-1 h-[1px] bg-slate-100" />
  <span className="text-[10px] font-bold uppercase">أو التخزين المحلي فقط للتجربة</span>
  <div className="flex-1 h-[1px] bg-slate-100" />
@@ -166,12 +166,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  <div className="relative group">
  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block mr-1">اسم المستخدم</label>
  <div className="relative">
- <User className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+ <User className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={18} />
  <input 
  type="text" 
  value={username}
  onChange={(e) => setUsername(e.target.value)}
- className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pr-10 pl-4 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium"
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-3 pr-10 pl-4 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium"
  placeholder="أدخل اسم المستخدم"
  required
  />
@@ -181,12 +181,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
  <div className="relative group">
  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block mr-1">كلمة المرور</label>
  <div className="relative">
- <Lock className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+ <Lock className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={18} />
  <input 
  type="password" 
  value={password}
  onChange={(e) => setPassword(e.target.value)}
- className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pr-10 pl-4 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium"
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-3 pr-10 pl-4 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium"
  placeholder="••••••••"
  required
  />
@@ -217,20 +217,20 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
     <button
       type="button"
       onClick={showInstallToast}
-      className="p-2.5 text-indigo-500 rounded-full border border-slate-200 hover:bg-slate-50 hover:text-indigo-600 transition-all mx-auto block mt-6 shadow-sm"
+      className="p-2.5 text-indigo-500 rounded-full border border-slate-200/60 hover:bg-slate-50 hover:text-indigo-600 transition-all mx-auto block mt-6 shadow-sm"
     >
       <DownloadCloud size={20} />
     </button>
   )}
  </form>
  
- <p className="text-center text-slate-400 text-[10px] font-medium leading-relaxed">
+ <p className="text-center text-slate-500 text-[10px] font-medium leading-relaxed">
  عند تسجيل الدخول عبر Google، سيتم حفظ بياناتك في السحابة ومزامنتها تلقائياً عبر جميع أجهزتك لضمان عدم فقدانها.
  </p>
  </div>
  </div>
  
- <div className="mt-8 text-center text-slate-400 text-sm font-medium">
+ <div className="mt-8 text-center text-slate-500 text-sm font-medium">
  شركة مطبخ التراث الكويتي &copy; {new Date().getFullYear()}
  </div>
  </motion.div>
@@ -242,17 +242,17 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
            initial={{ opacity: 0, scale: 0.95 }}
            animate={{ opacity: 1, scale: 1 }}
            exit={{ opacity: 0, scale: 0.95 }}
-           className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm w-full relative"
+           className="bg-white rounded-2xl shadow-xl border border-slate-200/60 p-6 max-w-sm w-full relative"
            dir="rtl"
          >
-           <button onClick={handleCloseIOSPrompt} className="absolute top-4 left-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors">
+           <button onClick={handleCloseIOSPrompt} className="absolute top-4 left-4 p-2 text-slate-500 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors">
              <X size={20} />
            </button>
            <div className="flex items-center gap-3 mb-4 border-b border-slate-100 pb-4">
              <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600">
                <DownloadCloud size={20} />
              </div>
-             <h3 className="font-black text-lg text-slate-800">تثبيت التطبيق</h3>
+             <h3 className="font-bold text-lg text-slate-800">تثبيت التطبيق</h3>
            </div>
            <div className="space-y-4">
              <p className="text-slate-600 font-medium text-sm leading-relaxed">
@@ -260,15 +260,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
              </p>
              <ul className="text-sm font-medium text-slate-600 space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100 mt-2">
                <li className="flex items-center gap-2">
-                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-black text-slate-500">1</span>
+                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-bold text-slate-500">1</span>
                  <span>اضغط على زر المشاركة <Share size={14} className="inline text-blue-500 mx-0.5" /> المتصفح</span>
                </li>
                <li className="flex items-center gap-2">
-                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-black text-slate-500">2</span>
+                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-bold text-slate-500">2</span>
                  <span>اختر "إضافة إلى الشاشة الرئيسية"</span>
                </li>
                <li className="flex items-center gap-2">
-                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-black text-slate-500">3</span>
+                 <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-bold text-slate-500">3</span>
                  <span>اضغط "إضافة" (Add) في الأعلى</span>
                </li>
              </ul>

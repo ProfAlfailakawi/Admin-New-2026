@@ -262,7 +262,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 md:p-6 arabic-font text-center" dir="rtl">
-       <div className="bg-white rounded-[2rem] p-4 md:p-8 max-w-lg w-full shadow-2xl border border-slate-100">
+       <div className="bg-white rounded-2xl p-4 md:p-8 max-w-lg w-full shadow-xl border border-slate-100">
            {statusMsg ? (
                <div className="animate-in fade-in zoom-in duration-500 py-6">
                    <div className={cn(
@@ -271,10 +271,10 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
                    )}>
                        {statusMsg.isError ? <XCircle size={40} /> : <CheckCircle2 size={40} />}
                    </div>
-                   <h1 className="text-xl md:text-3xl font-black text-slate-800 mb-2">{statusMsg.title}</h1>
+                   <h1 className="text-xl md:text-3xl font-bold text-slate-800 mb-2">{statusMsg.title}</h1>
                    <p className="text-slate-500 font-bold mb-8 text-lg" dir="ltr">{statusMsg.sub}</p>
                    
-                   <div className="flex items-center justify-center gap-3 text-sm text-slate-400 font-bold">
+                   <div className="flex items-center justify-center gap-3 text-sm text-slate-500 font-bold">
                        <Loader2 size={16} className="animate-spin text-blue-500" />
                        جاري تحويلك لصفحة التتبع...
                    </div>
@@ -1184,9 +1184,9 @@ const MainApp: React.FC = () => {
                 }
                 return prev;
             });
-         }, (err) => console.error("orders sync error: ", err));
+         }, ((err) => { if (!String(err).includes("Missing or insufficient permissions")) console.error("orders sync error: ", err); }));
       } catch (e) {
-          console.error("Failed to sync orders collection:", e);
+          if (!String(e).includes("Missing or insufficient permissions")) console.error("Failed to sync orders collection:", e);
       }
       
       // Listen for real-time updates
@@ -1218,7 +1218,7 @@ const MainApp: React.FC = () => {
                            headers: { 'Content-Type': 'application/json' },
                            body: JSON.stringify({ orderId: order.id }),
                         }).catch((error) => {
-                           console.error('Failed to send order-created push alert:', error);
+                           if (!String(error).includes("Missing or insufficient permissions") && !String(error).includes("PERMISSION_DENIED")) console.error('Failed to send order-created push alert:', error);
                         });
                      });
 
@@ -1274,7 +1274,7 @@ const MainApp: React.FC = () => {
         hasLoadedDataRef.current = true;
         setDataLoading(false);
       }, (error: any) => {
-        console.error("Firestore sync error", error);
+        if (!String(error).includes("Missing or insufficient permissions") && !String(error).includes("PERMISSION_DENIED")) console.error("Firestore sync error", error);
         if (error.code === 'permission-denied' && user) {
           setAuthError(`عذراً، ليس لديك صلاحية الوصول إلى البيانات. يرجى التأكد من أن حسابك مصرح له.\nالبريد: ${user.email}`);
         }
@@ -1320,7 +1320,7 @@ const MainApp: React.FC = () => {
           console.log("Auto-save successful");
           
         } catch (e) {
-          console.error("Firestore auto-save error", e);
+          if (!String(e).includes("Missing or insufficient permissions") && !String(e).includes("PERMISSION_DENIED")) console.error("Firestore auto-save error", e);
           toast.error("حدث خطأ أثناء الحفظ التلقائي للسحابة. قد يكون حجم البيانات تجاوز 1 ميجابايت.");
         }
       }
@@ -1410,15 +1410,15 @@ const MainApp: React.FC = () => {
     if (!authError) return null;
     return (
       <div className="fixed inset-0 bg-slate-900/90 z-[200] flex items-center justify-center p-4 md:p-6 text-center arabic-font" dir="rtl">
-          <div className="bg-white rounded-3xl p-5 md:p-10 max-w-sm w-full shadow-2xl">
+          <div className="bg-white rounded-3xl p-5 md:p-10 max-w-sm w-full shadow-xl">
               <div className="w-12 h-12 md:w-16 md:h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
                   <ShieldAlert size={32} />
               </div>
-              <h2 className="text-2xl font-black text-slate-800 mb-3">عذراً!</h2>
+              <h2 className="text-2xl font-bold text-slate-800 mb-3">عذراً!</h2>
               <p className="text-red-600 font-bold leading-relaxed mb-8 break-words">{authError}</p>
               <button 
                 onClick={() => setAuthError(null)}
-                className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all active:scale-95"
+                className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all active:scale-95"
               >
                 فهمت (إغلاق)
               </button>
@@ -1583,8 +1583,8 @@ const MainApp: React.FC = () => {
             {(sidebarOpen || isMobile) && (
               <div className="flex flex-col">
                 <div className="text-right whitespace-nowrap overflow-hidden">
-                    <div className="font-black text-xl tracking-tight bg-gradient-to-l from-white via-amber-200 to-amber-500 bg-clip-text text-transparent">التراث الكويتي</div>
-                    <div className="text-[10px] text-amber-500/80 font-black uppercase tracking-[0.2em] leading-none mt-1">المحرك الذهبي</div>
+                    <div className="font-bold text-xl tracking-tight bg-gradient-to-l from-white via-amber-200 to-amber-500 bg-clip-text text-transparent">التراث الكويتي</div>
+                    <div className="text-[10px] text-amber-500/80 font-bold uppercase tracking-[0.2em] leading-none mt-1">المحرك الذهبي</div>
                 </div>
               </div>
             )}
@@ -1618,7 +1618,7 @@ const MainApp: React.FC = () => {
                      <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
                       <FileText size={16} />
                      </div>
-                     {(sidebarOpen || isMobile) && <span className="text-[11px] font-sans font-black whitespace-nowrap uppercase tracking-[0.25em] opacity-80">سجل المبيعات</span>}
+                     {(sidebarOpen || isMobile) && <span className="text-[11px] font-sans font-bold whitespace-nowrap uppercase tracking-[0.25em] opacity-80">سجل المبيعات</span>}
                   </div>
                   {(sidebarOpen || isMobile) && (
                     <motion.div animate={{ rotate: expandedMenus.invoices ? 0 : 180 }}>
@@ -1680,7 +1680,7 @@ const MainApp: React.FC = () => {
                      <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
                       <Package size={16} />
                      </div>
-                     {(sidebarOpen || isMobile) && <span className="text-[11px] font-sans font-black whitespace-nowrap uppercase tracking-[0.25em] opacity-80">الإنتاج والمالية</span>}
+                     {(sidebarOpen || isMobile) && <span className="text-[11px] font-sans font-bold whitespace-nowrap uppercase tracking-[0.25em] opacity-80">الإنتاج والمالية</span>}
                   </div>
                   {(sidebarOpen || isMobile) && (
                     <motion.div animate={{ rotate: expandedMenus.operations ? 0 : 180 }}>
@@ -1730,7 +1730,7 @@ const MainApp: React.FC = () => {
         {/* Top Header */}
         <header 
           onClick={closeAllMenus}
-          className="h-12 md:h-20 bg-white/70 backdrop-blur-3xl border-b border-slate-200/50 flex items-center justify-between px-4 lg:px-10 z-[100] sticky top-0 shadow-sm"
+          className="h-12 md:h-20 glass-surface border-b border-slate-200/60/50 flex items-center justify-between px-4 lg:px-10 z-[100] sticky top-0 shadow-sm"
         >
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-4 md:p-8 shrink min-w-0">
             {userRole !== 'partner' && (
@@ -1777,14 +1777,14 @@ const MainApp: React.FC = () => {
               <button 
                 onClick={(e) => { e.stopPropagation(); setCommandBarOpen(true); }}
                 title="البحث السريع (Ctrl+K)"
-                className="flex items-center gap-2 sm:gap-4 bg-slate-50/80 hover:bg-white p-3 sm:px-5 sm:py-3 rounded-[1rem] sm:rounded-2xl border border-slate-200/50 transition-all group overflow-hidden shadow-sm hover:shadow-md hover:border-amber-400"
+                className="hidden md:flex items-center gap-2 sm:gap-4 glass-surface hover:bg-white p-3 sm:px-5 sm:py-3 rounded-[1rem] sm:rounded-2xl transition-all group overflow-hidden hover:shadow-md hover:border-amber-400"
               >
-                  <Search size={16} className="text-slate-400 group-hover:text-amber-500 group-hover:scale-125 transition-all" />
-                  <span className="hidden sm:block text-xs font-black text-slate-500">ابحث عن أي شيء...</span>
+                  <Search size={16} className="text-slate-500 group-hover:text-amber-500 group-hover:scale-125 transition-all" />
+                  <span className="hidden sm:block text-xs font-bold text-slate-500">ابحث عن أي شيء...</span>
                   <div className="hidden sm:flex gap-1.5 items-center bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-[0.5rem] shadow-sm group-hover:shadow-md group-hover:bg-amber-100/50 transition-all">
-                    <span className="text-[11px] font-black text-amber-700">K</span>
-                    <span className="text-[10px] font-black text-amber-600/50">+</span>
-                    <span className="text-[11px] font-black text-amber-700">Ctrl</span>
+                    <span className="text-[11px] font-bold text-amber-700">K</span>
+                    <span className="text-[10px] font-bold text-amber-600/50">+</span>
+                    <span className="text-[11px] font-bold text-amber-700">Ctrl</span>
                   </div>
                </button>
              )}
@@ -1797,7 +1797,7 @@ const MainApp: React.FC = () => {
                   setCurrentPage('new-invoice');
                 }}
                 title="إنشاء فاتورة جديدة"
-                className="hidden sm:flex items-center justify-center w-12 h-12 bg-slate-900 text-white rounded-[1rem] sm:rounded-2xl font-black shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all transform hover:scale-105 active:scale-95 group"
+                className="hidden sm:flex items-center justify-center w-12 h-12 bg-slate-900 text-white rounded-[1rem] sm:rounded-2xl font-bold shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all transform hover:scale-105 active:scale-95 group"
               >
                 <Plus size={20} className="group-hover:rotate-90 transition-transform" />
               </button>
@@ -1807,7 +1807,7 @@ const MainApp: React.FC = () => {
                 title="المساعد الذكي"
                 className={cn(
                   "flex w-12 h-12 rounded-[1rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden",
-                  currentPage === 'ai' ? "bg-slate-900 text-white shadow-2xl scale-105" : "bg-slate-100/50 text-slate-500 hover:bg-white hover:shadow-lg border border-transparent hover:border-amber-200/40"
+                  currentPage === 'ai' ? "bg-slate-900 text-white shadow-xl scale-105" : "bg-slate-100/50 text-slate-500 hover:bg-white hover:shadow-lg border border-transparent hover:border-amber-200/40"
                 )}
               >
                 <Bot size={22} className={cn("transition-all relative z-10", currentPage === 'ai' ? "text-amber-400" : "group-hover:text-amber-500 group-hover:scale-110")} />
@@ -1852,13 +1852,13 @@ const MainApp: React.FC = () => {
                        animate={{ opacity: 1, y: 0, scale: 1 }}
                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
                        transition={{ duration: 0.2 }}
-                       className="absolute left-0 mt-3 w-[290px] xs:w-[320px] sm:w-[380px] md:w-[420px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200 z-[9999] overflow-hidden origin-top-left"
+                       className="absolute left-0 mt-3 w-[290px] xs:w-[320px] sm:w-[380px] md:w-[420px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200/60 z-[9999] overflow-hidden origin-top-left"
                       >
                       <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white">
-                        <span className="font-black text-slate-800 text-sm sm:text-base">التنبيهات الذكية</span>
+                        <span className="font-bold text-slate-800 text-sm sm:text-base">التنبيهات الذكية</span>
                         <div className="flex items-center gap-1">
                            <button onClick={() => setIsSoundEnabled(!isSoundEnabled)} className="p-2 hover:bg-slate-100 rounded-full transition-colors" title={isSoundEnabled ? "إيقاف التنبيه الصوتي" : "تفعيل التنبيه الصوتي"}>
-                               {isSoundEnabled ? <Volume2 size={18} className="text-emerald-600" /> : <VolumeX size={18} className="text-slate-400" />}
+                               {isSoundEnabled ? <Volume2 size={18} className="text-emerald-600" /> : <VolumeX size={18} className="text-slate-500" />}
                            </button>
                            <button 
                              onClick={(e) => {
@@ -1925,9 +1925,9 @@ const MainApp: React.FC = () => {
                                 <Bell size={18} />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-black text-slate-800 mb-1 leading-tight break-words whitespace-normal">{notif.title}</div>
+                                <div className="text-sm font-bold text-slate-800 mb-1 leading-tight break-words whitespace-normal">{notif.title}</div>
                                 <div className="text-[11px] text-slate-500 leading-relaxed break-words whitespace-normal">{notif.message}</div>
-                                <div className="text-[9px] text-slate-400 mt-1.5 font-medium flex items-center gap-1">
+                                <div className="text-[10px] text-slate-500 mt-1.5 font-medium flex items-center gap-1">
                                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                                   {new Date(notif.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
                                 </div>
@@ -1943,7 +1943,7 @@ const MainApp: React.FC = () => {
                           <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
                             <Bell size={28} className="text-slate-200" />
                           </div>
-                          <div className="font-bold text-slate-400">لا توجد تنبيهات</div>
+                          <div className="font-bold text-slate-500">لا توجد تنبيهات</div>
                           <div className="text-[11px] text-slate-300 mt-1">سيظهر هنا كل جديد يخص المطعم</div>
                         </div>
                       )}
@@ -1962,16 +1962,16 @@ const MainApp: React.FC = () => {
                 }
                 setCurrentPage('settings');
               }}
-              className={cn("flex items-center gap-2 sm:gap-3 pl-2 p-1.5 rounded-2xl transition-colors max-w-[120px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent", userRole === 'partner' ? "cursor-default opacity-80" : "cursor-pointer hover:bg-slate-100 hover:border-slate-200")}
+              className={cn("flex items-center gap-2 sm:gap-3 pl-2 p-1.5 rounded-2xl transition-colors max-w-[120px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent", userRole === 'partner' ? "cursor-default opacity-80" : "cursor-pointer hover:bg-slate-100 hover:border-slate-200/60")}
             >
               <div className="text-left hidden xs:block overflow-hidden">
                 <div className="text-sm font-bold truncate text-slate-800">{user?.displayName || 'أحمد الفيلكاوي'}</div>
-                <div className="text-[9px] text-slate-500 truncate">{user?.email || 'مدير النظام'}</div>
+                <div className="text-[10px] text-slate-500 truncate">{user?.email || 'مدير النظام'}</div>
               </div>
               {user?.photoURL ? (
                 <img src={user.photoURL} alt="User" className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-primary/20 shrink-0 shadow-sm" referrerPolicy="no-referrer" />
               ) : (
-                <div className="w-8 h-8 sm:w-9 sm:h-9 bg-primary/10 rounded-full border-2 border-primary/20 flex items-center justify-center font-black text-primary text-xs shrink-0 shadow-sm">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 bg-primary/10 rounded-full border-2 border-primary/20 flex items-center justify-center font-bold text-primary text-xs shrink-0 shadow-sm">
                   {user?.displayName?.charAt(0) || 'أ'}
                 </div>
               )}
@@ -2025,7 +2025,7 @@ const MainApp: React.FC = () => {
               }}
               className="w-full min-h-full relative z-10 px-4 md:px-6"
             >
-              <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /><p className="text-slate-400 text-sm font-black animate-pulse">جاري التحميل...</p></div>}>
+              <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /><p className="text-slate-500 text-sm font-bold animate-pulse">جاري التحميل...</p></div>}>
                  {renderAppContent()}
               </React.Suspense>
             </motion.div>
@@ -2078,12 +2078,12 @@ const MainApp: React.FC = () => {
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-slate-900/10 backdrop-blur-[2px] z-[200] flex items-center justify-center pointer-events-none"
           >
-            <div className="bg-white/90 px-6 py-4 rounded-3xl shadow-2xl border border-indigo-100 flex items-center gap-4 animate-bounce">
+            <div className="bg-white/90 px-6 py-4 rounded-3xl shadow-xl border border-indigo-100 flex items-center gap-4 animate-bounce">
               <div className="relative">
                 <Bot className="text-indigo-600" size={24} />
                 <Sparkles className="absolute -top-2 -right-2 text-amber-500 animate-pulse" size={12} />
               </div>
-              <span className="font-black text-slate-800 text-sm">جاري تحليل البيانات...</span>
+              <span className="font-bold text-slate-800 text-sm">جاري تحليل البيانات...</span>
             </div>
           </motion.div>
         )}
@@ -2097,11 +2097,11 @@ const MainApp: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.5 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] sm:hidden"
+            className={`fixed transition-all duration-700 ease-in-out left-1/2 -translate-x-1/2 z-[100] md:hidden ${currentPage.startsWith('dashboard') ? "bottom-24" : "bottom-8"}`}
           >
             <button
               onClick={() => setCommandBarOpen(true)}
-              className="flex items-center justify-center w-14 h-14 bg-slate-900/95 backdrop-blur-2xl rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.6)] border border-white/20 active:scale-95 transition-all relative group overflow-hidden"
+              className="flex items-center justify-center w-14 h-14 bg-slate-900/95 backdrop-blur-2xl rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.6)] border border-white/10 active:scale-95 transition-all relative group overflow-hidden"
             >
               <motion.div 
                 className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/20 to-indigo-500/0 opacity-50"
@@ -2123,10 +2123,7 @@ const MainApp: React.FC = () => {
       {(isAuthenticated || appMode === 'local') && <InstagramMagicWand data={data} />}
       <Toaster richColors position="bottom-right" closeButton />
       
-      {/* Version Tag - Subtle but visible as requested */}
-      <div className="fixed bottom-1 left-2 pointer-events-none z-[10000] select-none opacity-20">
-        <span className="text-[8px] font-mono tracking-widest text-slate-500 uppercase">Version 4.0.0.Release</span>
-      </div>
+
     </div>
   );
 };
@@ -2146,7 +2143,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick, highlig
     className={cn(
       "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200",
       active 
-        ? "bg-white text-secondary shadow-lg font-black" 
+        ? "bg-white text-secondary shadow-lg font-bold" 
         : "text-white/70 hover:bg-white/10 hover:text-white",
       highlight && !active && "bg-white/5 border border-white/10",
       collapsed ? "justify-center px-0" : "px-4"
@@ -2162,7 +2159,7 @@ const SubNavItem: React.FC<{ label: string; active?: boolean; onClick: () => voi
   <button 
     onClick={onClick}
     className={cn(
-      "w-full text-right p-3.5 text-[12px] font-black rounded-2xl transition-all active:scale-95 mb-0.5",
+      "w-full text-right p-3.5 text-[12px] font-bold rounded-2xl transition-all active:scale-95 mb-0.5",
       active ? "text-amber-500 shadow-xl shadow-amber-500/5 bg-white/5 border border-white/5 ring-1 ring-white/10" : "text-white/30 hover:text-white/80 hover:bg-white/5"
     )}
   >
@@ -2210,7 +2207,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
               className="mb-8 relative"
             >
               <div className="absolute inset-0 bg-emerald-400 rounded-full blur-[40px] opacity-20 animate-pulse" />
-              <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="w-32 h-32 md:w-40 md:h-40 relative z-10 drop-shadow-2xl" />
+              <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="w-32 h-32 md:w-40 md:h-40 relative z-10 drop-shadow-xl" />
             </motion.div>
 
             <motion.div
@@ -2219,7 +2216,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
                 transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
                 className="text-center"
             >
-              <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-l from-slate-900 via-indigo-800 to-emerald-700 bg-clip-text text-transparent mb-4 leading-relaxed tracking-tight">
+              <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-l from-slate-900 via-indigo-800 to-emerald-700 bg-clip-text text-transparent mb-4 leading-relaxed tracking-tight">
                 {name || 'شركة مطبخ التراث الكويتي'}
               </h1>
             </motion.div>

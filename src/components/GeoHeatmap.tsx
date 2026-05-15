@@ -48,7 +48,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  const [activeRegion, setActiveRegion] = useState<string | null>(null);
 
  return (
- <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-3xl md:rounded-2xl p-4 shadow-2xl relative overflow-hidden border border-[#f0e6d2]/10">
+ <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-3xl md:rounded-2xl p-4 shadow-2xl shadow-indigo-900/50 border border-white/10 glass-dark text-white relative overflow-hidden border border-[#f0e6d2]/10">
  <style>{`
  .kuwait-map-wrapper {
  position: relative;
@@ -62,7 +62,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  filter: drop-shadow(0 0 20px rgba(99,102,241,0.2));
  }
  `}</style>
- <h3 className="text-2xl md:text-3xl font-black mb-8 text-white flex items-center justify-end gap-3 relative z-10 text-right w-full">
+ <h3 className="text-2xl md:text-3xl font-bold mb-8 text-white flex items-center justify-end gap-3 relative z-10 text-right w-full">
  خريطة الذهب الاستراتيجية 🇰🇼
  </h3>
  <p className="text-sm font-bold text-slate-300 text-right mb-6 relative z-10">
@@ -95,7 +95,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  onClick={() => setActiveRegion(gov.name)}
  >
  <div 
- className={`rounded-full bg-gradient-to-br ${intensity > 0.5 ? 'from-amber-400 to-amber-600' : 'from-indigo-400 to-indigo-600'} flex items-center justify-center ${glow} text-white font-black transition-all duration-300 cursor-pointer border-2 border-white/20 hover:scale-110 ${isActive ? 'scale-110 shadow-[0_0_15px_rgba(255,255,255,0.4)]' : ''}`}
+ className={`rounded-full bg-gradient-to-br ${intensity > 0.5 ? 'from-amber-400 to-amber-600' : 'from-indigo-400 to-indigo-600'} flex items-center justify-center ${glow} text-white font-bold transition-all duration-300 cursor-pointer border-2 border-white/10 hover:scale-110 ${isActive ? 'scale-110 shadow-[0_0_15px_rgba(255,255,255,0.4)]' : ''}`}
  style={{ width: `${size}px`, height: `${size}px`, opacity: 0.8 + (intensity * 0.2) }}
  >
  <span className="text-[10px] scale-75 select-none">{stat.count}</span>
@@ -103,7 +103,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
 
  {/* Tooltip */}
  <div className={`absolute bottom-full mb-3 left-1/2 transform -translate-x-1/2 flex flex-col items-center transition-all duration-300 pointer-events-none ${isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
- <div className="text-xs font-black text-white bg-slate-900 border border-slate-700 shadow-xl px-3 py-2 rounded-xl whitespace-nowrap">
+ <div className="text-xs font-bold text-white bg-slate-900 border border-slate-700 shadow-2xl shadow-indigo-900/50 border border-white/10 glass-dark text-white px-3 py-2 rounded-xl whitespace-nowrap">
  <div className="text-center mb-1 text-slate-300">{gov.name}</div>
  <div className="text-amber-400">{Number(stat.revenue || 0).toFixed(2)} د.ك</div>
  </div>
@@ -114,7 +114,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  })}
  </div>
  </div>
- <p className="text-[10px] text-slate-400 mt-6 font-bold text-center relative z-10 w-full">الدوائر الذهبية الكبيرة تعني تركيزاً وربحية أعلى للمناطق</p>
+ <p className="text-[10px] text-slate-500 mt-6 font-bold text-center relative z-10 w-full">الدوائر الذهبية الكبيرة تعني تركيزاً وربحية أعلى للمناطق</p>
  </div>
  );
 };

@@ -763,7 +763,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   <button
   onClick={() => setActiveTab('invoices')}
   className={cn(
-  "px-6 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2",
+  "px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2",
   activeTab === 'invoices' ? "bg-white text-slate-900 shadow-md scale-105" : "text-slate-500 hover:text-slate-700"
   )}
   >
@@ -773,7 +773,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   <button
   onClick={() => setActiveTab('orders')}
   className={cn(
-  "px-6 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 relative",
+  "px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 relative",
   activeTab === 'orders' ? "bg-white text-slate-900 shadow-md scale-105" : "text-slate-500 hover:text-slate-700"
   )}
   >
@@ -817,13 +817,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   
 
  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 mb-3 md:mb-0">
- <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200 shadow-sm text-right flex flex-col justify-center">
- <div className="text-[10px] font-black text-slate-400 uppercase mb-0.5 md:mb-1">عدد الفواتير</div>
- <div className="text-xl md:text-3xl font-black text-slate-900 tracking-tighter">{filteredInvoices.length}</div>
+ <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
+ <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">عدد الفواتير</div>
+ <div className="text-xl md:text-3xl font-bold text-slate-900 tracking-tighter">{filteredInvoices.length}</div>
  </div>
- <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200 shadow-sm text-right flex flex-col justify-center">
- <div className="text-[10px] font-black text-slate-400 uppercase mb-0.5 md:mb-1">إجمالي المبيعات</div>
- <div className="text-xl md:text-3xl font-black text-primary tracking-tighter truncate">
+ <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
+ <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي المبيعات</div>
+ <div className="text-xl md:text-3xl font-bold text-primary tracking-tighter truncate">
  {Math.max(0, filteredInvoices
  .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
  .reduce((a, b) => a + Math.max(0, Number(b.totalAmount || 0)), 0))
@@ -832,9 +832,9 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <span className="text-sm font-bold mr-1">د.ك</span>
  </div>
  </div>
- <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200 shadow-sm text-right flex flex-col justify-center col-span-2 md:col-span-1">
- <div className="text-[10px] font-black text-slate-400 uppercase mb-0.5 md:mb-1">إجمالي الربح</div>
- <div className="text-xl md:text-3xl font-black text-emerald-600 tracking-tighter truncate">
+ <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center col-span-2 md:col-span-1">
+ <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي الربح</div>
+ <div className="text-xl md:text-3xl font-bold text-emerald-600 tracking-tighter truncate">
  {Math.max(0, filteredInvoices
  .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
  .reduce((a, b) => a + Math.max(0, Number(b.profit || 0)), 0))
@@ -845,17 +845,17 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </div>
  </div>
 
- <div className="bg-white rounded-[32px] p-3 md:p-3 border border-slate-200 shadow-sm text-right">
+ <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
  <div className="flex flex-col md:flex-row md:items-center gap-4 mb-8">
  <div className="relative flex-1">
- <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+ <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
  <input 
  id="search-input"
  type="text" 
  placeholder="ابحث برقم الفاتورة أو اسم العميل..."
  value={search}
  onChange={(e) => setSearch(e.target.value)}
- className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
  />
  </div>
  <div className="flex p-1 bg-slate-100 rounded-xl">
@@ -864,8 +864,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  key={f}
  onClick={() => setTimeFilter(f as any)}
  className={cn(
-"px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all",
- timeFilter === f ?"bg-white text-slate-900 shadow-sm" :"text-slate-400 hover:text-slate-600"
+"px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all",
+ timeFilter === f ?"bg-white text-slate-900 shadow-sm" :"text-slate-500 hover:text-slate-600"
 )}
  >
  {f === 'all' ? 'الكل' : f === 'today' ? 'اليوم' : f === 'week' ? 'أسبوع' : f === 'month' ? 'شهر' : 'مخصص'}
@@ -875,14 +875,14 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </div>
  
  {timeFilter === 'custom' && (
- <div className="flex items-center gap-4 mb-8 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+ <div className="flex items-center gap-4 mb-8 bg-slate-50 p-3 rounded-2xl border border-slate-200/60">
  <div className="flex-1 text-right">
  <label className="block text-xs font-bold text-slate-500 mb-1">من</label>
- <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full p-2 rounded-lg border border-slate-200 outline-none" />
+ <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full p-2 rounded-lg border border-slate-200/60 outline-none" />
  </div>
  <div className="flex-1 text-right">
  <label className="block text-xs font-bold text-slate-500 mb-1">إلى</label>
- <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full p-2 rounded-lg border border-slate-200 outline-none" />
+ <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full p-2 rounded-lg border border-slate-200/60 outline-none" />
  </div>
  </div>
 )}
@@ -890,7 +890,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <div className="overflow-x-auto rounded-2xl border border-slate-100">
  <table className="w-full text-right min-w-[900px]" dir="rtl">
  <thead>
- <tr className="bg-slate-50 border-b border-slate-100 font-black text-slate-400 text-[10px] uppercase text-right">
+ <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-[10px] uppercase text-right">
  <th className="p-3 md:p-3">رقم الفاتورة</th>
  <th className="p-3 md:p-3">العميل</th>
  <th className="p-3 md:p-3">التاريخ</th>
@@ -908,12 +908,12 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <div className="absolute inset-0 bg-primary/10 rounded-3xl animate-ping opacity-20" />
  <TrendingUp size={48} />
  </div>
- <h3 className="text-xl md:text-3xl font-black text-slate-800 mb-3 tracking-tight">لا توجد فواتير!</h3>
+ <h3 className="text-xl md:text-3xl font-bold text-slate-800 mb-3 tracking-tight">لا توجد فواتير!</h3>
  <p className="text-slate-500 font-bold mb-8 leading-relaxed">لم تقم بإصدار أي فاتورة حتى الآن. أضف أول فاتورة لتطلق العنان لتحليلات الذكاء الاصطناعي.</p>
  {!isPartner && (
   <button 
   onClick={() => { if(onEditInvoice) onEditInvoice('new'); }} 
-  className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1 mx-auto"
+  className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1 mx-auto"
   >
   <Plus size={24} />
   <span>ابدأ رحلتك وضيف أول فاتورة الآن!</span>
@@ -947,14 +947,14 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </td>
  <td className="p-3 md:p-3">
  <div className="font-bold text-slate-800">{customer?.name || (inv as any).customerName || (inv.customerId ? `عميل #${inv.customerId.slice(-4)}` : 'عميل عام (غير مسجل)')}</div>
- <div className="text-[10px] text-slate-400 font-medium">{customer?.phone || (inv as any).customerPhone}</div>
+ <div className="text-[10px] text-slate-500 font-medium">{customer?.phone || (inv as any).customerPhone}</div>
  </td>
  <td className="p-3 md:p-3 text-slate-500 text-xs font-bold">
  <div className="flex flex-col gap-1 items-start">
  <span>{new Date(inv.date).toLocaleDateString('en-GB')}</span>
- <span dir="ltr" className="text-[9px] font-medium text-slate-400 m-0 p-0 leading-none inline-block text-left">{new Date(inv.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+ <span dir="ltr" className="text-[10px] font-medium text-slate-500 m-0 p-0 leading-none inline-block text-left">{new Date(inv.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
  <span className={cn(
-"px-2 py-0.5 rounded-md font-black text-[9px] uppercase",
+"px-2 py-0.5 rounded-md font-bold text-[10px] uppercase",
  inv.deliveryType === 'standard' ?"bg-emerald-50 text-emerald-500" :
  inv.deliveryType === 'special' ?"bg-purple-50 text-purple-500" :
  inv.deliveryType === 'free' ?"bg-amber-50 text-amber-500" :
@@ -968,11 +968,11 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </td>
  <td className="p-3 md:p-3">
  <div className="flex flex-col gap-2 items-start">
- <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase">
+ <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold uppercase">
  {inv.paymentMethod}
  </span>
     <div className={cn(
-   "px-3 py-1 text-[10px] font-black rounded-lg transition-all w-fit",
+   "px-3 py-1 text-[10px] font-bold rounded-lg transition-all w-fit",
    (isPaidStatus(inv.paymentStatus as string) || isPaidStatus((inv as any).status)) ?"bg-emerald-100 text-emerald-700" : ((isCancelledStatus(inv.paymentStatus as string) || isCancelledStatus((inv as any).status)) ? "bg-rose-100 text-rose-700" : (isFailedStatus(inv.paymentStatus as string) || isFailedStatus((inv as any).status)) ? "bg-amber-100 text-amber-700" : String((inv as any).status).includes('تجميع القطية') || String(inv.paymentStatus).includes('تجميع القطية') ? "bg-purple-100 text-purple-700" : "bg-violet-100 text-violet-700")
   )}
     >
@@ -980,11 +980,11 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
     </div>
  </div>
  </td>
- <td className="p-3 md:p-3 font-black text-slate-900 group-hover:text-primary transition-colors">
+ <td className="p-3 md:p-3 font-bold text-slate-900 group-hover:text-primary transition-colors">
  <div className="flex flex-col items-start gap-1">
  <span>{Math.max(0, Number(typeof inv.totalAmount === 'number' ? inv.totalAmount : ((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : ((data?.products || []).find(p => p.id === item.productId)?.price || 0))) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
  {(inv.discount || 0) > 0 && (
- <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 whitespace-nowrap">
+ <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 whitespace-nowrap">
  خصم مفعّل {inv.appliedPromoCodeName ? `(${inv.appliedPromoCodeName})` : ''}
  </span>
 )}
@@ -1002,14 +1002,14 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
      import('sonner').then(m => m.toast.error('لا يمكن فتح واتساب لعدم توفر رقم عميل'));
    }
  }}
- className="p-2 hover:bg-emerald-50 rounded-lg text-slate-400 hover:text-emerald-500 transition-colors"
+ className="p-2 hover:bg-emerald-50 rounded-lg text-slate-500 hover:text-emerald-500 transition-colors"
  title="إرسال الفاتورة عبر واتساب"
  >
  <MessageSquare size={16} />
  </button>
  <button 
  onClick={(e) => { e.stopPropagation(); handlePrint(inv); }}
- className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
+ className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-600 transition-colors"
  title="طباعة"
  >
  <Printer size={16} />
@@ -1018,7 +1018,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   <>
   <button 
   onClick={(e) => { e.stopPropagation(); handleEditInvoice(inv); }}
-  className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
+  className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-600 transition-colors"
   title="تعديل"
   >
   <Edit2 size={16} />
@@ -1050,7 +1050,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  >
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4 md:p-3 mt-4">
  <div>
- <h4 className="text-[10px] font-black uppercase text-slate-400 mb-4 flex items-center gap-2">
+ <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-4 flex items-center gap-2">
  <Package size={12} /> محتويات الطلب
  </h4>
  <div className="space-y-2">
@@ -1068,8 +1068,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
 )}
  </div>
  <div className="flex gap-4 text-[10px] md:text-xs font-bold items-center">
- <span className="text-slate-400">الكمية: {item.quantity} × {Number(price || 0).toFixed(3)}</span>
- <span className="text-primary font-black">{(Number(price || 0) * (item.quantity || 1)).toFixed(3)} د.ك</span>
+ <span className="text-slate-500">الكمية: {item.quantity} × {Number(price || 0).toFixed(3)}</span>
+ <span className="text-primary font-bold">{(Number(price || 0) * (item.quantity || 1)).toFixed(3)} د.ك</span>
  </div>
  </div>
  );
@@ -1078,7 +1078,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  
  {inv.notes && inv.notes !== '---' && (typeof inv.notes === 'string' ? inv.notes.trim() : '') !== '' && (
  <div className="mt-4 bg-amber-50/80 border border-amber-100 p-3 rounded-xl">
- <h4 className="text-[10px] font-black uppercase text-amber-600 mb-2 flex items-center gap-2">
+ <h4 className="text-[10px] font-bold uppercase text-amber-600 mb-2 flex items-center gap-2">
  <FileText size={12} /> ملاحظات عامة للطلب
  </h4>
  <p className="text-sm font-bold text-amber-900 leading-relaxed italic pr-3 border-r-2 border-amber-300">
@@ -1089,7 +1089,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
 
  {(inv as any).splitType === 'traditional' && Array.isArray((inv as any).splitPayments) && (inv as any).splitPayments.length > 0 && (
  <div className="mt-4 bg-purple-50/50 border border-purple-100 p-3 md:p-4 rounded-xl">
- <h4 className="text-[12px] font-black uppercase text-purple-600 mb-3 flex items-center gap-2">
+ <h4 className="text-[12px] font-bold uppercase text-purple-600 mb-3 flex items-center gap-2">
  <Users className="w-4 h-4" /> المشاركين بالقطية
  </h4>
  <div className="space-y-2">
@@ -1100,7 +1100,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <span className="text-[10px] text-slate-500">{sp.phone || 'بدون رقم'}</span>
  </div>
  <div className="flex flex-col items-end gap-1">
- <span className="font-black text-primary">{Number(sp.amount || 0).toFixed(3)} د.ك</span>
+ <span className="font-bold text-primary">{Number(sp.amount || 0).toFixed(3)} د.ك</span>
  {sp.status === 'paid' ? (
  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
  <CheckCircle2 className="w-3 h-3" /> مدفوع
@@ -1128,13 +1128,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  {(inv as any).splitType === 'roulette' && Array.isArray((inv as any).splitParticipants) && (inv as any).splitParticipants.length > 0 && (
  <div className="mt-4 bg-purple-100 border-2 border-purple-400 p-4 rounded-xl shadow-inner relative overflow-hidden">
  <div className="absolute -right-4 -top-4 opacity-10 pointer-events-none text-9xl">🎲</div>
- <h4 className="text-sm font-black uppercase text-purple-900 mb-4 flex items-center gap-2">
+ <h4 className="text-sm font-bold uppercase text-purple-900 mb-4 flex items-center gap-2">
  <Dices className="w-5 h-5 text-purple-600" /> روليت الحظ
  </h4>
  
  <div className="bg-white rounded-xl p-3 border-2 border-purple-200 mb-3 text-center">
  <div className="text-[10px] font-bold text-purple-400 mb-1">بطل الليلة (الخاسر اللي دفعها)</div>
- <div className="text-lg font-black text-purple-700">{(inv as any).rouletteLoser || 'غير معروف'}</div>
+ <div className="text-lg font-bold text-purple-700">{(inv as any).rouletteLoser || 'غير معروف'}</div>
  </div>
 
  <div className="space-y-1">
@@ -1156,7 +1156,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <div className="flex flex-col justify-center gap-4">
  <div className="bg-white p-3 rounded-2xl border border-slate-100 space-y-2">
  <div className="flex justify-between text-xs font-bold">
- <span className="text-slate-400">المجموع:</span>
+ <span className="text-slate-500">المجموع:</span>
  <span>{Number(((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : ((data?.products || []).find(p => p.id === item.productId)?.price || 0))) || 0) * (item.quantity || 1), 0))).toFixed(3)} د.ك</span>
  </div>
  {(inv.discount || 0) > 0 && (
@@ -1166,13 +1166,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </div>
 )}
  <div className="flex justify-between text-xs font-bold">
- <span className="text-slate-400">التوصيل
+ <span className="text-slate-500">التوصيل
  {inv.deliveryInfo?.zoneName ? ` (${inv.deliveryInfo.zoneName})` : ''}
  {inv.deliveryInfo?.company ? ` - ${inv.deliveryInfo.company}` : ''}
  :</span>
  <span>{Number(inv.deliveryFee || 0).toFixed(3)} د.ك</span>
  </div>
- <div className="flex justify-between text-base font-black border-t pt-2 mt-2">
+ <div className="flex justify-between text-base font-bold border-t pt-2 mt-2">
  <span>الإجمالي:</span>
  <span className="text-primary">{Math.max(0, Number(typeof inv.totalAmount === 'number' ? inv.totalAmount : ((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : ((data?.products || []).find(p => p.id === item.productId)?.price || 0))) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
  </div>
@@ -1189,7 +1189,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  })}
  {filteredInvoices.length === 0 && (
  <tr>
- <td colSpan={6} className="p-3 md:p-4 md:p-3 md:p-4 text-center text-slate-400 font-bold italic">
+ <td colSpan={6} className="p-3 md:p-4 md:p-3 md:p-4 text-center text-slate-500 font-bold italic">
  لا توجد فواتير مطابقة للبحث.
  </td>
  </tr>

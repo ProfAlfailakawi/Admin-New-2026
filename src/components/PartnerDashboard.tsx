@@ -62,14 +62,14 @@ const GlobalStatBox = React.memo(({ label, value, color, icon: Icon, isPercent =
  
  <div className="text-right relative z-10">
  <div className="flex items-baseline justify-end gap-1 mb-1">
- <span className="text-[10px] font-black opacity-40 uppercase tracking-tighter">{unit}</span>
- <div className="text-xl lg:text-3xl font-black text-slate-800 tracking-tighter group-hover:scale-105 transition-transform origin-right">
+ <span className="text-[10px] font-bold opacity-40 uppercase tracking-tighter">{unit}</span>
+ <div className="text-xl lg:text-3xl font-bold text-slate-800 tracking-tighter group-hover:scale-105 transition-transform origin-right">
  {isPercent ? `${value.toFixed(1)}%` : Number(value).toLocaleString('en-GB', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
  </div>
  </div>
- <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] group-hover:text-slate-600 transition-colors">{label}</div>
+ <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.1em] group-hover:text-slate-600 transition-colors">{label}</div>
  {subtext && (
- <div className={cn("text-[8px] lg:text-[9px] mt-2 font-black px-2 py-1 rounded-full bg-current/10 inline-block", getGradient(color).split(' ')[2])}>
+ <div className={cn("text-[10px] lg:text-[10px] mt-2 font-bold px-2 py-1 rounded-full bg-current/10 inline-block", getGradient(color).split(' ')[2])}>
  {subtext}
  </div>
 )}
@@ -117,8 +117,8 @@ const SectionHeader = ({ title, icon: Icon, color ="indigo", subtitle }: { title
  <Icon size={24} className="md:w-[28px] md:h-[28px]" strokeWidth={2.5} />
  </motion.div>
  <div className="text-right md:text-left">
- <h2 className="text-xl md:text-2xl lg:text-3xl font-black tracking-tighter text-slate-800">{title}</h2>
- {subtitle && <p className="text-slate-500 text-xs md:text-sm font-black mt-1 opacity-60">{subtitle}</p>}
+ <h2 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tighter text-slate-800">{title}</h2>
+ {subtitle && <p className="text-slate-500 text-xs md:text-sm font-bold mt-1 opacity-60">{subtitle}</p>}
  </div>
  </div>
  </motion.div>
@@ -403,14 +403,14 @@ const browserAlreadyGranted =
                 <Bell size={20} className="animate-pulse" />
               </div>
               <div>
-                <h4 className="text-[12px] font-black border-b border-indigo-200/50 pb-1 mb-1 inline-block">تفعيل الإشعارات</h4>
+                <h4 className="text-[12px] font-bold border-b border-indigo-200/50 pb-1 mb-1 inline-block">تفعيل الإشعارات</h4>
                 <p className="text-[10px] sm:text-[11px] font-bold text-indigo-600/80 mt-0.5">احصل على تنبيهات فورية عند وصول طلبات جديدة</p>
               </div>
             </div>
             
             <button
               onClick={() => setShowPushModal(true)}
-              className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 w-full sm:w-auto hover:bg-indigo-700 hover:scale-[0.98] transition-all active:scale-95"
+              className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 w-full sm:w-auto hover:bg-indigo-700 hover:scale-[0.98] transition-all active:scale-95"
             >
               <Bell size={14} /> تفعيل الآن
             </button>
@@ -423,7 +423,7 @@ const browserAlreadyGranted =
             animate={{ opacity: 1 }}
             className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-2xl flex items-center justify-between gap-4 self-stretch xl:self-auto"
           >
-            <div className="flex items-center justify-between w-full h-full text-right text-[11px] font-black">
+            <div className="flex items-center justify-between w-full h-full text-right text-[11px] font-bold">
                <span>الإشعارات موقوفة من إعدادات الجهاز</span>
             </div>
           </motion.div>
@@ -435,7 +435,7 @@ const browserAlreadyGranted =
             animate={{ opacity: 1 }}
             className="bg-emerald-50 border border-emerald-100 text-emerald-600 p-3 rounded-2xl flex items-center justify-between gap-4 self-stretch xl:self-auto"
           >
-            <div className="flex items-center gap-2 text-right text-[11px] font-black">
+            <div className="flex items-center gap-2 text-right text-[11px] font-bold">
                <Bell size={16} />
                <span>الإشعارات مفعلة بنجاح</span>
             </div>
@@ -449,18 +449,18 @@ const browserAlreadyGranted =
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.9, opacity: 0 }}
-                    className="bg-white rounded-3xl p-6 shadow-2xl max-w-sm w-full text-center"
+                    className="bg-white rounded-3xl p-6 shadow-xl max-w-sm w-full text-center"
                 >
                     <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Bell size={32} />
                     </div>
-                    <h3 className="text-xl font-black text-slate-800 mb-2">فعّل الإشعارات</h3>
+                    <h3 className="text-xl font-bold text-slate-800 mb-2">فعّل الإشعارات</h3>
                     <p className="text-slate-600 text-sm font-bold mb-6">لتصلك طلباتك الجديدة أول بأول حتى والتطبيق مغلق.</p>
                     <div className="flex flex-col gap-3">
                         <button
                           onClick={handleEnablePush}
                           disabled={isActivatingPush}
-                          className="bg-indigo-600 text-white py-3 rounded-xl font-black shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 transition-colors"
+                          className="bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 transition-colors"
                         >
                           {isActivatingPush ? 'جاري التفعيل...' : 'تفعيل الإشعارات الآن'}
                         </button>
@@ -483,7 +483,7 @@ const browserAlreadyGranted =
        key={f}
        onClick={() => startTransition(() => setFilter(f))}
        className={cn(
-      "px-5 py-2 text-[11px] font-black rounded-xl transition-all",
+      "px-5 py-2 text-[11px] font-bold rounded-xl transition-all",
        filter === f ?"bg-slate-900 text-white shadow-lg" :"text-slate-500 hover:bg-slate-100"
       )}
        >
@@ -497,7 +497,7 @@ const browserAlreadyGranted =
        </div>
 
         {/* Stats Grid - Exactly like Admin */}
-        <motion.div layout className="mb-12 bg-white rounded-3xl p-2 md:p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden relative z-10">
+        <motion.div layout className="mb-12 bg-white rounded-3xl p-2 md:p-5 border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden relative z-10">
           <button 
             onClick={() => setShowFinancialStats(!showFinancialStats)}
             className="w-full flex items-center justify-between p-3 md:p-0 group outline-none"
@@ -507,7 +507,7 @@ const browserAlreadyGranted =
                 <Activity size={20} />
               </div>
               <div className="text-right">
-                <h3 className="font-black text-slate-800 text-lg tracking-tight">
+                <h3 className="font-bold text-slate-800 text-lg tracking-tight">
                   الأداء المالي
                 </h3>
                 <p className="text-[10px] text-slate-500 font-bold">
@@ -518,7 +518,7 @@ const browserAlreadyGranted =
             <ChevronDown
               size={20}
               className={cn(
-                "text-slate-400 transition-transform duration-500",
+                "text-slate-500 transition-transform duration-500",
                 showFinancialStats ? "rotate-180" : ""
               )}
             />
@@ -544,45 +544,45 @@ const browserAlreadyGranted =
         </motion.div>
        {/* Smart Tools Cards Section */}
        <div className="mb-12">
-       <h3 className="text-xl font-black text-slate-800 mb-6 tracking-tight flex items-center gap-2 flex-row-reverse justify-end pr-2">
+       <h3 className="text-xl font-bold text-slate-800 mb-6 tracking-tight flex items-center gap-2 flex-row-reverse justify-end pr-2">
        أدوات الإدارة الذكية <Sparkles size={24} className="text-amber-500" />
        </h3>
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:p-4">
-       <button onClick={() => setActiveWidget('campaign')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-2xl relative overflow-hidden outline-none">
+       <button onClick={() => setActiveWidget('campaign')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-xl relative overflow-hidden outline-none">
        <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-rose-500 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
        <FlaskConical size={32} className="text-rose-400 mb-4 group-hover:-translate-y-1 transition-transform" />
-       <h3 className="text-lg font-black text-white mb-2 tracking-tight">مختبر الحملات</h3>
-       <p className="text-[10px] font-bold text-slate-400 leading-relaxed">ابتكر حملات ذكية مبنية على أرصدتك</p>
+       <h3 className="text-lg font-bold text-white mb-2 tracking-tight">مختبر الحملات</h3>
+       <p className="text-[10px] font-bold text-slate-500 leading-relaxed">ابتكر حملات ذكية مبنية على أرصدتك</p>
        </button>
        
-       <button onClick={() => setActiveWidget('forecast')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-2xl relative overflow-hidden outline-none">
+       <button onClick={() => setActiveWidget('forecast')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-xl relative overflow-hidden outline-none">
        <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-indigo-500 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
        <LineChartIcon size={32} className="text-indigo-400 mb-4 group-hover:-translate-y-1 transition-transform" />
-       <h3 className="text-lg font-black text-white mb-2 tracking-tight">التنبؤ المالي</h3>
-       <p className="text-[10px] font-bold text-slate-400 leading-relaxed">رؤية مستقبلية دقيقة لأداء مبيعاتك</p>
+       <h3 className="text-lg font-bold text-white mb-2 tracking-tight">التنبؤ المالي</h3>
+       <p className="text-[10px] font-bold text-slate-500 leading-relaxed">رؤية مستقبلية دقيقة لأداء مبيعاتك</p>
        </button>
       
-       <button onClick={() => setActiveWidget('menu')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-2xl relative overflow-hidden outline-none">
+       <button onClick={() => setActiveWidget('menu')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-xl relative overflow-hidden outline-none">
        <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-emerald-500 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
        <Layers size={32} className="text-emerald-400 mb-4 group-hover:-translate-y-1 transition-transform" />
-       <h3 className="text-lg font-black text-white mb-2 tracking-tight">هندسة المنيو الذكية</h3>
-       <p className="text-[10px] font-bold text-slate-400 leading-relaxed">تحليل ربحية وشعبية كل صنف</p>
+       <h3 className="text-lg font-bold text-white mb-2 tracking-tight">هندسة المنيو الذكية</h3>
+       <p className="text-[10px] font-bold text-slate-500 leading-relaxed">تحليل ربحية وشعبية كل صنف</p>
        </button>
       
        <div className={bentoCardStyle}>
-       <h3 className="font-black text-lg text-[#4a3f35] mb-4 flex items-center gap-2 justify-end">نجوم التراث (الأكثر مبيعاً) <Sparkles size={18} className="text-amber-500" /></h3>
+       <h3 className="font-bold text-lg text-[#4a3f35] mb-4 flex items-center gap-2 justify-end">نجوم التراث (الأكثر مبيعاً) <Sparkles size={18} className="text-amber-500" /></h3>
        <div className="space-y-2 flex-grow">
        {topProducts.length > 0 ? topProducts.slice(0, 3).map((p, i) => (
        <div key={p.id} className="flex justify-between items-center bg-white p-3 rounded-2xl border border-[#f0e6d2] hover:border-amber-400 transition-colors flex-row-reverse">
        <div className="flex items-center gap-2 flex-row-reverse">
-       <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-black text-[10px]">#{i+1}</div>
-       <div className="font-black text-slate-800 text-[11px] truncate max-w-[100px]">{p.name}</div>
+       <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-bold text-[10px]">#{i+1}</div>
+       <div className="font-bold text-slate-800 text-[11px] truncate max-w-[100px]">{p.name}</div>
        </div>
-       <div className="bg-slate-50 border border-slate-100 text-slate-500 text-[8px] font-black px-2 py-1 rounded-full">{p.sold} طلب</div>
+       <div className="bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-bold px-2 py-1 rounded-full">{p.sold} طلب</div>
        </div>
       )) : <div className="text-center py-4 text-slate-300 font-bold text-[10px]">لا توجد بيانات</div>}
        </div>
-       <button onClick={() => setActiveWidget('bestsellers')} className="mt-3 text-center text-[9px] font-black text-amber-600 hover:text-amber-700 transition-colors">عرض القائمة الكاملة</button>
+       <button onClick={() => setActiveWidget('bestsellers')} className="mt-3 text-center text-[10px] font-bold text-amber-600 hover:text-amber-700 transition-colors">عرض القائمة الكاملة</button>
        </div>
        </div>
        </div>
@@ -602,10 +602,10 @@ const browserAlreadyGranted =
        initial={{ scale: 0.95, opacity: 0, y: 20 }}
        animate={{ scale: 1, opacity: 1, y: 0 }}
        exit={{ scale: 0.95, opacity: 0, y: 20 }}
-       className="bg-slate-50 w-full max-w-5xl rounded-2xl md:rounded-2xl shadow-[0_0_100px_rgba(0,0,0,0.5)] relative z-10 overflow-hidden border border-white/20"
+       className="bg-slate-50 w-full max-w-5xl rounded-2xl md:rounded-2xl shadow-[0_0_100px_rgba(0,0,0,0.5)] relative z-10 overflow-hidden border border-white/10"
        >
        <div className="p-3 md:p-4 md:p-3 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-20">
-       <h2 className="text-xl md:text-2xl font-black text-slate-800">
+       <h2 className="text-xl md:text-2xl font-bold text-slate-800">
        {activeWidget === 'campaign' &&"مختبر الحملات التسويقية الذكي"}
        {activeWidget === 'forecast' &&"التنبؤ المستقبلي الخوارزمي"}
        {activeWidget === 'bestsellers' &&"نجوم التراث (الأكثر مبيعاً)"}
@@ -624,14 +624,14 @@ const browserAlreadyGranted =
        {topProducts.map((p, i) => (
        <div key={p.id} className="flex justify-between items-center bg-white p-3 md:p-4 rounded-2xl border border-slate-100 shadow-sm flex-row-reverse">
        <div className="flex items-center gap-4 flex-row-reverse">
-       <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-black text-xl">#{i+1}</div>
+       <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-bold text-xl">#{i+1}</div>
        <div className="text-right">
-       <div className="font-black text-slate-800 text-lg">{p.name}</div>
-       <div className="text-[10px] text-slate-400 font-bold uppercase">{p.category || 'عام'}</div>
+       <div className="font-bold text-slate-800 text-lg">{p.name}</div>
+       <div className="text-[10px] text-slate-500 font-bold uppercase">{p.category || 'عام'}</div>
        </div>
        </div>
        <div className="flex flex-col items-start gap-1">
-       <div className="text-indigo-600 text-lg font-black">{p.sold} طلبات</div>
+       <div className="text-indigo-600 text-lg font-bold">{p.sold} طلبات</div>
        <div className="text-[10px] text-slate-300 font-bold">إجمالي المبيعات المباشرة</div>
        </div>
        </div>
@@ -647,7 +647,7 @@ const browserAlreadyGranted =
        <div className="flex items-center justify-between mb-4">
        <div className="flex items-center gap-2 text-emerald-400">
        <Sparkles size={20} className="group-hover:animate-spin" />
-       <h4 className="font-black text-lg">النجوم (Stars)</h4>
+       <h4 className="font-bold text-lg">النجوم (Stars)</h4>
        </div>
        <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات عالي + ربح عالي</span>
        </div>
@@ -665,7 +665,7 @@ const browserAlreadyGranted =
        <div className="flex items-center justify-between mb-4">
        <div className="flex items-center gap-2 text-amber-400">
        <Zap size={20} className="group-hover:-translate-x-1 transition-transform" />
-       <h4 className="font-black text-lg">أحصنة الحرث (Plowhorses)</h4>
+       <h4 className="font-bold text-lg">أحصنة الحرث (Plowhorses)</h4>
        </div>
        <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات عالي + ربح منخفض</span>
        </div>
@@ -683,7 +683,7 @@ const browserAlreadyGranted =
        <div className="flex items-center justify-between mb-4">
        <div className="flex items-center gap-2 text-blue-400">
        <Search size={20} className="group-hover:scale-110 transition-transform" />
-       <h4 className="font-black text-lg">الألغاز (Puzzles)</h4>
+       <h4 className="font-bold text-lg">الألغاز (Puzzles)</h4>
        </div>
        <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات منخفض + ربح عالي</span>
        </div>
@@ -701,7 +701,7 @@ const browserAlreadyGranted =
        <div className="flex items-center justify-between mb-4">
        <div className="flex items-center gap-2 text-rose-400">
        <Turtle size={20} className="group-hover:rotate-12 transition-transform" />
-       <h4 className="font-black text-lg">سلحفاة (Turtles)</h4>
+       <h4 className="font-bold text-lg">سلحفاة (Turtles)</h4>
        </div>
        <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات منخفض + ربح منخفض</span>
        </div>
@@ -729,14 +729,14 @@ const browserAlreadyGranted =
        className="group cursor-pointer h-full"
        onClick={() => onNavigate('orders')}
        >
-       <div className="h-full bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 p-6 rounded-2xl shadow-2xl shadow-indigo-600/30 text-white relative overflow-hidden flex flex-col justify-between">
+       <div className="h-full bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 p-6 rounded-2xl shadow-xl shadow-indigo-600/30 text-white relative overflow-hidden flex flex-col justify-between">
        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none rotate-12" style={{ backgroundImage: `url(${patternSadu})` }} />
        <div className="absolute -bottom-10 -right-10 w-64 h-64 lg:w-96 lg:h-96 bg-white/5 rounded-full blur-3xl opacity-50" />
        
        <div className="relative z-10 flex justify-between items-start">
        <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/10 flex items-center justify-center relative">
        <ShoppingBag size={40} />
-       <div className="absolute -top-2 -right-2 bg-white text-indigo-600 text-[11px] font-black w-7 h-7 rounded-full flex items-center justify-center shadow-xl border-2 border-indigo-500">
+       <div className="absolute -top-2 -right-2 bg-white text-indigo-600 text-[11px] font-bold w-7 h-7 rounded-full flex items-center justify-center shadow-xl border-2 border-indigo-500">
          {totalOrdersCount}
        </div>
        </div>
@@ -745,7 +745,7 @@ const browserAlreadyGranted =
       
        <div className="relative z-10 mt-6 flex justify-between items-end">
        <div className="text-right">
-       <h3 className="font-black text-xl md:text-3xl mb-2 tracking-tighter">طلبات التطبيق 📦</h3>
+       <h3 className="font-bold text-xl md:text-3xl mb-2 tracking-tighter">طلبات التطبيق 📦</h3>
        <p className="text-white/70 text-base font-bold">معالجة الطلبات الواردة وتحويلها إلى فواتير (إجمالي {totalOrdersCount} طلب)</p>
        </div>
        <div className="w-12 h-12 bg-white text-indigo-600 rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:-translate-x-2 shrink-0 mr-4">
@@ -760,7 +760,7 @@ const browserAlreadyGranted =
        className="group cursor-pointer h-full"
        onClick={() => onNavigate('invoices-list')}
        >
-       <div className="h-full bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl shadow-slate-900/30 text-white relative overflow-hidden flex flex-col justify-between border border-slate-700/50">
+       <div className="h-full bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 p-6 rounded-2xl shadow-xl shadow-slate-900/30 text-white relative overflow-hidden flex flex-col justify-between border border-slate-700/20">
        <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none rotate-12" style={{ backgroundImage: `url(${patternSadu})` }} />
        <div className="absolute -bottom-10 -right-10 w-64 h-64 lg:w-96 lg:h-96 bg-white/5 rounded-full blur-3xl opacity-50" />
        
@@ -773,7 +773,7 @@ const browserAlreadyGranted =
       
        <div className="relative z-10 mt-6 flex justify-between items-end">
        <div className="text-right">
-       <h3 className="font-black text-xl md:text-3xl mb-2 tracking-tighter">سجل الفواتير 📋</h3>
+       <h3 className="font-bold text-xl md:text-3xl mb-2 tracking-tighter">سجل الفواتير 📋</h3>
        <p className="text-slate-300 text-base font-bold">عرض وتتبع حالة جميع الفواتير السابقة</p>
        </div>
        <div className="w-12 h-12 bg-slate-700 text-white rounded-full flex items-center justify-center shadow-lg border border-slate-600 transform transition-transform group-hover:-translate-x-2 shrink-0 mr-4">

@@ -107,7 +107,7 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  <Calculator size={28} />
  </div>
  <div>
- <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">حاسبة العروض الذكية</h2>
+ <h2 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">حاسبة العروض الذكية</h2>
  <p className="text-slate-500 font-bold mt-1 text-sm md:text-base">صمم باقات عروضك (Combos) وحلل ربحيتها قبل إطلاقها بالسوق الكويتي.</p>
  </div>
  </div>
@@ -116,7 +116,7 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  {/* Left Side: Product Selection & Configuration */}
  <div className="space-y-8">
  <div className="bg-white/50 border border-slate-200/60 rounded-2xl p-3 md:p-4 shadow-sm">
- <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+ <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
  <ShoppingBag size={20} className="text-indigo-500" />
  كون الباقة (اختر الأصناف)
  </h3>
@@ -125,7 +125,7 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  <input
  type="text"
  placeholder="ابحث عن منتج..."
- className="w-full px-4 py-2 rounded-xl border border-slate-200 mb-2"
+ className="w-full px-4 py-2 rounded-xl border border-slate-200/60 mb-2"
  value={searchTerm}
  onChange={(e) => setSearchTerm(e.target.value)}
  />
@@ -139,7 +139,7 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
 "px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border",
  isSelected 
  ?"bg-indigo-600 text-white border-indigo-500 shadow-md transform scale-[1.02]" 
- :"bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50"
+ :"bg-white text-slate-600 border-slate-200/60 hover:border-indigo-300 hover:bg-indigo-50"
 )}
  >
  {product.name}
@@ -150,13 +150,13 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  </div>
 
  {selectedProducts.length > 0 && (
- <div className="space-y-6 border-t border-slate-200/50 pt-6">
- <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+ <div className="space-y-6 border-t border-slate-200/60/50 pt-6">
+ <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
  <BadgePercent size={20} className="text-amber-500" />
  نسبة تخفيض الباقة
  </h3>
  <div className="space-y-4">
- <div className="flex justify-between items-center text-sm font-black text-slate-600">
+ <div className="flex justify-between items-center text-sm font-bold text-slate-600">
  <span>سعر التكلفة: {Number(totalCost || 0).toFixed(3)} د.ك</span>
  <span>السعر الأصلي: {Number(totalOriginalPrice || 0).toFixed(3)} د.ك</span>
  </div>
@@ -171,12 +171,12 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  />
  <div className="absolute top-0 left-0 right-0 flex justify-between px-1 pointer-events-none">
  <div className="flex-1 flex justify-center mt-[-20px]">
- <span className="bg-slate-900 text-white px-3 py-1 rounded-full text-xs font-black shadow-lg" style={{ marginLeft: `calc(${discountPercent}% - 50%)` }}>
+ <span className="bg-slate-900 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg" style={{ marginLeft: `calc(${discountPercent}% - 50%)` }}>
  خصم {discountPercent}%
  </span>
  </div>
  </div>
- <div className="flex justify-between text-[11px] font-bold text-slate-400 mt-2">
+ <div className="flex justify-between text-[11px] font-bold text-slate-500 mt-2">
  <span>بدون خصم</span>
  <span>خصم 25%</span>
  <span>خصم 50%</span>
@@ -193,10 +193,10 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  {selectedProducts.length === 0 ? (
  <div className="h-full flex flex-col items-center justify-center text-center p-3 md:p-3 bg-slate-50/50 rounded-2xl border border-dashed border-slate-300">
  <div className="w-12 md:w-20 h-12 md:h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
- <Gift size={32} className="text-slate-400" />
+ <Gift size={32} className="text-slate-500" />
  </div>
- <h3 className="text-lg font-black text-slate-600 mb-2">اختر أصناف الباقة للبدء</h3>
- <p className="text-slate-400 text-sm font-bold">قم باختيار المنتجات من القائمة لتكوين عرض وحساب هوامش الربح.</p>
+ <h3 className="text-lg font-bold text-slate-600 mb-2">اختر أصناف الباقة للبدء</h3>
+ <p className="text-slate-500 text-sm font-bold">قم باختيار المنتجات من القائمة لتكوين عرض وحساب هوامش الربح.</p>
  </div>
 ) : (
  <AnimatePresence mode="popLayout">
@@ -205,12 +205,12 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  animate={{ opacity: 1, y: 0 }}
  className="grid grid-cols-2 gap-4"
  >
- <div className="col-span-2 bg-gradient-to-l from-slate-900 to-slate-800 p-3 md:p-4 md:p-3 rounded-2xl text-white relative overflow-hidden shadow-2xl">
+ <div className="col-span-2 bg-gradient-to-l from-slate-900 to-slate-800 p-3 md:p-4 md:p-3 rounded-2xl text-white relative overflow-hidden shadow-xl">
  <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl" />
- <h3 className="text-amber-400 text-sm font-black mb-2 uppercase">سعر الباقة المقترح</h3>
+ <h3 className="text-amber-400 text-sm font-bold mb-2 uppercase">سعر الباقة المقترح</h3>
  <div className="flex items-end gap-3 mb-1">
- <span className="text-xl md:text-3xl md:text-3xl md:text-xl md:text-2xl font-black">{Number(offerPrice || 0).toFixed(3)}</span>
- <span className="text-xl font-bold text-slate-400 mb-1">د.ك</span>
+ <span className="text-xl md:text-3xl md:text-3xl md:text-xl md:text-2xl font-bold">{Number(offerPrice || 0).toFixed(3)}</span>
+ <span className="text-xl font-bold text-slate-500 mb-1">د.ك</span>
  </div>
  <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
  <span className="line-through opacity-50">{Number(totalOriginalPrice || 0).toFixed(3)} د.ك</span>
@@ -224,8 +224,8 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  offerMargin >= 20 ?"bg-amber-50 border-amber-100" : 
 "bg-rose-50 border-rose-100"
 )}>
- <h3 className={cn("text-xs font-black uppercase mb-2", offerMargin >= 35 ?"text-emerald-700" : offerMargin >= 20 ?"text-amber-700" :"text-rose-700")}>تأثير الخصم على الربح</h3>
- <div className={cn("text-xl md:text-3xl lg:text-xl md:text-2xl font-black mb-2 tracking-tighter", offerMargin >= 35 ?"text-emerald-600" : offerMargin >= 20 ?"text-amber-600" :"text-rose-600")}>
+ <h3 className={cn("text-xs font-bold uppercase mb-2", offerMargin >= 35 ?"text-emerald-700" : offerMargin >= 20 ?"text-amber-700" :"text-rose-700")}>تأثير الخصم على الربح</h3>
+ <div className={cn("text-xl md:text-3xl lg:text-xl md:text-2xl font-bold mb-2 tracking-tighter", offerMargin >= 35 ?"text-emerald-600" : offerMargin >= 20 ?"text-amber-600" :"text-rose-600")}>
  {Number(offerMargin || 0).toFixed(1)}%
  </div>
  <p className={cn("text-xs font-bold flex items-center gap-1", offerMargin >= 35 ?"text-emerald-600/70" : offerMargin >= 20 ?"text-amber-600/70" :"text-rose-600/70")}>
@@ -234,8 +234,8 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  </div>
 
  <div className="bg-indigo-50 border border-indigo-100 p-3 md:p-4 rounded-2xl relative overflow-hidden flex flex-col justify-between">
- <h3 className="text-indigo-700 text-xs font-black uppercase mb-2">إجمالي التكلفة</h3>
- <div className="text-xl md:text-3xl lg:text-xl md:text-2xl font-black text-indigo-600 mb-2 tracking-tighter">
+ <h3 className="text-indigo-700 text-xs font-bold uppercase mb-2">إجمالي التكلفة</h3>
+ <div className="text-xl md:text-3xl lg:text-xl md:text-2xl font-bold text-indigo-600 mb-2 tracking-tighter">
  {Number(totalCost || 0).toFixed(3)}
  </div>
  <p className="text-indigo-600/70 text-xs font-bold">دينار كويتي</p>
@@ -246,7 +246,7 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  <div className="absolute top-4 left-4 p-2 bg-amber-50 rounded-full">
  <Sparkles className="text-amber-500" size={20} />
  </div>
- <h4 className="text-lg font-black text-slate-800 mb-3">{aiAnalysis.title}</h4>
+ <h4 className="text-lg font-bold text-slate-800 mb-3">{aiAnalysis.title}</h4>
  <p className="text-slate-600 font-bold leading-relaxed text-sm md:text-base">
  {aiAnalysis.advice}
  </p>

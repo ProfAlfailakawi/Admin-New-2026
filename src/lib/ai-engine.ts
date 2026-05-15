@@ -767,8 +767,8 @@ export function generateAIBusinessRecommendation(data: AppState): {
     };
   } else {
     finalResult = {
-      title: 'تعزيز ولاء العملاء',
-      recommendation: 'وضعك المالي مستقر. ينصح بإطلاق نظام نقاط للمكافآت لزيادة معدل تكرار الشراء لدى عملائك الحاليين.',
+      title: 'الحلال حلالك والعميل رأس مالك',
+      recommendation: 'الأمور طيبة ولله الحمد، اهتم بزباينك الدائمين وضبطهم بعرض استثنائي وراح يرجعون لك دبل.',
       type: 'growth',
       iconType: 'target'
     };

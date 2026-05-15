@@ -37,13 +37,13 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
  initial={{ opacity: 0, scale: 0.95 }}
  animate={{ opacity: 1, scale: 1 }}
  exit={{ opacity: 0, scale: 0.95 }}
- className="bg-white rounded-[40px] w-[95%] max-w-sm shadow-2xl p-3 md:p-4 md:p-3 border border-slate-100 text-center flex flex-col max-h-[85vh] overflow-hidden"
+ className="bg-white rounded-3xl md:rounded-3xl w-[95%] max-w-sm shadow-xl p-4 md:p-6 border border-slate-100 text-center flex flex-col max-h-[85vh] overflow-hidden"
  >
  <div className="overflow-y-auto custom-scrollbar flex-1 px-1">
  <div className={cn("w-12 md:w-20 h-12 md:h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner", colors.bg)}>
  <AlertCircle className={colors.icon} size={32} />
  </div>
- <h3 className="text-2xl font-black text-slate-800 mb-3">{title}</h3>
+ <h3 className="text-2xl font-bold text-slate-800 mb-3">{title}</h3>
  <p className="text-slate-500 font-medium mb-8 leading-relaxed">
  {message}
  </p>
