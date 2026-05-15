@@ -1,34 +1,25 @@
-# Admin Push Final Fix
+# alerts_worker_final_clean_v2
 
-## ماذا تحتوي الحزمة؟
-
-- `public/firebase-messaging-sw.js`
-- `scripts/apply-admin-push-final-fix.js`
-
-## طريقة الاستخدام
-
-فك الضغط داخل جذر مشروع الأدمن ثم شغل:
+Worker نظيف. لا deploy من Downloads. لازم deploy من داخل هذا المجلد فقط.
 
 ```bash
-node scripts/apply-admin-push-final-fix.js
+cd ~/Downloads/alerts_worker_final_clean_v2
+gcloud run deploy alerts-worker \
+  --source . \
+  --region europe-west3 \
+  --project gen-lang-client-0200723670 \
+  --allow-unauthenticated \
+  --set-env-vars ADMIN_TEST_SECRET=123456,ALERTS_LOOKBACK_MINUTES=30,MAX_SEND_PER_RUN=5,ALERTS_START_FROM_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ```
 
-بعدها اختبر تشغيل السيرفر:
-
+بعدها:
 ```bash
-npx tsx server.ts
+curl "<Cloud Run URL بعد الرفع>"
 ```
+لازم ترى `alerts-worker-final-clean-v2`.
 
-ثم ارفع للإنتاج واعمل deploy/restart.
 
-## ماذا تعدل؟
-
-- تضيف/تثبت إشعار: `🚨 طلب جديد بانتظار الدفع`
-- تجعل إشعار طلب جديد في `/api/create-payment` يستخدم `await`
-- تجعل إشعارات فشل الدفع تستخدم `await`
-- لا تغير إشعار `⏳ طلب لم يُدفع بعد` لأنه شغال بالفعل
-
-## مهم
-
-لا ترفع:
-`Use Secret Manager / environment variables only. Do not store service account keys in the repository.`
+## تعديل 0200723670
+- تم تغيير fallback projectId إلى `gen-lang-client-0200723670`.
+- تم تغيير روابط التنبيه من `https://admin.alturathkw.shop` إلى `https://alturath-admin-0200723670.web.app`.
+- لا ترفع `node_modules`.
