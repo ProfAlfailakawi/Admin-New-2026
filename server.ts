@@ -1641,55 +1641,57 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     res.status(404).json({ error: "API Route Not Found", path: req.originalUrl });
   });
 
+  (async () => {
   // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const { createServer: createViteServer } = await import("vite");
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    console.log(`PRODUCTION MODE: Serving static files from ${distPath}`);
-    
-    if (fsSync.existsSync(distPath)) {
-      const files = fsSync.readdirSync(distPath);
-      console.log(`Found ${files.length} files in dist:`, files.slice(0, 5).join(', '));
+    if (process.env.NODE_ENV !== "production") {
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
     } else {
-      console.error(`CRITICAL: dist directory NOT FOUND at ${distPath}`);
-    }
-
-    app.use(express.static(distPath, {
-      index: false,
-      setHeaders: (res, path) => {
-        if (path.endsWith('.html')) {
-          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-          res.setHeader('Pragma', 'no-cache');
-          res.setHeader('Expires', '0');
-        } else {
-          // Static assets (js, css, images) can be cached for a long time as they are hashed
-          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        }
-      }
-    }));
-
-    app.get('*all', (req, res) => {
-      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-      res.setHeader("Pragma", "no-cache");
-      res.setHeader("Expires", "0");
-      res.setHeader("Surrogate-Control", "no-store");
+      const distPath = path.join(process.cwd(), 'dist');
+      console.log(`PRODUCTION MODE: Serving static files from ${distPath}`);
       
-      const indexPath = path.join(distPath, 'index.html');
-      if (fsSync.existsSync(indexPath)) {
-        res.sendFile(indexPath);
+      if (fsSync.existsSync(distPath)) {
+        const files = fsSync.readdirSync(distPath);
+        console.log(`Found ${files.length} files in dist:`, files.slice(0, 5).join(', '));
       } else {
-        res.status(404).send('Build artifacts (index.html) not found. Please ensure the build completed successfully.');
+        console.error(`CRITICAL: dist directory NOT FOUND at ${distPath}`);
       }
+  
+      app.use(express.static(distPath, {
+        index: false,
+        setHeaders: (res, path) => {
+          if (path.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+          } else {
+            // Static assets (js, css, images) can be cached for a long time as they are hashed
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          }
+        }
+      }));
+  
+      app.get('*all', (req, res) => {
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+        res.setHeader("Surrogate-Control", "no-store");
+        
+        const indexPath = path.join(distPath, 'index.html');
+        if (fsSync.existsSync(indexPath)) {
+          res.sendFile(indexPath);
+        } else {
+          res.status(404).send('Build artifacts (index.html) not found. Please ensure the build completed successfully.');
+        }
+      });
+    }
+  
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
     });
-  }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+})();
 
