@@ -477,19 +477,32 @@ const browserAlreadyGranted =
           )}
         </AnimatePresence>
        
-       <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md p-1.5 rounded-2xl border border-slate-100 shadow-sm">
-       {(['day', 'week', 'month', 'year', 'all'] as const).map(f => (
-       <button
-       key={f}
-       onClick={() => startTransition(() => setFilter(f))}
-       className={cn(
-      "px-5 py-2 text-[11px] font-bold rounded-xl transition-all",
-       filter === f ?"bg-slate-900 text-white shadow-lg" :"text-slate-500 hover:bg-slate-100"
-      )}
-       >
-       {f === 'day' ? 'يوم' : f === 'week' ? 'اسبوع' : f === 'month' ? 'شهر' : f === 'year' ? 'سنة' : 'الكل'}
-       </button>
-      ))}
+       {/* Time Slider (Minimalist) */}
+       <div className="fixed bottom-3 left-0 right-0 z-[90] p-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-10 duration-700 delay-500">
+         <div className="bg-white/70 backdrop-blur-3xl rounded-[2rem] py-3.5 px-6 flex flex-col items-center gap-2.5 shadow-2xl pointer-events-auto w-[90%] max-w-[340px] border border-white/50 ring-1 ring-slate-900/5 transition-all hover:bg-white/80">
+           <input 
+             type="range"
+             min="0"
+             max="4"
+             value={["all", "year", "month", "week", "day"].indexOf(filter)}
+             onChange={(e) => {
+               const map = ["all", "year", "month", "week", "day"] as const;
+               startTransition(() => setFilter(map[parseInt(e.target.value)]));
+             }}
+             className="w-full h-1 bg-slate-200/80 rounded-full appearance-none cursor-grab active:cursor-grabbing outline-none transition-all duration-300
+             [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
+             [&::-webkit-slider-thumb]:bg-slate-800 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white"
+             style={{ direction: 'ltr' }}
+           />
+           
+           <div className="flex justify-between w-full text-[10px] font-sans font-extrabold text-slate-400 px-0.5" style={{ direction: 'ltr' }}>
+             <span onClick={() => startTransition(() => setFilter("all"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-left", filter === "all" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>الكل</span>
+             <span onClick={() => startTransition(() => setFilter("year"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", filter === "year" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>سنة</span>
+             <span onClick={() => startTransition(() => setFilter("month"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", filter === "month" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>شهر</span>
+             <span onClick={() => startTransition(() => setFilter("week"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", filter === "week" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>أسبوع</span>
+             <span onClick={() => startTransition(() => setFilter("day"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-right", filter === "day" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>اليوم</span>
+           </div>
+         </div>
        </div>
       
        <div className="mb-8">
