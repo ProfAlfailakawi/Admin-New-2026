@@ -33,8 +33,19 @@ try {
   } catch(e) {}
   db = getFirestore(appInstance, dbId || "(default)");
 
-  firebaseInitialized = true;
-  console.log("[ADMIN020] Firebase Admin initialized with Cloud Run ADC");
+  // Verify database connectivity early to avoid log spam if permissions are missing
+  try {
+    await db.collection('pushTokens').limit(1).get();
+    firebaseInitialized = true;
+    console.log("[ADMIN020] Firebase Admin initialized and verified.");
+  } catch (err: any) {
+    if (err.message && err.message.includes("PERMISSION_DENIED")) {
+      console.warn("[ADMIN020] Firebase Admin initialized but ACCESS DENIED. Server-side workers will be disabled. (Expected if Service Account is not configured)");
+    } else {
+      console.error("[ADMIN020] Firebase Admin connectivity check failed:", err.message);
+    }
+    firebaseInitialized = false;
+  }
 } catch (error) {
   firebaseInitialized = false;
   db = null;
@@ -1840,7 +1851,11 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     catch (e1: any) { 
         try { return await db.collection("pushEvents").limit(limit).get(); }
         catch (e2: any) { 
-            console.error("[ALERTS] Failed to fetch pushEvents:", e2);
+            if (e2.message && e2.message.includes("PERMISSION_DENIED")) {
+                console.log("[ALERTS] Failed to fetch pushEvents: Error: 7 PERMISSION_DENIED: Missing or insufficient permissions. (Continuing safely without ADC)");
+            } else {
+                console.error("[ALERTS] Failed to fetch pushEvents:", e2);
+            }
             return { docs: [] }; 
         }
     }
@@ -1867,7 +1882,11 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     try {
       snap = await ref.get();
     } catch (e: any) {
-      console.error("[ALERTS] alertsSyncFailedInvoicesFromPushEvents get failed:", e);
+      if (e.message && e.message.includes("PERMISSION_DENIED")) {
+        console.log("[ALERTS] alertsSyncFailedInvoicesFromPushEvents get failed: PERMISSION_DENIED (Continuing safely)");
+      } else {
+        console.error("[ALERTS] alertsSyncFailedInvoicesFromPushEvents get failed:", e);
+      }
       return { updated: 0, ids: [] };
     }
     const shared = snap.data() || {};
@@ -1892,12 +1911,18 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       const snap = await db.collection("appData").doc("shared_company_data").get();
       return snap.data() || {};
     } catch (e: any) {
-      console.error("[ALERTS] Failed to load shared_company_data:", e);
+      if (e.message && e.message.includes("PERMISSION_DENIED")) {
+          console.log("[ALERTS] Failed to load shared_company_data: Error: 7 PERMISSION_DENIED: Missing or insufficient permissions. (Continuing safely without ADC)");
+      } else {
+          console.error("[ALERTS] Failed to load shared_company_data:", e);
+      }
       return {};
     }
   }
 
   async function alertsReconcile({ dryRun = false } = {}) {
+    if (!firebaseInitialized || !db) return { meta: { sent: 0, status: "firebase-not-initialized" }, results: [] };
+
     const counters = { sent: 0 };
     const results: any[] = [];
     const now = new Date();
@@ -1969,6 +1994,7 @@ function startPaymentAlertsAutoRunner() {
   console.log("[ALERTS] Auto runner started: every 60 seconds");
 
   setInterval(async () => {
+    if (!firebaseInitialized || !db) return; // Silent if not ready
     try {
       const { meta } = await alertsReconcile({ dryRun: false });
 

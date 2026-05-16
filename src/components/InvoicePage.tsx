@@ -1360,7 +1360,7 @@ setPaymentLink(createdLink);
  readOnly={isPaid}
  placeholder="ابحث عن عميل بالاسم..."
  className={cn(
-"w-full max-w-full min-w-[50px] bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 md:py-4 md:px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right",
+"w-full max-w-full min-w-[50px] bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-12 pl-4 md:py-4 md:pr-12 md:pl-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right",
  isPaid &&"opacity-60 cursor-not-allowed"
 )}
  />
