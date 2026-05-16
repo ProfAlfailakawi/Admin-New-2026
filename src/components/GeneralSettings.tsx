@@ -26,7 +26,26 @@ interface Props {
 }
 
 const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, addToast }) => {
- const [settings, setSettings] = useState<AppSettings>(data.settings);
+ const [settings, setSettingsState] = useState<AppSettings>(data.settings);
+  
+  const setSettings = (updater: any) => {
+    setSettingsState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      setData(d => ({ ...d, settings: next }));
+      return next;
+    });
+  };
+  
+  // Update local setting silently if remote is completely different (to not block typing)
+  useEffect(() => {
+     if (JSON.stringify(data.settings) !== JSON.stringify(settings)) {
+         // Only replace if local is totally out of sync (not just typing)
+         // Actually better to just do this on mount or when mode changes, 
+         // but let's just do it directly.
+         setSettingsState(data.settings);
+     }
+  }, [data.settings]);
+  
  const [showConfirm, setShowConfirm] = useState(false);
  const [showResetConfirm, setShowResetConfirm] = useState(false);
  const [isSyncing, setIsSyncing] = useState(false);
@@ -36,26 +55,9 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  const isInitialMount = useRef(true);
 
- // Auto-save: sync settings changes back to the main app state
- useEffect(() => {
-   if (isInitialMount.current) {
-     isInitialMount.current = false;
-     return;
-   }
-   setData(prev => {
-     if (JSON.stringify(prev.settings) === JSON.stringify(settings)) {
-       return prev;
-     }
-     return { ...prev, settings };
-   });
- }, [settings, setData]);
+ 
 
- // Sync from parent to local settings if parent receives remote updates (e.g. initial load)
- useEffect(() => {
-   if (JSON.stringify(data.settings) !== JSON.stringify(settings)) {
-     setSettings(data.settings);
-   }
- }, [data.settings]);
+ 
 
  const handleSyncBalances = () => {
  setIsSyncing(true);
