@@ -1,2059 +1,2481 @@
+import "dotenv/config";
 import express from "express";
+import axios from "axios";
+import { createServer as createViteServer } from "vite";
 import path from "path";
-import cors from 'cors';
-import admin from 'firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
-import fsSync from 'fs';
-import 'dotenv/config';
+import { fileURLToPath } from "url";
+import fs from "fs";
+import { initializeApp } from "firebase/app";
+import {
+  initializeFirestore,
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  addDoc,
+  updateDoc,
+  setDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+} from "firebase/firestore";
 
-let firebaseInitialized = false;
-let db: any = null;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+// Fallback in-memory DB
+let localFallbackDB: any = {
+  products: [],
+  supplierCopies: [],
+  orders: [],
+  invoices: [],
+  customers: [],
+  zones: [],
+  settings: {},
+  promocodes: []
+};
+
+// Attempt to load entire fallback from file first
 try {
+  if (fs.existsSync(path.join(__dirname, "app_data_fallback.json"))) {
+    const fileData = JSON.parse(fs.readFileSync(path.join(__dirname, "app_data_fallback.json"), "utf8"));
+    localFallbackDB = { ...localFallbackDB, ...fileData };
+  } else {
+    // legacy migrations
+    if (fs.existsSync(path.join(__dirname, "shared_products.json"))) {
+      localFallbackDB.products = JSON.parse(fs.readFileSync(path.join(__dirname, "shared_products.json"), "utf8"));
+    }
+    if (fs.existsSync(path.join(__dirname, "suppliers.json"))) {
+      localFallbackDB.supplierCopies = JSON.parse(fs.readFileSync(path.join(__dirname, "suppliers.json"), "utf8")).flatMap((s:any) => s.products || []);
+    }
+  }
+} catch(e) {
+  console.log("Could not load local data files", e);
+}
 
-  let cfg: any = {};
+// Read firebase config safely for Node ESM
+const firebaseConfig = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "firebase-applet-config.json"), "utf8"),
+);
+
+const appClient = initializeApp(firebaseConfig);
+const db = initializeFirestore(
+  appClient,
+  { experimentalForceLongPolling: true },
+  firebaseConfig.firestoreDatabaseId || "(default)",
+);
+
+async function getAppData() {
   try {
-    cfg = JSON.parse(fsSync.readFileSync('firebase-applet-config.json', 'utf8'));
-  } catch(e) {}
+    const d = await getDoc(doc(db, "appData", "shared_company_data"));
+    if (d.exists()) {
+      return d.data();
+    }
+  } catch (error) {
+    console.warn("Firebase read restricted or failed, using local in-memory fallback");
+  }
+  return localFallbackDB;
+}
 
-  const projectId = cfg.projectId || process.env.GOOGLE_CLOUD_PROJECT || "gen-lang-client-0200723670";
-
-  const appInstance = admin.apps.length
-    ? admin.app()
-    : admin.initializeApp({
-        projectId: projectId,
-      });
-
-
-  
-  let dbId;
+async function updateAppData(data: any) {
   try {
-    const cfg = JSON.parse(fsSync.readFileSync('firebase-applet-config.json', 'utf8'));
-    dbId = cfg.firestoreDatabaseId;
-  } catch(e) {}
-  db = getFirestore(appInstance, dbId || "(default)");
-
-  firebaseInitialized = true;
-  console.log("[ADMIN020] Firebase Admin initialized with Cloud Run ADC");
-} catch (error) {
-  firebaseInitialized = false;
-  db = null;
-  console.error("[ADMIN020] Firebase Admin initialization failed:", error);
+    const docRef = doc(db, "appData", "shared_company_data");
+    await setDoc(docRef, data, { merge: true });
+  } catch (error) {
+    console.warn("Firebase write restricted or failed, updating local in-memory fallback");
+    localFallbackDB = { ...localFallbackDB, ...data };
+    
+    // Save to disk to persist across dev server restarts
+    try {
+      fs.writeFileSync(path.join(__dirname, "app_data_fallback.json"), JSON.stringify(localFallbackDB, null, 2));
+    } catch(err) {
+      console.warn("Could not save to disk:", err);
+    }
+  }
 }
 
 
-function removeUndefinedFields(obj: any): any {
-  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return obj;
+async function getAppDataRef() {
+  const data = await getAppData();
+  return {
+    exists: () => true,
+    data: () => data
+  };
+}
 
-  const cleaned: any = {};
-  for (const [key, value] of Object.entries(obj)) {
-    if (value === undefined) continue;
-    cleaned[key] = value;
+// Helper to clean phone numbers
+function cleanPhone(phone) {
+  if (!phone) return "";
+  let cleaned = String(phone).replace(/\D/g, "");
+
+  // Remove leading zeros
+  cleaned = cleaned.replace(/^0+/, "");
+
+  // If it starts with 965 and is longer than 8 digits, it's a full country code
+  if (cleaned.startsWith("965") && cleaned.length > 8) {
+    cleaned = cleaned.slice(3);
+  }
+
+  // Kuwait numbers are 8 digits. Take the last 8 digits available to be safe.
+  if (cleaned.length >= 8) {
+    return cleaned.slice(-8);
   }
   return cleaned;
 }
 
+async function startServer() {
+  const app = express();
+  const PORT = Number(process.env.PORT || process.env.DEFAULT_APP_PORT || 3000);
 
+  console.log(`[STARTUP] Using PORT: ${PORT}`);
+  console.log(`[STARTUP] NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`[STARTUP] DEFAULT_APP_PORT: ${process.env.DEFAULT_APP_PORT}`);
 
-function removeUndefinedDeep(value: any): any {
-  if (Array.isArray(value)) {
-    return value.map(removeUndefinedDeep).filter((v) => v !== undefined);
-  }
-
-  if (value && typeof value === "object") {
-    const cleaned: any = {};
-    for (const [key, val] of Object.entries(value)) {
-      if (val === undefined) continue;
-      cleaned[key] = removeUndefinedDeep(val);
-    }
-    return cleaned;
-  }
-
-  return value === undefined ? undefined : value;
-}
-
-
-const app = express();
-
-// ADMIN020_FORCE_CORS
-app.use((req, res, next) => {
-  const origin = String(req.headers.origin || "");
-
-  const allowedOrigins = new Set([
-    "https://alturath-admin-0200723670.web.app",
-    "https://gen-lang-client-0200723670.web.app",
-    "https://service-119610604304.europe-west3.run.app",
-    "http://localhost:5173",
-    "http://localhost:3000"
-  ]);
-
-  if (allowedOrigins.has(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  } else {
-    res.setHeader("Access-Control-Allow-Origin", "https://alturath-admin-0200723670.web.app");
-  }
-
-  res.setHeader("Vary", "Origin");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-admin-secret, X-Admin-Secret");
-  res.setHeader("Access-Control-Max-Age", "86400");
-
-  if (req.method === "OPTIONS") {
-    return res.status(204).send("");
-  }
-
-  next();
-});
-
-  const PORT = Number(process.env.PORT) || 3000;
-
-  app.use(cors());
   app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
-app.use(express.urlencoded({ extended: true }));
+  // API Routes
 
-  // Webhook for payment gateway
-  // It synchronizes payment results to the database even if the user doesn't return to the app.
-  const handlePaymentUpdate = async (params: any) => {
-    if (!db) return;
-
-    const rawResult = String(params.result || params.status || params.payment || "").replace(/\+/g, " ").trim();
-    const normalizedResult = rawResult.toUpperCase();
-
-    const paymentId = params.payment_id || params.track_id || params.tran_id || "";
-
-    const orderId =
-      params.invoiceNo ||
-      params.invoice_no ||
-      params.invoice ||
-      params.orderId ||
-      params.order_id ||
-      params.requested_order_id ||
-      params.merchant_order_id ||
-      params.reference?.id ||
-      params.reference_id ||
-      params.track_id;
-
-    if (!orderId) {
-      console.warn("Payment update ignored: missing orderId/invoiceNo", params);
-      return;
-    }
-
-    const isPaid =
-      normalizedResult === "CAPTURED" ||
-      normalizedResult === "SUCCESS" ||
-      normalizedResult === "PAID";
-
-    const isFailed =
-      normalizedResult === "NOT CAPTURED" ||
-      normalizedResult === "FAILED" ||
-      normalizedResult === "CANCELLED" ||
-      normalizedResult === "CANCELED" ||
-      normalizedResult === "DECLINED" ||
-      normalizedResult === "ERROR";
-    
-    try {
-        if (isPaid) {
-            const invoiceRef = db.collection('invoices').doc(orderId);
-            const invSnap = await invoiceRef.get();
-            if (invSnap.exists) {
-                const data = invSnap.data();
-                if (data?.paymentStatus !== 'paid') {
-                    await invoiceRef.update({ paymentStatus: 'paid', status: 'تم الدفع وجاري التوصيل', paymentId: paymentId || '', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-                    const orderQ = await db.collection('orders').where('linkedInvoiceId', '==', orderId).get();
-                    for (const doc of orderQ.docs) {
-                        await doc.ref.update({ status: 'تم الدفع وجاري التوصيل', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-                    }
-                    sendSmartAlertPushNotification({
-                    title: "✅ تم الدفع",
-                    body: `تم دفع الفاتورة ${orderId}${data?.totalAmount ? ` — ${data.totalAmount} د.ك` : ""}`,
-                    alertType: "payment_paid",
-                    url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(orderId)}`,
-                  }).catch(console.error);
-                }
-            } else {
-                const orderRef = db.collection('orders').doc(orderId);
-                const ordSnap = await orderRef.get();
-                if (ordSnap.exists) {
-                    const data = ordSnap.data();
-                    if (data?.status !== 'paid' && data?.status !== 'تم الدفع وجاري التوصيل') {
-                        await orderRef.update({ status: 'تم الدفع وجاري التوصيل', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-                        sendSmartAlertPushNotification({
-                        title: "✅ تم الدفع",
-                        body: `تم دفع الطلب ${orderId}${data?.total ? ` — ${data.total} د.ك` : ""}`,
-                        alertType: "payment_paid",
-                        url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
-                      }).catch(console.error);
-                    }
-                }
-            }
-        } else if (isFailed) {
-            const invoiceRef = db.collection('invoices').doc(orderId);
-            const invSnap = await invoiceRef.get();
-            if (invSnap.exists) {
-                const data = invSnap.data();
-                if (data?.paymentStatus !== 'paid') {
-                    await invoiceRef.update({ paymentStatus: 'failed', status: 'فشلت عملية الدفع', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-                    const orderQ = await db.collection('orders').where('linkedInvoiceId', '==', orderId).get();
-                    for (const doc of orderQ.docs) {
-                        const oData = doc.data();
-                        if (oData.status !== 'تم الدفع وجاري التوصيل' && oData.status !== 'paid') {
-                            await doc.ref.update({ status: 'فشلت عملية الدفع', paymentStatus: 'failed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-                        }
-                    }
-
-                    sendSmartAlertPushNotification({
-                      title: "❌ فشل دفع فاتورة",
-                      body: `الفاتورة ${orderId} فشل دفعها — راجعوا الطلب وأعيدوا إرسال الرابط عند الحاجة`,
-                      alertType: "payment_failed",
-                      url: `/?invoice=${orderId}`
-                    }).catch(console.error);
-                }
-            } else {
-                const orderRef = db.collection('orders').doc(orderId);
-                const ordSnap = await orderRef.get();
-                if (ordSnap.exists) {
-                    const data = ordSnap.data();
-                    if (data?.status !== 'تم الدفع وجاري التوصيل' && data?.status !== 'paid') {
-                        await orderRef.update({ status: 'فشلت عملية الدفع', paymentStatus: 'failed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-
-                        sendSmartAlertPushNotification({
-                          title: "❌ فشل دفع طلب",
-                          body: `الطلب ${orderId} فشل دفعه — يحتاج متابعة`,
-                          alertType: "payment_failed",
-                          url: `/?invoice=${orderId}`
-                        }).catch(console.error);
-                    }
-                }
-            }
-        }
-    } catch (e) {
-        console.error("Webhook processing error:", e);
-    }
-  };
-
-  app.post("/api/webhook/upayments", async (req, res) => {
-    console.log("UPayments Webhook Received (POST):", JSON.stringify(req.body));
-    const mergedParams = { ...req.body, ...req.params, ...req.query };
-    await handlePaymentUpdate(mergedParams);
-    res.status(200).send('OK');
-  });
-  app.post("/api/payment-webhook/:orderId", async (req, res) => {
-    console.log("UPayments Webhook Received (POST):", JSON.stringify(req.body));
-    const mergedParams = { ...req.body, ...req.params, ...req.query };
-    await handlePaymentUpdate(mergedParams);
-    res.status(200).send('OK');
-  });
-
-  app.get("/api/webhook/upayments", async (req, res) => {
-     console.log("UPayments Webhook Received (GET):", JSON.stringify(req.query));
-     const mergedParams = { ...req.query, ...req.params, ...req.body };
-     await handlePaymentUpdate(mergedParams);
-     res.status(200).send('OK');
-  });
-  app.get("/api/payment-webhook/:orderId", async (req, res) => {
-     console.log("UPayments Webhook Received (GET):", JSON.stringify(req.query));
-     const mergedParams = { ...req.query, ...req.params, ...req.body };
-     await handlePaymentUpdate(mergedParams);
-     res.status(200).send('OK');
-  });
-
-  // API logging middleware
-  app.use("/api", (req, res, next) => {
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-    res.setHeader("Surrogate-Control", "no-store");
-    console.log(`API REQUEST: ${req.method} ${req.originalUrl}`);
-    next();
-  });
-
-  // API TEST ROUTES (PROMINENTLY PLACED AFTER LOGGING)
-  app.get("/api/debug/push-secret", (req, res) => {
-    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
-    res.json({
-      adminTestSecretExists: Boolean(process.env.ADMIN_TEST_SECRET),
-      expectedLength: expectedSecret.length,
-      serverVersion: "push-debug-2026-05-08-v1"
-    });
-  });
-
-  app.get("/api/debug/push-tokens", async (req, res) => {
-    const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
-    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
-    if (!expectedSecret || receivedSecret !== expectedSecret) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    try {
-      if (!db) return res.status(200).json({ success: true, mocked: true, message: "DB not initialized. Skipped.", tokens: [] });
-      const snap = await db.collection("pushTokens").orderBy("updatedAt", "desc").limit(10).get();
-      const tokens = snap.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          active: data.active,
-          deviceType: data.deviceType,
-          isIPhone: data.isIPhone,
-          isIOS: data.isIOS,
-          isProbablyPwa: data.isProbablyPwa,
-          standalone: data.standalone,
-          notificationPermission: data.notificationPermission,
-          serviceWorkerController: data.serviceWorkerController,
-          platform: data.platform || null,
-          currentUrl: data.currentUrl,
-          userAgent: data.userAgent,
-          updatedAt: data.updatedAt?.toDate()
-        };
-      });
-      res.json(tokens);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
-  });
-
-  app.post("/api/debug/delete-push-tokens", async (req, res) => {
-    const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
-    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
-    if (!expectedSecret || receivedSecret !== expectedSecret) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    try {
-      if (!db) return res.status(200).json({ success: true, mocked: true, message: "DB not initialized. Skipped.", count: 0 });
-      const snap = await db.collection("pushTokens").get();
-      const batch = db.batch();
-      let count = 0;
-      snap.docs.forEach((doc) => {
-        batch.delete(doc.ref);
-        count++;
-      });
-      await batch.commit();
-      res.json({ success: true, count, message: `Deleted ${count} tokens.` });
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
-  });
-
-  app.post("/api/push/test-new-order", async (req, res) => {
-    console.log("PUSH TEST VERSION", "push-debug-2026-05-08-v1");
-    const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
-    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
-    console.log("ADMIN_TEST_SECRET exists:", Boolean(process.env.ADMIN_TEST_SECRET));
-    console.log("received x-admin-secret exists:", Boolean(req.headers["x-admin-secret"]));
-    console.log("match:", receivedSecret === expectedSecret);
-
-    if (!expectedSecret) {
-      return res.status(500).json({ error: "ADMIN_TEST_SECRET is not configured" });
-    }
-
-    if (receivedSecret !== expectedSecret) {
-      return res.status(401).json({
-        error: "Unauthorized",
-        debug: {
-          receivedExists: Boolean(receivedSecret),
-          expectedExists: Boolean(expectedSecret),
-          receivedLength: receivedSecret.length,
-          expectedLength: expectedSecret.length
-        }
-      });
-    }
-
-    try {
-      const { orderId, total, restaurantId, orderNumber } = req.body;
-      if (!orderId) {
-        return res.status(400).json({ error: "orderId required" });
-      }
-      
-      console.log("Triggering payment pending push...");
-      const result = await sendSmartAlertPushNotification({
-        title: String(orderId).startsWith("INV-") ? "⏳ فاتورة بانتظار الدفع" : "⏳ طلب بانتظار الدفع",
-        body: `${String(orderId).startsWith("INV-") ? "الفاتورة" : "الطلب"} ${orderId} بانتظار الدفع${total ? ` — ${total} د.ك` : ""}`,
-        alertType: String(orderId).startsWith("INV-") ? "invoice_pending_immediate" : "payment_pending_immediate",
-        url: String(orderId).startsWith("INV-")
-          ? `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(orderId)}`
-          : `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
-      } as any);
-      res.json(result);
-    } catch (error: any) {
-      console.warn("Send push error suppressed:", error.message);
-      res.status(200).json({ success: true, mocked: true, error: "Failed to process push notification", details: error.message });
-    }
-  });
-
-  
-app.post("/api/push/clear-tokens", async (req, res) => {
+  // 1. Track Orders
+  app.get("/api/appdata", async (req, res) => {
   try {
-    const secret = req.headers["x-admin-secret"] || req.query.secret;
-    if (String(secret) !== String(process.env.ADMIN_TEST_SECRET || "123456")) {
-      return res.status(403).json({ success: false, error: "Forbidden" });
-    }
-
-    if (!firebaseInitialized || !db) {
-      return res.status(500).json({ success: false, error: "Firebase not initialized" });
-    }
-
-    const snap = await db.collection("pushTokens").get();
-
-    let deleted = 0;
-    for (const doc of snap.docs) {
-      await doc.ref.delete();
-      deleted++;
-    }
-
-    return res.json({
-      success: true,
-      deleted,
-    });
-  } catch (error) {
-    if (!String(error).includes("PERMISSION_DENIED")) console.error("[PUSH CLEAR TOKENS ERROR]", error);
-    return res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    const d = await getAppDataRef();
+    res.json(d.exists() ? d.data() : {});
+  } catch(e) {
+    res.status(500).json({});
   }
 });
 
-app.get("/api/push/debug-tokens", async (req, res) => {
+app.patch("/api/appdata", async (req, res) => {
   try {
-    const secret = req.headers["x-admin-secret"] || req.query.secret;
-    if (String(secret) !== String(process.env.ADMIN_TEST_SECRET || "123456")) {
-      return res.status(403).json({ success: false, error: "Forbidden" });
+    await updateAppData(req.body);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({});
+  }
+});
+
+app.get("/api/track-orders", async (req, res) => {
+    const { phone, order_id } = req.query;
+    if (!phone && !order_id) {
+      return res
+        .status(400)
+        .json({ error: "Phone number or Order ID required" });
     }
 
-    if (!firebaseInitialized || !db) {
-      return res.status(500).json({ success: false, error: "Firebase not initialized" });
-    }
+    try {
+      const cleanQueryPhone = phone ? cleanPhone(phone) : null;
 
-    const snap = await db.collection("pushTokens").get();
+      const d = await getAppDataRef();
+      const appData = d.data() || {};
 
-    const tokens = snap.docs.map((doc) => {
-      const data = doc.data() || {};
-      return {
-        id: doc.id,
-        active: data.active,
-        tokenStart: String(data.token || "").slice(0, 30),
-        tokenLength: String(data.token || "").length,
-        platform: data.platform || null,
-        vendor: data.vendor || null,
-        updatedAt: data.updatedAt || null,
+      const allOrdersOriginal = appData.orders || [];
+      const now = Date.now();
+      const TIMEOUT = 90 * 60 * 1000;
+      let needsUpdate = false;
+
+      const allOrders = allOrdersOriginal.map((o: any) => {
+        if (o.status === "قيد تجميع القطية" && o.createdAt) {
+          const created = new Date(o.createdAt).getTime();
+          if (now - created > TIMEOUT) {
+            needsUpdate = true;
+            return {
+              ...o,
+              status: "ملغي - انتهى وقت القطية",
+              isInvoice: false,
+            };
+          }
+        }
+        return { ...o, isInvoice: false };
+      });
+
+      if (needsUpdate) {
+        console.log(`[SPLIT] Timing out expired split payments`);
+        await updateAppData({
+          orders: allOrders.map((o) => {
+            const { isInvoice, ...rest } = o;
+            return rest;
+          }),
+        });
+      }
+
+      const allInvoices = (appData.invoices || []).map((inv: any) => ({
+        ...inv,
+        isInvoice: true,
+      }));
+
+      console.log(
+        `DEBUG: Tracking orders for ${cleanQueryPhone} or order_id ${order_id}. Total shared orders: ${allOrders.length}, invoices: ${allInvoices.length}`,
+      );
+
+      const customers = appData.customers || [];
+      const matchingCustomerIds = customers
+        .filter(
+          (c: any) =>
+            cleanQueryPhone && cleanPhone(c.phone) === cleanQueryPhone,
+        )
+        .map((c: any) => c.id);
+
+      // Filter function
+      const filterFn = (item: any) => {
+        let match = false;
+        if (cleanQueryPhone) {
+          const itemPhone = cleanPhone(
+            item.customerPhone ||
+              item.phone ||
+              (item.address && item.address.phone),
+          );
+          match =
+            itemPhone === cleanQueryPhone ||
+            (item.customerId && matchingCustomerIds.includes(item.customerId));
+
+          // Allow participants in split payments to see it
+          if (!match && item.splitPayments && Array.isArray(item.splitPayments)) {
+            match = item.splitPayments.some((p: any) => cleanPhone(p.phone) === cleanQueryPhone);
+          }
+
+          // Allow participants in roulette to see it
+          if (!match && item.splitParticipants && Array.isArray(item.splitParticipants)) {
+            match = item.splitParticipants.some((p: any) => cleanPhone(p.phone) === cleanQueryPhone);
+          }
+        }
+        if (!match && order_id) {
+          const qid = String(order_id).trim().toUpperCase();
+          match =
+            String(item.id).toUpperCase() === qid ||
+            String(item.linkedInvoiceId).toUpperCase() === qid ||
+            String(item.invoiceId).toUpperCase() === qid;
+        }
+        return match;
       };
-    });
 
-    return res.json({
-      success: true,
-      tokensCount: tokens.length,
-      tokens,
-    });
-  } catch (error) {
-    if (!String(error).includes("PERMISSION_DENIED")) console.error("[PUSH DEBUG TOKENS ERROR]", error);
-    return res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-});
+      const matchedOrders = allOrders.filter(filterFn);
+      const matchedInvoices = allInvoices.filter(filterFn);
+      const allMatched = [...matchedOrders, ...matchedInvoices];
+      console.log(
+        `DEBUG: Found matched orders: ${matchedOrders.length}, invoices: ${matchedInvoices.length}`,
+      );
 
+      const finalOrders = allMatched;
 
-app.post("/api/push/test-smart-alert", async (req, res) => {
-    console.log("PUSH TEST VERSION", "push-debug-2026-05-08-v1");
-    const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
-    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
-    console.log("ADMIN_TEST_SECRET exists:", Boolean(process.env.ADMIN_TEST_SECRET));
-    console.log("received x-admin-secret exists:", Boolean(req.headers["x-admin-secret"]));
-    console.log("match:", receivedSecret === expectedSecret);
-
-    if (!expectedSecret) {
-      return res.status(500).json({ error: "ADMIN_TEST_SECRET is not configured" });
-    }
-
-    if (receivedSecret !== expectedSecret) {
-      return res.status(401).json({
-        error: "Unauthorized",
-        debug: {
-          receivedExists: Boolean(receivedSecret),
-          expectedExists: Boolean(expectedSecret),
-          receivedLength: receivedSecret.length,
-          expectedLength: expectedSecret.length
+      // Find customer points dynamically from invoices
+      let points = 0;
+      allInvoices.forEach((inv: any) => {
+        const invPhone = cleanPhone(inv.customerPhone || inv.phone || "");
+        if (invPhone === cleanQueryPhone) {
+          points += Number(inv.total) || 0;
         }
       });
-    }
+      points = Math.floor(points);
 
-    try {
-      const { title, body, alertType, url } = req.body;
-      
-      console.log("Triggering test-smart-alert push...");
-      const result = await sendSmartAlertPushNotification({ title, body, alertType, url });
-      res.json(result);
-    } catch (error: any) {
-      console.warn("Send smart alert error suppressed:", error.message);
-      res.status(200).json({ success: true, mocked: true, error: "Failed to process smart alert notification", details: error.message });
-    }
-  });
+      // Sort by date descending
+      finalOrders.sort((a: any, b: any) => {
+        const dateA = new Date(a.createdAt || a.date || 0).getTime();
+        const dateB = new Date(b.createdAt || b.date || 0).getTime();
+        return dateB - dateA;
+      });
 
+      const isGlobalFreeDelivery = appData.settings?.isFreeDelivery === true;
+      const freeDeliveryThreshold = Number(
+        appData.settings?.freeDeliveryThreshold ||
+          appData.settings?.freeDeliveryLimit ||
+          0,
+      );
 
-  app.post("/api/push/order-created-alert", async (req, res) => {
-    try {
-      if (!db) {
-        return res.status(200).json({
-          success: true,
-          mocked: true,
-          message: "Firestore Admin is not initialized. Alert skipped.",
+      console.log(
+        `DEBUG TrackOrders: Phone=${cleanQueryPhone}, GlobalFree=${isGlobalFreeDelivery}, Threshold=${freeDeliveryThreshold}`,
+      );
+
+      const populatedOrders = finalOrders.map((o: any) => {
+        const oDeliveryFeeOriginal = Number(
+          o.deliveryFee ?? o.deliveryInfo?.finalPrice ?? 0,
+        );
+        const oTotalOriginal = Number(o.total ?? o.totalAmount ?? 0);
+        const itemsTotalValue = Math.max(
+          0,
+          oTotalOriginal - oDeliveryFeeOriginal,
+        );
+
+        let shouldBeFree =
+          o.isFreeDelivery || isGlobalFreeDelivery || o.deliveryType === "free";
+
+        // Apply threshold dynamically even for old orders if tracked now
+        if (
+          !shouldBeFree &&
+          freeDeliveryThreshold > 0 &&
+          itemsTotalValue >= freeDeliveryThreshold
+        ) {
+          shouldBeFree = true;
+        }
+
+        const finalDeliveryFee = shouldBeFree ? 0 : oDeliveryFeeOriginal;
+        const finalTotal = shouldBeFree ? itemsTotalValue : oTotalOriginal;
+
+        let custName = o.customerName;
+        let custPhone = o.customerPhone || o.phone;
+        let custAddress = o.address;
+
+        if (!custAddress || custAddress === "غير محدد" || custAddress === "") {
+          if (o.deliveryInfo && o.deliveryInfo.zoneName) {
+            custAddress = o.deliveryInfo.zoneName;
+          }
+        }
+
+        const products = [
+          ...(appData.products || []),
+          ...(appData.supplierCopies || []),
+        ];
+        const populatedItems = (o.items || []).map((item: any) => {
+          const prod = products.find(
+            (p: any) => p.id === item.productId || p.id === item.id,
+          );
+          return {
+            ...item,
+            productName:
+              item.productName ||
+              item.name ||
+              (prod ? prod.name : "منتج غير معروف"),
+            name:
+              item.name ||
+              item.productName ||
+              (prod ? prod.name : "منتج غير معروف"),
+            price:
+              item.price !== undefined
+                ? item.price
+                : item.priceAtTime !== undefined
+                  ? item.priceAtTime
+                  : prod
+                    ? prod.price
+                    : 0,
+            image: item.image || (prod ? prod.image : null),
+          };
         });
-      }
 
-      const { orderId, orderNumber: clientOrderNumber, total: clientTotal } = req.body || {};
-
-      if (!orderId || typeof orderId !== "string") {
-        return res.status(400).json({
-          success: false,
-          message: "orderId is required",
-        });
-      }
-
-      let order: any = null;
-      let resolvedOrderId = orderId;
-
-      try {
-        let orderSnap: any = await db.collection("orders").doc(orderId).get();
-        
-        if (!orderSnap.exists) {
-          const searchableFields = [
-            "orderNumber",
-            "orderId",
-            "id",
-            "invoiceNo",
-            "invoiceNumber",
-            "linkedInvoiceId"
-          ];
-
-          for (const field of searchableFields) {
-            const querySnap = await db
-              .collection("orders")
-              .where(field, "==", orderId)
-              .limit(1)
-              .get();
-
-            if (!querySnap.empty) {
-              orderSnap = querySnap.docs[0];
-              resolvedOrderId = orderSnap.id;
-              break;
+        if (
+          o.customerId &&
+          (!custName ||
+            !custPhone ||
+            !custAddress ||
+            custAddress === "غير محدد" ||
+            custAddress === "")
+        ) {
+          const c = customers.find((cust: any) => cust.id === o.customerId);
+          if (c) {
+            custName = custName || c.name || c.customerName;
+            custPhone = custPhone || c.phone || c.customerPhone;
+            if (
+              !custAddress ||
+              custAddress === "غير محدد" ||
+              custAddress === ""
+            ) {
+              custAddress =
+                typeof c.address === "object"
+                  ? c.address?.region || "غير محدد"
+                  : c.address || "غير محدد";
             }
           }
         }
 
-        if (orderSnap.exists) {
-          order = orderSnap.data() || {};
-        } else {
-          // Fallback: some app orders are stored inside appData/shared_company_data arrays
-          const appDataSnap = await db.collection("appData").doc("shared_company_data").get();
+        // Keep the full address object so the split page can display it
+        const resolvedAddress =
+          typeof custAddress === "object" && custAddress !== null
+            ? custAddress
+            : custAddress || "غير محدد";
 
-          if (appDataSnap.exists) {
-            const appData = appDataSnap.data() || {};
+        return {
+          ...o,
+          items: populatedItems,
+          customerName: custName,
+          customerPhone: custPhone,
+          address: resolvedAddress,
+          customerPoints: points,
+          isFreeDelivery: shouldBeFree,
+          deliveryType: shouldBeFree ? "free" : o.deliveryType,
+          deliveryFee: finalDeliveryFee,
+          total: finalTotal,
+        };
+      });
+      res.json(populatedOrders);
+    } catch (error) {
+      console.error("Error tracking orders:", error);
+      res.status(500).json({ error: "Failed to fetch orders" });
+    }
+  });
 
-            for (const [key, value] of Object.entries(appData)) {
-              if (!Array.isArray(value)) continue;
+  // 2. Regions
+  app.get("/api/regions", async (req, res) => {
+    try {
+      const d = await getAppDataRef();
+      const data = d.data() || {};
+      res.json(data.zones || []);
+    } catch (error) {
+      console.error("Error fetching regions:", error);
+      res.status(500).json({ error: "Failed to fetch regions" });
+    }
+  });
 
-              const found = value.find((item: any) => {
-                if (!item || typeof item !== "object") return false;
+  // Admin Zones Management
+  app.post("/api/admin/zones", async (req, res) => {
+    try {
+      const { name, finalPrice } = req.body;
+      const docRef = doc(db, "appData", "shared_company_data");
+      const d = await getAppDataRef();
+      const appData = d.data() || {};
+      const zones = appData.zones || [];
 
-                return (
-                  item.id === orderId ||
-                  item.orderId === orderId ||
-                  item.orderNumber === orderId ||
-                  item.invoiceNo === orderId ||
-                  item.invoiceNumber === orderId ||
-                  item.linkedInvoiceId === orderId
-                );
-              });
+      const newZone = {
+        id: "ZONE-" + Date.now().toString(36),
+        name,
+        finalPrice: Number(finalPrice) || 0,
+        cost: Number(finalPrice) || 0,
+        deliveryFee: Number(finalPrice) || 0,
+        price: Number(finalPrice) || 0,
+        deliveryPrice: Number(finalPrice) || 0,
+      };
 
-              if (found) {
-                order = found;
-                resolvedOrderId = found.id || found.orderId || found.orderNumber || orderId;
-                break;
+      zones.push(newZone);
+      await updateAppData({ zones });
+      res.status(201).json(newZone);
+    } catch (e) {
+      console.error("Error creating zone:", e);
+      res.status(500).json({ error: "Failed to create zone" });
+    }
+  });
+
+  app.patch("/api/admin/zones/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, finalPrice } = req.body;
+      const docRef = doc(db, "appData", "shared_company_data");
+      const d = await getAppDataRef();
+      const appData = d.data() || {};
+      const zones = appData.zones || [];
+
+      const index = zones.findIndex((z: any) => z.id === id);
+      if (index === -1)
+        return res.status(404).json({ error: "Zone not found" });
+
+      zones[index] = {
+        ...zones[index],
+        ...(name && { name }),
+        ...(finalPrice !== undefined && {
+          finalPrice: Number(finalPrice),
+          cost: Number(finalPrice),
+          deliveryFee: Number(finalPrice),
+          price: Number(finalPrice),
+          deliveryPrice: Number(finalPrice),
+        }),
+      };
+
+      await updateAppData({ zones });
+      res.json(zones[index]);
+    } catch (e) {
+      console.error("Error updating zone:", e);
+      res.status(500).json({ error: "Failed to update zone" });
+    }
+  });
+
+  app.delete("/api/admin/zones/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const docRef = doc(db, "appData", "shared_company_data");
+      const d = await getAppDataRef();
+      const appData = d.data() || {};
+      const zones = appData.zones || [];
+
+      const newZones = zones.filter((z: any) => z.id !== id);
+      await updateAppData({ zones: newZones });
+      res.json({ success: true });
+    } catch (e) {
+      console.error("Error deleting zone:", e);
+      res.status(500).json({ error: "Failed to delete zone" });
+    }
+  });
+
+  // Admin: Update Store Status
+  app.patch("/api/admin/settings/storeStatus", async (req, res) => {
+    try {
+      const docRef = doc(db, "appData", "shared_company_data");
+      await updateAppData({
+        "settings.storeStatus": req.body,
+      });
+      res.json({ success: true });
+    } catch (e) {
+      console.error("Error updating store status:", e);
+      res.status(500).json({ error: "Failed to update store status" });
+    }
+  });
+
+  // Validate Promo Code
+  app.post("/api/validate-promo", async (req, res) => {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ error: "Code is required" });
+
+    try {
+      const d = await getAppDataRef();
+      if (!d.exists()) return res.status(404).json({ error: "No data found" });
+
+      const data = d.data();
+      const promo = (data.promocodes || []).find(
+        (p: any) =>
+          p.code.toUpperCase() === code.trim().toUpperCase() && p.isActive,
+      );
+
+      if (promo) {
+        res.json({
+          success: true,
+          promo: {
+            code: promo.code,
+            type: promo.type, // 'percentage' or 'flat'
+            value: promo.value || promo.discountValue,
+            discountValue: promo.discountValue || promo.value,
+          },
+        });
+      } else {
+        res.json({ success: false, error: "كوبون غير صالح أو انتهت صلاحيته" });
+      }
+    } catch (e) {
+      console.error("Error validating promo:", e);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // 3. Settings (fallback to shared_company_data)
+  app.get("/api/settings", async (req, res) => {
+    try {
+      let settings: any = {};
+      const d = await getAppDataRef();
+      if (d.exists()) {
+        const data = d.data();
+        settings = data.settings || {};
+
+        // Include company info from root if it exists
+        if (data.info) {
+          settings = { ...settings, ...data.info };
+        }
+
+        // Fallback for phone numbers: check multiple possible sources
+        if (!settings.companyPhone) {
+          const fallback =
+            settings.whatsapp ||
+            settings.phone ||
+            (settings.restaurantNumbers && settings.restaurantNumbers[0]);
+          if (fallback) {
+            settings.companyPhone = fallback;
+          }
+        }
+      }
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  // 4. Customers
+  app.get("/api/customers", async (req, res) => {
+    let { phone } = req.query;
+    if (!phone) {
+      return res.status(400).json({ error: "Phone number required" });
+    }
+    try {
+      const cleanQueryPhone = cleanPhone(phone);
+
+      const d = await getAppDataRef();
+      const data = d.data() || {};
+      const customers = data.customers || [];
+      const invoices = data.invoices || [];
+
+      // Calculate total points dynamically from invoices
+      let dynamicPoints = 0;
+      invoices.forEach((inv: any) => {
+        const invPhone = cleanPhone(inv.customerPhone || inv.phone || "");
+        if (invPhone === cleanQueryPhone) {
+          dynamicPoints += Number(inv.total) || 0;
+        }
+      });
+      dynamicPoints = Math.floor(dynamicPoints);
+
+      let matchedCustomers: any[] = [];
+      customers.forEach((customer: any) => {
+        const phoneField = customer.phone;
+        if (phoneField && cleanPhone(phoneField) === cleanQueryPhone) {
+          matchedCustomers.push({
+            ...customer,
+            // Keep their original points, or add dynamic points, but don't just blindly overwrite 
+            // if dynamicPoints is 0!
+            loyaltyPoints: customer.loyaltyPoints !== undefined ? customer.loyaltyPoints : dynamicPoints,
+          });
+        }
+      });
+
+      // If no customer profile found, try to synthesize one from their latest invoice
+      if (matchedCustomers.length === 0) {
+        // Reverse array to find the most recent one easily (since new ones are pushed to the end)
+        const recentInvoice = [...invoices].reverse().find((inv: any) => {
+          return cleanPhone(inv.customerPhone || inv.phone || "") === cleanQueryPhone;
+        });
+        
+        if (recentInvoice) {
+          matchedCustomers.push({
+            name: recentInvoice.customerName || recentInvoice.name || "",
+            phone: phone,
+            address: recentInvoice.address || null,
+            loyaltyPoints: dynamicPoints,
+          });
+        }
+      }
+
+      // If still nothing, try from orders
+      if (matchedCustomers.length === 0) {
+        const orders = data.orders || [];
+        const recentOrder = [...orders].reverse().find((o: any) => {
+          return cleanPhone(o.customerPhone || o.phone || "") === cleanQueryPhone;
+        });
+
+        if (recentOrder) {
+          matchedCustomers.push({
+            name: recentOrder.customerName || recentOrder.name || "",
+            phone: phone,
+            address: recentOrder.address || null,
+            loyaltyPoints: dynamicPoints,
+          });
+        }
+      }
+
+      return res.json(matchedCustomers);
+    } catch (error) {
+      console.error("Failed to fetch customers:", error);
+      res.status(500).json({ error: "Failed to fetch customers" });
+    }
+  });
+
+  // Helper function to process products uniformly
+  const processProducts = (rawProducts: any[]) => {
+    let products = (rawProducts || []).filter(
+      (p: any) =>
+        p.isActive !== false &&
+        p.isHidden !== true &&
+        p.hidden !== true &&
+        p.visible !== false &&
+        p.isVisible !== false,
+    );
+
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+    products = products.map((p: any) => {
+      let isNew = p.isNewProduct === true || p.isNew === true;
+      if (!isNew && (p.createdAt || p.dateAdded || p.date)) {
+        let timestamp = 0;
+        if (p.createdAt && typeof p.createdAt === 'object' && p.createdAt.seconds) timestamp = p.createdAt.seconds * 1000;
+        else if (p.createdAt) timestamp = new Date(p.createdAt).getTime();
+        else if (p.dateAdded) timestamp = new Date(p.dateAdded).getTime();
+        else if (p.date) timestamp = new Date(p.date).getTime();
+        
+        if (timestamp > thirtyDaysAgo) {
+          isNew = true;
+        }
+      }
+      return { ...p, isNewProduct: isNew };
+    });
+
+    return products;
+  };
+
+  // 5. Top Products
+  app.get("/api/top-products", async (req, res) => {
+    try {
+      const d = await getAppDataRef();
+      const data = d.data() || {};
+      const allProducts = [...(data.products || []), ...(data.supplierCopies || [])];
+
+      let products = processProducts(allProducts);
+      const allInvoices = data.invoices || [];
+
+      const productStats: any = {};
+      allInvoices.forEach((order: any) => {
+        if (order.items && Array.isArray(order.items)) {
+          order.items.forEach((item: any) => {
+            if (!item.productId) return;
+            if (!productStats[item.productId]) {
+              productStats[item.productId] = { count: 0, revenue: 0 };
+            }
+            const quantity = Number(item.quantity) || 1;
+            const price = Number(item.priceAtTime || item.price || 0);
+            productStats[item.productId].count += quantity;
+            productStats[item.productId].revenue += price * quantity;
+          });
+        }
+      });
+
+      // 1. Top products by quantity (Total Quantity) - take top 15
+      const byQuantity = [...products]
+        .filter((p) => (productStats[p.id]?.count || 0) > 0)
+        .sort(
+          (a, b) =>
+            (productStats[b.id]?.count || 0) - (productStats[a.id]?.count || 0),
+        )
+        .slice(0, 15);
+
+      // 2. Top products by sales amount (Total Sales) - take top 15
+      const byRevenue = [...products]
+        .filter((p) => (productStats[p.id]?.revenue || 0) > 0)
+        .sort(
+          (a, b) =>
+            (productStats[b.id]?.revenue || 0) -
+            (productStats[a.id]?.revenue || 0),
+        )
+        .slice(0, 15);
+
+      // Mix both and remove duplicates
+      const mixedMap = new Map();
+      byQuantity.forEach((p) => mixedMap.set(p.id, p));
+      byRevenue.forEach((p) => mixedMap.set(p.id, p));
+
+      let allTopProducts = Array.from(mixedMap.values());
+      
+      // If we don't have enough data, fallback to active products
+      if (allTopProducts.length < 6) {
+        const fallbacks = [...products].filter(p => !p.isHidden && !p.isOutOfStock).slice(0, 20);
+        fallbacks.forEach(p => {
+          if (!mixedMap.has(p.id)) {
+            allTopProducts.push(p);
+            mixedMap.set(p.id, p);
+          }
+        });
+      }
+
+      // Randomly select 6 products from the pool so it changes on every load
+      const shuffled = allTopProducts.sort(() => 0.5 - Math.random());
+      let topProductsList = shuffled.slice(0, 6);
+
+      res.json(topProductsList);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch top products" });
+    }
+  });
+
+  // 6. Products
+  app.get("/api/recent-fomo", async (req, res) => {
+    try {
+      // First, get all active products from the shared database
+      const activeProductsSnap = await getAppDataRef();
+      const activeProducts =
+        activeProductsSnap.data()?.products?.filter((p: any) => !p.isHidden) ||
+        [];
+      const activeProductNames = new Set(
+        activeProducts.map((p: any) => p.name),
+      );
+
+      // Get the most recent 150 orders to find valid recent purchases
+      const allOrders = activeProductsSnap.data()?.orders || [];
+      const allInvoices = activeProductsSnap.data()?.invoices || [];
+      const combinedOrders = [...allOrders, ...allInvoices].sort((a: any, b: any) => {
+        const dateA = new Date(a.createdAt || a.date || 0).getTime();
+        const dateB = new Date(b.createdAt || b.date || 0).getTime();
+        return dateB - dateA;
+      }).slice(0, 150);
+
+      const recentOrders: any[] = [];
+      const seenNames = new Set<string>();
+
+      combinedOrders.forEach((data: any) => {
+        if (
+          data.customerName &&
+          data.address &&
+          typeof data.address === "object" &&
+          data.address.region &&
+          data.address.region !== "غير محدد"
+        ) {
+          // Only include realistic ones
+          if (
+            (data.status === "paid" ||
+              data.status === "تم الدفع" ||
+              data.status === "pending" ||
+              data.status === "قيد الانتظار" ||
+              data.status === "تم الدفع وجاري التوصيل") &&
+            recentOrders.length < 50
+          ) {
+            const items = data.items || [];
+            // STRICT: Only use items that EXACTLY match real products in the shared database
+            const validItems = items.filter(
+              (i: any) => i && i.name && activeProductNames.has(i.name),
+            );
+            const randomItem =
+              validItems.length > 0
+                ? validItems[Math.floor(Math.random() * validItems.length)]
+                : null;
+
+            if (randomItem) {
+              let fNameParts = String(data.customerName).trim().split(" ");
+              let fName = fNameParts[0] || "عميل";
+              if (
+                (fName === "ام" ||
+                  fName === "أم" ||
+                  fName === "ابو" ||
+                  fName === "أبو" ||
+                  fName === "بو") &&
+                fNameParts.length > 1
+              ) {
+                fName = fName + " " + fNameParts[1];
+              }
+
+              if (!seenNames.has(fName)) {
+                seenNames.add(fName);
+                // STRICT: Use real area and real time from the order itself
+                const area = data.address.region;
+
+                let timestamp = data.createdAt;
+                if (timestamp?.toDate) timestamp = timestamp.toDate();
+                else if (typeof timestamp === "number")
+                  timestamp = new Date(timestamp);
+                else if (typeof timestamp === "string")
+                  timestamp = new Date(timestamp);
+                else timestamp = new Date(); // fallback if missing
+
+                recentOrders.push({
+                  name: fName,
+                  area: area,
+                  time: timestamp.toISOString(),
+                  productName: randomItem.name,
+                });
               }
             }
           }
         }
-      } catch (err: any) {
-        if (!String(err).includes("PERMISSION_DENIED")) {
-      console.warn("Firestore fetch restricted or failed. Continuing with minimal payload.", err.message);
-   }
-        order = { orderNumber: clientOrderNumber, total: clientTotal };
-      }
-
-      if (!order) {
-        return res.status(404).json({
-          success: false,
-          message: "Order not found",
-          searchedFor: orderId,
-        });
-      }
-      const paymentStatus = String(order.paymentStatus || "").toLowerCase();
-      const status = String(order.status || "");
-
-      const isAlreadyPaid =
-        paymentStatus === "paid" ||
-        paymentStatus === "captured" ||
-        status.includes("تم الدفع");
-
-      if (isAlreadyPaid) {
-        return res.json({
-          success: true,
-          skipped: true,
-          reason: "Order is already paid",
-        });
-      }
-
-      const eventId = `order-created-${resolvedOrderId}`;
-      let eventSnap: any;
-      try {
-        const eventRef = db.collection("pushEvents").doc(eventId);
-        eventSnap = await eventRef.get();
-        if (eventSnap.exists) {
-          return res.json({
-            success: true,
-            skipped: true,
-            reason: "Notification already sent",
-          });
-        }
-      } catch (e: any) {
-         console.warn("Could not check pushEvents:", e.message);
-      }
-
-      const orderNumber =
-        order.orderNumber ||
-        order.invoiceNo ||
-        order.invoiceNumber ||
-        clientOrderNumber ||
-        orderId;
-
-      const total =
-        order.total ||
-        order.totalAmount ||
-        order.finalTotal ||
-        order.amount ||
-        clientTotal ||
-        "";
-
-      const result = await sendSmartAlertPushNotification({
-        title: "⏳ طلب بانتظار الدفع",
-        body: `طلب ${orderNumber} وصل الآن بانتظار الدفع${total ? ` — القيمة ${total} د.ك` : ""} ⏳`,
-        alertType: "new_order_pending_payment",
-        url: `/?order=${encodeURIComponent(resolvedOrderId)}`
       });
 
-      try {
-        const eventRef = db.collection("pushEvents").doc(eventId);
-        await eventRef.set({
-          orderId,
-          type: "order_created_pending_payment",
-          sentAt: admin.firestore.FieldValue.serverTimestamp(),
-          result,
-        });
-      } catch (e: any) {
-        console.warn("Could not log pushEvent:", e.message);
-      }
+      // We do NOT pad with fake orders anymore. Only real data from the database.
 
-      return res.json(result);
-    } catch (error: any) {
-      console.warn("order-created-alert processing completed with error:", error.message);
+      // Shuffle the final list to keep it feeling fresh without altering real data
+      const shuffled = recentOrders.sort(() => 0.5 - Math.random());
+      res.json(shuffled);
+    } catch (e) {
+      console.error("Failed to get recent FOMO:", e);
+      res.status(500).json([]);
+    }
+  });
 
-      return res.status(200).json({ // Return 200 to prevent frontend crashes
-        success: false,
-        message: error.message,
+  app.get("/api/products", async (req, res) => {
+    try {
+      const d = await getAppDataRef();
+      const data = d.data() || {};
+      const allProducts = [...(data.products || []), ...(data.supplierCopies || [])];
+      let products = processProducts(allProducts);
+
+      // Sort alphabetically
+      products.sort((a: any, b: any) =>
+        (a.name || "").localeCompare(b.name || "", "ar"),
+      );
+
+      res.json(products);
+    } catch (error) {
+      console.error("DEBUG: Failed to fetch products in /api/products:", error);
+      res.status(500).json({
+        error: "Failed to fetch products",
+        details: error instanceof Error ? error.message : String(error),
       });
     }
   });
 
+  // Function to generate a unified, completely unique ID
+  function generateUnifiedId(prefix = "ORD") {
+    const timestamp = Date.now();
+    const randomSuffix = Math.random()
+      .toString(36)
+      .substring(2, 6)
+      .toUpperCase();
+    return `${prefix}-${timestamp}-${randomSuffix}`;
+  }
 
+  // 7. Orders Submission
+  app.post("/api/orders", async (req, res) => {
+    const {
+      customerName,
+      customerPhone,
+      address,
+      items,
+      deliveryFee,
+      total,
+      regionId,
+      generalNotes,
+      isFreeDelivery,
+      deliveryType,
+      status,
+      paymentStatus,
+      splitType,
+    } = req.body;
 
-  app.get("/api/debug/recent-orders", async (req, res) => {
+    console.log(
+      `[ORDER] New order request from ${customerPhone} (${customerName}) total: ${total}`,
+    );
+
+    // Basic validation
+    if (
+      !customerName ||
+      !customerPhone ||
+      !address ||
+      !items ||
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      typeof total !== "number"
+    ) {
+      console.warn("[ORDER] Invalid order data received:", req.body);
+      return res.status(400).json({ error: "بيانات الطلب غير مكتملة" });
+    }
+
+    const orderCustomId = generateUnifiedId("ORD");
+
+    const newOrder: any = {
+      id: orderCustomId,
+      linkedInvoiceId: orderCustomId,
+      customerName: String(customerName).substring(0, 100),
+      customerPhone: String(customerPhone).substring(0, 20),
+      address: typeof address === "string" ? { full: address } : { ...address },
+      items,
+      deliveryFee: deliveryFee || 0,
+      isFreeDelivery: isFreeDelivery || false,
+      deliveryType: deliveryType || (isFreeDelivery ? "free" : null),
+      total,
+      regionId: regionId || null,
+      status: status || (total < 0.001 ? "تم الدفع وجاري التوصيل" : "جديد"),
+      paymentStatus: paymentStatus || (total < 0.001 ? "paid" : "pending"),
+      createdAt: new Date().toISOString(),
+      source: "customer_website",
+      generalNotes: generalNotes || "",
+    };
+
+    if (splitType) {
+      newOrder.splitType = splitType;
+    }
+
     try {
-      const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
+      const docRef = doc(db, "appData", "shared_company_data");
+      const d = await getAppDataRef();
 
-      if (receivedSecret !== process.env.ADMIN_TEST_SECRET) {
-        return res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
+      if (!d.exists()) {
+        console.error("[ORDER] shared_company_data document NOT FOUND");
+        return res.status(500).json({ error: "فشل الوصول إلى قاعدة البيانات" });
       }
 
-      if (!db) {
-        return res.status(200).json({
-          success: true,
-          mocked: true,
-          message: "Firestore Admin is not initialized. Debug skipped.",
-        });
+      const appData = d.data() || {};
+      const orders = appData.orders || [];
+      const customers = appData.customers || [];
+      const products = [
+        ...(appData.products || []),
+        ...(appData.supplierCopies || []),
+      ];
+
+      // Validate all items are currently active
+      for (const item of items) {
+        const product = products.find(
+          (p: any) => p.id === item.productId || p.id === item.id,
+        );
+        if (product && product.isActive === false) {
+          return res
+            .status(400)
+            .json({ error: `المنتج ${product.name} غير متوفر حالياً` });
+        }
       }
 
-      function normalizeDate(value: any) {
-        if (!value) return null;
-        if (value.toDate) return value.toDate().toISOString();
-        if (value instanceof Date) return value.toISOString();
-        const d = new Date(value);
-        return isNaN(d.getTime()) ? null : d.toISOString();
-      }
+      orders.push(newOrder);
 
-      const ordersSnap = await db.collection("orders").limit(20).get();
+      // Update customer record basic info but NOT points/loyalty
+      const cleanPhoneQuery = cleanPhone(customerPhone);
+      let existingIndex = -1;
 
-      const orders = ordersSnap.docs.map((doc) => {
-        const data = doc.data() || {};
+      customers.forEach((c: any, idx: number) => {
+        if (cleanPhone(c.phone) === cleanPhoneQuery) {
+          existingIndex = idx;
+        }
+      });
 
-        return {
-          docId: doc.id,
-          id: data.id || null,
-          orderId: data.orderId || null,
-          orderNumber: data.orderNumber || null,
-          invoiceNo: data.invoiceNo || null,
-          invoiceNumber: data.invoiceNumber || null,
-          status: data.status || null,
-          paymentStatus: data.paymentStatus || null,
-          total: data.total || null,
-          totalAmount: data.totalAmount || null,
-          finalTotal: data.finalTotal || null,
-          amount: data.amount || null,
-          createdAt: normalizeDate(data.createdAt),
-          orderDate: normalizeDate(data.orderDate),
-          timestamp: normalizeDate(data.timestamp),
-          created_at: normalizeDate(data.created_at),
-          rawKeys: Object.keys(data).slice(0, 40),
+      if (existingIndex >= 0) {
+        customers[existingIndex] = {
+          ...customers[existingIndex],
+          name: newOrder.customerName,
+          address: newOrder.address,
+          lastOrderDate: newOrder.createdAt,
         };
-      });
-
-      const appDataSnap = await db.collection("appData").doc("shared_company_data").get();
-
-      let appDataArrays: any[] = [];
-
-      if (appDataSnap.exists) {
-        const appData = appDataSnap.data() || {};
-
-        appDataArrays = Object.entries(appData)
-          .filter(([_, value]) => Array.isArray(value))
-          .map(([key, value]: any) => ({
-            key,
-            count: value.length,
-            sample: value.slice(-3).map((item: any) => ({
-              id: item?.id || null,
-              orderId: item?.orderId || null,
-              orderNumber: item?.orderNumber || null,
-              invoiceNo: item?.invoiceNo || null,
-              invoiceNumber: item?.invoiceNumber || null,
-              status: item?.status || null,
-              paymentStatus: item?.paymentStatus || null,
-              total: item?.total || null,
-              totalAmount: item?.totalAmount || null,
-              finalTotal: item?.finalTotal || null,
-              amount: item?.amount || null,
-              createdAt: normalizeDate(item?.createdAt),
-              orderDate: normalizeDate(item?.orderDate),
-              timestamp: normalizeDate(item?.timestamp),
-              created_at: normalizeDate(item?.created_at),
-              rawKeys: item && typeof item === "object" ? Object.keys(item).slice(0, 30) : [],
-            })),
-          }));
+      } else {
+        customers.push({
+          id: "CUST-" + Date.now().toString(36),
+          name: newOrder.customerName,
+          phone: newOrder.customerPhone,
+          address: newOrder.address,
+          lastOrderDate: newOrder.createdAt,
+          loyaltyPoints: 0,
+          points: 0,
+        });
       }
 
-      return res.json({
-        success: true,
-        ordersCollectionCount: orders.length,
+      await updateAppData({
         orders,
-        appDataArrays,
+        customers,
       });
-    } catch (error: any) {
-      if (!String(error).includes("PERMISSION_DENIED")) console.error("recent-orders debug error:", error);
 
-      return res.status(500).json({
-        success: false,
-        message: error.message,
-      });
+      console.log(`[ORDER] Order ${newOrder.id} saved successfully`);
+      res.status(201).json(newOrder);
+    } catch (e) {
+      console.error("[ORDER] Critical error creating order:", e);
+      res.status(500).json({ error: "حدث خطأ غير متوقع في الخادم" });
     }
   });
 
-  app.post("/api/push/run-business-alerts", async (req, res) => {
+  app.get("/api/create-test-split-order", async (req, res) => {
     try {
-      const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
-
-      if (receivedSecret !== process.env.ADMIN_TEST_SECRET) {
-        return res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
-      }
-
-      if (!db) {
-        return res.status(200).json({
-          success: true,
-          mocked: true,
-          message: "Firestore Admin is not initialized. Alerts skipped.",
-        });
-      }
-
-      const now = new Date();
-
-      const kuwaitParts = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Kuwait",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        hour12: false,
-      }).formatToParts(now).reduce((acc: any, part) => {
-        if (part.type !== "literal") acc[part.type] = part.value;
-        return acc;
-      }, {});
-
-      const todayKey = `${kuwaitParts.year}-${kuwaitParts.month}-${kuwaitParts.day}`;
-      const kuwaitHour = Number(kuwaitParts.hour);
-
-      const dayStart = new Date(`${todayKey}T00:00:00.000+03:00`);
-      const dayEnd = new Date(`${todayKey}T23:59:59.999+03:00`);
-
-      const newOrderWindowStart = new Date(now.getTime() - 15 * 60 * 1000);
-      const pendingPaymentWindowStart = new Date(now.getTime() - 30 * 60 * 1000);
-      const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
-      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-      const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-
-      const results: any[] = [];
-
-      async function alreadySent(eventId: string) {
-        const snap = await db!.collection("pushEvents").doc(eventId).get();
-        return snap.exists;
-      }
-
-      async function markSent(eventId: string, payload: any, result: any) {
-        await db!.collection("pushEvents").doc(eventId).set({
-          ...payload,
-          result,
-          sentAt: admin.firestore.FieldValue.serverTimestamp(),
-        }, { merge: true });
-      }
-
-      function getDateValue(value: any): Date | null {
-        if (!value) return null;
-        if (value.toDate) return value.toDate();
-        if (value instanceof Date) return value;
-        const d = new Date(value);
-        return isNaN(d.getTime()) ? null : d;
-      }
-
-      function getOrderNumber(order: any, fallback: string) {
-        return order.orderNumber || order.invoiceNo || order.invoiceNumber || order.orderId || fallback;
-      }
-
-      function getTotal(order: any) {
-        const raw = order.total || order.totalAmount || order.finalTotal || order.amount || 0;
-        const n = Number(raw);
-        return isNaN(n) ? 0 : n;
-      }
-
-      function isPaidOrder(order: any) {
-        const paymentStatus = String(order.paymentStatus || "").toLowerCase();
-        const status = String(order.status || "");
-        return (
-          paymentStatus === "paid" ||
-          paymentStatus === "captured" ||
-          paymentStatus === "success" ||
-          status.includes("تم الدفع") ||
-          status.toLowerCase().includes("paid")
-        );
-      }
-
-      function isPendingPayment(order: any) {
-        const paymentStatus = String(order.paymentStatus || "").toLowerCase();
-        const status = String(order.status || "").toLowerCase();
-
-        if (isPaidOrder(order)) return false;
-
-        return (
-          paymentStatus === "" ||
-          paymentStatus === "pending" ||
-          paymentStatus === "unpaid" ||
-          paymentStatus === "not_paid" ||
-          status.includes("بانتظار") ||
-          status.includes("pending") ||
-          status.includes("لم يدفع")
-        );
-      }
-
-      // Fetch recent orders from both sources:
-      // 1) Root collection: orders
-      // 2) appData/shared_company_data.orders array
-      const ordersSnap = await db.collection("orders").limit(500).get();
-
-      const rootOrders = ordersSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        __source: "orders_collection",
-      }));
-
-      let appDataOrders: any[] = [];
-
-      const sharedDataSnap = await db.collection("appData").doc("shared_company_data").get();
-
-      if (sharedDataSnap.exists) {
-        const sharedData = sharedDataSnap.data() || {};
-        const sharedOrders = Array.isArray(sharedData.orders) ? sharedData.orders : [];
-
-        appDataOrders = sharedOrders.map((order: any) => ({
-          ...order,
-          id: order.id || order.orderId || order.orderNumber,
-          __source: "appData_orders",
-        }));
-      }
-
-      const ordersMap = new Map<string, any>();
-
-      for (const order of [...rootOrders, ...appDataOrders]) {
-        const key = String(order.id || order.orderId || order.orderNumber || "");
-        if (!key) continue;
-        ordersMap.set(key, order);
-      }
-
-      const orders = Array.from(ordersMap.values());
-
-      // 0) طلب بانتظار الدفع - server-side, works even if admin app is closed
-      for (const order of orders) {
-        const createdAt =
-          getDateValue((order as any).createdAt) ||
-          getDateValue((order as any).orderDate) ||
-          getDateValue((order as any).timestamp) ||
-          getDateValue((order as any).created_at);
-
-        if (!createdAt) continue;
-        if (createdAt < newOrderWindowStart || createdAt > now) continue;
-        if (!isPendingPayment(order)) continue;
-
-        const eventId = `order-created-${(order as any).id}`;
-
-        if (await alreadySent(eventId)) {
-          continue;
-        }
-
-        const orderNumber = getOrderNumber(order, (order as any).id);
-        const total = getTotal(order);
-
-        const result = await sendSmartAlertPushNotification({
-          title: "⏳ طلب بانتظار الدفع",
-          body: `طلب ${orderNumber} وصل الآن بانتظار الدفع${total ? ` — القيمة ${total.toFixed(3)} د.ك` : ""} ⏳`,
-          alertType: "new_order_pending_payment",
-          url: `/?order=${encodeURIComponent((order as any).id)}`
-        });
-
-        await markSent(eventId, {
-          type: "order_created_pending_payment_server",
-          orderId: (order as any).id,
-          orderNumber,
-        }, result);
-
-        results.push({ eventId, result });
-      }
-
-      // 1) طلب لم يدفع بعد 10 دقائق
-      for (const order of orders) {
-        const createdAt =
-          getDateValue((order as any).createdAt) ||
-          getDateValue((order as any).orderDate) ||
-          getDateValue((order as any).timestamp) ||
-          getDateValue((order as any).created_at);
-
-        if (!createdAt) continue;
-
-        // Only alert for recent pending payments:
-        // older than 10 minutes, but not older than 30 minutes.
-        // This prevents sending a backlog of old pending orders all at once.
-        if (createdAt > tenMinutesAgo) continue;
-        if (createdAt < pendingPaymentWindowStart) continue;
-
-        if (!isPendingPayment(order)) continue;
-
-        const eventId = `payment-pending-10min-${(order as any).id}`;
-
-        if (await alreadySent(eventId)) {
-          continue;
-        }
-
-        const orderNumber = getOrderNumber(order, (order as any).id);
-        const total = getTotal(order);
-
-        const result = await sendSmartAlertPushNotification({
-          title: "⏳ طلب لم يُدفع بعد",
-          body: `الطلب ${orderNumber} صار له 10 دقائق بدون دفع${total ? ` — القيمة ${total.toFixed(3)} د.ك` : ""}`,
-          alertType: "payment_pending_10min",
-          url: `/?order=${encodeURIComponent((order as any).id)}`
-        });
-
-        await markSent(eventId, {
-          type: "payment_pending_10min",
-          orderId: (order as any).id,
-          orderNumber,
-        }, result);
-
-        results.push({ eventId, result });
-      }
-
-      // حساب طلبات ومبيعات اليوم
-      const todayOrders = orders.filter((order: any) => {
-        const d =
-          getDateValue(order.createdAt) ||
-          getDateValue(order.orderDate) ||
-          getDateValue(order.timestamp) ||
-          getDateValue(order.created_at);
-
-        return d && d >= dayStart && d <= dayEnd;
-      });
-
-      const paidTodayOrders = todayOrders.filter((order: any) => isPaidOrder(order));
-      const todaySales = paidTodayOrders.reduce((sum: number, order: any) => sum + getTotal(order), 0);
-
-      // محاولة صافي الربح: إن توفر profit/netProfit نستخدمه، وإلا 0
-      const todayNetProfit = paidTodayOrders.reduce((sum: number, order: any) => {
-        const raw =
-          order.netProfit ??
-          order.profit ??
-          order.totalProfit ??
-          order.grossProfit ??
-          0;
-
-        const n = Number(raw);
-        return sum + (isNaN(n) ? 0 : n);
-      }, 0);
-
-      // 2) ملخص اليوم الساعة 11 مساءً
-      // حتى لا يرسل قبل 11:00 مساءً
-      if (kuwaitHour >= 23) {
-        const eventId = `daily-summary-${todayKey}`;
-
-        if (!(await alreadySent(eventId))) {
-          const result = await sendSmartAlertPushNotification({
-            title: "🌙 ملخص اليوم — مطبخ التراث",
-            body: `الطلبات: ${todayOrders.length} ✅ | المبيعات: ${todaySales.toFixed(3)} د.ك | الربح: ${todayNetProfit.toFixed(3)} د.ك — يعطيكم العافية يا أبطال 🔥`,
-            alertType: "daily_summary",
-            url: "/"
-          });
-
-          await markSent(eventId, {
-            type: "daily_summary",
-            date: todayKey,
-            ordersCount: todayOrders.length,
-            sales: todaySales,
-            netProfit: todayNetProfit,
-          }, result);
-
-          results.push({ eventId, result });
-        }
-      }
-
-      // 3) المبيعات اليوم أعلى من 200 د.ك
-      if (todaySales >= 200) {
-        const eventId = `sales-over-200-${todayKey}`;
-
-        if (!(await alreadySent(eventId))) {
-          const result = await sendSmartAlertPushNotification({
-            title: "🔥 المبيعات كسرت 200 د.ك",
-            body: `وصلنا ${todaySales.toFixed(3)} د.ك اليوم — شدوا حيلكم يا شباب 🔥`,
-            alertType: "sales_over_200",
-            url: "/"
-          });
-
-          await markSent(eventId, {
-            type: "sales_over_200",
-            date: todayKey,
-            sales: todaySales,
-          }, result);
-
-          results.push({ eventId, result });
-        }
-      }
-
-      // 4) عدد الطلبات زاد فجأة خلال ساعة
-      const lastHourOrders = orders.filter((order: any) => {
-        const d =
-          getDateValue(order.createdAt) ||
-          getDateValue(order.orderDate) ||
-          getDateValue(order.timestamp) ||
-          getDateValue(order.created_at);
-
-        return d && d >= oneHourAgo && d <= now;
-      });
-
-      const previousHourOrders = orders.filter((order: any) => {
-        const d =
-          getDateValue(order.createdAt) ||
-          getDateValue(order.orderDate) ||
-          getDateValue(order.timestamp) ||
-          getDateValue(order.created_at);
-
-        return d && d >= twoHoursAgo && d < oneHourAgo;
-      });
-
-      const lastHourCount = lastHourOrders.length;
-      const previousHourCount = previousHourOrders.length;
-
-      const suddenSpike =
-        lastHourCount >= 5 &&
-        (
-          previousHourCount === 0 ||
-          lastHourCount >= previousHourCount * 2
-        );
-
-      if (suddenSpike) {
-        const hourKey = now.toISOString().slice(0, 13);
-        const eventId = `order-spike-${hourKey}`;
-
-        if (!(await alreadySent(eventId))) {
-          const result = await sendSmartAlertPushNotification({
-            title: "⚡ ضغط طلبات عالي",
-            body: `آخر ساعة فيها ${lastHourCount} طلب — جهزوا المطبخ يا أبطال ⚡`,
-            alertType: "order_spike",
-            url: "/"
-          });
-
-          await markSent(eventId, {
-            type: "order_spike",
-            hour: hourKey,
-            lastHourCount,
-            previousHourCount,
-          }, result);
-
-          results.push({ eventId, result });
-        }
-      }
-
-      return res.json({
-        success: true,
-        checkedAt: now.toISOString(),
-        resultsCount: results.length,
-        results,
-      });
-    } catch (error: any) {
-      console.warn("run-business-alerts error suppressed:", error.message);
-
-      return res.status(200).json({ // Returns 200 to not fail cron/web calls
-        success: false,
-        message: error.message,
-      });
+      const d = await getAppDataRef();
+      const data = d.data() || {};
+      const orders = data.orders || [];
+      const newOrder = {
+        id: `ORD-TEST-${Date.now()}`,
+        status: "قيد تجميع القطية",
+        total: 100,
+        customerPhone: "99999999",
+        createdAt: new Date().toISOString(),
+      };
+      orders.push(newOrder);
+      await updateAppData({ orders });
+      res.json({ orderId: newOrder.id, message: "Order created successfully" });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
     }
   });
 
-  app.post("/api/push/save-token", async (req, res) => {
+  // Split Payment Endpoint
+  app.post("/api/create-split-payment", async (req, res) => {
+    try {
+      const { orderId, name, amount, customerMobile, customerEmail } = req.body;
+
+      if (!orderId || !amount || isNaN(parseFloat(amount))) {
+        console.error("[SPLIT] Invalid request params:", { orderId, amount });
+        return res.status(400).json({ error: "بيانات الطلب غير مكتملة" });
+      }
+
+      console.log(
+        `[SPLIT] Creating partial payment for Order ${orderId}: ${amount} KWD by ${name}`,
+      );
+
+      const d = await getAppDataRef();
+      const data = d.data() || {};
+      const orders = data.orders || [];
+      const invoices = data.invoices || [];
+
+      let index = orders.findIndex(
+        (o: any) =>
+          String(o.id).trim().toUpperCase() ===
+          String(orderId).trim().toUpperCase(),
+      );
+      let isInvoice = false;
+
+      if (index === -1) {
+        index = invoices.findIndex(
+          (o: any) =>
+            String(o.id).trim().toUpperCase() ===
+            String(orderId).trim().toUpperCase(),
+        );
+        if (index !== -1) {
+          isInvoice = true;
+        }
+      }
+
+      if (index === -1) {
+        console.error(`[SPLIT] Order/Invoice ${orderId} not found`);
+        return res.status(400).json({ error: "الطلب غير موجود" });
+      }
+
+      const existingOrder = isInvoice ? invoices[index] : orders[index];
+
+      const rawApiKey = process.env.UPAYMENTS_API_KEY;
+      if (!rawApiKey) {
+        console.error("[SPLIT] UPAYMENTS_API_KEY is missing");
+        return res.status(500).json({ error: "UPAYMENTS_API_KEY is missing." });
+      }
+
+      let cleanApiKey = rawApiKey.replace(/[^\x20-\x7E]/g, "").trim();
+      if (cleanApiKey.toLowerCase().startsWith("bearer "))
+        cleanApiKey = cleanApiKey.substring(7).trim();
+      else if (cleanApiKey.toLowerCase().startsWith("token "))
+        cleanApiKey = cleanApiKey.substring(6).trim();
+
+      const uniqueSuffix =
+        Date.now().toString(36).slice(-6) +
+        Math.random().toString(36).substring(2, 6);
+      const splitId = `S-${uniqueSuffix}`;
+
+      const isSandbox =
+        String(process.env.UPAYMENTS_MODE || "").toLowerCase() === "sandbox" ||
+        String(process.env.UPAYMENTS_ENV || "").toLowerCase() === "sandbox" ||
+        cleanApiKey.toLowerCase().includes("sandbox") ||
+        cleanApiKey.startsWith("test_");
+      const upaymentsApiUrl = isSandbox
+        ? "https://sandboxapi.upayments.com/api/v1/charge"
+        : "https://uapi.upayments.com/api/v1/charge";
+
+      let protocol = req.headers["x-forwarded-proto"] || req.protocol;
+      let host = req.headers["x-forwarded-host"] || req.get("host");
+      let reqOrigin = req.get("origin");
+      let devOrProdUrl = (reqOrigin && reqOrigin !== "null" && reqOrigin !== "undefined") ? reqOrigin : protocol + "://" + host;
+
+      if (!devOrProdUrl || devOrProdUrl.includes("undefined") || devOrProdUrl === "null") {
+        devOrProdUrl = "https://alturathkw.shop";
+      }
+
+      // If localhost, fallback to public url for Upayments to accept it
+      if (devOrProdUrl.includes("localhost")) {
+        devOrProdUrl = "https://alturathkw.shop";
+      }
+      
+      // Ensure no trailing slash
+      devOrProdUrl = devOrProdUrl.replace(/\/$/, "");
+
+      const finalAmount = parseFloat(amount).toFixed(3);
+      const numericAmount = parseFloat(finalAmount);
+
+      const generatedReturnUrl = `${devOrProdUrl}/split/${orderId}?payment=success`;
+      const generatedCancelUrl = `${devOrProdUrl}/split/${orderId}?payment=failed`;
+      const generatedNotifyUrl = `${devOrProdUrl}/api/payment-webhook/${orderId}/${splitId}`;
+
+      console.log(`[SPLIT] Generated Notify URL: ${generatedNotifyUrl}`);
+
+      // Update with pending split info
+      if (!existingOrder.splitPayments) existingOrder.splitPayments = [];
+
+      existingOrder.splitPayments.push({
+        id: splitId,
+        name: name || "Customer",
+        phone: customerMobile || "",
+        amount: numericAmount,
+        status: "pending",
+        date: new Date().toISOString(),
+      });
+
+      try {
+        if (isInvoice) {
+          invoices[index] = existingOrder;
+          await updateAppData({
+            invoices,
+          });
+        } else {
+          orders[index] = existingOrder;
+          await updateAppData({
+            orders,
+          });
+        }
+      } catch (dbErr: any) {
+        console.error("[SPLIT] Firestore Update Error:", dbErr);
+        return res.status(500).json({
+          error: "فشل تحديث بيانات الطلب في قاعدة البيانات",
+          details: dbErr.message,
+        });
+      }
+
+      const upaymentsPayload = {
+        returnUrl: generatedReturnUrl,
+        cancelUrl: generatedCancelUrl,
+        notificationUrl: generatedNotifyUrl,
+        language: "ar",
+        paymentGateway: { src: "knet" },
+        order: {
+          id: splitId,
+          currency: "KWD",
+          amount: numericAmount,
+        },
+        reference: { id: `${orderId}-${splitId}` },
+        customer: {
+          uniqueId: customerMobile
+            ? `cid_${customerMobile}`
+            : `cid_${uniqueSuffix}`,
+          name: name || "Customer",
+          email: customerEmail || "Dr.Ahmad.Alfailakawi@gmail.com",
+          mobile: customerMobile || "00000000",
+        },
+      };
+
+      // Call UPAYMENTS via AXIOS for better timeout and error handling
+      let paymentResponse: any;
+      try {
+        console.log(`[SPLIT] Calling UPayments API: ${upaymentsApiUrl}`);
+        const response = await axios.post(upaymentsApiUrl, upaymentsPayload, {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${cleanApiKey}`,
+          },
+          timeout: 15000, // 15s timeout
+        });
+        paymentResponse = response.data;
+      } catch (error: any) {
+        const status = error.response?.status || 500;
+        const errorData = error.response?.data || {};
+        console.error("[SPLIT] External API Error:", status, errorData);
+
+        let errMsg =
+          errorData.error || errorData.message || "فشل الاتصال بمزود الدفع";
+        if (status === 401) errMsg = "مفتاح الربط الخاص بالدفع غير صالح";
+
+        const safeStatus = status === 404 ? 400 : status;
+        return res.status(safeStatus).json({
+          error: errMsg,
+          details: errorData,
+        });
+      }
+
+      if (
+        paymentResponse.status &&
+        paymentResponse.data &&
+        paymentResponse.data.link
+      ) {
+        console.log(
+          `[SPLIT] Payment link created: ${paymentResponse.data.link}`,
+        );
+        res.json({ paymentLink: paymentResponse.data.link });
+      } else {
+        console.error("[SPLIT] Invalid response structure:", paymentResponse);
+        res.status(500).json({
+          error:
+            "فشل في إنشاء الرابط: " +
+            (paymentResponse.message || "استجابة غير صالحة من البوابة"),
+          details: paymentResponse,
+        });
+      }
+    } catch (e: any) {
+      console.error("[SPLIT] Exception:", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Payment Endpoint
+  app.post("/api/create-payment", async (req, res) => {
     try {
       const {
-        token,
-        userId,
-        restaurantId,
-        platform,
-        userAgent,
-        vendor,
-        language,
-        standalone,
-        notificationPermission,
-        serviceWorkerController,
-        currentUrl,
-        screen,
-        savedAtClient
+        amount,
+        customerName,
+        customerEmail,
+        customerMobile,
+        orderId,
+        description,
+        returnUrl,
+        cancelUrl,
+        notificationUrl,
+        isPopup,
       } = req.body;
 
-      if (!token) {
-        return res.status(400).json({ error: "token is required" });
-      }
-
-      const ua = userAgent || "";
-      const isIPhone = /iPhone/i.test(ua);
-      const isIOS = /iPad|iPhone|iPod/.test(ua);
-      const isSafariLike = /Safari/i.test(ua);
-      const isProbablyPwa = !!standalone;
-      const deviceType = isIPhone ? "iphone" : (isIOS ? "ios" : "other");
-      
-      const { createHash } = await import("crypto");
-      const tokenHash = createHash("sha256").update(token).digest("hex");
-
-      if (db) {
-        const tokenRef = db.collection("pushTokens").doc(token);
-        const tokenDoc = await tokenRef.get();
-
-        const data: any = {
-          token,
-          tokenHash,
-          userId: userId || null,
-          restaurantId: restaurantId || "kitchen_default",
-          platform: platform || "",
-          userAgent: ua,
-          vendor: vendor || null,
-          language: language || null,
-          standalone,
-          notificationPermission,
-          serviceWorkerController,
-          currentUrl,
-          screen,
-          savedAtClient,
-          deviceType,
-          isIPhone,
-          isIOS,
-          isSafariLike,
-          isProbablyPwa,
-          active: true,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        };
-
-        if (!tokenDoc.exists) {
-          data.createdAt = admin.firestore.FieldValue.serverTimestamp();
+      if (orderId) {
+        const d = await getAppDataRef();
+        const data = d.data() || {};
+        const orders = data.orders || [];
+        const existingOrder = orders.find((o: any) => o.id === orderId);
+        if (
+          existingOrder &&
+          (existingOrder.paymentStatus === "paid" ||
+            (existingOrder.status || "").startsWith("تم الدفع"))
+        ) {
+          return res.status(400).json({ error: "هذا الطلب مدفوع بالفعل" });
         }
-
-        await tokenRef.set(removeUndefinedDeep(data), { merge: true });
       }
 
-      return res.json({ success: true });
-    } catch (error: any) {
-      if (!String(error).includes("PERMISSION_DENIED")) console.error("save-token error:", error);
-      return res.status(500).json({
-        error: "Failed to save token",
-        message: error.message
-      });
-    }
-  });
+      // Get API token from environment variable
+      const rawApiKey = process.env.UPAYMENTS_API_KEY;
 
-  
-async function sendSmartAlertPushNotification({
-  title,
-  body,
-  alertType = "general",
-  url = "https://alturath-admin-0200723670.web.app",
-  eventId = `manual-smart-alert-${Date.now()}`,
-}: {
-  title: string;
-  body: string;
-  alertType?: string;
-  url?: string;
-  eventId?: string;
-}) {
-  try {
-    if (!firebaseInitialized || !db) {
-      return {
-        success: true,
-        mocked: true,
-        error: "Firebase not initialized",
-      };
-    }
-
-    const snap = await db.collection("pushTokens")
-      .where("active", "==", true)
-      .get();
-
-    const tokens = snap.docs
-      .map((doc: any) => String((doc.data() || {}).token || ""))
-      .filter((token: string) => token.length > 50);
-
-    if (tokens.length === 0) {
-      return {
-        success: false,
-        tokensCount: 0,
-        error: "No active push tokens",
-      };
-    }
-
-    const message = {
-      tokens,
-        notification: {
-          title: String(title || "تنبيه"),
-          body: String(body || ""),
-        },
-      data: {
-        type: "smart_alert",
-        alertType: String(alertType || "general"),
-        eventId: String(eventId || `manual-smart-alert-${Date.now()}`),
-        url: String(url),
-        click_action: String(url),
-        title: String(title || "تنبيه"),
-        body: String(body || ""),
-      },
-      webpush: {
-        headers: {
-          Urgency: "high",
-          TTL: "86400",
-        },
-        notification: {
-          title: String(title || "تنبيه"),
-          body: String(body || ""),
-          icon: "/icons/icon-192x192.png",
-          badge: "/icons/icon-192x192.png",
-          requireInteraction: true,
-          data: {
-            url: String(url),
-          },
-        },
-        fcmOptions: {
-          link: String(url),
-        },
-      },
-    };
-
-    const response = await admin.messaging().sendEachForMulticast(message);
-
-    if (response.failureCount > 0) {
-      const batch = db.batch();
-      let changed = 0;
-
-      response.responses.forEach((resp: any, idx: number) => {
-        if (!resp.success) {
-          const errorCode = resp.error?.code;
-          if (
-            errorCode === "messaging/registration-token-not-registered" ||
-            errorCode === "messaging/invalid-registration-token" ||
-            errorCode === "messaging/invalid-argument"
-          ) {
-            batch.update(db.collection("pushTokens").doc(tokens[idx]), { active: false });
-            changed++;
-          }
-        }
-      });
-
-      if (changed > 0) {
-        await batch.commit();
-      }
-    }
-
-    return {
-      success: true,
-      tokensCount: tokens.length,
-      successCount: response.successCount,
-      failureCount: response.failureCount,
-      errors: response.responses
-        .map((resp: any, idx: number) => resp.success ? null : {
-          tokenStart: tokens[idx].slice(0, 20),
-          code: resp.error?.code,
-          message: resp.error?.message,
-        })
-        .filter(Boolean),
-    };
-  } catch (error: any) {
-    if (!String(error).includes("PERMISSION_DENIED")) {
-      console.error("[SMART ALERT PUSH ERROR]", error);
-    }
-    return {
-      success: true,
-      mocked: true,
-      error: "Failed to process smart alert notification",
-      details: error?.message || String(error),
-    };
-  }
-}
-
-
-async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'default', orderNumber = '', testNotificationOnly = false }: any) {
-    if (!admin.messaging || !db) return { success: true, mocked: true, error: "Firebase not initialized" };
-    const url = `/?invoice=${orderId}`; 
-    
-    try {
-      const snap = await db.collection("pushTokens").where("active", "==", true).get();
-      if (snap.empty) return { success: false, error: "No active push tokens found", tokensCount: 0 };
-      
-      const tokens = snap.docs.map(d => d.data().token);
-      
-      const notificationTitle = "⏳ طلب بانتظار الدفع";
-      const notificationBody = `الطلب ${orderNumber || orderId} بانتظار الدفع`;
-
-      const message = {
-        tokens,
-        notification: {
-          title: notificationTitle,
-          body: notificationBody,
-        },
-        data: {
-          type: "smart_alert",
-          alertType: "payment_pending_immediate",
-          eventId: `new-order-${orderId}-${Date.now()}`,
-          url: String(url),
-          click_action: String(url),
-          title: notificationTitle,
-          body: notificationBody,
-          orderId: String(orderId),
-          orderNumber: String(orderNumber || ""),
-          restaurantId: String(restaurantId || "default"),
-          total: String(total || ""),
-        },
-        webpush: {
-          headers: {
-            Urgency: "high",
-            TTL: "86400",
-          },
-          notification: {
-            title: notificationTitle,
-            body: notificationBody,
-            icon: "/icons/icon-192x192.png",
-            badge: "/icons/icon-192x192.png",
-            requireInteraction: true,
-            data: {
-              url: String(url),
-            },
-          },
-          fcmOptions: {
-            link: String(url),
-          },
-        },
-      };
-
-      const response = await admin.messaging().sendEachForMulticast(message);
-      
-      // Cleanup invalid tokens
-      if (response.failureCount > 0) {
-        const failedTokens: string[] = [];
-        response.responses.forEach((resp, idx) => {
-          if (!resp.success) {
-            const errorCode = resp.error?.code;
-            if (errorCode === "messaging/registration-token-not-registered" || 
-                errorCode === "messaging/invalid-registration-token" ||
-                errorCode === "messaging/invalid-argument") {
-              failedTokens.push(tokens[idx]);
-            }
-          }
+      if (!rawApiKey) {
+        console.error(
+          "[PAYMENT ERROR] UPAYMENTS_API_KEY is missing from environment variables.",
+        );
+        return res.status(500).json({
+          error:
+            "الرجاء إضافة مفتاح المبيعات الحقيقي (Live API Key) من UPayments في إعدادات التطبيق (Environment Variables) تحت اسم UPAYMENTS_API_KEY ليتم تفعيل الدفع بنجاح.",
         });
-
-        if (failedTokens.length > 0) {
-          const batch = db.batch();
-          for (const token of failedTokens) {
-            batch.update(db.collection("pushTokens").doc(token), { active: false });
-          }
-          await batch.commit();
-        }
       }
 
-      return {
-        success: response.successCount > 0,
-        tokensCount: tokens.length,
-        successCount: response.successCount,
-        failureCount: response.failureCount,
-        errors: response.responses.filter(r => !r.success).map(r => (r.error ? { code: r.error.code, message: r.error.message } : { message: "Unknown error" }))
-      };
-    } catch (e: any) {
-      console.warn("Sending smart alert push error suppressed in preview:", e.message);
-      return { success: true, mocked: true, warning: e.message };
-    }
-  }
+      // Clean key and handle cases where 'Bearer ' might already be included
+      let cleanApiKey = rawApiKey.replace(/[^\x20-\x7E]/g, "").trim();
+      if (cleanApiKey.toLowerCase().startsWith("bearer ")) {
+        cleanApiKey = cleanApiKey.substring(7).trim();
+      } else if (cleanApiKey.toLowerCase().startsWith("token ")) {
+        cleanApiKey = cleanApiKey.substring(6).trim();
+      }
 
-  // Consolidate API Key retrieval logic
-  const getUPaymentsApiKey = () => {
-    const raw = process.env.UPAYMENTS_API_KEY || process.env.VITE_UPAYMENTS_API_KEY || "";
-    return raw.replace(/[^\x20-\x7E]/g, '').replace(/\s+/g, '').trim();
-  };
+      if (cleanApiKey.length === 0) {
+        console.error(
+          "[PAYMENT] INVALID KEY DETECTED - User might have pasted dots/bullets instead of actual key.",
+        );
+        return res.status(400).json({
+          error:
+            "مفتاح الربط الخاص بالدفع غير صالح. يبدو أنك قمت بنسخ نقاط (••••) بدلاً من المفتاح الحقيقي. يرجى التأكد من نسخ المفتاح الفعلي من لوحة تحكم UPayments ولصقه في إعدادات التطبيق.",
+        });
+      }
 
-  app.get("/api/test-upayments-raw", async (req, res) => {
-    try {
-      const apiKey = getUPaymentsApiKey();
-      res.send(`Key length: ${apiKey?.length}, first 3: ${apiKey?.substring(0,3)}`);
-    } catch(e: any) {
-      res.send("Error: " + e.message);
-    }
-  });
+      // Ensure absolutely unique track ID for KNET by using timestamp and random string (max length 20 chars total)
+      const uniqueSuffix =
+        Date.now().toString(36).slice(-6) +
+        Math.random().toString(36).substring(2, 6);
+      const knetTrackId = `O-${uniqueSuffix}`;
 
-  app.get("/api/test", (req, res) => {
-    res.json({ message: "BACKEND OK", status: 200, time: new Date().toISOString() });
-  });
+      // Define base url depending on if it contains sandbox markers
+      const isSandbox =
+        String(process.env.UPAYMENTS_MODE || "").toLowerCase() === "sandbox" ||
+        String(process.env.UPAYMENTS_ENV || "").toLowerCase() === "sandbox" ||
+        cleanApiKey.toLowerCase().includes("sandbox") ||
+        cleanApiKey.startsWith("test_");
 
-  app.get("/api/payment-return/:invoiceNo", async (req, res) => {
-    try {
-      const { invoiceNo } = req.params;
-      const q = req.query;
+      // Prefer standard production endpoint
+      const upaymentsApiUrl = isSandbox
+        ? "https://sandboxapi.upayments.com/api/v1/charge"
+        : "https://uapi.upayments.com/api/v1/charge";
 
-      const result = String(q.result || "").toUpperCase();
-      const paymentId = q.payment_id || "";
-      const tranId = q.tran_id || "";
-      const ref = q.ref || "";
-      const invoiceId = q.invoice_id || "";
-      const receiptId = q.receipt_id || "";
-      const trackId = q.track_id || "";
-      const paymentType = q.payment_type || "";
-      const transactionDate = q.transaction_date || "";
-
-      const isPaid =
-        result === "CAPTURED" ||
-        result === "SUCCESS" ||
-        result === "PAID";
-
-      const status = isPaid ? "paid" : "failed";
-
-      console.log("Payment return:", {
-        invoiceNo,
-        status,
-        result,
-        paymentId,
-        tranId,
-        ref,
-        invoiceId,
-        receiptId,
-        trackId,
-        paymentType,
-        transactionDate,
-      });
-
-      // Update database logically if needed
-      // await updateOrderPaymentStatus(invoiceNo, { status, result, paymentId, tranId, ref });
-
-      return res.redirect(
-        `/?payment=${status}&invoice=${encodeURIComponent(invoiceNo)}&result=${encodeURIComponent(result)}`
+      // Log token details (truncated for security) to help debug 401 errors
+      console.log(
+        `[PAYMENT] UPAYMENTS_API_KEY exists: ${!!process.env.UPAYMENTS_API_KEY}, length: ${rawApiKey.length}`,
       );
-    } catch (error) {
-      console.error("Payment return error:", error);
-      return res.redirect("/?payment=error");
-    }
-  });
+      const tokenPrefix = cleanApiKey.substring(0, 5) + "...";
+      console.log(
+        `[PAYMENT] Creating payment with isSandbox=${isSandbox}, token starts with ${tokenPrefix}, Url: ${upaymentsApiUrl}`,
+      );
 
-  app.get("/api/payment-return", async (req, res) => {
-      const q = req.query;
-      const invoiceNo = String(q.track_id || q.order_id || q.invoice_id || "");
-      try {
-        const result = String(q.result || "").toUpperCase();
-        const isPaid = result === "CAPTURED" || result === "SUCCESS" || result === "PAID";
-        const status = isPaid ? "paid" : "failed";
-        return res.redirect(`/?payment=${status}&invoice=${encodeURIComponent(invoiceNo)}&result=${encodeURIComponent(result)}`);
-      } catch (error) {
-        return res.redirect("/?payment=error");
-      }
-  });
+      let protocol = req.headers["x-forwarded-proto"] || req.protocol;
+      let host = req.headers["x-forwarded-host"] || req.get("host");
+      let reqOrigin = req.get("origin");
+      let devOrProdUrl = (reqOrigin && reqOrigin !== "null" && reqOrigin !== "undefined") ? reqOrigin : protocol + "://" + host;
 
-  console.log("Registering create-payment...");
-  app.post("/api/create-payment", async (req, res) => {
-    console.log("=== CREATE PAYMENT ROUTE HIT ===");
-    const { 
-      amount, 
-      customerName, 
-      customerEmail, 
-      customerMobile, 
-      orderId, 
-      description, 
-      paymentGateway = 'knet',
-      returnUrl,
-      cancelUrl,
-      notificationUrl
-    } = req.body;
-    
-    // Clean and robust API Key retrieval
-    const envKeys = Object.keys(process.env).filter(k => k.includes('UPAYMENT'));
-    console.log("Available Upayments related env keys:", envKeys);
-    
-    const apiKey = getUPaymentsApiKey();
-
-    if (!apiKey) {
-      console.error("UPAYMENTS_API_KEY is not defined or empty. Check environment variables.");
-      return res.status(500).json({ error: "Payment gateway configuration error (Key Missing)" });
-    }
-    
-    console.log(`Using API key: ${apiKey.substring(0, 4)}... (Total length: ${apiKey.length})`);
-    
-    const validNotificationUrl =
-      typeof notificationUrl === "string" && /^https?:\/\//i.test(notificationUrl)
-        ? notificationUrl
-        : "https://admin.alturathkw.shop/api/payment/notification";
-
-    if (!amount || !customerName || !orderId || !returnUrl || !cancelUrl) {
-      return res.status(400).json({ error: "Missing required payment fields" });
-    }
-
-    try {
-      const baseUrl = "https://apiv2api.upayments.com/api/v1"; // Forced Live Mode as requested
-      
-      // Clean and format phone number (ensure 965 prefix for Kuwait)
-      let cleanMobile = customerMobile ? customerMobile.toString().replace(/[^0-9]/g, '') : '';
-      if (cleanMobile.length === 8) {
-        cleanMobile = '965' + cleanMobile;
-      } else if (cleanMobile.length === 0) {
-        cleanMobile = '96500000000';
+      // Remove any forced replacement
+      if (!devOrProdUrl || devOrProdUrl.includes("undefined") || devOrProdUrl === "null") {
+        devOrProdUrl = "https://alturathkw.shop"; // fallback only
       }
       
-      const payload: any = {
+      // If localhost, fallback to public url for Upayments to accept it
+      if (devOrProdUrl.includes("localhost")) {
+        devOrProdUrl = "https://alturathkw.shop";
+      }
+      
+      // Ensure no trailing slash
+      devOrProdUrl = devOrProdUrl.replace(/\/$/, "");
+
+      // Return browser to whichever environment initiated the payment
+      const generatedReturnUrl = `${devOrProdUrl}/api/payment-return/${orderId}/success${isPopup ? "?isPopup=true" : ""}`;
+      const generatedCancelUrl = `${devOrProdUrl}/api/payment-return/${orderId}/failed${isPopup ? "?isPopup=true" : ""}`;
+      // Webhooks should ideally go to the environment that initiated it
+      const generatedNotifyUrl = `${devOrProdUrl}/api/payment-webhook/${orderId}`;
+
+      const finalReturnUrl = generatedReturnUrl;
+      const finalCancelUrl = generatedCancelUrl;
+      const finalNotificationUrl = generatedNotifyUrl;
+
+      console.log(
+        `[PAYMENT] URLs generated - Return: ${finalReturnUrl}, Notify: ${finalNotificationUrl}`,
+      );
+
+      // Save payment ID to order before creating link
+      const d = await getAppDataRef();
+      const data = d.data() || {};
+      const orders = data.orders || [];
+      const index = orders.findIndex((o: any) => o.id === orderId);
+      if (index !== -1) {
+        orders[index].paymentId = knetTrackId;
+        await updateAppData({ orders });
+      }
+
+      // Check if amount is valid for UPayments (min 0.001 KWD)
+      const finalAmount = parseFloat(amount);
+      if (finalAmount < 0.001) {
+        console.log(
+          `[PAYMENT] Skipping UPayments for 0 or small amount: ${finalAmount}`,
+        );
+        // If it's 0, we treat it as a pre-paid/free successful transaction
+        return res.json({
+          success: true,
+          paymentLink: `${devOrProdUrl}/api/payment-return/${orderId}/success${isPopup ? "?isPopup=true" : ""}`,
+        });
+      }
+
+      // Define the Upayments mapped payload
+      const upaymentsPayload = {
+        returnUrl: finalReturnUrl,
+        cancelUrl: finalCancelUrl,
+        notificationUrl: finalNotificationUrl,
+        language: "ar",
+        paymentGateway: { src: "knet" },
         order: {
-          id: orderId,
-          reference: orderId,
-          description: description || 'Payment for order ' + orderId,
-          currency: 'KWD',
-          amount: amount
+          id: knetTrackId,
+          currency: "KWD",
+          amount: finalAmount,
         },
-        language: 'en',
-        is_sms: 1,
-        is_email: 1,
-        paymentGateway: { src: paymentGateway },
         reference: { id: orderId },
         customer: {
-          uniqueId: customerEmail || cleanMobile || orderId,
-          name: customerName,
-          email: customerEmail || 'no-email@example.com',
-          mobile: cleanMobile
+          uniqueId: customerMobile
+            ? `cid_${customerMobile}`
+            : `cid_${uniqueSuffix}`,
+          name: customerName || "Customer",
+          email: customerEmail || "Dr.Ahmad.Alfailakawi@gmail.com",
+          mobile: customerMobile || "00000000",
         },
-        returnUrl: returnUrl,
-        cancelUrl: cancelUrl,
-        notificationUrl: validNotificationUrl
       };
 
-      console.log("UPayments Request Payload:", JSON.stringify(payload));
-
-      const response = await fetch(`${baseUrl}/charge`, {
-        method: "POST",
-        headers: {
-          "Accept": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      const contentType = response.headers.get("content-type");
-      let data;
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        console.error("Non-JSON UPayments API error:", text);
-        return res.status(response.status).json({ error: "Payment gateway request failed", details: text });
-      }
-      
-      if (!response.ok) {
-        console.error("UPayments API error:", data);
-        return res.status(response.status).json({ error: "Payment gateway request failed", details: data });
-      }
-
-      // Send immediate pending-payment alert when payment link is created
-      sendSmartAlertPushNotification({
-        title: String(orderId).startsWith("INV-")
-          ? "⏳ فاتورة بانتظار الدفع"
-          : "⏳ طلب بانتظار الدفع",
-        body: `${String(orderId).startsWith("INV-") ? "الفاتورة" : "الطلب"} ${orderId} بانتظار الدفع${amount ? ` — ${amount} د.ك` : ""}`,
-        alertType: String(orderId).startsWith("INV-")
-          ? "invoice_pending_immediate"
-          : "payment_pending_immediate",
-        url: String(orderId).startsWith("INV-")
-          ? `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(orderId)}`
-          : `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
-      } as any).catch(console.error);
-
-      res.json(data);
-    } catch (error) {
-      console.error("Error creating payment:", error);
-      res.status(500).json({ error: "Failed to create payment" });
-    }
-  });
-
-  // The search route is replaced by the payment-return route moved up higher
-  app.get("/api/search-order/:phone", async (req, res) => {
-    res.json([]);
-  });
-
-  app.post("/api/invoice/confirm", async (req, res) => {
-    const { paymentId, invoiceId } = req.body;
-    if (!paymentId || paymentId === 'check_by_invoice' || !invoiceId) {
-        return res.status(400).json({ error: "Missing or invalid parameters" });
-    }
-
-    const apiKey = getUPaymentsApiKey();
-    if (!apiKey) return res.status(500).json({ error: "Missing config" });
-
-    try {
-        const baseUrl = "https://apiv2api.upayments.com/api/v1";
-        
-        console.log(`Verifying payment ID: ${paymentId}`);
-        let response = await fetch(`${baseUrl}/get-payment-status/${paymentId}`, {
-            method: 'GET',
-            headers: {
-                "Accept": "application/json",
-                "Authorization": `Bearer ${apiKey}`
-            }
+      let paymentResponse: any;
+      try {
+        const apiRes = await axios.post(upaymentsApiUrl, upaymentsPayload, {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${cleanApiKey}`,
+          },
+          timeout: 15000,
         });
-        
-        // If the first endpoint doesn't find it, try the other endpoint
-        if (response.status === 404 || response.status === 400) {
-            response = await fetch(`${baseUrl}/charge/${paymentId}`, {
-                method: 'GET',
-                headers: {
-                    "Accept": "application/json",
-                    "Authorization": `Bearer ${apiKey}`
-                }
-            });
+        paymentResponse = apiRes.data;
+      } catch (error: any) {
+        const status = error.response?.status || 500;
+        const errorData = error.response?.data || {};
+        console.error("[PAYMENT] UPayments API Error:", status, errorData);
+
+        if (status === 401) {
+          return res.status(500).json({
+            error:
+              "مفتاح الربط الخاص بالدفع غير صالح، يرجى التأكد من الـ API Key الخاص بـ UPayments.",
+          });
         }
-        
-        const contentType = response.headers.get("content-type");
-        let data;
-        if (contentType && contentType.includes("application/json")) {
-            data = await response.json();
-        } else {
-            const text = await response.text();
-            console.error("Non-JSON UPayments API error:", text);
-            return res.status(response.status).json({ error: "Verification request failed", details: text });
-        }
-        
-        if (data && (data.status === true || data.status === 'success' || data.status === 1 || !data.error) && data.data && (data.data.result === 'CAPTURED' || data.data.result === 'SUCCESS' || data.data.status === 'success' || data.data.status === 'CAPTURED')) {
-            const returnedInvoiceId = data.data.order_id || data.data.reference?.id || data.data.orderId || invoiceId;
-            return res.json({ success: true, verified: true, invoiceId: returnedInvoiceId });
-        } else {
-            console.log("Upayments charge-verify failed. Data:", JSON.stringify(data));
-            return res.json({ success: true, verified: false, debugData: data });
-        }
-    } catch (e) {
-        console.error("Error verifying payment:", e);
-        return res.status(500).json({ error: "Verification failed" });
-    }
-  });
-  app.get("/api/invoice/:id", async (req, res) => {
-    // Disabled server-side DB fetch due to missing Google Cloud IAM credentials (admin SDK Service Account).
-    // The frontend should fetch data from Firebase Client SDK, or the user needs to provide a private key JSON.
-    res.status(503).json({ error: "Service unavailable without service account credentials." });
-  });
 
-  // Specific 404 for API to prevent falling through to React
-  // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_START
-  const ALERTS_ADMIN_TEST_SECRET = process.env.ADMIN_TEST_SECRET || "123456";
-  const ALERTS_LOOKBACK_MINUTES = Number(process.env.ALERTS_LOOKBACK_MINUTES || "1440");
-  const ALERTS_MAX_SEND_PER_RUN = Number(process.env.ALERTS_MAX_SEND_PER_RUN || process.env.MAX_SEND_PER_RUN || "100");
-  const ALERTS_START_FROM_ISO = process.env.ALERTS_START_FROM_ISO || "";
-
-  function alertsRequireSecret(req: any, res: any, next: any) {
-    const secret = req.headers["x-admin-secret"] || req.query.secret;
-    if (String(secret) !== String(ALERTS_ADMIN_TEST_SECRET)) {
-      return res.status(403).json({ success: false, error: "Forbidden" });
-    }
-    next();
-  }
-
-  function alertsIdsFor(x: any) {
-    return [x?.id, x?.invoiceId, x?.invoiceNo, x?.orderId, x?.orderNo, x?.number, x?.tracked_order, x?.requested_order_id]
-      .filter(Boolean).map(String);
-  }
-
-  function alertsDateFromBusinessId(id: any) {
-    const m = String(id || "").match(/^(INV|ORD)-(\d{13})-/);
-    if (!m) return null;
-    const d = new Date(Number(m[2]));
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-
-  function alertsDateValue(v: any) {
-    if (!v) return null;
-    if (v instanceof Date) return v;
-    if (v?.toDate) return v.toDate();
-    if (v?.seconds) return new Date(v.seconds * 1000);
-    const d = new Date(v);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-
-  function alertsBestDate(x: any) {
-    for (const id of alertsIdsFor(x)) {
-      const d = alertsDateFromBusinessId(id);
-      if (d) return d;
-    }
-    return alertsDateValue(x?.createdAt || x?.created_at || x?.date || x?.updatedAt || x?.paymentUpdatedAt || x?.failedAt || x?.paidAt);
-  }
-
-  function alertsInWindow(itemOrId: any, now = new Date()) {
-    const d = typeof itemOrId === "string" ? alertsDateFromBusinessId(itemOrId) : alertsBestDate(itemOrId);
-    if (!d) return false;
-    const cutoff = ALERTS_START_FROM_ISO ? new Date(ALERTS_START_FROM_ISO) : null;
-    if (cutoff && d < cutoff) return false;
-    const lookback = new Date(now.getTime() - ALERTS_LOOKBACK_MINUTES * 60 * 1000);
-    return d >= lookback;
-  }
-
-  function alertsBusinessIdFor(x: any, prefix = "") {
-    const ids = alertsIdsFor(x);
-    if (prefix) return ids.find((id: string) => id.startsWith(prefix)) || "";
-    return ids.find((id: string) => /^INV-\d{13}-/.test(id) || /^ORD-\d{13}-/.test(id)) || ids[0] || "";
-  }
-
-  function alertsStatusFor(x: any) {
-    return String(x?.status || x?.paymentStatus || x?.payment_status || x?.state || "").toLowerCase();
-  }
-  function alertsIsPaid(s: string) { return s.includes("paid") || s.includes("captured") || s.includes("تم الدفع") || s.includes("مدفوع") || s.includes("جاري التوصيل"); }
-  function alertsIsFailed(s: string) { return s.includes("failed") || s.includes("not captured") || s.includes("declined") || s.includes("فشل") || s.includes("فشلت"); }
-  function alertsIsPending(s: string) {
-    return s === "" || s.includes("pending") || s.includes("pending_payment") || s.includes("new_order_pending_payment") ||
-      s.includes("order_created_pending_payment") || s.includes("unpaid") || s.includes("بانتظار") ||
-      s.includes("انتظار الدفع") || s.includes("لم يدفع") || s.includes("لم تُدفع") || s.includes("waiting");
-  }
-  function alertsIsCancelled(s: string) { return s.includes("cancelled") || s.includes("canceled") || s.includes("ملغي") || s.includes("ملغى") || s.includes("تم الإلغاء") || s.includes("تم الالغاء"); }
-  function alertsIsQatiaExpired(s: string) { return s.includes("انتهى وقت القطية") || s.includes("انتهى وقت القطيه") || s.includes("ملغي - انتهى وقت القطية") || s.includes("ملغي - انتهى وقت القطيه") || s.includes("qatia expired") || s.includes("split expired"); }
-  function alertsIsRoulette(item: any, s: string) { return s.includes("روليت") || s.includes("roulette") || String(item?.type || "").toLowerCase().includes("roulette") || String(item?.orderType || "").toLowerCase().includes("roulette") || String(item?.splitType || "").toLowerCase().includes("roulette"); }
-  function alertsIsQatiaLike(item: any, s: string) {
-    return !alertsIsRoulette(item, s) && (
-      s.includes("قطية") || s.includes("قطيه") || s.includes("split") ||
-      String(item?.type || "").toLowerCase().includes("qatia") || String(item?.type || "").toLowerCase().includes("split") ||
-      String(item?.orderType || "").toLowerCase().includes("qatia") || String(item?.orderType || "").toLowerCase().includes("split") ||
-      String(item?.splitType || "").toLowerCase().includes("qatia") || String(item?.splitType || "").toLowerCase().includes("split") ||
-      Array.isArray(item?.splitParticipants) || Boolean(item?.splitPayments)
-    );
-  }
-  function alertsAmountText(x: any) {
-    const n = Number(x?.totalAmount ?? x?.total ?? x?.amount ?? x?.price ?? 0);
-    return Number.isFinite(n) && n > 0 ? ` — القيمة ${n.toFixed(3)} د.ك` : "";
-  }
-
-  async function alertsLatestActiveToken() {
-    const snap = await db.collection("pushTokens").where("active", "==", true).get();
-    const docs = snap.docs.map((d: any) => ({ id: d.id, data: d.data() }))
-      .filter((x: any) => Boolean(x.data.token))
-      .sort((a: any, b: any) => {
-        const at = a.data.updatedAt?.toMillis ? a.data.updatedAt.toMillis() : 0;
-        const bt = b.data.updatedAt?.toMillis ? b.data.updatedAt.toMillis() : 0;
-        return bt - at;
-      });
-    return docs[0]?.data?.token || null;
-  }
-
-  async function alertsClaim(eventId: string) {
-    const ref = db.collection("pushEvents").doc(eventId);
-    const snap = await ref.get();
-    if (snap.exists) return false;
-    return true;
-  }
-
-  async function alertsMarkSent(eventId: string, result: any) {
-    await db.collection("pushEvents").doc(eventId).set({
-      eventId,
-      source: "alerts-worker-final-clean-v2-root-merged",
-      result,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-  }
-
-  async function alertsSendDataOnly({ title, body, alertType, eventId, url }: any) {
-    return await sendSmartAlertPushNotification({
-      title: String(title || "تنبيه"),
-      body: String(body || ""),
-      alertType: String(alertType || "general"),
-      url: String(url || "https://admin.alturathkw.shop/"),
-      eventId: String(eventId || `safe-worker-${Date.now()}`),
-    });
-  }
-
-  async function alertsSendOnce(results: any[], eventId: string, payload: any, dryRun: boolean, counters: any) {
-    if (dryRun) { results.push({ eventId, dryRun: true, payload }); return; }
-    if (counters.sent >= ALERTS_MAX_SEND_PER_RUN) { results.push({ eventId, skipped: true, reason: "max-send-per-run-reached" }); return; }
-    const canSend = await alertsClaim(eventId);
-    if (!canSend) { results.push({ eventId, skipped: true, reason: "already-sent" }); return; }
-    const result = await alertsSendDataOnly({ ...payload, eventId });
-    if (result.success) {
-      counters.sent += 1;
-      await alertsMarkSent(eventId, result);
-    }
-    results.push({ eventId, result });
-  }
-
-  async function alertsReadRecentPushEvents(limit = 1000) {
-    try { return await db.collection("pushEvents").orderBy("createdAt", "desc").limit(limit).get(); }
-    catch { return await db.collection("pushEvents").limit(limit).get(); }
-  }
-
-  async function alertsGetRecentFailedInvoiceIdsFromPushEvents() {
-    const snap = await alertsReadRecentPushEvents(1000);
-    const ids = new Set<string>();
-    for (const doc of snap.docs) {
-      const raw = `${doc.id} ${JSON.stringify(doc.data() || {})}`;
-      const looksFailed = raw.includes("invoice-failed") || raw.includes("invoice_failed") || raw.includes("فشل دفع فاتورة") || raw.includes("فشل دفع الفاتورة");
-      if (!looksFailed) continue;
-      const matches = raw.match(/INV-\d{13}-[A-Z0-9]+/g) || [];
-      for (const id of matches) if (alertsInWindow(id)) ids.add(id);
-    }
-    return Array.from(ids);
-  }
-
-  async function alertsSyncFailedInvoicesFromPushEvents() {
-    const failedInvoiceIds = await alertsGetRecentFailedInvoiceIdsFromPushEvents();
-    if (failedInvoiceIds.length === 0) return { updated: 0, ids: [] };
-    const ref = db.collection("appData").doc("shared_company_data");
-    const snap = await ref.get();
-    const shared = snap.data() || {};
-    let invoices = Array.isArray(shared.invoices) ? [...shared.invoices] : [];
-    let orders = Array.isArray(shared.orders) ? [...shared.orders] : [];
-    const markFailed = (id: string, item: any = {}) => ({ ...item, id, invoiceId: id, invoiceNo: id, tracked_order: id, requested_order_id: id, source: item?.source || "payment-return-failed-event", type: item?.type || "admin_invoice", status: "فشل في عملية الدفع", paymentStatus: "failed", payment_status: "failed", paid: false, failed: true, canPay: true, createdAt: item?.createdAt || alertsDateFromBusinessId(id)?.toISOString() || new Date().toISOString(), failedAt: item?.failedAt || new Date().toISOString(), updatedAt: new Date().toISOString() });
-    let updated = 0;
-    for (const id of failedInvoiceIds) {
-      const invoiceMatches = invoices.filter((x: any) => alertsIdsFor(x).includes(id));
-      const orderMatches = orders.filter((x: any) => alertsIdsFor(x).includes(id));
-      const base = invoiceMatches[invoiceMatches.length - 1] || orderMatches[orderMatches.length - 1] || { id, invoiceId: id, invoiceNo: id, tracked_order: id, requested_order_id: id, source: "payment-return-failed-event", type: "admin_invoice" };
-      invoices = [...invoices.filter((x: any) => !alertsIdsFor(x).includes(id)), markFailed(id, base)];
-      orders = orders.filter((x: any) => !alertsIdsFor(x).includes(id));
-      updated += 1;
-    }
-    if (updated > 0) await ref.set({ invoices, orders, updatedAt: new Date().toISOString(), lastAutoSyncedFailedInvoicesFinalCleanV2: { ids: failedInvoiceIds, updated, at: new Date().toISOString() } }, { merge: true });
-    return { updated, ids: failedInvoiceIds };
-  }
-
-  async function alertsLoadSharedData() {
-    const snap = await db.collection("appData").doc("shared_company_data").get();
-    return snap.data() || {};
-  }
-
-  async function alertsReconcile({ dryRun = false } = {}) {
-    const counters = { sent: 0 };
-    const results: any[] = [];
-    const now = new Date();
-    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
-    let syncResult = { updated: 0, ids: [] as string[] };
-    if (!dryRun) syncResult = await alertsSyncFailedInvoicesFromPushEvents();
-    const failedInvoiceIds = new Set(await alertsGetRecentFailedInvoiceIdsFromPushEvents());
-    const shared = await alertsLoadSharedData();
-    const invoices = Array.isArray(shared.invoices) ? shared.invoices : [];
-    const orders = Array.isArray(shared.orders) ? shared.orders : [];
-
-    for (const inv of invoices) {
-      const invoiceId = alertsBusinessIdFor(inv, "INV-");
-      if (!invoiceId || !alertsInWindow(inv, now)) continue;
-      const st = alertsStatusFor(inv);
-      if (failedInvoiceIds.has(invoiceId) || alertsIsFailed(st)) {
-        await alertsSendOnce(results, `safe-worker-invoice-failed-${invoiceId}`, {
-          title: "❌ فشلت عملية الدفع",
-          body: `فشلت عملية الدفع للفاتورة ${invoiceId}${alertsAmountText(inv)}`,
-          alertType: "invoice_payment_failed",
-          url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}`
-        }, dryRun, counters);
-        continue;
+        const errMsg =
+          errorData.error || errorData.message || `UPayments Error: ${status}`;
+        return res.status(status).json({ error: errMsg, details: errorData });
       }
-      if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-invoice-paid-${invoiceId}`, { title: "✅ تم دفع فاتورة", body: `تم دفع الفاتورة ${invoiceId}${alertsAmountText(inv)}`, alertType: "invoice_paid", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters); continue; }
-      if (alertsIsPending(st)) {
-        await alertsSendOnce(results, `safe-worker-invoice-pending-immediate-${invoiceId}`, { title: "⏳ فاتورة بانتظار الدفع", body: `الفاتورة ${invoiceId} بانتظار الدفع${alertsAmountText(inv)}`, alertType: "invoice_pending_immediate", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
-        const d = alertsBestDate(inv) || now;
-        if (d <= tenMinutesAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-10min-${invoiceId}`, { title: "⏳ فاتورة لم تُدفع بعد 10 دقائق", body: `الفاتورة ${invoiceId} لم تُدفع بعد 10 دقائق${alertsAmountText(inv)}`, alertType: "invoice_pending_10min", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
-      }
-    }
 
-    for (const order of orders) {
-      const orderId = alertsBusinessIdFor(order, "ORD-");
-      if (!orderId || !alertsInWindow(order, now)) continue;
-      const st = alertsStatusFor(order);
-      const qatia = alertsIsQatiaLike(order, st);
-      if (qatia && alertsIsPaid(st) && !alertsIsQatiaExpired(st)) { await alertsSendOnce(results, `safe-worker-qatia-completed-${orderId}`, { title: "✅ اكتملت القطية", body: `اكتملت القطية للطلب ${orderId} — تم الدفع وجاري التوصيل${alertsAmountText(order)}`, alertType: "qatia_completed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
-      if (qatia && alertsIsQatiaExpired(st)) { await alertsSendOnce(results, `safe-worker-qatia-expired-${orderId}`, { title: "⏰ ملغي - انتهى وقت القطية", body: `الطلب ${orderId} تم إلغاؤه لانتهاء وقت القطية${alertsAmountText(order)}`, alertType: "qatia_expired", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
-      if (qatia) continue;
-      if (alertsIsFailed(st)) { await alertsSendOnce(results, `safe-worker-payment-failed-${orderId}`, { title: "❌ فشل دفع طلب", body: `فشل دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_failed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
-      if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-payment-paid-${orderId}`, { title: "✅ تم دفع طلب", body: `تم دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_paid", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
-      if (alertsIsCancelled(st)) { await alertsSendOnce(results, `safe-worker-order-cancelled-admin-${orderId}`, { title: "🚫 تم إلغاء طلب", body: `تم إلغاء الطلب ${orderId}${alertsAmountText(order)}`, alertType: "order_cancelled_admin", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
-      if (alertsIsPending(st)) {
-        await alertsSendOnce(results, `safe-worker-payment-pending-immediate-${orderId}`, { title: "⏳ طلب بانتظار الدفع", body: `الطلب ${orderId} بانتظار الدفع${alertsAmountText(order)}`, alertType: "payment_pending_immediate", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
-        const d = alertsBestDate(order) || now;
-        if (d <= tenMinutesAgo) await alertsSendOnce(results, `safe-worker-payment-pending-10min-${orderId}`, { title: "⏳ طلب لم يُدفع بعد 10 دقائق", body: `الطلب ${orderId} لم يُدفع بعد 10 دقائق${alertsAmountText(order)}`, alertType: "payment_pending_10min", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
-      }
-    }
-    return { meta: { lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN, startFromIso: ALERTS_START_FROM_ISO || null, sent: counters.sent, syncFailedInvoices: syncResult }, results };
-  }
-
-  app.get("/api/push/alerts-status", async (_req, res) => {
-    try {
-      if (!firebaseInitialized || !db) return res.status(500).json({ ok: false, error: "Firebase Admin not initialized" });
-      res.json({ ok: true, route: "/api/push/alerts-status", service: "alerts-worker-final-clean-v2-root-merged", lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN, startFromIso: ALERTS_START_FROM_ISO || null });
-    } catch (e: any) { res.status(500).json({ ok: false, error: e?.message || String(e) }); }
-  });
-
-  
-// Auto-run payment alerts worker every 60 seconds
-// This makes payment notifications automatic instead of requiring manual curl.
-let __paymentAlertsAutoRunnerStarted = false;
-
-function startPaymentAlertsAutoRunner() {
-  if (__paymentAlertsAutoRunnerStarted) return;
-  __paymentAlertsAutoRunnerStarted = true;
-
-  console.log("[ALERTS] Auto runner started: every 60 seconds");
-
-  setInterval(async () => {
-    try {
-      const response = await fetch("http://localhost:3000/api/push/run-alerts", {
-        method: "GET",
-        headers: {
-          "x-admin-secret": String(process.env.ADMIN_TEST_SECRET || ""),
-        },
-      });
-
-      const result = await response.json().catch(() => null);
-
-      if (result?.sent > 0) {
-        console.log("[ALERTS] Auto runner sent:", result.sent);
+      if (
+        paymentResponse.status &&
+        paymentResponse.data &&
+        paymentResponse.data.link
+      ) {
+        res.json({ paymentLink: paymentResponse.data.link });
       } else {
-        console.log("[ALERTS] Auto runner checked:", result?.sent ?? 0);
+        console.error("[PAYMENT] Failed to generate link:", paymentResponse);
+        res.status(500).json({
+          error: paymentResponse.data?.error || "Failed to create payment link",
+        });
       }
-    } catch (error) {
-      console.error("[ALERTS] Auto runner error:", error);
+    } catch (err: any) {
+      console.error("Error creating payment:", err);
+      res
+        .status(500)
+        .json({ error: "Failed to create payment", details: err.message });
     }
-  }, 60 * 1000);
-}
-
-startPaymentAlertsAutoRunner();
-
-
-app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
-    try {
-      const tokenSnap = await db.collection("pushTokens").where("active", "==", true).get();
-      const sharedSnap = await db.collection("appData").doc("shared_company_data").get();
-      const shared = sharedSnap.data() || {};
-      res.json({ ok: true, activePushTokens: tokenSnap.docs.filter((d: any) => Boolean(d.data()?.token)).length, hasSharedCompanyData: sharedSnap.exists, invoicesCount: Array.isArray(shared.invoices) ? shared.invoices.length : 0, ordersCount: Array.isArray(shared.orders) ? shared.orders.length : 0, lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN });
-    } catch (e: any) { res.status(500).json({ ok: false, error: e?.message || String(e) }); }
   });
 
-  const alertsRunHandler = async (req: any, res: any) => {
+  // Update Payment Link
+  app.put("/api/orders/:id/payment-link", async (req, res) => {
     try {
-      const dryRun = req.query.dryRun === "1" || req.body?.dryRun === true;
-      const { meta, results } = await alertsReconcile({ dryRun });
-      res.json({ success: true, checkedAt: new Date().toISOString(), ...meta, resultsCount: results.length, results });
-    } catch (e: any) {
-      console.error("[alerts-worker-final-clean-v2-root-merged] error", e);
-      res.status(500).json({ success: false, error: e?.message || String(e) });
+      const { id } = req.params;
+      const { paymentLink } = req.body;
+      if (!paymentLink) return res.status(400).json({ error: "No link" });
+
+      const docRef = doc(db, "appData", "shared_company_data");
+      const d = await getAppDataRef();
+      const appData = d.data() || {};
+      let orders = appData.orders || [];
+      const index = orders.findIndex((o: any) => o.id === id);
+      if (index !== -1) {
+        orders[index].paymentLink = paymentLink;
+        await updateAppData({ orders });
+      }
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ error: "Failed to save link" });
     }
-  };
+  });
 
-  app.get("/api/push/run-alerts", alertsRequireSecret, alertsRunHandler);
-  app.post("/api/push/run-alerts", alertsRequireSecret, alertsRunHandler);
-  app.get("/run-alerts", alertsRequireSecret, alertsRunHandler);
-  app.post("/run-alerts", alertsRequireSecret, alertsRunHandler);
-  // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_END
+  // Join Roulette
+  app.post("/api/orders/:id/join-roulette", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, phone } = req.body;
+      if (!name) return res.status(400).json({ error: "Missing name" });
 
-  app.use("/api", (req, res) => {
-    console.warn(`404 API Route Not Found: ${req.method} ${req.originalUrl}`);
-    res.status(404).json({ error: "API Route Not Found", path: req.originalUrl });
+      const docRef = doc(db, "appData", "shared_company_data");
+      const d = await getAppDataRef();
+      const appData = d.data() || {};
+      let orders = appData.orders || [];
+      const index = orders.findIndex((o: any) => o.id === id);
+      if (index !== -1) {
+        if (!orders[index].splitParticipants) {
+          orders[index].splitParticipants = [];
+        }
+        if (
+          !orders[index].splitParticipants.some((p: any) => p.name === name || (phone && p.phone === phone))
+        ) {
+          orders[index].splitParticipants.push({
+            name,
+            phone,
+            joinedAt: new Date().toISOString(),
+          });
+          await updateAppData({ orders });
+        }
+      }
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ error: "Failed to join roulette" });
+    }
+  });
+
+  // Spin Roulette
+  app.post("/api/orders/:id/spin-roulette", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const docRef = doc(db, "appData", "shared_company_data");
+      const d = await getAppDataRef();
+      const appData = d.data() || {};
+      let orders = appData.orders || [];
+      const index = orders.findIndex((o: any) => o.id === id);
+      if (index === -1)
+        return res.status(400).json({ error: "Order not found" });
+
+      const order = orders[index];
+      if (!order.splitParticipants || order.splitParticipants.length === 0) {
+        return res.status(400).json({ error: "No participants" });
+      }
+
+      const loserIndex = Math.floor(
+        Math.random() * order.splitParticipants.length,
+      );
+      const loser = order.splitParticipants[loserIndex];
+
+      order.rouletteLoser = loser.name;
+      order.rouletteSpunAt = new Date().toISOString();
+
+      await updateAppData({ orders });
+      res.json({ success: true, loser: loser.name });
+    } catch (e) {
+      res.status(500).json({ error: "Failed to spin roulette" });
+    }
+  });
+
+  // Payment Webhook
+  app.post(
+    ["/api/payment-webhook/:pathOrderId/:pathSplitId", "/api/payment-webhook/:pathOrderId", "/api/payment-webhook"],
+    async (req, res) => {
+      try {
+        console.log(
+          `[PAYMENT] Webhook received at ${new Date().toISOString()}:`,
+          JSON.stringify(req.body),
+        );
+
+        const pathOrder = req.params?.pathOrderId as string;
+        const pathSplit = req.params?.pathSplitId as string;
+        const queryId =
+          (req.query.order_id as string) || (req.query.TrackID as string);
+        let orderId = pathOrder || queryId;
+
+        if (!orderId && req.body?.reference?.id) {
+          orderId = req.body.reference.id;
+        }
+
+        if (!orderId && req.body?.order_id) {
+          orderId = req.body.order_id;
+        }
+
+        if (orderId && typeof orderId === "string" && orderId.includes("?")) {
+          const parts = orderId.split("?");
+          orderId = parts[0];
+        }
+
+        console.log(`[PAYMENT] Processing webhook for orderId: ${orderId}`);
+
+        let statusStr = String(
+          req.body?.status ||
+            req.body?.Result ||
+            req.query?.status ||
+            req.query?.result ||
+            req.query?.Result ||
+            "",
+        )
+          .toUpperCase()
+          .trim();
+        if (statusStr.includes("?")) statusStr = statusStr.split("?")[0];
+        const status =
+          ["SUCCESS", "CAPTURED", "PAID", "APPROVED", "SUCCESSFUL"].includes(
+            statusStr,
+          ) ||
+          req.body?.status === true ||
+          req.body?.status === "success" ||
+          req.body?.result === "success" ||
+          req.body?.Result === "success";
+
+        if (orderId) {
+          const docRef = doc(db, "appData", "shared_company_data");
+          const d = await getAppDataRef();
+          const appData = d.data() || {};
+          let orders = appData.orders || [];
+          let invoices = appData.invoices || [];
+          let isSplit = false;
+          let originalOrderIdAsString = String(orderId);
+          let baseOrderId = originalOrderIdAsString.toUpperCase();
+          let splitId = pathSplit || (req.query.splitId as string) || "";
+
+          if (splitId || baseOrderId.includes("-S")) {
+            isSplit = true;
+            if (baseOrderId.includes("-S") && originalOrderIdAsString.includes("-S")) {
+              const partsOriginal = originalOrderIdAsString.split("-S");
+              baseOrderId = partsOriginal[0].toUpperCase();
+              if (!splitId) splitId = "S" + partsOriginal[1];
+            }
+          }
+
+          const orderIndex = orders.findIndex(
+            (o: any) => String(o.id).toUpperCase() === baseOrderId,
+          );
+          const invoiceIndex = invoices.findIndex(
+            (o: any) => String(o.id).toUpperCase() === baseOrderId,
+          );
+
+          let updated = false;
+
+          if (orderIndex !== -1) {
+            if (isSplit) {
+              if (!orders[orderIndex].splitPayments)
+                orders[orderIndex].splitPayments = [];
+              const splitIdx = orders[orderIndex].splitPayments.findIndex(
+                (s: any) => s.id === splitId,
+              );
+              if (splitIdx !== -1) {
+                if (status) {
+                  orders[orderIndex].splitPayments[splitIdx].status = "paid";
+                  orders[orderIndex].splitPayments[splitIdx].paymentId =
+                    req.body?.reference?.id ||
+                    req.body?.TrackID ||
+                    req.query?.TrackID;
+                  updated = true;
+                  console.log(
+                    `[PAYMENT] Split ${splitId} for Order ${baseOrderId} updated to paid`,
+                  );
+
+                  const payer = orders[orderIndex].splitPayments[splitIdx];
+                  const cPhone = cleanPhone(payer.phone);
+                  if (cPhone) {
+                    const customers = appData.customers || [];
+                    const existingCustIdx = customers.findIndex(
+                      (c: any) => cleanPhone(c.phone) === cPhone,
+                    );
+                    if (existingCustIdx === -1) {
+                      customers.push({
+                        id:
+                          "CUST-" +
+                          Date.now().toString(36) +
+                          Math.random().toString(36).slice(-4),
+                        name: payer.name || "صديق عميل",
+                        phone: payer.phone,
+                        acquired_via_split: true,
+                        createdAt: new Date().toISOString(),
+                        totalSpent: Number(payer.amount) || 0,
+                      });
+                    } else {
+                      customers[existingCustIdx].totalSpent =
+                        (Number(customers[existingCustIdx].totalSpent) || 0) +
+                        (Number(payer.amount) || 0);
+                      customers[existingCustIdx].loyaltyPoints =
+                        (Number(customers[existingCustIdx].loyaltyPoints) ||
+                          0) + (Number(payer.amount) || 0);
+                      customers[existingCustIdx].lastUpdated =
+                        new Date().toISOString();
+                    }
+                    appData.customers = customers;
+                  }
+
+                  // Check if total is fulfilled
+                  const totalPaid = orders[orderIndex].splitPayments
+                    .filter((s: any) => s.status === "paid")
+                    .reduce((sum: number, s: any) => sum + (Number(s.amount) || 0), 0);
+
+                  const totalPaidFils = Math.round(totalPaid * 1000);
+                  const orderTotalFils = Math.round((Number(orders[orderIndex].total) || 0) * 1000);
+
+                  if (totalPaidFils === orderTotalFils) {
+                    orders[orderIndex].status = "تم الدفع وجاري التوصيل";
+                    orders[orderIndex].paymentStatus = "paid";
+                    orders[orderIndex].paidAt = new Date().toISOString();
+                    console.log(
+                      `[PAYMENT] Split Group fully paid exactly - Order ${baseOrderId} becomes paid!`,
+                    );
+                  }
+                } else {
+                  const isExplicitFailure = [
+                    "FAILED",
+                    "CANCEL",
+                    "CANCELED",
+                    "CANCELLED",
+                    "NOT CAPTURED",
+                    "FAILURE",
+                    "ERROR",
+                    "DECLINED",
+                  ].includes(statusStr);
+                  if (isExplicitFailure) {
+                    orders[orderIndex].splitPayments[splitIdx].status =
+                      "failed";
+                    updated = true;
+                  }
+                }
+              }
+            } else {
+              const currentStatus = orders[orderIndex].status;
+              if (
+                currentStatus === "فشل في عملية الدفع" ||
+                currentStatus === "جديد" ||
+                currentStatus === "بانتظار الدفع" ||
+                currentStatus === "قيد تجميع القطية" ||
+                (currentStatus || "").includes("ملغي")
+              ) {
+                if (status) {
+                  // Success
+                  orders[orderIndex].status = "تم الدفع وجاري التوصيل";
+                  orders[orderIndex].paymentStatus = "paid";
+                  orders[orderIndex].paidAt = new Date().toISOString();
+                  orders[orderIndex].transactionId =
+                    req.body?.reference?.id ||
+                    req.body?.TrackID ||
+                    req.query?.TrackID ||
+                    req.body?.order_id ||
+                    "upayments_auth";
+                  updated = true;
+                  console.log(
+                    `[PAYMENT] Order ${baseOrderId} status updated to تم الدفع وجاري التوصيل via webhook`,
+                  );
+
+                  // Update customer points
+                  const cPhone = cleanPhone(orders[orderIndex].customerPhone);
+                  const custIdx = appData.customers?.findIndex(
+                    (c: any) => cleanPhone(c.phone) === cPhone,
+                  );
+                  if (custIdx !== -1) {
+                    appData.customers[custIdx].totalSpent =
+                      (Number(appData.customers[custIdx].totalSpent) || 0) +
+                      (Number(orders[orderIndex].total) || 0);
+                    appData.customers[custIdx].loyaltyPoints =
+                      (Number(appData.customers[custIdx].loyaltyPoints) || 0) +
+                      (Number(orders[orderIndex].total) || 0);
+                    appData.customers[custIdx].lastUpdated =
+                      new Date().toISOString();
+                  }
+                } else {
+                  const isExplicitFailure = [
+                    "FAILED",
+                    "CANCEL",
+                    "CANCELED",
+                    "CANCELLED",
+                    "NOT CAPTURED",
+                    "FAILURE",
+                    "ERROR",
+                    "DECLINED",
+                  ].includes(statusStr);
+                  if (
+                    isExplicitFailure &&
+                    currentStatus !== "قيد تجميع القطية"
+                  ) {
+                    orders[orderIndex].status = "فشل في عملية الدفع";
+                    orders[orderIndex].paymentStatus = "failed";
+                    updated = true;
+                    console.log(
+                      `[PAYMENT] Order ${baseOrderId} status updated to failed via webhook`,
+                    );
+                  }
+                }
+              }
+            }
+          } else if (invoiceIndex !== -1) {
+            const currentStatus = invoices[invoiceIndex].status;
+            if (
+              currentStatus === "فشل في عملية الدفع" ||
+              currentStatus === "جديد" ||
+              currentStatus === "بانتظار الدفع"
+            ) {
+              if (status) {
+                // Success
+                invoices[invoiceIndex].status = "تم الدفع وجاري التوصيل";
+                invoices[invoiceIndex].paymentStatus = "paid";
+                invoices[invoiceIndex].paidAt = new Date().toISOString();
+                invoices[invoiceIndex].transactionId =
+                  req.body?.reference?.id ||
+                  req.body?.TrackID ||
+                  req.query?.TrackID ||
+                  req.body?.order_id ||
+                  "upayments_auth";
+                updated = true;
+                console.log(
+                  `[PAYMENT] Invoice ${orderId} status updated to تم الدفع via webhook`,
+                );
+              }
+            }
+          }
+
+          if (updated) {
+            await updateAppData({
+              orders,
+              invoices,
+              customers: appData.customers || [],
+            });
+          }
+        }
+        res.json({ success: true });
+      } catch (e) {
+        console.error("[PAYMENT] Webhook processing error:", e);
+        res.status(500).json({ error: "Webhook Error" });
+      }
+    },
+  );
+
+  // Payment Success Handler
+  app.all(
+    [
+      "/api/payment-return",
+      "/api/payment-return/:orderId",
+      "/api/payment-return/:orderId/:pathStatus",
+    ],
+    async (req, res) => {
+      try {
+        const bodyOrder = req.body?.order_id || req.body?.reference?.id;
+        const queryOrder = req.query?.order_id as string;
+
+        let orderId = req.params.orderId || queryOrder || bodyOrder || "";
+
+        // Fallback if orderId has '?'
+        if (typeof orderId === "string" && orderId.includes("?")) {
+          orderId = orderId.split("?")[0];
+        }
+
+        // Gather all possible status indicators
+        const searchParams = new URL(
+          req.protocol + "://" + req.get("host") + req.originalUrl,
+        ).searchParams;
+
+        let statusFields = [
+          req.params?.pathStatus,
+          searchParams.get("payment"),
+          searchParams.get("result"),
+          searchParams.get("Result"),
+          searchParams.get("status"),
+          req.body?.payment,
+          req.body?.result,
+          req.body?.Result,
+          req.body?.status,
+        ];
+
+        const pathStatus = (req.params?.pathStatus || "").toLowerCase();
+
+        let isExplicitFailure = statusFields.some((x) => {
+          if (!x) return false;
+          let s = String(x).toUpperCase().trim();
+          if (s.includes("?")) s = s.split("?")[0];
+          return [
+            "FAILED",
+            "CANCEL",
+            "CANCELED",
+            "CANCELLED",
+            "NOT CAPTURED",
+            "FAILURE",
+            "ERROR",
+            "DECLINED",
+          ].includes(s);
+        });
+        let isExplicitSuccess = statusFields.some((x) => {
+          if (!x) return false;
+          let s = String(x).toUpperCase().trim();
+          if (s.includes("?")) s = s.split("?")[0];
+          return (
+            ["SUCCESS", "CAPTURED", "PAID", "APPROVED", "SUCCESSFUL"].includes(
+              s,
+            ) || s === "TRUE"
+          );
+        });
+
+        if (pathStatus === "success") {
+          isExplicitSuccess = true;
+          isExplicitFailure = false;
+        } else if (pathStatus === "failed" || pathStatus === "cancel") {
+          isExplicitFailure = true;
+          isExplicitSuccess = false;
+        }
+
+        let phone = "";
+        if (orderId) {
+          const docRef = doc(db, "appData", "shared_company_data");
+          const d = await getAppDataRef();
+          const appData = d.data() || {};
+          let orders = appData.orders || [];
+          let invoices = appData.invoices || [];
+          const orderIndex = orders.findIndex((o: any) => o.id === orderId);
+          const invoiceIndex = invoices.findIndex((o: any) => o.id === orderId);
+
+          let updated = false;
+
+          if (orderIndex !== -1) {
+            phone =
+              orders[orderIndex].customerPhone ||
+              orders[orderIndex].phone ||
+              "";
+            const currentStatus = orders[orderIndex].status;
+
+            if (
+              currentStatus === "فشل في عملية الدفع" ||
+              currentStatus === "جديد" ||
+              currentStatus === "بانتظار الدفع" ||
+              currentStatus === "قيد تجميع القطية" ||
+              (currentStatus || "").includes("ملغي")
+            ) {
+              if (isExplicitFailure) {
+                orders[orderIndex].status = "فشل في عملية الدفع";
+                orders[orderIndex].paymentStatus = "failed";
+                updated = true;
+                console.log(
+                  `[PAYMENT] Order ${orderId} marked as failed via explicitly cancelled return URL`,
+                );
+              } else if (isExplicitSuccess) {
+                orders[orderIndex].status = "تم الدفع وجاري التوصيل";
+                orders[orderIndex].paymentStatus = "paid";
+                orders[orderIndex].paidAt = new Date().toISOString();
+                orders[orderIndex].transactionId =
+                  req.body?.reference?.id ||
+                  req.body?.TrackID ||
+                  req.query?.TrackID ||
+                  req.body?.order_id ||
+                  req.query?.order_id ||
+                  "upayments_auth";
+                updated = true;
+                console.log(
+                  `[PAYMENT] Order ${orderId} marked as PAID via synchronous return URL (Webhook may have failed due to 403)`,
+                );
+              } else {
+                console.log(
+                  `[PAYMENT] Order ${orderId} unverified return status, waiting for webhook`,
+                );
+              }
+            }
+          }
+
+          if (invoiceIndex !== -1) {
+            if (!phone)
+              phone =
+                invoices[invoiceIndex].customerPhone ||
+                invoices[invoiceIndex].phone ||
+                "";
+            const currentStatus = invoices[invoiceIndex].status;
+
+            if (
+              currentStatus === "فشل في عملية الدفع" ||
+              currentStatus === "جديد" ||
+              currentStatus === "بانتظار الدفع"
+            ) {
+              if (isExplicitFailure) {
+                invoices[invoiceIndex].status = "فشل في عملية الدفع";
+                invoices[invoiceIndex].paymentStatus = "failed";
+                updated = true;
+                console.log(
+                  `[PAYMENT] Invoice ${orderId} marked as failed via explicitly cancelled return URL`,
+                );
+              } else if (isExplicitSuccess) {
+                invoices[invoiceIndex].status = "تم الدفع وجاري التوصيل";
+                invoices[invoiceIndex].paymentStatus = "paid";
+                invoices[invoiceIndex].paidAt = new Date().toISOString();
+                invoices[invoiceIndex].transactionId =
+                  req.body?.reference?.id ||
+                  req.body?.TrackID ||
+                  req.query?.TrackID ||
+                  req.body?.order_id ||
+                  req.query?.order_id ||
+                  "upayments_auth";
+                updated = true;
+                console.log(
+                  `[PAYMENT] Invoice ${orderId} marked as PAID via synchronous return URL`,
+                );
+              }
+            }
+          }
+
+          if (updated) {
+            await updateAppData({ orders, invoices });
+          }
+        }
+
+        // Target Base URL for the return button (current environment)
+        let rProtocol = req.headers["x-forwarded-proto"] || req.protocol;
+        let rHost = req.headers["x-forwarded-host"] || req.get("host");
+        let baseUrl = req.get("origin") || rProtocol + "://" + rHost;
+        if (!baseUrl || baseUrl.includes("undefined"))
+          baseUrl = "https://alturathkw.shop";
+
+        // Append success or fail for frontend alert
+        let paymentParam = isExplicitFailure
+          ? "failed"
+          : isExplicitSuccess
+            ? "success"
+            : "pending";
+        const trackUrl = `${baseUrl}/track?order_id=${orderId}&payment=${paymentParam}`;
+
+        if (req.query.isPopup !== "true") {
+          console.log(
+            `[PAYMENT] Main window return detected for order ${orderId}. Redirecting immediately to track page.`,
+          );
+          return res.type("html")
+            .send(`<html><head><title>Redirecting...</title></head><body><script>
+                  try {
+                      localStorage.setItem("track_order_id", "${orderId}");
+                      localStorage.setItem("track_status", "${paymentParam}");
+                  } catch(e) {}
+                  window.location.href="${trackUrl}";
+              </script></body></html>`);
+        }
+
+        console.log(
+          `[PAYMENT] Showing return page for order ${orderId} (Failure detected: ${isExplicitFailure}, status: ${paymentParam})`,
+        );
+
+        return res.type("html").send(`
+            <!DOCTYPE html>
+            <html dir="rtl" lang="ar">
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>حالة الدفع</title>
+                <style>
+                    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #fafaf9; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
+                    .card { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); text-align: center; max-width: 90%; width: 400px; }
+                    .icon { font-size: 4rem; margin-bottom: 1rem; }
+                    .success { color: #16a34a; }
+                    .error { color: #dc2626; }
+                    h1 { margin: 0 0 0.5rem 0; font-size: 1.5rem; color: #1c1917; }
+                    p { color: #78716c; margin-bottom: 1.5rem; }
+                    .btn { display: inline-block; background: #e0ac69; color: white; text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: 500; transition: background 0.2s; border: none; cursor: pointer; width: 100%; box-sizing: border-box; }
+                    .btn:hover { background: #c89552; }
+                    .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #e0ac69; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 0 auto; }
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <div id="loading">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 1rem;">جاري تحديث حالة الدفع...</p>
+                    </div>
+                    <div id="content" style="display: none;">
+                        <div class="icon ${isExplicitFailure ? "error" : "success"}">
+                            ${isExplicitFailure ? "✖" : "✔"}
+                        </div>
+                        <h1>${isExplicitFailure ? "فشلت عملية الدفع" : "تم الدفع بنجاح"}</h1>
+                        <p>${isExplicitFailure ? "نعتذر، لم نتمكن من إتمام عملية الدفع." : "شكراً لك، تم تأكيد طلبك بنجاح."}</p>
+                        <a href="${trackUrl}" class="btn" onclick="closePopupAndRedirect(event)">العودة إلى الموقع</a>
+                    </div>
+                </div>
+                <script>
+                    try {
+                        localStorage.setItem("track_order_id", "${orderId}");
+                        localStorage.setItem("track_status", "${paymentParam}");
+                    } catch(e) {}
+
+                    function closePopupAndRedirect(e) {
+                        if (e) e.preventDefault();
+                        const targetUrl = e ? e.currentTarget.href : "${trackUrl}";
+                        
+                        try {
+                            if (window.opener && !window.opener.closed) {
+                                window.opener.postMessage(JSON.stringify({ type: 'payment_return', orderId: '${orderId}', payment: '${paymentParam}' }), '*');
+                                window.opener.postMessage({ type: 'PAYMENT_COMPLETE', url: targetUrl, orderId: '${orderId}', payment: '${paymentParam}' }, '*');
+                                setTimeout(() => window.close(), 100);
+                            } else {
+                                window.location.href = targetUrl;
+                            }
+                        } catch (err) {
+                            window.location.href = targetUrl;
+                        }
+                    }
+
+                    // Auto-trigger completion after brief delay
+                    setTimeout(() => {
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('content').style.display = 'block';
+                        closePopupAndRedirect(null);
+                    }, 1500);
+                </script>
+            </body>
+            </html>
+          `);
+      } catch (e) {
+        console.error("Error in return handler", e);
+
+        let rProtocol = req.headers["x-forwarded-proto"] || req.protocol;
+        let rHost = req.headers["x-forwarded-host"] || req.get("host");
+        let fallbackBaseUrl = req.get("origin") || rProtocol + "://" + rHost;
+        if (!fallbackBaseUrl || fallbackBaseUrl.includes("undefined"))
+          fallbackBaseUrl = "https://alturathkw.shop";
+        let trackFallback = `${fallbackBaseUrl}/track`;
+        const possibleOrderId =
+          req.params.orderId ||
+          req.query.order_id ||
+          req.body?.order_id ||
+          req.body?.reference?.id;
+        if (possibleOrderId) {
+          const cleanId =
+            typeof possibleOrderId === "string"
+              ? possibleOrderId.split("?")[0]
+              : possibleOrderId;
+          trackFallback += `?order_id=${cleanId}`;
+          res.type("html")
+            .send(`<html><head><title>Redirecting...</title></head><body><script>
+                  try {
+                      localStorage.setItem("track_order_id", "${cleanId}");
+                      localStorage.setItem("track_status", "failed");
+                  } catch(e) {}
+                  window.location.href="${trackFallback}";
+              </script></body></html>`);
+        } else {
+          res
+            .type("html")
+            .send(
+              `<html><head><title>Redirecting...</title></head><body><script>window.location.href="${trackFallback}";</script></body></html>`,
+            );
+        }
+      }
+    },
+  );
+
+  // Search Orders by Phone
+  app.get("/api/search-order/:phone", async (req, res) => {
+    const { phone } = req.params;
+    if (!phone) {
+      return res.status(400).json({ error: "Phone number is required." });
+    }
+
+    try {
+      const cleanQueryPhone = cleanPhone(phone);
+      const d = await getAppDataRef();
+      const appData = d.data() || {};
+
+      const allOrders = appData.orders || [];
+
+      // Filter by phone
+      const matchedOrders = allOrders.filter(
+        (order: any) =>
+          cleanPhone(order.customerPhone || order.phone) === cleanQueryPhone,
+      );
+
+      // Sort by date descending
+      matchedOrders.sort((a: any, b: any) => {
+        const dateA = new Date(a.createdAt || a.date || 0).getTime();
+        const dateB = new Date(b.createdAt || b.date || 0).getTime();
+        return dateB - dateA;
+      });
+
+      res.json(matchedOrders.slice(0, 10));
+    } catch (error) {
+      console.error("Error searching orders:", error);
+      res.status(500).json({ error: "Failed to search orders" });
+    }
+  });
+
+  // Legacy endpoints for UI compatibility
+  app.get("/api/admin/orders", async (req, res) => {
+    const d = await getAppDataRef();
+    const data = d.data() || {};
+    res.json(data.orders || []);
+  });
+
+  app.get("/api/admin/invoices", async (req, res) => {
+    const d = await getAppDataRef();
+    const data = d.data() || {};
+    res.json(data.invoices || []);
+  });
+
+  app.patch("/api/admin/orders/:id/pay", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const docRef = doc(db, "appData", "shared_company_data");
+      const d = await getAppDataRef();
+      const data = d.data() || {};
+      const orders = data.orders || [];
+      const invoices = data.invoices || [];
+
+      const orderIdx = orders.findIndex((o: any) => o.id === id);
+      if (orderIdx === -1) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      const orderData = orders[orderIdx];
+
+      const invoiceData = {
+        ...orderData,
+        id: orderData.id,
+        invoiceId: orderData.id,
+        paymentStatus: "paid",
+        status: "تم الدفع وجاري التوصيل",
+        completedAt: new Date().toISOString(),
+      };
+
+      invoices.push(invoiceData);
+      // Delete from orders
+      orders.splice(orderIdx, 1);
+
+      await updateAppData({ orders, invoices });
+
+      res.json({
+        message: "Order moved to invoices successfully",
+        invoiceData,
+      });
+    } catch (e) {
+      res.status(500).json({ error: "Failed to mark as paid" });
+    }
+  });
+
+  // Fix free delivery logic to actually update the database in both lists!
+  app.patch("/api/admin/orders/:id/free-delivery", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const docRef = doc(db, "appData", "shared_company_data");
+      const d = await getAppDataRef();
+      const appData = d.data() || {};
+
+      let orders = appData.orders || [];
+      let invoices = appData.invoices || [];
+
+      let found = false;
+
+      const updateToFree = (item: any) => {
+        // ALWAYS force recalculation for free delivery to fix bad state total
+        const itemsTotal = (item.items || []).reduce((sum: number, i: any) => {
+          const extrasTotal = (i.selectedExtras || i.extras || []).reduce(
+            (eSum: number, e: any) => eSum + (Number(e.price) || 0),
+            0,
+          );
+          return (
+            sum +
+            (Number(i.price) || 0) * (Number(i.quantity) || 1) +
+            extrasTotal
+          );
+        }, 0);
+
+        return {
+          ...item,
+          deliveryFee: 0,
+          isFreeDelivery: true,
+          deliveryType: "free",
+          total: itemsTotal,
+        };
+      };
+
+      const oIdx = orders.findIndex((o: any) => o.id === id);
+      if (oIdx !== -1) {
+        orders[oIdx] = updateToFree(orders[oIdx]);
+        found = true;
+      }
+
+      const iIdx = invoices.findIndex((i: any) => i.id === id);
+      if (iIdx !== -1) {
+        invoices[iIdx] = updateToFree(invoices[iIdx]);
+        found = true;
+      }
+
+      if (!found) {
+        return res.status(404).json({ error: "Order/Invoice not found" });
+      }
+
+      await updateAppData({ orders, invoices });
+
+      res.json({ message: "Delivery fee removed successfully" });
+    } catch (e) {
+      console.error("Error in free-delivery PATCH:", e);
+      res.status(500).json({ error: "Failed to update delivery fee" });
+    }
+  });
+
+  // Admin: Promo Codes
+  app.get("/api/admin/promocodes", async (req, res) => {
+    try {
+      const d = await getAppDataRef();
+      if (!d.exists()) return res.json([]);
+      res.json(d.data().promocodes || []);
+    } catch (e) {
+      res.status(500).json({ error: "Failed to fetch promocodes" });
+    }
+  });
+
+  app.post("/api/admin/promocodes", async (req, res) => {
+    const { code, type, value, isActive } = req.body;
+    if (!code || !type || value === undefined)
+      return res.status(400).json({ error: "Missing fields" });
+
+    try {
+      const docRef = doc(db, "appData", "shared_company_data");
+      const d = await getAppDataRef();
+      let promocodes = d.exists() ? d.data().promocodes || [] : [];
+
+      const newPromo = {
+        code: code.toUpperCase().trim(),
+        type,
+        value: Number(value),
+        discountValue: Number(value),
+        isActive: isActive !== undefined ? isActive : true,
+      };
+
+      // Check if exists
+      const existingIdx = promocodes.findIndex(
+        (p: any) => p.code === newPromo.code,
+      );
+      if (existingIdx > -1) {
+        promocodes[existingIdx] = newPromo;
+      } else {
+        promocodes.push(newPromo);
+      }
+
+      await updateAppData({ promocodes });
+      res.json({ success: true, promo: newPromo });
+    } catch (e) {
+      res.status(500).json({ error: "Failed to save promocode" });
+    }
+  });
+
+  app.delete("/api/admin/promocodes/:code", async (req, res) => {
+    const { code } = req.params;
+    try {
+      const docRef = doc(db, "appData", "shared_company_data");
+      const d = await getAppDataRef();
+      if (!d.exists()) return res.status(404).json({ error: "Not found" });
+
+      let promocodes = d.data().promocodes || [];
+      promocodes = promocodes.filter(
+        (p: any) => p.code !== code.toUpperCase().trim(),
+      );
+
+      await updateAppData({ promocodes });
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ error: "Failed to delete promocode" });
+    }
+  });
+
+  app.get("/api/debug", async (req, res) => {
+    try {
+      const d = await getAppDataRef();
+      const data = d.data() || {};
+      res.json({
+        databaseSource: "Firebase Firestore",
+        documentPath: "appData/shared_company_data",
+        customersCount: (data.customers || []).length,
+        productsCount: (data.products || []).length,
+        zonesCount: (data.zones || []).length,
+        ordersCount: (data.orders || []).length,
+        invoicesCount: (data.invoices || []).length,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch debug data" });
+    }
+  });
+
+  // Viral Split Payment Meta Tags (WhatsApp/iMessage)
+  app.get("/split/:id", async (req, res, next) => {
+    // Detect if it's a social crawler or bot
+    const ua = req.headers["user-agent"] || "";
+    const isBot =
+      /WhatsApp|facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Pinterest|Slackbot|TelegramBot/i.test(
+        ua,
+      );
+
+    if (isBot) {
+      try {
+        const { id } = req.params;
+        const d = await getAppDataRef();
+        const data = d.data() || {};
+        const orders = data.orders || [];
+        const order = orders.find((o: any) => o.id === id);
+
+        if (order) {
+          const title = "قطية عشا بمطبخ التراث! 🍽️";
+          const desc = `عشانا بـ ${order.total.toFixed(3)} د.ك.. قط قطيتك بالرابط والحق على الأكل! 🥘`;
+          // Thumbnail image - ideally a generic "Order" or "Food" image
+          const image =
+            "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=1287&auto=format&fit=crop";
+
+          return res.send(`
+              <!DOCTYPE html>
+              <html dir="rtl" lang="ar">
+              <head>
+                <meta charset="utf-8">
+                <title>${title}</title>
+                <meta name="description" content="${desc}">
+                <meta property="og:title" content="${title}">
+                <meta property="og:description" content="${desc}">
+                <meta property="og:image" content="${image}">
+                <meta property="og:type" content="website">
+                <meta name="twitter:card" content="summary_large_image">
+              </head>
+              <body>
+                <h1>جاري تحويلك...</h1>
+                <script>window.location.href = "/split/${id}";</script>
+              </body>
+              </html>
+            `);
+        }
+      } catch (e) {
+        console.error("[META ERROR]", e);
+      }
+    }
+    next(); // Pass to Vite/React if not a bot or order not found
   });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
-    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    console.log(`PRODUCTION MODE: Serving static files from ${distPath}`);
-    
-    if (fsSync.existsSync(distPath)) {
-      const files = fsSync.readdirSync(distPath);
-      console.log(`Found ${files.length} files in dist:`, files.slice(0, 5).join(', '));
-    } else {
-      console.error(`CRITICAL: dist directory NOT FOUND at ${distPath}`);
-    }
-
-    app.use(express.static(distPath, {
-      index: false,
-      setHeaders: (res, path) => {
-        if (path.endsWith('.html')) {
-          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-          res.setHeader('Pragma', 'no-cache');
-          res.setHeader('Expires', '0');
-        } else {
-          // Static assets (js, css, images) can be cached for a long time as they are hashed
-          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        }
-      }
-    }));
-
-    app.get('*all', (req, res) => {
-      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath, { index: false }));
+    app.get("*", (req, res) => {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.setHeader("Pragma", "no-cache");
       res.setHeader("Expires", "0");
-      res.setHeader("Surrogate-Control", "no-store");
-      
-      const indexPath = path.join(distPath, 'index.html');
-      if (fsSync.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        res.status(404).send('Build artifacts (index.html) not found. Please ensure the build completed successfully.');
-      }
+      res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  // Global Error Handler to guarantee JSON response
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error("Global Express Error:", err);
+    res
+      .status(500)
+      .json({ error: "Internal Server Error", details: err.message });
   });
 
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
+
+    // Background task to timeout expired split payments automatically
+    setInterval(async () => {
+      try {
+        const d = await getAppDataRef();
+        const appData = d.data() || {};
+        const allOrders = appData.orders || [];
+        const now = Date.now();
+        const TIMEOUT = 120 * 60 * 1000;
+        let needsUpdate = false;
+
+        const updatedOrders = allOrders.map((o: any) => {
+          if (o.status === "قيد تجميع القطية" && o.createdAt) {
+            const created = new Date(o.createdAt).getTime();
+            if (now - created > TIMEOUT) {
+              needsUpdate = true;
+              console.log(`[SPLIT] Auto-cancelling expired order ${o.id}`);
+              return { ...o, status: "ملغي - انتهى وقت القطية" };
+            }
+          }
+          return o;
+        });
+
+        if (needsUpdate) {
+          await updateAppData({
+            orders: updatedOrders,
+          });
+          console.log(`[SPLIT] Background updated timeout orders`);
+        }
+      } catch (err) {
+        console.error("[SPLIT] Background task error:", err);
+      }
+    }, 60 * 1000); // Check every 1 minute
+  });
+}
+
+startServer();
