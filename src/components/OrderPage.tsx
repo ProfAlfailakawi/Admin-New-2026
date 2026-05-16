@@ -573,7 +573,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  description: `Invoice from Order ${order.id.slice(-6)}`,
  returnUrl: `https://alturathkw.shop/api/payment-return/${newInvoiceId}`,
  cancelUrl: `https://alturathkw.shop/api/payment-return/${newInvoiceId}`,
- notificationUrl: getWebhookUrl('/api/webhook/upayments')
+ notificationUrl: 'https://admin.alturathkw.shop/api/webhook/upayments'
  })
  });
  

@@ -653,7 +653,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
          description: `Invoice ${invoiceId} (Regenerated)`,
          returnUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
          cancelUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
-         notificationUrl: `https://order-951671626657.europe-west3.run.app/api/webhook/upayments`
+         notificationUrl: `https://admin.alturathkw.shop/api/webhook/upayments`
        })
      });
      const paymentData = await response.json();
