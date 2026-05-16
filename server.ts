@@ -1241,7 +1241,7 @@ async function sendSmartAlertPushNotification({
 
     const tokens = snap.docs
       .map((doc: any) => String((doc.data() || {}).token || ""))
-      .filter((token: string) => token.length > 50);
+      .filter((token: string) => token.length > 50 && /^[\x20-\x7E]+$/.test(token));
 
     if (tokens.length === 0) {
       return {
@@ -1347,7 +1347,9 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       const snap = await db.collection("pushTokens").where("active", "==", true).get();
       if (snap.empty) return { success: false, error: "No active push tokens found", tokensCount: 0 };
       
-      const tokens = snap.docs.map(d => d.data().token);
+      const tokens = snap.docs
+        .map(d => String(d.data().token || ""))
+        .filter(t => t.length > 50 && /^[\x20-\x7E]+$/.test(t));
       
       const notificationTitle = "⏳ طلب بانتظار الدفع";
       const notificationBody = `الطلب ${orderNumber || orderId} بانتظار الدفع`;
@@ -1835,7 +1837,13 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
   async function alertsReadRecentPushEvents(limit = 1000) {
     try { return await db.collection("pushEvents").orderBy("createdAt", "desc").limit(limit).get(); }
-    catch { return await db.collection("pushEvents").limit(limit).get(); }
+    catch (e1: any) { 
+        try { return await db.collection("pushEvents").limit(limit).get(); }
+        catch (e2: any) { 
+            console.error("[ALERTS] Failed to fetch pushEvents:", e2);
+            return { docs: [] }; 
+        }
+    }
   }
 
   async function alertsGetRecentFailedInvoiceIdsFromPushEvents() {
@@ -1855,7 +1863,13 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     const failedInvoiceIds = await alertsGetRecentFailedInvoiceIdsFromPushEvents();
     if (failedInvoiceIds.length === 0) return { updated: 0, ids: [] };
     const ref = db.collection("appData").doc("shared_company_data");
-    const snap = await ref.get();
+    let snap;
+    try {
+      snap = await ref.get();
+    } catch (e: any) {
+      console.error("[ALERTS] alertsSyncFailedInvoicesFromPushEvents get failed:", e);
+      return { updated: 0, ids: [] };
+    }
     const shared = snap.data() || {};
     let invoices = Array.isArray(shared.invoices) ? [...shared.invoices] : [];
     let orders = Array.isArray(shared.orders) ? [...shared.orders] : [];
@@ -1874,8 +1888,13 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   }
 
   async function alertsLoadSharedData() {
-    const snap = await db.collection("appData").doc("shared_company_data").get();
-    return snap.data() || {};
+    try {
+      const snap = await db.collection("appData").doc("shared_company_data").get();
+      return snap.data() || {};
+    } catch (e: any) {
+      console.error("[ALERTS] Failed to load shared_company_data:", e);
+      return {};
+    }
   }
 
   async function alertsReconcile({ dryRun = false } = {}) {
@@ -1951,19 +1970,12 @@ function startPaymentAlertsAutoRunner() {
 
   setInterval(async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/push/run-alerts", {
-        method: "GET",
-        headers: {
-          "x-admin-secret": String(process.env.ADMIN_TEST_SECRET || ""),
-        },
-      });
+      const { meta } = await alertsReconcile({ dryRun: false });
 
-      const result = await response.json().catch(() => null);
-
-      if (result?.sent > 0) {
-        console.log("[ALERTS] Auto runner sent:", result.sent);
+      if (meta?.sent > 0) {
+        console.log("[ALERTS] Auto runner sent:", meta.sent);
       } else {
-        console.log("[ALERTS] Auto runner checked:", result?.sent ?? 0);
+        console.log("[ALERTS] Auto runner checked:", meta?.sent ?? 0);
       }
     } catch (error) {
       console.error("[ALERTS] Auto runner error:", error);
