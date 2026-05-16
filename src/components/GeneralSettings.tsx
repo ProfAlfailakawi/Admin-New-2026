@@ -27,13 +27,28 @@ interface Props {
 
 const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, addToast }) => {
  const [settings, setSettings] = useState<AppSettings>(data.settings);
- const [saved, setSaved] = useState(false);
  const [showConfirm, setShowConfirm] = useState(false);
  const [showResetConfirm, setShowResetConfirm] = useState(false);
  const [isSyncing, setIsSyncing] = useState(false);
 
  const [activeSection, setActiveSection] = useState<string>('');
  const [searchZoneTerm, setSearchZoneTerm] = useState('');
+
+ const isInitialMount = useRef(true);
+
+ // Auto-save: sync settings changes back to the main app state
+ useEffect(() => {
+   if (isInitialMount.current) {
+     isInitialMount.current = false;
+     return;
+   }
+   setData(prev => {
+     if (JSON.stringify(prev.settings) === JSON.stringify(settings)) {
+       return prev;
+     }
+     return { ...prev, settings };
+   });
+ }, [settings, setData]);
 
  // Sync from parent to local settings if parent receives remote updates (e.g. initial load)
  useEffect(() => {
@@ -94,12 +109,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   addToast("تم تحميل البيانات","تم ملء النظام ببيانات تجريبية شاملة للمعاينة.","info");
  };
 
- const handleSave = () => {
- setData(prev => ({ ...prev, settings }));
- setSaved(true);
- addToast("تم الحفظ بنجاح","تم حفظ إعدادات النظام وتحديثها في السحابة.","success");
- setTimeout(() => setSaved(false), 3000);
- };
+ // removed handleSave
 
  const handleDownload = () => {
  const wb = XLSX.utils.book_new();
@@ -362,25 +372,6 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <h1 className="text-2xl font-bold text-slate-900">الإعدادات العامة</h1>
  <p className="text-slate-500 mt-1 text-sm">تخصيص وتهيئة النظام المحاسبي لشركة مطبخ التراث الكويتي</p>
  </div>
- <button 
- onClick={handleSave}
- disabled={saved}
- className={cn("p-2 md:px-5 md:py-2.5 rounded-xl font-bold text-sm md:text-base flex items-center justify-center gap-2 transition-all active:scale-95 whitespace-nowrap", saved ?"bg-emerald-50 text-emerald-600 border border-emerald-200" :"bg-primary text-white hover:opacity-90 shadow-lg shadow-primary/20", appMode === 'local' ? "opacity-60 pointer-events-none" : "")}
- >
- {saved ? (
- <>
- <CheckCircle2 size={20} className="md:hidden" />
- <CheckCircle2 size={18} className="hidden md:block" />
- <span className="hidden md:block">تم الحفظ بنجاح</span>
- </>
- ) : (
- <>
- <Save size={20} className="md:hidden" />
- <Save size={18} className="hidden md:block" />
- <span className="hidden md:block">حفظ الإعدادات</span>
- </>
- )}
- </button>
  </div>
 
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:p-4">
