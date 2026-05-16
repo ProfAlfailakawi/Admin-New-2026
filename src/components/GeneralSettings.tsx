@@ -35,22 +35,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const [activeSection, setActiveSection] = useState<string>('');
  const [searchZoneTerm, setSearchZoneTerm] = useState('');
 
- // Sync local settings to parent state on change
- const isInitialMount = useRef(true);
- useEffect(() => {
-   if (isInitialMount.current) {
-     isInitialMount.current = false;
-     return;
-   }
-   setData(prev => {
-     if (JSON.stringify(prev.settings) === JSON.stringify(settings)) {
-       return prev;
-     }
-     return { ...prev, settings };
-   });
- }, [settings, setData]);
-
- // Sync from parent to local settings if parent receives remote updates
+ // Sync from parent to local settings if parent receives remote updates (e.g. initial load)
  useEffect(() => {
    if (JSON.stringify(data.settings) !== JSON.stringify(settings)) {
      setSettings(data.settings);
@@ -375,9 +360,27 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <div className="flex items-center justify-between">
  <div>
  <h1 className="text-2xl font-bold text-slate-900">الإعدادات العامة</h1>
- <p className="text-slate-500">تخصيص وتهيئة النظام المحاسبي لشركة مطبخ التراث الكويتي</p>
+ <p className="text-slate-500 mt-1 text-sm">تخصيص وتهيئة النظام المحاسبي لشركة مطبخ التراث الكويتي</p>
  </div>
- 
+ <button 
+ onClick={handleSave}
+ disabled={saved}
+ className={cn("p-2 md:px-5 md:py-2.5 rounded-xl font-bold text-sm md:text-base flex items-center justify-center gap-2 transition-all active:scale-95 whitespace-nowrap", saved ?"bg-emerald-50 text-emerald-600 border border-emerald-200" :"bg-primary text-white hover:opacity-90 shadow-lg shadow-primary/20", appMode === 'local' ? "opacity-60 pointer-events-none" : "")}
+ >
+ {saved ? (
+ <>
+ <CheckCircle2 size={20} className="md:hidden" />
+ <CheckCircle2 size={18} className="hidden md:block" />
+ <span className="hidden md:block">تم الحفظ بنجاح</span>
+ </>
+ ) : (
+ <>
+ <Save size={20} className="md:hidden" />
+ <Save size={18} className="hidden md:block" />
+ <span className="hidden md:block">حفظ الإعدادات</span>
+ </>
+ )}
+ </button>
  </div>
 
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:p-4">

@@ -1951,19 +1951,12 @@ function startPaymentAlertsAutoRunner() {
 
   setInterval(async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/push/run-alerts", {
-        method: "GET",
-        headers: {
-          "x-admin-secret": String(process.env.ADMIN_TEST_SECRET || ""),
-        },
-      });
+      const { meta } = await alertsReconcile({ dryRun: false });
 
-      const result = await response.json().catch(() => null);
-
-      if (result?.sent > 0) {
-        console.log("[ALERTS] Auto runner sent:", result.sent);
+      if (meta?.sent > 0) {
+        console.log("[ALERTS] Auto runner sent:", meta.sent);
       } else {
-        console.log("[ALERTS] Auto runner checked:", result?.sent ?? 0);
+        console.log("[ALERTS] Auto runner checked:", meta?.sent ?? 0);
       }
     } catch (error) {
       console.error("[ALERTS] Auto runner error:", error);
