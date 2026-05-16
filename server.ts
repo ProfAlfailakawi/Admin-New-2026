@@ -164,7 +164,12 @@ app.use(express.urlencoded({ extended: true }));
                     for (const doc of orderQ.docs) {
                         await doc.ref.update({ status: 'تم الدفع وجاري التوصيل', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                     }
-                    sendNewOrderPushNotification({ orderId, total: data?.totalAmount || '' }).catch(console.error);
+                    sendSmartAlertPushNotification({
+                    title: "✅ تم الدفع",
+                    body: `تم دفع الفاتورة ${orderId}${data?.totalAmount ? ` — ${data.totalAmount} د.ك` : ""}`,
+                    alertType: "payment_paid",
+                    url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(orderId)}`,
+                  }).catch(console.error);
                 }
             } else {
                 const orderRef = db.collection('orders').doc(orderId);
@@ -173,7 +178,12 @@ app.use(express.urlencoded({ extended: true }));
                     const data = ordSnap.data();
                     if (data?.status !== 'paid' && data?.status !== 'تم الدفع وجاري التوصيل') {
                         await orderRef.update({ status: 'تم الدفع وجاري التوصيل', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-                        sendNewOrderPushNotification({ orderId, total: data?.total || '' }).catch(console.error);
+                        sendSmartAlertPushNotification({
+                        title: "✅ تم الدفع",
+                        body: `تم دفع الطلب ${orderId}${data?.total ? ` — ${data.total} د.ك` : ""}`,
+                        alertType: "payment_paid",
+                        url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
+                      }).catch(console.error);
                     }
                 }
             }
@@ -353,14 +363,15 @@ app.use(express.urlencoded({ extended: true }));
         return res.status(400).json({ error: "orderId required" });
       }
       
-      console.log("Triggering test-new-order push...");
-      const result = await sendNewOrderPushNotification({ 
-        orderId, 
-        total: total || 0, 
-        restaurantId, 
-        orderNumber, 
-        testNotificationOnly: req.body.testNotificationOnly 
-      });
+      console.log("Triggering payment pending push...");
+      const result = await sendSmartAlertPushNotification({
+        title: String(orderId).startsWith("INV-") ? "⏳ فاتورة بانتظار الدفع" : "⏳ طلب بانتظار الدفع",
+        body: `${String(orderId).startsWith("INV-") ? "الفاتورة" : "الطلب"} ${orderId} بانتظار الدفع${total ? ` — ${total} د.ك` : ""}`,
+        alertType: String(orderId).startsWith("INV-") ? "invoice_pending_immediate" : "payment_pending_immediate",
+        url: String(orderId).startsWith("INV-")
+          ? `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(orderId)}`
+          : `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
+      } as any);
       res.json(result);
     } catch (error: any) {
       console.warn("Send push error suppressed:", error.message);
@@ -624,7 +635,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         "";
 
       const result = await sendSmartAlertPushNotification({
-        title: "🚨 طلب جديد بانتظار الدفع",
+        title: "⏳ طلب بانتظار الدفع",
         body: `طلب ${orderNumber} وصل الآن بانتظار الدفع${total ? ` — القيمة ${total} د.ك` : ""} ⏳`,
         alertType: "new_order_pending_payment",
         url: `/?order=${encodeURIComponent(resolvedOrderId)}`
@@ -900,7 +911,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
       const orders = Array.from(ordersMap.values());
 
-      // 0) طلب جديد بانتظار الدفع - server-side, works even if admin app is closed
+      // 0) طلب بانتظار الدفع - server-side, works even if admin app is closed
       for (const order of orders) {
         const createdAt =
           getDateValue((order as any).createdAt) ||
@@ -922,7 +933,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         const total = getTotal(order);
 
         const result = await sendSmartAlertPushNotification({
-          title: "🚨 طلب جديد بانتظار الدفع",
+          title: "⏳ طلب بانتظار الدفع",
           body: `طلب ${orderNumber} وصل الآن بانتظار الدفع${total ? ` — القيمة ${total.toFixed(3)} د.ك` : ""} ⏳`,
           alertType: "new_order_pending_payment",
           url: `/?order=${encodeURIComponent((order as any).id)}`
@@ -1260,6 +1271,16 @@ async function sendSmartAlertPushNotification({
           Urgency: "high",
           TTL: "86400",
         },
+        notification: {
+          title: String(title || "تنبيه"),
+          body: String(body || ""),
+          icon: "/icons/icon-192x192.png",
+          badge: "/icons/icon-192x192.png",
+          requireInteraction: true,
+          data: {
+            url: String(url),
+          },
+        },
         fcmOptions: {
           link: String(url),
         },
@@ -1328,21 +1349,42 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       
       const tokens = snap.docs.map(d => d.data().token);
       
+      const notificationTitle = "⏳ طلب بانتظار الدفع";
+      const notificationBody = `الطلب ${orderNumber || orderId} بانتظار الدفع`;
+
       const message = {
         tokens,
+        notification: {
+          title: notificationTitle,
+          body: notificationBody,
+        },
         data: {
           type: "smart_alert",
-          alertType: "new_order",
+          alertType: "payment_pending_immediate",
           eventId: `new-order-${orderId}-${Date.now()}`,
           url: String(url),
           click_action: String(url),
-          title: "طلب جديد",
-          body: `طلب جديد ${orderNumber || orderId}`,
+          title: notificationTitle,
+          body: notificationBody,
+          orderId: String(orderId),
+          orderNumber: String(orderNumber || ""),
+          restaurantId: String(restaurantId || "default"),
+          total: String(total || ""),
         },
         webpush: {
           headers: {
             Urgency: "high",
             TTL: "86400",
+          },
+          notification: {
+            title: notificationTitle,
+            body: notificationBody,
+            icon: "/icons/icon-192x192.png",
+            badge: "/icons/icon-192x192.png",
+            requireInteraction: true,
+            data: {
+              url: String(url),
+            },
           },
           fcmOptions: {
             link: String(url),
@@ -1497,7 +1539,12 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     
     console.log(`Using API key: ${apiKey.substring(0, 4)}... (Total length: ${apiKey.length})`);
     
-    if (!amount || !customerName || !orderId || !returnUrl || !cancelUrl || !notificationUrl) {
+    const validNotificationUrl =
+      typeof notificationUrl === "string" && /^https?:\/\//i.test(notificationUrl)
+        ? notificationUrl
+        : "https://admin.alturathkw.shop/api/payment/notification";
+
+    if (!amount || !customerName || !orderId || !returnUrl || !cancelUrl) {
       return res.status(400).json({ error: "Missing required payment fields" });
     }
 
@@ -1533,7 +1580,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         },
         returnUrl: returnUrl,
         cancelUrl: cancelUrl,
-        notificationUrl: notificationUrl
+        notificationUrl: validNotificationUrl
       };
 
       console.log("UPayments Request Payload:", JSON.stringify(payload));
@@ -1562,6 +1609,20 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         console.error("UPayments API error:", data);
         return res.status(response.status).json({ error: "Payment gateway request failed", details: data });
       }
+
+      // Send immediate pending-payment alert when payment link is created
+      sendSmartAlertPushNotification({
+        title: String(orderId).startsWith("INV-")
+          ? "⏳ فاتورة بانتظار الدفع"
+          : "⏳ طلب بانتظار الدفع",
+        body: `${String(orderId).startsWith("INV-") ? "الفاتورة" : "الطلب"} ${orderId} بانتظار الدفع${amount ? ` — ${amount} د.ك` : ""}`,
+        alertType: String(orderId).startsWith("INV-")
+          ? "invoice_pending_immediate"
+          : "payment_pending_immediate",
+        url: String(orderId).startsWith("INV-")
+          ? `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(orderId)}`
+          : `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
+      } as any).catch(console.error);
 
       res.json(data);
     } catch (error) {
@@ -1638,8 +1699,8 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   // Specific 404 for API to prevent falling through to React
   // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_START
   const ALERTS_ADMIN_TEST_SECRET = process.env.ADMIN_TEST_SECRET || "123456";
-  const ALERTS_LOOKBACK_MINUTES = Number(process.env.ALERTS_LOOKBACK_MINUTES || "30");
-  const ALERTS_MAX_SEND_PER_RUN = Number(process.env.MAX_SEND_PER_RUN || "5");
+  const ALERTS_LOOKBACK_MINUTES = Number(process.env.ALERTS_LOOKBACK_MINUTES || "1440");
+  const ALERTS_MAX_SEND_PER_RUN = Number(process.env.ALERTS_MAX_SEND_PER_RUN || process.env.MAX_SEND_PER_RUN || "100");
   const ALERTS_START_FROM_ISO = process.env.ALERTS_START_FROM_ISO || "";
 
   function alertsRequireSecret(req: any, res: any, next: any) {
@@ -1750,14 +1811,13 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   }
 
   async function alertsSendDataOnly({ title, body, alertType, eventId, url }: any) {
-    const token = await alertsLatestActiveToken();
-    if (!token) return { success: false, error: "No active push token" };
-    const messageId = await admin.messaging().send({
-      token,
-      data: { type: "smart_alert", alertType: String(alertType), eventId: String(eventId), title: String(title), body: String(body), url: String(url), click_action: String(url) },
-      webpush: { headers: { Urgency: "high", TTL: "86400" }, fcmOptions: { link: String(url) } },
+    return await sendSmartAlertPushNotification({
+      title: String(title || "تنبيه"),
+      body: String(body || ""),
+      alertType: String(alertType || "general"),
+      url: String(url || "https://admin.alturathkw.shop/"),
+      eventId: String(eventId || `safe-worker-${Date.now()}`),
     });
-    return { success: true, messageId };
   }
 
   async function alertsSendOnce(results: any[], eventId: string, payload: any, dryRun: boolean, counters: any) {
@@ -1834,7 +1894,15 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       const invoiceId = alertsBusinessIdFor(inv, "INV-");
       if (!invoiceId || !alertsInWindow(inv, now)) continue;
       const st = alertsStatusFor(inv);
-      if (failedInvoiceIds.has(invoiceId) || alertsIsFailed(st)) { results.push({ eventId: `safe-worker-invoice-failed-${invoiceId}`, skipped: true, reason: "invoice-failed-notification-owned-by-payment-return-sync-only" }); continue; }
+      if (failedInvoiceIds.has(invoiceId) || alertsIsFailed(st)) {
+        await alertsSendOnce(results, `safe-worker-invoice-failed-${invoiceId}`, {
+          title: "❌ فشلت عملية الدفع",
+          body: `فشلت عملية الدفع للفاتورة ${invoiceId}${alertsAmountText(inv)}`,
+          alertType: "invoice_payment_failed",
+          url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}`
+        }, dryRun, counters);
+        continue;
+      }
       if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-invoice-paid-${invoiceId}`, { title: "✅ تم دفع فاتورة", body: `تم دفع الفاتورة ${invoiceId}${alertsAmountText(inv)}`, alertType: "invoice_paid", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters); continue; }
       if (alertsIsPending(st)) {
         await alertsSendOnce(results, `safe-worker-invoice-pending-immediate-${invoiceId}`, { title: "⏳ فاتورة بانتظار الدفع", body: `الفاتورة ${invoiceId} بانتظار الدفع${alertsAmountText(inv)}`, alertType: "invoice_pending_immediate", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
@@ -1870,7 +1938,43 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     } catch (e: any) { res.status(500).json({ ok: false, error: e?.message || String(e) }); }
   });
 
-  app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
+  
+// Auto-run payment alerts worker every 60 seconds
+// This makes payment notifications automatic instead of requiring manual curl.
+let __paymentAlertsAutoRunnerStarted = false;
+
+function startPaymentAlertsAutoRunner() {
+  if (__paymentAlertsAutoRunnerStarted) return;
+  __paymentAlertsAutoRunnerStarted = true;
+
+  console.log("[ALERTS] Auto runner started: every 60 seconds");
+
+  setInterval(async () => {
+    try {
+      const response = await fetch("http://localhost:3000/api/push/run-alerts", {
+        method: "GET",
+        headers: {
+          "x-admin-secret": String(process.env.ADMIN_TEST_SECRET || ""),
+        },
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (result?.sent > 0) {
+        console.log("[ALERTS] Auto runner sent:", result.sent);
+      } else {
+        console.log("[ALERTS] Auto runner checked:", result?.sent ?? 0);
+      }
+    } catch (error) {
+      console.error("[ALERTS] Auto runner error:", error);
+    }
+  }, 60 * 1000);
+}
+
+startPaymentAlertsAutoRunner();
+
+
+app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
     try {
       const tokenSnap = await db.collection("pushTokens").where("active", "==", true).get();
       const sharedSnap = await db.collection("appData").doc("shared_company_data").get();

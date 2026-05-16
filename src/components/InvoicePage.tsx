@@ -602,7 +602,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  description: `Invoice ${invoiceId}`,
  returnUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
  cancelUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
- notificationUrl: getWebhookUrl('/api/webhook/upayments')
+ notificationUrl: 'https://admin.alturathkw.shop/api/webhook/upayments'
  })
  });
  
