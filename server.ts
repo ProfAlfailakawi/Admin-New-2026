@@ -525,31 +525,8 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
       try {
         let orderSnap: any = await db.collection("orders").doc(orderId).get();
-        
-        if (!orderSnap.exists) {
-          const searchableFields = [
-            "orderNumber",
-            "orderId",
-            "id",
-            "invoiceNo",
-            "invoiceNumber",
-            "linkedInvoiceId"
-          ];
-
-          for (const field of searchableFields) {
-            const querySnap = await db
-              .collection("orders")
-              .where(field, "==", orderId)
-              .limit(1)
-              .get();
-
-            if (!querySnap.empty) {
-              orderSnap = querySnap.docs[0];
-              resolvedOrderId = orderSnap.id;
-              break;
-            }
-          }
-        }
+        // Avoid multiple .where queries if doc doesn't exist to prevent quota exhaustion
+        // It will automatically fallback to the single appData/shared_company_data read below.
 
         if (orderSnap.exists) {
           order = orderSnap.data() || {};
@@ -585,9 +562,11 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
           }
         }
       } catch (err: any) {
-        if (!String(err).includes("PERMISSION_DENIED")) {
-      console.warn("Firestore fetch restricted or failed. Continuing with minimal payload.", err.message);
-   }
+        if (String(err).includes("RESOURCE_EXHAUSTED")) {
+            console.warn(`[order-created-alert] Firestore quota exceeded. Falling back to incoming payload for: ${orderId}`);
+        } else if (!String(err).includes("PERMISSION_DENIED")) {
+            console.warn("[order-created-alert] Firestore fetch failed. Continuing with minimal payload.", err.message);
+        }
         order = { orderNumber: clientOrderNumber, total: clientTotal };
       }
 
@@ -779,6 +758,28 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
     }
   });
 
+  let __alertsOrdersCache = { time: 0, docs: [] as any[] };
+
+  async function getRecentOrdersCached(limit = 50) {
+    const now = Date.now();
+    if (now - __alertsOrdersCache.time < 5 * 60 * 1000) {
+        return __alertsOrdersCache.docs;
+    }
+    try {
+        const snap = await db.collection("orders").limit(limit).get();
+        __alertsOrdersCache.time = now;
+        __alertsOrdersCache.docs = snap.docs;
+        return snap.docs;
+    } catch (e: any) {
+        if (e.message && e.message.includes("PERMISSION_DENIED")) {
+            console.log("[ALERTS] Failed to fetch orders: PERMISSION_DENIED (Continuing safely)");
+        } else {
+            console.error("[ALERTS] Failed to fetch orders:", e.message);
+        }
+        return __alertsOrdersCache.docs;
+    }
+  }
+
   app.post("/api/push/run-business-alerts", async (req, res) => {
     try {
       const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
@@ -827,8 +828,13 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       const results: any[] = [];
 
       async function alreadySent(eventId: string) {
+        if (__alertsPushEventsCache.knownIds.has(eventId)) return true;
         const snap = await db!.collection("pushEvents").doc(eventId).get();
-        return snap.exists;
+        if (snap.exists) {
+            __alertsPushEventsCache.knownIds.add(eventId);
+            return true;
+        }
+        return false;
       }
 
       async function markSent(eventId: string, payload: any, result: any) {
@@ -837,6 +843,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
           result,
           sentAt: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
+        __alertsPushEventsCache.knownIds.add(eventId);
       }
 
       function getDateValue(value: any): Date | null {
@@ -889,9 +896,9 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       // Fetch recent orders from both sources:
       // 1) Root collection: orders
       // 2) appData/shared_company_data.orders array
-      const ordersSnap = await db.collection("orders").limit(500).get();
+      const ordersDocs = await getRecentOrdersCached(50);
 
-      const rootOrders = ordersSnap.docs.map((doc) => ({
+      const rootOrders = ordersDocs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
         __source: "orders_collection",
@@ -1807,10 +1814,54 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     return docs[0]?.data?.token || null;
   }
 
+  let __alertsPushEventsCache = { time: 0, docs: [] as any[], knownIds: new Set<string>() };
+
+  async function alertsReadRecentPushEvents(limit = 100) {
+    const now = Date.now();
+    if (now - __alertsPushEventsCache.time < 5 * 60 * 1000) {
+        return { docs: __alertsPushEventsCache.docs };
+    }
+    try { 
+        const snap = await db.collection("pushEvents").orderBy("createdAt", "desc").limit(limit).get(); 
+        __alertsPushEventsCache.time = now;
+        __alertsPushEventsCache.docs = snap.docs;
+        snap.docs.forEach((d: any) => __alertsPushEventsCache.knownIds.add(d.id));
+        return snap;
+    }
+    catch (e1: any) { 
+        try { 
+            const snap = await db.collection("pushEvents").limit(limit).get(); 
+            __alertsPushEventsCache.time = now;
+            __alertsPushEventsCache.docs = snap.docs;
+            snap.docs.forEach((d: any) => __alertsPushEventsCache.knownIds.add(d.id));
+            return snap;
+        }
+        catch (e2: any) { 
+            if (e2.message && e2.message.includes("PERMISSION_DENIED")) {
+                console.log("[ALERTS] Failed to fetch pushEvents: Error: 7 PERMISSION_DENIED: Missing or insufficient permissions. (Continuing safely without ADC)");
+            } else {
+                console.error("[ALERTS] Failed to fetch pushEvents:", e2);
+            }
+            return { docs: [] }; 
+        }
+    }
+  }
+
   async function alertsClaim(eventId: string) {
+    if (__alertsPushEventsCache.knownIds.has(eventId)) {
+        return false;
+    }
+    if (__alertsPushEventsCache.docs && __alertsPushEventsCache.docs.some((d: any) => d.id === eventId)) {
+        __alertsPushEventsCache.knownIds.add(eventId);
+        return false;
+    }
     const ref = db.collection("pushEvents").doc(eventId);
     const snap = await ref.get();
-    if (snap.exists) return false;
+    if (snap.exists) {
+        __alertsPushEventsCache.knownIds.add(eventId);
+        return false;
+    }
+    // Don't add to knownIds because it DOESN'T exist yet, we only cache existence!
     return true;
   }
 
@@ -1821,6 +1872,8 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       result,
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
+    // Also store it locally to avoid checking it on the next iteration
+    __alertsPushEventsCache.knownIds.add(eventId);
   }
 
   async function alertsSendDataOnly({ title, body, alertType, eventId, url }: any) {
@@ -1839,26 +1892,11 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     const canSend = await alertsClaim(eventId);
     if (!canSend) { results.push({ eventId, skipped: true, reason: "already-sent" }); return; }
     const result = await alertsSendDataOnly({ ...payload, eventId });
-    if (result.success) {
+    if (result.success || result.mocked) {
       counters.sent += 1;
       await alertsMarkSent(eventId, result);
     }
     results.push({ eventId, result });
-  }
-
-  async function alertsReadRecentPushEvents(limit = 1000) {
-    try { return await db.collection("pushEvents").orderBy("createdAt", "desc").limit(limit).get(); }
-    catch (e1: any) { 
-        try { return await db.collection("pushEvents").limit(limit).get(); }
-        catch (e2: any) { 
-            if (e2.message && e2.message.includes("PERMISSION_DENIED")) {
-                console.log("[ALERTS] Failed to fetch pushEvents: Error: 7 PERMISSION_DENIED: Missing or insufficient permissions. (Continuing safely without ADC)");
-            } else {
-                console.error("[ALERTS] Failed to fetch pushEvents:", e2);
-            }
-            return { docs: [] }; 
-        }
-    }
   }
 
   async function alertsGetRecentFailedInvoiceIdsFromPushEvents() {

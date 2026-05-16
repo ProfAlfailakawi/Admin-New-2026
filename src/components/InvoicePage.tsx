@@ -377,6 +377,8 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const product = (data.products || []).find(p => p.id === productId);
  if (!product) return;
  
+ toast.success(`تم إضافة ${product.name} للسلة`, { duration: 2000 });
+
  setCart(prev => {
  const existing = prev[productId];
  return { 

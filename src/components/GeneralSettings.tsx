@@ -873,6 +873,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
 
  <div className="space-y-3">
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
  {(() => {
     const hasData = (data.invoices && data.invoices.length > 0) || (data.products && data.products.length > 0);
     const isDisabled = appMode === 'cloud' || hasData;
@@ -904,37 +905,6 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
       </button>
     );
   })()}
-
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
- <button 
- onClick={async () => {
- setIsSyncing(true);
- try {
- const { seedClientDatabase } = await import('../scripts/seed-client-db');
- await seedClientDatabase(data);
- addToast("تمت المزامنة","تم تحديث قائمة المنتجات والمناطق في تطبيق العميل بنجاح.","success");
- } catch (error) {
- addToast("فشل التزامن","حدث خطأ أثناء محاولة تحديث بيانات التطبيق.","warning");
- } finally {
- setIsSyncing(false);
- }
- }}
- disabled={isSyncing || appMode === 'local'}
- className={cn(
-"w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group",
- appMode === 'local'
- ?"bg-slate-50 border-slate-200/60 text-slate-500 cursor-not-allowed opacity-60"
- :"bg-primary/5 border-primary/10 hover:bg-primary/10 text-primary"
-)}
- >
- {isSyncing ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} className={cn("transition-transform duration-700", appMode !== 'local' &&"group-hover:rotate-180")} />}
- <div className="text-right">
- <div className="text-xs font-bold">مزامنة تطبيق العميل</div>
- <div className="text-[10px] opacity-70 italic">
- {appMode === 'local' ?"مغلق في النسخة التجريبية" :"نشر المنتجات والمناطق للتطبيق"}
- </div>
- </div>
- </button>
 
  <button 
  onClick={handleDownload}
