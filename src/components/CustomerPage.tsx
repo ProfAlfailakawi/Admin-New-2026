@@ -58,7 +58,20 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  const [showFilters, setShowFilters] = useState(false);
  const [showModal, setShowModal] = useState(false);
  const [editingId, setEditingId] = useState<string | null>(null);
- const [customerForm, setCustomerForm] = useState({ name: '', phone: '', status: 'active' as Customer['status'], area: '', address: '' });
+ const [customerForm, setCustomerForm] = useState({ 
+    name: '', 
+    phone: '', 
+    status: 'active' as Customer['status'], 
+    area: '', 
+    detailedAddress: {
+      block: '',
+      street: '',
+      jaddah: '',
+      building: '',
+      floor: '',
+      apartment: ''
+    }
+  });
  const [deleteError, setDeleteError] = useState<string | null>(null);
  const [shakingId, setShakingId] = useState<string | null>(null);
  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
@@ -130,72 +143,149 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  }).length;
 
  const handleSaveCustomer = () => {
- if (!customerForm.name || !customerForm.phone) {
- toast.error("بيان ناقص", { description:"يرجى إدخال الاسم ورقم الهاتف." });
- return;
- }
- 
- // Strict validation: 8 digits, English numbers only
- const phoneRegex = /^[0-9]{8}$/;
- if (!phoneRegex.test(customerForm.phone)) {
- toast.error("رقم غير صالح", { description:"رقم الهاتف يجب أن يتكون من 8 أرقام إنجليزية فقط (مثال: 99881122)." });
- return;
- }
+    if (!customerForm.name || !customerForm.phone) {
+      toast.error("بيان ناقص", { description: "يرجى إدخال الاسم ورقم الهاتف." });
+      return;
+    }
 
- const isDuplicate = (data?.customers || []).some(c => c.phone === customerForm.phone && c.id !== editingId);
- if (isDuplicate) {
- toast.warning("تنبيه: الرقم مسجل مسبقاً", { 
- description:"هذا الرقم موجود في سجلات المطعم. يمنع التكرار لضمان دقة نقاط الولاء."
- });
- return;
- }
+    // Address validation for new customer
+    if (!editingId) {
+      const { block, street, building } = customerForm.detailedAddress;
+      if (!customerForm.area || !block || !street || !building) {
+        toast.error("بيانات العنوان ناقصة", { 
+          description: "يرجى إكمال بيانات العنوان (المنطقة، القطعة، الشارع، والمنزل) لاستكمال التسجيل." 
+        });
+        return;
+      }
+    }
+    
+    // Strict validation: 8 digits, English numbers only
+    const phoneRegex = /^[0-9]{8}$/;
+    if (!phoneRegex.test(customerForm.phone)) {
+      toast.error("رقم غير صالح", { description: "رقم الهاتف يجب أن يتكون من 8 أرقام إنجليزية فقط (مثال: 99881122)." });
+      return;
+    }
 
- if (editingId) {
- setData(prev => {
- const updatedCustomers = (prev?.customers || []).map(c => 
- c.id === editingId ? { ...c, ...customerForm } : c
-);
- const updatedOrders = (prev?.orders || []).map(o => {
- if (o.customerId === editingId || o.customerPhone === customerForm.phone) {
- return { ...o, customerName: customerForm.name };
- }
- return o;
- });
- return {
- ...prev,
- customers: updatedCustomers,
- orders: updatedOrders
- };
- });
- toast.success("تم التحديث ✨", { description: `تم تعديل بيانات العميل ومزامنة طلباته السابقة.` });
- } else {
- const id = Math.random().toString(36).substr(2, 9);
- setData(prev => ({
- ...prev,
- customers: [...(prev?.customers || []), { ...customerForm, id, totalOrders: 0, totalSpent: 0 }]
- }));
- toast.success("تم الحفظ بنجاح ✨", { description: `تمت إضافة العميل ${customerForm.name} لقاعدة البيانات.` });
- }
- closeModal();
- };
+    const isDuplicate = (data?.customers || []).some(c => c.phone === customerForm.phone && c.id !== editingId);
+    if (isDuplicate) {
+      toast.warning("تنبيه: الرقم مسجل مسبقاً", { 
+        description: "هذا الرقم موجود في سجلات المطعم. يمنع التكرار لضمان دقة نقاط الولاء."
+      });
+      return;
+    }
+
+    const finalAddress = {
+      ...customerForm.detailedAddress,
+      region: customerForm.area
+    };
+
+    if (editingId) {
+      setData(prev => {
+        const updatedCustomers = (prev?.customers || []).map(c => 
+          c.id === editingId ? { ...c, ...customerForm, address: finalAddress } : c
+        );
+        const updatedOrders = (prev?.orders || []).map(o => {
+          if (o.customerId === editingId || o.customerPhone === customerForm.phone) {
+            return { ...o, customerName: customerForm.name };
+          }
+          return o;
+        });
+        return {
+          ...prev,
+          customers: updatedCustomers,
+          orders: updatedOrders
+        };
+      });
+      toast.success("تم التحديث ✨", { description: `تم تعديل بيانات العميل ومزامنة طلباته السابقة.` });
+    } else {
+      const id = Math.random().toString(36).substr(2, 9);
+      setData(prev => ({
+        ...prev,
+        customers: [...(prev?.customers || []), { 
+          id, 
+          name: customerForm.name,
+          phone: customerForm.phone,
+          status: customerForm.status,
+          area: customerForm.area,
+          address: finalAddress,
+          totalOrders: 0, 
+          totalSpent: 0 
+        }]
+      }));
+      toast.success("تم الحفظ بنجاح ✨", { description: `تمت إضافة العميل ${customerForm.name} لقاعدة البيانات.` });
+    }
+    closeModal();
+  };
 
  const openAddModal = () => {
- setEditingId(null);
- setCustomerForm({ name: '', phone: '', status: 'active', area: '', address: '' });
- setShowModal(true);
- };
+    setEditingId(null);
+    setCustomerForm({ 
+      name: '', 
+      phone: '', 
+      status: 'active', 
+      area: '', 
+      detailedAddress: {
+        block: '',
+        street: '',
+        jaddah: '',
+        building: '',
+        floor: '',
+        apartment: ''
+      }
+    });
+    setShowModal(true);
+  };
 
- const openEditModal = (customer: Customer) => {
- setEditingId(customer.id);
- setCustomerForm({ name: customer.name, phone: customer.phone, status: customer.status, area: customer.area || '', address: customer.address || '' });
- setShowModal(true);
- };
+  const openEditModal = (customer: Customer) => {
+    setEditingId(customer.id);
+    let detailed = {
+      block: '',
+      street: '',
+      jaddah: '',
+      building: '',
+      floor: '',
+      apartment: ''
+    };
+    
+    if (customer.address && typeof customer.address === 'object') {
+      detailed = {
+        block: (customer.address as any).block || '',
+        street: (customer.address as any).street || '',
+        jaddah: (customer.address as any).jaddah || '',
+        building: (customer.address as any).building || '',
+        floor: (customer.address as any).floor || '',
+        apartment: (customer.address as any).apartment || ''
+      };
+    }
+    
+    setCustomerForm({ 
+      name: customer.name, 
+      phone: customer.phone, 
+      status: customer.status, 
+      area: customer.area || '',
+      detailedAddress: detailed
+    });
+    setShowModal(true);
+  };
 
- const closeModal = () => {
- setShowModal(false);
- setEditingId(null);
- setCustomerForm({ name: '', phone: '', status: 'active', area: '', address: '' });
- };
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setCustomerForm({ 
+      name: '', 
+      phone: '', 
+      status: 'active', 
+      area: '', 
+      detailedAddress: {
+        block: '',
+        street: '',
+        jaddah: '',
+        building: '',
+        floor: '',
+        apartment: ''
+      }
+    });
+  };
 
  const handleDeleteCustomer = (customer: Customer) => {
  const stats = getCustomerStats(customer.id);
@@ -333,6 +423,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  <thead>
  <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-xs uppercase tracking-wider text-right">
  <th className="p-3 mr-2">الاسم</th>
+ <th className="p-3">العنوان</th>
  <th className="p-3">إجمالي الفواتير</th>
  <th className="p-3">رقم الهاتف</th>
  <th className="p-3">الحالة</th>
@@ -400,7 +491,21 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 )}
  </div>
  </td>
- <td className="p-3 font-bold text-slate-900 border-l border-slate-50">
+  <td className="p-3">
+    <div className="flex flex-col gap-0.5 text-right max-w-[150px]">
+      <div className="text-[11px] font-bold text-slate-700 truncate">
+        {customer.area || '—'}
+      </div>
+      <div className="text-[10px] text-slate-400 font-bold truncate">
+        {typeof customer.address === 'object' ? (
+          `${customer.address.block ? 'ق'+customer.address.block : ''}${customer.address.street ? ' ش'+customer.address.street : ''}${customer.address.building ? ' م'+customer.address.building : ''}`
+        ) : (
+          customer.address || '—'
+        )}
+      </div>
+    </div>
+  </td>
+  <td className="p-3 font-bold text-slate-900 border-l border-slate-50">
  {Number(stats.totalSpent || 0).toFixed(3)} د.ك
  </td>
  <td className="p-3">
@@ -521,7 +626,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  <div className="overflow-y-auto custom-scrollbar flex-1 p-3 md:p-3 pt-4 min-h-0">
  <div className="space-y-6 text-right">
  <div className="space-y-2">
- <label className="text-xs font-bold text-slate-500 uppercase mr-1 block">اسم العميل بالكامل</label>
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block">اسم العميل بالكامل *</label>
  <input 
  type="text" 
  value={customerForm.name}
@@ -531,7 +636,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  />
  </div>
  <div className="space-y-2">
- <label className="text-xs font-bold text-slate-500 uppercase mr-1 block">رقم الهاتف الكويتي</label>
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block">رقم الهاتف الكويتي *</label>
  <NumericInput 
  value={customerForm.phone}
  onChange={(val) => setCustomerForm({ ...customerForm, phone: val.toString() })}
@@ -541,24 +646,83 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  />
  </div>
  <div className="space-y-2">
- <label className="text-xs font-bold text-slate-500 uppercase mr-1 block">المنطقة</label>
- <input 
- type="text" 
- value={customerForm.area}
- onChange={(e) => setCustomerForm({ ...customerForm, area: e.target.value })}
- className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right"
- placeholder="أدخل المنطقة (اختياري)..."
- />
- </div>
- <div className="space-y-2">
- <label className="text-xs font-bold text-slate-500 uppercase mr-1 block">العنوان والتفاصيل</label>
- <textarea 
- value={customerForm.address}
- onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
- className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right resize-none h-20"
- placeholder="أدخل العنوان والتفاصيل كاملة (اختياري)..."
- />
- </div>
+          <label className="text-[10px] font-bold text-slate-500 uppercase mr-1 block">المنطقة *</label>
+          <input 
+            type="text" 
+            value={customerForm.area}
+            onChange={(e) => setCustomerForm({ ...customerForm, area: e.target.value })}
+            className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2.5 px-3 outline-none focus:ring-4 focus:ring-primary/5 transition-all font-bold text-slate-800 text-right text-sm"
+            placeholder="المنطقة"
+          />
+        </div>
+ <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 pt-4 border-t border-slate-100 mt-4">
+      <div className="col-span-full">
+        <h3 className="text-sm font-bold text-slate-400 mb-2 flex items-center gap-1.5 justify-end">
+          تفاصيل العنوان {editingId ? '' : '(إلزامي)'}
+          <MapPin size={16} />
+        </h3>
+      </div>
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase mr-1 block">القطعة *</label>
+        <input 
+          type="text" 
+          value={customerForm.detailedAddress.block}
+          onChange={(e) => setCustomerForm({ ...customerForm, detailedAddress: { ...customerForm.detailedAddress, block: e.target.value } })}
+          className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2.5 px-3 outline-none focus:ring-4 focus:ring-primary/5 transition-all font-bold text-slate-800 text-right text-sm"
+          placeholder="ق"
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase mr-1 block">الشارع *</label>
+        <input 
+          type="text" 
+          value={customerForm.detailedAddress.street}
+          onChange={(e) => setCustomerForm({ ...customerForm, detailedAddress: { ...customerForm.detailedAddress, street: e.target.value } })}
+          className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2.5 px-3 outline-none focus:ring-4 focus:ring-primary/5 transition-all font-bold text-slate-800 text-right text-sm"
+          placeholder="ش"
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase mr-1 block">الجادة</label>
+        <input 
+          type="text" 
+          value={customerForm.detailedAddress.jaddah}
+          onChange={(e) => setCustomerForm({ ...customerForm, detailedAddress: { ...customerForm.detailedAddress, jaddah: e.target.value } })}
+          className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2.5 px-3 outline-none focus:ring-4 focus:ring-primary/5 transition-all font-bold text-slate-800 text-right text-sm"
+          placeholder="ج"
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase mr-1 block">المنزل *</label>
+        <input 
+          type="text" 
+          value={customerForm.detailedAddress.building}
+          onChange={(e) => setCustomerForm({ ...customerForm, detailedAddress: { ...customerForm.detailedAddress, building: e.target.value } })}
+          className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2.5 px-3 outline-none focus:ring-4 focus:ring-primary/5 transition-all font-bold text-slate-800 text-right text-sm"
+          placeholder="م"
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase mr-1 block">دور</label>
+        <input 
+          type="text" 
+          value={customerForm.detailedAddress.floor}
+          onChange={(e) => setCustomerForm({ ...customerForm, detailedAddress: { ...customerForm.detailedAddress, floor: e.target.value } })}
+          className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2.5 px-3 outline-none focus:ring-4 focus:ring-primary/5 transition-all font-bold text-slate-800 text-right text-sm"
+          placeholder="دور"
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase mr-1 block">شقة</label>
+        <input 
+          type="text" 
+          value={customerForm.detailedAddress.apartment}
+          onChange={(e) => setCustomerForm({ ...customerForm, detailedAddress: { ...customerForm.detailedAddress, apartment: e.target.value } })}
+          className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2.5 px-3 outline-none focus:ring-4 focus:ring-primary/5 transition-all font-bold text-slate-800 text-right text-sm"
+          placeholder="شقة"
+        />
+      </div>
+    </div>
  </div>
  </div>
  

@@ -34,6 +34,17 @@ import { playTing } from '../lib/sounds';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { AppState, Product, InvoiceItem, Invoice, Customer, DeliveryType, PromoCode } from '../types';
 import { cn, normalizeArabic, robustNormalize } from '../lib/utils';
+import { 
+    computeInvoiceTotal, 
+    computeInvoiceCost, 
+    computeInvoiceProfit, 
+    computeInvoiceAddonsTotal,
+    computeInvoiceItemBasePrice,
+    computeInvoiceItemTotal,
+    computeInvoiceSubtotal,
+    computeAddonQuantity,
+    computeAddonRevenue
+} from '../lib/invoice-calculations';
 // import { getDeduplicatedProducts } from '../lib/deduplication';
 import { NumericInput } from './ui/NumericInput';
 import { MagneticButton } from './ui/MagneticButton';
@@ -420,7 +431,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const product = (data.products || []).find(p => p.id === productId);
  if (!product) return;
 
- const requiredAddons = (product.addons || []).filter(a => a.isRequired);
+ const requiredAddons = (product.addons || []).filter(a => a.isRequired).map((a: any) => ({ ...a, quantity: 1 }));
  const outOfStockRequiredAddons = requiredAddons.filter(a => a.trackStock && (a.stock ?? 0) <= 0);
 
  if (outOfStockRequiredAddons.length > 0) {
@@ -489,6 +500,24 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  }
  };
  });
+ };
+
+ const updateAddonQuantity = (productId: string, addonId: string, delta: number) => {
+    setCart(prev => {
+        const item = prev[productId];
+        if (!item || !item.addons) return prev;
+        const newAddons = item.addons.map(a => {
+            if (a.id === addonId) {
+                // Treats 'quantity' in the cart item as the multiplier/base quantity
+                const currentMultiplier = a.quantity !== undefined ? Number(a.quantity) : 1;
+                const minLimit = a.isRequired ? Math.max(1, a.minQuantity || 0) : (a.minQuantity || 0);
+                const newMultiplier = Math.max(minLimit, Math.min(a.maxQuantity || 99, currentMultiplier + delta));
+                return { ...a, quantity: newMultiplier };
+            }
+            return a;
+        });
+        return { ...prev, [productId]: { ...item, addons: newAddons } };
+    });
  };
 
  const deleteFromCart = (productId: string) => {
@@ -571,62 +600,29 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const currentInvoice = editingInvoiceId ? (data.invoices || []).find(i => i.id === editingInvoiceId) : null;
  const isPaid = currentInvoice?.paymentStatus === 'paid';
 
+  const mockInv = {
+    items: cartItems.map(it => ({
+      productId: it.product!.id,
+      quantity: it.qty,
+      priceAtTime: it.priceAtTime,
+      costAtTime: it.costAtTime,
+      addons: it.addons
+    })),
+    deliveryFee: Number(deliveryFee) || 0,
+    discount: discountValue,
+    gatewayFee: data.settings.gatewayFeeAmount || 0
+  };
+
+  const subtotal = computeInvoiceSubtotal(mockInv, data?.products || []);
+  const totalCost = computeInvoiceCost(mockInv, data?.products || []);
+  const addonsTotal = computeInvoiceAddonsTotal(mockInv);
+  const baseSubtotal = cartItems.reduce((acc, it) => acc + (it.priceAtTime * it.qty), 0);
  
-  const baseSubtotal = Math.round(cartItems.reduce((acc, item) => {
-    let baseSum = (Number(item.priceAtTime) || 0) * (Number(item.qty) || 0);
-    if (item.addons && item.addons.length > 0) {
-      item.addons.forEach(addon => {
-        if (addon.isHiddenPrice) {
-          let addonQty = 0;
-        if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(Number(item.qty) / (addon.xItemsThreshold || 1));
-        else addonQty = Number(item.qty);        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+  const discountAmount = discountType === 'percentage' 
+    ? Math.round((subtotal * (Number(discountValue) / 100)) * 1000) / 1000
+    : (Number(discountValue) || 0);
 
-          baseSum += (Number(addon.price) || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0));
-        }
-      });
-    }
-    return acc + baseSum;
-  }, 0) * 1000) / 1000;
-
-  const addonsTotal = Math.round(cartItems.reduce((acc, item) => {
-    let addonSum = 0;
-    if (item.addons && item.addons.length > 0) {
-      item.addons.forEach(addon => {
-        if (!addon.isHiddenPrice) {
-          let addonQty = 0;
-        if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(Number(item.qty) / (addon.xItemsThreshold || 1));
-        else addonQty = Number(item.qty);        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
-
-          addonSum += (Number(addon.price) || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0));
-        }
-      });
-    }
-    return acc + addonSum;
-  }, 0) * 1000) / 1000;
-  
-  const subtotal = baseSubtotal + addonsTotal;
-
- 
-  const totalCost = Math.round(cartItems.reduce((acc, item) => {
-    let costTotal = (Number(item.costAtTime) || 0) * (Number(item.qty) || 0);
-    if (item.addons && item.addons.length > 0) {
-      item.addons.forEach(addon => {
-        let addonQty = 0;
-        if (addon.calculationType === 'fixed') { addonQty = 1; } else if (addon.calculationType === 'per_x_items') { addonQty = Math.ceil(Number(item.qty) / (addon.xItemsThreshold || 1)); } else { addonQty = Number(item.qty); }
-        costTotal += (Number(addon.cost) || 0) * addonQty;
-      });
-    }
-    return acc + costTotal;
-  }, 0) * 1000) / 1000;
-
- 
- const discountAmount = discountType === 'percentage' 
- ? Math.round((subtotal * (Number(discountValue) / 100)) * 1000) / 1000
- : (Number(discountValue) || 0);
-
- const total = Math.max(0, Math.round((subtotal + (Number(deliveryFee) || 0) - (Number(discountAmount) || 0)) * 1000) / 1000);
+  const total = Math.max(0, Math.round((subtotal + (Number(deliveryFee) || 0) - (Number(discountAmount) || 0)) * 1000) / 1000);
 
  // SMART INVOICE ALERT LOGIC
  const getSmartAlert = () => {
@@ -1422,14 +1418,29 @@ setPaymentLink(createdLink);
  {item.priceAtTime < item.product!.price && (
  <span className="mr-2 text-[10px] font-bold bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full align-middle">خصم</span>
  )}
- {item.addons && item.addons.length > 0 && (
-   <div className="flex flex-col mt-1">
+ {false && item.addons && item.addons.length > 0 && (
+   <div className="flex flex-col mt-2 gap-1.5 border-t border-slate-50 pt-2">
      {item.addons.map(a => {
-       let aQty = a.calculationType === 'fixed' ? 1 : (a.calculationType === 'per_x_items' ? Math.ceil(item.qty / (a.xItemsThreshold || 1)) : item.qty);
-       if(aQty === 0) return null;
+       const aQty = computeAddonQuantity(a, { ...item, quantity: item.qty });
+       const rev = computeAddonRevenue(a, { ...item, quantity: item.qty });
+       if(aQty === 0 && !a.isRequired) return null;
        return (
-         <div key={a.id} className="text-[11px] font-medium text-slate-500">
-           + {a.name} {aQty > 1 ? `(${aQty})` : ''} {!a.isHiddenPrice && `- (${(Number(a.price)*aQty).toFixed(3)} د.ك)`}
+         <div key={a.id} className="flex items-center justify-between gap-2 group/addon">
+           <div className="text-[11px] font-medium text-slate-500 flex-1 truncate">
+             + {a.name} {a.freeQuantity > 0 && <span className="text-emerald-600 font-bold mr-1">({a.freeQuantity} مجاناً)</span>}
+           </div>
+           {!isPaid && (
+             <div className="flex items-center gap-1.5 bg-slate-100 rounded-lg p-0.5 transition-opacity">
+               <button onClick={() => updateAddonQuantity(item.product!.id, a.id, -1)} className="p-1 hover:bg-white text-slate-400 hover:text-rose-500 rounded transition-all"><Minus size={10} /></button>
+               <span className={cn(
+                 "text-[10px] font-bold min-w-[12px] text-center",
+                 aQty > (a.freeQuantity || 0) ? "text-rose-600" : "text-slate-700"
+               )}>
+                 {aQty}
+               </span>
+               <button onClick={() => updateAddonQuantity(item.product!.id, a.id, 1)} className="p-1 hover:bg-white text-slate-400 hover:text-emerald-500 rounded transition-all"><Plus size={10} /></button>
+             </div>
+           )}
          </div>
        );
      })}
@@ -1452,36 +1463,6 @@ setPaymentLink(createdLink);
 )}
  
  <div className="flex flex-col items-end gap-1">
- <div className="flex items-center gap-2">
- <span className="text-[10px] text-slate-500 font-bold">سعر الحبة:</span>
- {(() => {
-    let hiddenAddonsContrib = 0;
-    if(item.addons) {
-       item.addons.forEach(a => {
-         if(a.isHiddenPrice) {
-            let aQty = a.calculationType === 'fixed' ? 1 : (a.calculationType === 'per_x_items' ? Math.ceil(item.qty / (a.xItemsThreshold || 1)) : item.qty);
-            hiddenAddonsContrib += (Number(a.price || 0) * Math.max(0, aQty - (a.freeQuantity || 0))) / (item.qty || 1);
-         }
-       });
-    }
-    const displayPrice = item.priceAtTime + hiddenAddonsContrib;
-    
-    return (
-      <input 
-        type="number" 
-        step="0.001"
-        className="w-12 md:w-16 text-left bg-slate-50 border border-slate-200/60 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 transition-all"
-        value={displayPrice === 0 ? '' : Number(displayPrice).toFixed(3)} 
-        onChange={(e) => {
-          let newDisplay = parseFloat(e.target.value) || 0;
-          updateItemPrice(item.product!.id, Math.max(0, newDisplay - hiddenAddonsContrib));
-        }}
-        placeholder="السعر"
-      />
-    );
- })()}
- 
- </div>
  <div className="font-bold text-primary text-sm text-left shrink-0">
  {(() => {
   let rowTotal = (item.qty * item.priceAtTime) || 0;
@@ -1507,49 +1488,81 @@ setPaymentLink(createdLink);
          <p className="text-[10px] font-bold text-slate-400 mb-2">إضافات متاحة للطلب:</p>
          <div className="flex flex-wrap gap-2">
              {item.product.addons.filter(a => !(a.trackStock && (a.stock ?? 0) <= 0)).map(addon => {
-                 const isSelected = (item.addons || []).some(a => a.id === addon.id);
+                 const selectedAddonInstance = (item.addons || []).find(a => a.id === addon.id);
+                 const isSelected = !!selectedAddonInstance;
+                 const aQty = selectedAddonInstance ? computeAddonQuantity(selectedAddonInstance, { ...item, quantity: item.qty }) : 0;
+
                  return (
-                     <button
+                     <div
                          key={addon.id}
-                         onClick={() => {
-                             if (isPaid) return;
-                             setCart(prev => {
-                                 const existingCartItem = prev[item.product!.id];
-                                 if (!existingCartItem) return prev;
-                                 let newAddons = [...(existingCartItem.addons || [])];
-                                 if (isSelected) {
-                                     if (addon.isRequired) {
-                                         toast.error(`هذه الإضافة إجبارية لا يمكن إزالتها`);
-                                         return prev;
-                                     }
-                                     newAddons = newAddons.filter(a => a.id !== addon.id);
-                                 } else {
-                                     // Validate Stock
-                                     if (addon.trackStock && (addon.stock ?? 0) <= 0) {
-                                         toast.error(`${addon.name} غير متوفرة (انتهت الكمية)`);
-                                         return prev;
-                                     }
-                                     newAddons.push(addon);
-                                 }
-                                 return {
-                                     ...prev,
-                                     [item.product!.id]: {
-                                         ...existingCartItem,
-                                         addons: newAddons
-                                     }
-                                 };
-                             });
-                         }}
-                         className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${isSelected ? 'bg-primary border-primary text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+                         className={cn(
+                             "flex items-center rounded-full border transition-all shrink-0",
+                             isSelected ? "bg-primary border-primary text-white pl-1" : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                         )}
                      >
-                         <span>{addon.name}</span>
-                         {!addon.isHiddenPrice && addon.price > 0 && (
-    <span className={isSelected ? "text-white/80" : "text-slate-400"}>
-       (+{Number(addon.price).toFixed(3)})
-       {addon.freeQuantity > 0 && <span className="text-[9px] mr-1">(أول {addon.freeQuantity} مجاناً)</span>}
-    </span>
-  )}
-                     </button>
+                         <button
+                             onClick={() => {
+                                 if (isPaid) return;
+                                 setCart(prev => {
+                                     const existingCartItem = prev[item.product!.id];
+                                     if (!existingCartItem) return prev;
+                                     let newAddons = [...(existingCartItem.addons || [])];
+                                     if (isSelected) {
+                                         if (addon.isRequired) {
+                                             toast.error(`هذه الإضافة إجبارية لا يمكن إزالتها`);
+                                             return prev;
+                                         }
+                                         newAddons = newAddons.filter(a => a.id !== addon.id);
+                                     } else {
+                                         // Validate Stock
+                                         if (addon.trackStock && (addon.stock ?? 0) <= 0) {
+                                             toast.error(`${addon.name} غير متوفرة (انتهت الكمية)`);
+                                             return prev;
+                                         }
+                                         newAddons.push({ ...addon, quantity: 1 });
+                                     }
+                                     return {
+                                         ...prev,
+                                         [item.product!.id]: {
+                                             ...existingCartItem,
+                                             addons: newAddons
+                                         }
+                                     };
+                                 });
+                             }}
+                             className="text-xs font-bold px-3 py-1.5 flex items-center gap-1"
+                         >
+                             <span>{addon.name}</span>
+                             {addon.freeQuantity > 0 && !isSelected && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded-lg font-bold bg-emerald-50 text-emerald-600">
+                                  {addon.freeQuantity} مجاناً
+                                </span>
+                             )}
+                         </button>
+
+                         {isSelected && addon.freeQuantity > 0 && (
+                            <div className="flex items-center gap-1 bg-white/20 rounded-full p-0.5 ml-1">
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); updateAddonQuantity(item.product!.id, addon.id, -1); }}
+                                    className="p-1 hover:bg-white/30 text-white rounded-full transition-all"
+                                >
+                                    <Minus size={10} />
+                                </button>
+                                <span className={cn(
+                                    "text-[10px] font-bold min-w-[12px] text-center",
+                                    aQty > (addon.freeQuantity || 0) ? "text-yellow-200" : "text-white"
+                                )}>
+                                    {aQty}
+                                </span>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); updateAddonQuantity(item.product!.id, addon.id, 1); }}
+                                    className="p-1 hover:bg-white/30 text-white rounded-full transition-all"
+                                >
+                                    <Plus size={10} />
+                                </button>
+                            </div>
+                         )}
+                     </div>
                  );
              })}
          </div>
@@ -1579,15 +1592,15 @@ setPaymentLink(createdLink);
 )}
  >
  <div className={cn(
-"w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
- smartAlert.type === 'danger' ?"bg-rose-100" :
- smartAlert.type === 'special' ?"bg-purple-100" :
-"bg-amber-100"
-)}>
- <AlertTriangle size={18} />
- </div>
- <span className="text-[11px] font-bold leading-tight">{smartAlert.text}</span>
- </motion.div>
+    "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+    smartAlert.type === 'danger' ? "bg-rose-100" :
+    smartAlert.type === 'special' ? "bg-purple-100" :
+    "bg-amber-100"
+  )}>
+    <AlertTriangle size={18} />
+  </div>
+  <span className="text-[11px] font-bold leading-tight">{smartAlert.text}</span>
+  </motion.div>
 )}
 
  {/* Totals Summary */}
@@ -1616,119 +1629,126 @@ setPaymentLink(createdLink);
  </div>
 )}
  <div className="flex justify-between items-center p-3 md:p-3 bg-primary/5 rounded-2xl border border-primary/10">
- <div>
- <span className="text-xl font-bold text-slate-800 tracking-tight">الإجمالي</span>
- <div className="text-[10px] text-blue-600 font-bold mt-1">طريقة الدفع: Knet</div>
- </div>
- <div className="text-xl md:text-3xl font-bold text-primary tracking-tighter">
- {Number(total || 0).toFixed(3)} <span className="text-xs">د.ك</span>
- </div>
- </div>
- </div>
+    <div>
+      <span className="text-xl font-bold text-slate-800 tracking-tight">الإجمالي</span>
+      <div className="text-[10px] text-blue-600 font-bold mt-1">طريقة الدفع: Knet</div>
+    </div>
+    <div className="text-xl md:text-3xl font-bold text-primary tracking-tighter">
+      {Number(total || 0).toFixed(3)} <span className="text-xs">د.ك</span>
+    </div>
+  </div>
+</div>
 
- <MagneticButton 
- disabled={!selectedCustomerId || cartItems.length === 0 || isPaid}
- onClick={handleCreateInvoice}
- intensity={0.15}
- className={cn(
-"w-full py-5 rounded-2xl font-bold shadow-xl transition-all active:scale-[0.97] flex items-center justify-center gap-3 text-lg relative z-50",
- !selectedCustomerId || cartItems.length === 0 || isPaid
- ?"bg-slate-100 text-slate-500 cursor-not-allowed shadow-none"
- :"bg-primary text-white shadow-primary/30 hover:bg-primary-dark"
-)}
- >
- <span>{isPaid ? 'الفاتورة مدفوعة ولا يمكن تعديلها ✅' : editingInvoiceId ? 'تعديل الفاتورة' : 'اعتماد وإصدار الفاتورة'}</span>
- <CheckCircle2 size={24} />
-   </MagneticButton>
-  </div>
-  </div>
-  </div>
-
-  {/* Quick Customer Modal */}
-  <AnimatePresence>
-  {showQuickCustomerModal && (
-  <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <motion.div
-      initial={{ scale: 0.95, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.95, opacity: 0 }}
-      className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden"
-      dir="rtl"
-      >
-      <div className="p-6">
-          <h3 className="text-xl font-bold text-slate-800 mb-6 text-right">إضافة عميل جديد</h3>
-          <div className="space-y-4">
-          <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 text-right block">اسم العميل (مطلوب)</label>
-              <input
-              type="text"
-              value={quickCustomerName}
-              onChange={(e) => setQuickCustomerName(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800"
-              placeholder="اسم العميل..."
-              />
-          </div>
-          <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 text-right block">رقم الهاتف (مطلوب)</label>
-              <input
-              type="tel"
-              value={quickCustomerPhone}
-              onChange={(e) => {
-                  const val = e.target.value;
-                  const englishNumbers = val
-                    .replace(/[٠١٢٣٤٥٦٧٨٩]/g, (d) => (d.charCodeAt(0) - 1632).toString())
-                    .replace(/\D/g, '');
-                  if (englishNumbers.length <= 8) {
-                      setQuickCustomerPhone(englishNumbers);
-                  }
-              }}
-              className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-left cursor-text ltr-input tracking-widest text-lg"
-              placeholder="00000000"
-              dir="ltr"
-              />
-          </div>
-          </div>
-          <div className="flex gap-3 mt-8">
-          <button
-              type="button"
-              onClick={() => setShowQuickCustomerModal(false)}
-              className="flex-1 py-4 border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-colors"
-          >
-              إلغاء
-          </button>
-          <button
-              type="button"
-              onClick={() => {
-              if (!quickCustomerName.trim() || !quickCustomerPhone.trim()) {
-                  toast.error('يرجى إدخال اسم العميل ورقم الهاتف');
-                  return;
-              }
-              const newId = `cust_${Date.now()}`;
-              const newCustomer: Customer = {
-                  id: newId,
-                  name: quickCustomerName.trim(),
-                  phone: quickCustomerPhone.trim(),
-                  status: 'active',
-                  totalOrders: 0,
-                  totalSpent: 0
-              };
-              const updatedCustomers = [...(data.customers || []), newCustomer];
-              setData(prev => ({ ...prev, customers: updatedCustomers }));
-              setSelectedCustomerId(newId);
-              setCustomerSearch(newCustomer.name);
-              setShowQuickCustomerModal(false);
-              toast.success('تم إضافة العميل بنجاح');
-              }}
-              className="flex-1 py-4 bg-primary text-white rounded-2xl font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
-          >
-              إضافة العميل
-          </button>
-          </div>
-      </div>
-      </motion.div>
-  </div>
+<MagneticButton 
+  disabled={!selectedCustomerId || cartItems.length === 0 || isPaid}
+  onClick={handleCreateInvoice}
+  intensity={0.15}
+  className={cn(
+    "w-full py-5 rounded-2xl font-bold shadow-xl transition-all active:scale-[0.97] flex items-center justify-center gap-3 text-lg relative z-50",
+    !selectedCustomerId || cartItems.length === 0 || isPaid
+    ? "bg-slate-100 text-slate-500 cursor-not-allowed shadow-none"
+    : "bg-primary text-white shadow-primary/30 hover:bg-primary-dark"
   )}
-  </AnimatePresence>
+>
+  <span>{isPaid ? 'الفاتورة مدفوعة ولا يمكن تعديلها ✅' : editingInvoiceId ? 'تعديل الفاتورة' : 'اعتماد وإصدار الفاتورة'}</span>
+  <CheckCircle2 size={24} />
+</MagneticButton>
+</div>
+</div>
+</div>
+
+{/* Quick Customer Modal */}
+<AnimatePresence>
+{showQuickCustomerModal && (
+<div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+  <motion.div
+  initial={{ scale: 0.95, opacity: 0 }}
+  animate={{ scale: 1, opacity: 1 }}
+  exit={{ scale: 0.95, opacity: 0 }}
+  className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden"
+  dir="rtl"
+  >
+  <div className="p-6">
+      <h3 className="text-xl font-bold text-slate-800 mb-6 text-right">إضافة عميل جديد</h3>
+          <div className="space-y-4">
+            <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 text-right block">اسم العميل (مطلوب)</label>
+                <input
+                type="text"
+                value={quickCustomerName}
+                onChange={(e) => setQuickCustomerName(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right"
+                placeholder="الاسم..."
+                />
+            </div>
+            <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 text-right block">رقم الهاتف (مطلوب)</label>
+                <input
+                type="tel"
+                value={quickCustomerPhone}
+                onChange={(e) => {
+                    const val = e.target.value;
+                    const englishNumbers = val
+                      .replace(/[٠١٢٣٤٥٦٧٨٩]/g, (d) => (d.charCodeAt(0) - 1632).toString())
+                      .replace(/\D/g, '');
+                    if (englishNumbers.length <= 8) {
+                        setQuickCustomerPhone(englishNumbers);
+                    }
+                }}
+                className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-left ltr-input"
+                placeholder="90000000"
+                maxLength={8}
+                />
+            </div>
+          </div>
+      <div className="flex gap-3 mt-8">
+      <button
+          type="button"
+          onClick={() => setShowQuickCustomerModal(false)}
+          className="flex-1 py-4 border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-colors"
+      >
+          إلغاء
+      </button>
+      <button
+          type="button"
+          onClick={() => {
+          if (!quickCustomerName.trim() || !quickCustomerPhone.trim()) {
+              toast.error('يرجى إدخال اسم العميل ورقم الهاتف');
+              return;
+          }
+          const newId = `cust_${Date.now()}`;
+          const newCustomer: Customer = {
+              id: newId,
+              name: quickCustomerName.trim(),
+              phone: quickCustomerPhone.trim(),
+              area: '',
+              address: {
+                region: '',
+                block: '',
+                street: '',
+                building: ''
+              },
+              status: 'active',
+              totalOrders: 0,
+              totalSpent: 0
+          };
+          const updatedCustomers = [...(data.customers || []), newCustomer];
+          setData(prev => ({ ...prev, customers: updatedCustomers }));
+          setSelectedCustomerId(newId);
+          setCustomerSearch(newCustomer.name);
+          setShowQuickCustomerModal(false);
+          toast.success('تم إضافة العميل بنجاح');
+          }}
+          className="flex-1 py-4 bg-primary text-white rounded-2xl font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+      >
+          إضافة العميل
+      </button>
+      </div>
+  </div>
+  </motion.div>
+</div>
+)}
+</AnimatePresence>
 
   </div>
   );

@@ -13,6 +13,15 @@ import ConfirmModal from './ui/ConfirmModal';
 import { toast } from 'sonner';
 import { recalculateStateBalances } from '../lib/business-logic';
 import { isPaidStatus, isPendingStatus, isFailedStatus, isCancelledStatus } from '../lib/status-utils';
+import { 
+    computeInvoiceTotal, 
+    computeInvoiceCost, 
+    computeInvoiceProfit, 
+    computeInvoiceAddonsTotal,
+    computeInvoiceItemBasePrice,
+    computeInvoiceItemTotal,
+    computeInvoiceSubtotal
+} from '../lib/invoice-calculations';
 import OrderPage from './OrderPage';
 
 
@@ -28,65 +37,6 @@ interface ReportsPageProps {
  isPartner?: boolean;
 }
 
-
-const computeInvoiceItemBasePrice = (item: any, dataProducts: any[]) => {
-    const product = (dataProducts || []).find((p: any) => p.id === item.productId);
-    return Number(item.priceAtTime !== undefined ? item.priceAtTime : (item.price !== undefined ? item.price : (product?.price || 0))) || 0;
-};
-
-const computeInvoiceItemTotal = (item: any, dataProducts: any[]) => {
-    const basePrice = computeInvoiceItemBasePrice(item, dataProducts);
-    let addonsTotal = 0;
-    (item.addons || []).forEach((addon: any) => {
-        let addonQty = 0;
-        if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
-        else addonQty = item.quantity || 1;
-        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
-        addonsTotal += (Number(addon.price||0) * Math.max(0, addonQty - (addon.freeQuantity || 0)));
-    });
-    return (basePrice * (item.quantity || 1)) + addonsTotal;
-};
-
-const computeInvoiceSubtotal = (inv: any, dataProducts: any[]) => {
-    let subtotal = 0;
-    (inv.items || []).forEach((item: any) => {
-        subtotal += computeInvoiceItemTotal(item, dataProducts);
-    });
-    return subtotal;
-};
-
-const computeInvoiceTotal = (inv: any, dataProducts: any[]) => {
-    let subtotal = computeInvoiceSubtotal(inv, dataProducts);
-    return Math.max(0, subtotal + Number(inv.deliveryFee || 0) - Number(inv.discount || 0));
-};
-
-const computeInvoiceItemCost = (item: any, dataProducts: any[]) => {
-    const product = (dataProducts || []).find((p: any) => p.id === item.productId);
-    const baseCost = Number(product?.cost || 0);
-    let addonsCost = 0;
-    (item.addons || []).forEach((addon: any) => {
-        let addonQty = 0;
-        if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
-        else addonQty = item.quantity || 1;
-        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
-        addonsCost += (Number(addon.cost||0) * addonQty);
-    });
-    return (baseCost * (item.quantity || 1)) + addonsCost;
-};
-
-const computeInvoiceCost = (inv: any, dataProducts: any[]) => {
-    let cost = 0;
-    (inv.items || []).forEach((item: any) => {
-        cost += computeInvoiceItemCost(item, dataProducts);
-    });
-    return cost;
-};
-
-const computeInvoiceProfit = (inv: any, dataProducts: any[]) => {
-    return computeInvoiceTotal(inv, dataProducts) - computeInvoiceCost(inv, dataProducts);
-};
 
 const ReportsPage: React.FC<ReportsPageProps> = React.memo(({ 
  data, 
@@ -539,13 +489,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
        </div>
        </div>
        {timeFilter === 'custom' && (
-       <div className="flex items-center gap-4 mb-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+       <div className="flex items-center gap-4 mb-8 bg-slate-50 p-4 rounded-xl border border-slate-100">
        <div className="flex-1">
        <label className="block text-[10px] font-bold text-slate-400 mb-1">من تاريخ</label>
        <input 
        type="date" 
-       value={customDateRange.start}
-       onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
+       value={startDate}
+       onChange={(e) => setStartDate(e.target.value)}
        className="w-full p-2 bg-white rounded flex-row-reverse border border-slate-200 font-bold text-sm text-right"
        />
        </div>
@@ -553,13 +503,45 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
        <label className="block text-[10px] font-bold text-slate-400 mb-1">إلى تاريخ</label>
        <input 
        type="date" 
-       value={customDateRange.end}
-       onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
+       value={endDate}
+       onChange={(e) => setEndDate(e.target.value)}
        className="w-full p-2 bg-white rounded flex-row-reverse border border-slate-200 font-bold text-sm text-right"
        />
        </div>
        </div>
        )}
+
+       <div className="flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/30">
+          <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 mb-6 group-hover:scale-110 transition-transform">
+             <Puzzle size={36} />
+          </div>
+          <h2 className="text-2xl font-black text-slate-800 mb-2">إجمالي مبيعات الإضافات</h2>
+          <p className="text-slate-500 font-bold mb-8 italic">مجموع الإيرادات المحققة من الإضافات والطلبات الاختيارية</p>
+          
+          <div className="text-6xl font-black text-amber-600 tracking-tighter flex items-center gap-3">
+             {Math.max(0, filteredInvoices
+                .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
+                .reduce((a, b) => a + Math.max(0, computeInvoiceAddonsTotal(b)), 0))
+                .toFixed(3)
+             }
+             <span className="text-2xl font-bold bg-amber-100 px-3 py-1 rounded-xl">د.ك</span>
+          </div>
+          
+          <div className="mt-12 grid grid-cols-2 gap-4 w-full max-w-lg">
+             <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="text-[10px] font-bold text-slate-400 mb-1 uppercase">عدد الطلبات التي تحتوي إضافات</div>
+                <div className="text-2xl font-black text-slate-800">
+                   {filteredInvoices.filter(inv => computeInvoiceAddonsTotal(inv) > 0).length}
+                </div>
+             </div>
+             <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="text-[10px] font-bold text-slate-400 mb-1 uppercase">متوسط قيمة الإضافات/طلب</div>
+                <div className="text-2xl font-black text-slate-800">
+                   {(filteredInvoices.reduce((a, b) => a + computeInvoiceAddonsTotal(b), 0) / Math.max(1, filteredInvoices.filter(inv => computeInvoiceAddonsTotal(inv) > 0).length)).toFixed(3)}
+                </div>
+             </div>
+          </div>
+       </div>
     </div>
   </motion.div>
   ) : activeTab === 'orders' ? (
@@ -590,7 +572,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   
   
 
- <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 mb-3 md:mb-0">
+ <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-3 md:mb-0">
  <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
  <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">عدد الفواتير</div>
  <div className="text-xl md:text-3xl font-bold text-slate-900 tracking-tighter">{filteredInvoices.length}</div>
@@ -601,6 +583,17 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  {Math.max(0, filteredInvoices
  .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
  .reduce((a, b) => a + Math.max(0, Number(b.totalAmount || 0)), 0))
+ .toFixed(3)
+ }
+ <span className="text-sm font-bold mr-1">د.ك</span>
+ </div>
+ </div>
+ <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
+ <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي الإضافات</div>
+ <div className="text-xl md:text-3xl font-bold text-amber-600 tracking-tighter truncate">
+ {Math.max(0, filteredInvoices
+ .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
+ .reduce((a, b) => a + Math.max(0, computeInvoiceAddonsTotal(b)), 0))
  .toFixed(3)
  }
  <span className="text-sm font-bold mr-1">د.ك</span>
