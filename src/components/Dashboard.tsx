@@ -1,5 +1,11 @@
 // invalidated cache 2026-05-07 14:18
 import { getUnifiedInvoices } from '../lib/utils';
+import { 
+    computeInvoiceTotal, 
+    computeInvoiceCost, 
+    computeInvoiceProfit, 
+    computeInvoiceAddonsTotal 
+} from '../lib/invoice-calculations';
 import React, {
   useState,
   useMemo,
@@ -180,68 +186,6 @@ interface DashboardProps {
   setDeepLinkData?: (data: any) => void;
 }
 
-
-const computeInvoiceItemBasePrice = (item: any, dataProducts: any[]) => {
-    const product = (dataProducts || []).find((p: any) => p.id === item.productId);
-    return Number(item.priceAtTime !== undefined ? item.priceAtTime : (item.price !== undefined ? item.price : (product?.price || 0))) || 0;
-};
-
-const computeInvoiceItemTotal = (item: any, dataProducts: any[]) => {
-    const basePrice = computeInvoiceItemBasePrice(item, dataProducts);
-    let addonsTotal = 0;
-    (item.addons || []).forEach((addon: any) => {
-        let addonQty = 0;
-        if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
-        else addonQty = item.quantity || 1;
-        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
-        addonsTotal += (Number(addon.price||0) * Math.max(0, addonQty - (addon.freeQuantity || 0)));
-    });
-    return (basePrice * (item.quantity || 1)) + addonsTotal;
-};
-
-const computeInvoiceSubtotal = (inv: any, dataProducts: any[]) => {
-    let subtotal = 0;
-    (inv.items || []).forEach((item: any) => {
-        subtotal += computeInvoiceItemTotal(item, dataProducts);
-    });
-    return subtotal;
-};
-
-const computeInvoiceTotal = (inv: any, dataProducts: any[]) => {
-    let subtotal = computeInvoiceSubtotal(inv, dataProducts);
-    return Math.max(0, subtotal + Number(inv.deliveryFee || 0) - Number(inv.discount || 0));
-};
-
-const computeInvoiceItemCost = (item: any, dataProducts: any[]) => {
-    const product = (dataProducts || []).find((p: any) => p.id === item.productId);
-    const baseCost = Number(product?.cost || 0);
-    let addonsCost = 0;
-    (item.addons || []).forEach((addon: any) => {
-        let addonQty = 0;
-        if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
-        else addonQty = item.quantity || 1;
-        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
-        addonsCost += (Number(addon.cost||0) * addonQty);
-    });
-    return (baseCost * (item.quantity || 1)) + addonsCost;
-};
-
-const computeInvoiceCost = (inv: any, dataProducts: any[]) => {
-    let cost = 0;
-    (inv.items || []).forEach((item: any) => {
-        cost += computeInvoiceItemCost(item, dataProducts);
-    });
-    return cost;
-};
-
-const computeInvoiceProfit = (inv: any, dataProducts: any[]) => {
-    return computeInvoiceTotal(inv, dataProducts) - computeInvoiceCost(inv, dataProducts);
-};
-
-const patternSadu =
-  "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h22v20h2V0h2v20h2V0h2v20h2V0h2v20h2V0h2v20h2v2H20v-1.5zM0 20h2v20H0V20zm4 0h2v20H4V20zm4 0h2v20H8V20zm4 0h2v20h-2V20zm4 0h2v20h-2V20zm4 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2z' fill='%239e9e9e' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E";
 
 const GlobalStatBox = React.memo(
   ({
@@ -1330,19 +1274,7 @@ const [isPending, startTransition] = useTransition();
 
 
       const totalAddonsRevenue = invoices.reduce((acc, inv) => {
-          let invAddons = 0;
-          (inv.items || []).forEach((item: any) => {
-              (item.addons || []).forEach((addon: any) => {
-                  console.log('Addon found in invoice', inv.id, addon.name, addon.price, addon.quantity, addon.isHiddenPrice);
-                  let addonQty = 0;
-        if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
-        else addonQty = item.quantity || 1;
-        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
-                  invAddons += (Number(addon.price||0) * Math.max(0, addonQty - (addon.freeQuantity || 0)));
-              });
-          });
-          return acc + invAddons;
+          return acc + computeInvoiceAddonsTotal(inv);
       }, 0);
 
 

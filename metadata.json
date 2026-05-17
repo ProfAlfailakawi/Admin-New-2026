@@ -1,6 +1,5 @@
 {
   "name": "شركة مطبخ التراث الكويتي",
-  "description": "نظام مالي متطور",
-  "requestFramePermissions": [],
-  "majorCapabilities": []
+  "description": "نظام مالي متطور مع إدارة عملاء متقدمة وعناوين مفصلة ودعم للإضافات المتعددة",
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

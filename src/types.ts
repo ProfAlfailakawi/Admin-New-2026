@@ -1,5 +1,15 @@
 export type PaymentMethod = 'KNet' | 'Link' | 'BankTransfer' | 'Cash';
 
+export interface DetailedAddress {
+  region?: string;
+  block: string;
+  street: string;
+  jaddah?: string;
+  building: string;
+  floor?: string;
+  apartment?: string;
+}
+
 export interface Customer {
   id: string;
   name: string;
@@ -13,7 +23,7 @@ export interface Customer {
   loyaltyPoints?: number;
   sentiment?: 'positive' | 'neutral' | 'negative';
   area?: string; // For Geospatial Forecasting
-  address?: string; // Address
+  address?: string | DetailedAddress; // Address can be simple string or structured
 }
 
 export interface Supplier {
