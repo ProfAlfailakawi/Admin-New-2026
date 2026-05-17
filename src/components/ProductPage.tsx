@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Search,
   Plus,
+  Trash,
   Trash2,
   Edit2,
   AlertCircle,
@@ -87,6 +88,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
     isActive: true,
     isOutOfStock: false,
     preparationInstructions: "",
+    addons: [],
   });
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -497,6 +499,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       isActive: true,
       isOutOfStock: false,
       preparationInstructions: "",
+    addons: [],
     });
     setShowModal(true);
   };
@@ -514,6 +517,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       isActive: product.isActive !== false,
       isOutOfStock: !!product.isOutOfStock,
       preparationInstructions: product.preparationInstructions || "",
+      addons: product.addons || [],
     });
     setShowModal(true);
   };
@@ -1026,7 +1030,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl md:rounded-3xl w-[95%] md:w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+              className="bg-white rounded-2xl md:rounded-3xl w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[85vh] md:max-h-[90vh] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header - Fixed */}
@@ -1224,10 +1228,145 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     </select>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex gap-2 p-3 md:p-3 shrink-0 mt-auto border-t border-slate-100">
-                <button
+              {/* Addons Section */}
+              <div className="space-y-3 mt-6 border-t pt-6 border-slate-100 px-3 md:px-3 pb-4">
+                <div className="flex flex-col-reverse md:flex-row justify-between items-center bg-slate-50 p-3 rounded-2xl gap-3">
+                  <button
+                    onClick={() => {
+                      const newAddon = {
+                        id: Math.random().toString(36).substr(2, 9),
+                        name: '',
+                        price: 0,
+                        cost: 0,
+                        calculationType: 'per_item',
+                        xItemsThreshold: 1,
+                        isHiddenPrice: false
+                      };
+                      setProductForm(prev => ({ ...prev, addons: [...((prev as any).addons || []), newAddon] }));
+                    }}
+                    className="text-primary hover:bg-primary/10 p-2 rounded-xl transition-colors font-bold flex items-center gap-2 text-sm"
+                  >
+                    <PlusCircle size={16} /> إضافة ملحق (Add-on)
+                  </button>
+                  <label className="text-sm font-bold text-slate-700">الملحقات والإضافات (اختياري)</label>
+                </div>
+                
+                {((productForm as any).addons || []).map((addon: any, index: number) => (
+                  <div key={addon.id} className="bg-white border text-right border-slate-200 p-4 rounded-2xl relative shadow-sm">
+                    <button
+                      onClick={() => {
+                        setProductForm(prev => ({
+                          ...prev,
+                          addons: (prev as any).addons.filter((_: any, i: number) => i !== index)
+                        }));
+                      }}
+                      className="absolute top-3 left-3 text-red-500 hover:bg-red-50 p-1.5 rounded-full transition-colors"
+                    >
+                      <Trash size={16} />
+                    </button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-400">اسم الإضافة (مثال: حشو ربيان، صينية للعزايم)</label>
+                        <input
+                          type="text"
+                          value={addon.name}
+                          onChange={e => {
+                            const newAddons = [...(productForm as any).addons];
+                            newAddons[index].name = e.target.value;
+                            setProductForm(prev => ({ ...prev, addons: newAddons }));
+                          }}
+                          placeholder="مثال: حشو ربيان، سيرفر ذهبي"
+                          className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-400">طريقة الحساب</label>
+                        <select
+                          value={addon.calculationType}
+                          onChange={e => {
+                            const newAddons = [...(productForm as any).addons];
+                            newAddons[index].calculationType = e.target.value;
+                            setProductForm(prev => ({ ...prev, addons: newAddons }));
+                          }}
+                          className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
+                        >
+                          <option value="per_item">مضروب في عدد الأطباق (لكل طبق)</option>
+                          <option value="per_x_items">كل (عدد) من الأطباق يحسب مرة</option>
+                          <option value="fixed">ثابت مرة واحدة (للطلب كامل)</option>
+                        </select>
+                      </div>
+
+                      {addon.calculationType === 'per_x_items' && (
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-slate-400">يضاف لكل كم طبق؟ (مثال 3)</label>
+                          <input
+                            type="number"
+                            value={addon.xItemsThreshold || 1}
+                            onChange={e => {
+                              const newAddons = [...(productForm as any).addons];
+                              newAddons[index].xItemsThreshold = parseInt(e.target.value) || 1;
+                              setProductForm(prev => ({ ...prev, addons: newAddons }));
+                            }}
+                            min={1}
+                            className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
+                          />
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-slate-400">سعر البيع</label>
+                          <input
+                            type="number"
+                            value={addon.price === 0 ? '' : addon.price}
+                            onChange={e => {
+                              const newAddons = [...(productForm as any).addons];
+                              newAddons[index].price = parseFloat(e.target.value) || 0;
+                              setProductForm(prev => ({ ...prev, addons: newAddons }));
+                            }}
+                            className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
+                            placeholder="0.000"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-slate-400">تكلفتها عليك</label>
+                          <input
+                            type="number"
+                            value={addon.cost === 0 ? '' : addon.cost}
+                            onChange={e => {
+                              const newAddons = [...(productForm as any).addons];
+                              newAddons[index].cost = parseFloat(e.target.value) || 0;
+                              setProductForm(prev => ({ ...prev, addons: newAddons }));
+                            }}
+                            className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
+                            placeholder="0.000"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-row items-center justify-between md:justify-end col-span-1 md:col-span-2 mt-2 gap-2 bg-slate-50 p-3 rounded-xl">
+                        <label className="text-[11px] md:text-xs font-bold text-slate-600 cursor-pointer flex-1 text-right max-w-[90%]">إخفاء سعر الإضافة في الفاتورة وجمعها مع الطبق</label>
+                        <input
+                          type="checkbox"
+                          checked={addon.isHiddenPrice}
+                          onChange={e => {
+                            const newAddons = [...(productForm as any).addons];
+                            newAddons[index].isHiddenPrice = e.target.checked;
+                            setProductForm(prev => ({ ...prev, addons: newAddons }));
+                          }}
+                          className="w-4 h-4 text-primary rounded focus:ring-primary"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2 p-3 md:p-3 shrink-0 mt-auto border-t border-slate-100">
+              <button
                   onClick={closeModal}
                   className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-2xl transition-all"
                 >

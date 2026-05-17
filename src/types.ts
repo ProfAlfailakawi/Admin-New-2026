@@ -47,6 +47,16 @@ export interface PromoCode {
   isActive: boolean;
 }
 
+export interface ProductAddon {
+  id: string;
+  name: string;
+  price: number;
+  cost: number;
+  calculationType: 'per_item' | 'per_x_items' | 'fixed';
+  xItemsThreshold?: number;
+  isHiddenPrice: boolean;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -64,6 +74,7 @@ export interface Product {
   calories?: number;
   stock?: number;
   preparationInstructions?: string;
+  addons?: ProductAddon[];
 }
 
 export interface Order {
@@ -85,12 +96,22 @@ export interface Order {
   paymentStatus?: any;
 }
 
+export interface SelectedAddon {
+  addonId: string;
+  name: string;
+  price: number;
+  cost: number;
+  quantity: number;
+  isHiddenPrice: boolean;
+}
+
 export interface InvoiceItem {
   productId: string;
   quantity: number;
   priceAtTime: number;
   costAtTime: number;
   itemNotes?: string;
+  addons?: SelectedAddon[];
 }
 
 export interface Zone {
