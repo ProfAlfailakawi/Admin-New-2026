@@ -10,7 +10,7 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
             if ((addon as any).isHiddenPrice) {
                 let addonQty = 0;
                 if ((addon as any).calculationType === 'fixed') addonQty = 1;
-                else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.floor(item.quantity / ((addon as any).xItemsThreshold || 1));
+                else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / ((addon as any).xItemsThreshold || 1));
                 else addonQty = item.quantity;
                 baseSum += Number((addon as any).price || 0) * addonQty;
             }
@@ -26,7 +26,7 @@ const invoiceAddonsTotal = (invoice?.items || []).reduce((acc, item) => {
             if (!(addon as any).isHiddenPrice) {
                 let addonQty = 0;
                 if ((addon as any).calculationType === 'fixed') addonQty = 1;
-                else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.floor(item.quantity / ((addon as any).xItemsThreshold || 1));
+                else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / ((addon as any).xItemsThreshold || 1));
                 else addonQty = item.quantity;
                 addonSum += Number((addon as any).price || 0) * addonQty;
             }
@@ -46,7 +46,7 @@ const invoiceAddonsTotal = (invoice?.items || []).reduce((acc, item) => {
             item.addons.forEach((addon) => {
                 let addonQty = 0;
                 if ((addon as any).calculationType === 'fixed') addonQty = 1;
-                else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.floor(item.quantity / ((addon as any).xItemsThreshold || 1));
+                else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / ((addon as any).xItemsThreshold || 1));
                 else addonQty = item.quantity;
                 
                 if (addonQty > 0) {

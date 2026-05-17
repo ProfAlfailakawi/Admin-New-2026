@@ -335,7 +335,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
    (item as any).addons.forEach((addon: any) => {
      let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
         else addonQty = item.quantity || 1;
      itemTotal += Number(addon.price || 0) * addonQty;
    });
@@ -787,7 +787,7 @@ paymentData.data?.link ||
    (item as any).addons.forEach((addon: any) => {
      let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
         else addonQty = item.quantity || 1;
 
      if (addonQty > 0) {
@@ -1265,7 +1265,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
     (it as any).addons.forEach((addon: any) => {
       let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor((it.quantity || 1) / (addon.xItemsThreshold || 1));
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((it.quantity || 1) / (addon.xItemsThreshold || 1));
         else addonQty = it.quantity || 1;
       itT += Number(addon.price || 0) * addonQty;
     });
@@ -1339,7 +1339,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
           {(item as any).addons.map((addon: any, aIdx: number) => {
             let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor(item.quantity / (addon.xItemsThreshold || 1));
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / (addon.xItemsThreshold || 1));
         else addonQty = item.quantity;
             if(addonQty === 0) return null;
             return (
@@ -1363,7 +1363,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
       (item as any).addons.forEach((addon: any) => {
         let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor(item.quantity / (addon.xItemsThreshold || 1));
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / (addon.xItemsThreshold || 1));
         else addonQty = item.quantity;
         
         let addonTotal = Number(addon.price || 0) * addonQty;
