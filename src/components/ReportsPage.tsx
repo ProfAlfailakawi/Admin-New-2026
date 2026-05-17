@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
  FileText, Search, RefreshCw, Printer, Trash2, Edit2, ChevronDown, ChevronUp, Package, User, CreditCard, Clock, CheckCircle2, X, TrendingUp, Plus,
  MessageSquare, Users, Dices, XCircle, AlertCircle,
- ClipboardList
+ ClipboardList, Puzzle
 } from 'lucide-react';
 import { AppState, Invoice } from '../types';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { recalculateStateBalances } from '../lib/business-logic';
 import { isPaidStatus, isPendingStatus, isFailedStatus, isCancelledStatus } from '../lib/status-utils';
 import OrderPage from './OrderPage';
+
 
 interface ReportsPageProps {
  data: AppState;
@@ -27,6 +28,66 @@ interface ReportsPageProps {
  isPartner?: boolean;
 }
 
+
+const computeInvoiceItemBasePrice = (item: any, dataProducts: any[]) => {
+    const product = (dataProducts || []).find((p: any) => p.id === item.productId);
+    return Number(item.priceAtTime !== undefined ? item.priceAtTime : (item.price !== undefined ? item.price : (product?.price || 0))) || 0;
+};
+
+const computeInvoiceItemTotal = (item: any, dataProducts: any[]) => {
+    const basePrice = computeInvoiceItemBasePrice(item, dataProducts);
+    let addonsTotal = 0;
+    (item.addons || []).forEach((addon: any) => {
+        let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else addonQty = item.quantity || 1;
+        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+        addonsTotal += (Number(addon.price||0) * Math.max(0, addonQty - (addon.freeQuantity || 0)));
+    });
+    return (basePrice * (item.quantity || 1)) + addonsTotal;
+};
+
+const computeInvoiceSubtotal = (inv: any, dataProducts: any[]) => {
+    let subtotal = 0;
+    (inv.items || []).forEach((item: any) => {
+        subtotal += computeInvoiceItemTotal(item, dataProducts);
+    });
+    return subtotal;
+};
+
+const computeInvoiceTotal = (inv: any, dataProducts: any[]) => {
+    let subtotal = computeInvoiceSubtotal(inv, dataProducts);
+    return Math.max(0, subtotal + Number(inv.deliveryFee || 0) - Number(inv.discount || 0));
+};
+
+const computeInvoiceItemCost = (item: any, dataProducts: any[]) => {
+    const product = (dataProducts || []).find((p: any) => p.id === item.productId);
+    const baseCost = Number(product?.cost || 0);
+    let addonsCost = 0;
+    (item.addons || []).forEach((addon: any) => {
+        let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else addonQty = item.quantity || 1;
+        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+        addonsCost += (Number(addon.cost||0) * addonQty);
+    });
+    return (baseCost * (item.quantity || 1)) + addonsCost;
+};
+
+const computeInvoiceCost = (inv: any, dataProducts: any[]) => {
+    let cost = 0;
+    (inv.items || []).forEach((item: any) => {
+        cost += computeInvoiceItemCost(item, dataProducts);
+    });
+    return cost;
+};
+
+const computeInvoiceProfit = (inv: any, dataProducts: any[]) => {
+    return computeInvoiceTotal(inv, dataProducts) - computeInvoiceCost(inv, dataProducts);
+};
+
 const ReportsPage: React.FC<ReportsPageProps> = React.memo(({ 
  data, 
  setData, 
@@ -38,8 +99,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  setDeepLinkData,
  isPartner = false
 }) => {
- const [activeTab, setActiveTab] = useState<'invoices' | 'tax' | 'pnl' | 'orders'>(defaultTab);
+ const [activeTab, setActiveTab] = useState<'invoices' | 'tax' | 'pnl' | 'orders' | 'addons'>(defaultTab as any);
  const [search, setSearch] = useState('');
+
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().split('T')[0];
+  const [customDateRange, setCustomDateRange] = useState({ start: startOfToday, end: startOfToday });
+
 
   // ADMINFIX_REPORTS_READ_URL_ORDER_INVOICE
   useEffect(() => {
@@ -316,59 +382,76 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  };
 
  const getWhatsAppLink = (invoice: Invoice) => {
-  const customer = (data?.customers || []).find(c => c.id === invoice.customerId);
-  const order = (data?.orders || []).find(o => o.linkedInvoiceId === invoice.id || o.id === (invoice as any).linkedOrderId);
-  
-  let phone = customer?.phone || (order as any)?.customerPhone || (invoice as any).customerPhone || (invoice as any).phone || '';
-  let cleanPhone = phone.replace(/[^0-9]/g, '');
-  if (cleanPhone.length === 8) {
-    cleanPhone = '965' + cleanPhone;
-  }
+   const customer = (data?.customers || []).find(c => c.id === invoice.customerId);
+   const order = (data?.orders || []).find(o => o.linkedInvoiceId === invoice.id || o.id === (invoice as any).linkedOrderId);
+   
+   let phone = customer?.phone || (order as any)?.customerPhone || (invoice as any).customerPhone || (invoice as any).phone || '';
+   let cleanPhone = phone.replace(/[^0-9]/g, '');
+   if (cleanPhone.length === 8) {
+     cleanPhone = '965' + cleanPhone;
+   }
 
-  if (!cleanPhone) {
-    return '#';
-  }
+   if (!cleanPhone) {
+     return '#';
+   }
 
-  const items = (invoice?.items || []).map(item => {
-    const product = (data?.products || []).find(p => p.id === item.productId);
-    const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (product?.price || 0));
-    return `- ${product?.name || 'منتج غير معروف'} (${item.quantity || 1} × ${Number(price).toFixed(3)})`;
-  }).join('\n');
+   let productsSubtotal = 0;
+   let addonsSubtotal = 0;
 
-  const subtotal = (invoice?.items || []).reduce((acc, item) => {
-    const p = (data?.products || []).find(prod => prod.id === item.productId);
-    const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (p?.price || 0));
-    return acc + (price * (item.quantity || 1));
-  }, 0);
-  
-  const total = invoice.totalAmount || Math.max(0, subtotal + (Number(invoice.deliveryFee) || 0) - (Number(invoice.discount) || 0));
-  const paymentLink = invoice.paymentLink || (invoice as any).splitLink || (invoice as any).split_link || (invoice as any).splitPaymentLink || (invoice as any).split_payment_link || (invoice as any).paymentUrl || (invoice as any).payment_url || (invoice as any).url || (invoice as any).link;
-  
-  const titleLine = `*فاتورة من شركة مطبخ التراث الكويتي*`;
-  const headerLine = `رقم الفاتورة: ${invoice.id}`;
-  const footerLine = `إجمالي الفاتورة: ${Number(total).toFixed(3)} د.ك`;
- const isPaidNow = isPaidStatus(invoice.paymentStatus) && !(String(invoice.status).includes('تجميع القطية') || invoice.status === 'split_pending');
- const paymentLinkLine = (paymentLink && paymentLink.trim() !== '' && !isPaidNow) ? `\nرابط الدفع: ${paymentLink}` : '';
-  
-  const promoCodeName = invoice.appliedPromoCodeName;
-  const discount = Number(invoice.discount) || 0;
-  const promoLine = discount > 0 ? `*قيمة الخصم* ${promoCodeName ? `(${promoCodeName})` : ''}: ${Number(discount).toFixed(3)} د.ك\n` : '';
+   const items = (invoice?.items || []).map(item => {
+     const p = (data?.products || []).find(prod => prod.id === item.productId);
+     const price = computeInvoiceItemBasePrice(item, data?.products || []);
+     const itemProductTotal = price * (item.quantity || 1);
+     productsSubtotal += itemProductTotal;
 
-  const addressLine = (invoice.address && invoice.address !== 'غير محدد') ? `\nالعنوان: ${typeof invoice.address === 'object' ? [`${invoice.address.region||''}`, `ق${invoice.address.block||''}`, `ش${invoice.address.street||''}`, `م${invoice.address.building||''}`].filter(Boolean).join(' ') : invoice.address}` : invoice.deliveryInfo?.zoneName ? `\nالعنوان: ${invoice.deliveryInfo.zoneName}` : '';
+     let addonsLines: string[] = [];
+     if (item.addons && item.addons.length > 0) {
+       item.addons.forEach((addon: any) => {
+         let addonQty = 0;
+         if (addon.calculationType === 'fixed') addonQty = 1;
+         else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
+         else addonQty = item.quantity || 1;
+         addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+         
+         if (addonQty > 0) {
+             const aTotal = Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0));
+             addonsSubtotal += aTotal;
+             addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty}x)` : ''} - (${aTotal.toFixed(3)} د.ك)`);
+         }
+       });
+     }
 
-  const message = `${titleLine}\n\nالعميل: ${customer?.name || 'عميل'} ${addressLine}\n${headerLine}\nالطلب:\n${items}\n\nالمجموع: ${subtotal.toFixed(3)} د.ك\nرسوم التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}${footerLine}${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
+     return `- ${p?.name || "منتج غير معروف"} (${item.quantity || 1} × ${price.toFixed(3)} د.ك) = ${itemProductTotal.toFixed(3)} د.ك${addonsLines.length > 0 ? "\n" + addonsLines.join("\n") : ""}`;
+   }).join("\n");
 
-  let finalMessage = message;
-  if ((invoice as any).splitType === 'traditional' && Array.isArray((invoice as any).splitPayments)) {
-    const splitText = `\n\n*المشاركين بالقطية:*\n` + ((invoice as any).splitPayments).map((sp:any) => `- ${sp.name || 'مشارك'} (${sp.phone||'بدون رقم'}) - ${Number(sp.amount||0).toFixed(3)} د.ك`).join('\n');
-    finalMessage = message.replace('شكراً لتعاملكم', splitText + '\n\nشكراً لتعاملكم');
-  } else if ((invoice as any).splitType === 'roulette' && Array.isArray((invoice as any).splitParticipants)) {
-    const participants = ((invoice as any).splitParticipants).map((p:any) => typeof p === 'object' ? `${p.name||''} ${p.phone?`(${p.phone})`:''}`.trim() : p).join('، ');
-    const splitText = `\n\n*🎲 روليت الحظ 🎲*\nالمشاركون: ${participants}\n*بطل الليلة اللي دفعها:* ${(invoice as any).rouletteLoser || 'غير معروف'}`;
-    finalMessage = message.replace('شكراً لتعاملكم', splitText + '\n\nشكراً لتعاملكم');
-  }
+   const total = computeInvoiceTotal(invoice, data?.products || []);
+   const paymentLink = invoice.paymentLink || (invoice as any).splitLink || (invoice as any).split_link || (invoice as any).splitPaymentLink || (invoice as any).split_payment_link || (invoice as any).paymentUrl || (invoice as any).payment_url || (invoice as any).url || (invoice as any).link;
+   
+   const titleLine = `*فاتورة من شركة مطبخ التراث الكويتي*`;
+   const headerLine = `رقم الفاتورة: ${invoice.id}`;
+   const footerLine = `إجمالي الفاتورة: ${Number(total).toFixed(3)} د.ك`;
+   const isPaidNow = isPaidStatus(invoice.paymentStatus) && !(String(invoice.status).includes('تجميع القطية') || invoice.status === 'split_pending');
+   const paymentLinkLine = (paymentLink && paymentLink.trim() !== '' && !isPaidNow) ? `\nرابط الدفع: ${paymentLink}` : '';
+   
+   const promoCodeName = invoice.appliedPromoCodeName;
+   const discount = Number(invoice.discount) || 0;
+   const promoLine = discount > 0 ? `*قيمة الخصم* ${promoCodeName ? `(${promoCodeName})` : ''}: ${Number(discount).toFixed(3)} د.ك\n` : '';
 
-  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(finalMessage)}`;
+   const addressLine = (invoice.address && invoice.address !== 'غير محدد') ? `\nالعنوان: ${typeof invoice.address === 'object' ? [`${invoice.address.region||''}`, `ق${invoice.address.block||''}`, `ش${invoice.address.street||''}`, `m${invoice.address.building||''}`].filter(Boolean).join(' ') : invoice.address}` : invoice.deliveryInfo?.zoneName ? `\nالعنوان: ${invoice.deliveryInfo.zoneName}` : '';
+
+   const message = `${titleLine}\n\nالعميل: ${customer?.name || 'عميل'} ${addressLine}\n${headerLine}\nالطلب:\n${items}\n\nالمجموع (المنتجات): ${productsSubtotal.toFixed(3)} د.ك${addonsSubtotal > 0 ? '\nالإضافات: ' + addonsSubtotal.toFixed(3) + ' د.ك' : ''}\nرسوم التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}${footerLine}${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
+
+   let finalMessage = message;
+   if ((invoice as any).splitType === 'traditional' && Array.isArray((invoice as any).splitPayments)) {
+     const splitText = `\n\n*المشاركين بالقطية:*\n` + ((invoice as any).splitPayments).map((sp:any) => `- ${sp.name || 'مشارك'} (${sp.phone||'بدون رقم'}) - ${Number(sp.amount||0).toFixed(3)} د.ك`).join('\n');
+     finalMessage = message.replace('شكراً لتعاملكم', splitText + '\n\nشكراً لتعاملكم');
+   } else if ((invoice as any).splitType === 'roulette' && Array.isArray((invoice as any).splitParticipants)) {
+     const participants = ((invoice as any).splitParticipants).map((p:any) => typeof p === 'object' ? `${p.name||''} ${p.phone?`(${p.phone})`:''}`.trim() : p).join('، ');
+     const splitText = `\n\n*🎲 روليت الحظ 🎲*\nالمشاركون: ${participants}\n*بطل الليلة اللي دفعها:* ${(invoice as any).rouletteLoser || 'غير معروف'}`;
+     finalMessage = message.replace('شكراً لتعاملكم', splitText + '\n\nشكراً لتعاملكم');
+   }
+
+   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(finalMessage)}`;
  };
 
  return (
@@ -396,7 +479,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   )}
   >
   <FileText size={16} />
-  <span>سجل الفواتير</span>
+  <span>الفواتير</span>
   </button>
   <button
   onClick={() => setActiveTab('orders')}
@@ -406,17 +489,80 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   )}
   >
   <ClipboardList size={16} />
-  <span>طلبات التطبيق</span>
+  <span>الطلبات</span>
   { (data.orders || []).filter(o => !o.isConvertedToInvoice && o.status !== 'cancelled').length > 0 && (
   <span className="absolute -top-1 -left-1 bg-amber-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-sm animate-pulse">
   {(data.orders || []).filter(o => !o.isConvertedToInvoice && o.status !== 'cancelled').length}
   </span>
   )}
   </button>
+  <button
+  onClick={() => setActiveTab('addons')}
+  className={cn(
+  "px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 relative",
+  activeTab === 'addons' ? "bg-white text-slate-900 shadow-md scale-105" : "text-slate-500 hover:text-slate-700"
+  )}
+  >
+  <Puzzle size={16} />
+  <span>أرباح الإضافات</span>
+  </button>
   </div>
 
   <AnimatePresence mode="wait">
-  {activeTab === 'orders' ? (
+  {activeTab === 'addons' ? (
+  <motion.div 
+   key="addons-tab"
+   initial={{ opacity: 0, scale: 0.95 }}
+   animate={{ opacity: 1, scale: 1 }}
+   exit={{ opacity: 0, scale: 0.95 }}
+   transition={{ duration: 0.2 }}
+   >
+    <div className="bg-white rounded-3xl p-3 md:p-6 border border-slate-200/60 shadow-sm text-right min-h-[50vh]">
+       <div className="flex flex-col md:flex-row md:items-center gap-4 mb-8">
+       <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto custom-scrollbar pb-2 md:pb-0">
+       {['all', 'today', 'week', 'month', 'custom'].map((f) => (
+       <button
+       key={f}
+       onClick={() => setTimeFilter(f as any)}
+       className={cn(
+       "px-4 py-2 font-bold text-[10px] rounded-xl whitespace-nowrap transition-colors",
+       timeFilter === f ?"bg-slate-900 text-white shadow-sm" :"bg-slate-100 text-slate-500 hover:bg-slate-200"
+       )}
+       >
+       {f === 'all' && 'كل الأوقات'}
+       {f === 'today' && 'اليوم'}
+       {f === 'week' && 'هذا الأسبوع'}
+       {f === 'month' && 'هذا الشهر'}
+       {f === 'custom' && 'مخصص'}
+       </button>
+       ))}
+       </div>
+       </div>
+       {timeFilter === 'custom' && (
+       <div className="flex items-center gap-4 mb-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+       <div className="flex-1">
+       <label className="block text-[10px] font-bold text-slate-400 mb-1">من تاريخ</label>
+       <input 
+       type="date" 
+       value={customDateRange.start}
+       onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
+       className="w-full p-2 bg-white rounded flex-row-reverse border border-slate-200 font-bold text-sm text-right"
+       />
+       </div>
+       <div className="flex-1">
+       <label className="block text-[10px] font-bold text-slate-400 mb-1">إلى تاريخ</label>
+       <input 
+       type="date" 
+       value={customDateRange.end}
+       onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
+       className="w-full p-2 bg-white rounded flex-row-reverse border border-slate-200 font-bold text-sm text-right"
+       />
+       </div>
+       </div>
+       )}
+    </div>
+  </motion.div>
+  ) : activeTab === 'orders' ? (
   <motion.div 
   key="orders-tab"
   initial={{ opacity: 0, scale: 0.95 }}
@@ -465,7 +611,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <div className="text-xl md:text-3xl font-bold text-emerald-600 tracking-tighter truncate">
  {Math.max(0, filteredInvoices
  .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
- .reduce((a, b) => a + Math.max(0, Number(b.profit || 0)), 0))
+ .reduce((a, b) => a + Math.max(0, computeInvoiceProfit(b, data?.products || [])), 0))
  .toFixed(3)
  }
  <span className="text-sm font-bold mr-1">د.ك</span>
@@ -610,7 +756,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </td>
  <td className="p-3 md:p-3 font-bold text-slate-900 group-hover:text-primary transition-colors">
  <div className="flex flex-col items-start gap-1">
- <span>{Math.max(0, Number(typeof inv.totalAmount === 'number' ? inv.totalAmount : ((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : ((data?.products || []).find(p => p.id === item.productId)?.price || 0))) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
+ <span>{computeInvoiceTotal(inv, data.products || []).toFixed(3)} د.ك</span>
  {(inv.discount || 0) > 0 && (
  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 whitespace-nowrap">
  خصم مفعّل {inv.appliedPromoCodeName ? `(${inv.appliedPromoCodeName})` : ''}
@@ -666,158 +812,159 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  </div>
  </td>
  </motion.tr>
- <AnimatePresence>
- {isExpanded && (
- <tr key={`details-${inv.id}`}>
- <td colSpan={6} className="p-0">
- <motion.div 
- initial={{ height: 0, opacity: 0 }}
- animate={{ height: 'auto', opacity: 1 }}
- exit={{ height: 0, opacity: 0 }}
- className="bg-slate-50/80 px-4 py-4 md:px-8 md:py-6 border-b border-slate-100"
- >
- <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4 md:p-3 mt-4">
- <div>
- <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-4 flex items-center gap-2">
- <Package size={12} /> محتويات الطلب
- </h4>
- <div className="space-y-2">
- {(inv.items || []).map((item, idx) => {
-  const product = (data?.products || []).find(p => p.id === item.productId);
-  const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (product?.price || 0));
- return (
- <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100">
- <div className="flex flex-col">
- <span className="font-bold text-sm">{product?.name || 'منتج غير معروف'}</span>
- {item.itemNotes && (
- <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded mt-1 inline-block w-fit">
- ملاحظة: {item.itemNotes}
- </span>
-)}
- </div>
- <div className="flex gap-4 text-[10px] md:text-xs font-bold items-center">
- <span className="text-slate-500">الكمية: {item.quantity} × {Number(price || 0).toFixed(3)}</span>
- <span className="text-primary font-bold">{(Number(price || 0) * (item.quantity || 1)).toFixed(3)} د.ك</span>
- </div>
- </div>
- );
- })}
- </div>
- 
- {inv.notes && inv.notes !== '---' && (typeof inv.notes === 'string' ? inv.notes.trim() : '') !== '' && (
- <div className="mt-4 bg-amber-50/80 border border-amber-100 p-3 rounded-xl">
- <h4 className="text-[10px] font-bold uppercase text-amber-600 mb-2 flex items-center gap-2">
- <FileText size={12} /> ملاحظات عامة للطلب
- </h4>
- <p className="text-sm font-bold text-amber-900 leading-relaxed italic pr-3 border-r-2 border-amber-300">
- "{inv.notes}"
- </p>
- </div>
-)}
+  <AnimatePresence>
+  {isExpanded && (
+  <tr key={`details-${inv.id}`}>
+  <td colSpan={6} className="p-0">
+  <motion.div 
+  initial={{ height: 0, opacity: 0 }}
+  animate={{ height: 'auto', opacity: 1 }}
+  exit={{ height: 0, opacity: 0 }}
+  className="bg-slate-50/80 px-4 py-4 md:px-8 md:py-6 border-b border-slate-100"
+  >
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4 md:p-3 mt-4">
+    <div>
+      <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-4 flex items-center gap-2">
+        <Package size={12} /> محتويات الطلب (المنتجات)
+      </h4>
+      <div className="space-y-2">
+        {(inv.items || []).map((item, idx) => {
+          const product = (data?.products || []).find(p => p.id === item.productId);
+          const price = computeInvoiceItemBasePrice(item, data?.products || []);
+          return (
+            <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col gap-2">
+              <div className="flex justify-between items-start">
+                <div className="flex flex-col">
+                  <span className="font-bold text-sm">{product?.name || 'منتج غير معروف'}</span>
+                  {item.itemNotes && (
+                    <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded mt-1 inline-block w-fit">
+                      ملاحظة: {item.itemNotes}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col text-[10px] md:text-xs font-bold items-end text-left justify-end">
+                  <div className="text-slate-500">
+                    <div>الكمية: {item.quantity || 1} × {Number(price).toFixed(3)}</div>
+                  </div>
+                  <div className="text-slate-800 font-bold text-sm">{(Number(price) * (item.quantity || 1)).toFixed(3)} د.ك</div>
+                </div>
+              </div>
+              {item.addons && item.addons.length > 0 && (
+                <div className="flex flex-col gap-1 mt-1 border-t border-slate-50 pt-2">
+                  <div className="text-[9px] font-bold text-slate-400 mb-1">تفاصيل الإضافات:</div>
+                  {item.addons.map((a: any, i: number) => {
+                    let addonQty = 0;
+                    if (a.calculationType === 'fixed') addonQty = 1;
+                    else if (a.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (a.xItemsThreshold || 1));
+                    else addonQty = item.quantity || 1;
+                    addonQty = Math.max((a.minQuantity || 0), Math.min(addonQty, (a.maxQuantity || addonQty)));
+                    if (addonQty === 0) return null;
 
- {(inv as any).splitType === 'traditional' && Array.isArray((inv as any).splitPayments) && (inv as any).splitPayments.length > 0 && (
- <div className="mt-4 bg-purple-50/50 border border-purple-100 p-3 md:p-4 rounded-xl">
- <h4 className="text-[12px] font-bold uppercase text-purple-600 mb-3 flex items-center gap-2">
- <Users className="w-4 h-4" /> المشاركين بالقطية
- </h4>
- <div className="space-y-2">
- {((inv as any).splitPayments).map((sp: any, i: number) => (
- <div key={i} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-purple-50 shadow-sm">
- <div className="flex flex-col">
- <span className="font-bold text-sm text-slate-800">{sp.name || 'مشارك'}</span>
- <span className="text-[10px] text-slate-500">{sp.phone || 'بدون رقم'}</span>
- </div>
- <div className="flex flex-col items-end gap-1">
- <span className="font-bold text-primary">{Number(sp.amount || 0).toFixed(3)} د.ك</span>
- {sp.status === 'paid' ? (
- <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
- <CheckCircle2 className="w-3 h-3" /> مدفوع
- </span>
- ) : isCancelledStatus(sp.status) ? (
- <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
- <XCircle className="w-3 h-3" /> ملغي
- </span>
- ) : sp.status === 'failed' ? (
- <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
- <AlertCircle className="w-3 h-3" /> فشل الدفع
- </span>
- ) : (
- <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
- <Clock className="w-3 h-3" /> بانتظار الدفع
- </span>
- )}
- </div>
- </div>
- ))}
- </div>
- </div>
- )}
+                    let aTotal = Number(a.price || 0) * Math.max(0, addonQty - (a.freeQuantity || 0));
+                    return (
+                      <div key={i} className="flex justify-between text-xs text-slate-600">
+                        <div className="flex items-center gap-1 font-bold">
+                          <Puzzle size={10} className="text-amber-500" /> {a.name} {addonQty > 1 && <span className="text-[10px] text-slate-400">({addonQty}x)</span>}
+                        </div>
+                        <div className={aTotal > 0 ? 'font-bold text-amber-600' : 'font-bold text-emerald-600'}>
+                          {aTotal > 0 ? `+${aTotal.toFixed(3)} د.ك` : 'مجاني'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
- {(inv as any).splitType === 'roulette' && Array.isArray((inv as any).splitParticipants) && (inv as any).splitParticipants.length > 0 && (
- <div className="mt-4 bg-purple-100 border-2 border-purple-400 p-4 rounded-xl shadow-inner relative overflow-hidden">
- <div className="absolute -right-4 -top-4 opacity-10 pointer-events-none text-9xl">🎲</div>
- <h4 className="text-sm font-bold uppercase text-purple-900 mb-4 flex items-center gap-2">
- <Dices className="w-5 h-5 text-purple-600" /> روليت الحظ
- </h4>
- 
- <div className="bg-white rounded-xl p-3 border-2 border-purple-200 mb-3 text-center">
- <div className="text-[10px] font-bold text-purple-400 mb-1">بطل الليلة (الخاسر اللي دفعها)</div>
- <div className="text-lg font-bold text-purple-700">{(inv as any).rouletteLoser || 'غير معروف'}</div>
- </div>
+      {((inv as any).splitParticipants || []).length > 0 && (
+        <div className="mt-6 space-y-2">
+          <div className="text-[10px] font-bold text-purple-600 mb-2">المشاركون باللعب:</div>
+          <div className="flex flex-wrap gap-2">
+            {((inv as any).splitParticipants || []).map((pName: any, idx: number) => {
+              const pVal = typeof pName === 'object' ? `${pName.name || 'مجهول'} ${pName.phone ? `(${pName.phone})` : ''}` : pName;
+              return (
+                <span key={idx} className="bg-white/60 text-purple-800 text-[10px] font-bold px-2 py-1 rounded-md border border-purple-200">
+                  {pVal}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
 
- <div className="space-y-1">
- <div className="text-[10px] font-bold text-purple-600 mb-2">المشاركون باللعب:</div>
- <div className="flex flex-wrap gap-2">
- {((inv as any).splitParticipants).map((pName: any, idx: number) => {
- const pVal = typeof pName === 'object' ? `${pName.name || 'مجهول'} ${pName.phone ? `(${pName.phone})` : ''}` : pName;
- return (
- <span key={idx} className="bg-white/60 text-purple-800 text-[10px] font-bold px-2 py-1 rounded-md border border-purple-200">
- {pVal}
- </span>
- );
- })}
- </div>
- </div>
- </div>
- )}
- </div>
- <div className="flex flex-col justify-center gap-4">
- <div className="bg-white p-3 rounded-2xl border border-slate-100 space-y-2">
- <div className="flex justify-between text-xs font-bold">
- <span className="text-slate-500">المجموع:</span>
- <span>{Number(((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : ((data?.products || []).find(p => p.id === item.productId)?.price || 0))) || 0) * (item.quantity || 1), 0))).toFixed(3)} د.ك</span>
- </div>
- {(inv.discount || 0) > 0 && (
- <div className="flex justify-between text-xs font-bold text-rose-600">
- <span className="text-rose-400">الخصم {inv.appliedPromoCodeName ? `(${inv.appliedPromoCodeName})` : ''}:</span>
- <span>-{Number(inv.discount).toFixed(3)} د.ك</span>
- </div>
-)}
- <div className="flex justify-between text-xs font-bold">
- <span className="text-slate-500">التوصيل
- {inv.deliveryInfo?.zoneName ? ` (${inv.deliveryInfo.zoneName})` : ''}
- {inv.deliveryInfo?.company ? ` - ${inv.deliveryInfo.company}` : ''}
- :</span>
- <span>{Number(inv.deliveryFee || 0).toFixed(3)} د.ك</span>
- </div>
- <div className="flex justify-between text-base font-bold border-t pt-2 mt-2">
- <span>الإجمالي:</span>
- <span className="text-primary">{Math.max(0, Number(typeof inv.totalAmount === 'number' ? inv.totalAmount : ((inv.items || []).reduce((acc: number, item: any) => acc + (Number(item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : ((data?.products || []).find(p => p.id === item.productId)?.price || 0))) || 0) * (item.quantity || 1), 0) + Number(inv.deliveryFee || 0) - Number(inv.discount || 0)))).toFixed(3)} د.ك</span>
- </div>
- </div>
- </div>
- </div>
- </motion.div>
- </td>
- </tr>
- )}
+    <div className="flex flex-col justify-start gap-4">
+      <div className="bg-white p-4 rounded-2xl border border-slate-100 space-y-4 shadow-sm">
+        <h4 className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-2 border-b border-slate-50 pb-2">
+          <TrendingUp size={12} /> ملخص الحساب
+        </h4>
+        
+        <div className="space-y-2">
+          {(() => {
+            let pTotal = 0;
+            let aTotalSum = 0;
+            (inv.items || []).forEach((item: any) => {
+              const price = computeInvoiceItemBasePrice(item, data?.products || []);
+              pTotal += price * (item.quantity || 1);
+              (item.addons || []).forEach((a: any) => {
+                let aQty = 0;
+                if (a.calculationType === 'fixed') aQty = 1;
+                else if (a.calculationType === 'per_x_items') aQty = Math.ceil((item.quantity || 1) / (a.xItemsThreshold || 1));
+                else aQty = item.quantity || 1;
+                aQty = Math.max((a.minQuantity || 0), Math.min(aQty, (a.maxQuantity || aQty)));
+                aTotalSum += Number(a.price || 0) * Math.max(0, aQty - (a.freeQuantity || 0));
+              });
+            });
+
+            return (
+              <>
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-slate-500">مجموع المنتجات:</span>
+                  <span className="text-slate-800">{pTotal.toFixed(3)} د.ك</span>
+                </div>
+                {aTotalSum > 0 && (
+                  <div className="flex justify-between text-xs font-bold text-amber-600">
+                    <span className="text-amber-500">مجموع الإضافات:</span>
+                    <span>+{aTotalSum.toFixed(3)} د.ك</span>
+                  </div>
+                )}
+                {(inv.discount || 0) > 0 && (
+                  <div className="flex justify-between text-xs font-bold text-rose-600">
+                    <span className="text-rose-400">الخصم {inv.appliedPromoCodeName ? `(${inv.appliedPromoCodeName})` : ''}:</span>
+                    <span>-{Number(inv.discount).toFixed(3)} د.ك</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-slate-500">رسوم التوصيل:
+                    {inv.deliveryInfo?.zoneName ? ` (${inv.deliveryInfo.zoneName})` : ''}
+                  </span>
+                  <span className="text-slate-800">{Number(inv.deliveryFee || 0).toFixed(3)} د.ك</span>
+                </div>
+                <div className="flex justify-between text-lg font-black border-t border-slate-100 pt-3 mt-2 text-slate-900 bg-slate-50 -mx-4 px-4 py-2">
+                  <span>الإجمالي النهائي:</span>
+                  <span className="text-primary">{computeInvoiceTotal(inv, data.products || []).toFixed(3)} د.ك</span>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      </div>
+    </div>
+  </div>
+  </motion.div>
+  </td>
+  </tr>
+  )}
  </AnimatePresence>
  </React.Fragment>
  );
  })}
  {filteredInvoices.length === 0 && (
  <tr>
- <td colSpan={6} className="p-3 md:p-4 md:p-3 md:p-4 text-center text-slate-500 font-bold italic">
+ <td colSpan={6} className="p-3 md:p-4 text-center text-slate-500 font-bold italic">
  لا توجد فواتير مطابقة للبحث.
  </td>
  </tr>

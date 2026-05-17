@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
- ShoppingBag, TrendingUp, Handshake, DollarSign, Target, Sparkles, Activity, 
+ ShoppingBag, TrendingUp, Handshake, DollarSign, Target, Sparkles, Activity, Puzzle,
  ChevronRight, Star, LineChart as LineChartIcon, FlaskConical, LayoutGrid, Filter, X, 
- Zap, ArrowUpRight, PieChart, Users, Truck, Briefcase, Cpu, Layers, Search, Bell, BellRing, ChevronDown, FileText
+ Zap, ArrowUpRight, PieChart, Users, Truck, Briefcase, Cpu, Layers, Search, Bell, BellRing, ChevronDown, FileText, Package
 } from 'lucide-react';
 import { AppState } from '../types';
 import { cn } from '../lib/utils';
@@ -20,6 +20,7 @@ interface PartnerDashboardProps {
  onLogout: () => void;
  deepLinkData?: any;
 }
+
 
 const GlobalStatBox = React.memo(({ label, value, color, icon: Icon, isPercent = false, subtext = '', unit = '' }: any) => {
  const getGradient = (color: string) => {
@@ -124,6 +125,66 @@ const SectionHeader = ({ title, icon: Icon, color ="indigo", subtitle }: { title
  </div>
  </motion.div>
 );
+
+
+const computeInvoiceItemBasePrice = (item: any, dataProducts: any[]) => {
+    const product = (dataProducts || []).find((p: any) => p.id === item.productId);
+    return Number(item.priceAtTime !== undefined ? item.priceAtTime : (item.price !== undefined ? item.price : (product?.price || 0))) || 0;
+};
+
+const computeInvoiceItemTotal = (item: any, dataProducts: any[]) => {
+    const basePrice = computeInvoiceItemBasePrice(item, dataProducts);
+    let addonsTotal = 0;
+    (item.addons || []).forEach((addon: any) => {
+        let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else addonQty = item.quantity || 1;
+        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+        addonsTotal += (Number(addon.price||0) * Math.max(0, addonQty - (addon.freeQuantity || 0)));
+    });
+    return (basePrice * (item.quantity || 1)) + addonsTotal;
+};
+
+const computeInvoiceSubtotal = (inv: any, dataProducts: any[]) => {
+    let subtotal = 0;
+    (inv.items || []).forEach((item: any) => {
+        subtotal += computeInvoiceItemTotal(item, dataProducts);
+    });
+    return subtotal;
+};
+
+const computeInvoiceTotal = (inv: any, dataProducts: any[]) => {
+    let subtotal = computeInvoiceSubtotal(inv, dataProducts);
+    return Math.max(0, subtotal + Number(inv.deliveryFee || 0) - Number(inv.discount || 0));
+};
+
+const computeInvoiceItemCost = (item: any, dataProducts: any[]) => {
+    const product = (dataProducts || []).find((p: any) => p.id === item.productId);
+    const baseCost = Number(product?.cost || 0);
+    let addonsCost = 0;
+    (item.addons || []).forEach((addon: any) => {
+        let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else addonQty = item.quantity || 1;
+        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+        addonsCost += (Number(addon.cost||0) * addonQty);
+    });
+    return (baseCost * (item.quantity || 1)) + addonsCost;
+};
+
+const computeInvoiceCost = (inv: any, dataProducts: any[]) => {
+    let cost = 0;
+    (inv.items || []).forEach((item: any) => {
+        cost += computeInvoiceItemCost(item, dataProducts);
+    });
+    return cost;
+};
+
+const computeInvoiceProfit = (inv: any, dataProducts: any[]) => {
+    return computeInvoiceTotal(inv, dataProducts) - computeInvoiceCost(inv, dataProducts);
+};
 
 const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, onLogout, deepLinkData }) => {
  const [filter, setFilter] = useState<'day'|'week'|'month'|'year'|'all'>('month');
@@ -233,21 +294,37 @@ const browserAlreadyGranted =
  });
  }, [data.invoices, data.orders, filter]);
 
- const { 
- totalSalesVal, 
- totalCostVal, 
- totalExpensesVal, 
- netProfit,
- profitMargin,
- productPerformance,
- menuEngineering
- } = useMemo(() => {
- const invoices = activeInvoices.filter(inv => isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined);
- const sales = invoices.reduce((acc, inv) => acc + (inv.totalAmount || 0) + (inv.deliveryFee || 0), 0);
- const cost = invoices.reduce((acc, inv) => acc + (inv.totalCost || 0), 0);
- const expenses = (data?.expenses || []).reduce((acc, exp) => acc + Math.abs(exp.amount || 0), 0) || 0;
- const netProf = invoices.reduce((acc, inv) => acc + (inv.profit || 0), 0) - expenses;
- const margin = sales > 0 ? (netProf / sales) * 100 : 0;
+const { 
+  totalSalesVal, 
+  totalCostVal, 
+  totalExpensesVal, 
+  totalAddonsRevenue,
+  netProfit,
+  profitMargin,
+  productPerformance,
+  menuEngineering
+  } = useMemo(() => {
+  const invoices = activeInvoices.filter(inv => isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined);
+  const sales = invoices.reduce((acc, inv) => acc + computeInvoiceTotal(inv, data?.products || []), 0);
+  const cost = invoices.reduce((acc, inv) => acc + computeInvoiceCost(inv, data?.products || []), 0);
+  const expenses = (data?.expenses || []).reduce((acc, exp) => acc + Math.abs(exp.amount || 0), 0) || 0;
+  const netProf = sales - cost - expenses;
+  const margin = sales > 0 ? (netProf / sales) * 100 : 0;
+
+  const totalAddonsRevenue = invoices.reduce((acc, inv) => {
+      let invAddons = 0;
+      (inv.items || []).forEach((item: any) => {
+          (item.addons || []).forEach((addon: any) => {
+              let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else addonQty = item.quantity || 1;
+        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+              invAddons += (Number(addon.price||0) * Math.max(0, addonQty - (addon.freeQuantity || 0)));
+          });
+      });
+      return acc + invAddons;
+  }, 0);
 
  const salesMap: Record<string, { sold: number, revenue: number, profit: number }> = {};
  invoices.forEach(inv => {
@@ -267,6 +344,7 @@ const browserAlreadyGranted =
  const productsStats = (data?.products || []).map(p => {
  const stat = salesMap[p.id] || { sold: 0, revenue: 0, profit: 0 };
  return {
+  totalAddonsRevenue,
  product: p,
  sales: stat.sold,
  margin: stat.sold > 0 ? stat.profit / stat.sold : 0
@@ -278,6 +356,7 @@ const browserAlreadyGranted =
  const avgMargin = activeStats.length > 0 ? activeStats.reduce((acc, p) => acc + p.margin, 0) / activeStats.length : 0;
 
  return {
+  totalAddonsRevenue,
  totalSalesVal: sales,
  totalCostVal: cost,
  totalExpensesVal: expenses,
@@ -365,7 +444,7 @@ const browserAlreadyGranted =
    return (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && d >= yesterday.getTime() && d <= yesterdayEnd.getTime();
  });
  
- const yesterdaySales = yesterdayInvoices.reduce((acc, inv) => acc + (inv.totalAmount || 0) + (inv.deliveryFee || 0), 0);
+ const yesterdaySales = yesterdayInvoices.reduce((acc, inv) => acc + computeInvoiceTotal(inv, data?.products || []), 0);
 
  if (hour >= 5 && hour < 12) {
    if (yesterdaySales > 0) {
@@ -553,12 +632,15 @@ const browserAlreadyGranted =
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 className="overflow-hidden mix-blend-multiply"
               >
-                <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-6 transition-opacity", isPending ?"opacity-50" :"opacity-100")}>
+                <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-6 transition-opacity", isPending ?"opacity-50" :"opacity-100")}>
                 <GlobalStatBox label="إجمالي المبيعات" value={totalSalesVal} unit="د.ك" icon={TrendingUp} color="blue" subtext="بناءً على الفلتر" />
+                <GlobalStatBox label="إجمالي مبيعات الإضافات" value={totalAddonsRevenue} unit="د.ك" icon={Package} color="emerald" subtext="بناءً على الفلتر" />
                 <GlobalStatBox label="إجمالي التكاليف" value={totalCostVal + totalExpensesVal} unit="د.ك" icon={Briefcase} color="red" subtext="متضمنة المصاريف" />
                 <GlobalStatBox label="الربح المتوقع" value={netProfit} unit="د.ك" icon={Activity} color="indigo" subtext="الأرباح الصافية" />
                 <GlobalStatBox label="هامش الربح" value={profitMargin} isPercent={true} icon={DollarSign} color="amber" subtext="النسبة المئوية للأرباح" />
                 </div>
+                
+
               </motion.div>
             )}
           </AnimatePresence>
@@ -589,6 +671,8 @@ const browserAlreadyGranted =
        <h3 className="text-lg font-bold text-white mb-2 tracking-tight">هندسة المنيو الذكية</h3>
        <p className="text-[10px] font-bold text-slate-500 leading-relaxed">تحليل ربحية وشعبية كل صنف</p>
        </button>
+
+
       
        <div className={bentoCardStyle}>
        <h3 className="font-bold text-lg text-[#4a3f35] mb-4 flex items-center gap-2 justify-end">نجوم التراث (الأكثر مبيعاً) <Sparkles size={18} className="text-amber-500" /></h3>

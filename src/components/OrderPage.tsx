@@ -336,8 +336,9 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
      let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
         else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
-        else addonQty = item.quantity || 1;
-     itemTotal += Number(addon.price || 0) * addonQty;
+        else addonQty = item.quantity || 1;        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+
+     itemTotal += Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0));
    });
  }
  return sum + itemTotal;
@@ -686,12 +687,30 @@ paymentData.data?.link ||
  // 3. Update local state
  setData(prev => {
   // Decrement stock levels
-  const updatedProducts = prev.products.map(p => {
-  const item = itemsWithPrices.find((it: any) => it.productId === p.id);
- if (item) {
- return { ...p, stock: (p.stock || 0) - item.quantity };
- }
- return p;
+ const updatedProducts = prev.products.map(p => {
+   const item = itemsWithPrices.find((it: any) => it.productId === p.id);
+   if (!item) return p;
+
+   let newP = { ...p, stock: Math.max(0, (p.stock || 0) - item.quantity) };
+   if (newP.stock === 0) newP.isOutOfStock = true;
+
+   // Deduct addon stock
+   if (newP.addons && newP.addons.length > 0 && item.addons) {
+     newP.addons = newP.addons.map(addon => {
+       const selectedAddon = item.addons.find((a: any) => a.id === addon.id);
+       if (!selectedAddon || !addon.trackStock) return addon;
+       
+       let addonQty = 0;
+       if (addon.calculationType === 'fixed') addonQty = 1;
+       else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / (addon.xItemsThreshold || 1));
+       else addonQty = item.quantity;
+       addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+
+       return { ...addon, stock: Math.max(0, (addon.stock || 0) - addonQty) };
+     });
+   }
+   
+   return newP;
  });
 
  const updatedCustomers = [...prev.customers];
@@ -788,14 +807,15 @@ paymentData.data?.link ||
      let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
         else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
-        else addonQty = item.quantity || 1;
+        else addonQty = item.quantity || 1;        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+
 
      if (addonQty > 0) {
        if (addon.isHiddenPrice) {
-         displayPrice += (Number(addon.price) * addonQty) / (item.quantity || 1);
+         displayPrice += (Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))) / (item.quantity || 1);
          addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty})` : ''}`);
        } else {
-         addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty})` : ''} - (${(Number(addon.price) * addonQty).toFixed(3)} د.ك)`);
+         addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty})` : ''} - (${(Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))).toFixed(3)} د.ك)`);
        }
      }
    });
@@ -1266,8 +1286,9 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
       let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
         else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((it.quantity || 1) / (addon.xItemsThreshold || 1));
-        else addonQty = it.quantity || 1;
-      itT += Number(addon.price || 0) * addonQty;
+        else addonQty = it.quantity || 1;        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+
+      itT += Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0));
     });
   }
   return sum + itT;
@@ -1340,11 +1361,12 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
             let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
         else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / (addon.xItemsThreshold || 1));
-        else addonQty = item.quantity;
+        else addonQty = item.quantity;        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+
             if(addonQty === 0) return null;
             return (
               <div key={aIdx} className="text-[10px] md:text-[11px] text-slate-500 font-bold">
-                + {addon.name} {addonQty > 1 ? `(${addonQty})` : ''} {!addon.isHiddenPrice && `- (${(Number(addon.price) * addonQty).toFixed(3)} د.ك)`}
+                + {addon.name} {addonQty > 1 ? `(${addonQty})` : ''} {!addon.isHiddenPrice && `- (${(Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))).toFixed(3)} د.ك)`}
               </div>
             );
           })}
@@ -1364,9 +1386,10 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
         let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
         else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / (addon.xItemsThreshold || 1));
-        else addonQty = item.quantity;
+        else addonQty = item.quantity;        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+
         
-        let addonTotal = Number(addon.price || 0) * addonQty;
+        let addonTotal = Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0));
         totalRowPrice += addonTotal;
         
         if (addon.isHiddenPrice && addonQty > 0) {

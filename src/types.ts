@@ -55,6 +55,12 @@ export interface ProductAddon {
   calculationType: 'per_item' | 'per_x_items' | 'fixed';
   xItemsThreshold?: number;
   isHiddenPrice: boolean;
+  isRequired?: boolean;
+  minQuantity?: number;
+  maxQuantity?: number;
+  freeQuantity?: number;
+  trackStock?: boolean;
+  stock?: number;
 }
 
 export interface Product {

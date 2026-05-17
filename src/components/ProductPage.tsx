@@ -1395,6 +1395,118 @@ const ProductPage: React.FC<ProductPageProps> = ({
                           className="w-4 h-4 text-primary rounded focus:ring-primary"
                         />
                       </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 col-span-1 md:col-span-2 mt-4 pt-4 border-t border-slate-100">
+                        {/* Constraints */}
+                        <div className="space-y-3 p-4 bg-indigo-50/30 rounded-2xl border border-indigo-50">
+                          <h4 className="font-bold text-indigo-900 flex items-center gap-2 text-sm">
+                            <span className="text-lg">📌</span> قيود الإضافة
+                          </h4>
+                          <div className="flex flex-row items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-100 text-sm">
+                            <label className="font-bold text-slate-700 cursor-pointer flex-1 text-right">إجبارية (يجب اختيارها)</label>
+                            <input
+                              type="checkbox"
+                              checked={addon.isRequired || false}
+                              onChange={e => {
+                                const newAddons = [...(productForm as any).addons];
+                                newAddons[index].isRequired = e.target.checked;
+                                setProductForm(prev => ({ ...prev, addons: newAddons }));
+                              }}
+                              className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                            />
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-500">الحد الأدنى</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={addon.minQuantity !== undefined ? addon.minQuantity : (addon.isRequired ? 1 : 0)}
+                                onChange={e => {
+                                  const newAddons = [...(productForm as any).addons];
+                                  newAddons[index].minQuantity = parseInt(e.target.value) || 0;
+                                  setProductForm(prev => ({ ...prev, addons: newAddons }));
+                                }}
+                                className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm font-bold text-center"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-500">الحد الأقصى</label>
+                              <input
+                                type="number"
+                                min={1}
+                                value={addon.maxQuantity || ''}
+                                placeholder="لا يوجد"
+                                onChange={e => {
+                                  const newAddons = [...(productForm as any).addons];
+                                  newAddons[index].maxQuantity = e.target.value ? parseInt(e.target.value) : undefined;
+                                  setProductForm(prev => ({ ...prev, addons: newAddons }));
+                                }}
+                                className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm font-bold text-center"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Offers & Stock */}
+                        <div className="space-y-3">
+                          <div className="p-4 bg-emerald-50/30 rounded-2xl border border-emerald-50 space-y-3">
+                            <h4 className="font-bold text-emerald-900 flex items-center gap-2 text-sm">
+                              <span className="text-lg">🎁</span> التسعير المجاني
+                            </h4>
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-500">أول (كم حبة) مجاناً؟</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={addon.freeQuantity || 0}
+                                onChange={e => {
+                                  const newAddons = [...(productForm as any).addons];
+                                  newAddons[index].freeQuantity = parseInt(e.target.value) || 0;
+                                  setProductForm(prev => ({ ...prev, addons: newAddons }));
+                                }}
+                                className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm font-bold text-center"
+                              />
+                              {(addon.freeQuantity || 0) > 0 && (
+                                <p className="text-[10px] text-emerald-600 font-bold mt-1 text-right">أول {addon.freeQuantity} سيتم احتسابهم بـ 0.000</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="hidden p-4 bg-amber-50/30 rounded-2xl border border-amber-50 space-y-3">
+                            <h4 className="font-bold text-amber-900 flex items-center gap-2 text-sm justify-between">
+                              <span className="flex items-center gap-2"><span className="text-lg">📦</span> تتبع المخزون</span>
+                              <input
+                                type="checkbox"
+                                checked={addon.trackStock || false}
+                                onChange={e => {
+                                  const newAddons = [...(productForm as any).addons];
+                                  newAddons[index].trackStock = e.target.checked;
+                                  setProductForm(prev => ({ ...prev, addons: newAddons }));
+                                }}
+                                className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+                              />
+                            </h4>
+                            {addon.trackStock && (
+                              <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-500">الكمية المتوفرة</label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={addon.stock || 0}
+                                  onChange={e => {
+                                    const newAddons = [...(productForm as any).addons];
+                                    newAddons[index].stock = parseInt(e.target.value) || 0;
+                                    setProductForm(prev => ({ ...prev, addons: newAddons }));
+                                  }}
+                                  className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-amber-500/20 text-sm font-bold text-center"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
