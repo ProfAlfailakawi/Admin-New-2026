@@ -330,7 +330,17 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  (p?.price || 0)))
  ) || 0;
  
- return sum + (itemPrice * Number(item.quantity || 0));
+ let itemTotal = itemPrice * Number(item.quantity || 0);
+ if ((item as any).addons && (item as any).addons.length > 0) {
+   (item as any).addons.forEach((addon: any) => {
+     let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else addonQty = item.quantity || 1;
+     itemTotal += Number(addon.price || 0) * addonQty;
+   });
+ }
+ return sum + itemTotal;
  }, 0) || 0;
  } catch (e) {
  console.warn("Subtotal item calculation error:", e);
@@ -770,8 +780,28 @@ paymentData.data?.link ||
  const items = order.items.map(item => {
  const p = pData.find(prod => prod.id === item.productId);
  const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (p?.price || 0));
- return `- ${p?.name || 'منتج غير معروف'} (${item.quantity || 1} × ${Number(price).toFixed(3)})`;
- }).join('\n');
+ let displayPrice = Number(price);
+ let addonsLines: string[] = [];
+ 
+ if ((item as any).addons && (item as any).addons.length > 0) {
+   (item as any).addons.forEach((addon: any) => {
+     let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else addonQty = item.quantity || 1;
+
+     if (addonQty > 0) {
+       if (addon.isHiddenPrice) {
+         displayPrice += (Number(addon.price) * addonQty) / (item.quantity || 1);
+         addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty})` : ''}`);
+       } else {
+         addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty})` : ''} - (${(Number(addon.price) * addonQty).toFixed(3)} د.ك)`);
+       }
+     }
+   });
+ }
+ return `- ${p?.name || 'منتج غير معروف'} (${item.quantity || 1} × ${Number(displayPrice).toFixed(3)} د.ك)${addonsLines.length > 0 ? '\n' + addonsLines.join('\n') : ''}`;
+}).join('\n');
 
  const subtotal = getOrderSubtotal(order);
  const deliveryFee = getOrderDeliveryFee(order, order.deliveryType || 'company', order.regionId);
@@ -1228,7 +1258,20 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  if (selectedSupp) {
  const updatedItems = [...selectedOrder.items];
  updatedItems[idx] = { ...updatedItems[idx], productId: selectedSupp.id, priceAtTime: selectedSupp.price, costAtTime: selectedSupp.cost, supplierSelected: true } as any;
- const newSubtotal = updatedItems.reduce((sum, it) => sum + ((it.priceAtTime !== undefined ? it.priceAtTime : ((data?.products || []).find(p => p.id === it.productId)?.price || 0)) * (it.quantity || 0)), 0);
+ const newSubtotal = updatedItems.reduce((sum, it) => {
+  let baseP = it.priceAtTime !== undefined ? it.priceAtTime : ((data?.products || []).find(p => p.id === it.productId)?.price || 0);
+  let itT = baseP * (it.quantity || 0);
+  if ((it as any).addons && (it as any).addons.length > 0) {
+    (it as any).addons.forEach((addon: any) => {
+      let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor((it.quantity || 1) / (addon.xItemsThreshold || 1));
+        else addonQty = it.quantity || 1;
+      itT += Number(addon.price || 0) * addonQty;
+    });
+  }
+  return sum + itT;
+}, 0);
  
  const newOrder = { ...selectedOrder, items: updatedItems, totalAmount: newSubtotal };
  setSelectedOrder(newOrder);
@@ -1289,15 +1332,61 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  }
  return null;
  })()}
+ {(() => {
+    if ((item as any).addons && (item as any).addons.length > 0) {
+      return (
+        <div className="flex flex-col gap-0.5 mt-1">
+          {(item as any).addons.map((addon: any, aIdx: number) => {
+            let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor(item.quantity / (addon.xItemsThreshold || 1));
+        else addonQty = item.quantity;
+            if(addonQty === 0) return null;
+            return (
+              <div key={aIdx} className="text-[10px] md:text-[11px] text-slate-500 font-bold">
+                + {addon.name} {addonQty > 1 ? `(${addonQty})` : ''} {!addon.isHiddenPrice && `- (${(Number(addon.price) * addonQty).toFixed(3)} د.ك)`}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    return null;
+ })()}
  </div>
  </td>
- <td className="p-3 md:p-4 text-center font-bold text-slate-800">x{item.quantity}</td>
- <td className="p-3 md:p-4 text-center font-bold text-slate-500 text-[10px] md:text-sm">
- {Number(item.priceAtTime !== undefined ? item.priceAtTime : (product?.price || 0)).toFixed(3)}
- </td>
- <td className="p-3 md:p-4 text-left font-bold text-slate-900 text-[10px] md:text-sm">
- {Number((item.priceAtTime !== undefined ? item.priceAtTime : (product?.price || 0)) * item.quantity).toFixed(3)}
- </td>
+ {(() => {
+    let basePrice = Number(item.priceAtTime !== undefined ? item.priceAtTime : (product?.price || 0));
+    let displayPrice = basePrice;
+    let totalRowPrice = basePrice * item.quantity;
+    if ((item as any).addons && (item as any).addons.length > 0) {
+      (item as any).addons.forEach((addon: any) => {
+        let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor(item.quantity / (addon.xItemsThreshold || 1));
+        else addonQty = item.quantity;
+        
+        let addonTotal = Number(addon.price || 0) * addonQty;
+        totalRowPrice += addonTotal;
+        
+        if (addon.isHiddenPrice && addonQty > 0) {
+           displayPrice += addonTotal / (item.quantity || 1);
+        }
+      });
+    }
+    
+    return (
+      <>
+       <td className="p-3 md:p-4 text-center font-bold text-slate-800">x{item.quantity}</td>
+       <td className="p-3 md:p-4 text-center font-bold text-slate-500 text-[10px] md:text-sm">
+         {displayPrice.toFixed(3)}
+       </td>
+       <td className="p-3 md:p-4 text-left font-bold text-slate-900 text-[10px] md:text-sm">
+         {totalRowPrice.toFixed(3)}
+       </td>
+      </>
+    );
+ })()}
  </tr>
 );
  })}

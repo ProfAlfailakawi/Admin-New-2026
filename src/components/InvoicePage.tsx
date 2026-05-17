@@ -107,16 +107,65 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const items = (invoice?.items || []).map(item => {
  const p = (data?.products || []).find(prod => prod.id === item.productId);
  const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (p?.price || 0));
- return `- ${p?.name || 'منتج غير معروف'} (${item.quantity || 1} × ${Number(price).toFixed(3)})`;
+ let displayPrice = Number(price);
+ let addonsLines: string[] = [];
+
+ if (item.addons && item.addons.length > 0) {
+   item.addons.forEach((addon: any) => {
+     let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else addonQty = item.quantity || 1;
+
+     if (addonQty > 0) {
+       if (addon.isHiddenPrice) {
+         displayPrice += (Number(addon.price) * addonQty) / (item.quantity || 1);
+         addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty})` : ''}`);
+       } else {
+         addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty})` : ''} - (${(Number(addon.price) * addonQty).toFixed(3)} د.ك)`);
+       }
+     }
+   });
+ }
+
+ return `- ${p?.name || 'منتج غير معروف'} (${item.quantity || 1} × ${Number(displayPrice).toFixed(3)} د.ك)${addonsLines.length > 0 ? '\n' + addonsLines.join('\n') : ''}`;
  }).join('\n');
 
  const subtotal = (invoice?.items || []).reduce((acc, item) => {
  const p = (data?.products || []).find(prod => prod.id === item.productId);
  const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (p?.price || 0));
- return acc + (price * (item.quantity || 1));
+ let baseSum = price * (item.quantity || 1);
+ if (item.addons && item.addons.length > 0) {
+    item.addons.forEach((addon: any) => {
+      if (addon.isHiddenPrice) {
+        let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else addonQty = item.quantity || 1;
+        baseSum += Number(addon.price || 0) * addonQty;
+      }
+    });
+ }
+ return acc + baseSum;
  }, 0);
  
- const total = Math.max(0, subtotal + (Number(invoice.deliveryFee) || 0) - (Number(invoice.discount) || 0));
+ const addonsTotalWA = (invoice?.items || []).reduce((acc, item) => {
+ let sum = 0;
+ if (item.addons && item.addons.length > 0) {
+    item.addons.forEach((addon: any) => {
+      if (!addon.isHiddenPrice) {
+        let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else addonQty = item.quantity || 1;
+        sum += Number(addon.price || 0) * addonQty;
+      }
+    });
+ }
+ return acc + sum;
+ }, 0);
+ 
+ const total = Math.max(0, subtotal + addonsTotalWA + (Number(invoice.deliveryFee) || 0) - (Number(invoice.discount) || 0));
  const pLink = invoice.paymentLink || (invoice as any).splitLink || (invoice as any).split_link || (invoice as any).splitPaymentLink || (invoice as any).paymentUrl || (invoice as any).payment_url || (invoice as any).url || (invoice as any).link;
  const isPaidNow = isPaidStatus(invoice.paymentStatus) && !(String(invoice.status).includes('تجميع القطية') || invoice.status === 'split_pending');
  const paymentLinkLine = (pLink && pLink.trim() !== '' && !isPaidNow) ? `\nرابط الدفع: ${pLink}` : '';
@@ -124,7 +173,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const promoLabel = invoice.appliedPromoCodeName ? `قيمة الخصم (${invoice.appliedPromoCodeName})` : 'قيمة الخصم';
  const promoLine = (Number(invoice.discount) || 0) > 0 ? `*${promoLabel}*: ${Number(invoice.discount).toFixed(3)} د.ك\n` : '';
  
- const message = `*فاتورة من شركة مطبخ التراث الكويتي*\n\nالعميل: ${customer?.name || 'عميل'}\nرقم الفاتورة: ${invoice.id}\nالعنوان: ${invoice.address && invoice.address !== 'غير محدد' ? (typeof invoice.address === 'object' ? [`${invoice.address.region||''}`, `ق${invoice.address.block||''}`, `ش${invoice.address.street||''}`, `م${invoice.address.building||''}`].filter(Boolean).join(' ') : invoice.address) : (invoice.deliveryInfo?.zoneName || 'غير محدد')}\nالطلب:\n${items}\n\nالمجموع: ${subtotal.toFixed(3)} د.ك\nرسوم التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}إجمالي الفاتورة: ${Number(total).toFixed(3)} د.ك${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
+ const message = `*فاتورة من شركة مطبخ التراث الكويتي*\n\nالعميل: ${customer?.name || 'عميل'}\nرقم الفاتورة: ${invoice.id}\nالعنوان: ${invoice.address && invoice.address !== 'غير محدد' ? (typeof invoice.address === 'object' ? [`${invoice.address.region||''}`, `ق${invoice.address.block||''}`, `ش${invoice.address.street||''}`, `م${invoice.address.building||''}`].filter(Boolean).join(' ') : invoice.address) : (invoice.deliveryInfo?.zoneName || 'غير محدد')}\nالطلب:\n${items}\n\nالمجموع: ${subtotal.toFixed(3)} د.ك${addonsTotalWA > 0 ? '\nالإضافات: ' + addonsTotalWA.toFixed(3) + ' د.ك' : ''}\nرسوم التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}إجمالي الفاتورة: ${Number(total).toFixed(3)} د.ك${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
 
   let finalMessage = message;
   const targetObj = invoice || order;
@@ -510,24 +559,39 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const isPaid = currentInvoice?.paymentStatus === 'paid';
 
  
-  const subtotal = Math.round(cartItems.reduce((acc, item) => {
-    let itemTotal = (Number(item.priceAtTime) || 0) * (Number(item.qty) || 0);
-    // Addons calculation
+  const baseSubtotal = Math.round(cartItems.reduce((acc, item) => {
+    let baseSum = (Number(item.priceAtTime) || 0) * (Number(item.qty) || 0);
     if (item.addons && item.addons.length > 0) {
       item.addons.forEach(addon => {
-        let addonQty = 0;
-        if (addon.calculationType === 'per_item') {
-          addonQty = Number(item.qty);
-        } else if (addon.calculationType === 'per_x_items') {
-          addonQty = Math.floor(Number(item.qty) / (addon.xItemsThreshold || 1));
-        } else if (addon.calculationType === 'fixed') {
-          addonQty = 1;
+        if (addon.isHiddenPrice) {
+          let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor(Number(item.qty) / (addon.xItemsThreshold || 1));
+        else addonQty = Number(item.qty);
+          baseSum += (Number(addon.price) || 0) * addonQty;
         }
-        itemTotal += (Number(addon.price) || 0) * addonQty;
       });
     }
-    return acc + itemTotal;
+    return acc + baseSum;
   }, 0) * 1000) / 1000;
+
+  const addonsTotal = Math.round(cartItems.reduce((acc, item) => {
+    let addonSum = 0;
+    if (item.addons && item.addons.length > 0) {
+      item.addons.forEach(addon => {
+        if (!addon.isHiddenPrice) {
+          let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor(Number(item.qty) / (addon.xItemsThreshold || 1));
+        else addonQty = Number(item.qty);
+          addonSum += (Number(addon.price) || 0) * addonQty;
+        }
+      });
+    }
+    return acc + addonSum;
+  }, 0) * 1000) / 1000;
+  
+  const subtotal = baseSubtotal + addonsTotal;
 
  
   const totalCost = Math.round(cartItems.reduce((acc, item) => {
@@ -535,13 +599,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
     if (item.addons && item.addons.length > 0) {
       item.addons.forEach(addon => {
         let addonQty = 0;
-        if (addon.calculationType === 'per_item') {
-          addonQty = Number(item.qty);
-        } else if (addon.calculationType === 'per_x_items') {
-          addonQty = Math.floor(Number(item.qty) / (addon.xItemsThreshold || 1));
-        } else if (addon.calculationType === 'fixed') {
-          addonQty = 1;
-        }
+        if (addon.calculationType === 'fixed') { addonQty = 1; } else if (addon.calculationType === 'per_x_items') { addonQty = Math.floor(Number(item.qty) / (addon.xItemsThreshold || 1)); } else { addonQty = Number(item.qty); }
         costTotal += (Number(addon.cost) || 0) * addonQty;
       });
     }
@@ -827,429 +885,16 @@ setPaymentLink(createdLink);
  };
 
  const handlePrint = () => {
- if (!lastInvoice) return;
- const customer = (data?.customers || []).find(c => c.id === lastInvoice.customerId);
- const invoiceSubtotal = (lastInvoice?.items || []).reduce((acc, item) => {
- const p = (data?.products || []).find(prod => prod.id === item.productId);
- const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (p?.price || 0));
- return acc + (price * (item.quantity || 1));
- }, 0);
- const invoiceDiscount = lastInvoice.discount || 0;
- 
- const printWindow = window.open('', '_blank');
- if (!printWindow) return;
-
- const itemsHtml = (lastInvoice?.items || []).map(item => {
-    const product = (data?.products || []).find(p => p.id === item.productId);
-    let originalPrice = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (product?.price || 0));
-    let displayPrice = Number(originalPrice);
-    
-    let addonsHtml = '';
-    if (item.addons && item.addons.length > 0) {
-      item.addons.forEach((addon: any) => {
-        let addonQty = 0;
-        if (addon.calculationType === 'per_item') addonQty = item.quantity;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor(item.quantity / (addon.xItemsThreshold || 1));
-        else if (addon.calculationType === 'fixed') addonQty = 1;
-        
-        if (addonQty > 0) {
-           if (addon.isHiddenPrice) {
-               displayPrice += (Number(addon.price) * addonQty) / (item.quantity || 1);
-               addonsHtml += '<div class="item-cat" style="color:#4b5563; margin-top:2px; font-size:12px;">+ ' + addon.name + (addonQty > 1 ? ' (' + addonQty + ')' : '') + '</div>';
-           } else {
-               addonsHtml += '<div class="item-cat" style="color:#4b5563; margin-top:2px; font-size:12px;">+ ' + addon.name + (addonQty > 1 ? ' (' + addonQty + ')' : '') + ' - (' + (Number(addon.price) * addonQty).toFixed(3) + ' د.ك)</div>';
-           }
-        }
-      });
-    }
-
-    return `
- <tr class="item-row">
- <td>
- <div class="item-details">
- <div class="item-name">${product?.name || 'منتج غير معروف'}</div>
-              ${addonsHtml}
- ${item.itemNotes ? `<div class="item-cat" style="color:#d97706">${item.itemNotes}</div>` : ''}
- </div>
- </td>
- <td class="text-center">
- <span class="qty-badge val-num">${item.quantity || 1}</span>
- </td>
- <td class="text-left val-num">${Number(price || 0).toFixed(3)}</td>
- <td class="text-left val-num">${((item.quantity || 1) * Number(price || 0)).toFixed(3)}</td>
- </tr>
- `;
- }).join('');
-
- printWindow.document.write(`
- <html dir="rtl">
- <head>
- <title>فاتورة ${lastInvoice.id}</title>
- <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
- <style>
- @page {
- margin: 0;
- }
- :root {
- --primary: #0f172a;
- --secondary: #8b5cf6;
- --accent: #f59e0b;
- --text-main: #1e293b;
- --text-muted: #64748b;
- --bg: #ffffff;
- --bg-alt: #f8fafc;
- --border: #e2e8f0;
- --emerald: #10b981;
- }
- body { 
- font-family: 'Cairo', sans-serif; 
- margin: 0; 
- padding: 40px; 
- background: #e2e8f0;
- color: var(--text-main);
- -webkit-print-color-adjust: exact !important;
- print-color-adjust: exact !important;
- display: flex;
- justify-content: center;
- }
- .invoice-box {
- background: var(--bg);
- width: 100%;
- max-width: 800px;
- padding: 50px 60px;
- box-shadow: 0 20px 40px rgba(0,0,0,0.08);
- border-radius: 20px;
- position: relative;
- overflow: hidden;
- }
- .invoice-box::before {
- content: '';
- position: absolute;
- top: 0;
- left: 0;
- right: 0;
- height: 8px;
- background: linear-gradient(90deg, var(--secondary), var(--accent));
- }
- .watermark {
- position: absolute;
- top: 50%;
- left: 50%;
- transform: translate(-50%, -50%) rotate(-15deg);
- width: 500px;
- opacity: 0.025;
- pointer-events: none;
- z-index: 0;
- filter: grayscale(100%);
- }
- .header {
- display: flex;
- justify-content: space-between;
- align-items: flex-start;
- border-bottom: 2px solid var(--bg-alt);
- padding-bottom: 30px;
- margin-bottom: 40px;
- }
- .brand .logo {
- font-size: 32px;
- font-weight: 900;
- color: var(--primary);
- letter-spacing: -1px;
- margin: 0 0 4px 0;
- display: flex;
- align-items: center;
- gap: 12px;
- }
- .brand .logo svg {
- width: 32px;
- height: 32px;
- color: var(--secondary);
- }
- .brand .slogan {
- font-size: 13px;
- font-weight: 700;
- color: var(--text-muted);
- letter-spacing: 0.5px;
- }
- .invoice-meta {
- text-align: left;
- }
- .invoice-meta .title {
- font-size: 36px;
- font-weight: 900;
- color: var(--primary);
- margin: 0 0 5px 0;
- text-transform: uppercase;
- }
- .invoice-meta .inv-number {
- font-family: 'JetBrains Mono', monospace;
- font-size: 16px;
- font-weight: 700;
- background: var(--secondary);
- color: white;
- padding: 4px 12px;
- border-radius: 8px;
- display: inline-block;
- }
- .customer-date-section {
- display: flex;
- justify-content: space-between;
- margin-bottom: 40px;
- background: var(--bg-alt);
- padding: 25px;
- border-radius: 16px;
- border: 1px solid var(--border);
- }
- .info-col {
- display: flex;
- flex-direction: column;
- gap: 6px;
- }
- .info-label {
- font-size: 12px;
- text-transform: uppercase;
- font-weight: 800;
- letter-spacing: 1px;
- color: var(--text-muted);
- }
- .info-val {
- font-size: 18px;
- font-weight: 800;
- color: var(--primary);
- }
- .info-sub {
- font-family: 'JetBrains Mono', monospace;
- font-size: 14px;
- color: var(--text-muted);
- font-weight: 600;
- }
- table {
- width: 100%;
- border-collapse: separate;
- border-spacing: 0;
- margin-bottom: 40px;
- }
- th {
- background: var(--primary);
- color: white;
- padding: 16px;
- font-size: 13px;
- font-weight: 700;
- text-align: right;
- }
- th:first-child { border-radius: 0 12px 12px 0; }
- th:last-child { border-radius: 12px 0 0 12px; text-align: left; }
- td {
- padding: 20px 16px;
- border-bottom: 1px solid var(--border);
- vertical-align: middle;
- }
- .item-row:last-child td { border-bottom: none; }
- .item-details .item-name {
- font-size: 16px;
- font-weight: 800;
- color: var(--text-main);
- margin-bottom: 4px;
- }
- .item-details .item-cat {
- font-size: 12px;
- color: var(--text-muted);
- font-weight: 600;
- }
- .val-num {
- font-family: 'JetBrains Mono', monospace;
- font-size: 15px;
- font-weight: 700;
- }
- td.text-center { text-align: center; }
- td.text-left { text-align: left; }
- .qty-badge {
- background: var(--bg-alt);
- padding: 6px 12px;
- border-radius: 8px;
- font-weight: 800;
- border: 1px solid var(--border);
- color: var(--primary);
- }
- .summary-section {
- display: flex;
- justify-content: flex-end;
- margin-top: 20px;
- }
- .summary-box {
- width: 350px;
- background: var(--bg-alt);
- border: 1px solid var(--border);
- border-radius: 16px;
- padding: 24px;
- }
- .summary-row {
- display: flex;
- justify-content: space-between;
- align-items: center;
- padding-bottom: 16px;
- margin-bottom: 16px;
- border-bottom: 1px dashed var(--border);
- }
- .summary-row:last-child {
- border-bottom: none;
- margin-bottom: 0;
- padding-bottom: 0;
- }
- .sum-label {
- font-size: 14px;
- font-weight: 700;
- color: var(--text-muted);
- }
- .sum-val {
- font-family: 'JetBrains Mono', monospace;
- font-size: 16px;
- font-weight: 700;
- color: var(--text-main);
- }
- .total-row {
- background: var(--primary);
- padding: 20px;
- border-radius: 12px;
- color: white;
- margin-top: 8px;
- border-bottom: none;
- }
- .total-row .sum-label {
- color: rgba(255,255,255,0.8);
- font-size: 16px;
- }
- .total-row .sum-val {
- color: white;
- font-size: 26px;
- font-weight: 900;
- }
- .currency {
- font-family: 'Cairo', sans-serif;
- font-size: 12px;
- margin-right: 6px;
- opacity: 0.8;
- font-weight: 700;
- }
- footer {
- margin-top: 60px;
- text-align: center;
- border-top: 2px solid var(--bg-alt);
- padding-top: 30px;
- }
- .footer-text {
- font-size: 14px;
- font-weight: 700;
- color: var(--text-muted);
- display: flex;
- align-items: center;
- justify-content: center;
- gap: 8px;
- }
- .footer-text svg { width: 18px; color: var(--emerald); }
- .footer-contact {
- margin-top: 8px;
- font-family: 'JetBrains Mono', monospace;
- font-size: 12px;
- color: var(--text-muted);
- }
- @media print {
- body { background: white; padding: 15mm; margin: 0; }
- .invoice-box { box-shadow: none; border-radius: 0; padding: 0; max-width: 100%; border: none; }
- .invoice-box::before { display: none; }
- }
- </style>
- </head>
- <body>
- <div class="invoice-box">
- <img src="${data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}" class="watermark" style="mix-blend-mode: multiply; filter: contrast(1.4) brightness(1.2);" referrerPolicy="no-referrer" />
- <div class="header">
- <div class="brand">
- <h1 class="logo">
- <img src="${data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}" alt="Logo" style="width: 48px; height: 48px; object-fit: contain; mix-blend-mode: multiply; filter: contrast(1.4) brightness(1.2); margin-left: 14px;" referrerPolicy="no-referrer" />
- ${data.settings.companyName || 'التراث الكويتي'}
- </h1>
- </div>
- <div class="invoice-meta">
- <h2 class="title">فاتورة</h2>
- <div class="inv-number">INV-${lastInvoice.id.slice(0,8).toUpperCase()}</div>
- </div>
- </div>
-
- <div class="customer-date-section">
- <div class="info-col">
- <span class="info-label">معلومات العميل</span>
- <span class="info-val">الاسم: ${customer?.name || 'عميل نقدي (Walk-in)'}</span>
- <span class="info-val">رقم الهاتف: ${customer?.phone || '---'}</span>
- ${(lastInvoice.address && lastInvoice.address !== 'غير محدد') ? `<span class="info-val" style="margin-top:4px; font-size:12px;">العنوان: ${typeof lastInvoice.address === 'object' ? [`${lastInvoice.address.region||''}`, `ق${lastInvoice.address.block||''}`, `ش${lastInvoice.address.street||''}`, `م${lastInvoice.address.building||''}`].filter(Boolean).join(' ') : lastInvoice.address}</span>` : lastInvoice.deliveryInfo?.zoneName ? `<span class="info-val" style="margin-top:4px; font-size:12px;">العنوان: ${lastInvoice.deliveryInfo.zoneName}</span>` : '<span class="info-val" style="margin-top:4px; font-size:12px;">العنوان: غير محدد</span>'}
- </div>
- <div class="info-col" style="text-align: left;">
- <span class="info-label">تاريخ الإصدار</span>
- <span class="info-val">${new Date(lastInvoice.date).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
- <span class="info-val" dir="ltr" style="font-size: 11px; font-weight: normal; color: #64748b; margin-top: 4px; display: inline-block; text-align: left;">${new Date(lastInvoice.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
- </div>
- </div>
-
- <table>
- <thead>
- <tr>
- <th>البيان / المنتج</th>
- <th style="text-align: center;">الكمية</th>
- <th style="text-align: left;">سعر الوحدة (د.ك)</th>
- <th style="text-align: left;">الإجمالي (د.ك)</th>
- </tr>
- </thead>
- <tbody>
- ${itemsHtml}
- </tbody>
- </table>
-
- <div class="summary-section">
- <div style="position: absolute; bottom: 210px; left: 80px; opacity: 0.2; transform: rotate(-10deg); z-index: 10; display: flex; flex-direction: column; align-items: center;">
- <img src="${data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}" style="width: 70px; filter: grayscale(100%) contrast(180%) brightness(1.2); mix-blend-mode: multiply;" />
- <div style="font-size: 8px; font-weight: 900; text-align: center; border-top: 1px solid #000; margin-top: 4px; padding-top: 2px; width: 60px; color: #000;">ختم التوثيق</div>
- </div>
- <div class="summary-box">
- <div class="summary-row">
- <span class="sum-label">المجموع الفرعي</span>
- <span class="sum-val">${Number(invoiceSubtotal || 0).toFixed(3)} <span class="currency">د.ك</span></span>
- </div>
- ${lastInvoice.deliveryFee > 0 ? `
- <div class="summary-row">
- <span class="sum-label">رسوم التوصيل</span>
- <span class="sum-val">${Number(lastInvoice.deliveryFee || 0).toFixed(3)} <span class="currency">د.ك</span></span>
- </div>` : ''}
- ${invoiceDiscount > 0 ? `
- <div class="summary-row" style="color: #e11d48;">
- <span class="sum-label" style="color: #e11d48; font-weight: 800;">خصم الكوبون ${lastInvoice.appliedPromoCodeName ? `(${lastInvoice.appliedPromoCodeName})` : ''}</span>
- <span class="sum-val">-${Number(invoiceDiscount).toFixed(3)} <span class="currency">د.ك</span></span>
- </div>` : ''}
- <div class="summary-row total-row" style="background: #0f172a; color: white !important; padding: 20px; border-radius: 12px; margin-top: 15px;">
- <span class="sum-label" style="color: white !important; font-weight: 900; font-size: 18px;">المبلغ الإجمالي</span>
- <span class="sum-val" style="color: white !important; font-weight: 900; font-size: 24px;">${Number(Math.max(0, lastInvoice.totalAmount || (invoiceSubtotal + Number(lastInvoice.deliveryFee || 0) - invoiceDiscount))).toFixed(3)} <span class="currency">د.ك</span></span>
- </div>
- </div>
- </div>
-
- <footer>
- <div class="footer-contact">
- ${data?.settings?.restaurantNumbers?.length > 0 ? `خدمة العملاء: ${data.settings.restaurantNumbers.join(' - ')}` : ''}
- </div>
- </footer>
- </div>
- <script>
- window.onload = () => {
- setTimeout(() => {
- window.print();
- setTimeout(window.close, 500);
- }, 500);
- }
- </script>
- </body>
- </html>
- `);
- printWindow.document.close();
- };
+    if (!lastInvoice) return;
+    import('../lib/printUtils').then(({ generateInvoiceHTML }) => {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+      const htmlContent = generateInvoiceHTML(lastInvoice, data);
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      if (onFinished) onFinished();
+    });
+  };
 
  return (
  <div className={cn("transition-all duration-700 ease-in-out", isZenMode ? "fixed inset-0 z-[100] bg-white overflow-y-auto p-4 md:p-12 pb-32" : "")}>{isZenMode && (<div className="flex justify-between items-center mb-8 max-w-6xl mx-auto"><h2 className="text-xl md:text-3xl font-bold text-slate-800">وضع التركيز المستمر</h2><button onClick={() => setIsZenMode(false)} className="flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all active:scale-95">خروج من التركيز <X size={18} /></button></div>)}<div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-3 md:p-3 pb-20", isZenMode ? "max-w-6xl mx-auto" : "")}>
@@ -1726,7 +1371,20 @@ setPaymentLink(createdLink);
  {item.product!.name}
  {item.priceAtTime < item.product!.price && (
  <span className="mr-2 text-[10px] font-bold bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full align-middle">خصم</span>
-)}
+ )}
+ {item.addons && item.addons.length > 0 && (
+   <div className="flex flex-col mt-1">
+     {item.addons.map(a => {
+       let aQty = a.calculationType === 'fixed' ? 1 : (a.calculationType === 'per_x_items' ? Math.floor(item.qty / (a.xItemsThreshold || 1)) : item.qty);
+       if(aQty === 0) return null;
+       return (
+         <div key={a.id} className="text-[11px] font-medium text-slate-500">
+           + {a.name} {aQty > 1 ? `(${aQty})` : ''} {!a.isHiddenPrice && `- (${(Number(a.price)*aQty).toFixed(3)} د.ك)`}
+         </div>
+       );
+     })}
+   </div>
+ )}
  </div>
  
  <div className="flex items-center justify-between mt-1">
@@ -1746,17 +1404,48 @@ setPaymentLink(createdLink);
  <div className="flex flex-col items-end gap-1">
  <div className="flex items-center gap-2">
  <span className="text-[10px] text-slate-500 font-bold">سعر الحبة:</span>
- <input 
- type="number" 
- step="0.001"
- className="w-10 md:w-12 text-left bg-slate-50 border border-slate-200/60 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 transition-all"
- value={item.priceAtTime === 0 ? '' : Number(item.priceAtTime).toString()} 
- onChange={(e) => updateItemPrice(item.product!.id, parseFloat(e.target.value) || 0)}
- placeholder="السعر"
- />
+ {(() => {
+    let hiddenAddonsContrib = 0;
+    if(item.addons) {
+       item.addons.forEach(a => {
+         if(a.isHiddenPrice) {
+            let aQty = a.calculationType === 'fixed' ? 1 : (a.calculationType === 'per_x_items' ? Math.floor(item.qty / (a.xItemsThreshold || 1)) : item.qty);
+            hiddenAddonsContrib += (Number(a.price) * aQty) / (item.qty || 1);
+         }
+       });
+    }
+    const displayPrice = item.priceAtTime + hiddenAddonsContrib;
+    
+    return (
+      <input 
+        type="number" 
+        step="0.001"
+        className="w-12 md:w-16 text-left bg-slate-50 border border-slate-200/60 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 transition-all"
+        value={displayPrice === 0 ? '' : Number(displayPrice).toFixed(3)} 
+        onChange={(e) => {
+          let newDisplay = parseFloat(e.target.value) || 0;
+          updateItemPrice(item.product!.id, Math.max(0, newDisplay - hiddenAddonsContrib));
+        }}
+        placeholder="السعر"
+      />
+    );
+ })()}
+ 
  </div>
  <div className="font-bold text-primary text-sm text-left shrink-0">
- {Number((item.qty * item.priceAtTime) || 0).toFixed(3)} د.ك
+ {(() => {
+  let rowTotal = (item.qty * item.priceAtTime) || 0;
+  if (item.addons && item.addons.length > 0) {
+    item.addons.forEach(addon => {
+      let addonQty = 0;
+        if (addon.calculationType === 'fixed') addonQty = 1;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor(item.qty / (addon.xItemsThreshold || 1));
+        else addonQty = item.qty;
+      rowTotal += (Number(addon.price) || 0) * addonQty;
+    });
+  }
+  return Number(rowTotal).toFixed(3);
+})()} د.ك
  </div>
  </div>
  </div>
@@ -1844,8 +1533,14 @@ setPaymentLink(createdLink);
  <div className="space-y-4 mb-10 pt-6 border-t border-slate-100">
  <div className="flex justify-between items-center px-2">
  <span className="text-[10px] font-bold text-slate-500 uppercase">المجموع الفرعي</span>
- <span className="font-bold text-slate-600">{Number(subtotal || 0).toFixed(3)} د.ك</span>
+ <span className="font-bold text-slate-600">{Number(baseSubtotal || 0).toFixed(3)} د.ك</span>
  </div>
+ {addonsTotal > 0 && (
+   <div className="flex justify-between items-center px-2">
+     <span className="text-[10px] font-bold text-slate-500 uppercase">الإضافات</span>
+     <span className="font-bold text-slate-600">{Number(addonsTotal || 0).toFixed(3)} د.ك</span>
+   </div>
+ )}
  <div className="flex justify-between items-center px-2">
  <span className="text-[10px] font-bold text-slate-500 uppercase">رسوم التوصيل</span>
  <span className="font-bold text-slate-600">{Number(deliveryFee || 0).toFixed(3)} د.ك</span>

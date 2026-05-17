@@ -3,23 +3,78 @@ import { DEFAULT_GLOBAL_LOGO } from '../constants';
 
 export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
     const customer = (data?.customers || []).find(c => c.id === invoice.customerId);
-    const invoiceSubtotal = (invoice?.items || []).reduce((acc, item) => acc + (item.priceAtTime * item.quantity), 0);
+    const invoiceSubtotal = (invoice?.items || []).reduce((acc, item) => {
+    let baseSum = item.priceAtTime * item.quantity;
+    if (item.addons && item.addons.length > 0) {
+        item.addons.forEach((addon) => {
+            if ((addon as any).isHiddenPrice) {
+                let addonQty = 0;
+                if ((addon as any).calculationType === 'fixed') addonQty = 1;
+                else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.floor(item.quantity / ((addon as any).xItemsThreshold || 1));
+                else addonQty = item.quantity;
+                baseSum += Number((addon as any).price || 0) * addonQty;
+            }
+        });
+    }
+    return acc + baseSum;
+}, 0);
+
+const invoiceAddonsTotal = (invoice?.items || []).reduce((acc, item) => {
+    let addonSum = 0;
+    if (item.addons && item.addons.length > 0) {
+        item.addons.forEach((addon) => {
+            if (!(addon as any).isHiddenPrice) {
+                let addonQty = 0;
+                if ((addon as any).calculationType === 'fixed') addonQty = 1;
+                else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.floor(item.quantity / ((addon as any).xItemsThreshold || 1));
+                else addonQty = item.quantity;
+                addonSum += Number((addon as any).price || 0) * addonQty;
+            }
+        });
+    }
+    return acc + addonSum;
+}, 0);
     const invoiceDiscount = invoice.discount || 0;
     
     const itemsHtml = (invoice?.items || []).map(item => {
         const product = (data?.products || []).find(p => p.id === item.productId);
+        let displayPrice = Number(item.priceAtTime || 0);
+        let printRowTotal = Number(item.priceAtTime || 0) * (item.quantity || 1);
+        let addonsHtml = '';
+        
+        if (item.addons && item.addons.length > 0) {
+            item.addons.forEach((addon) => {
+                let addonQty = 0;
+                if ((addon as any).calculationType === 'fixed') addonQty = 1;
+                else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.floor(item.quantity / ((addon as any).xItemsThreshold || 1));
+                else addonQty = item.quantity;
+                
+                if (addonQty > 0) {
+                    printRowTotal += Number((addon as any).price || 0) * addonQty;
+                    if ((addon as any).isHiddenPrice) {
+                        displayPrice += (Number((addon as any).price) * addonQty) / (item.quantity || 1);
+                        addonsHtml += '<div class="item-cat" style="color:#4b5563; margin-top:2px; font-size:12px;">+ ' + (addon as any).name + (addonQty > 1 ? ' (' + addonQty + ')' : '') + '</div>';
+                    } else {
+                        addonsHtml += '<div class="item-cat" style="color:#4b5563; margin-top:2px; font-size:12px;">+ ' + (addon as any).name + (addonQty > 1 ? ' (' + addonQty + ')' : '') + ' - (' + (Number((addon as any).price) * addonQty).toFixed(3) + ' د.ك)</div>';
+                    }
+                }
+            });
+        }
+        
         return `
             <tr class="item-row">
                 <td>
                     <div class="item-details">
                         <div class="item-name">${product?.name || 'منتج غير معروف'}</div>
+                        ${addonsHtml}
+                        ${item.itemNotes ? `<div class="item-cat" style="color:#d97706">${item.itemNotes}</div>` : ''}
                     </div>
                 </td>
                 <td class="text-center">
                     <span class="qty-badge val-num">${item.quantity || 0}</span>
                 </td>
-                <td class="text-left val-num">${Number(item.priceAtTime || 0).toFixed(3)}</td>
-                <td class="text-left val-num">${((item.quantity || 0) * Number(item.priceAtTime || 0)).toFixed(3)}</td>
+                <td class="text-left val-num">${Number(displayPrice).toFixed(3)}</td>
+                <td class="text-left val-num">${Number(printRowTotal).toFixed(3)}</td>
             </tr>
         `;
     }).join('');
@@ -354,6 +409,11 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
                           <span class="sum-label">المجموع الفرعي</span>
                           <span class="sum-val">${invoiceSubtotal.toFixed(3)} <span class="currency">د.ك</span></span>
                       </div>
+                      ${invoiceAddonsTotal > 0 ? `
+                      <div class="summary-row">
+                          <span class="sum-label">الإضافات</span>
+                          <span class="sum-val">${Number(invoiceAddonsTotal).toFixed(3)} <span class="currency">د.ك</span></span>
+                      </div>` : ''}
                       ${invoiceDiscount > 0 ? `
                       <div class="summary-row" style="color: #e11d48;">
                           <span class="sum-label" style="color: #e11d48;">الخصم مخصوم</span>
@@ -366,7 +426,7 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
                       </div>` : ''}
                       <div class="summary-row total-row">
                           <span class="sum-label">المبلغ المطلوب</span>
-                          <span class="sum-val">${Math.max(0, invoiceSubtotal + Number(invoice.deliveryFee || 0) - invoiceDiscount).toFixed(3)} <span class="currency">د.ك</span></span>
+                          <span class="sum-val">${Math.max(0, invoiceSubtotal + invoiceAddonsTotal + Number(invoice.deliveryFee || 0) - invoiceDiscount).toFixed(3)} <span class="currency">د.ك</span></span>
                       </div>
                   </div>
               </div>
