@@ -11,8 +11,9 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
                 let addonQty = 0;
                 if ((addon as any).calculationType === 'fixed') addonQty = 1;
                 else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / ((addon as any).xItemsThreshold || 1));
-                else addonQty = item.quantity;
-                baseSum += Number((addon as any).price || 0) * addonQty;
+                else addonQty = item.quantity;        addonQty = Math.max(((addon as any).minQuantity || 0), Math.min(addonQty, ((addon as any).maxQuantity || addonQty)));
+
+                baseSum += Number((addon as any).price || 0) * Math.max(0, addonQty - ((addon as any).freeQuantity || 0));
             }
         });
     }
@@ -27,8 +28,9 @@ const invoiceAddonsTotal = (invoice?.items || []).reduce((acc, item) => {
                 let addonQty = 0;
                 if ((addon as any).calculationType === 'fixed') addonQty = 1;
                 else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / ((addon as any).xItemsThreshold || 1));
-                else addonQty = item.quantity;
-                addonSum += Number((addon as any).price || 0) * addonQty;
+                else addonQty = item.quantity;        addonQty = Math.max(((addon as any).minQuantity || 0), Math.min(addonQty, ((addon as any).maxQuantity || addonQty)));
+
+                addonSum += Number((addon as any).price || 0) * Math.max(0, addonQty - ((addon as any).freeQuantity || 0));
             }
         });
     }
@@ -47,10 +49,11 @@ const invoiceAddonsTotal = (invoice?.items || []).reduce((acc, item) => {
                 let addonQty = 0;
                 if ((addon as any).calculationType === 'fixed') addonQty = 1;
                 else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / ((addon as any).xItemsThreshold || 1));
-                else addonQty = item.quantity;
+                else addonQty = item.quantity;        addonQty = Math.max(((addon as any).minQuantity || 0), Math.min(addonQty, ((addon as any).maxQuantity || addonQty)));
+
                 
                 if (addonQty > 0) {
-                    printRowTotal += Number((addon as any).price || 0) * addonQty;
+                    printRowTotal += Number((addon as any).price || 0) * Math.max(0, addonQty - ((addon as any).freeQuantity || 0));
                     if ((addon as any).isHiddenPrice) {
                         displayPrice += (Number((addon as any).price) * addonQty) / (item.quantity || 1);
                         addonsHtml += '<div class="item-cat" style="color:#4b5563; margin-top:2px; font-size:12px;">+ ' + (addon as any).name + (addonQty > 1 ? ' (' + addonQty + ')' : '') + '</div>';

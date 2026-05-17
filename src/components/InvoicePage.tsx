@@ -115,14 +115,15 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
      let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
         else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
-        else addonQty = item.quantity || 1;
+        else addonQty = item.quantity || 1;        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+
 
      if (addonQty > 0) {
        if (addon.isHiddenPrice) {
-         displayPrice += (Number(addon.price) * addonQty) / (item.quantity || 1);
+         displayPrice += (Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))) / (item.quantity || 1);
          addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty})` : ''}`);
        } else {
-         addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty})` : ''} - (${(Number(addon.price) * addonQty).toFixed(3)} د.ك)`);
+         addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty})` : ''} - (${(Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))).toFixed(3)} د.ك)`);
        }
      }
    });
@@ -141,8 +142,9 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
         let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
         else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
-        else addonQty = item.quantity || 1;
-        baseSum += Number(addon.price || 0) * addonQty;
+        else addonQty = item.quantity || 1;        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+
+        baseSum += Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0));
       }
     });
  }
@@ -157,8 +159,9 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
         let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
         else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
-        else addonQty = item.quantity || 1;
-        sum += Number(addon.price || 0) * addonQty;
+        else addonQty = item.quantity || 1;        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+
+        sum += Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0));
       }
     });
  }
@@ -416,17 +419,27 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const addToCart = (productId: string) => {
  const product = (data.products || []).find(p => p.id === productId);
  if (!product) return;
+
+ const requiredAddons = (product.addons || []).filter(a => a.isRequired);
+ const outOfStockRequiredAddons = requiredAddons.filter(a => a.trackStock && (a.stock ?? 0) <= 0);
+
+ if (outOfStockRequiredAddons.length > 0) {
+   toast.error(`لا يمكن الإضافة، الإضافة الإجبارية "${outOfStockRequiredAddons[0].name}" نفدت من المخزون`);
+   return;
+ }
  
  toast.success(`تم إضافة ${product.name} للسلة`, { duration: 2000 });
 
  setCart(prev => {
  const existing = prev[productId];
+ 
  return { 
  ...prev, 
  [productId]: { 
  quantity: (existing ? existing.quantity : 0) + 1,
  priceAtTime: existing ? existing.priceAtTime : product.price,
- costAtTime: existing ? existing.costAtTime : product.cost
+ costAtTime: existing ? existing.costAtTime : product.cost,
+ addons: existing && existing.addons ? existing.addons : requiredAddons
  } 
  };
  });
@@ -567,8 +580,9 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
           let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
         else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(Number(item.qty) / (addon.xItemsThreshold || 1));
-        else addonQty = Number(item.qty);
-          baseSum += (Number(addon.price) || 0) * addonQty;
+        else addonQty = Number(item.qty);        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+
+          baseSum += (Number(addon.price) || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0));
         }
       });
     }
@@ -583,8 +597,9 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
           let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
         else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(Number(item.qty) / (addon.xItemsThreshold || 1));
-        else addonQty = Number(item.qty);
-          addonSum += (Number(addon.price) || 0) * addonQty;
+        else addonQty = Number(item.qty);        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+
+          addonSum += (Number(addon.price) || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0));
         }
       });
     }
@@ -842,12 +857,47 @@ setPaymentLink(createdLink);
     });
   }
 
- const newState = {
- ...prev,
- invoices: updatedInvoices,
- customers: updatedCustomers,
- promocodes: updatedPromoCodes
- };
+   // Deduct Product and Addon Stock if it's a new invoice
+   let updatedProducts = [...(prev?.products || [])];
+   if (!editingInvoiceId) {
+     updatedProducts = updatedProducts.map(p => {
+       const cartItem = cartItems.find(it => it.product!.id === p.id);
+       if (!cartItem) return p;
+       
+       let newP = { ...p };
+       // Deduct product stock if we were tracking it
+       if (newP.stock !== undefined) {
+         newP.stock = Math.max(0, newP.stock - cartItem.qty);
+         if (newP.stock === 0) newP.isOutOfStock = true;
+       }
+
+       // Deduct addon stock
+       if (newP.addons && newP.addons.length > 0) {
+         newP.addons = newP.addons.map(addon => {
+           const selectedAddon = cartItem.addons.find(a => a.id === addon.id);
+           if (!selectedAddon || !addon.trackStock) return addon;
+           
+           let addonQty = 0;
+           if (addon.calculationType === 'fixed') addonQty = 1;
+           else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(cartItem.qty / (addon.xItemsThreshold || 1));
+           else addonQty = cartItem.qty;
+           addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+
+           return { ...addon, stock: Math.max(0, (addon.stock || 0) - addonQty) };
+         });
+       }
+
+       return newP;
+     });
+   }
+
+  const newState = {
+  ...prev,
+  products: updatedProducts,
+  invoices: updatedInvoices,
+  customers: updatedCustomers,
+  promocodes: updatedPromoCodes
+  };
 
  const resultState = recalculateStateBalances(newState as AppState);
  return resultState;
@@ -1410,7 +1460,7 @@ setPaymentLink(createdLink);
        item.addons.forEach(a => {
          if(a.isHiddenPrice) {
             let aQty = a.calculationType === 'fixed' ? 1 : (a.calculationType === 'per_x_items' ? Math.ceil(item.qty / (a.xItemsThreshold || 1)) : item.qty);
-            hiddenAddonsContrib += (Number(a.price) * aQty) / (item.qty || 1);
+            hiddenAddonsContrib += (Number(a.price || 0) * Math.max(0, aQty - (a.freeQuantity || 0))) / (item.qty || 1);
          }
        });
     }
@@ -1440,8 +1490,9 @@ setPaymentLink(createdLink);
       let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
         else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(item.qty / (addon.xItemsThreshold || 1));
-        else addonQty = item.qty;
-      rowTotal += (Number(addon.price) || 0) * addonQty;
+        else addonQty = item.qty;        addonQty = Math.max((addon.minQuantity || 0), Math.min(addonQty, (addon.maxQuantity || addonQty)));
+
+      rowTotal += (Number(addon.price) || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0));
     });
   }
   return Number(rowTotal).toFixed(3);
@@ -1455,7 +1506,7 @@ setPaymentLink(createdLink);
      <div className="mt-3 pt-3 border-t border-slate-100 w-full pl-8">
          <p className="text-[10px] font-bold text-slate-400 mb-2">إضافات متاحة للطلب:</p>
          <div className="flex flex-wrap gap-2">
-             {item.product.addons.map(addon => {
+             {item.product.addons.filter(a => !(a.trackStock && (a.stock ?? 0) <= 0)).map(addon => {
                  const isSelected = (item.addons || []).some(a => a.id === addon.id);
                  return (
                      <button
@@ -1467,8 +1518,17 @@ setPaymentLink(createdLink);
                                  if (!existingCartItem) return prev;
                                  let newAddons = [...(existingCartItem.addons || [])];
                                  if (isSelected) {
+                                     if (addon.isRequired) {
+                                         toast.error(`هذه الإضافة إجبارية لا يمكن إزالتها`);
+                                         return prev;
+                                     }
                                      newAddons = newAddons.filter(a => a.id !== addon.id);
                                  } else {
+                                     // Validate Stock
+                                     if (addon.trackStock && (addon.stock ?? 0) <= 0) {
+                                         toast.error(`${addon.name} غير متوفرة (انتهت الكمية)`);
+                                         return prev;
+                                     }
                                      newAddons.push(addon);
                                  }
                                  return {
@@ -1484,10 +1544,11 @@ setPaymentLink(createdLink);
                      >
                          <span>{addon.name}</span>
                          {!addon.isHiddenPrice && addon.price > 0 && (
-                             <span className={isSelected ? "text-white/80" : "text-slate-400"}>
-                                 (+{Number(addon.price).toFixed(3)})
-                             </span>
-                         )}
+    <span className={isSelected ? "text-white/80" : "text-slate-400"}>
+       (+{Number(addon.price).toFixed(3)})
+       {addon.freeQuantity > 0 && <span className="text-[9px] mr-1">(أول {addon.freeQuantity} مجاناً)</span>}
+    </span>
+  )}
                      </button>
                  );
              })}
