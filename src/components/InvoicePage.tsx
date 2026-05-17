@@ -114,7 +114,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
    item.addons.forEach((addon: any) => {
      let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
         else addonQty = item.quantity || 1;
 
      if (addonQty > 0) {
@@ -140,7 +140,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
       if (addon.isHiddenPrice) {
         let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
         else addonQty = item.quantity || 1;
         baseSum += Number(addon.price || 0) * addonQty;
       }
@@ -156,7 +156,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
       if (!addon.isHiddenPrice) {
         let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor((item.quantity || 1) / (addon.xItemsThreshold || 1));
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1));
         else addonQty = item.quantity || 1;
         sum += Number(addon.price || 0) * addonQty;
       }
@@ -566,7 +566,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
         if (addon.isHiddenPrice) {
           let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor(Number(item.qty) / (addon.xItemsThreshold || 1));
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(Number(item.qty) / (addon.xItemsThreshold || 1));
         else addonQty = Number(item.qty);
           baseSum += (Number(addon.price) || 0) * addonQty;
         }
@@ -582,7 +582,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
         if (!addon.isHiddenPrice) {
           let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor(Number(item.qty) / (addon.xItemsThreshold || 1));
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(Number(item.qty) / (addon.xItemsThreshold || 1));
         else addonQty = Number(item.qty);
           addonSum += (Number(addon.price) || 0) * addonQty;
         }
@@ -599,7 +599,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
     if (item.addons && item.addons.length > 0) {
       item.addons.forEach(addon => {
         let addonQty = 0;
-        if (addon.calculationType === 'fixed') { addonQty = 1; } else if (addon.calculationType === 'per_x_items') { addonQty = Math.floor(Number(item.qty) / (addon.xItemsThreshold || 1)); } else { addonQty = Number(item.qty); }
+        if (addon.calculationType === 'fixed') { addonQty = 1; } else if (addon.calculationType === 'per_x_items') { addonQty = Math.ceil(Number(item.qty) / (addon.xItemsThreshold || 1)); } else { addonQty = Number(item.qty); }
         costTotal += (Number(addon.cost) || 0) * addonQty;
       });
     }
@@ -1375,7 +1375,7 @@ setPaymentLink(createdLink);
  {item.addons && item.addons.length > 0 && (
    <div className="flex flex-col mt-1">
      {item.addons.map(a => {
-       let aQty = a.calculationType === 'fixed' ? 1 : (a.calculationType === 'per_x_items' ? Math.floor(item.qty / (a.xItemsThreshold || 1)) : item.qty);
+       let aQty = a.calculationType === 'fixed' ? 1 : (a.calculationType === 'per_x_items' ? Math.ceil(item.qty / (a.xItemsThreshold || 1)) : item.qty);
        if(aQty === 0) return null;
        return (
          <div key={a.id} className="text-[11px] font-medium text-slate-500">
@@ -1409,7 +1409,7 @@ setPaymentLink(createdLink);
     if(item.addons) {
        item.addons.forEach(a => {
          if(a.isHiddenPrice) {
-            let aQty = a.calculationType === 'fixed' ? 1 : (a.calculationType === 'per_x_items' ? Math.floor(item.qty / (a.xItemsThreshold || 1)) : item.qty);
+            let aQty = a.calculationType === 'fixed' ? 1 : (a.calculationType === 'per_x_items' ? Math.ceil(item.qty / (a.xItemsThreshold || 1)) : item.qty);
             hiddenAddonsContrib += (Number(a.price) * aQty) / (item.qty || 1);
          }
        });
@@ -1439,7 +1439,7 @@ setPaymentLink(createdLink);
     item.addons.forEach(addon => {
       let addonQty = 0;
         if (addon.calculationType === 'fixed') addonQty = 1;
-        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor(item.qty / (addon.xItemsThreshold || 1));
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.ceil(item.qty / (addon.xItemsThreshold || 1));
         else addonQty = item.qty;
       rowTotal += (Number(addon.price) || 0) * addonQty;
     });

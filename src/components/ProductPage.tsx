@@ -1281,21 +1281,57 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         />
                       </div>
 
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-400">طريقة الحساب</label>
-                        <select
-                          value={addon.calculationType}
-                          onChange={e => {
-                            const newAddons = [...(productForm as any).addons];
-                            newAddons[index].calculationType = e.target.value;
-                            setProductForm(prev => ({ ...prev, addons: newAddons }));
-                          }}
-                          className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
-                        >
-                          <option value="per_item">مضروب في عدد الأطباق (لكل طبق)</option>
-                          <option value="per_x_items">كل (عدد) من الأطباق يحسب مرة</option>
-                          <option value="fixed">ثابت مرة واحدة (للطلب كامل)</option>
-                        </select>
+                      <div className="md:col-span-2 space-y-3 mt-4 mb-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <label className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                          <span className="text-indigo-600 text-lg">💡</span>
+                          المبادئ الثلاثة لحساب قيمة الإضافات (Add-ons)
+                        </label>
+                        <div className="grid grid-cols-1 gap-3">
+                          <label className={`relative flex cursor-pointer rounded-xl border p-4 focus:outline-none transition-all ${addon.calculationType === 'per_item' ? 'bg-indigo-50/50 border-indigo-400 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}>
+                            <input type="radio" name={`calcType-${addon.id}`} className="sr-only" checked={addon.calculationType === 'per_item'} onChange={() => { const newAddons = [...(productForm as any).addons]; newAddons[index].calculationType = 'per_item'; setProductForm(prev => ({ ...prev, addons: newAddons })); }} />
+                            <div className="flex w-full items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`flex items-center justify-center rounded-full w-5 h-5 border flex-shrink-0 ${addon.calculationType === 'per_item' ? 'border-indigo-600 bg-indigo-100' : 'border-slate-300'}`}>
+                                  {addon.calculationType === 'per_item' && <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full" />}
+                                </div>
+                                <div className="text-right">
+                                  <div className={`font-bold text-sm ${addon.calculationType === 'per_item' ? 'text-indigo-900' : 'text-slate-700'}`}>1. مبدأ "الارتباط بالكمية" (لكل طبق)</div>
+                                  <div className="text-xs text-slate-500 mt-1 leading-relaxed">يُضرب سعر الملحق أو الإضافة بعدد الأطباق المطلوبة. (مثال: حشو إضافي، صوص خاص. لو طلب العميل 3 أطباق سيتم احتساب قيمة الحشو 3 مرات ليغطي كل طبق).</div>
+                                </div>
+                              </div>
+                            </div>
+                          </label>
+
+                          <label className={`relative flex cursor-pointer rounded-xl border p-4 focus:outline-none transition-all ${addon.calculationType === 'per_x_items' ? 'bg-indigo-50/50 border-indigo-400 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}>
+                            <input type="radio" name={`calcType-${addon.id}`} className="sr-only" checked={addon.calculationType === 'per_x_items'} onChange={() => { const newAddons = [...(productForm as any).addons]; newAddons[index].calculationType = 'per_x_items'; setProductForm(prev => ({ ...prev, addons: newAddons })); }} />
+                            <div className="flex w-full items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`flex items-center justify-center rounded-full w-5 h-5 border flex-shrink-0 ${addon.calculationType === 'per_x_items' ? 'border-indigo-600 bg-indigo-100' : 'border-slate-300'}`}>
+                                  {addon.calculationType === 'per_x_items' && <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full" />}
+                                </div>
+                                <div className="text-right">
+                                  <div className={`font-bold text-sm ${addon.calculationType === 'per_x_items' ? 'text-indigo-900' : 'text-slate-700'}`}>2. مبدأ "التجميع والتخصيص" (كل X أطباق تحسب مرة)</div>
+                                  <div className="text-xs text-slate-500 mt-1 leading-relaxed">يُسمح للملحق بالارتباط بمجموعة من الأطباق معاً لتوفير التكاليف. (مثال: تقديم صينية عزايم كبيرة تتسع لكل 3 أطباق بسعر موحد. لو طلب العميل 3 أطباق، سيحسب سعر صينية واحدة).</div>
+                                </div>
+                              </div>
+                            </div>
+                          </label>
+
+                          <label className={`relative flex cursor-pointer rounded-xl border p-4 focus:outline-none transition-all ${addon.calculationType === 'fixed' ? 'bg-indigo-50/50 border-indigo-400 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}>
+                            <input type="radio" name={`calcType-${addon.id}`} className="sr-only" checked={addon.calculationType === 'fixed'} onChange={() => { const newAddons = [...(productForm as any).addons]; newAddons[index].calculationType = 'fixed'; setProductForm(prev => ({ ...prev, addons: newAddons })); }} />
+                            <div className="flex w-full items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`flex items-center justify-center rounded-full w-5 h-5 border flex-shrink-0 ${addon.calculationType === 'fixed' ? 'border-indigo-600 bg-indigo-100' : 'border-slate-300'}`}>
+                                  {addon.calculationType === 'fixed' && <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full" />}
+                                </div>
+                                <div className="text-right">
+                                  <div className={`font-bold text-sm ${addon.calculationType === 'fixed' ? 'text-indigo-900' : 'text-slate-700'}`}>3. مبدأ "الثبات المطلق" (Fixed - للطلب كامل)</div>
+                                  <div className="text-xs text-slate-500 mt-1 leading-relaxed">يُحسب الملحق مرة واحدة فقط مهما كان عدد الأطباق المطلوبة في سلة العميل. (مثال: طلب تغليف فاخر أو إضافة كرتون هدية واحد لجميع الأصناف المقترنة في نفس الطلب).</div>
+                                </div>
+                              </div>
+                            </div>
+                          </label>
+                        </div>
                       </div>
 
                       {addon.calculationType === 'per_x_items' && (
