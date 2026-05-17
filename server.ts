@@ -5,6 +5,7 @@ import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import fsSync from 'fs';
 import 'dotenv/config';
+import { GoogleGenAI } from "@google/genai";
 
 let firebaseInitialized = false;
 let db: any = null;
@@ -2079,6 +2080,63 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
   app.get("/run-alerts", alertsRequireSecret, alertsRunHandler);
   app.post("/run-alerts", alertsRequireSecret, alertsRunHandler);
   // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_END
+
+  app.post("/api/smart-studio/generate", express.json({ limit: '50mb' }), async (req, res) => {
+    try {
+      const { imageContent, format, theme } = req.body;
+      if (!imageContent) return res.status(400).json({ error: "Missing image" });
+      
+      let systemInstruction = "أنت خبير في تصوير الأطعمة وتصميم الإعلانات.";
+      let autoPrompt = `بناءً على الصورة المرفقة للطبق، من فضلك قم بتوليد صورة تسويقية احترافية مع الحفاظ المطلق على الطبق الأصلي بدون أي تعديل أو تغيير في مكوناته أو شكله.
+القواعد الصارمة (STRICT RULES):
+- الطبق الأساسي يجب أن يبقى حقيقياً كما هو. ممنوع تغيير شكل الطبق أو مكوناته أو ألوانه.
+- من فضلك قم بتحسين الإضاءة بشكل طفيف لتكون احترافية.
+`;
+      if (theme) {
+        autoPrompt += `\nالمشهد المطلوب (Theme): ${theme}. أضف خلفية مناسبة لهذا الثيم بشكل واقعي لا يطغى على الطبق.`;
+      }
+      
+      let width = 1000, height = 1000; // 1:1
+      let ar = '1:1';
+      if (format === '9:16') { width = 1080; height = 1920; ar = '9:16'; }
+      if (format === '4:3') { width = 1200; height = 900; ar = '4:3'; }
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-image-preview',
+        contents: {
+          parts: [
+            { inlineData: { data: imageContent, mimeType: 'image/jpeg' } },
+            { text: autoPrompt }
+          ]
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: ar as any
+          }
+        }
+      });
+      
+      let finalImgBase64 = null;
+      if (response && response.candidates && response.candidates.length > 0) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData) {
+            finalImgBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+            break;
+          }
+        }
+      }
+      
+      if (!finalImgBase64) {
+        return res.status(500).json({ error: "No image output generated" });
+      }
+
+      res.json({ imageUrl: finalImgBase64 });
+    } catch (e: any) {
+      console.error("/api/smart-studio/generate error:", e);
+      res.status(500).json({ error: e.message || "Failed to generate image" });
+    }
+  });
 
   app.use("/api", (req, res) => {
     console.warn(`404 API Route Not Found: ${req.method} ${req.originalUrl}`);

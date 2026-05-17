@@ -59,6 +59,7 @@ import OrderPage from './components/OrderPage';
 import { isPendingStatus, isFailedStatus, isPaidStatus } from './lib/status-utils';
 const TrackPage = React.lazy(() => import('./components/TrackPage'));
 const AIAssistant = React.lazy(() => import('./components/AIAssistant'));
+import { SmartContentStudio } from './components/SmartContentStudio';
 import PartnerDashboard from './components/PartnerDashboard';
 import Login from './components/Login';
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
@@ -1457,6 +1458,7 @@ const MainApp: React.FC = () => {
         />
       );
       case 'ai': return <AIAssistant data={data} />;
+      case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
       case 'settings': return <GeneralSettings data={data} setData={setData} appMode={appMode} switchMode={switchMode} addToast={addToast} />;
       case 'suppliers-audit': return (
         <SupplierAudit 
