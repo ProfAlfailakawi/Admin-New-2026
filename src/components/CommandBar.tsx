@@ -48,6 +48,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
  { id: 'dashboard-loyalty', label: 'الولاء (Loyalty) 🥇', icon: <TrendingUp size={18} />, category: 'الولاء والكوبونات', action: () => onNavigate('dashboard', { exactId: 'loyalty' }), roles: ['admin'] },
  { id: 'dashboard-promocodes', label: 'الكوبونات (Coupons) 🎟️', icon: <Sparkles size={18} />, category: 'الولاء والكوبونات', action: () => onNavigate('dashboard', { exactId: 'promocodes' }), roles: ['admin'] },
  { id: 'ai', label: 'المساعد الذكي (Chat) ✨', icon: <TrendingUp size={18} />, category: 'الذكاء الاصطناعي', action: () => onNavigate('ai', {}), roles: ['admin', 'partner'] },
+ { id: 'smart-studio', label: 'استوديو المحتوى الذكي 📸', icon: <Sparkles size={18} />, category: 'الذكاء الاصطناعي', action: () => onNavigate('smart-studio', {}), roles: ['admin'] },
  { id: 'new-invoice', label: 'إضافة فاتورة جديدة ➕', icon: <PlusCircle size={18} />, category: 'الإجراءات السريعة', action: () => onNavigate('new-invoice', {}), roles: ['admin', 'partner'] },
  { id: 'customers-page', label: 'بيانات العملاء 👥', icon: <Users size={18} />, category: 'التنقل', action: () => onNavigate('customers', {}), roles: ['admin'] },
  { id: 'products-page', label: 'إدارة المنتجات 📦', icon: <Package size={18} />, category: 'التنقل', action: () => onNavigate('products', {}), roles: ['admin'] },
