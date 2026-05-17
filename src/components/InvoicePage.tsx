@@ -69,7 +69,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  const [promoCodeInput, setPromoCodeInput] = useState('');
  const [appliedPromoCode, setAppliedPromoCode] = useState<PromoCode | null>(null);
 
- const [cart, setCart] = useState<Record<string, { quantity: number, priceAtTime: number, costAtTime: number, itemNotes?: string }>>({}); // productId: {quantity, priceAtTime, costAtTime, itemNotes}
+ const [cart, setCart] = useState<Record<string, { quantity: number, priceAtTime: number, costAtTime: number, itemNotes?: string, addons?: any[] }>>({}); // productId: {quantity, priceAtTime, costAtTime, itemNotes}
  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10));
  const [searchQuery, setSearchQuery] = useState('');
 
@@ -193,15 +193,14 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  setIsManualDelivery(isManual);
  }
 
- const newCart: Record<string, { quantity: number, priceAtTime: number, costAtTime: number, itemNotes?: string }> = {};
+ const newCart: Record<string, { quantity: number, priceAtTime: number, costAtTime: number, itemNotes?: string, addons?: any[] }> = {};
  (inv.items || []).forEach(item => {
  const p = (data.products || []).find(prod => prod.id === item.productId);
  newCart[item.productId] = { 
  quantity: item.quantity || 1, 
  priceAtTime: item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (p?.price || 0)), 
  costAtTime: item.costAtTime !== undefined ? item.costAtTime : (p?.cost || 0),
- itemNotes: item.itemNotes || ''
- };
+ itemNotes: item.itemNotes || '', addons: (item as any).addons || [] };
  });
  setCart(newCart);
  setInvoiceDate(inv.date.slice(0, 10));
@@ -503,15 +502,52 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  qty: dataItem.quantity, 
  priceAtTime: dataItem.priceAtTime, 
  costAtTime: dataItem.costAtTime,
- itemNotes: dataItem.itemNotes 
+ itemNotes: dataItem.itemNotes, addons: dataItem.addons || [] 
  };
- }).filter((item): item is { product: Product; qty: number; priceAtTime: number; costAtTime: number; itemNotes: string | undefined } => !!item.product);
+ }).filter((item): item is { product: Product; qty: number; priceAtTime: number; costAtTime: number; itemNotes: string | undefined; addons: any[] } => !!item.product);
 
  const currentInvoice = editingInvoiceId ? (data.invoices || []).find(i => i.id === editingInvoiceId) : null;
  const isPaid = currentInvoice?.paymentStatus === 'paid';
 
- const subtotal = Math.round(cartItems.reduce((acc, item) => acc + (Number(item.priceAtTime) || 0) * (Number(item.qty) || 0), 0) * 1000) / 1000;
- const totalCost = Math.round(cartItems.reduce((acc, item) => acc + (Number(item.costAtTime) || 0) * (Number(item.qty) || 0), 0) * 1000) / 1000;
+ 
+  const subtotal = Math.round(cartItems.reduce((acc, item) => {
+    let itemTotal = (Number(item.priceAtTime) || 0) * (Number(item.qty) || 0);
+    // Addons calculation
+    if (item.addons && item.addons.length > 0) {
+      item.addons.forEach(addon => {
+        let addonQty = 0;
+        if (addon.calculationType === 'per_item') {
+          addonQty = Number(item.qty);
+        } else if (addon.calculationType === 'per_x_items') {
+          addonQty = Math.floor(Number(item.qty) / (addon.xItemsThreshold || 1));
+        } else if (addon.calculationType === 'fixed') {
+          addonQty = 1;
+        }
+        itemTotal += (Number(addon.price) || 0) * addonQty;
+      });
+    }
+    return acc + itemTotal;
+  }, 0) * 1000) / 1000;
+
+ 
+  const totalCost = Math.round(cartItems.reduce((acc, item) => {
+    let costTotal = (Number(item.costAtTime) || 0) * (Number(item.qty) || 0);
+    if (item.addons && item.addons.length > 0) {
+      item.addons.forEach(addon => {
+        let addonQty = 0;
+        if (addon.calculationType === 'per_item') {
+          addonQty = Number(item.qty);
+        } else if (addon.calculationType === 'per_x_items') {
+          addonQty = Math.floor(Number(item.qty) / (addon.xItemsThreshold || 1));
+        } else if (addon.calculationType === 'fixed') {
+          addonQty = 1;
+        }
+        costTotal += (Number(addon.cost) || 0) * addonQty;
+      });
+    }
+    return acc + costTotal;
+  }, 0) * 1000) / 1000;
+
  
  const discountAmount = discountType === 'percentage' 
  ? Math.round((subtotal * (Number(discountValue) / 100)) * 1000) / 1000
@@ -682,8 +718,7 @@ setPaymentLink(createdLink);
  quantity: item.qty,
  priceAtTime: item.priceAtTime,
  costAtTime: item.costAtTime,
- itemNotes: item.itemNotes || ''
- })),
+ itemNotes: item.itemNotes || '', addons: item.addons || [] })),
  deliveryFee,
  deliveryType,
  deliveryInfo: finalDeliveryInfo,
@@ -805,13 +840,35 @@ setPaymentLink(createdLink);
  if (!printWindow) return;
 
  const itemsHtml = (lastInvoice?.items || []).map(item => {
- const product = (data?.products || []).find(p => p.id === item.productId);
- const price = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (product?.price || 0));
- return `
+    const product = (data?.products || []).find(p => p.id === item.productId);
+    let originalPrice = item.priceAtTime !== undefined ? item.priceAtTime : ((item as any).price !== undefined ? (item as any).price : (product?.price || 0));
+    let displayPrice = Number(originalPrice);
+    
+    let addonsHtml = '';
+    if (item.addons && item.addons.length > 0) {
+      item.addons.forEach((addon: any) => {
+        let addonQty = 0;
+        if (addon.calculationType === 'per_item') addonQty = item.quantity;
+        else if (addon.calculationType === 'per_x_items') addonQty = Math.floor(item.quantity / (addon.xItemsThreshold || 1));
+        else if (addon.calculationType === 'fixed') addonQty = 1;
+        
+        if (addonQty > 0) {
+           if (addon.isHiddenPrice) {
+               displayPrice += (Number(addon.price) * addonQty) / (item.quantity || 1);
+               addonsHtml += '<div class="item-cat" style="color:#4b5563; margin-top:2px; font-size:12px;">+ ' + addon.name + (addonQty > 1 ? ' (' + addonQty + ')' : '') + '</div>';
+           } else {
+               addonsHtml += '<div class="item-cat" style="color:#4b5563; margin-top:2px; font-size:12px;">+ ' + addon.name + (addonQty > 1 ? ' (' + addonQty + ')' : '') + ' - (' + (Number(addon.price) * addonQty).toFixed(3) + ' د.ك)</div>';
+           }
+        }
+      });
+    }
+
+    return `
  <tr class="item-row">
  <td>
  <div class="item-details">
  <div class="item-name">${product?.name || 'منتج غير معروف'}</div>
+              ${addonsHtml}
  ${item.itemNotes ? `<div class="item-cat" style="color:#d97706">${item.itemNotes}</div>` : ''}
  </div>
  </td>
@@ -1703,6 +1760,52 @@ setPaymentLink(createdLink);
  </div>
  </div>
  </div>
+ 
+ {/* Addons Selection UI */}
+ {item.product?.addons && item.product.addons.length > 0 && (
+     <div className="mt-3 pt-3 border-t border-slate-100 w-full pl-8">
+         <p className="text-[10px] font-bold text-slate-400 mb-2">إضافات متاحة للطلب:</p>
+         <div className="flex flex-wrap gap-2">
+             {item.product.addons.map(addon => {
+                 const isSelected = (item.addons || []).some(a => a.id === addon.id);
+                 return (
+                     <button
+                         key={addon.id}
+                         onClick={() => {
+                             if (isPaid) return;
+                             setCart(prev => {
+                                 const existingCartItem = prev[item.product!.id];
+                                 if (!existingCartItem) return prev;
+                                 let newAddons = [...(existingCartItem.addons || [])];
+                                 if (isSelected) {
+                                     newAddons = newAddons.filter(a => a.id !== addon.id);
+                                 } else {
+                                     newAddons.push(addon);
+                                 }
+                                 return {
+                                     ...prev,
+                                     [item.product!.id]: {
+                                         ...existingCartItem,
+                                         addons: newAddons
+                                     }
+                                 };
+                             });
+                         }}
+                         className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${isSelected ? 'bg-primary border-primary text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+                     >
+                         <span>{addon.name}</span>
+                         {!addon.isHiddenPrice && addon.price > 0 && (
+                             <span className={isSelected ? "text-white/80" : "text-slate-400"}>
+                                 (+{Number(addon.price).toFixed(3)})
+                             </span>
+                         )}
+                     </button>
+                 );
+             })}
+         </div>
+     </div>
+ )}
+
  </div>
 ))}
  {cartItems.length === 0 && (
