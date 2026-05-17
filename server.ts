@@ -2101,7 +2101,14 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       if (format === '9:16') { width = 1080; height = 1920; ar = '9:16'; }
       if (format === '4:3') { width = 1200; height = 900; ar = '4:3'; }
 
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
       const response = await ai.models.generateContent({
         model: 'gemini-3.1-flash-image-preview',
         contents: {
