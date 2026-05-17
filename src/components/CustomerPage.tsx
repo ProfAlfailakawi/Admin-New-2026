@@ -448,6 +448,26 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  <td className="p-3 text-left">
  <div className="flex items-center gap-2 justify-end">
  <button 
+ title="تعديل العميل"
+ onClick={(e) => {
+ e.stopPropagation();
+ openEditModal(customer);
+ }}
+ className="p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-700 transition-all active:scale-90"
+ >
+ <Edit2 size={18} />
+ </button>
+ <button 
+ title="حذف العميل"
+ onClick={(e) => {
+ e.stopPropagation();
+ setCustomerToDelete(customer);
+ }}
+ className="p-2 bg-red-50 hover:bg-red-100 rounded-lg text-red-500 hover:text-red-700 transition-all active:scale-90"
+ >
+ <Trash2 size={18} />
+ </button>
+ <button 
  title="واتساب - إرسال عرض مخصص"
  onClick={(e) => {
  e.stopPropagation();
