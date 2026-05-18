@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout } from 'lucide-react';
+import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from '../constants';
+import { toast } from 'sonner';
 import { Product } from '../types';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
@@ -32,28 +34,120 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   ];
 
   const themes = [
-    { id: 'تراثي', label: 'ثيم تراثي كويتي', desc: 'خلفية تراثية، سفرة عائلية دافئة', icon: '🏛️', color: 'bg-amber-100 text-amber-700' },
-    { id: 'فاخر', label: 'ثيم مطعم فاخر', desc: 'إضاءة سينمائية، خلفية داكنة راقية', icon: '💎', color: 'bg-indigo-100 text-indigo-700' },
-    { id: 'بسيط', label: 'لقطة مقربة بسيطة', desc: 'خلفية نظيفة، تركيز على الطبق', icon: '🍽️', color: 'bg-slate-100 text-slate-700' },
-    { id: 'رمضان', label: 'ثيم رمضاني', desc: 'فوانيس، إضاءة ناعمة، ضيافة خليجية', icon: '🌙', color: 'bg-emerald-100 text-emerald-700' },
-    { id: 'سايبربانك', label: 'ثيم سايبربانك', desc: 'أضواء نيون، أجواء ليلية مستقبلية مذهلة', icon: '🔋', color: 'bg-pink-100 text-pink-700' },
-    { id: 'سينمائي', label: 'إخراج سينمائي', desc: 'إضاءة درامية، خلفية ضبابية باحترافية', icon: '🎬', color: 'bg-rose-100 text-rose-700' },
-    { id: 'طبيعة', label: 'أجواء حديقة', desc: 'خلفية خضراء، إضاءة شمس طبيعية نافذة', icon: '🌿', color: 'bg-green-100 text-green-700' },
-    { id: '3D', label: '3D مذهل', desc: 'خلفية ثلاثية الأبعاد بأسلوب Render احترافي', icon: '🎨', color: 'bg-orange-100 text-orange-700' },
-    { id: 'خيال', label: 'أجواء خيالية', desc: 'خلفية فنية، ألوان سحرية، إبداع مطلق', icon: '🦄', color: 'bg-indigo-100 text-indigo-700' },
-    { id: 'تنظيف', label: 'تحسين واقعي فقط', desc: 'نفس المشهد مع تحسين الإضاءة والألوان', icon: '✨', color: 'bg-blue-100 text-blue-700' }
+    { id: 'تراثي', label: 'تراثي كويتي', desc: 'سدو، دلال قهوة، بيوت طين فخمة', icon: '🏛️', color: 'bg-amber-100 text-amber-700' },
+    { id: 'مودرن كافيه', label: 'كافيه كويتي', desc: 'رخام مودرن، نباتات، إضاءة نهارية', icon: '☕', color: 'bg-stone-100 text-stone-700' },
+    { id: 'بحر', label: 'بحر الكويت', desc: 'واجهة بحرية، شاطئ المسيلة، غروب', icon: '🌊', color: 'bg-blue-100 text-blue-700' },
+    { id: 'فاخر', label: 'مطعم أفنيوز', desc: 'إضاءة راقية، ديكور مخملي عالمي', icon: '💎', color: 'bg-indigo-100 text-indigo-700' },
+    { id: 'بسيط', label: 'تصوير ستوديو', desc: 'خلفية نظيفة، تركيز فني عالي', icon: '🍽️', color: 'bg-slate-100 text-slate-700' },
+    { id: 'رمضان', label: 'رمضانيات', desc: 'فوانيس، ليالي رمضان الكويتية', icon: '🌙', color: 'bg-emerald-100 text-emerald-700' },
+    { id: 'سينمائي', label: 'بورتريه سينمائي', desc: 'خلفية ضبابية عازلة للطبق', icon: '🎬', color: 'bg-rose-100 text-rose-700' },
+    { id: 'تنظيف', label: 'تحسين فقط', desc: 'تحسين الألوان والإضاءة الأصلية', icon: '✨', color: 'bg-blue-100 text-blue-700' }
   ];
 
   const moods = [
-    { id: 'دافئ', label: 'إضاءة دافئة', icon: '☀️' },
+    { id: 'دافئ', label: 'شمس دافئة', icon: '☀️' },
     { id: 'بارد', label: 'إضاءة باردة', icon: '❄️' },
-    { id: 'درامي', label: 'تباين عالي', icon: '🎭' },
-    { id: 'ناعم', label: 'إضاءة ناعمة', icon: '☁️' }
+    { id: 'غروب', label: 'وقت الغروب', icon: '🌇' },
+    { id: 'ناعم', label: 'إضاءة استوديو', icon: '☁️' }
   ];
 
   const [selectedMood, setSelectedMood] = useState('دافئ');
+  const [showInstagramPreview, setShowInstagramPreview] = useState(false);
+  const [useBranding, setUseBranding] = useState(true);
+  const [logoOpacity, setLogoOpacity] = useState(0.7);
+  const [logoPosition, setLogoPosition] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top-right');
+  const [aiImage, setAiImage] = useState<string | null>(null);
 
-  const compressImage = (base64Str: string, maxWidth = 1080): Promise<{base64: string, size: number, originalSize: number}> => {
+  useEffect(() => {
+    if (aiImage) {
+      applyBranding(aiImage).then(setGeneratedImage);
+    }
+  }, [useBranding, logoOpacity, logoPosition, aiImage]);
+
+  const applyBranding = (sourceImage: string): Promise<string> => {
+    return new Promise((resolve) => {
+      if (!useBranding) {
+        resolve(sourceImage);
+        return;
+      }
+
+      const logoUrl = data.settings?.companyLogo || DEFAULT_GLOBAL_LOGO;
+      if (!logoUrl) {
+        resolve(sourceImage);
+        return;
+      }
+
+      const mainImg = new Image();
+      const logoImg = new Image();
+      
+      mainImg.crossOrigin = "anonymous";
+      logoImg.crossOrigin = "anonymous";
+
+      mainImg.src = sourceImage;
+      mainImg.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = mainImg.width;
+        canvas.height = mainImg.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(sourceImage);
+          return;
+        }
+
+        // Draw main image
+        ctx.drawImage(mainImg, 0, 0);
+
+        logoImg.src = logoUrl;
+        logoImg.onload = () => {
+          // Logo size: 12% of the width or height
+          const logoScale = 0.12;
+          const logoSize = Math.min(canvas.width, canvas.height) * logoScale;
+          
+          let x = 0, y = 0;
+          const padding = canvas.width * 0.05;
+
+          if (logoPosition === 'top-right') {
+            x = canvas.width - logoSize - padding;
+            y = padding;
+          } else if (logoPosition === 'top-left') {
+            x = padding;
+            y = padding;
+          } else if (logoPosition === 'bottom-right') {
+            x = canvas.width - logoSize - padding;
+            y = canvas.height - logoSize - padding;
+          } else if (logoPosition === 'bottom-left') {
+            x = padding;
+            y = canvas.height - logoSize - padding;
+          }
+
+          // Smart Creative Filter: "ذكية ابداعية مفرغ"
+          // We apply a slight glow or shadow to make it pop on any background
+          ctx.shadowColor = "rgba(0,0,0,0.3)";
+          ctx.shadowBlur = 15;
+          ctx.globalAlpha = logoOpacity;
+          
+          // Draw the logo correctly maintaining aspect ratio
+          const aspect = logoImg.width / logoImg.height;
+          let drawW = logoSize;
+          let drawH = logoSize / aspect;
+          
+          if (aspect < 1) {
+             drawH = logoSize;
+             drawW = logoSize * aspect;
+          }
+
+          ctx.drawImage(logoImg, x, y, drawW, drawH);
+          
+          resolve(canvas.toDataURL('image/png'));
+        };
+
+        logoImg.onerror = () => resolve(sourceImage);
+      };
+      mainImg.onerror = () => resolve(sourceImage);
+    });
+  };
+
+  const compressImage = (base64Str: string, maxWidth = 854): Promise<{base64: string, size: number, originalSize: number}> => {
     return new Promise((resolve) => {
       const img = new Image();
       img.src = base64Str;
@@ -141,7 +235,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
       const resData = await response.json();
       if (resData.imageUrl) {
-        setGeneratedImage(resData.imageUrl);
+        setAiImage(resData.imageUrl);
+        const branded = await applyBranding(resData.imageUrl);
+        setGeneratedImage(branded);
       } else {
         alert("حدث خطأ أثناء الإنشاء");
       }
@@ -165,6 +261,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    toast.success('تم تحميل الصورة بنجاح!');
   };
 
   const generateCaption = async () => {
@@ -386,6 +483,68 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               </div>
             </div>
 
+            <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                  <Layout size={16} className="text-indigo-600" />
+                  4. هوية العلامة (Logo)
+                </h3>
+                <button 
+                  onClick={() => setUseBranding(!useBranding)}
+                  className={cn(
+                    "w-12 h-6 rounded-full transition-all relative p-1",
+                    useBranding ? "bg-indigo-600" : "bg-slate-200"
+                  )}
+                >
+                  <div className={cn(
+                    "w-4 h-4 bg-white rounded-full transition-all shadow-sm",
+                    useBranding ? "translate-x-6" : "translate-x-0"
+                  )} />
+                </button>
+              </div>
+              
+              {useBranding && (
+                <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                  <div className="grid grid-cols-4 gap-1">
+                    {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map(pos => (
+                      <button
+                        key={pos}
+                        onClick={() => setLogoPosition(pos)}
+                        className={cn(
+                          "h-8 border rounded-lg flex items-center justify-center transition-all",
+                          logoPosition === pos ? "bg-indigo-50 border-indigo-500" : "bg-white border-slate-100"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-2 h-2 rounded-full",
+                          logoPosition === pos ? "bg-indigo-600" : "bg-slate-300",
+                          pos === 'top-left' && "mr-2 mb-2",
+                          pos === 'top-right' && "ml-2 mb-2",
+                          pos === 'bottom-left' && "mr-2 mt-2",
+                          pos === 'bottom-right' && "ml-2 mt-2"
+                        )} />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="space-y-1">
+                     <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                        <span>درجة الشفافية</span>
+                        <span>{Math.round(logoOpacity * 100)}%</span>
+                     </div>
+                     <input 
+                        type="range" 
+                        min="0.1" 
+                        max="1" 
+                        step="0.05"
+                        value={logoOpacity}
+                        onChange={(e) => setLogoOpacity(parseFloat(e.target.value))}
+                        className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                     />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="p-5 bg-amber-50 rounded-2xl border border-amber-200">
               <p className="text-xs text-amber-800 font-medium leading-relaxed">
                 <b className="block mb-1">💡 قاعدة حماية الهوية:</b>
@@ -514,21 +673,70 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                           selectedFormat === '4:3' ? "aspect-video" : "aspect-square"
                         )} 
                       />
-                      <div className="absolute top-6 right-6">
+                      <div className="absolute top-6 right-6 flex gap-2">
+                        <button 
+                          onClick={() => setShowInstagramPreview(!showInstagramPreview)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-[10px] font-black backdrop-blur-md shadow-lg border flex items-center gap-2 transition-all",
+                            showInstagramPreview ? "bg-white text-indigo-600 border-indigo-200" : "bg-black/50 text-white border-white/20"
+                          )}
+                        >
+                           <Layout size={12} />
+                           معاينة إنستقرام
+                        </button>
                         <div className="bg-indigo-600/90 text-white px-3 py-1.5 rounded-full text-[10px] font-black backdrop-blur-md shadow-lg border border-white/20 flex items-center gap-2">
                            <Sparkles size={12} />
-                           AI Masterpiece
+                           1000% Realistic
                         </div>
                       </div>
+
+                      {/* Instagram UI Overlay */}
+                      <AnimatePresence>
+                        {showInstagramPreview && (
+                          <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-white pointer-events-none z-20 flex flex-col"
+                          >
+                             {/* Mock Insta Top */}
+                             <div className="p-3 border-b flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-0.5">
+                                   <div className="w-full h-full rounded-full bg-white p-0.5">
+                                      <div className="w-full h-full rounded-full bg-slate-200" />
+                                   </div>
+                                </div>
+                                <span className="text-xs font-bold text-slate-900">kitchen_alturath</span>
+                                <div className="mr-auto">...</div>
+                             </div>
+                             {/* The Image */}
+                             <div className="flex-1 overflow-hidden">
+                                <img src={generatedImage} alt="Preview" className="w-full h-full object-cover" />
+                             </div>
+                             {/* Insta Actions */}
+                             <div className="p-3">
+                                <div className="flex gap-4 mb-2">
+                                   <div className="w-5 h-5 border-2 border-slate-900 rounded-full" />
+                                   <div className="w-5 h-5 border-2 border-slate-900 rounded-full" />
+                                   <div className="w-5 h-5 border-2 border-slate-900 rounded-full" />
+                                </div>
+                                <div className="text-[10px] font-bold">1,248 likes</div>
+                                <div className="text-[10px] mt-1">
+                                   <span className="font-bold">kitchen_alturath</span> {aiCaption?.split('\n')[0] || 'تجربة لا تنسى...'}
+                                </div>
+                             </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                     
                     <div className="mt-8 flex flex-col gap-4">
-                       <div className="flex gap-3 justify-center">
+                       <div className="flex flex-wrap gap-3 justify-center">
                           <button 
                             onClick={handleDownload}
                             className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-indigo-200 transition-all hover:scale-105 active:scale-95"
                           >
-                            <Download size={20} /> تحميل العمل الفني
+                            <Download size={20} /> تحميل الصورة
                           </button>
                           
                           <button 
@@ -537,27 +745,42 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                             className="px-8 py-4 bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50 rounded-2xl font-bold flex items-center gap-2 transition-all disabled:opacity-50"
                           >
                             {isCapturing ? <Loader2 className="animate-spin" size={20} /> : <Zap size={20} className="text-amber-500" />}
-                            نص تسويقي ذكي
+                            توليد نص ناري 🔥
                           </button>
                        </div>
 
                        <AnimatePresence>
                          {aiCaption && (
                            <motion.div 
-                             initial={{ opacity: 0, y: 10 }}
-                             animate={{ opacity: 1, y: 0 }}
-                             className="p-6 bg-amber-50/50 border border-amber-200 rounded-3xl relative overflow-hidden"
+                             initial={{ opacity: 0, scale: 0.95 }}
+                             animate={{ opacity: 1, scale: 1 }}
+                             className="p-6 bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-3xl relative overflow-hidden text-right"
                            >
-                             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                                <Zap className="w-20 h-20 text-amber-500" />
+                             <div className="absolute -top-4 -left-4 p-4 opacity-10 pointer-events-none">
+                                <Sparkles className="w-32 h-32 text-indigo-400" />
                              </div>
-                             <p className="text-sm text-amber-900 leading-relaxed font-medium text-right relative z-10 whitespace-pre-wrap">{aiCaption}</p>
-                             <button 
-                               onClick={() => navigator.clipboard.writeText(aiCaption)}
-                               className="mt-4 text-[10px] font-bold text-amber-700 hover:underline flex items-center gap-1"
-                             >
-                                <Check size={10} /> نسخ النص
-                             </button>
+                             <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                  <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">محتوى السوشيال ميديا الذكي</span>
+                                </div>
+                                <button 
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(aiCaption);
+                                    toast.success('تم نسخ النص والهاشتاقات!');
+                                  }}
+                                  className="text-[10px] font-black bg-indigo-500 text-white px-3 py-1 rounded-full hover:bg-indigo-400 transition-colors shadow-lg flex items-center gap-1"
+                                >
+                                  <Save size={10} /> نسخ للنشر فوراً
+                                </button>
+                             </div>
+                             <p className="text-sm text-slate-100 leading-relaxed font-medium relative z-10 whitespace-pre-wrap text-right">{aiCaption}</p>
+                             
+                             <div className="mt-4 flex gap-2">
+                               {['#كويت', '#فود', '#تراث'].map(tag => (
+                                 <span key={tag} className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-indigo-300 border border-white/5">{tag}</span>
+                               ))}
+                             </div>
                            </motion.div>
                          )}
                        </AnimatePresence>

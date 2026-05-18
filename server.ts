@@ -2086,30 +2086,30 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       const { imageContent, mimeType, format, theme, mood } = req.body;
       if (!imageContent) return res.status(400).json({ error: "Missing image" });
       
-      const systemInstruction = "أنت مدير فني عالمي متخصص في تصوير الأطعمة للمجلات الراقية والسوشيال ميديا.";
-      let autoPrompt = `بناءً على الصورة المرفقة للطبق، قم بتوليد عمل فني إبداعي مذهل (Extraordinary Creativity).
-القواعد الصارمة (STRICT RULES):
-1. حافظ تماماً على شكل الطبق الأصلي ومكوناته كما هي في الصورة (No hallucinations on the main dish).
-2. اجعل الخلفية والمحيط "إبداعي جداً" ومبني على الثيم المختار.
-3. الإضاءة يجب أن تكون احترافية وسينمائية وتحاكي المود المختار.
+      const systemInstruction = "أنت مدير فني عالمي متخصص في تصوير الأطعمة للمجلات الراقية والسوشيال ميديا، خبير في البيئة والجماليات الكويتية.";
+      let autoPrompt = `بناءً على الصورة المرفقة للطبق، قم بتوليد عمل فني إبداعي فائق الواقعية (Ultra-Realistic 8K Professional Photography).
+ القواعد الصارمة (STRICT RULES):
+- الطبق (Star of the show): حافظ تماماً على شكله، مكوناته، وطريقة تقديمه دون أي تغيير (Zero Hallucinations).
+- البيئة والمحيط: صمم خلفية تدعم "واقعية" المشاهد في البيئة الكويتية الراقية.
+- الإضاءة والتكوين: استخدم إضاءة احترافية (Cinematic Lighting) واترك مساحات هادئة في الزوايا تسمح بوضع علامة تجارية (Logo) لاحقاً.
 
-التفاصيل المطلوبة:
-- الثيم: ${theme || 'بسيط'}.
-- المود الفني: ${mood || 'دافئ'}.
+ التفاصيل المطلوبة بناءً على الاختيارات:
+ - الثيم: ${theme || 'بسيط'}.
+ - المود الفني: ${mood || 'دافئ'}.
 
-وصف إبداعي إضافي:
-- إذا كان الثيم "سايبربانك": استخدم انعكاسات نيون، أجواء ليلية متطورة، طاقة حيوية.
-- إذا كان الثيم "تراثي": استخدم خامات قديمة، سدو، دلال قهوة في الخلفية، دفء الصحراء.
-- إذا كان الثيم "فاخر": استخدم أسطح رخامية، منسوجات مخملية، إضاءة خافتة مركزة.
-- إذا كان الثيم "سينمائي": ركز على عمق الميدان (Portrait mode effects)، غبار ضوئي، تباين لوني قوي.
+ توجيهات إضافية للواقعية الكويتية:
+ - إذا كان الثيم "تراثي": استخدم خلفية سدو ناعم، دلال قهوة نحاسية، بخور خفيف، ألوان دافئة.
+ - إذا كان الثيم "مودرن كافيه": أسطح رخامية أو خشبية مودرن، إضاءة نهارية ساطعة (Kuwait City Style).
+ - إذا كان الثيم "بحر": إضاءة ساعة الغروب الساحرة على شواطئ الكويت.
+ - إذا كان الثيم "فاخر": إضاءة خافتة، أسطح داكنة فخمة، وانعكاسات احترافية.
 
-الهدف: صورة "جمال غير عادي" تبهر المشاهد وتسرع عملية اتخاذ قرار الشراء.
-`;
+ الهدف: صورة فوتوغرافية مذهلة (Professional Render) تجعل الطبق يبدو وكأنه من قائمة طعام عالمية.
+ `;
       
-      let width = 1024, height = 1024;
+      let width = 768, height = 768;
       let ar = '1:1';
-      if (format === '9:16') { width = 1080; height = 1920; ar = '9:16'; }
-      if (format === '4:3') { width = 1024; height = 768; ar = '4:3'; }
+      if (format === '9:16') { width = 720; height = 1280; ar = '9:16'; }
+      if (format === '4:3') { width = 960; height = 720; ar = '4:3'; }
 
       if (!process.env.GEMINI_API_KEY) {
         return res.status(500).json({ error: "GEMINI_API_KEY is not configured on server", needsKey: true });
@@ -2191,16 +2191,13 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
         model: "gemini-1.5-flash",
         contents: {
           parts: [
-            { text: prompt },
-            { inlineData: { data: image, mimeType: 'image/jpeg' } }
+            { inlineData: { data: image, mimeType: 'image/png' } },
+            { text: prompt }
           ]
         }
       });
 
-      let caption = "";
-      if (result && result.candidates && result.candidates.length > 0) {
-        caption = result.candidates[0].content.parts.find(p => p.text)?.text || "";
-      }
+      const caption = result.text || "";
       res.json({ caption });
     } catch (e: any) {
       console.error(e);
