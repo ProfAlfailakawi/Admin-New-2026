@@ -193,7 +193,7 @@ export const applyLogoBranding = (
             ctx.drawImage(logo, x, y, drawW, drawH);
         }
         
-        resolve(canvas.toDataURL('image/png'));
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
       };
 
       if (logoUrl) {
