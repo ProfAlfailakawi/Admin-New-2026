@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
-import { Palette, Sun, Moon, Sparkles, Paintbrush, Loader2 } from 'lucide-react';
+import { Palette, Sun, Moon, Sparkles, Paintbrush, Loader2, Layout } from 'lucide-react';
 import { toast } from 'sonner';
 import { applyLogoBranding } from '../lib/brandingUtils';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
+import { BrandingControls } from './BrandingControls';
 
 export const AdaptiveBranding: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [activeTheme, setActiveTheme] = useState('morning');
   const [isApplying, setIsApplying] = useState(false);
   const [customThemeQuery, setCustomThemeQuery] = useState('');
   const [generatedTheme, setGeneratedTheme] = useState<{name: string, description: string, colors: string[], imageUrl?: string} | null>(null);
+  
   const [useBranding, setUseBranding] = useState(true);
+  const [brandingStyle, setBrandingStyle] = useState<'smooth' | 'elegant' | 'classic' | 'polaroid' | 'heritage'>('classic');
+  const [logoOpacity, setLogoOpacity] = useState(1);
+  const [logoPosition, setLogoPosition] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top-right');
 
   const applyPresetTheme = (theme: string) => {
     setIsApplying(true);
@@ -61,7 +66,7 @@ No markdown formatting, just pure JSON.`;
           finalImg,
           data.settings?.companyLogo || DEFAULT_GLOBAL_LOGO,
           data.settings?.storeName || '',
-          { useBranding: true, brandingStyle: 'classic', logoOpacity: 1, logoPosition: 'top-right' }
+          { useBranding, brandingStyle, logoOpacity, logoPosition }
         );
       }
 
@@ -117,19 +122,25 @@ No markdown formatting, just pure JSON.`;
       </div>
 
       <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-3xl p-6 md:p-8">
-        <div className="flex justify-between items-start mb-2">
+        <div className="flex justify-between items-start mb-2 gap-4">
            <h3 className="text-lg font-bold text-purple-900 flex items-center gap-2">
-             <Sparkles className="text-purple-600 w-5 h-5" />
+             <Sparkles className="text-purple-600 w-5 h-5 shrink-0" />
              ابتكر ثيم خاص لمناسبة (AI Theme Generator)
            </h3>
-           <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-500">إضافة الهوية</span>
-              <button 
-                onClick={() => setUseBranding(!useBranding)}
-                className={`w-12 h-6 rounded-full transition-all relative p-1 ${useBranding ? "bg-purple-600" : "bg-slate-200"}`}
-              >
-                <div className={`w-4 h-4 bg-white rounded-full transition-all shadow-sm ${useBranding ? "translate-x-6" : "translate-x-0"}`} />
-              </button>
+           <div className="w-56 shrink-0 mt-1">
+              <BrandingControls
+                 useBranding={useBranding}
+                 setUseBranding={setUseBranding}
+                 brandingStyle={brandingStyle}
+                 setBrandingStyle={setBrandingStyle}
+                 logoPosition={logoPosition}
+                 setLogoPosition={setLogoPosition}
+                 logoOpacity={logoOpacity}
+                 setLogoOpacity={setLogoOpacity}
+                 colorClass="purple"
+                 title="إضافة الهوية"
+                 isCompact={true}
+              />
            </div>
         </div>
         <p className="text-sm text-purple-700 mb-6 w-full max-w-xl">هل لديكم عرض للعيد الوطني؟ هل فاز المنتخب؟ اكتب المناسبة ودع الذكاء الاصطناعي يجهز لك ألوان وثيم خاص بمناسبتك.</p>

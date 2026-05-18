@@ -11,6 +11,7 @@ import { RealtimeRadar } from './RealtimeRadar';
 import { ReviewToPoster } from './ReviewToPoster';
 import { AdaptiveBranding } from './AdaptiveBranding';
 import { applyLogoBranding } from '../lib/brandingUtils';
+import { BrandingControls } from './BrandingControls';
 
 interface SmartContentStudioProps {
   data: any;
@@ -60,7 +61,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [selectedMood, setSelectedMood] = useState('دافئ');
   const [showInstagramPreview, setShowInstagramPreview] = useState(false);
   const [useBranding, setUseBranding] = useState(true);
-  const [brandingStyle, setBrandingStyle] = useState<'smooth' | 'elegant' | 'classic' | 'polaroid'>('smooth');
+  const [brandingStyle, setBrandingStyle] = useState<'smooth' | 'elegant' | 'classic' | 'polaroid' | 'heritage'>('smooth');
   const [logoOpacity, setLogoOpacity] = useState(0.7);
   const [logoPosition, setLogoPosition] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top-right');
   const [aiImage, setAiImage] = useState<string | null>(null);
@@ -465,75 +466,18 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             </div>
 
             <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                  <Layout size={16} className="text-indigo-600" />
-                  4. هوية العلامة (Logo)
-                </h3>
-                <button 
-                  onClick={() => setUseBranding(!useBranding)}
-                  className={cn(
-                    "w-12 h-6 rounded-full transition-all relative p-1",
-                    useBranding ? "bg-indigo-600" : "bg-slate-200"
-                  )}
-                >
-                  <div className={cn(
-                    "w-4 h-4 bg-white rounded-full transition-all shadow-sm",
-                    useBranding ? "translate-x-6" : "translate-x-0"
-                  )} />
-                </button>
-              </div>
-              
-              {useBranding && (
-                <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
-                  <div className="p-1.5 bg-slate-100 rounded-xl flex gap-1">
-                     <button onClick={() => setBrandingStyle('smooth')} className={cn("flex-1 text-[10px] font-bold py-2.5 rounded-lg transition-all", brandingStyle === 'smooth' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:bg-slate-200')}>ظل ناعم</button>
-                     <button onClick={() => setBrandingStyle('elegant')} className={cn("flex-1 text-[10px] font-bold py-2.5 rounded-lg transition-all", brandingStyle === 'elegant' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:bg-slate-200')}>إطار أنيق</button>
-                     <button onClick={() => setBrandingStyle('polaroid')} className={cn("flex-1 text-[10px] font-bold py-2.5 rounded-lg transition-all", brandingStyle === 'polaroid' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:bg-slate-200')}>مطبوعة</button>
-                     <button onClick={() => setBrandingStyle('classic')} className={cn("flex-1 text-[10px] font-bold py-2.5 rounded-lg transition-all", brandingStyle === 'classic' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:bg-slate-200')}>لوجو فقط</button>
-                  </div>
-
-                  {brandingStyle === 'classic' && (
-                    <div className="grid grid-cols-4 gap-1">
-                      {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map(pos => (
-                        <button
-                          key={pos}
-                          onClick={() => setLogoPosition(pos)}
-                          className={cn(
-                            "h-8 border rounded-lg flex items-center justify-center transition-all",
-                            logoPosition === pos ? "bg-indigo-50 border-indigo-500" : "bg-white border-slate-100"
-                          )}
-                        >
-                          <div className={cn(
-                            "w-2 h-2 rounded-full",
-                            logoPosition === pos ? "bg-indigo-600" : "bg-slate-300",
-                            pos === 'top-left' && "mr-2 mb-2",
-                            pos === 'top-right' && "ml-2 mb-2",
-                            pos === 'bottom-left' && "mr-2 mt-2",
-                            pos === 'bottom-right' && "ml-2 mt-2"
-                          )} />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="space-y-1">
-                     <div className="flex justify-between text-[10px] font-bold text-slate-400">
-                        <span>قوة ظهور الهوية</span>
-                        <span>{Math.round(logoOpacity * 100)}%</span>
-                     </div>
-                     <input 
-                        type="range" 
-                        min="0.1" 
-                        max="1" 
-                        step="0.05"
-                        value={logoOpacity}
-                        onChange={(e) => setLogoOpacity(parseFloat(e.target.value))}
-                        className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                     />
-                  </div>
-                </div>
-              )}
+              <BrandingControls
+                useBranding={useBranding}
+                setUseBranding={setUseBranding}
+                brandingStyle={brandingStyle}
+                setBrandingStyle={setBrandingStyle}
+                logoPosition={logoPosition}
+                setLogoPosition={setLogoPosition}
+                logoOpacity={logoOpacity}
+                setLogoOpacity={setLogoOpacity}
+                colorClass="indigo"
+                title="4. هوية العلامة (Logo)"
+              />
             </div>
 
             <div className="p-5 bg-amber-50 rounded-2xl border border-amber-200">

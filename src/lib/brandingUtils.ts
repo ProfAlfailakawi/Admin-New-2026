@@ -4,7 +4,7 @@ export const applyLogoBranding = (
   storeName: string,
   options: {
     useBranding: boolean;
-    brandingStyle: 'smooth' | 'elegant' | 'classic' | 'polaroid';
+    brandingStyle: 'smooth' | 'elegant' | 'classic' | 'polaroid' | 'heritage';
     logoOpacity: number;
     logoPosition: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
   }
@@ -36,7 +36,7 @@ export const applyLogoBranding = (
         const minDim = Math.min(canvas.width, canvas.height);
         const { brandingStyle, logoOpacity, logoPosition } = options;
 
-        if (brandingStyle === 'smooth') {
+           if (brandingStyle === 'smooth') {
            const grad = ctx.createLinearGradient(0, canvas.height * 0.6, 0, canvas.height);
            grad.addColorStop(0, 'rgba(0,0,0,0)');
            grad.addColorStop(1, 'rgba(0,0,0,0.75)');
@@ -51,17 +51,6 @@ export const applyLogoBranding = (
            ctx.shadowColor = "rgba(0,0,0,0.5)";
            ctx.shadowBlur = 8;
            ctx.fillText(storeName, canvas.width / 2, canvas.height - (minDim * 0.05));
-
-           if (logo) {
-               const aspect = logo.width / logo.height;
-               const logoSize = minDim * 0.08;
-               let drawW = logoSize;
-               let drawH = logoSize / aspect;
-               if (aspect < 1) { drawH = logoSize; drawW = logoSize * aspect; }
-               ctx.globalAlpha = logoOpacity;
-               ctx.shadowColor = "rgba(0,0,0,0.2)";
-               ctx.drawImage(logo, canvas.width / 2 - drawW / 2, canvas.height - (minDim * 0.05) - fontSize - drawH - (minDim*0.02), drawW, drawH);
-           }
         }
         else if (brandingStyle === 'elegant') {
            const margin = minDim * 0.04;
@@ -77,18 +66,6 @@ export const applyLogoBranding = (
            ctx.shadowColor = "rgba(0,0,0,0.5)";
            ctx.shadowBlur = 10;
            ctx.fillText(storeName, canvas.width / 2, canvas.height - margin - (minDim * 0.03));
-
-           if (logo) {
-               const aspect = logo.width / logo.height;
-               const logoSize = minDim * 0.1;
-               let drawW = logoSize;
-               let drawH = logoSize / aspect;
-               if (aspect < 1) { drawH = logoSize; drawW = logoSize * aspect; }
-               ctx.globalAlpha = logoOpacity;
-               ctx.shadowColor = "rgba(0,0,0,0.2)";
-               ctx.shadowBlur = 10;
-               ctx.drawImage(logo, canvas.width / 2 - drawW / 2, margin + minDim * 0.03, drawW, drawH);
-           }
         }
         else if (brandingStyle === 'polaroid') {
            const frameWidth = minDim * 0.03;
@@ -102,59 +79,76 @@ export const applyLogoBranding = (
            ctx.fillRect(canvas.width - frameWidth, 0, frameWidth, canvas.height);
            ctx.fillRect(0, canvas.height - bottomFrame, canvas.width, bottomFrame);
 
-           if (logo) {
-               const aspect = logo.width / logo.height;
-               const logoSize = bottomFrame * 0.4;
-               let drawW = logoSize;
-               let drawH = logoSize / aspect;
-               if (aspect < 1) { drawH = logoSize; drawW = logoSize * aspect; }
-               ctx.globalAlpha = logoOpacity;
-               ctx.drawImage(logo, canvas.width - frameWidth - drawW - (minDim*0.02), canvas.height - (bottomFrame/2) - (drawH/2), drawW, drawH);
-           }
-
            const fontSize = Math.round(bottomFrame * 0.25);
            ctx.fillStyle = '#333333';
            ctx.font = `bold ${fontSize}px Tajawal, system-ui, sans-serif`;
-           ctx.textAlign = 'right';
+           ctx.textAlign = 'center';
            ctx.shadowColor = "transparent";
-           ctx.fillText(storeName, canvas.width - frameWidth - (minDim*0.02) - (logo ? (logoSize + minDim*0.02) : 0), canvas.height - (bottomFrame/2) + (fontSize*0.35));
+           ctx.fillText(storeName, canvas.width / 2, canvas.height - (bottomFrame/2) + (fontSize*0.35));
         }
-        else {
-           // classic
-           if (logo) {
-               const aspect = logo.width / logo.height;
-               const logoScale = 0.12;
-               const logoSize = Math.max(10, Math.min(canvas.width, canvas.height) * logoScale);
-               
-               let x = 0, y = 0;
-               const padding = canvas.width * 0.05;
+        else if (brandingStyle === 'heritage') {
+           const margin = minDim * 0.05;
+           
+           // Double border with warm/gold tones
+           ctx.strokeStyle = 'rgba(218, 165, 32, 0.6)'; // Goldenrod
+           ctx.lineWidth = Math.max(1, minDim * 0.008);
+           ctx.strokeRect(margin, margin, canvas.width - margin*2, canvas.height - margin*2);
+           
+           ctx.strokeStyle = 'rgba(218, 165, 32, 0.3)';
+           ctx.lineWidth = Math.max(1, minDim * 0.002);
+           ctx.strokeRect(margin + minDim * 0.015, margin + minDim * 0.015, canvas.width - (margin + minDim * 0.015)*2, canvas.height - (margin + minDim * 0.015)*2);
 
-               if (logoPosition === 'top-right') {
-                 x = canvas.width - logoSize - padding;
-                 y = padding;
-               } else if (logoPosition === 'top-left') {
-                 x = padding;
-                 y = padding;
-               } else if (logoPosition === 'bottom-right') {
-                 x = canvas.width - logoSize - padding;
-                 y = canvas.height - logoSize - padding;
-               } else if (logoPosition === 'bottom-left') {
-                 x = padding;
-                 y = canvas.height - logoSize - padding;
-               }
+           // Gradient background for text
+           const grad = ctx.createLinearGradient(0, canvas.height * 0.7, 0, canvas.height);
+           grad.addColorStop(0, 'rgba(0,0,0,0)');
+           grad.addColorStop(1, 'rgba(60, 40, 20, 0.85)'); // Warm dark brown/black
+           ctx.fillStyle = grad;
+           ctx.shadowColor = "transparent";
+           ctx.fillRect(0, canvas.height * 0.7, canvas.width, canvas.height * 0.3);
+           
+           const fontSize = Math.round(minDim * 0.045);
+           ctx.fillStyle = 'rgba(245, 235, 220, 0.95)'; // Warm off-white
+           ctx.font = `bold ${fontSize}px Tajawal, system-ui, serif`;
+           ctx.textAlign = 'center';
+           ctx.shadowColor = "rgba(0,0,0,0.8)";
+           ctx.shadowBlur = 10;
+           ctx.fillText(storeName, canvas.width / 2, canvas.height - margin - (minDim * 0.04));
+        }
 
-               ctx.shadowColor = "rgba(0,0,0,0.3)";
-               ctx.shadowBlur = 15;
-               ctx.globalAlpha = logoOpacity;
-               
-               let drawW = logoSize;
-               let drawH = logoSize / aspect;
-               if (aspect < 1) {
-                  drawH = logoSize;
-                  drawW = logoSize * aspect;
-               }
-               ctx.drawImage(logo, x, y, drawW, drawH);
-           }
+        // Always draw the logo globally based on user position choice
+        if (logo) {
+            const aspect = logo.width / logo.height;
+            const logoScale = 0.12;
+            const logoSize = Math.max(10, Math.min(canvas.width, canvas.height) * logoScale);
+            
+            let x = 0, y = 0;
+            const padding = canvas.width * 0.05;
+
+            if (logoPosition === 'top-right') {
+              x = canvas.width - logoSize - padding;
+              y = padding;
+            } else if (logoPosition === 'top-left') {
+              x = padding;
+              y = padding;
+            } else if (logoPosition === 'bottom-right') {
+              x = canvas.width - logoSize - padding;
+              y = canvas.height - logoSize - padding;
+            } else if (logoPosition === 'bottom-left') {
+              x = padding;
+              y = canvas.height - logoSize - padding;
+            }
+
+            ctx.shadowColor = "rgba(0,0,0,0.3)";
+            ctx.shadowBlur = 15;
+            ctx.globalAlpha = logoOpacity;
+            
+            let drawW = logoSize;
+            let drawH = logoSize / aspect;
+            if (aspect < 1) {
+               drawH = logoSize;
+               drawW = logoSize * aspect;
+            }
+            ctx.drawImage(logo, x, y, drawW, drawH);
         }
         
         resolve(canvas.toDataURL('image/png'));
