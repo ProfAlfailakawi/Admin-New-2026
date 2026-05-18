@@ -1,24 +1,37 @@
 import React, { useState } from 'react';
 import { Clapperboard, Loader2, Star, Quote, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { applyLogoBranding } from '../lib/brandingUtils';
+import { DEFAULT_GLOBAL_LOGO } from '../constants';
 
 export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [loading, setLoading] = useState(false);
-  const [review, setReview] = useState("شغلكم نار يا جماعة الطعم خيال خصوصا البرجر، مستحيل اطلب من غيركم 🍔🔥");
+  const [review, setReview] = useState("شغلكم نار يا جماعة الطعم خيال خصوصا المجبوس، مستحيل اطلب من غيركم 🥘🔥");
   const [resultImage, setResultImage] = useState<string | null>(null);
+  const [useBranding, setUseBranding] = useState(true);
 
   const generatePoster = async () => {
     setLoading(true);
     setResultImage(null);
     try {
-      const imgPrompt = `A cinematic, ultra-realistic movie poster style design for a restaurant social media post. The focal point is a mouth-watering cinematic burger (or relevant food). There must be dramatic lighting. Include glowing futuristic or cinematic aesthetic. Very high quality. Clean composition leaving middle center for text. Do NOT add any text to the image itself.`;
+      const imgPrompt = `A cinematic, ultra-realistic movie poster style design for a restaurant social media post. The focal point is a mouth-watering cinematic traditional Kuwaiti dish (like Machboos, Mutabbaq Zubaidi, or traditional Kuwaiti food). There must be dramatic lighting. Include glowing futuristic or cinematic aesthetic. Very high quality. Clean composition leaving middle center for text. Do NOT add any text to the image itself.`;
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: imgPrompt, format: '4:3' })
       });
       const imgData = await imgRes.json();
-      setResultImage(imgData.imageUrl);
+      
+      let finalImg = imgData.imageUrl;
+      if (useBranding && finalImg) {
+        finalImg = await applyLogoBranding(
+          finalImg,
+          data.settings?.companyLogo || DEFAULT_GLOBAL_LOGO,
+          data.settings?.storeName || '',
+          { useBranding: true, brandingStyle: 'elegant', logoOpacity: 0.9, logoPosition: 'top-right' }
+        );
+      }
+      setResultImage(finalImg);
     } catch (e) {
       toast.error("فشل التوليد");
     } finally {
@@ -28,10 +41,21 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
 
   return (
     <div className="bg-white p-6 rounded-3xl border border-slate-200 mt-6 shadow-sm">
-      <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-        <Clapperboard className="text-purple-500" />
-        مدح سينمائي (Review-to-Poster)
-      </h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+          <Clapperboard className="text-purple-500" />
+          مدح سينمائي (Review-to-Poster)
+        </h2>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-slate-500">إضافة الهوية</span>
+          <button 
+            onClick={() => setUseBranding(!useBranding)}
+            className={`w-12 h-6 rounded-full transition-all relative p-1 ${useBranding ? "bg-purple-600" : "bg-slate-200"}`}
+          >
+            <div className={`w-4 h-4 bg-white rounded-full transition-all shadow-sm ${useBranding ? "translate-x-6" : "translate-x-0"}`} />
+          </button>
+        </div>
+      </div>
       <p className="text-slate-500 text-sm mb-6 max-w-2xl">لا تنزل سكرين شوت للتعليقات! حول مدح زباينك إلى بوستر سينمائي فخم يجبرهم على مشاركته مع أصدقائهم ليصبحوا أبطال قصتك.</p>
       
       <div className="mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
@@ -83,10 +107,10 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
           </div>
           
           <div className="flex justify-center mt-6">
-             <button className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-8 py-3 rounded-xl font-bold backdrop-blur-md transition-all flex items-center gap-2">
+             <a href={resultImage} download="cinematic-review.png" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-8 py-3 rounded-xl font-bold backdrop-blur-md transition-all flex items-center gap-2">
                  <ImageIcon className="w-5 h-5" />
                  حفظ التصميم ونشره
-             </button>
+             </a>
           </div>
         </div>
       )}
