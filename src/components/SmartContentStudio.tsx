@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap } from 'lucide-react';
 import { Product } from '../types';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
@@ -17,6 +17,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [selectedFormat, setSelectedFormat] = useState('1:1');
   const [selectedTheme, setSelectedTheme] = useState('تراثي');
   const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [compressedImage, setCompressedImage] = useState<string | null>(null);
+  const [compressionStats, setCompressionStats] = useState<{ original: number; compressed: number } | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -34,13 +36,52 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'تنظيف', label: 'تحسين واقعي فقط', desc: 'نفس المشهد مع تحسين الإضاءة والألوان' }
   ];
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (base64Str: string, maxWidth = 1080): Promise<{base64: string, size: number, originalSize: number}> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Output as jpeg for better compatibility with Gemini
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+        const originalSize = Math.round((base64Str.length * 3) / 4);
+        const compressedSize = Math.round((compressedBase64.length * 3) / 4);
+        
+        resolve({
+          base64: compressedBase64,
+          size: compressedSize,
+          originalSize: originalSize
+        });
+      };
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setSelectedImage(event.target?.result as string);
-        setOriginalImage(event.target?.result as string);
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        setOriginalImage(base64);
+        
+        // Compress automatically
+        const result = await compressImage(base64);
+        setCompressedImage(result.base64);
+        setSelectedImage(result.base64);
+        setCompressionStats({ original: result.originalSize, compressed: result.size });
         setGeneratedImage(null);
       };
       reader.readAsDataURL(file);
@@ -60,13 +101,18 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageContent: selectedImage.split(',')[1],
+          mimeType: selectedImage.split(';')[0].split(':')[1],
           format: selectedFormat,
           theme: selectedTheme
         })
       });
 
       if (!response.ok) {
-        throw new Error('فشل توليد الصورة');
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.needsKey) {
+          throw new Error('KEY_REQUIRED');
+        }
+        throw new Error(errorData.error || 'فشل توليد الصورة');
       }
 
       const resData = await response.json();
@@ -75,9 +121,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       } else {
         alert("حدث خطأ أثناء الإنشاء");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("حدث خطأ أثناء الإنشاء. تأكد من إعدادات المفتاح وللاتصال بالإنترنت.");
+      if (err.message === 'KEY_REQUIRED') {
+        alert("تتطلب هذه الخاصية (توليد الصور) مفتاح API مدفوع. يرجى تفعيل مفتاح Gemini في الإعدادات.");
+      } else {
+        alert("حدث خطأ أثناء الإنشاء: " + err.message + ". تأكد من إعدادات المفتاح وللاتصال بالإنترنت.");
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -175,6 +225,39 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           <div className="lg:col-span-4 space-y-6">
+            <div className="bg-slate-50 p-5 rounded-2xl shadow-sm border border-slate-200/50 italic mb-4">
+               <div className="flex items-center justify-between mb-4">
+                 <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                   <Zap size={16} className="text-amber-500" />
+                   تحسين الصورة (تلقائي)
+                 </h3>
+                 <span className="text-[10px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase tracking-tighter">Smart Core</span>
+               </div>
+               {compressionStats ? (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[10px] font-bold">
+                    <span className="text-slate-400">الحجم الأصلي:</span>
+                    <span className="text-slate-600">{(compressionStats.original / 1024 / 1024).toFixed(2)} MB</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] font-bold">
+                    <span className="text-slate-400">الحجم المحسّن:</span>
+                    <span className="text-emerald-600">{(compressionStats.compressed / 1024).toFixed(0)} KB</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-2">
+                    <div 
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-1000" 
+                      style={{ width: `${Math.max(10, (compressionStats.compressed / compressionStats.original) * 100)}%` }} 
+                    />
+                  </div>
+                  <p className="text-[10px] text-emerald-600 font-black text-center mt-2">
+                    تم توفير {Math.round((1 - compressionStats.compressed / compressionStats.original) * 100)}% من المساحة (مثالي للسوشيال ميديا)
+                  </p>
+                </div>
+               ) : (
+                <p className="text-[10px] text-slate-400">جاري انتظار رفع الصورة...</p>
+               )}
+            </div>
+
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
               <h3 className="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
                 <MousePointerSquareDashed size={16} className="text-indigo-600" />
@@ -252,14 +335,28 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100 min-h-[500px] flex items-center justify-center bg-slate-50 relative overflow-hidden">
               
               {!generatedImage && !isGenerating && (
-                <div className="text-center w-full max-w-sm mx-auto p-4">
-                  <div className="w-full aspect-square bg-white rounded-2xl border shadow-sm p-2 mb-4 relative">
-                    <img src={originalImage} alt="Original" className="w-full h-full object-contain rounded-xl" />
-                    <div className="absolute top-4 left-4 bg-slate-900 text-white text-[10px] px-2 py-1 rounded-md font-bold shadow-md">
-                      الصورة الأصلية 
+                <div className="text-center w-full max-w-lg mx-auto p-4 space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">الأصل</p>
+                      <div className="w-full aspect-square bg-white rounded-2xl border shadow-sm p-2 relative overflow-hidden group">
+                        <img src={originalImage} alt="Original" className="w-full h-full object-cover rounded-xl opacity-60 grayscale-[0.5]" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest text-center">النسخة المحسنة للويب</p>
+                      <div className="w-full aspect-square bg-white rounded-2xl border-2 border-emerald-400 shadow-xl p-2 relative overflow-hidden">
+                        <img src={compressedImage || selectedImage || ''} alt="Compressed" className="w-full h-full object-cover rounded-xl" />
+                        <div className="absolute top-4 left-4 bg-emerald-500 text-white text-[10px] px-2 py-1 rounded-md font-bold shadow-md">
+                          WebP 80% Optimal
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <p className="text-slate-500 text-sm">حدد الخيارات واضغط "انشئ المشهد" لنبدأ العمل.</p>
+                  <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
+                    <p className="text-sm text-indigo-900 font-bold">الصورة جاهزة للإنشاء الذكي بمقاسات السوشيال ميديا.</p>
+                    <p className="text-xs text-indigo-500 mt-1">اضغط "انشئ المشهد" لإضافة اللمسات الاحترافية.</p>
+                  </div>
                 </div>
               )}
 

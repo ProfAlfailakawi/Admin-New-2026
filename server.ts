@@ -2083,10 +2083,10 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 
   app.post("/api/smart-studio/generate", express.json({ limit: '50mb' }), async (req, res) => {
     try {
-      const { imageContent, format, theme } = req.body;
+      const { imageContent, mimeType, format, theme } = req.body;
       if (!imageContent) return res.status(400).json({ error: "Missing image" });
       
-      let systemInstruction = "أنت خبير في تصوير الأطعمة وتصميم الإعلانات.";
+      const systemInstruction = "أنت خبير في تصوير الأطعمة وتصميم الإعلانات.";
       let autoPrompt = `بناءً على الصورة المرفقة للطبق، من فضلك قم بتوليد صورة تسويقية احترافية مع الحفاظ المطلق على الطبق الأصلي بدون أي تعديل أو تغيير في مكوناته أو شكله.
 القواعد الصارمة (STRICT RULES):
 - الطبق الأساسي يجب أن يبقى حقيقياً كما هو. ممنوع تغيير شكل الطبق أو مكوناته أو ألوانه.
@@ -2096,10 +2096,14 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
         autoPrompt += `\nالمشهد المطلوب (Theme): ${theme}. أضف خلفية مناسبة لهذا الثيم بشكل واقعي لا يطغى على الطبق.`;
       }
       
-      let width = 1000, height = 1000; // 1:1
+      let width = 1024, height = 1024;
       let ar = '1:1';
       if (format === '9:16') { width = 1080; height = 1920; ar = '9:16'; }
-      if (format === '4:3') { width = 1200; height = 900; ar = '4:3'; }
+      if (format === '4:3') { width = 1024; height = 768; ar = '4:3'; }
+
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: "GEMINI_API_KEY is not configured on server", needsKey: true });
+      }
 
       const ai = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
@@ -2109,11 +2113,15 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
           }
         }
       });
+
+      // Use the high quality image generation model
+      const modelName = 'gemini-3.1-flash-image-preview';
+      
       const response = await ai.models.generateContent({
-        model: 'gemini-3.1-flash-image-preview',
+        model: modelName,
         contents: {
           parts: [
-            { inlineData: { data: imageContent, mimeType: 'image/jpeg' } },
+            { inlineData: { data: imageContent, mimeType: mimeType || 'image/jpeg' } },
             { text: autoPrompt }
           ]
         },
@@ -2135,13 +2143,23 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       }
       
       if (!finalImgBase64) {
-        return res.status(500).json({ error: "No image output generated" });
+        // If image generation didn't return an image part, maybe it returned text error
+        const textResp = response.candidates?.[0]?.content?.parts?.find(p => p.text)?.text;
+        return res.status(500).json({ error: textResp || "No image output generated" });
       }
 
       res.json({ imageUrl: finalImgBase64 });
     } catch (e: any) {
       console.error("/api/smart-studio/generate error:", e);
-      res.status(500).json({ error: e.message || "Failed to generate image" });
+      // Check for specific Gemini errors
+      const errMsg = e.message || String(e);
+      if (errMsg.includes("PERMISSION_DENIED") || errMsg.includes("API_KEY_INVALID")) {
+        return res.status(403).json({ error: "API Key Error. Please check your Gemini API Key in Settings.", needsKey: true });
+      }
+      if (errMsg.includes("RESOURCE_EXHAUSTED")) {
+        return res.status(429).json({ error: "Quota exceeded or paid model requires a different key tier.", needsKey: true });
+      }
+      res.status(500).json({ error: errMsg });
     }
   });
 
