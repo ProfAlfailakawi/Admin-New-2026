@@ -6,6 +6,7 @@ import {
   Heart, Crown, Printer, MapPin, Gift, MessageSquare
 } from 'lucide-react';
 import { AppState, Customer } from '../types';
+import { DEFAULT_SQUADS } from '../data';
 import { cn, normalizeArabic } from '../lib/utils';
 import { isPaidStatus } from '../lib/status-utils';
 import { calculateCustomerSentiment, generateCustomerSmartMessage } from '../lib/ai-engine';
@@ -394,15 +395,17 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
    {/* Table */}
    <div className="bg-white rounded-[2rem] border border-slate-200/60 shadow-xl overflow-hidden">
     <div className="overflow-x-auto">
-    <table className="w-full text-right min-w-[1000px]" dir="rtl">
+    <table className="w-full text-right min-w-[800px]" dir="rtl">
      <thead>
       <tr className="bg-slate-50/80 backdrop-blur-md border-b border-slate-200 text-slate-500 text-xs uppercase font-black tracking-widest sticky top-0 z-20">
        <th className="p-6">العميل</th>
        <th className="p-6">العنوان والتفاصيل</th>
        <th className="p-6">إجمالي الإنفاق</th>
+       <th className="p-6">نقاط الولاء</th>
        <th className="p-6">رقم الهاتف</th>
+       <th className="p-6">الديوانية</th>
        <th className="p-6">المشاعر الذكية</th>
-       <th className="p-6 text-left">الإجراءات</th>
+       <th className="p-4 px-6 text-left sticky left-0 bg-slate-50/80 backdrop-blur-md shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)]">الإجراءات</th>
       </tr>
      </thead>
      <tbody className="divide-y divide-slate-100">
@@ -420,7 +423,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
            </div>
            <div>
              <div className="font-black text-slate-800 text-base lg:text-lg tracking-tight">{customer.name}</div>
-             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{customer.lastOrderDate ? `آخر طلب: ${new Date(customer.lastOrderDate).toLocaleDateString('ar-KW')}` : 'عميل جديد'}</div>
+             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{customer.lastOrderDate ? `آخر طلب: ${new Date(customer.lastOrderDate).toLocaleDateString('en-GB')}` : 'عميل جديد'}</div>
            </div>
           </div>
          </td>
@@ -437,8 +440,17 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
          </td>
          <td className="p-6">
            <div className="flex flex-col">
-             <span className="font-black text-slate-900 text-lg tabular-nums">{stats.totalSpent.toFixed(3)} د.ك</span>
+             <div className="flex items-baseline gap-1">
+               <span className="font-black text-slate-900 text-lg tabular-nums">{stats.totalSpent.toFixed(3)}</span>
+               <span className="text-xs text-slate-400 font-bold">د.ك</span>
+             </div>
              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stats.totalOrders} طلبيات موثقة</span>
+           </div>
+         </td>
+         <td className="p-6">
+           <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-2 rounded-2xl border border-amber-100 w-fit shadow-sm">
+             <Gift size={14} className="text-amber-500" />
+             <span className="font-black text-lg tabular-nums">{Math.floor(stats.totalSpent)}</span>
            </div>
          </td>
          <td className="p-6 text-indigo-700">
@@ -447,6 +459,67 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
              {customer.phone}
            </div>
          </td>
+          <td className="p-6">
+            {(() => {
+              const normalizePhoneForMatch = (p: any) => p ? String(p).replace(/\D/g, '').slice(-8) : '';
+              const cPhone = normalizePhoneForMatch(customer.phone);
+              
+              const currentSquads = data.squads && data.squads.length > 0 ? data.squads : DEFAULT_SQUADS;
+              let matchedSquads = currentSquads.filter(s => 
+                s.membersList?.some(m => normalizePhoneForMatch(m.phone) === cPhone)
+              );
+
+              if (customer.diwaniyaName && matchedSquads.length === 0) {
+                 return (
+                  <div className="flex flex-col gap-1 items-start">
+                    <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[11px] font-black flex items-center gap-1.5 border border-amber-200 shadow-sm">
+                      <Crown size={12} className="text-amber-500" />
+                      {customer.diwaniyaName}
+                    </span>
+                    <div className="flex flex-col gap-0.5 mr-1">
+                      <span className="text-[10px] text-slate-500 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">
+                        نقاط الديوانية: {customer.diwaniyaPoints?.toLocaleString() || 0}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (matchedSquads.length > 0) {
+                return (
+                  <div className="flex flex-col gap-2">
+                    {matchedSquads.map((squad, i) => {
+                       let memberData = squad.membersList?.find(m => normalizePhoneForMatch(m.phone) === cPhone);
+                       const mPoints = memberData?.points;
+                       return (
+                        <div key={i} className="flex flex-col gap-1 items-start">
+                          <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[11px] font-black flex items-center gap-1.5 border border-amber-200 shadow-sm">
+                            <Crown size={12} className="text-amber-500" />
+                            {squad.name}
+                          </span>
+                          <div className="flex flex-col gap-0.5 mr-1">
+                            <span className="text-[10px] text-slate-500 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">
+                              نقاط الديوانية: {squad.points?.toLocaleString() || 0}
+                            </span>
+                            {mPoints !== undefined && mPoints > 0 && (
+                              <span className="text-[10px] text-indigo-700 font-black bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 w-fit flex items-center gap-1 mt-0.5 shadow-sm">
+                                <Gift size={10} className="text-indigo-500" />
+                                نقاطي: {mPoints?.toLocaleString() || 0}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                       );
+                    })}
+                  </div>
+                );
+              } else {
+                return (
+                  <span className="text-xs text-slate-400 font-bold bg-slate-50 px-3 py-1 rounded-full flex items-center gap-1 w-fit mt-1"><X size={10} />غير مشترك</span>
+                );
+              }
+            })()}
+          </td>
          <td className="p-6">
           <div className={cn(
             "flex items-center gap-2 px-4 py-2.5 rounded-[20px] border-2 text-xs font-black transition-all shadow-md w-fit group/sent relative",
@@ -471,17 +544,17 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
             </div>
           </div>
          </td>
-         <td className="p-6 text-left">
-          <div className="flex items-center gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all duration-300">
-           <button onClick={() => handleSendMessage(customer)} className="w-10 h-10 flex items-center justify-center bg-indigo-600 hover:bg-slate-900 rounded-xl text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-500/40 transition-all hover:scale-110 active:scale-95 group/btn relative overflow-hidden" title="إرسال رسالة ذكية">
+         <td className="p-6 text-left sticky left-0 bg-white group-hover:bg-indigo-50/30 transition-all shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)]">
+          <div className="flex items-center gap-2 justify-end opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300">
+           <button onClick={() => handleSendMessage(customer)} className="w-8 h-8 flex items-center justify-center bg-indigo-600 hover:bg-slate-900 rounded-lg text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-500/40 transition-all hover:scale-110 active:scale-95 group/btn relative overflow-hidden" title="إرسال رسالة ذكية">
              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
              <div className="relative flex items-center justify-center">
-               <MessageSquare size={18} className="group-hover/btn:scale-110 transition-transform" />
-               <Sparkles size={8} className="absolute -top-1 -right-1 text-yellow-300 animate-pulse" />
+               <MessageSquare size={15} className="group-hover/btn:scale-110 transition-transform" />
+               <Sparkles size={6} className="absolute -top-1 -right-1 text-yellow-300 animate-pulse" />
              </div>
            </button>
-           <button onClick={() => openEditModal(customer)} className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Edit2 size={18} /></button>
-           <button onClick={() => setCustomerToDelete(customer)} className="w-10 h-10 flex items-center justify-center bg-white hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Trash2 size={18} /></button>
+           <button onClick={() => openEditModal(customer)} className="w-8 h-8 flex items-center justify-center bg-white hover:bg-slate-50 rounded-lg text-slate-400 hover:text-indigo-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Edit2 size={15} /></button>
+           <button onClick={() => setCustomerToDelete(customer)} className="w-8 h-8 flex items-center justify-center bg-white hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Trash2 size={15} /></button>
           </div>
          </td>
         </tr>

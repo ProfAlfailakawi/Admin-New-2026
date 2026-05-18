@@ -2124,8 +2124,8 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
         }
       });
 
-      // Use the multimodal image generation preview model
-      const modelName = 'gemini-3.1-flash-image-preview'; 
+      // Use the gemini-2.5-flash-image model for ultra-fast generation performance
+      const modelName = 'gemini-2.5-flash-image'; 
       
       const response = await ai.models.generateContent({
         model: modelName,
@@ -2136,6 +2136,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
           ]
         },
         config: {
+          systemInstruction,
           imageConfig: {
             aspectRatio: ar as any,
             imageSize: '1K'
@@ -2189,7 +2190,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       });
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-image-preview",
+        model: "gemini-2.5-flash-image",
         contents: {
           parts: [{ text: prompt }]
         },
