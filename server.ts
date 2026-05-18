@@ -2164,11 +2164,11 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
     } catch (e: any) {
       console.error("/api/smart-studio/generate error:", e);
       const errMsg = e.message || String(e);
-      if (errMsg.includes("PERMISSION_DENIED") || errMsg.includes("API_KEY_INVALID")) {
-        return res.status(403).json({ error: "API Key Error. Please check your Gemini API Key in Settings.", needsKey: true });
+      if (errMsg.includes("PERMISSION_DENIED") || errMsg.includes("API_KEY_INVALID") || errMsg.includes("suspended")) {
+        return res.status(403).json({ error: "عذراً، مفتاح API الخاص بك موقوف (Suspended) أو غير صالح. يرجى مراجعة إعدادات Google Cloud / Gemini API.", needsKey: true });
       }
       if (errMsg.includes("RESOURCE_EXHAUSTED")) {
-        return res.status(429).json({ error: "Quota exceeded or paid model requires a different key tier.", needsKey: true });
+        return res.status(429).json({ error: "تم استنفاد حصة الاستخدام (Quota Exceeded). يرجى المحاولة لاحقاً.", needsKey: true });
       }
       res.status(500).json({ error: errMsg });
     }
@@ -2219,7 +2219,14 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       res.json({ imageUrl: finalImgBase64 });
     } catch (e: any) {
       console.error("/api/smart-studio/generate-from-text error:", e);
-      res.status(500).json({ error: e.message || "Failed" });
+      const errMsg = e.message || String(e);
+      if (errMsg.includes("PERMISSION_DENIED") || errMsg.includes("API_KEY_INVALID") || errMsg.includes("suspended")) {
+        return res.status(403).json({ error: "عذراً، مفتاح API الخاص بك موقوف (Suspended) أو غير صالح. يرجى مراجعة إعدادات Google Cloud / Gemini API.", needsKey: true });
+      }
+      if (errMsg.includes("RESOURCE_EXHAUSTED")) {
+        return res.status(429).json({ error: "تم استنفاد حصة الاستخدام (Quota Exceeded). يرجى المحاولة لاحقاً.", needsKey: true });
+      }
+      res.status(500).json({ error: errMsg });
     }
   });
 
@@ -2238,8 +2245,15 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       });
       res.json({ text: response.text || "" });
     } catch (e: any) {
-      console.error(e);
-      res.status(500).json({ error: e.message || "Failed" });
+      console.error("/api/smart-studio/text-ideas error:", e);
+      const errMsg = e.message || String(e);
+      if (errMsg.includes("PERMISSION_DENIED") || errMsg.includes("API_KEY_INVALID") || errMsg.includes("suspended")) {
+        return res.status(403).json({ error: "عذراً، مفتاح API الخاص بك موقوف (Suspended) أو غير صالح. يرجى مراجعة إعدادات Google Cloud / Gemini API.", needsKey: true });
+      }
+      if (errMsg.includes("RESOURCE_EXHAUSTED")) {
+        return res.status(429).json({ error: "تم استنفاد حصة الاستخدام (Quota Exceeded). يرجى المحاولة لاحقاً.", needsKey: true });
+      }
+      res.status(500).json({ error: errMsg });
     }
   });
 
@@ -2254,9 +2268,10 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       let base64Data = image;
       let mimeType = 'image/png';
       if (image.includes('data:')) {
-        const parts = image.split(',');
-        mimeType = parts[0].split(':')[1].split(';')[0];
-        base64Data = parts[1];
+        const firstCommaIndex = image.indexOf(',');
+        const header = image.substring(0, firstCommaIndex);
+        mimeType = header.split(':')[1].split(';')[0];
+        base64Data = image.substring(firstCommaIndex + 1);
       }
 
       if (!process.env.GEMINI_API_KEY) {
@@ -2276,17 +2291,26 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 
       const result = await ai.models.generateContent({
         model: "gemini-2.5-flash",
-        contents: [
-          { inlineData: { data: base64Data, mimeType: mimeType } },
-          { text: prompt }
-        ]
+        contents: {
+          parts: [
+            { inlineData: { data: base64Data, mimeType: mimeType } },
+            { text: prompt }
+          ]
+        }
       });
 
       const caption = result.text || "";
       res.json({ caption });
     } catch (e: any) {
-      console.error(e);
-      res.status(500).json({ error: e.message });
+      console.error("/api/smart-studio/caption error:", e);
+      const errMsg = e.message || String(e);
+      if (errMsg.includes("PERMISSION_DENIED") || errMsg.includes("API_KEY_INVALID") || errMsg.includes("suspended")) {
+        return res.status(403).json({ error: "عذراً، مفتاح API الخاص بك موقوف (Suspended) أو غير صالح. يرجى مراجعة إعدادات Google Cloud / Gemini API.", needsKey: true });
+      }
+      if (errMsg.includes("RESOURCE_EXHAUSTED")) {
+        return res.status(429).json({ error: "تم استنفاد حصة الاستخدام (Quota Exceeded). يرجى المحاولة لاحقاً.", needsKey: true });
+      }
+      res.status(500).json({ error: errMsg });
     }
   });
 
