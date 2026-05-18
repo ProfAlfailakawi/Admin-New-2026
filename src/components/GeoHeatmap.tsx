@@ -69,8 +69,8 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  توزيع القوة الشرائية وربحية المناطق في الكويت
  </p>
 
- <div className="w-full relative flex items-center justify-center p-3">
- <div className="kuwait-map-wrapper">
+ <div className="w-full relative flex items-center justify-center p-3 overflow-visible">
+ <div className="kuwait-map-wrapper !max-w-[750px]">
  {/* Glowing Map grid background effect behind the image */}
  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.1)_0%,transparent_70%)] pointer-events-none" />
 

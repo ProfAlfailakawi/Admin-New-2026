@@ -53,8 +53,8 @@ import {
   CloudRain,
   Trash2,
   ChevronDown,
+  ChevronLeft,
   Briefcase,
-  ArrowUpRight,
   Rocket,
   Percent,
   Calculator,
@@ -227,15 +227,12 @@ const GlobalStatBox = React.memo(
         whileTap={{ scale: 0.96 }}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
         className={cn(
-          "p-4 sm:p-6 rounded-2xl sm:rounded-2xl border bg-white relative overflow-hidden group shadow-sm interactive-hover cursor-pointer active:scale-95 flex flex-col justify-between h-full",
+          "p-4 sm:p-6 rounded-2xl sm:rounded-2xl border bg-white relative overflow-hidden group shadow-sm flex flex-col justify-between h-full",
           getGradient(color),
         )}
       >
         {/* Decor Accents */}
         <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-current opacity-[0.03] rounded-full blur-3xl group-hover:opacity-10 transition-opacity" />
-        <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-          <ArrowUpRight size={20} className="sm:w-6 sm:h-6" />
-        </div>
 
         <div className="flex justify-between items-start mb-4 sm:mb-6 relative z-10 flex-row-reverse">
           <div
@@ -2772,7 +2769,7 @@ const [isPending, startTransition] = useTransition();
                         </div>
                         <div className="p-2 flex-grow">
                           <React.Suspense fallback={<div className="h-64 animate-pulse bg-slate-800 rounded-2xl" />}>
-                            <div className="h-full min-h-[400px] rounded-2xl overflow-hidden ring-1 ring-white/10">
+                            <div className="h-full min-h-[500px] rounded-2xl overflow-visible ring-1 ring-white/10">
                               <GeoHeatmap data={data} />
                             </div>
                           </React.Suspense>
@@ -3764,7 +3761,6 @@ const [isPending, startTransition] = useTransition();
                           </span>
                         </div>
                       </div>
-                      <ArrowLeftRight size={18} className="text-slate-300" />
                     </div>
 
                     {/* Metrics below (grid 2 columns) */}
@@ -4104,7 +4100,6 @@ const [isPending, startTransition] = useTransition();
                                 className="relative z-10 w-full w-full text-center justify-center bg-white text-indigo-700 px-6 py-4 rounded-2xl font-bold text-sm shadow-xl hover:scale-105 transition-all flex items-center gap-3 active:scale-95 group"
                               >
                                 {focusedInsight.actionText}
-                                <ArrowUpRight className="group-hover:translate-y-[-2px] group-hover:translate-x-[2px] transition-transform" />
                               </button>
                             </div>
                           </div>
@@ -4740,8 +4735,7 @@ const [isPending, startTransition] = useTransition();
                               onClick={() => onNavigate("reports")}
                               className="text-[10px] font-bold text-amber-600 hover:text-amber-700 transition-colors flex items-center gap-2"
                             >
-                              عرض كافة الطلبات بمختبر التقارير{" "}
-                              <ArrowLeftRight size={12} />
+                              عرض كافة الطلبات بمختبر التقارير
                             </button>
                           </div>
                         )}
@@ -5285,7 +5279,7 @@ const [isPending, startTransition] = useTransition();
                                     <span className="text-[10px] font-bold text-slate-700">
                                       {record.date}
                                     </span>
-                                    <ArrowUpRight
+                                    <ChevronLeft
                                       size={12}
                                       className="text-slate-300 group-hover:text-indigo-500 transition-colors"
                                     />

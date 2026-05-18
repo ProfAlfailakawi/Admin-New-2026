@@ -2083,18 +2083,28 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 
   app.post("/api/smart-studio/generate", express.json({ limit: '50mb' }), async (req, res) => {
     try {
-      const { imageContent, mimeType, format, theme } = req.body;
+      const { imageContent, mimeType, format, theme, mood } = req.body;
       if (!imageContent) return res.status(400).json({ error: "Missing image" });
       
-      const systemInstruction = "أنت خبير في تصوير الأطعمة وتصميم الإعلانات.";
-      let autoPrompt = `بناءً على الصورة المرفقة للطبق، من فضلك قم بتوليد صورة تسويقية احترافية مع الحفاظ المطلق على الطبق الأصلي بدون أي تعديل أو تغيير في مكوناته أو شكله.
+      const systemInstruction = "أنت مدير فني عالمي متخصص في تصوير الأطعمة للمجلات الراقية والسوشيال ميديا.";
+      let autoPrompt = `بناءً على الصورة المرفقة للطبق، قم بتوليد عمل فني إبداعي مذهل (Extraordinary Creativity).
 القواعد الصارمة (STRICT RULES):
-- الطبق الأساسي يجب أن يبقى حقيقياً كما هو. ممنوع تغيير شكل الطبق أو مكوناته أو ألوانه.
-- من فضلك قم بتحسين الإضاءة بشكل طفيف لتكون احترافية.
+1. حافظ تماماً على شكل الطبق الأصلي ومكوناته كما هي في الصورة (No hallucinations on the main dish).
+2. اجعل الخلفية والمحيط "إبداعي جداً" ومبني على الثيم المختار.
+3. الإضاءة يجب أن تكون احترافية وسينمائية وتحاكي المود المختار.
+
+التفاصيل المطلوبة:
+- الثيم: ${theme || 'بسيط'}.
+- المود الفني: ${mood || 'دافئ'}.
+
+وصف إبداعي إضافي:
+- إذا كان الثيم "سايبربانك": استخدم انعكاسات نيون، أجواء ليلية متطورة، طاقة حيوية.
+- إذا كان الثيم "تراثي": استخدم خامات قديمة، سدو، دلال قهوة في الخلفية، دفء الصحراء.
+- إذا كان الثيم "فاخر": استخدم أسطح رخامية، منسوجات مخملية، إضاءة خافتة مركزة.
+- إذا كان الثيم "سينمائي": ركز على عمق الميدان (Portrait mode effects)، غبار ضوئي، تباين لوني قوي.
+
+الهدف: صورة "جمال غير عادي" تبهر المشاهد وتسرع عملية اتخاذ قرار الشراء.
 `;
-      if (theme) {
-        autoPrompt += `\nالمشهد المطلوب (Theme): ${theme}. أضف خلفية مناسبة لهذا الثيم بشكل واقعي لا يطغى على الطبق.`;
-      }
       
       let width = 1024, height = 1024;
       let ar = '1:1';
@@ -2114,8 +2124,8 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
         }
       });
 
-      // Use the high quality image generation model
-      const modelName = 'gemini-3.1-flash-image-preview';
+      // Use the multimodal image generation preview model
+      const modelName = 'gemini-3.1-flash-image-preview'; 
       
       const response = await ai.models.generateContent({
         model: modelName,
@@ -2143,7 +2153,6 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       }
       
       if (!finalImgBase64) {
-        // If image generation didn't return an image part, maybe it returned text error
         const textResp = response.candidates?.[0]?.content?.parts?.find(p => p.text)?.text;
         return res.status(500).json({ error: textResp || "No image output generated" });
       }
@@ -2151,7 +2160,6 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       res.json({ imageUrl: finalImgBase64 });
     } catch (e: any) {
       console.error("/api/smart-studio/generate error:", e);
-      // Check for specific Gemini errors
       const errMsg = e.message || String(e);
       if (errMsg.includes("PERMISSION_DENIED") || errMsg.includes("API_KEY_INVALID")) {
         return res.status(403).json({ error: "API Key Error. Please check your Gemini API Key in Settings.", needsKey: true });
@@ -2160,6 +2168,43 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
         return res.status(429).json({ error: "Quota exceeded or paid model requires a different key tier.", needsKey: true });
       }
       res.status(500).json({ error: errMsg });
+    }
+  });
+
+  app.post("/api/smart-studio/caption", express.json({ limit: '50mb' }), async (req, res) => {
+    try {
+      const { image, theme } = req.body;
+      if (!image) return res.status(400).json({ error: "Missing image" });
+
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: "GEMINI_API_KEY is not configured" });
+      }
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+      const prompt = `بناءً على صورة هذا الطبق المصممة بثيم (${theme})، اكتب نصاً تسويقياً إبداعياً وجذاباً للسوشيال ميديا باللغة العربية (لهجة كويتية بيضاء راقية).
+- ركز على الطعم، الجودة، والتجربة الفريدة.
+- أضف هاشتاقات مناسبة.
+- اجعل النص قصيراً ومؤثراً.`;
+
+      const result = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: {
+          parts: [
+            { text: prompt },
+            { inlineData: { data: image, mimeType: 'image/jpeg' } }
+          ]
+        }
+      });
+
+      let caption = "";
+      if (result && result.candidates && result.candidates.length > 0) {
+        caption = result.candidates[0].content.parts.find(p => p.text)?.text || "";
+      }
+      res.json({ caption });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: e.message });
     }
   });
 
