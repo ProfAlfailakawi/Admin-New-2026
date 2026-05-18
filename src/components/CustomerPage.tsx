@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { 
- Users, Search, Plus, Trash2, UserPlus, Phone, 
- Calendar, ShoppingBag, Edit2, AlertCircle, 
- UserCheck, UserMinus, Sparkles, Clock, X,
- Heart, Crown, Printer, MapPin, Gift
+  Users, Search, Plus, Trash2, UserPlus, Phone, 
+  Calendar, ShoppingBag, Edit2, AlertCircle, 
+  UserCheck, UserMinus, Sparkles, Clock, X,
+  Heart, Crown, Printer, MapPin, Gift, MessageSquare
 } from 'lucide-react';
 import { AppState, Customer } from '../types';
 import { cn, normalizeArabic } from '../lib/utils';
 import { isPaidStatus } from '../lib/status-utils';
+import { calculateCustomerSentiment, generateCustomerSmartMessage } from '../lib/ai-engine';
 import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import SmartEmptyState from './SmartEmptyState';
@@ -101,7 +102,13 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 
   let matchesSentiment = true;
   if (sentimentFilter !== 'all') {
-   matchesSentiment = c.sentiment === sentimentFilter;
+   matchesSentiment = (() => {
+    const sentiment = calculateCustomerSentiment(c, data.invoices || []);
+    if (sentimentFilter === 'positive') return sentiment.score >= 70;
+    if (sentimentFilter === 'neutral') return sentiment.score >= 45 && sentiment.score < 70;
+    if (sentimentFilter === 'negative') return sentiment.score < 45;
+    return true;
+   })();
   }
 
   return matchesSearch && matchesStatus && matchesSentiment;
@@ -265,19 +272,29 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
     });
   };
 
- const handleDeleteCustomer = (customer: Customer) => {
-  const stats = getCustomerStats(customer.id);
-  if (stats.totalOrders > 0) {
-    toast.error("لا يمكن الحذف", { description: "العميل لديه طلبات سابقة." });
-    return;
-  }
-  setData(prev => ({
-   ...prev,
-   customers: (prev?.customers || []).filter(c => c.id !== customer.id)
-  }));
-  toast.info("تم الحذف", { description: `تمت إزالة سجل العميل "${customer.name}".` });
-  setCustomerToDelete(null);
- };
+  const handleDeleteCustomer = (customer: Customer) => {
+   const stats = getCustomerStats(customer.id);
+   if (stats.totalOrders > 0) {
+     toast.error("لا يمكن الحذف", { description: "العميل لديه طلبات سابقة." });
+     return;
+   }
+   setData(prev => ({
+    ...prev,
+    customers: (prev?.customers || []).filter(c => c.id !== customer.id)
+   }));
+   toast.info("تم الحذف", { description: `تمت إزالة سجل العميل "${customer.name}".` });
+   setCustomerToDelete(null);
+  };
+
+  const handleSendMessage = (customer: Customer) => {
+    const message = generateCustomerSmartMessage(customer, data.invoices || [], data.products || []);
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/965${customer.phone}?text=${encodedMessage}`, '_blank');
+    toast.success("تم تجهيز الرسالة الذكية", { 
+      description: "تم دمج بيانات العميل مع مقترحات الأطباق المفضلة وعروض التوصيل.",
+      icon: <Sparkles className="text-indigo-500" />
+    });
+  };
 
  return (
   <div className="space-y-6">
@@ -295,11 +312,11 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
    </div>
 
    {/* Stats Cards */}
-   <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
-    <StatCard label="إجمالي المسجلين" value={totalCustomers} icon={<Users size={16} />} color="blue" description="كامل قاعدة البيانات" />
-    <StatCard label="كبار الشخصيات (VIP)" value={vipCustomers} icon={<Crown size={16} />} color="accent" description="VIP" />
-    <StatCard label="عملاء راكدون" value={slowCustomers} icon={<Clock size={16} />} color="amber" description="منذ 30 يوم" />
-    <StatCard label="عملاء مفقودون" value={inactiveCustomers} icon={<UserMinus size={16} />} color="red" description="منذ 90 يوم" />
+   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+    <StatCard label="إجمالي المسجلين" value={totalCustomers} icon={<Users className="w-5 h-5 lg:w-6 lg:h-6" />} color="blue" description="كامل قاعدة البيانات" />
+    <StatCard label="كبار الشخصيات (VIP)" value={vipCustomers} icon={<Crown className="w-5 h-5 lg:w-6 lg:h-6" />} color="accent" description="أكثر من 800 د.ك" />
+    <StatCard label="عملاء راكدون (30+ يوم)" value={slowCustomers} icon={<Clock className="w-5 h-5 lg:w-6 lg:h-6" />} color="amber" description="راكد" />
+    <StatCard label="عملاء مفقودون (90+ يوم)" value={inactiveCustomers} icon={<UserMinus className="w-5 h-5 lg:w-6 lg:h-6" />} color="red" description="مفقود" />
    </div>
 
    <AnimatePresence>
@@ -375,59 +392,96 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
    </div>
 
    {/* Table */}
-   <div className="overflow-x-auto rounded-3xl border border-slate-200/60 shadow-sm bg-white">
-    <table className="w-full text-right min-w-[800px]" dir="rtl">
+   <div className="bg-white rounded-[2rem] border border-slate-200/60 shadow-xl overflow-hidden">
+    <div className="overflow-x-auto">
+    <table className="w-full text-right min-w-[1000px]" dir="rtl">
      <thead>
-      <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-[10px] uppercase font-bold">
-       <th className="p-4">الاسم</th>
-       <th className="p-4">العنوان</th>
-       <th className="p-4">الإنفاق</th>
-       <th className="p-4">الهاتف</th>
-       <th className="p-4">الحالة</th>
-       <th className="p-4">المشاعر</th>
-       <th className="p-4 text-left">إجراءات</th>
+      <tr className="bg-slate-50/80 backdrop-blur-md border-b border-slate-200 text-slate-500 text-xs uppercase font-black tracking-widest sticky top-0 z-20">
+       <th className="p-6">العميل</th>
+       <th className="p-6">العنوان والتفاصيل</th>
+       <th className="p-6">إجمالي الإنفاق</th>
+       <th className="p-6">رقم الهاتف</th>
+       <th className="p-6">المشاعر الذكية</th>
+       <th className="p-6 text-left">الإجراءات</th>
       </tr>
      </thead>
      <tbody className="divide-y divide-slate-100">
       {filteredCustomers.length === 0 ? (
-       <tr><td colSpan={7} className="p-20 text-center text-slate-400 font-bold">لا يوجد عملاء يطابقون البحث</td></tr>
+       <tr><td colSpan={6} className="p-32 text-center text-slate-400 font-bold">لا يوجد عملاء يطابقون البحث حالياً</td></tr>
       ) : filteredCustomers.map(customer => {
        const stats = getCustomerStats(customer.id);
+       const sentiment = calculateCustomerSentiment(customer, data.invoices || []);
        return (
-        <tr key={customer.id} className="hover:bg-slate-50 transition-colors group">
-         <td className="p-4">
-          <div className="flex items-center gap-3">
-           <div className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center font-bold text-slate-500 group-hover:bg-primary group-hover:text-white transition-colors">
+        <tr key={customer.id} className="hover:bg-indigo-50/30 transition-all group cursor-default">
+         <td className="p-6">
+          <div className="flex items-center gap-4">
+           <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center font-black text-slate-500 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500 shadow-sm">
             {customer.name[0]}
            </div>
-           <span className="font-bold text-slate-700">{customer.name}</span>
+           <div>
+             <div className="font-black text-slate-800 text-base lg:text-lg tracking-tight">{customer.name}</div>
+             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{customer.lastOrderDate ? `آخر طلب: ${new Date(customer.lastOrderDate).toLocaleDateString('ar-KW')}` : 'عميل جديد'}</div>
+           </div>
           </div>
          </td>
-         <td className="p-4">
-          <div className="text-[10px] font-bold text-slate-500">{customer.area || '—'}</div>
-          <div className="text-[9px] text-slate-400">
-            {typeof customer.address === 'object' ? `${customer.address.block ? 'ق'+customer.address.block : ''} ش${customer.address.street || ''}` : customer.address}
+         <td className="p-6">
+          <div className="bg-slate-50 group-hover:bg-white p-2 rounded-xl border border-slate-100 transition-all inline-block min-w-[160px]">
+            <div className="flex items-center gap-1.5 text-xs font-black text-slate-700">
+              <MapPin size={12} className="text-rose-500" />
+              {customer.area || 'غير محدد'}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5 font-bold">
+              {typeof customer.address === 'object' ? `${customer.address.block ? 'ق'+customer.address.block : ''} ${customer.address.street ? 'ش'+customer.address.street : ''} ${customer.address.building ? 'م'+customer.address.building : ''}` : customer.address}
+            </div>
           </div>
          </td>
-         <td className="p-4 font-bold text-slate-900">{stats.totalSpent.toFixed(3)} د.ك</td>
-         <td className="p-4 font-mono text-xs">{customer.phone}</td>
-         <td className="p-4">
-          <span className={cn(
-            "px-2 py-1 rounded-lg text-[9px] font-bold",
-            customer.status === 'active' ? "bg-green-100 text-green-700" : customer.status === 'slow' ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
+         <td className="p-6">
+           <div className="flex flex-col">
+             <span className="font-black text-slate-900 text-lg tabular-nums">{stats.totalSpent.toFixed(3)} د.ك</span>
+             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stats.totalOrders} طلبيات موثقة</span>
+           </div>
+         </td>
+         <td className="p-6 text-indigo-700">
+           <div className="flex items-center gap-2 font-mono text-sm bg-slate-100 px-3 py-1.5 rounded-full w-fit group-hover:bg-indigo-100 group-hover:text-indigo-700 transition-all font-bold">
+             <Phone size={12} />
+             {customer.phone}
+           </div>
+         </td>
+         <td className="p-6">
+          <div className={cn(
+            "flex items-center gap-2 px-4 py-2.5 rounded-[20px] border-2 text-xs font-black transition-all shadow-md w-fit group/sent relative",
+            sentiment.color
           )}>
-            {customer.status === 'active' ? 'نشط' : customer.status === 'slow' ? 'راكد' : 'مفقود'}
-          </span>
+            <Sparkles size={14} className="animate-pulse" />
+            <span>{sentiment.label}</span>
+            
+            {/* Extended Tooltip on hover - Centered Positioning to stay within frame */}
+            <div className="absolute opacity-0 group-hover/sent:opacity-100 transition-all duration-500 bg-slate-950 text-white p-5 rounded-3xl text-sm whitespace-normal z-[100] bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 pointer-events-none shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 scale-90 group-hover/sent:scale-100 origin-bottom w-[280px] sm:w-[350px]">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <span className="font-black text-indigo-400">تحليل العقل الاصطناعي</span>
+                  <span className="text-[10px] font-bold bg-white/10 px-2 py-0.5 rounded-full">{sentiment.score}%</span>
+                </div>
+                <p className="text-[11px] font-bold leading-relaxed text-right">{sentiment.reason}</p>
+                <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-gradient-to-r from-indigo-500 to-rose-500 h-full transition-all duration-1000" style={{ width: `${sentiment.score}%` }} />
+                </div>
+              </div>
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-950 rotate-45 border-r border-b border-white/10"></div>
+            </div>
+          </div>
          </td>
-         <td className="p-4">
-          <span className="text-xs">
-            {customer.sentiment === 'positive' ? '😊 سعيد' : customer.sentiment === 'negative' ? '😠 مستاء' : '😐 محايد'}
-          </span>
-         </td>
-         <td className="p-4 text-left">
-          <div className="flex items-center gap-2 justify-end">
-           <button onClick={() => openEditModal(customer)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600"><Edit2 size={16} /></button>
-           <button onClick={() => setCustomerToDelete(customer)} className="p-2 hover:bg-red-50 rounded-lg text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
+         <td className="p-6 text-left">
+          <div className="flex items-center gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all duration-300">
+           <button onClick={() => handleSendMessage(customer)} className="w-10 h-10 flex items-center justify-center bg-indigo-600 hover:bg-slate-900 rounded-xl text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-500/40 transition-all hover:scale-110 active:scale-95 group/btn relative overflow-hidden" title="إرسال رسالة ذكية">
+             <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
+             <div className="relative flex items-center justify-center">
+               <MessageSquare size={18} className="group-hover/btn:scale-110 transition-transform" />
+               <Sparkles size={8} className="absolute -top-1 -right-1 text-yellow-300 animate-pulse" />
+             </div>
+           </button>
+           <button onClick={() => openEditModal(customer)} className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Edit2 size={18} /></button>
+           <button onClick={() => setCustomerToDelete(customer)} className="w-10 h-10 flex items-center justify-center bg-white hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Trash2 size={18} /></button>
           </div>
          </td>
         </tr>
@@ -435,6 +489,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
       })}
      </tbody>
     </table>
+    </div>
    </div>
 
    {/* Create/Edit Modal */}
@@ -458,20 +513,12 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
            <NumericInput value={customerForm.phone} onChange={val => setCustomerForm({...customerForm, phone: val.toString()})} className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold font-mono text-left" maxLength={8} />
          </div>
 
-         <div className="grid grid-cols-2 gap-4">
+         <div className="grid grid-cols-1 gap-4">
            <div className="space-y-2">
              <label className="text-xs font-bold text-slate-500 uppercase mr-1">المنطقة *</label>
              <select value={customerForm.area} onChange={e => setCustomerForm({...customerForm, area: e.target.value})} className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold appearance-none cursor-pointer">
                <option value="">اختر المنطقة...</option>
                {(data?.zones || []).map(z => <option key={z.id} value={z.name}>{z.name}</option>)}
-             </select>
-           </div>
-           <div className="space-y-2">
-             <label className="text-xs font-bold text-slate-500 uppercase mr-1">المشاعر</label>
-             <select value={customerForm.sentiment} onChange={e => setCustomerForm({...customerForm, sentiment: e.target.value as any})} className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold appearance-none cursor-pointer">
-               <option value="neutral">😐 محايد</option>
-               <option value="positive">😊 سعيد</option>
-               <option value="negative">😠 مستاء</option>
              </select>
            </div>
          </div>

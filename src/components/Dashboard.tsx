@@ -2674,177 +2674,281 @@ const [isPending, startTransition] = useTransition();
             )}
 
             {activeTab === "intelligence" && (
-                <div className="space-y-12 max-w-[1600px] mx-auto px-4 md:px-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700 w-full" dir="rtl">
-                  {/* Phase 1: The Core Reactor & Real-time Mirror */}
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:p-8 items-stretch w-full">
-                    <BIEngineCore data={data} />
-                    <div id="status-mirror-section" className="h-full">
-                      <BusinessStatusMirror
-                        data={data}
-                        setActiveTab={setActiveTab}
-                        setDeepLinkData={setDeepLinkData}
-                      />
+                <div className="space-y-16 max-w-[1700px] mx-auto px-4 md:px-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full pb-20" dir="rtl">
+                  
+                  {/* Dashboard - AI Lab Intro - Re-styled for premium feel */}
+                  <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8 pt-10 border-b border-slate-200 pb-10">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-ping" />
+                        <span className="text-xs font-black text-indigo-600 uppercase tracking-[0.4em]">Strategic Intelligence Laboratory</span>
+                      </div>
+                      <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter">
+                        مختبر الذكاء الاصطناعي
+                      </h1>
+                      <p className="text-slate-500 font-bold text-sm md:text-lg max-w-2xl">المركز الاستراتيجي لاتخاذ القرارات وتحسين كفاءة المطبخ.</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 bg-slate-50 p-1.5 rounded-3xl border border-slate-200 shadow-inner self-stretch lg:self-auto">
+                      <div className="bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center min-w-[120px]">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">قوة المعالجة</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-black text-indigo-600 tabular-nums font-mono">98.4</span>
+                          <span className="text-xs font-bold text-slate-400 font-mono">%</span>
+                        </div>
+                      </div>
+                      <div className="bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center min-w-[120px]">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">دقة المحاكاة</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-black text-emerald-600 tabular-nums font-mono">94</span>
+                          <span className="text-xs font-bold text-slate-400 font-mono">%</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Phase 2: Analysis Frameworks */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:p-8 w-full">
-                    <div id="geo-heatmap-section" className="bg-white rounded-3xl p-1 border border-slate-200/60 overflow-hidden shadow-sm">
-                      <div className="p-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50/50">
-                        <MapPin size={18} className="text-amber-500" />
-                        <span className="font-bold text-slate-800">خريطة نبض التراث</span>
+                  {/* Phase 1: High-Performance Analytics Core */}
+                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 items-stretch w-full">
+                    <div className="xl:col-span-8 group">
+                      <div className="relative">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[2.5rem] blur opacity-10 group-hover:opacity-20 transition duration-1000"></div>
+                        <BIEngineCore data={data} />
                       </div>
-                      <React.Suspense fallback={<div className="h-64 animate-pulse bg-slate-100" />}>
-                        <GeoHeatmap data={data} />
-                      </React.Suspense>
                     </div>
-
-                    <div id="smart-offers-section" className="bg-white rounded-3xl p-1 border border-slate-200/60 overflow-hidden shadow-sm">
-                      <div className="p-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50/50">
-                        <Calculator size={18} className="text-amber-500" />
-                        <span className="font-bold text-slate-800">حاسبة العروض الذكية</span>
+                    <div className="xl:col-span-4 h-full">
+                      <div id="status-mirror-section" className="h-full">
+                        <BusinessStatusMirror
+                          data={data}
+                          setActiveTab={setActiveTab}
+                          setDeepLinkData={setDeepLinkData}
+                        />
                       </div>
-                      <React.Suspense fallback={<div className="h-64 animate-pulse bg-slate-100" />}>
-                        <SmartOffersCalculator data={data} />
-                      </React.Suspense>
                     </div>
                   </div>
 
-                  {/* Phase 3: The What-If Simulator (Full Width) */}
-                  <div id="what-if-section" className="bg-white rounded-2xl p-1 border border-slate-200/60 overflow-hidden shadow-sm mb-12">
-                    <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                      <div className="flex items-center gap-3">
-                         <Rocket size={20} className="text-indigo-500" />
-                         <span className="font-bold text-xl text-slate-800 tracking-tight">محاكي القرارات (ماذا لو؟)</span>
+                  {/* Phase 2: Tactical Simulator - Re-organized for Desktop Presence */}
+                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 w-full items-start">
+                    {/* Main Simulator - Now Primary on Desktop */}
+                    <div className="xl:col-span-8 flex flex-col h-full order-1 lg:order-2">
+                      <div id="what-if-section" className="bg-white rounded-[40px] p-2 border-2 border-slate-100 overflow-hidden shadow-[0_30px_70px_-20px_rgba(0,0,0,0.1)] flex-grow hover:shadow-[0_45px_100px_-25px_rgba(0,0,0,0.15)] transition-all duration-700">
+                        <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6 bg-slate-50/30">
+                          <div className="flex items-center gap-5">
+                             <div className="w-16 h-16 bg-slate-900 rounded-[24px] flex items-center justify-center text-white shadow-2xl shadow-slate-900/20 group hover:rotate-12 transition-transform duration-500">
+                                <Rocket size={28} className="group-hover:translate-y-[-2px] transition-transform" />
+                             </div>
+                             <div>
+                               <h3 className="font-black text-3xl text-slate-900 tracking-tighter">محاكي القرارات الافتراضي</h3>
+                               <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-[0.2em]">Quantum-Probabilistic Scenario Mapping</p>
+                             </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                             <div className="flex -space-x-2 space-x-reverse">
+                               <div className="w-8 h-8 rounded-full border-2 border-white bg-indigo-100" />
+                               <div className="w-8 h-8 rounded-full border-2 border-white bg-rose-100" />
+                               <div className="w-8 h-8 rounded-full border-2 border-white bg-emerald-100" />
+                             </div>
+                             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">AI Powered Analytics</div>
+                          </div>
+                        </div>
+                        <div className="p-4 h-full">
+                          <React.Suspense fallback={<div className="h-96 animate-pulse bg-slate-100 min-h-[500px]" />}>
+                            <WhatIfSimulator data={data} onUpdateData={onUpdateData} />
+                          </React.Suspense>
+                        </div>
                       </div>
-                      <div className="text-xs font-bold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-100">تحليل احتمالي متطور</div>
                     </div>
-                    <React.Suspense fallback={<div className="h-96 animate-pulse bg-slate-100" />}>
-                      <WhatIfSimulator data={data} onUpdateData={onUpdateData} />
-                    </React.Suspense>
+
+                    {/* Sidebar tools - Map is taller and smarter */}
+                    <div className="xl:col-span-4 space-y-10 order-2 lg:order-1 flex flex-col">
+                       <div id="geo-heatmap-section" className="bg-slate-900 rounded-[32px] p-1 border border-slate-800 overflow-hidden shadow-2xl group transition-all duration-500 h-full flex flex-col min-h-[500px]">
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                          <div className="flex items-center gap-3">
+                             <div className="p-2.5 bg-amber-500/10 rounded-xl">
+                              <MapPin size={20} className="text-amber-500" />
+                             </div>
+                             <span className="font-black text-white text-lg tracking-tight">خريطة النبض الجغرافي</span>
+                          </div>
+                          <div className="px-3 py-1 bg-amber-500/20 text-amber-500 text-[10px] font-black rounded-full border border-amber-500/30 uppercase tracking-widest">Geo Intel</div>
+                        </div>
+                        <div className="p-2 flex-grow">
+                          <React.Suspense fallback={<div className="h-64 animate-pulse bg-slate-800 rounded-2xl" />}>
+                            <div className="h-full min-h-[400px] rounded-2xl overflow-hidden ring-1 ring-white/10">
+                              <GeoHeatmap data={data} />
+                            </div>
+                          </React.Suspense>
+                        </div>
+                        <div className="p-5 bg-white/[0.03] text-[10px] font-bold text-slate-500 text-center uppercase tracking-[0.3em]">تحليل جغرافي مباشر مدعوم ببيانات توصيل الكويت</div>
+                      </div>
+
+                      <div id="smart-offers-section" className="bg-white rounded-[32px] p-1 border border-slate-200 overflow-hidden shadow-xl group hover:border-indigo-500/30 transition-all duration-500">
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                          <div className="flex items-center gap-3">
+                             <div className="p-2.5 bg-indigo-50 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500">
+                              <Calculator size={20} className="text-indigo-600 group-hover:text-white" />
+                             </div>
+                             <span className="font-black text-slate-900 text-lg tracking-tight">حاسبة العروض الذكية</span>
+                          </div>
+                        </div>
+                        <div className="p-2">
+                          <React.Suspense fallback={<div className="h-64 animate-pulse bg-slate-100 rounded-2xl md:min-h-[300px]" />}>
+                            <SmartOffersCalculator data={data} />
+                          </React.Suspense>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Phase 4: Self-Learning Brain Cluster */}
-                  <div className="pt-16 border-t border-slate-200/60/50">
+                  {/* Phase 3: Self-Learning Brain Cluster - The Grand Command Center */}
+                  <div className="pt-16 border-t-4 border-slate-200/60 border-double">
                     <div className="space-y-12">
-                      {/* Header Card */}
-                      <div className="bg-slate-950 rounded-2xl p-6 md:p-14 shadow-xl relative overflow-hidden border border-slate-800">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-rose-500 to-indigo-500" />
-                        <div className="absolute -top-20 -left-20 opacity-[0.03] text-indigo-400 rotate-12 pointer-events-none">
-                          <BrainCircuit size={400} />
+                      {/* Brand Header: Self-Learning Brain Cluster */}
+                      <div className="bg-slate-950 rounded-[40px] p-6 lg:p-16 shadow-[0_40px_100px_-20px_rgba(15,23,42,0.4)] relative overflow-hidden border border-slate-800">
+                        <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-indigo-500 via-rose-500 to-indigo-500" />
+                        <div className="absolute -top-20 -left-20 opacity-[0.05] text-indigo-400 rotate-12 pointer-events-none">
+                          <BrainCircuit size={500} />
+                        </div>
+                        <div className="absolute -bottom-40 -right-40 opacity-[0.03] text-rose-400 -rotate-12 pointer-events-none">
+                          <Zap size={600} />
                         </div>
 
-                        <div className="relative z-10 flex flex-col xl:flex-row xl:items-end justify-between gap-10">
-                          <div>
-                            <div className="flex items-center gap-3 lg:gap-4 mb-4 lg:mb-6">
-                              <div className="bg-rose-500/20 p-2.5 lg:p-3.5 rounded-2xl border border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,0.3)] shrink-0">
-                                <BrainCircuit className="text-rose-500 w-6 h-6 lg:w-8 lg:h-8" />
+                        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-12">
+                          <div className="max-w-4xl">
+                            <div className="flex items-center gap-4 lg:gap-6 mb-6 lg:mb-10">
+                              <div className="bg-rose-500 p-4 lg:p-6 rounded-[24px] shadow-[0_0_50px_rgba(244,63,94,0.4)] animate-pulse">
+                                <BrainCircuit className="text-white w-8 h-8 lg:w-12 lg:h-12" />
                               </div>
-                              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tighter">
-                                عقل النظام ذاتي التعلم
-                              </h2>
+                              <div>
+                                <h2 className="text-3xl sm:text-5xl lg:text-7xl font-black text-white tracking-tighter leading-none mb-2 md:mb-4">
+                                  عقل النظام ذاتي التعلم
+                                </h2>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                                  <span className="text-emerald-400 text-xs md:text-sm font-bold uppercase tracking-[0.3em]">Core Intelligence Active</span>
+                                </div>
+                              </div>
                             </div>
-                            <p className="text-slate-500 font-bold text-sm sm:text-base lg:text-xl max-w-3xl leading-relaxed">
+                            <p className="text-slate-400 font-bold text-base md:text-xl lg:text-3xl max-w-4xl leading-relaxed lg:leading-[1.4]">
                               محرك التفكير المركزي الذي يراقب صحة عملك بشكل آلي، يكتشف الأنماط الخفية، ويقوم بتصحيح مساره ذاتياً ليصبح أكثر دقة مع كل قرار يتخذه.
                             </p>
                           </div>
-                          <div className="bg-white/5 backdrop-blur-2xl px-6 lg:px-10 py-5 lg:py-7 rounded-3xl lg:rounded-2xl flex items-center gap-4 lg:gap-6 border border-white/10 shadow-xl self-start xl:self-auto">
-                            <div className="shrink-0">
-                               <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-xl lg:rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                                  <History className="text-emerald-400 w-6 h-6 lg:w-8 lg:h-8" />
-                               </div>
-                            </div>
-                            <div>
-                              <div className="text-[10px] lg:text-xs font-bold text-emerald-400 uppercase tracking-[0.2em] lg:tracking-[0.3em] mb-1 lg:mb-1.5 opacity-80">ذاكرة النظام</div>
-                              <div className="text-xl lg:text-3xl font-bold text-white tabular-nums">{aiLearningLogs.length} دراسة متعلمة</div>
-                            </div>
+                          
+                          <div className="bg-white/[0.03] backdrop-blur-3xl px-8 lg:px-16 py-10 rounded-[32px] border border-white/10 shadow-2xl flex flex-col items-center text-center gap-6 group hover:border-indigo-500/50 transition-all duration-700">
+                             <div className="w-24 h-24 lg:w-32 lg:h-32 rounded-full bg-indigo-500/10 flex items-center justify-center border-4 border-indigo-500/20 group-hover:scale-110 transition-transform duration-700 relative">
+                                <History className="text-indigo-400 w-12 h-12 lg:w-16 lg:h-16" />
+                                <div className="absolute inset-0 rounded-full border-4 border-indigo-500/40 border-t-transparent animate-spin" style={{ animationDuration: '3s' }} />
+                             </div>
+                             <div>
+                               <div className="text-xs lg:text-sm font-bold text-slate-500 uppercase tracking-[0.4em] mb-2">ذاكرة النظام المتراكمة</div>
+                               <div className="text-4xl lg:text-6xl font-black text-white tabular-nums tracking-tighter">{aiLearningLogs.length} دراسة</div>
+                             </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Features Bento Grid */}
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:p-8 w-full">
-                        <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden group hover:border-indigo-300 transition-all shadow-sm hover:shadow-xl hover:-translate-y-2 duration-500">
-                          <div className="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
-                            <div className="p-2 bg-rose-50 rounded-lg">
-                              <ShieldAlert size={20} className="text-rose-500" />
-                            </div>
-                            <span className="text-sm font-bold text-slate-600 uppercase tracking-widest">مقاومة النزيف المالي</span>
+                      {/* Tactical Components Center - Optimized and Aligned for Full Screen */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 w-full p-2 md:p-0 items-stretch">
+                        {/* Column 1: Learning Metrics Card */}
+                        <div className="bg-slate-900 rounded-[32px] p-8 border border-white/10 flex flex-col items-center justify-center text-center group hover:bg-slate-800 transition-all duration-500 shadow-xl h-full min-h-[300px]">
+                          <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center mb-6">
+                             <Zap className="text-indigo-400" size={24} />
                           </div>
-                          <div className="p-2">
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">سرعة المعالجة</span>
+                          <span className="text-3xl font-black text-white tabular-nums">0.02s</span>
+                        </div>
+
+                        {/* Column 2: Profit Guard */}
+                        <div className="bg-white rounded-[32px] border border-slate-200/60 overflow-hidden group hover:border-rose-400 transition-all shadow-sm hover:shadow-2xl hover:-translate-y-3 duration-500 flex flex-col h-full min-h-[300px]">
+                          <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-rose-50 transition-colors">
+                            <div className="flex items-center gap-4">
+                              <div className="p-3 bg-rose-50 rounded-2xl shadow-sm group-hover:bg-rose-500 group-hover:text-white transition-all duration-500">
+                                <ShieldAlert size={24} />
+                              </div>
+                              <span className="text-sm font-black text-slate-800 uppercase tracking-widest">حارس الأرباح</span>
+                            </div>
+                            <div className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                          </div>
+                          <div className="p-6 flex-grow overflow-auto">
                             <ProfitGuardFeature data={data} />
                           </div>
                         </div>
 
-                        <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden group hover:border-indigo-300 transition-all shadow-sm hover:shadow-xl hover:-translate-y-2 duration-500">
-                          <div className="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
-                            <div className="p-2 bg-amber-50 rounded-lg">
-                              <Handshake size={20} className="text-amber-500" />
+                        {/* Column 3: Supplier Intel */}
+                        <div className="bg-white rounded-[32px] border border-slate-200/60 overflow-hidden group hover:border-amber-400 transition-all shadow-sm hover:shadow-2xl hover:-translate-y-3 duration-500 flex flex-col h-full min-h-[300px]">
+                          <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-amber-50 transition-colors">
+                            <div className="flex items-center gap-4">
+                              <div className="p-3 bg-amber-50 rounded-2xl shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all duration-500">
+                                <Handshake size={24} />
+                              </div>
+                              <span className="text-sm font-black text-slate-800 uppercase tracking-widest">ذكاء الموردين</span>
                             </div>
-                            <span className="text-sm font-bold text-slate-600 uppercase tracking-widest">ذكاء الموردين</span>
+                            <div className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
                           </div>
-                          <div className="p-2">
+                          <div className="p-6 flex-grow overflow-auto">
                             <SupplierNegotiatorFeature data={data} />
                           </div>
                         </div>
 
-                        <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden group hover:border-indigo-300 transition-all shadow-sm hover:shadow-xl hover:-translate-y-2 duration-500">
-                          <div className="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
-                            <div className="p-2 bg-emerald-50 rounded-lg">
-                              <Activity size={20} className="text-emerald-500" />
+                        {/* Column 4: Health Score */}
+                        <div className="bg-white rounded-[32px] border border-slate-200/60 overflow-hidden group hover:border-emerald-400 transition-all shadow-sm hover:shadow-2xl hover:-translate-y-3 duration-500 flex flex-col h-full min-h-[300px]">
+                          <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-emerald-50 transition-colors">
+                            <div className="flex items-center gap-4">
+                              <div className="p-3 bg-emerald-50 rounded-2xl shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500">
+                                <Activity size={24} />
+                              </div>
+                              <span className="text-sm font-black text-slate-800 uppercase tracking-widest">معدل الصحة</span>
                             </div>
-                            <span className="text-sm font-bold text-slate-600 uppercase tracking-widest">مؤشر الصحة الكلي</span>
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                           </div>
-                          <div className="p-2">
+                          <div className="p-6 flex-grow overflow-auto">
                             <BusinessHealthFeature data={data} />
                           </div>
                         </div>
                       </div>
 
-                      {/* Learning Logs Section */}
-                      <div className="space-y-6 lg:space-y-8 bg-slate-50/50 p-4 sm:p-6 lg:p-8 rounded-3xl lg:rounded-2xl border border-slate-100">
-                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-2 lg:px-4 gap-4">
-                            <div className="flex items-center gap-3 lg:gap-4">
-                              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0">
-                                <RefreshCcw className="text-white animate-spin w-4 h-4 lg:w-5 lg:h-5" style={{ animationDuration: '4s' }} />
+                      {/* Learning Logs Section - Modern Grid */}
+                      <div className="space-y-10 bg-slate-100/50 p-6 lg:p-14 rounded-[48px] border border-slate-200/60 shadow-inner">
+                         <div className="flex flex-col md:flex-row items-center justify-between px-4 gap-8">
+                            <div className="flex items-center gap-6">
+                              <div className="w-16 h-16 bg-indigo-600 rounded-[24px] flex items-center justify-center shadow-2xl shadow-indigo-400/40 shrink-0">
+                                <RefreshCcw className="text-white animate-spin w-8 h-8" style={{ animationDuration: '6s' }} />
                               </div>
                               <div>
-                                <h3 className="font-bold text-lg sm:text-xl lg:text-2xl text-slate-800 tracking-tight">سجل التطور الذاتي</h3>
-                                <p className="text-slate-500 text-[10px] sm:text-xs lg:text-sm font-bold mt-0.5 lg:mt-1">تتبع رحلة نضج النظام من البيانات الخام إلى قرارات ذكية</p>
+                                <h3 className="font-black text-3xl lg:text-5xl text-slate-900 tracking-tighter">سجل التطور الذاتي</h3>
+                                <p className="text-slate-500 text-sm lg:text-xl font-bold mt-2">توثيق رحلة نضج الخوارزميات من البيانات الخام إلى الذكاء التشغيلي</p>
                               </div>
                             </div>
-                            <div className="hidden sm:block bg-indigo-50 text-indigo-600 px-3 lg:px-4 py-1.5 lg:py-2 rounded-full text-[10px] lg:text-xs font-bold border border-indigo-100">
-                              تحديث لحظي
+                            <div className="bg-white text-indigo-600 px-8 py-4 rounded-[40px] text-lg font-black border border-indigo-100 shadow-xl shadow-indigo-100/50 whitespace-nowrap">
+                              تحديث لحظي نشط
                             </div>
                          </div>
                          
-                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:p-8">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                           {aiLearningLogs.length > 0 ? (
                             aiLearningLogs.map((log, i) => (
                               <motion.div
                                 key={log.id}
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true, margin: "-50px" }}
-                                transition={{ delay: i * 0.1, duration: 0.5 }}
-                                className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200/60 shadow-sm relative overflow-hidden flex flex-col group hover:shadow-xl transition-all duration-500 gap-6 border-b-4 border-b-indigo-500/10 hover:border-b-indigo-500"
+                                viewport={{ once: true, margin: "-100px" }}
+                                transition={{ delay: i * 0.1, duration: 0.8, ease: "easeOut" }}
+                                className="bg-white p-8 lg:p-12 rounded-[40px] border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col group hover:shadow-2xl transition-all duration-700 hover:-translate-y-2 border-b-[8px] border-b-indigo-500/10 hover:border-b-indigo-500"
                               >
                                 {/* Accuracy Badge */}
-                                <div className="absolute top-6 md:p-8 left-8">
+                                <div className="absolute top-8 left-8">
                                   {log.isAccurate ? (
-                                    <div className="bg-emerald-50 text-emerald-600 text-[11px] font-bold px-4 py-2 rounded-2xl border border-emerald-100 flex items-center gap-2 uppercase tracking-wider shadow-sm">
-                                      <CheckCircle2 size={14} /> توقع ناجح
+                                    <div className="bg-emerald-50 text-emerald-600 text-xs font-black px-5 py-2.5 rounded-2xl border border-emerald-100 flex items-center gap-2 uppercase tracking-widest shadow-sm">
+                                      <CheckCircle2 size={16} /> توقع ناجح
                                     </div>
                                   ) : (
-                                    <div className="bg-amber-50 text-amber-600 text-[11px] font-bold px-4 py-2 rounded-2xl border border-amber-100 flex items-center gap-2 uppercase tracking-wider shadow-sm">
-                                      <Zap size={14} /> تحديث المنهجية
+                                    <div className="bg-amber-50 text-amber-600 text-xs font-black px-5 py-2.5 rounded-2xl border border-amber-100 flex items-center gap-2 uppercase tracking-widest shadow-sm">
+                                      <Zap size={16} /> تحديث المنهجية
                                     </div>
                                   )}
                                 </div>
 
-                                <div className="mt-10">
-                                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] mb-3">الفرضية والنمط المكتشف:</div>
-                                  <h4 className="text-xl font-bold text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">
+                                <div className="mt-12 mb-8">
+                                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] mb-4">الفرضية والنمط المكتشف:</div>
+                                  <h4 className="text-2xl lg:text-3xl font-black text-slate-900 leading-[1.2] group-hover:text-indigo-600 transition-colors duration-500">
                                     {log.prediction}
                                   </h4>
                                 </div>
