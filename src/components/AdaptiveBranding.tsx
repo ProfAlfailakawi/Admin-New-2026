@@ -18,6 +18,7 @@ export const AdaptiveBranding: React.FC<{ data: any; setData: any }> = ({ data, 
   const [logoPosition, setLogoPosition] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top-right');
   const [customText, setCustomText] = useState('');
   const [textPosition, setTextPosition] = useState<'bottom' | 'top' | 'center' | 'hidden'>('bottom');
+  const [history, setHistory] = useState<any[]>([]);
 
   React.useEffect(() => {
     if (generatedTheme?.baseImageUrl) {
@@ -67,7 +68,7 @@ No markdown formatting, just pure JSON.`;
       const rawText = result.text.replace(/```json/g, '').replace(/```/g, '').trim();
       const themeData = JSON.parse(rawText);
       
-      const imgPrompt = `A beautiful, high-quality, abstract or atmospheric hero image for a website representing the theme: "${themeData.name}" (${themeData.description}). Use these colors prominently: ${themeData.colors.join(", ")}. Clean, modern Kuwaiti branding aesthetic. ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO SIGNATURES, NO WATERMARKS in the image.`;
+      const imgPrompt = `Generate a 10000% photorealistic, highly realistic, real-world photograph for a hero image representing the theme: "${themeData.name}" (${themeData.description}). Use these colors prominently: ${themeData.colors.join(", ")}. Natural lighting, real textures, high-end photography aesthetic, NOT abstract art unless strictly necessary. Clean, modern Kuwaiti branding aesthetic. IMPORTANT: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO SIGNATURES, NO LOGOS, NO WATERMARKS ANYWHERE IN THE IMAGE. THE IMAGE MUST BE COMPLETELY TEXTLESS.`;
       
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
@@ -76,7 +77,9 @@ No markdown formatting, just pure JSON.`;
       });
       const imgData = await imgRes.json();
       
-      setGeneratedTheme({ ...themeData, baseImageUrl: imgData.imageUrl });
+      const newTheme = { ...themeData, baseImageUrl: imgData.imageUrl };
+      setGeneratedTheme(newTheme);
+      setHistory(prev => [newTheme, ...prev].slice(0, 10));
       setActiveTheme('custom');
       toast.success(`تم ابتكار وتطبيق ثيم: ${themeData.name} ✨`);
     } catch (e) {
@@ -212,7 +215,7 @@ No markdown formatting, just pure JSON.`;
             <div className="bg-white rounded-3xl shadow-sm border border-purple-100 block transition-all animate-in fade-in slide-in-from-bottom-4 overflow-hidden h-fit">
               {generatedTheme.imageUrl && (
                 <div className="w-full h-48 md:h-64 relative border-b border-purple-100">
-                  <img src={generatedTheme.imageUrl} alt={generatedTheme.name} className="w-full h-full object-cover" />
+                  <img src={generatedTheme.imageUrl} alt={generatedTheme.name} className="w-full h-full object-contain" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6">
                      <h4 className="font-bold text-3xl text-white mb-1 drop-shadow-xl">{generatedTheme.name}</h4>
                   </div>
@@ -246,6 +249,27 @@ No markdown formatting, just pure JSON.`;
                      </a>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {history.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-purple-100/50">
+              <h4 className="text-[10px] font-black text-slate-400 mb-2 text-right uppercase tracking-widest">الأعمال الأخيرة</h4>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {history.map((item, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => { setGeneratedTheme(item); setActiveTheme('custom'); }}
+                    className="w-16 h-16 rounded-xl border border-purple-200 flex-shrink-0 overflow-hidden relative group"
+                  >
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${item.colors[0]}, ${item.colors[1]})` }} />
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
           )}

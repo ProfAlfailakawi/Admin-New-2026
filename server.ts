@@ -2090,9 +2090,9 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       let autoPrompt = `بناءً على الصورة المرفقة للطبق، قم بتوليد عمل فني إبداعي فائق الواقعية (Ultra-Realistic 8K Professional Photography).
  القواعد الصارمة (STRICT RULES):
 - الطبق (Star of the show): حافظ تماماً على شكله، مكوناته، وطريقة تقديمه دون أي تغيير (Zero Hallucinations).
-- البيئة والمحيط: صمم خلفية تدعم "واقعية" المشاهد في البيئة الكويتية الراقية.
+- البيئة والمحيط: صمم خلفية تدعم "واقعية 10000%" للمشهد في بيئة كويتية راقية حقيقية. يجب أن تبدو صورة فوتوغرافية حقيقية تماماً وليست رسمة.
 - الإضاءة والتكوين: استخدم إضاءة احترافية (Cinematic Lighting) واترك مساحات هادئة في الزوايا تسمح بوضع علامة تجارية (Logo) لاحقاً.
-- النصوص (Text): ممنوع منعاً باتاً ظهور أي أحرف، كلمات، نصوص، شعارات، أو علامات مائية في المشهد (ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO LOGOS, NO WATERMARKS in the generated image).
+- النصوص (Text): IMPORTANT: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO SIGNATURES, NO LOGOS, NO WATERMARKS ANYWHERE IN THE IMAGE. THE IMAGE MUST BE COMPLETELY SANS-TEXT. ANY TEXT IS A FATAL ERROR.
 
  التفاصيل المطلوبة بناءً على الاختيارات:
  - الثيم: ${theme || 'بسيط'}.
@@ -2247,6 +2247,17 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
     try {
       const { image, theme } = req.body;
       if (!image) return res.status(400).json({ error: "Missing image" });
+      
+      // We expect 'image' to be just the base64 string. 
+      // If it contains 'data:', the frontend is sending the whole string by mistake, but we handle it.
+      // The image comes from canvas.toDataURL('image/png'), so it's image/png.
+      let base64Data = image;
+      let mimeType = 'image/png';
+      if (image.includes('data:')) {
+        const parts = image.split(',');
+        mimeType = parts[0].split(':')[1].split(';')[0];
+        base64Data = parts[1];
+      }
 
       if (!process.env.GEMINI_API_KEY) {
         return res.status(500).json({ error: "GEMINI_API_KEY is not configured" });
@@ -2261,20 +2272,14 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
         }
       });
 
-      const prompt = `بناءً على صورة هذا الطبق المصممة بثيم (${theme})، اكتب نصاً تسويقياً إبداعياً وجذاباً للسوشيال ميديا باللغة العربية (لهجة كويتية بيضاء راقية).
-- ركز على الطعم، الجودة، والتجربة الفريدة.
-- أضف هاشتاقات مناسبة كويتية ذكية ومبتكرة.
-- لا تستخدم كلمة "براند"، "براندات"، أو "Brandat" في النص نهائياً.
-- اجعل النص قصيراً ومؤثراً ومناسباً للنشر فوراً.`;
+      const prompt = `بناءً على صورة هذا الطبق المصممة بثيم (${theme})، اكتب نصاً تسويقياً إبداعياً وجذاباً للسوشيال ميديا باللغة العربية (لهجة كويتية بيضاء راقية).\n- ركز على الطعم، الجودة، والتجربة الفريدة.\n- أضف هاشتاقات مناسبة كويتية ذكية ومبتكرة.\n- لا تستخدم كلمة "براند"، "براندات"، أو "Brandat" في النص نهائياً.\n- اجعل النص قصيراً ومؤثراً ومناسباً للنشر فوراً.`;
 
       const result = await ai.models.generateContent({
         model: "gemini-2.5-flash",
-        contents: {
-          parts: [
-            { inlineData: { data: image, mimeType: 'image/jpeg' } },
-            { text: prompt }
-          ]
-        }
+        contents: [
+          { inlineData: { data: base64Data, mimeType: mimeType } },
+          { text: prompt }
+        ]
       });
 
       const caption = result.text || "";

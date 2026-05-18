@@ -18,6 +18,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
   const [logoPosition, setLogoPosition] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top-right');
   const [customText, setCustomText] = useState('');
   const [textPosition, setTextPosition] = useState<'bottom' | 'top' | 'center' | 'hidden'>('bottom');
+  const [history, setHistory] = useState<{url: string, review: string}[]>([]);
 
   React.useEffect(() => {
     if (generatedBaseImage) {
@@ -35,7 +36,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
     setResultImage(null);
     setGeneratedBaseImage(null);
     try {
-      const imgPrompt = `A cinematic, ultra-realistic movie poster style design for a restaurant social media post. The focal point is a mouth-watering cinematic traditional Kuwaiti dish (like Machboos, Mutabbaq Zubaidi, or traditional Kuwaiti food). There must be dramatic lighting. Include glowing futuristic or cinematic aesthetic. Very high quality. Clean composition leaving middle center for text. ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO LOGOS, NO WATERMARKS in the image.`;
+      const imgPrompt = `Generate a 10000% photorealistic, ultra-high quality, and hyper-realistic photograph that represents the subject of this Arabic review: "${review}". The image must look like a real, high-end commercial photograph with realistic textures, lighting, and a completely natural, real-world background. Do not use cartoonish or illustration styles. The subject should match the exact product or service mentioned in the text. Keep the composition clean with some empty space for adding overlays later. IMPORTANT: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO SIGNATURES, NO LOGOS, NO WATERMARKS ANYWHERE IN THE IMAGE. IT MUST BE COMPLETELY SANS-TEXT.`;
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -45,6 +46,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
       
       if (imgData.imageUrl) {
         setGeneratedBaseImage(imgData.imageUrl);
+        setHistory(prev => [{url: imgData.imageUrl, review}, ...prev].slice(0, 10));
       }
     } catch (e) {
       toast.error("فشل التوليد");
@@ -143,7 +145,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
             
             <div className="relative z-10 w-full max-w-2xl rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 group flex flex-col">
                <div className="relative w-full">
-                  <img src={resultImage} alt="Cinematic Review" className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-1000" />
+                  <img src={resultImage} alt="Cinematic Review" className="w-full h-auto object-contain group-hover:scale-105 transition-transform duration-1000" />
                   
                   <div className="absolute inset-x-0 bottom-0 top-1/2 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none flex items-end justify-center pb-8 px-4">
                     <div className="text-center">
@@ -164,6 +166,23 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
                    <ImageIcon className="w-4 h-4" />
                    حفظ البوستر
                </a>
+            </div>
+          </div>
+        )}
+
+        {history.length > 0 && (
+          <div className="absolute bottom-0 left-0 w-full p-4 bg-black/60 backdrop-blur-md border-t border-white/10 z-30">
+            <h4 className="text-[10px] font-black text-slate-400 mb-2 text-right uppercase tracking-widest">الأعمال الأخيرة</h4>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {history.map((item, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => { setGeneratedBaseImage(item.url); setReview(item.review); }}
+                  className="w-12 h-12 rounded-lg border border-white/20 flex-shrink-0 overflow-hidden"
+                >
+                  <img src={item.url} alt="hist" className="w-full h-full object-cover" />
+                </button>
+              ))}
             </div>
           </div>
         )}
