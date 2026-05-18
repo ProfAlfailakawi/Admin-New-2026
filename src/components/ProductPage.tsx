@@ -926,7 +926,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                   </div>
                                   <div className="absolute bottom-full mb-2 right-1/2 translate-x-[75%] sm:translate-x-[60%] hidden group-hover/badge:flex group-focus/badge:flex focus-within:flex flex-col bg-white text-slate-700 text-[10px] sm:text-[10px] w-[110px] sm:w-[130px] p-2 rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-bold border border-slate-200/60 pointer-events-none items-center gap-1.5 text-center">
                                     <span className="bg-rose-50 text-rose-600 px-2 py-1.5 rounded-lg leading-relaxed w-full break-words whitespace-normal">{bestPrice.supplier}</span>
-                                    <span className="w-full">يبيعه أرخص</span>
+                                    <span className="w-full">يبيعه أرخص !</span>
                                     <span className="text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg leading-none w-full">{Number(bestPrice.cost || 0).toFixed(3)} د.ك</span>
                                   </div>
                                 </div>
@@ -1287,50 +1287,47 @@ const ProductPage: React.FC<ProductPageProps> = ({
                           المبادئ الثلاثة لحساب قيمة الإضافات (Add-ons)
                         </label>
                         <div className="grid grid-cols-1 gap-3">
-                          <label className={`relative flex cursor-pointer rounded-xl border p-4 focus:outline-none transition-all ${addon.calculationType === 'per_item' ? 'bg-indigo-50/50 border-indigo-400 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}>
-                            <input type="radio" name={`calcType-${addon.id}`} className="sr-only" checked={addon.calculationType === 'per_item'} onChange={() => { const newAddons = [...(productForm as any).addons]; newAddons[index].calculationType = 'per_item'; setProductForm(prev => ({ ...prev, addons: newAddons })); }} />
-                            <div className="flex w-full items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className={`flex items-center justify-center rounded-full w-5 h-5 border flex-shrink-0 ${addon.calculationType === 'per_item' ? 'border-indigo-600 bg-indigo-100' : 'border-slate-300'}`}>
-                                  {addon.calculationType === 'per_item' && <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full" />}
-                                </div>
-                                <div className="text-right">
-                                  <div className={`font-bold text-sm ${addon.calculationType === 'per_item' ? 'text-indigo-900' : 'text-slate-700'}`}>1. مبدأ "الارتباط بالكمية" (لكل طبق)</div>
-                                  <div className="text-xs text-slate-500 mt-1 leading-relaxed">يُضرب سعر الملحق أو الإضافة بعدد الأطباق المطلوبة. (مثال: حشو إضافي، صوص خاص. لو طلب العميل 3 أطباق سيتم احتساب قيمة الحشو 3 مرات ليغطي كل طبق).</div>
-                                </div>
-                              </div>
-                            </div>
-                          </label>
+                          {/* Calculation Type Selection */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newAddons = [...(productForm as any).addons];
+                                newAddons[index].calculationType = 'per_item';
+                                setProductForm(prev => ({ ...prev, addons: newAddons }));
+                              }}
+                              className={cn("flex flex-col items-center text-center p-3 rounded-xl border transition-all", addon.calculationType === 'per_item' ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm" : "bg-white border-slate-200 hover:border-indigo-200")}
+                            >
+                              <div className={cn("font-bold text-sm mb-1", addon.calculationType === 'per_item' ? "text-indigo-900" : "text-slate-700")}>1. مبدأ "الارتباط بالكمية"</div>
+                              <div className="text-[10px] text-slate-500">(لكل طبق)</div>
+                            </button>
 
-                          <label className={`relative flex cursor-pointer rounded-xl border p-4 focus:outline-none transition-all ${addon.calculationType === 'per_x_items' ? 'bg-indigo-50/50 border-indigo-400 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}>
-                            <input type="radio" name={`calcType-${addon.id}`} className="sr-only" checked={addon.calculationType === 'per_x_items'} onChange={() => { const newAddons = [...(productForm as any).addons]; newAddons[index].calculationType = 'per_x_items'; setProductForm(prev => ({ ...prev, addons: newAddons })); }} />
-                            <div className="flex w-full items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className={`flex items-center justify-center rounded-full w-5 h-5 border flex-shrink-0 ${addon.calculationType === 'per_x_items' ? 'border-indigo-600 bg-indigo-100' : 'border-slate-300'}`}>
-                                  {addon.calculationType === 'per_x_items' && <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full" />}
-                                </div>
-                                <div className="text-right">
-                                  <div className={`font-bold text-sm ${addon.calculationType === 'per_x_items' ? 'text-indigo-900' : 'text-slate-700'}`}>2. مبدأ "التجميع والتخصيص" (كل X أطباق تحسب مرة)</div>
-                                  <div className="text-xs text-slate-500 mt-1 leading-relaxed">يُسمح للملحق بالارتباط بمجموعة من الأطباق معاً لتوفير التكاليف. (مثال: تقديم صينية عزايم كبيرة تتسع لكل 3 أطباق بسعر موحد. لو طلب العميل 3 أطباق، سيحسب سعر صينية واحدة).</div>
-                                </div>
-                              </div>
-                            </div>
-                          </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newAddons = [...(productForm as any).addons];
+                                newAddons[index].calculationType = 'per_x_items';
+                                setProductForm(prev => ({ ...prev, addons: newAddons }));
+                              }}
+                              className={cn("flex flex-col items-center text-center p-3 rounded-xl border transition-all", addon.calculationType === 'per_x_items' ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm" : "bg-white border-slate-200 hover:border-indigo-200")}
+                            >
+                              <div className={cn("font-bold text-sm mb-1", addon.calculationType === 'per_x_items' ? "text-indigo-900" : "text-slate-700")}>2. مبدأ "التجميع والتخصيص"</div>
+                              <div className="text-[10px] text-slate-500">(كل X أطباق تحسب مرة)</div>
+                            </button>
 
-                          <label className={`relative flex cursor-pointer rounded-xl border p-4 focus:outline-none transition-all ${addon.calculationType === 'fixed' ? 'bg-indigo-50/50 border-indigo-400 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}>
-                            <input type="radio" name={`calcType-${addon.id}`} className="sr-only" checked={addon.calculationType === 'fixed'} onChange={() => { const newAddons = [...(productForm as any).addons]; newAddons[index].calculationType = 'fixed'; setProductForm(prev => ({ ...prev, addons: newAddons })); }} />
-                            <div className="flex w-full items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className={`flex items-center justify-center rounded-full w-5 h-5 border flex-shrink-0 ${addon.calculationType === 'fixed' ? 'border-indigo-600 bg-indigo-100' : 'border-slate-300'}`}>
-                                  {addon.calculationType === 'fixed' && <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full" />}
-                                </div>
-                                <div className="text-right">
-                                  <div className={`font-bold text-sm ${addon.calculationType === 'fixed' ? 'text-indigo-900' : 'text-slate-700'}`}>3. مبدأ "الثبات المطلق" (Fixed - للطلب كامل)</div>
-                                  <div className="text-xs text-slate-500 mt-1 leading-relaxed">يُحسب الملحق مرة واحدة فقط مهما كان عدد الأطباق المطلوبة في سلة العميل. (مثال: طلب تغليف فاخر أو إضافة كرتون هدية واحد لجميع الأصناف المقترنة في نفس الطلب).</div>
-                                </div>
-                              </div>
-                            </div>
-                          </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newAddons = [...(productForm as any).addons];
+                                newAddons[index].calculationType = 'fixed';
+                                setProductForm(prev => ({ ...prev, addons: newAddons }));
+                              }}
+                              className={cn("flex flex-col items-center text-center p-3 rounded-xl border transition-all", addon.calculationType === 'fixed' ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm" : "bg-white border-slate-200 hover:border-indigo-200")}
+                            >
+                              <div className={cn("font-bold text-sm mb-1", addon.calculationType === 'fixed' ? "text-indigo-900" : "text-slate-700")}>3. مبدأ "الثبات المطلق"</div>
+                              <div className="text-[10px] text-slate-500">(للطلب كامل)</div>
+                            </button>
+                          </div>
                         </div>
                       </div>
 

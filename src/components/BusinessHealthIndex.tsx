@@ -128,21 +128,21 @@ export const BusinessHealthIndex: React.FC<BusinessHealthIndexProps> = React.mem
  </div>
  </div>
 
- {/* Recommendations Panel */}
- <div className="bg-slate-900 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl relative overflow-hidden group">
- <div className="absolute top-0 right-0 p-3 md:p-4 opacity-5 group-hover:scale-110 transition-transform"><TrendingUp size={150} className="text-white" /></div>
- <div className="relative z-10">
- <h3 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center gap-3">خطة عمل التحسين الفوري <Sparkles className="text-amber-400" size={20} /></h3>
- <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-3 md:p-4">
- {health.recommendations.map((rec, i) => (
- <div key={i} className="bg-white/10 backdrop-blur-md p-3 md:p-4 md:p-3 rounded-2xl border border-white/10 flex items-start gap-4">
- <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center shrink-0"><CheckCircle2 className="text-black" size={16} /></div>
- <p className="text-white font-bold text-base md:text-lg leading-relaxed">{rec}</p>
- </div>
-))}
- </div>
- </div>
- </div>
+  {/* Recommendations Panel */}
+  <div className="bg-slate-950 p-8 md:p-12 rounded-[40px] relative overflow-hidden group shadow-2xl">
+    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-1000"><TrendingUp size={300} className="text-white" /></div>
+    <div className="relative z-10">
+      <h3 className="text-3xl md:text-5xl font-black text-white mb-10 flex items-center gap-6">خطة عمل التحسين الفوري <Sparkles className="text-amber-400" size={40} /></h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {health.recommendations.map((rec, i) => (
+          <div key={i} className="bg-white/5 backdrop-blur-xl p-8 rounded-3xl border border-white/10 flex items-start gap-6 hover:bg-white/10 transition-all duration-500 min-h-[140px]">
+            <div className="w-12 h-12 rounded-2xl bg-amber-400 flex items-center justify-center shrink-0 shadow-lg shadow-amber-400/20"><CheckCircle2 className="text-black" size={24} /></div>
+            <p className="text-white font-bold text-lg md:text-2xl leading-relaxed">{rec}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
 
  {/* Info Notice */}
  <div className="bg-indigo-50 border border-indigo-100 p-3 md:p-4 rounded-2xl flex items-center gap-4">
