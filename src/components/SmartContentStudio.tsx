@@ -7,6 +7,9 @@ import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
+import { RealtimeRadar } from './RealtimeRadar';
+import { ReviewToPoster } from './ReviewToPoster';
+import { AdaptiveBranding } from './AdaptiveBranding';
 
 interface SmartContentStudioProps {
   data: any;
@@ -15,6 +18,7 @@ interface SmartContentStudioProps {
 }
 
 export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, setData, onNavigate }) => {
+  const [studioTab, setStudioTab] = useState<'product' | 'radar' | 'review' | 'branding'>('product');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState('1:1');
@@ -58,7 +62,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [logoPosition, setLogoPosition] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top-right');
   const [aiImage, setAiImage] = useState<string | null>(null);
   const [history, setHistory] = useState<{url: string, caption: string | null, date: Date}[]>([]);
-  const [compareValue, setCompareValue] = useState(50);
+
 
   useEffect(() => {
     if (aiImage) {
@@ -345,7 +349,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               ارفع صورة منتجاتك الحقيقية، وسنحولها إلى صور تسويقية احترافية للسوشيال ميديا مع الحفاظ الكامل على واقعية وشكل الطبق الأصلي دون أي تزييف.
             </p>
           </div>
-          {originalImage && (
+          {originalImage && studioTab === 'product' && (
             <button 
               onClick={() => { setSelectedImage(null); setOriginalImage(null); setGeneratedImage(null); }}
               className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur transition-all text-sm font-bold flex items-center gap-2"
@@ -354,13 +358,26 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             </button>
           )}
         </div>
+        
+        <div className="relative z-10 flex gap-2 mt-6 overflow-x-auto pb-2 scrollbar-none">
+          <button onClick={() => setStudioTab('product')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'product' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>تحويل صور المنتجات</button>
+          <button onClick={() => setStudioTab('radar')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'radar' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>رادار التريندات</button>
+          <button onClick={() => setStudioTab('review')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'review' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>مدح سينمائي</button>
+          <button onClick={() => setStudioTab('branding')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'branding' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>الهوية المتغيرة</button>
+        </div>
       </div>
 
-      {!originalImage ? (
-        <div 
-          onClick={() => fileInputRef.current?.click()}
-          className="w-full mt-10 h-80 border-4 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/50 hover:bg-indigo-50 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all group"
-        >
+      {studioTab === 'radar' && <RealtimeRadar data={data} setData={setData} />}
+      {studioTab === 'review' && <ReviewToPoster data={data} setData={setData} />}
+      {studioTab === 'branding' && <AdaptiveBranding data={data} setData={setData} />}
+
+      {studioTab === 'product' && (
+        <>
+          {!originalImage ? (
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full mt-10 h-80 border-4 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/50 hover:bg-indigo-50 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all group"
+            >
           <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center mb-6 group-hover:scale-110 shadow-sm transition-transform">
             <Camera className="w-10 h-10 text-indigo-600" />
           </div>
@@ -671,12 +688,6 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="flex-[3] flex flex-col">
                     <div className="flex items-center justify-between mb-3 text-right">
                       <p className="text-sm font-bold text-indigo-600">النتيجة النهائية (جاهزة للنشر)</p>
-                      <button 
-                        onClick={() => setCompareValue(compareValue === 50 ? 100 : 50)}
-                        className="text-[10px] bg-slate-100 px-2 py-1 rounded-md font-bold text-slate-600 hover:bg-slate-200 transition-colors"
-                      >
-                        {compareValue === 100 ? 'مقارنة قبل وبعد' : 'عرض النتيجة فقط'}
-                      </button>
                     </div>
                     
                     <div className="flex-1 bg-white rounded-3xl border shadow-2xl p-2 relative flex items-center justify-center min-h-[400px] overflow-hidden group">
@@ -686,33 +697,6 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                           alt="Generated" 
                           className="w-full h-full object-contain"
                         />
-                        
-                        {compareValue < 100 && (
-                          <div 
-                            className="absolute inset-0 overflow-hidden border-l-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.3)] z-10"
-                            style={{ width: `${compareValue}%` }}
-                          >
-                            <div className="absolute inset-0 w-[1000%] h-full">
-                              <img 
-                                src={originalImage || ""} 
-                                alt="Original" 
-                                className="absolute inset-0 h-full object-cover"
-                                style={{ width: `calc(100% / (${compareValue || 1} / 100))` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {compareValue < 100 && (
-                          <input 
-                            type="range" 
-                            min="0" 
-                            max="100" 
-                            value={compareValue} 
-                            onChange={(e) => setCompareValue(parseInt(e.target.value))}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-20"
-                          />
-                        )}
                       </div>
 
                       <AnimatePresence>
@@ -791,6 +775,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );
