@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Zap, Loader2, Image as ImageIcon, Flame } from 'lucide-react';
+import { Zap, Loader2, Image as ImageIcon, Flame, Check, Copy, Layout } from 'lucide-react';
 import { toast } from 'sonner';
+import { applyLogoBranding } from '../lib/brandingUtils';
+import { DEFAULT_GLOBAL_LOGO } from '../constants';
 
 export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [loading, setLoading] = useState(false);
@@ -8,6 +10,8 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
   const [resultText, setResultText] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [customEvent, setCustomEvent] = useState('');
+  const [useBranding, setUseBranding] = useState(true);
+  const [copying, setCopying] = useState(false);
 
   const events = [
     { id: 'rain', label: 'مطر بالكويت', icon: '🌧️', msg: 'جو المطر يبي له...' },
@@ -40,7 +44,17 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
         body: JSON.stringify({ prompt: imgPrompt, format: '1:1' })
       });
       const imgData = await imgRes.json();
-      setResultImage(imgData.imageUrl);
+      
+      let finalImg = imgData.imageUrl;
+      if (useBranding && finalImg) {
+        finalImg = await applyLogoBranding(
+          finalImg,
+          data.settings?.companyLogo || DEFAULT_GLOBAL_LOGO,
+          data.settings?.storeName || '',
+          { useBranding: true, brandingStyle: 'smooth', logoOpacity: 0.8, logoPosition: 'top-right' }
+        );
+      }
+      setResultImage(finalImg);
 
     } catch (e) {
       toast.error("فشل التوليد الذكي");
@@ -49,12 +63,32 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
     }
   };
 
+  const handleCopy = () => {
+    if (resultText) {
+      navigator.clipboard.writeText(resultText);
+      setCopying(true);
+      toast.success('تم نسخ النص بنجاح!');
+      setTimeout(() => setCopying(false), 2000);
+    }
+  };
+
   return (
     <div className="bg-white p-6 rounded-3xl border border-slate-200 mt-6 shadow-sm">
-      <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-        <Flame className="text-rose-500" />
-        رادار التريندات الكويتي (Real-time)
-      </h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+          <Flame className="text-rose-500" />
+          رادار التريندات الكويتي (Real-time)
+        </h2>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-slate-500">إضافة الهوية</span>
+          <button 
+            onClick={() => setUseBranding(!useBranding)}
+            className={`w-12 h-6 rounded-full transition-all relative p-1 ${useBranding ? "bg-rose-500" : "bg-slate-200"}`}
+          >
+            <div className={`w-4 h-4 bg-white rounded-full transition-all shadow-sm ${useBranding ? "translate-x-6" : "translate-x-0"}`} />
+          </button>
+        </div>
+      </div>
       <p className="text-slate-500 text-sm mb-6 max-w-2xl">واكب السوالف واللحظة! احصل على بوست وعرض وصورة بضغطة زر وتفاعل مع زبائنك في نفس الوقت وبابداع غير عادي يناسب السوق الكويتي.</p>
       
       <div className="flex flex-wrap gap-3 mb-6">
@@ -111,11 +145,12 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
           )}
           <div className="w-full md:w-1/2">
              <h3 className="text-rose-600 font-bold mb-3 flex items-center gap-2">النص المقترح (مُصمم للتريند):</h3>
-             <div className="bg-white p-5 rounded-2xl shadow-sm text-slate-800 font-medium whitespace-pre-wrap leading-relaxed border border-rose-100 text-lg">
+             <div className="bg-white p-5 rounded-2xl shadow-sm text-slate-800 font-medium whitespace-pre-wrap leading-relaxed border border-rose-100 text-lg relative">
                {resultText}
              </div>
-             <button className="mt-6 bg-rose-600 text-white w-full py-4 rounded-xl font-bold hover:bg-rose-700 transition-colors shadow-lg shadow-rose-200">
-               نسخ وجدولة النشر الآن
+             <button onClick={handleCopy} className="mt-6 flex items-center justify-center gap-2 bg-rose-600 text-white w-full py-4 rounded-xl font-bold hover:bg-rose-700 transition-colors shadow-lg shadow-rose-200">
+               {copying ? <Check size={18} /> : <Copy size={18} />}
+               {copying ? 'تم النسخ!' : 'نسخ وجدولة النشر الآن'}
              </button>
           </div>
         </div>

@@ -2229,9 +2229,10 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
         apiKey: process.env.GEMINI_API_KEY,
         httpOptions: { headers: { "User-Agent": "aistudio-build" } }
       });
+      const finalPrompt = prompt + "\n- ملاحظة مهمة جداً: لا تستخدم كلمة 'براند' أو 'براندات' أو 'Brandat' في النص نهائياً.";
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: { parts: [{ text: prompt }] },
+        model: "gemini-2.5-flash",
+        contents: { parts: [{ text: finalPrompt }] },
         config: { temperature: 0.9 }
       });
       res.json({ text: response.text || "" });
@@ -2262,10 +2263,11 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       const prompt = `بناءً على صورة هذا الطبق المصممة بثيم (${theme})، اكتب نصاً تسويقياً إبداعياً وجذاباً للسوشيال ميديا باللغة العربية (لهجة كويتية بيضاء راقية).
 - ركز على الطعم، الجودة، والتجربة الفريدة.
 - أضف هاشتاقات مناسبة كويتية ذكية ومبتكرة.
+- لا تستخدم كلمة "براند"، "براندات"، أو "Brandat" في النص نهائياً.
 - اجعل النص قصيراً ومؤثراً ومناسباً للنشر فوراً.`;
 
       const result = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.5-flash",
         contents: {
           parts: [
             { inlineData: { data: image, mimeType: 'image/jpeg' } },
