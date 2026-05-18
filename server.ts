@@ -2291,12 +2291,15 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 
       const result = await ai.models.generateContent({
         model: "gemini-2.5-flash",
-        contents: {
-          parts: [
-            { inlineData: { data: base64Data, mimeType: mimeType } },
-            { text: prompt }
-          ]
-        }
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { inlineData: { data: base64Data, mimeType: mimeType } },
+              { text: prompt }
+            ]
+          }
+        ]
       });
 
       const caption = result.text || "";

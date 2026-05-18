@@ -222,10 +222,16 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           theme: selectedTheme
         })
       });
-      const res = await response.json();
+      let res;
+      let isHtml = false;
+      try {
+        res = await response.json();
+      } catch (e) {
+        isHtml = true;
+      }
       
       if (!response.ok) {
-        throw new Error(res.error || 'Failed to generate caption');
+        throw new Error(isHtml ? 'عذراً، حجم الصورة كبير جداً لمعالجتها (تجاوز الحد المسموح)' : (res?.error || 'Failed to generate caption'));
       }
       
       setAiCaption(res.caption);
