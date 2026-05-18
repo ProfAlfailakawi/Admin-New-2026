@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout } from 'lucide-react';
 import { Product } from '../types';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface SmartContentStudioProps {
   data: any;
@@ -20,6 +21,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [compressedImage, setCompressedImage] = useState<string | null>(null);
   const [compressionStats, setCompressionStats] = useState<{ original: number; compressed: number } | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [aiCaption, setAiCaption] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formats = [
@@ -29,14 +32,28 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   ];
 
   const themes = [
-    { id: 'تراثي', label: 'ثيم تراثي كويتي', desc: 'خلفية تراثية، سفرة عائلية دافئة' },
-    { id: 'فاخر', label: 'ثيم مطعم فاخر', desc: 'إضاءة سينمائية، خلفية داكنة راقية' },
-    { id: 'بسيط', label: 'لقطة مقربة بسيطة', desc: 'خلفية نظيفة، تركيز على الطبق' },
-    { id: 'رمضان', label: 'ثيم رمضاني', desc: 'فوانيس، إضاءة ناعمة، ضيافة خليجية' },
-    { id: 'تنظيف', label: 'تحسين واقعي فقط', desc: 'نفس المشهد مع تحسين الإضاءة والألوان' }
+    { id: 'تراثي', label: 'ثيم تراثي كويتي', desc: 'خلفية تراثية، سفرة عائلية دافئة', icon: '🏛️', color: 'bg-amber-100 text-amber-700' },
+    { id: 'فاخر', label: 'ثيم مطعم فاخر', desc: 'إضاءة سينمائية، خلفية داكنة راقية', icon: '💎', color: 'bg-indigo-100 text-indigo-700' },
+    { id: 'بسيط', label: 'لقطة مقربة بسيطة', desc: 'خلفية نظيفة، تركيز على الطبق', icon: '🍽️', color: 'bg-slate-100 text-slate-700' },
+    { id: 'رمضان', label: 'ثيم رمضاني', desc: 'فوانيس، إضاءة ناعمة، ضيافة خليجية', icon: '🌙', color: 'bg-emerald-100 text-emerald-700' },
+    { id: 'سايبربانك', label: 'ثيم سايبربانك', desc: 'أضواء نيون، أجواء ليلية مستقبلية مذهلة', icon: '🔋', color: 'bg-pink-100 text-pink-700' },
+    { id: 'سينمائي', label: 'إخراج سينمائي', desc: 'إضاءة درامية، خلفية ضبابية باحترافية', icon: '🎬', color: 'bg-rose-100 text-rose-700' },
+    { id: 'طبيعة', label: 'أجواء حديقة', desc: 'خلفية خضراء، إضاءة شمس طبيعية نافذة', icon: '🌿', color: 'bg-green-100 text-green-700' },
+    { id: '3D', label: '3D مذهل', desc: 'خلفية ثلاثية الأبعاد بأسلوب Render احترافي', icon: '🎨', color: 'bg-orange-100 text-orange-700' },
+    { id: 'خيال', label: 'أجواء خيالية', desc: 'خلفية فنية، ألوان سحرية، إبداع مطلق', icon: '🦄', color: 'bg-indigo-100 text-indigo-700' },
+    { id: 'تنظيف', label: 'تحسين واقعي فقط', desc: 'نفس المشهد مع تحسين الإضاءة والألوان', icon: '✨', color: 'bg-blue-100 text-blue-700' }
   ];
 
-  const compressImage = (base64Str: string, maxWidth = 640): Promise<{base64: string, size: number, originalSize: number}> => {
+  const moods = [
+    { id: 'دافئ', label: 'إضاءة دافئة', icon: '☀️' },
+    { id: 'بارد', label: 'إضاءة باردة', icon: '❄️' },
+    { id: 'درامي', label: 'تباين عالي', icon: '🎭' },
+    { id: 'ناعم', label: 'إضاءة ناعمة', icon: '☁️' }
+  ];
+
+  const [selectedMood, setSelectedMood] = useState('دافئ');
+
+  const compressImage = (base64Str: string, maxWidth = 1080): Promise<{base64: string, size: number, originalSize: number}> => {
     return new Promise((resolve) => {
       const img = new Image();
       img.src = base64Str;
@@ -45,6 +62,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         let width = img.width;
         let height = img.height;
 
+        // Optimized for social media (1080px is recommended for high quality socials)
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
           width = maxWidth;
@@ -55,8 +73,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
         
-        // Output as jpeg for better compatibility with Gemini
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.52);
+        // Output as jpeg with a balanced 0.8 quality for social media excellence
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
         const originalSize = Math.round((base64Str.length * 3) / 4);
         const compressedSize = Math.round((compressedBase64.length * 3) / 4);
         
@@ -107,7 +125,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           imageContent: selectedImage.split(',')[1],
           mimeType: selectedImage.split(';')[0].split(':')[1],
           format: selectedFormat,
-          theme: selectedTheme
+          theme: selectedTheme,
+          mood: selectedMood,
+          speedTier: 'turbo' // Signal for faster generation logic if available
         })
       });
 
@@ -141,10 +161,32 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     if (!generatedImage) return;
     const a = document.createElement('a');
     a.href = generatedImage;
-    a.download = `social-media-${Date.now()}.png`;
+    a.download = `smart-studio-${selectedTheme}-${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+
+  const generateCaption = async () => {
+    if (!generatedImage) return;
+    setIsCapturing(true);
+    try {
+      const response = await fetch('/api/smart-studio/caption', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: generatedImage.split(',')[1],
+          theme: selectedTheme
+        })
+      });
+      const res = await response.json();
+      setAiCaption(res.caption);
+    } catch (e) {
+      console.error(e);
+      alert('فشل توليد النص التسويقي');
+    } finally {
+      setIsCapturing(false);
+    }
   };
 
   const [isSaving, setIsSaving] = useState(false);
@@ -287,23 +329,58 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
               <h3 className="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
                 <Sparkles size={16} className="text-purple-600" />
                 2. اختر الثيم (خلفية المشهد)
               </h3>
-              <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                 {themes.map(t => (
                   <button
                     key={t.id}
                     onClick={() => setSelectedTheme(t.id)}
                     className={cn(
-                      "w-full p-4 rounded-xl border text-right flex flex-col gap-1 transition-all",
-                      selectedTheme === t.id ? "bg-purple-50 border-purple-500 shadow-sm" : "bg-white border-slate-200 hover:bg-slate-50"
+                      "p-3 rounded-2xl border-2 text-right flex flex-col gap-1 transition-all h-28 relative overflow-hidden group",
+                      selectedTheme === t.id ? "border-purple-500 bg-purple-50/30 shadow-md ring-4 ring-purple-500/10" : "bg-white border-slate-100 hover:border-purple-200 hover:bg-slate-50"
                     )}
                   >
-                    <div className={cn("text-sm font-bold", selectedTheme === t.id ? "text-purple-800" : "text-slate-800")}>{t.label}</div>
-                    <div className="text-xs text-slate-500">{t.desc}</div>
+                    <div className="flex items-center justify-between mb-1 relative z-10">
+                      <div className={cn("p-2 rounded-xl transition-transform group-hover:scale-110", t.color)}>
+                        <span className="text-xl">{t.icon}</span>
+                      </div>
+                      {selectedTheme === t.id && (
+                        <div className="bg-purple-500 text-white p-0.5 rounded-full">
+                          <Check size={12} />
+                        </div>
+                      )}
+                    </div>
+                    <div className={cn("text-xs font-bold relative z-10", selectedTheme === t.id ? "text-purple-900" : "text-slate-800")}>{t.label}</div>
+                    <div className="text-[10px] text-slate-500 line-clamp-1 relative z-10">{t.desc}</div>
+                    
+                    {/* Background decoration */}
+                    <div className={cn("absolute -bottom-4 -left-4 w-12 h-12 rounded-full opacity-10 group-hover:opacity-20 transition-opacity", t.color.split(' ')[0])} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+              <h3 className="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
+                <Zap size={16} className="text-amber-500" />
+                3. المود الفني
+              </h3>
+              <div className="grid grid-cols-4 gap-2">
+                {moods.map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => setSelectedMood(m.id)}
+                    className={cn(
+                      "p-2 rounded-xl border flex flex-col items-center gap-1 transition-all",
+                      selectedMood === m.id ? "bg-amber-50 border-amber-500 text-amber-700 shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    <span className="text-sm">{m.icon}</span>
+                    <span className="text-[10px] font-bold">{m.label}</span>
                   </button>
                 ))}
               </div>
@@ -365,16 +442,50 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               )}
 
               {isGenerating && (
-                <div className="text-center px-6">
-                  <div className="w-20 h-20 rounded-2xl bg-indigo-100 flex items-center justify-center mx-auto mb-6 shadow-indigo-200 shadow-xl relative animate-pulse">
-                     <Sparkles className="w-8 h-8 text-indigo-600 absolute animate-ping opacity-50" />
-                     <Sparkles className="w-10 h-10 text-indigo-600 relative z-10" />
+                <div className="text-center px-6 py-12">
+                  <div className="w-24 h-24 rounded-3xl bg-indigo-600 flex items-center justify-center mx-auto mb-8 shadow-indigo-500/30 shadow-2xl relative">
+                     <motion.div 
+                        animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="relative z-10"
+                     >
+                        <Sparkles className="w-12 h-12 text-white" />
+                     </motion.div>
+                     <motion.div 
+                        animate={{ scale: [1, 2], opacity: [0.5, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                        className="absolute inset-0 bg-indigo-500 rounded-3xl"
+                     />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800 mb-2">جاري العمل كمدير تسويق ذكي...</h3>
-                  <div className="text-sm text-slate-500 space-y-1">
-                    <p>✨ تحليل الصورة وفهم عمق الطبق</p>
-                    <p>✨ بناء مسرح تصوير واقعي ({selectedTheme})</p>
-                    <p>✨ تحسين الإضاءة التسويقية</p>
+                  
+                  <h3 className="text-2xl font-black text-slate-800 mb-6">جاري الإبداع الهندسي...</h3>
+                  
+                  <div className="max-w-xs mx-auto space-y-4">
+                    {[
+                      "تحليل بصمة الطبق الأصلية...",
+                      "تصميم خلفية إبداعية مذهلة...",
+                      "ضبط الإضاءة والمود الفني...",
+                      "دمج العناصر بواقعية مطلقة..."
+                    ].map((step, idx) => (
+                      <motion.div 
+                        key={idx}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 2 }}
+                        className="flex items-center gap-3 text-right"
+                      >
+                         <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <motion.div 
+                               initial={{ scale: 0 }}
+                               animate={{ scale: 1 }}
+                               transition={{ delay: idx * 2 + 0.5 }}
+                            >
+                               <Check size={12} className="text-emerald-600" />
+                            </motion.div>
+                         </div>
+                         <span className="text-sm font-bold text-slate-600">{step}</span>
+                      </motion.div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -391,21 +502,65 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
                   <div className="flex-[3] flex flex-col">
                     <p className="text-sm font-bold text-indigo-600 mb-3 text-center">الصورة بعد التصميم (جاهزة للنشر)</p>
-                    <div className="flex-1 bg-white rounded-2xl border shadow-sm p-2 relative flex items-center justify-center min-h-[400px]">
-                      <img src={generatedImage} alt="Generated" className={cn(
-                        "rounded-xl max-h-[600px] object-contain shadow-sm",
-                        selectedFormat === '9:16' ? "aspect-[9/16]" : 
-                        selectedFormat === '4:3' ? "aspect-video" : "aspect-square"
-                      )} />
+                    <div className="flex-1 bg-white rounded-3xl border shadow-2xl p-2 relative flex items-center justify-center min-h-[400px] overflow-hidden group">
+                      <motion.img 
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        src={generatedImage} 
+                        alt="Generated" 
+                        className={cn(
+                          "rounded-2xl max-h-[600px] object-contain shadow-sm transition-transform duration-700 group-hover:scale-105",
+                          selectedFormat === '9:16' ? "aspect-[9/16]" : 
+                          selectedFormat === '4:3' ? "aspect-video" : "aspect-square"
+                        )} 
+                      />
+                      <div className="absolute top-6 right-6">
+                        <div className="bg-indigo-600/90 text-white px-3 py-1.5 rounded-full text-[10px] font-black backdrop-blur-md shadow-lg border border-white/20 flex items-center gap-2">
+                           <Sparkles size={12} />
+                           AI Masterpiece
+                        </div>
+                      </div>
                     </div>
                     
-                    <div className="flex gap-3 mt-6 justify-center">
-                      <button 
-                        onClick={handleDownload}
-                        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center gap-2 shadow-md transition-all"
-                      >
-                        <Download size={18} /> تحميل الصورة
-                      </button>
+                    <div className="mt-8 flex flex-col gap-4">
+                       <div className="flex gap-3 justify-center">
+                          <button 
+                            onClick={handleDownload}
+                            className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-indigo-200 transition-all hover:scale-105 active:scale-95"
+                          >
+                            <Download size={20} /> تحميل العمل الفني
+                          </button>
+                          
+                          <button 
+                            onClick={generateCaption}
+                            disabled={isCapturing}
+                            className="px-8 py-4 bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50 rounded-2xl font-bold flex items-center gap-2 transition-all disabled:opacity-50"
+                          >
+                            {isCapturing ? <Loader2 className="animate-spin" size={20} /> : <Zap size={20} className="text-amber-500" />}
+                            نص تسويقي ذكي
+                          </button>
+                       </div>
+
+                       <AnimatePresence>
+                         {aiCaption && (
+                           <motion.div 
+                             initial={{ opacity: 0, y: 10 }}
+                             animate={{ opacity: 1, y: 0 }}
+                             className="p-6 bg-amber-50/50 border border-amber-200 rounded-3xl relative overflow-hidden"
+                           >
+                             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                                <Zap className="w-20 h-20 text-amber-500" />
+                             </div>
+                             <p className="text-sm text-amber-900 leading-relaxed font-medium text-right relative z-10 whitespace-pre-wrap">{aiCaption}</p>
+                             <button 
+                               onClick={() => navigator.clipboard.writeText(aiCaption)}
+                               className="mt-4 text-[10px] font-bold text-amber-700 hover:underline flex items-center gap-1"
+                             >
+                                <Check size={10} /> نسخ النص
+                             </button>
+                           </motion.div>
+                         )}
+                       </AnimatePresence>
                     </div>
 
                     <div className="mt-4 pt-4 border-t border-slate-100 w-full flex flex-col items-center gap-3">

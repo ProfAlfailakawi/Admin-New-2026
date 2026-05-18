@@ -201,7 +201,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
       >
         <div className="flex items-center gap-3">
           <div className="bg-amber-500/20 text-amber-300 p-2 rounded-xl group-hover:bg-amber-500/30 transition-colors">
-            <ArrowUpRight size={20} />
+            <Zap size={20} />
           </div>
           <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
             المساعد الذكي
