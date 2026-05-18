@@ -36,7 +36,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'تنظيف', label: 'تحسين واقعي فقط', desc: 'نفس المشهد مع تحسين الإضاءة والألوان' }
   ];
 
-  const compressImage = (base64Str: string, maxWidth = 1080): Promise<{base64: string, size: number, originalSize: number}> => {
+  const compressImage = (base64Str: string, maxWidth = 640): Promise<{base64: string, size: number, originalSize: number}> => {
     return new Promise((resolve) => {
       const img = new Image();
       img.src = base64Str;
@@ -56,7 +56,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         ctx?.drawImage(img, 0, 0, width, height);
         
         // Output as jpeg for better compatibility with Gemini
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.52);
         const originalSize = Math.round((base64Str.length * 3) / 4);
         const compressedSize = Math.round((compressedBase64.length * 3) / 4);
         
@@ -80,6 +80,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         // Compress automatically
         const result = await compressImage(base64);
         setCompressedImage(result.base64);
+        if (result.size > 5 * 1024 * 1024) {
+          alert('الصورة ما زالت كبيرة بعد الضغط. يرجى اختيار صورة أصغر أو قصّها قبل الرفع.');
+          return;
+        }
         setSelectedImage(result.base64);
         setCompressionStats({ original: result.originalSize, compressed: result.size });
         setGeneratedImage(null);
