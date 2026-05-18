@@ -25,6 +25,19 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
   const [history, setHistory] = useState<{url: string, text: string, topic: string}[]>([]);
 
   React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem('realtime_radar_history');
+      if (saved) setHistory(JSON.parse(saved));
+    } catch (e) {}
+  }, []);
+
+  React.useEffect(() => {
+    if (history.length > 0) {
+      localStorage.setItem('realtime_radar_history', JSON.stringify(history));
+    }
+  }, [history]);
+
+  React.useEffect(() => {
     if (generatedBaseImage) {
       applyLogoBranding(
         generatedBaseImage,

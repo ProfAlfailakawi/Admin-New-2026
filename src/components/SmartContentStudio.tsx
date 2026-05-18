@@ -70,13 +70,33 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [history, setHistory] = useState<{url: string, caption: string | null, date: Date}[]>([]);
 
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem('smart_studio_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setHistory(parsed.map((item: any) => ({ ...item, date: new Date(item.date) })));
+      }
+    } catch (e) {}
+  }, []);
+
+  useEffect(() => {
+    if (history.length > 0) {
+      localStorage.setItem('smart_studio_history', JSON.stringify(history));
+    }
+  }, [history]);
+
+  useEffect(() => {
     if (aiImage) {
       applyBranding(aiImage).then(setGeneratedImage);
     }
   }, [useBranding, logoOpacity, logoPosition, brandingStyle, customText, textPosition, aiImage]);
 
   const addToHistory = (url: string, caption: string | null) => {
-    setHistory(prev => [{url, caption, date: new Date()}, ...prev.slice(0, 5)]);
+    setHistory(prev => {
+      const newHistory = [{url, caption, date: new Date()}, ...prev.slice(0, 9)];
+      localStorage.setItem('smart_studio_history', JSON.stringify(newHistory));
+      return newHistory;
+    });
   };
 
   const applyBranding = async (sourceImage: string): Promise<string> => {
@@ -214,11 +234,44 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     if (!generatedImage) return;
     setIsCapturing(true);
     try {
+      // Resize image for text generation to reduce payload size safely
+      const safeBase64 = await new Promise<string>((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 800; // max dimension 800px is very safe and enough for captioning
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+             ctx.drawImage(img, 0, 0, width, height);
+             // Generate low quality jpeg for quick and small API payload
+             resolve(canvas.toDataURL('image/jpeg', 0.6));
+          } else {
+             resolve(generatedImage);
+          }
+        };
+        img.onerror = () => resolve(generatedImage);
+        img.src = generatedImage;
+      });
+
       const response = await fetch('/api/smart-studio/caption', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image: generatedImage,
+          image: safeBase64,
           theme: selectedTheme
         })
       });
