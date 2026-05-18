@@ -64,6 +64,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [brandingStyle, setBrandingStyle] = useState<'smooth' | 'elegant' | 'classic' | 'polaroid' | 'heritage'>('smooth');
   const [logoOpacity, setLogoOpacity] = useState(0.7);
   const [logoPosition, setLogoPosition] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top-right');
+  const [customText, setCustomText] = useState('');
+  const [textPosition, setTextPosition] = useState<'bottom' | 'top' | 'center' | 'hidden'>('bottom');
   const [aiImage, setAiImage] = useState<string | null>(null);
   const [history, setHistory] = useState<{url: string, caption: string | null, date: Date}[]>([]);
 
@@ -71,7 +73,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     if (aiImage) {
       applyBranding(aiImage).then(setGeneratedImage);
     }
-  }, [useBranding, logoOpacity, logoPosition, brandingStyle, aiImage]);
+  }, [useBranding, logoOpacity, logoPosition, brandingStyle, customText, textPosition, aiImage]);
 
   const addToHistory = (url: string, caption: string | null) => {
     setHistory(prev => [{url, caption, date: new Date()}, ...prev.slice(0, 5)]);
@@ -84,7 +86,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       useBranding,
       brandingStyle,
       logoOpacity,
-      logoPosition
+      logoPosition,
+      customText,
+      textPosition,
     });
   };
 
@@ -323,9 +327,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="flex flex-col-reverse lg:flex-row gap-8 items-start">
           
-          <div className="lg:col-span-4 space-y-6">
+          <div className="w-full lg:w-[45%] space-y-6">
             <div className="bg-slate-50 p-5 rounded-2xl shadow-sm border border-slate-200/50 italic mb-4">
                <div className="flex items-center justify-between mb-4">
                  <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -475,6 +479,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 setLogoPosition={setLogoPosition}
                 logoOpacity={logoOpacity}
                 setLogoOpacity={setLogoOpacity}
+                customText={customText}
+                setCustomText={setCustomText}
+                textPosition={textPosition}
+                setTextPosition={setTextPosition}
                 colorClass="indigo"
                 title="4. هوية العلامة (Logo)"
               />
@@ -506,8 +514,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             </button>
           </div>
 
-          <div className="lg:col-span-8 space-y-6">
-            <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100 min-h-[500px] flex items-center justify-center bg-slate-50 relative overflow-hidden">
+          <div className="w-full lg:w-[55%] space-y-6 sticky top-4 z-40">
+            <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100 min-h-[250px] md:min-h-[500px] flex items-center justify-center bg-slate-50 relative overflow-hidden">
               
               {!generatedImage && !isGenerating && (
                 <div className="text-center w-full max-w-lg mx-auto p-4 space-y-6">
@@ -598,12 +606,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                       <p className="text-sm font-bold text-indigo-600">النتيجة النهائية (جاهزة للنشر)</p>
                     </div>
                     
-                    <div className="flex-1 bg-white rounded-3xl border shadow-2xl p-2 relative flex items-center justify-center min-h-[400px] overflow-hidden group">
-                      <div className="relative w-full h-full rounded-2xl overflow-hidden aspect-square">
+                    <div className="flex-1 bg-white rounded-3xl border shadow-2xl p-2 relative flex items-stretch h-[350px] md:h-[500px] overflow-hidden group">
+                      <div className="relative flex-1 w-full h-full rounded-2xl overflow-hidden">
                         <img 
                           src={generatedImage || ""} 
                           alt="Generated" 
-                          className="w-full h-full object-contain"
+                          className="absolute inset-0 w-full h-full object-contain"
                         />
                       </div>
 

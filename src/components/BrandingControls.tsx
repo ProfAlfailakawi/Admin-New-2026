@@ -11,13 +11,17 @@ interface BrandingControlsProps {
   setLogoPosition: (v: any) => void;
   logoOpacity?: number;
   setLogoOpacity?: (v: number) => void;
+  customText?: string;
+  setCustomText?: (v: string) => void;
+  textPosition?: string;
+  setTextPosition?: (v: any) => void;
   colorClass?: 'indigo' | 'rose' | 'purple';
   title?: string;
   isCompact?: boolean;
 }
 
 export const BrandingControls: React.FC<BrandingControlsProps> = ({
-  useBranding, setUseBranding, brandingStyle, setBrandingStyle, logoPosition, setLogoPosition, logoOpacity, setLogoOpacity, colorClass = 'indigo', title = 'إضافة الهوية', isCompact = false
+  useBranding, setUseBranding, brandingStyle, setBrandingStyle, logoPosition, setLogoPosition, logoOpacity, setLogoOpacity, customText, setCustomText, textPosition, setTextPosition, colorClass = 'indigo', title = 'إضافة الهوية', isCompact = false
 }) => {
   const bgMap: any = { indigo: 'bg-indigo-600', rose: 'bg-rose-600', purple: 'bg-purple-600' };
   const textMap: any = { indigo: 'text-indigo-700', rose: 'text-rose-700', purple: 'text-purple-700' };
@@ -47,17 +51,10 @@ export const BrandingControls: React.FC<BrandingControlsProps> = ({
 
       {useBranding && (
         <div className={cn("space-y-4 animate-in slide-in-from-top-2 duration-300", isCompact ? "mt-3 pt-3 border-t border-slate-100/50" : "")}>
-          <div className="p-1.5 bg-slate-100 rounded-xl flex gap-1 flex-wrap">
-             <button onClick={() => setBrandingStyle('smooth')} className={cn("flex-1 text-[10px] font-bold py-2 rounded-lg transition-all min-w-[45px]", brandingStyle === 'smooth' ? `bg-white shadow-sm ${textMap[colorClass]}` : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700')}>ظل ناعم</button>
-             <button onClick={() => setBrandingStyle('elegant')} className={cn("flex-1 text-[10px] font-bold py-2 rounded-lg transition-all min-w-[45px]", brandingStyle === 'elegant' ? `bg-white shadow-sm ${textMap[colorClass]}` : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700')}>إطار أنيق</button>
-             <button onClick={() => setBrandingStyle('polaroid')} className={cn("flex-1 text-[10px] font-bold py-2 rounded-lg transition-all min-w-[45px]", brandingStyle === 'polaroid' ? `bg-white shadow-sm ${textMap[colorClass]}` : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700')}>مطبوعة</button>
-             <button onClick={() => setBrandingStyle('heritage')} className={cn("flex-1 text-[10px] font-bold py-2 rounded-lg transition-all min-w-[45px]", brandingStyle === 'heritage' ? `bg-white shadow-sm ${textMap[colorClass]}` : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700')}>تراثي</button>
-             <button onClick={() => setBrandingStyle('classic')} className={cn("flex-1 text-[10px] font-bold py-2 rounded-lg transition-all min-w-[45px]", brandingStyle === 'classic' ? `bg-white shadow-sm ${textMap[colorClass]}` : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700')}>لوجو فقط</button>
-          </div>
           
           <div className="pt-1">
             <label className="text-[10px] font-bold text-slate-500 mb-2 block text-right">موقع اللوجو</label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                <button onClick={() => setLogoPosition('top-right')} className={cn("py-2 rounded-lg border text-[10px] font-bold transition-all", logoPosition === 'top-right' ? `${borderMap[colorClass]} ${bgSoftMap[colorClass]} ${textMap[colorClass]}` : "border-slate-200 hover:bg-slate-50 text-slate-600")}>أعلى يمين</button>
                <button onClick={() => setLogoPosition('top-left')} className={cn("py-2 rounded-lg border text-[10px] font-bold transition-all", logoPosition === 'top-left' ? `${borderMap[colorClass]} ${bgSoftMap[colorClass]} ${textMap[colorClass]}` : "border-slate-200 hover:bg-slate-50 text-slate-600")}>أعلى يسار</button>
                <button onClick={() => setLogoPosition('bottom-right')} className={cn("py-2 rounded-lg border text-[10px] font-bold transition-all", logoPosition === 'bottom-right' ? `${borderMap[colorClass]} ${bgSoftMap[colorClass]} ${textMap[colorClass]}` : "border-slate-200 hover:bg-slate-50 text-slate-600")}>أسفل يمين</button>
@@ -68,7 +65,7 @@ export const BrandingControls: React.FC<BrandingControlsProps> = ({
           {setLogoOpacity && logoOpacity !== undefined && (
             <div className="space-y-2 mt-4 px-1">
               <div className="flex justify-between text-[11px] text-slate-500 font-bold">
-                <span>الشفافية</span>
+                <span>شفافية اللوجو</span>
                 <span>{Math.round(logoOpacity * 100)}%</span>
               </div>
               <input 
@@ -80,6 +77,36 @@ export const BrandingControls: React.FC<BrandingControlsProps> = ({
                 onChange={(e) => setLogoOpacity(parseFloat(e.target.value))}
                 className={cn("w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer", `accent-${colorClass}-600`)}
               />
+            </div>
+          )}
+
+          <div className="pt-2">
+            <label className="text-[10px] font-bold text-slate-500 mb-2 block text-right">الإطار (اختياري)</label>
+            <div className="p-1.5 bg-slate-100 rounded-xl flex gap-1 flex-wrap">
+               <button onClick={() => setBrandingStyle('classic')} className={cn("flex-1 text-[10px] font-bold py-2 rounded-lg transition-all min-w-[40px]", brandingStyle === 'classic' ? `bg-white shadow-sm ${textMap[colorClass]}` : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700')}>بدون</button>
+               <button onClick={() => setBrandingStyle('smooth')} className={cn("flex-1 text-[10px] font-bold py-2 rounded-lg transition-all min-w-[40px]", brandingStyle === 'smooth' ? `bg-white shadow-sm ${textMap[colorClass]}` : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700')}>ظل</button>
+               <button onClick={() => setBrandingStyle('elegant')} className={cn("flex-1 text-[10px] font-bold py-2 rounded-lg transition-all min-w-[40px]", brandingStyle === 'elegant' ? `bg-white shadow-sm ${textMap[colorClass]}` : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700')}>أنيق</button>
+               <button onClick={() => setBrandingStyle('polaroid')} className={cn("flex-1 text-[10px] font-bold py-2 rounded-lg transition-all min-w-[40px]", brandingStyle === 'polaroid' ? `bg-white shadow-sm ${textMap[colorClass]}` : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700')}>مطبوعة</button>
+               <button onClick={() => setBrandingStyle('heritage')} className={cn("flex-1 text-[10px] font-bold py-2 rounded-lg transition-all min-w-[40px]", brandingStyle === 'heritage' ? `bg-white shadow-sm ${textMap[colorClass]}` : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700')}>تراثي</button>
+            </div>
+          </div>
+
+          {setCustomText && customText !== undefined && setTextPosition && textPosition !== undefined && (
+            <div className="pt-2 border-t border-slate-100 mt-2">
+              <label className="text-[10px] font-bold text-slate-500 mb-2 block text-right">أضف نص للصورة (اختياري)</label>
+              <input
+                type="text"
+                placeholder="اكتب اسم متجرك أو جملة..."
+                value={customText}
+                onChange={(e) => setCustomText(e.target.value)}
+                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg mb-2 focus:outline-none focus:border-indigo-400"
+              />
+              <div className="grid grid-cols-3 gap-1">
+                 <button onClick={() => setTextPosition('top')} className={cn("py-1.5 rounded-md border text-[10px] font-bold transition-all", textPosition === 'top' ? `${borderMap[colorClass]} ${bgSoftMap[colorClass]} ${textMap[colorClass]}` : "border-slate-200 hover:bg-slate-50 text-slate-600")}>أعلى</button>
+                 <button onClick={() => setTextPosition('center')} className={cn("py-1.5 rounded-md border text-[10px] font-bold transition-all", textPosition === 'center' ? `${borderMap[colorClass]} ${bgSoftMap[colorClass]} ${textMap[colorClass]}` : "border-slate-200 hover:bg-slate-50 text-slate-600")}>وسط</button>
+                 <button onClick={() => setTextPosition('bottom')} className={cn("py-1.5 rounded-md border text-[10px] font-bold transition-all", textPosition === 'bottom' ? `${borderMap[colorClass]} ${bgSoftMap[colorClass]} ${textMap[colorClass]}` : "border-slate-200 hover:bg-slate-50 text-slate-600")}>أسفل</button>
+                 <button onClick={() => setTextPosition('hidden')} className={cn("py-1.5 rounded-md border text-[10px] font-bold transition-all col-span-3", textPosition === 'hidden' ? `${borderMap[colorClass]} ${bgSoftMap[colorClass]} ${textMap[colorClass]}` : "border-slate-200 hover:bg-slate-50 text-slate-600")}>بدون نص</button>
+              </div>
             </div>
           )}
         </div>
