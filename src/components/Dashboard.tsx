@@ -139,6 +139,7 @@ const BusinessHealthIndex = React.lazy(() =>
 );
 const ClientSniperRadar = React.lazy(() => import("./ClientSniperRadar"));
 const GeoHeatmap = React.lazy(() => import("./GeoHeatmap"));
+const VIPMissions = React.lazy(() => import("./VIPMissions").then(m => ({ default: m.VIPMissions })));
 
 import {
   generateBusinessInsights,
@@ -1673,8 +1674,11 @@ const [isPending, startTransition] = useTransition();
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         <MagneticButton
           onClick={() => onNavigate!("new-invoice")}
-          className="flex flex-col items-center justify-center p-6 bg-amber-500 text-white rounded-2xl shadow-xl shadow-amber-500/20 interactive-hover active:scale-95 group"
+          className="flex flex-col items-center justify-center p-6 bg-rose-600 text-white rounded-2xl shadow-xl shadow-rose-500/20 interactive-hover active:scale-95 group relative overflow-hidden"
         >
+          <div className="absolute top-0 left-0 w-8 h-8 bg-white/10 rounded-br-2xl flex items-center justify-center">
+            <AlertTriangle size={14} className="text-white ring-1 ring-white/30 rounded-full" />
+          </div>
           <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform">
             <Plus size={24} strokeWidth={3} />
           </div>
@@ -2050,36 +2054,45 @@ const [isPending, startTransition] = useTransition();
 
           {/* TOP ROW: HEADER */}
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-4">
-              <div
-                onClick={() => setActiveTab("pulse")}
-                className="flex shrink-0 items-center justify-center w-14 h-14 bg-slate-900 text-white rounded-2xl shadow-xl transition-all cursor-pointer hover:scale-105 active:scale-95"
-              >
-                <Sparkles size={28} className="text-amber-400 animate-pulse" />
-              </div>
-              <div className="flex flex-col">
-                <h1 className="text-xl md:text-3xl font-bold text-slate-900 leading-tight">
-                  {greeting.title}
-                </h1>
-                <p className="text-slate-500 text-sm font-bold flex items-center gap-2 mt-1">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
-                  {greeting.sub}
-                </p>
-              </div>
-            </div>
+            <AnimatePresence>
+              {!isExecutiveMode && (
+                <motion.div 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex items-center gap-4"
+                >
+                  <div
+                    onClick={() => setActiveTab("pulse")}
+                    className="flex shrink-0 items-center justify-center w-14 h-14 bg-slate-900 text-white rounded-2xl shadow-xl transition-all cursor-pointer hover:scale-105 active:scale-95"
+                  >
+                    <Sparkles size={28} className="text-amber-400 animate-pulse" />
+                  </div>
+                  <div className="flex flex-col">
+                    <h1 className="text-xl md:text-3xl font-bold text-slate-900 leading-tight">
+                      {greeting.title}
+                    </h1>
+                    <p className="text-slate-500 text-sm font-bold flex items-center gap-2 mt-1">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
+                      {greeting.sub}
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             {/* Executive Mode Toggle */}
             <button
               onClick={() => setIsExecutiveMode(!isExecutiveMode)}
               className={cn(
-                "hidden md:flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-sm transition-all duration-500",
+                "md:flex items-center gap-3 px-6 py-3 rounded-2xl font-black text-sm transition-all duration-500 shadow-xl",
                 isExecutiveMode 
-                  ? "bg-slate-900 text-white shadow-lg scale-105" 
-                  : "bg-white border border-slate-200/60 text-slate-600 hover:bg-slate-50 hover:scale-105"
+                  ? "bg-amber-500 text-white shadow-amber-500/30 scale-110" 
+                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:scale-105"
               )}
             >
-              <ShieldAlert size={18} className={cn(isExecutiveMode ? "text-amber-400" : "text-slate-500")} />
-              <span>{isExecutiveMode ? "خروج من القيادة" : "وضع القيادة"}</span>
+              <ShieldAlert size={20} className={cn(isExecutiveMode ? "text-white" : "text-amber-500")} />
+              <span>{isExecutiveMode ? "إغلاق وضع القيادة" : "تفعيل وضع القيادة"}</span>
             </button>
           </div>
 
@@ -2137,15 +2150,12 @@ const [isPending, startTransition] = useTransition();
                 ))}
               </motion.div>
             )}
-            </AnimatePresence>
-          </div>
-
-          
-
-              </motion.div>
-            )}
           </AnimatePresence>
         </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+</div>
 
         {/* 4) CONTENT - Full Width */}
         <div
@@ -2155,54 +2165,109 @@ const [isPending, startTransition] = useTransition();
             isExecutiveMode ? "py-12" : ""
           )}
         >
-
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {isExecutiveMode && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="absolute inset-x-4 top-0 space-y-12 py-12"
+                key="executive-stats"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="w-full mb-12 p-8 lg:p-12 bg-slate-950 rounded-[48px] border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.5)] relative overflow-hidden"
                 dir="rtl"
               >
-                <div className="flex flex-col items-center justify-center space-y-6 text-center">
-                  <h2 className="text-4xl md:text-5xl font-mono font-bold tracking-tighter text-slate-900 tracking-tight">
-                    {isGrowthPos ? 'الأداء اليوم ممتاز.' : 'أداء اليوم يحتاج انتباه.'}
-                  </h2>
-                  <p className="text-2xl text-slate-500 font-bold max-w-2xl">
-                    {rawGrowthText}، ولا يوجد أي تأخير في العمليات. النظام مستقر.
-                  </p>
-                </div>
+                {/* Decorative Elements */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-500" />
+                <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px]" />
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:p-8 max-w-5xl mx-auto">
-                  <div className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.03)] border border-slate-100 flex flex-col items-center text-center">
-                    <p className="text-slate-500 font-bold mb-4 uppercase tracking-widest text-sm">صافي الإيرادات</p>
-                    <p className="text-3xl md:text-5xl font-mono font-bold tracking-tighter text-slate-900">{totals.revenue.toFixed(2)} د.ك</p>
+                <div className="relative z-10 grid grid-cols-1 lg:grid-cols-4 gap-12 items-center">
+                  <div className="lg:col-span-1 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center border border-amber-500/30">
+                        <Activity className="text-amber-400" size={20} />
+                      </div>
+                      <span className="text-amber-500 text-xs font-black uppercase tracking-[0.3em]">Operational Pulse</span>
+                    </div>
+                    <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-tight">
+                      {isGrowthPos ? "الأداء اليوم ممتاز." : "أداء اليوم يحتاج انتباه."}
+                    </h2>
+                    <p className="text-slate-400 font-bold text-lg leading-relaxed">
+                      {rawGrowthText}
+                    </p>
                   </div>
-                  <div className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.03)] border border-slate-100 flex flex-col items-center text-center">
-                    <p className="text-slate-500 font-bold mb-4 uppercase tracking-widest text-sm">الطلبات المنجزة</p>
-                    <p className="text-3xl md:text-5xl font-mono font-bold tracking-tighter text-slate-900">{totals.orders}</p>
-                  </div>
-                  <div className="bg-slate-900 rounded-3xl p-6 md:p-8 shadow-xl flex flex-col items-center text-center">
-                    <p className="text-slate-500 font-bold mb-4 uppercase tracking-widest text-sm">معدل النمو</p>
-                    <p className={cn("text-5xl font-bold", isGrowthPos ? "text-emerald-400" : "text-rose-400")}>{growthValText}</p>
+
+                  <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    {/* Stat 1: Revenue */}
+                    <div className="bg-white/5 border border-white/10 p-8 rounded-[32px] backdrop-blur-xl group hover:bg-white/10 transition-all duration-500">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4">إجمالي مبيعات اليوم</span>
+                      <div className="flex items-baseline gap-3">
+                         <span className="text-4xl font-black text-white tabular-nums tracking-tighter">{tRev.toFixed(2)}</span>
+                         <span className="text-slate-400 text-sm font-bold">د.ك</span>
+                      </div>
+                      <div className={cn("mt-4 text-xs font-black inline-flex items-center gap-1 px-3 py-1 rounded-full", isGrowthPos ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400")}>
+                        {isGrowthPos ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                        {growthValText} مقارنة بالأمس
+                      </div>
+                    </div>
+
+                    {/* Stat 2: Orders */}
+                    <div className="bg-white/5 border border-white/10 p-8 rounded-[32px] backdrop-blur-xl group hover:bg-white/10 transition-all duration-500">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4">طلبات التطبيق المكتملة</span>
+                      <div className="flex items-baseline gap-3">
+                         <span className="text-4xl font-black text-white tabular-nums tracking-tighter">{totals.orders}</span>
+                         <span className="text-slate-400 text-sm font-bold">طلب</span>
+                      </div>
+                      <div className="mt-4 text-xs font-black inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400">
+                        <ShoppingCart size={12} />
+                        جميع العمليات مستقرة
+                      </div>
+                    </div>
+
+                    {/* Stat 3: Efficiency */}
+                    <div className="bg-white/5 border border-white/10 p-8 rounded-[32px] backdrop-blur-xl group hover:bg-white/10 transition-all duration-500">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4">معدل كفاءة التشغيل</span>
+                      <div className="flex items-baseline gap-3">
+                         <span className="text-4xl font-black text-white tabular-nums tracking-tighter">98.4</span>
+                         <span className="text-slate-400 text-sm font-bold">%</span>
+                      </div>
+                      <div className="mt-4 text-xs font-black inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400">
+                        <Zap size={12} />
+                        أعلى من المتوسط بـ 2.1%
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {!isExecutiveMode && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="animate-in fade-in slide-in-from-bottom-4 duration-500 mt-4">
-
-            {activeTab === "orders" && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <React.Suspense fallback={<div className="h-96 flex items-center justify-center font-bold text-slate-500">جاري تحميل الطلبات...</div>}>
-                  <OrderPage data={data} setData={onUpdateData} setCurrentPage={onNavigate!} setDeepLinkData={setDeepLinkData} isPartner={false} />
-                </React.Suspense>
-              </div>
-            )}
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="w-full"
+              >
+                {activeTab === "orders" && (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <React.Suspense
+                    fallback={
+                      <div className="h-96 flex items-center justify-center font-bold text-slate-500">
+                        جاري تحميل الطلبات...
+                      </div>
+                    }
+                  >
+                    <OrderPage
+                      data={data}
+                      setData={onUpdateData}
+                      setCurrentPage={onNavigate!}
+                      setDeepLinkData={setDeepLinkData}
+                      isPartner={false}
+                    />
+                  </React.Suspense>
+                </div>
+              )}
 
             {activeTab === "financials" && (
               <div className="space-y-8" dir="rtl">
@@ -2684,7 +2749,7 @@ const [isPending, startTransition] = useTransition();
             )}
 
             {activeTab === "intelligence" && (
-                <div className="space-y-16 max-w-[1700px] mx-auto px-4 md:px-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full pb-20" dir="rtl">
+                <div className="space-y-16 max-w-[1850px] mx-auto px-6 md:px-12 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full pb-20" dir="rtl">
                   
                   {/* Dashboard - AI Lab Intro - Re-styled for premium feel */}
                   <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8 pt-10 border-b border-slate-200 pb-10">
@@ -2808,7 +2873,27 @@ const [isPending, startTransition] = useTransition();
                     </div>
                   </div>
 
-                  {/* Phase 3: Self-Learning Brain Cluster - The Grand Command Center */}
+                      {/* Phase 2.5: VIP Missions Protocol */}
+                      <div id="vip-missions-section" className="bg-white rounded-[40px] p-2 border-2 border-slate-100 overflow-hidden shadow-[0_30px_70px_-20px_rgba(0,0,0,0.1)] group hover:border-indigo-500/30 transition-all duration-700">
+                        <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6 bg-indigo-50/30">
+                          <div className="flex items-center gap-5 text-right w-full">
+                             <div className="w-16 h-16 bg-rose-600 rounded-[24px] flex items-center justify-center text-white shadow-2xl shadow-rose-600/20 group-hover:scale-110 transition-transform duration-500">
+                                <Award size={28} />
+                             </div>
+                             <div>
+                               <h3 className="font-black text-3xl text-slate-900 tracking-tighter">مهام كبار العملاء (VIP)</h3>
+                               <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-[0.2em]">Tier-1 Retention & Loyalty Optimization</p>
+                             </div>
+                          </div>
+                        </div>
+                        <div className="p-4 md:p-8">
+                          <React.Suspense fallback={<div className="h-96 animate-pulse bg-slate-100 rounded-2xl" />}>
+                            <VIPMissions data={data} />
+                          </React.Suspense>
+                        </div>
+                      </div>
+
+                      {/* Phase 3: Self-Learning Brain Cluster - The Grand Command Center */}
                   <div className="pt-16 border-t-4 border-slate-200/60 border-double">
                     <div className="space-y-12">
                       {/* Brand Header: Self-Learning Brain Cluster */}
@@ -2855,62 +2940,108 @@ const [isPending, startTransition] = useTransition();
                         </div>
                       </div>
 
-                      {/* Tactical Components Center - Optimized and Aligned for Full Screen */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 w-full p-2 md:p-0 items-stretch">
-                        {/* Column 1: Learning Metrics Card */}
-                        <div className="bg-slate-900 rounded-[32px] p-8 border border-white/10 flex flex-col items-center justify-center text-center group hover:bg-slate-800 transition-all duration-500 shadow-xl h-full min-h-[300px]">
-                          <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center mb-6">
-                             <Zap className="text-indigo-400" size={24} />
+                      {/* Tactical Components Center - Fully Stacked and Full Width for Premium Feel */}
+                      <div className="flex flex-col gap-12 w-full p-2 md:p-0">
+                        {/* 1. Processing Speed (Ultra Wide) */}
+                        <div className="bg-slate-900 rounded-[48px] p-12 border border-white/10 flex flex-col items-center justify-center text-center group hover:bg-slate-800 transition-all duration-700 shadow-2xl min-h-[350px] relative overflow-hidden">
+                          <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500" />
+                          <div className="w-20 h-20 bg-indigo-500/20 rounded-[32px] flex items-center justify-center mb-8 border border-indigo-500/30">
+                             <Zap className="text-indigo-400" size={40} />
                           </div>
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">سرعة المعالجة</span>
-                          <span className="text-3xl font-black text-white tabular-nums">0.02s</span>
+                          <span className="text-sm font-black text-slate-500 uppercase tracking-[0.4em] mb-4">قوة المعالجة اللحظية</span>
+                          <span className="text-7xl lg:text-9xl font-black text-white tabular-nums tracking-tighter">0.02s</span>
                         </div>
 
-                        {/* Column 2: Profit Guard */}
-                        <div className="bg-white rounded-[32px] border border-slate-200/60 overflow-hidden group hover:border-rose-400 transition-all shadow-sm hover:shadow-2xl hover:-translate-y-3 duration-500 flex flex-col h-full min-h-[300px]">
-                          <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-rose-50 transition-colors">
-                            <div className="flex items-center gap-4">
-                              <div className="p-3 bg-rose-50 rounded-2xl shadow-sm group-hover:bg-rose-500 group-hover:text-white transition-all duration-500">
-                                <ShieldAlert size={24} />
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                          {/* 2. Health Score */}
+                          <div className="bg-white rounded-[48px] border border-slate-200/60 overflow-hidden group hover:border-emerald-400 transition-all shadow-sm hover:shadow-3xl hover:-translate-y-2 duration-700 flex flex-col min-h-[600px]">
+                            <div className="p-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-emerald-50 transition-colors">
+                              <div className="flex items-center gap-6">
+                                <div className="p-5 bg-emerald-50 rounded-[24px] shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500">
+                                  <Activity size={32} />
+                                </div>
+                                <span className="text-2xl font-black text-slate-800 uppercase tracking-widest">معدل الصحة العامة</span>
                               </div>
-                              <span className="text-sm font-black text-slate-800 uppercase tracking-widest">حارس الأرباح</span>
+                              <div className="w-4 h-4 rounded-full bg-emerald-500 animate-ping" />
                             </div>
-                            <div className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                            <div className="p-10 flex-grow overflow-auto">
+                              <BusinessHealthFeature data={data} />
+                            </div>
                           </div>
-                          <div className="p-6 flex-grow overflow-auto">
-                            <ProfitGuardFeature data={data} />
+
+                          {/* 3. Profit Guard */}
+                          <div className="bg-white rounded-[48px] border border-slate-200/60 overflow-hidden group hover:border-rose-400 transition-all shadow-sm hover:shadow-3xl hover:-translate-y-2 duration-700 flex flex-col min-h-[600px]">
+                            <div className="p-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-rose-50 transition-colors">
+                              <div className="flex items-center gap-6">
+                                <div className="p-5 bg-rose-50 rounded-[24px] shadow-sm group-hover:bg-rose-500 group-hover:text-white transition-all duration-500">
+                                  <ShieldAlert size={32} />
+                                </div>
+                                <span className="text-2xl font-black text-slate-800 uppercase tracking-widest">حارس الأرباح المتقدم</span>
+                              </div>
+                              <div className="w-4 h-4 rounded-full bg-rose-500 animate-ping" />
+                            </div>
+                            <div className="p-10 flex-grow overflow-auto">
+                              <ProfitGuardFeature data={data} />
+                            </div>
                           </div>
                         </div>
 
-                        {/* Column 3: Supplier Intel */}
-                        <div className="bg-white rounded-[32px] border border-slate-200/60 overflow-hidden group hover:border-amber-400 transition-all shadow-sm hover:shadow-2xl hover:-translate-y-3 duration-500 flex flex-col h-full min-h-[300px]">
-                          <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-amber-50 transition-colors">
-                            <div className="flex items-center gap-4">
-                              <div className="p-3 bg-amber-50 rounded-2xl shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all duration-500">
-                                <Handshake size={24} />
+                        {/* 4. Supplier Intel (Full Width) */}
+                        <div className="bg-white rounded-[48px] border border-slate-200/60 overflow-hidden group hover:border-amber-400 transition-all shadow-sm hover:shadow-3xl hover:-translate-y-2 duration-700 flex flex-col min-h-[600px]">
+                          <div className="p-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-amber-50 transition-colors">
+                            <div className="flex items-center gap-6">
+                              <div className="p-5 bg-amber-50 rounded-[24px] shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all duration-500">
+                                <Handshake size={32} />
                               </div>
-                              <span className="text-sm font-black text-slate-800 uppercase tracking-widest">ذكاء الموردين</span>
+                              <span className="text-2xl font-black text-slate-800 uppercase tracking-widest">تحليل ذكاء الموردين</span>
                             </div>
-                            <div className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                            <div className="w-4 h-4 rounded-full bg-amber-500 animate-ping" />
                           </div>
-                          <div className="p-6 flex-grow overflow-auto">
+                          <div className="p-10 flex-grow overflow-auto">
                             <SupplierNegotiatorFeature data={data} />
                           </div>
                         </div>
 
-                        {/* Column 4: Health Score */}
-                        <div className="bg-white rounded-[32px] border border-slate-200/60 overflow-hidden group hover:border-emerald-400 transition-all shadow-sm hover:shadow-2xl hover:-translate-y-3 duration-500 flex flex-col h-full min-h-[300px]">
-                          <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-emerald-50 transition-colors">
-                            <div className="flex items-center gap-4">
-                              <div className="p-3 bg-emerald-50 rounded-2xl shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500">
-                                <Activity size={24} />
-                              </div>
-                              <span className="text-sm font-black text-slate-800 uppercase tracking-widest">معدل الصحة</span>
-                            </div>
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                        {/* 5. Action Plan (Hero sized) */}
+                        <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-950 rounded-[48px] p-12 border border-white/10 shadow-3xl relative overflow-hidden group hover:border-indigo-500/50 transition-all duration-700 min-h-[500px] flex flex-col justify-center text-center">
+                          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500" />
+                          <div className="absolute -bottom-20 -right-20 opacity-10 text-white rotate-12 group-hover:scale-110 transition-transform duration-1000">
+                             <Briefcase size={300} />
                           </div>
-                          <div className="p-6 flex-grow overflow-auto">
-                            <BusinessHealthFeature data={data} />
+                          <div className="relative z-10 space-y-12 max-w-5xl mx-auto w-full">
+                             <div className="flex flex-col items-center gap-8">
+                               <div className="w-24 h-24 bg-indigo-500/20 rounded-[32px] flex items-center justify-center border border-indigo-500/30 shadow-2xl shadow-indigo-500/20">
+                                 <Zap className="text-indigo-400" size={48} />
+                               </div>
+                               <h4 className="font-black text-white text-5xl lg:text-8xl tracking-tighter">خطة عمل التحسين الفوري</h4>
+                             </div>
+                             
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                               <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-10 rounded-[40px] flex flex-col items-center justify-center gap-6 group/item hover:bg-white/10 transition-all">
+                                  <div className="w-16 h-16 bg-amber-500 rounded-full flex items-center justify-center shadow-2xl shadow-amber-500/20">
+                                    <CheckCircle2 className="text-white" size={32} />
+                                  </div>
+                                  <p className="text-white text-2xl font-black leading-tight">راجع تكاليف التشغيل المخفية.</p>
+                               </div>
+                               <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-10 rounded-[40px] flex flex-col items-center justify-center gap-6 group/item hover:bg-white/10 transition-all">
+                                  <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center shadow-2xl shadow-emerald-500/20">
+                                    <CheckCircle2 className="text-white" size={32} />
+                                  </div>
+                                  <p className="text-white text-2xl font-black leading-tight">قم بتفعيل حملة إعادة استهداف للعملاء المنقطعين.</p>
+                               </div>
+                             </div>
+
+                             <p className="text-indigo-200/80 text-xl lg:text-2xl font-bold leading-relaxed max-w-3xl mx-auto">بناءً على النبض الحالي للموردين والمبيعات، تم توليد {autoStrategies.length} استراتيجيات فورية متاحة للتطبيق الآن.</p>
+                             
+                             <button 
+                               onClick={() => {
+                                 const element = document.getElementById('strategic-manager-section');
+                                 if (element) element.scrollIntoView({ behavior: 'smooth' });
+                               }}
+                               className="w-full max-w-xl mx-auto py-10 bg-indigo-600 hover:bg-indigo-500 text-white text-2xl font-black uppercase tracking-widest rounded-[32px] transition-all active:scale-95 shadow-2xl shadow-indigo-600/40"
+                             >
+                               إطلاق خطوات التنفيذ الفوري
+                             </button>
                           </div>
                         </div>
                       </div>
@@ -3257,42 +3388,45 @@ const [isPending, startTransition] = useTransition();
 
                 <div
                   id="strategic-manager-section"
-                    className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-xl relative overflow-hidden flex flex-col items-start"
-                  >
-                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 via-indigo-500 to-emerald-400" />
-                    <div className="absolute top-3 md:p-4 left-10 opacity-10 text-indigo-400 rotate-12">
-                      <Briefcase size={200} />
-                    </div>
-
-                    <h2 className="text-2xl md:text-lg md:text-xl font-bold text-white mb-6 relative z-10 flex items-center gap-4">
-                      المدير الاستراتيجي الآلي{" "}
-                      <Zap className="text-amber-400" />
-                    </h2>
-                    <p className="text-indigo-200 text-lg font-medium leading-relaxed max-w-2xl relative z-10 mb-8">
-                      هذا المحرك يقرأ العمليات التشغيلية، يكتشف المخاطر المخفية،
-                      ويرصد فرص النمو الضائعة.. ثم يولد لك"خطط استراتيجية كاملة"
-                      لتطبيقها فوراً دون تدخل بشري.
-                    </p>
-
-                    <div className="flex gap-4 relative z-10">
-                      <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl flex items-center gap-3 border border-white/10">
-                        <Target className="text-emerald-400" size={20} />
-                        <span className="text-white font-bold">
-                          {autoStrategies.length} استراتيجية جاهزة
-                        </span>
-                      </div>
-                    </div>
+                  className="bg-slate-950 rounded-[48px] p-10 md:p-16 shadow-2xl relative overflow-hidden flex flex-col items-start border border-white/5"
+                >
+                  <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 via-indigo-600 to-emerald-400" />
+                  <div className="absolute top-10 left-10 opacity-5 text-indigo-400 rotate-12">
+                    <Briefcase size={300} />
                   </div>
 
-                  <div className="flex flex-col w-full ">
+                  <h2 className="text-4xl md:text-5xl font-black text-white mb-8 relative z-10 flex items-center gap-6 tracking-tighter">
+                    المدير الاستراتيجي الآلي{" "}
+                    <div className="w-16 h-16 bg-amber-500/20 rounded-3xl flex items-center justify-center border border-amber-500/30">
+                      <Zap className="text-amber-400" size={32} />
+                    </div>
+                  </h2>
+                  <p className="text-slate-400 text-xl font-bold leading-relaxed max-w-4xl relative z-10 mb-12">
+                    هذا المحرك يقرأ العمليات التشغيلية، يكتشف المخاطر المخفية،
+                    ويرصد فرص النمو الضائعة.. ثم يولد لك "خطط استراتيجية كاملة"
+                    لتطبيقها فوراً دون تدخل بشري.
+                  </p>
+
+                  <div className="flex gap-6 relative z-10">
+                    <div className="bg-white/5 backdrop-blur-xl px-8 py-4 rounded-[32px] flex items-center gap-4 border border-white/10 shadow-lg">
+                      <Target className="text-emerald-400" size={24} />
+                      <span className="text-white text-lg font-black tracking-widest uppercase">
+                        {autoStrategies.length} استراتيجية جاهزة للتنفيذ
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                  <div className="grid grid-cols-1 gap-12 w-full">
                     {autoStrategies.length > 0 ? (
                       autoStrategies.map((strat, i) => (
                         <motion.div
                           key={strat.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                          className="bg-[#fdfbf7] p-3 md:p-4 rounded-2xl md:rounded-2xl border border-[#f0e6d2] shadow-xl relative overflow-hidden flex flex-col group hover:border-indigo-200 interactive-hover"
+                          initial={{ opacity: 0, y: 30 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: i * 0.1, duration: 0.8 }}
+                          className="bg-white p-10 md:p-14 rounded-[56px] border border-slate-100 shadow-xl relative overflow-hidden flex flex-col group hover:border-indigo-400 transition-all duration-700 hover:shadow-3xl"
                         >
                           {strat.priority === "high" && (
                             <div className="absolute top-0 right-0 left-0 h-1 bg-red-500" />
@@ -3381,7 +3515,7 @@ const [isPending, startTransition] = useTransition();
                               توليد تلقائي:{" "}
                               <span dir="ltr" className="inline-block text-left">
                                 {new Date(strat.createdAt).toLocaleTimeString(
-                                  "en-GB",
+                                  "en-GB", { timeZone: 'Asia/Kuwait' }
                                 )}
                               </span>
                             </span>
@@ -4585,7 +4719,7 @@ const [isPending, startTransition] = useTransition();
                                       <div className="flex flex-col items-end gap-1 mt-1">
                                         <div className="flex items-center gap-2 flex-row-reverse">
                                           <span className="text-[10px] text-slate-500 font-bold font-mono">
-                                            #{inv.id.slice(0, 8).toUpperCase()}
+                                            #{inv.id.toUpperCase()}
                                           </span>
                                           <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
                                             <Clock size={10} />
@@ -4609,14 +4743,12 @@ const [isPending, startTransition] = useTransition();
                                                 }
                                                 if (isNaN(dateObj.getTime()))
                                                   return "---";
-                                                return dateObj.toLocaleTimeString(
-                                                  "en-GB",
-                                                  {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                    hour12: true,
-                                                  },
-                                                );
+                                                return dateObj.toLocaleTimeString("en-GB", {
+                                                  hour: "2-digit",
+                                                  minute: "2-digit",
+                                                  hour12: true,
+                                                  timeZone: "Asia/Kuwait"
+                                                });
                                               })()}
                                             </span>
                                           </span>
@@ -5217,7 +5349,7 @@ const [isPending, startTransition] = useTransition();
                                       ...analysis,
                                       id: Date.now().toString(),
                                       date: new Date().toLocaleString("en-GB", {
-                                        timeZone: "Asia/Kuwait",
+                                        timeZone: "Asia/Kuwait"
                                       }),
                                       commentsSnapshot: allComments,
                                     };
@@ -5595,8 +5727,8 @@ const [isPending, startTransition] = useTransition();
             )}
           </motion.div>
             )}
-          </AnimatePresence>
-        </div>
+        </AnimatePresence>
+      </div>
 
         {/* Anticipatory Intelligence: Smart Assistant */}
         <AnimatePresence>
@@ -5680,32 +5812,34 @@ const [isPending, startTransition] = useTransition();
 
 
         {/* Time Slider (Minimalist) */}
-        <div className="fixed bottom-3 left-0 right-0 z-[90] p-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-10 duration-700 delay-500">
-          <div className="bg-white/70 backdrop-blur-3xl rounded-[2rem] py-3.5 px-6 flex flex-col items-center gap-2.5 shadow-2xl pointer-events-auto w-[90%] max-w-[340px] border border-white/50 ring-1 ring-slate-900/5 transition-all hover:bg-white/80">
-            <input 
-              type="range"
-              min="0"
-              max="4"
-              value={["all", "year", "month", "week", "day"].indexOf(dateFilter)}
-              onChange={(e) => {
-                const map = ["all", "year", "month", "week", "day"];
-                startTransition(() => setDateFilter(map[parseInt(e.target.value)] as any));
-              }}
-              className="w-full h-1 bg-slate-200/80 rounded-full appearance-none cursor-grab active:cursor-grabbing outline-none transition-all duration-300
-              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
-              [&::-webkit-slider-thumb]:bg-slate-800 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white"
-              style={{ direction: 'ltr' }}
-            />
-            
-            <div className="flex justify-between w-full text-[10px] font-sans font-extrabold text-slate-400 px-0.5" style={{ direction: 'ltr' }}>
-              <span onClick={() => startTransition(() => setDateFilter("all"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-left", dateFilter === "all" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>الكل</span>
-              <span onClick={() => startTransition(() => setDateFilter("year"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", dateFilter === "year" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>سنة</span>
-              <span onClick={() => startTransition(() => setDateFilter("month"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", dateFilter === "month" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>شهر</span>
-              <span onClick={() => startTransition(() => setDateFilter("week"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", dateFilter === "week" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>أسبوع</span>
-              <span onClick={() => startTransition(() => setDateFilter("day"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-right", dateFilter === "day" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>اليوم</span>
+        {!isExecutiveMode && (
+          <div className="fixed bottom-3 left-0 right-0 z-[90] p-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-10 duration-700 delay-500">
+            <div className="bg-white/70 backdrop-blur-3xl rounded-[2rem] py-3.5 px-6 flex flex-col items-center gap-2.5 shadow-2xl pointer-events-auto w-[90%] max-w-[340px] border border-white/50 ring-1 ring-slate-900/5 transition-all hover:bg-white/80">
+              <input 
+                type="range"
+                min="0"
+                max="4"
+                value={["all", "year", "month", "week", "day"].indexOf(dateFilter)}
+                onChange={(e) => {
+                  const map = ["all", "year", "month", "week", "day"];
+                  startTransition(() => setDateFilter(map[parseInt(e.target.value)] as any));
+                }}
+                className="w-full h-1 bg-slate-200/80 rounded-full appearance-none cursor-grab active:cursor-grabbing outline-none transition-all duration-300
+                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
+                [&::-webkit-slider-thumb]:bg-slate-800 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white"
+                style={{ direction: 'ltr' }}
+              />
+              
+              <div className="flex justify-between w-full text-[10px] font-sans font-extrabold text-slate-400 px-0.5" style={{ direction: 'ltr' }}>
+                <span onClick={() => startTransition(() => setDateFilter("all"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-left", dateFilter === "all" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>الكل</span>
+                <span onClick={() => startTransition(() => setDateFilter("year"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", dateFilter === "year" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>سنة</span>
+                <span onClick={() => startTransition(() => setDateFilter("month"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", dateFilter === "month" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>شهر</span>
+                <span onClick={() => startTransition(() => setDateFilter("week"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", dateFilter === "week" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>أسبوع</span>
+                <span onClick={() => startTransition(() => setDateFilter("day"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-right", dateFilter === "day" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>اليوم</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
       </div>
     );

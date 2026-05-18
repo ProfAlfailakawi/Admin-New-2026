@@ -371,7 +371,7 @@ const invoiceAddonsTotal = (invoice?.items || []).reduce((acc, item) => {
                   </div>
                   <div class="invoice-meta">
                       <h2 class="title">فاتورة</h2>
-                      <div class="inv-number">INV-${invoice.id.slice(0,8).toUpperCase()}</div>
+                      <div class="inv-number">${invoice.id.toUpperCase()}</div>
                   </div>
               </div>
 

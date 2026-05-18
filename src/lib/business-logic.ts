@@ -81,3 +81,34 @@ export function recalculateStateBalances(state: AppState): AppState {
 
   return newState;
 }
+
+/**
+ * Generates the next sequential invoice ID based on existing records.
+ * Prioritizes sequential numeric IDs and ignores timestamp-based IDs.
+ */
+export function generateNextInvoiceId(invoices: any[]): string {
+  const START_OFFSET = 5000;
+  if (!invoices || invoices.length === 0) return `INV-${START_OFFSET + 1}`;
+  
+  // Filter for IDs that fit the INV-XXXX pattern where XXXX is a reasonable sequential number
+  const numericIds = invoices
+    .map(inv => {
+      const match = String(inv.id).match(/INV-(\d+)/);
+      return match ? parseInt(match[1], 10) : null;
+    })
+    .filter((id): id is number => id !== null && id < 1000000000); // Ignore large timestamps (like Date.now())
+    
+  if (numericIds.length === 0) {
+    // If we only have timestamps or other formats, we base it on count
+    return `INV-${START_OFFSET + invoices.length + 1}`;
+  }
+
+  const maxId = Math.max(...numericIds);
+  // Ensure we don't return an ID that's already taken (just in case)
+  let nextIdVal = maxId + 1;
+  while (invoices.some(inv => inv.id === `INV-${nextIdVal}`)) {
+    nextIdVal++;
+  }
+  
+  return `INV-${nextIdVal}`;
+}

@@ -12,7 +12,7 @@ export const applyLogoBranding = (
   }
 ): Promise<string> => {
   return new Promise((resolve) => {
-    if (!options.useBranding || !sourceImage.startsWith('data:image')) {
+    if (!options.useBranding) {
       resolve(sourceImage);
       return;
     }

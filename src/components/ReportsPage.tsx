@@ -2,7 +2,7 @@ import { getUnifiedInvoices } from '../lib/utils';
 import React, { useState, useEffect } from 'react';
 import { 
  FileText, Search, RefreshCw, Printer, Trash2, Edit2, ChevronDown, ChevronUp, Package, User, CreditCard, Clock, CheckCircle2, X, TrendingUp, Plus,
- MessageSquare, Users, Dices, XCircle, AlertCircle,
+ MessageSquare, Users, Dices, XCircle, AlertCircle, AlertTriangle,
  ClipboardList, Puzzle
 } from 'lucide-react';
 import { AppState, Invoice } from '../types';
@@ -49,7 +49,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  setDeepLinkData,
  isPartner = false
 }) => {
- const [activeTab, setActiveTab] = useState<'invoices' | 'tax' | 'pnl' | 'orders' | 'addons'>(defaultTab as any);
+  const [activeTab, setActiveTab] = useState<'invoices' | 'tax' | 'pnl' | 'orders'>(defaultTab as any);
  const [search, setSearch] = useState('');
 
   const today = new Date();
@@ -366,7 +366,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
          if (addonQty > 0) {
              const aTotal = Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0));
              addonsSubtotal += aTotal;
-             addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty}x)` : ''} - (${aTotal.toFixed(3)} د.ك)`);
+             addonsLines.push(`  + ${addon.name} (Add-on)${addonQty > 1 ? ` (${addonQty}x)` : ''} - (${aTotal.toFixed(3)} د.ك)`);
          }
        });
      }
@@ -375,7 +375,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
    }).join("\n");
 
    const total = computeInvoiceTotal(invoice, data?.products || []);
-   const paymentLink = invoice.paymentLink || (invoice as any).splitLink || (invoice as any).split_link || (invoice as any).splitPaymentLink || (invoice as any).split_payment_link || (invoice as any).paymentUrl || (invoice as any).payment_url || (invoice as any).url || (invoice as any).link;
+   const paymentLink = invoice.paymentLink || (invoice as any).paymentUrl || (invoice as any).url || (invoice as any).link || (invoice as any).splitLink || (invoice as any).split_link || (invoice as any).split_url;
    
    const titleLine = `*فاتورة من شركة مطبخ التراث الكويتي*`;
    const headerLine = `رقم الفاتورة: ${invoice.id}`;
@@ -425,142 +425,47 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   onClick={() => setActiveTab('invoices')}
   className={cn(
   "px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2",
-  activeTab === 'invoices' ? "bg-white text-slate-900 shadow-md scale-105" : "text-slate-500 hover:text-slate-700"
-  )}
-  >
-  <FileText size={16} />
-  <span>الفواتير</span>
-  </button>
-  <button
-  onClick={() => setActiveTab('orders')}
-  className={cn(
-  "px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 relative",
-  activeTab === 'orders' ? "bg-white text-slate-900 shadow-md scale-105" : "text-slate-500 hover:text-slate-700"
-  )}
-  >
-  <ClipboardList size={16} />
-  <span>الطلبات</span>
-  { (data.orders || []).filter(o => !o.isConvertedToInvoice && o.status !== 'cancelled').length > 0 && (
-  <span className="absolute -top-1 -left-1 bg-amber-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-sm animate-pulse">
-  {(data.orders || []).filter(o => !o.isConvertedToInvoice && o.status !== 'cancelled').length}
-  </span>
-  )}
-  </button>
-  <button
-  onClick={() => setActiveTab('addons')}
-  className={cn(
-  "px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 relative",
-  activeTab === 'addons' ? "bg-white text-slate-900 shadow-md scale-105" : "text-slate-500 hover:text-slate-700"
-  )}
-  >
-  <Puzzle size={16} />
-  <span>أرباح الإضافات</span>
-  </button>
-  </div>
+   activeTab === 'invoices' ? "bg-white text-slate-900 shadow-md scale-105" : "text-slate-500 hover:text-slate-700"
+   )}
+   >
+   <FileText size={16} />
+   <span>الفواتير</span>
+   </button>
+   <button
+   onClick={() => setActiveTab('orders')}
+   className={cn(
+   "px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 relative",
+   activeTab === 'orders' ? "bg-white text-slate-900 shadow-md scale-105" : "text-slate-500 hover:text-slate-700"
+   )}
+   >
+   <ClipboardList size={16} />
+   <span>الطلبات</span>
+   { (data.orders || []).filter(o => !o.isConvertedToInvoice && o.status !== 'cancelled').length > 0 && (
+   <span className="absolute -top-1 -left-1 bg-amber-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-sm animate-pulse">
+   {(data.orders || []).filter(o => !o.isConvertedToInvoice && o.status !== 'cancelled').length}
+   </span>
+   )}
+   </button>
+   </div>
 
-  <AnimatePresence mode="wait">
-  {activeTab === 'addons' ? (
-  <motion.div 
-   key="addons-tab"
+   <AnimatePresence mode="wait">
+   {activeTab === 'orders' ? (
+   <motion.div 
+   key="orders-tab"
    initial={{ opacity: 0, scale: 0.95 }}
    animate={{ opacity: 1, scale: 1 }}
    exit={{ opacity: 0, scale: 0.95 }}
    transition={{ duration: 0.2 }}
    >
-    <div className="bg-white rounded-3xl p-3 md:p-6 border border-slate-200/60 shadow-sm text-right min-h-[50vh]">
-       <div className="flex flex-col md:flex-row md:items-center gap-4 mb-8">
-       <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto custom-scrollbar pb-2 md:pb-0">
-       {['all', 'today', 'week', 'month', 'custom'].map((f) => (
-       <button
-       key={f}
-       onClick={() => setTimeFilter(f as any)}
-       className={cn(
-       "px-4 py-2 font-bold text-[10px] rounded-xl whitespace-nowrap transition-colors",
-       timeFilter === f ?"bg-slate-900 text-white shadow-sm" :"bg-slate-100 text-slate-500 hover:bg-slate-200"
-       )}
-       >
-       {f === 'all' && 'كل الأوقات'}
-       {f === 'today' && 'اليوم'}
-       {f === 'week' && 'هذا الأسبوع'}
-       {f === 'month' && 'هذا الشهر'}
-       {f === 'custom' && 'مخصص'}
-       </button>
-       ))}
-       </div>
-       </div>
-       {timeFilter === 'custom' && (
-       <div className="flex items-center gap-4 mb-8 bg-slate-50 p-4 rounded-xl border border-slate-100">
-       <div className="flex-1">
-       <label className="block text-[10px] font-bold text-slate-400 mb-1">من تاريخ</label>
-       <input 
-       type="date" 
-       value={startDate}
-       onChange={(e) => setStartDate(e.target.value)}
-       className="w-full p-2 bg-white rounded flex-row-reverse border border-slate-200 font-bold text-sm text-right"
-       />
-       </div>
-       <div className="flex-1">
-       <label className="block text-[10px] font-bold text-slate-400 mb-1">إلى تاريخ</label>
-       <input 
-       type="date" 
-       value={endDate}
-       onChange={(e) => setEndDate(e.target.value)}
-       className="w-full p-2 bg-white rounded flex-row-reverse border border-slate-200 font-bold text-sm text-right"
-       />
-       </div>
-       </div>
-       )}
-
-       <div className="flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/30">
-          <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 mb-6 group-hover:scale-110 transition-transform">
-             <Puzzle size={36} />
-          </div>
-          <h2 className="text-2xl font-black text-slate-800 mb-2">إجمالي مبيعات الإضافات</h2>
-          <p className="text-slate-500 font-bold mb-8 italic">مجموع الإيرادات المحققة من الإضافات والطلبات الاختيارية</p>
-          
-          <div className="text-6xl font-black text-amber-600 tracking-tighter flex items-center gap-3">
-             {Math.max(0, filteredInvoices
-                .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
-                .reduce((a, b) => a + Math.max(0, computeInvoiceAddonsTotal(b)), 0))
-                .toFixed(3)
-             }
-             <span className="text-2xl font-bold bg-amber-100 px-3 py-1 rounded-xl">د.ك</span>
-          </div>
-          
-          <div className="mt-12 grid grid-cols-2 gap-4 w-full max-w-lg">
-             <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                <div className="text-[10px] font-bold text-slate-400 mb-1 uppercase">عدد الطلبات التي تحتوي إضافات</div>
-                <div className="text-2xl font-black text-slate-800">
-                   {filteredInvoices.filter(inv => computeInvoiceAddonsTotal(inv) > 0).length}
-                </div>
-             </div>
-             <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                <div className="text-[10px] font-bold text-slate-400 mb-1 uppercase">متوسط قيمة الإضافات/طلب</div>
-                <div className="text-2xl font-black text-slate-800">
-                   {(filteredInvoices.reduce((a, b) => a + computeInvoiceAddonsTotal(b), 0) / Math.max(1, filteredInvoices.filter(inv => computeInvoiceAddonsTotal(inv) > 0).length)).toFixed(3)}
-                </div>
-             </div>
-          </div>
-       </div>
-    </div>
-  </motion.div>
-  ) : activeTab === 'orders' ? (
-  <motion.div 
-  key="orders-tab"
-  initial={{ opacity: 0, scale: 0.95 }}
-  animate={{ opacity: 1, scale: 1 }}
-  exit={{ opacity: 0, scale: 0.95 }}
-  transition={{ duration: 0.2 }}
-  >
-  <OrderPage 
-  data={data} 
-  setData={setData} 
-  setCurrentPage={setCurrentPage || (() => {})} 
-  setDeepLinkData={setDeepLinkData} 
-  isPartner={false} 
-  />
-  </motion.div>
-  ) : (
+   <OrderPage 
+   data={data} 
+   setData={setData} 
+   setCurrentPage={setCurrentPage || (() => {})} 
+   setDeepLinkData={setDeepLinkData} 
+   isPartner={false} 
+   />
+   </motion.div>
+   ) : (
   <motion.div 
   key="invoices-tab"
   initial={{ opacity: 0, scale: 0.95 }}
@@ -572,45 +477,34 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   
   
 
- <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-3 md:mb-0">
- <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
- <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">عدد الفواتير</div>
- <div className="text-xl md:text-3xl font-bold text-slate-900 tracking-tighter">{filteredInvoices.length}</div>
- </div>
- <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
- <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي المبيعات</div>
- <div className="text-xl md:text-3xl font-bold text-primary tracking-tighter truncate">
- {Math.max(0, filteredInvoices
- .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
- .reduce((a, b) => a + Math.max(0, Number(b.totalAmount || 0)), 0))
- .toFixed(3)
- }
- <span className="text-sm font-bold mr-1">د.ك</span>
- </div>
- </div>
- <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
- <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي الإضافات</div>
- <div className="text-xl md:text-3xl font-bold text-amber-600 tracking-tighter truncate">
- {Math.max(0, filteredInvoices
- .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
- .reduce((a, b) => a + Math.max(0, computeInvoiceAddonsTotal(b)), 0))
- .toFixed(3)
- }
- <span className="text-sm font-bold mr-1">د.ك</span>
- </div>
- </div>
- <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center col-span-2 md:col-span-1">
- <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي الربح</div>
- <div className="text-xl md:text-3xl font-bold text-emerald-600 tracking-tighter truncate">
- {Math.max(0, filteredInvoices
- .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
- .reduce((a, b) => a + Math.max(0, computeInvoiceProfit(b, data?.products || [])), 0))
- .toFixed(3)
- }
- <span className="text-sm font-bold mr-1">د.ك</span>
- </div>
- </div>
- </div>
+  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 mb-3 md:mb-0">
+  <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
+  <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">عدد الفواتير</div>
+  <div className="text-xl md:text-3xl font-bold text-slate-900 tracking-tighter">{filteredInvoices.length}</div>
+  </div>
+  <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
+  <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي المبيعات</div>
+  <div className="text-xl md:text-3xl font-bold text-primary tracking-tighter truncate">
+  {Math.max(0, filteredInvoices
+  .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
+  .reduce((a, b) => a + Math.max(0, Number(b.totalAmount || 0)), 0))
+  .toFixed(3)
+  }
+  <span className="text-sm font-bold mr-1">د.ك</span>
+  </div>
+  </div>
+  <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center col-span-2">
+  <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي الربح</div>
+  <div className="text-xl md:text-3xl font-bold text-emerald-600 tracking-tighter truncate">
+  {Math.max(0, filteredInvoices
+  .filter(inv => (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus((inv as any).status) && !isFailedStatus((inv as any).status))) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending')
+  .reduce((a, b) => a + Math.max(0, computeInvoiceProfit(b, data?.products || [])), 0))
+  .toFixed(3)
+  }
+  <span className="text-sm font-bold mr-1">د.ك</span>
+  </div>
+  </div>
+  </div>
 
  <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
  <div className="flex flex-col md:flex-row md:items-center gap-4 mb-8">
@@ -676,7 +570,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <TrendingUp size={48} />
  </div>
  <h3 className="text-xl md:text-3xl font-bold text-slate-800 mb-3 tracking-tight">لا توجد فواتير!</h3>
- <p className="text-slate-500 font-bold mb-8 leading-relaxed">لم تقم بإصدار أي فاتورة حتى الآن. أضف أول فاتورة لتطلق العنان لتحليلات الذكاء الاصطناعي.</p>
+ <p className="text-slate-500 font-bold mb-8 leading-relaxed">لم تقم بإصدار أي فاتورة حتى الآن. الذكاء الاصطناعي بانتظار أول عملية بيع ليرسم لك استراتيجية النمو.</p>
  {!isPartner && (
   <button 
   onClick={() => { if(onEditInvoice) onEditInvoice('new'); }} 
@@ -743,7 +637,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
    (isPaidStatus(inv.paymentStatus as string) || isPaidStatus((inv as any).status)) ?"bg-emerald-100 text-emerald-700" : ((isCancelledStatus(inv.paymentStatus as string) || isCancelledStatus((inv as any).status)) ? "bg-rose-100 text-rose-700" : (isFailedStatus(inv.paymentStatus as string) || isFailedStatus((inv as any).status)) ? "bg-amber-100 text-amber-700" : String((inv as any).status).includes('تجميع القطية') || String(inv.paymentStatus).includes('تجميع القطية') ? "bg-purple-100 text-purple-700" : "bg-violet-100 text-violet-700")
   )}
     >
-    {(isPaidStatus(inv.paymentStatus as string) || isPaidStatus((inv as any).status)) ? 'مدفوع ✓' : ((isCancelledStatus(inv.paymentStatus as string) || isCancelledStatus((inv as any).status)) ? (((inv as any).status === 'انتهى وقت القطية' || (inv as any).status === 'ملغي - انتهى وقت القطية') ? 'ملغي - انتهى وقت القطية 🚫' : 'ملغي 🚫') : (isFailedStatus(inv.paymentStatus as string) || isFailedStatus((inv as any).status)) ? 'فشلت عملية الدفع ❌' : String((inv as any).status).includes('تجميع القطية') || String(inv.paymentStatus).includes('تجميع القطية') ? 'قيد تجميع القطية 🔄' : 'في إنتظار الدفع ⏳')}
+    {(isPaidStatus(inv.paymentStatus as string) || isPaidStatus((inv as any).status)) ? 'مدفوع ✓' : ((isCancelledStatus(inv.paymentStatus as string) || isCancelledStatus((inv as any).status)) ? (((inv as any).status === 'انتهى وقت القطية' || (inv as any).status === 'ملغي - انتهى وقت القطية') ? 'ملغي - انتهى وقت القطية 🚫' : 'ملغي 🚫') : (isFailedStatus(inv.paymentStatus as string) || isFailedStatus((inv as any).status)) ? 'فشلت عملية الدفع ❌' : String((inv as any).status).includes('تجميع القطية') || String(inv.paymentStatus).includes('تجميع القطية') ? 'قيد تجميع القطية 🔄' : 'في إنتظار الدفع ! ⏳')}
     </div>
  </div>
  </td>
@@ -762,11 +656,18 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
  <button 
  onClick={(e) => { 
    e.stopPropagation(); 
-   const waLink = getWhatsAppLink(inv);
-   if (waLink && waLink !== '#') {
-     window.open(waLink, '_blank', 'noopener,noreferrer');
+   const paymentLink = inv.paymentLink || (inv as any).paymentUrl || (inv as any).url || (inv as any).link || (inv as any).splitLink || (inv as any).split_link || (inv as any).split_url;
+   const isPaidNow = isPaidStatus(inv.paymentStatus) || isPaidStatus((inv as any).status);
+   
+   if ((!paymentLink || paymentLink.trim() === '') && !isPaidNow && !isCancelledStatus(inv.status as string)) {
+     handleRegeneratePayment(inv);
    } else {
-     import('sonner').then(m => m.toast.error('لا يمكن فتح واتساب لعدم توفر رقم عميل'));
+     const waLink = getWhatsAppLink(inv);
+     if (waLink && waLink !== '#') {
+       window.open(waLink, '_blank', 'noopener,noreferrer');
+     } else {
+       import('sonner').then(m => m.toast.error('لا يمكن فتح واتساب لعدم توفر رقم عميل'));
+     }
    }
  }}
  className="p-2 hover:bg-emerald-50 rounded-lg text-slate-500 hover:text-emerald-500 transition-colors"
@@ -918,12 +819,6 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
                   <span className="text-slate-500">مجموع المنتجات:</span>
                   <span className="text-slate-800">{pTotal.toFixed(3)} د.ك</span>
                 </div>
-                {aTotalSum > 0 && (
-                  <div className="flex justify-between text-xs font-bold text-amber-600">
-                    <span className="text-amber-500">مجموع الإضافات:</span>
-                    <span>+{aTotalSum.toFixed(3)} د.ك</span>
-                  </div>
-                )}
                 {(inv.discount || 0) > 0 && (
                   <div className="flex justify-between text-xs font-bold text-rose-600">
                     <span className="text-rose-400">الخصم {inv.appliedPromoCodeName ? `(${inv.appliedPromoCodeName})` : ''}:</span>

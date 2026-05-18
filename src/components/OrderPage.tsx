@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, normalizeArabic, robustNormalize } from '../lib/utils';
-import { recalculateStateBalances } from '../lib/business-logic';
+import { recalculateStateBalances, generateNextInvoiceId } from '../lib/business-logic';
 import { AppState, Order, Invoice, Product, DeliveryType } from '../types';
 // import { getDeduplicatedProducts } from '../lib/deduplication';
 import { db, auth } from '../firebase';
@@ -561,8 +561,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  
  let createdLink = undefined;
  let createdPaymentId: string | undefined = undefined;
- const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
- const newInvoiceId = `INV-${Date.now()}-${randomSuffix}`;
+ const newInvoiceId = generateNextInvoiceId(data.invoices);
 
  // Only attempt to generate payment link if not paid
  let isZeroPaid = false;
@@ -813,9 +812,9 @@ paymentData.data?.link ||
      if (addonQty > 0) {
        if (addon.isHiddenPrice) {
          displayPrice += (Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))) / (item.quantity || 1);
-         addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty})` : ''}`);
+         addonsLines.push(`  + ${addon.name} (Add-on)${addonQty > 1 ? ` (${addonQty})` : ''}`);
        } else {
-         addonsLines.push(`  + ${addon.name}${addonQty > 1 ? ` (${addonQty})` : ''} - (${(Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))).toFixed(3)} د.ك)`);
+         addonsLines.push(`  + ${addon.name} (Add-on)${addonQty > 1 ? ` (${addonQty})` : ''} - (${(Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))).toFixed(3)} د.ك)`);
        }
      }
    });
@@ -830,7 +829,7 @@ paymentData.data?.link ||
 
  const linkedInvoice = order.linkedInvoiceId ? (data?.invoices || []).find(inv => inv.id === order.linkedInvoiceId) : undefined;
  console.log("DEBUG: Order:", order.id,"linkedInvoiceId:", order.linkedInvoiceId,"linkedInvoice:", linkedInvoice);
- const paymentLink = linkedInvoice?.paymentLink || (order as any).paymentLink || (linkedInvoice as any)?.splitLink || (linkedInvoice as any)?.split_link || (order as any).splitLink || (order as any).split_link || (order as any).splitPaymentLink || (order as any).split_payment_link || (order as any).paymentUrl || (order as any).payment_url || (order as any).url || (order as any).link;
+ const paymentLink = linkedInvoice?.paymentLink || (order as any).paymentLink || (order as any).paymentUrl || (order as any).payment_url || (order as any).url || (order as any).link || (linkedInvoice as any)?.splitLink;
  console.log("DEBUG: Found paymentLink:", paymentLink);
 
  const titleLine = `*فاتورة من شركة مطبخ التراث الكويتي*`;
@@ -1033,7 +1032,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  d = new Date(order.date);
  }
  if (!d || isNaN(d.getTime())) return '---';
- return d.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+ return d.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kuwait' });
  })()}</span>
  </div>
  <div className="flex items-start text-[10px] md:text-[11px] text-slate-500 font-bold gap-1.5 md:gap-2">
@@ -1499,7 +1498,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <button 
  onClick={async () => {
  const linkedInvoice = selectedOrder.linkedInvoiceId ? (data?.invoices || []).find(inv => inv.id === selectedOrder.linkedInvoiceId) : undefined;
- const paymentLink = linkedInvoice?.paymentLink || (selectedOrder as any).paymentLink || (linkedInvoice as any)?.splitLink || (linkedInvoice as any)?.split_link || (selectedOrder as any).splitLink || (selectedOrder as any).split_link || (selectedOrder as any).splitPaymentLink || (selectedOrder as any).split_payment_link || (selectedOrder as any).paymentUrl || (selectedOrder as any).payment_url || (selectedOrder as any).url || (selectedOrder as any).link;
+ const paymentLink = linkedInvoice?.paymentLink || (selectedOrder as any).paymentLink || (selectedOrder as any).paymentUrl || (selectedOrder as any).payment_url || (selectedOrder as any).url || (selectedOrder as any).link || (linkedInvoice as any)?.splitLink;
 
  if (!paymentLink || paymentLink.trim() === '') {
    toast.info("سيتم إنشاء رابط دفع جديد ثم فتح واتساب...");
@@ -1611,7 +1610,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  dateObj = new Date(selectedOrder.date);
  }
  if (dateObj && !isNaN(dateObj.getTime())) {
- timeStr = dateObj.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+ timeStr = dateObj.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kuwait' });
  }
  } else {
  // If timeStr came from addr.time, append the date if possible
@@ -1624,7 +1623,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  dateObj = new Date(selectedOrder.date);
  }
  if (dateObj && !isNaN(dateObj.getTime())) {
- const dateOnly = dateObj.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+ const dateOnly = dateObj.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Kuwait' });
  timeStr = `${dateOnly} - ${timeStr}`;
  }
  }

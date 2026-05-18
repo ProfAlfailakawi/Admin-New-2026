@@ -21,60 +21,88 @@ export const safeParsePrice = (val: any): number => {
 export const computeAddonQuantity = (addon: any, item: any): number => {
     const itemQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
     const qty = Math.max(1, itemQty);
-    const threshold = Math.max(1, Number(addon.xItemsThreshold || 0));
+    const threshold = Math.max(1, Number(addon.xItemsThreshold || 1));
 
-    // addon.quantity is treated as a multiplier/base quantity
+    // addon.quantity is the "selected quantity" (multiplier) by the user (e.g. 2 sauces)
     const multiplier = Number(addon.quantity !== undefined ? addon.quantity : 1);
 
-    let addonQty = 0;
     if (addon.calculationType === 'fixed') {
-        addonQty = multiplier;
+        return multiplier;
     } else if (addon.calculationType === 'per_x_items') {
-        addonQty = Math.ceil(qty / threshold) * multiplier;
+        return Math.ceil(qty / threshold) * multiplier;
     } else {
-        // Default to 'per_item' or 'per_unit'
-        addonQty = qty * multiplier;
+        // Default to 'per_item'
+        return qty * multiplier;
     }
-
-    // Apply constraints
-    const min = Number(addon.minQuantity || 0);
-    const max = Number(addon.maxQuantity || (addonQty > 999 ? addonQty : 999));
-    
-    addonQty = Math.max(min, Math.min(addonQty, max));
-    
-    return addonQty;
 };
 
 /**
  * Calculates the total revenue for a single addon.
  */
 export const computeAddonRevenue = (addon: any, item: any): number => {
-    const qty = computeAddonQuantity(addon, item);
+    const itemQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
+    const qty = Math.max(1, itemQty);
+    const threshold = Math.max(1, Number(addon.xItemsThreshold || 1));
     const price = safeParsePrice(addon.price || addon.addonPrice || addon.amount || 0);
-    const freeQty = Number(addon.freeQuantity || 0);
-    
-    return price * Math.max(0, qty - freeQty);
+
+    const mult = Number(addon.quantity !== undefined ? addon.quantity : 1);
+    const free = Number(addon.freeQuantity || 0);
+    const paidMult = Math.max(0, mult - free);
+
+    if (addon.calculationType === 'fixed') {
+        return price * paidMult;
+    } else if (addon.calculationType === 'per_x_items') {
+        return price * Math.ceil(qty / threshold) * paidMult;
+    } else {
+        // per_item
+        return price * qty * paidMult;
+    }
 };
 
 /**
  * Calculates the total cost for a single addon.
  */
 export const computeAddonCost = (addon: any, item: any): number => {
-    const qty = computeAddonQuantity(addon, item);
+    const itemQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
+    const qty = Math.max(1, itemQty);
+    const threshold = Math.max(1, Number(addon.xItemsThreshold || 1));
     const cost = safeParsePrice(addon.cost || addon.addonCost || 0);
-    const freeQty = Number(addon.freeQuantity || 0);
-    
-    return cost * Math.max(0, qty - freeQty);
+
+    const mult = Number(addon.quantity !== undefined ? addon.quantity : 1);
+    const free = Number(addon.freeQuantity || 0);
+    const paidMult = Math.max(0, mult - free);
+
+    if (addon.calculationType === 'fixed') {
+        return cost * paidMult;
+    } else if (addon.calculationType === 'per_x_items') {
+        return cost * Math.ceil(qty / threshold) * paidMult;
+    } else {
+        // per_item
+        return cost * qty * paidMult;
+    }
 };
 
 /**
  * Calculates total addons revenue for an entire invoice.
+ * Note: 'fixed' type addons are deduplicated by ID if they are meant to be "Fixed for Order".
+ * However, since they are associated with items, we keep the simplest logic unless specified.
+ * According to user: "Fixed for full order... regardless of product count".
  */
 export const computeInvoiceAddonsTotal = (inv: any): number => {
     let total = 0;
+    const processedFixedAddons = new Set<string>();
+
     (inv.items || []).forEach((item: any) => {
         (item.addons || []).forEach((addon: any) => {
-            total += computeAddonRevenue(addon, item);
+            if (addon.calculationType === 'fixed') {
+                const key = `${addon.id}-${addon.name}`;
+                if (!processedFixedAddons.has(key)) {
+                    total += computeAddonRevenue(addon, item);
+                    processedFixedAddons.add(key);
+                }
+            } else {
+                total += computeAddonRevenue(addon, item);
+            }
         });
     });
     return total;
@@ -85,9 +113,19 @@ export const computeInvoiceAddonsTotal = (inv: any): number => {
  */
 export const computeInvoiceAddonsTotalCost = (inv: any): number => {
     let total = 0;
+    const processedFixedAddons = new Set<string>();
+
     (inv.items || []).forEach((item: any) => {
         (item.addons || []).forEach((addon: any) => {
-            total += computeAddonCost(addon, item);
+            if (addon.calculationType === 'fixed') {
+                const key = `${addon.id}-${addon.name}`;
+                if (!processedFixedAddons.has(key)) {
+                    total += computeAddonCost(addon, item);
+                    processedFixedAddons.add(key);
+                }
+            } else {
+                total += computeAddonCost(addon, item);
+            }
         });
     });
     return total;
@@ -120,7 +158,12 @@ export const computeInvoiceItemTotal = (item: any, dataProducts: any[]) => {
  * Calculates the subtotal of an invoice (sum of items + their addons).
  */
 export const computeInvoiceSubtotal = (inv: any, dataProducts: any[]) => {
-    return (inv.items || []).reduce((acc: number, item: any) => acc + computeInvoiceItemTotal(item, dataProducts), 0);
+    const baseItemsTotal = (inv.items || []).reduce((acc: number, item: any) => {
+        const basePrice = computeInvoiceItemBasePrice(item, dataProducts);
+        const qty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
+        return acc + (basePrice * qty);
+    }, 0);
+    return baseItemsTotal + computeInvoiceAddonsTotal(inv);
 };
 
 /**
@@ -141,12 +184,8 @@ export const computeInvoiceCost = (inv: any, dataProducts: any[]) => {
         const itemCost = item.costAtTime !== undefined ? Number(item.costAtTime) : Number(product?.cost || 0);
         const qty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
         cost += itemCost * qty;
-        
-        (item.addons || []).forEach((addon: any) => {
-            cost += computeAddonCost(addon, item);
-        });
     });
-    return cost;
+    return cost + computeInvoiceAddonsTotalCost(inv);
 };
 
 /**
