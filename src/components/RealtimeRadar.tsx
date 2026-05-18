@@ -3,6 +3,7 @@ import { Zap, Loader2, Image as ImageIcon, Flame, Check, Copy, Layout } from 'lu
 import { toast } from 'sonner';
 import { applyLogoBranding } from '../lib/brandingUtils';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
+import { BrandingControls } from './BrandingControls';
 
 export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [loading, setLoading] = useState(false);
@@ -10,7 +11,12 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
   const [resultText, setResultText] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [customEvent, setCustomEvent] = useState('');
+  
   const [useBranding, setUseBranding] = useState(true);
+  const [brandingStyle, setBrandingStyle] = useState<'smooth' | 'elegant' | 'classic' | 'polaroid' | 'heritage'>('smooth');
+  const [logoOpacity, setLogoOpacity] = useState(0.85);
+  const [logoPosition, setLogoPosition] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top-right');
+  
   const [copying, setCopying] = useState(false);
 
   const events = [
@@ -51,7 +57,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
           finalImg,
           data.settings?.companyLogo || DEFAULT_GLOBAL_LOGO,
           data.settings?.storeName || '',
-          { useBranding: true, brandingStyle: 'smooth', logoOpacity: 0.8, logoPosition: 'top-right' }
+          { useBranding, brandingStyle, logoOpacity, logoPosition }
         );
       }
       setResultImage(finalImg);
@@ -74,19 +80,25 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
 
   return (
     <div className="bg-white p-6 rounded-3xl border border-slate-200 mt-6 shadow-sm">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-start mb-4 gap-4">
         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
           <Flame className="text-rose-500" />
           رادار التريندات الكويتي (Real-time)
         </h2>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-500">إضافة الهوية</span>
-          <button 
-            onClick={() => setUseBranding(!useBranding)}
-            className={`w-12 h-6 rounded-full transition-all relative p-1 ${useBranding ? "bg-rose-500" : "bg-slate-200"}`}
-          >
-            <div className={`w-4 h-4 bg-white rounded-full transition-all shadow-sm ${useBranding ? "translate-x-6" : "translate-x-0"}`} />
-          </button>
+        <div className="w-56 mt-1">
+          <BrandingControls
+             useBranding={useBranding}
+             setUseBranding={setUseBranding}
+             brandingStyle={brandingStyle}
+             setBrandingStyle={setBrandingStyle}
+             logoPosition={logoPosition}
+             setLogoPosition={setLogoPosition}
+             logoOpacity={logoOpacity}
+             setLogoOpacity={setLogoOpacity}
+             colorClass="rose"
+             title="إضافة الهوية"
+             isCompact={true}
+          />
         </div>
       </div>
       <p className="text-slate-500 text-sm mb-6 max-w-2xl">واكب السوالف واللحظة! احصل على بوست وعرض وصورة بضغطة زر وتفاعل مع زبائنك في نفس الوقت وبابداع غير عادي يناسب السوق الكويتي.</p>

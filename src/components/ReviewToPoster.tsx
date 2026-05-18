@@ -3,12 +3,17 @@ import { Clapperboard, Loader2, Star, Quote, Image as ImageIcon } from 'lucide-r
 import { toast } from 'sonner';
 import { applyLogoBranding } from '../lib/brandingUtils';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
+import { BrandingControls } from './BrandingControls';
 
 export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [loading, setLoading] = useState(false);
   const [review, setReview] = useState("شغلكم نار يا جماعة الطعم خيال خصوصا المجبوس، مستحيل اطلب من غيركم 🥘🔥");
   const [resultImage, setResultImage] = useState<string | null>(null);
+  
   const [useBranding, setUseBranding] = useState(true);
+  const [brandingStyle, setBrandingStyle] = useState<'smooth' | 'elegant' | 'classic' | 'polaroid' | 'heritage'>('elegant');
+  const [logoOpacity, setLogoOpacity] = useState(0.9);
+  const [logoPosition, setLogoPosition] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top-right');
 
   const generatePoster = async () => {
     setLoading(true);
@@ -28,7 +33,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
           finalImg,
           data.settings?.companyLogo || DEFAULT_GLOBAL_LOGO,
           data.settings?.storeName || '',
-          { useBranding: true, brandingStyle: 'elegant', logoOpacity: 0.9, logoPosition: 'top-right' }
+          { useBranding, brandingStyle, logoOpacity, logoPosition }
         );
       }
       setResultImage(finalImg);
@@ -41,19 +46,25 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
 
   return (
     <div className="bg-white p-6 rounded-3xl border border-slate-200 mt-6 shadow-sm">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-start mb-4 gap-4">
         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
           <Clapperboard className="text-purple-500" />
           مدح سينمائي (Review-to-Poster)
         </h2>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-500">إضافة الهوية</span>
-          <button 
-            onClick={() => setUseBranding(!useBranding)}
-            className={`w-12 h-6 rounded-full transition-all relative p-1 ${useBranding ? "bg-purple-600" : "bg-slate-200"}`}
-          >
-            <div className={`w-4 h-4 bg-white rounded-full transition-all shadow-sm ${useBranding ? "translate-x-6" : "translate-x-0"}`} />
-          </button>
+        <div className="w-56 mt-1">
+          <BrandingControls
+             useBranding={useBranding}
+             setUseBranding={setUseBranding}
+             brandingStyle={brandingStyle}
+             setBrandingStyle={setBrandingStyle}
+             logoPosition={logoPosition}
+             setLogoPosition={setLogoPosition}
+             logoOpacity={logoOpacity}
+             setLogoOpacity={setLogoOpacity}
+             colorClass="purple"
+             title="إضافة الهوية"
+             isCompact={true}
+          />
         </div>
       </div>
       <p className="text-slate-500 text-sm mb-6 max-w-2xl">لا تنزل سكرين شوت للتعليقات! حول مدح زباينك إلى بوستر سينمائي فخم يجبرهم على مشاركته مع أصدقائهم ليصبحوا أبطال قصتك.</p>
