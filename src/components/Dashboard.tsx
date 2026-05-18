@@ -104,6 +104,7 @@ const PromoCodePage = React.lazy(() =>
 );
 const OrderPage = React.lazy(() => import("./OrderPage"));
 import { MarketingLab } from "./MarketingLab";
+import { DiwaniyaTournaments } from "./DiwaniyaTournaments";
 const GoalManager = React.lazy(() =>
   import("./GoalManager").then((m) => ({ default: m.GoalManager })),
 );
@@ -287,6 +288,7 @@ export type DashboardTab =
   | "customers"
   | "suppliers"
   | "growth"
+  | "diwaniya"
   | "loyalty"
   | "promocodes"
   | "orders";
@@ -874,7 +876,7 @@ const [isPending, startTransition] = useTransition();
         return "growth";
       if (tab === "customers") return "customers";
       if (tab === "suppliers") return "suppliers";
-      if (tab === "loyalty" || tab === "promocodes") return tab;
+      if (tab === "loyalty" || tab === "promocodes" || tab === "diwaniya") return tab;
       return "pulse";
     });
 
@@ -925,7 +927,7 @@ const [isPending, startTransition] = useTransition();
           setActiveTab("growth");
         else if (tab === "customers") setActiveTab("customers");
         else if (tab === "suppliers") setActiveTab("suppliers");
-        else if (tab === "loyalty" || tab === "promocodes" || tab === "pulse")
+        else if (tab === "loyalty" || tab === "promocodes" || tab === "pulse" || tab === "diwaniya")
           setActiveTab(tab as DashboardTab);
       }
     }, [defaultTab, scrollTargetTimestamp]);
@@ -948,7 +950,7 @@ const [isPending, startTransition] = useTransition();
         tab = "growth";
       else if (tab === "customers") tab = "customers";
       else if (tab === "suppliers") tab = "suppliers";
-      else if (["loyalty", "promocodes", "pulse"].includes(tab)) {
+      else if (["loyalty", "promocodes", "pulse", "diwaniya"].includes(tab)) {
         // keep as is
       } else {
         tab = "pulse";
@@ -1640,6 +1642,7 @@ const [isPending, startTransition] = useTransition();
       },
       { id: "suppliers", label: "ذكاء الموردين", icon: <Truck size={14} /> },
       { id: "growth", label: "النمو والتسويق", icon: <Target size={14} /> },
+      { id: "diwaniya", label: "بطولات الديوانية", icon: <Users size={14} /> },
       { id: "loyalty", label: "الولاء (Loyalty)", icon: <Award size={14} /> },
       {
         id: "promocodes",
@@ -1667,7 +1670,7 @@ const [isPending, startTransition] = useTransition();
     const totalOrdersCount = useMemo(() => data.orders?.length || 0, [data.orders]);
 
     const QuickActions = () => (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         <MagneticButton
           onClick={() => onNavigate!("new-invoice")}
           className="flex flex-col items-center justify-center p-6 bg-amber-500 text-white rounded-2xl shadow-xl shadow-amber-500/20 interactive-hover active:scale-95 group"
@@ -1696,6 +1699,16 @@ const [isPending, startTransition] = useTransition();
               </span>
             )}
           </div>
+        </MagneticButton>
+
+        <MagneticButton
+          onClick={() => onNavigate!("diwaniya")}
+          className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-purple-800 to-indigo-900 text-white rounded-2xl shadow-xl shadow-purple-900/20 interactive-hover active:scale-95 group"
+        >
+          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+            <Users size={24} className="text-amber-400" />
+          </div>
+          <span className="font-bold text-sm">بطولات الديوانية</span>
         </MagneticButton>
 
         <MagneticButton
@@ -3391,6 +3404,12 @@ const [isPending, startTransition] = useTransition();
                     )}
                   </div>
                 </div>
+            )}
+
+            {activeTab === "diwaniya" && (
+              <div className="space-y-6" dir="rtl">
+                <DiwaniyaTournaments data={data} setData={onUpdateData} />
+              </div>
             )}
 
             {activeTab === "loyalty" && (

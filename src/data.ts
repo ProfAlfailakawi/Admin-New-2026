@@ -36,6 +36,10 @@ oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
       isActive: true
     }));
 
+export const DEFAULT_SQUADS = [
+    { id: 1, name: 'ديوانية الفيلكاوي', points: 0, tier: 'عزوة', members: 1, king: 'أبو أحمد', kingOrders: 0, phone: '90000000', membersList: [{name: 'أبو أحمد', phone: '56855555', points: 0}] }
+];
+
 export const INITIAL_DATA: AppState = {
   customers: [],
   suppliers: [],
@@ -72,6 +76,7 @@ export const INITIAL_DATA: AppState = {
   testimonials: [],
   zones: kuwaitZones,
   orders: [],
+  squads: DEFAULT_SQUADS,
   pulseReviews: [],
   pulseArchiveAnalysis: null,
   pulseAnalysisHistory: [],
@@ -98,17 +103,40 @@ export const GET_DEMO_DATA = (): AppState => {
         return personNames[i % personNames.length];
     };
 
+    const diwaniyasData = DEFAULT_SQUADS;
+
     const customers = Array.from({ length: 40 }, (_, i) => {
         const lastOrderDate = new Date(Date.now() - Math.random() * 45 * 24 * 60 * 60 * 1000).toISOString();
+        
+        // Sometimes match a customer to a diwaniya from the list above
+        let diwaniyaName = undefined;
+        let diwaniyaPoints = undefined;
+        let phone = undefined;
+        
+        if (i === 0) {
+            phone = '56855555';
+            diwaniyaName = diwaniyasData[0].name;
+            diwaniyaPoints = diwaniyasData[0].points;
+        } else if (i < 10) {
+            const diw = diwaniyasData[i % diwaniyasData.length];
+            diwaniyaName = diw.name;
+            diwaniyaPoints = diw.points;
+            phone = diw.membersList![0].phone;
+        } else {
+            phone = `${Math.random() > 0.5 ? '9' : '6'}${Math.floor(Math.random() * 9000000) + 1000000}`;
+        }
+
         return {
             id: `c${i}`,
             name: getRandomName(i),
-            phone: `${Math.random() > 0.5 ? '9' : '6'}${Math.floor(Math.random() * 9000000) + 1000000}`,
+            phone,
             status: i % 15 === 0 ? 'inactive' as const : 'active' as const,
             totalOrders: 0,
             totalSpent: 0,
             lastOrderDate: lastOrderDate,
             loyaltyPoints: Math.floor(Math.random() * 1000),
+            diwaniyaName,
+            diwaniyaPoints,
             sentiment: ['positive', 'neutral', 'negative'][Math.floor(Math.random() * 3)] as any,
             lastActive: lastOrderDate
         };
@@ -179,6 +207,7 @@ export const GET_DEMO_DATA = (): AppState => {
             c.lastOrderDate = sorted[0].date;
             c.lastActive = sorted[0].date;
         }
+        c.loyaltyPoints = Math.floor(c.totalSpent);
     });
 
     const suppliers = [
@@ -270,6 +299,7 @@ export const GET_DEMO_DATA = (): AppState => {
                     { productId: 'p4', quantity: 1, priceAtTime: 6.500, costAtTime: 2.500, itemNotes: 'أقل فلفل' }
                 ]
             }
-        ]
+        ],
+        squads: diwaniyasData
     };
 };

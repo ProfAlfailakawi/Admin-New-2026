@@ -24,6 +24,8 @@ export interface Customer {
   sentiment?: 'positive' | 'neutral' | 'negative';
   area?: string; // For Geospatial Forecasting
   address?: string | DetailedAddress; // Address can be simple string or structured
+  diwaniyaName?: string;
+  diwaniyaPoints?: number;
 }
 
 export interface Supplier {
@@ -334,6 +336,24 @@ export interface PulseAnalysisRecord {
   recommendations: string[];
 }
 
+export interface SquadMember {
+  name: string;
+  phone: string;
+  points: number;
+}
+
+export interface Squad {
+  id: number;
+  name: string;
+  points: number;
+  tier: string;
+  members: number;
+  king: string;
+  kingOrders: number;
+  phone: string;
+  membersList?: SquadMember[];
+}
+
 export interface AppState {
   customers: Customer[];
   suppliers: Supplier[];
@@ -347,6 +367,7 @@ export interface AppState {
   zones: Zone[];
   orders: Order[];
   promocodes?: PromoCode[];
+  squads?: Squad[];
   loyaltySettings?: {
     expirationDays: number;
     isDynamicEnabled: boolean;

@@ -58,17 +58,17 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [selectedMood, setSelectedMood] = useState('دافئ');
   const [showInstagramPreview, setShowInstagramPreview] = useState(false);
   const [useBranding, setUseBranding] = useState(true);
+  const [brandingStyle, setBrandingStyle] = useState<'smooth' | 'elegant' | 'classic' | 'polaroid'>('smooth');
   const [logoOpacity, setLogoOpacity] = useState(0.7);
   const [logoPosition, setLogoPosition] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top-right');
   const [aiImage, setAiImage] = useState<string | null>(null);
   const [history, setHistory] = useState<{url: string, caption: string | null, date: Date}[]>([]);
 
-
   useEffect(() => {
     if (aiImage) {
       applyBranding(aiImage).then(setGeneratedImage);
     }
-  }, [useBranding, logoOpacity, logoPosition, aiImage]);
+  }, [useBranding, logoOpacity, logoPosition, brandingStyle, aiImage]);
 
   const addToHistory = (url: string, caption: string | null) => {
     setHistory(prev => [{url, caption, date: new Date()}, ...prev.slice(0, 5)]);
@@ -81,19 +81,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         return;
       }
 
+      const storeName = data.settings?.storeName || 'علامتنا التجارية';
       const logoUrl = data.settings?.companyLogo || DEFAULT_GLOBAL_LOGO;
-      if (!logoUrl) {
-        resolve(sourceImage);
-        return;
-      }
 
       const mainImg = new Image();
-      const logoImg = new Image();
-      
       mainImg.crossOrigin = "anonymous";
-      logoImg.crossOrigin = "anonymous";
-
       mainImg.src = sourceImage;
+
       mainImg.onload = () => {
         const canvas = document.createElement('canvas');
         canvas.width = mainImg.width;
@@ -107,51 +101,142 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         // Draw main image
         ctx.drawImage(mainImg, 0, 0);
 
-        logoImg.src = logoUrl;
-        logoImg.onload = () => {
-          // Logo size: 12% of the width or height
-          const logoScale = 0.12;
-          const logoSize = Math.min(canvas.width, canvas.height) * logoScale;
+        const drawOverlay = (logo: HTMLImageElement | null) => {
+          const minDim = Math.min(canvas.width, canvas.height);
           
-          let x = 0, y = 0;
-          const padding = canvas.width * 0.05;
+          if (brandingStyle === 'smooth') {
+             const grad = ctx.createLinearGradient(0, canvas.height * 0.6, 0, canvas.height);
+             grad.addColorStop(0, 'rgba(0,0,0,0)');
+             grad.addColorStop(1, 'rgba(0,0,0,0.75)');
+             ctx.fillStyle = grad;
+             ctx.shadowColor = "transparent";
+             ctx.fillRect(0, canvas.height * 0.6, canvas.width, canvas.height * 0.4);
 
-          if (logoPosition === 'top-right') {
-            x = canvas.width - logoSize - padding;
-            y = padding;
-          } else if (logoPosition === 'top-left') {
-            x = padding;
-            y = padding;
-          } else if (logoPosition === 'bottom-right') {
-            x = canvas.width - logoSize - padding;
-            y = canvas.height - logoSize - padding;
-          } else if (logoPosition === 'bottom-left') {
-            x = padding;
-            y = canvas.height - logoSize - padding;
+             const fontSize = Math.round(minDim * 0.04);
+             ctx.fillStyle = 'rgba(255,255,255,0.95)';
+             ctx.font = `bold ${fontSize}px Tajawal, system-ui, sans-serif`;
+             ctx.textAlign = 'center';
+             ctx.shadowColor = "rgba(0,0,0,0.5)";
+             ctx.shadowBlur = 8;
+             ctx.fillText(storeName, canvas.width / 2, canvas.height - (minDim * 0.05));
+
+             if (logo) {
+                 const aspect = logo.width / logo.height;
+                 const logoSize = minDim * 0.08;
+                 let drawW = logoSize;
+                 let drawH = logoSize / aspect;
+                 if (aspect < 1) { drawH = logoSize; drawW = logoSize * aspect; }
+                 ctx.globalAlpha = logoOpacity;
+                 ctx.shadowColor = "rgba(0,0,0,0.2)";
+                 ctx.drawImage(logo, canvas.width / 2 - drawW / 2, canvas.height - (minDim * 0.05) - fontSize - drawH - (minDim*0.02), drawW, drawH);
+             }
           }
+          else if (brandingStyle === 'elegant') {
+             const margin = minDim * 0.04;
+             
+             ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+             ctx.lineWidth = Math.max(1, minDim * 0.003);
+             ctx.strokeRect(margin, margin, canvas.width - margin*2, canvas.height - margin*2);
+             
+             const fontSize = Math.round(minDim * 0.04);
+             ctx.fillStyle = 'rgba(255,255,255,0.95)';
+             ctx.font = `italic ${fontSize}px serif`;
+             ctx.textAlign = 'center';
+             ctx.shadowColor = "rgba(0,0,0,0.5)";
+             ctx.shadowBlur = 10;
+             ctx.fillText(storeName, canvas.width / 2, canvas.height - margin - (minDim * 0.03));
 
-          // Smart Creative Filter: "ذكية ابداعية مفرغ"
-          // We apply a slight glow or shadow to make it pop on any background
-          ctx.shadowColor = "rgba(0,0,0,0.3)";
-          ctx.shadowBlur = 15;
-          ctx.globalAlpha = logoOpacity;
-          
-          // Draw the logo correctly maintaining aspect ratio
-          const aspect = logoImg.width / logoImg.height;
-          let drawW = logoSize;
-          let drawH = logoSize / aspect;
-          
-          if (aspect < 1) {
-             drawH = logoSize;
-             drawW = logoSize * aspect;
+             if (logo) {
+                 const aspect = logo.width / logo.height;
+                 const logoSize = minDim * 0.1;
+                 let drawW = logoSize;
+                 let drawH = logoSize / aspect;
+                 if (aspect < 1) { drawH = logoSize; drawW = logoSize * aspect; }
+                 ctx.globalAlpha = logoOpacity;
+                 ctx.shadowColor = "rgba(0,0,0,0.2)";
+                 ctx.shadowBlur = 10;
+                 ctx.drawImage(logo, canvas.width / 2 - drawW / 2, margin + minDim * 0.03, drawW, drawH);
+             }
           }
+          else if (brandingStyle === 'polaroid') {
+             const frameWidth = minDim * 0.03;
+             const bottomFrame = minDim * 0.15;
+             
+             ctx.fillStyle = '#ffffff';
+             ctx.globalAlpha = 1;
+             ctx.shadowColor = "rgba(0,0,0,0.1)";
+             ctx.fillRect(0, 0, canvas.width, frameWidth);
+             ctx.fillRect(0, 0, frameWidth, canvas.height);
+             ctx.fillRect(canvas.width - frameWidth, 0, frameWidth, canvas.height);
+             ctx.fillRect(0, canvas.height - bottomFrame, canvas.width, bottomFrame);
 
-          ctx.drawImage(logoImg, x, y, drawW, drawH);
+             if (logo) {
+                 const aspect = logo.width / logo.height;
+                 const logoSize = bottomFrame * 0.4;
+                 let drawW = logoSize;
+                 let drawH = logoSize / aspect;
+                 if (aspect < 1) { drawH = logoSize; drawW = logoSize * aspect; }
+                 ctx.globalAlpha = logoOpacity;
+                 ctx.drawImage(logo, canvas.width - frameWidth - drawW - (minDim*0.02), canvas.height - (bottomFrame/2) - (drawH/2), drawW, drawH);
+             }
+
+             const fontSize = Math.round(bottomFrame * 0.25);
+             ctx.fillStyle = '#333333';
+             ctx.font = `bold ${fontSize}px Tajawal, system-ui, sans-serif`;
+             ctx.textAlign = 'right';
+             ctx.shadowColor = "transparent";
+             ctx.fillText(storeName, canvas.width - frameWidth - (minDim*0.02) - (logo ? (logoSize + minDim*0.02) : 0), canvas.height - (bottomFrame/2) + (fontSize*0.35));
+          }
+          else {
+             // classic
+             if (logo) {
+                 const aspect = logo.width / logo.height;
+                 const logoScale = 0.12;
+                 const logoSize = Math.max(10, Math.min(canvas.width, canvas.height) * logoScale);
+                 
+                 let x = 0, y = 0;
+                 const padding = canvas.width * 0.05;
+
+                 if (logoPosition === 'top-right') {
+                   x = canvas.width - logoSize - padding;
+                   y = padding;
+                 } else if (logoPosition === 'top-left') {
+                   x = padding;
+                   y = padding;
+                 } else if (logoPosition === 'bottom-right') {
+                   x = canvas.width - logoSize - padding;
+                   y = canvas.height - logoSize - padding;
+                 } else if (logoPosition === 'bottom-left') {
+                   x = padding;
+                   y = canvas.height - logoSize - padding;
+                 }
+
+                 ctx.shadowColor = "rgba(0,0,0,0.3)";
+                 ctx.shadowBlur = 15;
+                 ctx.globalAlpha = logoOpacity;
+                 
+                 let drawW = logoSize;
+                 let drawH = logoSize / aspect;
+                 if (aspect < 1) {
+                    drawH = logoSize;
+                    drawW = logoSize * aspect;
+                 }
+                 ctx.drawImage(logo, x, y, drawW, drawH);
+             }
+          }
           
           resolve(canvas.toDataURL('image/png'));
         };
 
-        logoImg.onerror = () => resolve(sourceImage);
+        if (logoUrl) {
+            const logoImg = new Image();
+            logoImg.crossOrigin = "anonymous";
+            logoImg.src = logoUrl;
+            logoImg.onload = () => drawOverlay(logoImg);
+            logoImg.onerror = () => drawOverlay(null);
+        } else {
+            drawOverlay(null);
+        }
       };
       mainImg.onerror = () => resolve(sourceImage);
     });
@@ -532,30 +617,40 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               
               {useBranding && (
                 <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
-                  <div className="grid grid-cols-4 gap-1">
-                    {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map(pos => (
-                      <button
-                        key={pos}
-                        onClick={() => setLogoPosition(pos)}
-                        className={cn(
-                          "h-8 border rounded-lg flex items-center justify-center transition-all",
-                          logoPosition === pos ? "bg-indigo-50 border-indigo-500" : "bg-white border-slate-100"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-2 h-2 rounded-full",
-                          logoPosition === pos ? "bg-indigo-600" : "bg-slate-300",
-                          pos === 'top-left' && "mr-2 mb-2",
-                          pos === 'top-right' && "ml-2 mb-2",
-                          pos === 'bottom-left' && "mr-2 mt-2",
-                          pos === 'bottom-right' && "ml-2 mt-2"
-                        )} />
-                      </button>
-                    ))}
+                  <div className="p-1.5 bg-slate-100 rounded-xl flex gap-1">
+                     <button onClick={() => setBrandingStyle('smooth')} className={cn("flex-1 text-[10px] font-bold py-2.5 rounded-lg transition-all", brandingStyle === 'smooth' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:bg-slate-200')}>ظل ناعم</button>
+                     <button onClick={() => setBrandingStyle('elegant')} className={cn("flex-1 text-[10px] font-bold py-2.5 rounded-lg transition-all", brandingStyle === 'elegant' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:bg-slate-200')}>إطار أنيق</button>
+                     <button onClick={() => setBrandingStyle('polaroid')} className={cn("flex-1 text-[10px] font-bold py-2.5 rounded-lg transition-all", brandingStyle === 'polaroid' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:bg-slate-200')}>مطبوعة</button>
+                     <button onClick={() => setBrandingStyle('classic')} className={cn("flex-1 text-[10px] font-bold py-2.5 rounded-lg transition-all", brandingStyle === 'classic' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:bg-slate-200')}>لوجو فقط</button>
                   </div>
+
+                  {brandingStyle === 'classic' && (
+                    <div className="grid grid-cols-4 gap-1">
+                      {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map(pos => (
+                        <button
+                          key={pos}
+                          onClick={() => setLogoPosition(pos)}
+                          className={cn(
+                            "h-8 border rounded-lg flex items-center justify-center transition-all",
+                            logoPosition === pos ? "bg-indigo-50 border-indigo-500" : "bg-white border-slate-100"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-2 h-2 rounded-full",
+                            logoPosition === pos ? "bg-indigo-600" : "bg-slate-300",
+                            pos === 'top-left' && "mr-2 mb-2",
+                            pos === 'top-right' && "ml-2 mb-2",
+                            pos === 'bottom-left' && "mr-2 mt-2",
+                            pos === 'bottom-right' && "ml-2 mt-2"
+                          )} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="space-y-1">
                      <div className="flex justify-between text-[10px] font-bold text-slate-400">
-                        <span>درجة الشفافية</span>
+                        <span>قوة ظهور الهوية</span>
                         <span>{Math.round(logoOpacity * 100)}%</span>
                      </div>
                      <input 

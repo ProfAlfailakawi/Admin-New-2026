@@ -47,6 +47,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
  { id: 'dashboard-financials', label: 'المالية وحماية الأرباح 💰', icon: <DollarSign size={18} />, category: 'الرئيسية', action: () => onNavigate('dashboard', { exactId: 'financials' }), roles: ['admin'] },
  { id: 'dashboard-loyalty', label: 'الولاء (Loyalty) 🥇', icon: <TrendingUp size={18} />, category: 'الولاء والكوبونات', action: () => onNavigate('dashboard', { exactId: 'loyalty' }), roles: ['admin'] },
  { id: 'dashboard-promocodes', label: 'الكوبونات (Coupons) 🎟️', icon: <Sparkles size={18} />, category: 'الولاء والكوبونات', action: () => onNavigate('dashboard', { exactId: 'promocodes' }), roles: ['admin'] },
+ { id: 'dashboard-diwaniya', label: 'بطولات الديوانية 👑', icon: <Users size={18} />, category: 'الولاء والكوبونات', action: () => onNavigate('dashboard', { exactId: 'diwaniya' }), roles: ['admin'] },
  { id: 'ai', label: 'المساعد الذكي (Chat) ✨', icon: <TrendingUp size={18} />, category: 'الذكاء الاصطناعي', action: () => onNavigate('ai', {}), roles: ['admin', 'partner'] },
  { id: 'smart-studio', label: 'استوديو المحتوى الذكي 📸', icon: <Sparkles size={18} />, category: 'الذكاء الاصطناعي', action: () => onNavigate('smart-studio', {}), roles: ['admin'] },
  { id: 'new-invoice', label: 'إضافة فاتورة جديدة ➕', icon: <PlusCircle size={18} />, category: 'الإجراءات السريعة', action: () => onNavigate('new-invoice', {}), roles: ['admin', 'partner'] },

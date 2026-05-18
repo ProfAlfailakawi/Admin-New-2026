@@ -60,6 +60,7 @@ import { isPendingStatus, isFailedStatus, isPaidStatus } from './lib/status-util
 const TrackPage = React.lazy(() => import('./components/TrackPage'));
 const AIAssistant = React.lazy(() => import('./components/AIAssistant'));
 import { SmartContentStudio } from './components/SmartContentStudio';
+import { DiwaniyaTournaments } from './components/DiwaniyaTournaments';
 import PartnerDashboard from './components/PartnerDashboard';
 import Login from './components/Login';
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
@@ -70,7 +71,7 @@ import InstallPrompt from './components/InstallPrompt';
 import CloudStatus from './components/CloudStatus';
 import { InstagramMagicWand } from './components/InstagramMagicWand';
 import { recalculateStateBalances } from './lib/business-logic';
-import { INITIAL_DATA, GET_DEMO_DATA } from './data';
+import { INITIAL_DATA, GET_DEMO_DATA, DEFAULT_SQUADS } from './data';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from './constants';
 import { AppState, Notification } from './types';
 import { playSuccessAction } from './lib/sonic';
@@ -520,7 +521,7 @@ const MainApp: React.FC = () => {
   const [data, setData] = useState<AppState>(INITIAL_DATA);
   const [hasRunMigration, setHasRunMigration] = useState(false);
 
-  // MIGRATION: Ensure old orders have the correct customer names matching the DB
+  // MIGRATION: Ensure old orders have the correct customer names matching the DB, and squads are updated
   useEffect(() => {
      if (data?.orders && data?.customers && hasLoadedDataRef.current && !hasRunMigration) {
         let migrationNeeded = false;
@@ -539,14 +540,59 @@ const MainApp: React.FC = () => {
             }
             return o;
         });
+
+        const normalizePhoneForMatch = (p: string) => p ? p.replace(/\D/g, '').slice(-8) : '';
+        let newSquads = data.squads || [];
+        let squadMigrationNeeded = false;
         
-        if (migrationNeeded) {
-            setData(prev => ({ ...prev, orders: normalizedOrders }));
-            console.log("Migration executed: updated customer names in old orders.");
+        if (newSquads.length > 1) { // They have the fake squads
+            const customer568 = (data.customers || []).find(c => {
+                const cPhone = c.phone ? c.phone.replace(/\D/g, '').slice(-8) : '';
+                return cPhone === '56855555';
+            });
+            const correctName = customer568?.name || 'أبو أحمد';
+
+            newSquads = [{
+                id: 1, 
+                name: 'ديوانية الفيلكاوي', 
+                points: 0, 
+                tier: 'عزوة', 
+                members: 1, 
+                king: correctName, 
+                kingOrders: 0, 
+                phone: '90000000', 
+                membersList: [{name: correctName, phone: '56855555', points: 0}] 
+            }];
+            squadMigrationNeeded = true;
+        } else if (newSquads.length === 1) {
+            const customer568 = (data.customers || []).find(c => {
+                const cPhone = c.phone ? c.phone.replace(/\D/g, '').slice(-8) : '';
+                return cPhone === '56855555';
+            });
+            if (customer568 && customer568.name) {
+                if (newSquads[0].king !== customer568.name) {
+                    newSquads[0] = { ...newSquads[0], king: customer568.name };
+                    squadMigrationNeeded = true;
+                }
+                const memberIndex = (newSquads[0].membersList || []).findIndex(m => m.phone === '56855555');
+                if (memberIndex !== -1 && newSquads[0].membersList![memberIndex].name !== customer568.name) {
+                    newSquads[0].membersList![memberIndex] = { ...newSquads[0].membersList![memberIndex], name: customer568.name };
+                    squadMigrationNeeded = true;
+                }
+            }
+        }
+        
+        if (migrationNeeded || squadMigrationNeeded) {
+            setData(prev => ({ 
+                ...prev, 
+                orders: migrationNeeded ? normalizedOrders : prev.orders,
+                squads: squadMigrationNeeded ? newSquads : prev.squads
+            }));
+            console.log("Migration executed: updated old data structure.");
         }
         setHasRunMigration(true);
      }
-  }, [data?.orders, data?.customers, hasRunMigration]);
+  }, [data?.orders, data?.customers, data?.squads, hasRunMigration]);
   
   // AUTO SYNC BACKGROUND EFFECT FOR PAYMENTS
   const dataRef = useRef<AppState>(data);
@@ -1409,6 +1455,7 @@ const MainApp: React.FC = () => {
         );
         case 'ai': return <AIAssistant data={data} />;
         case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
+        case 'diwaniya': return <DiwaniyaTournaments data={data} setData={setData} onNavigate={setCurrentPage} />;
         default: return <PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} />;
       }
     }
@@ -1460,6 +1507,7 @@ const MainApp: React.FC = () => {
       );
       case 'ai': return <AIAssistant data={data} />;
       case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
+      case 'diwaniya': return <DiwaniyaTournaments data={data} setData={setData} onNavigate={setCurrentPage} />;
       case 'settings': return <GeneralSettings data={data} setData={setData} appMode={appMode} switchMode={switchMode} addToast={addToast} />;
       case 'suppliers-audit': return (
         <SupplierAudit 
