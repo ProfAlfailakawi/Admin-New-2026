@@ -22,6 +22,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
   const [selectedFormat, setSelectedFormat] = useState('1:1');
   
   const [copying, setCopying] = useState(false);
+  const [history, setHistory] = useState<{url: string, text: string, topic: string}[]>([]);
 
   React.useEffect(() => {
     if (generatedBaseImage) {
@@ -59,7 +60,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
       const txtData = await txtRes.json();
       setResultText(txtData.text);
 
-      const imgPrompt = `A stylized, high quality, ultra-realistic social media post image for a modern trendy Kuwaiti brand. Theme: ${eventLabel}. Clean composition, leaving space for UI/text. Warm, inviting atmosphere. Minimalist, creative lighting. ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO LOGOS, NO WATERMARKS in the image.`;
+      const imgPrompt = `Generate a 10000% photorealistic, ultra-high quality, and hyper-realistic scene for a social media post related to this Kuwaiti trend/event: "${eventLabel}". The image must look like a real, high-end commercial photograph with realistic textures, lighting, and a real-world natural background. DO NOT USE ANY cartoonish or illustration styles. Clean composition, leaving space for UI. Warm, inviting atmosphere. Minimalist, creative lighting. IMPORTANT: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO LOGOS, NO SIGNATURES, NO WATERMARKS ANYWHERE IN THE IMAGE. THE IMAGE MUST BE COMPLETELY TEXTLESS.`;
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -69,6 +70,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
       
       if (imgData.imageUrl) {
         setGeneratedBaseImage(imgData.imageUrl);
+        setHistory(prev => [{url: imgData.imageUrl, text: txtData.text, topic: eventLabel}, ...prev].slice(0, 10));
       }
 
     } catch (e) {
@@ -181,6 +183,23 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
              </button>
           </div>
         )}
+
+        {history.length > 0 && (
+          <div className="w-full mt-6 pt-4 border-t border-slate-100/50">
+            <h4 className="text-[10px] font-black text-slate-400 mb-2 text-right uppercase tracking-widest">الأعمال الأخيرة</h4>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {history.map((item, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => { setGeneratedBaseImage(item.url); setResultText(item.text); setTopic(item.topic); }}
+                  className="w-16 h-16 rounded-xl border border-slate-200 flex-shrink-0 overflow-hidden"
+                >
+                  <img src={item.url} alt="hist" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="w-full lg:w-[55%] sticky top-4 z-40 bg-white p-2 rounded-3xl shadow-sm border border-slate-100 min-h-[250px] md:min-h-[500px] flex items-center justify-center bg-slate-50 relative overflow-hidden">
@@ -198,8 +217,8 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
          {resultImage && (
             <div className="absolute inset-2 bg-slate-100 rounded-2xl overflow-hidden shadow-inner flex flex-col items-center justify-center">
               <img src={resultImage} alt={topic || 'trend'} className="w-full h-full object-contain" />
-              <div className="absolute bottom-4 left-0 w-full px-4">
-                 <a href={resultImage} download={`trend-${topic}.png`} className="flex w-full items-center justify-center gap-2 bg-white text-rose-600 border border-slate-200 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-lg max-w-sm mx-auto">
+              <div className="absolute bottom-4 left-0 w-full px-4 text-center">
+                 <a href={resultImage} download={`trend-${topic}.png`} className="inline-flex items-center justify-center gap-2 bg-white text-rose-600 border border-slate-200 py-3 px-6 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-lg max-w-sm">
                    <ImageIcon size={18} /> تحميل الصورة
                  </a>
               </div>

@@ -223,13 +223,18 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         })
       });
       const res = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(res.error || 'Failed to generate caption');
+      }
+      
       setAiCaption(res.caption);
       if (generatedImage) {
         setHistory(prev => prev.map(item => item.url === generatedImage ? {...item, caption: res.caption} : item));
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert('فشل توليد النص التسويقي');
+      toast.error(e.message || 'فشل توليد النص التسويقي');
     } finally {
       setIsCapturing(false);
     }
@@ -628,7 +633,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                               <span className="text-xs font-bold text-slate-900">preview_mode</span>
                             </div>
                             <div className="flex-1 overflow-hidden">
-                              <img src={generatedImage || ""} alt="Preview" className="w-full h-full object-cover" />
+                              <img src={generatedImage || ""} alt="Preview" className="w-full h-full object-contain" />
                             </div>
                           </motion.div>
                         )}
