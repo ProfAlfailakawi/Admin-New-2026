@@ -218,7 +218,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image: generatedImage.split(',')[1],
+          image: generatedImage,
           theme: selectedTheme
         })
       });
