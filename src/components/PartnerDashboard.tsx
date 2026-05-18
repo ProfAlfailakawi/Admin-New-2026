@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
  ShoppingBag, TrendingUp, Handshake, DollarSign, Target, Sparkles, Activity, Puzzle,
  ChevronRight, Star, LineChart as LineChartIcon, FlaskConical, LayoutGrid, Filter, X, 
- Zap, ArrowUpRight, PieChart, Users, Truck, Briefcase, Cpu, Layers, Search, Bell, BellRing, ChevronDown, FileText, Package
+ Zap, ArrowUpRight, PieChart, Users, Truck, Briefcase, Cpu, Layers, Search, Bell, BellRing, ChevronDown, FileText, Package, Camera
 } from 'lucide-react';
 import { AppState } from '../types';
 import { cn } from '../lib/utils';
@@ -587,6 +587,12 @@ const {
        أدوات الإدارة الذكية <Sparkles size={24} className="text-amber-500" />
        </h3>
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:p-4">
+       <button onClick={() => onNavigate('smart-studio')} className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 border border-indigo-500/20 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-xl relative overflow-hidden outline-none">
+       <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-indigo-600 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
+       <Camera size={32} className="text-indigo-400 mb-4 group-hover:-translate-y-1 transition-transform" />
+       <h3 className="text-lg font-bold text-white mb-2 tracking-tight">استوديو المحتوى الذكي</h3>
+       <p className="text-[10px] font-bold text-slate-500 leading-relaxed">حوّل صورك لمحتوى احترافى ذكى</p>
+       </button>
        <button onClick={() => setActiveWidget('campaign')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-xl relative overflow-hidden outline-none">
        <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-rose-500 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
        <FlaskConical size={32} className="text-rose-400 mb-4 group-hover:-translate-y-1 transition-transform" />

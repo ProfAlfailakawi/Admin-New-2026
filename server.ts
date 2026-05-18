@@ -2137,7 +2137,8 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
         },
         config: {
           imageConfig: {
-            aspectRatio: ar as any
+            aspectRatio: ar as any,
+            imageSize: '1K'
           }
         }
       });
@@ -2180,24 +2181,28 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
         return res.status(500).json({ error: "GEMINI_API_KEY is not configured" });
       }
 
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-      const prompt = `بناءً على صورة هذا الطبق المصممة بثيم (${theme})، اكتب نصاً تسويقياً إبداعياً وجذاباً للسوشيال ميديا باللغة العربية (لهجة كويتية بيضاء راقية).
-- ركز على الطعم، الجودة، والتجربة الفريدة.
-- أضف هاشتاقات مناسبة.
-- اجعل النص قصيراً ومؤثراً.`;
-
-      const result = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: {
-          parts: [
-            { inlineData: { data: image, mimeType: 'image/png' } },
-            { text: prompt }
-          ]
+      const ai = new GoogleGenAI({ 
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
         }
       });
 
-      const caption = result.text || "";
+      const prompt = `بناءً على صورة هذا الطبق المصممة بثيم (${theme})، اكتب نصاً تسويقياً إبداعياً وجذاباً للسوشيال ميديا باللغة العربية (لهجة كويتية بيضاء راقية).
+- ركز على الطعم، الجودة، والتجربة الفريدة.
+- أضف هاشتاقات مناسبة كويتية ذكية ومبتكرة.
+- اجعل النص قصيراً ومؤثراً ومناسباً للنشر فوراً.`;
+
+      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const result = await model.generateContent([
+        { inlineData: { data: image, mimeType: 'image/png' } },
+        { text: prompt }
+      ]);
+
+      const caption = result.response.text();
       res.json({ caption });
     } catch (e: any) {
       console.error(e);

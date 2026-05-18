@@ -1408,6 +1408,7 @@ const MainApp: React.FC = () => {
           />
         );
         case 'ai': return <AIAssistant data={data} />;
+        case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
         default: return <PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} />;
       }
     }
