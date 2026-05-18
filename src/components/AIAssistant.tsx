@@ -93,7 +93,8 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  customerCount: (data?.customers || []).length,
  productCount: (data?.products || []).length,
  supplierCount: (data?.suppliers || []).length,
- topProducts: (data?.products || []).slice(0, 5).map(p => p.name).join(', ')
+ topProducts: (data?.products || []).slice(0, 5).map(p => p.name).join(', '),
+topCustomersInfo: (data?.customers || []).map(c => ({ name: c.name, spent: (data?.invoices || []).filter(inv => inv.customerId === c.id && !inv.isDeleted).reduce((sum, inv) => sum + (inv.totalAmount || 0), 0) })).sort((a, b) => b.spent - a.spent).slice(0, 10).map(c => `${c.name} (${c.spent.toFixed(3)})`).join(' | ')
  };
 
  const key = process.env.GEMINI_API_KEY;
@@ -119,11 +120,12 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  - عدد الفواتير: ${statsSummary.invoiceCount} طلب
  - عدد العملاء المسجلين: ${statsSummary.customerCount} عميل
  - أشهر المنتجات: ${statsSummary.topProducts || 'لا يوجد'}
+ - أهم العملاء (أنشط العملاء): ${statsSummary.topCustomersInfo || 'لا يوجد بيانات كافية'}
  - سجل ثناء العملاء (آراء الجودة):
  ${(data?.testimonials || []).map(t => `- [${t.date}] تقييم ${t.rating}/5:"${t.content}"`).join('\n')}
  
  قوانين صارمة وحرجة جداً (يجب الالتزام بها حرفياً):
- 1. التحليل المستند للبيانات فقط.
+ 1. التحليل المستند للبيانات فقط. عندما يتم سؤالك عن "العميل الأهم" أو "أفضل عميل"، ابحث في قائمة "أهم العملاء" المقدمة لك أعلاه وأجب بالاسم والقيمة.
  2. الإشارة للبيانات إلزامية.
  3. منع النصائح العامة والردود الشخصية. لا تنادِ اسم العميل مطلقاً (لا تقل"يا فلان"). تحدث بصيغة عامة واحترافية (كويتي رزين).
  4. الرد عند نقص البيانات:"لا توجد بيانات كافية للتحليل".
