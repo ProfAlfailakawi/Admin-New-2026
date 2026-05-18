@@ -713,7 +713,6 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
       </div>
     </div>
   </div>
- </div>
   );
 });
 
