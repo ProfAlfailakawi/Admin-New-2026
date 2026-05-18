@@ -57,12 +57,18 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [logoOpacity, setLogoOpacity] = useState(0.7);
   const [logoPosition, setLogoPosition] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top-right');
   const [aiImage, setAiImage] = useState<string | null>(null);
+  const [history, setHistory] = useState<{url: string, caption: string | null, date: Date}[]>([]);
+  const [compareValue, setCompareValue] = useState(50);
 
   useEffect(() => {
     if (aiImage) {
       applyBranding(aiImage).then(setGeneratedImage);
     }
   }, [useBranding, logoOpacity, logoPosition, aiImage]);
+
+  const addToHistory = (url: string, caption: string | null) => {
+    setHistory(prev => [{url, caption, date: new Date()}, ...prev.slice(0, 5)]);
+  };
 
   const applyBranding = (sourceImage: string): Promise<string> => {
     return new Promise((resolve) => {
@@ -238,6 +244,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         setAiImage(resData.imageUrl);
         const branded = await applyBranding(resData.imageUrl);
         setGeneratedImage(branded);
+        addToHistory(branded, null);
       } else {
         alert("حدث خطأ أثناء الإنشاء");
       }
@@ -278,6 +285,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       });
       const res = await response.json();
       setAiCaption(res.caption);
+      if (generatedImage) {
+        setHistory(prev => prev.map(item => item.url === generatedImage ? {...item, caption: res.caption} : item));
+      }
     } catch (e) {
       console.error(e);
       alert('فشل توليد النص التسويقي');
@@ -651,46 +661,60 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
               {generatedImage && !isGenerating && (
                 <div className="w-full h-full flex flex-col md:flex-row gap-6 p-4">
-                  
                   <div className="flex-1 flex flex-col items-center">
                     <p className="text-xs font-bold text-slate-400 mb-3 text-center">الصورة قبل</p>
                     <div className="w-full max-w-[200px] aspect-square bg-white rounded-2xl border shadow-sm p-1 inline-block">
-                      <img src={originalImage || null} alt="Original" className="w-full h-full object-cover rounded-xl" />
+                      <img src={originalImage || ""} alt="Original" className="w-full h-full object-cover rounded-xl" />
                     </div>
                   </div>
 
                   <div className="flex-[3] flex flex-col">
-                    <p className="text-sm font-bold text-indigo-600 mb-3 text-center">الصورة بعد التصميم (جاهزة للنشر)</p>
+                    <div className="flex items-center justify-between mb-3 text-right">
+                      <p className="text-sm font-bold text-indigo-600">النتيجة النهائية (جاهزة للنشر)</p>
+                      <button 
+                        onClick={() => setCompareValue(compareValue === 50 ? 100 : 50)}
+                        className="text-[10px] bg-slate-100 px-2 py-1 rounded-md font-bold text-slate-600 hover:bg-slate-200 transition-colors"
+                      >
+                        {compareValue === 100 ? 'مقارنة قبل وبعد' : 'عرض النتيجة فقط'}
+                      </button>
+                    </div>
+                    
                     <div className="flex-1 bg-white rounded-3xl border shadow-2xl p-2 relative flex items-center justify-center min-h-[400px] overflow-hidden group">
-                      <motion.img 
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        src={generatedImage} 
-                        alt="Generated" 
-                        className={cn(
-                          "rounded-2xl max-h-[600px] object-contain shadow-sm transition-transform duration-700 group-hover:scale-105",
-                          selectedFormat === '9:16' ? "aspect-[9/16]" : 
-                          selectedFormat === '4:3' ? "aspect-video" : "aspect-square"
-                        )} 
-                      />
-                      <div className="absolute top-6 right-6 flex gap-2">
-                        <button 
-                          onClick={() => setShowInstagramPreview(!showInstagramPreview)}
-                          className={cn(
-                            "px-3 py-1.5 rounded-full text-[10px] font-black backdrop-blur-md shadow-lg border flex items-center gap-2 transition-all",
-                            showInstagramPreview ? "bg-white text-indigo-600 border-indigo-200" : "bg-black/50 text-white border-white/20"
-                          )}
-                        >
-                           <Layout size={12} />
-                           معاينة إنستقرام
-                        </button>
-                        <div className="bg-indigo-600/90 text-white px-3 py-1.5 rounded-full text-[10px] font-black backdrop-blur-md shadow-lg border border-white/20 flex items-center gap-2">
-                           <Sparkles size={12} />
-                           1000% Realistic
-                        </div>
+                      <div className="relative w-full h-full rounded-2xl overflow-hidden aspect-square">
+                        <img 
+                          src={generatedImage || ""} 
+                          alt="Generated" 
+                          className="w-full h-full object-contain"
+                        />
+                        
+                        {compareValue < 100 && (
+                          <div 
+                            className="absolute inset-0 overflow-hidden border-l-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.3)] z-10"
+                            style={{ width: `${compareValue}%` }}
+                          >
+                            <div className="absolute inset-0 w-[1000%] h-full">
+                              <img 
+                                src={originalImage || ""} 
+                                alt="Original" 
+                                className="absolute inset-0 h-full object-cover"
+                                style={{ width: `calc(100% / (${compareValue || 1} / 100))` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {compareValue < 100 && (
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            value={compareValue} 
+                            onChange={(e) => setCompareValue(parseInt(e.target.value))}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-20"
+                          />
+                        )}
                       </div>
 
-                      {/* Instagram UI Overlay */}
                       <AnimatePresence>
                         {showInstagramPreview && (
                           <motion.div 
@@ -699,103 +723,55 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                             exit={{ opacity: 0 }}
                             className="absolute inset-0 bg-white pointer-events-none z-20 flex flex-col"
                           >
-                             {/* Mock Insta Top */}
-                             <div className="p-3 border-b flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-0.5">
-                                   <div className="w-full h-full rounded-full bg-white p-0.5">
-                                      <div className="w-full h-full rounded-full bg-slate-200" />
-                                   </div>
-                                </div>
-                                <span className="text-xs font-bold text-slate-900">kitchen_alturath</span>
-                                <div className="mr-auto">...</div>
-                             </div>
-                             {/* The Image */}
-                             <div className="flex-1 overflow-hidden">
-                                <img src={generatedImage} alt="Preview" className="w-full h-full object-cover" />
-                             </div>
-                             {/* Insta Actions */}
-                             <div className="p-3">
-                                <div className="flex gap-4 mb-2">
-                                   <div className="w-5 h-5 border-2 border-slate-900 rounded-full" />
-                                   <div className="w-5 h-5 border-2 border-slate-900 rounded-full" />
-                                   <div className="w-5 h-5 border-2 border-slate-900 rounded-full" />
-                                </div>
-                                <div className="text-[10px] font-bold">1,248 likes</div>
-                                <div className="text-[10px] mt-1">
-                                   <span className="font-bold">kitchen_alturath</span> {aiCaption?.split('\n')[0] || 'تجربة لا تنسى...'}
-                                </div>
-                             </div>
+                            <div className="p-3 border-b flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-slate-200" />
+                              <span className="text-xs font-bold text-slate-900">preview_mode</span>
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                              <img src={generatedImage || ""} alt="Preview" className="w-full h-full object-cover" />
+                            </div>
                           </motion.div>
                         )}
                       </AnimatePresence>
                     </div>
-                    
-                    <div className="mt-8 flex flex-col gap-4">
-                       <div className="flex flex-wrap gap-3 justify-center">
-                          <button 
-                            onClick={handleDownload}
-                            className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-indigo-200 transition-all hover:scale-105 active:scale-95"
-                          >
-                            <Download size={20} /> تحميل الصورة
-                          </button>
-                          
-                          <button 
-                            onClick={generateCaption}
-                            disabled={isCapturing}
-                            className="px-8 py-4 bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50 rounded-2xl font-bold flex items-center gap-2 transition-all disabled:opacity-50"
-                          >
-                            {isCapturing ? <Loader2 className="animate-spin" size={20} /> : <Zap size={20} className="text-amber-500" />}
-                            توليد نص ناري 🔥
-                          </button>
-                       </div>
 
-                       <AnimatePresence>
-                         {aiCaption && (
-                           <motion.div 
-                             initial={{ opacity: 0, scale: 0.95 }}
-                             animate={{ opacity: 1, scale: 1 }}
-                             className="p-6 bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-3xl relative overflow-hidden text-right"
-                           >
-                             <div className="absolute -top-4 -left-4 p-4 opacity-10 pointer-events-none">
-                                <Sparkles className="w-32 h-32 text-indigo-400" />
-                             </div>
-                             <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                  <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">محتوى السوشيال ميديا الذكي</span>
-                                </div>
-                                <button 
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(aiCaption);
-                                    toast.success('تم نسخ النص والهاشتاقات!');
-                                  }}
-                                  className="text-[10px] font-black bg-indigo-500 text-white px-3 py-1 rounded-full hover:bg-indigo-400 transition-colors shadow-lg flex items-center gap-1"
-                                >
-                                  <Save size={10} /> نسخ للنشر فوراً
-                                </button>
-                             </div>
-                             <p className="text-sm text-slate-100 leading-relaxed font-medium relative z-10 whitespace-pre-wrap text-right">{aiCaption}</p>
-                             
-                             <div className="mt-4 flex gap-2">
-                               {['#كويت', '#فود', '#تراث'].map(tag => (
-                                 <span key={tag} className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-indigo-300 border border-white/5">{tag}</span>
-                               ))}
-                             </div>
-                           </motion.div>
-                         )}
-                       </AnimatePresence>
+                    {history.length > 0 && (
+                      <div className="mt-8 pt-4 border-t border-slate-100">
+                        <h4 className="text-xs font-black text-slate-400 mb-4 text-right">الأعمال الأخيرة</h4>
+                        <div className="flex gap-2 overflow-x-auto pb-2">
+                          {history.map((item, idx) => (
+                            <button 
+                              key={idx}
+                              onClick={() => { setGeneratedImage(item.url); setAiCaption(item.caption); setAiImage(item.url); }}
+                              className="w-12 h-12 rounded-lg border flex-shrink-0 overflow-hidden"
+                            >
+                              <img src={item.url} alt="hist" className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-6 flex flex-wrap gap-2 justify-center">
+                      <button onClick={handleDownload} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2">
+                        <Download size={18} /> تحميل
+                      </button>
+                      <button onClick={generateCaption} className="px-6 py-3 bg-white border border-indigo-200 text-indigo-600 rounded-xl font-bold flex items-center gap-2">
+                        {isCapturing ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
+                        توليد نص ذكي
+                      </button>
                     </div>
 
-                    <div className="mt-4 pt-4 border-t border-slate-100 w-full flex flex-col items-center gap-3">
-                      <p className="text-xs font-bold text-slate-500">أو حفظ الصورة في حساب المنتج (كأصول تسويقية)</p>
+                    <div className="mt-8 pt-4 border-t border-slate-100 w-full flex flex-col items-center gap-3">
+                      <p className="text-xs font-bold text-slate-500">حفظ الصورة في أصول المنتج</p>
                       <div className="flex gap-2 w-full max-w-sm">
                         <select 
-                          className="flex-1 p-3 border rounded-xl bg-slate-50 text-slate-800 text-sm focus:border-indigo-500 outline-none"
+                          className="flex-1 p-3 border rounded-xl bg-slate-50 text-slate-800 text-sm focus:border-indigo-500 outline-none text-right"
                           value={selectedProductId}
                           onChange={(e) => setSelectedProductId(e.target.value)}
                         >
                           <option value="">-- اختر المنتج --</option>
-                          {data?.products?.map((p: Product) => (
+                          {data?.products?.map((p: any) => (
                             <option key={p.id} value={p.id}>{p.name}</option>
                           ))}
                         </select>
@@ -810,13 +786,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                       </div>
                     </div>
                   </div>
-                  
                 </div>
               )}
-
             </div>
           </div>
-
         </div>
       )}
     </div>
