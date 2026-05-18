@@ -2172,6 +2172,74 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
     }
   });
 
+  app.post("/api/smart-studio/generate-from-text", express.json({ limit: "5mb" }), async (req, res) => {
+    try {
+      const { prompt, format } = req.body;
+      let ar = "1:1";
+      if (format === "9:16") { ar = "9:16"; }
+      if (format === "4:3") { ar = "4:3"; }
+
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: "GEMINI_API_KEY is not configured", needsKey: true });
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: { headers: { "User-Agent": "aistudio-build" } }
+      });
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-flash-image-preview",
+        contents: {
+          parts: [{ text: prompt }]
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: ar as any,
+            imageSize: "1K"
+          }
+        }
+      });
+
+      let finalImgBase64 = null;
+      if (response && response.candidates && response.candidates.length > 0) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData) {
+            finalImgBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+            break;
+          }
+        }
+      }
+
+      if (!finalImgBase64) {
+        return res.status(500).json({ error: "No image generated" });
+      }
+      res.json({ imageUrl: finalImgBase64 });
+    } catch (e: any) {
+      console.error("/api/smart-studio/generate-from-text error:", e);
+      res.status(500).json({ error: e.message || "Failed" });
+    }
+  });
+
+  app.post("/api/smart-studio/text-ideas", express.json(), async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: { headers: { "User-Agent": "aistudio-build" } }
+      });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: { parts: [{ text: prompt }] },
+        config: { temperature: 0.9 }
+      });
+      res.json({ text: response.text || "" });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: e.message || "Failed" });
+    }
+  });
+
   app.post("/api/smart-studio/caption", express.json({ limit: '50mb' }), async (req, res) => {
     try {
       const { image, theme } = req.body;
@@ -2195,14 +2263,17 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 - أضف هاشتاقات مناسبة كويتية ذكية ومبتكرة.
 - اجعل النص قصيراً ومؤثراً ومناسباً للنشر فوراً.`;
 
-      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: {
+          parts: [
+            { inlineData: { data: image, mimeType: 'image/jpeg' } },
+            { text: prompt }
+          ]
+        }
+      });
 
-      const result = await model.generateContent([
-        { inlineData: { data: image, mimeType: 'image/png' } },
-        { text: prompt }
-      ]);
-
-      const caption = result.response.text();
+      const caption = result.text || "";
       res.json({ caption });
     } catch (e: any) {
       console.error(e);
