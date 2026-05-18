@@ -421,13 +421,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     <div className="space-y-2">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">الأصل</p>
                       <div className="w-full aspect-square bg-white rounded-2xl border shadow-sm p-2 relative overflow-hidden group">
-                        <img src={originalImage} alt="Original" className="w-full h-full object-cover rounded-xl opacity-60 grayscale-[0.5]" />
+                        <img src={originalImage || null} alt="Original" className="w-full h-full object-cover rounded-xl opacity-60 grayscale-[0.5]" />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest text-center">النسخة المحسنة للويب</p>
                       <div className="w-full aspect-square bg-white rounded-2xl border-2 border-emerald-400 shadow-xl p-2 relative overflow-hidden">
-                        <img src={compressedImage || selectedImage || ''} alt="Compressed" className="w-full h-full object-cover rounded-xl" />
+                        <img src={compressedImage || selectedImage || null} alt="Compressed" className="w-full h-full object-cover rounded-xl" />
                         <div className="absolute top-4 left-4 bg-emerald-500 text-white text-[10px] px-2 py-1 rounded-md font-bold shadow-md">
                           WebP 80% Optimal
                         </div>
@@ -496,7 +496,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="flex-1 flex flex-col items-center">
                     <p className="text-xs font-bold text-slate-400 mb-3 text-center">الصورة قبل</p>
                     <div className="w-full max-w-[200px] aspect-square bg-white rounded-2xl border shadow-sm p-1 inline-block">
-                      <img src={originalImage} alt="Original" className="w-full h-full object-cover rounded-xl" />
+                      <img src={originalImage || null} alt="Original" className="w-full h-full object-cover rounded-xl" />
                     </div>
                   </div>
 
