@@ -2092,6 +2092,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 - الطبق (Star of the show): حافظ تماماً على شكله، مكوناته، وطريقة تقديمه دون أي تغيير (Zero Hallucinations).
 - البيئة والمحيط: صمم خلفية تدعم "واقعية" المشاهد في البيئة الكويتية الراقية.
 - الإضاءة والتكوين: استخدم إضاءة احترافية (Cinematic Lighting) واترك مساحات هادئة في الزوايا تسمح بوضع علامة تجارية (Logo) لاحقاً.
+- النصوص (Text): ممنوع منعاً باتاً ظهور أي أحرف، كلمات، نصوص، شعارات، أو علامات مائية في المشهد (ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO LOGOS, NO WATERMARKS in the generated image).
 
  التفاصيل المطلوبة بناءً على الاختيارات:
  - الثيم: ${theme || 'بسيط'}.
