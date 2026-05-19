@@ -22,6 +22,7 @@ import {
   Printer,
   MessageCircle,
   AlertCircle,
+  AlertTriangle,
   TrendingUp,
   History,
   Tag,
@@ -72,6 +73,24 @@ import {
 import { isPaidStatus } from "../lib/status-utils";
 import { toast } from "sonner";
 
+const DEFAULT_PRODUCT_CATEGORIES = ["الولائم", "اللحوم", "الدجاج", "البحري", "المشويات", "المقبلات", "المشروبات"];
+
+const normalizeCategoryName = (value?: string) => String(value || "عام").trim() || "عام";
+
+const getSharedProductCategories = (source: any, productList: any[] = []) => {
+  const configured =
+    source?.productCategories ||
+    source?.menuCategories ||
+    source?.settings?.productCategories ||
+    source?.settings?.menuCategories ||
+    [];
+  const configuredNames = Array.isArray(configured)
+    ? configured.map((cat: any) => normalizeCategoryName(typeof cat === "string" ? cat : cat?.name || cat?.title)).filter(Boolean)
+    : [];
+  const productNames = productList.map((p: any) => normalizeCategoryName(p?.category)).filter(Boolean);
+  return Array.from(new Set([...configuredNames, ...DEFAULT_PRODUCT_CATEGORIES, ...productNames]));
+};
+
 /**
  * Merges a YYYY-MM-DD date string with the current time to avoid 00:00:00 issues.
  */
@@ -115,6 +134,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
     const [deliveryType, setDeliveryType] = useState<DeliveryType>("company");
     const [isManualDelivery, setIsManualDelivery] = useState(false);
     const [supplierFilter, setSupplierFilter] = useState<string>("all");
+    const [activeInvoiceCategory, setActiveInvoiceCategory] = useState<string | null>(null);
     const [promoCodeInput, setPromoCodeInput] = useState("");
     const [appliedPromoCode, setAppliedPromoCode] = useState<PromoCode | null>(
       null,
@@ -191,7 +211,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
       const processedFixedAddons = new Set<string>();
 
       const items = (invoice?.items || [])
-        .map((item) => {
+        .map((item, index) => {
           const p = (data?.products || []).find(
             (prod) => prod.id === item.productId,
           );
@@ -245,7 +265,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
             });
           }
 
-          return `${p?.name || "منتج غير معروف"}\n   الكمية: ${item.quantity || 1}\n   السعر الفردي: ${Number(displayPrice).toFixed(3)} د.ك\n   إجمالي المنتج: ${(Number(displayPrice) * Number(item.quantity || 1)).toFixed(3)} د.ك${addonsLines.length > 0 ? "\n\n   الإضافات:\n" + addonsLines.join("\n") : ""}`;
+          return `${index + 1}) ${p?.name || "منتج غير معروف"}\n   الكمية: ${item.quantity || 1}\n   السعر الفردي: ${Number(displayPrice).toFixed(3)} د.ك\n   إجمالي المنتج: ${(Number(displayPrice) * Number(item.quantity || 1)).toFixed(3)} د.ك${addonsLines.length > 0 ? "\n\n   الإضافات:\n" + addonsLines.join("\n") : ""}`;
         })
         .join("\n");
 
@@ -279,11 +299,43 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
           ? `*${promoLabel}*: ${Number(invoice.discount).toFixed(3)} د.ك\n`
           : "";
 
-      // Use explicit unicode escapes for emojis to avoid encoding issues in some environments.
-      // These escapes correspond to: 🧾👤📍🔢🛒💰🌿.
-      const message = `\u{1F9FE} *فاتورة مطبخ التراث الكويتي*\n\n\u{1F464} العميل: ${customer?.name || "عميل"}\n\u{1F4CD} العنوان: ${invoice.address && invoice.address !== "غير محدد" ? (typeof invoice.address === "object" ? [`${invoice.address.region || ""}`, `ق${invoice.address.block || ""}`, `ش${invoice.address.street || ""}`, `م${invoice.address.building || ""}`].filter(Boolean).join(" - ") : invoice.address) : invoice.deliveryInfo?.zoneName || "غير محدد"}\n\u{1F522} رقم الفاتورة: ${invoice.id}\n\n━━━━━━━━━━━━━━\n\u{1F6D2} *الطلب*\n\n${items}\n\n━━━━━━━━━━━━━━\n\u{1F4B0} *الملخص*\nالمنتجات: ${subtotal.toFixed(3)} د.ك\nالإضافات: ${addonsTotalWA.toFixed(3)} د.ك\nالتوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}الإجمالي: ${Number(totalAmountVal).toFixed(3)} د.ك${paymentLinkLine}\n\n\u{1F33F} شكراً لتعاملكم معنا\nAlturath.kw\n92225308 - 94059238`;
+      // Use older, widely-supported emoji code points and generate them from surrogate pairs
+      // to prevent WhatsApp from showing replacement diamonds (�) on some devices/browsers.
+      const icon = (high: number, low: number) => String.fromCharCode(high, low);
+      const invoiceIcon = icon(0xD83D, 0xDCCB); // 📋
+      const customerIcon = icon(0xD83D, 0xDC64); // 👤
+      const locationIcon = icon(0xD83D, 0xDCCD); // 📍
+      const numberIcon = icon(0xD83D, 0xDD22); // 🔢
+      const orderIcon = icon(0xD83D, 0xDCE6); // 📦
+      const moneyIcon = icon(0xD83D, 0xDCB0); // 💰
+      const leafIcon = icon(0xD83C, 0xDF3F); // 🌿
 
-      return `https://wa.me/${phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(message)}`;
+      const message = `${invoiceIcon} *فاتورة مطبخ التراث الكويتي*
+
+${customerIcon} العميل: ${customer?.name || "عميل"}
+${locationIcon} العنوان: ${invoice.address && invoice.address !== "غير محدد" ? (typeof invoice.address === "object" ? [`${invoice.address.region || ""}`, `ق${invoice.address.block || ""}`, `ش${invoice.address.street || ""}`, `م${invoice.address.building || ""}`].filter(Boolean).join(" - ") : invoice.address) : invoice.deliveryInfo?.zoneName || "غير محدد"}
+${numberIcon} رقم الفاتورة: ${invoice.id}
+
+━━━━━━━━━━━━━━
+${orderIcon} *الطلب*
+
+${items}
+
+━━━━━━━━━━━━━━
+${moneyIcon} *الملخص*
+المنتجات: ${subtotal.toFixed(3)} د.ك
+الإضافات: ${addonsTotalWA.toFixed(3)} د.ك
+التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك
+${promoLine}الإجمالي: ${Number(totalAmountVal).toFixed(3)} د.ك${paymentLinkLine}
+
+${leafIcon} شكراً لتعاملكم معنا
+Alturath.kw
+92225308 - 94059238`;
+
+      let digits = phone.replace(/[^0-9]/g, "");
+      if (digits.length === 8) digits = `965${digits}`;
+      const params = new URLSearchParams({ text: message });
+      return `https://wa.me/${digits}?${params.toString()}`;
     };
 
     useEffect(() => {
@@ -428,6 +480,32 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
         .sort((a, b) => (a.name || "").localeCompare(b.name || "", "ar"));
     }, [data.products, searchQuery, supplierFilter]);
 
+
+    const getAddonRuleLimits = (addon: any, productQty: number) => {
+      const baseMin = addon?.isRequired ? Math.max(1, Number(addon?.minQuantity || 1)) : Number(addon?.minQuantity || 0);
+      const baseMax = addon?.maxQuantity !== undefined && addon?.maxQuantity !== null && addon?.maxQuantity !== '' ? Number(addon.maxQuantity) : 999;
+      const rule = addon?.quantityRule || {};
+      if (!rule?.enabled) {
+        return { available: true, min: baseMin, max: Math.max(baseMin, baseMax), suggested: Math.max(baseMin, addon?.calculationType === 'fixed' ? 1 : baseMin) };
+      }
+      const minProductQty = Math.max(1, Number(rule.minProductQty || 1));
+      const perAddon = Math.max(1, Number(rule.maxProductQtyPerAddon || 1));
+      if (Number(productQty || 0) < minProductQty) {
+        return { available: false, min: 0, max: 0, suggested: 0 };
+      }
+      const suggested = Math.max(1, Math.ceil(Number(productQty || 0) / perAddon));
+      const min = rule.mode === 'required' ? Math.max(baseMin, suggested) : baseMin;
+      const max = Math.max(min, baseMax);
+      return { available: true, min, max, suggested: Math.min(max, Math.max(min, suggested)) };
+    };
+
+    const getInitialAddonQuantity = (addon: any, productQty: number) => {
+      const limits = getAddonRuleLimits(addon, productQty);
+      if (!limits.available) return 0;
+      if (addon?.isRequired || Number(addon?.minQuantity || 0) > 0 || addon?.quantityRule?.mode === 'required') return Math.max(limits.min, limits.suggested || 1);
+      if (addon?.quantityRule?.mode === 'auto') return limits.suggested;
+      return 0;
+    };
     const addToCart = (productId: string) => {
       // FORCING VITE CACHE INVALIDATION
       const product = (data.products || []).find((p) => p.id === productId);
@@ -464,9 +542,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
               : safeList.map(
                   (a) => ({
                     ...a,
-                    quantity: a.isRequired
-                      ? Math.max(1, a.minQuantity || 1)
-                      : 0,
+                    quantity: getInitialAddonQuantity(a, (existing ? existing.quantity : 0) + 1),
                   }),
                 ),
           },
@@ -517,11 +593,11 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
         
         const newAddons = baseArray.map((a) => {
           if (a.id === addonId) {
-            const cur = a.quantity || 0;
-            const min = a.isRequired
-              ? Math.max(1, a.minQuantity || 1)
-              : a.minQuantity || 0;
-            const max = a.maxQuantity || 999;
+            const cur = Number(a.quantity || 0);
+            const limits = getAddonRuleLimits(a, item.quantity || 1);
+            if (!limits.available) return { ...a, quantity: 0 };
+            const min = limits.min;
+            const max = limits.max;
             const next = Math.max(min, Math.min(max, cur + delta));
             return { ...a, quantity: next };
           }
@@ -778,22 +854,24 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
                 ))}
               </select>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 overflow-y-auto max-h-[70vh] pr-2">
-              {filteredProducts.map((p) => (
+            {(() => {
+              const invoiceCategories = getSharedProductCategories(data, filteredProducts);
+              const groupedProducts = invoiceCategories
+                .map((category) => ({
+                  category,
+                  items: filteredProducts.filter((p: any) => normalizeCategoryName(p?.category) === category),
+                }))
+                .filter((group) => group.items.length > 0);
+              const isSearching = searchQuery.trim().length > 0;
+              const renderProductCard = (p: Product) => (
                 <button
                   key={p.id}
                   onClick={() => addToCart(p.id)}
                   className="bg-white border p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative"
                 >
-                  {/*
-                   * Status badges and best-price indicators. The out-of-stock badge
-                   * now uses a softer styling with a tinted background and border, and the
-                   * cheaper price indicator matches the product page design: a circular
-                   * badge that reveals more details on hover or focus.
-                   */}
                   {p.isOutOfStock && (
-                    <div className="absolute top-2 left-2 bg-rose-50 border border-rose-100 text-rose-600 px-1.5 py-0.5 rounded-lg flex items-center gap-1 shadow-sm pointer-events-none">
-                      <AlertCircle size={12} className="shrink-0" />
+                    <div className="absolute top-2 left-2 text-rose-500 z-10 flex items-center gap-1 bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded-lg border border-rose-100 shadow-sm">
+                      <AlertCircle size={14} />
                       <span className="text-[10px] font-bold">نفد</span>
                     </div>
                   )}
@@ -801,51 +879,74 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
                     const bestPrice = getBestPriceInfo(p);
                     if (bestPrice) {
                       return (
-                        <div
-                          className="absolute top-2 right-2 group/badge outline-none"
-                          tabIndex={0}
-                          onClick={(e) => {
-                            // Prevent card click from triggering
-                            e.stopPropagation();
-                          }}
-                        >
-                          <div className="bg-rose-50 border border-rose-100 text-rose-600 p-1.5 rounded-full cursor-pointer shadow-sm">
-                            <AlertCircle size={14} className="shrink-0 animate-pulse" />
-                          </div>
-                          <div className="absolute bottom-full mb-2 right-1/2 translate-x-1/2 hidden group-hover/badge:flex group-focus/badge:flex flex-col bg-white text-slate-700 text-[8px] sm:text-[10px] w-[110px] sm:w-[130px] p-2 rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-bold border border-slate-200 pointer-events-none items-center gap-1 text-center">
-                            <span className="bg-rose-50 text-rose-600 px-2 py-1.5 rounded-lg leading-relaxed w-full break-words whitespace-normal">
-                              {bestPrice.supplier}
-                            </span>
-                            <span className="w-full">يبيعه أرخص !</span>
-                            <span className="text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg leading-none w-full">
-                              {Number(bestPrice.cost || 0).toFixed(3)} د.ك
-                            </span>
+                        <div className="absolute bottom-2 left-2 text-amber-500 z-10 p-1 group/cheaper">
+                          <AlertTriangle size={16} className="animate-pulse" />
+                          <div className="absolute bottom-full left-0 mb-1 bg-white border rounded-lg p-2 text-[8px] sm:text-[10px] shadow-xl hidden group-hover/cheaper:block w-32 font-bold z-50">
+                            تنبيه: {bestPrice.supplier} يوفره بسعر {bestPrice.cost.toFixed(3)} د.ك
                           </div>
                         </div>
                       );
                     }
                     return null;
                   })()}
-                  <h3
-                    className={cn(
-                      "font-bold text-slate-800",
-                      p.isOutOfStock && "opacity-50",
-                    )}
-                  >
-                    {p.name}
-                  </h3>
+                  <h3 className={cn("font-bold text-slate-800", p.isOutOfStock && "opacity-50")}>{p.name}</h3>
+                  <div className="text-[10px] font-bold text-slate-400">{normalizeCategoryName((p as any).category)}</div>
                   <div className="flex justify-between items-center mt-auto">
-                    <span className="text-primary font-bold">
-                      {p.price.toFixed(3)} د.ك
-                    </span>
-                    <Plus
-                      size={16}
-                      className="text-slate-300 group-hover:text-primary"
-                    />
+                    <span className="text-primary font-bold">{p.price.toFixed(3)} د.ك</span>
+                    <Plus size={16} className="text-slate-300 group-hover:text-primary" />
                   </div>
                 </button>
-              ))}
-            </div>
+              );
+
+              if (isSearching) {
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 overflow-y-auto max-h-[70vh] pr-2">
+                    {filteredProducts.map(renderProductCard)}
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-3 overflow-y-auto max-h-[70vh] pr-2">
+                  {groupedProducts.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 font-bold border border-dashed rounded-2xl">لا توجد منتجات</div>
+                  ) : groupedProducts.map((group) => {
+                    const isOpen = activeInvoiceCategory === group.category;
+                    return (
+                      <div key={group.category} className="border border-slate-100 rounded-3xl overflow-hidden bg-white shadow-sm">
+                        <button
+                          type="button"
+                          onClick={() => setActiveInvoiceCategory(isOpen ? null : group.category)}
+                          className="w-full p-4 flex items-center justify-between text-right hover:bg-slate-50 transition-colors"
+                        >
+                          <div>
+                            <div className="font-black text-slate-800">{group.category}</div>
+                            <div className="text-[10px] font-bold text-slate-400 mt-1">{group.items.length} منتج</div>
+                          </div>
+                          <div className={cn("w-9 h-9 rounded-2xl flex items-center justify-center transition-all", isOpen ? "bg-primary text-white rotate-180" : "bg-slate-50 text-primary")}>⌄</div>
+                        </button>
+                        <AnimatePresence initial={false}>
+                          {isOpen && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 p-4 pt-0">
+                                {group.items.map(renderProductCard)}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
           </div>
         </div>
 
@@ -1207,7 +1308,11 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
                                       أول {a.freeQuantity} مجاناً
                                     </span>
                                   )}
-                                  {/* Hide limit description: users should rely on quantity buttons */}
+                                  {(a.isRequired || Number(a.minQuantity || 0) > 0 || a.quantityRule?.mode === "required") && (
+                                    <span className="text-[8px] text-indigo-500 font-bold">
+                                      إلزامي
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             );

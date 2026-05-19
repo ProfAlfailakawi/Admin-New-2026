@@ -51,6 +51,17 @@ import {
 
 // import { getDeduplicatedProducts } from '../lib/deduplication';
 
+const DEFAULT_PRODUCT_CATEGORIES = ["الولائم", "اللحوم", "الدجاج", "البحري", "المشويات", "المقبلات", "المشروبات"];
+const normalizeCategoryName = (value?: string) => String(value || "عام").trim() || "عام";
+const getProductCategories = (data: any) => {
+  const configured = data?.productCategories || data?.settings?.productCategories || [];
+  const configuredNames = Array.isArray(configured)
+    ? configured.map((cat: any) => normalizeCategoryName(typeof cat === "string" ? cat : cat?.name || cat?.title)).filter(Boolean)
+    : [];
+  const productNames = (data?.products || []).map((p: any) => normalizeCategoryName(p?.category)).filter(Boolean);
+  return Array.from(new Set([...configuredNames, ...DEFAULT_PRODUCT_CATEGORIES, ...productNames]));
+};
+
 interface ProductPageProps {
   data: AppState;
   setData: React.Dispatch<React.SetStateAction<AppState>>;
@@ -94,6 +105,44 @@ const ProductPage: React.FC<ProductPageProps> = ({
   const [uploading, setUploading] = useState(false);
   const [shakingId, setShakingId] = useState<string | null>(null);
   const [showProfitWarning, setShowProfitWarning] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+
+  const productCategories = useMemo(() => getProductCategories(data), [data]);
+
+  const saveProductCategories = (categories: string[]) => {
+    const cleaned = Array.from(new Set(categories.map(normalizeCategoryName).filter(Boolean)));
+    setData((prev: any) => ({
+      ...prev,
+      productCategories: cleaned,
+      settings: { ...(prev.settings || {}), productCategories: cleaned },
+    }));
+  };
+
+  const addProductCategory = () => {
+    const name = normalizeCategoryName(newCategoryName);
+    if (!name || name === "عام") {
+      toast.error("اكتب اسم تصنيف واضح");
+      return;
+    }
+    if (productCategories.includes(name)) {
+      toast.info("التصنيف موجود مسبقاً");
+      return;
+    }
+    saveProductCategories([...productCategories, name]);
+    setNewCategoryName("");
+    toast.success("تمت إضافة التصنيف");
+  };
+
+  const deleteProductCategory = (category: string) => {
+    const name = normalizeCategoryName(category);
+    const usedCount = (data?.products || []).filter((p: any) => normalizeCategoryName(p?.category) === name).length;
+    if (usedCount > 0) {
+      toast.error(`لا يمكن حذف التصنيف لأنه يحتوي على ${usedCount} منتج`);
+      return;
+    }
+    saveProductCategories(productCategories.filter((cat) => cat !== name));
+    toast.success("تم حذف التصنيف");
+  };
 
   // Smart Name Matching Logic
   useEffect(() => {
@@ -499,7 +548,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       name: "",
       price: 0,
       cost: 0,
-      category: "عام",
+      category: productCategories[0] || "الولائم",
       supplierId: "",
       imageUrl: "",
       isActive: true,
@@ -671,6 +720,56 @@ const ProductPage: React.FC<ProductPageProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <div className="bg-white rounded-3xl p-4 md:p-5 border border-slate-200/60 shadow-sm text-right">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-black text-slate-900 flex items-center justify-end gap-2">
+              تصنيفات المنتجات
+              <Layers size={18} className="text-primary" />
+            </h3>
+            <p className="text-xs font-bold text-slate-400 mt-1">هذه التصنيفات تظهر في فاتورة جديدة وبرنامج العميل. لا يمكن حذف تصنيف يحتوي منتجات.</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 lg:w-[420px]">
+            <input
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") addProductCategory(); }}
+              placeholder="أضف تصنيف جديد..."
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
+            />
+            <button
+              type="button"
+              onClick={addProductCategory}
+              className="bg-primary text-white px-5 py-3 rounded-2xl font-black text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2"
+            >
+              <Plus size={16} /> إضافة
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 mt-4 justify-end">
+          {productCategories.map((category) => {
+            const usedCount = (data?.products || []).filter((p: any) => normalizeCategoryName(p?.category) === category).length;
+            return (
+              <div key={category} className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-2xl px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => deleteProductCategory(category)}
+                  disabled={usedCount > 0}
+                  title={usedCount > 0 ? `لا يمكن الحذف: يحتوي على ${usedCount} منتج` : "حذف التصنيف"}
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-rose-500 hover:bg-rose-50 disabled:text-slate-300 disabled:cursor-not-allowed"
+                >
+                  <X size={13} />
+                </button>
+                <div className="text-right">
+                  <div className="text-xs font-black text-slate-800">{category}</div>
+                  <div className="text-[9px] font-bold text-slate-400">{usedCount} منتج</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
         <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
@@ -1112,6 +1211,22 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">
+                      تصنيف المنتج
+                    </label>
+                    <select
+                      value={productForm.category || productCategories[0] || "الولائم"}
+                      onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right"
+                    >
+                      {productCategories.map((category) => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] font-bold text-slate-400 text-right">تقدر تضيف أو تحذف التصنيفات من لوحة التصنيفات أعلى قائمة المنتجات.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">
                       صورة المنتج
                     </label>
                     <label className="flex items-center justify-between bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-4 cursor-pointer hover:border-primary transition-all">
@@ -1238,44 +1353,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
               {/* Addons Section */}
               <div className="space-y-3 mt-6 border-t pt-6 border-slate-100 px-3 md:px-3 pb-4">
                 <div className="flex flex-col-reverse md:flex-row justify-between items-center bg-slate-50 p-3 rounded-2xl gap-3">
-                  <button
-                    onClick={() => {
-                      const newAddon = {
-                        id: Math.random().toString(36).substr(2, 9),
-                        name: '',
-                        price: 0,
-                        cost: 0,
-                        calculationType: 'per_item',
-                        xItemsThreshold: 1,
-                        isHiddenPrice: false,
-                        quantityRule: {
-                          enabled: false,
-                          minProductQty: 2,
-                          maxProductQtyPerAddon: 6,
-                          mode: 'manual',
-                        },
-                      };
-                      // Append the new addon to the list
-                      setProductForm((prev: any) => ({
-                        ...prev,
-                        addons: [
-                          ...((Array.isArray(prev?.addons) ? prev.addons : []) as any[]),
-                          newAddon,
-                        ],
-                      }));
-                      // After state update, scroll into view and focus the new addon name input
-                      setTimeout(() => {
-                        const input = document.getElementById(`addon-name-${newAddon.id}`);
-                        if (input) {
-                          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          (input as HTMLInputElement).focus();
-                        }
-                      }, 50);
-                    }}
-                    className="text-primary hover:bg-primary/10 p-2 rounded-xl transition-colors font-bold flex items-center gap-2 text-sm"
-                  >
-                    <PlusCircle size={16} /> إضافة ملحق (Add-on)
-                  </button>
+
                   <label className="text-sm font-bold text-slate-700">الملحقات والإضافات (اختياري)</label>
                 </div>
                 
@@ -1613,6 +1691,47 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     </div>
                   </div>
                 ))}
+
+                <div className="flex justify-center pt-2">
+                  <button
+                    onClick={() => {
+                      const newAddon = {
+                        id: Math.random().toString(36).substr(2, 9),
+                        name: '',
+                        price: 0,
+                        cost: 0,
+                        calculationType: 'per_item',
+                        xItemsThreshold: 1,
+                        isHiddenPrice: false,
+                        quantityRule: {
+                          enabled: false,
+                          minProductQty: 2,
+                          maxProductQtyPerAddon: 6,
+                          mode: 'manual',
+                        },
+                      };
+                      // Append the new addon to the list
+                      setProductForm((prev: any) => ({
+                        ...prev,
+                        addons: [
+                          ...((Array.isArray(prev?.addons) ? prev.addons : []) as any[]),
+                          newAddon,
+                        ],
+                      }));
+                      // After state update, scroll into view and focus the new addon name input
+                      setTimeout(() => {
+                        const input = document.getElementById(`addon-name-${newAddon.id}`);
+                        if (input) {
+                          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          (input as HTMLInputElement).focus();
+                        }
+                      }, 50);
+                    }}
+                    className="w-full md:w-auto justify-center bg-primary text-white hover:opacity-90 px-5 py-3 rounded-2xl transition-all font-black flex items-center gap-2 text-sm shadow-sm active:scale-95"
+                  >
+                    <PlusCircle size={16} /> إضافة ملحق (Add-on)
+                  </button>
+                </div>
               </div>
             </div>
 

@@ -196,6 +196,8 @@ export interface AppSettings {
   companyLogo?: string;
   companyName: string;
   restaurantNumbers: string[];
+  productCategories?: string[];
+  menuCategories?: string[];
   notifications: {
     lateInvoices: boolean;
     salesGoals: boolean;
@@ -386,4 +388,5 @@ export interface AppState {
   pulseAnalysisHistory?: PulseAnalysisRecord[];
   deepArchiveAnalysis?: any;
   nameMatchMemory?: Record<string, string>; // Maps user input to successful product names
+  productCategories?: string[];
 }

@@ -127,6 +127,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const customerByPhone = new Map((data?.customers || []).filter((c: any) => c.phone).map((c: any) => [String(c.phone), c]));
  const normalizeExportProduct = (product: any) => ({
    ...product,
+   category: product?.category || '',
+   productCategory: product?.category || '',
    addons: json(Array.isArray(product?.addons) ? product.addons : []),
    addOns: json(Array.isArray(product?.addOns) ? product.addOns : []),
    extras: json(Array.isArray(product?.extras) ? product.extras : []),
@@ -255,6 +257,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(customerRows), "Customers");
 
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data?.products || []).map(normalizeExportProduct)),"Products");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(((data as any)?.productCategories || (data as any)?.settings?.productCategories || []).map((name: string, index: number) => ({ id: index + 1, name }))),"ProductCategories");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.suppliers || []),"Suppliers");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.supplierTransfers || []),"SupplierTransfers");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.zones || []),"Zones");
