@@ -523,16 +523,24 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
       let order: any = null;
       let resolvedOrderId = orderId;
+      const isInvoiceAlert = String(orderId).startsWith("INV-");
 
       try {
         let orderSnap: any = await db.collection("orders").doc(orderId).get();
-        // Avoid multiple .where queries if doc doesn't exist to prevent quota exhaustion
-        // It will automatically fallback to the single appData/shared_company_data read below.
+        // Avoid multiple .where queries if doc doesn't exist to prevent quota exhaustion.
+        // For admin invoices (INV-...), also check the invoices collection using the same ID.
 
         if (orderSnap.exists) {
           order = orderSnap.data() || {};
         } else {
-          // Fallback: some app orders are stored inside appData/shared_company_data arrays
+          const invoiceSnap: any = await db.collection("invoices").doc(orderId).get();
+          if (invoiceSnap.exists) {
+            order = { ...(invoiceSnap.data() || {}), type: "admin_invoice" };
+          }
+        }
+
+        if (!order) {
+          // Fallback: some app orders/invoices are stored inside appData/shared_company_data arrays
           const appDataSnap = await db.collection("appData").doc("shared_company_data").get();
 
           if (appDataSnap.exists) {
@@ -572,11 +580,25 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       }
 
       if (!order) {
-        return res.status(404).json({
-          success: false,
-          message: "Order not found",
-          searchedFor: orderId,
-        });
+        // Do not fail invoice alerts if the client has just created the invoice and Firestore sync is still catching up.
+        // Keep notification delivery logic unchanged; only allow a minimal payload for INV fallback.
+        if (isInvoiceAlert) {
+          order = {
+            id: orderId,
+            invoiceNo: orderId,
+            invoiceNumber: orderId,
+            totalAmount: clientTotal,
+            paymentStatus: "pending",
+            status: "بانتظار الدفع",
+            type: "admin_invoice"
+          };
+        } else {
+          return res.status(404).json({
+            success: false,
+            message: "Order not found",
+            searchedFor: orderId,
+          });
+        }
       }
       const paymentStatus = String(order.paymentStatus || "").toLowerCase();
       const status = String(order.status || "");
@@ -626,17 +648,19 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         "";
 
       const result = await sendSmartAlertPushNotification({
-        title: "⏳ طلب بانتظار الدفع",
-        body: `طلب ${orderNumber} وصل الآن بانتظار الدفع${total ? ` — القيمة ${total} د.ك` : ""} ⏳`,
-        alertType: "payment_pending_immediate",
-        url: `/?order=${encodeURIComponent(resolvedOrderId)}`
+        title: isInvoiceAlert ? "⏳ فاتورة بانتظار الدفع" : "⏳ طلب بانتظار الدفع",
+        body: `${isInvoiceAlert ? "الفاتورة" : "طلب"} ${orderNumber} وصل الآن بانتظار الدفع${total ? ` — القيمة ${total} د.ك` : ""} ⏳`,
+        alertType: isInvoiceAlert ? "invoice_pending_immediate" : "payment_pending_immediate",
+        url: isInvoiceAlert
+          ? `/?invoice=${encodeURIComponent(resolvedOrderId)}`
+          : `/?order=${encodeURIComponent(resolvedOrderId)}`
       });
 
       try {
         const eventRef = db.collection("pushEvents").doc(eventId);
         await eventRef.set({
           orderId,
-          type: "order_created_pending_payment",
+          type: isInvoiceAlert ? "invoice_created_pending_payment" : "order_created_pending_payment",
           sentAt: admin.firestore.FieldValue.serverTimestamp(),
           result,
         });

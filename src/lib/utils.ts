@@ -8,23 +8,54 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Format a string or DetailedAddress object into a single human-readable full address string.
  */
+export function normalizeAddressObject(address?: any): any {
+  if (!address) return null;
+
+  let addr = address;
+  if (typeof addr === 'string') {
+    const trimmed = addr.trim();
+    if (!trimmed) return null;
+    if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+      try {
+        addr = JSON.parse(trimmed);
+      } catch {
+        return { fullText: trimmed };
+      }
+    } else {
+      return { fullText: trimmed };
+    }
+  }
+
+  if (!addr || typeof addr !== 'object' || Array.isArray(addr)) return null;
+
+  // Some Excel imports stored the address as: { "الأحمدي": { block, street... } }
+  const keys = Object.keys(addr);
+  const hasDirectFields = ['region', 'area', 'block', 'street', 'jaddah', 'building', 'house', 'floor', 'apartment', 'notes'].some(k => addr[k] !== undefined && addr[k] !== '');
+  if (!hasDirectFields && keys.length === 1 && addr[keys[0]] && typeof addr[keys[0]] === 'object') {
+    return { region: keys[0], ...(addr[keys[0]] as any) };
+  }
+
+  return addr;
+}
+
 export function formatFullAddress(address?: any): string {
-  if (!address) return '';
-  if (typeof address === 'string') return address;
-  
-  const addr = address as any;
+  const addr = normalizeAddressObject(address);
+  if (!addr) return '';
+  if (addr.fullText) return String(addr.fullText);
+
   const parts = [];
-  
-  if (addr.region) parts.push(`المنطقة: ${addr.region}`);
-  if (addr.block) parts.push(`قطعة: ${addr.block}`);
-  if (addr.street) parts.push(`شارع: ${addr.street}`);
-  if (addr.jaddah) parts.push(`جادة: ${addr.jaddah}`);
-  if (addr.building) parts.push(`منزل/عمارة: ${addr.building}`);
-  if (addr.floor) parts.push(`دور: ${addr.floor}`);
-  if (addr.apartment) parts.push(`شقة/مكتب: ${addr.apartment}`);
-  if (addr.notes) parts.push(`ملاحظات: ${addr.notes}`);
-  
-  return parts.join(' - ') || '';
+  const building = addr.building || addr.house;
+
+  if (addr.region || addr.area) parts.push(`${addr.region || addr.area}`);
+  if (addr.block) parts.push(`قطعة ${addr.block}`);
+  if (addr.street) parts.push(`شارع ${addr.street}`);
+  if (addr.jaddah) parts.push(`جادة ${addr.jaddah}`);
+  if (building) parts.push(`منزل ${building}`);
+  if (addr.floor) parts.push(`دور ${addr.floor}`);
+  if (addr.apartment) parts.push(`شقة ${addr.apartment}`);
+  if (addr.notes || addr.addressNotes) parts.push(`${addr.notes || addr.addressNotes}`);
+
+  return parts.filter(Boolean).join(' - ') || '';
 }
 
 // Utility to normalize Arabic numerals to English numerals instantly

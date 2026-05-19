@@ -28,6 +28,14 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     { id: 4, name: 'شيوخ', points: '15,000', label: 'صينية ضيافة مجانية كل 10 طلبات', color: 'from-purple-500 to-fuchsia-700', bgClass: 'border-purple-300 bg-purple-50 shadow-lg', iconType: 'Trophy' },
   ]);
 
+
+  const parseTierPoints = (value: any) => Number(String(value || '0').replace(/,/g, '')) || 0;
+
+  const getTierForPoints = (points: any) => {
+    const sorted = [...tiers].sort((a, b) => parseTierPoints(a.points) - parseTierPoints(b.points));
+    return sorted.reduce((current, tier) => parseTierPoints(points) >= parseTierPoints(tier.points) ? tier : current, sorted[0]);
+  };
+
   const [editingTierId, setEditingTierId] = useState<number | null>(null);
   const [editedTier, setEditedTier] = useState<any>(null);
   const [expandedSquadId, setExpandedSquadId] = useState<number | string | null>(null); // To expand squad details
@@ -56,7 +64,6 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       toast.error('تعذر تحديد الديوانية المراد حذفها');
       return;
     }
-
     const currentSquads = Array.isArray(data?.squads) ? data.squads : squads;
     const nextSquads = currentSquads.filter((sq: any) => String(sq.id) !== String(squad.id));
 
@@ -161,7 +168,17 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
   const deleteTier = (id: number) => {
     setTiers(tiers.filter(t => t.id !== id));
+    if (editingTierId === id) { setEditingTierId(null); setEditedTier(null); }
     toast.success("تم حذف المستوى");
+  };
+
+  const cancelEditTier = () => {
+    if (editedTier?.name === 'مستوى جديد') {
+      setTiers(tiers.filter(t => t.id !== editedTier.id));
+    }
+    setEditingTierId(null);
+    setEditedTier(null);
+    toast.info('تم إلغاء تعديل المستوى');
   };
 
   const addTier = () => {
@@ -241,6 +258,28 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
         <button onClick={() => setActiveTab('leaderboard')} className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'leaderboard' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>لوحة الصدارة 🔥</button>
         <button onClick={() => setActiveTab('squads')} className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'squads' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>إدارة الدواوين 👥</button>
         <button onClick={() => setActiveTab('settings')} className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>إعدادات التحديات ⚙️</button>
+      </div>
+
+      <div className="bg-white border border-slate-200/70 rounded-3xl p-4 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="text-sm font-black text-slate-800 flex items-center gap-2"><Crown className="w-4 h-4 text-amber-500" /> شريط المستويات</div>
+          <div className="text-[10px] font-bold text-slate-400">يتم تحديد مستوى الديوانية تلقائياً حسب النقاط إذا لم يكن محدداً</div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[...tiers].sort((a, b) => parseTierPoints(a.points) - parseTierPoints(b.points)).map((tier) => (
+            <div key={tier.id} className="relative overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 p-3">
+              <div className={`absolute inset-y-0 right-0 w-1.5 bg-gradient-to-b ${tier.color || 'from-slate-300 to-slate-500'}`} />
+              <div className="pr-3 flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white bg-gradient-to-br ${tier.color || 'from-slate-300 to-slate-500'} shadow-sm shrink-0`}>{getIcon(tier.iconType)}</div>
+                <div className="min-w-0">
+                  <div className="font-black text-slate-800 text-sm truncate">{tier.name}</div>
+                  <div className="text-[10px] font-bold text-slate-500">من {tier.points} نقطة</div>
+                  <div className="text-[10px] font-semibold text-slate-400 truncate">{tier.label}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {activeTab === 'leaderboard' && (
@@ -461,6 +500,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           const sortedArr = [...squads].sort((a,b) => (b.points || 0) - (a.points || 0));
                           const rank = sortedArr.findIndex(x => x.id === s.id) + 1;
                           const points = s.points || 0;
+                          const displayTier = s.tier || getTierForPoints(points)?.name || 'شلة ديوانية';
                           
                           let waMsg = `مرحباً يا ${s.name}! 👋\nرصيدكم الحالي ${points} نقطة، وأنتم تصنفون كـ "${s.tier}".\nكل طلب يقربكم من الصدارة.. كفو! 👏✨`;
                           if (rank === 1 && points > 0) {
@@ -491,8 +531,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                               </div>
                             </td>
                             <td className="p-4">
-                               <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${s.tier === 'شيوخ' ? 'bg-purple-100 text-purple-700' : s.tier === 'نواخذة' ? 'bg-amber-100 text-amber-700' : s.tier === 'عزوة' ? 'bg-slate-200 text-slate-700' : 'bg-orange-100 text-orange-700'}`}>
-                                 {s.tier}
+                               <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${displayTier === 'شيوخ' ? 'bg-purple-100 text-purple-700' : displayTier === 'نواخذة' ? 'bg-amber-100 text-amber-700' : displayTier === 'عزوة' ? 'bg-slate-200 text-slate-700' : 'bg-orange-100 text-orange-700'}`}>
+                                 {displayTier}
                                </span>
                             </td>
                             <td className="p-4 text-center font-bold text-slate-600">{(s.points || 0).toLocaleString()} نقطة</td>

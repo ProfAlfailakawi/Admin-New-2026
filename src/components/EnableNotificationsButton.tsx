@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Bell, BellRing } from "lucide-react";
-import { registerPushNotifications, getPushSupportStatus } from "../lib/pushNotifications";
+import { registerPushNotifications, getPushSupportStatus, refreshPushRegistrationIfAlreadyAllowed } from "../lib/pushNotifications";
 
-export function EnableNotificationsButton(_props?: {
+export function EnableNotificationsButton(props?: {
   userId?: string;
   restaurantId?: string;
 }) {
@@ -17,20 +17,34 @@ export function EnableNotificationsButton(_props?: {
       if (!mounted) return;
 
       const stored = localStorage.getItem("push_notifications_enabled") === "true";
-      setEnabled(stored && status.permission === "granted");
+      const alreadyAllowed = status.permission === "granted";
+      setEnabled(stored && alreadyAllowed);
+
+      if (alreadyAllowed) {
+        refreshPushRegistrationIfAlreadyAllowed({
+          userId: props?.userId || "admin",
+          restaurantId: props?.restaurantId || "default",
+        }).then((result) => {
+          if (!mounted) return;
+          if (result.success) setEnabled(true);
+        });
+      }
     });
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [props?.userId, props?.restaurantId]);
 
   const handleEnable = async () => {
     setLoading(true);
     setMessage("");
 
     try {
-      const result = await registerPushNotifications();
+      const result = await registerPushNotifications({
+        userId: props?.userId || "admin",
+        restaurantId: props?.restaurantId || "default",
+      });
 
       if (result.success) {
         setEnabled(true);

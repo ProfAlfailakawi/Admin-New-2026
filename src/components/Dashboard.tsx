@@ -1273,9 +1273,13 @@ const [isPending, startTransition] = useTransition();
       );
 
 
-      const totalAddonsRevenue = invoices.reduce((acc, inv) => {
-          return acc + computeInvoiceAddonsTotal(inv);
+      const invoicesAddonsRevenue = invoices.reduce((acc, inv) => {
+          return acc + computeInvoiceAddonsTotal(inv, data?.products || []);
       }, 0);
+      const ordersAddonsRevenue = (data?.orders || [])
+        .filter((order: any) => (isPaidStatus(order.status) || isPaidStatus(order.paymentStatus)) && !order.isDeleted)
+        .reduce((acc: number, order: any) => acc + computeInvoiceAddonsTotal(order, data?.products || []), 0);
+      const totalAddonsRevenue = invoicesAddonsRevenue + ordersAddonsRevenue;
 
 
       // Food sales (excluding delivery)

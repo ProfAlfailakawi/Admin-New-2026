@@ -40,7 +40,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   ];
 
   const themes = [
-    { id: 'تراثي', label: 'تراثي كويتي', desc: 'سدو، دلال قهوة، بيوت طين فخمة', icon: '🏛️', color: 'bg-amber-100 text-amber-700' },
+    { id: 'تراثي', label: 'تراثي كويتي', desc: 'سدو، بيوت طين فخمة، بدون دلة قهوة', icon: '🏛️', color: 'bg-amber-100 text-amber-700' },
     { id: 'مودرن كافيه', label: 'كافيه كويتي', desc: 'رخام مودرن، نباتات، إضاءة نهارية', icon: '☕', color: 'bg-stone-100 text-stone-700' },
     { id: 'بحر', label: 'بحر الكويت', desc: 'واجهة بحرية، شاطئ المسيلة، غروب', icon: '🌊', color: 'bg-blue-100 text-blue-700' },
     { id: 'فاخر', label: 'مطعم أفنيوز', desc: 'إضاءة راقية، ديكور مخملي عالمي', icon: '💎', color: 'bg-indigo-100 text-indigo-700' },
@@ -80,8 +80,16 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   }, []);
 
   useEffect(() => {
-    if (history.length > 0) {
-      localStorage.setItem('smart_studio_history', JSON.stringify(history));
+    try {
+      const lightHistory = history.map((item) => ({
+        ...item,
+        // لا نخزن صور base64 كبيرة داخل المتصفح حتى لا تظهر شاشة بيضاء بسبب امتلاء التخزين.
+        url: String(item.url || '').startsWith('data:') ? '' : item.url
+      })).filter((item) => item.url);
+      if (lightHistory.length > 0) localStorage.setItem('smart_studio_history', JSON.stringify(lightHistory));
+    } catch (err) {
+      console.warn('Smart studio history storage skipped:', err);
+      try { localStorage.removeItem('smart_studio_history'); } catch {}
     }
   }, [history]);
 
@@ -93,8 +101,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   const addToHistory = (url: string, caption: string | null) => {
     setHistory(prev => {
-      const newHistory = [{url, caption, date: new Date()}, ...prev.slice(0, 9)];
-      localStorage.setItem('smart_studio_history', JSON.stringify(newHistory));
+      const nextItem = { url, caption, date: new Date() };
+      const newHistory = [nextItem, ...prev.filter(item => item.url !== url)].slice(0, 12);
+      // التخزين يتم في useEffect بنسخة خفيفة، حتى تبقى الصورة الحالية ظاهرة بدون كسر المتصفح.
       return newHistory;
     });
   };
@@ -184,7 +193,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           imageContent: selectedImage.split(',')[1],
           mimeType: selectedImage.split(';')[0].split(':')[1],
           format: selectedFormat,
-          theme: selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme,
+          theme: `${selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme}. ممنوع منعاً باتاً ظهور دلة قهوة أو دلال قهوة أو coffee dallah أو coffee pot في الصورة.`,
           mood: selectedMood,
           speedTier: 'turbo' // Signal for faster generation logic if available
         })
@@ -199,13 +208,17 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       }
 
       const resData = await response.json();
-      if (resData.imageUrl) {
-        setAiImage(resData.imageUrl);
-        const branded = await applyBranding(resData.imageUrl);
+      let imageResult = resData.imageUrl || resData.image || resData.url || resData.dataUrl || resData.base64 || resData.imageBase64 || resData.data?.imageUrl || resData.data?.url || resData.data?.base64;
+      if (imageResult && typeof imageResult === 'string' && !imageResult.startsWith('http') && !imageResult.startsWith('data:')) {
+        imageResult = `data:image/png;base64,${imageResult}`;
+      }
+      if (imageResult) {
+        setAiImage(imageResult);
+        const branded = await applyBranding(imageResult).catch(() => imageResult);
         setGeneratedImage(branded);
         addToHistory(branded, null);
       } else {
-        alert("حدث خطأ أثناء الإنشاء");
+        toast.error("تم التوليد لكن لم يصل رابط الصورة بشكل مفهوم");
       }
     } catch (err: any) {
       console.error(err);
@@ -220,7 +233,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   };
 
   const handleDownload = () => {
-    if (!generatedImage) return;
+    if (!generatedImage && !aiImage) return;
     const a = document.createElement('a');
     a.href = generatedImage;
     a.download = `smart-studio-${selectedTheme}-${Date.now()}.png`;
@@ -260,11 +273,11 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
              // Generate low quality jpeg for quick and small API payload
              resolve(canvas.toDataURL('image/jpeg', 0.6));
           } else {
-             resolve(generatedImage);
+             resolve(generatedImage || aiImage || "");
           }
         };
-        img.onerror = () => resolve(generatedImage);
-        img.src = generatedImage;
+        img.onerror = () => resolve(generatedImage || aiImage || "");
+        img.src = generatedImage || aiImage || "";
       });
 
       const response = await fetch('/api/smart-studio/caption', {
@@ -272,7 +285,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           image: safeBase64,
-          theme: selectedTheme
+          theme: `${selectedTheme}. لا تذكر دلة قهوة أو دلال القهوة نهائياً`
         })
       });
       let res: any = null;
@@ -379,6 +392,23 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       {studioTab === 'product' && (
         <>
           {!originalImage ? (
+            <div className="space-y-6">
+              {history.length > 0 && (
+                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-black text-slate-800 flex items-center gap-2"><ImageIcon size={18} className="text-indigo-500" /> أرشيف الصور السابقة</h3>
+                    <span className="text-[10px] font-bold text-slate-400">اضغط على أي صورة لفتحها</span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {history.filter(item => item.url).slice(0, 8).map((item, idx) => (
+                      <button key={idx} onClick={() => { setOriginalImage(item.url); setSelectedImage(item.url); setAiImage(item.url); setGeneratedImage(item.url); setAiCaption(item.caption); }} className="group rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm hover:shadow-md transition-all text-right">
+                        <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
+                        <div className="p-2 text-[10px] font-bold text-slate-500 truncate">{item.caption || 'صورة سابقة'}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             <div 
               onClick={() => fileInputRef.current?.click()}
               className="w-full mt-10 h-80 border-4 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/50 hover:bg-indigo-50 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all group"
@@ -395,6 +425,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             accept="image/*"
             onChange={handleImageUpload}
           />
+        </div>
         </div>
       ) : (
         <div className="flex flex-col-reverse lg:flex-row gap-8 items-start">

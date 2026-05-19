@@ -1,454 +1,195 @@
 import { AppState, Invoice } from '../types';
-import { DEFAULT_GLOBAL_LOGO } from '../constants';
+
+const fmt = (value: any) => `${Number(value || 0).toFixed(3)} د.ك`;
+
+const clean = (value: any) => {
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
+};
+
+const formatAddress = (address: any, fallback?: string) => {
+  if (!address || address === 'غير محدد') return clean(fallback) || 'غير محدد';
+
+  if (typeof address === 'string') {
+    const trimmed = address.trim();
+    if (!trimmed) return clean(fallback) || 'غير محدد';
+    try {
+      const parsed = JSON.parse(trimmed);
+      return formatAddress(parsed, fallback);
+    } catch {
+      return trimmed;
+    }
+  }
+
+  if (typeof address === 'object') {
+    // Supports normal address objects and previously imported objects like { "الأحمدي": { ... } }
+    const source = address.region || address.area || address.block || address.street || address.building || address.house
+      ? address
+      : Object.values(address || {}).find((v: any) => v && typeof v === 'object') || address;
+
+    const parts = [
+      clean((source as any).region || (source as any).area || (source as any).governorate),
+      clean((source as any).block) ? `قطعة ${(source as any).block}` : '',
+      clean((source as any).street) ? `شارع ${(source as any).street}` : '',
+      clean((source as any).jaddah) ? `جادة ${(source as any).jaddah}` : '',
+      clean((source as any).building || (source as any).house) ? `منزل ${clean((source as any).building || (source as any).house)}` : '',
+      clean((source as any).floor) ? `دور ${(source as any).floor}` : '',
+      clean((source as any).apartment) ? `شقة ${(source as any).apartment}` : '',
+    ].filter(Boolean);
+    return parts.join(' - ') || clean(fallback) || 'غير محدد';
+  }
+
+  return clean(fallback) || 'غير محدد';
+};
+
+const getAddonQty = (addon: any, itemQty: number) => {
+  let qty = Number(addon?.quantity ?? addon?.qty ?? 0);
+  if (!qty) {
+    if (addon?.calculationType === 'fixed') qty = 1;
+    else if (addon?.calculationType === 'per_x_items') qty = Math.ceil(itemQty / Math.max(1, Number(addon?.xItemsThreshold || 1)));
+    else qty = itemQty;
+  }
+  const min = Number(addon?.minQuantity || 0);
+  const max = Number(addon?.maxQuantity || qty || 0);
+  if (min) qty = Math.max(min, qty);
+  if (max) qty = Math.min(max, qty);
+  return Math.max(0, qty);
+};
+
+const getAddonTotal = (addon: any, itemQty: number) => {
+  const qty = getAddonQty(addon, itemQty);
+  const freeQty = Number(addon?.freeQuantity || 0);
+  return Number((addon?.total ?? addon?.amount ?? (Number(addon?.price || 0) * Math.max(0, qty - freeQty))) || 0);
+};
 
 export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
-    const customer = (data?.customers || []).find(c => c.id === invoice.customerId);
-    const invoiceSubtotal = (invoice?.items || []).reduce((acc, item) => {
-    let baseSum = item.priceAtTime * item.quantity;
-    if (item.addons && item.addons.length > 0) {
-        item.addons.forEach((addon) => {
-            if ((addon as any).isHiddenPrice) {
-                let addonQty = 0;
-                if ((addon as any).calculationType === 'fixed') addonQty = 1;
-                else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / ((addon as any).xItemsThreshold || 1));
-                else addonQty = item.quantity;        addonQty = Math.max(((addon as any).minQuantity || 0), Math.min(addonQty, ((addon as any).maxQuantity || addonQty)));
+  const customers = (data?.customers || []) as any[];
+  const products = (data?.products || []) as any[];
+  const customer = customers.find(c => c.id === (invoice as any).customerId);
+  const invoiceDate = (invoice as any).date || (invoice as any).createdAt || new Date().toISOString();
+  const status = (invoice as any).paymentStatus || (invoice as any).status || 'مدفوعة';
+  const customerName = clean(customer?.name || (invoice as any).customerName) || 'عميل';
+  const customerPhone = clean(customer?.phone || (invoice as any).customerPhone || (invoice as any).phone);
+  const address = formatAddress((invoice as any).address || customer?.address, (invoice as any).deliveryInfo?.zoneName);
 
-                baseSum += Number((addon as any).price || 0) * Math.max(0, addonQty - ((addon as any).freeQuantity || 0));
-            }
-        });
-    }
-    return acc + baseSum;
-}, 0);
+  let productsSubtotal = 0;
+  let addonsSubtotal = 0;
 
-const invoiceAddonsTotal = (invoice?.items || []).reduce((acc, item) => {
-    let addonSum = 0;
-    if (item.addons && item.addons.length > 0) {
-        item.addons.forEach((addon) => {
-            if (!(addon as any).isHiddenPrice) {
-                let addonQty = 0;
-                if ((addon as any).calculationType === 'fixed') addonQty = 1;
-                else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / ((addon as any).xItemsThreshold || 1));
-                else addonQty = item.quantity;        addonQty = Math.max(((addon as any).minQuantity || 0), Math.min(addonQty, ((addon as any).maxQuantity || addonQty)));
+  const itemsHtml = ((invoice as any).items || []).map((item: any, index: number) => {
+    const product = products.find(p => p.id === item.productId) || {};
+    const name = clean(item.name || item.productName || product.name) || 'منتج غير معروف';
+    const qty = Number(item.quantity || 1);
+    const unitPrice = Number(item.priceAtTime ?? item.price ?? product.price ?? 0);
+    const productTotal = unitPrice * qty;
+    productsSubtotal += productTotal;
 
-                addonSum += Number((addon as any).price || 0) * Math.max(0, addonQty - ((addon as any).freeQuantity || 0));
-            }
-        });
-    }
-    return acc + addonSum;
-}, 0);
-    const invoiceDiscount = invoice.discount || 0;
-    
-    const itemsHtml = (invoice?.items || []).map(item => {
-        const product = (data?.products || []).find(p => p.id === item.productId);
-        let displayPrice = Number(item.priceAtTime || 0);
-        let printRowTotal = Number(item.priceAtTime || 0) * (item.quantity || 1);
-        let addonsHtml = '';
-        
-        if (item.addons && item.addons.length > 0) {
-            item.addons.forEach((addon) => {
-                let addonQty = 0;
-                if ((addon as any).calculationType === 'fixed') addonQty = 1;
-                else if ((addon as any).calculationType === 'per_x_items') addonQty = Math.ceil(item.quantity / ((addon as any).xItemsThreshold || 1));
-                else addonQty = item.quantity;        addonQty = Math.max(((addon as any).minQuantity || 0), Math.min(addonQty, ((addon as any).maxQuantity || addonQty)));
+    const addons = Array.isArray(item.addons) ? item.addons
+      : Array.isArray(item.selectedAddons) ? item.selectedAddons
+      : Array.isArray(item.addOns) ? item.addOns
+      : Array.isArray(item.extras) ? item.extras
+      : [];
 
-                
-                if (addonQty > 0) {
-                    printRowTotal += Number((addon as any).price || 0) * Math.max(0, addonQty - ((addon as any).freeQuantity || 0));
-                    if ((addon as any).isHiddenPrice) {
-                        displayPrice += (Number((addon as any).price) * addonQty) / (item.quantity || 1);
-                        addonsHtml += '<div class="item-cat" style="color:#4b5563; margin-top:2px; font-size:12px;">+ ' + (addon as any).name + (addonQty > 1 ? ' (' + addonQty + ')' : '') + '</div>';
-                    } else {
-                        addonsHtml += '<div class="item-cat" style="color:#4b5563; margin-top:2px; font-size:12px;">+ ' + (addon as any).name + (addonQty > 1 ? ' (' + addonQty + ')' : '') + ' - (' + (Number((addon as any).price) * addonQty).toFixed(3) + ' د.ك)</div>';
-                    }
-                }
-            });
-        }
-        
-        return `
-            <tr class="item-row">
-                <td>
-                    <div class="item-details">
-                        <div class="item-name">${product?.name || 'منتج غير معروف'}</div>
-                        ${addonsHtml}
-                        ${item.itemNotes ? `<div class="item-cat" style="color:#d97706">${item.itemNotes}</div>` : ''}
-                    </div>
-                </td>
-                <td class="text-center">
-                    <span class="qty-badge val-num">${item.quantity || 0}</span>
-                </td>
-                <td class="text-left val-num">${Number(displayPrice).toFixed(3)}</td>
-                <td class="text-left val-num">${Number(printRowTotal).toFixed(3)}</td>
-            </tr>
-        `;
+    const addonsHtml = addons.map((addon: any) => {
+      const addonName = clean(addon?.name || addon?.title || addon?.label) || 'إضافة';
+      const addonQty = getAddonQty(addon, qty);
+      const addonTotal = getAddonTotal(addon, qty);
+      addonsSubtotal += addonTotal;
+      return `
+        <div class="addon-line">
+          <span><b>•</b> ${addonName}${addonQty > 1 ? ` × ${addonQty}` : ''}</span>
+          <span class="addon-price">${fmt(addonTotal)}</span>
+        </div>`;
     }).join('');
 
     return `
-      <html dir="rtl">
-        <head>
-          <title>فاتورة ${invoice.id}</title>
-          <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-          <style>
-              :root {
-                  --primary: #0f172a;
-                  --secondary: #8b5cf6;
-                  --accent: #f59e0b;
-                  --text-main: #1e293b;
-                  --text-muted: #64748b;
-                  --bg: #ffffff;
-                  --bg-alt: #f8fafc;
-                  --border: #e2e8f0;
-                  --emerald: #10b981;
-              }
-              body { 
-                  font-family: 'Cairo', sans-serif; 
-                  margin: 0; 
-                  padding: 40px; 
-                  background: #e2e8f0;
-                  color: var(--text-main);
-                  -webkit-print-color-adjust: exact !important;
-                  print-color-adjust: exact !important;
-                  display: flex;
-                  justify-content: center;
-              }
-              .invoice-box {
-                  background: var(--bg);
-                  width: 100%;
-                  max-width: 800px;
-                  padding: 50px 60px;
-                  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-                  border-radius: 20px;
-                  position: relative;
-                  overflow: hidden;
-              }
-              .invoice-box::before {
-                  content: '';
-                  position: absolute;
-                  top: 0;
-                  left: 0;
-                  right: 0;
-                  height: 8px;
-                  background: linear-gradient(90deg, var(--secondary), var(--accent));
-              }
-              .watermark {
-                  position: absolute;
-                  top: 50%;
-                  left: 50%;
-                  transform: translate(-50%, -50%) rotate(-15deg);
-                  width: 500px;
-                  opacity: 0.025;
-                  pointer-events: none;
-                  z-index: 0;
-                  filter: grayscale(100%);
-              }
-              .header {
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: flex-start;
-                  border-bottom: 2px solid var(--bg-alt);
-                  padding-bottom: 30px;
-                  margin-bottom: 40px;
-              }
-              .brand .logo {
-                  font-size: 32px;
-                  font-weight: 900;
-                  color: var(--primary);
-                  letter-spacing: -1px;
-                  margin: 0 0 4px 0;
-                  display: flex;
-                  align-items: center;
-                  gap: 12px;
-              }
-              .brand .logo svg {
-                  width: 32px;
-                  height: 32px;
-                  color: var(--secondary);
-              }
-              .brand .slogan {
-                  font-size: 13px;
-                  font-weight: 700;
-                  color: var(--text-muted);
-                  letter-spacing: 0.5px;
-              }
-              .invoice-meta {
-                  text-align: left;
-              }
-              .invoice-meta .title {
-                  font-size: 36px;
-                  font-weight: 900;
-                  color: var(--primary);
-                  margin: 0 0 5px 0;
-                  text-transform: uppercase;
-              }
-              .invoice-meta .inv-number {
-                  font-family: 'JetBrains Mono', monospace;
-                  font-size: 16px;
-                  font-weight: 700;
-                  background: var(--secondary);
-                  color: white;
-                  padding: 4px 12px;
-                  border-radius: 8px;
-                  display: inline-block;
-              }
-              .customer-date-section {
-                  display: flex;
-                  justify-content: space-between;
-                  margin-bottom: 40px;
-                  background: var(--bg-alt);
-                  padding: 25px;
-                  border-radius: 16px;
-                  border: 1px solid var(--border);
-              }
-              .info-col {
-                  display: flex;
-                  flex-direction: column;
-                  gap: 6px;
-              }
-              .info-label {
-                  font-size: 12px;
-                  text-transform: uppercase;
-                  font-weight: 800;
-                  letter-spacing: 1px;
-                  color: var(--text-muted);
-              }
-              .info-val {
-                  font-size: 18px;
-                  font-weight: 800;
-                  color: var(--primary);
-              }
-              .info-sub {
-                  font-family: 'JetBrains Mono', monospace;
-                  font-size: 14px;
-                  color: var(--text-muted);
-                  font-weight: 600;
-              }
-              table {
-                  width: 100%;
-                  border-collapse: separate;
-                  border-spacing: 0;
-                  margin-bottom: 40px;
-              }
-              th {
-                  background: var(--primary);
-                  color: white;
-                  padding: 16px;
-                  font-size: 13px;
-                  font-weight: 700;
-                  text-align: right;
-              }
-              th:first-child { border-radius: 0 12px 12px 0; }
-              th:last-child { border-radius: 12px 0 0 12px; text-align: left; }
-              td {
-                  padding: 20px 16px;
-                  border-bottom: 1px solid var(--border);
-                  vertical-align: middle;
-              }
-              .item-row:last-child td { border-bottom: none; }
-              .item-details .item-name {
-                  font-size: 16px;
-                  font-weight: 800;
-                  color: var(--text-main);
-                  margin-bottom: 4px;
-              }
-              .item-details .item-cat {
-                  font-size: 12px;
-                  color: var(--text-muted);
-                  font-weight: 600;
-              }
-              .val-num {
-                  font-family: 'JetBrains Mono', monospace;
-                  font-size: 15px;
-                  font-weight: 700;
-              }
-              td.text-center { text-align: center; }
-              td.text-left { text-align: left; }
-              .qty-badge {
-                  background: var(--bg-alt);
-                  padding: 6px 12px;
-                  border-radius: 8px;
-                  font-weight: 800;
-                  border: 1px solid var(--border);
-                  color: var(--primary);
-              }
-              .summary-section {
-                  display: flex;
-                  justify-content: flex-end;
-                  margin-top: 20px;
-              }
-              .summary-box {
-                  width: 350px;
-                  background: var(--bg-alt);
-                  border: 1px solid var(--border);
-                  border-radius: 16px;
-                  padding: 24px;
-              }
-              .summary-row {
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                  padding-bottom: 16px;
-                  margin-bottom: 16px;
-                  border-bottom: 1px dashed var(--border);
-              }
-              .summary-row:last-child {
-                  border-bottom: none;
-                  margin-bottom: 0;
-                  padding-bottom: 0;
-              }
-              .sum-label {
-                  font-size: 14px;
-                  font-weight: 700;
-                  color: var(--text-muted);
-              }
-              .sum-val {
-                  font-family: 'JetBrains Mono', monospace;
-                  font-size: 16px;
-                  font-weight: 700;
-                  color: var(--text-main);
-              }
-              .total-row {
-                  background: var(--primary);
-                  padding: 20px;
-                  border-radius: 12px;
-                  color: white;
-                  margin-top: 8px;
-                  border-bottom: none;
-              }
-              .total-row .sum-label {
-                  color: rgba(255,255,255,0.8);
-                  font-size: 16px;
-              }
-              .total-row .sum-val {
-                  color: white;
-                  font-size: 26px;
-                  font-weight: 900;
-              }
-              .currency {
-                  font-family: 'Cairo', sans-serif;
-                  font-size: 12px;
-                  margin-right: 6px;
-                  opacity: 0.8;
-                  font-weight: 700;
-              }
-              footer {
-                  margin-top: 60px;
-                  text-align: center;
-                  border-top: 2px solid var(--bg-alt);
-                  padding-top: 30px;
-              }
-              .footer-text {
-                  font-size: 14px;
-                  font-weight: 700;
-                  color: var(--text-muted);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  gap: 8px;
-              }
-              .footer-contact {
-                  margin-top: 8px;
-                  font-family: 'JetBrains Mono', monospace;
-                  font-size: 12px;
-                  color: var(--text-muted);
-              }
-              @media print {
-                  body { background: white; padding: 0; }
-                  .invoice-box { box-shadow: none; border-radius: 0; padding: 0; max-width: 100%; border: none; }
-                  .invoice-box::before { display: none; }
-              }
-          </style>
-        </head>
-        <body>
-          <div class="invoice-box">
-              <img src="${data.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}" class="watermark" style="mix-blend-mode: multiply; filter: contrast(1.4) brightness(1.2);" referrerPolicy="no-referrer" />
-              <div class="header">
-                  <div class="brand">
-                      <h1 class="logo">
-                          <div class="logo-wrapper" style="background: transparent; padding: 6px; border-radius: 14px; margin-left: 14px; display: flex; align-items: center; justify-content: center;">
-                            <img src="${data.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}" alt="Logo" style="width: 38px; height: 38px; object-fit: contain; mix-blend-mode: multiply; filter: contrast(1.4) brightness(1.2);" referrerPolicy="no-referrer" />
-                          </div>
-                          ${data.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
-                      </h1>
-                  </div>
-                  <div class="invoice-meta">
-                      <h2 class="title">فاتورة</h2>
-                      <div class="inv-number">${invoice.id.toUpperCase()}</div>
-                  </div>
-              </div>
+      <tr class="item-row">
+        <td class="product-cell">
+          <div class="product-name"><span class="item-number">${index + 1}.</span> ${name}</div>
+          ${addonsHtml ? `<div class="addons-wrap">${addonsHtml}</div>` : ''}
+          ${item.itemNotes ? `<div class="item-note">${item.itemNotes}</div>` : ''}
+        </td>
+        <td class="center">${qty}</td>
+        <td class="money">${fmt(unitPrice)}</td>
+        <td class="money strong">${fmt(productTotal)}</td>
+      </tr>`;
+  }).join('');
 
-              <div class="customer-date-section">
-                  <div class="info-col">
-                      <span class="info-label">معلومات العميل</span>
-                      <span class="info-val">الاسم: ${customer?.name || (invoice as any).customerName || 'عميل نقدي (Walk-in)'}</span>
-                      <span class="info-val">رقم الهاتف: ${customer?.phone || (invoice as any).customerPhone || '---'}</span>
-                      ${invoice.address ? `<span class="info-val" style="margin-top:4px; font-size:12px;">العنوان: ${typeof invoice.address === 'object' ? [`${invoice.address.region||''}`, `ق${invoice.address.block||''}`, `ش${invoice.address.street||''}`, `م${invoice.address.building||''}`].filter(Boolean).join(' ') : invoice.address}</span>` : '<span class="info-val" style="margin-top:4px; font-size:12px;">العنوان: غير محدد</span>'}
-                  </div>
-                  <div class="info-col" style="text-align: left;">
-                      <span class="info-label">تاريخ الإصدار</span>
-                      <span class="info-val">${new Date(invoice.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                  </div>
-              </div>
+  const deliveryFee = Number((invoice as any).deliveryFee || 0);
+  const discount = Number((invoice as any).discount || 0);
+  const grandTotal = Math.max(0, Number((invoice as any).totalAmount ?? (productsSubtotal + addonsSubtotal + deliveryFee - discount)));
 
-              <table>
-                  <thead>
-                      <tr>
-                          <th>البيان / المنتج</th>
-                          <th style="text-align: center;">الكمية</th>
-                          <th style="text-align: left;">سعر الوحدة (د.ك)</th>
-                          <th style="text-align: left;">الإجمالي (د.ك)</th>
-                      </tr>
-                  </thead>
-                  <tbody>
-                      ${itemsHtml}
-                  </tbody>
-              </table>
+  return `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>فاتورة ${(invoice as any).id || ''}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{--green:#0f4f2d;--green2:#0b3f25;--red:#d7192f;--gold:#d7a94f;--soft:#fbfaf6;--line:#eadfcd;--text:#172033;--muted:#6b7280;}
+    *{box-sizing:border-box} body{margin:0;padding:28px;background:#f3f4f6;font-family:'Cairo',Arial,sans-serif;color:var(--text);-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .page{max-width:900px;margin:auto;background:#fff;border:1px solid #eee1cc;border-radius:22px;padding:34px 38px 28px;box-shadow:0 18px 50px rgba(15,79,45,.10);position:relative;overflow:hidden;}
+    .page:before{content:'';position:absolute;inset:0 0 auto 0;height:5px;background:linear-gradient(90deg,var(--red),var(--green),var(--gold));opacity:.8}
+    .header{display:grid;grid-template-columns:130px 1fr 190px;align-items:center;gap:22px;padding-bottom:22px;border-bottom:1px solid var(--line);}
+    .logo{width:116px;height:116px;object-fit:contain;justify-self:center;}
+    .brand{text-align:center}.brand h1{margin:0;color:var(--green);font-size:38px;line-height:1.1;font-weight:900;letter-spacing:-1px}.tagline{margin-top:8px;color:#b88a31;font-weight:700;font-size:15px}.contacts{margin-top:16px;display:flex;justify-content:center;gap:18px;direction:ltr;color:#263143;font-weight:700}.contacts span{display:flex;align-items:center;gap:6px}.badge{background:linear-gradient(145deg,var(--green),var(--green2));color:#fff;border:2px solid var(--gold);border-radius:18px;padding:18px 14px;text-align:center;box-shadow:0 8px 22px rgba(15,79,45,.18)}.badge .title{font-size:30px;font-weight:900}.badge .sub{font-size:13px;color:#f4d986;font-weight:800;margin-top:5px}
+    .pattern{height:18px;margin:14px -38px 24px;background:repeating-linear-gradient(45deg,rgba(215,169,79,.26) 0 8px,transparent 8px 17px),linear-gradient(90deg,rgba(215,25,47,.05),rgba(15,79,45,.05));border-block:1px solid rgba(215,169,79,.25)}
+    .cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px}.card{border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 8px 24px rgba(15,79,45,.05);padding:22px}.card h2{margin:0 0 16px;color:var(--green);font-size:22px;font-weight:900;display:flex;align-items:center;gap:9px}.card h2 .icon{color:var(--red);font-size:22px}.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #eee7dc}.row:last-child{border-bottom:0}.label{color:#555;font-weight:700}.value{font-weight:800;text-align:left;direction:rtl}.status{color:var(--green);font-weight:900}
+    .table-wrap{border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:8px;background:#fff}table{width:100%;border-collapse:collapse}.head th{background:linear-gradient(180deg,var(--green),#0b4327);color:#f7d880;font-size:15px;padding:15px 12px;text-align:center;font-weight:900}.head th:first-child{text-align:right}.item-row td{padding:20px 14px;border-bottom:1px dashed #dccfbc;vertical-align:top}.item-row:last-child td{border-bottom:0}.product-cell{width:45%}.product-name{font-size:22px;font-weight:900;color:#111827}.item-number{color:var(--red);margin-left:6px}.addons-wrap{margin-top:10px;display:grid;gap:5px}.addon-line{display:flex;justify-content:space-between;gap:12px;color:#343b48;font-weight:700;font-size:14px}.addon-line b{color:var(--red);font-size:18px;line-height:0}.addon-price{color:#a17622;white-space:nowrap}.center{text-align:center;font-size:20px;font-weight:800}.money{text-align:center;font-weight:800;direction:ltr;white-space:nowrap}.strong{color:var(--green);font-size:18px}.item-note{margin-top:8px;color:#b45309;font-size:13px;font-weight:700}
+    .summary{margin-top:22px;border:1px solid #e4d2b4;border-radius:18px;background:linear-gradient(135deg,#fffdf8,#fbf4e7);padding:22px;display:grid;grid-template-columns:1fr 1.1fr;gap:22px;align-items:center}.sum-lines{display:grid;gap:10px}.sum-row{display:flex;justify-content:space-between;border-bottom:1px dashed #ddcfba;padding-bottom:9px;font-weight:800}.sum-row span:first-child{color:#374151}.sum-row span:last-child{direction:ltr}.total-box{background:linear-gradient(145deg,var(--green),#093a22);border:2px solid var(--gold);border-radius:16px;padding:18px 24px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:16px;box-shadow:0 10px 26px rgba(15,79,45,.16)}.total-title{font-size:26px;font-weight:900}.total-amount{font-size:31px;font-weight:900;color:#ffd96a;direction:ltr}.ornament{height:92px;background:url('/logo.png') center/contain no-repeat;opacity:.18;filter:saturate(.8)}
+    .footer{margin-top:22px;background:linear-gradient(145deg,#0d4b2c,#08371f);color:#fff;border:2px solid var(--gold);border-radius:18px;padding:18px;text-align:center;font-weight:800}.footer small{display:block;color:#e8d5a1;margin-top:4px;font-size:12px}.no-print{margin-top:18px;text-align:center}.print-btn{border:0;border-radius:999px;background:var(--green);color:#fff;font-weight:900;padding:12px 28px;cursor:pointer;font-family:inherit}
+    @media print{body{background:#fff;padding:0}.page{box-shadow:none;border-radius:0;border:0;max-width:none;min-height:100vh}.no-print{display:none}.header{grid-template-columns:115px 1fr 170px}.brand h1{font-size:34px}}
+    @media (max-width:760px){body{padding:10px}.page{padding:20px}.header{grid-template-columns:1fr;text-align:center}.badge{max-width:220px;margin:auto}.cards{grid-template-columns:1fr}.pattern{margin-inline:-20px}.contacts{flex-wrap:wrap}.summary{grid-template-columns:1fr}.product-name{font-size:18px}.head th,.item-row td{font-size:13px;padding:12px 8px}.total-box{flex-direction:column}.brand h1{font-size:30px}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="header">
+      <img class="logo" src="/logo.png" alt="مطبخ التراث الكويتي" />
+      <div class="brand">
+        <h1>مطبخ التراث الكويتي</h1>
+        <div class="tagline">أصالة الطعم.. من تراثنا الكويتي</div>
+        <div class="contacts"><span>☎ 92225308</span><span>☎ 94059238</span><span>◎ @Alturath.kw</span></div>
+      </div>
+      <div class="badge"><div class="title">فاتورة</div><div class="sub">شكراً لتسوقكم معنا</div></div>
+    </section>
+    <div class="pattern"></div>
 
-              <div class="summary-section">
-                  <div style="position: absolute; bottom: 210px; left: 80px; opacity: 0.2; transform: rotate(-10deg); z-index: 10; display: flex; flex-direction: column; align-items: center;">
-                      <img src="${data.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}" style="width: 70px; filter: grayscale(100%) contrast(150%) brightness(0.7); mix-blend-mode: multiply; filter: contrast(1.4) brightness(1.1);" />
-                      <div style="font-size: 8px; font-weight: 900; text-align: center; border-top: 1px solid #000; margin-top: 4px; padding-top: 2px; width: 60px; color: #000;">ختم التوثيق</div>
-                  </div>
-                  <div class="summary-box">
-                      <div class="summary-row">
-                          <span class="sum-label">المجموع الفرعي</span>
-                          <span class="sum-val">${invoiceSubtotal.toFixed(3)} <span class="currency">د.ك</span></span>
-                      </div>
-                      ${invoiceAddonsTotal > 0 ? `
-                      <div class="summary-row">
-                          <span class="sum-label">الإضافات</span>
-                          <span class="sum-val">${Number(invoiceAddonsTotal).toFixed(3)} <span class="currency">د.ك</span></span>
-                      </div>` : ''}
-                      ${invoiceDiscount > 0 ? `
-                      <div class="summary-row" style="color: #e11d48;">
-                          <span class="sum-label" style="color: #e11d48;">الخصم مخصوم</span>
-                          <span class="sum-val">-${invoiceDiscount.toFixed(3)} <span class="currency">د.ك</span></span>
-                      </div>` : ''}
-                      ${invoice.deliveryFee > 0 ? `
-                      <div class="summary-row">
-                          <span class="sum-label">رسوم التوصيل</span>
-                          <span class="sum-val">${Number(invoice.deliveryFee).toFixed(3)} <span class="currency">د.ك</span></span>
-                      </div>` : ''}
-                      <div class="summary-row total-row">
-                          <span class="sum-label">المبلغ المطلوب</span>
-                          <span class="sum-val">${Math.max(0, invoiceSubtotal + invoiceAddonsTotal + Number(invoice.deliveryFee || 0) - invoiceDiscount).toFixed(3)} <span class="currency">د.ك</span></span>
-                      </div>
-                  </div>
-              </div>
+    <section class="cards">
+      <div class="card">
+        <h2><span class="icon">☰</span> تفاصيل الفاتورة</h2>
+        <div class="row"><span class="label">رقم الفاتورة</span><span class="value">${(invoice as any).id || '-'}</span></div>
+        <div class="row"><span class="label">التاريخ والوقت</span><span class="value">${new Date(invoiceDate).toLocaleString('ar-KW')}</span></div>
+        <div class="row"><span class="label">الحالة</span><span class="value status">${status}</span></div>
+      </div>
+      <div class="card">
+        <h2><span class="icon">♡</span> معلومات العميل</h2>
+        <div class="row"><span class="label">اسم العميل</span><span class="value">${customerName}</span></div>
+        <div class="row"><span class="label">رقم الهاتف</span><span class="value">${customerPhone || '-'}</span></div>
+        <div class="row"><span class="label">العنوان</span><span class="value">${address}</span></div>
+      </div>
+    </section>
 
-              <footer>
-                  <div class="footer-contact">
-                      ${data?.settings?.restaurantNumbers?.length ? `خدمة العملاء: ${data.settings.restaurantNumbers.join(' - ')}` : ''}
-                  </div>
-              </footer>
-          </div>
-          <script>
-              window.onload = () => {
-                  setTimeout(() => {
-                      window.print();
-                      setTimeout(() => { window.close(); }, 500);
-                  }, 500);
-              }
-          </script>
-        </body>
-      </html>
-    `;
+    <section class="table-wrap">
+      <table>
+        <thead class="head"><tr><th>المنتج / الإضافات</th><th>الكمية</th><th>السعر الفردي</th><th>إجمالي المنتج</th></tr></thead>
+        <tbody>${itemsHtml || `<tr class="item-row"><td colspan="4" class="center">لا توجد منتجات</td></tr>`}</tbody>
+      </table>
+    </section>
+
+    <section class="summary">
+      <div class="ornament"></div>
+      <div class="sum-lines">
+        <div class="sum-row"><span>إجمالي المنتجات</span><span>${fmt(productsSubtotal)}</span></div>
+        <div class="sum-row"><span>إجمالي الإضافات</span><span>${fmt(addonsSubtotal)}</span></div>
+        ${discount > 0 ? `<div class="sum-row"><span>الخصم</span><span>${fmt(discount)}</span></div>` : ''}
+        <div class="sum-row"><span>التوصيل</span><span>${fmt(deliveryFee)}</span></div>
+      </div>
+      <div class="total-box" style="grid-column:1 / -1"><span class="total-title">الإجمالي النهائي</span><span class="total-amount">${fmt(grandTotal)}</span></div>
+    </section>
+
+    <footer class="footer">شكراً لاختياركم مطبخ التراث الكويتي<small>يمكن إرسال هذه الفاتورة كصورة أو ملف PDF عبر الرسائل.</small></footer>
+    <div class="no-print"><button class="print-btn" onclick="window.print()">طباعة / حفظ PDF</button></div>
+  </main>
+</body>
+</html>`;
 }

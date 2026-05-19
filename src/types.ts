@@ -71,6 +71,12 @@ export interface ProductAddon {
   minQuantity?: number;
   maxQuantity?: number;
   freeQuantity?: number;
+  quantityRule?: {
+    enabled?: boolean;
+    minProductQty?: number;
+    maxProductQtyPerAddon?: number;
+    mode?: 'manual' | 'auto' | 'required';
+  };
   trackStock?: boolean;
   stock?: number;
 }

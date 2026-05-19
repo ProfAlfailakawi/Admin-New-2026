@@ -1247,7 +1247,8 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         cost: 0,
                         calculationType: 'per_item',
                         xItemsThreshold: 1,
-                        isHiddenPrice: false
+                        isHiddenPrice: false,
+                        quantityRule: { enabled: false, minProductQty: 2, maxProductQtyPerAddon: 6, mode: 'manual' }
                       };
                       setProductForm(prev => ({ ...prev, addons: [...((prev as any).addons || []), newAddon] }));
                     }}
@@ -1456,6 +1457,77 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                 className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm font-bold text-center"
                               />
                             </div>
+                          </div>
+
+                          <div className="mt-3 p-3 bg-white rounded-2xl border border-indigo-100 space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <label className="font-bold text-slate-700 text-xs cursor-pointer flex-1 text-right">ربط الإضافة بكمية المنتج</label>
+                              <input
+                                type="checkbox"
+                                checked={!!addon.quantityRule?.enabled}
+                                onChange={e => {
+                                  const newAddons = [...(productForm as any).addons];
+                                  newAddons[index].quantityRule = {
+                                    enabled: e.target.checked,
+                                    minProductQty: Number(newAddons[index].quantityRule?.minProductQty || 2),
+                                    maxProductQtyPerAddon: Number(newAddons[index].quantityRule?.maxProductQtyPerAddon || 6),
+                                    mode: newAddons[index].quantityRule?.mode || 'manual'
+                                  };
+                                  setProductForm(prev => ({ ...prev, addons: newAddons }));
+                                }}
+                                className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                              />
+                            </div>
+                            {!!addon.quantityRule?.enabled && (
+                              <div className="space-y-3">
+                                <p className="text-[10px] leading-relaxed text-slate-500 font-bold text-right">
+                                  مثال: صينية تظهر فقط عند طلب وجبتين أو أكثر، وكل صينية تغطي حتى ٦ وجبات.
+                                </p>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-500">أقل كمية منتج للسماح</label>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      value={addon.quantityRule?.minProductQty || 2}
+                                      onChange={e => {
+                                        const newAddons = [...(productForm as any).addons];
+                                        newAddons[index].quantityRule = { ...(newAddons[index].quantityRule || {}), enabled: true, minProductQty: parseInt(e.target.value) || 1 };
+                                        setProductForm(prev => ({ ...prev, addons: newAddons }));
+                                      }}
+                                      className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm font-bold text-center"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-500">كل إضافة تغطي حتى</label>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      value={addon.quantityRule?.maxProductQtyPerAddon || 6}
+                                      onChange={e => {
+                                        const newAddons = [...(productForm as any).addons];
+                                        newAddons[index].quantityRule = { ...(newAddons[index].quantityRule || {}), enabled: true, maxProductQtyPerAddon: parseInt(e.target.value) || 1 };
+                                        setProductForm(prev => ({ ...prev, addons: newAddons }));
+                                      }}
+                                      className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm font-bold text-center"
+                                    />
+                                  </div>
+                                </div>
+                                <select
+                                  value={addon.quantityRule?.mode || 'manual'}
+                                  onChange={e => {
+                                    const newAddons = [...(productForm as any).addons];
+                                    newAddons[index].quantityRule = { ...(newAddons[index].quantityRule || {}), enabled: true, mode: e.target.value };
+                                    setProductForm(prev => ({ ...prev, addons: newAddons }));
+                                  }}
+                                  className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-bold text-right"
+                                >
+                                  <option value="manual">اختياري يدوي ضمن الحدود</option>
+                                  <option value="auto">اقتراح العدد تلقائياً مع السماح بالتعديل</option>
+                                  <option value="required">إجباري عند تحقق الشرط</option>
+                                </select>
+                              </div>
+                            )}
                           </div>
                         </div>
 

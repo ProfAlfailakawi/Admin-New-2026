@@ -812,14 +812,14 @@ paymentData.data?.link ||
      if (addonQty > 0) {
        if (addon.isHiddenPrice) {
          displayPrice += (Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))) / (item.quantity || 1);
-         addonsLines.push(`  + ${addon.name} (Add-on)${addonQty > 1 ? ` (${addonQty})` : ''}`);
+         addonsLines.push(`   • ${addon.name}${addonQty > 1 ? ` × ${addonQty}` : ''}`);
        } else {
-         addonsLines.push(`  + ${addon.name} (Add-on)${addonQty > 1 ? ` (${addonQty})` : ''} - (${(Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))).toFixed(3)} د.ك)`);
+         addonsLines.push(`   • ${addon.name}${addonQty > 1 ? ` × ${addonQty}` : ''} = ${(Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))).toFixed(3)} د.ك`);
        }
      }
    });
  }
- return `- ${p?.name || 'منتج غير معروف'} (${item.quantity || 1} × ${Number(displayPrice).toFixed(3)} د.ك)${addonsLines.length > 0 ? '\n' + addonsLines.join('\n') : ''}`;
+ return `${p?.name || 'منتج غير معروف'}\n   الكمية: ${item.quantity || 1}\n   السعر الفردي: ${Number(displayPrice).toFixed(3)} د.ك\n   إجمالي المنتج: ${(Number(displayPrice) * Number(item.quantity || 1)).toFixed(3)} د.ك${addonsLines.length > 0 ? '\n\n   الإضافات:\n' + addonsLines.join('\n') : ''}`;
 }).join('\n');
 
  const subtotal = getOrderSubtotal(order);

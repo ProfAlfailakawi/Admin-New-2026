@@ -73,7 +73,7 @@ import { InstagramMagicWand } from './components/InstagramMagicWand';
 import { recalculateStateBalances } from './lib/business-logic';
 import { INITIAL_DATA, GET_DEMO_DATA, DEFAULT_SQUADS } from './data';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from './constants';
-import { AppState, Notification } from './types';
+import { AppState } from './types';
 import { playSuccessAction } from './lib/sonic';
 import { auth, db, logout } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -82,6 +82,9 @@ import { getSmartDoc, deleteDoc } from './firebase';
 import { Toaster, toast } from 'sonner';
 import { playNewOrderAlert } from './lib/sounds';
 import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils';
+import { refreshPushRegistrationIfAlreadyAllowed } from './lib/pushNotifications';
+
+type AdminNotification = AppState['notifications'][number];
 
 const getAdminNotificationDeepLink = () => {
   const params = new URLSearchParams(window.location.search);
@@ -348,6 +351,25 @@ const MainApp: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('isSoundEnabled', isSoundEnabled.toString());
   }, [isSoundEnabled]);
+
+
+  // Silent push auto-refresh: keeps the existing notification token alive when permission is already granted.
+  // This does not change notification sending logic and does not prompt the user.
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    if (typeof Notification === 'undefined' || window.Notification.permission !== 'granted') return;
+
+    const lastRefresh = localStorage.getItem('push_last_silent_refresh');
+    const lastTime = lastRefresh ? new Date(lastRefresh).getTime() : 0;
+    const twelveHours = 12 * 60 * 60 * 1000;
+
+    if (lastTime && Date.now() - lastTime < twelveHours) return;
+
+    refreshPushRegistrationIfAlreadyAllowed({
+      userId: user.uid || 'admin',
+      restaurantId: userRole === 'partner' ? 'partner' : 'kitchen_default',
+    });
+  }, [isAuthenticated, user, userRole]);
 
 
   const [currentPage, setCurrentPage] = useState(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
@@ -695,7 +717,7 @@ const MainApp: React.FC = () => {
 
     // Debounce the alert generation to once per 2 seconds to avoid CPU spikes
     const debounceTimer = setTimeout(() => {
-      const newNotifications: Notification[] = [];
+      const newNotifications: AdminNotification[] = [];
       const todayStr = new Date().toISOString().split('T')[0];
       const now = new Date().getTime();
       const oneDayMs = 24 * 60 * 60 * 1000;
