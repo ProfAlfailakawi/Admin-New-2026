@@ -22,7 +22,6 @@ import {
   Printer,
   MessageCircle,
   AlertCircle,
-  AlertTriangle,
   TrendingUp,
   History,
   Tag,
@@ -429,63 +428,47 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
         .sort((a, b) => (a.name || "").localeCompare(b.name || "", "ar"));
     }, [data.products, searchQuery, supplierFilter]);
 
-    const addonToNumber = (value: any, fallback = 0) => {
-      if (value === undefined || value === null || value === '') return fallback;
-      const normalized = String(value)
-        .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
-        .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
-        .replace(/,/g, '');
-      const n = Number(normalized);
-      return Number.isFinite(n) ? n : fallback;
-    };
-
-    const isRequiredAddon = (addon: any) => !!addon?.isRequired || addonToNumber(addon?.minQuantity, 0) > 0 || addon?.quantityRule?.mode === 'required';
-
-    const getAddonLimitsForInvoice = (addon: any, productQty: number) => {
-      if (addon?.quantityRule?.enabled) {
-        const minProductQty = Math.max(1, addonToNumber(addon.quantityRule.minProductQty, 1));
-        if (addonToNumber(productQty, 0) < minProductQty) return { available: false, min: 0, max: 0, suggested: 0 };
-      }
-      const baseMin = isRequiredAddon(addon) ? Math.max(1, addonToNumber(addon?.minQuantity, 1)) : Math.max(0, addonToNumber(addon?.minQuantity, 0));
-      const maxRaw = addon?.maxQuantity ?? addon?.maxQty;
-      const max = maxRaw === undefined || maxRaw === null || maxRaw === '' ? 999 : Math.max(baseMin, addonToNumber(maxRaw, 999));
-      const perAddon = Math.max(1, addonToNumber(addon?.quantityRule?.maxProductQtyPerAddon ?? addon?.xItemsThreshold ?? 1, 1));
-      const suggested = addon?.quantityRule?.enabled ? Math.max(1, Math.ceil(Math.max(1, addonToNumber(productQty, 1)) / perAddon)) : Math.max(baseMin, 1);
-      return { available: true, min: baseMin, max, suggested };
-    };
-
-    const syncInvoiceAddons = (addons: any[] = [], productQty = 1) => {
-      return (Array.isArray(addons) ? addons : []).map((addon: any) => {
-        const limits = getAddonLimitsForInvoice(addon, productQty);
-        const current = addonToNumber(addon?.quantity, 0);
-        if (!limits.available) return { ...addon, quantity: 0 };
-        if (addon?.quantityRule?.mode === 'auto') {
-          return { ...addon, quantity: Math.max(limits.min, Math.min(limits.max, limits.suggested)) };
-        }
-        if (isRequiredAddon(addon)) {
-          return { ...addon, quantity: Math.max(limits.min, Math.min(limits.max, current || limits.min || 1)) };
-        }
-        return { ...addon, quantity: Math.max(limits.min, Math.min(limits.max, current)) };
-      });
-    };
-
     const addToCart = (productId: string) => {
+      // FORCING VITE CACHE INVALIDATION
       const product = (data.products || []).find((p) => p.id === productId);
       if (!product) return;
+      
       const rawAddons = product.addons as any;
-      const safeList: any[] = Array.isArray(rawAddons) ? Array.from(rawAddons) : (rawAddons && typeof rawAddons === 'object' ? Object.values(rawAddons) : []);
+      const safeList: any[] = [];
+      if (rawAddons) {
+        if (Array.isArray(rawAddons)) {
+          for (let i = 0; i < rawAddons.length; i++) {
+            safeList.push(rawAddons[i]);
+          }
+        } else if (typeof rawAddons === 'object') {
+           // just in case they are objects
+           const vals = Object.values(rawAddons);
+           for (let i = 0; i < vals.length; i++) {
+             safeList.push(vals[i]);
+           }
+        }
+      }
+      
       toast.success(`تم إضافة ${product.name} للسلة`);
+      
       setCart((prev) => {
         const existing = prev[productId];
-        const nextQty = (existing ? existing.quantity : 0) + 1;
-        const baseAddons = existing ? existing.addons : safeList;
         return {
           ...prev,
           [productId]: {
-            quantity: nextQty,
+            quantity: (existing ? existing.quantity : 0) + 1,
             priceAtTime: product.price,
             costAtTime: product.cost,
-            addons: syncInvoiceAddons(baseAddons, nextQty),
+            addons: existing
+              ? existing.addons
+              : safeList.map(
+                  (a) => ({
+                    ...a,
+                    quantity: a.isRequired
+                      ? Math.max(1, a.minQuantity || 1)
+                      : 0,
+                  }),
+                ),
           },
         };
       });
@@ -498,7 +481,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
         if (existing.quantity > 1) {
           return {
             ...prev,
-            [productId]: { ...existing, quantity: existing.quantity - 1, addons: syncInvoiceAddons(existing.addons, existing.quantity - 1) },
+            [productId]: { ...existing, quantity: existing.quantity - 1 },
           };
         } else {
           toast.info(
@@ -534,10 +517,12 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
         
         const newAddons = baseArray.map((a) => {
           if (a.id === addonId) {
-            const limits = getAddonLimitsForInvoice(a, item.quantity || 1);
-            if (!limits.available) return { ...a, quantity: 0 };
-            const cur = addonToNumber(a.quantity, 0);
-            const next = Math.max(limits.min, Math.min(limits.max, cur + delta));
+            const cur = a.quantity || 0;
+            const min = a.isRequired
+              ? Math.max(1, a.minQuantity || 1)
+              : a.minQuantity || 0;
+            const max = a.maxQuantity || 999;
+            const next = Math.max(min, Math.min(max, cur + delta));
             return { ...a, quantity: next };
           }
           return a;
@@ -800,9 +785,15 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
                   onClick={() => addToCart(p.id)}
                   className="bg-white border p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative"
                 >
+                  {/*
+                   * Status badges and best-price indicators. The out-of-stock badge
+                   * now uses a softer styling with a tinted background and border, and the
+                   * cheaper price indicator matches the product page design: a circular
+                   * badge that reveals more details on hover or focus.
+                   */}
                   {p.isOutOfStock && (
-                    <div className="absolute top-2 left-2 text-rose-500 z-10 flex items-center gap-1 bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded-lg border border-rose-100 shadow-sm">
-                      <AlertCircle size={14} />
+                    <div className="absolute top-2 left-2 bg-rose-50 border border-rose-100 text-rose-600 px-1.5 py-0.5 rounded-lg flex items-center gap-1 shadow-sm pointer-events-none">
+                      <AlertCircle size={12} className="shrink-0" />
                       <span className="text-[10px] font-bold">نفد</span>
                     </div>
                   )}
@@ -810,11 +801,25 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
                     const bestPrice = getBestPriceInfo(p);
                     if (bestPrice) {
                       return (
-                        <div className="absolute bottom-2 left-2 text-amber-500 z-10 p-1 group/cheaper">
-                          <AlertTriangle size={16} className="animate-pulse" />
-                          <div className="absolute bottom-full left-0 mb-1 bg-white border rounded-lg p-2 text-[8px] sm:text-[10px] shadow-xl hidden group-hover/cheaper:block w-32 font-bold z-50">
-                            تنبيه: {bestPrice.supplier} يوفره بسعر{" "}
-                            {bestPrice.cost.toFixed(3)} د.ك
+                        <div
+                          className="absolute top-2 right-2 group/badge outline-none"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            // Prevent card click from triggering
+                            e.stopPropagation();
+                          }}
+                        >
+                          <div className="bg-rose-50 border border-rose-100 text-rose-600 p-1.5 rounded-full cursor-pointer shadow-sm">
+                            <AlertCircle size={14} className="shrink-0 animate-pulse" />
+                          </div>
+                          <div className="absolute bottom-full mb-2 right-1/2 translate-x-1/2 hidden group-hover/badge:flex group-focus/badge:flex flex-col bg-white text-slate-700 text-[8px] sm:text-[10px] w-[110px] sm:w-[130px] p-2 rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-bold border border-slate-200 pointer-events-none items-center gap-1 text-center">
+                            <span className="bg-rose-50 text-rose-600 px-2 py-1.5 rounded-lg leading-relaxed w-full break-words whitespace-normal">
+                              {bestPrice.supplier}
+                            </span>
+                            <span className="w-full">يبيعه أرخص !</span>
+                            <span className="text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg leading-none w-full">
+                              {Number(bestPrice.cost || 0).toFixed(3)} د.ك
+                            </span>
                           </div>
                         </div>
                       );
@@ -1202,6 +1207,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
                                       أول {a.freeQuantity} مجاناً
                                     </span>
                                   )}
+                                  {/* Hide limit description: users should rely on quantity buttons */}
                                 </div>
                               </div>
                             );
