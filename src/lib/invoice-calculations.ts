@@ -15,41 +15,34 @@ export const safeParsePrice = (val: any): number => {
     }
 };
 
-const getAddonSelectionQuantity = (addon: any): number => {
-    if (addon?.selected === false || addon?.enabled === false || addon?.isSelected === false) return 0;
-    const raw = addon?.quantity ?? addon?.qty ?? addon?.count ?? addon?.selectedQuantity ?? addon?.value;
-    if (raw !== undefined && raw !== null && raw !== '') return Math.max(0, safeParsePrice(raw) || 0);
-    if (addon?.isRequired || safeParsePrice(addon?.minQuantity || 0) > 0 || addon?.selected === true || addon?.isSelected === true || addon?.checked === true) {
-        return Math.max(1, safeParsePrice(addon?.minQuantity || 1));
-    }
-    return 0;
-};
-
-const getAddonRuleUnits = (addon: any, item: any): number => {
-    const itemQty = Math.max(1, safeParsePrice(item?.quantity !== undefined ? item.quantity : (item?.qty !== undefined ? item.qty : 1)) || 1);
-    if (addon?.quantityRule?.enabled) {
-        const minProductQty = Math.max(1, safeParsePrice(addon.quantityRule.minProductQty || 1));
-        if (itemQty < minProductQty) return 0;
-        // Product-quantity linked addons are counted by selected addon units;
-        // do not multiply again by item quantity.
-        return 1;
-    }
-    if (addon?.calculationType === 'fixed') return 1;
-    if (addon?.calculationType === 'per_x_items') {
-        const threshold = Math.max(1, safeParsePrice(addon?.xItemsThreshold || addon?.threshold || 1));
-        return Math.ceil(itemQty / threshold);
-    }
-    return itemQty;
-};
-
 /**
- * Calculates the actual charged units for an addon.
- * addon.quantity is treated as the selected multiplier. The product quantity rule is applied separately.
+ * Calculates the quantity for an addon based on its calculation type and the item quantity.
  */
 export const computeAddonQuantity = (addon: any, item: any): number => {
-    const selectedQty = getAddonSelectionQuantity(addon);
-    if (selectedQty <= 0) return 0;
-    return getAddonRuleUnits(addon, item) * selectedQty;
+    const itemQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
+    const qty = Math.max(1, itemQty);
+    const threshold = Math.max(1, Number(addon.xItemsThreshold || addon.threshold || 1));
+
+    // addon.quantity is the "selected quantity" (multiplier) by the user (e.g. 2 sauces)
+    const multiplier = Number(addon.quantity !== undefined ? addon.quantity : (addon.qty !== undefined ? addon.qty : 1));
+
+    if (addon.calculationType === 'fixed') {
+        // Fixed addons apply a constant multiplier regardless of the item quantity
+        return multiplier;
+    } else if (addon.calculationType === 'per_x_items') {
+        /*
+         * "per_x_items" addons should be applied only once per complete
+         * group of X items (defined by xItemsThreshold). Previously this
+         * used Math.ceil which would round up any remainder and overcharge
+         * (e.g. 3 items with a threshold of 2 would count as 2 units).
+         * We instead use Math.floor so that only full groups are counted.
+         */
+        const groups = Math.floor(qty / threshold);
+        return groups * multiplier;
+    } else {
+        // Default behaviour: one addon per item
+        return qty * multiplier;
+    }
 };
 
 /**
@@ -77,7 +70,13 @@ const mergeAddonWithCatalog = (addon: any, item: any, products: any[] = []) => {
     return catalog ? { ...catalog, ...addon } : addon;
 };
 
-export const computeAddonSelectedQuantity = (addon: any): number => getAddonSelectionQuantity(addon);
+export const computeAddonSelectedQuantity = (addon: any): number => {
+    if (addon?.selected === false || addon?.enabled === false || addon?.isSelected === false) return 0;
+    const raw = addon?.quantity ?? addon?.qty ?? addon?.count ?? addon?.selectedQuantity ?? addon?.value;
+    if (raw !== undefined && raw !== null && raw !== '') return Math.max(0, Number(raw) || 0);
+    if (addon?.selected === true || addon?.isSelected === true || addon?.checked === true) return 1;
+    return 0;
+};
 
 /**
  * Calculates the total revenue for a single addon.
@@ -87,10 +86,29 @@ export const computeAddonRevenue = (addon: any, item: any, products: any[] = [])
     const directTotal = safeParsePrice(addon?.total ?? addon?.totalPrice ?? addon?.lineTotal ?? addon?.revenue ?? addon?.amountTotal);
     if (directTotal > 0) return directTotal;
 
+    const itemQty = Math.max(1, Number(item?.quantity !== undefined ? item.quantity : (item?.qty !== undefined ? item.qty : 1)) || 1);
+    const threshold = Math.max(1, Number(addon?.xItemsThreshold || addon?.threshold || addon?.maxProductQtyPerAddon || 1));
     const price = safeParsePrice(addon?.price ?? addon?.addonPrice ?? addon?.amount ?? addon?.unitPrice ?? addon?.sellingPrice ?? 0);
     if (price <= 0) return 0;
 
-    const units = computeAddonQuantity(addon, item);
+    const selectedQty = computeAddonSelectedQuantity(addon);
+    const hasExplicitQty = addon?.quantity !== undefined || addon?.qty !== undefined || addon?.count !== undefined || addon?.selectedQuantity !== undefined || addon?.value !== undefined;
+    if (hasExplicitQty && selectedQty <= 0) return 0;
+
+    let units = 0;
+    if (hasExplicitQty) {
+        units = selectedQty;
+    } else if (addon?.calculationType === 'fixed') {
+        units = addon?.selected === false ? 0 : 1;
+    } else if (addon?.calculationType === 'per_x_items') {
+        // For per_x_items, charge only for complete groups of threshold items.
+        // Use Math.floor instead of Math.ceil to avoid overcharging partial groups.
+        units = Math.floor(itemQty / threshold);
+    } else {
+        // Default to one addon per item
+        units = itemQty;
+    }
+
     const free = Math.max(0, Number(addon?.freeQuantity || addon?.freeQty || 0));
     return price * Math.max(0, units - free);
 };
@@ -100,9 +118,31 @@ export const computeAddonRevenue = (addon: any, item: any, products: any[] = [])
  */
 export const computeAddonCost = (addon: any, item: any, products: any[] = []): number => {
     addon = mergeAddonWithCatalog(addon, item, products);
+    const itemQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
+    const qty = Math.max(1, itemQty);
+    const threshold = Math.max(1, Number(addon.xItemsThreshold || addon.threshold || 1));
     const cost = safeParsePrice(addon.cost || addon.addonCost || addon.unitCost || 0);
-    const units = computeAddonQuantity(addon, item);
+
+    const mult = Number(addon.quantity !== undefined ? addon.quantity : (addon.qty !== undefined ? addon.qty : 1));
     const free = Math.max(0, Number(addon.freeQuantity || 0));
+
+    let units = 0;
+    if (addon.calculationType === 'fixed') {
+        // Fixed addons cost the multiplier regardless of item quantity
+        units = mult;
+    } else if (addon.calculationType === 'per_x_items') {
+        /*
+         * For per_x_items cost, only whole groups of threshold items
+         * should incur cost. Ceil was previously used here, causing
+         * leftover items to count as another full addon. Switching to
+         * Math.floor aligns the behaviour with per-item revenue.
+         */
+        units = Math.floor(qty / threshold) * mult;
+    } else {
+        // per_item cost is proportional to item quantity
+        units = qty * mult;
+    }
+
     return cost * Math.max(0, units - free);
 };
 
