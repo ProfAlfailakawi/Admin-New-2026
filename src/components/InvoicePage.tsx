@@ -280,7 +280,9 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
           ? `*${promoLabel}*: ${Number(invoice.discount).toFixed(3)} د.ك\n`
           : "";
 
-      const message = `🧾 *فاتورة مطبخ التراث الكويتي*\n\n👤 العميل: ${customer?.name || "عميل"}\n📍 العنوان: ${invoice.address && invoice.address !== "غير محدد" ? (typeof invoice.address === "object" ? [`${invoice.address.region || ""}`, `ق${invoice.address.block || ""}`, `ش${invoice.address.street || ""}`, `م${invoice.address.building || ""}`].filter(Boolean).join(" - ") : invoice.address) : invoice.deliveryInfo?.zoneName || "غير محدد"}\n🔢 رقم الفاتورة: ${invoice.id}\n\n━━━━━━━━━━━━━━\n🛒 *الطلب*\n\n${items}\n\n━━━━━━━━━━━━━━\n💰 *الملخص*\nالمنتجات: ${subtotal.toFixed(3)} د.ك\nالإضافات: ${addonsTotalWA.toFixed(3)} د.ك\nالتوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}الإجمالي: ${Number(totalAmountVal).toFixed(3)} د.ك${paymentLinkLine}\n\n🌿 شكراً لتعاملكم معنا\nAlturath.kw\n92225308 - 94059238`;
+      // Use explicit unicode escapes for emojis to avoid encoding issues in some environments.
+      // These escapes correspond to: 🧾👤📍🔢🛒💰🌿.
+      const message = `\u{1F9FE} *فاتورة مطبخ التراث الكويتي*\n\n\u{1F464} العميل: ${customer?.name || "عميل"}\n\u{1F4CD} العنوان: ${invoice.address && invoice.address !== "غير محدد" ? (typeof invoice.address === "object" ? [`${invoice.address.region || ""}`, `ق${invoice.address.block || ""}`, `ش${invoice.address.street || ""}`, `م${invoice.address.building || ""}`].filter(Boolean).join(" - ") : invoice.address) : invoice.deliveryInfo?.zoneName || "غير محدد"}\n\u{1F522} رقم الفاتورة: ${invoice.id}\n\n━━━━━━━━━━━━━━\n\u{1F6D2} *الطلب*\n\n${items}\n\n━━━━━━━━━━━━━━\n\u{1F4B0} *الملخص*\nالمنتجات: ${subtotal.toFixed(3)} د.ك\nالإضافات: ${addonsTotalWA.toFixed(3)} د.ك\nالتوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}الإجمالي: ${Number(totalAmountVal).toFixed(3)} د.ك${paymentLinkLine}\n\n\u{1F33F} شكراً لتعاملكم معنا\nAlturath.kw\n92225308 - 94059238`;
 
       return `https://wa.me/${phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(message)}`;
     };
