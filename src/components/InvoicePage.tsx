@@ -34,7 +34,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { playTing } from '../lib/sounds';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { AppState, Product, InvoiceItem, Invoice, Customer, DeliveryType, PromoCode } from '../types';
-import { cn, normalizeArabic, robustNormalize } from '../lib/utils';
+import { cn, normalizeArabic, robustNormalize, normalizePhoneDigits, normalizeAddressNumber } from '../lib/utils';
 import { 
     computeInvoiceTotal, 
     computeInvoiceCost, 
@@ -44,7 +44,9 @@ import {
     computeInvoiceItemTotal,
     computeInvoiceSubtotal,
     computeAddonQuantity,
-    computeAddonRevenue
+    computeAddonRevenue,
+    computeDeliveryBreakdown,
+    getInvoiceBaseItemsTotal
 } from '../lib/invoice-calculations';
 import { NumericInput } from './ui/NumericInput';
 import { MagneticButton } from './ui/MagneticButton';
@@ -267,19 +269,22 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
   const zone = (data.zones || []).find(z => z.id === val);
   
   if (zone) {
-    setDeliveryCost(zone.cost);
-    const fPrice = zone.finalPrice !== undefined ? zone.finalPrice : (zone.cost + zone.profit);
-    setDeliveryFee(deliveryType === 'free' ? 0 : fPrice);
+    const breakdown = computeDeliveryBreakdown(zone, deliveryType);
+    setDeliveryCost(breakdown.deliveryCost);
+    setDeliveryProfit(breakdown.deliveryProfit);
+    setDeliveryFee(breakdown.deliveryFee);
   }
  };
 
  useEffect(() => {
   const zone = (data.zones || []).find(z => z.id === selectedZoneId);
   if (zone) {
-    const fPrice = zone.finalPrice !== undefined ? zone.finalPrice : (zone.cost + zone.profit);
-    setDeliveryFee(deliveryType === 'free' ? 0 : fPrice);
+    const breakdown = computeDeliveryBreakdown(zone, deliveryType);
+    setDeliveryCost(breakdown.deliveryCost);
+    setDeliveryProfit(breakdown.deliveryProfit);
+    setDeliveryFee(breakdown.deliveryFee);
   }
- }, [deliveryType]);
+ }, [deliveryType, selectedZoneId, data.zones]);
 
  useEffect(() => {
   if (selectedCustomerId) {
@@ -389,6 +394,10 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
   const totalValue = Math.max(0, subtotal + deliveryFee - discountAmount);
 
   const handleCreateInvoice = async () => {
+  if (isNewCustomer && normalizePhoneDigits(customerPhone).length !== 8) {
+    toast.error('رقم الهاتف يجب أن يكون 8 أرقام');
+    return;
+  }
   let targetId = selectedCustomerId;
   
   if (isNewCustomer) {
@@ -452,6 +461,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
     items: cartItems.map(it => ({ ...it, productId: it.product!.id, quantity: it.qty })),
     deliveryFee,
     deliveryType,
+    deliveryInfo: { cost: deliveryCost, profit: deliveryProfit, finalPrice: deliveryFee, type: deliveryType },
     date: editingInvoiceId ? (data.invoices.find(i => i.id === editingInvoiceId)?.date || new Date().toISOString()) : mergeDateWithCurrentTime(invoiceDate),
     totalAmount: totalValue,
     totalCost: computeInvoiceCost(mockInv, data.products),
@@ -631,7 +641,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
               />
               <input 
                 value={customerPhone} 
-                onChange={e => setCustomerPhone(e.target.value)} 
+                onChange={e => setCustomerPhone(normalizePhoneDigits(e.target.value))} 
                 placeholder="رقم الهاتف" 
                 className="w-full bg-white border rounded-xl p-2 text-right text-sm" 
               />
@@ -643,10 +653,38 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
             {data.zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
           </select>
 
+          {/* فاتورة جديدة: خيارات طريقة التوصيل */}
+          <div className="space-y-2">
+            <div className="text-[10px] font-bold text-slate-500 text-right">طريقة التوصيل</div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'company', label: 'توصيل شركة', cls: 'bg-blue-500 border-blue-500 text-white shadow-blue-100' },
+                { id: 'standard', label: 'توصيل بربح', cls: 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-100' },
+                { id: 'free', label: 'توصيل مجاني', cls: 'bg-amber-500 border-amber-500 text-white shadow-amber-100' },
+                { id: 'special', label: 'توصيل خاص', cls: 'bg-purple-500 border-purple-500 text-white shadow-purple-100' },
+              ].map((t: any) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setDeliveryType(t.id)}
+                  className={cn(
+                    'rounded-2xl border px-3 py-3 text-xs font-bold transition-all shadow-sm',
+                    deliveryType === t.id ? t.cls : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <div className="text-[10px] text-slate-400 text-right leading-5">
+              شركة: تحصيل كامل كرسوم توصيل. خاص: يظهر للعميل ولا يدخل ربح التوصيل. بربح: الربح فقط يدخل ضمن أرباحنا.
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-2">
-            <input value={addressDetails.block} onChange={e => setAddressDetails(p => ({...p, block: e.target.value}))} placeholder="القطعة" className="bg-slate-50 border rounded-xl p-3 text-right" />
-            <input value={addressDetails.street} onChange={e => setAddressDetails(p => ({...p, street: e.target.value}))} placeholder="الشارع" className="bg-slate-50 border rounded-xl p-3 text-right" />
-            <input value={addressDetails.building} onChange={e => setAddressDetails(p => ({...p, building: e.target.value}))} placeholder="المنزل" className="bg-slate-50 border rounded-xl p-3 text-right" />
+            <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500"><span>القطعة</span><input value={addressDetails.block} onChange={e => setAddressDetails(p => ({...p, block: normalizeAddressNumber(e.target.value)}))} placeholder="رقم القطعة" className="bg-slate-50 border rounded-xl p-3 text-right text-sm font-semibold" inputMode="numeric" /></label>
+            <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500"><span>الشارع</span><input value={addressDetails.street} onChange={e => setAddressDetails(p => ({...p, street: normalizeAddressNumber(e.target.value)}))} placeholder="رقم الشارع" className="bg-slate-50 border rounded-xl p-3 text-right text-sm font-semibold" inputMode="numeric" /></label>
+            <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500"><span>المنزل</span><input value={addressDetails.building} onChange={e => setAddressDetails(p => ({...p, building: normalizeAddressNumber(e.target.value)}))} placeholder="رقم المنزل" className="bg-slate-50 border rounded-xl p-3 text-right text-sm font-semibold" inputMode="numeric" /></label>
           </div>
         </div>
 
@@ -663,7 +701,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
                   <span className="font-bold text-xs">{it.qty}</span>
                   <button onClick={() => addToCart(it.product!.id)} className="p-1 hover:bg-white text-slate-500"><Plus size={12}/></button>
                 </div>
-                <div className="font-bold text-primary text-xs">{computeInvoiceItemTotal(it as any, data.products).toFixed(3)} د.ك</div>
+                <div className="text-left leading-4"><div className="font-bold text-slate-500 text-[10px]">{Number(it.priceAtTime || it.product!.price || 0).toFixed(3)} د.ك للحبة</div><div className="font-bold text-primary text-xs">الإجمالي: {(Number(it.priceAtTime || it.product!.price || 0) * Number(it.qty || 1)).toFixed(3)} د.ك</div></div>
               </div>
               
               {it.product!.addons && it.product!.addons.length > 0 && (
@@ -704,7 +742,8 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
                           )}
                           <div className="flex flex-col items-end">
                             <span className="text-[10px] font-bold text-slate-700">{a.name}</span>
-                            <span className="text-[8px] text-slate-400">{a.price.toFixed(3)} د.ك</span>
+                            {a.isHiddenPrice ? null : <span className="text-[8px] text-slate-400">{Number(a.price || 0).toFixed(3)} د.ك</span>}
+                            {Number(a.freeQuantity || 0) > 0 && <span className="text-[8px] text-emerald-600 font-bold">أول {a.freeQuantity} مجاناً</span>}
                           </div>
                         </div>
                       );
@@ -717,6 +756,8 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
         </div>
 
         <div className="space-y-2 border-t pt-4">
+          <div className="flex justify-between text-xs text-slate-500 font-bold"><span>المنتجات</span> <span>{getInvoiceBaseItemsTotal(mockInv, data.products).toFixed(3)} د.ك</span></div>
+          <div className="flex justify-between text-xs text-slate-500 font-bold"><span>الإضافات</span> <span>{computeInvoiceAddonsTotal(mockInv, data.products).toFixed(3)} د.ك</span></div>
           <div className="flex justify-between text-xs text-slate-500 font-bold"><span>المجموع</span> <span>{subtotal.toFixed(3)} د.ك</span></div>
           <div className="flex justify-between text-xs text-slate-500 font-bold"><span>توصيل</span> <span>{deliveryFee.toFixed(3)} د.ك</span></div>
           {discountAmount > 0 && <div className="flex justify-between text-xs text-rose-500 font-bold"><span>خصم</span> <span>-{discountAmount.toFixed(3)} د.ك</span></div>}

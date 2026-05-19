@@ -223,3 +223,42 @@ export function getUnifiedInvoices(data: any): any[] {
 }
 
 
+
+
+export const normalizePhoneDigits = (value: any): string => {
+  const normalized = normalizeArabicNumerals(String(value ?? ''));
+  return normalized.replace(/\D/g, '').slice(0, 8);
+};
+
+export const normalizeAddressNumber = (value: any): string => {
+  const normalized = normalizeArabicNumerals(String(value ?? ''));
+  return normalized.replace(/\D/g, '');
+};
+
+export const formatCustomerAddress = (address: any): string => {
+  if (!address) return '';
+  if (typeof address === 'string') {
+    const raw = address.trim();
+    if (!raw) return '';
+    try {
+      const parsed = JSON.parse(raw);
+      return formatCustomerAddress(parsed);
+    } catch {
+      return raw.replace(/[{}"\\]/g, '').replace(/[:,]+/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+  }
+  if (typeof address !== 'object') return String(address ?? '');
+  const candidate: any = Array.isArray(address) ? address[0] : address;
+  const region = candidate.region || candidate.area || candidate.city || candidate.governorate || candidate['المنطقة'] || candidate['المحافظة'] || '';
+  const block = candidate.block || candidate.qita || candidate['قطعة'] || candidate['القطعة'] || '';
+  const street = candidate.street || candidate['شارع'] || candidate['الشارع'] || '';
+  const jaddah = candidate.jaddah || candidate.avenue || candidate['جادة'] || candidate['الجادة'] || '';
+  const building = candidate.building || candidate.house || candidate.home || candidate['منزل'] || candidate['المنزل'] || '';
+  const floor = candidate.floor || candidate['الدور'] || '';
+  const apartment = candidate.apartment || candidate.flat || candidate['الشقة'] || '';
+  const notes = candidate.notes || candidate.addressNotes || candidate['ملاحظات'] || '';
+  const parts = [region, block && `ق ${block}`, street && `ش ${street}`, jaddah && `ج ${jaddah}`, building && `م ${building}`, floor && `دور ${floor}`, apartment && `شقة ${apartment}`, notes].filter(Boolean);
+  if (parts.length) return parts.join(' - ');
+  const nested = Object.values(candidate).find((v:any) => v && typeof v === 'object');
+  return nested ? formatCustomerAddress(nested) : '';
+};

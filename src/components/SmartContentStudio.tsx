@@ -1,3 +1,4 @@
+// دلة قهوة ممنوعة في توليد الصور: no dallah, no coffee pot
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3 } from 'lucide-react';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from '../constants';
@@ -193,7 +194,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           imageContent: selectedImage.split(',')[1],
           mimeType: selectedImage.split(';')[0].split(':')[1],
           format: selectedFormat,
-          theme: `${selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme}. ممنوع منعاً باتاً ظهور دلة قهوة أو دلال قهوة أو coffee dallah أو coffee pot في الصورة.`,
+          theme: `${selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme}. ممنوع منعاً باتاً ظهور دلة قهوة أو دلال قهوة أو coffee, no dallah, no Arabic coffee pot dallah أو coffee, no dallah, no Arabic coffee pot pot في الصورة.`,
           mood: selectedMood,
           speedTier: 'turbo' // Signal for faster generation logic if available
         })

@@ -197,6 +197,28 @@ export const computeInvoiceAddonsTotalCost = (inv: any, products: any[] = []): n
     return total;
 };
 
+
+
+export const computeDeliveryBreakdown = (zone: any, deliveryType: any) => {
+    const cost = safeParsePrice(zone?.cost ?? zone?.companyCost ?? zone?.deliveryCost ?? 0);
+    const profit = safeParsePrice(zone?.profit ?? zone?.deliveryProfit ?? 0);
+    const finalPrice = safeParsePrice(zone?.finalPrice ?? zone?.price ?? zone?.deliveryFee ?? (cost + profit));
+    const type = deliveryType || 'company';
+    if (type === 'free') return { deliveryFee: 0, deliveryCost: 0, deliveryProfit: 0, collectedForCompany: 0 };
+    if (type === 'company') return { deliveryFee: finalPrice, deliveryCost: finalPrice, deliveryProfit: 0, collectedForCompany: finalPrice };
+    if (type === 'special') return { deliveryFee: finalPrice, deliveryCost: 0, deliveryProfit: 0, collectedForCompany: 0 };
+    return { deliveryFee: finalPrice, deliveryCost: cost, deliveryProfit: profit, collectedForCompany: 0 };
+};
+
+export const getInvoiceBaseItemsTotal = (inv: any, dataProducts: any[] = []) => {
+    return (inv?.items || []).reduce((acc: number, item: any) => {
+        const basePrice = computeInvoiceItemBasePrice(item, dataProducts);
+        const qty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
+        return acc + (basePrice * qty);
+    }, 0);
+};
+
+
 /**
  * Calculates a single item's base price (SNAPSHOT preference).
  */
