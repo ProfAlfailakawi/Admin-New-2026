@@ -5,6 +5,28 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Format a string or DetailedAddress object into a single human-readable full address string.
+ */
+export function formatFullAddress(address?: any): string {
+  if (!address) return '';
+  if (typeof address === 'string') return address;
+  
+  const addr = address as any;
+  const parts = [];
+  
+  if (addr.region) parts.push(`المنطقة: ${addr.region}`);
+  if (addr.block) parts.push(`قطعة: ${addr.block}`);
+  if (addr.street) parts.push(`شارع: ${addr.street}`);
+  if (addr.jaddah) parts.push(`جادة: ${addr.jaddah}`);
+  if (addr.building) parts.push(`منزل/عمارة: ${addr.building}`);
+  if (addr.floor) parts.push(`دور: ${addr.floor}`);
+  if (addr.apartment) parts.push(`شقة/مكتب: ${addr.apartment}`);
+  if (addr.notes) parts.push(`ملاحظات: ${addr.notes}`);
+  
+  return parts.join(' - ') || '';
+}
+
 // Utility to normalize Arabic numerals to English numerals instantly
 export const normalizeArabicNumerals = (input: string): string => {
   const ar = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];

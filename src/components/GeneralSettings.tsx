@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { AppState, AppSettings, Zone, Product, Customer, Expense, Supplier, Testimonial, PulseAnalysisRecord, AICampaign, SupplierTransfer } from '../types';
 import { GET_DEMO_DATA } from '../data';
-import { cn } from '../lib/utils';
+import { cn, formatFullAddress } from '../lib/utils';
 import * as XLSX from 'xlsx';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore'; 
 import { db, auth, getSmartDoc } from '../firebase'; 
@@ -115,25 +115,146 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  const handleDownload = () => {
  const wb = XLSX.utils.book_new();
- 
- // Invoices
- XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data?.invoices || []).map(i => ({
- ...i, 
- items: JSON.stringify(i.items || []), 
- address: i.address ? JSON.stringify(i.address) : '',
- deliveryInfo: i.deliveryInfo ? JSON.stringify(i.deliveryInfo) : ''
- }))),"Invoices");
- 
- // Orders
- XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data?.orders || []).map(o => ({
- ...o, 
- items: JSON.stringify(o.items || []), 
- address: o.address ? JSON.stringify(o.address) : ''
- }))),"Orders");
+ const safe = (v: any) => v === undefined || v === null ? '' : v;
+ const json = (v: any) => v === undefined || v === null ? '' : JSON.stringify(v);
+ const addressText = (addr: any, fallbackArea?: string) => {
+   if (!addr) return fallbackArea || '';
+   if (typeof addr === 'string') return addr;
+   return [
+     addr.region || addr.governorate || addr.city || fallbackArea,
+     addr.area || addr.zoneName,
+     addr.block ? `ق ${addr.block}` : '',
+     addr.street ? `ش ${addr.street}` : '',
+     addr.jaddah ? `جادة ${addr.jaddah}` : '',
+     addr.building || addr.house ? `م ${addr.building || addr.house}` : '',
+     addr.floor ? `دور ${addr.floor}` : '',
+     addr.apartment ? `شقة ${addr.apartment}` : '',
+     addr.notes || addr.addressNotes || ''
+   ].filter(Boolean).join(' - ');
+ };
+ const itemName = (it: any) => (data?.products || []).find(p => p.id === it.productId)?.name || it.name || it.productName || it.productId || '';
+ const customerById = new Map((data?.customers || []).map((c: any) => [c.id, c]));
+ const customerByPhone = new Map((data?.customers || []).filter((c: any) => c.phone).map((c: any) => [String(c.phone), c]));
 
- // Customers (ensure area is always a key!)
- const customerHeaders = ['id', 'name', 'phone', 'email', 'status', 'lastOrderDate', 'lastActive', 'totalOrders', 'totalSpent', 'loyaltyPoints', 'sentiment', 'area'];
- XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.customers || [], { header: customerHeaders }),"Customers");
+ const invoiceRows = (data?.invoices || []).map((i: any) => {
+   const c: any = customerById.get(i.customerId) || customerByPhone.get(String(i.customerPhone || '')) || {};
+   const addr = i.address || c.address || c.detailedAddress;
+   return {
+     id: i.id,
+     date: i.date,
+     createdAt: i.createdAt,
+     updatedAt: i.updatedAt,
+     customerId: i.customerId,
+     customerName: i.customerName || c.name || '',
+     customerPhone: i.customerPhone || c.phone || '',
+     status: i.status,
+     paymentStatus: i.paymentStatus,
+     paymentMethod: i.paymentMethod,
+     paymentId: i.paymentId,
+     paymentLink: i.paymentLink,
+     totalAmount: i.totalAmount,
+     subtotal: (i.items || []).reduce((a: number, it: any) => a + Number((it.priceAtTime ?? it.price ?? 0) * (it.quantity || 0)), 0),
+     deliveryFee: i.deliveryFee,
+     gatewayFee: i.gatewayFee,
+     discount: i.discount,
+     totalCost: i.totalCost,
+     profit: i.profit,
+     notes: i.notes,
+     appliedPromoCodeName: i.appliedPromoCodeName,
+     deliveryType: i.deliveryType,
+     deliveryInfo: json(i.deliveryInfo),
+     area: i.area || c.area || '',
+     addressFull: addressText(addr, i.area || c.area),
+     addressRegion: addr?.region || addr?.governorate || '',
+     addressArea: addr?.area || i.area || c.area || '',
+     addressBlock: addr?.block || '',
+     addressStreet: addr?.street || '',
+     addressJaddah: addr?.jaddah || '',
+     addressBuilding: addr?.building || addr?.house || '',
+     addressFloor: addr?.floor || '',
+     addressApartment: addr?.apartment || '',
+     addressNotes: addr?.notes || addr?.addressNotes || '',
+     splitParticipants: json(i.splitParticipants),
+     splitPayments: json(i.splitPayments),
+     rouletteLoser: i.rouletteLoser,
+     rawAddress: json(addr),
+     rawInvoice: json(i)
+   };
+ });
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(invoiceRows), "Invoices");
+
+ const invoiceItems = (data?.invoices || []).flatMap((i: any) => (i.items || []).map((it: any, idx: number) => ({
+   invoiceId: i.id,
+   invoiceDate: i.date,
+   customerId: i.customerId,
+   productId: it.productId,
+   productName: itemName(it),
+   quantity: it.quantity,
+   priceAtTime: it.priceAtTime ?? it.price,
+   costAtTime: it.costAtTime ?? it.cost,
+   lineTotal: Number((it.priceAtTime ?? it.price ?? 0) * (it.quantity || 0)),
+   itemNotes: it.itemNotes || it.notes || '',
+   addons: json(it.addons),
+   rawItem: json(it),
+   itemIndex: idx + 1
+ })));
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(invoiceItems), "InvoiceItems");
+
+ const payerRows = (data?.invoices || []).flatMap((i: any) => {
+   const payments = Array.isArray(i.splitPayments) ? i.splitPayments : [];
+   const participants = Array.isArray(i.splitParticipants) ? i.splitParticipants : [];
+   const merged = payments.length ? payments : participants;
+   return merged.map((sp: any, idx: number) => {
+     const obj = typeof sp === 'object' ? sp : { name: sp };
+     return {
+       invoiceId: i.id,
+       invoiceDate: i.date,
+       name: obj.name || obj.customerName || '',
+       phone: obj.phone || obj.customerPhone || '',
+       amount: obj.amount || obj.paidAmount || obj.value || '',
+       status: obj.status || obj.paymentStatus || i.paymentStatus || '',
+       paidAt: obj.paidAt || obj.date || '',
+       loyaltyPoints: obj.loyaltyPoints || obj.points || Math.floor(Number(obj.amount || obj.paidAmount || 0)),
+       customerId: obj.customerId || '',
+       rawPayer: json(obj),
+       payerIndex: idx + 1
+     };
+   });
+ });
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(payerRows), "Payers");
+
+ const orderRows = (data?.orders || []).map((o: any) => ({
+   ...o,
+   customerName: o.customerName,
+   customerPhone: o.customerPhone,
+   addressFull: addressText(o.address, o.area || o.regionId),
+   address: json(o.address),
+   items: json(o.items),
+   splitParticipants: json(o.splitParticipants),
+   splitPayments: json(o.splitPayments),
+   rawOrder: json(o)
+ }));
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(orderRows), "Orders");
+
+ const customerRows = (data?.customers || []).map((c: any) => {
+   const addr = c.address || c.detailedAddress;
+   return {
+     ...c,
+     addressFull: addressText(addr, c.area),
+     addressRegion: addr?.region || '',
+     addressArea: addr?.area || c.area || '',
+     addressBlock: addr?.block || '',
+     addressStreet: addr?.street || '',
+     addressJaddah: addr?.jaddah || '',
+     addressBuilding: addr?.building || addr?.house || '',
+     addressFloor: addr?.floor || '',
+     addressApartment: addr?.apartment || '',
+     addressNotes: addr?.notes || '',
+     address: json(addr),
+     rawCustomer: json(c)
+   };
+ });
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(customerRows), "Customers");
 
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.products || []),"Products");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.suppliers || []),"Suppliers");
@@ -144,7 +265,9 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.pulseAnalysisHistory || []),"PulseHistory");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.pulseReviews || []),"QuickPulse");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.campaigns || []),"AICampaigns");
- XLSX.writeFile(wb, `KTK_Backup_${new Date().toISOString().split('T')[0]}.xlsx`);
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.squads || []),"Diwaniyas");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ exportedAt: new Date().toISOString(), invoices: invoiceRows.length, invoiceItems: invoiceItems.length, customers: customerRows.length, payers: payerRows.length, orders: orderRows.length }]),"Summary");
+ XLSX.writeFile(wb, `KTK_Full_Backup_${new Date().toISOString().split('T')[0]}.xlsx`);
  };
 
  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {

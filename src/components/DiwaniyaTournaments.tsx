@@ -9,7 +9,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   const [isConfiguring, setIsConfiguring] = useState(false);
 
   // Use global squads if available, otherwise fallback to initial ones
-  const squads = data.squads && data.squads.length > 0 ? data.squads : DEFAULT_SQUADS;
+  const squads = Array.isArray(data.squads) ? data.squads : DEFAULT_SQUADS;
 
   const setSquads = (newSquads: any[]) => {
     setData((prev: any) => ({ ...prev, squads: newSquads }));
@@ -30,7 +30,47 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
   const [editingTierId, setEditingTierId] = useState<number | null>(null);
   const [editedTier, setEditedTier] = useState<any>(null);
-  const [expandedSquadId, setExpandedSquadId] = useState<number | null>(null); // To expand squad details
+  const [expandedSquadId, setExpandedSquadId] = useState<number | string | null>(null); // To expand squad details
+  const [editingSquadId, setEditingSquadId] = useState<number | string | null>(null);
+  const [editedSquadName, setEditedSquadName] = useState('');
+
+  const startEditSquad = (squad: any) => {
+    setEditingSquadId(squad.id);
+    setEditedSquadName(squad.name || '');
+  };
+
+  const saveSquadName = (id: any) => {
+    const nextName = editedSquadName.trim();
+    if (!nextName) {
+      toast.error('اكتب اسم الديوانية أولاً');
+      return;
+    }
+    setSquads(squads.map((sq: any) => sq.id === id ? { ...sq, name: nextName } : sq));
+    setEditingSquadId(null);
+    setEditedSquadName('');
+    toast.success('تم تعديل اسم الديوانية');
+  };
+
+  const deleteSquad = (squad: any) => {
+    if (!squad || squad.id === undefined || squad.id === null) {
+      toast.error('تعذر تحديد الديوانية المراد حذفها');
+      return;
+    }
+
+    const currentSquads = Array.isArray(data?.squads) ? data.squads : squads;
+    const nextSquads = currentSquads.filter((sq: any) => String(sq.id) !== String(squad.id));
+
+    // Use the direct object update because this project persists setData through Firebase;
+    // functional setData was not always applied from this screen.
+    setData({ ...data, squads: nextSquads });
+
+    if (String(expandedSquadId) === String(squad.id)) setExpandedSquadId(null);
+    if (String(editingSquadId) === String(squad.id)) {
+      setEditingSquadId(null);
+      setEditedSquadName('');
+    }
+    toast.success('تم حذف الديوانية');
+  };
 
 
   const getIcon = (type: string) => {
@@ -434,9 +474,21 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           return (
                         <React.Fragment key={s.id}>
                           <tr className={`transition-colors cursor-pointer ${expandedSquadId === s.id ? 'bg-blue-50/30' : 'hover:bg-slate-50/50'}`} onClick={() => setExpandedSquadId(expandedSquadId === s.id ? null : s.id)}>
-                            <td className="p-4 pr-6 font-bold text-slate-800 flex items-center gap-2">
-                              {s.name}
-                              {expandedSquadId === s.id ? <span className="text-blue-500 text-xs">▼</span> : <span className="text-slate-400 text-xs">◀</span>}
+                            <td className="p-4 pr-6 font-bold text-slate-800">
+                              <div className="flex items-center gap-2">
+                                {editingSquadId === s.id ? (
+                                  <input
+                                    value={editedSquadName}
+                                    onChange={(e) => setEditedSquadName(e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="bg-white border border-blue-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100 min-w-[180px]"
+                                    autoFocus
+                                  />
+                                ) : (
+                                  <span>{s.name}</span>
+                                )}
+                                {expandedSquadId === s.id ? <span className="text-blue-500 text-xs">▼</span> : <span className="text-slate-400 text-xs">◀</span>}
+                              </div>
                             </td>
                             <td className="p-4">
                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${s.tier === 'شيوخ' ? 'bg-purple-100 text-purple-700' : s.tier === 'نواخذة' ? 'bg-amber-100 text-amber-700' : s.tier === 'عزوة' ? 'bg-slate-200 text-slate-700' : 'bg-orange-100 text-orange-700'}`}>
@@ -455,15 +507,39 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                               </div>
                             </td>
                             <td className="p-4 pl-6 text-left" onClick={e => e.stopPropagation()}>
-                              <a 
-                                href={`https://wa.me/${s.phone}?text=${encodeURIComponent(waMsg)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-500 hover:text-white transition-colors tooltip inline-block"
-                                title="تواصل عبر الواتساب"
-                              >
-                                <MessageCircle size={16} />
-                              </a>
+                              <div className="flex items-center justify-end gap-2">
+                                {editingSquadId === s.id ? (
+                                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveSquadName(s.id); }} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors" title="حفظ الاسم">
+                                    <Check size={16} />
+                                  </button>
+                                ) : (
+                                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); startEditSquad(s); }} className="p-2 bg-slate-50 text-slate-500 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors" title="تعديل اسم الديوانية">
+                                    <Edit2 size={16} />
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    deleteSquad(s);
+                                  }}
+                                  className="relative z-30 inline-flex items-center justify-center p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white active:scale-95 transition-all cursor-pointer pointer-events-auto"
+                                  title="حذف الديوانية"
+                                  aria-label="حذف الديوانية"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                                <a 
+                                  href={`https://wa.me/${s.phone}?text=${encodeURIComponent(waMsg)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-500 hover:text-white transition-colors tooltip inline-block"
+                                  title="تواصل عبر الواتساب"
+                                >
+                                  <MessageCircle size={16} />
+                                </a>
+                              </div>
                             </td>
                           </tr>
                           {expandedSquadId === s.id && s.membersList && (

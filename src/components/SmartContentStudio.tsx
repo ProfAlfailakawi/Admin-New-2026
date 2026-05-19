@@ -275,7 +275,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           theme: selectedTheme
         })
       });
-      let res;
+      let res: any = null;
       let isHtml = false;
       try {
         res = await response.json();
@@ -286,14 +286,20 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       if (!response.ok) {
         throw new Error(isHtml ? 'عذراً، حجم الصورة كبير جداً لمعالجتها (تجاوز الحد المسموح)' : (res?.error || 'Failed to generate caption'));
       }
-      
-      setAiCaption(res.caption);
+
+      const caption = res?.caption || `صورة تسويقية جاهزة بأسلوب ${selectedTheme}.`;
+      setAiCaption(caption);
       if (generatedImage) {
-        setHistory(prev => prev.map(item => item.url === generatedImage ? {...item, caption: res.caption} : item));
+        setHistory(prev => prev.map(item => item.url === generatedImage ? {...item, caption} : item));
       }
     } catch (e: any) {
       console.error(e);
-      toast.error(e.message || 'فشل توليد النص التسويقي');
+      const fallbackCaption = `صورة تسويقية جاهزة بأسلوب ${selectedTheme}.`;
+      setAiCaption(fallbackCaption);
+      if (generatedImage) {
+        setHistory(prev => prev.map(item => item.url === generatedImage ? {...item, caption: fallbackCaption} : item));
+      }
+      toast.info('تم إنشاء نص مبدئي، وتعذر الاتصال بخدمة النص الذكي حالياً');
     } finally {
       setIsCapturing(false);
     }
@@ -720,7 +726,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                       <button onClick={handleDownload} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2">
                         <Download size={18} /> تحميل
                       </button>
-                      <button onClick={generateCaption} className="px-6 py-3 bg-white border border-indigo-200 text-indigo-600 rounded-xl font-bold flex items-center gap-2">
+                      <button type="button" onClick={generateCaption} disabled={isCapturing || !generatedImage} className="px-6 py-3 bg-white border border-indigo-200 text-indigo-600 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         {isCapturing ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
                         توليد نص ذكي
                       </button>

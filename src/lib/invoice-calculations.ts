@@ -21,10 +21,10 @@ export const safeParsePrice = (val: any): number => {
 export const computeAddonQuantity = (addon: any, item: any): number => {
     const itemQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
     const qty = Math.max(1, itemQty);
-    const threshold = Math.max(1, Number(addon.xItemsThreshold || 1));
+    const threshold = Math.max(1, Number(addon.xItemsThreshold || addon.threshold || 1));
 
     // addon.quantity is the "selected quantity" (multiplier) by the user (e.g. 2 sauces)
-    const multiplier = Number(addon.quantity !== undefined ? addon.quantity : 1);
+    const multiplier = Number(addon.quantity !== undefined ? addon.quantity : (addon.qty !== undefined ? addon.qty : 1));
 
     if (addon.calculationType === 'fixed') {
         return multiplier;
@@ -40,12 +40,15 @@ export const computeAddonQuantity = (addon: any, item: any): number => {
  * Calculates the total revenue for a single addon.
  */
 export const computeAddonRevenue = (addon: any, item: any): number => {
+    const directTotal = safeParsePrice(addon.total ?? addon.totalPrice ?? addon.lineTotal ?? addon.revenue);
+    if (directTotal > 0) return directTotal;
+
     const itemQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
     const qty = Math.max(1, itemQty);
-    const threshold = Math.max(1, Number(addon.xItemsThreshold || 1));
-    const price = safeParsePrice(addon.price || addon.addonPrice || addon.amount || 0);
+    const threshold = Math.max(1, Number(addon.xItemsThreshold || addon.threshold || 1));
+    const price = safeParsePrice(addon.price || addon.addonPrice || addon.amount || addon.unitPrice || 0);
 
-    const mult = Number(addon.quantity !== undefined ? addon.quantity : 1);
+    const mult = Number(addon.quantity !== undefined ? addon.quantity : (addon.qty !== undefined ? addon.qty : 1));
     const free = Number(addon.freeQuantity || 0);
     const paidMult = Math.max(0, mult - free);
 
@@ -65,10 +68,10 @@ export const computeAddonRevenue = (addon: any, item: any): number => {
 export const computeAddonCost = (addon: any, item: any): number => {
     const itemQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
     const qty = Math.max(1, itemQty);
-    const threshold = Math.max(1, Number(addon.xItemsThreshold || 1));
-    const cost = safeParsePrice(addon.cost || addon.addonCost || 0);
+    const threshold = Math.max(1, Number(addon.xItemsThreshold || addon.threshold || 1));
+    const cost = safeParsePrice(addon.cost || addon.addonCost || addon.unitCost || 0);
 
-    const mult = Number(addon.quantity !== undefined ? addon.quantity : 1);
+    const mult = Number(addon.quantity !== undefined ? addon.quantity : (addon.qty !== undefined ? addon.qty : 1));
     const free = Number(addon.freeQuantity || 0);
     const paidMult = Math.max(0, mult - free);
 
@@ -90,12 +93,16 @@ export const computeAddonCost = (addon: any, item: any): number => {
  */
 export const computeInvoiceAddonsTotal = (inv: any): number => {
     let total = 0;
+    const directInvoiceTotal = safeParsePrice(inv?.addonsTotal ?? inv?.addOnsTotal ?? inv?.extrasTotal ?? inv?.addonsRevenue);
     const processedFixedAddons = new Set<string>();
+    let foundItemAddons = false;
 
     (inv.items || []).forEach((item: any) => {
-        (item.addons || []).forEach((addon: any) => {
+        const itemAddons = item.addons || item.selectedAddons || item.addOns || item.extras || [];
+        if (itemAddons.length > 0) foundItemAddons = true;
+        itemAddons.forEach((addon: any) => {
             if (addon.calculationType === 'fixed') {
-                const key = `${addon.id}-${addon.name}`;
+                const key = `${addon.id || addon.name}-${addon.name || ''}`;
                 if (!processedFixedAddons.has(key)) {
                     total += computeAddonRevenue(addon, item);
                     processedFixedAddons.add(key);
@@ -105,7 +112,9 @@ export const computeInvoiceAddonsTotal = (inv: any): number => {
             }
         });
     });
-    return total;
+
+    // Some older invoices store the addons amount on the invoice itself rather than inside each item.
+    return total > 0 || foundItemAddons ? total : directInvoiceTotal;
 };
 
 /**
@@ -116,9 +125,10 @@ export const computeInvoiceAddonsTotalCost = (inv: any): number => {
     const processedFixedAddons = new Set<string>();
 
     (inv.items || []).forEach((item: any) => {
-        (item.addons || []).forEach((addon: any) => {
+        const itemAddons = item.addons || item.selectedAddons || item.addOns || item.extras || [];
+        itemAddons.forEach((addon: any) => {
             if (addon.calculationType === 'fixed') {
-                const key = `${addon.id}-${addon.name}`;
+                const key = `${addon.id || addon.name}-${addon.name || ''}`;
                 if (!processedFixedAddons.has(key)) {
                     total += computeAddonCost(addon, item);
                     processedFixedAddons.add(key);
