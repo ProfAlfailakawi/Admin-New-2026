@@ -172,11 +172,16 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  useEffect(() => {
  // Auto-convert paid orders that don't need supplier selection
  const autoConvert = async () => {
- const pendingPaidOrders = data.orders.filter(o => 
- (isPaidStatus(o.status) || isPaidStatus((o as any).paymentStatus)) && 
- !o.isConvertedToInvoice && 
- !hasUnselectedSuppliers(o)
-);
+ const nowMs = Date.now();
+ const pendingPaidOrders = data.orders.filter(o => {
+ const createdRaw: any = (o as any).createdAt || o.date;
+ const createdMs = createdRaw?.seconds ? createdRaw.seconds * 1000 : new Date(createdRaw || 0).getTime();
+ const isOlderThan24h = Number.isFinite(createdMs) && createdMs > 0 && (nowMs - createdMs) >= 24 * 60 * 60 * 1000;
+ return (isPaidStatus(o.status) || isPaidStatus((o as any).paymentStatus)) &&
+ !o.isConvertedToInvoice &&
+ !hasUnselectedSuppliers(o) &&
+ (((o as any).manuallyModifiedDeliveryType === true) || isOlderThan24h);
+ });
 
  if (pendingPaidOrders.length > 0) {
  // We do one at a time to avoid complex state races, or we could do all
@@ -186,7 +191,8 @@ const OrderPage: React.FC<OrderPageProps> = ({ data, setData, setCurrentPage, se
  
  // Wait a bit to ensure context is ready
  setTimeout(() => {
- convertToInvoice(orderToConvert);
+ setOrderDeliveryType((orderToConvert as any).manuallyModifiedDeliveryType ? ((orderToConvert as any).deliveryType || 'company') : 'company');
+ convertToInvoice({ ...orderToConvert, deliveryType: (orderToConvert as any).manuallyModifiedDeliveryType ? ((orderToConvert as any).deliveryType || 'company') : 'company' } as any);
  }, 1000);
  }
  };
@@ -1513,6 +1519,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
  <MessageSquare size={16} />
  إرسال فاتورة جديدة 💬
  </button>
+ {false && (
  
  <MagneticButton 
   onClick={() => {
@@ -1535,6 +1542,7 @@ const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || 
   <Wallet size={16} className="md:w-[18px]" />
   {isMarkedAsPaid ? "تم الدفع وتأكيد الحجز ✅" : "تأكيد استلام المبلغ 💰"}
 </MagneticButton>
+ )}
  
  <button 
  onClick={() => {

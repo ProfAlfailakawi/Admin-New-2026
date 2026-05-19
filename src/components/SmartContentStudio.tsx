@@ -194,7 +194,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           imageContent: selectedImage.split(',')[1],
           mimeType: selectedImage.split(';')[0].split(':')[1],
           format: selectedFormat,
-          theme: `${selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme}. ممنوع منعاً باتاً ظهور دلة قهوة أو دلال قهوة أو coffee, no dallah, no Arabic coffee pot dallah أو coffee, no dallah, no Arabic coffee pot pot في الصورة.`,
+          theme: `${selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme}. ممنوع منعاً باتاً ظهور دلة قهوة أو دلال قهوة أو coffee, no dallah, no Arabic coffee pot dallah أو coffee, no dallah, no Arabic coffee pot, no dallah, no coffee pot في الصورة.`,
           mood: selectedMood,
           speedTier: 'turbo' // Signal for faster generation logic if available
         })
@@ -530,7 +530,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="اكتب وصفاً مفصلاً للخلفية (مثال: قهوة على شاطئ البحر وقت الشروق)"
+                    placeholder="اكتب وصفاً مفصلاً للخلفية (مثال: منظر تراثي ناعم على البحر وقت الشروق، بدون دلة قهوة)"
                     value={customThemeQuery}
                     onChange={(e) => {
                       setCustomThemeQuery(e.target.value);

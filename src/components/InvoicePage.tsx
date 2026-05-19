@@ -53,7 +53,6 @@ import { MagneticButton } from './ui/MagneticButton';
 import { getPublicUrl, getWebhookUrl } from '../lib/urlUtils';
 import { recalculateStateBalances, generateNextInvoiceId } from '../lib/business-logic';
 import { isPaidStatus } from '../lib/status-utils';
-import { buildInvoiceWhatsappMessage } from '../lib/whatsappInvoice';
 import { toast } from 'sonner';
 
 /**
@@ -209,7 +208,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
   const promoLabel = invoice.appliedPromoCodeName ? `قيمة الخصم (${invoice.appliedPromoCodeName})` : 'قيمة الخصم';
   const promoLine = (Number(invoice.discount) || 0) > 0 ? `*${promoLabel}*: ${Number(invoice.discount).toFixed(3)} د.ك\n` : '';
   
-  const message = `*فاتورة من شركة مطبخ التراث الكويتي*\n\nالعميل: ${customer?.name || 'عميل'}\nرقم الفاتورة: ${invoice.id}\nالعنوان: ${invoice.address && invoice.address !== 'غير محدد' ? (typeof invoice.address === 'object' ? [`${invoice.address.region||''}`, `ق${invoice.address.block||''}`, `ش${invoice.address.street||''}`, `م${invoice.address.building||''}`].filter(Boolean).join(' ') : invoice.address) : (invoice.deliveryInfo?.zoneName || 'غير محدد')}\nالطلب:\n${items}\n\nالمجموع: ${subtotal.toFixed(3)} د.ك\nرسوم التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}إجمالي الفاتورة: ${Number(totalAmountVal).toFixed(3)} د.ك${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
+  const message = `🧾 *فاتورة مطبخ التراث الكويتي*\n\n👤 العميل: ${customer?.name || 'عميل'}\n📍 العنوان: ${invoice.address && invoice.address !== 'غير محدد' ? (typeof invoice.address === 'object' ? [`${invoice.address.region||''}`, `ق${invoice.address.block||''}`, `ش${invoice.address.street||''}`, `م${invoice.address.building||''}`].filter(Boolean).join(' - ') : invoice.address) : (invoice.deliveryInfo?.zoneName || 'غير محدد')}\n🔢 رقم الفاتورة: ${invoice.id}\n\n━━━━━━━━━━━━━━\n🛒 *الطلب*\n\n${items}\n\n━━━━━━━━━━━━━━\n💰 *الملخص*\nالمنتجات: ${subtotal.toFixed(3)} د.ك\nالإضافات: ${addonsTotalWA.toFixed(3)} د.ك\nالتوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}الإجمالي: ${Number(totalAmountVal).toFixed(3)} د.ك${paymentLinkLine}\n\n🌿 شكراً لتعاملكم معنا\nAlturath.kw\n92225308 - 94059238`;
 
   return `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
  };
@@ -334,7 +333,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
     quantity: (existing ? existing.quantity : 0) + 1,
     priceAtTime: product.price,
     costAtTime: product.cost,
-    addons: existing ? existing.addons : (product.addons || []).map(a => ({...a, quantity: a.isRequired ? Math.max(1, a.minQuantity || 1) : 0}))
+    addons: existing ? existing.addons : (Array.isArray(product.addons) ? product.addons : []).map(a => ({...a, quantity: a.isRequired ? Math.max(1, a.minQuantity || 1) : 0}))
     } 
     };
   });
@@ -364,7 +363,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
   const updateAddonQuantity = (productId: string, addonId: string, delta: number) => {
    setCart(prev => {
      const item = prev[productId];
-     if (!item?.addons) return prev;
+     if (!Array.isArray(item?.addons)) return prev;
      const newAddons = item.addons.map(a => {
        if (a.id === addonId) {
          const cur = a.quantity || 0;
@@ -381,7 +380,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
 
  const cartItems = Object.entries(cart).map(([id, dataItem]) => {
   const product = (data.products || []).find(p => p.id === id);
-  return { product, qty: dataItem.quantity, priceAtTime: dataItem.priceAtTime, costAtTime: dataItem.costAtTime, itemNotes: dataItem.itemNotes, addons: dataItem.addons || [] };
+  return { product, qty: dataItem.quantity, priceAtTime: dataItem.priceAtTime, costAtTime: dataItem.costAtTime, itemNotes: dataItem.itemNotes, addons: Array.isArray(dataItem.addons) ? dataItem.addons : [] };
  }).filter(it => it.product);
 
  const mockInv = {
@@ -461,7 +460,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
     items: cartItems.map(it => ({ ...it, productId: it.product!.id, quantity: it.qty })),
     deliveryFee,
     deliveryType,
-    deliveryInfo: { cost: deliveryCost, profit: deliveryProfit, finalPrice: deliveryFee, type: deliveryType },
+    deliveryInfo: { company: deliveryCompany, zoneName: regionName, cost: deliveryCost, profit: deliveryProfit, finalPrice: deliveryFee },
     date: editingInvoiceId ? (data.invoices.find(i => i.id === editingInvoiceId)?.date || new Date().toISOString()) : mergeDateWithCurrentTime(invoiceDate),
     totalAmount: totalValue,
     totalCost: computeInvoiceCost(mockInv, data.products),
@@ -676,9 +675,6 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
                 </button>
               ))}
             </div>
-            <div className="text-[10px] text-slate-400 text-right leading-5">
-              شركة: تحصيل كامل كرسوم توصيل. خاص: يظهر للعميل ولا يدخل ربح التوصيل. بربح: الربح فقط يدخل ضمن أرباحنا.
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -704,7 +700,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
                 <div className="text-left leading-4"><div className="font-bold text-slate-500 text-[10px]">{Number(it.priceAtTime || it.product!.price || 0).toFixed(3)} د.ك للحبة</div><div className="font-bold text-primary text-xs">الإجمالي: {(Number(it.priceAtTime || it.product!.price || 0) * Number(it.qty || 1)).toFixed(3)} د.ك</div></div>
               </div>
               
-              {it.product!.addons && it.product!.addons.length > 0 && (
+              {Array.isArray(it.product!.addons) && it.product!.addons.length > 0 && (
                 <div className="space-y-2 pt-2 border-t border-slate-50">
                   <div className="text-[10px] font-bold text-slate-400 mb-1">إضافات الوجبة:</div>
                   <div className="grid grid-cols-1 gap-1.5">
@@ -714,36 +710,26 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
                       const isFreePricing = Number(a.freeQuantity || 0) > 0;
                       return (
                         <div key={a.id} className="flex justify-between items-center bg-slate-100/50 p-1.5 rounded-lg">
-                          {isFreePricing ? (
-                            <div className="flex items-center gap-1.5 bg-white rounded-md p-0.5 border border-slate-200">
-                               <button onClick={() => updateAddonQuantity(it.product!.id, a.id, -1)} className="w-5 h-5 flex items-center justify-center hover:bg-slate-100 rounded text-slate-400"><Minus size={10}/></button>
-                               <span className="text-[10px] font-bold w-4 text-center">{currentQty}</span>
-                               <button onClick={() => updateAddonQuantity(it.product!.id, a.id, 1)} className="w-5 h-5 flex items-center justify-center hover:bg-slate-100 rounded text-slate-400"><Plus size={10}/></button>
+                          <div className="flex items-center gap-1.5 bg-white rounded-md p-0.5 border border-slate-200">
+                               <button
+                                 type="button"
+                                 onClick={() => updateAddonQuantity(it.product!.id, a.id, -1)}
+                                 className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 rounded text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                 disabled={currentQty <= (a.isRequired ? Math.max(1, Number(a.minQuantity || 1)) : Number(a.minQuantity || 0))}
+                               ><Minus size={11}/></button>
+                               <span className="text-[10px] font-black min-w-5 text-center">{currentQty}</span>
+                               <button
+                                 type="button"
+                                 onClick={() => updateAddonQuantity(it.product!.id, a.id, 1)}
+                                 className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 rounded text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                 disabled={currentQty >= Number(a.maxQuantity || 999)}
+                               ><Plus size={11}/></button>
                             </div>
-                          ) : (
-                            <button 
-                              type="button"
-                              onClick={() => {
-                                const min = a.isRequired ? Math.max(1, a.minQuantity || 1) : 0;
-                                if (currentQty > 0) {
-                                  if (!a.isRequired) updateAddonQuantity(it.product!.id, a.id, -currentQty);
-                                } else {
-                                  updateAddonQuantity(it.product!.id, a.id, Math.max(1, min) - currentQty);
-                                }
-                              }}
-                              className={cn(
-                                "w-6 h-6 flex flex-shrink-0 items-center justify-center rounded-md transition-all", 
-                                currentQty > 0 ? "bg-emerald-500 text-white" : "bg-white border border-slate-200 text-transparent hover:border-emerald-500",
-                                a.isRequired ? "opacity-50 cursor-not-allowed" : ""
-                              )}
-                            >
-                              <Check size={14} />
-                            </button>
-                          )}
                           <div className="flex flex-col items-end">
                             <span className="text-[10px] font-bold text-slate-700">{a.name}</span>
                             {a.isHiddenPrice ? null : <span className="text-[8px] text-slate-400">{Number(a.price || 0).toFixed(3)} د.ك</span>}
                             {Number(a.freeQuantity || 0) > 0 && <span className="text-[8px] text-emerald-600 font-bold">أول {a.freeQuantity} مجاناً</span>}
+                            {(a.isRequired || Number(a.minQuantity || 0) > 0 || Number(a.maxQuantity || 0) > 0) && <span className="text-[8px] text-indigo-500 font-bold">الحد: {a.isRequired ? Math.max(1, Number(a.minQuantity || 1)) : Number(a.minQuantity || 0)} - {Number(a.maxQuantity || 999)}</span>}
                           </div>
                         </div>
                       );

@@ -749,7 +749,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
                   <div className="text-slate-800 font-bold text-sm">{(Number(price) * (item.quantity || 1)).toFixed(3)} د.ك</div>
                 </div>
               </div>
-              {item.addons && item.addons.length > 0 && (
+              {Array.isArray(item.addons) && item.addons.length > 0 && (
                 <div className="flex flex-col gap-1 mt-1 border-t border-slate-50 pt-2">
                   <div className="text-[9px] font-bold text-slate-400 mb-1">تفاصيل الإضافات:</div>
                   {item.addons.map((a: any, i: number) => {
@@ -809,7 +809,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
             (inv.items || []).forEach((item: any) => {
               const price = computeInvoiceItemBasePrice(item, data?.products || []);
               pTotal += price * (item.quantity || 1);
-              (item.addons || []).forEach((a: any) => {
+              (Array.isArray(item.addons) ? item.addons : []).forEach((a: any) => {
                 let aQty = 0;
                 if (a.calculationType === 'fixed') aQty = 1;
                 else if (a.calculationType === 'per_x_items') aQty = Math.ceil((item.quantity || 1) / (a.xItemsThreshold || 1));

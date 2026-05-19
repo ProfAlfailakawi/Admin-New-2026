@@ -175,6 +175,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
      splitPayments: json(i.splitPayments),
      rouletteLoser: i.rouletteLoser,
      rawAddress: json(addr),
+     items: json(i.items || []),
      rawInvoice: json(i)
    };
  });
@@ -415,18 +416,36 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  };
  
  if (workbook.SheetNames.includes("Invoices")) {
+ const invoiceItemsRows = safeSheetToObj("InvoiceItems") as any[];
+ const invoiceItemsByInvoice = new Map<string, any[]>();
+ invoiceItemsRows.forEach((row: any) => {
+   const invoiceId = String(row.invoiceId || '').trim();
+   if (!invoiceId) return;
+   const rawItem = parseSafeJson(row.rawItem, false);
+   const restoredItem = rawItem && typeof rawItem === 'object' ? { ...rawItem } : {
+     productId: row.productId,
+     quantity: Number(row.quantity || 1),
+     priceAtTime: Number(row.priceAtTime || 0),
+     costAtTime: Number(row.costAtTime || 0),
+     itemNotes: row.itemNotes || '',
+     addons: parseSafeJson(row.addons, true)
+   };
+   if (!invoiceItemsByInvoice.has(invoiceId)) invoiceItemsByInvoice.set(invoiceId, []);
+   invoiceItemsByInvoice.get(invoiceId)!.push(stripUndefined(restoredItem));
+ });
  const invoicesSheet = workbook.Sheets["Invoices"];
  const rawInvoices = XLSX.utils.sheet_to_json(invoicesSheet) as any[];
  newState.invoices = rawInvoices.map(inv => {
  const isDeleted = inv.isDeleted === true || inv.isDeleted ==="TRUE" || inv.isDeleted ==="true";
  const parsedItems = parseSafeJson(inv.items, true);
+ const itemRows = invoiceItemsByInvoice.get(String(inv.id || '').trim()) || [];
  const parsedAddress = parseSafeJson(inv.address, false) || parseSafeJson(inv.rawAddress, false) || makeAddressFromRow(inv) || inv.address;
  const parsedDeliveryInfo = parseSafeJson(inv.deliveryInfo, false) || inv.deliveryInfo;
  
  return stripUndefined({ 
  ...inv, 
  isDeleted, 
- items: parsedItems, 
+ items: parsedItems.length ? parsedItems : itemRows, 
  address: typeof parsedAddress === 'object' ? parsedAddress : inv.address,
  deliveryInfo: typeof parsedDeliveryInfo === 'object' && parsedDeliveryInfo !== null ? parsedDeliveryInfo : undefined
  });
