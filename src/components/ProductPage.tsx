@@ -106,6 +106,10 @@ const ProductPage: React.FC<ProductPageProps> = ({
   const [shakingId, setShakingId] = useState<string | null>(null);
   const [showProfitWarning, setShowProfitWarning] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [editingCategoryName, setEditingCategoryName] = useState<string | null>(null);
+  const [editingCategoryValue, setEditingCategoryValue] = useState("");
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
+  const [openProductCategory, setOpenProductCategory] = useState<string | null>(null);
 
   const productCategories = useMemo(() => getProductCategories(data), [data]);
 
@@ -136,12 +140,82 @@ const ProductPage: React.FC<ProductPageProps> = ({
   const deleteProductCategory = (category: string) => {
     const name = normalizeCategoryName(category);
     const usedCount = (data?.products || []).filter((p: any) => normalizeCategoryName(p?.category) === name).length;
+
     if (usedCount > 0) {
-      toast.error(`لا يمكن حذف التصنيف لأنه يحتوي على ${usedCount} منتج`);
+      toast.error("لا يمكن حذف التصنيف", {
+        description: `التصنيف "${name}" يحتوي على ${usedCount} منتج. انقل المنتجات لتصنيف آخر أولاً.`,
+        duration: 6000,
+      });
       return;
     }
-    saveProductCategories(productCategories.filter((cat) => cat !== name));
+
+    const confirmed = window.confirm(`هل أنت متأكد من حذف تصنيف "${name}"؟`);
+    if (!confirmed) return;
+
+    saveProductCategories(productCategories.filter((cat) => normalizeCategoryName(cat) !== name));
+    if (editingCategoryName === name) {
+      setEditingCategoryName(null);
+      setEditingCategoryValue("");
+    }
+    if (openProductCategory === name) {
+      setOpenProductCategory(null);
+    }
     toast.success("تم حذف التصنيف");
+  };
+
+  const startEditProductCategory = (category: string) => {
+    const name = normalizeCategoryName(category);
+    setEditingCategoryName(name);
+    setEditingCategoryValue(name);
+  };
+
+  const cancelEditProductCategory = () => {
+    setEditingCategoryName(null);
+    setEditingCategoryValue("");
+  };
+
+  const saveEditedProductCategory = () => {
+    const oldName = normalizeCategoryName(editingCategoryName || "");
+    const newName = normalizeCategoryName(editingCategoryValue);
+    if (!oldName || !newName || newName === "عام") {
+      toast.error("اكتب اسم تصنيف واضح");
+      return;
+    }
+    if (oldName !== newName && productCategories.includes(newName)) {
+      toast.error("يوجد تصنيف بنفس الاسم");
+      return;
+    }
+
+    const renamedCategories = productCategories.map((cat) =>
+      normalizeCategoryName(cat) === oldName ? newName : cat,
+    );
+
+    setData((prev: any) => ({
+      ...prev,
+      productCategories: renamedCategories,
+      settings: { ...(prev.settings || {}), productCategories: renamedCategories },
+      products: (prev.products || []).map((product: any) =>
+        normalizeCategoryName(product?.category) === oldName
+          ? { ...product, category: newName }
+          : product,
+      ),
+    }));
+
+    setEditingCategoryName(null);
+    setEditingCategoryValue("");
+    toast.success("تم تعديل اسم التصنيف وتحديث منتجاته");
+  };
+
+  const moveProductCategory = (category: string, direction: -1 | 1) => {
+    const name = normalizeCategoryName(category);
+    const index = productCategories.findIndex((cat) => normalizeCategoryName(cat) === name);
+    if (index < 0) return;
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= productCategories.length) return;
+    const nextCategories = [...productCategories];
+    [nextCategories[index], nextCategories[nextIndex]] = [nextCategories[nextIndex], nextCategories[index]];
+    saveProductCategories(nextCategories);
+    toast.success("تم تحديث ترتيب التصنيفات");
   };
 
   // Smart Name Matching Logic
@@ -258,6 +332,21 @@ const ProductPage: React.FC<ProductPageProps> = ({
       .map((pStat) => pStat.p)
       .sort((a, b) => (a.name || "").localeCompare(b.name || "", "ar"));
   }, [data?.products, data?.invoices, search, filterType, selectedSupplierId]);
+
+  const visibleProducts = useMemo(() => {
+    if (search.trim()) return filteredProducts;
+    if (!openProductCategory) return [];
+    return filteredProducts.filter((p: any) => normalizeCategoryName(p?.category) === openProductCategory);
+  }, [filteredProducts, search, openProductCategory]);
+
+  const productCategoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    (filteredProducts || []).forEach((p: any) => {
+      const cat = normalizeCategoryName(p?.category);
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [filteredProducts]);
 
   const highestMargin = (data?.products || []).reduce((max, p) => {
     const stats = getProductStats(p.id);
@@ -722,53 +811,142 @@ const ProductPage: React.FC<ProductPageProps> = ({
       </AnimatePresence>
 
       <div className="bg-white rounded-3xl p-4 md:p-5 border border-slate-200/60 shadow-sm text-right">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <button
+          type="button"
+          onClick={() => setIsCategoryManagerOpen((v) => !v)}
+          className="w-full flex items-center justify-between gap-4 text-right"
+        >
+          <span className="w-9 h-9 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 font-black">
+            {isCategoryManagerOpen ? "−" : "+"}
+          </span>
           <div>
             <h3 className="text-lg font-black text-slate-900 flex items-center justify-end gap-2">
               تصنيفات المنتجات
               <Layers size={18} className="text-primary" />
             </h3>
-            <p className="text-xs font-bold text-slate-400 mt-1">هذه التصنيفات تظهر في فاتورة جديدة وبرنامج العميل. لا يمكن حذف تصنيف يحتوي منتجات.</p>
+            <p className="text-xs font-bold text-slate-400 mt-1">اضغط لفتح إدارة التصنيفات. هذه التصنيفات تظهر في فاتورة جديدة وبرنامج العميل.</p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 lg:w-[420px]">
-            <input
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") addProductCategory(); }}
-              placeholder="أضف تصنيف جديد..."
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
-            />
-            <button
-              type="button"
-              onClick={addProductCategory}
-              className="bg-primary text-white px-5 py-3 rounded-2xl font-black text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2"
+        </button>
+
+        <AnimatePresence initial={false}>
+          {isCategoryManagerOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
             >
-              <Plus size={16} /> إضافة
-            </button>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2 mt-4 justify-end">
-          {productCategories.map((category) => {
-            const usedCount = (data?.products || []).filter((p: any) => normalizeCategoryName(p?.category) === category).length;
-            return (
-              <div key={category} className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-2xl px-3 py-2">
-                <button
-                  type="button"
-                  onClick={() => deleteProductCategory(category)}
-                  disabled={usedCount > 0}
-                  title={usedCount > 0 ? `لا يمكن الحذف: يحتوي على ${usedCount} منتج` : "حذف التصنيف"}
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-rose-500 hover:bg-rose-50 disabled:text-slate-300 disabled:cursor-not-allowed"
-                >
-                  <X size={13} />
-                </button>
-                <div className="text-right">
-                  <div className="text-xs font-black text-slate-800">{category}</div>
-                  <div className="text-[9px] font-bold text-slate-400">{usedCount} منتج</div>
+              <div className="pt-5 mt-5 border-t border-slate-100">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-slate-500">أضف، عدّل، رتّب أو احذف التصنيفات الفارغة فقط.</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 lg:w-[420px]">
+                    <input
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") addProductCategory(); }}
+                      placeholder="أضف تصنيف جديد..."
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
+                    />
+                    <button
+                      type="button"
+                      onClick={addProductCategory}
+                      className="bg-primary text-white px-5 py-3 rounded-2xl font-black text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Plus size={16} /> إضافة
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-4 justify-end">
+                  {productCategories.map((category, index) => {
+                    const normalized = normalizeCategoryName(category);
+                    const usedCount = (data?.products || []).filter((p: any) => normalizeCategoryName(p?.category) === normalized).length;
+                    const isEditing = editingCategoryName === normalized;
+                    return (
+                      <div key={category} className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-2xl px-3 py-2 shadow-sm">
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => moveProductCategory(category, -1)}
+                            disabled={index === 0}
+                            title="حرّك التصنيف لليمين / قبل"
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-slate-500 hover:bg-white hover:text-primary disabled:text-slate-300 disabled:cursor-not-allowed"
+                          >
+                            ←
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveProductCategory(category, 1)}
+                            disabled={index === productCategories.length - 1}
+                            title="حرّك التصنيف لليسار / بعد"
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-slate-500 hover:bg-white hover:text-primary disabled:text-slate-300 disabled:cursor-not-allowed"
+                          >
+                            →
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => startEditProductCategory(category)}
+                            title="تعديل اسم التصنيف"
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-indigo-500 hover:bg-indigo-50"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteProductCategory(category)}
+                            title={usedCount > 0 ? `لا يمكن الحذف: يحتوي على ${usedCount} منتج` : "حذف التصنيف"}
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-rose-500 hover:bg-rose-50"
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                        <div className="text-right min-w-[120px]">
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={saveEditedProductCategory}
+                                className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center"
+                                title="حفظ الاسم"
+                              >
+                                <Check size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEditProductCategory}
+                                className="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"
+                                title="إلغاء"
+                              >
+                                <X size={13} />
+                              </button>
+                              <input
+                                value={editingCategoryValue}
+                                onChange={(e) => setEditingCategoryValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") saveEditedProductCategory();
+                                  if (e.key === "Escape") cancelEditProductCategory();
+                                }}
+                                className="w-28 bg-white border border-slate-200 rounded-xl px-2 py-1 text-xs font-black text-right outline-none focus:ring-2 focus:ring-primary/20"
+                                autoFocus
+                              />
+                            </div>
+                          ) : (
+                            <>
+                              <div className="text-xs font-black text-slate-800">{category}</div>
+                              <div className="text-[9px] font-bold text-slate-400">{usedCount} منتج</div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
@@ -843,8 +1021,43 @@ const ProductPage: React.FC<ProductPageProps> = ({
           <div className="h-8 w-[1px] bg-slate-200 hidden md:block" />
         </div>
 
+        {!search.trim() && (
+          <div className="space-y-2 mb-5">
+            <div className="flex overflow-x-auto hide-scrollbar gap-2 pb-1 flex-row-reverse">
+              {productCategories.map((category) => {
+                const normalized = normalizeCategoryName(category);
+                const count = productCategoryCounts[normalized] || 0;
+                const isOpen = openProductCategory === normalized;
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setOpenProductCategory(isOpen ? null : normalized)}
+                    className={cn(
+                      "shrink-0 px-4 py-3 rounded-2xl border text-xs font-black transition-all flex items-center gap-2",
+                      isOpen
+                        ? "bg-slate-900 text-white border-slate-900 shadow-lg"
+                        : "bg-slate-50 text-slate-600 border-slate-100 hover:bg-white hover:border-primary/30",
+                    )}
+                  >
+                    <span>{category}</span>
+                    <span className={cn("text-[10px] px-2 py-0.5 rounded-full", isOpen ? "bg-white/15 text-white" : "bg-white text-slate-400")}>{count}</span>
+                    <span className="text-sm">{isOpen ? "−" : "+"}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-4 md:gap-5 md:p-2">
-          {(filteredProducts || []).length === 0 ? (
+          {(!search.trim() && !openProductCategory) ? (
+            <div className="col-span-full py-16 px-4 flex flex-col items-center justify-center text-center bg-slate-50/70 border border-slate-100 rounded-3xl">
+              <Layers size={42} className="text-slate-300 mb-4" />
+              <h3 className="text-lg md:text-2xl font-black text-slate-800 mb-2">اختر تصنيف لعرض المنتجات</h3>
+              <p className="text-slate-400 font-bold text-sm">كل تصنيف يفتح وحده ويقفل الباقي عشان تبقى القائمة مرتبة.</p>
+            </div>
+          ) : (visibleProducts || []).length === 0 ? (
             <div className="col-span-full py-20 px-4 flex flex-col items-center justify-center text-center bg-white/50 backdrop-blur-sm border border-slate-100 border-dashed rounded-3xl md:rounded-2xl">
               <div className="w-24 h-24 mb-6 rounded-3xl bg-primary/5 flex items-center justify-center text-primary/40 relative">
                 <div className="absolute inset-0 bg-primary/10 rounded-3xl animate-ping opacity-20" />
@@ -866,7 +1079,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
               </button>
             </div>
           ) : (
-            (filteredProducts || []).map((product) => {
+            (visibleProducts || []).map((product) => {
               const margin = (product.price || 0) - (product.cost || 0);
               const marginPercent = (margin / (product.price || 1)) * 100;
               const { sales, revenue, lastSale, profit } = getProductStats(
