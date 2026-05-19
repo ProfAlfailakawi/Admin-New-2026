@@ -369,7 +369,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       const parsedPrice = parseFloat(productForm.price as any) || 0;
       const parsedCost = parseFloat(productForm.cost as any) || 0;
 
-      const emptyAddonIndex = ((productForm as any).addons || []).findIndex((addon: any) => !String(addon?.name || '').trim());
+      const emptyAddonIndex = (Array.isArray((productForm as any)?.addons) ? (productForm as any).addons : []).findIndex((addon: any) => !String(addon?.name || '').trim());
       if (emptyAddonIndex !== -1) {
         toast.error(`اسم الإضافة رقم ${emptyAddonIndex + 1} إلزامي ولا يمكن تركه فارغاً`);
         return;
@@ -523,7 +523,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       isActive: product.isActive !== false,
       isOutOfStock: !!product.isOutOfStock,
       preparationInstructions: product.preparationInstructions || "",
-      addons: product.addons || [],
+      addons: Array.isArray(product.addons) ? product.addons : [],
     });
     setShowModal(true);
   };
@@ -1250,7 +1250,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         isHiddenPrice: false,
                         quantityRule: { enabled: false, minProductQty: 2, maxProductQtyPerAddon: 6, mode: 'manual' }
                       };
-                      setProductForm(prev => ({ ...prev, addons: [...((prev as any).addons || []), newAddon] }));
+                      setProductForm(prev => ({ ...prev, addons: [...(Array.isArray((prev as any).addons) ? (prev as any).addons : []), newAddon] }));
                     }}
                     className="text-primary hover:bg-primary/10 p-2 rounded-xl transition-colors font-bold flex items-center gap-2 text-sm"
                   >
@@ -1259,7 +1259,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   <label className="text-sm font-bold text-slate-700">الملحقات والإضافات (اختياري)</label>
                 </div>
                 
-                {((productForm as any).addons || []).map((addon: any, index: number) => (
+                {((productForm as any)?.addons && Array.isArray((productForm as any)?.addons) ? Array.from((productForm as any).addons) : ((productForm as any)?.addons && typeof (productForm as any)?.addons === 'object' ? Object.values((productForm as any)?.addons) : [])).map((addon: any, index: number) => (
                   <div key={addon.id} className="bg-white border text-right border-slate-200 p-4 rounded-2xl relative shadow-sm">
                     <button
                       onClick={() => {
