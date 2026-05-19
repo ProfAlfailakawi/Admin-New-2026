@@ -1,7 +1,7 @@
 // invalidated cache 2026-05-07 14:18
 import { getUnifiedInvoices } from '../lib/utils';
 import { 
-    computeInvoiceTotal, 
+    computeInvoiceTotal, computeInvoiceSubtotal, 
     computeInvoiceCost, 
     computeInvoiceProfit, 
     computeInvoiceAddonsTotal 
@@ -325,7 +325,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
     (inv) => (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending',
   );
   const totalSales = paidInvoices.reduce(
-    (acc, inv) => acc + Math.max(0, computeInvoiceTotal(inv, data?.products || [])),
+    (acc, inv) => acc + Math.max(0, computeInvoiceSubtotal(inv, data?.products || [])),
     0,
   );
   const totalCost = paidInvoices.reduce(
@@ -598,7 +598,7 @@ const BusinessStatusMirror: React.FC<{
     (inv) => (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending',
   );
   const totalSales = paidInvoices.reduce(
-    (acc, inv) => acc + Math.max(0, computeInvoiceTotal(inv, data?.products || [])),
+    (acc, inv) => acc + Math.max(0, computeInvoiceSubtotal(inv, data?.products || [])),
     0,
   );
   const totalCost = paidInvoices.reduce(
@@ -855,7 +855,8 @@ const [isPending, startTransition] = useTransition();
     const [showContextualAssist, setShowContextualAssist] = useState(false);
     const [isLoyaltyAnalyzing, setIsLoyaltyAnalyzing] = useState(false);
     const [showLoyaltyResult, setShowLoyaltyResult] = useState(false);
-    const [showTabsDropdown, setShowTabsDropdown] = useState(false);
+    const [showLocalOnboardingTour, setShowLocalOnboardingTour] = useState(false);
+    const [localOnboardingStep, setLocalOnboardingStep] = useState(0);
     const [activeAdviceContent, setActiveAdviceContent] = useState<
       string | null
     >(null);
@@ -903,6 +904,46 @@ const [isPending, startTransition] = useTransition();
     const handleDismissDemoData = React.useCallback(() => {
       setShowSampleDataPrompt(false);
       sessionStorage.setItem('hideSampleDataPrompt', 'true');
+    }, []);
+
+    const localOnboardingSteps = useMemo(() => [
+      {
+        title: "أهلاً بك في النسخة التجريبية",
+        body: "هذه الجولة تظهر في وضع Local فقط ولمرة واحدة. الهدف منها تعريفك بأهم أماكن التحكم بدون التأثير على بياناتك أو منطق النظام.",
+        icon: <Sparkles size={20} className="text-amber-500" />,
+      },
+      {
+        title: "النبض التنفيذي",
+        body: "هذه هي الصفحة الرئيسية للداش بورد. منها ترجع بسرعة لمتابعة أهم المؤشرات والطلبات والمبيعات.",
+        icon: <Activity size={20} className="text-emerald-500" />,
+      },
+      {
+        title: "اسأل واختصر الطريق",
+        body: "استخدم Ctrl + K لفتح أداة البحث والتنقل السريع، ثم اختر أي مختبر أو صفحة تريد الوصول إليها مباشرة.",
+        icon: <Search size={20} className="text-indigo-500" />,
+      },
+      {
+        title: "وضع القيادة",
+        body: "زر وضع القيادة يعطيك عرضاً مركزاً للإدارة السريعة. تقدر تفعله أو تغلقه متى ما احتجت.",
+        icon: <ShieldAlert size={20} className="text-amber-500" />,
+      },
+    ], []);
+
+    useEffect(() => {
+      if (appMode !== 'local') return;
+      const key = 'adminLocalOnboardingTourSeen.v1';
+      if (localStorage.getItem(key) === 'true') return;
+      const timer = window.setTimeout(() => {
+        setLocalOnboardingStep(0);
+        setShowLocalOnboardingTour(true);
+      }, 700);
+      return () => window.clearTimeout(timer);
+    }, [appMode]);
+
+    const finishLocalOnboardingTour = React.useCallback(() => {
+      localStorage.setItem('adminLocalOnboardingTourSeen.v1', 'true');
+      setShowLocalOnboardingTour(false);
+      setLocalOnboardingStep(0);
     }, []);
 
     useEffect(() => {
@@ -1273,18 +1314,14 @@ const [isPending, startTransition] = useTransition();
       );
 
 
-      const invoicesAddonsRevenue = invoices.reduce((acc, inv) => {
+      const totalAddonsRevenue = invoices.reduce((acc, inv) => {
           return acc + computeInvoiceAddonsTotal(inv, data?.products || []);
       }, 0);
-      const ordersAddonsRevenue = (data?.orders || [])
-        .filter((order: any) => (isPaidStatus(order.status) || isPaidStatus(order.paymentStatus)) && !order.isDeleted)
-        .reduce((acc: number, order: any) => acc + computeInvoiceAddonsTotal(order, data?.products || []), 0);
-      const totalAddonsRevenue = invoicesAddonsRevenue + ordersAddonsRevenue;
 
 
       // Food sales (excluding delivery)
       const foodSales = invoices.reduce(
-        (acc, inv) => acc + Math.max(0, computeInvoiceTotal(inv, data?.products || [])),
+        (acc, inv) => acc + Math.max(0, computeInvoiceSubtotal(inv, data?.products || [])),
         0,
       );
 
@@ -1657,6 +1694,12 @@ const [isPending, startTransition] = useTransition();
     ];
 
     const tabs = allDashboardTabs;
+    const pulseTabConfig = tabs.find((tab) => tab.id === "pulse") || tabs[0];
+    const activeTabConfig = tabs.find((tab) => tab.id === activeTab) || pulseTabConfig;
+    const compactDropdownTabs = [
+      activeTabConfig,
+      ...(activeTabConfig.id === "pulse" ? [] : [pulseTabConfig]),
+    ].filter(Boolean);
 
     const bentoCardStyle =
       "bg-[#fdfbf7] p-4 md:p-6 rounded-3xl border border-[#f0e6d2] shadow-[0_4px_20px_-10px_rgba(212,192,152,0.3)] text-right relative overflow-hidden flex flex-col interactive-hover mb-6";
@@ -2056,6 +2099,91 @@ const [isPending, startTransition] = useTransition();
             </div>
           )}
 
+          <AnimatePresence>
+            {showLocalOnboardingTour && appMode === 'local' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[9999] bg-slate-950/35 backdrop-blur-sm flex items-center justify-center p-4"
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 18, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                  transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+                  className="w-full max-w-md rounded-[2rem] bg-white shadow-2xl border border-white/70 overflow-hidden text-right"
+                  dir="rtl"
+                >
+                  <div className="relative p-6 bg-gradient-to-br from-white via-amber-50/50 to-slate-50">
+                    <div className="absolute -top-16 -left-16 w-40 h-40 bg-amber-300/20 rounded-full blur-3xl" />
+                    <div className="absolute -bottom-20 -right-20 w-44 h-44 bg-emerald-300/15 rounded-full blur-3xl" />
+                    <div className="relative z-10 flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-white shadow-lg border border-slate-100 flex items-center justify-center shrink-0">
+                        {localOnboardingSteps[localOnboardingStep]?.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-black text-amber-600 mb-1">الدليل السريع · نسخة Local</p>
+                        <h3 className="text-xl font-black text-slate-900 leading-tight">
+                          {localOnboardingSteps[localOnboardingStep]?.title}
+                        </h3>
+                        <p className="mt-3 text-sm font-bold text-slate-600 leading-7">
+                          {localOnboardingSteps[localOnboardingStep]?.body}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-6 pb-6 bg-white">
+                    <div className="flex items-center justify-center gap-1.5 mb-5">
+                      {localOnboardingSteps.map((_, index) => (
+                        <span
+                          key={index}
+                          className={cn(
+                            "h-1.5 rounded-full transition-all",
+                            index === localOnboardingStep ? "w-7 bg-slate-900" : "w-1.5 bg-slate-200"
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={finishLocalOnboardingTour}
+                        className="px-4 py-2.5 rounded-xl text-sm font-black text-slate-500 hover:bg-slate-50 transition-colors"
+                      >
+                        تخطي
+                      </button>
+                      <div className="flex items-center gap-2">
+                        {localOnboardingStep > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setLocalOnboardingStep((step) => Math.max(0, step - 1))}
+                            className="px-4 py-2.5 rounded-xl text-sm font-black bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+                          >
+                            السابق
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (localOnboardingStep >= localOnboardingSteps.length - 1) {
+                              finishLocalOnboardingTour();
+                            } else {
+                              setLocalOnboardingStep((step) => step + 1);
+                            }
+                          }}
+                          className="px-5 py-2.5 rounded-xl text-sm font-black bg-slate-900 text-white shadow-lg shadow-slate-900/15 hover:scale-[1.02] active:scale-95 transition-transform"
+                        >
+                          {localOnboardingStep >= localOnboardingSteps.length - 1 ? 'إنهاء' : 'التالي'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* TOP ROW: HEADER */}
           <div className="flex items-center justify-between w-full">
             <AnimatePresence>
@@ -2100,66 +2228,12 @@ const [isPending, startTransition] = useTransition();
             </button>
           </div>
 
-          <AnimatePresence>
-            {!isExecutiveMode && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }} 
-                animate={{ opacity: 1, height: 'auto' }} 
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
-              >
-                {/* SINGLE ACTIVE TAB - Dropdown */}
-                <div className="relative w-full mt-4">
-                  <button
-                    onClick={() => setShowTabsDropdown(!showTabsDropdown)}
-              className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-[14px] font-bold bg-slate-900 text-white shadow-xl outline-none"
-            >
-              <div className="flex items-center gap-2">
-                {tabs.find(t => t.id === activeTab)?.icon && React.cloneElement(tabs.find(t => t.id === activeTab)!.icon, {
-                  size: 18,
-                  className: "text-amber-400"
-                })}
-                <span className="relative z-10">{tabs.find(t => t.id === activeTab)?.label}</span>
-              </div>
-              <ChevronDown size={18} className={cn("transition-transform duration-300", showTabsDropdown ? "rotate-180" : "")} />
-            </button>
-
-            <AnimatePresence>
-            {showTabsDropdown && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100/50 z-50 py-2 flex flex-col max-h-[60vh] overflow-y-auto origin-top"
-              >
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id as any);
-                      setShowTabsDropdown(false);
-                    }}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors w-full text-right outline-none",
-                      activeTab === tab.id ? "text-amber-500 bg-amber-50/30" : "text-slate-600"
-                    )}
-                  >
-                    {React.cloneElement(tab.icon, {
-                      size: 18,
-                      className: activeTab === tab.id ? "text-amber-500" : "text-slate-500"
-                    })}
-                    <span className="font-bold text-[14px]">{tab.label}</span>
-                  </button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {!isExecutiveMode && activeTab !== "pulse" && (
+            <div className="mt-4 text-right text-xs font-bold text-slate-400">
+              {activeTabConfig?.label}
+            </div>
+          )}
         </div>
-      </motion.div>
-    )}
-  </AnimatePresence>
-</div>
 
         {/* 4) CONTENT - Full Width */}
         <div
@@ -4827,12 +4901,43 @@ const [isPending, startTransition] = useTransition();
                                           (inv as any).status ||
                                             inv.paymentStatus,
                                         ) ? (
-                                        <span
-                                          className="inline-flex items-center gap-1 cursor-not-allowed select-none"
-                                          title="نشاط الطلبات الأحدث للعرض فقط. يتم تعديل حالة الدفع من سجل الفواتير أو تفاصيل الفاتورة."
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const updatedInvoices =
+                                              (data.invoices || []).map((i) =>
+                                                i.id === inv.id
+                                                  ? {
+                                                      ...i,
+                                                      paymentStatus: "paid",
+                                                      status: "مدفوعة",
+                                                    }
+                                                  : i,
+                                              );
+                                            const updatedOrders =
+                                              (data.orders || []).map((o) =>
+                                                o.linkedInvoiceId === inv.id || o.id === inv.id
+                                                  ? {
+                                                      ...o,
+                                                      status:
+                                                        "تم الدفع وجاري التوصيل",
+                                                      paymentStatus: "paid",
+                                                    }
+                                                  : o,
+                                              );
+                                            onUpdateData({
+                                              ...data,
+                                              invoices: updatedInvoices,
+                                              orders: updatedOrders,
+                                            });
+                                            toast.success(
+                                              `تم تحديث حالة الفاتورة ${inv.id} والطلب المرتبط إلى مدفوع`,
+                                            );
+                                          }}
+                                          className="hover:underline"
                                         >
-                                          بانتظار الدفع
-                                        </span>
+                                          بانتظار الدفع (تعديل)
+                                        </button>
                                       ) : isFailedStatus(
                                           (inv as any).status ||
                                             inv.paymentStatus,

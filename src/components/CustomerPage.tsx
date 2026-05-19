@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { AppState, Customer } from '../types';
 import { DEFAULT_SQUADS } from '../data';
-import { cn, normalizeArabic, normalizeAddressObject, formatFullAddress } from '../lib/utils';
+import { cn, formatCustomerAddress, normalizeArabic, normalizeAddressObject, formatFullAddress } from '../lib/utils';
 import { isPaidStatus } from '../lib/status-utils';
 import { calculateCustomerSentiment, generateCustomerSmartMessage } from '../lib/ai-engine';
 import { motion, AnimatePresence } from 'motion/react';

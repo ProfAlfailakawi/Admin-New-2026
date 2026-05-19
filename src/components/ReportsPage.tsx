@@ -1,3 +1,9 @@
+const isSuccessfulPayerForDisplay = (payer: any) => {
+  const status = String(payer?.status || payer?.paymentStatus || payer?.state || '').toLowerCase();
+  if (['failed','declined','cancelled','canceled','pending','unpaid','لم يدفع','فشل'].some(x => status.includes(x))) return false;
+  return payer?.paid === true || payer?.isPaid === true || status.includes('paid') || status.includes('success') || status.includes('captured') || Number(payer?.amount || payer?.paidAmount || 0) > 0;
+};
+
 import { getUnifiedInvoices } from '../lib/utils';
 import React, { useState, useEffect } from 'react';
 import { 
