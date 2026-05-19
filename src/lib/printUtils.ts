@@ -129,8 +129,11 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root{--green:#0f4f2d;--green2:#0b3f25;--red:#d7192f;--gold:#d7a94f;--soft:#fbfaf6;--line:#eadfcd;--text:#172033;--muted:#6b7280;}
-    *{box-sizing:border-box} body{margin:0;padding:28px;background:#f3f4f6;font-family:'Cairo',Arial,sans-serif;color:var(--text);-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .page{max-width:900px;margin:auto;background:#fff;border:1px solid #eee1cc;border-radius:22px;padding:34px 38px 28px;box-shadow:0 18px 50px rgba(15,79,45,.10);position:relative;overflow:hidden;}
+    @page{size:A4 portrait;margin:10mm;}
+    *{box-sizing:border-box} body{margin:0;padding:0;background:#f3f4f6;font-family:'Cairo',Arial,sans-serif;color:var(--text);-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .print-shell{padding:16px;}
+    @media screen{.page{width:210mm;max-width:calc(100vw - 32px);min-height:297mm;}}
+    .page{margin:auto;background:#fff;border:1px solid #eee1cc;border-radius:22px;padding:14mm 13mm 11mm;box-shadow:0 18px 50px rgba(15,79,45,.10);position:relative;overflow:hidden;}
     .page:before{content:'';position:absolute;inset:0 0 auto 0;height:5px;background:linear-gradient(90deg,var(--red),var(--green),var(--gold));opacity:.8}
     .header{display:grid;grid-template-columns:130px 1fr 190px;align-items:center;gap:22px;padding-bottom:22px;border-bottom:1px solid var(--line);}
     .logo{width:116px;height:116px;object-fit:contain;justify-self:center;}
@@ -140,11 +143,12 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
     .table-wrap{border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:8px;background:#fff}table{width:100%;border-collapse:collapse}.head th{background:linear-gradient(180deg,var(--green),#0b4327);color:#f7d880;font-size:15px;padding:15px 12px;text-align:center;font-weight:900}.head th:first-child{text-align:right}.item-row td{padding:20px 14px;border-bottom:1px dashed #dccfbc;vertical-align:top}.item-row:last-child td{border-bottom:0}.product-cell{width:45%}.product-name{font-size:22px;font-weight:900;color:#111827}.item-number{color:var(--red);margin-left:6px}.addons-wrap{margin-top:10px;display:grid;gap:5px}.addon-line{display:flex;justify-content:space-between;gap:12px;color:#343b48;font-weight:700;font-size:14px}.addon-line b{color:var(--red);font-size:18px;line-height:0}.addon-price{color:#a17622;white-space:nowrap}.center{text-align:center;font-size:20px;font-weight:800}.money{text-align:center;font-weight:800;direction:ltr;white-space:nowrap}.strong{color:var(--green);font-size:18px}.item-note{margin-top:8px;color:#b45309;font-size:13px;font-weight:700}
     .summary{margin-top:22px;border:1px solid #e4d2b4;border-radius:18px;background:linear-gradient(135deg,#fffdf8,#fbf4e7);padding:22px;display:grid;grid-template-columns:1fr 1.1fr;gap:22px;align-items:center}.sum-lines{display:grid;gap:10px}.sum-row{display:flex;justify-content:space-between;border-bottom:1px dashed #ddcfba;padding-bottom:9px;font-weight:800}.sum-row span:first-child{color:#374151}.sum-row span:last-child{direction:ltr}.total-box{background:linear-gradient(145deg,var(--green),#093a22);border:2px solid var(--gold);border-radius:16px;padding:18px 24px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:16px;box-shadow:0 10px 26px rgba(15,79,45,.16)}.total-title{font-size:26px;font-weight:900}.total-amount{font-size:31px;font-weight:900;color:#ffd96a;direction:ltr}.ornament{height:92px;background:url('/logo.png') center/contain no-repeat;opacity:.18;filter:saturate(.8)}
     .footer{margin-top:22px;background:linear-gradient(145deg,#0d4b2c,#08371f);color:#fff;border:2px solid var(--gold);border-radius:18px;padding:18px;text-align:center;font-weight:800}.footer small{display:block;color:#e8d5a1;margin-top:4px;font-size:12px}.no-print{margin-top:18px;text-align:center}.print-btn{border:0;border-radius:999px;background:var(--green);color:#fff;font-weight:900;padding:12px 28px;cursor:pointer;font-family:inherit}
-    @media print{body{background:#fff;padding:0}.page{box-shadow:none;border-radius:0;border:0;max-width:none;min-height:100vh}.no-print{display:none}.header{grid-template-columns:115px 1fr 170px}.brand h1{font-size:34px}}
+    @media print{html,body{width:210mm;min-height:297mm;background:#fff;padding:0;margin:0}.print-shell{padding:0}.page{width:190mm;min-height:277mm;box-shadow:none;border-radius:0;border:0;max-width:none;margin:0 auto;padding:10mm}.no-print{display:none!important}.header{grid-template-columns:105px 1fr 160px}.brand h1{font-size:30px}.logo{width:96px;height:96px}.badge .title{font-size:24px}.card{padding:14px}.item-row td{padding:12px 10px}.product-name{font-size:18px}.summary{padding:14px;margin-top:14px}.footer{margin-top:14px;padding:12px}}
     @media (max-width:760px){body{padding:10px}.page{padding:20px}.header{grid-template-columns:1fr;text-align:center}.badge{max-width:220px;margin:auto}.cards{grid-template-columns:1fr}.pattern{margin-inline:-20px}.contacts{flex-wrap:wrap}.summary{grid-template-columns:1fr}.product-name{font-size:18px}.head th,.item-row td{font-size:13px;padding:12px 8px}.total-box{flex-direction:column}.brand h1{font-size:30px}}
   </style>
 </head>
 <body>
+  <div class="print-shell">
   <main class="page">
     <section class="header">
       <img class="logo" src="/logo.png" alt="مطبخ التراث الكويتي" />
@@ -191,8 +195,25 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
     </section>
 
     <footer class="footer">🌿 شكراً لتعاملكم معنا<small>Alturath.kw | 92225308 | 94059238</small></footer>
-    <div class="no-print"><button class="print-btn" onclick="window.print()">طباعة / حفظ PDF</button></div>
+    <div class="no-print"><button class="print-btn" onclick="safePrintInvoice()">طباعة / حفظ PDF</button></div>
   </main>
+  </div>
+  <script>
+    async function waitForInvoiceAssets(){
+      try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch(e) {}
+      const imgs = Array.from(document.images || []);
+      await Promise.all(imgs.map(function(img){
+        if (img.complete) return Promise.resolve();
+        return new Promise(function(resolve){ img.onload = resolve; img.onerror = resolve; setTimeout(resolve, 1200); });
+      }));
+      await new Promise(function(resolve){ requestAnimationFrame(function(){ requestAnimationFrame(resolve); }); });
+    }
+    async function safePrintInvoice(){
+      await waitForInvoiceAssets();
+      window.print();
+    }
+    window.addEventListener('load', function(){ waitForInvoiceAssets(); });
+  </script>
 </body>
 </html>`;
 }

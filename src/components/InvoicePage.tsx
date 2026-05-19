@@ -429,47 +429,63 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
         .sort((a, b) => (a.name || "").localeCompare(b.name || "", "ar"));
     }, [data.products, searchQuery, supplierFilter]);
 
+    const addonToNumber = (value: any, fallback = 0) => {
+      if (value === undefined || value === null || value === '') return fallback;
+      const normalized = String(value)
+        .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+        .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+        .replace(/,/g, '');
+      const n = Number(normalized);
+      return Number.isFinite(n) ? n : fallback;
+    };
+
+    const isRequiredAddon = (addon: any) => !!addon?.isRequired || addonToNumber(addon?.minQuantity, 0) > 0 || addon?.quantityRule?.mode === 'required';
+
+    const getAddonLimitsForInvoice = (addon: any, productQty: number) => {
+      if (addon?.quantityRule?.enabled) {
+        const minProductQty = Math.max(1, addonToNumber(addon.quantityRule.minProductQty, 1));
+        if (addonToNumber(productQty, 0) < minProductQty) return { available: false, min: 0, max: 0, suggested: 0 };
+      }
+      const baseMin = isRequiredAddon(addon) ? Math.max(1, addonToNumber(addon?.minQuantity, 1)) : Math.max(0, addonToNumber(addon?.minQuantity, 0));
+      const maxRaw = addon?.maxQuantity ?? addon?.maxQty;
+      const max = maxRaw === undefined || maxRaw === null || maxRaw === '' ? 999 : Math.max(baseMin, addonToNumber(maxRaw, 999));
+      const perAddon = Math.max(1, addonToNumber(addon?.quantityRule?.maxProductQtyPerAddon ?? addon?.xItemsThreshold ?? 1, 1));
+      const suggested = addon?.quantityRule?.enabled ? Math.max(1, Math.ceil(Math.max(1, addonToNumber(productQty, 1)) / perAddon)) : Math.max(baseMin, 1);
+      return { available: true, min: baseMin, max, suggested };
+    };
+
+    const syncInvoiceAddons = (addons: any[] = [], productQty = 1) => {
+      return (Array.isArray(addons) ? addons : []).map((addon: any) => {
+        const limits = getAddonLimitsForInvoice(addon, productQty);
+        const current = addonToNumber(addon?.quantity, 0);
+        if (!limits.available) return { ...addon, quantity: 0 };
+        if (addon?.quantityRule?.mode === 'auto') {
+          return { ...addon, quantity: Math.max(limits.min, Math.min(limits.max, limits.suggested)) };
+        }
+        if (isRequiredAddon(addon)) {
+          return { ...addon, quantity: Math.max(limits.min, Math.min(limits.max, current || limits.min || 1)) };
+        }
+        return { ...addon, quantity: Math.max(limits.min, Math.min(limits.max, current)) };
+      });
+    };
+
     const addToCart = (productId: string) => {
-      // FORCING VITE CACHE INVALIDATION
       const product = (data.products || []).find((p) => p.id === productId);
       if (!product) return;
-      
       const rawAddons = product.addons as any;
-      const safeList: any[] = [];
-      if (rawAddons) {
-        if (Array.isArray(rawAddons)) {
-          for (let i = 0; i < rawAddons.length; i++) {
-            safeList.push(rawAddons[i]);
-          }
-        } else if (typeof rawAddons === 'object') {
-           // just in case they are objects
-           const vals = Object.values(rawAddons);
-           for (let i = 0; i < vals.length; i++) {
-             safeList.push(vals[i]);
-           }
-        }
-      }
-      
+      const safeList: any[] = Array.isArray(rawAddons) ? Array.from(rawAddons) : (rawAddons && typeof rawAddons === 'object' ? Object.values(rawAddons) : []);
       toast.success(`تم إضافة ${product.name} للسلة`);
-      
       setCart((prev) => {
         const existing = prev[productId];
+        const nextQty = (existing ? existing.quantity : 0) + 1;
+        const baseAddons = existing ? existing.addons : safeList;
         return {
           ...prev,
           [productId]: {
-            quantity: (existing ? existing.quantity : 0) + 1,
+            quantity: nextQty,
             priceAtTime: product.price,
             costAtTime: product.cost,
-            addons: existing
-              ? existing.addons
-              : safeList.map(
-                  (a) => ({
-                    ...a,
-                    quantity: a.isRequired
-                      ? Math.max(1, a.minQuantity || 1)
-                      : 0,
-                  }),
-                ),
+            addons: syncInvoiceAddons(baseAddons, nextQty),
           },
         };
       });
@@ -482,7 +498,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
         if (existing.quantity > 1) {
           return {
             ...prev,
-            [productId]: { ...existing, quantity: existing.quantity - 1 },
+            [productId]: { ...existing, quantity: existing.quantity - 1, addons: syncInvoiceAddons(existing.addons, existing.quantity - 1) },
           };
         } else {
           toast.info(
@@ -518,12 +534,10 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
         
         const newAddons = baseArray.map((a) => {
           if (a.id === addonId) {
-            const cur = a.quantity || 0;
-            const min = a.isRequired
-              ? Math.max(1, a.minQuantity || 1)
-              : a.minQuantity || 0;
-            const max = a.maxQuantity || 999;
-            const next = Math.max(min, Math.min(max, cur + delta));
+            const limits = getAddonLimitsForInvoice(a, item.quantity || 1);
+            if (!limits.available) return { ...a, quantity: 0 };
+            const cur = addonToNumber(a.quantity, 0);
+            const next = Math.max(limits.min, Math.min(limits.max, cur + delta));
             return { ...a, quantity: next };
           }
           return a;
@@ -1186,20 +1200,6 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
                                   {Number(a.freeQuantity || 0) > 0 && (
                                     <span className="text-[8px] text-emerald-600 font-bold">
                                       أول {a.freeQuantity} مجاناً
-                                    </span>
-                                  )}
-                                  {(a.isRequired ||
-                                    Number(a.minQuantity || 0) > 0 ||
-                                    Number(a.maxQuantity || 0) > 0) && (
-                                    <span className="text-[8px] text-indigo-500 font-bold">
-                                      الحد:{" "}
-                                      {a.isRequired
-                                        ? Math.max(
-                                            1,
-                                            Number(a.minQuantity || 1),
-                                          )
-                                        : Number(a.minQuantity || 0)}{" "}
-                                      - {Number(a.maxQuantity || 999)}
                                     </span>
                                   )}
                                 </div>
