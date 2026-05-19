@@ -127,9 +127,9 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const customerByPhone = new Map((data?.customers || []).filter((c: any) => c.phone).map((c: any) => [String(c.phone), c]));
  const normalizeExportProduct = (product: any) => ({
    ...product,
-   addons: json(product?.addons || []),
-   addOns: json(product?.addOns || []),
-   extras: json(product?.extras || []),
+   addons: json(Array.isArray(product?.addons) ? product.addons : []),
+   addOns: json(Array.isArray(product?.addOns) ? product.addOns : []),
+   extras: json(Array.isArray(product?.extras) ? product.extras : []),
    rawProduct: json(product)
  });
 
