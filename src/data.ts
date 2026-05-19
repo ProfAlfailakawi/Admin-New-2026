@@ -47,11 +47,13 @@ export const INITIAL_DATA: AppState = {
   invoices: [],
   expenses: [],
   supplierTransfers: [],
+  productCategories: ['الولائم', 'اللحوم', 'الدجاج', 'البحري', 'المشويات', 'المقبلات', 'المشروبات'],
   settings: {
     gatewayFeeAmount: 0.200,
     companyName: 'شركة مطبخ التراث الكويتي',
     companyLogo: '',
     restaurantNumbers: [],
+    productCategories: ['الولائم', 'اللحوم', 'الدجاج', 'البحري', 'المشويات', 'المقبلات', 'المشروبات'],
     notifications: {
       lateInvoices: true,
       salesGoals: true,
@@ -252,6 +254,7 @@ export const GET_DEMO_DATA = (): AppState => {
             companyName: 'شركة مطبخ التراث الكويتي',
             companyLogo: '',
             restaurantNumbers: ['99911122', '22233344'],
+            productCategories: ['الولائم', 'اللحوم', 'الدجاج', 'البحري', 'المشويات', 'المقبلات', 'المشروبات'],
             notifications: {
                 lateInvoices: true,
                 salesGoals: true,
