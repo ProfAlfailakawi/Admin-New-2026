@@ -4823,43 +4823,12 @@ const [isPending, startTransition] = useTransition();
                                           (inv as any).status ||
                                             inv.paymentStatus,
                                         ) ? (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const updatedInvoices =
-                                              (data.invoices || []).map((i) =>
-                                                i.id === inv.id
-                                                  ? {
-                                                      ...i,
-                                                      paymentStatus: "paid",
-                                                      status: "مدفوعة",
-                                                    }
-                                                  : i,
-                                              );
-                                            const updatedOrders =
-                                              (data.orders || []).map((o) =>
-                                                o.linkedInvoiceId === inv.id || o.id === inv.id
-                                                  ? {
-                                                      ...o,
-                                                      status:
-                                                        "تم الدفع وجاري التوصيل",
-                                                      paymentStatus: "paid",
-                                                    }
-                                                  : o,
-                                              );
-                                            onUpdateData({
-                                              ...data,
-                                              invoices: updatedInvoices,
-                                              orders: updatedOrders,
-                                            });
-                                            toast.success(
-                                              `تم تحديث حالة الفاتورة ${inv.id} والطلب المرتبط إلى مدفوع`,
-                                            );
-                                          }}
-                                          className="hover:underline"
+                                        <span
+                                          className="inline-flex items-center gap-1 cursor-not-allowed select-none"
+                                          title="نشاط الطلبات الأحدث للعرض فقط. يتم تعديل حالة الدفع من سجل الفواتير أو تفاصيل الفاتورة."
                                         >
-                                          بانتظار الدفع (تعديل)
-                                        </button>
+                                          بانتظار الدفع
+                                        </span>
                                       ) : isFailedStatus(
                                           (inv as any).status ||
                                             inv.paymentStatus,

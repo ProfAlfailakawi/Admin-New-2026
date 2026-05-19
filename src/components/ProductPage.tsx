@@ -369,6 +369,12 @@ const ProductPage: React.FC<ProductPageProps> = ({
       const parsedPrice = parseFloat(productForm.price as any) || 0;
       const parsedCost = parseFloat(productForm.cost as any) || 0;
 
+      const emptyAddonIndex = ((productForm as any).addons || []).findIndex((addon: any) => !String(addon?.name || '').trim());
+      if (emptyAddonIndex !== -1) {
+        toast.error(`اسم الإضافة رقم ${emptyAddonIndex + 1} إلزامي ولا يمكن تركه فارغاً`);
+        return;
+      }
+
       if (parsedPrice <= parsedCost) {
         setPriceError(
           "لا يمكن أن يكون سعر البيع أقل من أو يساوي تكلفة المنتج.",
@@ -1277,8 +1283,15 @@ const ProductPage: React.FC<ProductPageProps> = ({
                             setProductForm(prev => ({ ...prev, addons: newAddons }));
                           }}
                           placeholder="مثال: حشو ربيان، سيرفر ذهبي"
-                          className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
+                          required
+                          className={cn(
+                            "w-full bg-slate-50 border rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right",
+                            String(addon.name || '').trim() ? "border-slate-200/60" : "border-rose-300 bg-rose-50/40"
+                          )}
                         />
+                        {!String(addon.name || '').trim() && (
+                          <p className="text-[10px] font-bold text-rose-500 mt-1">اسم الإضافة إلزامي</p>
+                        )}
                       </div>
 
                       <div className="md:col-span-2 space-y-3 mt-4 mb-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">

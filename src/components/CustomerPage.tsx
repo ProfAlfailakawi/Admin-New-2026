@@ -17,6 +17,11 @@ import { toast } from 'sonner';
 import { NumericInput } from './ui/NumericInput';
 import { StatCardComponent as StatCard } from './StatCard';
 
+const enforceEnglishNumbers = (val: string) =>
+  String(val || '')
+    .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
+    .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString());
+
 interface CustomerPageProps {
  data: AppState;
  setData: React.Dispatch<React.SetStateAction<AppState>>;
@@ -601,15 +606,15 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
            <div className="grid grid-cols-3 gap-3">
              <div className="space-y-1">
                <label className="text-[9px] font-bold text-slate-400 mr-1">القطعة *</label>
-               <input value={customerForm.detailedAddress.block} onChange={e => setCustomerForm({...customerForm, detailedAddress: {...customerForm.detailedAddress, block: e.target.value}})} className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none text-xs font-bold" placeholder="ق" />
+               <input value={customerForm.detailedAddress.block} onChange={e => setCustomerForm({...customerForm, detailedAddress: {...customerForm.detailedAddress, block: enforceEnglishNumbers(e.target.value)}})} className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none text-xs font-bold" placeholder="ق" />
              </div>
              <div className="space-y-1">
                <label className="text-[9px] font-bold text-slate-400 mr-1">الشارع *</label>
-               <input value={customerForm.detailedAddress.street} onChange={e => setCustomerForm({...customerForm, detailedAddress: {...customerForm.detailedAddress, street: e.target.value}})} className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none text-xs font-bold" placeholder="ش" />
+               <input value={customerForm.detailedAddress.street} onChange={e => setCustomerForm({...customerForm, detailedAddress: {...customerForm.detailedAddress, street: enforceEnglishNumbers(e.target.value)}})} className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none text-xs font-bold" placeholder="ش" />
              </div>
              <div className="space-y-1">
                <label className="text-[9px] font-bold text-slate-400 mr-1">المنزل *</label>
-               <input value={customerForm.detailedAddress.building} onChange={e => setCustomerForm({...customerForm, detailedAddress: {...customerForm.detailedAddress, building: e.target.value}})} className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none text-xs font-bold" placeholder="م" />
+               <input value={customerForm.detailedAddress.building} onChange={e => setCustomerForm({...customerForm, detailedAddress: {...customerForm.detailedAddress, building: enforceEnglishNumbers(e.target.value)}})} className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none text-xs font-bold" placeholder="م" />
              </div>
            </div>
          </div>
