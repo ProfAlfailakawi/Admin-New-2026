@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Package,
   Slash,
@@ -94,6 +94,30 @@ const ProductPage: React.FC<ProductPageProps> = ({
   const [uploading, setUploading] = useState(false);
   const [shakingId, setShakingId] = useState<string | null>(null);
   const [showProfitWarning, setShowProfitWarning] = useState(false);
+  const addonInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const normalizeNumericInput = (value: string) => value
+    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[^0-9.]/g, '');
+
+  const addNewAddonToProduct = () => {
+    const newAddon = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: '',
+      price: 0,
+      cost: 0,
+      calculationType: 'per_item',
+      xItemsThreshold: 1,
+      isHiddenPrice: false,
+      quantityRule: { enabled: false, minProductQty: 2, maxProductQtyPerAddon: 6, mode: 'manual' }
+    };
+    setProductForm(prev => ({ ...prev, addons: [...(Array.isArray((prev as any).addons) ? (prev as any).addons : []), newAddon] }));
+    requestAnimationFrame(() => {
+      addonInputRefs.current[newAddon.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      addonInputRefs.current[newAddon.id]?.focus();
+    });
+  };
 
   // Smart Name Matching Logic
   useEffect(() => {
@@ -879,6 +903,23 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       </span>
                     </div>
 
+                    {(() => {
+                      const bestPrice = getBestPriceInfo(product);
+                      if (!bestPrice) return null;
+                      return (
+                        <div className="absolute top-2.5 left-2.5 z-30 group/badge outline-none" tabIndex={0} onClick={(e) => e.stopPropagation()}>
+                          <button type="button" className="w-7 h-7 rounded-full bg-rose-50/95 border border-rose-100 text-rose-500 shadow-sm flex items-center justify-center hover:bg-rose-100 transition-all">
+                            <AlertCircle size={14} className="shrink-0" />
+                          </button>
+                          <div className="absolute top-full mt-2 left-0 hidden group-hover/badge:flex group-focus/badge:flex flex-col bg-white/95 backdrop-blur-xl text-slate-700 text-[10px] w-[150px] p-2 rounded-2xl z-[100] shadow-xl font-bold border border-rose-100 pointer-events-none items-center gap-1.5 text-center">
+                            <span className="bg-rose-50 text-rose-600 px-2 py-1.5 rounded-xl leading-relaxed w-full break-words whitespace-normal">{bestPrice.supplier}</span>
+                            <span className="w-full text-slate-600">يبيعه أرخص!</span>
+                            <span className="text-rose-600 bg-rose-50 px-2 py-1.5 rounded-xl leading-none w-full">{Number(bestPrice.cost || 0).toFixed(3)} د.ك</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* Marketing Badges (Top Right) */}
                     <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end z-10">
                       {isSlow && (
@@ -916,30 +957,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                             {supplier?.name || "مورد مجهول"}
                           </span>
                         </div>
-                        {(() => {
-                           const bestPrice = getBestPriceInfo(product);
-                           if (bestPrice) {
-                             return (
-                               <div 
-                                  className="relative group/badge outline-none"
-                                  tabIndex={0}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                  }}
-                                >
-                                  <div className="bg-rose-50 border border-rose-100 text-rose-600 p-1.5 rounded-full cursor-pointer shadow-sm">
-                                    <AlertCircle size={14} className="shrink-0 animate-pulse" />
-                                  </div>
-                                  <div className="absolute bottom-full mb-2 right-1/2 translate-x-[75%] sm:translate-x-[60%] hidden group-hover/badge:flex group-focus/badge:flex focus-within:flex flex-col bg-white text-slate-700 text-[10px] sm:text-[10px] w-[110px] sm:w-[130px] p-2 rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-bold border border-slate-200/60 pointer-events-none items-center gap-1.5 text-center">
-                                    <span className="bg-rose-50 text-rose-600 px-2 py-1.5 rounded-lg leading-relaxed w-full break-words whitespace-normal">{bestPrice.supplier}</span>
-                                    <span className="w-full">يبيعه أرخص !</span>
-                                    <span className="text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg leading-none w-full">{Number(bestPrice.cost || 0).toFixed(3)} د.ك</span>
-                                  </div>
-                                </div>
-                             );
-                           }
-                           return null;
-                        })()}
+
                       </div>
                     </div>
 
@@ -1239,19 +1257,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
               <div className="space-y-3 mt-6 border-t pt-6 border-slate-100 px-3 md:px-3 pb-4">
                 <div className="flex flex-col-reverse md:flex-row justify-between items-center bg-slate-50 p-3 rounded-2xl gap-3">
                   <button
-                    onClick={() => {
-                      const newAddon = {
-                        id: Math.random().toString(36).substr(2, 9),
-                        name: '',
-                        price: 0,
-                        cost: 0,
-                        calculationType: 'per_item',
-                        xItemsThreshold: 1,
-                        isHiddenPrice: false,
-                        quantityRule: { enabled: false, minProductQty: 2, maxProductQtyPerAddon: 6, mode: 'manual' }
-                      };
-                      setProductForm(prev => ({ ...prev, addons: [...(Array.isArray((prev as any).addons) ? (prev as any).addons : []), newAddon] }));
-                    }}
+                    onClick={addNewAddonToProduct}
                     className="text-primary hover:bg-primary/10 p-2 rounded-xl transition-colors font-bold flex items-center gap-2 text-sm"
                   >
                     <PlusCircle size={16} /> إضافة ملحق (Add-on)
@@ -1277,6 +1283,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         <label className="text-xs font-bold text-slate-400">اسم الإضافة (مثال: حشو ربيان، صينية للعزايم)</label>
                         <input
                           type="text"
+                          ref={(el) => { addonInputRefs.current[addon.id] = el; }}
                           value={addon.name}
                           onChange={e => {
                             const newAddons = [...(productForm as any).addons];
@@ -1353,7 +1360,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                             value={addon.xItemsThreshold || 1}
                             onChange={e => {
                               const newAddons = [...(productForm as any).addons];
-                              newAddons[index].xItemsThreshold = parseInt(e.target.value) || 1;
+                              newAddons[index].xItemsThreshold = parseInt(normalizeNumericInput(e.target.value)) || 1;
                               setProductForm(prev => ({ ...prev, addons: newAddons }));
                             }}
                             min={1}
@@ -1421,6 +1428,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                               onChange={e => {
                                 const newAddons = [...(productForm as any).addons];
                                 newAddons[index].isRequired = e.target.checked;
+                                if (e.target.checked && !Number(newAddons[index].minQuantity || 0)) newAddons[index].minQuantity = 1;
                                 setProductForm(prev => ({ ...prev, addons: newAddons }));
                               }}
                               className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
@@ -1436,7 +1444,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                 value={addon.minQuantity !== undefined ? addon.minQuantity : (addon.isRequired ? 1 : 0)}
                                 onChange={e => {
                                   const newAddons = [...(productForm as any).addons];
-                                  newAddons[index].minQuantity = parseInt(e.target.value) || 0;
+                                  newAddons[index].minQuantity = parseInt(normalizeNumericInput(e.target.value)) || 0;
                                   setProductForm(prev => ({ ...prev, addons: newAddons }));
                                 }}
                                 className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm font-bold text-center"
@@ -1451,7 +1459,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                 placeholder="لا يوجد"
                                 onChange={e => {
                                   const newAddons = [...(productForm as any).addons];
-                                  newAddons[index].maxQuantity = e.target.value ? parseInt(e.target.value) : undefined;
+                                  newAddons[index].maxQuantity = normalizeNumericInput(e.target.value) ? parseInt(normalizeNumericInput(e.target.value)) : undefined;
                                   setProductForm(prev => ({ ...prev, addons: newAddons }));
                                 }}
                                 className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm font-bold text-center"
@@ -1492,7 +1500,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                       value={addon.quantityRule?.minProductQty || 2}
                                       onChange={e => {
                                         const newAddons = [...(productForm as any).addons];
-                                        newAddons[index].quantityRule = { ...(newAddons[index].quantityRule || {}), enabled: true, minProductQty: parseInt(e.target.value) || 1 };
+                                        newAddons[index].quantityRule = { ...(newAddons[index].quantityRule || {}), enabled: true, minProductQty: parseInt(normalizeNumericInput(e.target.value)) || 1 };
                                         setProductForm(prev => ({ ...prev, addons: newAddons }));
                                       }}
                                       className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm font-bold text-center"
@@ -1506,7 +1514,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                       value={addon.quantityRule?.maxProductQtyPerAddon || 6}
                                       onChange={e => {
                                         const newAddons = [...(productForm as any).addons];
-                                        newAddons[index].quantityRule = { ...(newAddons[index].quantityRule || {}), enabled: true, maxProductQtyPerAddon: parseInt(e.target.value) || 1 };
+                                        newAddons[index].quantityRule = { ...(newAddons[index].quantityRule || {}), enabled: true, maxProductQtyPerAddon: parseInt(normalizeNumericInput(e.target.value)) || 1 };
                                         setProductForm(prev => ({ ...prev, addons: newAddons }));
                                       }}
                                       className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm font-bold text-center"
@@ -1545,7 +1553,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                 value={addon.freeQuantity || 0}
                                 onChange={e => {
                                   const newAddons = [...(productForm as any).addons];
-                                  newAddons[index].freeQuantity = parseInt(e.target.value) || 0;
+                                  newAddons[index].freeQuantity = parseInt(normalizeNumericInput(e.target.value)) || 0;
                                   setProductForm(prev => ({ ...prev, addons: newAddons }));
                                 }}
                                 className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm font-bold text-center"
@@ -1579,7 +1587,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                   value={addon.stock || 0}
                                   onChange={e => {
                                     const newAddons = [...(productForm as any).addons];
-                                    newAddons[index].stock = parseInt(e.target.value) || 0;
+                                    newAddons[index].stock = parseInt(normalizeNumericInput(e.target.value)) || 0;
                                     setProductForm(prev => ({ ...prev, addons: newAddons }));
                                   }}
                                   className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-amber-500/20 text-sm font-bold text-center"
@@ -1592,6 +1600,13 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     </div>
                   </div>
                 ))}
+                <button
+                  type="button"
+                  onClick={addNewAddonToProduct}
+                  className="w-full mt-3 border-2 border-dashed border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 p-3 rounded-2xl transition-colors font-bold flex items-center justify-center gap-2 text-sm"
+                >
+                  <PlusCircle size={16} /> إضافة Add-on جديد بالأسفل
+                </button>
               </div>
             </div>
 

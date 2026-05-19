@@ -20,6 +20,34 @@ interface SmartContentStudioProps {
   onNavigate: (page: string) => void;
 }
 
+class StudioErrorBoundary extends React.Component<{ title: string; children: React.ReactNode }, { hasError: boolean; message: string }> {
+  constructor(props: { title: string; children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, message: '' };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, message: error?.message || 'حدث خطأ غير متوقع' };
+  }
+
+  componentDidCatch(error: any) {
+    console.error('Smart studio tab crashed:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-3xl border border-rose-100 bg-rose-50/80 p-8 text-right shadow-sm">
+          <h3 className="text-lg font-black text-rose-700 mb-2">تعذر فتح {this.props.title}</h3>
+          <p className="text-sm font-bold text-rose-600/80 leading-7">تم منع الشاشة البيضاء. حدّث الصفحة أو جرّب مرة ثانية، وإذا تكرر الخطأ راجع بيانات هذا القسم.</p>
+          {this.state.message && <p className="mt-3 text-xs text-rose-500 bg-white/70 rounded-2xl p-3 direction-ltr text-left">{this.state.message}</p>}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, setData, onNavigate }) => {
   const [studioTab, setStudioTab] = useState<'product' | 'radar' | 'review' | 'branding'>('product');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -33,6 +61,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [aiCaption, setAiCaption] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const previewAspectClass = selectedFormat === '9:16' ? 'aspect-[9/16] max-h-[680px]' : selectedFormat === '4:3' ? 'aspect-[4/3]' : 'aspect-square';
 
   const formats = [
     { id: '1:1', label: 'Instagram Post', sub: '1:1', icon: <ImageIcon size={16} /> },
@@ -303,6 +333,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
       const caption = res?.caption || `صورة تسويقية جاهزة بأسلوب ${selectedTheme}.`;
       setAiCaption(caption);
+      toast.success('تم توليد التعليق الذكي على الصورة');
       if (generatedImage) {
         setHistory(prev => prev.map(item => item.url === generatedImage ? {...item, caption} : item));
       }
@@ -386,9 +417,21 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         </div>
       </div>
 
-      {studioTab === 'radar' && <RealtimeRadar data={data} setData={setData} />}
-      {studioTab === 'review' && <ReviewToPoster data={data} setData={setData} />}
-      {studioTab === 'branding' && <AdaptiveBranding data={data} setData={setData} />}
+      {studioTab === 'radar' && (
+        <StudioErrorBoundary title="رادار التريندات">
+          <RealtimeRadar data={data} setData={setData} />
+        </StudioErrorBoundary>
+      )}
+      {studioTab === 'review' && (
+        <StudioErrorBoundary title="مدح سينمائي">
+          <ReviewToPoster data={data} setData={setData} />
+        </StudioErrorBoundary>
+      )}
+      {studioTab === 'branding' && (
+        <StudioErrorBoundary title="الهوية المتغيرة">
+          <AdaptiveBranding data={data} setData={setData} />
+        </StudioErrorBoundary>
+      )}
 
       {studioTab === 'product' && (
         <>
@@ -708,13 +751,18 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                       <p className="text-sm font-bold text-indigo-600">النتيجة النهائية (جاهزة للنشر)</p>
                     </div>
                     
-                    <div className="flex-1 bg-white rounded-3xl border shadow-2xl p-2 relative flex items-stretch h-[350px] md:h-[500px] overflow-hidden group">
+                    <div className={cn("w-full bg-slate-50 rounded-3xl border shadow-2xl p-2 relative flex items-stretch overflow-hidden group mx-auto", previewAspectClass)}>
                       <div className="relative flex-1 w-full h-full rounded-2xl overflow-hidden">
                         <img 
                           src={generatedImage || ""} 
                           alt="Generated" 
-                          className="absolute inset-0 w-full h-full object-contain"
+                          className="absolute inset-0 w-full h-full object-contain bg-slate-50"
                         />
+                        {aiCaption && (
+                          <div className="absolute left-4 right-4 bottom-4 z-10 rounded-2xl bg-black/55 backdrop-blur-md text-white p-3 shadow-2xl border border-white/20">
+                            <p className="text-sm md:text-base font-extrabold leading-7 text-center whitespace-pre-wrap">{aiCaption}</p>
+                          </div>
+                        )}
                       </div>
 
                       <AnimatePresence>
@@ -723,14 +771,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-white pointer-events-none z-20 flex flex-col"
+                            className="absolute inset-0 bg-slate-50 pointer-events-none z-20 flex flex-col"
                           >
                             <div className="p-3 border-b flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-slate-200" />
                               <span className="text-xs font-bold text-slate-900">preview_mode</span>
                             </div>
                             <div className="flex-1 overflow-hidden">
-                              <img src={generatedImage || ""} alt="Preview" className="w-full h-full object-contain" />
+                              <img src={generatedImage || ""} alt="Preview" className="w-full h-full object-contain bg-slate-50" />
                             </div>
                           </motion.div>
                         )}
