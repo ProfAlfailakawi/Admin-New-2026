@@ -2827,10 +2827,10 @@ const [isPending, startTransition] = useTransition();
             )}
 
             {activeTab === "intelligence" && (
-                <div className="space-y-16 max-w-[1850px] mx-auto px-6 md:px-12 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full pb-20" dir="rtl">
+                <div className="space-y-8 md:space-y-12 max-w-[1850px] mx-auto px-3 sm:px-5 md:px-8 xl:px-12 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full pb-20 overflow-x-hidden" dir="rtl">
                   
                   {/* Dashboard - AI Lab Intro - Re-styled for premium feel */}
-                  <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8 pt-10 border-b border-slate-200 pb-10">
+                  <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-5 md:gap-8 pt-5 md:pt-10 border-b border-slate-200 pb-6 md:pb-10 min-w-0">
                     <div className="space-y-2">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-ping" />
@@ -2842,7 +2842,7 @@ const [isPending, startTransition] = useTransition();
                       <p className="text-slate-500 font-bold text-sm md:text-lg max-w-2xl">المركز الاستراتيجي لاتخاذ القرارات وتحسين كفاءة المطبخ.</p>
                     </div>
                     
-                    <div className="flex items-center gap-4 bg-slate-50 p-1.5 rounded-3xl border border-slate-200 shadow-inner self-stretch lg:self-auto">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-4 bg-slate-50 p-1.5 rounded-3xl border border-slate-200 shadow-inner self-stretch lg:self-auto w-full lg:w-auto min-w-0">
                       <div className="bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center min-w-[120px]">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">قوة المعالجة</span>
                         <div className="flex items-baseline gap-1">
@@ -2861,7 +2861,7 @@ const [isPending, startTransition] = useTransition();
                   </div>
 
                   {/* Phase 1: High-Performance Analytics Core */}
-                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 items-stretch w-full">
+                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 md:gap-8 xl:gap-10 items-stretch w-full min-w-0">
                     <div className="xl:col-span-8 group">
                       <div className="relative">
                         <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[2.5rem] blur opacity-10 group-hover:opacity-20 transition duration-1000"></div>
@@ -2880,18 +2880,18 @@ const [isPending, startTransition] = useTransition();
                   </div>
 
                   {/* Phase 2: Tactical Simulator - Re-organized for Desktop Presence */}
-                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 w-full items-start">
+                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 md:gap-8 xl:gap-10 w-full items-start min-w-0">
                     {/* Main Simulator - Now Primary on Desktop */}
                     <div className="xl:col-span-8 flex flex-col h-full order-1 lg:order-2">
                       <div id="what-if-section" className="bg-white rounded-[40px] p-2 border-2 border-slate-100 overflow-hidden shadow-[0_30px_70px_-20px_rgba(0,0,0,0.1)] flex-grow hover:shadow-[0_45px_100px_-25px_rgba(0,0,0,0.15)] transition-all duration-700">
-                        <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6 bg-slate-50/30">
+                        <div className="p-4 md:p-8 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6 bg-slate-50/30 min-w-0">
                           <div className="flex items-center gap-5">
                              <div className="w-16 h-16 bg-slate-900 rounded-[24px] flex items-center justify-center text-white shadow-2xl shadow-slate-900/20 group hover:rotate-12 transition-transform duration-500">
                                 <Rocket size={28} className="group-hover:translate-y-[-2px] transition-transform" />
                              </div>
                              <div>
-                               <h3 className="font-black text-3xl text-slate-900 tracking-tighter">محاكي القرارات الافتراضي</h3>
-                               <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-[0.2em]">Quantum-Probabilistic Scenario Mapping</p>
+                               <h3 className="font-black text-xl md:text-3xl text-slate-900 tracking-tighter break-words">محاكي القرارات الافتراضي</h3>
+                               <p className="text-[10px] md:text-xs text-slate-500 font-bold mt-1 uppercase tracking-wide md:tracking-[0.2em] break-words">Quantum-Probabilistic Scenario Mapping</p>
                              </div>
                           </div>
                           <div className="flex items-center gap-3">
@@ -2959,8 +2959,8 @@ const [isPending, startTransition] = useTransition();
                                 <Award size={28} />
                              </div>
                              <div>
-                               <h3 className="font-black text-3xl text-slate-900 tracking-tighter">مهام كبار العملاء (VIP)</h3>
-                               <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-[0.2em]">Tier-1 Retention & Loyalty Optimization</p>
+                               <h3 className="font-black text-xl md:text-3xl text-slate-900 tracking-tighter break-words">مهام كبار العملاء (VIP)</h3>
+                               <p className="text-[10px] md:text-xs text-slate-500 font-bold mt-1 uppercase tracking-wide md:tracking-[0.2em] break-words">Tier-1 Retention & Loyalty Optimization</p>
                              </div>
                           </div>
                         </div>
@@ -4901,43 +4901,12 @@ const [isPending, startTransition] = useTransition();
                                           (inv as any).status ||
                                             inv.paymentStatus,
                                         ) ? (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const updatedInvoices =
-                                              (data.invoices || []).map((i) =>
-                                                i.id === inv.id
-                                                  ? {
-                                                      ...i,
-                                                      paymentStatus: "paid",
-                                                      status: "مدفوعة",
-                                                    }
-                                                  : i,
-                                              );
-                                            const updatedOrders =
-                                              (data.orders || []).map((o) =>
-                                                o.linkedInvoiceId === inv.id || o.id === inv.id
-                                                  ? {
-                                                      ...o,
-                                                      status:
-                                                        "تم الدفع وجاري التوصيل",
-                                                      paymentStatus: "paid",
-                                                    }
-                                                  : o,
-                                              );
-                                            onUpdateData({
-                                              ...data,
-                                              invoices: updatedInvoices,
-                                              orders: updatedOrders,
-                                            });
-                                            toast.success(
-                                              `تم تحديث حالة الفاتورة ${inv.id} والطلب المرتبط إلى مدفوع`,
-                                            );
-                                          }}
-                                          className="hover:underline"
+                                        <span
+                                          title="تعديل حالة الدفع من نشاط الطلبات الأحدث ممنوع. يتم التحديث فقط من بوابة الدفع أو سجل الطلبات."
+                                          className="cursor-not-allowed select-none"
                                         >
-                                          بانتظار الدفع (تعديل)
-                                        </button>
+                                          بانتظار الدفع
+                                        </span>
                                       ) : isFailedStatus(
                                           (inv as any).status ||
                                             inv.paymentStatus,

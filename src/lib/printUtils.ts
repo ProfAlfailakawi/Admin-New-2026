@@ -1,6 +1,7 @@
 import { AppState, Invoice } from '../types';
 
-const fmt = (value: any) => `${Number(value || 0).toFixed(3)} د.ك`;
+const toEnglishDigits = (value: any) => String(value ?? '').replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+const fmt = (value: any) => `${toEnglishDigits(Number(value || 0).toFixed(3))} د.ك`;
 
 const clean = (value: any) => {
   if (value === null || value === undefined) return '';
@@ -68,6 +69,8 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
   const customer = customers.find(c => c.id === (invoice as any).customerId);
   const invoiceDate = (invoice as any).date || (invoice as any).createdAt || new Date().toISOString();
   const status = (invoice as any).paymentStatus || (invoice as any).status || 'مدفوعة';
+  const normalizedStatus = String(status || '').toLowerCase();
+  const statusClass = normalizedStatus.includes('pending') || normalizedStatus.includes('انتظار') ? 'pending-status' : normalizedStatus.includes('paid') || String(status).includes('مدفوع') || String(status).includes('مدفوعة') ? 'paid-status' : 'other-status';
   const customerName = clean(customer?.name || (invoice as any).customerName) || 'عميل';
   const customerPhone = clean(customer?.phone || (invoice as any).customerPhone || (invoice as any).phone);
   const address = formatAddress((invoice as any).address || customer?.address, (invoice as any).deliveryInfo?.zoneName);
@@ -133,7 +136,7 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
     .logo{width:116px;height:116px;object-fit:contain;justify-self:center;}
     .brand{text-align:center}.brand h1{margin:0;color:var(--green);font-size:38px;line-height:1.1;font-weight:900;letter-spacing:-1px}.tagline{margin-top:8px;color:#b88a31;font-weight:700;font-size:15px}.contacts{margin-top:16px;display:flex;justify-content:center;gap:18px;direction:ltr;color:#263143;font-weight:700}.contacts span{display:flex;align-items:center;gap:6px}.badge{background:linear-gradient(145deg,var(--green),var(--green2));color:#fff;border:2px solid var(--gold);border-radius:18px;padding:18px 14px;text-align:center;box-shadow:0 8px 22px rgba(15,79,45,.18)}.badge .title{font-size:30px;font-weight:900}.badge .sub{font-size:13px;color:#f4d986;font-weight:800;margin-top:5px}
     .pattern{height:18px;margin:14px -38px 24px;background:repeating-linear-gradient(45deg,rgba(215,169,79,.26) 0 8px,transparent 8px 17px),linear-gradient(90deg,rgba(215,25,47,.05),rgba(15,79,45,.05));border-block:1px solid rgba(215,169,79,.25)}
-    .cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px}.card{border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 8px 24px rgba(15,79,45,.05);padding:22px}.card h2{margin:0 0 16px;color:var(--green);font-size:22px;font-weight:900;display:flex;align-items:center;gap:9px}.card h2 .icon{color:var(--red);font-size:22px}.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #eee7dc}.row:last-child{border-bottom:0}.label{color:#555;font-weight:700}.value{font-weight:800;text-align:left;direction:rtl}.status{color:var(--green);font-weight:900}
+    .cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px}.card{border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 8px 24px rgba(15,79,45,.05);padding:22px}.card h2{margin:0 0 16px;color:var(--green);font-size:22px;font-weight:900;display:flex;align-items:center;gap:9px}.card h2 .icon{color:var(--red);font-size:22px}.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #eee7dc}.row:last-child{border-bottom:0}.label{color:#555;font-weight:700}.value{font-weight:800;text-align:left;direction:rtl}.status{font-weight:900}.paid-status{color:var(--green)}.pending-status{color:#b45309;background:#fff7ed;border:1px solid #fed7aa;border-radius:999px;padding:2px 10px}.other-status{color:#475569}
     .table-wrap{border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:8px;background:#fff}table{width:100%;border-collapse:collapse}.head th{background:linear-gradient(180deg,var(--green),#0b4327);color:#f7d880;font-size:15px;padding:15px 12px;text-align:center;font-weight:900}.head th:first-child{text-align:right}.item-row td{padding:20px 14px;border-bottom:1px dashed #dccfbc;vertical-align:top}.item-row:last-child td{border-bottom:0}.product-cell{width:45%}.product-name{font-size:22px;font-weight:900;color:#111827}.item-number{color:var(--red);margin-left:6px}.addons-wrap{margin-top:10px;display:grid;gap:5px}.addon-line{display:flex;justify-content:space-between;gap:12px;color:#343b48;font-weight:700;font-size:14px}.addon-line b{color:var(--red);font-size:18px;line-height:0}.addon-price{color:#a17622;white-space:nowrap}.center{text-align:center;font-size:20px;font-weight:800}.money{text-align:center;font-weight:800;direction:ltr;white-space:nowrap}.strong{color:var(--green);font-size:18px}.item-note{margin-top:8px;color:#b45309;font-size:13px;font-weight:700}
     .summary{margin-top:22px;border:1px solid #e4d2b4;border-radius:18px;background:linear-gradient(135deg,#fffdf8,#fbf4e7);padding:22px;display:grid;grid-template-columns:1fr 1.1fr;gap:22px;align-items:center}.sum-lines{display:grid;gap:10px}.sum-row{display:flex;justify-content:space-between;border-bottom:1px dashed #ddcfba;padding-bottom:9px;font-weight:800}.sum-row span:first-child{color:#374151}.sum-row span:last-child{direction:ltr}.total-box{background:linear-gradient(145deg,var(--green),#093a22);border:2px solid var(--gold);border-radius:16px;padding:18px 24px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:16px;box-shadow:0 10px 26px rgba(15,79,45,.16)}.total-title{font-size:26px;font-weight:900}.total-amount{font-size:31px;font-weight:900;color:#ffd96a;direction:ltr}.ornament{height:92px;background:url('/logo.png') center/contain no-repeat;opacity:.18;filter:saturate(.8)}
     .footer{margin-top:22px;background:linear-gradient(145deg,#0d4b2c,#08371f);color:#fff;border:2px solid var(--gold);border-radius:18px;padding:18px;text-align:center;font-weight:800}.footer small{display:block;color:#e8d5a1;margin-top:4px;font-size:12px}.no-print{margin-top:18px;text-align:center}.print-btn{border:0;border-radius:999px;background:var(--green);color:#fff;font-weight:900;padding:12px 28px;cursor:pointer;font-family:inherit}
@@ -157,9 +160,9 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
     <section class="cards">
       <div class="card">
         <h2><span class="icon">☰</span> تفاصيل الفاتورة</h2>
-        <div class="row"><span class="label">رقم الفاتورة</span><span class="value">${(invoice as any).id || '-'}</span></div>
-        <div class="row"><span class="label">التاريخ والوقت</span><span class="value">${new Date(invoiceDate).toLocaleString('ar-KW')}</span></div>
-        <div class="row"><span class="label">الحالة</span><span class="value status">${status}</span></div>
+        <div class="row"><span class="label">رقم الفاتورة</span><span class="value">${toEnglishDigits((invoice as any).id || '-')}</span></div>
+        <div class="row"><span class="label">التاريخ والوقت</span><span class="value">${toEnglishDigits(new Date(invoiceDate).toLocaleString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kuwait' }))}</span></div>
+        <div class="row"><span class="label">الحالة</span><span class="value status ${statusClass}">${toEnglishDigits(status)}</span></div>
       </div>
       <div class="card">
         <h2><span class="icon">♡</span> معلومات العميل</h2>
@@ -187,7 +190,7 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
       <div class="total-box" style="grid-column:1 / -1"><span class="total-title">الإجمالي النهائي</span><span class="total-amount">${fmt(grandTotal)}</span></div>
     </section>
 
-    <footer class="footer">شكراً لاختياركم مطبخ التراث الكويتي<small>يمكن إرسال هذه الفاتورة كصورة أو ملف PDF عبر الرسائل.</small></footer>
+    <footer class="footer">🌿 شكراً لتعاملكم معنا<small>Alturath.kw | 92225308 | 94059238</small></footer>
     <div class="no-print"><button class="print-btn" onclick="window.print()">طباعة / حفظ PDF</button></div>
   </main>
 </body>
