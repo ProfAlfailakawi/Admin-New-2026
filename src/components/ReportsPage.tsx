@@ -56,110 +56,6 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().split('T')[0];
   const [customDateRange, setCustomDateRange] = useState({ start: startOfToday, end: startOfToday });
 
-  const normalizePhone = (phone: any) => String(phone || '')
-    .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
-    .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString())
-    .replace(/\D/g, '');
-
-  const getInvoicePayers = (inv: any) => {
-    const sources = [
-      inv?.splitPayments,
-      inv?.payers,
-      inv?.paidPayers,
-      inv?.payments,
-      inv?.paymentDetails,
-      inv?.splitParticipants
-    ].filter(Array.isArray) as any[][];
-
-    const raw = sources.flat();
-    const seen = new Set<string>();
-    return raw.map((payer: any, idx: number) => {
-      const obj = typeof payer === 'object' ? payer : { name: payer };
-      const name = String(obj.name || obj.customerName || obj.payerName || obj.fullName || '').trim();
-      const phone = normalizePhone(obj.phone || obj.customerPhone || obj.mobile || obj.payerPhone || '');
-      const amount = Number(obj.amount ?? obj.paidAmount ?? obj.value ?? obj.total ?? obj.paid ?? 0);
-      const explicitStatus = String(obj.status || obj.paymentStatus || obj.payment_state || obj.state || obj.result || obj.transactionStatus || '').trim();
-      const normalizedStatus = explicitStatus.toLowerCase().replace(/_/g, ' ').trim();
-      const successfulFlags = [obj.isPaid, obj.success, obj.successful, obj.captured, obj.approved, obj.isCaptured, obj.isApproved];
-      const hasSuccessfulFlag = successfulFlags.some(v => v === true || String(v).toLowerCase() === 'true');
-      const hasFailedFlag = [obj.failed, obj.cancelled, obj.canceled, obj.declined, obj.rejected, obj.expired].some(v => v === true || String(v).toLowerCase() === 'true');
-      const blockedStatus = ['pending', 'new', 'awaiting payment', 'processing', 'unpaid', 'not paid', 'failed', 'declined', 'rejected', 'expired', 'voided', 'cancelled', 'canceled', 'بانتظار الدفع', 'في انتظار الدفع', 'انتظار', 'غير مدفوع', 'لم يدفع', 'فشل', 'فشلت', 'فشل في عملية الدفع', 'ملغي'];
-      const hasBlockedStatus = blockedStatus.some(st => normalizedStatus === st || normalizedStatus.includes(st));
-      const status = explicitStatus || (hasSuccessfulFlag ? 'paid' : '');
-      const isActuallyPaid = amount > 0 && !hasFailedFlag && !hasBlockedStatus && !isFailedStatus(status) && !isCancelledStatus(status) && (hasSuccessfulFlag || isPaidStatus(status));
-      const paidAt = obj.paidAt || obj.paymentDate || obj.date || obj.createdAt || inv?.date || '';
-      const key = `${phone || name || idx}-${amount}`;
-      if (!isActuallyPaid) return null;
-      if (!name && !phone && amount <= 0) return null;
-      if (seen.has(key)) return null;
-      seen.add(key);
-      return {
-        name: name || `دافع ${idx + 1}`,
-        phone,
-        amount,
-        status: status || 'paid',
-        paidAt,
-        points: Number(obj.points ?? obj.loyaltyPoints ?? Math.floor(amount || 0))
-      };
-    }).filter(Boolean);
-  };
-
-
-  useEffect(() => {
-    const invoicesWithPayers = (data?.invoices || []).filter((inv: any) =>
-      inv?.id === 'ORD-1779147927032-N2PJ' ||
-      (Array.isArray(inv?.splitPayments) && inv.splitPayments.length > 0) ||
-      (Array.isArray(inv?.splitParticipants) && inv.splitParticipants.length > 0)
-    );
-    if (!invoicesWithPayers.length) return;
-
-    const existingPhones = new Set((data?.customers || []).map((c: any) => normalizePhone(c.phone)).filter(Boolean));
-    const existingNames = new Set((data?.customers || []).map((c: any) => String(c.name || '').trim()).filter(Boolean));
-    const newCustomers: any[] = [];
-
-    invoicesWithPayers.forEach((inv: any) => {
-      const rawPayers = getInvoicePayers(inv);
-      rawPayers.forEach((obj: any, idx: number) => {
-        const name = String(obj.name || obj.customerName || '').trim();
-        const phone = normalizePhone(obj.phone || obj.customerPhone || '');
-        if (!name && !phone) return;
-        const exists = phone ? existingPhones.has(phone) : existingNames.has(name);
-        if (exists) return;
-        const paidAmount = Number(obj.amount || obj.paidAmount || obj.value || 0);
-        const created = {
-          id: `auto-payer-${inv.id}-${phone || idx}`,
-          name: name || `دافع ${idx + 1}`,
-          phone,
-          status: 'active',
-          area: inv.area || inv.address?.area || inv.address?.region || '',
-          address: inv.address || '',
-          lastOrderDate: inv.date || new Date().toISOString(),
-          lastActive: inv.date || new Date().toISOString(),
-          totalOrders: 1,
-          totalSpent: paidAmount,
-          loyaltyPoints: Math.floor(paidAmount),
-          sentiment: 'positive'
-        };
-        newCustomers.push(created);
-        if (phone) existingPhones.add(phone);
-        if (name) existingNames.add(name);
-      });
-    });
-
-    if (!newCustomers.length) return;
-    setData(prev => ({
-      ...prev,
-      invoices: (prev.invoices || []).map((inv: any) => {
-        const payers = getInvoicePayers(inv);
-        return payers.length > 0 && (!Array.isArray((inv as any).splitPayments) || !(inv as any).splitPayments.length)
-          ? { ...inv, splitPayments: payers }
-          : inv;
-      }),
-      customers: [...(prev.customers || []), ...newCustomers]
-    }));
-    toast.success(`تمت إضافة ${newCustomers.length} دافع/دافعين تلقائياً إلى قائمة العملاء مع المدفوعات والنقاط`);
-  }, [data?.invoices, data?.customers, setData]);
-
 
   // ADMINFIX_REPORTS_READ_URL_ORDER_INVOICE
   useEffect(() => {
@@ -470,12 +366,12 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
          if (addonQty > 0) {
              const aTotal = Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0));
              addonsSubtotal += aTotal;
-             addonsLines.push(`  + ${addon.name} (Add-on)${addonQty > 1 ? ` (${addonQty}x)` : ''} - (${aTotal.toFixed(3)} د.ك)`);
+             addonsLines.push(`   • ${addon.name}${addonQty > 1 ? ` × ${addonQty}` : ''} = ${aTotal.toFixed(3)} د.ك`);
          }
        });
      }
 
-     return `- ${p?.name || "منتج غير معروف"} (${item.quantity || 1} × ${price.toFixed(3)} د.ك) = ${itemProductTotal.toFixed(3)} د.ك${addonsLines.length > 0 ? "\n" + addonsLines.join("\n") : ""}`;
+     return `${p?.name || "منتج غير معروف"}\n   الكمية: ${item.quantity || 1}\n   السعر الفردي: ${price.toFixed(3)} د.ك\n   إجمالي المنتج: ${itemProductTotal.toFixed(3)} د.ك${addonsLines.length > 0 ? "\n\n   الإضافات:\n" + addonsLines.join("\n") : ""}`;
    }).join("\n");
 
    const total = computeInvoiceTotal(invoice, data?.products || []);
@@ -889,28 +785,6 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(({
                 </span>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {getInvoicePayers(inv).length > 0 && (
-        <div className="mt-6 space-y-2">
-          <div className="text-[10px] font-bold text-emerald-700 mb-2 flex items-center gap-1">
-            <CreditCard size={12} /> الدافعون في نفس الفاتورة
-          </div>
-          <div className="space-y-2">
-            {getInvoicePayers(inv).map((payer: any, idx: number) => (
-              <div key={`${payer.phone || payer.name}-${idx}`} className="bg-white rounded-xl border border-emerald-100 p-3 flex items-center justify-between gap-3">
-                <div className="min-w-0 text-right">
-                  <div className="font-black text-slate-800 text-xs truncate">{payer.name}</div>
-                  {payer.phone && <div className="text-[10px] text-slate-400 font-bold" dir="ltr">{payer.phone}</div>}
-                </div>
-                <div className="text-left shrink-0">
-                  <div className="text-emerald-600 font-black text-sm">{Number(payer.amount || 0).toFixed(3)} د.ك</div>
-                  <div className="text-[10px] text-slate-400 font-bold">{Number(payer.points || 0)} نقطة</div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}

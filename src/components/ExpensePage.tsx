@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wallet, Search, Plus, Trash2, Edit2, Calendar, CreditCard, TrendingUp, ArrowDownRight, Target, PlusCircle } from 'lucide-react';
+import { Wallet, Search, Plus, Trash2, Edit2, Calendar, CreditCard, TrendingUp, ArrowDownRight, Target, PlusCircle, X } from 'lucide-react';
 import { AppState, Expense, PaymentMethod } from '../types';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -17,11 +17,13 @@ interface ExpensePageProps {
 
 const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, onClearDeepLink }) => {
  const [search, setSearch] = useState('');
+ const appliedDeepLinkRef = React.useRef<string | null>(null);
  const [deleteError, setDeleteError] = useState<string | null>(null);
  const [shakingId, setShakingId] = useState<string | null>(null);
  
  React.useEffect(() => {
- if (deepLinkData?.search) {
+ if (deepLinkData?.search && appliedDeepLinkRef.current !== deepLinkData.search) {
+ appliedDeepLinkRef.current = deepLinkData.search;
  setSearch(deepLinkData.search);
  setTimeout(() => {
  const input = document.getElementById('search-input') as HTMLInputElement;

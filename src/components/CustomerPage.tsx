@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { AppState, Customer } from '../types';
 import { DEFAULT_SQUADS } from '../data';
-import { cn, normalizeArabic } from '../lib/utils';
+import { cn, normalizeArabic, normalizeAddressObject, formatFullAddress } from '../lib/utils';
 import { isPaidStatus } from '../lib/status-utils';
 import { calculateCustomerSentiment, generateCustomerSmartMessage } from '../lib/ai-engine';
 import { motion, AnimatePresence } from 'motion/react';
@@ -439,7 +439,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
               {customer.area || 'غير محدد'}
             </div>
             <div className="text-[10px] text-slate-400 mt-0.5 font-bold">
-              {typeof customer.address === 'object' ? `${customer.address.block ? 'ق'+customer.address.block : ''} ${customer.address.street ? 'ش'+customer.address.street : ''} ${customer.address.building ? 'م'+customer.address.building : ''}` : customer.address}
+              {formatFullAddress(customer.address) || 'لا يوجد عنوان'}
             </div>
           </div>
          </td>

@@ -175,3 +175,51 @@ export async function registerPushNotifications(options?: {
     };
   }
 }
+
+export async function refreshPushRegistrationIfAlreadyAllowed(options?: {
+  userId?: string;
+  restaurantId?: string;
+}): Promise<{ success: boolean; token?: string; skipped?: boolean; error?: string }> {
+  try {
+    const support = await getPushSupportStatus();
+
+    if (!support.supported || support.permission !== "granted") {
+      return { success: false, skipped: true, error: "الإشعارات غير مفعّلة من المتصفح" };
+    }
+
+    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    const messaging = getMessaging(app);
+    const registration = await getFreshMessagingServiceWorkerRegistration();
+
+    let token = "";
+    try {
+      token = await getToken(messaging, {
+        vapidKey: FALLBACK_VAPID_KEY,
+        serviceWorkerRegistration: registration,
+      });
+    } catch (firstError) {
+      console.warn("[Push] Silent token refresh failed, retrying:", firstError);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      token = await getToken(messaging, {
+        vapidKey: FALLBACK_VAPID_KEY,
+        serviceWorkerRegistration: registration,
+      });
+    }
+
+    if (!token) {
+      return { success: false, error: "لم يتم إنشاء توكن الإشعارات" };
+    }
+
+    await saveTokenToServer(token, options);
+
+    localStorage.setItem("push_notifications_enabled", "true");
+    localStorage.setItem("last_push_token", token);
+    localStorage.setItem("push_enabled_at", new Date().toISOString());
+    localStorage.setItem("push_last_silent_refresh", new Date().toISOString());
+
+    return { success: true, token };
+  } catch (error: any) {
+    console.warn("[Push] Silent refresh failed:", error);
+    return { success: false, error: error?.message || String(error) };
+  }
+}

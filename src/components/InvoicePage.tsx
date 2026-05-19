@@ -30,7 +30,7 @@ import {
  MapPin,
  Check
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { playTing } from '../lib/sounds';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { AppState, Product, InvoiceItem, Invoice, Customer, DeliveryType, PromoCode } from '../types';
@@ -51,6 +51,7 @@ import { MagneticButton } from './ui/MagneticButton';
 import { getPublicUrl, getWebhookUrl } from '../lib/urlUtils';
 import { recalculateStateBalances, generateNextInvoiceId } from '../lib/business-logic';
 import { isPaidStatus } from '../lib/status-utils';
+import { buildInvoiceWhatsappMessage } from '../lib/whatsappInvoice';
 import { toast } from 'sonner';
 
 /**
@@ -168,13 +169,13 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
             if (addon.isHiddenPrice) {
               const rowTotal = computeAddonRevenue(addon, item);
               displayPrice += (rowTotal / Math.max(1, item.quantity || 1)); 
-              addonsLines.push(`  + ${addon.name} (Add-on)${mult > 1 ? ` (${mult})` : ''}`);
+              addonsLines.push(`   • ${addon.name}${mult > 1 ? ` × ${mult}` : ''}`);
             } else {
                const rowTotal = computeAddonRevenue(addon, item);
                if (rowTotal > 0) {
-                 addonsLines.push(`  + ${addon.name} (Add-on)${mult > 1 ? ` (${mult})` : ''} - (${rowTotal.toFixed(3)} د.ك)`);
+                 addonsLines.push(`   • ${addon.name}${mult > 1 ? ` × ${mult}` : ''} = ${rowTotal.toFixed(3)} د.ك`);
                } else {
-                 addonsLines.push(`  + ${addon.name} (Add-on)${mult > 1 ? ` (${mult})` : ''} - (مجاناً)`);
+                 addonsLines.push(`   • ${addon.name}${mult > 1 ? ` × ${mult}` : ''} = مجاناً`);
                }
             }
           }
@@ -182,7 +183,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
       });
     }
 
-    return `- ${p?.name || 'منتج غير معروف'} (${item.quantity || 1} × ${Number(displayPrice).toFixed(3)} د.ك)${addonsLines.length > 0 ? '\n' + addonsLines.join('\n') : ''}`;
+    return `${p?.name || 'منتج غير معروف'}\n   الكمية: ${item.quantity || 1}\n   السعر الفردي: ${Number(displayPrice).toFixed(3)} د.ك\n   إجمالي المنتج: ${(Number(displayPrice) * Number(item.quantity || 1)).toFixed(3)} د.ك${addonsLines.length > 0 ? '\n\n   الإضافات:\n' + addonsLines.join('\n') : ''}`;
   }).join('\n');
 
   const subtotal = computeInvoiceSubtotal(invoice, data.products);
@@ -407,18 +408,6 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
   if (!targetId || cartItems.length === 0) return toast.error('بيانات ناقصة (اختر عميل ومنتجات)');
   if (!addressDetails.block || !addressDetails.street || !addressDetails.building) return toast.error('يرجى إكمال تفاصيل العنوان');
 
-  const invalidAddon = cartItems.flatMap((it: any) =>
-    (it.addons || []).map((addon: any) => {
-      const min = addon.isRequired ? Math.max(1, Number(addon.minQuantity || 1)) : Number(addon.minQuantity || 0);
-      const max = addon.maxQuantity !== undefined && addon.maxQuantity !== '' ? Number(addon.maxQuantity) : Infinity;
-      const qty = Number(addon.quantity || 0);
-      if (qty < min) return `${it.product?.name || 'منتج'}: ${addon.name} أقل من الحد الأدنى (${min})`;
-      if (Number.isFinite(max) && qty > max) return `${it.product?.name || 'منتج'}: ${addon.name} أكثر من الحد الأعلى (${max})`;
-      return null;
-    })
-  ).find(Boolean);
-  if (invalidAddon) return toast.error(String(invalidAddon));
-
   setLoading(true);
   const invoiceId = editingInvoiceId || generateNextInvoiceId(data.invoices);
   const zone = (data.zones || []).find(z => z.id === selectedZoneId);
@@ -483,6 +472,21 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
     customers: prev.customers.map(c => c.id === targetId ? { ...c, area: regionName, address: { region: regionName, ...addressDetails } } : c)
   }));
 
+  // Safe notification nudge for new admin invoices (INV-...).
+  // This uses the existing push endpoint and does not change notification delivery logic.
+  if (!editingInvoiceId && String(invoiceId).startsWith('INV-')) {
+    fetch('/api/push/order-created-alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId: invoiceId,
+        orderNumber: invoiceId,
+        total: Number(totalValue.toFixed(3)),
+        source: 'admin_invoice'
+      })
+    }).catch((err) => console.warn('Invoice push alert nudge failed:', err));
+  }
+
   setCart({});
   setLoading(false);
 
@@ -500,7 +504,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
  };
 
  return (
-  <div className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-6 bg-slate-50 min-h-screen relative">
+  <div className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-6 bg-slate-50 min-h-screen">
     {/* Product Selection */}
     <div className="lg:col-span-2 space-y-6">
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
@@ -527,19 +531,10 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
                   const bestPrice = getBestPriceInfo(p);
                   if (bestPrice) {
                     return (
-                        <div
-                            className="absolute top-2 left-2 z-30 group/cheaper outline-none"
-                            tabIndex={0}
-                            onClick={(e) => e.stopPropagation()}
-                            onMouseDown={(e) => e.stopPropagation()}
-                        >
-                            <div className="bg-rose-50 border border-rose-100 text-rose-600 p-1.5 rounded-full cursor-pointer shadow-sm">
-                                <AlertCircle size={14} className="shrink-0 animate-pulse" />
-                            </div>
-                            <div className="absolute bottom-full mb-2 left-0 hidden group-hover/cheaper:flex group-focus/cheaper:flex focus-within:flex flex-col bg-white text-slate-700 text-[10px] sm:text-[10px] w-[125px] sm:w-[145px] p-2 rounded-xl z-[9999] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-bold border border-slate-200/60 pointer-events-none items-center gap-1.5 text-center">
-                                <span className="bg-rose-50 text-rose-600 px-2 py-1.5 rounded-lg leading-relaxed w-full break-words whitespace-normal">{bestPrice.supplier}</span>
-                                <span className="w-full">يبيعه أرخص !</span>
-                                <span className="text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg leading-none w-full">{Number(bestPrice.cost || 0).toFixed(3)} د.ك</span>
+                        <div className="absolute bottom-2 left-2 text-amber-500 z-10 p-1 group/cheaper">
+                            <AlertTriangle size={16} className="animate-pulse" />
+                            <div className="absolute bottom-full left-0 mb-1 bg-white border rounded-lg p-2 text-[8px] sm:text-[10px] shadow-xl hidden group-hover/cheaper:block w-32 font-bold z-50">
+                                تنبيه: {bestPrice.supplier} يوفره بسعر {bestPrice.cost.toFixed(3)} د.ك
                             </div>
                         </div>
                     );
@@ -668,76 +663,48 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(({ data, setData, edi
                   <span className="font-bold text-xs">{it.qty}</span>
                   <button onClick={() => addToCart(it.product!.id)} className="p-1 hover:bg-white text-slate-500"><Plus size={12}/></button>
                 </div>
-                <div className="font-bold text-primary text-xs">{Number(it.priceAtTime || it.product!.price || 0).toFixed(3)} د.ك</div>
+                <div className="font-bold text-primary text-xs">{computeInvoiceItemTotal(it as any, data.products).toFixed(3)} د.ك</div>
               </div>
               
               {it.product!.addons && it.product!.addons.length > 0 && (
-                <div className="space-y-2.5 pt-3 border-t border-slate-100">
-                  <div className="flex items-center justify-between gap-2 text-[10px] font-black text-slate-500">
-                    <span className="bg-slate-100 text-slate-500 rounded-full px-2 py-1">حد أدنى / أعلى</span>
-                    <span>إضافات الوجبة</span>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {(it.addons || it.product!.addons || []).map((a: any) => {
-                      const currentQty = Number(a.quantity || 0);
-                      const minQty = a.isRequired ? Math.max(1, Number(a.minQuantity || 1)) : Number(a.minQuantity || 0);
-                      const hasMax = a.maxQuantity !== undefined && a.maxQuantity !== null && a.maxQuantity !== '';
-                      const maxQty = hasMax ? Math.max(minQty, Number(a.maxQuantity || minQty)) : 999;
-                      const canDecrease = currentQty > minQty;
-                      const canIncrease = currentQty < maxQty;
-                      const calculationLabel = a.calculationType === 'fixed'
-                        ? 'للطلب كامل'
-                        : a.calculationType === 'per_x_items'
-                          ? `كل ${Math.max(1, Number(a.xItemsThreshold || 1))} أطباق`
-                          : 'لكل طبق';
+                <div className="space-y-2 pt-2 border-t border-slate-50">
+                  <div className="text-[10px] font-bold text-slate-400 mb-1">إضافات الوجبة:</div>
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {it.product!.addons.map((a: any) => {
+                      const cartAddon = (it.addons || []).find(ca => ca.id === a.id);
+                      const currentQty = cartAddon ? cartAddon.quantity : 0;
+                      const isFreePricing = Number(a.freeQuantity || 0) > 0;
                       return (
-                        <div key={a.id} className={cn(
-                          "rounded-2xl border p-2.5 transition-all",
-                          currentQty > 0 ? "bg-emerald-50/70 border-emerald-200" : "bg-slate-50 border-slate-100"
-                        )}>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 bg-white rounded-full p-1 border border-slate-200 shadow-sm">
-                              <button
-                                type="button"
-                                onClick={() => updateAddonQuantity(it.product!.id, a.id, -1)}
-                                disabled={!canDecrease}
-                                className={cn(
-                                  "w-7 h-7 flex items-center justify-center rounded-full transition-all",
-                                  canDecrease ? "bg-slate-100 text-slate-700 hover:bg-rose-100 hover:text-rose-600" : "bg-slate-50 text-slate-300 cursor-not-allowed"
-                                )}
-                                title={canDecrease ? 'إنقاص' : `الحد الأدنى ${minQty}`}
-                              >
-                                <Minus size={13}/>
-                              </button>
-                              <span className="min-w-7 text-center text-xs font-black text-slate-900">{currentQty}</span>
-                              <button
-                                type="button"
-                                onClick={() => updateAddonQuantity(it.product!.id, a.id, 1)}
-                                disabled={!canIncrease}
-                                className={cn(
-                                  "w-7 h-7 flex items-center justify-center rounded-full transition-all",
-                                  canIncrease ? "bg-emerald-500 text-white shadow-sm hover:bg-emerald-600" : "bg-slate-50 text-slate-300 cursor-not-allowed"
-                                )}
-                                title={canIncrease ? 'زيادة' : `الحد الأعلى ${maxQty}`}
-                              >
-                                <Plus size={13}/>
-                              </button>
+                        <div key={a.id} className="flex justify-between items-center bg-slate-100/50 p-1.5 rounded-lg">
+                          {isFreePricing ? (
+                            <div className="flex items-center gap-1.5 bg-white rounded-md p-0.5 border border-slate-200">
+                               <button onClick={() => updateAddonQuantity(it.product!.id, a.id, -1)} className="w-5 h-5 flex items-center justify-center hover:bg-slate-100 rounded text-slate-400"><Minus size={10}/></button>
+                               <span className="text-[10px] font-bold w-4 text-center">{currentQty}</span>
+                               <button onClick={() => updateAddonQuantity(it.product!.id, a.id, 1)} className="w-5 h-5 flex items-center justify-center hover:bg-slate-100 rounded text-slate-400"><Plus size={10}/></button>
                             </div>
-
-                            <div className="flex-1 min-w-0 text-right">
-                              <div className="flex items-start justify-end gap-1.5">
-                                {a.isRequired && <span className="shrink-0 rounded-full bg-rose-100 text-rose-600 px-2 py-0.5 text-[9px] font-black">إجباري</span>}
-                                <span className="text-[11px] font-black text-slate-900 leading-relaxed whitespace-normal break-words text-right">{a.name}</span>
-                              </div>
-                              <div className="mt-1 flex flex-wrap items-center justify-end gap-1.5 text-[9px] font-bold text-slate-500">
-                                {!a.isHiddenPrice && (
-                                  <span className="rounded-full bg-white px-2 py-0.5 border border-slate-100 text-slate-700">{Number(a.price || 0).toFixed(3)} د.ك</span>
-                                )}
-                                {Number(a.freeQuantity || 0) > 0 && (
-                                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 border border-emerald-200 text-emerald-700">أول {Number(a.freeQuantity || 0)} مجاناً</span>
-                                )}
-                              </div>
-                            </div>
+                          ) : (
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const min = a.isRequired ? Math.max(1, a.minQuantity || 1) : 0;
+                                if (currentQty > 0) {
+                                  if (!a.isRequired) updateAddonQuantity(it.product!.id, a.id, -currentQty);
+                                } else {
+                                  updateAddonQuantity(it.product!.id, a.id, Math.max(1, min) - currentQty);
+                                }
+                              }}
+                              className={cn(
+                                "w-6 h-6 flex flex-shrink-0 items-center justify-center rounded-md transition-all", 
+                                currentQty > 0 ? "bg-emerald-500 text-white" : "bg-white border border-slate-200 text-transparent hover:border-emerald-500",
+                                a.isRequired ? "opacity-50 cursor-not-allowed" : ""
+                              )}
+                            >
+                              <Check size={14} />
+                            </button>
+                          )}
+                          <div className="flex flex-col items-end">
+                            <span className="text-[10px] font-bold text-slate-700">{a.name}</span>
+                            <span className="text-[8px] text-slate-400">{a.price.toFixed(3)} د.ك</span>
                           </div>
                         </div>
                       );

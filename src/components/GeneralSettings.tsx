@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { AppState, AppSettings, Zone, Product, Customer, Expense, Supplier, Testimonial, PulseAnalysisRecord, AICampaign, SupplierTransfer } from '../types';
 import { GET_DEMO_DATA } from '../data';
-import { cn, formatFullAddress } from '../lib/utils';
+import { cn, formatFullAddress, normalizeAddressObject } from '../lib/utils';
 import * as XLSX from 'xlsx';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore'; 
 import { db, auth, getSmartDoc } from '../firebase'; 
@@ -118,23 +118,20 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const safe = (v: any) => v === undefined || v === null ? '' : v;
  const json = (v: any) => v === undefined || v === null ? '' : JSON.stringify(v);
  const addressText = (addr: any, fallbackArea?: string) => {
-   if (!addr) return fallbackArea || '';
-   if (typeof addr === 'string') return addr;
-   return [
-     addr.region || addr.governorate || addr.city || fallbackArea,
-     addr.area || addr.zoneName,
-     addr.block ? `ق ${addr.block}` : '',
-     addr.street ? `ش ${addr.street}` : '',
-     addr.jaddah ? `جادة ${addr.jaddah}` : '',
-     addr.building || addr.house ? `م ${addr.building || addr.house}` : '',
-     addr.floor ? `دور ${addr.floor}` : '',
-     addr.apartment ? `شقة ${addr.apartment}` : '',
-     addr.notes || addr.addressNotes || ''
-   ].filter(Boolean).join(' - ');
+   const normalized = normalizeAddressObject(addr);
+   const full = formatFullAddress(normalized);
+   return full || fallbackArea || '';
  };
  const itemName = (it: any) => (data?.products || []).find(p => p.id === it.productId)?.name || it.name || it.productName || it.productId || '';
  const customerById = new Map((data?.customers || []).map((c: any) => [c.id, c]));
  const customerByPhone = new Map((data?.customers || []).filter((c: any) => c.phone).map((c: any) => [String(c.phone), c]));
+ const normalizeExportProduct = (product: any) => ({
+   ...product,
+   addons: json(product?.addons || []),
+   addOns: json(product?.addOns || []),
+   extras: json(product?.extras || []),
+   rawProduct: json(product)
+ });
 
  const invoiceRows = (data?.invoices || []).map((i: any) => {
    const c: any = customerById.get(i.customerId) || customerByPhone.get(String(i.customerPhone || '')) || {};
@@ -256,7 +253,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  });
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(customerRows), "Customers");
 
- XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.products || []),"Products");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data?.products || []).map(normalizeExportProduct)),"Products");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.suppliers || []),"Suppliers");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.supplierTransfers || []),"SupplierTransfers");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.zones || []),"Zones");
@@ -362,10 +359,48 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  return obj;
  };
 
+ const makeAddressFromRow = (row: any) => {
+   const parsed = normalizeAddressObject(parseSafeJson(row.address, false)) || normalizeAddressObject(parseSafeJson(row.rawAddress, false)) || normalizeAddressObject(parseSafeJson(row.detailedAddress, false));
+   if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && !parsed.fullText) return parsed;
+   const fullText = parsed?.fullText || row.addressFull || '';
+   const address = {
+     region: row.addressRegion || row.region || row.governorate || row.area || '',
+     area: row.addressArea || row.area || '',
+     block: row.addressBlock || row.block || '',
+     street: row.addressStreet || row.street || '',
+     jaddah: row.addressJaddah || row.jaddah || '',
+     building: row.addressBuilding || row.building || row.house || '',
+     floor: row.addressFloor || row.floor || '',
+     apartment: row.addressApartment || row.apartment || '',
+     notes: row.addressNotes || row.notesAddress || ''
+   };
+   return Object.values(address).some(Boolean) ? address : (fullText ? { fullText } : undefined);
+ };
+ const restoreCustomerRow = (row: any) => {
+   const raw = parseSafeJson(row.rawCustomer, false);
+   const base = raw && typeof raw === 'object' ? { ...raw, ...row } : { ...row };
+   const address = makeAddressFromRow(row);
+   delete base.rawCustomer;
+   delete base.addressFull;
+   if (address) base.address = address;
+   return stripUndefined(base);
+ };
+ const restoreProductRow = (row: any) => {
+   const raw = parseSafeJson(row.rawProduct, false);
+   const base = raw && typeof raw === 'object' ? { ...raw, ...row } : { ...row };
+   const addons = parseSafeJson(row.addons, true);
+   const addOns = parseSafeJson(row.addOns, true);
+   const extras = parseSafeJson(row.extras, true);
+   if (addons.length) base.addons = addons;
+   if (addOns.length) base.addOns = addOns;
+   if (extras.length) base.extras = extras;
+   delete base.rawProduct;
+   return stripUndefined(base);
+ };
  const newState: AppState = {
  ...INITIAL_DATA,
- products: stripUndefined(safeSheetToObj("Products")) as any as Product[],
- customers: stripUndefined(safeSheetToObj("Customers")) as any as Customer[],
+ products: (safeSheetToObj("Products") as any[]).map(restoreProductRow) as any as Product[],
+ customers: (safeSheetToObj("Customers") as any[]).map(restoreCustomerRow) as any as Customer[],
  invoices: data.invoices || INITIAL_DATA.invoices, 
  orders: data.orders || INITIAL_DATA.orders, 
  zones: data.zones || INITIAL_DATA.zones,
@@ -385,7 +420,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  newState.invoices = rawInvoices.map(inv => {
  const isDeleted = inv.isDeleted === true || inv.isDeleted ==="TRUE" || inv.isDeleted ==="true";
  const parsedItems = parseSafeJson(inv.items, true);
- const parsedAddress = parseSafeJson(inv.address, false) || inv.address;
+ const parsedAddress = parseSafeJson(inv.address, false) || parseSafeJson(inv.rawAddress, false) || makeAddressFromRow(inv) || inv.address;
  const parsedDeliveryInfo = parseSafeJson(inv.deliveryInfo, false) || inv.deliveryInfo;
  
  return stripUndefined({ 
@@ -403,7 +438,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const rawOrders = XLSX.utils.sheet_to_json(ordersSheet) as any[];
  newState.orders = rawOrders.map(o => {
  const parsedItems = parseSafeJson(o.items, true);
- const parsedAddress = parseSafeJson(o.address, false) || o.address;
+ const parsedAddress = parseSafeJson(o.address, false) || makeAddressFromRow(o) || o.address;
  return stripUndefined({ ...o, items: parsedItems, address: typeof parsedAddress === 'object' ? parsedAddress : o.address });
  });
  }
