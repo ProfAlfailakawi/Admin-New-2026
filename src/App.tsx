@@ -545,7 +545,7 @@ const MainApp: React.FC = () => {
 
   // Extreme Cache clearing for major updates
   useEffect(() => {
-    const CURRENT_VERSION = '4.0.0';
+    const CURRENT_VERSION = '2.6';
     if (localStorage.getItem('app_version') !== CURRENT_VERSION) {
       if ('caches' in window) {
         caches.keys().then(names => {
