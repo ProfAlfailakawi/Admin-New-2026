@@ -73,7 +73,7 @@ import {
 import { isPaidStatus } from "../lib/status-utils";
 import { toast } from "sonner";
 
-const DEFAULT_PRODUCT_CATEGORIES = ["الولائم", "اللحوم", "الدجاج", "البحري", "المشويات", "المقبلات", "المشروبات"];
+const DEFAULT_PRODUCT_CATEGORIES = ["الولائم", "اللحوم", "الدجاج", "البحري", "المقبلات"];
 
 const normalizeCategoryName = (value?: string) => String(value || "عام").trim() || "عام";
 
@@ -88,7 +88,7 @@ const getSharedProductCategories = (source: any, productList: any[] = []) => {
     ? configured.map((cat: any) => normalizeCategoryName(typeof cat === "string" ? cat : cat?.name || cat?.title)).filter(Boolean)
     : [];
   const productNames = productList.map((p: any) => normalizeCategoryName(p?.category)).filter(Boolean);
-  return Array.from(new Set([...configuredNames, ...DEFAULT_PRODUCT_CATEGORIES, ...productNames]));
+  return Array.from(new Set([...configuredNames, ...DEFAULT_PRODUCT_CATEGORIES, ...productNames])).filter((cat) => cat !== "عام");
 };
 
 /**
@@ -856,7 +856,7 @@ Alturath.kw
             </div>
             {(() => {
               const invoiceCategories = getSharedProductCategories(data, filteredProducts);
-              const groupedProducts = invoiceCategories
+              const groupedProducts = [...invoiceCategories]
                 .map((category) => ({
                   category,
                   items: filteredProducts.filter((p: any) => normalizeCategoryName(p?.category) === category),

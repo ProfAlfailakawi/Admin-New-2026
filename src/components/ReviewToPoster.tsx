@@ -87,6 +87,23 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
           </h2>
         </div>
         <p className="text-slate-500 text-sm max-w-2xl">لا تنزل سكرين شوت للتعليقات! حول مدح زباينك إلى بوستر سينمائي فخم يجبرهم على مشاركته مع أصدقائهم ليصبحوا أبطال قصتك.</p>
+
+        {history.filter((item) => item.url).length > 0 && (
+          <div className="bg-slate-50 rounded-3xl border border-slate-100 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-bold text-slate-400">اضغط على أي بوستر لاسترجاعه</span>
+              <h3 className="font-black text-slate-800 flex items-center gap-2"><ImageIcon size={16} className="text-purple-500" /> أرشيف الصور السابقة</h3>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {history.filter((item) => item.url).slice(0, 8).map((item, idx) => (
+                <button key={idx} onClick={() => { setGeneratedBaseImage(item.url); setReview(item.review); }} className="group rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm hover:shadow-md transition-all text-right">
+                  <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
+                  <div className="p-2 text-[10px] font-bold text-slate-500 truncate">{item.review || 'بوستر سابق'}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         
         <div>
           <label className="text-xs font-bold text-slate-500 mb-2 block">اختر المقاس للتوليد</label>

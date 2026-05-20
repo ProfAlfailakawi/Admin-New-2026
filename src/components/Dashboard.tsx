@@ -1314,8 +1314,21 @@ const [isPending, startTransition] = useTransition();
       );
 
 
+      const getInvoiceAddonsRevenue = (inv: any) => {
+        const computed = computeInvoiceAddonsTotal(inv, data?.products || []);
+        const fallback = Number(
+          (inv as any)?.addonsTotal ??
+          (inv as any)?.addOnsTotal ??
+          (inv as any)?.extrasTotal ??
+          (inv as any)?.addonsRevenue ??
+          (inv as any)?.addonsAmount ??
+          0,
+        ) || 0;
+        return Math.max(0, computed || fallback || 0);
+      };
+
       const totalAddonsRevenue = invoices.reduce((acc, inv) => {
-          return acc + computeInvoiceAddonsTotal(inv, data?.products || []);
+          return acc + getInvoiceAddonsRevenue(inv);
       }, 0);
 
 
@@ -1325,16 +1338,17 @@ const [isPending, startTransition] = useTransition();
         0,
       );
 
-      // Proper Delivery Revenue to add to liquidity (only standard/profit delivery)
+      // Total delivery fees collected from invoices, regardless of delivery type.
+      // The dashboard should show actual delivery income whenever a delivery fee exists.
       const collectedDeliveryFees = invoices.reduce((acc, inv) => {
-        if (
-          inv.deliveryType === "company" ||
-          inv.deliveryType === "special" ||
-          inv.deliveryType === "free"
-        ) {
-          return acc;
-        }
-        return acc + (inv.deliveryFee || 0);
+        const fee = Number(
+          (inv as any)?.deliveryFee ??
+          (inv as any)?.deliveryPrice ??
+          (inv as any)?.deliveryInfo?.finalPrice ??
+          (inv as any)?.deliveryInfo?.price ??
+          0,
+        ) || 0;
+        return acc + Math.max(0, fee);
       }, 0);
 
       const sales = foodSales + collectedDeliveryFees;
@@ -1352,18 +1366,7 @@ const [isPending, startTransition] = useTransition();
       const deliveryInvs = invoices.filter((inv) => inv.deliveryInfo);
 
       // delRev should match collectedDeliveryFees above
-      const delRev = deliveryInvs
-        .filter(
-          (inv) =>
-            inv.deliveryType !== "company" &&
-            inv.deliveryType !== "special" &&
-            inv.deliveryType !== "free",
-        )
-        .reduce(
-          (acc, inv) =>
-            acc + (inv.deliveryInfo?.finalPrice || inv.deliveryFee || 0),
-          0,
-        );
+      const delRev = collectedDeliveryFees;
 
       const delCost = deliveryInvs.reduce(
         (acc, inv) => acc + (inv.deliveryInfo?.cost || 0),
