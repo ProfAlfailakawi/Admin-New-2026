@@ -348,22 +348,15 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
   const tone = failed > 0 ? 'danger' : pending > 0 ? 'watch' : 'calm';
   const [isOpen, setIsOpen] = React.useState(false);
 
-  const paidSalesValue = allSales.filter((item: any) => isPaidStatus(item?.status || item?.paymentStatus)).reduce((sum: number, item: any) => sum + getMoneyValue(item), 0);
-  const briefLines = [
-    failed > 0 ? `عندك ${failed} عملية فشل دفع تحتاج مراجعة قبل الزحمة.` : 'ماكو فشل دفع ظاهر حاليًا، الوضع أهدأ للتشغيل.',
-    pending > 0 ? `${pending} طلب بانتظار الدفع؛ خلها أول متابعة اليوم.` : 'طلبات الدفع المعلقة تحت السيطرة.',
-    paid > 0 ? `${paid} عملية مدفوعة بقيمة ${paidSalesValue.toFixed(3)} د.ك جاهزة للمتابعة.` : 'أول عملية مدفوعة اليوم راح تظهر هنا فورًا.',
-  ];
-
   const items = [
-    { label: 'فشل الدفع', value: `${failed}`, hint: 'راجع العميل بهدوء', page: 'orders', tone: 'rose', icon: <AlertTriangle size={18} /> },
-    { label: 'بانتظار الدفع', value: `${pending}`, hint: 'يحتاج متابعة الآن', page: 'orders', tone: 'amber', icon: <Clock size={18} /> },
-    { label: 'تم الدفع', value: `${paid}`, hint: 'جاهز للإجراء', page: 'invoices-list', tone: 'emerald', icon: <BadgeCheck size={18} /> },
     { label: 'نبض اليوم', value: `${allSales.length}`, hint: `${total.toFixed(3)} د.ك`, page: 'dashboard', tone: 'gold', icon: <Gauge size={18} /> },
+    { label: 'بانتظار الدفع', value: `${pending}`, hint: 'طلبات تحتاج متابعة', page: 'orders', tone: 'amber', icon: <Clock size={18} /> },
+    { label: 'فشل الدفع', value: `${failed}`, hint: 'راجعها بهدوء', page: 'orders', tone: 'rose', icon: <AlertTriangle size={18} /> },
+    { label: 'تم الدفع', value: `${paid}`, hint: 'جاهز للمتابعة', page: 'invoices-list', tone: 'emerald', icon: <BadgeCheck size={18} /> },
     { label: 'المنتجات', value: `${products.length}`, hint: outOfStock ? `${outOfStock} يحتاج مراجعة` : 'جاهزة', page: 'products', tone: 'slate', icon: <Boxes size={18} /> },
-    { label: 'الموردين', value: `${suppliers.length}`, hint: 'المراجعة والمخاطر', page: 'suppliers-audit', tone: 'indigo', icon: <Truck size={18} /> },
     { label: 'العملاء', value: `${Array.isArray(data?.customers) ? data.customers.length : 0}`, hint: 'ذكاء العملاء والولاء', page: 'customers', tone: 'emerald', icon: <Users size={18} /> },
     { label: 'العروض', value: `${Array.isArray(data?.promocodes) ? data.promocodes.length : 0}`, hint: 'مسرح الكوبونات', page: 'coupons', tone: 'gold', icon: <Receipt size={18} /> },
+    { label: 'الموردين', value: `${suppliers.length}`, hint: 'المراجعة والمخاطر', page: 'suppliers-audit', tone: 'indigo', icon: <Truck size={18} /> },
   ];
 
   const go = (target: string) => {
@@ -403,15 +396,6 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
             exit={{ opacity: 0, y: -8, height: 0 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
           >
-            <div className="executive-morning-brief">
-              <div>
-                <span>Executive Morning Brief</span>
-                <strong>ملخص الإدارة الآن</strong>
-              </div>
-              <ul>
-                {briefLines.map((line) => <li key={line}>{line}</li>)}
-              </ul>
-            </div>
             {items.map((item) => (
               <button key={item.label} onClick={() => go(item.page)} className={`heritage-command-tile heritage-tone-${item.tone} ${page === item.page ? 'is-active' : ''}`}>
                 <span className="heritage-tile-icon">{item.icon}</span>
@@ -568,26 +552,6 @@ const DataRefreshNotice: React.FC<{ show: boolean; mode: 'cloud' | 'local' }> = 
   </AnimatePresence>
 );
 
-const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => (
-  <AnimatePresence>
-    {!online && (
-      <motion.div
-        className="admin-offline-toast"
-        dir="rtl"
-        initial={{ opacity: 0, y: -12, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -12, scale: 0.96 }}
-      >
-        <span className="offline-dot" />
-        <div>
-          <strong>انقطع الاتصال…</strong>
-          <span>نحاول نرجع بيانات مركز القيادة بهدوء.</span>
-        </div>
-      </motion.div>
-    )}
-  </AnimatePresence>
-);
-
 const getMoneyValue = (item: any) => Number(item?.total || item?.totalAmount || item?.amount || item?.price || 0) || 0;
 const getItemName = (item: any, fallback = 'بدون اسم') => item?.name || item?.customerName || item?.title || item?.code || item?.id || fallback;
 const getAdminPageMeta = (page: string) => {
@@ -684,17 +648,6 @@ const MainApp: React.FC = () => {
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
-  const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
-
-  useEffect(() => {
-    const updateOnline = () => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine);
-    window.addEventListener('online', updateOnline);
-    window.addEventListener('offline', updateOnline);
-    return () => {
-      window.removeEventListener('online', updateOnline);
-      window.removeEventListener('offline', updateOnline);
-    };
-  }, []);
 
   
   // Persist authentication state
@@ -1862,10 +1815,9 @@ const MainApp: React.FC = () => {
             }}
           />
         );
-        case 'ai':
-        case 'smart-studio':
-        case 'diwaniya':
-          return <PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} />;
+        case 'ai': return <AIAssistant data={data} />;
+        case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
+        case 'diwaniya': return <DiwaniyaTournaments data={data} setData={setData} onNavigate={setCurrentPage} />;
         default: return <PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} />;
       }
     }
@@ -1943,7 +1895,6 @@ const MainApp: React.FC = () => {
       
       {renderAuthError()}
       <DataRefreshNotice show={Boolean(dataLoading && isAuthenticated)} mode={appMode} />
-      <NetworkStatusNotice online={isOnline} />
       <AdminOnboardingModal
         open={onboardingOpen}
         role={onboardingRole}
@@ -2622,120 +2573,90 @@ const SubNavItem: React.FC<{ label: string; icon: React.ReactNode; active?: bool
 
 
 const ZEN_QUOTES = [
-  "نفتح مركز القيادة… ونترك الزحمة خارج الباب",
-  "الأرقام تتكلم بهدوء… والقرار يظهر بوضوح",
+  "إدارة هادئة… قرارات أوضح",
+  "التراث في الطبخ، والدقة في الإدارة",
+  "كل طلب له قصة، وكل رقم له قرار",
+  "من المطبخ إلى العميل… كل شيء تحت عينك",
+  "نبض المبيعات يبدأ من هنا",
+  "هدوء الواجهة… قوة التشغيل",
   "إدارة تليق باسم شركة مطبخ التراث",
-  "كل طلب له مسار… وكل رقم له معنى",
-  "من هنا يبدأ نبض التشغيل الحقيقي",
-  "هدوء الواجهة… قوة القرار",
-  "نرتّب اليوم قبل أن يبدأ الزحام",
-  "مطبخ التراث: تشغيل أذكى، وقرار أسرع"
+  "نختصر الزحمة، ونترك القرار واضحًا",
+  "تفاصيل صغيرة تصنع فرقًا كبيرًا"
 ];
 
 const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ show, logo, name }) => {
   const [quote, setQuote] = useState(ZEN_QUOTES[0]);
-
   useEffect(() => {
-    const index = Math.floor(Math.random() * ZEN_QUOTES.length);
+    let index = Math.floor(Math.random() * ZEN_QUOTES.length);
     setQuote(ZEN_QUOTES[index]);
+    const t = setInterval(() => {
+      index = (index + 1) % ZEN_QUOTES.length;
+      setQuote(ZEN_QUOTES[index]);
+    }, 900);
+    return () => clearInterval(t);
   }, []);
-
-  const pulseCards = [
-    { label: 'المبيعات', value: 'نبض', icon: <TrendingUp size={18} /> },
-    { label: 'الطلبات', value: 'مباشر', icon: <ShoppingBag size={18} /> },
-    { label: 'الأرباح', value: 'حماية', icon: <Gauge size={18} /> },
-  ];
 
   return (
     <AnimatePresence>
       {show && (
         <motion.div
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 1.01, transition: { duration: 0.7, ease: 'easeInOut' } }}
-          className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-[#080d12] px-5"
-          dir="rtl"
+           initial={{ opacity: 1 }}
+           exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
+           className="fixed inset-0 z-[99999] flex flex-col items-center justify-center overflow-hidden bg-[#f8f4ea]"
+           dir="rtl"
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(245,184,74,.24),transparent_28%),radial-gradient(circle_at_16%_84%,rgba(16,185,129,.18),transparent_32%),linear-gradient(135deg,#070b10_0%,#111827_52%,#0b1115_100%)]" />
-          <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-amber-200/10 to-transparent" />
-          <div className="absolute -top-24 -right-20 h-72 w-72 rounded-full bg-amber-400/20 blur-[90px]" />
-          <div className="absolute -bottom-24 -left-20 h-80 w-80 rounded-full bg-emerald-400/16 blur-[100px]" />
-          <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,.55)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.55)_1px,transparent_1px)] [background-size:44px_44px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,.86),rgba(248,244,234,.96)_52%,rgba(232,220,192,.82))] flex flex-col items-center justify-center">
+             <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] opacity-60 animate-pulse" />
+             <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] opacity-60 animate-pulse" style={{ animationDuration: '3s' }} />
+          </div>
 
-          <motion.div
-            initial={{ y: 22, opacity: 0, scale: 0.98 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-[720px] overflow-hidden rounded-[2.2rem] border border-white/12 bg-white/[0.075] p-6 text-center shadow-[0_34px_100px_rgba(0,0,0,.42)] backdrop-blur-2xl md:p-8"
-          >
-            <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-l from-transparent via-amber-200/80 to-transparent" />
-            <div className="absolute -right-12 top-12 h-32 w-32 rounded-full bg-amber-300/10 blur-3xl" />
-            <div className="absolute -left-12 bottom-8 h-32 w-32 rounded-full bg-emerald-300/10 blur-3xl" />
-
+          <div className="relative z-10 flex flex-col items-center">
             <motion.div
-              initial={{ scale: 0.86, opacity: 0, rotate: -3 }}
-              animate={{ scale: 1, opacity: 1, rotate: 0 }}
-              transition={{ duration: 0.78, delay: 0.08, ease: 'easeOut' }}
-              className="relative mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-[2rem] border border-amber-100/25 bg-gradient-to-br from-[#f8f1df] via-[#efe1bd] to-[#cfb36e] shadow-[0_18px_55px_rgba(245,184,74,.22)] md:h-32 md:w-32"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="mb-8 relative"
             >
-              <div className="absolute inset-[-10px] rounded-[2.4rem] border border-amber-200/10" />
-              <motion.span
-                className="absolute inset-[-16px] rounded-[2.6rem] border border-emerald-300/25"
-                animate={{ scale: [1, 1.08, 1], opacity: [0.35, 0.05, 0.35] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="relative z-10 h-20 w-20 drop-shadow-xl md:h-24 md:w-24" />
+              <div className="absolute inset-0 bg-emerald-400 rounded-full blur-[40px] opacity-20 animate-pulse" />
+              <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="w-32 h-32 md:w-40 md:h-40 relative z-10 drop-shadow-xl" />
             </motion.div>
 
             <motion.div
-              initial={{ y: 16, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.62, delay: 0.22, ease: 'easeOut' }}
-              className="space-y-3"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+                className="text-center"
             >
-              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-amber-100/15 bg-amber-100/10 px-4 py-2 text-[11px] font-black text-amber-100 shadow-inner shadow-white/5">
-                <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.85)]" />
-                مركز القيادة يتجهز الآن
-              </div>
-              <h1 className="text-3xl font-black leading-tight text-white md:text-5xl">
+              <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-l from-slate-950 via-emerald-900 to-amber-700 bg-clip-text text-transparent mb-4 leading-relaxed tracking-tight">
                 {name || 'شركة مطبخ التراث الكويتي'}
               </h1>
-              <p className="mx-auto max-w-[560px] text-sm font-bold leading-7 text-slate-300 md:text-base">
-                {quote}
-              </p>
+            </motion.div>
+
+            <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               transition={{ duration: 0.5, delay: 0.8 }}
+               className="mt-8 w-56 md:w-72 h-1.5 bg-slate-200/50 rounded-full overflow-hidden relative"
+            >
+                <motion.div 
+                    initial={{ x: '100%' }}
+                    animate={{ x: '-10%' }}
+                    transition={{ duration: 2, ease: "easeInOut", repeat: Infinity }}
+                    className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-r from-emerald-400 via-emerald-500 to-indigo-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                />
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: 0.46 }}
-              className="mt-7 grid grid-cols-3 gap-2 md:gap-3"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               transition={{ duration: 0.8, delay: 1 }}
+               className="text-center mt-6 px-6"
             >
-              {pulseCards.map((card, index) => (
-                <motion.div
-                  key={card.label}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, delay: 0.54 + index * 0.08 }}
-                  className="rounded-2xl border border-white/10 bg-white/[0.075] px-2 py-3 text-center shadow-inner shadow-white/5"
-                >
-                  <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-amber-100">
-                    {card.icon}
-                  </span>
-                  <p className="text-[10px] font-bold text-slate-400 md:text-xs">{card.label}</p>
-                  <p className="mt-1 text-xs font-black text-white md:text-sm">{card.value}</p>
-                </motion.div>
-              ))}
+               <p className="text-slate-500 font-bold text-sm md:text-base italic animate-pulse">
+                 "{quote}"
+               </p>
             </motion.div>
-
-            <div className="mt-7 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-l from-emerald-300 via-amber-300 to-white shadow-[0_0_24px_rgba(245,184,74,.42)]"
-                initial={{ width: '12%' }}
-                animate={{ width: ['12%', '58%', '92%'] }}
-                transition={{ duration: 1.85, ease: 'easeInOut' }}
-              />
-            </div>
-          </motion.div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
@@ -2743,7 +2664,9 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
 };
 
 const App: React.FC = () => {
-   const [showSplash, setShowSplash] = useState(true);
+   const [showSplash, setShowSplash] = useState(() => {
+     try { return sessionStorage.getItem('alturath_admin_splash_seen_v6') !== 'true'; } catch { return true; }
+   });
    const [logo, setLogo] = useState(DEFAULT_GLOBAL_LOGO);
    const [name, setName] = useState('شركة مطبخ التراث الكويتي');
 
@@ -2757,8 +2680,9 @@ const App: React.FC = () => {
        }
      } catch(e) {}
      const timer = setTimeout(() => {
+       try { sessionStorage.setItem('alturath_admin_splash_seen_v6', 'true'); } catch {}
        setShowSplash(false);
-     }, 2350);
+     }, 1750);
      return () => clearTimeout(timer);
    }, []);
 
