@@ -28,17 +28,8 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
   }, []);
 
   React.useEffect(() => {
-    try {
-      const lightHistory = (history || []).slice(0, 8).map((item: any) => ({
-        ...item,
-        url: String(item?.url || item?.imageUrl || '').startsWith('data:') ? '' : (item?.url || item?.imageUrl || ''),
-      })).filter((item: any) => item.url || item.text || item.review || item.name);
-      if (lightHistory.length > 0) {
-        localStorage.setItem('review_to_poster_history', JSON.stringify(lightHistory));
-      }
-    } catch (err) {
-      console.warn('review_to_poster_history storage skipped:', err);
-      try { localStorage.removeItem('review_to_poster_history'); } catch {}
+    if (history.length > 0) {
+      localStorage.setItem('review_to_poster_history', JSON.stringify(history));
     }
   }, [history]);
 
@@ -87,23 +78,6 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
           </h2>
         </div>
         <p className="text-slate-500 text-sm max-w-2xl">لا تنزل سكرين شوت للتعليقات! حول مدح زباينك إلى بوستر سينمائي فخم يجبرهم على مشاركته مع أصدقائهم ليصبحوا أبطال قصتك.</p>
-
-        {history.filter((item) => item.url).length > 0 && (
-          <div className="bg-slate-50 rounded-3xl border border-slate-100 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-bold text-slate-400">اضغط على أي بوستر لاسترجاعه</span>
-              <h3 className="font-black text-slate-800 flex items-center gap-2"><ImageIcon size={16} className="text-purple-500" /> أرشيف الصور السابقة</h3>
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {history.filter((item) => item.url).slice(0, 8).map((item, idx) => (
-                <button key={idx} onClick={() => { setGeneratedBaseImage(item.url); setReview(item.review); }} className="group rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm hover:shadow-md transition-all text-right">
-                  <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
-                  <div className="p-2 text-[10px] font-bold text-slate-500 truncate">{item.review || 'بوستر سابق'}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
         
         <div>
           <label className="text-xs font-bold text-slate-500 mb-2 block">اختر المقاس للتوليد</label>
@@ -154,6 +128,37 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
             </button>
           </div>
         </div>
+
+        {history.length > 0 && (
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 mt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-black text-slate-800 flex items-center gap-2">
+                <Clapperboard size={18} className="text-purple-600" />
+                أرشيف البوسترات السابقة
+              </h3>
+              <span className="text-[10px] font-bold text-slate-400">اضغط على أي بوستر لاستعادته</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {history.slice(0, 8).map((item, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => { setGeneratedBaseImage(item.url); setReview(item.review); }}
+                  className="group rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm hover:shadow-md transition-all text-right"
+                >
+                  <img
+                    src={item.url}
+                    alt="hist"
+                    className="w-full aspect-square object-cover group-hover:scale-105 transition-transform"
+                  />
+                  <div className="p-2 text-[10px] font-bold text-slate-500 truncate">
+                    {item.review ? item.review.slice(0, 20) : 'بوستر سابق'}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
 
       <div className="w-full lg:w-[55%] sticky top-4 z-40 bg-[#0a0a0a] rounded-3xl text-center relative overflow-hidden shadow-2xl border border-purple-900/30 min-h-[500px] flex items-center justify-center">
@@ -209,22 +214,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
           </div>
         )}
 
-        {history.length > 0 && (
-          <div className="absolute bottom-0 left-0 w-full p-4 bg-black/60 backdrop-blur-md border-t border-white/10 z-30">
-            <h4 className="text-[10px] font-black text-slate-400 mb-2 text-right uppercase tracking-widest">الأعمال الأخيرة</h4>
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {history.map((item, idx) => (
-                <button 
-                  key={idx}
-                  onClick={() => { setGeneratedBaseImage(item.url); setReview(item.review); }}
-                  className="w-12 h-12 rounded-lg border border-white/20 flex-shrink-0 overflow-hidden"
-                >
-                  <img src={item.url} alt="hist" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* History overlay removed in favor of unified archive card */}
       </div>
     </div>
   );

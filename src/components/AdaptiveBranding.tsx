@@ -28,17 +28,8 @@ export const AdaptiveBranding: React.FC<{ data: any; setData: any }> = ({ data, 
   }, []);
 
   React.useEffect(() => {
-    try {
-      const lightHistory = (history || []).slice(0, 8).map((item: any) => ({
-        ...item,
-        url: String(item?.url || item?.imageUrl || '').startsWith('data:') ? '' : (item?.url || item?.imageUrl || ''),
-      })).filter((item: any) => item.url || item.text || item.review || item.name);
-      if (lightHistory.length > 0) {
-        localStorage.setItem('adaptive_branding_history', JSON.stringify(lightHistory));
-      }
-    } catch (err) {
-      console.warn('adaptive_branding_history storage skipped:', err);
-      try { localStorage.removeItem('adaptive_branding_history'); } catch {}
+    if (history.length > 0) {
+      localStorage.setItem('adaptive_branding_history', JSON.stringify(history));
     }
   }, [history]);
 
@@ -118,23 +109,6 @@ No markdown formatting, just pure JSON.`;
         الهوية المتغيرة (Adaptive Branding)
       </h2>
       <p className="text-slate-500 text-sm mb-8 max-w-xl">دع الذكاء الاصطناعي يغير ألوان ومزاج صفحتك أو متجرك بناءً على الوقت أو الموسم، أو ابتكر ثيماً جديداً لأي مناسبة تخطر ببالك!</p>
-
-      {history.filter((item) => item.imageUrl || item.url).length > 0 && (
-        <div className="bg-slate-50 rounded-3xl border border-slate-100 p-4 shadow-sm mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-slate-400">اضغط على أي هوية لاسترجاعها</span>
-            <h3 className="font-black text-slate-800 flex items-center gap-2"><Layout size={16} className="text-purple-500" /> أرشيف الصور السابقة</h3>
-          </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-            {history.filter((item) => item.imageUrl || item.url).slice(0, 8).map((item, idx) => (
-              <button key={idx} onClick={() => setGeneratedTheme(item)} className="group rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm hover:shadow-md transition-all text-right">
-                <img src={item.imageUrl || item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
-                <div className="p-2 text-[10px] font-bold text-slate-500 truncate">{item.name || 'هوية سابقة'}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative mb-8">
         <button 
@@ -293,20 +267,36 @@ No markdown formatting, just pure JSON.`;
           )}
 
           {history.length > 0 && (
-            <div className="mt-6 pt-4 border-t border-purple-100/50">
-              <h4 className="text-[10px] font-black text-slate-400 mb-2 text-right uppercase tracking-widest">الأعمال الأخيرة</h4>
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {history.map((item, idx) => (
-                  <button 
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-black text-slate-800 flex items-center gap-2">
+                  <Palette size={18} className="text-purple-600" />
+                  أرشيف الثيمات السابقة
+                </h3>
+                <span className="text-[10px] font-bold text-slate-400">اضغط على أي عنصر لاستعادته</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {history.slice(0, 8).map((item, idx) => (
+                  <button
                     key={idx}
                     onClick={() => { setGeneratedTheme(item); setActiveTheme('custom'); }}
-                    className="w-16 h-16 rounded-xl border border-purple-200 flex-shrink-0 overflow-hidden relative group"
+                    className="group rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm hover:shadow-md transition-all text-right"
                   >
-                    {item.imageUrl ? (
-                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                    {item.imageUrl || item.baseImageUrl ? (
+                      <img
+                        src={item.imageUrl || item.baseImageUrl}
+                        alt={item.name}
+                        className="w-full aspect-square object-cover group-hover:scale-105 transition-transform"
+                      />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${item.colors[0]}, ${item.colors[1]})` }} />
+                      <div
+                        className="w-full aspect-square"
+                        style={{ background: `linear-gradient(135deg, ${item.colors?.[0]}, ${item.colors?.[1]})` }}
+                      />
                     )}
+                    <div className="p-2 text-[10px] font-bold text-slate-500 truncate">
+                      {item.name || (item.description ? String(item.description).slice(0, 20) : 'ثيم سابق')}
+                    </div>
                   </button>
                 ))}
               </div>
