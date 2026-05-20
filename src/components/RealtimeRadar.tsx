@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { applyLogoBranding } from '../lib/brandingUtils';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { BrandingControls } from './BrandingControls';
+import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
 
 export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [loading, setLoading] = useState(false);
@@ -25,24 +26,16 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
   const [history, setHistory] = useState<{url: string, text: string, topic: string}[]>([]);
 
   React.useEffect(() => {
-    try {
-      const saved = localStorage.getItem('realtime_radar_history');
-      if (saved) setHistory(JSON.parse(saved));
-    } catch (e) {}
+    let mounted = true;
+    loadStudioArchive<{url: string, text: string, topic: string}>('realtime_radar_history', ['url']).then((items) => {
+      if (mounted) setHistory(items);
+    });
+    return () => { mounted = false; };
   }, []);
 
   React.useEffect(() => {
-    try {
-      const lightHistory = (history || []).slice(0, 8).map((item: any) => ({
-        ...item,
-        url: String(item?.url || item?.imageUrl || '').startsWith('data:') ? '' : (item?.url || item?.imageUrl || ''),
-      })).filter((item: any) => item.url || item.text || item.review || item.name);
-      if (lightHistory.length > 0) {
-        localStorage.setItem('realtime_radar_history', JSON.stringify(lightHistory));
-      }
-    } catch (err) {
-      console.warn('realtime_radar_history storage skipped:', err);
-      try { localStorage.removeItem('realtime_radar_history'); } catch {}
+    if (history.length > 0) {
+      saveStudioArchive('realtime_radar_history', history, ['url'], 10);
     }
   }, [history]);
 
@@ -122,16 +115,20 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
         </div>
         <p className="text-slate-500 text-sm max-w-2xl">واكب السوالف واللحظة! احصل على بوست وعرض وصورة بضغطة زر وتفاعل مع زبائنك في نفس الوقت وبابداع غير عادي يناسب السوق الكويتي.</p>
 
-        {history.filter((item) => item.url).length > 0 && (
+        {history.length > 0 && (
           <div className="bg-slate-50 rounded-3xl border border-slate-100 p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10px] font-bold text-slate-400">اضغط على أي عمل لاسترجاعه</span>
               <h3 className="font-black text-slate-800 flex items-center gap-2"><ImageIcon size={16} className="text-rose-500" /> أرشيف الصور السابقة</h3>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {history.filter((item) => item.url).slice(0, 8).map((item, idx) => (
+              {history.slice(0, 8).map((item, idx) => (
                 <button key={idx} onClick={() => { setGeneratedBaseImage(item.url); setResultText(item.text); setTopic(item.topic); }} className="group rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm hover:shadow-md transition-all text-right">
+                  {item.url ? (
                   <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
+                  ) : (
+                  <div className="w-full aspect-square bg-gradient-to-br from-rose-50 to-orange-50 flex items-center justify-center text-rose-400"><ImageIcon size={28} /></div>
+                  )}
                   <div className="p-2 text-[10px] font-bold text-slate-500 truncate">{item.topic || 'عمل سابق'}</div>
                 </button>
               ))}

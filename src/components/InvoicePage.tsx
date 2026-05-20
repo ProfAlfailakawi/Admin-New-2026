@@ -250,17 +250,17 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
                     const rowTotal = computeAddonRevenue(addon, item);
                     displayPrice += rowTotal / Math.max(1, item.quantity || 1);
                     addonsLines.push(
-                      `   • ${addon.name}${mult > 1 ? ` × ${mult}` : ""}`,
+                      `   - ${addon.name}${mult > 1 ? ` x ${mult}` : ""}`,
                     );
                   } else {
                     const rowTotal = computeAddonRevenue(addon, item);
                     if (rowTotal > 0) {
                       addonsLines.push(
-                        `   • ${addon.name}${mult > 1 ? ` × ${mult}` : ""} = ${rowTotal.toFixed(3)} د.ك`,
+                        `   - ${addon.name}${mult > 1 ? ` x ${mult}` : ""}: ${rowTotal.toFixed(3)} د.ك`,
                       );
                     } else {
                       addonsLines.push(
-                        `   • ${addon.name}${mult > 1 ? ` × ${mult}` : ""} = مجاناً`,
+                        `   - ${addon.name}${mult > 1 ? ` x ${mult}` : ""}: مجاناً`,
                       );
                     }
                   }
@@ -303,36 +303,44 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
           ? `*${promoLabel}*: ${Number(invoice.discount).toFixed(3)} د.ك\n`
           : "";
 
-      // Use older, widely-supported emoji code points and generate them from surrogate pairs
-      // to prevent WhatsApp from showing replacement diamonds (�) on some devices/browsers.
-      const icon = (high: number, low: number) => String.fromCharCode(high, low);
-      const invoiceIcon = icon(0xD83D, 0xDCCB); // 📋
-      const customerIcon = icon(0xD83D, 0xDC64); // 👤
-      const locationIcon = icon(0xD83D, 0xDCCD); // 📍
-      const numberIcon = icon(0xD83D, 0xDD22); // 🔢
-      const orderIcon = icon(0xD83D, 0xDCE6); // 📦
-      const moneyIcon = icon(0xD83D, 0xDCB0); // 💰
-      const leafIcon = icon(0xD83C, 0xDF3F); // 🌿
+      const addressText = invoice.address && invoice.address !== "غير محدد"
+        ? (typeof invoice.address === "object"
+            ? [
+                invoice.address.region || "",
+                invoice.address.block ? `قطعة ${invoice.address.block}` : "",
+                invoice.address.street ? `شارع ${invoice.address.street}` : "",
+                invoice.address.building ? `منزل ${invoice.address.building}` : "",
+              ].filter(Boolean).join(" - ")
+            : invoice.address)
+        : invoice.deliveryInfo?.zoneName || "غير محدد";
 
-      const message = `${invoiceIcon} *فاتورة مطبخ التراث الكويتي*
+      const paymentSection = paymentLinkLine
+        ? `
 
-${customerIcon} العميل: ${customer?.name || "عميل"}
-${locationIcon} العنوان: ${invoice.address && invoice.address !== "غير محدد" ? (typeof invoice.address === "object" ? [`${invoice.address.region || ""}`, `ق${invoice.address.block || ""}`, `ش${invoice.address.street || ""}`, `م${invoice.address.building || ""}`].filter(Boolean).join(" - ") : invoice.address) : invoice.deliveryInfo?.zoneName || "غير محدد"}
-${numberIcon} رقم الفاتورة: ${invoice.id}
+*رابط الدفع*
+${pLink}`
+        : "";
 
-━━━━━━━━━━━━━━
-${orderIcon} *الطلب*
+      const message = `*فاتورة الطلب*
+مطبخ التراث الكويتي
+------------------------------
+*رقم الفاتورة:* ${invoice.id}
+*العميل:* ${customer?.name || "عميل"}
+*الهاتف:* ${phone}
+*العنوان:* ${addressText}
 
+*الطلبات*
+------------------------------
 ${items}
 
-━━━━━━━━━━━━━━
-${moneyIcon} *الملخص*
+*ملخص الفاتورة*
+------------------------------
 المنتجات: ${subtotal.toFixed(3)} د.ك
 الإضافات: ${addonsTotalWA.toFixed(3)} د.ك
 التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك
-${promoLine}الإجمالي: ${Number(totalAmountVal).toFixed(3)} د.ك${paymentLinkLine}
-
-${leafIcon} شكراً لتعاملكم معنا
+${promoLine}*الإجمالي: ${Number(totalAmountVal).toFixed(3)} د.ك*${paymentSection}
+------------------------------
+شكراً لاختياركم مطبخ التراث الكويتي
 Alturath.kw
 92225308 - 94059238`;
 

@@ -13,7 +13,9 @@ import {
   onSnapshot,
   getDocFromServer,
   deleteDoc,
-  setLogLevel
+  setLogLevel,
+  persistentLocalCache,
+  persistentMultipleTabManager
 } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { toast } from 'sonner';
@@ -32,8 +34,13 @@ export const storage = getStorage(app);
 
 console.log("Firebase App Initialized with project:", activeConfig.projectId);
 
-// Using initializeFirestore with long polling as it's more stable in this environment.
-export const db = initializeFirestore(app, { experimentalForceLongPolling: true }, (firebaseConfig as any).firestoreDatabaseId);
+// Using initializeFirestore with multi-tab offline local cache and auto-detect long polling which is highly resilient in this environment.
+export const db = initializeFirestore(app, { 
+  experimentalAutoDetectLongPolling: true,
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+}, (firebaseConfig as any).firestoreDatabaseId);
 console.log("Firestore initialized with DB ID:", (firebaseConfig as any).firestoreDatabaseId);
 
 const googleProvider = new GoogleAuthProvider();
