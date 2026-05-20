@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
-import { Search, Command, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, Home, ShoppingBag, FileText, Clock, ShieldCheck, Settings, Bell, Trophy, Tag, Handshake } from 'lucide-react';
+import { Search, Command, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, Home, ShoppingBag, FileText, Clock, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
@@ -47,13 +47,13 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       { id: 'customers-page', label: 'بيانات العملاء', hint: 'بحث وتفاصيل', icon: <Users />, category: 'التنقل', action: () => onNavigate('customers', {}), roles: ['admin'] },
       { id: 'products-page', label: 'إدارة المنتجات', hint: 'الأسعار والتصنيفات', icon: <Package />, category: 'التنقل', action: () => onNavigate('products', {}), roles: ['admin'] },
       { id: 'expenses', label: 'المصروفات', hint: 'تسجيل ومراجعة', icon: <PieChart />, category: 'الإجراءات السريعة', action: () => onNavigate('expenses', {}), roles: ['admin'] },
-      { id: 'orders', label: 'طلبات التطبيق', hint: 'حالات الدفع', icon: <ShoppingBag />, category: 'التنقل', action: () => onNavigate('orders', {}), roles: ['partner', 'admin'] },
+      { id: 'orders', label: 'طلبات الموقع', hint: 'حالات الدفع', icon: <ShoppingBag />, category: 'التنقل', action: () => onNavigate('orders', {}), roles: ['partner', 'admin'] },
       { id: 'invoices-list', label: 'سجل الفواتير', hint: 'فواتير وتقارير', icon: <FileText />, category: 'التنقل', action: () => onNavigate('invoices-list', {}), roles: ['partner', 'admin'] },
-      { id: 'supplier-audit', label: 'الموردين والمراجعة', hint: 'مخاطر وتدقيق', icon: <Handshake />, category: 'التنقل', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
-      { id: 'settings', label: 'الإعدادات العامة', hint: 'هوية وتشغيل', icon: <Settings />, category: 'الإجراءات السريعة', action: () => onNavigate('settings', {}), roles: ['admin'] },
-      { id: 'alerts', label: 'التنبيهات الذكية', hint: 'مركز المتابعة', icon: <Bell />, category: 'الإجراءات السريعة', action: () => onNavigate('dashboard', { exactId: 'alerts' }), roles: ['admin'] },
-      { id: 'promocodes-page', label: 'الكوبونات', hint: 'خصومات سريعة', icon: <Tag />, category: 'الولاء والكوبونات', action: () => onNavigate('dashboard', { exactId: 'promocodes' }), roles: ['admin'] },
-      { id: 'diwaniya-page', label: 'بطولات الديوانية', hint: 'ترتيب ومجتمع', icon: <Trophy />, category: 'الولاء والكوبونات', action: () => onNavigate('diwaniya', {}), roles: ['admin'] },
+      { id: 'suppliers-audit', label: 'الموردين والمراجعة', hint: 'تدقيق الموردين والمخاطر', icon: <Truck />, category: 'التنقل', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
+      { id: 'reports', label: 'التقارير المالية', hint: 'تقارير ومبيعات', icon: <PieChart />, category: 'التنقل', action: () => onNavigate('reports', {}), roles: ['admin'] },
+      { id: 'settings', label: 'الإعدادات العامة', hint: 'هوية وتنبيهات وضبط', icon: <ShieldCheck />, category: 'التنقل', action: () => onNavigate('settings', {}), roles: ['admin'] },
+      { id: 'alerts', label: 'التنبيهات الذكية', hint: 'راجع التنبيهات من اللوحة', icon: <Activity />, category: 'التنقل', action: () => onNavigate('dashboard', { exactId: 'pulse', scrollTarget: 'alerts-section' }), roles: ['admin'] },
+      { id: 'partner', label: 'برنامج الشريك', hint: 'واجهة بسيطة للشريك', icon: <Users />, category: 'التنقل', action: () => onNavigate('dashboard', { exactId: 'pulse', scrollTarget: 'partner-section' }), roles: ['admin'] },
     ];
 
     const mainTabs = allTabs.filter(tab => tab.roles?.includes(userRole));
@@ -110,7 +110,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     return commands.filter(c => clean(c.label).includes(q) || clean(c.category).includes(q) || clean(c.hint).includes(q) || c.tags?.some((t) => clean(t).includes(q)));
   }, [commands, deferredQuery]);
 
-  const featured = useMemo(() => filteredCommands.slice(0, deferredQuery ? 9 : 6), [filteredCommands, deferredQuery]);
+  const featured = useMemo(() => filteredCommands.slice(0, deferredQuery ? 8 : 6), [filteredCommands, deferredQuery]);
 
   const runCommand = (cmd: CommandItem) => {
     cmd.action();
@@ -176,7 +176,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder="اكتب: فاتورة جديدة، طلبات الموقع، قائمة المنتجات، مورد، عميل، أو أي أداة..."
+                  placeholder="اكتب: طلب، فاتورة، عميل، منتج، مورد، أو اسم صفحة..."
                   className="w-full bg-transparent border-none outline-none text-lg md:text-2xl font-black text-slate-900 placeholder:text-slate-300 text-right h-11"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -249,7 +249,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
 
             <div className="command-premium-footer">
               <div className="flex items-center gap-2"><Command size={12} /><span>Ctrl + K</span></div>
-              <div className="flex items-center gap-2"><Clock size={12} /><span>اختيار سريع يغلق القائمة ويأخذك للمكان المطلوب</span></div>
+              <div className="flex items-center gap-2"><Clock size={12} /><span>اختيار سريع بدون تنقل طويل</span></div>
             </div>
           </motion.div>
         </div>

@@ -42,7 +42,15 @@ import {
   CheckCircle2,
   Volume2,
   VolumeX,
-  ShoppingBag
+  ShoppingBag,
+  Receipt,
+  ClipboardCheck,
+  AlertTriangle,
+  CircleDollarSign,
+  Boxes,
+  HandCoins,
+  BadgeCheck,
+  Gauge
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, normalizeArabic } from './lib/utils';
@@ -319,54 +327,28 @@ const AmbientBackground = () => {
 };
 
 
-const getCommandGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) {
-    return { title: 'صباح الخير، بداية يوم مرتبة', sub: 'افتح مركز القيادة وقت تحتاج نظرة سريعة على المبيعات والطلبات.' };
-  }
-  if (hour >= 12 && hour < 17) {
-    return { title: 'مرحباً، وقت الغداء والتركيز!', sub: 'تابع حركة المبيعات في فترة الذروة الممتازة من نفس المكان.' };
-  }
-  if (hour >= 17 && hour < 22) {
-    return { title: 'مساء الخير، وقت المتابعة الهادية', sub: 'راجع الطلبات والفواتير والتنبيهات قبل نهاية اليوم.' };
-  }
-  return { title: 'نظرة هادية على الأرقام', sub: 'هدوء الليل أفضل وقت للتخطيط ومراجعة تفاصيل الشركة.' };
-};
-
 const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => void; page: string }> = ({ data, onNavigate, page }) => {
   const invoices = Array.isArray(data?.invoices) ? data.invoices : [];
   const orders = Array.isArray(data?.orders) ? data.orders : [];
   const products = Array.isArray(data?.products) ? data.products : [];
   const suppliers = Array.isArray(data?.suppliers) ? data.suppliers : [];
-  const customers = Array.isArray(data?.customers) ? data.customers : [];
-  const expenses = Array.isArray(data?.expenses) ? data.expenses : [];
-  const notifications = Array.isArray(data?.notifications) ? data.notifications : [];
   const allSales = [...invoices, ...orders];
   const pending = allSales.filter((item: any) => isPendingStatus(item?.status || item?.paymentStatus)).length;
   const failed = allSales.filter((item: any) => isFailedStatus(item?.status || item?.paymentStatus)).length;
   const paid = allSales.filter((item: any) => isPaidStatus(item?.status || item?.paymentStatus)).length;
   const total = allSales.reduce((sum: number, item: any) => sum + Number(item?.total || item?.amount || 0), 0);
-  const today = new Date().toISOString().slice(0, 10);
-  const todaySales = allSales.filter((item: any) => String(item?.date || item?.createdAt || '').slice(0, 10) === today);
-  const todayTotal = todaySales.reduce((sum: number, item: any) => sum + Number(item?.total || item?.amount || 0), 0);
   const outOfStock = products.filter((p: any) => p?.isOutOfStock || p?.stock === 0 || p?.quantity === 0).length;
-  const unread = notifications.filter((n: any) => !n?.read).length;
   const signal = failed > 0 ? 'يحتاج انتباه' : pending > 0 ? 'قيد المتابعة' : 'الوضع مستقر';
   const tone = failed > 0 ? 'danger' : pending > 0 ? 'watch' : 'calm';
   const [isOpen, setIsOpen] = React.useState(false);
-  const greeting = React.useMemo(() => getCommandGreeting(), []);
 
   const items = [
-    { label: 'نبض اليوم', value: `${todaySales.length}`, hint: `${todayTotal.toFixed(3)} د.ك اليوم`, page: 'dashboard', tone: 'gold' },
-    { label: 'سجل الفواتير', value: `${invoices.length}`, hint: `${total.toFixed(3)} د.ك إجمالي`, page: 'invoices-list', tone: 'slate' },
-    { label: 'طلبات الموقع', value: `${orders.length}`, hint: pending ? `${pending} بانتظار الدفع` : 'جاهزة للمتابعة', page: 'orders', tone: 'amber' },
-    { label: 'فشل الدفع', value: `${failed}`, hint: failed ? 'راجعها بهدوء' : 'لا توجد مشاكل', page: 'orders', tone: 'rose' },
-    { label: 'تم الدفع', value: `${paid}`, hint: 'عمليات مكتملة', page: 'invoices-list', tone: 'emerald' },
-    { label: 'العملاء', value: `${customers.length}`, hint: 'الولاء والعودة', page: 'customers', tone: 'indigo' },
-    { label: 'المنتجات', value: `${products.length}`, hint: outOfStock ? `${outOfStock} يحتاج مراجعة` : 'القائمة جاهزة', page: 'products', tone: 'slate' },
-    { label: 'الموردين', value: `${suppliers.length}`, hint: 'توريد ومخاطر', page: 'suppliers-audit', tone: 'violet' },
-    { label: 'المصروفات', value: `${expenses.length}`, hint: 'حماية الأرباح', page: 'expenses', tone: 'orange' },
-    { label: 'التنبيهات', value: `${unread}`, hint: unread ? 'غير مقروءة' : 'لا جديد', page: 'dashboard', tone: 'cyan' },
+    { label: 'نبض اليوم', value: `${allSales.length}`, hint: `${total.toFixed(3)} د.ك`, page: 'dashboard', tone: 'gold', icon: <Gauge size={18} /> },
+    { label: 'بانتظار الدفع', value: `${pending}`, hint: 'طلبات تحتاج متابعة', page: 'orders', tone: 'amber', icon: <Clock size={18} /> },
+    { label: 'فشل الدفع', value: `${failed}`, hint: 'راجعها بهدوء', page: 'orders', tone: 'rose', icon: <AlertTriangle size={18} /> },
+    { label: 'تم الدفع', value: `${paid}`, hint: 'جاهز للمتابعة', page: 'invoices-list', tone: 'emerald', icon: <BadgeCheck size={18} /> },
+    { label: 'المنتجات', value: `${products.length}`, hint: outOfStock ? `${outOfStock} يحتاج مراجعة` : 'جاهزة', page: 'products', tone: 'slate', icon: <Boxes size={18} /> },
+    { label: 'الموردين', value: `${suppliers.length}`, hint: 'المراجعة والمخاطر', page: 'suppliers-audit', tone: 'indigo', icon: <Truck size={18} /> },
   ];
 
   const go = (target: string) => {
@@ -375,48 +357,59 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
   };
 
   return (
-    <section className={`heritage-command-center-inline heritage-command-center-${tone} ${isOpen ? 'is-open' : 'is-collapsed'}`} dir="rtl">
+    <>
       <button
         type="button"
-        className="heritage-command-inline-toggle"
-        onClick={() => setIsOpen(v => !v)}
-        aria-expanded={isOpen}
-        aria-label="مركز القيادة"
+        className={`heritage-command-dock heritage-command-dock-${tone}`}
+        onClick={() => setIsOpen(true)}
+        aria-label="فتح مركز القيادة"
       >
         <span className="heritage-dock-orb" />
-        <span className="heritage-command-inline-copy">
-          <span className="heritage-command-eyebrow">شركة مطبخ التراث</span>
-          <strong>{greeting.title}</strong>
-          <small>{greeting.sub}</small>
+        <span className="heritage-dock-copy">
+          <strong>مركز القيادة</strong>
+          <small>{signal}</small>
         </span>
-        <span className="heritage-command-status">
-          <b>{signal}</b>
-          <em>{isOpen ? 'إغلاق' : 'عرض'}</em>
-        </span>
+        <span className="heritage-dock-action">فتح</span>
       </button>
 
-      <AnimatePresence initial={false}>
+      <AnimatePresence>
         {isOpen && (
-          <motion.div
-            className="heritage-command-grid-wrap"
-            initial={{ height: 0, opacity: 0, y: -6 }}
-            animate={{ height: 'auto', opacity: 1, y: 0 }}
-            exit={{ height: 0, opacity: 0, y: -6 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
-          >
-            <div className="heritage-command-grid">
-              {items.map((item) => (
-                <button key={item.label} onClick={() => go(item.page)} className={`heritage-command-tile heritage-tone-${item.tone} ${page === item.page ? 'is-active' : ''}`}>
-                  <span className="heritage-tile-label">{item.label}</span>
-                  <strong>{item.value}</strong>
-                  <small>{item.hint}</small>
-                </button>
-              ))}
-            </div>
+          <motion.div className="heritage-command-layer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <button className="heritage-command-scrim" onClick={() => setIsOpen(false)} aria-label="إغلاق مركز القيادة" />
+            <motion.section
+              dir="rtl"
+              className="heritage-command-panel"
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+              aria-label="مركز القيادة"
+            >
+              <div className="heritage-panel-head">
+                <div className="heritage-command-orb" />
+                <div className="min-w-0 text-right">
+                  <div className="text-[10px] md:text-[11px] font-black tracking-[0.18em] text-amber-500 uppercase mb-1">شركة مطبخ التراث</div>
+                  <h2 className="text-lg md:text-2xl font-black text-slate-950 leading-tight">مركز القيادة</h2>
+                  <p className="text-[12px] md:text-sm text-slate-500 font-bold mt-1">مرحباً، وقت الغداء والتركيز! ملخص عملي سريع — كل اختيار هنا يفتح صفحة موجودة فعلاً.</p>
+                </div>
+                <button type="button" onClick={() => setIsOpen(false)} className="heritage-panel-close">إغلاق</button>
+              </div>
+
+              <div className="heritage-command-grid">
+                {items.map((item) => (
+                  <button key={item.label} onClick={() => go(item.page)} className={`heritage-command-tile heritage-tone-${item.tone} ${page === item.page ? 'is-active' : ''}`}>
+                    <span className="heritage-tile-icon">{item.icon}</span>
+                    <span className="heritage-tile-label">{item.label}</span>
+                    <strong>{item.value}</strong>
+                    <small>{item.hint}</small>
+                  </button>
+                ))}
+              </div>
+            </motion.section>
           </motion.div>
         )}
       </AnimatePresence>
-    </section>
+    </>
   );
 };
 
@@ -1745,22 +1738,26 @@ const MainApp: React.FC = () => {
                     className="space-y-1 mr-4 border-r-2 border-amber-500/20 pr-4 overflow-hidden"
                   >
                       <SubNavItem 
-                        label="فاتورة جديدة" 
+                        label="فاتورة جديدة"
+                        icon={<PlusCircle size={16} />}
                         active={currentPage === 'new-invoice'} 
                         onClick={() => { setCurrentPage('new-invoice'); setEditingInvoiceId(null); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
-                        label="سجل الفواتير" 
+                        label="سجل الفواتير"
+                        icon={<Receipt size={16} />}
                         active={currentPage === 'invoices-list'} 
                         onClick={() => { setCurrentPage('invoices-list'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
-                        label="طلبات التطبيق" 
+                        label="طلبات التطبيق"
+                        icon={<ClipboardCheck size={16} />}
                         active={currentPage === 'orders'} 
                         onClick={() => { setCurrentPage('orders'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
-                        label="قائمة العملاء" 
+                        label="قائمة العملاء"
+                        icon={<Users size={16} />}
                         active={currentPage === 'customers'} 
                         onClick={() => { setCurrentPage('customers'); setSidebarOpen(false); }}
                       />
@@ -1807,17 +1804,20 @@ const MainApp: React.FC = () => {
                     className="space-y-1 mr-4 border-r-2 border-indigo-500/20 pr-4 overflow-hidden"
                   >
                       <SubNavItem 
-                        label="قائمة المنتجات 🍱" 
+                        label="قائمة المنتجات"
+                        icon={<Package size={16} />}
                         active={currentPage === 'products'} 
                         onClick={() => { setCurrentPage('products'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
-                        label="المصروفات العامة 💸" 
+                        label="المصروفات العامة"
+                        icon={<CircleDollarSign size={16} />}
                         active={currentPage === 'expenses'} 
                         onClick={() => { setCurrentPage('expenses'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
-                        label="الموردين والمراجعة 🚚" 
+                        label="الموردين والمراجعة"
+                        icon={<HandCoins size={16} />}
                         active={currentPage === 'suppliers' || currentPage === 'suppliers-audit'} 
                         onClick={() => { setCurrentPage('suppliers'); setSidebarOpen(false); }}
                       />
@@ -2137,7 +2137,7 @@ const MainApp: React.FC = () => {
                 duration: 0.2, 
                 ease: "easeOut"
               }}
-              className={cn("w-full min-h-full relative z-10 px-3 sm:px-4 md:px-6 admin-masterpiece-page", `admin-page-${currentPage}`)}
+              className="w-full min-h-full relative z-10 px-4 md:px-6"
             >
               <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /><p className="text-slate-500 text-sm font-bold animate-pulse">جاري التحميل...</p></div>}>
                  {renderAppContent()}
@@ -2270,15 +2270,16 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick, highlig
   </button>
 );
 
-const SubNavItem: React.FC<{ label: string; active?: boolean; onClick: () => void }> = ({ label, active, onClick }) => (
+const SubNavItem: React.FC<{ label: string; icon: React.ReactNode; active?: boolean; onClick: () => void }> = ({ label, icon, active, onClick }) => (
   <button 
     onClick={onClick}
     className={cn(
-      "w-full text-right p-3.5 text-[12px] font-bold rounded-2xl transition-all active:scale-95 mb-0.5",
-      active ? "text-amber-500 shadow-xl shadow-amber-500/5 bg-white/5 border border-white/5 ring-1 ring-white/10" : "text-white/30 hover:text-white/80 hover:bg-white/5"
+      "w-full flex items-center gap-3 text-right p-3.5 text-[12px] font-bold rounded-2xl transition-all active:scale-95 mb-0.5",
+      active ? "text-amber-300 shadow-xl shadow-amber-500/5 bg-white/7 border border-white/10 ring-1 ring-white/10" : "text-white/45 hover:text-white/90 hover:bg-white/5"
     )}
   >
-    {label}
+    <span className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all", active ? "bg-amber-400/15 text-amber-300" : "bg-white/5 text-white/50")}>{icon}</span>
+    <span className="flex-1 truncate">{label}</span>
   </button>
 );
 
