@@ -31,7 +31,6 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   const setSettings = (updater: any) => {
     setSettingsState(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
-      setData(d => ({ ...d, settings: next }));
       return next;
     });
   };
@@ -39,12 +38,16 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   // Update local setting silently if remote is completely different (to not block typing)
   useEffect(() => {
      if (JSON.stringify(data.settings) !== JSON.stringify(settings)) {
-         // Only replace if local is totally out of sync (not just typing)
-         // Actually better to just do this on mount or when mode changes, 
-         // but let's just do it directly.
          setSettingsState(data.settings);
      }
   }, [data.settings]);
+
+  // Synchronize local setting changes back to parent state safely after render
+  useEffect(() => {
+    if (JSON.stringify(data.settings) !== JSON.stringify(settings)) {
+      setData(d => ({ ...d, settings }));
+    }
+  }, [settings, setData]);
   
  const [showConfirm, setShowConfirm] = useState(false);
  const [showResetConfirm, setShowResetConfirm] = useState(false);
