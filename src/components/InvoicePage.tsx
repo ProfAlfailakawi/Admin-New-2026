@@ -73,6 +73,10 @@ import {
 import { isPaidStatus } from "../lib/status-utils";
 import { toast } from "sonner";
 
+// Default product categories shown in the invoice form.  The categories
+// "المشويات" and "المشروبات" were removed based on new requirements.  If
+// additional categories are needed in the future they can be added via the
+// admin interface without editing this list directly.
 const DEFAULT_PRODUCT_CATEGORIES = ["الولائم", "اللحوم", "الدجاج", "البحري", "المقبلات"];
 
 const normalizeCategoryName = (value?: string) => String(value || "عام").trim() || "عام";
@@ -88,7 +92,7 @@ const getSharedProductCategories = (source: any, productList: any[] = []) => {
     ? configured.map((cat: any) => normalizeCategoryName(typeof cat === "string" ? cat : cat?.name || cat?.title)).filter(Boolean)
     : [];
   const productNames = productList.map((p: any) => normalizeCategoryName(p?.category)).filter(Boolean);
-  return Array.from(new Set([...configuredNames, ...DEFAULT_PRODUCT_CATEGORIES, ...productNames])).filter((cat) => cat !== "عام");
+  return Array.from(new Set([...configuredNames, ...DEFAULT_PRODUCT_CATEGORIES, ...productNames]));
 };
 
 /**
@@ -607,7 +611,7 @@ Alturath.kw
       });
     };
 
-    const cartItems = (Object.entries(cart) as Array<[string, { quantity: number; priceAtTime: number; costAtTime: number; itemNotes?: string; addons?: any[] }]>)
+    const cartItems = Object.entries(cart)
       .map(([id, dataItem]) => {
         const product = (data.products || []).find((p) => p.id === id);
         return {
@@ -856,7 +860,7 @@ Alturath.kw
             </div>
             {(() => {
               const invoiceCategories = getSharedProductCategories(data, filteredProducts);
-              const groupedProducts = [...invoiceCategories]
+              const groupedProducts = invoiceCategories
                 .map((category) => ({
                   category,
                   items: filteredProducts.filter((p: any) => normalizeCategoryName(p?.category) === category),
@@ -867,12 +871,12 @@ Alturath.kw
                 <button
                   key={p.id}
                   onClick={() => addToCart(p.id)}
-                  className="bg-white border p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative"
+                  className="bg-white border p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative ceramic-glint overflow-hidden shadow-sm hover:shadow-xl"
                 >
                   {p.isOutOfStock && (
                     <div className="absolute top-2 left-2 text-rose-500 z-10 flex items-center gap-1 bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded-lg border border-rose-100 shadow-sm">
                       <AlertCircle size={14} />
-                      <span className="text-[10px] font-bold">نفد</span>
+                      <span className="text-[10px] font-bold title-premium">نفد</span>
                     </div>
                   )}
                   {(() => {
@@ -881,19 +885,22 @@ Alturath.kw
                       return (
                         <div className="absolute bottom-2 left-2 text-amber-500 z-10 p-1 group/cheaper">
                           <AlertTriangle size={16} className="animate-pulse" />
-                          <div className="absolute bottom-full left-0 mb-1 bg-white border rounded-lg p-2 text-[8px] sm:text-[10px] shadow-xl hidden group-hover/cheaper:block w-32 font-bold z-50">
-                            تنبيه: {bestPrice.supplier} يوفره بسعر {bestPrice.cost.toFixed(3)} د.ك
+                          <div className="absolute bottom-full left-0 mb-1 bg-white border rounded-lg p-2 text-[8px] sm:text-[10px] shadow-xl hidden group-hover/cheaper:block w-32 font-bold z-50 text-right">
+                            تنبيه: {bestPrice.supplier} يوفره بسعر <span className="num-premium">{bestPrice.cost.toFixed(3)}</span> د.ك
                           </div>
                         </div>
                       );
                     }
                     return null;
                   })()}
-                  <h3 className={cn("font-bold text-slate-800", p.isOutOfStock && "opacity-50")}>{p.name}</h3>
-                  <div className="text-[10px] font-bold text-slate-400">{normalizeCategoryName((p as any).category)}</div>
+                  <h3 className={cn("font-extrabold text-slate-800 title-premium text-xs sm:text-sm leading-snug", p.isOutOfStock && "opacity-50")}>{p.name}</h3>
+                  <div className="text-[10px] font-bold text-slate-400 title-premium">{normalizeCategoryName((p as any).category)}</div>
                   <div className="flex justify-between items-center mt-auto">
-                    <span className="text-primary font-bold">{p.price.toFixed(3)} د.ك</span>
-                    <Plus size={16} className="text-slate-300 group-hover:text-primary" />
+                    <div className="flex items-center gap-0.5">
+                      <span className="text-primary font-black num-premium text-sm">{p.price.toFixed(3)}</span>
+                      <span className="text-[9px] font-bold text-slate-500 title-premium">د.ك</span>
+                    </div>
+                    <Plus size={16} className="text-slate-300 group-hover:text-primary transition-colors duration-200" />
                   </div>
                 </button>
               );

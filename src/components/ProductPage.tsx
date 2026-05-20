@@ -1040,16 +1040,19 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     type="button"
                     onClick={() => setOpenProductListCategory(isOpen ? null : normalized)}
                     className={cn(
-                      "flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-all text-right",
+                      "flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-all text-right ceramic-glint relative overflow-hidden",
                       isOpen
-                        ? "bg-primary text-white border-primary shadow-lg shadow-primary/10"
-                        : "bg-slate-50 text-slate-700 border-slate-100 hover:border-primary/30 hover:bg-white",
+                        ? "bg-slate-900 text-amber-400 border-slate-950 shadow-lg shadow-slate-900/20"
+                        : "bg-slate-50 text-slate-700 border-slate-100/80 hover:border-primary/30 hover:bg-white",
                     )}
                   >
-                    <ChevronDown size={16} className={cn("transition-transform", isOpen && "rotate-180")} />
+                    <ChevronDown size={16} className={cn("transition-transform", isOpen ? "rotate-180 text-amber-400" : "text-slate-400")} />
                     <div className="flex-1">
-                      <div className="font-black text-sm">{category}</div>
-                      <div className={cn("text-[10px] font-bold", isOpen ? "text-white/70" : "text-slate-400")}>{count} منتج</div>
+                      <div className="font-extrabold text-xs sm:text-sm title-premium">{category}</div>
+                      <div className={cn("text-[10px] font-bold flex items-center justify-end gap-1 flex-row-reverse", isOpen ? "text-amber-400/70" : "text-slate-400")}>
+                        <span className="num-premium">{count}</span>
+                        <span className="title-premium">منتجات</span>
+                      </div>
                     </div>
                   </button>
                 );
@@ -1065,7 +1068,15 @@ const ProductPage: React.FC<ProductPageProps> = ({
             <p className="text-sm font-bold text-slate-400">افتح تصنيف واحد لعرض منتجاته. فتح تصنيف جديد يقفل السابق تلقائياً.</p>
           </div>
         ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-4 md:gap-5 md:p-2">
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.div 
+            key={`${openProductListCategory || "all"}_${filterType}`}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ type: "spring", stiffness: 180, damping: 22 }}
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-4 md:gap-5 md:p-2 w-full col-span-full"
+          >
           {(visibleProducts || []).length === 0 ? (
             <div className="col-span-full py-20 px-4 flex flex-col items-center justify-center text-center bg-white/50 backdrop-blur-sm border border-slate-100 border-dashed rounded-3xl md:rounded-2xl">
               <div className="w-24 h-24 mb-6 rounded-3xl bg-primary/5 flex items-center justify-center text-primary/40 relative">
@@ -1102,7 +1113,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
               return (
                 <motion.div
                   key={product.id}
-                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                  whileHover={{ y: -6, scale: 1.015, transition: { type: "spring", stiffness: 300, damping: 20 } }}
                   animate={
                     shakingId === product.id
                       ? {
@@ -1118,7 +1129,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   }
                   transition={shakingId === product.id ? { duration: 0.5 } : {}}
                   className={cn(
-                    "bg-white border border-slate-200/60 rounded-[24px] overflow-hidden shadow-sm hover:shadow-xl transition-all relative text-right flex flex-col z-10 group",
+                    "bg-white border border-slate-200/60 rounded-[24px] overflow-hidden shadow-sm hover:shadow-xl transition-all relative text-right flex flex-col z-10 group ceramic-glint",
                     product.isActive === false
                       ? "opacity-80 grayscale-[0.3]"
                       : "hover:border-primary/40",
@@ -1126,11 +1137,15 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       "ring-4 ring-red-500 ring-offset-2",
                   )}
                 >
-                  {/* FULLY CLIPPED IMAGE CONTAINER */}
+                  {/* FULLY CLIPPED IMAGE CONTAINER WITH SPOTLIGHT LUXURY CONTRAST OVERLAYS */}
                   <div 
-                    className="w-full h-[140px] overflow-hidden relative bg-slate-50 border-b border-slate-100 group/img isolate"
+                    className="w-full h-[140px] overflow-hidden relative bg-slate-950 border-b border-slate-800 group/img isolate"
                     style={{ borderRadius: '24px 24px 0 0' }}
                   >
+                    {/* Cinematic dark linear & radial gradient spotlight highlights */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60 z-10 pointer-events-none" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.55)_100%)] z-10 pointer-events-none" />
+
                     {product.imageUrl ? (
                       <img
                         src={product.imageUrl}
@@ -1140,11 +1155,12 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-white pointer-events-none">
+                      <div className="w-full h-full flex items-center justify-center bg-zinc-950 pointer-events-none relative overflow-hidden">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.08)_0%,transparent_70%)]" />
                         <img
                           src={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
                           alt="Logo"
-                          className="w-20 h-20 object-contain opacity-40 grayscale"
+                          className="w-18 h-18 object-contain opacity-25 grayscale invert brightness-200"
                           referrerPolicy="no-referrer"
                         />
                       </div>
@@ -1193,11 +1209,12 @@ const ProductPage: React.FC<ProductPageProps> = ({
                        </button>
                     </div>
 
-                    {/* Price Tag Overlay */}
-                    <div className="absolute bottom-2.5 right-2.5 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-[12px] shadow-xl border border-white/5 z-20 pointer-events-none">
-                      <span className="text-[14px] font-bold text-white tracking-widest leading-none">
+                    {/* Price Tag Overlay - Upgraded gold visual style */}
+                    <div className="absolute bottom-2.5 right-2.5 bg-gradient-to-r from-red-600 to-rose-700 backdrop-blur-md px-3 py-1.5 rounded-[12px] shadow-xl border border-white/10 z-20 pointer-events-none flex items-center gap-1">
+                      <span className="text-[14px] font-extrabold text-white tracking-wider leading-none num-premium">
                         {Number(product.price || 0).toFixed(3)}
                       </span>
+                      <span className="text-[9px] font-bold text-rose-100 title-premium">د.ك</span>
                     </div>
 
                     {/* Marketing Badges (Top Right) */}
@@ -1205,13 +1222,13 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       {isSlow && (
                         <span 
                           title="هذا المنتج حركته بطيئة مقارنة بباقي المنتجات"
-                          className="bg-rose-500/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase cursor-help pointer-events-auto">
+                          className="bg-rose-500/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase cursor-help pointer-events-auto title-premium">
                           بطيء الحركة
                         </span>
                       )}
                       {sales > 10 && (
-                        <span className="bg-emerald-500/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase pointer-events-auto">
-                          Hot
+                        <span className="bg-emerald-500/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase pointer-events-auto title-premium font-black">
+                          رائج 🔥
                         </span>
                       )}
                     </div>
@@ -1219,21 +1236,21 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
                   <div className="p-4 flex flex-col flex-1 gap-4">
                     <div className="space-y-0.5 sm:space-y-1">
-                      <h3 className="font-bold text-slate-800 text-[13px] sm:text-lg leading-[1.4] mb-0.5 sm:mb-1 line-clamp-2 min-h-[36px] sm:min-h-[50px] text-right">
+                      <h3 className="font-extrabold text-slate-900 text-[13px] sm:text-base leading-[1.4] mb-0.5 sm:mb-1 line-clamp-2 min-h-[36px] sm:min-h-[50px] text-right title-premium">
                         {product.name}
                       </h3>
                       {product.preparationInstructions && (
                         <div className="flex justify-end mt-1">
                           <span className="text-[10px] md:text-[11px] bg-amber-50 border border-amber-200/60 text-amber-700 font-medium px-2 py-0.5 rounded-md flex items-center gap-1 w-fit flex-row-reverse shadow-sm text-right">
                             <AlertCircle size={10} className="text-amber-500 shrink-0" />
-                            <span className="line-clamp-2 leading-snug">{product.preparationInstructions}</span>
+                            <span className="line-clamp-2 leading-snug title-premium">{product.preparationInstructions}</span>
                           </span>
                         </div>
                       )}
                       <div className="flex flex-col gap-1 items-end">
                         <div className="flex items-center gap-1 sm:gap-1.5 flex-row-reverse justify-end text-slate-500 group-hover:text-primary transition-colors">
                           <Truck size={10} className="sm:size-[12px] shrink-0" />
-                          <span className="text-[10px] sm:text-xs font-bold leading-tight">
+                          <span className="text-[10px] sm:text-xs font-bold leading-tight title-premium text-slate-400">
                             {supplier?.name || "مورد مجهول"}
                           </span>
                         </div>
@@ -1251,10 +1268,10 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                   <div className="bg-rose-50 border border-rose-100 text-rose-600 p-1.5 rounded-full cursor-pointer shadow-sm">
                                     <AlertCircle size={14} className="shrink-0 animate-pulse" />
                                   </div>
-                                  <div className="absolute bottom-full mb-2 right-1/2 translate-x-[75%] sm:translate-x-[60%] hidden group-hover/badge:flex group-focus/badge:flex focus-within:flex flex-col bg-white text-slate-700 text-[10px] sm:text-[10px] w-[110px] sm:w-[130px] p-2 rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-bold border border-slate-200/60 pointer-events-none items-center gap-1.5 text-center">
-                                    <span className="bg-rose-50 text-rose-600 px-2 py-1.5 rounded-lg leading-relaxed w-full break-words whitespace-normal">{bestPrice.supplier}</span>
-                                    <span className="w-full">يبيعه أرخص !</span>
-                                    <span className="text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg leading-none w-full">{Number(bestPrice.cost || 0).toFixed(3)} د.ك</span>
+                                  <div className="absolute bottom-full mb-2 right-1/2 translate-x-[75%] sm:translate-x-[60%] hidden group-hover/badge:flex group-focus/badge:flex focus-within:flex flex-col bg-white text-slate-700 text-[10px] sm:text-[10px] w-[140px] p-2 rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-bold border border-slate-200/60 pointer-events-none items-center gap-1.5 text-center">
+                                    <span className="bg-rose-50 text-rose-600 px-2 py-1 rounded-lg leading-relaxed w-full break-words whitespace-normal text-[9px] title-premium">{bestPrice.supplier}</span>
+                                    <span className="w-full text-[9px] title-premium">يوفره بسعر أقل !</span>
+                                    <span className="text-rose-600 bg-rose-50 px-2 py-1 rounded-lg leading-none w-full num-premium text-xs">{Number(bestPrice.cost || 0).toFixed(3)} د.ك</span>
                                   </div>
                                 </div>
                              );
@@ -1264,28 +1281,28 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1 sm:gap-1.5 bg-slate-50/50 p-1 sm:p-1.5 rounded-[16px] sm:rounded-[24px] border border-slate-100 shadow-inner">
+                    <div className="grid grid-cols-2 gap-1 sm:gap-1.5 bg-slate-100/40 p-1.5 rounded-[18px] sm:rounded-[24px] border border-slate-200/40 shadow-inner">
                       <div className="bg-white rounded-[12px] sm:rounded-[18px] p-1.5 sm:p-3 shadow-sm border border-slate-100 flex flex-col items-center justify-center">
-                        <span className="text-[7px] sm:text-[10px] font-bold text-slate-500 uppercase mb-0.5">
+                        <span className="text-[7px] sm:text-[10px] font-bold text-slate-400 uppercase mb-0.5 title-premium">
                           البيع
                         </span>
-                        <span className="text-[10px] sm:text-base font-bold text-slate-900 tracking-tight">
+                        <span className="text-[10px] sm:text-sm font-black text-slate-900 tracking-wider num-premium">
                           {Number(product.price || 0).toFixed(3)}
                         </span>
                       </div>
                       <div className="bg-white rounded-[12px] sm:rounded-[18px] p-1.5 sm:p-3 shadow-sm border border-slate-100 flex flex-col items-center justify-center">
-                        <span className="text-[7px] sm:text-[10px] font-bold text-slate-500 uppercase mb-0.5">
+                        <span className="text-[7px] sm:text-[10px] font-bold text-slate-400 uppercase mb-0.5 title-premium">
                           التكلفة
                         </span>
-                        <span className="text-[10px] sm:text-base font-bold text-slate-500 tracking-tight">
+                        <span className="text-[10px] sm:text-sm font-bold text-slate-500 tracking-wider num-premium">
                           {Number(product.cost || 0).toFixed(3)}
                         </span>
                       </div>
-                      <div className="col-span-2 bg-emerald-500/10 rounded-[12px] sm:rounded-[18px] p-1.5 sm:p-3 border border-emerald-500/20 flex items-center justify-between px-2 sm:px-6">
-                        <span className="text-[10px] sm:text-xs font-bold text-emerald-600 uppercase">
+                      <div className="col-span-2 bg-gradient-to-r from-emerald-500/5 to-emerald-500/10 rounded-[12px] sm:rounded-[18px] p-1.5 sm:p-3 border border-emerald-500/20 flex items-center justify-between px-2 sm:px-6">
+                        <span className="text-[10px] sm:text-xs font-black text-emerald-600 uppercase title-premium">
                           هامش الربح
                         </span>
-                        <span className="text-[11px] sm:text-lg font-bold text-emerald-600 tracking-tighter">
+                        <span className="text-[11px] sm:text-lg font-bold text-emerald-600 tracking-wide num-premium">
                           %{Number(marginPercent || 0).toFixed(0)}
                         </span>
                       </div>
@@ -1341,7 +1358,8 @@ const ProductPage: React.FC<ProductPageProps> = ({
               );
             })
           )}
-        </div>
+          </motion.div>
+        </AnimatePresence>
         )}
       </div>
 

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Tajawal:wght@400;500;700;800;900&family=Cinzel:wght@400;700;900&display=swap');
 @import "tailwindcss";
 
 @layer utilities {
@@ -9,7 +9,9 @@
   --color-secondary: #0f3d1f; /* Deep Luxurious Green */
   --color-accent: #D4AF37; /* Metallic Gold */
   --color-muted: #f4f4f5;
-  --font-sans: "Tajawal", "Inter", "Segoe UI", Tahoma, sans-serif;
+  --font-sans: "Cairo", "Tajawal", "Inter", "Segoe UI", Tahoma, sans-serif;
+  --font-cinema-arabic: "Cairo", "Tajawal", "Segoe UI", Tahoma, sans-serif;
+  --font-cinema-numbers: "Cinzel", "Playfair Display", "Times New Roman", serif;
   
   --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
   --shadow-glow: 0 0 20px rgba(227, 24, 55, 0.2);
@@ -56,6 +58,28 @@
     min-height: 44px;
     touch-action: manipulation;
   }
+}
+
+/* --------------------------------------------------------------------------
+ * Unified icon sizing
+ *
+ * Apply a consistent size for lucide icons across the admin interface to
+ * improve visual harmony. Most icons are set to 1.25rem (20px). Alert icons
+ * (such as alert-circle, alert-triangle and alert-octagon) are smaller at
+ * 1rem (16px) so they don't dominate the UI.  Icons can still specify their
+ * own size via the `size` prop on the component, which overrides these
+ * defaults.
+ */
+.lucide {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.lucide-alert-circle,
+.lucide-alert-triangle,
+.lucide-alert-octagon {
+  width: 1rem;
+  height: 1rem;
 }
 
 /* Interactivity & Cursors */
@@ -225,56 +249,130 @@ body::before {
   object-position: center !important;
 }
 
-/* Final UX polish: mobile safe areas, readable tap targets, and calmer motion */
-@layer base {
-  input, select, textarea {
-    font-size: 16px;
-  }
+/* --------------------------------------------------------------------------
+ * Premium Cinematic Design System Additions
+ */
 
-  img, video, canvas, svg {
-    max-width: 100%;
-  }
-
-  [data-mobile-safe], .mobile-safe-area {
-    padding-left: max(1rem, env(safe-area-inset-left));
-    padding-right: max(1rem, env(safe-area-inset-right));
-  }
+.ceramic-glint {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@layer utilities {
-  .tap-target {
-    min-width: 44px;
-    min-height: 44px;
-  }
-
-  .soft-panel {
-    @apply bg-white/80 backdrop-blur-xl border border-white/60 shadow-sm;
-  }
-
-  .balanced-grid {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-  }
+.ceramic-glint::after {
+  content: '';
+  position: absolute;
+  top: -150%;
+  left: -150%;
+  width: 150%;
+  height: 400%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.12) 40%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 255, 255, 0.12) 60%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  transform: rotate(35deg);
+  transition: all 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 25;
 }
 
-@media (max-width: 640px) {
-  .modal-mobile-full {
-    width: calc(100vw - 1rem) !important;
-    max-width: calc(100vw - 1rem) !important;
-    border-radius: 1.5rem !important;
-  }
-
-  .mobile-bottom-actions {
-    position: sticky;
-    bottom: max(0.75rem, env(safe-area-inset-bottom));
-    z-index: 30;
-  }
+.ceramic-glint:hover {
+  transform: translateY(-4px) scale(1.015);
+  box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.09), 0 0 25px 3px rgba(227, 24, 55, 0.04);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-  }
+.ceramic-glint:hover::after {
+  left: 150%;
+  top: 150%;
+  opacity: 1;
 }
+
+/* Spotlight Luxury Dark Cards for Culinary Showcase */
+.cinematic-spotlight-card {
+  background: linear-gradient(135deg, #090e1a 0%, #030712 100%);
+  border: 1px solid rgba(212, 175, 55, 0.12);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.cinematic-spotlight-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 60px;
+  background: radial-gradient(ellipse at center, rgba(212, 175, 55, 0.25) 0%, transparent 80%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Dynamic Glint for Dark Cards */
+.dark-gold-glint {
+  position: relative;
+  overflow: hidden;
+}
+
+.dark-gold-glint::after {
+  content: '';
+  position: absolute;
+  top: -150%;
+  left: -150%;
+  width: 150%;
+  height: 400%;
+  background: linear-gradient(
+    135deg,
+    rgba(212, 175, 55, 0) 30%,
+    rgba(212, 175, 55, 0.08) 40%,
+    rgba(212, 175, 55, 0.22) 50%,
+    rgba(212, 175, 55, 0.08) 60%,
+    rgba(212, 175, 55, 0) 70%
+  );
+  transform: rotate(35deg);
+  transition: all 0.9s cubic-bezier(0.19, 1, 0.22, 1);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 25;
+}
+
+.dark-gold-glint:hover {
+  transform: translateY(-5px) scale(1.02);
+  border-color: rgba(212, 175, 55, 0.35);
+  box-shadow: 0 25px 45px -15px rgba(0, 0, 0, 0.65), 0 0 25px 2px rgba(212, 175, 55, 0.08);
+}
+
+.dark-gold-glint:hover::after {
+  left: 150%;
+  top: 150%;
+  opacity: 1;
+}
+
+/* Premium Typography classes */
+.num-premium {
+  font-family: var(--font-cinema-numbers) !important;
+  letter-spacing: 0.04em;
+  font-feature-settings: "tnum" 1, "onum" 1;
+}
+
+.title-premium {
+  font-family: var(--font-cinema-arabic) !important;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* Fluid Liquid slider indicator link to Category change */
+.liquid-category-pill {
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-primary);
+  border-radius: 9999px;
+  z-index: 0;
+}
+
