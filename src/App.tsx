@@ -50,7 +50,8 @@ import {
   Boxes,
   HandCoins,
   BadgeCheck,
-  Gauge
+  Gauge,
+  Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, normalizeArabic } from './lib/utils';
