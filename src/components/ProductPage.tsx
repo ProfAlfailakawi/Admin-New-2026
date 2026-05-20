@@ -151,8 +151,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       toast.error(`لا يمكن حذف التصنيف لأنه يحتوي على ${usedProducts.length} منتج. انقل المنتجات أولاً ثم احذف التصنيف.`);
       return;
     }
-    const ok = window.confirm(`هل أنت متأكد من حذف تصنيف "${name}"؟`);
-    if (!ok) return;
+
     const nextCategories = productCategories.filter((cat) => normalizeCategoryName(cat) !== name);
     setData((prev: any) => ({
       ...prev,

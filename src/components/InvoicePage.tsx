@@ -607,7 +607,7 @@ Alturath.kw
       });
     };
 
-    const cartItems = Object.entries(cart)
+    const cartItems = (Object.entries(cart) as Array<[string, { quantity: number; priceAtTime: number; costAtTime: number; itemNotes?: string; addons?: any[] }]>)
       .map(([id, dataItem]) => {
         const product = (data.products || []).find((p) => p.id === id);
         return {

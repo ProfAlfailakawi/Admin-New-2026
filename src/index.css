@@ -224,3 +224,57 @@ body::before {
   object-fit: contain !important;
   object-position: center !important;
 }
+
+/* Final UX polish: mobile safe areas, readable tap targets, and calmer motion */
+@layer base {
+  input, select, textarea {
+    font-size: 16px;
+  }
+
+  img, video, canvas, svg {
+    max-width: 100%;
+  }
+
+  [data-mobile-safe], .mobile-safe-area {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+@layer utilities {
+  .tap-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .soft-panel {
+    @apply bg-white/80 backdrop-blur-xl border border-white/60 shadow-sm;
+  }
+
+  .balanced-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .modal-mobile-full {
+    width: calc(100vw - 1rem) !important;
+    max-width: calc(100vw - 1rem) !important;
+    border-radius: 1.5rem !important;
+  }
+
+  .mobile-bottom-actions {
+    position: sticky;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    z-index: 30;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
