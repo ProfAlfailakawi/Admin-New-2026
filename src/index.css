@@ -630,3 +630,65 @@ body::before {
   height: 18px;
   stroke-width: 2.4;
 }
+
+/* V18 — إعادة الترحيب داخل مركز القيادة بالحجم الكامل بدون تكرار */
+.heritage-command-brief {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 0 1rem 0 !important;
+  padding: .95rem !important;
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  align-items: center !important;
+  gap: .85rem !important;
+}
+.heritage-command-brief.is-open {
+  align-items: start !important;
+}
+.heritage-command-brief.is-open .heritage-command-grid {
+  grid-column: 1 / -1 !important;
+  margin-top: .15rem !important;
+  overflow: hidden !important;
+}
+.heritage-command-actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.heritage-command-actions .heritage-command-toggle {
+  width: auto !important;
+  min-height: 40px;
+  padding: .55rem .85rem !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.76) !important;
+  border: 1px solid rgba(214,173,75,.2) !important;
+  box-shadow: 0 10px 24px rgba(15,23,42,.055) !important;
+  color: #0f172a;
+  font-size: .74rem;
+  font-weight: 950;
+  gap: .45rem;
+}
+.heritage-command-brief .heritage-command-hero {
+  min-width: 0;
+}
+.heritage-command-brief .heritage-command-grid {
+  width: 100%;
+}
+.heritage-command-brief.is-collapsed {
+  background: linear-gradient(135deg, rgba(255,255,255,.92), rgba(255,248,232,.68)) !important;
+}
+.heritage-command-brief-watch { border-color: rgba(245,158,11,.22) !important; }
+.heritage-command-brief-danger { border-color: rgba(244,63,94,.20) !important; }
+.heritage-command-brief-calm { border-color: rgba(16,185,129,.18) !important; }
+@media (max-width: 720px) {
+  .heritage-command-brief {
+    grid-template-columns: 1fr !important;
+    padding: .78rem !important;
+    border-radius: 24px !important;
+  }
+  .heritage-command-actions { justify-content: stretch; }
+  .heritage-command-actions .heritage-command-toggle { width: 100% !important; justify-content: center !important; }
+  .heritage-command-brief .heritage-command-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}

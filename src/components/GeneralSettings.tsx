@@ -1214,7 +1214,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <Settings className="animate-spin-slow" size={32} />
  </div>
  <h3 className="font-bold text-lg mb-2">نظام مطبخ التراث</h3>
- <p className="text-white/70 text-sm mb-6">الإصدار 2.5 برو - تم تطويره بكل فخر لدعم نمو عملك.</p>
+ <p className="text-white/70 text-sm mb-6">الإصدار 2.6 برو - تم تطويره بكل فخر لدعم نمو عملك.</p>
  </section>
  </div>
  </div>

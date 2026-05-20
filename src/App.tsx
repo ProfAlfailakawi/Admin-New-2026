@@ -358,59 +358,49 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
   };
 
   return (
-    <>
-      <button
-        type="button"
-        className={`heritage-command-dock heritage-command-dock-${tone}`}
-        onClick={() => setIsOpen(true)}
-        aria-label="فتح مركز القيادة"
-      >
-        <span className="heritage-dock-orb" />
-        <span className="heritage-dock-copy">
-          <strong>مركز القيادة</strong>
-          <small>{signal}</small>
-        </span>
-        <span className="heritage-dock-action">فتح</span>
-      </button>
+    <section dir="rtl" className={`heritage-command-brief heritage-command-brief-${tone} ${isOpen ? 'is-open' : 'is-collapsed'}`} aria-label="مركز القيادة">
+      <div className="heritage-command-hero">
+        <span className="heritage-command-orb" />
+        <div className="min-w-0 text-right">
+          <div className="text-[10px] md:text-[11px] font-black tracking-[0.18em] text-amber-600 uppercase mb-1">شركة مطبخ التراث</div>
+          <h2 className="text-lg md:text-2xl font-black text-slate-950 leading-tight">مرحباً، وقت الغداء والتركيز!</h2>
+          <p className="text-[12px] md:text-sm text-slate-500 font-bold mt-1">مركز القيادة · {signal} · ملخص سريع بدون تكرار.</p>
+        </div>
+      </div>
 
-      <AnimatePresence>
+      <div className="heritage-command-actions">
+        <button
+          type="button"
+          className="heritage-command-toggle"
+          onClick={() => setIsOpen((value) => !value)}
+          aria-expanded={isOpen}
+        >
+          {isOpen ? 'إخفاء الملخص' : 'عرض الملخص'}
+          <ChevronDown size={16} className={isOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
+        </button>
+      </div>
+
+      <AnimatePresence initial={false}>
         {isOpen && (
-          <motion.div className="heritage-command-layer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <button className="heritage-command-scrim" onClick={() => setIsOpen(false)} aria-label="إغلاق مركز القيادة" />
-            <motion.section
-              dir="rtl"
-              className="heritage-command-panel"
-              initial={{ opacity: 0, y: 24, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 18, scale: 0.98 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-              aria-label="مركز القيادة"
-            >
-              <div className="heritage-panel-head">
-                <div className="heritage-command-orb" />
-                <div className="min-w-0 text-right">
-                  <div className="text-[10px] md:text-[11px] font-black tracking-[0.18em] text-amber-500 uppercase mb-1">شركة مطبخ التراث</div>
-                  <h2 className="text-lg md:text-2xl font-black text-slate-950 leading-tight">مركز القيادة</h2>
-                  <p className="text-[12px] md:text-sm text-slate-500 font-bold mt-1">مرحباً، وقت الغداء والتركيز! ملخص عملي سريع — كل اختيار هنا يفتح صفحة موجودة فعلاً.</p>
-                </div>
-                <button type="button" onClick={() => setIsOpen(false)} className="heritage-panel-close">إغلاق</button>
-              </div>
-
-              <div className="heritage-command-grid">
-                {items.map((item) => (
-                  <button key={item.label} onClick={() => go(item.page)} className={`heritage-command-tile heritage-tone-${item.tone} ${page === item.page ? 'is-active' : ''}`}>
-                    <span className="heritage-tile-icon">{item.icon}</span>
-                    <span className="heritage-tile-label">{item.label}</span>
-                    <strong>{item.value}</strong>
-                    <small>{item.hint}</small>
-                  </button>
-                ))}
-              </div>
-            </motion.section>
+          <motion.div
+            className="heritage-command-grid"
+            initial={{ opacity: 0, y: -8, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -8, height: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+          >
+            {items.map((item) => (
+              <button key={item.label} onClick={() => go(item.page)} className={`heritage-command-tile heritage-tone-${item.tone} ${page === item.page ? 'is-active' : ''}`}>
+                <span className="heritage-tile-icon">{item.icon}</span>
+                <span className="heritage-tile-label">{item.label}</span>
+                <strong>{item.value}</strong>
+                <small>{item.hint}</small>
+              </button>
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </section>
   );
 };
 
@@ -545,7 +535,7 @@ const MainApp: React.FC = () => {
 
   // Extreme Cache clearing for major updates
   useEffect(() => {
-    const CURRENT_VERSION = '2.6';
+    const CURRENT_VERSION = '4.0.0';
     if (localStorage.getItem('app_version') !== CURRENT_VERSION) {
       if ('caches' in window) {
         caches.keys().then(names => {
