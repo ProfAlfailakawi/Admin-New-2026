@@ -1202,11 +1202,11 @@ const OrderPage: React.FC<OrderPageProps> = ({
                     Math.max(0, addonQty - (addon.freeQuantity || 0))) /
                   (item.quantity || 1);
                 addonsLines.push(
-                  `   • ${addon.name}${addonQty > 1 ? ` × ${addonQty}` : ""}`,
+                  `   - ${addon.name}${addonQty > 1 ? ` x ${addonQty}` : ""}`,
                 );
               } else {
                 addonsLines.push(
-                  `   • ${addon.name}${addonQty > 1 ? ` × ${addonQty}` : ""} = ${(Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))).toFixed(3)} د.ك`,
+                  `   - ${addon.name}${addonQty > 1 ? ` x ${addonQty}` : ""}: ${(Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))).toFixed(3)} د.ك`,
                 );
               }
             }
@@ -1246,18 +1246,19 @@ const OrderPage: React.FC<OrderPageProps> = ({
       (linkedInvoice as any)?.splitLink;
     console.log("DEBUG: Found paymentLink:", paymentLink);
 
-    const titleLine = `*فاتورة من شركة مطبخ التراث الكويتي*`;
-    const headerLine = `رقم الفاتورة: ${linkedInvoice?.id || `INV-${order.id.slice(-6)}`}`;
-    const footerLine = `إجمالي الفاتورة: ${Number(total).toFixed(3)} د.ك`;
+    const invoiceNumber = linkedInvoice?.id || `INV-${order.id.slice(-6)}`;
     const isPaidNow =
       isPaidStatus(order.status) &&
       !(
         String(order.status).includes("تجميع القطية") ||
         order.status === "split_pending"
       );
-    const paymentLinkLine =
+    const paymentSection =
       paymentLink && paymentLink.trim() !== "" && !isPaidNow
-        ? `\nرابط الدفع: ${paymentLink}`
+        ? `
+
+*رابط الدفع*
+${paymentLink}`
         : "";
 
     // Explicitly add coupon if present
@@ -1266,17 +1267,39 @@ const OrderPage: React.FC<OrderPageProps> = ({
       linkedInvoice?.appliedPromoCodeName;
     const promoLine =
       discount > 0
-        ? `*قيمة الخصم* ${promoCodeName ? `(${promoCodeName})` : ""}: ${Number(discount).toFixed(3)} د.ك\n`
+        ? `الخصم${promoCodeName ? ` (${promoCodeName})` : ""}: ${Number(discount).toFixed(3)} د.ك
+`
         : "";
 
-    const addressLine = (order as any).address
-      ? `\nالعنوان: ${(order as any).address}`
+    const addressText = (order as any).address
+      ? `${(order as any).address}`
       : linkedInvoice?.address && linkedInvoice.address !== "غير محدد"
-        ? `\nالعنوان: ${typeof linkedInvoice.address === "object" ? [`${linkedInvoice.address.region || ""}`, `ق${linkedInvoice.address.block || ""}`, `ش${linkedInvoice.address.street || ""}`, `م${linkedInvoice.address.building || ""}`].filter(Boolean).join(" ") : linkedInvoice.address}`
-        : linkedInvoice?.deliveryInfo?.zoneName
-          ? `\nالعنوان: ${linkedInvoice.deliveryInfo.zoneName}`
-          : "";
-    const message = `${titleLine}\n\nالعميل: ${getOrderCustomerName(order) || "عميل"} ${addressLine}\n${headerLine}\nالطلب:\n${items}\n\nالمجموع: ${subtotal.toFixed(3)} د.ك\nرسوم التوصيل: ${Number(deliveryFee).toFixed(3)} د.ك\n${promoLine}${footerLine}${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
+        ? `${typeof linkedInvoice.address === "object" ? [
+            linkedInvoice.address.region || "",
+            linkedInvoice.address.block ? `قطعة ${linkedInvoice.address.block}` : "",
+            linkedInvoice.address.street ? `شارع ${linkedInvoice.address.street}` : "",
+            linkedInvoice.address.building ? `منزل ${linkedInvoice.address.building}` : "",
+          ].filter(Boolean).join(" - ") : linkedInvoice.address}`
+        : linkedInvoice?.deliveryInfo?.zoneName || "غير محدد";
+
+    const message = `*فاتورة الطلب*
+مطبخ التراث الكويتي
+------------------------------
+*رقم الفاتورة:* ${invoiceNumber}
+*العميل:* ${getOrderCustomerName(order) || "عميل"}
+*العنوان:* ${addressText}
+
+*الطلبات*
+------------------------------
+${items}
+
+*ملخص الفاتورة*
+------------------------------
+المنتجات: ${subtotal.toFixed(3)} د.ك
+التوصيل: ${Number(deliveryFee).toFixed(3)} د.ك
+${promoLine}*الإجمالي: ${Number(total).toFixed(3)} د.ك*${paymentSection}
+------------------------------
+شكراً لاختياركم مطبخ التراث الكويتي`;
 
     const phoneUsed =
       order.customerPhone ||
@@ -1312,7 +1335,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
             : p,
         )
         .join("، ");
-      const splitText = `\n\n*🎲 روليت الحظ 🎲*\nالمشاركون: ${participants}\n*بطل الليلة اللي دفعها:* ${(targetObj as any).rouletteLoser || "غير معروف"}`;
+      const splitText = `\n\n*الروليت*\nالمشاركون: ${participants}\n*بطل الليلة اللي دفعها:* ${(targetObj as any).rouletteLoser || "غير معروف"}`;
       finalMessage = message.replace(
         "شكراً لتعاملكم",
         splitText + "\n\nشكراً لتعاملكم",

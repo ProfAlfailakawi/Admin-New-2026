@@ -585,7 +585,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
                   Math.max(0, addonQty - (addon.freeQuantity || 0));
                 addonsSubtotal += aTotal;
                 addonsLines.push(
-                  `   • ${addon.name}${addonQty > 1 ? ` × ${addonQty}` : ""} = ${aTotal.toFixed(3)} د.ك`,
+                  `   - ${addon.name}${addonQty > 1 ? ` x ${addonQty}` : ""}: ${aTotal.toFixed(3)} د.ك`,
                 );
               }
             });
@@ -605,35 +605,57 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         (invoice as any).split_link ||
         (invoice as any).split_url;
 
-      const titleLine = `*فاتورة من شركة مطبخ التراث الكويتي*`;
-      const headerLine = `رقم الفاتورة: ${invoice.id}`;
-      const footerLine = `إجمالي الفاتورة: ${Number(total).toFixed(3)} د.ك`;
       const isPaidNow =
         isPaidStatus(invoice.paymentStatus) &&
         !(
           String(invoice.status).includes("تجميع القطية") ||
           invoice.status === "split_pending"
         );
-      const paymentLinkLine =
+      const paymentSection =
         paymentLink && paymentLink.trim() !== "" && !isPaidNow
-          ? `\nرابط الدفع: ${paymentLink}`
+          ? `
+
+*رابط الدفع*
+${paymentLink}`
           : "";
 
       const promoCodeName = invoice.appliedPromoCodeName;
       const discount = Number(invoice.discount) || 0;
       const promoLine =
         discount > 0
-          ? `*قيمة الخصم* ${promoCodeName ? `(${promoCodeName})` : ""}: ${Number(discount).toFixed(3)} د.ك\n`
+          ? `الخصم${promoCodeName ? ` (${promoCodeName})` : ""}: ${Number(discount).toFixed(3)} د.ك
+`
           : "";
 
-      const addressLine =
+      const addressText =
         invoice.address && invoice.address !== "غير محدد"
-          ? `\nالعنوان: ${typeof invoice.address === "object" ? [`${invoice.address.region || ""}`, `ق${invoice.address.block || ""}`, `ش${invoice.address.street || ""}`, `m${invoice.address.building || ""}`].filter(Boolean).join(" ") : invoice.address}`
-          : invoice.deliveryInfo?.zoneName
-            ? `\nالعنوان: ${invoice.deliveryInfo.zoneName}`
-            : "";
+          ? `${typeof invoice.address === "object" ? [
+              invoice.address.region || "",
+              invoice.address.block ? `قطعة ${invoice.address.block}` : "",
+              invoice.address.street ? `شارع ${invoice.address.street}` : "",
+              invoice.address.building ? `منزل ${invoice.address.building}` : "",
+            ].filter(Boolean).join(" - ") : invoice.address}`
+          : invoice.deliveryInfo?.zoneName || "غير محدد";
 
-      const message = `${titleLine}\n\nالعميل: ${customer?.name || "عميل"} ${addressLine}\n${headerLine}\nالطلب:\n${items}\n\nالمجموع (المنتجات): ${productsSubtotal.toFixed(3)} د.ك${addonsSubtotal > 0 ? "\nالإضافات: " + addonsSubtotal.toFixed(3) + " د.ك" : ""}\nرسوم التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك\n${promoLine}${footerLine}${paymentLinkLine}\n\nشكراً لتعاملكم معنا!`;
+      const message = `*فاتورة الطلب*
+مطبخ التراث الكويتي
+------------------------------
+*رقم الفاتورة:* ${invoice.id}
+*العميل:* ${customer?.name || "عميل"}
+*الهاتف:* ${phone || "-"}
+*العنوان:* ${addressText}
+
+*الطلبات*
+------------------------------
+${items}
+
+*ملخص الفاتورة*
+------------------------------
+المنتجات: ${productsSubtotal.toFixed(3)} د.ك
+${addonsSubtotal > 0 ? "الإضافات: " + addonsSubtotal.toFixed(3) + " د.ك\n" : ""}التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك
+${promoLine}*الإجمالي: ${Number(total).toFixed(3)} د.ك*${paymentSection}
+------------------------------
+شكراً لاختياركم مطبخ التراث الكويتي`;
 
       let finalMessage = message;
       if (
@@ -663,7 +685,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
               : p,
           )
           .join("، ");
-        const splitText = `\n\n*🎲 روليت الحظ 🎲*\nالمشاركون: ${participants}\n*بطل الليلة اللي دفعها:* ${(invoice as any).rouletteLoser || "غير معروف"}`;
+        const splitText = `\n\n*الروليت*\nالمشاركون: ${participants}\n*بطل الليلة اللي دفعها:* ${(invoice as any).rouletteLoser || "غير معروف"}`;
         finalMessage = message.replace(
           "شكراً لتعاملكم",
           splitText + "\n\nشكراً لتعاملكم",

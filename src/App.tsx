@@ -318,6 +318,108 @@ const AmbientBackground = () => {
     );
 };
 
+
+const getCommandGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) {
+    return { title: 'صباح الخير، بداية يوم مرتبة', sub: 'افتح مركز القيادة وقت تحتاج نظرة سريعة على المبيعات والطلبات.' };
+  }
+  if (hour >= 12 && hour < 17) {
+    return { title: 'مرحباً، وقت الغداء والتركيز!', sub: 'تابع حركة المبيعات في فترة الذروة الممتازة من نفس المكان.' };
+  }
+  if (hour >= 17 && hour < 22) {
+    return { title: 'مساء الخير، وقت المتابعة الهادية', sub: 'راجع الطلبات والفواتير والتنبيهات قبل نهاية اليوم.' };
+  }
+  return { title: 'نظرة هادية على الأرقام', sub: 'هدوء الليل أفضل وقت للتخطيط ومراجعة تفاصيل الشركة.' };
+};
+
+const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => void; page: string }> = ({ data, onNavigate, page }) => {
+  const invoices = Array.isArray(data?.invoices) ? data.invoices : [];
+  const orders = Array.isArray(data?.orders) ? data.orders : [];
+  const products = Array.isArray(data?.products) ? data.products : [];
+  const suppliers = Array.isArray(data?.suppliers) ? data.suppliers : [];
+  const customers = Array.isArray(data?.customers) ? data.customers : [];
+  const expenses = Array.isArray(data?.expenses) ? data.expenses : [];
+  const notifications = Array.isArray(data?.notifications) ? data.notifications : [];
+  const allSales = [...invoices, ...orders];
+  const pending = allSales.filter((item: any) => isPendingStatus(item?.status || item?.paymentStatus)).length;
+  const failed = allSales.filter((item: any) => isFailedStatus(item?.status || item?.paymentStatus)).length;
+  const paid = allSales.filter((item: any) => isPaidStatus(item?.status || item?.paymentStatus)).length;
+  const total = allSales.reduce((sum: number, item: any) => sum + Number(item?.total || item?.amount || 0), 0);
+  const today = new Date().toISOString().slice(0, 10);
+  const todaySales = allSales.filter((item: any) => String(item?.date || item?.createdAt || '').slice(0, 10) === today);
+  const todayTotal = todaySales.reduce((sum: number, item: any) => sum + Number(item?.total || item?.amount || 0), 0);
+  const outOfStock = products.filter((p: any) => p?.isOutOfStock || p?.stock === 0 || p?.quantity === 0).length;
+  const unread = notifications.filter((n: any) => !n?.read).length;
+  const signal = failed > 0 ? 'يحتاج انتباه' : pending > 0 ? 'قيد المتابعة' : 'الوضع مستقر';
+  const tone = failed > 0 ? 'danger' : pending > 0 ? 'watch' : 'calm';
+  const [isOpen, setIsOpen] = React.useState(false);
+  const greeting = React.useMemo(() => getCommandGreeting(), []);
+
+  const items = [
+    { label: 'نبض اليوم', value: `${todaySales.length}`, hint: `${todayTotal.toFixed(3)} د.ك اليوم`, page: 'dashboard', tone: 'gold' },
+    { label: 'سجل الفواتير', value: `${invoices.length}`, hint: `${total.toFixed(3)} د.ك إجمالي`, page: 'invoices-list', tone: 'slate' },
+    { label: 'طلبات الموقع', value: `${orders.length}`, hint: pending ? `${pending} بانتظار الدفع` : 'جاهزة للمتابعة', page: 'orders', tone: 'amber' },
+    { label: 'فشل الدفع', value: `${failed}`, hint: failed ? 'راجعها بهدوء' : 'لا توجد مشاكل', page: 'orders', tone: 'rose' },
+    { label: 'تم الدفع', value: `${paid}`, hint: 'عمليات مكتملة', page: 'invoices-list', tone: 'emerald' },
+    { label: 'العملاء', value: `${customers.length}`, hint: 'الولاء والعودة', page: 'customers', tone: 'indigo' },
+    { label: 'المنتجات', value: `${products.length}`, hint: outOfStock ? `${outOfStock} يحتاج مراجعة` : 'القائمة جاهزة', page: 'products', tone: 'slate' },
+    { label: 'الموردين', value: `${suppliers.length}`, hint: 'توريد ومخاطر', page: 'suppliers-audit', tone: 'violet' },
+    { label: 'المصروفات', value: `${expenses.length}`, hint: 'حماية الأرباح', page: 'expenses', tone: 'orange' },
+    { label: 'التنبيهات', value: `${unread}`, hint: unread ? 'غير مقروءة' : 'لا جديد', page: 'dashboard', tone: 'cyan' },
+  ];
+
+  const go = (target: string) => {
+    onNavigate(target);
+    setIsOpen(false);
+  };
+
+  return (
+    <section className={`heritage-command-center-inline heritage-command-center-${tone} ${isOpen ? 'is-open' : 'is-collapsed'}`} dir="rtl">
+      <button
+        type="button"
+        className="heritage-command-inline-toggle"
+        onClick={() => setIsOpen(v => !v)}
+        aria-expanded={isOpen}
+        aria-label="مركز القيادة"
+      >
+        <span className="heritage-dock-orb" />
+        <span className="heritage-command-inline-copy">
+          <span className="heritage-command-eyebrow">شركة مطبخ التراث</span>
+          <strong>{greeting.title}</strong>
+          <small>{greeting.sub}</small>
+        </span>
+        <span className="heritage-command-status">
+          <b>{signal}</b>
+          <em>{isOpen ? 'إغلاق' : 'عرض'}</em>
+        </span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            className="heritage-command-grid-wrap"
+            initial={{ height: 0, opacity: 0, y: -6 }}
+            animate={{ height: 'auto', opacity: 1, y: 0 }}
+            exit={{ height: 0, opacity: 0, y: -6 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+          >
+            <div className="heritage-command-grid">
+              {items.map((item) => (
+                <button key={item.label} onClick={() => go(item.page)} className={`heritage-command-tile heritage-tone-${item.tone} ${page === item.page ? 'is-active' : ''}`}>
+                  <span className="heritage-tile-label">{item.label}</span>
+                  <strong>{item.value}</strong>
+                  <small>{item.hint}</small>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+};
+
 const MainApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
@@ -1546,7 +1648,7 @@ const MainApp: React.FC = () => {
   };
 
   return (
-    <div className="flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font" dir="rtl">
+    <div className="admin-heritage-shell flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font" dir="rtl">
       <AmbientBackground />
       
       {renderAuthError()}
@@ -1755,6 +1857,7 @@ const MainApp: React.FC = () => {
                 setDeepLinkData({ exactId: 'pulse', _t: Date.now() });
                 setSidebarOpen(false);
                 setCurrentPage('dashboard');
+                setSidebarOpen(false);
               }}
               title="العودة للصفحة الرئيسية"
               className={cn(
@@ -1802,6 +1905,7 @@ const MainApp: React.FC = () => {
                 onClick={() => {
                   setEditingInvoiceId(null);
                   setCurrentPage('new-invoice');
+                  setSidebarOpen(false);
                 }}
                 title="إنشاء فاتورة جديدة"
                 className="hidden sm:flex items-center justify-center w-12 h-12 bg-slate-900 text-white rounded-[1rem] sm:rounded-2xl font-bold shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all transform hover:scale-105 active:scale-95 group"
@@ -1810,7 +1914,7 @@ const MainApp: React.FC = () => {
               </button>
 
               <button 
-                onClick={() => setCurrentPage('ai')}
+                onClick={() => { setCurrentPage('ai'); setSidebarOpen(false); }}
                 title="المساعد الذكي"
                 className={cn(
                   "flex w-12 h-12 rounded-[1rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden",
@@ -2020,6 +2124,9 @@ const MainApp: React.FC = () => {
                }));
             }} 
           />
+          {userRole !== 'partner' && (
+            <CompanyCommandCenter data={data} onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }} page={currentPage} />
+          )}
           <AnimatePresence>
             <motion.div
               key={currentPage}
@@ -2030,7 +2137,7 @@ const MainApp: React.FC = () => {
                 duration: 0.2, 
                 ease: "easeOut"
               }}
-              className="w-full min-h-full relative z-10 px-4 md:px-6"
+              className={cn("w-full min-h-full relative z-10 px-3 sm:px-4 md:px-6 admin-masterpiece-page", `admin-page-${currentPage}`)}
             >
               <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /><p className="text-slate-500 text-sm font-bold animate-pulse">جاري التحميل...</p></div>}>
                  {renderAppContent()}
@@ -2045,6 +2152,7 @@ const MainApp: React.FC = () => {
         onClose={() => setCommandBarOpen(false)} 
         onNavigate={(page, payload) => {
            setCurrentPage(page);
+           setSidebarOpen(false);
            if (payload) {
              setDeepLinkData({ ...payload, _t: Date.now() });
            } else {

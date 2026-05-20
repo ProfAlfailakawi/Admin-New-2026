@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { applyLogoBranding } from '../lib/brandingUtils';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { BrandingControls } from './BrandingControls';
+import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
 
 export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [loading, setLoading] = useState(false);
@@ -21,15 +22,16 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
   const [history, setHistory] = useState<{url: string, review: string}[]>([]);
 
   React.useEffect(() => {
-    try {
-      const saved = localStorage.getItem('review_to_poster_history');
-      if (saved) setHistory(JSON.parse(saved));
-    } catch (e) {}
+    let mounted = true;
+    loadStudioArchive<{url: string, review: string}>('review_to_poster_history', ['url']).then((items) => {
+      if (mounted) setHistory(items);
+    });
+    return () => { mounted = false; };
   }, []);
 
   React.useEffect(() => {
     if (history.length > 0) {
-      localStorage.setItem('review_to_poster_history', JSON.stringify(history));
+      saveStudioArchive('review_to_poster_history', history, ['url'], 10);
     }
   }, [history]);
 
@@ -133,7 +135,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
           <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 mt-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-black text-slate-800 flex items-center gap-2">
-                <Clapperboard size={18} className="text-purple-600" />
+                <ImageIcon size={18} className="text-purple-600" />
                 أرشيف البوسترات السابقة
               </h3>
               <span className="text-[10px] font-bold text-slate-400">اضغط على أي بوستر لاستعادته</span>
@@ -142,14 +144,18 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
               {history.slice(0, 8).map((item, idx) => (
                 <button
                   key={idx}
-                  onClick={() => { setGeneratedBaseImage(item.url); setReview(item.review); }}
+                  onClick={() => { if (item.url) setGeneratedBaseImage(item.url); setReview(item.review); }}
                   className="group rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm hover:shadow-md transition-all text-right"
                 >
-                  <img
-                    src={item.url}
-                    alt="hist"
-                    className="w-full aspect-square object-cover group-hover:scale-105 transition-transform"
-                  />
+                  {item.url ? (
+                    <img
+                      src={item.url}
+                      alt="hist"
+                      className="w-full aspect-square object-cover group-hover:scale-105 transition-transform"
+                    />
+                  ) : (
+                    <div className="w-full aspect-square bg-gradient-to-br from-purple-50 to-fuchsia-50 flex items-center justify-center text-purple-400"><ImageIcon size={28} /></div>
+                  )}
                   <div className="p-2 text-[10px] font-bold text-slate-500 truncate">
                     {item.review ? item.review.slice(0, 20) : 'بوستر سابق'}
                   </div>

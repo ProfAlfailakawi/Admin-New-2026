@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { applyLogoBranding } from '../lib/brandingUtils';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { BrandingControls } from './BrandingControls';
+import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
 
 export const AdaptiveBranding: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [activeTheme, setActiveTheme] = useState('morning');
@@ -21,15 +22,16 @@ export const AdaptiveBranding: React.FC<{ data: any; setData: any }> = ({ data, 
   const [history, setHistory] = useState<any[]>([]);
 
   React.useEffect(() => {
-    try {
-      const saved = localStorage.getItem('adaptive_branding_history');
-      if (saved) setHistory(JSON.parse(saved));
-    } catch (e) {}
+    let mounted = true;
+    loadStudioArchive<any>('adaptive_branding_history', ['imageUrl', 'baseImageUrl']).then((items) => {
+      if (mounted) setHistory(items);
+    });
+    return () => { mounted = false; };
   }, []);
 
   React.useEffect(() => {
     if (history.length > 0) {
-      localStorage.setItem('adaptive_branding_history', JSON.stringify(history));
+      saveStudioArchive('adaptive_branding_history', history, ['imageUrl', 'baseImageUrl'], 10);
     }
   }, [history]);
 

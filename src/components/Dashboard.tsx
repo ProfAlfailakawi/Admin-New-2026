@@ -2189,46 +2189,17 @@ const [isPending, startTransition] = useTransition();
 
           {/* TOP ROW: HEADER */}
           <div className="flex items-center justify-between w-full">
-            <AnimatePresence>
-              {!isExecutiveMode && (
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="flex items-center gap-4"
-                >
-                  <div
-                    onClick={() => setActiveTab("pulse")}
-                    className="flex shrink-0 items-center justify-center w-14 h-14 bg-slate-900 text-white rounded-2xl shadow-xl transition-all cursor-pointer hover:scale-105 active:scale-95"
-                  >
-                    <Sparkles size={28} className="text-amber-400 animate-pulse" />
-                  </div>
-                  <div className="flex flex-col">
-                    <h1 className="text-xl md:text-3xl font-bold text-slate-900 leading-tight">
-                      {greeting.title}
-                    </h1>
-                    <p className="text-slate-500 text-sm font-bold flex items-center gap-2 mt-1">
-                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
-                      {greeting.sub}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <div className="flex items-center gap-3 text-right">
+              <div className="w-10 h-10 rounded-2xl bg-slate-950 text-amber-300 flex items-center justify-center shadow-lg shadow-slate-900/10">
+                <Sparkles size={19} />
+              </div>
+              <div>
+                <p className="text-[11px] font-black tracking-[0.18em] text-amber-600 uppercase">اللوحة الرئيسية</p>
+                <h1 className="text-lg md:text-2xl font-black text-slate-950 leading-tight">نظرة الإدارة اليوم</h1>
+              </div>
+            </div>
             
-            {/* Executive Mode Toggle */}
-            <button
-              onClick={() => setIsExecutiveMode(!isExecutiveMode)}
-              className={cn(
-                "md:flex items-center gap-3 px-6 py-3 rounded-2xl font-black text-sm transition-all duration-500 shadow-xl",
-                isExecutiveMode 
-                  ? "bg-amber-500 text-white shadow-amber-500/30 scale-110" 
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:scale-105"
-              )}
-            >
-              <ShieldAlert size={20} className={cn(isExecutiveMode ? "text-white" : "text-amber-500")} />
-              <span>{isExecutiveMode ? "إغلاق وضع القيادة" : "تفعيل وضع القيادة"}</span>
-            </button>
+            {/* وضع القيادة تم دمجه داخل مركز القيادة العام حتى لا يتكرر بصرياً */}
           </div>
 
           {!isExecutiveMode && activeTab !== "pulse" && (
