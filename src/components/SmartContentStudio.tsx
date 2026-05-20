@@ -1,6 +1,5 @@
-// دلة قهوة ممنوعة في توليد الصور: no dallah, no coffee pot
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Undo2 } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3 } from 'lucide-react';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from '../constants';
 import { toast } from 'sonner';
 import { Product } from '../types';
@@ -53,7 +52,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState('1:1');
-  const [selectedTheme, setSelectedTheme] = useState('تراثي');
+  const [selectedTheme, setSelectedTheme] = useState('بسيط');
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [compressedImage, setCompressedImage] = useState<string | null>(null);
   const [compressionStats, setCompressionStats] = useState<{ original: number; compressed: number } | null>(null);
@@ -72,13 +71,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   ];
 
   const themes = [
-    { id: 'تراثي', label: 'تراثي كويتي', desc: 'سدو، بيوت طين فخمة، بدون دلة قهوة', icon: '🏛️', color: 'bg-amber-100 text-amber-700' },
-    { id: 'مودرن كافيه', label: 'كافيه كويتي', desc: 'رخام مودرن، نباتات، إضاءة نهارية', icon: '☕', color: 'bg-stone-100 text-stone-700' },
+    { id: 'تراثي', label: 'تراثي كويتي', desc: 'سدو، زخارف كويتية ناعمة، ديكور تراثي بسيط', icon: '🏛️', color: 'bg-amber-100 text-amber-700' },
+    { id: 'مودرن', label: 'مودرن راقٍ', desc: 'رخام مودرن، نباتات، إضاءة نهارية', icon: '🍽️', color: 'bg-stone-100 text-stone-700' },
     { id: 'بحر', label: 'بحر الكويت', desc: 'واجهة بحرية، شاطئ المسيلة، غروب', icon: '🌊', color: 'bg-blue-100 text-blue-700' },
     { id: 'فاخر', label: 'مطعم أفنيوز', desc: 'إضاءة راقية، ديكور مخملي عالمي', icon: '💎', color: 'bg-indigo-100 text-indigo-700' },
     { id: 'بسيط', label: 'تصوير ستوديو', desc: 'خلفية نظيفة، تركيز فني عالي', icon: '🍽️', color: 'bg-slate-100 text-slate-700' },
     { id: 'رمضان', label: 'رمضانيات', desc: 'فوانيس، ليالي رمضان الكويتية', icon: '🌙', color: 'bg-emerald-100 text-emerald-700' },
-    { id: 'مبخر', label: 'مبخر عود', desc: 'مبخر كويتي فاخر، بخور وعود، بدون دلة قهوة', icon: '🪔', color: 'bg-orange-100 text-orange-700' },
     { id: 'سينمائي', label: 'بورتريه سينمائي', desc: 'خلفية ضبابية عازلة للطبق', icon: '🎬', color: 'bg-rose-100 text-rose-700' },
     { id: 'تنظيف', label: 'تحسين فقط', desc: 'تحسين الألوان والإضاءة الأصلية', icon: '✨', color: 'bg-blue-100 text-blue-700' }
   ];
@@ -89,6 +87,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'غروب', label: 'وقت الغروب', icon: '🌇' },
     { id: 'ناعم', label: 'إضاءة استوديو', icon: '☁️' }
   ];
+
+
+
+  const FORBIDDEN_STUDIO_WORDS = ['دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود'];
+  const hasForbiddenStudioWord = (value: string) =>
+    FORBIDDEN_STUDIO_WORDS.some((word) => String(value || '').includes(word));
+  const STUDIO_NEGATIVE_PROMPT = 'Strictly avoid any traditional coffee pot, dallah, arabic coffee pot, incense burner, incense smoke, oud burner, bukhoor burner, perfume burner, brass pot, or unrelated heritage prop. Do not add any extra objects unrelated to the product.';
 
   const [customThemeQuery, setCustomThemeQuery] = useState('');
   const [selectedMood, setSelectedMood] = useState('دافئ');
@@ -188,12 +193,6 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     });
   };
 
-  const undoCaption = () => {
-    setAiCaption(previousAiCaption);
-    setPreviousAiCaption(null);
-    toast.success('تم التراجع عن آخر نص ذكي');
-  };
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -219,6 +218,11 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   const generateContent = async () => {
     if (!selectedImage) return;
+    const themeText = selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme;
+    if (hasForbiddenStudioWord(themeText)) {
+      toast.error('هذا الوصف يحتوي عناصر محظورة للتوليد. احذف دلة/مبخر/بخور/عود وجرب مرة ثانية.');
+      return;
+    }
 
     setIsGenerating(true);
     setGeneratedImage(null);
@@ -232,7 +236,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           imageContent: selectedImage.split(',')[1],
           mimeType: selectedImage.split(';')[0].split(':')[1],
           format: selectedFormat,
-          theme: `${selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme}. إذا كان الوصف يحتوي على مبخر أو بخور أو عود فالمقصود mabkhar incense burner with oud smoke وليس دلة قهوة. ممنوع منعاً باتاً ظهور دلة قهوة أو دلال قهوة أو coffee, no dallah, no Arabic coffee pot في الصورة.`,
+          theme: `${themeText}. ${STUDIO_NEGATIVE_PROMPT}`,
           mood: selectedMood,
           speedTier: 'turbo' // Signal for faster generation logic if available
         })
@@ -284,7 +288,6 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   const generateCaption = async () => {
     if (!generatedImage) return;
-    setPreviousAiCaption(aiCaption);
     setIsCapturing(true);
     try {
       // Resize image for text generation to reduce payload size safely
@@ -325,7 +328,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           image: safeBase64,
-          theme: `${selectedTheme}. إذا كان المطلوب مبخر أو بخور فالمقصود مبخر عود كويتي ودخان بخور فاخر وليس دلة قهوة. لا تذكر دلة قهوة أو دلال القهوة نهائياً`
+          theme: `${selectedTheme}. ${STUDIO_NEGATIVE_PROMPT}`
         })
       });
       let res: any = null;
@@ -341,6 +344,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       }
 
       const caption = res?.caption || `صورة تسويقية جاهزة بأسلوب ${selectedTheme}.`;
+      setPreviousAiCaption(aiCaption);
       setAiCaption(caption);
       toast.success('تم توليد التعليق الذكي على الصورة');
       if (generatedImage) {
@@ -349,6 +353,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     } catch (e: any) {
       console.error(e);
       const fallbackCaption = `صورة تسويقية جاهزة بأسلوب ${selectedTheme}.`;
+      setPreviousAiCaption(aiCaption);
       setAiCaption(fallbackCaption);
       if (generatedImage) {
         setHistory(prev => prev.map(item => item.url === generatedImage ? {...item, caption: fallbackCaption} : item));
@@ -582,7 +587,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="اكتب وصفاً مفصلاً للخلفية (مثال: منظر تراثي ناعم على البحر وقت الشروق، بدون دلة قهوة)"
+                    placeholder="اكتب وصفاً مفصلاً للخلفية (مثال: منظر تراثي ناعم على البحر وقت الشروق)"
                     value={customThemeQuery}
                     onChange={(e) => {
                       setCustomThemeQuery(e.target.value);
@@ -819,9 +824,17 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                         {isCapturing ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
                         توليد نص ذكي
                       </button>
-                      {aiCaption && previousAiCaption !== null && (
-                        <button type="button" onClick={undoCaption} className="px-6 py-3 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-100">
-                          <Undo2 size={18} /> تراجع
+                      {aiCaption && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAiCaption(previousAiCaption);
+                            setPreviousAiCaption(null);
+                            toast.info('تم التراجع عن آخر نص ذكي');
+                          }}
+                          className="px-5 py-3 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-100 transition-all"
+                        >
+                          تراجع
                         </button>
                       )}
                     </div>

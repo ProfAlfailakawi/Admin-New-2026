@@ -119,6 +119,23 @@ No markdown formatting, just pure JSON.`;
       </h2>
       <p className="text-slate-500 text-sm mb-8 max-w-xl">دع الذكاء الاصطناعي يغير ألوان ومزاج صفحتك أو متجرك بناءً على الوقت أو الموسم، أو ابتكر ثيماً جديداً لأي مناسبة تخطر ببالك!</p>
 
+      {history.filter((item) => item.imageUrl || item.url).length > 0 && (
+        <div className="bg-slate-50 rounded-3xl border border-slate-100 p-4 shadow-sm mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-bold text-slate-400">اضغط على أي هوية لاسترجاعها</span>
+            <h3 className="font-black text-slate-800 flex items-center gap-2"><Layout size={16} className="text-purple-500" /> أرشيف الصور السابقة</h3>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            {history.filter((item) => item.imageUrl || item.url).slice(0, 8).map((item, idx) => (
+              <button key={idx} onClick={() => setGeneratedTheme(item)} className="group rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm hover:shadow-md transition-all text-right">
+                <img src={item.imageUrl || item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
+                <div className="p-2 text-[10px] font-bold text-slate-500 truncate">{item.name || 'هوية سابقة'}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative mb-8">
         <button 
           disabled={isApplying}
