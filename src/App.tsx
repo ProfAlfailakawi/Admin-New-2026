@@ -661,12 +661,15 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
   const showAi = page === 'dashboard-ai' || page === 'ai';
   const showGrowth = page === 'growth-simulator';
   const showProfit = page === 'profit-guard' || page === 'expenses' || page === 'reports';
+  const showPageHero = page !== 'dashboard';
   return (
-    <div className="admin-experience-stack">
-      <section className="admin-page-hero" dir="rtl">
-        <div className="admin-page-hero-main"><span className="admin-page-kicker">{meta.tag}</span><h1>{meta.title}</h1><p>{meta.subtitle}</p></div>
-        <div className="admin-page-metrics" aria-label="ملخص الصفحة"><div><strong>{allSales.length}</strong><span>حركة</span></div><div><strong>{totalSales.toFixed(3)}</strong><span>د.ك</span></div><div><strong>{pendingCount}</strong><span>بانتظار</span></div><div><strong>{failedCount}</strong><span>فشل</span></div></div>
-      </section>
+    <div className={`admin-experience-stack ${!showPageHero ? 'dashboard-merged-with-command' : ''}`}>
+      {showPageHero && (
+        <section className="admin-page-hero" dir="rtl">
+          <div className="admin-page-hero-main"><span className="admin-page-kicker">{meta.tag}</span><h1>{meta.title}</h1><p>{meta.subtitle}</p></div>
+          <div className="admin-page-metrics" aria-label="ملخص الصفحة"><div><strong>{allSales.length}</strong><span>حركة</span></div><div><strong>{totalSales.toFixed(3)}</strong><span>د.ك</span></div><div><strong>{pendingCount}</strong><span>بانتظار</span></div><div><strong>{failedCount}</strong><span>فشل</span></div></div>
+        </section>
+      )}
       {showProduct && <section className="admin-smart-panel product-score-panel" dir="rtl"><div className="panel-head"><div><span>Product Score</span><h2>مؤشر قوة المنتج</h2></div><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></section>}
       {showCustomers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Customer Intelligence Board</span><h2>لوحة ذكاء العملاء</h2></div><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{c.spend.toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></section>}
       {showSuppliers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Supplier Risk Radar</span><h2>رادار الموردين</h2></div><button type="button" onClick={() => onNavigate('suppliers-audit')}>فتح المراجعة</button></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>المورد</span><b>→</b><span>المنتجات</span><b>→</b><span>الطلبات</span><b>→</b><span>الربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات مرتبطة · {sup.debt.toFixed(3)} د.ك</p><strong>{sup.risk}</strong></div>)}</div></section>}
