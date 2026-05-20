@@ -1466,7 +1466,7 @@ const [isPending, startTransition] = useTransition();
     const topProducts = useMemo(() => {
     const soldMap: Record<string, number> = {};
     
-    for (const [pId, perf] of Object.entries(productPerformance)) {
+    for (const [pId, perf] of Object.entries(productPerformance) as Array<[string, { sold: number; revenue: number; profit: number }]>) {
        soldMap[pId] = perf.sold || 0;
     }
 

@@ -20,6 +20,9 @@ interface SmartContentStudioProps {
 }
 
 class StudioErrorBoundary extends React.Component<{ title: string; children: React.ReactNode }, { hasError: boolean; message: string }> {
+  declare props: Readonly<{ title: string; children: React.ReactNode }>;
+  declare state: Readonly<{ hasError: boolean; message: string }>;
+
   constructor(props: { title: string; children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false, message: '' };
