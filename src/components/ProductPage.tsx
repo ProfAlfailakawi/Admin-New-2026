@@ -51,7 +51,8 @@ import {
 
 // import { getDeduplicatedProducts } from '../lib/deduplication';
 
-const DEFAULT_PRODUCT_CATEGORIES = ["الولائم", "اللحوم", "الدجاج", "البحري", "المشويات", "المقبلات", "المشروبات"];
+const DEFAULT_PRODUCT_CATEGORIES = ["الولائم", "اللحوم", "الدجاج", "البحري", "المقبلات"];
+const REMOVED_DEFAULT_CATEGORIES = ["المشويات", "المشروبات"];
 const normalizeCategoryName = (value?: string) => String(value || "عام").trim() || "عام";
 const getProductCategories = (data: any) => {
   const configured = data?.productCategories || data?.settings?.productCategories || [];
@@ -112,6 +113,38 @@ const ProductPage: React.FC<ProductPageProps> = ({
   const [openProductCategory, setOpenProductCategory] = useState<string | null>(null);
 
   const productCategories = useMemo(() => getProductCategories(data), [data]);
+
+  useEffect(() => {
+    const alreadyCleaned = Boolean((data as any)?.settings?.removedOldDefaultCategories);
+    if (alreadyCleaned) return;
+
+    const currentCategories = getProductCategories(data);
+    const unusedRemovedDefaults = REMOVED_DEFAULT_CATEGORIES.filter((category) =>
+      !(data?.products || []).some((product: any) => normalizeCategoryName(product?.category) === category),
+    );
+
+    if (unusedRemovedDefaults.length === 0) {
+      setData((prev: any) => ({
+        ...prev,
+        settings: { ...(prev.settings || {}), removedOldDefaultCategories: true },
+      }));
+      return;
+    }
+
+    const nextCategories = currentCategories.filter(
+      (category) => !unusedRemovedDefaults.includes(normalizeCategoryName(category)),
+    );
+
+    setData((prev: any) => ({
+      ...prev,
+      productCategories: nextCategories,
+      settings: {
+        ...(prev.settings || {}),
+        productCategories: nextCategories,
+        removedOldDefaultCategories: true,
+      },
+    }));
+  }, []);
 
   const saveProductCategories = (categories: string[]) => {
     const cleaned = Array.from(new Set(categories.map(normalizeCategoryName).filter(Boolean)));
@@ -329,8 +362,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
         return matchesSearch && matchesPerformance && matchesSupplier;
       })
-      .map((pStat) => pStat.p)
-      .sort((a, b) => (a.name || "").localeCompare(b.name || "", "ar"));
+      .map((pStat) => pStat.p);
   }, [data?.products, data?.invoices, search, filterType, selectedSupplierId]);
 
   const visibleProducts = useMemo(() => {

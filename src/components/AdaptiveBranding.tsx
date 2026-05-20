@@ -28,8 +28,17 @@ export const AdaptiveBranding: React.FC<{ data: any; setData: any }> = ({ data, 
   }, []);
 
   React.useEffect(() => {
-    if (history.length > 0) {
-      localStorage.setItem('adaptive_branding_history', JSON.stringify(history));
+    try {
+      const lightHistory = (history || []).slice(0, 8).map((item: any) => ({
+        ...item,
+        url: String(item?.url || item?.imageUrl || '').startsWith('data:') ? '' : (item?.url || item?.imageUrl || ''),
+      })).filter((item: any) => item.url || item.text || item.review || item.name);
+      if (lightHistory.length > 0) {
+        localStorage.setItem('adaptive_branding_history', JSON.stringify(lightHistory));
+      }
+    } catch (err) {
+      console.warn('adaptive_branding_history storage skipped:', err);
+      try { localStorage.removeItem('adaptive_branding_history'); } catch {}
     }
   }, [history]);
 
