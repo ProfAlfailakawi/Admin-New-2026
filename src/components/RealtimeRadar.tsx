@@ -32,8 +32,17 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
   }, []);
 
   React.useEffect(() => {
-    if (history.length > 0) {
-      localStorage.setItem('realtime_radar_history', JSON.stringify(history));
+    try {
+      const lightHistory = (history || []).slice(0, 8).map((item: any) => ({
+        ...item,
+        url: String(item?.url || item?.imageUrl || '').startsWith('data:') ? '' : (item?.url || item?.imageUrl || ''),
+      })).filter((item: any) => item.url || item.text || item.review || item.name);
+      if (lightHistory.length > 0) {
+        localStorage.setItem('realtime_radar_history', JSON.stringify(lightHistory));
+      }
+    } catch (err) {
+      console.warn('realtime_radar_history storage skipped:', err);
+      try { localStorage.removeItem('realtime_radar_history'); } catch {}
     }
   }, [history]);
 
