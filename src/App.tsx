@@ -346,6 +346,14 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
   const outOfStock = products.filter((p: any) => p?.isOutOfStock || p?.stock === 0 || p?.quantity === 0).length;
   const signal = failed > 0 ? 'يحتاج انتباه' : pending > 0 ? 'قيد المتابعة' : 'الوضع مستقر';
   const tone = failed > 0 ? 'danger' : pending > 0 ? 'watch' : 'calm';
+  const hour = new Date().getHours();
+  const greeting = hour >= 17 && hour < 22
+    ? { title: 'تحية مسائية هادئة ☕', sub: 'النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.' }
+    : hour >= 5 && hour < 12
+      ? { title: 'صباح الخير، يوم جديد وفرص جديدة ☀️', sub: 'مركز القيادة جاهز لقراءة نبض اليوم ومتابعة أهم المؤشرات.' }
+      : hour >= 12 && hour < 17
+        ? { title: 'مرحباً، وقت الغداء والتركيز! 🍽️', sub: 'تتبع حركة المبيعات في فترة الذروة، والقرارات المهمة أمامك.' }
+        : { title: 'نظرة هادية على الأرقام.. عساك على القوة! ☕', sub: 'هدوء الليل أفضل وقت للتخطيط ومراجعة الأداء.' };
   const [isOpen, setIsOpen] = React.useState(page === 'dashboard');
 
   React.useEffect(() => {
@@ -378,22 +386,22 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
   return (
     <section dir="rtl" className={`heritage-command-brief heritage-command-brief-${tone} ${isOpen ? 'is-open' : 'is-collapsed'}`} aria-label="مركز القيادة">
       <div className="heritage-command-hero">
-        <span className="heritage-command-orb" />
-        <div className="min-w-0 text-right">
-          <div className="text-[10px] md:text-[11px] font-black tracking-[0.18em] text-amber-600 uppercase mb-1">شركة مطبخ التراث</div>
-          <h2 className="text-lg md:text-2xl font-black text-slate-950 leading-tight">مركز القيادة التنفيذي</h2>
-          <p className="text-[12px] md:text-sm text-slate-500 font-bold mt-1">مرحباً، وقت الغداء والتركيز · {signal} · كل المؤشرات المهمة أمامك.</p>
+        <span className="heritage-command-orb"><Sparkles size={22} /></span>
+        <div className="min-w-0 text-right heritage-command-copy">
+          <div className="heritage-command-kicker">مركز القيادة · شركة مطبخ التراث</div>
+          <h2>{greeting.title}</h2>
+          <p>{greeting.sub}</p>
         </div>
       </div>
 
       <div className="heritage-command-actions">
         <button
           type="button"
-          className="heritage-command-toggle"
+          className="heritage-command-toggle heritage-command-open-btn"
           onClick={() => setIsOpen((value) => !value)}
           aria-expanded={isOpen}
         >
-          {isOpen ? 'إخفاء مركز القيادة' : 'عرض مركز القيادة'}
+          {isOpen ? 'إغلاق مركز القيادة' : 'فتح مركز القيادة'}
           <ChevronDown size={16} className={isOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
         </button>
       </div>
