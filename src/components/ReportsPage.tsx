@@ -459,17 +459,14 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           const createdLink =
             paymentData.paymentLink ||
             paymentData.payment_url ||
-            paymentData.paymentURL ||
             paymentData.paymentUrl ||
             paymentData.url ||
             paymentData.link ||
             paymentData.data?.paymentLink ||
             paymentData.data?.payment_url ||
-            paymentData.data?.paymentURL ||
             paymentData.data?.paymentUrl ||
             paymentData.data?.url ||
             paymentData.data?.link ||
-            (typeof paymentData.data === "string" ? paymentData.data : "") ||
             "";
           const createdPaymentId =
             paymentData.paymentId ||
@@ -616,12 +613,14 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           String(invoice.status).includes("تجميع القطية") ||
           invoice.status === "split_pending"
         );
-      const trackingUrl = `https://alturathkw.shop/track?tracked_order=${encodeURIComponent(invoice.id)}`;
+      const invoiceEmoji = "\u2728";
+      const linkEmoji = "\u2705";
+      const trackingUrl = "https://alturathkw.shop/track";
       const paymentSection =
         paymentLink && paymentLink.trim() !== "" && !isPaidNow
           ? `
 
-*رابط الدفع*
+${linkEmoji} رابط الدفع:
 ${paymentLink}`
           : "";
 
@@ -644,17 +643,16 @@ ${paymentLink}`
           : invoice.deliveryInfo?.zoneName || "غير محدد";
 
       const customerName = customer?.name || "عميلنا العزيز";
-      const message = `*فاتورة الطلب*
-مطبخ التراث الكويتي
-------------------------------
+      const message = `${invoiceEmoji} فاتورة طلبكم من مطبخ التراث الكويتي
+
 مرحباً ${customerName}،
 تم تجهيز فاتورتكم للطلب رقم: ${invoice.id}
 
-*الإجمالي المستحق:* ${Number(total).toFixed(3)} د.ك${paymentSection}
+الإجمالي المستحق: ${Number(total).toFixed(3)} د.ك${paymentSection}
 
-*تتبع الطلب*
+لتتبع الطلب:
 ${trackingUrl}
-------------------------------
+
 شكراً لاختياركم مطبخ التراث الكويتي
 Alturath.kw`;
 

@@ -1255,12 +1255,14 @@ const OrderPage: React.FC<OrderPageProps> = ({
         String(order.status).includes("تجميع القطية") ||
         order.status === "split_pending"
       );
-    const trackingUrl = `https://alturathkw.shop/track?tracked_order=${encodeURIComponent(invoiceNumber)}`;
+    const invoiceEmoji = "\u2728";
+    const linkEmoji = "\u2705";
+    const trackingUrl = "https://alturathkw.shop/track";
     const paymentSection =
       paymentLink && paymentLink.trim() !== "" && !isPaidNow
         ? `
 
-*رابط الدفع*
+${linkEmoji} رابط الدفع:
 ${paymentLink}`
         : "";
 
@@ -1286,17 +1288,16 @@ ${paymentLink}`
         : linkedInvoice?.deliveryInfo?.zoneName || "غير محدد";
 
     const customerName = getOrderCustomerName(order) || "عميلنا العزيز";
-    const message = `*فاتورة الطلب*
-مطبخ التراث الكويتي
-------------------------------
+    const message = `${invoiceEmoji} فاتورة طلبكم من مطبخ التراث الكويتي
+
 مرحباً ${customerName}،
 تم تجهيز فاتورتكم للطلب رقم: ${invoiceNumber}
 
-*الإجمالي المستحق:* ${Number(total).toFixed(3)} د.ك${paymentSection}
+الإجمالي المستحق: ${Number(total).toFixed(3)} د.ك${paymentSection}
 
-*تتبع الطلب*
+لتتبع الطلب:
 ${trackingUrl}
-------------------------------
+
 شكراً لاختياركم مطبخ التراث الكويتي
 Alturath.kw`;
 
