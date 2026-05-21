@@ -804,7 +804,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
                     {history.length > 0 && (
                       <div className="mt-8 pt-4 border-t border-slate-100">
-                        <h4 className="text-xs font-black text-slate-400 mb-4 text-right">الأعمال الأخيرة</h4>
+                        
                         <div className="flex gap-2 overflow-x-auto pb-2">
                           {history.map((item, idx) => (
                             <button 

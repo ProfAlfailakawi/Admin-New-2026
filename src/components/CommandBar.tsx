@@ -110,7 +110,15 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     return commands.filter(c => clean(c.label).includes(q) || clean(c.category).includes(q) || clean(c.hint).includes(q) || c.tags?.some((t) => clean(t).includes(q)));
   }, [commands, deferredQuery]);
 
-  const featured = useMemo(() => filteredCommands.slice(0, deferredQuery ? 8 : 6), [filteredCommands, deferredQuery]);
+  const priority = ['new-invoice','orders','invoices-list','alerts','products-page','customers-page','settings'];
+  const featured = useMemo(() => {
+    const sorted = [...filteredCommands].sort((a, b) => {
+      const ai = priority.indexOf(a.id);
+      const bi = priority.indexOf(b.id);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+    return sorted.slice(0, deferredQuery ? 8 : 7);
+  }, [filteredCommands, deferredQuery]);
 
   const runCommand = (cmd: CommandItem) => {
     cmd.action();
@@ -248,7 +256,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
             </div>
 
             <div className="command-premium-footer">
-              <div className="flex items-center gap-2"><Command size={12} /><span>Ctrl + K</span></div>
+              <div className="flex items-center gap-2"><Command size={12} /><span>أداة قيادة</span></div>
               <div className="flex items-center gap-2"><Clock size={12} /><span>اختيار سريع بدون تنقل طويل</span></div>
             </div>
           </motion.div>
