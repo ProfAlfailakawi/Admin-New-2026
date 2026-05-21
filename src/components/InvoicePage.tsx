@@ -292,7 +292,10 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
         (order as any)?.split_link;
 
       const isPaidNow = isPaidStatus(invoice.paymentStatus);
-      const paymentLinkText = typeof pLink === "string" ? pLink.trim() : "";
+      const paymentLinkLine =
+        pLink && pLink.trim() !== "" && !isPaidNow
+          ? `\nرابط الدفع: ${pLink}`
+          : "";
 
       const promoLabel = invoice.appliedPromoCodeName
         ? `قيمة الخصم (${invoice.appliedPromoCodeName})`
@@ -313,27 +316,26 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
             : invoice.address)
         : invoice.deliveryInfo?.zoneName || "غير محدد";
 
-      const invoiceEmoji = "\u{1F9FE}";
-      const linkEmoji = "\u{1F517}";
-      const trackingUrl = "https://alturathkw.shop/track";
+      const trackingUrl = `https://alturathkw.shop/track?tracked_order=${encodeURIComponent(invoice.id)}`;
       const customerName = customer?.name || "عميلنا العزيز";
-      const paymentSection = paymentLinkText && !isPaidNow
+      const paymentSection = paymentLinkLine
         ? `
-${linkEmoji} رابط الدفع:
-${paymentLinkText}
+*رابط الدفع*
+${pLink}
 `
         : "";
 
-      const message = `${invoiceEmoji} فاتورة طلبكم من مطبخ التراث الكويتي
-
+      const message = `*فاتورة الطلب*
+مطبخ التراث الكويتي
+------------------------------
 مرحباً ${customerName}،
 تم تجهيز فاتورتكم للطلب رقم: ${invoice.id}
 
-الإجمالي المستحق: ${Number(totalAmountVal).toFixed(3)} د.ك
+*الإجمالي المستحق:* ${Number(totalAmountVal).toFixed(3)} د.ك
 ${paymentSection}
-لتتبع الطلب:
+*تتبع الطلب*
 ${trackingUrl}
-
+------------------------------
 شكراً لاختياركم مطبخ التراث الكويتي
 Alturath.kw`;
 
@@ -719,6 +721,7 @@ Alturath.kw`;
           createdLink =
             paymentData.paymentLink ||
             paymentData.payment_url ||
+            paymentData.paymentURL ||
             paymentData.paymentUrl ||
             paymentData.url ||
             paymentData.link ||
