@@ -70,19 +70,40 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     setLocalTiers((prev) => {
       const resolved = typeof next === 'function' ? (next as any)(prev) : next;
       const normalized = resolved.map(normalizeAdminTier);
-      setData((old: any) => ({
-        ...old,
+      const sharedTiers = normalizeForOrder(normalized);
+
+      // IMPORTANT: this screen is persisted through the shared AppState.
+      // Use a direct object update here so newly added levels do not disappear
+      // after leaving the screen or logging out.
+      setData({
+        ...data,
         diwaniyaTiers: normalized,
-        squadTiers: normalizeForOrder(normalized),
-      }));
+        squadTiers: sharedTiers,
+      });
+
       return normalized;
     });
   };
 
   useEffect(() => {
-    if (!Array.isArray(data?.squadTiers) || data.squadTiers.length === 0) {
-      setData((old: any) => ({ ...old, diwaniyaTiers: tiers, squadTiers: normalizeForOrder(tiers) }));
+    const savedAdminTiers = Array.isArray(data?.diwaniyaTiers) ? data.diwaniyaTiers : null;
+    const savedSharedTiers = Array.isArray(data?.squadTiers) ? data.squadTiers : null;
+    if (savedAdminTiers?.length) {
+      setLocalTiers(savedAdminTiers.map(normalizeAdminTier));
+      return;
     }
+    if (savedSharedTiers?.length) {
+      const fromShared = savedSharedTiers.map((tier: any, index: number) => normalizeAdminTier({
+        id: tier.id ?? index + 1,
+        name: tier.name,
+        points: tier.minPoints ?? tier.points ?? 0,
+        label: tier.benefit ?? tier.label,
+        imageUrl: tier.imageUrl,
+      }, index));
+      setLocalTiers(fromShared);
+      return;
+    }
+    setData({ ...data, diwaniyaTiers: tiers, squadTiers: normalizeForOrder(tiers) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
