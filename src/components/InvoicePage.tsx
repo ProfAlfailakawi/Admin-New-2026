@@ -79,50 +79,6 @@ import { toast } from "sonner";
 // admin interface without editing this list directly.
 const DEFAULT_PRODUCT_CATEGORIES = ["الولائم", "اللحوم", "الدجاج", "البحري", "المقبلات"];
 
-const PAYMENT_CREATE_ENDPOINTS = [
-  "/api/create-payment",
-  "https://service-119610604304.europe-west3.run.app/api/create-payment",
-];
-
-async function createPaymentWithLiveFallback(payload: Record<string, unknown>) {
-  let lastData: any = null;
-  let lastError: unknown = null;
-
-  for (const endpoint of PAYMENT_CREATE_ENDPOINTS) {
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const text = await response.text();
-      let paymentData: any = {};
-      try {
-        paymentData = text ? JSON.parse(text) : {};
-      } catch {
-        paymentData = { message: text };
-      }
-
-      if (response.ok) {
-        return { ok: true, paymentData, endpoint };
-      }
-
-      lastData = paymentData;
-      console.warn("Payment creation failed on endpoint:", endpoint, paymentData);
-    } catch (error) {
-      lastError = error;
-      console.warn("Payment endpoint unavailable:", endpoint, error);
-    }
-  }
-
-  return {
-    ok: false,
-    paymentData: lastData || { message: lastError instanceof Error ? lastError.message : "Payment creation failed" },
-    endpoint: PAYMENT_CREATE_ENDPOINTS[PAYMENT_CREATE_ENDPOINTS.length - 1],
-  };
-}
-
 const normalizeCategoryName = (value?: string) => String(value || "عام").trim() || "عام";
 
 const getSharedProductCategories = (source: any, productList: any[] = []) => {
@@ -745,19 +701,24 @@ Alturath.kw`;
       let createdLink = "";
       let createdPaymentId = "";
       try {
-        const { ok, paymentData } = await createPaymentWithLiveFallback({
-          amount: Number(totalValue.toFixed(3)),
-          isAdmin: true,
-          customerName: customer?.name || newCustomerName || "Customer",
-          customerEmail: customer?.email || "no-email@example.com",
-          customerMobile: customer?.phone || customerPhone || "+96500000000",
-          orderId: invoiceId,
-          description: `Invoice ${invoiceId}`,
-          returnUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
-          cancelUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
-          notificationUrl: `https://admin.alturathkw.shop/api/webhook/upayments`,
+        const response = await fetch("/api/create-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: Number(totalValue.toFixed(3)),
+            isAdmin: true,
+            customerName: customer?.name || newCustomerName || "Customer",
+            customerEmail: customer?.email || "no-email@example.com",
+            customerMobile: customer?.phone || customerPhone || "+96500000000",
+            orderId: invoiceId,
+            description: `Invoice ${invoiceId}`,
+            returnUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
+            cancelUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
+            notificationUrl: `https://admin.alturathkw.shop/api/webhook/upayments`,
+          }),
         });
-        if (ok) {
+        const paymentData = await response.json();
+        if (response.ok) {
           createdLink =
             paymentData.paymentLink ||
             paymentData.payment_url ||

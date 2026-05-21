@@ -92,7 +92,6 @@ app.use((req, res, next) => {
   const origin = String(req.headers.origin || "");
 
   const allowedOrigins = new Set([
-    "https://admin.alturathkw.shop",
     "https://alturath-admin-0200723670.web.app",
     "https://gen-lang-client-0200723670.web.app",
     "https://service-119610604304.europe-west3.run.app",
@@ -102,6 +101,8 @@ app.use((req, res, next) => {
 
   if (allowedOrigins.has(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "https://alturath-admin-0200723670.web.app");
   }
 
   res.setHeader("Vary", "Origin");
@@ -1259,7 +1260,7 @@ async function sendSmartAlertPushNotification({
   title,
   body,
   alertType = "general",
-  url = "https://admin.alturathkw.shop",
+  url = "https://alturath-admin-0200723670.web.app",
   eventId = `manual-smart-alert-${Date.now()}`,
   ttlSeconds,
   requireInteraction = true,
@@ -1494,14 +1495,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
   // Consolidate API Key retrieval logic
   const getUPaymentsApiKey = () => {
-    const raw =
-      process.env.UPAYMENTS_API_KEY ||
-      process.env.UPAYMENT_API_KEY ||
-      process.env.UPAYMENTS_TOKEN ||
-      process.env.UPAYMENT_TOKEN ||
-      process.env.VITE_UPAYMENTS_API_KEY ||
-      process.env.VITE_UPAYMENT_API_KEY ||
-      "";
+    const raw = process.env.UPAYMENTS_API_KEY || process.env.VITE_UPAYMENTS_API_KEY || "";
     return raw.replace(/[^\x20-\x7E]/g, '').replace(/\s+/g, '').trim();
   };
 
@@ -1611,7 +1605,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     const validNotificationUrl =
       typeof notificationUrl === "string" && /^https?:\/\//i.test(notificationUrl)
         ? notificationUrl
-        : "https://admin.alturathkw.shop/api/webhook/upayments";
+        : "https://admin.alturathkw.shop/api/payment/notification";
 
     if (!amount || !customerName || !orderId || !returnUrl || !cancelUrl) {
       return res.status(400).json({ error: "Missing required payment fields" });
@@ -1628,29 +1622,23 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         cleanMobile = '96500000000';
       }
       
-      const safeAmount = Number(Number(amount).toFixed(3));
-      const rawEmail = String(customerEmail || '').trim();
-      const safeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) && !/example\.com$/i.test(rawEmail)
-        ? rawEmail
-        : `customer-${cleanMobile || orderId}@alturathkw.shop`;
-
       const payload: any = {
         order: {
           id: orderId,
           reference: orderId,
           description: description || 'Payment for order ' + orderId,
           currency: 'KWD',
-          amount: safeAmount
+          amount: amount
         },
         language: 'en',
-        is_sms: 0,
-        is_email: 0,
-        paymentGateway: { src: paymentGateway || 'knet' },
+        is_sms: 1,
+        is_email: 1,
+        paymentGateway: { src: paymentGateway },
         reference: { id: orderId },
         customer: {
-          uniqueId: cleanMobile || orderId,
+          uniqueId: customerEmail || cleanMobile || orderId,
           name: customerName,
-          email: safeEmail,
+          email: customerEmail || 'no-email@example.com',
           mobile: cleanMobile
         },
         returnUrl: returnUrl,
@@ -1685,21 +1673,6 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         return res.status(response.status).json({ error: "Payment gateway request failed", details: data });
       }
 
-      const extractedPaymentLink =
-        data?.paymentLink ||
-        data?.paymentURL ||
-        data?.payment_url ||
-        data?.paymentUrl ||
-        data?.url ||
-        data?.link ||
-        data?.data?.paymentLink ||
-        data?.data?.paymentURL ||
-        data?.data?.payment_url ||
-        data?.data?.paymentUrl ||
-        data?.data?.url ||
-        data?.data?.link ||
-        (typeof data?.data === "string" && /^https?:\/\//i.test(data.data) ? data.data : "");
-
       // Send immediate pending-payment alert when payment link is created
       sendSmartAlertPushNotification({
         title: String(orderId).startsWith("INV-")
@@ -1714,10 +1687,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
           : `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
       } as any).catch(console.error);
 
-      res.json({
-        ...data,
-        paymentLink: extractedPaymentLink || data?.paymentLink || data?.link || data?.url || "",
-      });
+      res.json(data);
     } catch (error) {
       console.error("Error creating payment:", error);
       res.status(500).json({ error: "Failed to create payment" });
