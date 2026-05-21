@@ -401,7 +401,7 @@ const {
  const bentoCardStyle ="bg-[#fdfbf7] p-3 md:p-4 rounded-2xl2xl lg:rounded-2xl2xl md:rounded-2xl2xl border border-[#f0e6d2] shadow-[0_4px_20px_-10px_rgba(212,192,152,0.3)] text-right relative overflow-hidden flex flex-col h-full";
  
  return (
- <div className="min-h-full bg-slate-50 p-3 md:p-3 lg:p-3 md:p-4 animate-in fade-in duration-500 transition-colors" dir="rtl">
+ <div className="partner-clean-shell min-h-full bg-slate-50 p-3 md:p-3 lg:p-3 md:p-4 animate-in fade-in duration-500 transition-colors" dir="rtl">
  <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-3 md:p-4">
  <div className="flex flex-col items-end gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0" style={{ flexWrap: 'nowrap' }}>
  <SectionHeader 
@@ -499,6 +499,19 @@ const {
             </div>
           )}
         </AnimatePresence>
+
+        <section className="partner-clean-hub" dir="rtl">
+          <div className="partner-clean-copy">
+            <span>برنامج الشريك</span>
+            <h3>واجهة مختصرة للطلبات والفواتير فقط</h3>
+            <p>كل شيء مهم للشريك واضح من أول نظرة، بدون زحمة الإدارة الكاملة.</p>
+          </div>
+          <div className="partner-clean-actions">
+            <button type="button" onClick={() => onNavigate('orders')}><ShoppingBag size={18}/> طلبات اليوم</button>
+            <button type="button" onClick={() => onNavigate('invoices-list')}><FileText size={18}/> الفواتير</button>
+            <button type="button" onClick={() => onNavigate('new-invoice')}><DollarSign size={18}/> فاتورة جديدة</button>
+          </div>
+        </section>
        
        {/* Time Slider (Minimalist) */}
        <div className="fixed bottom-3 left-0 right-0 z-[90] p-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-10 duration-700 delay-500">
