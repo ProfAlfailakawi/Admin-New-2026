@@ -1568,7 +1568,7 @@ const MainApp: React.FC = () => {
 
       // Sync customer app orders independently
       try {
-         const qOrders = query(collection(db, 'orders'), orderBy('date', 'desc'), limit(300));
+         const qOrders = query(collection(db, 'orders'), orderBy('date', 'desc'), limit(50));
          ordersUnsubscribe = onSnapshot(qOrders, (snap) => {
             const externalOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             setData(prev => {
