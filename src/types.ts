@@ -376,6 +376,8 @@ export interface AppState {
   orders: Order[];
   promocodes?: PromoCode[];
   squads?: Squad[];
+  squadTiers?: any[];
+  diwaniyaTiers?: any[];
   loyaltySettings?: {
     expirationDays: number;
     isDynamicEnabled: boolean;

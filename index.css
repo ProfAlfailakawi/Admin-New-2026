@@ -902,32 +902,157 @@ button:active,a:active,.interactive-hover:active,.ui-card:active{transform:scale
 [data-sonner-toast],.sonner-toast,.admin-toast{border-radius:22px!important;border:1px solid rgba(200,148,47,.22)!important;box-shadow:0 22px 62px rgba(24,51,38,.18)!important;background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(255,250,242,.90))!important}
 .animate-pulse,.skeleton-card,.admin-skeleton{position:relative;overflow:hidden!important}.animate-pulse:after,.skeleton-card:after,.admin-skeleton:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.62),transparent);animation:adminLuxuryShimmer 1.7s ease-in-out infinite;pointer-events:none}@keyframes adminLuxuryShimmer{0%{transform:translateX(120%)}100%{transform:translateX(-120%)}}
 
-/* Fix Command Center contrast after premium glass layer */
-.command-feature-card,
-.command-row {
-  color: #1e293b !important;
+/* ======================================================================
+   FULL VISUAL SYSTEM POLISH – RESPONSIVE UI ONLY
+   Visual CSS only: layout, spacing, typography, cards, tables and dialogs.
+   ====================================================================== */
+:root {
+  --ui-fluid-page: min(100% - 1.25rem, 1440px);
+  --ui-card-radius: clamp(18px, 1.6vw, 26px);
+  --ui-tight-gap: clamp(.6rem, 1.2vw, 1rem);
+  --ui-section-gap: clamp(.9rem, 1.7vw, 1.35rem);
+  --ui-card-pad: clamp(.82rem, 1.55vw, 1.25rem);
 }
-.command-feature-card strong,
-.command-feature-card small,
-.command-row .font-black,
-.command-row .font-bold {
-  color: inherit !important;
+
+html, body, #root { max-width: 100%; overflow-x: hidden; }
+body { text-rendering: optimizeLegibility; }
+
+.admin-heritage-shell,
+.admin-heritage-shell * { box-sizing: border-box; }
+
+.admin-heritage-shell {
+  direction: rtl;
+  font-size: clamp(14px, .86vw, 16px);
+  line-height: 1.65;
+  color: #172033;
 }
-.command-feature-card:hover,
-.command-feature-card.is-active,
-.command-row:hover,
-.command-row.is-active {
-  color: #14213d !important;
-  background: linear-gradient(135deg, #ffffff, #fff7ed) !important;
+
+.admin-heritage-shell main,
+.admin-heritage-shell .container,
+.admin-heritage-shell [class*="max-w-"] {
+  max-width: var(--ui-fluid-page) !important;
 }
-.command-feature-card:hover small,
-.command-feature-card.is-active small,
-.command-row:hover .opacity-60,
-.command-row.is-active .opacity-60 {
-  color: #64748b !important;
-  opacity: 1 !important;
+
+.admin-heritage-shell main {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: clamp(.7rem, 1.8vw, 1.5rem) !important;
+  padding-block: clamp(.75rem, 1.5vw, 1.25rem) !important;
 }
-.command-row:hover svg:not(.command-row-icon svg),
-.command-row.is-active svg:not(.command-row-icon svg) {
-  color: #b45309 !important;
+
+.admin-heritage-shell h1 { font-size: clamp(1.35rem, 2.1vw, 2.05rem) !important; line-height: 1.2 !important; }
+.admin-heritage-shell h2 { font-size: clamp(1.14rem, 1.6vw, 1.55rem) !important; line-height: 1.25 !important; }
+.admin-heritage-shell h3 { font-size: clamp(1rem, 1.25vw, 1.2rem) !important; line-height: 1.35 !important; }
+.admin-heritage-shell p,
+.admin-heritage-shell span,
+.admin-heritage-shell label,
+.admin-heritage-shell td,
+.admin-heritage-shell th { line-height: 1.6; }
+
+.admin-heritage-shell .lucide,
+.admin-heritage-shell svg:not([width]):not([height]) { flex-shrink: 0; }
+
+.admin-heritage-shell input,
+.admin-heritage-shell select,
+.admin-heritage-shell textarea {
+  max-width: 100%;
+  font-size: max(16px, .95rem);
+  line-height: 1.45;
+}
+
+.admin-heritage-shell button,
+.admin-heritage-shell a[role="button"] {
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.admin-heritage-shell table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: auto;
+}
+.admin-heritage-shell th,
+.admin-heritage-shell td {
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+.admin-heritage-shell thead th {
+  font-size: .78rem;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.admin-heritage-shell [class*="grid"] { min-width: 0; }
+.admin-heritage-shell [class*="rounded-2xl"],
+.admin-heritage-shell [class*="rounded-3xl"],
+.admin-heritage-shell [class*="rounded-["] {
+  max-width: 100%;
+}
+
+.admin-heritage-shell .ui-card,
+.admin-heritage-shell .glass-surface,
+.admin-heritage-shell .heritage-command-brief,
+.admin-heritage-shell [class*="shadow"] {
+  border-radius: var(--ui-card-radius);
+}
+
+.admin-heritage-shell [role="dialog"],
+.admin-heritage-shell .fixed.inset-0 > div {
+  max-width: min(94vw, 980px);
+  max-height: min(88dvh, 900px);
+}
+
+.admin-heritage-shell .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--ui-card-radius);
+}
+
+@media (min-width: 1024px) {
+  .admin-heritage-shell main { padding-inline: clamp(1.15rem, 2vw, 2rem) !important; }
+  .admin-heritage-shell .heritage-command-brief { gap: 1rem !important; }
+  .admin-heritage-shell .heritage-command-grid { gap: .7rem !important; }
+}
+
+@media (max-width: 768px) {
+  .admin-heritage-shell { font-size: 14px; }
+  .admin-heritage-shell main { padding-inline: .72rem !important; }
+  .admin-heritage-shell header { padding-inline: .75rem !important; }
+  .admin-heritage-shell h1 { font-size: 1.28rem !important; }
+  .admin-heritage-shell h2 { font-size: 1.08rem !important; }
+  .admin-heritage-shell h3 { font-size: .98rem !important; }
+  .admin-heritage-shell .heritage-command-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+  .admin-heritage-shell [class*="grid-cols-"],
+  .admin-heritage-shell [class*="md:grid-cols-"],
+  .admin-heritage-shell [class*="lg:grid-cols-"] { gap: .72rem !important; }
+  .admin-heritage-shell [class*="p-8"],
+  .admin-heritage-shell [class*="p-7"],
+  .admin-heritage-shell [class*="p-6"] { padding: .95rem !important; }
+  .admin-heritage-shell [class*="px-8"],
+  .admin-heritage-shell [class*="px-7"],
+  .admin-heritage-shell [class*="px-6"] { padding-inline: .95rem !important; }
+  .admin-heritage-shell [class*="py-8"],
+  .admin-heritage-shell [class*="py-7"],
+  .admin-heritage-shell [class*="py-6"] { padding-block: .95rem !important; }
+  .admin-heritage-shell button { min-height: 42px; }
+  .admin-heritage-shell .overflow-x-auto table { min-width: 640px; }
+  .admin-heritage-shell [role="dialog"],
+  .admin-heritage-shell .fixed.inset-0 > div {
+    width: calc(100vw - 1rem) !important;
+    max-width: calc(100vw - 1rem) !important;
+    border-radius: 24px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-heritage-shell main { padding-inline: .58rem !important; }
+  .admin-heritage-shell .heritage-command-grid { grid-template-columns: 1fr 1fr !important; gap: .52rem !important; }
+  .admin-heritage-shell .heritage-command-tile { min-height: 66px !important; padding: .58rem !important; }
+  .admin-heritage-shell .heritage-command-pill { padding: .4rem .62rem !important; font-size: .66rem !important; }
+  .admin-heritage-shell [class*="gap-6"],
+  .admin-heritage-shell [class*="gap-5"],
+  .admin-heritage-shell [class*="gap-4"] { gap: .65rem !important; }
+  .admin-heritage-shell .lucide { width: 1rem; height: 1rem; }
 }

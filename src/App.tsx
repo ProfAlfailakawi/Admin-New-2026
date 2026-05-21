@@ -667,16 +667,21 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
       {showPageHero && (
         <section className="admin-page-hero" dir="rtl">
           <div className="admin-page-hero-main"><span className="admin-page-kicker">{meta.tag}</span><h1>{meta.title}</h1><p>{meta.subtitle}</p></div>
-          <div className="admin-page-metrics" aria-label="ملخص الصفحة"><div><strong>{allSales.length}</strong><span>حركة</span></div><div><strong>{totalSales.toFixed(3)}</strong><span>د.ك</span></div><div><strong>{pendingCount}</strong><span>بانتظار</span></div><div><strong>{failedCount}</strong><span>فشل</span></div></div>
         </section>
       )}
       {showProduct && <section className="admin-smart-panel product-score-panel" dir="rtl"><div className="panel-head"><div><span>Product Score</span><h2>مؤشر قوة المنتج</h2></div><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></section>}
       {showCustomers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Customer Intelligence Board</span><h2>لوحة ذكاء العملاء</h2></div><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{c.spend.toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></section>}
       {showSuppliers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Supplier Risk Radar</span><h2>رادار الموردين</h2></div><button type="button" onClick={() => onNavigate('suppliers-audit')}>فتح المراجعة</button></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>المورد</span><b>→</b><span>المنتجات</span><b>→</b><span>الطلبات</span><b>→</b><span>الربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات مرتبطة · {sup.debt.toFixed(3)} د.ك</p><strong>{sup.risk}</strong></div>)}</div></section>}
       {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح العروض الذكية</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span>تأثير الربح: {tone}</span></div>})}</div></section>}
-      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>AI Lab Gallery</span><h2>معرض مختبر الذكاء</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو المحتوى</button></div><div className="smart-mini-grid">{['تحليل العملاء','تحليل المنتجات','تحليل الموردين','تحليل الربح','تحليل العروض','تحليل المخاطر'].map((t,i)=><button key={t} type="button" onClick={() => onNavigate(i<2?'dashboard-ai':i===4?'coupons':i===2?'suppliers-audit':'profit-guard')} className="lab-tool-card"><Bot size={18}/><strong>{t}</strong><small>آخر نتيجة جاهزة عند فتح الأداة</small></button>)}</div></section>}
+      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>AI Lab Gallery</span><h2>معرض مختبر الذكاء</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو المحتوى</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
+        { label: 'تحليل العملاء', page: 'customers' },
+        { label: 'تحليل المنتجات', page: 'products' },
+        { label: 'تحليل الموردين', page: 'suppliers-audit' },
+        { label: 'تحليل الربح', page: 'reports' },
+        { label: 'تحليل العروض', page: 'coupons' },
+        { label: 'تحليل المخاطر', page: 'expenses' },
+      ].map((item)=><button key={item.label} type="button" onClick={() => onNavigate(item.page)} className="lab-tool-card"><Bot size={18}/><strong>{item.label}</strong><small>يفتح الأداة مباشرة بدون شاشة بيضاء</small></button>)}</div></section>}
       {showGrowth && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Growth Simulator Pro</span><h2>محاكي سيناريوهات النمو</h2></div><button type="button" onClick={() => onNavigate('coupons')}>الكوبونات</button></div><div className="scenario-strip">{['ماذا لو زادت الطلبات 10%؟','ماذا لو أضفنا كوبون؟','ماذا لو رفعنا سعر منتج؟','ماذا لو ركزنا على VIP؟','ماذا لو قللنا مصروفًا؟'].map(t=><span key={t}>{t}</span>)}</div></section>}
-      {showProfit && <section className="admin-smart-panel profit-shield-panel" dir="rtl"><div className="profit-shield"><ShieldAlert size={22}/><strong>درع الربح</strong><span>{totalSales.toFixed(3)} د.ك</span></div><div className="profit-bullets"><span>المبيعات</span><span>المصروفات</span><span>الهامش</span><span>النزيف</span><span>الفرص</span></div></section>}
       <div className="admin-content-polish" dir="rtl">{children}</div>
     </div>
   );
@@ -2143,24 +2148,6 @@ const MainApp: React.FC = () => {
                 )}
                </AnimatePresence>
             </div>
-            <div className="pt-2">
-              <div className={cn("flex items-center justify-between text-white/40 px-3 mb-3 cursor-pointer hover:text-white transition-all group", (!sidebarOpen && !isMobile) && "justify-center px-0 opacity-50")} onClick={() => { if (!sidebarOpen && !isMobile) { setSidebarOpen(true); openMenu('intelligence'); } else { toggleMenu('intelligence'); } }}>
-                <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors"><Bot size={16}/></div>{(sidebarOpen || isMobile) && <span className="text-[11px] font-sans font-bold whitespace-nowrap uppercase tracking-[0.25em] opacity-80">الذكاء والتسويق</span>}</div>
-                {(sidebarOpen || isMobile) && <motion.div animate={{ rotate: expandedMenus.intelligence ? 0 : 180 }}><ChevronDown size={14} className="opacity-40" /></motion.div>}
-              </div>
-              <AnimatePresence>{expandedMenus.intelligence && (sidebarOpen || isMobile) && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="space-y-1 mr-4 border-r-2 border-emerald-500/20 pr-4 overflow-hidden">
-                <SubNavItem label="مختبر الذكاء" icon={<Bot size={16}/>} active={currentPage === 'dashboard-ai'} onClick={() => { setCurrentPage('dashboard-ai'); setSidebarOpen(false); }} />
-                <SubNavItem label="محاكي النمو والتسويق" icon={<TrendingUp size={16}/>} active={currentPage === 'growth-simulator'} onClick={() => { setCurrentPage('growth-simulator'); setSidebarOpen(false); }} />
-                <SubNavItem label="العملاء والولاء" icon={<Users size={16}/>} active={currentPage === 'loyalty'} onClick={() => { setCurrentPage('loyalty'); setSidebarOpen(false); }} />
-                <SubNavItem label="المالية وحماية الأرباح" icon={<ShieldAlert size={16}/>} active={currentPage === 'profit-guard'} onClick={() => { setCurrentPage('profit-guard'); setSidebarOpen(false); }} />
-                <SubNavItem label="المساعد الذكي" icon={<Bot size={16}/>} active={currentPage === 'ai'} onClick={() => { setCurrentPage('ai'); setSidebarOpen(false); }} />
-                <SubNavItem label="استوديو المحتوى الذكي" icon={<Sparkles size={16}/>} active={currentPage === 'smart-studio'} onClick={() => { setCurrentPage('smart-studio'); setSidebarOpen(false); }} />
-                <SubNavItem label="الكوبونات" icon={<Receipt size={16}/>} active={currentPage === 'coupons'} onClick={() => { setCurrentPage('coupons'); setSidebarOpen(false); }} />
-                <SubNavItem label="بطولات الديوانية" icon={<BadgeCheck size={16}/>} active={currentPage === 'diwaniya'} onClick={() => { setCurrentPage('diwaniya'); setSidebarOpen(false); }} />
-                <SubNavItem label="التنبيهات الذكية" icon={<Bell size={16}/>} active={notifOpen} onClick={() => { setNotifOpen(true); setSidebarOpen(false); }} />
-                <SubNavItem label="الإعدادات العامة" icon={<Settings size={16}/>} active={currentPage === 'settings'} onClick={() => { setCurrentPage('settings'); setSidebarOpen(false); }} />
-              </motion.div>)}</AnimatePresence>
-            </div>
           </nav>
         )}
 
@@ -2460,9 +2447,6 @@ const MainApp: React.FC = () => {
                }));
             }} 
           />
-          {userRole !== 'partner' && (
-            <CompanyCommandCenter data={data} onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }} page={currentPage} />
-          )}
           <AnimatePresence>
             <motion.div
               key={currentPage}

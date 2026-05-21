@@ -40,6 +40,21 @@ export const DEFAULT_SQUADS = [
     { id: 1, name: 'ديوانية الفيلكاوي', points: 0, tier: 'عزوة', members: 1, king: 'أبو أحمد', kingOrders: 0, phone: '90000000', membersList: [{name: 'أبو أحمد', phone: '56855555', points: 0}] }
 ];
 
+
+export const DEFAULT_SQUAD_TIERS = [
+  { id: '1', name: 'شلة ديوانية', minPoints: 0, maxPoints: 4999, color: 'text-orange-700', bg: 'bg-orange-50', icon: '🏅', benefit: 'بداية التجمع' },
+  { id: '2', name: 'عزوة', minPoints: 5000, maxPoints: 9999, color: 'text-slate-700', bg: 'bg-slate-100', icon: '⭐', benefit: 'خصم 10% ثابت' },
+  { id: '3', name: 'نواخذة', minPoints: 10000, maxPoints: 14999, color: 'text-amber-700', bg: 'bg-amber-50', icon: '👑', benefit: 'مقبلات مجانية مع طلبات الشلة' },
+  { id: '4', name: 'شيوخ', minPoints: 15000, maxPoints: 999999999, color: 'text-purple-700', bg: 'bg-purple-50', icon: '🏆', benefit: 'صينية ضيافة مجانية كل 10 طلبات' },
+];
+
+export const DEFAULT_DIWANIYA_TIERS = [
+  { id: 1, name: 'شلة ديوانية', points: '0', label: 'بداية التجمع', color: 'from-orange-400 to-orange-600', bgClass: 'border-orange-200 bg-orange-50/50', iconType: 'Medal' },
+  { id: 2, name: 'عزوة', points: '5,000', label: 'خصم 10% ثابت', color: 'from-slate-300 to-slate-500', bgClass: 'border-slate-300 bg-slate-50/50', iconType: 'Star' },
+  { id: 3, name: 'نواخذة', points: '10,000', label: 'مقبلات مجانية مع طلبات الشلة', color: 'from-yellow-400 to-amber-600', bgClass: 'border-amber-300 bg-amber-50', iconType: 'Crown' },
+  { id: 4, name: 'شيوخ', points: '15,000', label: 'صينية ضيافة مجانية كل 10 طلبات', color: 'from-purple-500 to-fuchsia-700', bgClass: 'border-purple-300 bg-purple-50 shadow-lg', iconType: 'Trophy' },
+];
+
 export const INITIAL_DATA: AppState = {
   customers: [],
   suppliers: [],
@@ -79,6 +94,8 @@ export const INITIAL_DATA: AppState = {
   zones: kuwaitZones,
   orders: [],
   squads: DEFAULT_SQUADS,
+  squadTiers: DEFAULT_SQUAD_TIERS,
+  diwaniyaTiers: DEFAULT_DIWANIYA_TIERS,
   pulseReviews: [],
   pulseArchiveAnalysis: null,
   pulseAnalysisHistory: [],

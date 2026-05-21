@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Users, Trophy, Crown, Medal, Swords, Target, Settings, Flame, Star, ExternalLink, MessageCircle, X, Plus, Trash2, Edit2, Check, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -21,15 +21,70 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     }
   }, []);
 
-  const [tiers, setTiers] = useState([
+  const DEFAULT_TIERS = [
     { id: 1, name: 'شلة ديوانية', points: '0', label: 'بداية التجمع', color: 'from-orange-400 to-orange-600', bgClass: 'border-orange-200 bg-orange-50/50', iconType: 'Medal' },
     { id: 2, name: 'عزوة', points: '5,000', label: 'خصم 10% ثابت', color: 'from-slate-300 to-slate-500', bgClass: 'border-slate-300 bg-slate-50/50', iconType: 'Star' },
     { id: 3, name: 'نواخذة', points: '10,000', label: 'مقبلات مجانية مع طلبات الشلة', color: 'from-yellow-400 to-amber-600', bgClass: 'border-amber-300 bg-amber-50', iconType: 'Crown' },
     { id: 4, name: 'شيوخ', points: '15,000', label: 'صينية ضيافة مجانية كل 10 طلبات', color: 'from-purple-500 to-fuchsia-700', bgClass: 'border-purple-300 bg-purple-50 shadow-lg', iconType: 'Trophy' },
-  ]);
-
+  ];
 
   const parseTierPoints = (value: any) => Number(String(value || '0').replace(/,/g, '')) || 0;
+
+  const normalizeAdminTier = (tier: any, index = 0) => {
+    const fallback = DEFAULT_TIERS[index] || DEFAULT_TIERS[DEFAULT_TIERS.length - 1];
+    const minPoints = tier?.minPoints ?? tier?.points ?? tier?.requiredPoints ?? fallback.points;
+    const iconType = tier?.iconType || (typeof tier?.icon === 'string' && !tier.icon.startsWith('http') ? tier.icon : fallback.iconType);
+    return {
+      id: tier?.id ?? fallback.id ?? Date.now() + index,
+      name: tier?.name ?? fallback.name,
+      points: String(minPoints ?? '0'),
+      label: tier?.label ?? tier?.benefit ?? fallback.label,
+      color: tier?.gradient ?? tier?.colorGradient ?? (String(tier?.color || '').startsWith('from-') ? tier.color : fallback.color),
+      bgClass: tier?.bgClass ?? tier?.bg ?? fallback.bgClass,
+      iconType,
+      imageUrl: tier?.imageUrl || tier?.image || '',
+    };
+  };
+
+  const normalizeForOrder = (list: any[]) => {
+    const sorted = [...list].map(normalizeAdminTier).sort((a, b) => parseTierPoints(a.points) - parseTierPoints(b.points));
+    return sorted.map((tier, index) => ({
+      id: String(tier.id),
+      name: tier.name,
+      minPoints: parseTierPoints(tier.points),
+      maxPoints: index < sorted.length - 1 ? Math.max(parseTierPoints(sorted[index + 1].points) - 1, parseTierPoints(tier.points)) : 999999999,
+      color: ['text-orange-700','text-slate-700','text-amber-700','text-purple-700','text-emerald-700'][index] || 'text-brand',
+      bg: ['bg-orange-50','bg-slate-100','bg-amber-50','bg-purple-50','bg-emerald-50'][index] || 'bg-stone-50',
+      icon: tier.iconType === 'Trophy' ? '🏆' : tier.iconType === 'Crown' ? '👑' : tier.iconType === 'Star' ? '⭐' : tier.iconType === 'Medal' ? '🏅' : '🎯',
+      benefit: tier.label,
+      imageUrl: tier.imageUrl || undefined,
+    }));
+  };
+
+  const [tiers, setLocalTiers] = useState(() => {
+    const saved = Array.isArray(data?.diwaniyaTiers) ? data.diwaniyaTiers : Array.isArray(data?.squadTiers) ? data.squadTiers : DEFAULT_TIERS;
+    return saved.map(normalizeAdminTier);
+  });
+
+  const setTiers = (next: any[] | ((prev: any[]) => any[])) => {
+    setLocalTiers((prev) => {
+      const resolved = typeof next === 'function' ? (next as any)(prev) : next;
+      const normalized = resolved.map(normalizeAdminTier);
+      setData((old: any) => ({
+        ...old,
+        diwaniyaTiers: normalized,
+        squadTiers: normalizeForOrder(normalized),
+      }));
+      return normalized;
+    });
+  };
+
+  useEffect(() => {
+    if (!Array.isArray(data?.squadTiers) || data.squadTiers.length === 0) {
+      setData((old: any) => ({ ...old, diwaniyaTiers: tiers, squadTiers: normalizeForOrder(tiers) }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const getTierForPoints = (points: any) => {
     const sorted = [...tiers].sort((a, b) => parseTierPoints(a.points) - parseTierPoints(b.points));

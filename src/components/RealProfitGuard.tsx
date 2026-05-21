@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { RealProfitInsight } from '../types';
 
 interface RealProfitGuardProps {
- insights: RealProfitInsight[];
+ insights?: RealProfitInsight[];
+ data?: any;
 }
 
 const isValidNumber = (val: any): boolean => {
@@ -117,22 +118,61 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
 );
 };
 
-export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights }) => {
+export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data }) => {
  const [activeInsightId, setActiveInsightId] = useState<string | null>(null);
 
- // Only render guard if we have at least some data, otherwise fallback
- if (!insights || insights.length === 0) {
+ const computedInsights = useMemo<RealProfitInsight[]>(() => {
+   if (Array.isArray(insights) && insights.length) return insights;
+   const safeData = data || {};
+   const products = Array.isArray(safeData.products) ? safeData.products : [];
+   const sales = [...(Array.isArray(safeData.invoices) ? safeData.invoices : []), ...(Array.isArray(safeData.orders) ? safeData.orders : [])];
+   return products.slice(0, 24).map((product: any, index: number) => {
+     const productId = String(product?.id || '');
+     const productName = String(product?.name || product?.title || `منتج ${index + 1}`);
+     let quantity = 0;
+     let revenue = 0;
+     sales.forEach((sale: any) => {
+       const items = Array.isArray(sale?.items) ? sale.items : Array.isArray(sale?.products) ? sale.products : [];
+       items.forEach((item: any) => {
+         const same = String(item?.productId || item?.id || '') === productId || String(item?.name || item?.productName || '') === productName;
+         if (!same) return;
+         const q = Number(item?.quantity || 1) || 1;
+         quantity += q;
+         revenue += (Number(item?.price || product?.price || 0) || 0) * q;
+       });
+     });
+     const price = Number(product?.price || product?.basePrice || 0) || 0;
+     const cost = Number(product?.cost || product?.unitCost || price * 0.55) || 0;
+     if (!revenue && price) revenue = price * Math.max(1, quantity);
+     const rawProfit = Math.max(0, revenue - cost * Math.max(1, quantity));
+     const hiddenCostsRatio = revenue > 0 ? Math.min(0.35, Math.max(0.04, Number(product?.wasteRate || product?.hiddenCostsRatio || 0.08))) : 0.08;
+     const realProfitValue = rawProfit - revenue * hiddenCostsRatio;
+     const margin = revenue > 0 ? realProfitValue / revenue : 0;
+     const riskLevel = margin < 0.1 ? 'high' : margin < 0.22 ? 'medium' : 'low';
+     return {
+       id: productId || `profit-${index}`,
+       productName,
+       revenue,
+       rawProfit,
+       hiddenCostsRatio,
+       realProfitValue,
+       riskLevel,
+       explanation: quantity > 0 ? 'تم احتساب الربح الحقيقي من المبيعات والتكلفة والتسربات التشغيلية.' : 'لا توجد مبيعات كافية لهذا المنتج، لذلك يظهر كتقدير احتياطي آمن.',
+       recommendation: riskLevel === 'high' ? 'راجع تكلفة المنتج أو سعره قبل أي حملة جديدة.' : riskLevel === 'medium' ? 'حسّن الهامش أو قلل الهدر التشغيلي.' : 'الهامش مستقر، استمر بمتابعته.'
+     } as RealProfitInsight;
+   }).filter((x: any) => x.productName);
+ }, [insights, data]);
+
+ if (!computedInsights || computedInsights.length === 0) {
  return (
- <div className="bg-white p-3 md:p-4 md:p-3 md:p-4 rounded-2xl border border-[#f0e6d2] text-center shadow-sm">
+ <div className="bg-white p-3 md:p-4 rounded-2xl border border-[#f0e6d2] text-center shadow-sm">
  <DollarSign className="mx-auto text-[#d4c098] opacity-20 mb-4" size={48} />
- <p className="text-slate-500 font-bold text-sm">لا توجد بيانات كافية للتحليل (يجب توفر إيرادات وتكاليف صحيحة).</p>
+ <p className="text-slate-500 font-bold text-sm">لا توجد بيانات كافية للتحليل حالياً.</p>
  </div>
 );
  }
 
- // Filter out completely broken insights at the top level
- // An insight is considered valid if it has valid numbers
- const validInsights = insights.filter((insight) => {
+ const validInsights = computedInsights.filter((insight) => {
  const isRevenueValid = isValidNumber(insight.revenue);
  const isRealProfitValid = isValidNumber(insight.realProfitValue);
  const isHiddenCostsValid = isValidNumber(insight.hiddenCostsRatio);
@@ -142,9 +182,9 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights }) =>
 
  if (validInsights.length === 0) {
  return (
- <div className="bg-white p-3 md:p-4 md:p-3 md:p-4 rounded-2xl border border-[#f0e6d2] text-center shadow-sm">
+ <div className="bg-white p-3 md:p-4 rounded-2xl border border-[#f0e6d2] text-center shadow-sm">
  <AlertTriangle className="mx-auto text-amber-300 opacity-50 mb-4" size={48} />
- <p className="text-slate-500 font-bold text-sm">لا توجد بيانات كافية للتحليل. (الرجاء التأكد من أسعار المنتجات وتكاليف مبيعاتها).</p>
+ <p className="text-slate-500 font-bold text-sm">لا توجد بيانات كافية للتحليل. الرجاء التأكد من أسعار المنتجات وتكاليفها.</p>
  </div>
 );
  }
@@ -168,20 +208,12 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights }) =>
  <span>قائمة المنتجات</span>
  </div>
 
- <div 
- className="overflow-y-auto grid grid-cols-1 gap-3 pl-2 custom-scrollbar"
- style={{ maxHeight: '332px' }}
- >
+ <div className="overflow-y-auto grid grid-cols-1 gap-3 pl-2 custom-scrollbar" style={{ maxHeight: '332px' }}>
  {validInsights.slice(0, 50).map((insight) => (
- <InsightRow 
- key={insight.id} 
- insight={insight} 
- isOpen={activeInsightId === insight.id} 
- onToggle={() => setActiveInsightId(activeInsightId === insight.id ? null : insight.id)} 
- />
+ <InsightRow key={insight.id} insight={insight} isOpen={activeInsightId === insight.id} onToggle={() => setActiveInsightId(activeInsightId === insight.id ? null : insight.id)} />
 ))}
  </div>
  </div>
 );
 };
-
+export default RealProfitGuard;
