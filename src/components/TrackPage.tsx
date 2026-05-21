@@ -88,20 +88,20 @@ export default function TrackPage() {
 
  try {
  // 1. Try to fetch by phone number
- let q = query(collection(db, 'orders'), where('customerPhone', '==', queryStr));
+ let q = query(collection(db, 'orders'), where('customerPhone', '==', queryStr), limit(20));
  let snapshot = await getDocs(q);
  let userOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
  // 1b. Try to fetch by mobile field if exists (fallback for other apps)
  if (userOrders.length === 0) {
-  q = query(collection(db, 'orders'), where('mobile', '==', queryStr));
+  q = query(collection(db, 'orders'), where('mobile', '==', queryStr), limit(20));
   snapshot = await getDocs(q);
   userOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
  }
 
  // 2. If nothing found, try by linkedInvoiceId
  if (userOrders.length === 0) {
- q = query(collection(db, 'orders'), where('linkedInvoiceId', '==', queryStr));
+ q = query(collection(db, 'orders'), where('linkedInvoiceId', '==', queryStr), limit(20));
  snapshot = await getDocs(q);
  userOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
  }
@@ -119,8 +119,8 @@ export default function TrackPage() {
  // 4. If nothing is found and it's 6 characters (or 4+), try suffix match on recent orders
  if (userOrders.length === 0 && queryStr.length >= 4) {
  try {
- const allQ = query(collection(db, 'orders'), orderBy('date', 'desc'), limit(100));
- // Limit locally to 100 recent orders for performance
+ const allQ = query(collection(db, 'orders'), orderBy('date', 'desc'), limit(30));
+ // Limit locally to 30 recent orders for performance
  const allSnap = await getDocs(allQ);
  allSnap.docs.forEach((docSnap) => {
  const data = docSnap.data();
@@ -156,7 +156,7 @@ export default function TrackPage() {
  }
 
  // Search invoices by phone number properly
- const invPhoneQ = query(collection(db, 'invoices'), where('customerPhone', '==', queryStr));
+ const invPhoneQ = query(collection(db, 'invoices'), where('customerPhone', '==', queryStr), limit(20));
  const invPhoneSnap = await getDocs(invPhoneQ);
  invPhoneSnap.docs.forEach(docSnap => {
  if (!userOrders.find(u => u.id === docSnap.id)) {
@@ -166,7 +166,7 @@ export default function TrackPage() {
 
  if (userOrders.length === 0 && queryStr.length >= 4) {
  // Try suffix match on invoices
- const invQ = query(collection(db, 'invoices'), orderBy('date', 'desc'), limit(100));
+ const invQ = query(collection(db, 'invoices'), orderBy('date', 'desc'), limit(30));
  const invSnap = await getDocs(invQ);
  invSnap.docs.forEach((docSnap) => {
  const data = docSnap.data();
