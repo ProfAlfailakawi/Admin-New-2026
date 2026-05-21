@@ -204,19 +204,10 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
 
  return (
  <div className="space-y-6">
- <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 text-right">
- <div className="order-2 md:order-1 flex-1">
- <h1 className="text-xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-3 justify-end leading-tight">
- سجل الحساب والمستحقات
- <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center shadow-sm">
- <History className="text-emerald-600" />
- </div>
- </h1>
- <p className="text-slate-500 font-medium font-bold italic">تتبع التحويلات البنكية وتصفية حسابات الموردين</p>
- </div>
+ <div className="flex justify-end gap-4 text-right">
  <button 
  onClick={() => setShowAddModal(true)}
- className="order-1 md:order-2 bg-slate-900 border border-slate-800 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95"
+ className="bg-slate-900 border border-slate-800 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95"
  >
  <CreditCard size={20} />
  <span>إضافة تحويل مالي</span>

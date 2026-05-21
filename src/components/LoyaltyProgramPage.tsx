@@ -478,7 +478,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  {/* Customer Segments Table */}
  <div className="bg-white border text-right border-slate-200/60 rounded-2xl p-3 shadow-sm">
  <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-8 gap-3 md:gap-4">
- <h3 className="font-bold text-xl md:text-2xl text-slate-800 flex items-center gap-2">إدارة العملاء والولاء <Users className="text-slate-500 w-5 h-5 md:w-6 md:h-6" /></h3>
+ <div />
  
  <div className="flex flex-col xl:flex-row items-center gap-2 md:gap-3 w-full md:w-auto">
  {/* Sorting */}

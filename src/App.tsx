@@ -658,7 +658,7 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
   const showCustomers = page === 'customers' || page === 'loyalty';
   const showSuppliers = page === 'suppliers' || page === 'suppliers-audit';
   const showCoupons = page === 'coupons';
-  const showAi = page === 'dashboard-ai' || page === 'ai';
+  const showAi = page === 'dashboard-ai';
   const showGrowth = page === 'growth-simulator';
   const showProfit = page === 'profit-guard' || page === 'expenses' || page === 'reports';
   const showPageHero = page !== 'dashboard';
@@ -2530,7 +2530,7 @@ const MainApp: React.FC = () => {
 
       {/* --- MOBILE QUICK NAVIGATION TRIGGER --- */}
       <AnimatePresence>
-        {isMobile && userRole !== 'partner' && !commandBarOpen && (
+        {isMobile && userRole !== 'partner' && !commandBarOpen && currentPage === 'dashboard' && (
           <motion.div
             initial={{ opacity: 0, y: 100, scale: 0.5 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -2559,7 +2559,7 @@ const MainApp: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {(isAuthenticated || appMode === 'local') && <InstagramMagicWand data={data} />}
+      {(isAuthenticated || appMode === 'local') && <InstagramMagicWand data={data} currentPage={currentPage} />}
       <Toaster richColors position="bottom-right" closeButton />
       
 

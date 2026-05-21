@@ -304,18 +304,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 
  return (
   <div className="space-y-6">
-   {/* Header */}
-   <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 text-right">
-    <div className="order-2 md:order-1 flex-1">
-     <h1 className="text-xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-2 justify-end">
-      إدارة العملاء
-      <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center shadow-sm">
-       <Users className="text-indigo-600" />
-      </div>
-     </h1>
-     <p className="text-slate-500 font-medium">سجل شامل لعملاء مطبخ التراث وتفضيلاتهم</p>
-    </div>
-   </div>
+   {/* Header removed: page frame already shows العملاء والولاء */}
 
    {/* Stats Cards */}
    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
