@@ -464,9 +464,11 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
             paymentData.link ||
             paymentData.data?.paymentLink ||
             paymentData.data?.payment_url ||
+            paymentData.data?.paymentURL ||
             paymentData.data?.paymentUrl ||
             paymentData.data?.url ||
             paymentData.data?.link ||
+            (typeof paymentData.data === "string" ? paymentData.data : undefined) ||
             "";
           const createdPaymentId =
             paymentData.paymentId ||
@@ -600,6 +602,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       const paymentLink =
         invoice.paymentLink ||
         (invoice as any).paymentUrl ||
+        (invoice as any).paymentURL ||
         (invoice as any).payment_url ||
         (invoice as any).url ||
         (invoice as any).link ||
@@ -617,11 +620,11 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       const linkEmoji = "\u{1F517}";
       const trackingUrl = "https://alturathkw.shop/track";
       const paymentSection =
-        paymentLink && paymentLink.trim() !== "" && !isPaidNow
+        typeof paymentLink === "string" && paymentLink.trim() !== "" && !isPaidNow
           ? `
 
 ${linkEmoji} رابط الدفع:
-${paymentLink}`
+${paymentLink.trim()}`
           : "";
 
       const promoCodeName = invoice.appliedPromoCodeName;
@@ -1152,6 +1155,7 @@ Alturath.kw`;
                                         const paymentLink =
                                           inv.paymentLink ||
                                           (inv as any).paymentUrl ||
+                                          (inv as any).paymentURL ||
                                           (inv as any).payment_url ||
                                           (inv as any).url ||
                                           (inv as any).link ||

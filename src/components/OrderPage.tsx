@@ -1228,29 +1228,24 @@ const OrderPage: React.FC<OrderPageProps> = ({
     const linkedInvoice = order.linkedInvoiceId
       ? (data?.invoices || []).find((inv) => inv.id === order.linkedInvoiceId)
       : undefined;
-    console.log(
-      "DEBUG: Order:",
-      order.id,
-      "linkedInvoiceId:",
-      order.linkedInvoiceId,
-      "linkedInvoice:",
-      linkedInvoice,
-    );
     const paymentLink =
       linkedInvoice?.paymentLink ||
       (linkedInvoice as any)?.paymentUrl ||
+      (linkedInvoice as any)?.paymentURL ||
       (linkedInvoice as any)?.payment_url ||
       (order as any).paymentLink ||
       (order as any).paymentUrl ||
+      (order as any).paymentURL ||
       (order as any).payment_url ||
       (order as any).url ||
       (order as any).link ||
-      (linkedInvoice as any)?.splitLink;
-    console.log("DEBUG: Found paymentLink:", paymentLink);
+      (linkedInvoice as any)?.splitLink ||
+      (linkedInvoice as any)?.split_link ||
+      (linkedInvoice as any)?.split_url;
 
     const invoiceNumber = linkedInvoice?.id || `INV-${order.id.slice(-6)}`;
     const isPaidNow =
-      isPaidStatus(order.status) &&
+      (isPaidStatus(order.status) || isPaidStatus((order as any).paymentStatus) || isPaidStatus((linkedInvoice as any)?.paymentStatus)) &&
       !(
         String(order.status).includes("تجميع القطية") ||
         order.status === "split_pending"
@@ -1259,11 +1254,11 @@ const OrderPage: React.FC<OrderPageProps> = ({
     const linkEmoji = "\u{1F517}";
     const trackingUrl = "https://alturathkw.shop/track";
     const paymentSection =
-      paymentLink && paymentLink.trim() !== "" && !isPaidNow
+      typeof paymentLink === "string" && paymentLink.trim() !== "" && !isPaidNow
         ? `
 
 ${linkEmoji} رابط الدفع:
-${paymentLink}`
+${paymentLink.trim()}`
         : "";
 
     // Explicitly add coupon if present
@@ -2598,9 +2593,11 @@ Alturath.kw`;
                               const paymentLink =
                                 linkedInvoice?.paymentLink ||
                                 (linkedInvoice as any)?.paymentUrl ||
+                                (linkedInvoice as any)?.paymentURL ||
                                 (linkedInvoice as any)?.payment_url ||
                                 (selectedOrder as any).paymentLink ||
                                 (selectedOrder as any).paymentUrl ||
+                                (selectedOrder as any).paymentURL ||
                                 (selectedOrder as any).payment_url ||
                                 (selectedOrder as any).url ||
                                 (selectedOrder as any).link ||

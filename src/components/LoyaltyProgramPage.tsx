@@ -273,7 +273,12 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  });
  
  // Suggest sending the code via WhatsApp
- const msg = `هلا ${customer.name?.split(' ')[0]}، تم استبدال ${reward.points} نقطة بنجاح. كود الخصم الخاص بك: ${redemptionId}. تدلل.`;
+ const msg = `هلا ${customer.name?.split(' ')[0]}،
+
+تم استبدال ${reward.points} نقطة بنجاح.
+كود الخصم: ${redemptionId}
+
+Alturath.kw`;
  handleWhatsApp(customer.phone, msg);
  setSelectedCustomer(null);
  };
@@ -446,7 +451,11 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  <p className="text-[10px] md:text-[11px] text-rose-300 font-bold mb-2">البطل غايب من {hero.daysSinceLastOrder} يوم!</p>
  <button 
  onClick={() => {
- const msg = `عاش من شافك، ${hero.name?.split(' ')[0]}. اشتقنا لك، وناطرينك ترجع مع خصم 15%.`;
+ const msg = `عاش من شافك ${hero.name?.split(' ')[0]}،
+
+اشتقنا لطلباتك، وناطرينك ترجع مع خصم 15%.
+
+Alturath.kw`;
  handleWhatsApp(hero.phone, msg);
  }}
  className="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 py-2 rounded-lg text-[10px] md:text-[11px] font-bold transition-all"
@@ -460,7 +469,11 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  <p className="text-[10px] md:text-[11px] text-emerald-300 font-bold mb-2">في قمة النشاط 🔥</p>
  <button 
  onClick={() => {
- const msg = `كفو يا ${hero.name?.split(' ')[0]} 🥇! أنت من أبطالنا الذهبيين.. هذي هدية بسيطة لك تبيض الوجه بالطلب الياي!`;
+ const msg = `كفو يا ${hero.name?.split(' ')[0]}،
+
+أنت من عملائنا الذهبيين، وعندك هدية بسيطة للطلب القادم.
+
+Alturath.kw`;
  handleWhatsApp(hero.phone, msg);
  }}
  className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 py-2 rounded-lg text-[10px] md:text-[11px] font-bold transition-all"

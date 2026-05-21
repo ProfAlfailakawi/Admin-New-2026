@@ -292,10 +292,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
         (order as any)?.split_link;
 
       const isPaidNow = isPaidStatus(invoice.paymentStatus);
-      const paymentLinkLine =
-        pLink && pLink.trim() !== "" && !isPaidNow
-          ? `\nرابط الدفع: ${pLink}`
-          : "";
+      const paymentLinkText = typeof pLink === "string" ? pLink.trim() : "";
 
       const promoLabel = invoice.appliedPromoCodeName
         ? `قيمة الخصم (${invoice.appliedPromoCodeName})`
@@ -320,10 +317,10 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
       const linkEmoji = "\u{1F517}";
       const trackingUrl = "https://alturathkw.shop/track";
       const customerName = customer?.name || "عميلنا العزيز";
-      const paymentSection = paymentLinkLine
+      const paymentSection = paymentLinkText && !isPaidNow
         ? `
 ${linkEmoji} رابط الدفع:
-${pLink}
+${paymentLinkText}
 `
         : "";
 
@@ -727,9 +724,11 @@ Alturath.kw`;
             paymentData.link ||
             paymentData.data?.paymentLink ||
             paymentData.data?.payment_url ||
+            paymentData.data?.paymentURL ||
             paymentData.data?.paymentUrl ||
             paymentData.data?.url ||
             paymentData.data?.link ||
+            (typeof paymentData.data === "string" ? paymentData.data : "") ||
             "";
           createdPaymentId =
             paymentData.paymentId ||
@@ -909,7 +908,8 @@ Alturath.kw`;
                             setOpenCheaperHintId((current) => current === p.id ? null : p.id);
                           }}
                           onMouseDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
-                          onTouchStart={(event) => { event.stopPropagation(); }}
+                          onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
+                          onTouchStart={(event) => { event.preventDefault(); event.stopPropagation(); }}
                           onKeyDown={(event) => {
                             if (event.key === 'Enter' || event.key === ' ') {
                               event.preventDefault();
@@ -924,6 +924,13 @@ Alturath.kw`;
                             <span>يوفره بسعر أقل!</span>
                             <b><span className="num-premium">{bestPrice.cost.toFixed(3)}</span> د.ك</b>
                           </span>
+                          {openCheaperHintId === p.id && (
+                            <span className="invoice-product-price-popover invoice-product-price-popover-inline is-forced-open" aria-hidden="true">
+                              <strong>{bestPrice.supplier || 'مورد آخر'}</strong>
+                              <span>يوفره بسعر أقل!</span>
+                              <b><span className="num-premium">{bestPrice.cost.toFixed(3)}</span> د.ك</b>
+                            </span>
+                          )}
                         </span>
                       );
                     }

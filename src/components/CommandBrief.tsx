@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { AppState } from '../types';
-import { AlertCircle, Target, Users, TrendingUp, Zap, ShieldAlert, ArrowUpRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertCircle, Target, Users, TrendingUp, Zap, ShieldAlert, ArrowUpRight, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils'; // if cn exists, we can use standard template literals if we are unsure, wait, cn is standard here
 
@@ -10,7 +10,7 @@ interface Props {
 }
 
 export function CommandBrief({ data, dateFilter = 'day' }: Props) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
    const brief = useMemo(() => {
     const lines = [];
@@ -190,31 +190,36 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
   }, [data, dateFilter]);
 
   return (
-    <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden" dir="rtl">
+    <div className={cn("heritage-command-brief bg-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden", isExpanded && "is-open")} dir="rtl">
       {/* Decorative effect */}
       <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-500/10 blur-3xl rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-amber-500 to-indigo-500 opacity-50" />
       
       <div 
-        className="flex items-center justify-between cursor-pointer group"
+        className="heritage-command-hero flex items-center justify-between cursor-pointer group"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center gap-3">
-          <div className="bg-amber-500/20 text-amber-300 p-2 rounded-xl group-hover:bg-amber-500/30 transition-colors">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="heritage-command-orb bg-amber-500/20 text-amber-300 p-2 rounded-xl group-hover:bg-amber-500/30 transition-colors">
             <Zap size={20} />
           </div>
-          <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            المساعد الذكي
-            <span className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-md font-bold">
-              {dateFilter === 'day' ? 'اليوم' : 
-               dateFilter === 'week' ? 'هذا الأسبوع' : 
-               dateFilter === 'month' ? 'هذا الشهر' : 
-               dateFilter === 'year' ? 'هذا العام' : 'كل الأوقات'}
-            </span>
-          </h2>
+          <div className="min-w-0">
+            <p className="text-[10px] md:text-xs font-black tracking-[.18em] text-amber-300/90 mb-1 flex items-center gap-1"><Sparkles size={12}/> مركز القيادة</p>
+            <h2 className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-2 flex-wrap">
+              مرحباً، هذا ملخص الإدارة الذكي
+              <span className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-md font-bold">
+                {dateFilter === 'day' ? 'اليوم' : 
+                 dateFilter === 'week' ? 'هذا الأسبوع' : 
+                 dateFilter === 'month' ? 'هذا الشهر' : 
+                 dateFilter === 'year' ? 'هذا العام' : 'كل الأوقات'}
+              </span>
+            </h2>
+            <p className="text-slate-300 text-xs md:text-sm font-bold mt-1">افتح مركز القيادة لمشاهدة الرسائل، الفرص، والتنبيهات التنفيذية.</p>
+          </div>
         </div>
-        <button className="text-slate-500 hover:text-white transition-colors bg-white/5 p-2 rounded-full">
-          {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        <button type="button" className="heritage-command-open-btn text-slate-200 hover:text-white transition-colors bg-white/5 px-3 py-2 rounded-full flex items-center gap-2 font-black text-xs">
+          <span>{isExpanded ? 'إغلاق' : 'فتح'}</span>
+          {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </button>
       </div>
 
@@ -224,7 +229,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
             initial={{ opacity: 0, height: 0, marginTop: 0 }}
             animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
             exit={{ opacity: 0, height: 0, marginTop: 0 }}
-            className="space-y-4 relative z-10 overflow-hidden"
+            className="heritage-command-grid space-y-4 relative z-10 overflow-hidden"
           >
             {brief.map((item, idx) => (
               <motion.div 
