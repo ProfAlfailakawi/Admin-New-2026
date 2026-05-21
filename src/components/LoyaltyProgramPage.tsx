@@ -108,31 +108,31 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
 
  if (classification ==="شريك التراث" || classification ==="عميل ذهبي") {
  smartAdvice ="عميل مميز وشريك حقيقي، دلاله واجب!";
- whatsappMessage = `هلا ${namePart}، أنت من عملاء التراث المميزين وعندك ${activePoints} نقطة. جهزنا لك عرض خاص يليق فيك.`;
+ whatsappMessage = `✨ هلا ${namePart}، أنت من عملاء التراث المميزين وعندك ${activePoints} نقطة. جهزنا لك عرض خاص يليق فيك.`;
  actionLabel ="مكافأة الشريك";
  } else if (classification ==="عاشق التراث") {
  smartAdvice ="ولاء مطلق للمطعم، كافئه ليصبح شريكاً";
- whatsappMessage = `أصيل يا ${namePart}، ولاؤك للتراث محل تقدير. رصيدك ${activePoints} نقطة، وجهزنا لك عرض خاص اليوم.`;
+ whatsappMessage = `✨ أصيل يا ${namePart}، ولاؤك للتراث محل تقدير. رصيدك ${activePoints} نقطة، وجهزنا لك عرض خاص اليوم.`;
  actionLabel ="تقدير العاشق";
  } else if (classification ==="صياد العروض") {
  smartAdvice ="يعشق التوفير، ارسل له عروض حصرية ومباشرة";
- whatsappMessage = `يا هلا ${namePart}، جهزنا لك عرض حصري مع رصيدك الحالي ${activePoints} نقطة. لا يفوتك.`;
+ whatsappMessage = `✨ يا هلا ${namePart}، جهزنا لك عرض حصري مع رصيدك الحالي ${activePoints} نقطة. لا يفوتك.`;
  actionLabel ="طُعم الاقتناص";
  } else if (classification ==="منقطع") {
  smartAdvice ="اشتقنا له، فرصة استرجاعه بكود قوي";
- whatsappMessage = `اشتقنا لك ${namePart}، لك فترة ما طلبت من التراث. عندك ${activePoints} نقطة ناطرتك.`;
+ whatsappMessage = `✨ اشتقنا لك ${namePart}، لك فترة ما طلبت من التراث. عندك ${activePoints} نقطة ناطرتك.`;
  actionLabel ="رسالة استرجاع";
  } else if (activePoints >= 150 && activePoints < 250) {
  smartAdvice ="باقي له قليل للوصول لمكافأة كبيرة";
- whatsappMessage = `${namePart}، باقي لك شوي وتوصل للمكافأة الكبيرة. رصيدك الحين ${activePoints} نقطة.`;
+ whatsappMessage = `✨ ${namePart}، باقي لك شوي وتوصل للمكافأة الكبيرة. رصيدك الحين ${activePoints} نقطة.`;
  actionLabel ="تحفيز الوصول";
  } else if (activePoints >= 250) {
  smartAdvice ="رصيده عالي، شجعه على الاستبدال";
- whatsappMessage = `ما شاء الله ${namePart}، رصيدك ${activePoints} نقطة. تقدر تستخدمها كخصم مباشر. حياك الله.`;
+ whatsappMessage = `✨ ما شاء الله ${namePart}، رصيدك ${activePoints} نقطة. تقدر تستخدمها كخصم مباشر. حياك الله.`;
  actionLabel ="رسالة استبدال";
  } else {
  smartAdvice ="العميل يبني ولاءه، شجعه لتجميع النقاط";
- whatsappMessage = `يا هلا ${namePart}، رصيد نقاطك ${activePoints} نقطة. استمر بجمع النقاط لفتح عروض التراث.`;
+ whatsappMessage = `✨ يا هلا ${namePart}، رصيد نقاطك ${activePoints} نقطة. استمر بجمع النقاط لفتح عروض التراث.`;
  actionLabel ="تذكير بالولاء";
  }
 
@@ -273,12 +273,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  });
  
  // Suggest sending the code via WhatsApp
- const msg = `هلا ${customer.name?.split(' ')[0]}،
-
-تم استبدال ${reward.points} نقطة بنجاح.
-كود الخصم: ${redemptionId}
-
-Alturath.kw`;
+ const msg = `هلا ${customer.name?.split(' ')[0]}، تم استبدال ${reward.points} نقطة بنجاح. كود الخصم الخاص بك: ${redemptionId}. تدلل.`;
  handleWhatsApp(customer.phone, msg);
  setSelectedCustomer(null);
  };
@@ -451,11 +446,7 @@ Alturath.kw`;
  <p className="text-[10px] md:text-[11px] text-rose-300 font-bold mb-2">البطل غايب من {hero.daysSinceLastOrder} يوم!</p>
  <button 
  onClick={() => {
- const msg = `عاش من شافك ${hero.name?.split(' ')[0]}،
-
-اشتقنا لطلباتك، وناطرينك ترجع مع خصم 15%.
-
-Alturath.kw`;
+ const msg = `عاش من شافك، ${hero.name?.split(' ')[0]}. اشتقنا لك، وناطرينك ترجع مع خصم 15%.`;
  handleWhatsApp(hero.phone, msg);
  }}
  className="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 py-2 rounded-lg text-[10px] md:text-[11px] font-bold transition-all"
@@ -469,11 +460,7 @@ Alturath.kw`;
  <p className="text-[10px] md:text-[11px] text-emerald-300 font-bold mb-2">في قمة النشاط 🔥</p>
  <button 
  onClick={() => {
- const msg = `كفو يا ${hero.name?.split(' ')[0]}،
-
-أنت من عملائنا الذهبيين، وعندك هدية بسيطة للطلب القادم.
-
-Alturath.kw`;
+ const msg = `كفو يا ${hero.name?.split(' ')[0]} 🥇! أنت من أبطالنا الذهبيين.. هذي هدية بسيطة لك تبيض الوجه بالطلب الياي!`;
  handleWhatsApp(hero.phone, msg);
  }}
  className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 py-2 rounded-lg text-[10px] md:text-[11px] font-bold transition-all"
