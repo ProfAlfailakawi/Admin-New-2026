@@ -459,6 +459,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           const createdLink =
             paymentData.paymentLink ||
             paymentData.payment_url ||
+            paymentData.paymentURL ||
             paymentData.paymentUrl ||
             paymentData.url ||
             paymentData.link ||
@@ -468,7 +469,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
             paymentData.data?.paymentUrl ||
             paymentData.data?.url ||
             paymentData.data?.link ||
-            (typeof paymentData.data === "string" ? paymentData.data : undefined) ||
+            (typeof paymentData.data === "string" ? paymentData.data : "") ||
             "";
           const createdPaymentId =
             paymentData.paymentId ||
@@ -602,7 +603,6 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       const paymentLink =
         invoice.paymentLink ||
         (invoice as any).paymentUrl ||
-        (invoice as any).paymentURL ||
         (invoice as any).payment_url ||
         (invoice as any).url ||
         (invoice as any).link ||
@@ -616,15 +616,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           String(invoice.status).includes("تجميع القطية") ||
           invoice.status === "split_pending"
         );
-      const invoiceEmoji = "\u{1F9FE}";
-      const linkEmoji = "\u{1F517}";
-      const trackingUrl = "https://alturathkw.shop/track";
+      const trackingUrl = `https://alturathkw.shop/track?tracked_order=${encodeURIComponent(invoice.id)}`;
       const paymentSection =
-        typeof paymentLink === "string" && paymentLink.trim() !== "" && !isPaidNow
+        paymentLink && paymentLink.trim() !== "" && !isPaidNow
           ? `
 
-${linkEmoji} رابط الدفع:
-${paymentLink.trim()}`
+*رابط الدفع*
+${paymentLink}`
           : "";
 
       const promoCodeName = invoice.appliedPromoCodeName;
@@ -646,16 +644,17 @@ ${paymentLink.trim()}`
           : invoice.deliveryInfo?.zoneName || "غير محدد";
 
       const customerName = customer?.name || "عميلنا العزيز";
-      const message = `${invoiceEmoji} فاتورة طلبكم من مطبخ التراث الكويتي
-
+      const message = `*فاتورة الطلب*
+مطبخ التراث الكويتي
+------------------------------
 مرحباً ${customerName}،
 تم تجهيز فاتورتكم للطلب رقم: ${invoice.id}
 
-الإجمالي المستحق: ${Number(total).toFixed(3)} د.ك${paymentSection}
+*الإجمالي المستحق:* ${Number(total).toFixed(3)} د.ك${paymentSection}
 
-لتتبع الطلب:
+*تتبع الطلب*
 ${trackingUrl}
-
+------------------------------
 شكراً لاختياركم مطبخ التراث الكويتي
 Alturath.kw`;
 
@@ -1155,7 +1154,6 @@ Alturath.kw`;
                                         const paymentLink =
                                           inv.paymentLink ||
                                           (inv as any).paymentUrl ||
-                                          (inv as any).paymentURL ||
                                           (inv as any).payment_url ||
                                           (inv as any).url ||
                                           (inv as any).link ||
