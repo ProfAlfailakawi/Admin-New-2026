@@ -10,6 +10,14 @@ interface Props {
 }
 
 export function CommandBrief({ data, dateFilter = 'day' }: Props) {
+  const hour = new Date().getHours();
+  const greeting = hour >= 17 && hour < 22
+    ? { title: 'تحية مسائية هادئة ☕', sub: 'النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.' }
+    : hour >= 5 && hour < 12
+      ? { title: 'صباح الخير، يوم جديد وفرص جديدة ☀️', sub: 'مركز القيادة جاهز لقراءة نبض اليوم ومتابعة أهم المؤشرات.' }
+      : hour >= 12 && hour < 17
+        ? { title: 'مرحباً، وقت الغداء والتركيز! 🍽️', sub: 'تابع الحركة، الطلبات، والفرص من مركز القيادة.' }
+        : { title: 'نظرة هادئة على الأرقام ☕', sub: 'هدوء الليل أفضل وقت لمراجعة الأداء والتجهيز للغد.' };
   const [isExpanded, setIsExpanded] = useState(true);
 
    const brief = useMemo(() => {
@@ -206,7 +214,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
           <div className="min-w-0">
             <p className="text-[10px] md:text-xs font-black tracking-[.18em] text-amber-300/90 mb-1 flex items-center gap-1"><Sparkles size={12}/> مركز القيادة</p>
             <h2 className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-2 flex-wrap">
-              مرحباً، هذا ملخص الإدارة الذكي
+              {greeting.title}
               <span className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-md font-bold">
                 {dateFilter === 'day' ? 'اليوم' : 
                  dateFilter === 'week' ? 'هذا الأسبوع' : 
@@ -214,7 +222,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
                  dateFilter === 'year' ? 'هذا العام' : 'كل الأوقات'}
               </span>
             </h2>
-            <p className="text-slate-300 text-xs md:text-sm font-bold mt-1">افتح مركز القيادة لمشاهدة الرسائل، الفرص، والتنبيهات التنفيذية.</p>
+            <p className="text-slate-300 text-xs md:text-sm font-bold mt-1">{greeting.sub}</p>
           </div>
         </div>
         <button type="button" className="heritage-command-open-btn text-slate-200 hover:text-white transition-colors bg-white/5 px-3 py-2 rounded-full flex items-center gap-2 font-black text-xs">
