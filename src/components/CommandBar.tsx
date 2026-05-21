@@ -183,19 +183,15 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
             className="relative w-full max-w-3xl overflow-hidden rounded-[2rem] border border-white/70 bg-white/95 shadow-[0_30px_90px_rgba(15,23,42,0.35)]"
             dir="rtl"
           >
-            <div className="command-premium-top">
-              <div className="command-premium-badge"><Search size={18} /></div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-black text-amber-600 tracking-[0.16em] uppercase mb-1">مركز الوصول السريع</p>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="اكتب: طلب، فاتورة، عميل، منتج، مورد، أو اسم صفحة..."
-                  className="w-full bg-transparent border-none outline-none text-lg md:text-2xl font-black text-slate-900 placeholder:text-slate-300 text-right h-11"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-              </div>
+            <div className="command-compact-close-row">
+              <input
+                ref={inputRef}
+                type="text"
+                aria-label="بحث الأوامر"
+                className="command-hidden-search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
               <button type="button" onClick={onClose} className="command-premium-close"><X size={18} /></button>
             </div>
 

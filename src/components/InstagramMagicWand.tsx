@@ -9,11 +9,12 @@ import { toast } from 'sonner';
 
 interface InstagramMagicWandProps {
  data: AppState;
+ currentPage?: string;
 }
 
 type Category = 'motivation' | 'engagement' | 'promo';
 
-export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) => {
+export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, currentPage = 'dashboard' }) => {
  const [isOpen, setIsOpen] = useState(false);
  const [activeCategory, setActiveCategory] = useState<Category>('engagement');
  const [messages, setMessages] = useState<string[]>([]);
@@ -64,7 +65,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
  </div>
 
  {/* Floating Action Button (Mobile) */}
- <div className="fixed bottom-40 left-6 z-[60] md:hidden">
+ <div className={cn("fixed bottom-40 left-6 z-[60] md:hidden", currentPage !== 'dashboard' && "hidden")}>
  <motion.button
  whileTap={{ scale: 0.8 }}
  onClick={() => setIsOpen(true)}

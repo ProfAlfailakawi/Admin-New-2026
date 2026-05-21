@@ -156,149 +156,83 @@ topCustomersInfo: (data?.customers || []).map(c => ({ name: c.name, spent: (data
  ];
 
  return (
- <div className="h-[calc(100dvh-100px)] flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 relative">
- {/* Page Header - More Compact */}
- <div className="flex items-center justify-between px-2 md:px-4">
- <div className="flex items-center gap-3">
- <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-xl transform rotate-2">
- <BrainCircuit size={24} className="text-amber-400" />
- </div>
- <div>
- <h1 className="text-xl md:text-3xl font-bold tracking-tighter text-slate-900 bg-gradient-to-l from-slate-900 to-amber-900 bg-clip-text text-transparent">Alturath AI</h1>
- <p className="text-slate-500 text-xs font-bold flex items-center gap-1 opacity-80">
- <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
- المساعد الذكي للبيانات الحقيقية
- </p>
- </div>
- </div>
- </div>
+ <div className="ai-executive-assistant-shell animate-in fade-in slide-in-from-bottom-4 duration-700" dir="rtl">
+  <section className="ai-executive-hero">
+    <div className="ai-executive-orb"><BrainCircuit size={26} /></div>
+    <div className="min-w-0">
+      <span className="ai-executive-kicker"><span /> جاهز للتحليل</span>
+      <h1>المساعد الذكي</h1>
+      <p>اسأل النظام عن المبيعات، المنتجات، العملاء، الموردين، والطلبات بدون تغيير أي إعدادات.</p>
+    </div>
+  </section>
 
- <div className="flex-1 bg-white/60 backdrop-blur-3xl rounded-2xl md:rounded-2xl border border-slate-200/60 shadow-xl overflow-hidden flex flex-col relative mx-0">
- <div className="absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-white/40 to-transparent pointer-events-none z-10" />
- 
- {/* Chat Messages - Now naturally pushed up by input area */}
- <div className="flex-1 overflow-y-auto p-3 md:p-3 space-y-6 md:space-y-8 custom-scrollbar relative">
- <AnimatePresence initial={false}>
- {(messages || []).map((m, i) => (
- <motion.div
- key={i}
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- className={cn(
-"flex gap-3 md:gap-5 w-full",
- m.role === 'user' ?"flex-row-reverse" :"flex-row"
-)}
- >
- <div className={cn(
-"w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm border",
- m.role === 'user' 
- ?"bg-slate-900 text-white border-slate-800" 
- :"bg-white text-slate-900 border-slate-200/60"
-)}>
- {m.role === 'user' ? <User size={14} /> : <Bot size={14} className="text-amber-500" />}
- </div>
- <div className={cn(
-"p-3 md:p-4 rounded-2xl text-base leading-relaxed relative flex-1 min-w-0 shadow-sm",
- m.role === 'user' 
- ?"bg-slate-950 text-white rounded-tr-none max-w-[85%] md:max-w-[70%] ml-auto" 
- :"bg-white text-slate-800 border border-slate-100 rounded-tl-none max-w-full"
-)}>
- {m.role === 'assistant' && (
- <div className="absolute top-0 right-10 left-10 h-[1px] bg-amber-500/20" />
-)}
- <div className="prose prose-slate text-right rtl max-w-none
- prose-p:mb-3 prose-p:leading-relaxed prose-p:text-slate-700
- prose-strong:text-amber-700 prose-strong:font-bold
- prose-headings:text-slate-900 prose-headings:font-bold prose-headings:my-4
- prose-li:text-slate-600 prose-li:font-medium
- prose-table:w-full prose-table:my-4 prose-table:text-sm md:prose-table:text-base">
- <Markdown components={{
- strong: ({node, ...props}) => <strong className="text-amber-600 font-bold bg-amber-50 px-1 rounded" {...props} />,
- h3: ({node, ...props}) => <h3 className="text-lg md:text-xl text-slate-800 border-r-4 border-amber-500 pr-3 my-4 font-bold" {...props} />,
- li: ({node, ...props}) => <li className="list-disc list-inside marker:text-amber-500 mb-1" {...props} />,
- table: ({node, ...props}) => (
- <div className="my-4 overflow-x-auto rounded-xl border border-slate-100 bg-slate-50/30">
- <table className="w-full text-right border-collapse" {...props} />
- </div>
-),
- th: ({node, ...props}) => <th className="bg-slate-100/80 p-3 font-bold text-slate-900 border-b border-slate-200/60" {...props} />,
- td: ({node, ...props}) => <td className="p-3 border-b border-slate-100" {...props} />,
- em: ({node, ...props}) => <em className="text-emerald-600 font-bold not-italic" {...props} />
- }}>{m.content}</Markdown>
- </div>
- </div>
- </motion.div>
-))}
- </AnimatePresence>
- {isLoading && (
- <motion.div 
- initial={{ opacity: 0 }} animate={{ opacity: 1 }}
- className="flex gap-3 md:gap-5 w-full"
- >
- <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white border border-slate-200/60 text-slate-900 flex items-center justify-center animate-pulse">
- <Bot size={14} className="text-amber-500" />
- </div>
- <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl rounded-tl-none italic text-slate-500 text-sm font-bold flex items-center gap-3">
- <Loader2 size={14} className="animate-spin text-amber-500" />
- حلل بيانات التراث...
- </div>
- </motion.div>
-)}
- <div ref={messagesEndRef} className="h-4" />
- </div>
+  <section className="ai-executive-console">
+    <div className="ai-executive-messages custom-scrollbar">
+      <AnimatePresence initial={false}>
+        {(messages || []).map((m, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn('ai-chat-row', m.role === 'user' ? 'is-user' : 'is-assistant')}
+          >
+            <div className="ai-chat-avatar">{m.role === 'user' ? <User size={15} /> : <Bot size={15} />}</div>
+            <div className="ai-chat-bubble">
+              <Markdown components={{
+                strong: ({node, ...props}) => <strong className="text-amber-700 font-black bg-amber-50 px-1 rounded" {...props} />,
+                h3: ({node, ...props}) => <h3 className="text-lg text-slate-900 border-r-4 border-amber-500 pr-3 my-3 font-black" {...props} />,
+                li: ({node, ...props}) => <li className="list-disc list-inside marker:text-amber-500 mb-1" {...props} />,
+                table: ({node, ...props}) => <div className="my-3 overflow-x-auto rounded-xl border border-slate-100"><table className="w-full text-right border-collapse" {...props} /></div>,
+                th: ({node, ...props}) => <th className="bg-slate-100 p-2 font-black text-slate-900 border-b border-slate-200" {...props} />,
+                td: ({node, ...props}) => <td className="p-2 border-b border-slate-100" {...props} />,
+                em: ({node, ...props}) => <em className="text-emerald-600 font-black not-italic" {...props} />
+              }}>{m.content}</Markdown>
+              {m.role === 'assistant' && (
+                <button type="button" onClick={() => speak(m.content)} className="ai-speak-button" aria-label="استمع للإجابة">
+                  <Volume2 size={13} /> {isSpeaking ? 'يقرأ...' : 'استماع'}
+                </button>
+              )}
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+      {isLoading && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ai-chat-row is-assistant">
+          <div className="ai-chat-avatar"><Bot size={15} /></div>
+          <div className="ai-chat-bubble ai-loading-bubble"><Loader2 size={14} className="animate-spin" /> جاري تحليل بيانات التراث...</div>
+        </motion.div>
+      )}
+      <div ref={messagesEndRef} className="h-4" />
+    </div>
 
- {/* Input Area - Now not absolute, sits at the bottom of the column */}
- <div className="p-3 md:p-4 bg-white border-t border-slate-100 shrink-0">
- <div className="max-w-4xl mx-auto space-y-4">
- {/* Quick Suggestions - Smaller & more elegant */}
- <div className="relative max-w-full">
- <div className="flex gap-2 overflow-x-auto pb-2 flex-nowrap no-scrollbar scroll-smooth px-5 md:px-10 justify-start md:justify-center">
- {(suggestions || []).map((s, i) => (
- <button
- key={i}
- onClick={() => setInput(s)}
- className="bg-white/80 hover:bg-slate-900 hover:text-white border border-slate-200/60 text-slate-600 text-[10px] md:text-xs py-1.5 px-3 md:px-4 rounded-full transition-all flex items-center gap-1 font-bold whitespace-nowrap active:scale-95 shadow-sm backdrop-blur-md shrink-0"
- >
- <Sparkles size={10} className="text-amber-400" />
- {s}
- </button>
-))}
- </div>
- </div>
- {/* Input */}
- <div className="relative group">
- <textarea
- rows={1}
- value={input}
- onChange={(e) => setInput(e.target.value)}
- onKeyDown={(e) => {
- if (e.key === 'Enter' && !e.shiftKey) {
- e.preventDefault();
- handleSend(input);
- }
- }}
- placeholder="اطلب تحليلاً أو استراتيجية..."
- className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 md:py-4 pr-10 md:pr-12 pl-12 md:pl-16 outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/50 transition-all resize-none font-bold text-slate-800 placeholder:text-slate-500 text-sm md:text-base shadow-sm"
- />
- <div className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-amber-500 transition-colors pointer-events-none">
- <BrainCircuit size={18} />
- </div>
- <button
- onClick={() => handleSend(null)}
- disabled={!input.trim() || isLoading}
- className={cn(
-"absolute left-2 md:left-3 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center transition-all",
- !input.trim() || isLoading
- ?"bg-slate-100 text-slate-300"
- :"bg-slate-950 text-white shadow-lg hover:scale-105 active:scale-95"
-)}
- >
- <Send size={16} className="rotate-180" />
- </button>
- </div>
- </div>
- </div>
- </div>
+    <div className="ai-executive-inputbar">
+      <div className="ai-suggestion-grid">
+        {suggestions.map((s, i) => (
+          <button key={i} type="button" onClick={() => setInput(s)} className="ai-suggestion-chip">
+            <Sparkles size={12} /> {s}
+          </button>
+        ))}
+      </div>
+      <div className="ai-input-wrap">
+        <BrainCircuit size={18} />
+        <textarea
+          rows={1}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSend(input);
+            }
+          }}
+          placeholder="اكتب سؤالك للمساعد التنفيذي..."
+        />
+        <button type="button" onClick={() => handleSend(null)} disabled={!input.trim() || isLoading}>
+          <Send size={17} className="rotate-180" />
+        </button>
+      </div>
+    </div>
+  </section>
  </div>
 );
 });

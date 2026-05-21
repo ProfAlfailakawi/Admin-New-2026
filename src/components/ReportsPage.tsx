@@ -595,7 +595,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         })
         .join("\n");
 
-      const total = computeInvoiceTotal(invoice, data?.products || []);
+      let total = Number((invoice as any).totalAmount || (invoice as any).total || 0);
+      try { total = computeInvoiceTotal(invoice, data?.products || []); } catch {}
       const paymentLink =
         invoice.paymentLink ||
         (invoice as any).paymentUrl ||
@@ -1132,10 +1133,7 @@ ${promoLine}*الإجمالي: ${Number(total).toFixed(3)} د.ك*${paymentSectio
                                 <td className="p-3 md:p-3 font-bold text-slate-900 group-hover:text-primary transition-colors">
                                   <div className="flex flex-col items-start gap-1">
                                     <span>
-                                      {computeInvoiceTotal(
-                                        inv,
-                                        data.products || [],
-                                      ).toFixed(3)}{" "}
+                                      {(() => { try { return computeInvoiceTotal(inv, data.products || []).toFixed(3); } catch { return Number((inv as any).totalAmount || (inv as any).total || 0).toFixed(3); } })()}{" "}
                                       د.ك
                                     </span>
                                     {(inv.discount || 0) > 0 && (
@@ -1250,7 +1248,7 @@ ${promoLine}*الإجمالي: ${Number(total).toFixed(3)} د.ك*${paymentSectio
                                               الطلب (المنتجات)
                                             </h4>
                                             <div className="space-y-2">
-                                              {(inv.items || []).map(
+                                              {(Array.isArray(inv.items) ? inv.items : []).map(
                                                 (item, idx) => {
                                                   const product = (
                                                     data?.products || []
@@ -1461,7 +1459,7 @@ ${promoLine}*الإجمالي: ${Number(total).toFixed(3)} د.ك*${paymentSectio
                                                 {(() => {
                                                   let pTotal = 0;
                                                   let aTotalSum = 0;
-                                                  (inv.items || []).forEach(
+                                                  (Array.isArray(inv.items) ? inv.items : []).forEach(
                                                     (item: any) => {
                                                       const price =
                                                         computeInvoiceItemBasePrice(
@@ -1567,10 +1565,7 @@ ${promoLine}*الإجمالي: ${Number(total).toFixed(3)} د.ك*${paymentSectio
                                                           الإجمالي النهائي:
                                                         </span>
                                                         <span className="text-primary">
-                                                          {computeInvoiceTotal(
-                                                            inv,
-                                                            data.products || [],
-                                                          ).toFixed(3)}{" "}
+                                                          {(() => { try { return computeInvoiceTotal(inv, data.products || []).toFixed(3); } catch { return Number((inv as any).totalAmount || (inv as any).total || 0).toFixed(3); } })()}{" "}
                                                           د.ك
                                                         </span>
                                                       </div>
