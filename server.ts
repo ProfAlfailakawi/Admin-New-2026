@@ -92,6 +92,7 @@ app.use((req, res, next) => {
   const origin = String(req.headers.origin || "");
 
   const allowedOrigins = new Set([
+    "https://admin.alturathkw.shop",
     "https://alturath-admin-0200723670.web.app",
     "https://gen-lang-client-0200723670.web.app",
     "https://service-119610604304.europe-west3.run.app",
@@ -101,8 +102,6 @@ app.use((req, res, next) => {
 
   if (allowedOrigins.has(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
-  } else {
-    res.setHeader("Access-Control-Allow-Origin", "https://alturath-admin-0200723670.web.app");
   }
 
   res.setHeader("Vary", "Origin");
@@ -1260,7 +1259,7 @@ async function sendSmartAlertPushNotification({
   title,
   body,
   alertType = "general",
-  url = "https://alturath-admin-0200723670.web.app",
+  url = "https://admin.alturathkw.shop",
   eventId = `manual-smart-alert-${Date.now()}`,
   ttlSeconds,
   requireInteraction = true,
