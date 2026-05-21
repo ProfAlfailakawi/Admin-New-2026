@@ -1262,12 +1262,16 @@ async function sendSmartAlertPushNotification({
   alertType = "general",
   url = "https://alturath-admin-0200723670.web.app",
   eventId = `manual-smart-alert-${Date.now()}`,
+  ttlSeconds,
+  requireInteraction = true,
 }: {
   title: string;
   body: string;
   alertType?: string;
   url?: string;
   eventId?: string;
+  ttlSeconds?: number;
+  requireInteraction?: boolean;
 }) {
   try {
     if (!firebaseInitialized || !db) {
@@ -1294,16 +1298,26 @@ async function sendSmartAlertPushNotification({
       };
     }
 
+    const normalizedEventId = String(eventId || `manual-smart-alert-${Date.now()}`);
+    const normalizedAlertType = String(alertType || "general");
+    const effectiveTtlSeconds = Number.isFinite(Number(ttlSeconds))
+      ? Math.max(60, Math.min(86400, Number(ttlSeconds)))
+      : (
+          normalizedAlertType.includes("pending_10min") ? 900 :
+          normalizedAlertType.includes("pending_immediate") ? 900 :
+          normalizedAlertType.includes("failed") ? 1800 :
+          normalizedAlertType.includes("paid") ? 1800 :
+          normalizedAlertType.includes("daily") || normalizedAlertType.includes("summary") ? 86400 :
+          normalizedAlertType.includes("qatia") || normalizedAlertType.includes("roulette") ? 3600 :
+          3600
+        );
+
     const message = {
       tokens,
-        notification: {
-          title: String(title || "تنبيه"),
-          body: String(body || ""),
-        },
       data: {
         type: "smart_alert",
-        alertType: String(alertType || "general"),
-        eventId: String(eventId || `manual-smart-alert-${Date.now()}`),
+        alertType: normalizedAlertType,
+        eventId: normalizedEventId,
         url: String(url),
         click_action: String(url),
         title: String(title || "تنبيه"),
@@ -1312,16 +1326,20 @@ async function sendSmartAlertPushNotification({
       webpush: {
         headers: {
           Urgency: "high",
-          TTL: "86400",
+          TTL: String(effectiveTtlSeconds),
         },
         notification: {
           title: String(title || "تنبيه"),
           body: String(body || ""),
-          icon: "/icons/icon-192x192.png",
-          badge: "/icons/icon-192x192.png",
-          requireInteraction: true,
+          icon: "/icons/icon-192.png",
+          badge: "/icons/icon-192.png",
+          tag: normalizedEventId,
+          renotify: false,
+          requireInteraction: Boolean(requireInteraction),
           data: {
             url: String(url),
+            eventId: normalizedEventId,
+            alertType: normalizedAlertType,
           },
         },
         fcmOptions: {
@@ -1872,32 +1890,50 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     }
   }
 
-  async function alertsClaim(eventId: string) {
+  async function alertsClaim(eventId: string, payload: any = {}) {
     if (__alertsPushEventsCache.knownIds.has(eventId)) {
         return false;
     }
-    if (__alertsPushEventsCache.docs && __alertsPushEventsCache.docs.some((d: any) => d.id === eventId)) {
-        __alertsPushEventsCache.knownIds.add(eventId);
-        return false;
-    }
+
     const ref = db.collection("pushEvents").doc(eventId);
-    const snap = await ref.get();
-    if (snap.exists) {
+
+    try {
+      await ref.create({
+        eventId,
+        source: "alerts-worker-final-clean-v3-idempotent",
+        status: "claimed",
+        payload: removeUndefinedDeep(payload),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        claimedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      __alertsPushEventsCache.knownIds.add(eventId);
+      return true;
+    } catch (e: any) {
+      const code = String(e?.code || e?.message || "");
+      if (code.includes("ALREADY_EXISTS") || code.includes("already exists") || code.includes("6")) {
         __alertsPushEventsCache.knownIds.add(eventId);
         return false;
+      }
+
+      const snap = await ref.get();
+      if (snap.exists) {
+        __alertsPushEventsCache.knownIds.add(eventId);
+        return false;
+      }
+
+      throw e;
     }
-    // Don't add to knownIds because it DOESN'T exist yet, we only cache existence!
-    return true;
   }
 
   async function alertsMarkSent(eventId: string, result: any) {
     await db.collection("pushEvents").doc(eventId).set({
       eventId,
-      source: "alerts-worker-final-clean-v2-root-merged",
+      source: "alerts-worker-final-clean-v3-idempotent",
+      status: result?.success || result?.mocked ? "sent" : "send_failed",
       result,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
-    // Also store it locally to avoid checking it on the next iteration
     __alertsPushEventsCache.knownIds.add(eventId);
   }
 
@@ -1914,13 +1950,13 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   async function alertsSendOnce(results: any[], eventId: string, payload: any, dryRun: boolean, counters: any) {
     if (dryRun) { results.push({ eventId, dryRun: true, payload }); return; }
     if (counters.sent >= ALERTS_MAX_SEND_PER_RUN) { results.push({ eventId, skipped: true, reason: "max-send-per-run-reached" }); return; }
-    const canSend = await alertsClaim(eventId);
-    if (!canSend) { results.push({ eventId, skipped: true, reason: "already-sent" }); return; }
+    const canSend = await alertsClaim(eventId, payload);
+    if (!canSend) { results.push({ eventId, skipped: true, reason: "already-sent-or-claimed" }); return; }
     const result = await alertsSendDataOnly({ ...payload, eventId });
     if (result.success || result.mocked) {
       counters.sent += 1;
-      await alertsMarkSent(eventId, result);
     }
+    await alertsMarkSent(eventId, result);
     results.push({ eventId, result });
   }
 
@@ -1983,9 +2019,17 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     }
   }
 
+  let __alertsReconcileInMemoryLock = false;
+
   async function alertsReconcile({ dryRun = false } = {}) {
     if (!firebaseInitialized || !db) return { meta: { sent: 0, status: "firebase-not-initialized" }, results: [] };
+    if (__alertsReconcileInMemoryLock && !dryRun) {
+      return { meta: { sent: 0, status: "already-running" }, results: [] };
+    }
 
+    __alertsReconcileInMemoryLock = !dryRun;
+
+    try {
     const counters = { sent: 0 };
     const results: any[] = [];
     const now = new Date();
@@ -2036,12 +2080,15 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       }
     }
     return { meta: { lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN, startFromIso: ALERTS_START_FROM_ISO || null, sent: counters.sent, syncFailedInvoices: syncResult }, results };
+    } finally {
+      if (!dryRun) __alertsReconcileInMemoryLock = false;
+    }
   }
 
   app.get("/api/push/alerts-status", async (_req, res) => {
     try {
       if (!firebaseInitialized || !db) return res.status(500).json({ ok: false, error: "Firebase Admin not initialized" });
-      res.json({ ok: true, route: "/api/push/alerts-status", service: "alerts-worker-final-clean-v2-root-merged", lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN, startFromIso: ALERTS_START_FROM_ISO || null });
+      res.json({ ok: true, route: "/api/push/alerts-status", service: "alerts-worker-final-clean-v3-idempotent", lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN, startFromIso: ALERTS_START_FROM_ISO || null });
     } catch (e: any) { res.status(500).json({ ok: false, error: e?.message || String(e) }); }
   });
 
@@ -2072,10 +2119,10 @@ function startPaymentAlertsAutoRunner() {
   }, 60 * 1000);
 }
 
-if (String(process.env.ENABLE_INTERNAL_ALERTS_RUNNER || "false").toLowerCase() === "true") {
+if (String(process.env.ENABLE_INTERNAL_ALERTS_RUNNER || "true").toLowerCase() !== "false") {
   startPaymentAlertsAutoRunner();
 } else {
-  console.log("[ALERTS] Internal auto runner disabled; Cloud Scheduler is responsible.");
+  console.log("[ALERTS] Internal auto runner disabled by ENABLE_INTERNAL_ALERTS_RUNNER=false; Cloud Scheduler is responsible.");
 }
 
 
@@ -2094,7 +2141,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       const { meta, results } = await alertsReconcile({ dryRun });
       res.json({ success: true, checkedAt: new Date().toISOString(), ...meta, resultsCount: results.length, results });
     } catch (e: any) {
-      console.error("[alerts-worker-final-clean-v2-root-merged] error", e);
+      console.error("[alerts-worker-final-clean-v3-idempotent] error", e);
       res.status(500).json({ success: false, error: e?.message || String(e) });
     }
   };

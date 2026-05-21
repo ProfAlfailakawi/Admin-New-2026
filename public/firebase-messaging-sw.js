@@ -1,4 +1,7 @@
-/* Minimal Service Worker - Alturath Admin */
+/* Alturath Admin Service Worker - Push delivery guard for PWA/iOS */
+
+const PUSH_DEDUPE_CACHE = "alturath-push-dedupe-v1";
+const PUSH_DEDUPE_TTL_MS = 48 * 60 * 60 * 1000;
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -7,6 +10,37 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
+
+async function wasPushAlreadyShown(eventId) {
+  if (!eventId || !self.caches) return false;
+
+  try {
+    const cache = await caches.open(PUSH_DEDUPE_CACHE);
+    const key = `/__push_dedupe__/${encodeURIComponent(eventId)}`;
+    const existing = await cache.match(key);
+
+    if (existing) {
+      const savedAt = Number(existing.headers.get("x-saved-at") || "0");
+      if (savedAt && Date.now() - savedAt < PUSH_DEDUPE_TTL_MS) {
+        return true;
+      }
+    }
+
+    await cache.put(
+      key,
+      new Response("1", {
+        headers: {
+          "cache-control": "no-store",
+          "x-saved-at": String(Date.now()),
+        },
+      })
+    );
+  } catch (e) {
+    // Never block notification delivery because of cache cleanup/dedupe errors.
+  }
+
+  return false;
+}
 
 self.addEventListener("push", (event) => {
   let payload = {};
@@ -34,17 +68,35 @@ self.addEventListener("push", (event) => {
 
   const url =
     payload.data?.url ||
+    payload.notification?.data?.url ||
     payload.url ||
     "/";
 
-  event.waitUntil(
-    self.registration.showNotification(title, {
+  const eventId =
+    payload.data?.eventId ||
+    payload.notification?.data?.eventId ||
+    payload.eventId ||
+    `${title}:${body}:${url}`;
+
+  const alertType =
+    payload.data?.alertType ||
+    payload.notification?.data?.alertType ||
+    payload.alertType ||
+    "general";
+
+  event.waitUntil((async () => {
+    if (await wasPushAlreadyShown(eventId)) return;
+
+    await self.registration.showNotification(title, {
       body,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
-      data: { url },
-    })
-  );
+      tag: eventId,
+      renotify: false,
+      requireInteraction: true,
+      data: { url, eventId, alertType },
+    });
+  })());
 });
 
 self.addEventListener("notificationclick", (event) => {
@@ -55,8 +107,10 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
-        if ("navigate" in client) {
-          client.navigate(url);
+        if ("focus" in client && client.url && client.url.includes(self.location.origin)) {
+          if ("navigate" in client) {
+            return client.navigate(url).then(() => client.focus());
+          }
           return client.focus();
         }
       }
