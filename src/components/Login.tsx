@@ -18,6 +18,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
   const [isStandalone, setIsStandalone] = useState(true);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showIOSPrompt, setShowIOSPrompt] = useState(false);
+  const [showLocalLogin, setShowLocalLogin] = useState(false);
 
   const showInstallToast = async () => {
     const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
@@ -129,10 +130,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
         <section className="login-brand-stage">
           <div className="login-stage-grid" />
           <div className="login-stage-content">
-            <div className="login-live-pill"><span /> لوحة إدارة مباشرة</div>
             <LogoEngine src={logo} size="xl" variant="royal" className="login-hero-logo" />
             <h1>مطبخ التراث</h1>
-            <p>لوحة دخول تنفيذية بنفس مستوى جمال النظام — هادئة، فاخرة، وسريعة.</p>
             <div className="login-metrics-row">
               <div><strong>جاهز</strong><span>تشغيل دائم</span></div>
               <div><strong>سحابي</strong><span>مزامنة</span></div>
@@ -141,13 +140,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
           </div>
         </section>
 
-        <section className="login-form-stage">
-          <div className="login-form-head">
-            <span>Admin Access</span>
-            <h2>حياك الله</h2>
-            <p>اختر الدخول السحابي أو المحلي بدون تغيير أي إعدادات بالنظام.</p>
-          </div>
-
+        <section className="login-form-stage login-form-stage-cloud-first">
           {localStorage.getItem('appMode') === 'cloud' && (
             <div className="login-cloud-note">
               لقد استخدمت التخزين السحابي مؤخراً. يرجى تسجيل الدخول بـ Google للوصول لبياناتك.
@@ -159,45 +152,74 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
             <span>{loading ? 'جاري التحميل...' : 'تسجيل الدخول السحابي Google'}</span>
           </button>
 
-          <div className="login-divider"><span>أو الدخول المحلي للتجربة</span></div>
+          <button type="button" onClick={() => setShowLocalLogin(true)} className="login-local-link-btn">
+            أو الدخول المحلي للتجربة
+          </button>
 
-          <form onSubmit={handleLogin} className="login-premium-form">
-            <label className="login-field">
-              <span>اسم المستخدم</span>
-              <div>
-                <User size={18} />
-                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="أدخل اسم المستخدم" required />
-              </div>
-            </label>
+          {error && !showLocalLogin && (
+            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="login-error-box">
+              <span /> {error}
+            </motion.div>
+          )}
 
-            <label className="login-field">
-              <span>كلمة المرور</span>
-              <div>
-                <Lock size={18} />
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
-              </div>
-            </label>
-
-            {error && (
-              <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="login-error-box">
-                <span /> {error}
-              </motion.div>
-            )}
-
-            <button type="submit" className="login-local-btn">
-              <span>دخول محلي</span>
-              <ArrowLeft size={18} />
+          {!isStandalone && (
+            <button type="button" onClick={showInstallToast} className="login-install-btn" aria-label="تثبيت التطبيق">
+              <DownloadCloud size={20} />
             </button>
-
-            {!isStandalone && (
-              <button type="button" onClick={showInstallToast} className="login-install-btn" aria-label="تثبيت التطبيق">
-                <DownloadCloud size={20} />
-              </button>
-            )}
-          </form>
-
-          <p className="login-footnote">بيانات Google تُستخدم للمزامنة السحابية فقط، والدخول المحلي يبقى للتجربة على نفس الجهاز.</p>
+          )}
         </section>
+
+        <AnimatePresence>
+          {showLocalLogin && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="login-local-modal-backdrop"
+              onClick={() => setShowLocalLogin(false)}
+            >
+              <motion.form
+                onSubmit={handleLogin}
+                initial={{ opacity: 0, y: 24, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 18, scale: 0.96 }}
+                className="login-local-modal login-premium-form"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button type="button" className="login-local-modal-close" onClick={() => setShowLocalLogin(false)} aria-label="إغلاق">
+                  <X size={18} />
+                </button>
+                <div className="login-local-modal-head">
+                  <strong>الدخول المحلي</strong>
+                  <small>للتجربة على هذا الجهاز فقط</small>
+                </div>
+                <label className="login-field">
+                  <span>اسم المستخدم</span>
+                  <div>
+                    <User size={18} />
+                    <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="أدخل اسم المستخدم" required />
+                  </div>
+                </label>
+                <label className="login-field">
+                  <span>كلمة المرور</span>
+                  <div>
+                    <Lock size={18} />
+                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
+                  </div>
+                </label>
+                {error && (
+                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="login-error-box">
+                    <span /> {error}
+                  </motion.div>
+                )}
+                <button type="submit" className="login-local-btn">
+                  <span>دخول محلي</span>
+                  <ArrowLeft size={18} />
+                </button>
+              </motion.form>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       <div className="login-copyright">شركة مطبخ التراث الكويتي © {new Date().getFullYear()}</div>
