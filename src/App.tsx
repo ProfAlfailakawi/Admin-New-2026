@@ -2453,6 +2453,13 @@ const MainApp: React.FC = () => {
                }));
             }} 
           />
+          {userRole !== 'partner' && (
+            <CompanyCommandCenter
+              data={data}
+              onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }}
+              page={currentPage}
+            />
+          )}
           <AnimatePresence>
             <motion.div
               key={currentPage}
