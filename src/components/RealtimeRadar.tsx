@@ -219,23 +219,6 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
              </button>
           </div>
         )}
-
-        {history.length > 0 && (
-          <div className="w-full mt-6 pt-4 border-t border-slate-100/50">
-            <h4 className="text-[10px] font-black text-slate-400 mb-2 text-right uppercase tracking-widest">الأعمال الأخيرة</h4>
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {history.map((item, idx) => (
-                <button 
-                  key={idx}
-                  onClick={() => { setGeneratedBaseImage(item.url); setResultText(item.text); setTopic(item.topic); }}
-                  className="w-16 h-16 rounded-xl border border-slate-200 flex-shrink-0 overflow-hidden"
-                >
-                  <img src={item.url} alt="hist" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="w-full lg:w-[55%] sticky top-4 z-40 bg-white p-2 rounded-3xl shadow-sm border border-slate-100 min-h-[250px] md:min-h-[500px] flex items-center justify-center bg-slate-50 relative overflow-hidden">

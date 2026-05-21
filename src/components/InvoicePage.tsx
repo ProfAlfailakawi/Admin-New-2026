@@ -444,6 +444,14 @@ Alturath.kw
         setDeliveryFee(breakdown.deliveryFee);
       }
     }, [deliveryType, selectedZoneId, data.zones]);
+    // ADMIN_PARTNER_FORCE_COMPANY_DELIVERY
+    // الشريك لا يختار طريقة التوصيل؛ التوصيل يكون شركة افتراضيًا بدون تغيير منطق الفاتورة.
+    useEffect(() => {
+      if (isPartner && deliveryType !== "company") {
+        setDeliveryType("company");
+      }
+    }, [isPartner, deliveryType]);
+
 
     useEffect(() => {
       if (selectedCustomerId) {
@@ -1101,6 +1109,7 @@ Alturath.kw
               </select>
 
               {/* فاتورة جديدة: خيارات طريقة التوصيل */}
+              {!isPartner && (
               <div className="space-y-2">
                 <div className="text-[10px] font-bold text-slate-500 text-right">
                   طريقة التوصيل
@@ -1144,6 +1153,14 @@ Alturath.kw
                   ))}
                 </div>
               </div>
+              )}
+
+              {isPartner && (
+                <div className="partner-delivery-note" dir="rtl">
+                  <strong>التوصيل شركة افتراضيًا</strong>
+                  <span>تم تبسيط الفاتورة للشريك بدون خيارات إضافية.</span>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-2">
                 <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
