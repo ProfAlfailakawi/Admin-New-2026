@@ -769,6 +769,12 @@ const MainApp: React.FC = () => {
 
   const [currentPage, setCurrentPage] = useState(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
 
+  const navigateAdminPage = (page: string, payload?: any) => {
+    setCurrentPage(page);
+    setSidebarOpen(false);
+    setDeepLinkData(payload ? { ...payload, _t: Date.now() } : {});
+  };
+
   // Removed buggy ADMINFIX_FORCE_INVOICES_FROM_URL effects causing navigation lock
 
   const mainRef = useRef<HTMLElement>(null);
@@ -2475,13 +2481,7 @@ const MainApp: React.FC = () => {
         isOpen={commandBarOpen} 
         onClose={() => setCommandBarOpen(false)} 
         onNavigate={(page, payload) => {
-           setCurrentPage(page);
-           setSidebarOpen(false);
-           if (payload) {
-             setDeepLinkData({ ...payload, _t: Date.now() });
-           } else {
-             setDeepLinkData({});
-           }
+           navigateAdminPage(page, payload);
         }}
         data={data}
         userRole={userRole}

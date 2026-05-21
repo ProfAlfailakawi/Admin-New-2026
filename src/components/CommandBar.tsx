@@ -60,12 +60,12 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
 
     const deepLinks: CommandItem[] = [
       { id: 'bi-engine-core', label: 'قلب مختبر الذكاء', hint: 'تحليل الاستقرار', icon: <ShieldCheck />, category: 'تحليلات داخلية', tags: ['القلب', 'نواة', 'مؤشرات', 'استقرار'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'bi-engine-core-section' }) },
-      { id: 'strategic-manager', label: 'المدير الاستراتيجي الآلي', hint: 'خطط وقرارات', icon: <Target />, category: 'تحليلات داخلية', tags: ['مدير', 'آلي', 'استراتيجي', 'خطط'], action: () => onNavigate('dashboard', { exactId: 'intelligence', scrollTarget: 'strategic-manager-section' }) },
-      { id: 'vip-missions', label: 'مهام كبار العملاء', hint: 'VIP ومهمات', icon: <Users />, category: 'تحليلات داخلية', tags: ['مهام', 'vip', 'كبار'], action: () => onNavigate('dashboard', { exactId: 'intelligence', scrollTarget: 'vip-missions-section' }) },
-      { id: 'geo-heatmap', label: 'خريطة الذهب الاستراتيجية', hint: 'توزيع وحرارة', icon: <Activity />, category: 'تحليلات داخلية', tags: ['خريطة', 'حرارية', 'جغرافي', 'توزيع'], action: () => onNavigate('dashboard', { exactId: 'intelligence', scrollTarget: 'geo-heatmap-section' }) },
-      { id: 'smart-offers', label: 'صانع العروض الذكية', hint: 'ترويج وخصومات', icon: <Sparkles />, category: 'تحليلات داخلية', tags: ['عروض', 'ترويج', 'خصم'], action: () => onNavigate('dashboard', { exactId: 'intelligence', scrollTarget: 'smart-offers-section' }) },
-      { id: 'what-if', label: 'محاكي الطوارئ والسيناريوهات', hint: 'ماذا لو؟', icon: <Zap />, category: 'تحليلات داخلية', tags: ['طوارئ', 'سيناريو', 'توقع'], action: () => onNavigate('dashboard', { exactId: 'intelligence', scrollTarget: 'what-if-section' }) },
-      { id: 'status-mirror', label: 'مرآة حالة العمل', hint: 'مؤشرات فورية', icon: <Activity />, category: 'تحليلات داخلية', tags: ['مرآة', 'حالة', 'مؤشرات'], action: () => onNavigate('dashboard', { exactId: 'intelligence', scrollTarget: 'status-mirror-section' }) },
+      { id: 'strategic-manager', label: 'المدير الاستراتيجي الآلي', hint: 'خطط وقرارات', icon: <Target />, category: 'تحليلات داخلية', tags: ['مدير', 'آلي', 'استراتيجي', 'خطط'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'strategic-manager-section' }) },
+      { id: 'vip-missions', label: 'مهام كبار العملاء', hint: 'VIP ومهمات', icon: <Users />, category: 'تحليلات داخلية', tags: ['مهام', 'vip', 'كبار'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'vip-missions-section' }) },
+      { id: 'geo-heatmap', label: 'خريطة الذهب الاستراتيجية', hint: 'توزيع وحرارة', icon: <Activity />, category: 'تحليلات داخلية', tags: ['خريطة', 'حرارية', 'جغرافي', 'توزيع'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'geo-heatmap-section' }) },
+      { id: 'smart-offers', label: 'صانع العروض الذكية', hint: 'ترويج وخصومات', icon: <Sparkles />, category: 'تحليلات داخلية', tags: ['عروض', 'ترويج', 'خصم'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'smart-offers-section' }) },
+      { id: 'what-if', label: 'محاكي الطوارئ والسيناريوهات', hint: 'ماذا لو؟', icon: <Zap />, category: 'تحليلات داخلية', tags: ['طوارئ', 'سيناريو', 'توقع'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'what-if-section' }) },
+      { id: 'status-mirror', label: 'مرآة حالة العمل', hint: 'مؤشرات فورية', icon: <Activity />, category: 'تحليلات داخلية', tags: ['مرآة', 'حالة', 'مؤشرات'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'status-mirror-section' }) },
       { id: 'growth-campaigns', label: 'مختبر الحملات التسويقية', hint: 'خطط مبيعات', icon: <TrendingUp />, category: 'تحليلات داخلية', tags: ['حملات', 'تسويقية', 'مبيعات'], action: () => onNavigate('growth-simulator', { scrollTarget: 'smart-campaigns' }) },
       { id: 'customers-retention', label: 'رادار استرجاع العملاء', hint: 'الغائبين والاحتفاظ', icon: <Users />, category: 'تحليلات داخلية', tags: ['استرجاع', 'غائبين', 'احتفاظ'], action: () => onNavigate('dashboard', { exactId: 'customers', scrollTarget: 'retention-section' }) },
       { id: 'financial-guard', label: 'حارس الأرباح الحقيقية', hint: 'هدر وصافي ربح', icon: <DollarSign />, category: 'تحليلات داخلية', tags: ['ارباح', 'هدر', 'صافي'], action: () => onNavigate('dashboard', { exactId: 'financials', scrollTarget: 'profit-guard-section' }) },
@@ -110,7 +110,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     return commands.filter(c => clean(c.label).includes(q) || clean(c.category).includes(q) || clean(c.hint).includes(q) || c.tags?.some((t) => clean(t).includes(q)));
   }, [commands, deferredQuery]);
 
-  const priority = ['new-invoice','orders','invoices-list','alerts','products-page','customers-page','settings'];
+  const priority = ['dashboard-ai','new-invoice','orders','invoices-list','alerts','products-page','customers-page','settings'];
   const featured = useMemo(() => {
     const sorted = [...filteredCommands].sort((a, b) => {
       const ai = priority.indexOf(a.id);
@@ -206,7 +206,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                     key={cmd.id}
                     type="button"
                     onClick={() => runCommand(cmd)}
-                    onMouseEnter={() => setSelectedIndex(index)}
+                    onMouseEnter={() => setSelectedIndex(Math.max(0, filteredCommands.findIndex((item) => item.id === cmd.id)))}
                     className={cn('command-feature-card', index === selectedIndex && 'is-active')}
                   >
                     <span className="command-feature-icon">{React.cloneElement(cmd.icon as React.ReactElement, { size: 16 } as any)}</span>

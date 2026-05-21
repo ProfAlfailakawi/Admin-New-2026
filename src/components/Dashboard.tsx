@@ -856,6 +856,7 @@ const [isPending, startTransition] = useTransition();
     const [isLoyaltyAnalyzing, setIsLoyaltyAnalyzing] = useState(false);
     const [showLoyaltyResult, setShowLoyaltyResult] = useState(false);
     const [showLocalOnboardingTour, setShowLocalOnboardingTour] = useState(false);
+    const [invoiceHintOpen, setInvoiceHintOpen] = useState(false);
     const [localOnboardingStep, setLocalOnboardingStep] = useState(0);
     const [activeAdviceContent, setActiveAdviceContent] = useState<
       string | null
@@ -1726,31 +1727,27 @@ const [isPending, startTransition] = useTransition();
           onClick={() => onNavigate!("new-invoice")}
           className="flex flex-col items-center justify-center p-6 bg-rose-600 text-white rounded-2xl shadow-xl shadow-rose-500/20 interactive-hover active:scale-95 group relative overflow-visible"
         >
-          <span
-            className="absolute top-2 left-2 z-30 group/invoice-hint outline-none"
-            tabIndex={0}
-            role="button"
+          <button
+            type="button"
+            className="invoice-new-attention group/invoice-hint"
             aria-label="تنبيه فاتورة جديدة"
+            aria-expanded={invoiceHintOpen}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              setInvoiceHintOpen((value) => !value);
             }}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onBlur={() => window.setTimeout(() => setInvoiceHintOpen(false), 160)}
           >
-            <span className="bg-rose-50 border border-rose-100 text-rose-600 p-1.5 rounded-full cursor-pointer shadow-sm flex items-center justify-center">
-              <AlertCircle size={14} className="shrink-0 animate-pulse" />
+            <span className="invoice-new-attention-icon">
+              <AlertCircle size={14} className="shrink-0" />
             </span>
-            <span className="absolute bottom-full mb-2 left-0 hidden group-hover/invoice-hint:flex group-focus/invoice-hint:flex focus-within:flex flex-col bg-white text-slate-700 text-[10px] sm:text-[10px] w-[160px] p-2 rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-bold border border-slate-200/60 pointer-events-none items-center gap-1.5 text-center">
-              <span className="bg-rose-50 text-rose-600 px-2 py-1 rounded-lg leading-relaxed w-full break-words whitespace-normal text-[9px] title-premium">
-                إنشاء سريع
-              </span>
-              <span className="w-full text-[9px] title-premium">
-                اضغط البطاقة لفتح فاتورة جديدة وإضافة الطلب مباشرة.
-              </span>
+            <span className={cn('invoice-new-attention-popover', invoiceHintOpen && 'is-visible')}>
+              <span className="invoice-new-attention-title">فاتورة جديدة</span>
+              <span className="invoice-new-attention-copy">اضغط البطاقة لإنشاء فاتورة وإضافة الطلب بسرعة.</span>
             </span>
-          </span>
+          </button>
           <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform">
             <Plus size={24} strokeWidth={3} />
           </div>
