@@ -48,17 +48,34 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
   const normalizeForOrder = (list: any[]) => {
     const sorted = [...list].map(normalizeAdminTier).sort((a, b) => parseTierPoints(a.points) - parseTierPoints(b.points));
-    return sorted.map((tier, index) => ({
-      id: String(tier.id),
-      name: tier.name,
-      minPoints: parseTierPoints(tier.points),
-      maxPoints: index < sorted.length - 1 ? Math.max(parseTierPoints(sorted[index + 1].points) - 1, parseTierPoints(tier.points)) : 999999999,
-      color: ['text-orange-700','text-slate-700','text-amber-700','text-purple-700','text-emerald-700'][index] || 'text-brand',
-      bg: ['bg-orange-50','bg-slate-100','bg-amber-50','bg-purple-50','bg-emerald-50'][index] || 'bg-stone-50',
-      icon: tier.iconType === 'Trophy' ? '🏆' : tier.iconType === 'Crown' ? '👑' : tier.iconType === 'Star' ? '⭐' : tier.iconType === 'Medal' ? '🏅' : '🎯',
-      benefit: tier.label,
-      imageUrl: tier.imageUrl || undefined,
-    }));
+    const readableThemes = [
+      { color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' },
+      { color: 'text-slate-700', bg: 'bg-slate-100', border: 'border-slate-200' },
+      { color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
+      { color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200' },
+      { color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+      { color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' },
+    ];
+    return sorted.map((tier, index) => {
+      const theme = readableThemes[index % readableThemes.length];
+      return {
+        id: String(tier.id),
+        name: tier.name,
+        minPoints: parseTierPoints(tier.points),
+        maxPoints: index < sorted.length - 1 ? Math.max(parseTierPoints(sorted[index + 1].points) - 1, parseTierPoints(tier.points)) : 999999999,
+        color: theme.color,
+        bg: theme.bg,
+        border: theme.border,
+        gradient: tier.color,
+        colorGradient: tier.color,
+        bgClass: tier.bgClass,
+        iconType: tier.iconType,
+        icon: tier.iconType === 'Trophy' ? '🏆' : tier.iconType === 'Crown' ? '👑' : tier.iconType === 'Star' ? '⭐' : tier.iconType === 'Medal' ? '🏅' : '🎯',
+        benefit: tier.label,
+        label: tier.label,
+        imageUrl: tier.imageUrl || undefined,
+      };
+    });
   };
 
   const [tiers, setLocalTiers] = useState(() => {
@@ -72,14 +89,26 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       const normalized = resolved.map(normalizeAdminTier);
       const sharedTiers = normalizeForOrder(normalized);
 
-      // IMPORTANT: this screen is persisted through the shared AppState.
-      // Use a direct object update here so newly added levels do not disappear
-      // after leaving the screen or logging out.
-      setData({
-        ...data,
+      // Persist through the shared AppState using a functional update.
+      // This prevents newly added levels from being overwritten by a stale
+      // `data` object when the screen is closed, reopened, or after logout/login.
+      setData((current: any) => ({
+        ...current,
         diwaniyaTiers: normalized,
         squadTiers: sharedTiers,
-      });
+      }));
+
+      try {
+        const raw = localStorage.getItem('ktk_accounting_data');
+        if (raw) {
+          const stored = JSON.parse(raw);
+          localStorage.setItem('ktk_accounting_data', JSON.stringify({
+            ...stored,
+            diwaniyaTiers: normalized,
+            squadTiers: sharedTiers,
+          }));
+        }
+      } catch {}
 
       return normalized;
     });
@@ -103,7 +132,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       setLocalTiers(fromShared);
       return;
     }
-    setData({ ...data, diwaniyaTiers: tiers, squadTiers: normalizeForOrder(tiers) });
+    setData((current: any) => ({ ...current, diwaniyaTiers: tiers, squadTiers: normalizeForOrder(tiers) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

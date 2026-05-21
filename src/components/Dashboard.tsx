@@ -1727,8 +1727,9 @@ const [isPending, startTransition] = useTransition();
           onClick={() => onNavigate!("new-invoice")}
           className="flex flex-col items-center justify-center p-6 bg-rose-600 text-white rounded-2xl shadow-xl shadow-rose-500/20 interactive-hover active:scale-95 group relative overflow-visible"
         >
-          <button
-            type="button"
+          <span
+            role="button"
+            tabIndex={0}
             className="invoice-new-attention group/invoice-hint"
             aria-label="تنبيه فاتورة جديدة"
             aria-expanded={invoiceHintOpen}
@@ -1737,8 +1738,17 @@ const [isPending, startTransition] = useTransition();
               e.stopPropagation();
               setInvoiceHintOpen((value) => !value);
             }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onBlur={() => window.setTimeout(() => setInvoiceHintOpen(false), 160)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                setInvoiceHintOpen((value) => !value);
+              }
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
+            onBlur={() => window.setTimeout(() => setInvoiceHintOpen(false), 220)}
           >
             <span className="invoice-new-attention-icon">
               <AlertCircle size={14} className="shrink-0" />
@@ -1747,7 +1757,7 @@ const [isPending, startTransition] = useTransition();
               <span className="invoice-new-attention-title">فاتورة جديدة</span>
               <span className="invoice-new-attention-copy">اضغط البطاقة لإنشاء فاتورة وإضافة الطلب بسرعة.</span>
             </span>
-          </button>
+          </span>
           <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform">
             <Plus size={24} strokeWidth={3} />
           </div>
