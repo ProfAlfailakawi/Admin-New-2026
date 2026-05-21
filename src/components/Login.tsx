@@ -134,9 +134,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
             <h1>مطبخ التراث</h1>
             <p>لوحة دخول تنفيذية بنفس مستوى جمال النظام — هادئة، فاخرة، وسريعة.</p>
             <div className="login-metrics-row">
-              <div><strong>24/7</strong><span>تشغيل</span></div>
-              <div><strong>Cloud</strong><span>مزامنة</span></div>
-              <div><strong>Secure</strong><span>دخول آمن</span></div>
+              <div><strong>جاهز</strong><span>تشغيل دائم</span></div>
+              <div><strong>سحابي</strong><span>مزامنة</span></div>
+              <div><strong>آمن</strong><span>دخول محمي</span></div>
             </div>
           </div>
         </section>

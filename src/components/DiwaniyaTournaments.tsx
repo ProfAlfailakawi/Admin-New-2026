@@ -231,7 +231,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   };
 
   const openWhatsApp = (phone: string, squadName: string) => {
-    const message = encodeURIComponent(`مرحباً يا ديوانية ${squadName}!\nنشكركم على ولائكم الدائم لمطبخ التراث الكويتي.`);
+    const message = encodeURIComponent(`مرحباً ديوانية ${squadName}،\n\nنشكركم على ولائكم لمطبخ التراث الكويتي.\nAlturath.kw`);
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   };
 
