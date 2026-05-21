@@ -1906,3 +1906,102 @@ button:has(.invoice-product-price-hint){overflow:visible!important;isolation:iso
   .login-metrics-row strong{font-size:14px!important;line-height:1.2!important;white-space:nowrap!important;}
   .login-metrics-row span{font-size:10px!important;line-height:1.35!important;white-space:normal!important;}
 }
+
+
+/* Adminnew2 precise fixes: remove duplicated command glare, keep command center closed by default, clean login footer/title. */
+.admin-heritage-shell main > .heritage-command-brief:first-of-type{
+  margin-top:0!important;
+}
+.heritage-command-brief.is-collapsed{
+  display:grid!important;
+  grid-template-columns:1fr auto!important;
+  align-items:center!important;
+  min-height:88px!important;
+  padding:18px 22px!important;
+  border-radius:28px!important;
+  overflow:hidden!important;
+  background:linear-gradient(135deg,#0b1220,#111827 58%,#0b2016)!important;
+  color:#fff!important;
+  box-shadow:0 22px 65px rgba(2,6,23,.18)!important;
+}
+.heritage-command-brief.is-collapsed::before{display:none!important;content:none!important;}
+.heritage-command-brief.is-collapsed .heritage-command-grid{display:none!important;}
+.heritage-command-brief.is-collapsed .heritage-command-hero{
+  min-height:0!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+}
+.heritage-command-brief.is-collapsed .heritage-command-copy h2{
+  color:#fff!important;
+  font-size:clamp(1.25rem,2.2vw,2.15rem)!important;
+  line-height:1.15!important;
+}
+.heritage-command-brief.is-collapsed .heritage-command-copy p{
+  color:rgba(255,255,255,.72)!important;
+  font-size:clamp(.78rem,1.1vw,.95rem)!important;
+}
+.heritage-command-brief.is-collapsed .heritage-command-kicker{color:#fbbf24!important;}
+.heritage-command-brief.is-collapsed .heritage-command-actions{position:relative!important;z-index:3!important;}
+.heritage-command-brief.is-collapsed .heritage-command-toggle{
+  width:auto!important;
+  min-width:128px!important;
+  justify-content:center!important;
+  padding:12px 16px!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.10)!important;
+  color:#fff!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+}
+.heritage-command-brief.is-open{
+  background:radial-gradient(circle at 88% 22%,rgba(245,158,11,.18),transparent 28%),linear-gradient(135deg,#0b1220,#111827 52%,#07130d)!important;
+  color:#fff!important;
+  overflow:visible!important;
+}
+.login-copyright{display:none!important;}
+@media(max-width:860px){
+  .heritage-command-brief.is-collapsed{
+    grid-template-columns:1fr!important;
+    min-height:0!important;
+    padding:14px!important;
+    border-radius:22px!important;
+    gap:10px!important;
+  }
+  .heritage-command-brief.is-collapsed .heritage-command-copy h2{font-size:1.08rem!important;line-height:1.35!important;}
+  .heritage-command-brief.is-collapsed .heritage-command-copy p{font-size:.72rem!important;line-height:1.6!important;}
+  .heritage-command-brief.is-collapsed .heritage-command-actions{width:100%!important;}
+  .heritage-command-brief.is-collapsed .heritage-command-toggle{width:100%!important;min-width:0!important;padding:10px 12px!important;}
+  .login-brand-stage{
+    min-height:38dvh!important;
+    padding:calc(env(safe-area-inset-top,0px) + 24px) 18px 22px!important;
+    overflow:visible!important;
+  }
+  .login-stage-content{align-items:center!important;text-align:center!important;width:100%!important;}
+  .login-hero-logo{max-height:66px!important;transform:scale(.58)!important;margin:0 auto 6px!important;}
+  .login-brand-stage h1{
+    font-size:clamp(2.15rem,10.5vw,3.15rem)!important;
+    line-height:1.08!important;
+    letter-spacing:-.025em!important;
+    max-width:92vw!important;
+    width:100%!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    padding:.05em .1em .14em!important;
+    margin:0 auto 10px!important;
+    text-align:center!important;
+  }
+  .login-metrics-row{width:min(315px,90vw)!important;margin-top:12px!important;gap:7px!important;}
+  .login-metrics-row div{padding:8px 5px!important;border-radius:15px!important;}
+  .login-metrics-row strong{font-size:12px!important;}
+  .login-metrics-row span{font-size:9px!important;}
+  .login-form-stage{margin-top:-10px!important;padding-top:20px!important;}
+}
+@media(min-width:861px){
+  .login-brand-stage h1{
+    font-size:clamp(3rem,5.6vw,5rem)!important;
+    line-height:1.03!important;
+    max-width:95%!important;
+    white-space:normal!important;
+    overflow:visible!important;
+  }
+  .login-brand-stage{padding-inline:36px!important;}
+}

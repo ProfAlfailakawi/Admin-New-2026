@@ -222,8 +222,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
         </AnimatePresence>
       </motion.div>
 
-      <div className="login-copyright">شركة مطبخ التراث الكويتي © {new Date().getFullYear()}</div>
-
       <AnimatePresence>
         {showIOSPrompt && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">

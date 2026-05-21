@@ -354,11 +354,7 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
       : hour >= 12 && hour < 17
         ? { title: 'مرحباً، وقت الغداء والتركيز! 🍽️', sub: 'تتبع حركة المبيعات في فترة الذروة، والقرارات المهمة أمامك.' }
         : { title: 'نظرة هادية على الأرقام.. عساك على القوة! ☕', sub: 'هدوء الليل أفضل وقت للتخطيط ومراجعة الأداء.' };
-  const [isOpen, setIsOpen] = React.useState(page === 'dashboard');
-
-  React.useEffect(() => {
-    if (page === 'dashboard') setIsOpen(true);
-  }, [page]);
+  const [isOpen, setIsOpen] = React.useState(false);
 
   const paidSalesValue = allSales.filter((item: any) => isPaidStatus(item?.status || item?.paymentStatus)).reduce((sum: number, item: any) => sum + getMoneyValue(item), 0);
   const briefLines = [
