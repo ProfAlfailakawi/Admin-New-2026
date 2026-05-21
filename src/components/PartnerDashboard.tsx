@@ -500,19 +500,6 @@ const {
           )}
         </AnimatePresence>
 
-        <section className="partner-clean-hub" dir="rtl">
-          <div className="partner-clean-copy">
-            <span>برنامج الشريك</span>
-            <h3>واجهة مختصرة للطلبات والفواتير فقط</h3>
-            <p>كل شيء مهم للشريك واضح من أول نظرة، بدون زحمة الإدارة الكاملة.</p>
-          </div>
-          <div className="partner-clean-actions">
-            <button type="button" onClick={() => onNavigate('orders')}><ShoppingBag size={18}/> طلبات اليوم</button>
-            <button type="button" onClick={() => onNavigate('invoices-list')}><FileText size={18}/> الفواتير</button>
-            <button type="button" onClick={() => onNavigate('new-invoice')}><DollarSign size={18}/> فاتورة جديدة</button>
-          </div>
-        </section>
-       
        {/* Time Slider (Minimalist) */}
        <div className="fixed bottom-3 left-0 right-0 z-[90] p-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-10 duration-700 delay-500">
          <div className="bg-white/70 backdrop-blur-3xl rounded-[2rem] py-3.5 px-6 flex flex-col items-center gap-2.5 shadow-2xl pointer-events-auto w-[90%] max-w-[340px] border border-white/50 ring-1 ring-slate-900/5 transition-all hover:bg-white/80">
@@ -629,21 +616,7 @@ const {
 
 
       
-       <div className={bentoCardStyle}>
-       <h3 className="font-bold text-lg text-[#4a3f35] mb-4 flex items-center gap-2 justify-end">نجوم التراث (الأكثر مبيعاً) <Sparkles size={18} className="text-amber-500" /></h3>
-       <div className="space-y-2 flex-grow">
-       {topProducts.length > 0 ? topProducts.slice(0, 3).map((p, i) => (
-       <div key={p.id} className="flex justify-between items-center bg-white p-3 rounded-2xl border border-[#f0e6d2] hover:border-amber-400 transition-colors flex-row-reverse">
-       <div className="flex items-center gap-2 flex-row-reverse">
-       <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-bold text-[10px]">#{i+1}</div>
-       <div className="font-bold text-slate-800 text-[11px] truncate max-w-[100px]">{p.name}</div>
-       </div>
-       <div className="bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-bold px-2 py-1 rounded-full">{p.sold} طلب</div>
-       </div>
-      )) : <div className="text-center py-4 text-slate-300 font-bold text-[10px]">لا توجد بيانات</div>}
-       </div>
-       <button onClick={() => setActiveWidget('bestsellers')} className="mt-3 text-center text-[10px] font-bold text-amber-600 hover:text-amber-700 transition-colors">عرض القائمة الكاملة</button>
-       </div>
+
        </div>
        </div>
       
@@ -668,7 +641,6 @@ const {
        <h2 className="text-xl md:text-2xl font-bold text-slate-800">
        {activeWidget === 'campaign' &&"مختبر الحملات التسويقية الذكي"}
        {activeWidget === 'forecast' &&"التنبؤ المستقبلي الخوارزمي"}
-       {activeWidget === 'bestsellers' &&"نجوم التراث (الأكثر مبيعاً)"}
        {activeWidget === 'menu' &&"مصفوفة هندسة المنيو الذكية"}
        </h2>
        <button onClick={() => setActiveWidget(null)} className="w-10 h-10 flex items-center justify-center bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-full transition-all active:scale-90">
@@ -679,25 +651,6 @@ const {
        <div className="p-3 md:p-4 md:p-3 max-h-[80vh] overflow-y-auto custom-scrollbar">
        {activeWidget === 'campaign' && <MarketingLab data={data} />}
        {activeWidget === 'forecast' && <FutureForecast data={data} />}
-       {activeWidget === 'bestsellers' && (
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-       {topProducts.map((p, i) => (
-       <div key={p.id} className="flex justify-between items-center bg-white p-3 md:p-4 rounded-2xl border border-slate-100 shadow-sm flex-row-reverse">
-       <div className="flex items-center gap-4 flex-row-reverse">
-       <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-bold text-xl">#{i+1}</div>
-       <div className="text-right">
-       <div className="font-bold text-slate-800 text-lg">{p.name}</div>
-       <div className="text-[10px] text-slate-500 font-bold uppercase">{p.category || 'عام'}</div>
-       </div>
-       </div>
-       <div className="flex flex-col items-start gap-1">
-       <div className="text-indigo-600 text-lg font-bold">{p.sold} طلبات</div>
-       <div className="text-[10px] text-slate-300 font-bold">إجمالي المبيعات المباشرة</div>
-       </div>
-       </div>
-      ))}
-       </div>
-      )}
        {activeWidget === 'menu' && (
        <div id="products-matrix-section" className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl p-3 md:p-4 shadow-xl relative overflow-hidden" dir="rtl">
        <div className="absolute top-0 right-0 w-full h-2 bg-gradient-to-l from-[#0f3460] via-[#e94560] to-[#0f3460]" />
@@ -782,66 +735,59 @@ const {
       )}
        </AnimatePresence>
       
-       {/* Action Cards */}
-       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
-       <motion.div 
-       whileHover={{ y: -5 }}
-       className="group cursor-pointer h-full"
+       {/* Partner Action Cards */}
+       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+       <motion.button
+       type="button"
+       whileHover={{ y: -4 }}
+       whileTap={{ scale: 0.98 }}
+       className="partner-action-card partner-action-card-primary group"
        onClick={() => onNavigate('orders')}
        >
-       <div className="h-full bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 p-6 rounded-2xl shadow-xl shadow-indigo-600/30 text-white relative overflow-hidden flex flex-col justify-between">
-       <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none rotate-12" style={{ backgroundImage: `url(${patternSadu})` }} />
-       <div className="absolute -bottom-10 -right-10 w-64 h-64 lg:w-96 lg:h-96 bg-white/5 rounded-full blur-3xl opacity-50" />
-       
-       <div className="relative z-10 flex justify-between items-start">
-       <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/10 flex items-center justify-center relative">
-       <ShoppingBag size={40} />
-       <div className="absolute -top-2 -right-2 bg-white text-indigo-600 text-[11px] font-bold w-7 h-7 rounded-full flex items-center justify-center shadow-xl border-2 border-indigo-500">
-         {totalOrdersCount}
-       </div>
-       </div>
-       </div>
-      
-      
-       <div className="relative z-10 mt-6 flex justify-between items-end">
-       <div className="text-right">
-       <h3 className="font-bold text-xl md:text-3xl mb-2 tracking-tighter">طلبات التطبيق 📦</h3>
-       <p className="text-white/70 text-base font-bold">معالجة الطلبات الواردة وتحويلها إلى فواتير (إجمالي {totalOrdersCount} طلب)</p>
-       </div>
-       <div className="w-12 h-12 bg-white text-indigo-600 rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:-translate-x-2 shrink-0 mr-4">
-       <ChevronRight size={24} className="rotate-180" />
-       </div>
-       </div>
-       </div>
-       </motion.div>
+         <div className="partner-action-icon bg-indigo-50 text-indigo-700 border-indigo-100">
+           <ShoppingBag size={24} />
+           <span className="partner-action-badge">{totalOrdersCount}</span>
+         </div>
+         <div className="text-right flex-1">
+           <h3>طلبات التطبيق</h3>
+           <p>تابع الطلبات الواردة وحوّل الجاهز منها للفواتير.</p>
+         </div>
+         <ChevronRight size={22} className="rotate-180 text-slate-300 group-hover:text-indigo-600 group-hover:-translate-x-1 transition-all" />
+       </motion.button>
 
-       <motion.div 
-       whileHover={{ y: -5 }}
-       className="group cursor-pointer h-full"
+       <motion.button
+       type="button"
+       whileHover={{ y: -4 }}
+       whileTap={{ scale: 0.98 }}
+       className="partner-action-card group"
        onClick={() => onNavigate('invoices-list')}
        >
-       <div className="h-full bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 p-6 rounded-2xl shadow-xl shadow-slate-900/30 text-white relative overflow-hidden flex flex-col justify-between border border-slate-700/20">
-       <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none rotate-12" style={{ backgroundImage: `url(${patternSadu})` }} />
-       <div className="absolute -bottom-10 -right-10 w-64 h-64 lg:w-96 lg:h-96 bg-white/5 rounded-full blur-3xl opacity-50" />
-       
-       <div className="relative z-10 flex justify-between items-start">
-       <div className="p-3 bg-slate-700/50 rounded-2xl backdrop-blur-xl border border-white/10 flex items-center justify-center relative">
-       <FileText size={40} />
-       </div>
-       </div>
-      
-      
-       <div className="relative z-10 mt-6 flex justify-between items-end">
-       <div className="text-right">
-       <h3 className="font-bold text-xl md:text-3xl mb-2 tracking-tighter">سجل الفواتير 📋</h3>
-       <p className="text-slate-300 text-base font-bold">عرض وتتبع حالة جميع الفواتير السابقة</p>
-       </div>
-       <div className="w-12 h-12 bg-slate-700 text-white rounded-full flex items-center justify-center shadow-lg border border-slate-600 transform transition-transform group-hover:-translate-x-2 shrink-0 mr-4">
-       <ChevronRight size={24} className="rotate-180" />
-       </div>
-       </div>
-       </div>
-       </motion.div>
+         <div className="partner-action-icon bg-slate-50 text-slate-700 border-slate-100">
+           <FileText size={24} />
+         </div>
+         <div className="text-right flex-1">
+           <h3>سجل الفواتير</h3>
+           <p>راجع الفواتير السابقة وحالاتها من مكان واحد.</p>
+         </div>
+         <ChevronRight size={22} className="rotate-180 text-slate-300 group-hover:text-slate-700 group-hover:-translate-x-1 transition-all" />
+       </motion.button>
+
+       <motion.button
+       type="button"
+       whileHover={{ y: -4 }}
+       whileTap={{ scale: 0.98 }}
+       className="partner-action-card group"
+       onClick={() => onNavigate('new-invoice')}
+       >
+         <div className="partner-action-icon bg-emerald-50 text-emerald-700 border-emerald-100">
+           <DollarSign size={24} />
+         </div>
+         <div className="text-right flex-1">
+           <h3>فاتورة جديدة</h3>
+           <p>أنشئ فاتورة بسرعة بدون خيارات إضافية مزعجة.</p>
+         </div>
+         <ChevronRight size={22} className="rotate-180 text-slate-300 group-hover:text-emerald-700 group-hover:-translate-x-1 transition-all" />
+       </motion.button>
        </div>
     </motion.div>
   </div>
