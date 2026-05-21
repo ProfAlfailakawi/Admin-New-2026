@@ -1388,6 +1388,7 @@ const MainApp: React.FC = () => {
   }, [pendingOrdersCount, isSoundEnabled]);
 
   const [authError, setAuthError] = useState<string | null>(null);
+  const [quotaError, setQuotaError] = useState<string | null>(null);
 
   const switchMode = (newMode: 'local' | 'cloud') => {
     // Reset data loading flags first to prevent premature auto-saving
@@ -1592,9 +1593,27 @@ const MainApp: React.FC = () => {
                 }
                 return prev;
             });
-         }, ((err) => { if (!String(err).includes("Missing or insufficient permissions")) console.error("orders sync error: ", err); }));
-      } catch (e) {
-          if (!String(e).includes("Missing or insufficient permissions")) console.error("Failed to sync orders collection:", e);
+         }, (err) => {
+            if (!String(err).includes("Missing or insufficient permissions")) {
+               const isQuota = String(err).includes("quota") || String(err).includes("Quota") || String(err).includes("RESOURCE_EXHAUSTED") || String(err).includes("resource-exhausted");
+               if (isQuota) {
+                  console.warn("Firebase Quota Exceeded handled in UI.");
+                  setQuotaError(err.message || String(err));
+               } else {
+                  console.error("orders sync error: ", err);
+               }
+            }
+         });
+      } catch (e: any) {
+          if (!String(e).includes("Missing or insufficient permissions")) {
+              const isQuota = String(e).includes("quota") || String(e).includes("Quota") || String(e).includes("RESOURCE_EXHAUSTED") || String(e).includes("resource-exhausted");
+              if (isQuota) {
+                 console.warn("Firebase Quota Exceeded handled in UI.");
+                 setQuotaError(e.message || String(e));
+              } else {
+                 console.error("Failed to sync orders collection:", e);
+              }
+          }
       }
       
       // Listen for real-time updates
@@ -1682,7 +1701,15 @@ const MainApp: React.FC = () => {
         hasLoadedDataRef.current = true;
         setDataLoading(false);
       }, (error: any) => {
-        if (!String(error).includes("Missing or insufficient permissions") && !String(error).includes("PERMISSION_DENIED")) console.error("Firestore sync error", error);
+        if (!String(error).includes("Missing or insufficient permissions") && !String(error).includes("PERMISSION_DENIED")) {
+           const isQuota = String(error).includes("quota") || String(error).includes("Quota") || String(error).includes("RESOURCE_EXHAUSTED") || String(error).includes("resource-exhausted");
+           if (isQuota) {
+              console.warn("Firebase Quota Exceeded handled in UI.");
+              setQuotaError(error.message || String(error));
+           } else {
+              console.error("Firestore sync error", error);
+           }
+        }
         if (error.code === 'permission-denied' && user) {
           setAuthError(`عذراً، ليس لديك صلاحية الوصول إلى البيانات. يرجى التأكد من أن حسابك مصرح له.\nالبريد: ${user.email}`);
         }
@@ -1835,10 +1862,87 @@ const MainApp: React.FC = () => {
     );
   };
 
+  const renderQuotaError = () => {
+    if (!quotaError) return null;
+    return (
+      <div className="fixed inset-0 bg-slate-900/90 z-[201] flex items-center justify-center p-4 md:p-6 text-right arabic-font shadow-2xl" dir="rtl">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full border border-rose-100 flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
+              <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <span className="text-3xl">⚠️</span>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900 text-center">تجاوز حصة الاستخدام (Firestore Quota Exceeded)</h2>
+              
+              <div className="text-slate-600 leading-relaxed text-sm flex flex-col gap-3">
+                  <p className="font-semibold text-slate-800">
+                     تم تجاوز الحصة اليومية المجانية لقراءة البيانات في قاعدة بيانات Cloud Firestore المشغلة لهذا التطبيق تحت باقة Spark المجانية.
+                  </p>
+                  <p>
+                     تتم إعادة تعيين هذه الحصة المجانية تلقائياً كل 24 ساعة (عند منتصف الليل في توقيت المحيط الهادئ). حتى يحدث ذلك، قد يتعذر جلب أو تحديث معلومات الطلبات والبيانات السحابية.
+                  </p>
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs font-mono space-y-1 text-slate-500 break-words font-sans">
+                     <strong>تفاصيل الخطأ:</strong> <pre className="whitespace-pre-wrap">{quotaError}</pre>
+                  </div>
+                  <div className="mt-2 text-slate-700 font-medium">
+                     يمكنك القيام بما يلي طال عمرك:
+                  </div>
+                  <div className="space-y-2">
+                     <button
+                        onClick={() => {
+                           switchMode('local');
+                           setQuotaError(null);
+                        }}
+                        className="w-full flex items-center justify-between p-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold rounded-2xl transition-all"
+                     >
+                        <span className="flex items-center gap-2">
+                           <span>💾</span>
+                           <span>تفعيل وضع التخزين المحلي والعمل دون إنترنت</span>
+                        </span>
+                        <span>👈</span>
+                     </button>
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-4 text-xs font-bold">
+                  <a 
+                     href="https://firebase.google.com/pricing#cloud-firestore" 
+                     target="_blank" 
+                     referrerPolicy="no-referrer"
+                     rel="noopener noreferrer"
+                     className="p-3 bg-slate-100 text-slate-700 text-center rounded-xl hover:bg-slate-200 transition-all flex flex-col justify-center items-center gap-1 border border-slate-200"
+                  >
+                     <span>🔗 تفاصيل الأسعار</span>
+                     <span className="text-[10px] text-slate-500 font-normal">باقة Spark & Enterprise</span>
+                  </a>
+                  <a 
+                     href="https://console.firebase.google.com/project/gen-lang-client-0200723670/firestore/databases/ai-studio-7058254a-1b06-4783-89b7-2b95cb116681/data?openUpgradeDialog=true" 
+                     target="_blank" 
+                     referrerPolicy="no-referrer"
+                     rel="noopener noreferrer"
+                     className="p-3 bg-blue-50 text-blue-700 text-center rounded-xl hover:bg-blue-100 transition-all flex flex-col justify-center items-center gap-1 border border-blue-150"
+                  >
+                     <span>⚙️ وحدة تحكم Firebase</span>
+                     <span className="text-[10px] text-blue-500 font-normal">مراقبة وترقية الحساب</span>
+                  </a>
+              </div>
+
+              <div className="flex gap-3 mt-4">
+                  <button 
+                     onClick={() => setQuotaError(null)}
+                     className="flex-1 py-3 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all"
+                  >
+                     تجاهل التنبيه مؤقتاً
+                  </button>
+              </div>
+          </div>
+      </div>
+    );
+  };
+
   if (!isAuthenticated) {
     return (
       <>
         {renderAuthError()}
+        {renderQuotaError()}
         <Login 
           logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
           onLogin={(mode) => {
@@ -1960,6 +2064,7 @@ const MainApp: React.FC = () => {
       <AmbientBackground />
       
       {renderAuthError()}
+      {renderQuotaError()}
       <DataRefreshNotice show={Boolean(dataLoading && isAuthenticated)} mode={appMode} />
       <NetworkStatusNotice online={isOnline} />
       <AdminOnboardingModal

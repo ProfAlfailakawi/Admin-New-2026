@@ -316,8 +316,8 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
             : invoice.address)
         : invoice.deliveryInfo?.zoneName || "غير محدد";
 
-      const invoiceEmoji = "\u2728";
-      const linkEmoji = "\u2705";
+      const invoiceEmoji = "✨";
+      const linkEmoji = "✅";
       const trackingUrl = "https://alturathkw.shop/track";
       const customerName = customer?.name || "عميلنا العزيز";
       const paymentSection = paymentLinkLine
@@ -722,14 +722,17 @@ Alturath.kw`;
           createdLink =
             paymentData.paymentLink ||
             paymentData.payment_url ||
+            paymentData.paymentURL ||
             paymentData.paymentUrl ||
             paymentData.url ||
             paymentData.link ||
             paymentData.data?.paymentLink ||
             paymentData.data?.payment_url ||
+            paymentData.data?.paymentURL ||
             paymentData.data?.paymentUrl ||
             paymentData.data?.url ||
             paymentData.data?.link ||
+            (typeof paymentData.data === "string" && /^https?:\/\//i.test(paymentData.data) ? paymentData.data : "") ||
             "";
           createdPaymentId =
             paymentData.paymentId ||
@@ -886,7 +889,7 @@ Alturath.kw`;
                 <button
                   key={p.id}
                   onClick={() => { setOpenCheaperHintId(null); addToCart(p.id); }}
-                  className="invoice-product-card bg-white border p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative ceramic-glint overflow-visible shadow-sm hover:shadow-xl"
+                  className="bg-white border p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative ceramic-glint overflow-visible shadow-sm hover:shadow-xl"
                 >
                   {p.isOutOfStock && (
                     <div className="absolute top-2 left-2 text-rose-500 z-10 flex items-center gap-1 bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded-lg border border-rose-100 shadow-sm">
@@ -908,13 +911,9 @@ Alturath.kw`;
                             event.stopPropagation();
                             setOpenCheaperHintId((current) => current === p.id ? null : p.id);
                           }}
-                          onMouseDown={(event) => { event.stopPropagation(); }}
-                          onPointerDown={(event) => { event.stopPropagation(); }}
-                          onTouchStart={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            setOpenCheaperHintId((current) => current === p.id ? null : p.id);
-                          }}
+                          onMouseDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
+                          onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
+                          onTouchStart={(event) => { event.preventDefault(); event.stopPropagation(); }}
                           onKeyDown={(event) => {
                             if (event.key === 'Enter' || event.key === ' ') {
                               event.preventDefault();
@@ -929,12 +928,19 @@ Alturath.kw`;
                             <span>يوفره بسعر أقل!</span>
                             <b><span className="num-premium">{bestPrice.cost.toFixed(3)}</span> د.ك</b>
                           </span>
+                          {openCheaperHintId === p.id && (
+                            <span className="invoice-product-price-popover invoice-product-price-popover-inline is-forced-open" aria-hidden="true">
+                              <strong>{bestPrice.supplier || 'مورد آخر'}</strong>
+                              <span>يوفره بسعر أقل!</span>
+                              <b><span className="num-premium">{bestPrice.cost.toFixed(3)}</span> د.ك</b>
+                            </span>
+                          )}
                         </span>
                       );
                     }
                     return null;
                   })()}
-                  <h3 className={cn("invoice-product-card-title font-extrabold text-slate-800 title-premium text-xs sm:text-sm leading-snug", p.isOutOfStock && "opacity-50")}>{p.name}</h3>
+                  <h3 className={cn("font-extrabold text-slate-800 title-premium text-xs sm:text-sm leading-snug", p.isOutOfStock && "opacity-50")}>{p.name}</h3>
                   <div className="text-[10px] font-bold text-slate-400 title-premium">{normalizeCategoryName((p as any).category)}</div>
                   <div className="flex justify-between items-center mt-auto">
                     <div className="flex items-center gap-0.5">
