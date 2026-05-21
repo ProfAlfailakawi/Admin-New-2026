@@ -4,7 +4,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8f4ea",
-  "theme_color": "#f8f4ea", 
+  "theme_color": "#0f172a",
   "orientation": "portrait",
   "icons": [
     {
@@ -18,5 +18,13 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
+  ],
+  "scope": "/",
+  "description": "مركز إدارة شركة مطبخ التراث الكويتي.",
+  "dir": "rtl",
+  "lang": "ar",
+  "categories": [
+    "business",
+    "productivity"
   ]
 }
