@@ -33,7 +33,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
   const commands = useMemo<CommandItem[]>(() => {
     const allTabs: CommandItem[] = [
       { id: 'dashboard-main', label: 'اللوحة الرئيسية', hint: 'نبض العمل الآن', icon: <Home />, category: 'الرئيسية', action: () => onNavigate('dashboard', { exactId: 'pulse' }), roles: ['admin'] },
-      { id: 'dashboard-ai', label: 'مختبر الذكاء', hint: 'تحليلات واستقرار', icon: <Sparkles />, category: 'الرئيسية', action: () => onNavigate('dashboard-ai', {}), roles: ['admin'] },
+      { id: 'dashboard-ai', label: 'مختبر الذكاء', hint: 'تحليلات واستقرار', icon: <Sparkles />, category: 'الرئيسية', action: () => onNavigate('dashboard-ai', { exactId: 'intelligence' }), roles: ['admin'] },
       { id: 'dashboard-growth', label: 'محاكي النمو والتسويق', hint: 'تجارب وحملات', icon: <Target />, category: 'الرئيسية', action: () => onNavigate('growth-simulator', {}), roles: ['admin'] },
       { id: 'dashboard-customers', label: 'العملاء والولاء', hint: 'نبض العملاء', icon: <Users />, category: 'الرئيسية', action: () => onNavigate('customers', {}), roles: ['admin'] },
       { id: 'dashboard-suppliers', label: 'الموردين والمخاطر', hint: 'توريد ومراجعة', icon: <Truck />, category: 'الرئيسية', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
@@ -59,14 +59,14 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     const mainTabs = allTabs.filter(tab => tab.roles?.includes(userRole));
 
     const deepLinks: CommandItem[] = [
-      { id: 'bi-engine-core', label: 'قلب مختبر الذكاء', hint: 'تحليل الاستقرار', icon: <ShieldCheck />, category: 'تحليلات داخلية', tags: ['القلب', 'نواة', 'مؤشرات', 'استقرار'], action: () => onNavigate('dashboard', { exactId: 'intelligence', scrollTarget: 'bi-engine-core-section' }) },
+      { id: 'bi-engine-core', label: 'قلب مختبر الذكاء', hint: 'تحليل الاستقرار', icon: <ShieldCheck />, category: 'تحليلات داخلية', tags: ['القلب', 'نواة', 'مؤشرات', 'استقرار'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'bi-engine-core-section' }) },
       { id: 'strategic-manager', label: 'المدير الاستراتيجي الآلي', hint: 'خطط وقرارات', icon: <Target />, category: 'تحليلات داخلية', tags: ['مدير', 'آلي', 'استراتيجي', 'خطط'], action: () => onNavigate('dashboard', { exactId: 'intelligence', scrollTarget: 'strategic-manager-section' }) },
       { id: 'vip-missions', label: 'مهام كبار العملاء', hint: 'VIP ومهمات', icon: <Users />, category: 'تحليلات داخلية', tags: ['مهام', 'vip', 'كبار'], action: () => onNavigate('dashboard', { exactId: 'intelligence', scrollTarget: 'vip-missions-section' }) },
       { id: 'geo-heatmap', label: 'خريطة الذهب الاستراتيجية', hint: 'توزيع وحرارة', icon: <Activity />, category: 'تحليلات داخلية', tags: ['خريطة', 'حرارية', 'جغرافي', 'توزيع'], action: () => onNavigate('dashboard', { exactId: 'intelligence', scrollTarget: 'geo-heatmap-section' }) },
       { id: 'smart-offers', label: 'صانع العروض الذكية', hint: 'ترويج وخصومات', icon: <Sparkles />, category: 'تحليلات داخلية', tags: ['عروض', 'ترويج', 'خصم'], action: () => onNavigate('dashboard', { exactId: 'intelligence', scrollTarget: 'smart-offers-section' }) },
       { id: 'what-if', label: 'محاكي الطوارئ والسيناريوهات', hint: 'ماذا لو؟', icon: <Zap />, category: 'تحليلات داخلية', tags: ['طوارئ', 'سيناريو', 'توقع'], action: () => onNavigate('dashboard', { exactId: 'intelligence', scrollTarget: 'what-if-section' }) },
       { id: 'status-mirror', label: 'مرآة حالة العمل', hint: 'مؤشرات فورية', icon: <Activity />, category: 'تحليلات داخلية', tags: ['مرآة', 'حالة', 'مؤشرات'], action: () => onNavigate('dashboard', { exactId: 'intelligence', scrollTarget: 'status-mirror-section' }) },
-      { id: 'growth-campaigns', label: 'مختبر الحملات التسويقية', hint: 'خطط مبيعات', icon: <TrendingUp />, category: 'تحليلات داخلية', tags: ['حملات', 'تسويقية', 'مبيعات'], action: () => onNavigate('dashboard', { exactId: 'growth', scrollTarget: 'smart-campaigns' }) },
+      { id: 'growth-campaigns', label: 'مختبر الحملات التسويقية', hint: 'خطط مبيعات', icon: <TrendingUp />, category: 'تحليلات داخلية', tags: ['حملات', 'تسويقية', 'مبيعات'], action: () => onNavigate('growth-simulator', { scrollTarget: 'smart-campaigns' }) },
       { id: 'customers-retention', label: 'رادار استرجاع العملاء', hint: 'الغائبين والاحتفاظ', icon: <Users />, category: 'تحليلات داخلية', tags: ['استرجاع', 'غائبين', 'احتفاظ'], action: () => onNavigate('dashboard', { exactId: 'customers', scrollTarget: 'retention-section' }) },
       { id: 'financial-guard', label: 'حارس الأرباح الحقيقية', hint: 'هدر وصافي ربح', icon: <DollarSign />, category: 'تحليلات داخلية', tags: ['ارباح', 'هدر', 'صافي'], action: () => onNavigate('dashboard', { exactId: 'financials', scrollTarget: 'profit-guard-section' }) },
       { id: 'pulse-matrix', label: 'مصفوفة نبض المنتجات', hint: 'الأصناف المربحة', icon: <Package />, category: 'تحليلات داخلية', tags: ['مصفوفة', 'نبض', 'منتجات'], action: () => onNavigate('dashboard', { exactId: 'pulse', scrollTarget: 'products-matrix-section' }) },
@@ -121,8 +121,14 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
   }, [filteredCommands, deferredQuery]);
 
   const runCommand = (cmd: CommandItem) => {
-    cmd.action();
-    onClose();
+    try {
+      cmd.action();
+    } catch (error) {
+      console.error('CommandBar navigation failed:', error);
+      onNavigate('dashboard');
+    } finally {
+      onClose();
+    }
   };
 
   useEffect(() => { setSelectedIndex(0); }, [query]);

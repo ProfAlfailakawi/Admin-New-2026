@@ -1724,11 +1724,33 @@ const [isPending, startTransition] = useTransition();
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         <MagneticButton
           onClick={() => onNavigate!("new-invoice")}
-          className="flex flex-col items-center justify-center p-6 bg-rose-600 text-white rounded-2xl shadow-xl shadow-rose-500/20 interactive-hover active:scale-95 group relative overflow-hidden"
+          className="flex flex-col items-center justify-center p-6 bg-rose-600 text-white rounded-2xl shadow-xl shadow-rose-500/20 interactive-hover active:scale-95 group relative overflow-visible"
         >
-          <div className="absolute top-0 left-0 w-8 h-8 bg-white/10 rounded-br-2xl flex items-center justify-center">
-            <AlertTriangle size={14} className="text-white ring-1 ring-white/30 rounded-full" />
-          </div>
+          <span
+            className="absolute top-2 left-2 z-30 group/invoice-hint outline-none"
+            tabIndex={0}
+            role="button"
+            aria-label="تنبيه فاتورة جديدة"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <span className="bg-rose-50 border border-rose-100 text-rose-600 p-1.5 rounded-full cursor-pointer shadow-sm flex items-center justify-center">
+              <AlertCircle size={14} className="shrink-0 animate-pulse" />
+            </span>
+            <span className="absolute bottom-full mb-2 left-0 hidden group-hover/invoice-hint:flex group-focus/invoice-hint:flex focus-within:flex flex-col bg-white text-slate-700 text-[10px] sm:text-[10px] w-[160px] p-2 rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-bold border border-slate-200/60 pointer-events-none items-center gap-1.5 text-center">
+              <span className="bg-rose-50 text-rose-600 px-2 py-1 rounded-lg leading-relaxed w-full break-words whitespace-normal text-[9px] title-premium">
+                إنشاء سريع
+              </span>
+              <span className="w-full text-[9px] title-premium">
+                اضغط البطاقة لفتح فاتورة جديدة وإضافة الطلب مباشرة.
+              </span>
+            </span>
+          </span>
           <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform">
             <Plus size={24} strokeWidth={3} />
           </div>

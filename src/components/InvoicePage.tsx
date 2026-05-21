@@ -899,10 +899,12 @@ Alturath.kw
                     const bestPrice = getBestPriceInfo(p);
                     if (bestPrice) {
                       return (
-                        <div className="absolute bottom-2 left-2 text-amber-500 z-10 p-1 group/cheaper">
-                          <AlertTriangle size={16} className="animate-pulse" />
-                          <div className="absolute bottom-full left-0 mb-1 bg-white border rounded-lg p-2 text-[8px] sm:text-[10px] shadow-xl hidden group-hover/cheaper:block w-32 font-bold z-50 text-right">
-                            تنبيه: {bestPrice.supplier} يوفره بسعر <span className="num-premium">{bestPrice.cost.toFixed(3)}</span> د.ك
+                        <div className="invoice-product-price-hint absolute top-2 left-2 text-amber-500 z-20 p-1 group/cheaper">
+                          <span className="invoice-price-alert-icon"><AlertTriangle size={16} className="animate-pulse" /></span>
+                          <div className="invoice-product-price-popover">
+                            <strong>{bestPrice.supplier}</strong>
+                            <span>يوفره بسعر أقل!</span>
+                            <b><span className="num-premium">{bestPrice.cost.toFixed(3)}</span> د.ك</b>
                           </div>
                         </div>
                       );
