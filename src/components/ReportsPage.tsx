@@ -600,6 +600,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       const paymentLink =
         invoice.paymentLink ||
         (invoice as any).paymentUrl ||
+        (invoice as any).payment_url ||
         (invoice as any).url ||
         (invoice as any).link ||
         (invoice as any).splitLink ||
@@ -612,11 +613,14 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           String(invoice.status).includes("تجميع القطية") ||
           invoice.status === "split_pending"
         );
+      const invoiceEmoji = "\u{1F9FE}";
+      const linkEmoji = "\u{1F517}";
+      const trackingUrl = "https://alturathkw.shop/track";
       const paymentSection =
         paymentLink && paymentLink.trim() !== "" && !isPaidNow
           ? `
 
-*رابط الدفع*
+${linkEmoji} رابط الدفع:
 ${paymentLink}`
           : "";
 
@@ -638,25 +642,19 @@ ${paymentLink}`
             ].filter(Boolean).join(" - ") : invoice.address}`
           : invoice.deliveryInfo?.zoneName || "غير محدد";
 
-      const message = `*فاتورة الطلب*
-مطبخ التراث الكويتي
-------------------------------
-*رقم الفاتورة:* ${invoice.id}
-*العميل:* ${customer?.name || "عميل"}
-*الهاتف:* ${phone || "-"}
-*العنوان:* ${addressText}
+      const customerName = customer?.name || "عميلنا العزيز";
+      const message = `${invoiceEmoji} فاتورة طلبكم من مطبخ التراث الكويتي
 
-*الطلبات*
-------------------------------
-${items}
+مرحباً ${customerName}،
+تم تجهيز فاتورتكم للطلب رقم: ${invoice.id}
 
-*ملخص الفاتورة*
-------------------------------
-المنتجات: ${productsSubtotal.toFixed(3)} د.ك
-${addonsSubtotal > 0 ? "الإضافات: " + addonsSubtotal.toFixed(3) + " د.ك\n" : ""}التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك
-${promoLine}*الإجمالي: ${Number(total).toFixed(3)} د.ك*${paymentSection}
-------------------------------
-شكراً لاختياركم مطبخ التراث الكويتي`;
+الإجمالي المستحق: ${Number(total).toFixed(3)} د.ك${paymentSection}
+
+لتتبع الطلب:
+${trackingUrl}
+
+شكراً لاختياركم مطبخ التراث الكويتي
+Alturath.kw`;
 
       let finalMessage = message;
       if (
@@ -1154,6 +1152,7 @@ ${promoLine}*الإجمالي: ${Number(total).toFixed(3)} د.ك*${paymentSectio
                                         const paymentLink =
                                           inv.paymentLink ||
                                           (inv as any).paymentUrl ||
+                                          (inv as any).payment_url ||
                                           (inv as any).url ||
                                           (inv as any).link ||
                                           (inv as any).splitLink ||

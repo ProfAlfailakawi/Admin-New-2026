@@ -22,12 +22,12 @@ export const VIPMissions: React.FC<VIPMissionsProps> = ({ data }) => {
  id: c.id,
  name: c.name,
  phone: c.phone,
- mission: `اطلب طلب واحد هالشهر، وراح نفتح لك خانة"الطلب السري" من الشيف اللي مو موجود بالمنيو! 👨🏻‍🍳✨`
+ mission: `اطلب طلب واحد هالشهر، وراح نفتح لك خانة الطلب السري من الشيف.`
  }));
  }, [data.customers, data.invoices]);
 
  const handleSendMission = (m: any) => {
- const text = encodeURIComponent(`هلا ${m.name}! 🌟\n\nبما إنك من عملائنا المميزين دائماً، عندنا لك مهمة خاصة:\n${m.mission}\n\nننتظر طلبك!`);
+ const text = encodeURIComponent(`هلا ${m.name}،\n\nبما إنك من عملائنا المميزين، عندنا لك مهمة خاصة:\n${m.mission}\n\nننتظر طلبك.\nAlturath.kw`);
  const waUrl = `https://wa.me/${m.phone.replace(/\D/g, '')}?text=${text}`;
  window.open(waUrl, '_blank');
  toast.success(`تم إرسال المهمة للعميل ${m.name}`);

@@ -1308,3 +1308,93 @@ button:active,a:active,.interactive-hover:active,.ui-card:active{transform:scale
   .invoice-price-alert-icon{width:30px!important;height:30px!important;}
   .invoice-product-price-popover{width:154px!important;left:-2px!important;}
 }
+
+
+/* Admin33 focused fix: keep command center visible and restore top phrases */
+.heritage-command-brief{
+  position:relative!important;
+  z-index:12!important;
+  overflow:visible!important;
+  background:linear-gradient(135deg,rgba(255,255,255,.98),rgba(255,248,232,.88))!important;
+  border:1px solid rgba(212,175,55,.20)!important;
+  box-shadow:0 22px 70px rgba(15,23,42,.075)!important;
+}
+.heritage-command-brief .heritage-command-hero{
+  display:flex!important;
+  align-items:center!important;
+  gap:.85rem!important;
+}
+.heritage-command-brief .heritage-command-orb{
+  display:inline-block!important;
+  flex:0 0 auto!important;
+  background:radial-gradient(circle at 34% 26%,#fff 0 9%,#fde68a 13%,#d97706 52%,#0f172a 100%)!important;
+  box-shadow:0 16px 34px rgba(217,119,6,.18), inset 0 0 0 1px rgba(255,255,255,.7)!important;
+}
+.heritage-command-brief.is-open .heritage-command-grid{
+  display:grid!important;
+  overflow:visible!important;
+}
+.executive-morning-brief{
+  color:#0f172a!important;
+  background:linear-gradient(135deg,#fff,#fff7ed)!important;
+  border:1px solid rgba(212,175,55,.24)!important;
+  box-shadow:0 14px 35px rgba(120,53,15,.06)!important;
+}
+.executive-morning-brief strong,.executive-morning-brief li{color:#0f172a!important;}
+@media(max-width:720px){
+  .heritage-command-brief{margin-top:.35rem!important;}
+  .heritage-command-brief .heritage-command-hero h2{font-size:1.05rem!important;}
+  .heritage-command-brief .heritage-command-hero p{font-size:.72rem!important;line-height:1.7!important;}
+}
+
+/* Admin33 focused fix: invoice cheaper supplier tooltip must appear above product card on desktop/mobile */
+button:has(.invoice-product-price-hint),
+.invoice-product-price-hint,
+.invoice-product-price-hint *{
+  overflow:visible!important;
+}
+.invoice-product-price-hint{
+  isolation:isolate!important;
+  touch-action:manipulation!important;
+  pointer-events:auto!important;
+}
+.invoice-price-alert-icon{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:28px!important;
+  height:28px!important;
+  border-radius:12px!important;
+  background:rgba(255,247,237,.96)!important;
+  border:1px solid rgba(251,191,36,.34)!important;
+  color:#f59e0b!important;
+  box-shadow:0 12px 25px rgba(120,53,15,.12)!important;
+}
+.invoice-product-price-popover{
+  display:block!important;
+  position:absolute!important;
+  left:0!important;
+  bottom:calc(100% + 10px)!important;
+  top:auto!important;
+  width:168px!important;
+  max-width:70vw!important;
+  z-index:99999!important;
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+  transform:translateY(8px) scale(.98)!important;
+}
+.invoice-product-price-hint:hover .invoice-product-price-popover,
+.invoice-product-price-hint:focus .invoice-product-price-popover,
+.invoice-product-price-hint:focus-within .invoice-product-price-popover,
+.invoice-product-price-hint:active .invoice-product-price-popover,
+.invoice-product-price-hint.is-open .invoice-product-price-popover{
+  opacity:1!important;
+  visibility:visible!important;
+  transform:translateY(0) scale(1)!important;
+}
+@media(max-width:640px){
+  .invoice-product-price-hint{top:7px!important;left:7px!important;width:30px!important;height:30px!important;padding:0!important;}
+  .invoice-price-alert-icon{width:30px!important;height:30px!important;border-radius:13px!important;}
+  .invoice-product-price-popover{width:156px!important;left:0!important;bottom:calc(100% + 9px)!important;padding:8px 9px!important;}
+}

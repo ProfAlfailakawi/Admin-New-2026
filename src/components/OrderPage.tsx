@@ -1238,6 +1238,8 @@ const OrderPage: React.FC<OrderPageProps> = ({
     );
     const paymentLink =
       linkedInvoice?.paymentLink ||
+      (linkedInvoice as any)?.paymentUrl ||
+      (linkedInvoice as any)?.payment_url ||
       (order as any).paymentLink ||
       (order as any).paymentUrl ||
       (order as any).payment_url ||
@@ -1253,11 +1255,14 @@ const OrderPage: React.FC<OrderPageProps> = ({
         String(order.status).includes("تجميع القطية") ||
         order.status === "split_pending"
       );
+    const invoiceEmoji = "\u{1F9FE}";
+    const linkEmoji = "\u{1F517}";
+    const trackingUrl = "https://alturathkw.shop/track";
     const paymentSection =
       paymentLink && paymentLink.trim() !== "" && !isPaidNow
         ? `
 
-*رابط الدفع*
+${linkEmoji} رابط الدفع:
 ${paymentLink}`
         : "";
 
@@ -1282,24 +1287,19 @@ ${paymentLink}`
           ].filter(Boolean).join(" - ") : linkedInvoice.address}`
         : linkedInvoice?.deliveryInfo?.zoneName || "غير محدد";
 
-    const message = `*فاتورة الطلب*
-مطبخ التراث الكويتي
-------------------------------
-*رقم الفاتورة:* ${invoiceNumber}
-*العميل:* ${getOrderCustomerName(order) || "عميل"}
-*العنوان:* ${addressText}
+    const customerName = getOrderCustomerName(order) || "عميلنا العزيز";
+    const message = `${invoiceEmoji} فاتورة طلبكم من مطبخ التراث الكويتي
 
-*الطلبات*
-------------------------------
-${items}
+مرحباً ${customerName}،
+تم تجهيز فاتورتكم للطلب رقم: ${invoiceNumber}
 
-*ملخص الفاتورة*
-------------------------------
-المنتجات: ${subtotal.toFixed(3)} د.ك
-التوصيل: ${Number(deliveryFee).toFixed(3)} د.ك
-${promoLine}*الإجمالي: ${Number(total).toFixed(3)} د.ك*${paymentSection}
-------------------------------
-شكراً لاختياركم مطبخ التراث الكويتي`;
+الإجمالي المستحق: ${Number(total).toFixed(3)} د.ك${paymentSection}
+
+لتتبع الطلب:
+${trackingUrl}
+
+شكراً لاختياركم مطبخ التراث الكويتي
+Alturath.kw`;
 
     const phoneUsed =
       order.customerPhone ||
@@ -2597,6 +2597,8 @@ ${promoLine}*الإجمالي: ${Number(total).toFixed(3)} د.ك*${paymentSectio
                                   : undefined;
                               const paymentLink =
                                 linkedInvoice?.paymentLink ||
+                                (linkedInvoice as any)?.paymentUrl ||
+                                (linkedInvoice as any)?.payment_url ||
                                 (selectedOrder as any).paymentLink ||
                                 (selectedOrder as any).paymentUrl ||
                                 (selectedOrder as any).payment_url ||
