@@ -314,40 +314,34 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
             : invoice.address)
         : invoice.deliveryInfo?.zoneName || "غير محدد";
 
+      const invoiceEmoji = "\u{1F9FE}";
+      const linkEmoji = "\u{1F517}";
+      const trackingUrl = "https://Alturathkw.shop/track";
+      const customerName = customer?.name || "عميلنا العزيز";
       const paymentSection = paymentLinkLine
         ? `
-
-*رابط الدفع*
-${pLink}`
+${linkEmoji} رابط الدفع:
+${pLink}
+`
         : "";
 
-      const message = `*فاتورة الطلب*
-مطبخ التراث الكويتي
-------------------------------
-*رقم الفاتورة:* ${invoice.id}
-*العميل:* ${customer?.name || "عميل"}
-*الهاتف:* ${phone}
-*العنوان:* ${addressText}
+      const message = `${invoiceEmoji} فاتورة طلبكم من مطبخ التراث الكويتي
 
-*الطلبات*
-------------------------------
-${items}
+مرحباً ${customerName}،
+تم تجهيز فاتورتكم للطلب رقم: ${invoice.id}
 
-*ملخص الفاتورة*
-------------------------------
-المنتجات: ${subtotal.toFixed(3)} د.ك
-الإضافات: ${addonsTotalWA.toFixed(3)} د.ك
-التوصيل: ${Number(invoice.deliveryFee || 0).toFixed(3)} د.ك
-${promoLine}*الإجمالي: ${Number(totalAmountVal).toFixed(3)} د.ك*${paymentSection}
-------------------------------
+الإجمالي المستحق: ${Number(totalAmountVal).toFixed(3)} د.ك
+${paymentSection}
+لتتبع الطلب:
+${trackingUrl}
+
 شكراً لاختياركم مطبخ التراث الكويتي
-Alturath.kw
-92225308 - 94059238`;
+Alturath.kw`;
 
       let digits = phone.replace(/[^0-9]/g, "");
       if (digits.length === 8) digits = `965${digits}`;
-      const params = new URLSearchParams({ text: message });
-      return `https://wa.me/${digits}?${params.toString()}`;
+      const params = new URLSearchParams({ phone: digits, text: message });
+      return `https://web.whatsapp.com/send?${params.toString()}`;
     };
 
     useEffect(() => {
