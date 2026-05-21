@@ -459,14 +459,17 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           const createdLink =
             paymentData.paymentLink ||
             paymentData.payment_url ||
+            paymentData.paymentURL ||
             paymentData.paymentUrl ||
             paymentData.url ||
             paymentData.link ||
             paymentData.data?.paymentLink ||
             paymentData.data?.payment_url ||
+            paymentData.data?.paymentURL ||
             paymentData.data?.paymentUrl ||
             paymentData.data?.url ||
             paymentData.data?.link ||
+            (typeof paymentData.data === "string" && /^https?:\/\//i.test(paymentData.data) ? paymentData.data : "") ||
             "";
           const createdPaymentId =
             paymentData.paymentId ||
@@ -613,8 +616,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           String(invoice.status).includes("تجميع القطية") ||
           invoice.status === "split_pending"
         );
-      const invoiceEmoji = "\u2728";
-      const linkEmoji = "\u2705";
+      const invoiceEmoji = "✨";
+      const linkEmoji = "✅";
       const trackingUrl = "https://alturathkw.shop/track";
       const paymentSection =
         paymentLink && paymentLink.trim() !== "" && !isPaidNow
