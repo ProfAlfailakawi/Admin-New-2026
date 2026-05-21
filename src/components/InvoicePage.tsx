@@ -159,6 +159,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
     const [invoiceDate, setInvoiceDate] = useState(
       new Date().toISOString().slice(0, 10),
     );
+    const [openCheaperHintId, setOpenCheaperHintId] = useState<string | null>(null);
     const getBestPriceInfo = (product: Product) => {
       const others = (data?.products || []).filter(
         (p) => p.name === product.name && p.id !== product.id,
@@ -280,6 +281,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
       const pLink =
         invoice.paymentLink ||
         (invoice as any).paymentUrl ||
+        (invoice as any).payment_url ||
         (invoice as any).url ||
         (invoice as any).link ||
         (invoice as any).splitLink ||
@@ -316,7 +318,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
 
       const invoiceEmoji = "\u{1F9FE}";
       const linkEmoji = "\u{1F517}";
-      const trackingUrl = "https://Alturathkw.shop/track";
+      const trackingUrl = "https://alturathkw.shop/track";
       const customerName = customer?.name || "عميلنا العزيز";
       const paymentSection = paymentLinkLine
         ? `
@@ -340,8 +342,7 @@ Alturath.kw`;
 
       let digits = phone.replace(/[^0-9]/g, "");
       if (digits.length === 8) digits = `965${digits}`;
-      const params = new URLSearchParams({ phone: digits, text: message });
-      return `https://web.whatsapp.com/send?${params.toString()}`;
+      return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
     };
 
     useEffect(() => {
@@ -740,12 +741,21 @@ Alturath.kw`;
             "";
         } else {
           console.warn(
-            "Payment creation slightly failed, continuing without link:",
+            "Payment creation failed:",
             paymentData.message,
           );
+          setLoading(false);
+          return toast.error("لم يتم إنشاء رابط الدفع، يرجى المحاولة مرة أخرى قبل إرسال الواتساب");
         }
       } catch (err) {
         console.error("Payment API Error:", err);
+        setLoading(false);
+        return toast.error("تعذر الاتصال بخدمة الدفع، لم يتم إرسال الواتساب بدون رابط دفع");
+      }
+
+      if (!createdLink) {
+        setLoading(false);
+        return toast.error("لم يتم إنشاء رابط الدفع، لن يتم فتح الواتساب بدون الرابط");
       }
 
       const newInvoice: Invoice = {
@@ -825,11 +835,6 @@ Alturath.kw`;
 
       const waLink = getWhatsAppLink(newInvoice);
       if (waLink && waLink !== "#") {
-        if (!createdLink) {
-          toast.warning(
-            "تنبيه: لم يتم إنشاء رابط الدفع بعد، سيتم إرسال الفاتورة بدونه.",
-          );
-        }
         window.open(waLink, "_blank");
       }
 
@@ -880,8 +885,8 @@ Alturath.kw`;
               const renderProductCard = (p: Product) => (
                 <button
                   key={p.id}
-                  onClick={() => addToCart(p.id)}
-                  className="bg-white border p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative ceramic-glint overflow-hidden shadow-sm hover:shadow-xl"
+                  onClick={() => { setOpenCheaperHintId(null); addToCart(p.id); }}
+                  className="bg-white border p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative ceramic-glint overflow-visible shadow-sm hover:shadow-xl"
                 >
                   {p.isOutOfStock && (
                     <div className="absolute top-2 left-2 text-rose-500 z-10 flex items-center gap-1 bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded-lg border border-rose-100 shadow-sm">
@@ -893,14 +898,33 @@ Alturath.kw`;
                     const bestPrice = getBestPriceInfo(p);
                     if (bestPrice) {
                       return (
-                        <div className="invoice-product-price-hint absolute top-2 left-2 text-amber-500 z-20 p-1 group/cheaper">
+                        <span
+                          className={cn("invoice-product-price-hint absolute top-2 left-2 text-amber-500 z-20 p-1 group/cheaper", openCheaperHintId === p.id && "is-open")}
+                          role="button"
+                          tabIndex={0}
+                          aria-label="معلومة سعر المورد"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            setOpenCheaperHintId((current) => current === p.id ? null : p.id);
+                          }}
+                          onMouseDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
+                          onTouchStart={(event) => { event.stopPropagation(); }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              setOpenCheaperHintId((current) => current === p.id ? null : p.id);
+                            }
+                          }}
+                        >
                           <span className="invoice-price-alert-icon"><AlertTriangle size={16} className="animate-pulse" /></span>
-                          <div className="invoice-product-price-popover">
-                            <strong>{bestPrice.supplier}</strong>
+                          <span className="invoice-product-price-popover">
+                            <strong>{bestPrice.supplier || 'مورد آخر'}</strong>
                             <span>يوفره بسعر أقل!</span>
                             <b><span className="num-premium">{bestPrice.cost.toFixed(3)}</span> د.ك</b>
-                          </div>
-                        </div>
+                          </span>
+                        </span>
                       );
                     }
                     return null;

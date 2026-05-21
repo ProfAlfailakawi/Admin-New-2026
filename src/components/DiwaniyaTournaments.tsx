@@ -231,7 +231,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   };
 
   const openWhatsApp = (phone: string, squadName: string) => {
-    const message = encodeURIComponent(`مرحباً يا ديوانية ${squadName}!\nنشكركم على ولائكم الدائم.. 🔥🏆`);
+    const message = encodeURIComponent(`مرحباً يا ديوانية ${squadName}!\nنشكركم على ولائكم الدائم لمطبخ التراث الكويتي.`);
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   };
 
@@ -607,13 +607,13 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           const points = s.points || 0;
                           const displayTier = s.tier || getTierForPoints(points)?.name || 'شلة ديوانية';
                           
-                          let waMsg = `مرحباً يا ${s.name}! 👋\nرصيدكم الحالي ${points} نقطة، وأنتم تصنفون كـ "${s.tier}".\nكل طلب يقربكم من الصدارة.. كفو! 👏✨`;
+                          let waMsg = `مرحباً يا ${s.name}!\nرصيدكم الحالي ${points} نقطة، وتصنيفكم ${s.tier}.\nكل طلب يقربكم من الصدارة.`;
                           if (rank === 1 && points > 0) {
-                            waMsg = `مرحباً يا ${s.name}! 👑\nنبارك لكم تصدركم المركز الأول في بطولات الديوانية برصيد ${points} نقطة! 🔥\nاستمروا وفالكم البيرق يا ${s.tier}! 🏆`;
+                            waMsg = `مرحباً يا ${s.name}!\nنبارك لكم تصدركم المركز الأول في بطولات الديوانية برصيد ${points} نقطة.\nاستمروا وفالكم البيرق يا ${s.tier}.`;
                           } else if (rank <= 3 && points > 0) {
-                            waMsg = `مرحباً يا ${s.name}! 🥈\nأنتم في المركز ${rank} برصيد ${points} نقطة!\nالمركز الأول قريب، شدوا حيلكم! 💪🔥`;
+                            waMsg = `مرحباً يا ${s.name}!\nأنتم في المركز ${rank} برصيد ${points} نقطة.\nالمركز الأول قريب، شدوا حيلكم.`;
                           } else if (points === 0) {
-                            waMsg = `مرحباً يا ${s.name}! 👋\nسجلنا ديوانيتكم عندنا، ناطرين أول طلب عشان تبدأون المنافسة وتجمعون النقاط! 🚀`;
+                            waMsg = `مرحباً يا ${s.name}!\nسجلنا ديوانيتكم عندنا، ناطرين أول طلب عشان تبدأون المنافسة وتجمعون النقاط.`;
                           }
                           
                           return (
