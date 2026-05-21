@@ -1604,7 +1604,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
     if (!apiKey) {
       console.error("UPAYMENTS_API_KEY is not defined or empty. Check environment variables.");
-      return res.status(500).json({ error: "Payment gateway configuration error (Key Missing)" });
+      return res.status(500).json({
+        error: "Payment gateway configuration error (Key Missing)",
+        message: "UPAYMENTS_API_KEY is not defined or empty on the server environment. Please define UPAYMENTS_API_KEY in the environment."
+      });
     }
     
     console.log(`Using API key: ${apiKey.substring(0, 4)}... (Total length: ${apiKey.length})`);
@@ -1615,7 +1618,16 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         : "https://admin.alturathkw.shop/api/payment/notification";
 
     if (!amount || !customerName || !orderId || !returnUrl || !cancelUrl) {
-      return res.status(400).json({ error: "Missing required payment fields" });
+      const missing = [];
+      if (!amount) missing.push("amount");
+      if (!customerName) missing.push("customerName");
+      if (!orderId) missing.push("orderId");
+      if (!returnUrl) missing.push("returnUrl");
+      if (!cancelUrl) missing.push("cancelUrl");
+      return res.status(400).json({ 
+        error: "Missing required payment fields",
+        message: `حقول الدفع المطلوبة مفقودة: ${missing.join(", ")}`
+      });
     }
 
     try {
@@ -1678,12 +1690,40 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       } else {
         const text = await response.text();
         console.error("Non-JSON UPayments API error:", text);
-        return res.status(response.status).json({ error: "Payment gateway request failed", details: text });
+        return res.status(response.status).json({ 
+          error: "Payment gateway request failed", 
+          message: `استجابة غير صالحة من بوابة الدفع (ليست بتنسيق JSON). النص المستلم: ${text.substring(0, 150)}`,
+          details: text 
+        });
       }
       
       if (!response.ok) {
-        console.error("UPayments API error:", data);
-        return res.status(response.status).json({ error: "Payment gateway request failed", details: data });
+        console.error("UPayments API error response:", JSON.stringify(data));
+        
+        let errorMsg = "فشل بوابة الدفع";
+        if (data) {
+          if (typeof data.message === "string") {
+            errorMsg = data.message;
+          } else if (typeof data.error === "string") {
+            errorMsg = data.error;
+          } else if (data.errors && typeof data.errors === "object") {
+            errorMsg = Object.entries(data.errors)
+              .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(", ") : String(val)}`)
+              .join(" | ");
+          } else if (data.data && typeof data.data.message === "string") {
+            errorMsg = data.data.message;
+          } else if (data.data && typeof data.data.error === "string") {
+            errorMsg = data.data.error;
+          } else {
+            errorMsg = JSON.stringify(data);
+          }
+        }
+        
+        return res.status(response.status).json({ 
+          error: "Payment gateway request failed", 
+          message: `خطأ من بوابة الدفع UPayments (كود الحالة ${response.status}): ${errorMsg}`,
+          details: data 
+        });
       }
 
       const extractedPaymentLink =
@@ -1719,9 +1759,12 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         ...data,
         paymentLink: extractedPaymentLink || data?.paymentLink || data?.link || data?.url || "",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating payment:", error);
-      res.status(500).json({ error: "Failed to create payment" });
+      res.status(500).json({ 
+        error: "Failed to create payment", 
+        message: error?.message || String(error)
+      });
     }
   });
 

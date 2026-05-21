@@ -743,17 +743,18 @@ Alturath.kw`;
             paymentData.data?.session_id ||
             "";
         } else {
+          const detailMsg = paymentData.message || paymentData.error || "خطأ غير معروف";
           console.warn(
             "Payment creation failed:",
-            paymentData.message,
+            detailMsg,
           );
           setLoading(false);
-          return toast.error("لم يتم إنشاء رابط الدفع، يرجى المحاولة مرة أخرى قبل إرسال الواتساب");
+          return toast.error(`لم يتم إنشاء رابط الدفع: ${detailMsg}`);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Payment API Error:", err);
         setLoading(false);
-        return toast.error("تعذر الاتصال بخدمة الدفع، لم يتم إرسال الواتساب بدون رابط دفع");
+        return toast.error(`تعذر الاتصال بخدمة الدفع: ${err?.message || String(err)}`);
       }
 
       if (!createdLink) {
