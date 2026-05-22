@@ -931,14 +931,11 @@ const [isPending, startTransition] = useTransition();
     ], []);
 
     useEffect(() => {
-      if (appMode !== 'local') return;
-      const key = 'adminLocalOnboardingTourSeen.v1';
-      if (localStorage.getItem(key) === 'true') return;
-      const timer = window.setTimeout(() => {
-        setLocalOnboardingStep(0);
-        setShowLocalOnboardingTour(true);
-      }, 700);
-      return () => window.clearTimeout(timer);
+      // تم تعطيل جولة Dashboard المحلية المكررة؛ نعتمد فقط على المرشد الرئيسي الموحد لأول دخول.
+      if (appMode === 'local') {
+        localStorage.setItem('adminLocalOnboardingTourSeen.v1', 'true');
+        setShowLocalOnboardingTour(false);
+      }
     }, [appMode]);
 
     const finishLocalOnboardingTour = React.useCallback(() => {
