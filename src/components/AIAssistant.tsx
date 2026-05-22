@@ -9,8 +9,7 @@ import {
  BrainCircuit,
  User,
  Loader2,
- ChevronLeft,
- Volume2
+ ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppState } from '../types';
@@ -36,25 +35,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  ]);
  const [input, setInput] = useState('');
  const [isLoading, setIsLoading] = useState(false);
- const [isSpeaking, setIsSpeaking] = useState(false);
  const messagesEndRef = useRef<HTMLDivElement>(null);
-
- const speak = (text: string) => {
- if (!window.speechSynthesis) return;
- window.speechSynthesis.cancel();
- 
- // Clean markdown for reader
- const cleanText = text.replace(/[*_#`]/g, '').slice(0, 400);
- 
- const utterance = new SpeechSynthesisUtterance(cleanText);
- utterance.lang = 'ar-XA'; 
- utterance.rate = 1.0;
- 
- utterance.onstart = () => setIsSpeaking(true);
- utterance.onend = () => setIsSpeaking(false);
- 
- window.speechSynthesis.speak(utterance);
- };
 
  const scrollToBottom = () => {
  messagesEndRef.current?.scrollIntoView({ behavior:"smooth" });
@@ -117,7 +98,6 @@ topCustomersInfo: (data?.customers || []).map(c => ({ name: c.name, spent: (data
  role: 'assistant', 
  content: aiText 
  }]);
- speak(aiText);
  setIsLoading(false);
  return; // Success, exit function
  } catch (error: any) {
@@ -178,11 +158,6 @@ topCustomersInfo: (data?.customers || []).map(c => ({ name: c.name, spent: (data
                 td: ({node, ...props}) => <td className="p-2 border-b border-slate-100" {...props} />,
                 em: ({node, ...props}) => <em className="text-emerald-600 font-black not-italic" {...props} />
               }}>{m.content}</Markdown>
-              {m.role === 'assistant' && (
-                <button type="button" onClick={() => speak(m.content)} className="ai-speak-button" aria-label="استمع للإجابة">
-                  <Volume2 size={13} /> {isSpeaking ? 'يقرأ...' : 'استماع'}
-                </button>
-              )}
             </div>
           </motion.div>
         ))}
