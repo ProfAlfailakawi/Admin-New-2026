@@ -2794,3 +2794,42 @@ html, body, #root {
   animation:none!important;
   background:none!important;
 }
+
+/* Ahmad admin16 typography and UI fixes */
+/* Arabic text must not be stretched letter-by-letter on dashboard cards. */
+:where(.admin-heritage-shell, .partner-clean-shell, .arabic-font) :where(h1,h2,h3,h4,h5,h6,p,span,button,a,label,div):not(.font-mono):not([class*="font-mono"]){
+  letter-spacing: normal !important;
+  text-wrap: balance;
+}
+
+/* Hide the cloud quota message completely on mobile and desktop. */
+.firestore-quota-warning,
+.cloud-quota-warning,
+.quota-error-modal{
+  display:none!important;
+}
+
+/* Radar / floating intelligence buttons should only be visible on the main dashboard. */
+body:not(.dashboard-page-active) .proactive-alerts-floating,
+body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
+  display:none!important;
+}
+
+/* Remove decorative line under the partner command card. */
+.partner-clean-shell .heritage-command-brief::before,
+.partner-clean-shell .heritage-command-brief::after,
+.partner-clean-shell .command-brief-card::before,
+.partner-clean-shell .command-brief-card::after,
+.partner-clean-shell [class*="CommandBrief"]::before,
+.partner-clean-shell [class*="CommandBrief"]::after{
+  content:none!important;
+  display:none!important;
+  background:none!important;
+  animation:none!important;
+}
+
+.tesla-seasonal-engine *{letter-spacing:normal!important;}
+@media(max-width:640px){
+  .tesla-seasonal-engine{border-radius:1.55rem!important;padding:1rem!important;}
+  .tesla-seasonal-engine h3{font-size:1.35rem!important;line-height:1.45!important;}
+}

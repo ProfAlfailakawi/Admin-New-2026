@@ -1989,6 +1989,9 @@ const MainApp: React.FC = () => {
   };
 
   const renderQuotaError = () => {
+    // Ahmad fix: remove the large cloud quota message from mobile and desktop UI.
+    // The quota state is kept intact, but the intrusive banner/modal is no longer rendered.
+    return null;
     if (!quotaError) return null;
     return (
       <div className="fixed inset-0 bg-slate-900/90 z-[201] flex items-center justify-center p-4 md:p-6 text-right arabic-font shadow-2xl" dir="rtl">
@@ -2680,6 +2683,7 @@ const MainApp: React.FC = () => {
           <InstallPrompt />
           <ProactiveAlerts 
             userRole={userRole}
+            currentPage={currentPage}
             notifications={data.notifications || []} 
             onMarkAsRead={(id) => {
                setData(prev => ({
