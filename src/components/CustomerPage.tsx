@@ -22,6 +22,9 @@ const enforceEnglishNumbers = (val: string) =>
     .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
     .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString());
 
+const sanitizeWhatsAppText = (text: string) =>
+  String(text || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
+
 interface CustomerPageProps {
  data: AppState;
  setData: React.Dispatch<React.SetStateAction<AppState>>;
@@ -294,7 +297,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 
   const handleSendMessage = (customer: Customer) => {
     const message = `\u2728 ${generateCustomerSmartMessage(customer, data.invoices || [], data.products || [])}`;
-    const encodedMessage = encodeURIComponent(message);
+    const encodedMessage = encodeURIComponent(sanitizeWhatsAppText(message));
     window.open(`https://wa.me/965${customer.phone}?text=${encodedMessage}`, '_blank');
     toast.success("تم تجهيز الرسالة الذكية", { 
       description: "تم دمج بيانات العميل مع مقترحات الأطباق المفضلة وعروض التوصيل.",

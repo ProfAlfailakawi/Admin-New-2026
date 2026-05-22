@@ -3664,7 +3664,7 @@ const [isPending, startTransition] = useTransition();
                 </div>
                 */}
 
-                <CommandBrief data={data} dateFilter={dateFilter} />
+                {/* مركز القيادة الرئيسي يظهر من App فقط حتى لا يتكرر داخل الداشبورد */}
                 <div className="space-y-6 mt-6">
                   <div className="flex flex-col w-full ">
                     <GlobalStatBox

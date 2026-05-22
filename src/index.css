@@ -2005,3 +2005,127 @@ button:has(.invoice-product-price-hint){overflow:visible!important;isolation:iso
   }
   .login-brand-stage{padding-inline:36px!important;}
 }
+
+
+/* Admin555 precise fixes: one command center only, login title/install placement, invoice hint top-row visibility */
+/* Keep the global command center elegant and closed by default; it is rendered only on dashboard from App.tsx */
+.heritage-command-brief{
+  width:100%!important;
+  max-width:none!important;
+  margin:0 0 18px!important;
+  position:relative!important;
+}
+.heritage-command-brief.is-collapsed .heritage-command-grid,
+.heritage-command-brief:not(.is-open) .heritage-command-grid{
+  display:none!important;
+}
+.heritage-command-brief.is-collapsed{
+  min-height:112px!important;
+}
+.heritage-command-brief .heritage-command-hero{
+  overflow:visible!important;
+}
+.heritage-command-brief .heritage-command-copy,
+.heritage-command-brief .heritage-command-copy *{
+  overflow:visible!important;
+}
+@media(max-width:760px){
+  .heritage-command-brief{margin:0 0 14px!important;padding:14px!important;border-radius:22px!important;}
+  .heritage-command-brief.is-collapsed{min-height:auto!important;}
+  .heritage-command-kicker{font-size:9px!important;letter-spacing:.08em!important;}
+}
+
+/* Login: show مطبخ التراث fully; move install cloud away from the main action area */
+.login-brand-stage,
+.login-stage-content{
+  overflow:visible!important;
+}
+.login-brand-stage h1{
+  font-size:clamp(3.15rem,5.2vw,5.35rem)!important;
+  line-height:1.18!important;
+  letter-spacing:-.035em!important;
+  padding:.08em .02em .16em!important;
+  margin:0 0 18px!important;
+  max-width:100%!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-wrap:balance!important;
+}
+.login-form-stage{
+  position:relative!important;
+}
+.login-install-btn{
+  position:absolute!important;
+  top:18px!important;
+  left:18px!important;
+  width:42px!important;
+  height:42px!important;
+  margin:0!important;
+  z-index:4!important;
+  background:rgba(255,247,237,.95)!important;
+  backdrop-filter:blur(10px)!important;
+  box-shadow:0 14px 30px rgba(120,53,15,.10)!important;
+}
+@media(max-width:900px){
+  .login-brand-stage{padding-top:calc(env(safe-area-inset-top,0px) + 24px)!important;}
+  .login-brand-stage h1{
+    font-size:clamp(2.85rem,11.5vw,4.05rem)!important;
+    line-height:1.2!important;
+    letter-spacing:-.025em!important;
+    padding:.08em .04em .18em!important;
+    margin:2px auto 14px!important;
+    max-width:92vw!important;
+  }
+  .login-install-btn{top:14px!important;left:14px!important;width:40px!important;height:40px!important;}
+}
+@media(max-width:430px){
+  .login-brand-stage h1{
+    font-size:clamp(2.45rem,10.5vw,3.25rem)!important;
+    line-height:1.24!important;
+    letter-spacing:-.012em!important;
+  }
+  .login-metrics-row strong{font-size:15px!important;}
+}
+
+/* Invoice exclamation: keep the normal tooltip above the product, but on tap show a fixed mini-card so top-row products never clip it */
+.invoice-product-price-hint{
+  z-index:9999!important;
+  overflow:visible!important;
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+}
+.invoice-product-price-hint .invoice-price-alert-icon{
+  cursor:pointer!important;
+  pointer-events:auto!important;
+}
+.invoice-product-price-popover{
+  bottom:calc(100% + 10px)!important;
+  top:auto!important;
+  z-index:10000!important;
+}
+.invoice-product-price-popover-inline.is-forced-open{
+  position:fixed!important;
+  top:calc(env(safe-area-inset-top,0px) + 82px)!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:auto!important;
+  transform:translateX(-50%) scale(1)!important;
+  opacity:1!important;
+  visibility:visible!important;
+  width:min(176px,62vw)!important;
+  max-width:62vw!important;
+  z-index:2147483000!important;
+  pointer-events:none!important;
+  box-shadow:0 22px 60px rgba(15,23,42,.22)!important;
+}
+.invoice-product-price-popover-inline.is-forced-open:after{
+  display:none!important;
+}
+@media(max-width:640px){
+  .invoice-product-price-popover-inline.is-forced-open{
+    top:calc(env(safe-area-inset-top,0px) + 74px)!important;
+    width:min(154px,58vw)!important;
+    padding:8px!important;
+    border-radius:16px!important;
+  }
+}

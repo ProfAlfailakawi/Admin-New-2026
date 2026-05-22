@@ -231,7 +231,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   };
 
   const openWhatsApp = (phone: string, squadName: string) => {
-    const message = encodeURIComponent(`\u2728 مرحباً يا ديوانية ${squadName}!\nنشكركم على ولائكم الدائم لمطبخ التراث الكويتي.`);
+    const message = encodeURIComponent(sanitizeWhatsAppText(`\u2728 مرحباً يا ديوانية ${squadName}!\nنشكركم على ولائكم الدائم لمطبخ التراث الكويتي.`));
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   };
 
@@ -676,7 +676,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                   <Trash2 size={16} />
                                 </button>
                                 <a 
-                                  href={`https://wa.me/${s.phone}?text=${encodeURIComponent(waMsg)}`}
+                                  href={`https://wa.me/${s.phone}?text=${encodeURIComponent(sanitizeWhatsAppText(waMsg))}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-500 hover:text-white transition-colors tooltip inline-block"
@@ -753,4 +753,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     </div>
   );
 };
+
+const sanitizeWhatsAppText = (text: string) =>
+  String(text || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
 

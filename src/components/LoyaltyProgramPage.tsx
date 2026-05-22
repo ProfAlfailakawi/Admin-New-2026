@@ -218,7 +218,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  // Actions
  const handleWhatsApp = (phone: string, msg: string) => {
  const formattedPhone = phone?.startsWith('965') ? phone : `965${phone}`;
- window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+ window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(sanitizeWhatsAppText(msg))}`, '_blank');
  };
 
  const updateLoyaltySettings = (exp: number, dyn: boolean) => {
@@ -884,3 +884,6 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
 };
 
 export default LoyaltyProgramPage;
+const sanitizeWhatsAppText = (text: string) =>
+ String(text || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
+

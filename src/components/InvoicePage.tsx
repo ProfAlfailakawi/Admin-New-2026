@@ -324,6 +324,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
         ? `
 ${linkEmoji} رابط الدفع:
 ${pLink}
+
 `
         : "";
 
@@ -333,11 +334,11 @@ ${pLink}
 تم تجهيز فاتورتكم للطلب رقم: ${invoice.id}
 
 الإجمالي المستحق: ${Number(totalAmountVal).toFixed(3)} د.ك
-${paymentSection}
+
 لتتبع الطلب:
 ${trackingUrl}
-
-شكراً لاختياركم مطبخ التراث الكويتي
+${paymentSection}
+شكراً لثقتكم
 Alturath.kw`;
 
       let digits = phone.replace(/[^0-9]/g, "");

@@ -2566,7 +2566,7 @@ const MainApp: React.FC = () => {
                }));
             }} 
           />
-          {userRole !== 'partner' && (
+          {userRole !== 'partner' && currentPage === 'dashboard' && (
             <CompanyCommandCenter
               data={data}
               onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }}
