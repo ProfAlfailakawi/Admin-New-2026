@@ -1342,7 +1342,9 @@ Alturath.kw`;
       );
     }
 
-    return `https://wa.me/${phoneUsed.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(finalMessage)}`;
+    const sanitizeWhatsAppText = (text: string) =>
+      String(text || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
+    return `https://api.whatsapp.com/send?phone=${phoneUsed.replace(/[^0-9]/g, "")}&text=${encodeURIComponent(sanitizeWhatsAppText(finalMessage))}`;
   };
 
   return (

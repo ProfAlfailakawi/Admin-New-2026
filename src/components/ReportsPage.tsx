@@ -694,7 +694,9 @@ Alturath.kw`;
         );
       }
 
-      return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(finalMessage)}`;
+      const sanitizeWhatsAppText = (text: string) =>
+        String(text || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
+      return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(sanitizeWhatsAppText(finalMessage))}`;
     };
 
     return (
