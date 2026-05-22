@@ -1670,7 +1670,6 @@ const [isPending, startTransition] = useTransition();
 
     const allDashboardTabs = [
       { id: "pulse", label: "النبض التنفيذي", icon: <Activity size={14} /> },
-      { id: "orders", label: "طلبات التطبيق", icon: <ShoppingCart size={14} /> },
       {
         id: "financials",
         label: "المالية وحماية الأرباح",
@@ -1689,6 +1688,7 @@ const [isPending, startTransition] = useTransition();
       { id: "suppliers", label: "ذكاء الموردين", icon: <Truck size={14} /> },
       { id: "growth", label: "النمو والتسويق", icon: <Target size={14} /> },
       { id: "diwaniya", label: "بطولات الديوانية", icon: <Users size={14} /> },
+      { id: "orders", label: "طلبات التطبيق", icon: <ShoppingCart size={14} /> },
       { id: "loyalty", label: "الولاء (Loyalty)", icon: <Award size={14} /> },
       {
         id: "promocodes",
@@ -2216,26 +2216,60 @@ const [isPending, startTransition] = useTransition();
             )}
           </AnimatePresence>
 
-          {/* TOP ROW: HEADER */}
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-3 text-right">
-              <div className="w-10 h-10 rounded-2xl bg-slate-950 text-amber-300 flex items-center justify-center shadow-lg shadow-slate-900/10">
-                <Sparkles size={19} />
+          {/* TOP ROW: HEADER WITH INTEGRATED TAB BAR */}
+          <div className="flex flex-col gap-6 w-full" dir="rtl">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3 text-right">
+                <div className="w-11 h-11 rounded-2xl bg-slate-950 text-amber-300 flex items-center justify-center shadow-lg shadow-slate-900/10 shrink-0">
+                  <Sparkles size={20} className="animate-pulse" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black tracking-[0.18em] text-amber-600 uppercase leading-none">مطبخ التراث العربي</p>
+                  <h1 className="text-xl md:text-2xl font-black text-slate-950 leading-tight mt-1">عقل النظام التنفيذي</h1>
+                </div>
               </div>
-              <div>
-                <p className="text-[11px] font-black tracking-[0.18em] text-amber-600 uppercase">اللوحة الرئيسية</p>
-                <h1 className="text-lg md:text-2xl font-black text-slate-950 leading-tight">نظرة الإدارة اليوم</h1>
-              </div>
-            </div>
-            
-            {/* وضع القيادة تم دمجه داخل مركز القيادة العام حتى لا يتكرر بصرياً */}
-          </div>
 
-          {!isExecutiveMode && activeTab !== "pulse" && (
-            <div className="mt-4 text-right text-xs font-bold text-slate-400">
-              {activeTabConfig?.label}
+              {!isExecutiveMode && (
+                <div className="text-left text-xs font-black text-indigo-600 bg-indigo-50/80 border border-indigo-100/40 px-3 py-1.5 rounded-xl hidden sm:block">
+                  القسم النشط: {activeTabConfig?.label}
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Apple-style Premium Tab list */}
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-1.5 -mx-4 px-4 md:-mx-0 md:px-0 border-b border-slate-100 pb-3" style={{ WebkitOverflowScrolling: 'touch' }}>
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => startTransition(() => {
+                      setActiveTab(tab.id as any);
+                    })}
+                    className={cn(
+                      "flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all duration-300 outline-none whitespace-nowrap shrink-0 border relative",
+                      isActive
+                        ? "bg-slate-950 text-white border-slate-950 shadow-md scale-100 relative z-10"
+                        : "bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-900 border-slate-100/80"
+                    )}
+                  >
+                    {tab.icon && React.cloneElement(tab.icon as any, {
+                      size: 14,
+                      className: cn("transition-transform duration-300", isActive ? "text-amber-300 scale-110" : "text-slate-400")
+                    })}
+                    <span>{tab.label}</span>
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeTabBadge"
+                        className="absolute -bottom-1 left-2 right-2 h-0.5 bg-amber-400 rounded-full"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* 4) CONTENT - Full Width */}

@@ -337,6 +337,9 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
   const invoices = Array.isArray(data?.invoices) ? data.invoices : [];
   const orders = Array.isArray(data?.orders) ? data.orders : [];
   const products = Array.isArray(data?.products) ? data.products : [];
+  const customers = Array.isArray(data?.customers) ? data.customers : [];
+  const coupons = Array.isArray(data?.promocodes) ? data.promocodes : [];
+  const suppliers = Array.isArray(data?.suppliers) ? data.suppliers : [];
   const allSales = [...invoices, ...orders];
   const pending = allSales.filter((item: any) => isPendingStatus(item?.status || item?.paymentStatus)).length;
   const failed = allSales.filter((item: any) => isFailedStatus(item?.status || item?.paymentStatus)).length;
@@ -354,27 +357,124 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
         ? { title: 'مرحباً، وقت الغداء والتركيز! 🍽️', sub: 'تتبع حركة المبيعات في فترة الذروة، والقرارات المهمة أمامك.' }
         : { title: 'نظرة هادية على الأرقام.. عساك على القوة! ☕', sub: 'هدوء الليل أفضل وقت للتخطيط ومراجعة الأداء.' };
   const [isOpen, setIsOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   const paidSalesValue = allSales.filter((item: any) => isPaidStatus(item?.status || item?.paymentStatus)).reduce((sum: number, item: any) => sum + getMoneyValue(item), 0);
   const briefLines = [
-    failed > 0 ? `عندك ${failed} عملية فشل دفع تحتاج مراجعة قبل الزحمة.` : 'ماكو فشل دفع ظاهر حاليًا، الوضع أهدأ للتشغيل.',
+    failed > 0 ? `عندك ${failed} عملية فشل دفع تحتاج مراجعة قبل الزحمة.` : 'ماكو فشل دفع ظاهر حالياً، الوضع أهدأ للتشغيل.',
     pending > 0 ? `${pending} طلب بانتظار الدفع؛ خلها أول متابعة اليوم.` : 'طلبات الدفع المعلقة تحت السيطرة.',
-    paid > 0 ? `${paid} عملية مدفوعة بقيمة ${paidSalesValue.toFixed(3)} د.ك جاهزة للمتابعة.` : 'أول عملية مدفوعة اليوم راح تظهر هنا فورًا.',
+    paid > 0 ? `${paid} عملية مدفوعة بقيمة ${paidSalesValue.toFixed(3)} د.ك جاهزة للمتابعة.` : 'أول عملية مدفوعة اليوم راح تظهر هنا فوراً.',
   ];
 
-  const items = [
-    { label: 'فشل الدفع', value: `${failed}`, hint: 'راجع العميل بهدوء', page: 'orders', tone: 'rose', icon: <AlertTriangle size={18} /> },
-    { label: 'بانتظار الدفع', value: `${pending}`, hint: 'يحتاج متابعة الآن', page: 'orders', tone: 'amber', icon: <Clock size={18} /> },
-    { label: 'تم الدفع', value: `${paid}`, hint: 'جاهز للإجراء', page: 'invoices-list', tone: 'emerald', icon: <BadgeCheck size={18} /> },
-    { label: 'نبض اليوم', value: `${allSales.length}`, hint: `${total.toFixed(3)} د.ك`, page: 'dashboard', tone: 'gold', icon: <Gauge size={18} /> },
-    { label: 'المنتجات', value: `${products.length}`, hint: outOfStock ? `${outOfStock} يحتاج مراجعة` : 'جاهزة', page: 'products', tone: 'slate', icon: <Boxes size={18} /> },
-    { label: 'العملاء', value: `${Array.isArray(data?.customers) ? data.customers.length : 0}`, hint: 'ذكاء العملاء والولاء', page: 'customers', tone: 'emerald', icon: <Users size={18} /> },
+  const coreModules = [
+    {
+      id: 'dashboard',
+      label: 'مركز القيادة',
+      subtitle: 'النبض والمعلق وفشل الدفع لليوم',
+      icon: <Gauge size={18} />,
+      tone: 'gold',
+      value: `${allSales.length} عملية`,
+      hint: `معلق: ${pending} · فشل: ${failed}`
+    },
+    {
+      id: 'reports',
+      label: 'التقارير التنفيذية',
+      subtitle: 'تحليل الأداء المالي والمبيعات بالتفصيل',
+      icon: <TrendingUp size={18} />,
+      tone: 'emerald',
+      value: `${total.toFixed(3)} د.ك`,
+      hint: `الفواتير: ${invoices.length}`
+    },
+    {
+      id: 'loyalty',
+      label: 'مملكة الولاء',
+      subtitle: 'مستويات العملاء ونقاط الذهبي والـ VIP',
+      icon: <Sparkles size={18} />,
+      tone: 'purple',
+      value: `مملكة الولاء`,
+      hint: `العملاء: ${customers.length}`
+    },
+    {
+      id: 'coupons',
+      label: 'مسرح العروض الذكية',
+      subtitle: 'إدارة الكوبونات وحساب الأثر الربحي لها',
+      icon: <CircleDollarSign size={18} />,
+      tone: 'amber',
+      value: `الكوبونات`,
+      hint: `${coupons.length} عروض نشطة`
+    },
+    {
+      id: 'smart-studio',
+      label: 'استوديو المحتوى الذكي',
+      subtitle: 'تجهيز رسائل الدعاية والتسويق التلقائي',
+      icon: <Send size={18} />,
+      tone: 'sky',
+      value: `استوديو المحتوى`,
+      hint: 'دعاية وتواصل ذكي'
+    },
+    {
+      id: 'growth-simulator',
+      label: 'محاكي النمو والتسويق',
+      subtitle: 'سيناريوهات ماذا لو للأرباح والنمو',
+      icon: <Zap size={18} />,
+      tone: 'indigo',
+      value: `محاكي الأرباح`,
+      hint: 'توقع الإيرادات'
+    },
+    {
+      id: 'ai',
+      label: 'المساعد الذكي',
+      subtitle: 'مستشار مالي مدعوم بالتوصيات الذكية',
+      icon: <Bot size={18} />,
+      tone: 'rose',
+      value: `المستشار التنفيذي`,
+      hint: 'تحليلات ذكاء اصطناعي'
+    },
+    {
+      id: 'diwaniya',
+      label: 'بطولات الديوانية',
+      subtitle: 'لوحة تنظيم النقاط وترتيب جوائز البطولات',
+      icon: <ClipboardCheck size={18} />,
+      tone: 'slate',
+      value: `الديوانية والجوائز`,
+      hint: 'إدارة الترتيب'
+    },
+    {
+      id: 'profit-guard',
+      label: 'المالية وحماية الأرباح',
+      subtitle: 'كشف مالي متقدم وفحص هوامش الأرباح والنزيف',
+      icon: <ShieldAlert size={18} />,
+      tone: 'rose',
+      value: `حماية الأرباح`,
+      hint: 'كشف النزيف والفرص'
+    }
+  ];
+
+  const searchableTools = [
+    ...coreModules,
+    { id: 'products', label: 'إدارة المنتجات والمخزون', subtitle: 'سجل المنتجات، الأسعار والتوافر بالمخزن', icon: <Boxes size={18} />, tone: 'slate', value: 'المخزون والمنتجات', hint: `${products.length} صنف` },
+    { id: 'expenses', label: 'المصروفات العامة والنزيف', subtitle: 'إدخال المصاريف والمدفوعات والمتابعة المالية', icon: <DollarSign size={18} />, tone: 'rose', value: 'المصروفات العامة', hint: 'تفاصيل المصروفات' },
+    { id: 'suppliers', label: 'حسابات الموردين ورادار المخاطر', subtitle: 'المديونية وصرف التوريد والانتظام', icon: <Truck size={18} />, tone: 'indigo', value: 'الموردين والمستحقات', hint: `${suppliers.length} مورد` },
+    { id: 'suppliers-audit', label: 'مراجعة الموردين والتأثير المالي', subtitle: 'تفصيل أثر المورد على الربحية والمخاطر', icon: <AlertTriangle size={18} />, tone: 'slate', value: 'رادار المخاطر', hint: 'أثر التوريد' },
+    { id: 'new-invoice', label: 'إنشاء فاتورة جديدة', subtitle: 'مسار سريع لإدخال المبيعات الفورية للعملاء', icon: <PlusCircle size={18} />, tone: 'sky', value: 'فاتورة جديدة', hint: 'مسار إنشاء سريع' },
+    { id: 'invoices-list', label: 'سجل الفواتير ونقاط البيع', subtitle: 'البحث والطباعة والمراجعة لجميع الفواتير السابقة', icon: <Receipt size={18} />, tone: 'emerald', value: 'أرشيف الفواتير', hint: `${invoices.length} فاتورة` },
+    { id: 'orders', label: 'طلبات الموقع الإلكتروني', subtitle: 'متابعة تشغيل وتوصيل الطلبات والدفع الإلكتروني', icon: <ShoppingBag size={18} />, tone: 'slate', value: 'الطلبات والتشغيل', hint: `${orders.length} طلب ويب` },
+    { id: 'customers', label: 'إدارة العملاء وذكاء البيانات', subtitle: 'قائمة العملاء وبيانات الاتصال والترتيب', icon: <Users size={18} />, tone: 'emerald', value: 'قاعدة العملاء', hint: `${customers.length} عميل` },
+    { id: 'settings', label: 'الإعدادات العامة لمطبخ التراث', subtitle: 'إعدادات التشغيل، التوصيل، الشركاء، والهوية', icon: <Settings size={18} />, tone: 'slate', value: 'الإعدادات والتهيئة', hint: 'تخصيص النظام' }
   ];
 
   const go = (target: string) => {
     onNavigate(target);
     setIsOpen(false);
   };
+
+  const filterQuery = searchQuery.trim();
+  const filteredTools = filterQuery
+    ? searchableTools.filter(t => 
+        normalizeArabic(t.label).toLowerCase().includes(normalizeArabic(filterQuery).toLowerCase()) ||
+        normalizeArabic(t.subtitle).toLowerCase().includes(normalizeArabic(filterQuery).toLowerCase())
+      )
+    : coreModules;
 
   return (
     <section dir="rtl" className={`heritage-command-brief heritage-command-brief-${tone} ${isOpen ? 'is-open' : 'is-collapsed'}`} aria-label="مركز القيادة">
@@ -408,7 +508,7 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
             exit={{ opacity: 0, y: -8, height: 0 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
           >
-            <div className="executive-morning-brief">
+            <div className="executive-morning-brief pb-2 mb-2">
               <div>
                 <span>Executive Morning Brief</span>
                 <strong>ملخص الإدارة الآن</strong>
@@ -417,14 +517,39 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
                 {briefLines.map((line) => <li key={line}>{line}</li>)}
               </ul>
             </div>
-            {items.map((item) => (
-              <button key={item.label} onClick={() => go(item.page)} className={`heritage-command-tile heritage-tone-${item.tone} ${page === item.page ? 'is-active' : ''}`}>
+
+            <div className="col-span-full mb-3" dir="rtl">
+              <div className="flex items-center gap-2 bg-slate-900/45 border border-white/10 rounded-xl px-3.5 py-2.5 w-full shadow-inner">
+                <Search size={16} className="text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="ابحث عن أداة أو اكتب أمراً كتركيز إضافي (مثال: المنتجات، الإعدادات)..."
+                  className="bg-transparent text-white placeholder-slate-400/80 text-xs md:text-sm focus:outline-none w-full font-medium"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-white transition-colors">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {filteredTools.map((item) => (
+              <button key={item.id} onClick={() => go(item.id)} className={`heritage-command-tile heritage-tone-${item.tone} ${page === item.id ? 'is-active' : ''}`}>
                 <span className="heritage-tile-icon">{item.icon}</span>
                 <span className="heritage-tile-label">{item.label}</span>
                 <strong>{item.value}</strong>
                 <small>{item.hint}</small>
               </button>
             ))}
+
+            {filteredTools.length === 0 && (
+              <div className="col-span-full py-8 text-center text-slate-400 text-xs md:text-sm">
+                لا توجد أدوات مطابقة لنص البحث.. تفضل بكتابة كلمة أخرى كتركيز إضافي ✨
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
