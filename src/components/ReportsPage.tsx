@@ -616,9 +616,9 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           String(invoice.status).includes("تجميع القطية") ||
           invoice.status === "split_pending"
         );
-      const invoiceEmoji = "✨";
-      const linkEmoji = "✅";
-      const trackingUrl = "https://alturathkw.shop/track";
+      const invoiceEmoji = "\u2728";
+      const linkEmoji = "\u2705";
+      const trackingUrl = `https://alturathkw.shop/track?tracked_order=${encodeURIComponent(String(invoice.id))}`;
       const paymentSection =
         paymentLink && paymentLink.trim() !== "" && !isPaidNow
           ? `

@@ -97,10 +97,10 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  let text = '';
  if (target.riskLevel === 'preemptive') {
  const dayText = target.preemptiveMatch.isTomorrow ? 'باجر' : `يوم ${target.preemptiveMatch.dayOfWeekStr}`;
- text = encodeURIComponent(`✨ هلا ${target.name.split(' ')[0]}، زوارتكم ${dayText} العصر؟ ${target.preemptiveMatch.productName} زاهب، وفيه عرض خاص لكم. نزهبه لك؟`);
+ text = encodeURIComponent(`\u2728 هلا ${target.name.split(' ')[0]}، زوارتكم ${dayText} العصر؟ ${target.preemptiveMatch.productName} زاهب، وفيه عرض خاص لكم. نزهبه لك؟`);
  toast.success(`تم قنص ${target.name} استباقياً`);
  } else {
- text = encodeURIComponent(`✨ أهلاً ${target.name}، اشتقنا لك في مطبخ التراث الكويتي.\n\nجهزنا لك عرض خاص بانتظارك، ويسعدنا نستقبل طلبك بأي وقت.\n\nAlturath.kw`);
+ text = encodeURIComponent(`\u2728 أهلاً ${target.name}، اشتقنا لك في مطبخ التراث الكويتي.\n\nجهزنا لك عرض خاص بانتظارك، ويسعدنا نستقبل طلبك بأي وقت.\n\nAlturath.kw`);
  toast.success(`تم تشغيل بروتوكول الاستعادة للعميل ${target.name}`);
  }
  const waUrl = `https://wa.me/${target.phone.replace(/\D/g, '')}?text=${text}`;
