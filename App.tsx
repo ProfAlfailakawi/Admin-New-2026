@@ -337,6 +337,8 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
   const invoices = Array.isArray(data?.invoices) ? data.invoices : [];
   const orders = Array.isArray(data?.orders) ? data.orders : [];
   const products = Array.isArray(data?.products) ? data.products : [];
+  const customers = Array.isArray(data?.customers) ? data.customers : [];
+  const coupons = Array.isArray(data?.promocodes) ? data.promocodes : [];
   const suppliers = Array.isArray(data?.suppliers) ? data.suppliers : [];
   const allSales = [...invoices, ...orders];
   const pending = allSales.filter((item: any) => isPendingStatus(item?.status || item?.paymentStatus)).length;
@@ -346,17 +348,136 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
   const outOfStock = products.filter((p: any) => p?.isOutOfStock || p?.stock === 0 || p?.quantity === 0).length;
   const signal = failed > 0 ? 'يحتاج انتباه' : pending > 0 ? 'قيد المتابعة' : 'الوضع مستقر';
   const tone = failed > 0 ? 'danger' : pending > 0 ? 'watch' : 'calm';
+  const hour = new Date().getHours();
+  const greeting = hour >= 17 && hour < 22
+    ? { title: 'تحية مسائية هادئة ☕', sub: 'النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.' }
+    : hour >= 5 && hour < 12
+      ? { title: 'صباح الخير، يوم جديد وفرص جديدة ☀️', sub: 'مركز القيادة جاهز لقراءة نبض اليوم ومتابعة أهم المؤشرات.' }
+      : hour >= 12 && hour < 17
+        ? { title: 'مرحباً، وقت الغداء والتركيز! 🍽️', sub: 'تتبع حركة المبيعات في فترة الذروة، والقرارات المهمة أمامك.' }
+        : { title: 'نظرة هادية على الأرقام.. عساك على القوة! ☕', sub: 'هدوء الليل أفضل وقت للتخطيط ومراجعة الأداء.' };
   const [isOpen, setIsOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const commandCenterRef = React.useRef<HTMLElement | null>(null);
 
-  const items = [
-    { label: 'نبض اليوم', value: `${allSales.length}`, hint: `${total.toFixed(3)} د.ك`, page: 'dashboard', tone: 'gold', icon: <Gauge size={18} /> },
-    { label: 'بانتظار الدفع', value: `${pending}`, hint: 'طلبات تحتاج متابعة', page: 'orders', tone: 'amber', icon: <Clock size={18} /> },
-    { label: 'فشل الدفع', value: `${failed}`, hint: 'راجعها بهدوء', page: 'orders', tone: 'rose', icon: <AlertTriangle size={18} /> },
-    { label: 'تم الدفع', value: `${paid}`, hint: 'جاهز للمتابعة', page: 'invoices-list', tone: 'emerald', icon: <BadgeCheck size={18} /> },
-    { label: 'المنتجات', value: `${products.length}`, hint: outOfStock ? `${outOfStock} يحتاج مراجعة` : 'جاهزة', page: 'products', tone: 'slate', icon: <Boxes size={18} /> },
-    { label: 'العملاء', value: `${Array.isArray(data?.customers) ? data.customers.length : 0}`, hint: 'ذكاء العملاء والولاء', page: 'customers', tone: 'emerald', icon: <Users size={18} /> },
-    { label: 'العروض', value: `${Array.isArray(data?.promocodes) ? data.promocodes.length : 0}`, hint: 'مسرح الكوبونات', page: 'coupons', tone: 'gold', icon: <Receipt size={18} /> },
-    { label: 'الموردين', value: `${suppliers.length}`, hint: 'المراجعة والمخاطر', page: 'suppliers-audit', tone: 'indigo', icon: <Truck size={18} /> },
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (target && commandCenterRef.current && !commandCenterRef.current.contains(target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, [isOpen]);
+
+  const paidSalesValue = allSales.filter((item: any) => isPaidStatus(item?.status || item?.paymentStatus)).reduce((sum: number, item: any) => sum + getMoneyValue(item), 0);
+  const briefLines = [
+    failed > 0 ? `عندك ${failed} عملية فشل دفع تحتاج مراجعة قبل الزحمة.` : 'ماكو فشل دفع ظاهر حالياً، الوضع أهدأ للتشغيل.',
+    pending > 0 ? `${pending} طلب بانتظار الدفع؛ خلها أول متابعة اليوم.` : 'طلبات الدفع المعلقة تحت السيطرة.',
+    paid > 0 ? `${paid} عملية مدفوعة بقيمة ${paidSalesValue.toFixed(3)} د.ك جاهزة للمتابعة.` : 'أول عملية مدفوعة اليوم راح تظهر هنا فوراً.',
+  ];
+
+  const coreModules = [
+    {
+      id: 'dashboard',
+      label: 'مركز القيادة',
+      subtitle: 'النبض والمعلق وفشل الدفع لليوم',
+      icon: <Gauge size={18} />,
+      tone: 'gold',
+      value: `${allSales.length} عملية`,
+      hint: `معلق: ${pending} · فشل: ${failed}`
+    },
+    {
+      id: 'reports',
+      label: 'التقارير التنفيذية',
+      subtitle: 'تحليل الأداء المالي والمبيعات بالتفصيل',
+      icon: <TrendingUp size={18} />,
+      tone: 'emerald',
+      value: `${total.toFixed(3)} د.ك`,
+      hint: `الفواتير: ${invoices.length}`
+    },
+    {
+      id: 'loyalty',
+      label: 'مملكة الولاء',
+      subtitle: 'مستويات العملاء ونقاط الذهبي والـ VIP',
+      icon: <Sparkles size={18} />,
+      tone: 'purple',
+      value: `مملكة الولاء`,
+      hint: `العملاء: ${customers.length}`
+    },
+    {
+      id: 'coupons',
+      label: 'مسرح العروض الذكية',
+      subtitle: 'إدارة الكوبونات وحساب الأثر الربحي لها',
+      icon: <CircleDollarSign size={18} />,
+      tone: 'amber',
+      value: `الكوبونات`,
+      hint: `${coupons.length} عروض نشطة`
+    },
+    {
+      id: 'smart-studio',
+      label: 'استوديو المحتوى الذكي',
+      subtitle: 'تجهيز رسائل الدعاية والتسويق التلقائي',
+      icon: <Send size={18} />,
+      tone: 'sky',
+      value: `استوديو المحتوى`,
+      hint: 'دعاية وتواصل ذكي'
+    },
+    {
+      id: 'growth-simulator',
+      label: 'محاكي النمو والتسويق',
+      subtitle: 'سيناريوهات ماذا لو للأرباح والنمو',
+      icon: <Zap size={18} />,
+      tone: 'indigo',
+      value: `محاكي الأرباح`,
+      hint: 'توقع الإيرادات'
+    },
+    {
+      id: 'ai',
+      label: 'المساعد الذكي',
+      subtitle: 'مستشار مالي مدعوم بالتوصيات الذكية',
+      icon: <Bot size={18} />,
+      tone: 'rose',
+      value: `المستشار التنفيذي`,
+      hint: 'تحليلات ذكاء اصطناعي'
+    },
+    {
+      id: 'diwaniya',
+      label: 'بطولات الديوانية',
+      subtitle: 'لوحة تنظيم النقاط وترتيب جوائز البطولات',
+      icon: <ClipboardCheck size={18} />,
+      tone: 'slate',
+      value: `الديوانية والجوائز`,
+      hint: 'إدارة الترتيب'
+    },
+    {
+      id: 'profit-guard',
+      label: 'المالية وحماية الأرباح',
+      subtitle: 'كشف مالي متقدم وفحص هوامش الأرباح والنزيف',
+      icon: <ShieldAlert size={18} />,
+      tone: 'rose',
+      value: `حماية الأرباح`,
+      hint: 'كشف النزيف والفرص'
+    }
+  ];
+
+  const searchableTools = [
+    ...coreModules,
+    { id: 'products', label: 'إدارة المنتجات والمخزون', subtitle: 'سجل المنتجات، الأسعار والتوافر بالمخزن', icon: <Boxes size={18} />, tone: 'slate', value: 'المخزون والمنتجات', hint: `${products.length} صنف` },
+    { id: 'expenses', label: 'المصروفات العامة والنزيف', subtitle: 'إدخال المصاريف والمدفوعات والمتابعة المالية', icon: <DollarSign size={18} />, tone: 'rose', value: 'المصروفات العامة', hint: 'تفاصيل المصروفات' },
+    { id: 'suppliers', label: 'حسابات الموردين ورادار المخاطر', subtitle: 'المديونية وصرف التوريد والانتظام', icon: <Truck size={18} />, tone: 'indigo', value: 'الموردين والمستحقات', hint: `${suppliers.length} مورد` },
+    { id: 'suppliers-audit', label: 'مراجعة الموردين والتأثير المالي', subtitle: 'تفصيل أثر المورد على الربحية والمخاطر', icon: <AlertTriangle size={18} />, tone: 'slate', value: 'رادار المخاطر', hint: 'أثر التوريد' },
+    { id: 'new-invoice', label: 'إنشاء فاتورة جديدة', subtitle: 'مسار سريع لإدخال المبيعات الفورية للعملاء', icon: <PlusCircle size={18} />, tone: 'sky', value: 'فاتورة جديدة', hint: 'مسار إنشاء سريع' },
+    { id: 'invoices-list', label: 'سجل الفواتير ونقاط البيع', subtitle: 'البحث والطباعة والمراجعة لجميع الفواتير السابقة', icon: <Receipt size={18} />, tone: 'emerald', value: 'أرشيف الفواتير', hint: `${invoices.length} فاتورة` },
+    { id: 'orders', label: 'طلبات الموقع الإلكتروني', subtitle: 'متابعة تشغيل وتوصيل الطلبات والدفع الإلكتروني', icon: <ShoppingBag size={18} />, tone: 'slate', value: 'الطلبات والتشغيل', hint: `${orders.length} طلب ويب` },
+    { id: 'customers', label: 'إدارة العملاء وذكاء البيانات', subtitle: 'قائمة العملاء وبيانات الاتصال والترتيب', icon: <Users size={18} />, tone: 'emerald', value: 'قاعدة العملاء', hint: `${customers.length} عميل` },
+    { id: 'settings', label: 'الإعدادات العامة لمطبخ التراث', subtitle: 'إعدادات التشغيل، التوصيل، الشركاء، والهوية', icon: <Settings size={18} />, tone: 'slate', value: 'الإعدادات والتهيئة', hint: 'تخصيص النظام' }
   ];
 
   const go = (target: string) => {
@@ -364,25 +485,33 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     setIsOpen(false);
   };
 
+  const filterQuery = searchQuery.trim();
+  const filteredTools = filterQuery
+    ? searchableTools.filter(t => 
+        normalizeArabic(t.label).toLowerCase().includes(normalizeArabic(filterQuery).toLowerCase()) ||
+        normalizeArabic(t.subtitle).toLowerCase().includes(normalizeArabic(filterQuery).toLowerCase())
+      )
+    : coreModules;
+
   return (
-    <section dir="rtl" className={`heritage-command-brief heritage-command-brief-${tone} ${isOpen ? 'is-open' : 'is-collapsed'}`} aria-label="مركز القيادة">
+    <section ref={commandCenterRef} dir="rtl" className={`heritage-command-brief heritage-command-brief-${tone} ${isOpen ? 'is-open' : 'is-collapsed'}`} aria-label="مركز القيادة">
       <div className="heritage-command-hero">
-        <span className="heritage-command-orb" />
-        <div className="min-w-0 text-right">
-          <div className="text-[10px] md:text-[11px] font-black tracking-[0.18em] text-amber-600 uppercase mb-1">شركة مطبخ التراث</div>
-          <h2 className="text-lg md:text-2xl font-black text-slate-950 leading-tight">مرحباً، وقت الغداء والتركيز!</h2>
-          <p className="text-[12px] md:text-sm text-slate-500 font-bold mt-1">مركز القيادة · {signal} · ملخص سريع بدون تكرار.</p>
+        <span className="heritage-command-orb"><Sparkles size={22} /></span>
+        <div className="min-w-0 text-right heritage-command-copy">
+          <div className="heritage-command-kicker">مركز القيادة · شركة مطبخ التراث</div>
+          <h2>{greeting.title}</h2>
+          <p>{greeting.sub}</p>
         </div>
       </div>
 
       <div className="heritage-command-actions">
         <button
           type="button"
-          className="heritage-command-toggle"
+          className="heritage-command-toggle heritage-command-open-btn"
           onClick={() => setIsOpen((value) => !value)}
           aria-expanded={isOpen}
         >
-          {isOpen ? 'إخفاء الملخص' : 'عرض الملخص'}
+          {isOpen ? 'إغلاق مركز القيادة' : 'فتح مركز القيادة'}
           <ChevronDown size={16} className={isOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
         </button>
       </div>
@@ -396,14 +525,48 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
             exit={{ opacity: 0, y: -8, height: 0 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
           >
-            {items.map((item) => (
-              <button key={item.label} onClick={() => go(item.page)} className={`heritage-command-tile heritage-tone-${item.tone} ${page === item.page ? 'is-active' : ''}`}>
+            <div className="executive-morning-brief pb-2 mb-2">
+              <div>
+                <span>Executive Morning Brief</span>
+                <strong>ملخص الإدارة الآن</strong>
+              </div>
+              <ul>
+                {briefLines.map((line) => <li key={line}>{line}</li>)}
+              </ul>
+            </div>
+
+            <div className="col-span-full mb-3" dir="rtl">
+              <div className="flex items-center gap-2 bg-slate-900/45 border border-white/10 rounded-xl px-3.5 py-2.5 w-full shadow-inner">
+                <Search size={16} className="text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="ابحث عن أداة أو اكتب أمراً كتركيز إضافي (مثال: المنتجات، الإعدادات)..."
+                  className="bg-transparent text-white placeholder-slate-400/80 text-xs md:text-sm focus:outline-none w-full font-medium"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-white transition-colors">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {filteredTools.map((item) => (
+              <button key={item.id} onClick={() => go(item.id)} className={`heritage-command-tile heritage-tone-${item.tone} ${page === item.id ? 'is-active' : ''}`}>
                 <span className="heritage-tile-icon">{item.icon}</span>
                 <span className="heritage-tile-label">{item.label}</span>
                 <strong>{item.value}</strong>
                 <small>{item.hint}</small>
               </button>
             ))}
+
+            {filteredTools.length === 0 && (
+              <div className="col-span-full py-8 text-center text-slate-400 text-xs md:text-sm">
+                لا توجد أدوات مطابقة لنص البحث.. تفضل بكتابة كلمة أخرى كتركيز إضافي ✨
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -552,11 +715,31 @@ const DataRefreshNotice: React.FC<{ show: boolean; mode: 'cloud' | 'local' }> = 
   </AnimatePresence>
 );
 
+const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => (
+  <AnimatePresence>
+    {!online && (
+      <motion.div
+        className="admin-offline-toast"
+        dir="rtl"
+        initial={{ opacity: 0, y: -12, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -12, scale: 0.96 }}
+      >
+        <span className="offline-dot" />
+        <div>
+          <strong>انقطع الاتصال…</strong>
+          <span>نحاول نرجع بيانات مركز القيادة بهدوء.</span>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
 const getMoneyValue = (item: any) => Number(item?.total || item?.totalAmount || item?.amount || item?.price || 0) || 0;
 const getItemName = (item: any, fallback = 'بدون اسم') => item?.name || item?.customerName || item?.title || item?.code || item?.id || fallback;
 const getAdminPageMeta = (page: string) => {
   const map: Record<string, {title: string; subtitle: string; tag: string}> = {
-    dashboard: { title: 'اللوحة الرئيسية', subtitle: 'ملخص تنفيذي يرى المبيعات والعملاء والربح والمخاطر بدون زحمة.', tag: 'Executive Command Header' },
+    dashboard: { title: 'مركز القيادة', subtitle: 'ملخص اليوم، الحالات المهمة، والإجراءات السريعة في واجهة واحدة.', tag: 'Daily Command Brief' },
     'dashboard-ai': { title: 'مختبر الذكاء', subtitle: 'معرض أدوات للقرارات الذكية بدون لمس منطق الذكاء الاصطناعي.', tag: 'AI Lab Gallery' },
     'new-invoice': { title: 'فاتورة جديدة', subtitle: 'العميل، المنتجات، الملخص، ثم الإنشاء في مسار واحد واضح.', tag: 'Receipt Builder' },
     'invoices-list': { title: 'سجل الفواتير', subtitle: 'سجل فخم للبحث والمراجعة والطباعة والمتابعة.', tag: 'Invoice Ledger' },
@@ -622,22 +805,30 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
   const showCustomers = page === 'customers' || page === 'loyalty';
   const showSuppliers = page === 'suppliers' || page === 'suppliers-audit';
   const showCoupons = page === 'coupons';
-  const showAi = page === 'dashboard-ai' || page === 'ai';
+  const showAi = false; // لا نعرض بوكس مختبر الذكاء المكرر تحت الهيدر
   const showGrowth = page === 'growth-simulator';
-  const showProfit = page === 'profit-guard' || page === 'expenses' || page === 'reports';
+  const showProfit = page === 'profit-guard';
+  const showPageHero = page !== 'dashboard';
   return (
-    <div className="admin-experience-stack">
-      <section className="admin-page-hero" dir="rtl">
-        <div className="admin-page-hero-main"><span className="admin-page-kicker">{meta.tag}</span><h1>{meta.title}</h1><p>{meta.subtitle}</p></div>
-        <div className="admin-page-metrics" aria-label="ملخص الصفحة"><div><strong>{allSales.length}</strong><span>حركة</span></div><div><strong>{totalSales.toFixed(3)}</strong><span>د.ك</span></div><div><strong>{pendingCount}</strong><span>بانتظار</span></div><div><strong>{failedCount}</strong><span>فشل</span></div></div>
-      </section>
+    <div data-admin-page={page} className={`admin-experience-stack ${!showPageHero ? 'dashboard-merged-with-command' : ''}`}>
+      {showPageHero && (
+        <section className="admin-page-hero" dir="rtl">
+          <div className="admin-page-hero-main"><span className="admin-page-kicker">{meta.tag}</span><h1>{meta.title}</h1><p>{meta.subtitle}</p></div>
+        </section>
+      )}
       {showProduct && <section className="admin-smart-panel product-score-panel" dir="rtl"><div className="panel-head"><div><span>Product Score</span><h2>مؤشر قوة المنتج</h2></div><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></section>}
       {showCustomers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Customer Intelligence Board</span><h2>لوحة ذكاء العملاء</h2></div><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{c.spend.toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></section>}
       {showSuppliers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Supplier Risk Radar</span><h2>رادار الموردين</h2></div><button type="button" onClick={() => onNavigate('suppliers-audit')}>فتح المراجعة</button></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>المورد</span><b>→</b><span>المنتجات</span><b>→</b><span>الطلبات</span><b>→</b><span>الربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات مرتبطة · {sup.debt.toFixed(3)} د.ك</p><strong>{sup.risk}</strong></div>)}</div></section>}
       {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح العروض الذكية</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span>تأثير الربح: {tone}</span></div>})}</div></section>}
-      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>AI Lab Gallery</span><h2>معرض مختبر الذكاء</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو المحتوى</button></div><div className="smart-mini-grid">{['تحليل العملاء','تحليل المنتجات','تحليل الموردين','تحليل الربح','تحليل العروض','تحليل المخاطر'].map((t,i)=><button key={t} type="button" onClick={() => onNavigate(i<2?'dashboard-ai':i===4?'coupons':i===2?'suppliers-audit':'profit-guard')} className="lab-tool-card"><Bot size={18}/><strong>{t}</strong><small>آخر نتيجة جاهزة عند فتح الأداة</small></button>)}</div></section>}
+      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>AI Lab Gallery</span><h2>معرض مختبر الذكاء</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو المحتوى</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
+        { label: 'تحليل العملاء', page: 'customers' },
+        { label: 'تحليل المنتجات', page: 'products' },
+        { label: 'تحليل الموردين', page: 'suppliers-audit' },
+        { label: 'تحليل الربح', page: 'reports' },
+        { label: 'تحليل العروض', page: 'coupons' },
+        { label: 'تحليل المخاطر', page: 'expenses' },
+      ].map((item)=><button key={item.label} type="button" onClick={() => onNavigate(item.page)} className="lab-tool-card"><Bot size={18}/><strong>{item.label}</strong><small>يفتح الأداة مباشرة بدون شاشة بيضاء</small></button>)}</div></section>}
       {showGrowth && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Growth Simulator Pro</span><h2>محاكي سيناريوهات النمو</h2></div><button type="button" onClick={() => onNavigate('coupons')}>الكوبونات</button></div><div className="scenario-strip">{['ماذا لو زادت الطلبات 10%؟','ماذا لو أضفنا كوبون؟','ماذا لو رفعنا سعر منتج؟','ماذا لو ركزنا على VIP؟','ماذا لو قللنا مصروفًا؟'].map(t=><span key={t}>{t}</span>)}</div></section>}
-      {showProfit && <section className="admin-smart-panel profit-shield-panel" dir="rtl"><div className="profit-shield"><ShieldAlert size={22}/><strong>درع الربح</strong><span>{totalSales.toFixed(3)} د.ك</span></div><div className="profit-bullets"><span>المبيعات</span><span>المصروفات</span><span>الهامش</span><span>النزيف</span><span>الفرص</span></div></section>}
       <div className="admin-content-polish" dir="rtl">{children}</div>
     </div>
   );
@@ -648,6 +839,17 @@ const MainApp: React.FC = () => {
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
+
+  useEffect(() => {
+    const updateOnline = () => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine);
+    window.addEventListener('online', updateOnline);
+    window.addEventListener('offline', updateOnline);
+    return () => {
+      window.removeEventListener('online', updateOnline);
+      window.removeEventListener('offline', updateOnline);
+    };
+  }, []);
 
   
   // Persist authentication state
@@ -713,6 +915,12 @@ const MainApp: React.FC = () => {
 
 
   const [currentPage, setCurrentPage] = useState(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+
+  const navigateAdminPage = (page: string, payload?: any) => {
+    setCurrentPage(page);
+    setSidebarOpen(false);
+    setDeepLinkData(payload ? { ...payload, _t: Date.now() } : {});
+  };
 
   // Removed buggy ADMINFIX_FORCE_INVOICES_FROM_URL effects causing navigation lock
 
@@ -1323,6 +1531,7 @@ const MainApp: React.FC = () => {
   }, [pendingOrdersCount, isSoundEnabled]);
 
   const [authError, setAuthError] = useState<string | null>(null);
+  const [quotaError, setQuotaError] = useState<string | null>(null);
 
   const switchMode = (newMode: 'local' | 'cloud') => {
     // Reset data loading flags first to prevent premature auto-saving
@@ -1527,9 +1736,27 @@ const MainApp: React.FC = () => {
                 }
                 return prev;
             });
-         }, ((err) => { if (!String(err).includes("Missing or insufficient permissions")) console.error("orders sync error: ", err); }));
-      } catch (e) {
-          if (!String(e).includes("Missing or insufficient permissions")) console.error("Failed to sync orders collection:", e);
+         }, (err) => {
+            if (!String(err).includes("Missing or insufficient permissions")) {
+               const isQuota = String(err).includes("quota") || String(err).includes("Quota") || String(err).includes("RESOURCE_EXHAUSTED") || String(err).includes("resource-exhausted");
+               if (isQuota) {
+                  console.warn("Firebase Quota Exceeded handled in UI.");
+                  setQuotaError(err.message || String(err));
+               } else {
+                  console.error("orders sync error: ", err);
+               }
+            }
+         });
+      } catch (e: any) {
+          if (!String(e).includes("Missing or insufficient permissions")) {
+              const isQuota = String(e).includes("quota") || String(e).includes("Quota") || String(e).includes("RESOURCE_EXHAUSTED") || String(e).includes("resource-exhausted");
+              if (isQuota) {
+                 console.warn("Firebase Quota Exceeded handled in UI.");
+                 setQuotaError(e.message || String(e));
+              } else {
+                 console.error("Failed to sync orders collection:", e);
+              }
+          }
       }
       
       // Listen for real-time updates
@@ -1617,7 +1844,15 @@ const MainApp: React.FC = () => {
         hasLoadedDataRef.current = true;
         setDataLoading(false);
       }, (error: any) => {
-        if (!String(error).includes("Missing or insufficient permissions") && !String(error).includes("PERMISSION_DENIED")) console.error("Firestore sync error", error);
+        if (!String(error).includes("Missing or insufficient permissions") && !String(error).includes("PERMISSION_DENIED")) {
+           const isQuota = String(error).includes("quota") || String(error).includes("Quota") || String(error).includes("RESOURCE_EXHAUSTED") || String(error).includes("resource-exhausted");
+           if (isQuota) {
+              console.warn("Firebase Quota Exceeded handled in UI.");
+              setQuotaError(error.message || String(error));
+           } else {
+              console.error("Firestore sync error", error);
+           }
+        }
         if (error.code === 'permission-denied' && user) {
           setAuthError(`عذراً، ليس لديك صلاحية الوصول إلى البيانات. يرجى التأكد من أن حسابك مصرح له.\nالبريد: ${user.email}`);
         }
@@ -1770,10 +2005,87 @@ const MainApp: React.FC = () => {
     );
   };
 
+  const renderQuotaError = () => {
+    if (!quotaError) return null;
+    return (
+      <div className="fixed inset-0 bg-slate-900/90 z-[201] flex items-center justify-center p-4 md:p-6 text-right arabic-font shadow-2xl" dir="rtl">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full border border-rose-100 flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
+              <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <span className="text-3xl">⚠️</span>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900 text-center">تجاوز حصة الاستخدام (Firestore Quota Exceeded)</h2>
+              
+              <div className="text-slate-600 leading-relaxed text-sm flex flex-col gap-3">
+                  <p className="font-semibold text-slate-800">
+                     تم تجاوز الحصة اليومية المجانية لقراءة البيانات في قاعدة بيانات Cloud Firestore المشغلة لهذا التطبيق تحت باقة Spark المجانية.
+                  </p>
+                  <p>
+                     تتم إعادة تعيين هذه الحصة المجانية تلقائياً كل 24 ساعة (عند منتصف الليل في توقيت المحيط الهادئ). حتى يحدث ذلك، قد يتعذر جلب أو تحديث معلومات الطلبات والبيانات السحابية.
+                  </p>
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs font-mono space-y-1 text-slate-500 break-words font-sans">
+                     <strong>تفاصيل الخطأ:</strong> <pre className="whitespace-pre-wrap">{quotaError}</pre>
+                  </div>
+                  <div className="mt-2 text-slate-700 font-medium">
+                     يمكنك القيام بما يلي طال عمرك:
+                  </div>
+                  <div className="space-y-2">
+                     <button
+                        onClick={() => {
+                           switchMode('local');
+                           setQuotaError(null);
+                        }}
+                        className="w-full flex items-center justify-between p-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold rounded-2xl transition-all"
+                     >
+                        <span className="flex items-center gap-2">
+                           <span>💾</span>
+                           <span>تفعيل وضع التخزين المحلي والعمل دون إنترنت</span>
+                        </span>
+                        <span>👈</span>
+                     </button>
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-4 text-xs font-bold">
+                  <a 
+                     href="https://firebase.google.com/pricing#cloud-firestore" 
+                     target="_blank" 
+                     referrerPolicy="no-referrer"
+                     rel="noopener noreferrer"
+                     className="p-3 bg-slate-100 text-slate-700 text-center rounded-xl hover:bg-slate-200 transition-all flex flex-col justify-center items-center gap-1 border border-slate-200"
+                  >
+                     <span>🔗 تفاصيل الأسعار</span>
+                     <span className="text-[10px] text-slate-500 font-normal">باقة Spark & Enterprise</span>
+                  </a>
+                  <a 
+                     href="https://console.firebase.google.com/project/gen-lang-client-0200723670/firestore/databases/ai-studio-7058254a-1b06-4783-89b7-2b95cb116681/data?openUpgradeDialog=true" 
+                     target="_blank" 
+                     referrerPolicy="no-referrer"
+                     rel="noopener noreferrer"
+                     className="p-3 bg-blue-50 text-blue-700 text-center rounded-xl hover:bg-blue-100 transition-all flex flex-col justify-center items-center gap-1 border border-blue-150"
+                  >
+                     <span>⚙️ وحدة تحكم Firebase</span>
+                     <span className="text-[10px] text-blue-500 font-normal">مراقبة وترقية الحساب</span>
+                  </a>
+              </div>
+
+              <div className="flex gap-3 mt-4">
+                  <button 
+                     onClick={() => setQuotaError(null)}
+                     className="flex-1 py-3 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all"
+                  >
+                     تجاهل التنبيه مؤقتاً
+                  </button>
+              </div>
+          </div>
+      </div>
+    );
+  };
+
   if (!isAuthenticated) {
     return (
       <>
         {renderAuthError()}
+        {renderQuotaError()}
         <Login 
           logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
           onLogin={(mode) => {
@@ -1815,10 +2127,11 @@ const MainApp: React.FC = () => {
             }}
           />
         );
-        case 'ai': return <AIAssistant data={data} />;
-        case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
-        case 'diwaniya': return <DiwaniyaTournaments data={data} setData={setData} onNavigate={setCurrentPage} />;
-        default: return <PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} />;
+        case 'ai':
+        case 'smart-studio':
+        case 'diwaniya':
+          return <div className="partner-clean-shell"><PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} /></div>;
+        default: return <div className="partner-clean-shell"><PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} /></div>;
       }
     }
 
@@ -1894,7 +2207,9 @@ const MainApp: React.FC = () => {
       <AmbientBackground />
       
       {renderAuthError()}
+      {renderQuotaError()}
       <DataRefreshNotice show={Boolean(dataLoading && isAuthenticated)} mode={appMode} />
+      <NetworkStatusNotice online={isOnline} />
       <AdminOnboardingModal
         open={onboardingOpen}
         role={onboardingRole}
@@ -2090,24 +2405,6 @@ const MainApp: React.FC = () => {
                   </motion.div>
                 )}
                </AnimatePresence>
-            </div>
-            <div className="pt-2">
-              <div className={cn("flex items-center justify-between text-white/40 px-3 mb-3 cursor-pointer hover:text-white transition-all group", (!sidebarOpen && !isMobile) && "justify-center px-0 opacity-50")} onClick={() => { if (!sidebarOpen && !isMobile) { setSidebarOpen(true); openMenu('intelligence'); } else { toggleMenu('intelligence'); } }}>
-                <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors"><Bot size={16}/></div>{(sidebarOpen || isMobile) && <span className="text-[11px] font-sans font-bold whitespace-nowrap uppercase tracking-[0.25em] opacity-80">الذكاء والتسويق</span>}</div>
-                {(sidebarOpen || isMobile) && <motion.div animate={{ rotate: expandedMenus.intelligence ? 0 : 180 }}><ChevronDown size={14} className="opacity-40" /></motion.div>}
-              </div>
-              <AnimatePresence>{expandedMenus.intelligence && (sidebarOpen || isMobile) && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="space-y-1 mr-4 border-r-2 border-emerald-500/20 pr-4 overflow-hidden">
-                <SubNavItem label="مختبر الذكاء" icon={<Bot size={16}/>} active={currentPage === 'dashboard-ai'} onClick={() => { setCurrentPage('dashboard-ai'); setSidebarOpen(false); }} />
-                <SubNavItem label="محاكي النمو والتسويق" icon={<TrendingUp size={16}/>} active={currentPage === 'growth-simulator'} onClick={() => { setCurrentPage('growth-simulator'); setSidebarOpen(false); }} />
-                <SubNavItem label="العملاء والولاء" icon={<Users size={16}/>} active={currentPage === 'loyalty'} onClick={() => { setCurrentPage('loyalty'); setSidebarOpen(false); }} />
-                <SubNavItem label="المالية وحماية الأرباح" icon={<ShieldAlert size={16}/>} active={currentPage === 'profit-guard'} onClick={() => { setCurrentPage('profit-guard'); setSidebarOpen(false); }} />
-                <SubNavItem label="المساعد الذكي" icon={<Bot size={16}/>} active={currentPage === 'ai'} onClick={() => { setCurrentPage('ai'); setSidebarOpen(false); }} />
-                <SubNavItem label="استوديو المحتوى الذكي" icon={<Sparkles size={16}/>} active={currentPage === 'smart-studio'} onClick={() => { setCurrentPage('smart-studio'); setSidebarOpen(false); }} />
-                <SubNavItem label="الكوبونات" icon={<Receipt size={16}/>} active={currentPage === 'coupons'} onClick={() => { setCurrentPage('coupons'); setSidebarOpen(false); }} />
-                <SubNavItem label="بطولات الديوانية" icon={<BadgeCheck size={16}/>} active={currentPage === 'diwaniya'} onClick={() => { setCurrentPage('diwaniya'); setSidebarOpen(false); }} />
-                <SubNavItem label="التنبيهات الذكية" icon={<Bell size={16}/>} active={notifOpen} onClick={() => { setNotifOpen(true); setSidebarOpen(false); }} />
-                <SubNavItem label="الإعدادات العامة" icon={<Settings size={16}/>} active={currentPage === 'settings'} onClick={() => { setCurrentPage('settings'); setSidebarOpen(false); }} />
-              </motion.div>)}</AnimatePresence>
             </div>
           </nav>
         )}
@@ -2408,8 +2705,12 @@ const MainApp: React.FC = () => {
                }));
             }} 
           />
-          {userRole !== 'partner' && (
-            <CompanyCommandCenter data={data} onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }} page={currentPage} />
+          {userRole !== 'partner' && currentPage === 'dashboard' && (
+            <CompanyCommandCenter
+              data={data}
+              onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }}
+              page={currentPage}
+            />
           )}
           <AnimatePresence>
             <motion.div
@@ -2439,13 +2740,7 @@ const MainApp: React.FC = () => {
         isOpen={commandBarOpen} 
         onClose={() => setCommandBarOpen(false)} 
         onNavigate={(page, payload) => {
-           setCurrentPage(page);
-           setSidebarOpen(false);
-           if (payload) {
-             setDeepLinkData({ ...payload, _t: Date.now() });
-           } else {
-             setDeepLinkData({});
-           }
+           navigateAdminPage(page, payload);
         }}
         data={data}
         userRole={userRole}
@@ -2453,7 +2748,7 @@ const MainApp: React.FC = () => {
 
       {/* Global Scroll to Top */}
       <AnimatePresence>
-        {showTopButton && (
+        {showTopButton && userRole !== 'partner' && (
           <motion.button
             initial={{ opacity: 0, scale: 0.5, y: 50 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2494,7 +2789,7 @@ const MainApp: React.FC = () => {
 
       {/* --- MOBILE QUICK NAVIGATION TRIGGER --- */}
       <AnimatePresence>
-        {isMobile && userRole !== 'partner' && !commandBarOpen && (
+        {isMobile && userRole !== 'partner' && !commandBarOpen && currentPage === 'dashboard' && (
           <motion.div
             initial={{ opacity: 0, y: 100, scale: 0.5 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -2523,7 +2818,7 @@ const MainApp: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {(isAuthenticated || appMode === 'local') && <InstagramMagicWand data={data} />}
+      {(isAuthenticated || appMode === 'local') && <InstagramMagicWand data={data} currentPage={currentPage} />}
       <Toaster richColors position="bottom-right" closeButton />
       
 
@@ -2573,90 +2868,120 @@ const SubNavItem: React.FC<{ label: string; icon: React.ReactNode; active?: bool
 
 
 const ZEN_QUOTES = [
-  "إدارة هادئة… قرارات أوضح",
-  "التراث في الطبخ، والدقة في الإدارة",
-  "كل طلب له قصة، وكل رقم له قرار",
-  "من المطبخ إلى العميل… كل شيء تحت عينك",
-  "نبض المبيعات يبدأ من هنا",
-  "هدوء الواجهة… قوة التشغيل",
+  "نفتح مركز القيادة… ونترك الزحمة خارج الباب",
+  "الأرقام تتكلم بهدوء… والقرار يظهر بوضوح",
   "إدارة تليق باسم شركة مطبخ التراث",
-  "نختصر الزحمة، ونترك القرار واضحًا",
-  "تفاصيل صغيرة تصنع فرقًا كبيرًا"
+  "كل طلب له مسار… وكل رقم له معنى",
+  "من هنا يبدأ نبض التشغيل الحقيقي",
+  "هدوء الواجهة… قوة القرار",
+  "نرتّب اليوم قبل أن يبدأ الزحام",
+  "مطبخ التراث: تشغيل أذكى، وقرار أسرع"
 ];
 
 const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ show, logo, name }) => {
   const [quote, setQuote] = useState(ZEN_QUOTES[0]);
+
   useEffect(() => {
-    let index = Math.floor(Math.random() * ZEN_QUOTES.length);
+    const index = Math.floor(Math.random() * ZEN_QUOTES.length);
     setQuote(ZEN_QUOTES[index]);
-    const t = setInterval(() => {
-      index = (index + 1) % ZEN_QUOTES.length;
-      setQuote(ZEN_QUOTES[index]);
-    }, 900);
-    return () => clearInterval(t);
   }, []);
+
+  const pulseCards = [
+    { label: 'المبيعات', value: 'نبض', icon: <TrendingUp size={18} /> },
+    { label: 'الطلبات', value: 'مباشر', icon: <ShoppingBag size={18} /> },
+    { label: 'الأرباح', value: 'حماية', icon: <Gauge size={18} /> },
+  ];
 
   return (
     <AnimatePresence>
       {show && (
         <motion.div
-           initial={{ opacity: 1 }}
-           exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
-           className="fixed inset-0 z-[99999] flex flex-col items-center justify-center overflow-hidden bg-[#f8f4ea]"
-           dir="rtl"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0, scale: 1.01, transition: { duration: 0.7, ease: 'easeInOut' } }}
+          className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-[#080d12] px-5"
+          dir="rtl"
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,.86),rgba(248,244,234,.96)_52%,rgba(232,220,192,.82))] flex flex-col items-center justify-center">
-             <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] opacity-60 animate-pulse" />
-             <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] opacity-60 animate-pulse" style={{ animationDuration: '3s' }} />
-          </div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(245,184,74,.24),transparent_28%),radial-gradient(circle_at_16%_84%,rgba(16,185,129,.18),transparent_32%),linear-gradient(135deg,#070b10_0%,#111827_52%,#0b1115_100%)]" />
+          <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-amber-200/10 to-transparent" />
+          <div className="absolute -top-24 -right-20 h-72 w-72 rounded-full bg-amber-400/20 blur-[90px]" />
+          <div className="absolute -bottom-24 -left-20 h-80 w-80 rounded-full bg-emerald-400/16 blur-[100px]" />
+          <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,.55)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.55)_1px,transparent_1px)] [background-size:44px_44px]" />
 
-          <div className="relative z-10 flex flex-col items-center">
+          <motion.div
+            initial={{ y: 22, opacity: 0, scale: 0.98 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full max-w-[720px] overflow-hidden rounded-[2.2rem] border border-white/12 bg-white/[0.075] p-6 text-center shadow-[0_34px_100px_rgba(0,0,0,.42)] backdrop-blur-2xl md:p-8"
+          >
+            <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-l from-transparent via-amber-200/80 to-transparent" />
+            <div className="absolute -right-12 top-12 h-32 w-32 rounded-full bg-amber-300/10 blur-3xl" />
+            <div className="absolute -left-12 bottom-8 h-32 w-32 rounded-full bg-emerald-300/10 blur-3xl" />
+
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="mb-8 relative"
+              initial={{ scale: 0.86, opacity: 0, rotate: -3 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              transition={{ duration: 0.78, delay: 0.08, ease: 'easeOut' }}
+              className="relative mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-[2rem] border border-amber-100/25 bg-gradient-to-br from-[#f8f1df] via-[#efe1bd] to-[#cfb36e] shadow-[0_18px_55px_rgba(245,184,74,.22)] md:h-32 md:w-32"
             >
-              <div className="absolute inset-0 bg-emerald-400 rounded-full blur-[40px] opacity-20 animate-pulse" />
-              <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="w-32 h-32 md:w-40 md:h-40 relative z-10 drop-shadow-xl" />
+              <div className="absolute inset-[-10px] rounded-[2.4rem] border border-amber-200/10" />
+              <motion.span
+                className="absolute inset-[-16px] rounded-[2.6rem] border border-emerald-300/25"
+                animate={{ scale: [1, 1.08, 1], opacity: [0.35, 0.05, 0.35] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="relative z-10 h-20 w-20 drop-shadow-xl md:h-24 md:w-24" />
             </motion.div>
 
             <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-                className="text-center"
+              initial={{ y: 16, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.62, delay: 0.22, ease: 'easeOut' }}
+              className="space-y-3"
             >
-              <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-l from-slate-950 via-emerald-900 to-amber-700 bg-clip-text text-transparent mb-4 leading-relaxed tracking-tight">
+              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-amber-100/15 bg-amber-100/10 px-4 py-2 text-[11px] font-black text-amber-100 shadow-inner shadow-white/5">
+                <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.85)]" />
+                مركز القيادة يتجهز الآن
+              </div>
+              <h1 className="text-3xl font-black leading-tight text-white md:text-5xl">
                 {name || 'شركة مطبخ التراث الكويتي'}
               </h1>
-            </motion.div>
-
-            <motion.div 
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ duration: 0.5, delay: 0.8 }}
-               className="mt-8 w-56 md:w-72 h-1.5 bg-slate-200/50 rounded-full overflow-hidden relative"
-            >
-                <motion.div 
-                    initial={{ x: '100%' }}
-                    animate={{ x: '-10%' }}
-                    transition={{ duration: 2, ease: "easeInOut", repeat: Infinity }}
-                    className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-r from-emerald-400 via-emerald-500 to-indigo-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"
-                />
+              <p className="mx-auto max-w-[560px] text-sm font-bold leading-7 text-slate-300 md:text-base">
+                {quote}
+              </p>
             </motion.div>
 
             <motion.div
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ duration: 0.8, delay: 1 }}
-               className="text-center mt-6 px-6"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.46 }}
+              className="mt-7 grid grid-cols-3 gap-2 md:gap-3"
             >
-               <p className="text-slate-500 font-bold text-sm md:text-base italic animate-pulse">
-                 "{quote}"
-               </p>
+              {pulseCards.map((card, index) => (
+                <motion.div
+                  key={card.label}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: 0.54 + index * 0.08 }}
+                  className="rounded-2xl border border-white/10 bg-white/[0.075] px-2 py-3 text-center shadow-inner shadow-white/5"
+                >
+                  <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-amber-100">
+                    {card.icon}
+                  </span>
+                  <p className="text-[10px] font-bold text-slate-400 md:text-xs">{card.label}</p>
+                  <p className="mt-1 text-xs font-black text-white md:text-sm">{card.value}</p>
+                </motion.div>
+              ))}
             </motion.div>
-          </div>
+
+            <div className="mt-7 h-1.5 overflow-hidden rounded-full bg-white/10">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-l from-emerald-300 via-amber-300 to-white shadow-[0_0_24px_rgba(245,184,74,.42)]"
+                initial={{ width: '12%' }}
+                animate={{ width: ['12%', '58%', '92%'] }}
+                transition={{ duration: 1.85, ease: 'easeInOut' }}
+              />
+            </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
@@ -2664,9 +2989,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
 };
 
 const App: React.FC = () => {
-   const [showSplash, setShowSplash] = useState(() => {
-     try { return sessionStorage.getItem('alturath_admin_splash_seen_v6') !== 'true'; } catch { return true; }
-   });
+   const [showSplash, setShowSplash] = useState(true);
    const [logo, setLogo] = useState(DEFAULT_GLOBAL_LOGO);
    const [name, setName] = useState('شركة مطبخ التراث الكويتي');
 
@@ -2680,9 +3003,8 @@ const App: React.FC = () => {
        }
      } catch(e) {}
      const timer = setTimeout(() => {
-       try { sessionStorage.setItem('alturath_admin_splash_seen_v6', 'true'); } catch {}
        setShowSplash(false);
-     }, 1750);
+     }, 2350);
      return () => clearTimeout(timer);
    }, []);
 

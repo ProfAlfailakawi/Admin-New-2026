@@ -32,17 +32,17 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
 
   const commands = useMemo<CommandItem[]>(() => {
     const allTabs: CommandItem[] = [
-      { id: 'dashboard-main', label: 'اللوحة الرئيسية', hint: 'نبض العمل الآن', icon: <Home />, category: 'الرئيسية', action: () => onNavigate('dashboard', { exactId: 'pulse' }), roles: ['admin'] },
+      { id: 'dashboard-main', label: 'مركز القيادة / الرئيسية', hint: 'نبض اليوم والطلبات المعلقة وفشل الدفع', icon: <Home />, category: 'الرئيسية', action: () => onNavigate('dashboard', { exactId: 'pulse' }), roles: ['admin'] },
       { id: 'dashboard-ai', label: 'مختبر الذكاء', hint: 'تحليلات واستقرار', icon: <Sparkles />, category: 'الرئيسية', action: () => onNavigate('dashboard-ai', { exactId: 'intelligence' }), roles: ['admin'] },
-      { id: 'dashboard-growth', label: 'محاكي النمو والتسويق', hint: 'تجارب وحملات', icon: <Target />, category: 'الرئيسية', action: () => onNavigate('growth-simulator', {}), roles: ['admin'] },
+      { id: 'dashboard-growth', label: 'محاكي النمو والتسويق', hint: 'سيناريوهات الأرباح ماذا لو', icon: <Target />, category: 'الرئيسية', action: () => onNavigate('growth-simulator', {}), roles: ['admin'] },
       { id: 'dashboard-customers', label: 'العملاء والولاء', hint: 'نبض العملاء', icon: <Users />, category: 'الرئيسية', action: () => onNavigate('customers', {}), roles: ['admin'] },
       { id: 'dashboard-suppliers', label: 'الموردين والمخاطر', hint: 'توريد ومراجعة', icon: <Truck />, category: 'الرئيسية', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
-      { id: 'dashboard-financials', label: 'المالية وحماية الأرباح', hint: 'الأرقام المهمة', icon: <DollarSign />, category: 'الرئيسية', action: () => onNavigate('profit-guard', {}), roles: ['admin'] },
-      { id: 'dashboard-loyalty', label: 'الولاء', hint: 'النقاط والمكافآت', icon: <TrendingUp />, category: 'الولاء والكوبونات', action: () => onNavigate('loyalty', {}), roles: ['admin'] },
-      { id: 'dashboard-promocodes', label: 'الكوبونات', hint: 'إدارة الخصومات', icon: <Sparkles />, category: 'الولاء والكوبونات', action: () => onNavigate('coupons', {}), roles: ['admin'] },
+      { id: 'dashboard-financials', label: 'المالية وحماية الأرباح', hint: 'Profit Shield وهوامش الربح', icon: <DollarSign />, category: 'الرئيسية', action: () => onNavigate('profit-guard', {}), roles: ['admin'] },
+      { id: 'dashboard-loyalty', label: 'مملكة الولاء', hint: 'الفضي والذهبي والـ VIP', icon: <TrendingUp />, category: 'الولاء والكوبونات', action: () => onNavigate('loyalty', {}), roles: ['admin'] },
+      { id: 'dashboard-promocodes', label: 'مسرح العروض الذكية / الكوبونات', hint: 'قياس أثرها الربحي', icon: <Sparkles />, category: 'الولاء والكوبونات', action: () => onNavigate('coupons', {}), roles: ['admin'] },
       { id: 'dashboard-diwaniya', label: 'بطولات الديوانية', hint: 'المجتمع والترتيب', icon: <Users />, category: 'الولاء والكوبونات', action: () => onNavigate('diwaniya', {}), roles: ['admin'] },
-      { id: 'ai', label: 'المساعد الذكي', hint: 'اسأل وحلل', icon: <Sparkles />, category: 'الذكاء الاصطناعي', action: () => onNavigate('ai', {}), roles: ['admin', 'partner'] },
-      { id: 'smart-studio', label: 'استوديو المحتوى الذكي', hint: 'صور ومحتوى وأرشيف', icon: <Zap />, category: 'الذكاء الاصطناعي', action: () => onNavigate('smart-studio', {}), roles: ['admin'] },
+      { id: 'ai', label: 'المساعد الذكي', hint: 'مستشار مالي للتوصيات', icon: <Sparkles />, category: 'الذكاء الاصطناعي', action: () => onNavigate('ai', {}), roles: ['admin', 'partner'] },
+      { id: 'smart-studio', label: 'استوديو المحتوى الذكي', hint: 'Creative Suite للدعاية والتسويق', icon: <Zap />, category: 'الذكاء الاصطناعي', action: () => onNavigate('smart-studio', {}), roles: ['admin'] },
       { id: 'new-invoice', label: 'فاتورة جديدة', hint: 'إنشاء سريع', icon: <PlusCircle />, category: 'الإجراءات السريعة', action: () => onNavigate('new-invoice', {}), roles: ['admin', 'partner'] },
       { id: 'customers-page', label: 'بيانات العملاء', hint: 'بحث وتفاصيل', icon: <Users />, category: 'التنقل', action: () => onNavigate('customers', {}), roles: ['admin'] },
       { id: 'products-page', label: 'إدارة المنتجات', hint: 'الأسعار والتصنيفات', icon: <Package />, category: 'التنقل', action: () => onNavigate('products', {}), roles: ['admin'] },
@@ -50,7 +50,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       { id: 'orders', label: 'طلبات الموقع', hint: 'حالات الدفع', icon: <ShoppingBag />, category: 'التنقل', action: () => onNavigate('orders', {}), roles: ['partner', 'admin'] },
       { id: 'invoices-list', label: 'سجل الفواتير', hint: 'فواتير وتقارير', icon: <FileText />, category: 'التنقل', action: () => onNavigate('invoices-list', {}), roles: ['partner', 'admin'] },
       { id: 'suppliers-audit', label: 'الموردين والمراجعة', hint: 'تدقيق الموردين والمخاطر', icon: <Truck />, category: 'التنقل', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
-      { id: 'reports', label: 'التقارير المالية', hint: 'تقارير ومبيعات', icon: <PieChart />, category: 'التنقل', action: () => onNavigate('reports', {}), roles: ['admin'] },
+      { id: 'reports', label: 'التقارير التنفيذية', hint: 'تفصيل مالي للأداء والمبيعات', icon: <PieChart />, category: 'التنقل', action: () => onNavigate('reports', {}), roles: ['admin'] },
       { id: 'settings', label: 'الإعدادات العامة', hint: 'هوية وتنبيهات وضبط', icon: <ShieldCheck />, category: 'التنقل', action: () => onNavigate('settings', {}), roles: ['admin'] },
       { id: 'alerts', label: 'التنبيهات الذكية', hint: 'راجع التنبيهات من اللوحة', icon: <Activity />, category: 'التنقل', action: () => onNavigate('dashboard', { exactId: 'pulse', scrollTarget: 'alerts-section' }), roles: ['admin'] },
       { id: 'partner', label: 'برنامج الشريك', hint: 'واجهة بسيطة للشريك', icon: <Users />, category: 'التنقل', action: () => onNavigate('dashboard', { exactId: 'pulse', scrollTarget: 'partner-section' }), roles: ['admin'] },
@@ -110,7 +110,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     return commands.filter(c => clean(c.label).includes(q) || clean(c.category).includes(q) || clean(c.hint).includes(q) || c.tags?.some((t) => clean(t).includes(q)));
   }, [commands, deferredQuery]);
 
-  const priority = ['dashboard-ai','new-invoice','orders','invoices-list','alerts','products-page','customers-page','settings'];
+  const priority = ['dashboard-main','reports','dashboard-loyalty','dashboard-promocodes','smart-studio','dashboard-growth','ai','dashboard-diwaniya','dashboard-financials','new-invoice','orders','invoices-list','products-page','customers-page','settings'];
   const featured = useMemo(() => {
     const sorted = [...filteredCommands].sort((a, b) => {
       const ai = priority.indexOf(a.id);
@@ -195,24 +195,9 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
               <button type="button" onClick={onClose} className="command-premium-close"><X size={18} /></button>
             </div>
 
-            <div className="px-4 md:px-5 py-3 border-b border-slate-100 bg-slate-50/70">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {featured.map((cmd, index) => (
-                  <button
-                    key={cmd.id}
-                    type="button"
-                    onClick={() => runCommand(cmd)}
-                    onMouseEnter={() => setSelectedIndex(Math.max(0, filteredCommands.findIndex((item) => item.id === cmd.id)))}
-                    className={cn('command-feature-card', index === selectedIndex && 'is-active')}
-                  >
-                    <span className="command-feature-icon">{React.cloneElement(cmd.icon as React.ReactElement, { size: 16 } as any)}</span>
-                    <span className="min-w-0 text-right">
-                      <strong>{cmd.label}</strong>
-                      <small>{cmd.hint || cmd.category}</small>
-                    </span>
-                  </button>
-                ))}
-              </div>
+            <div className="px-4 md:px-5 py-3 border-b border-slate-100 bg-slate-50/70 text-right">
+              <strong className="block text-sm text-slate-800">الأهم أولاً</strong>
+              <span className="text-[11px] font-bold text-slate-400">مركز القيادة، التقارير، الولاء، العروض، المحتوى، النمو، المساعد، الديوانية، وحماية الأرباح.</span>
             </div>
 
             <div className="max-h-[46vh] md:max-h-[390px] overflow-y-auto p-3 md:p-4 custom-scrollbar">

@@ -2711,3 +2711,25 @@ html, body, #root {
     padding: 7px 8px !important;
   }
 }
+
+/* === Prof. Ahmad final polish: Admin app === */
+[data-admin-page="settings"] .admin-content-polish > :first-child,
+[data-admin-page="ai"] .admin-content-polish > :first-child,
+[data-admin-page="expenses"] .admin-content-polish > :first-child,
+[data-admin-page="invoices-list"] .admin-content-polish > :first-child,
+[data-admin-page="orders"] .admin-content-polish > :first-child{display:none!important;}
+[data-admin-page="dashboard-ai"] .admin-content-polish [data-ai-lab],
+[data-admin-page="dashboard-ai"] .admin-content-polish .ai-lab,
+[data-admin-page="dashboard-ai"] .admin-content-polish .intelligence-lab,
+[data-admin-page="dashboard-ai"] .admin-content-polish .bg-slate-950,
+[data-admin-page="growth-simulator"] .admin-content-polish [id*="what-if"],
+[data-admin-page="growth-simulator"] .admin-content-polish .what-if-duplicate{display:none!important;}
+.heritage-command-brief{position:relative;z-index:60}.heritage-command-brief.is-collapsed{max-width:920px;margin-inline:auto}.heritage-command-brief.is-open{max-width:1040px;margin-inline:auto;}
+.command-hidden-search{direction:rtl;text-align:right;padding-inline:16px!important;}
+.command-hidden-search::placeholder{direction:rtl;text-align:right;}
+@media(max-width:720px){
+  .login-showcase-shell{min-height:calc(100dvh - 24px)!important;}
+  .login-brand-stage{min-height:52dvh!important;}
+  .login-form-stage{min-height:32dvh!important;position:relative!important;}
+  .login-form-stage:after{content:"";display:block;height:120px;background:radial-gradient(circle at 50% 20%,rgba(212,175,55,.10),transparent 62%);pointer-events:none;}
+}
