@@ -1293,12 +1293,12 @@ ${paymentLink}`
 مرحباً ${customerName}،
 تم تجهيز فاتورتكم للطلب رقم: ${invoiceNumber}
 
-الإجمالي المستحق: ${Number(total).toFixed(3)} د.ك${paymentSection}
+الإجمالي المستحق: ${Number(total).toFixed(3)} د.ك
 
 لتتبع الطلب:
 ${trackingUrl}
-
-شكراً لاختياركم مطبخ التراث الكويتي
+${paymentSection}
+شكراً لثقتكم
 Alturath.kw`;
 
     const phoneUsed =
@@ -1321,7 +1321,7 @@ Alturath.kw`;
           )
           .join("\n");
       finalMessage = message.replace(
-        "شكراً لتعاملكم",
+        "شكراً لثقتكم",
         splitText + "\n\nشكراً لتعاملكم",
       );
     } else if (
@@ -1337,7 +1337,7 @@ Alturath.kw`;
         .join("، ");
       const splitText = `\n\n*الروليت*\nالمشاركون: ${participants}\n*بطل الليلة اللي دفعها:* ${(targetObj as any).rouletteLoser || "غير معروف"}`;
       finalMessage = message.replace(
-        "شكراً لتعاملكم",
+        "شكراً لثقتكم",
         splitText + "\n\nشكراً لتعاملكم",
       );
     }

@@ -622,9 +622,9 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       const paymentSection =
         paymentLink && paymentLink.trim() !== "" && !isPaidNow
           ? `
-
 ${linkEmoji} رابط الدفع:
-${paymentLink}`
+${paymentLink}
+`
           : "";
 
       const promoCodeName = invoice.appliedPromoCodeName;
@@ -651,12 +651,12 @@ ${paymentLink}`
 مرحباً ${customerName}،
 تم تجهيز فاتورتكم للطلب رقم: ${invoice.id}
 
-الإجمالي المستحق: ${Number(total).toFixed(3)} د.ك${paymentSection}
+الإجمالي المستحق: ${Number(total).toFixed(3)} د.ك
 
 لتتبع الطلب:
 ${trackingUrl}
-
-شكراً لاختياركم مطبخ التراث الكويتي
+${paymentSection}
+شكراً لثقتكم
 Alturath.kw`;
 
       let finalMessage = message;
@@ -673,7 +673,7 @@ Alturath.kw`;
             )
             .join("\n");
         finalMessage = message.replace(
-          "شكراً لتعاملكم",
+          "شكراً لثقتكم",
           splitText + "\n\nشكراً لتعاملكم",
         );
       } else if (
@@ -689,7 +689,7 @@ Alturath.kw`;
           .join("، ");
         const splitText = `\n\n*الروليت*\nالمشاركون: ${participants}\n*بطل الليلة اللي دفعها:* ${(invoice as any).rouletteLoser || "غير معروف"}`;
         finalMessage = message.replace(
-          "شكراً لتعاملكم",
+          "شكراً لثقتكم",
           splitText + "\n\nشكراً لتعاملكم",
         );
       }

@@ -18,7 +18,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
       : hour >= 12 && hour < 17
         ? { title: 'مرحباً، وقت الغداء والتركيز! 🍽️', sub: 'تابع الحركة، الطلبات، والفرص من مركز القيادة.' }
         : { title: 'نظرة هادئة على الأرقام ☕', sub: 'هدوء الليل أفضل وقت لمراجعة الأداء والتجهيز للغد.' };
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
    const brief = useMemo(() => {
     const lines = [];
