@@ -157,15 +157,6 @@ topCustomersInfo: (data?.customers || []).map(c => ({ name: c.name, spent: (data
 
  return (
  <div className="ai-executive-assistant-shell animate-in fade-in slide-in-from-bottom-4 duration-700" dir="rtl">
-  <section className="ai-executive-hero">
-    <div className="ai-executive-orb"><BrainCircuit size={26} /></div>
-    <div className="min-w-0">
-      <span className="ai-executive-kicker"><span /> جاهز للتحليل</span>
-      <h1>المساعد الذكي</h1>
-      <p>اسأل النظام عن المبيعات، المنتجات، العملاء، الموردين، والطلبات بدون تغيير أي إعدادات.</p>
-    </div>
-  </section>
-
   <section className="ai-executive-console">
     <div className="ai-executive-messages custom-scrollbar">
       <AnimatePresence initial={false}>

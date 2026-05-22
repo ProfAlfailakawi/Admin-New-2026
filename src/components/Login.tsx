@@ -167,6 +167,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
               <DownloadCloud size={20} />
             </button>
           )}
+
+          <div className="login-mobile-finish-card" aria-hidden="true">
+            <div className="finish-card-line" />
+            <strong>لوحة جاهزة للعمل</strong>
+            <span>دخول سريع، مزامنة هادئة، وتجربة PWA ممتدة بدون فراغ أبيض.</span>
+          </div>
         </section>
 
         <AnimatePresence>

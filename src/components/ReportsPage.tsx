@@ -701,23 +701,6 @@ Alturath.kw`;
 
     return (
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 text-right">
-          <div className="order-2 md:order-1 flex-1">
-            <h1 className="text-xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-3 justify-end leading-tight">
-              {activeTab === "orders" ? "طلبات التطبيق" : "سجل المبيعات"}
-              <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
-                <FileText className="text-white" />
-              </div>
-            </h1>
-            <p className="text-slate-500 font-medium font-bold italic">
-              {activeTab === "orders"
-                ? "تتبع وإدارة طلبات تطبيق الزبائن القادمة"
-                : "إدارة وتدقيق جميع الفواتير والمبيعات الصادرة"}
-            </p>
-          </div>
-        </div>
-
         {/* Tab Selector */}
         <div className="flex items-center gap-4 bg-slate-100 p-2 rounded-2xl w-fit self-end shadow-inner">
           <button

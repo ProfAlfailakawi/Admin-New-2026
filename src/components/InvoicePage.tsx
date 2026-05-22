@@ -932,13 +932,6 @@ Alturath.kw`;
                             <span>يوفره بسعر أقل!</span>
                             <b><span className="num-premium">{bestPrice.cost.toFixed(3)}</span> د.ك</b>
                           </span>
-                          {openCheaperHintId === p.id && (
-                            <span className="invoice-product-price-popover invoice-product-price-popover-inline is-forced-open" aria-hidden="true">
-                              <strong>{bestPrice.supplier || 'مورد آخر'}</strong>
-                              <span>يوفره بسعر أقل!</span>
-                              <b><span className="num-premium">{bestPrice.cost.toFixed(3)}</span> د.ك</b>
-                            </span>
-                          )}
                         </span>
                       );
                     }
