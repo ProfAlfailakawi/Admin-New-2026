@@ -358,6 +358,23 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
         : { title: 'نظرة هادية على الأرقام.. عساك على القوة! ☕', sub: 'هدوء الليل أفضل وقت للتخطيط ومراجعة الأداء.' };
   const [isOpen, setIsOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const commandCenterRef = React.useRef<HTMLElement | null>(null);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (target && commandCenterRef.current && !commandCenterRef.current.contains(target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, [isOpen]);
 
   const paidSalesValue = allSales.filter((item: any) => isPaidStatus(item?.status || item?.paymentStatus)).reduce((sum: number, item: any) => sum + getMoneyValue(item), 0);
   const briefLines = [
@@ -477,7 +494,7 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     : coreModules;
 
   return (
-    <section dir="rtl" className={`heritage-command-brief heritage-command-brief-${tone} ${isOpen ? 'is-open' : 'is-collapsed'}`} aria-label="مركز القيادة">
+    <section ref={commandCenterRef} dir="rtl" className={`heritage-command-brief heritage-command-brief-${tone} ${isOpen ? 'is-open' : 'is-collapsed'}`} aria-label="مركز القيادة">
       <div className="heritage-command-hero">
         <span className="heritage-command-orb"><Sparkles size={22} /></span>
         <div className="min-w-0 text-right heritage-command-copy">
@@ -788,12 +805,12 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
   const showCustomers = page === 'customers' || page === 'loyalty';
   const showSuppliers = page === 'suppliers' || page === 'suppliers-audit';
   const showCoupons = page === 'coupons';
-  const showAi = page === 'dashboard-ai';
+  const showAi = false; // لا نعرض بوكس مختبر الذكاء المكرر تحت الهيدر
   const showGrowth = page === 'growth-simulator';
-  const showProfit = page === 'profit-guard' || page === 'expenses' || page === 'reports';
+  const showProfit = page === 'profit-guard';
   const showPageHero = page !== 'dashboard';
   return (
-    <div className={`admin-experience-stack ${!showPageHero ? 'dashboard-merged-with-command' : ''}`}>
+    <div data-admin-page={page} className={`admin-experience-stack ${!showPageHero ? 'dashboard-merged-with-command' : ''}`}>
       {showPageHero && (
         <section className="admin-page-hero" dir="rtl">
           <div className="admin-page-hero-main"><span className="admin-page-kicker">{meta.tag}</span><h1>{meta.title}</h1><p>{meta.subtitle}</p></div>
@@ -2731,7 +2748,7 @@ const MainApp: React.FC = () => {
 
       {/* Global Scroll to Top */}
       <AnimatePresence>
-        {showTopButton && (
+        {showTopButton && userRole !== 'partner' && (
           <motion.button
             initial={{ opacity: 0, scale: 0.5, y: 50 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
