@@ -1255,9 +1255,9 @@ const OrderPage: React.FC<OrderPageProps> = ({
         String(order.status).includes("تجميع القطية") ||
         order.status === "split_pending"
       );
-    const invoiceEmoji = "✨";
-    const linkEmoji = "✅";
-    const trackingUrl = "https://alturathkw.shop/track";
+    const invoiceEmoji = "\u2728";
+    const linkEmoji = "\u2705";
+    const trackingUrl = `https://alturathkw.shop/track?tracked_order=${encodeURIComponent(String(invoiceNumber))}`;
     const paymentSection =
       paymentLink && paymentLink.trim() !== "" && !isPaidNow
         ? `

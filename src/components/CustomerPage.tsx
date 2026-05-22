@@ -293,7 +293,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
   };
 
   const handleSendMessage = (customer: Customer) => {
-    const message = generateCustomerSmartMessage(customer, data.invoices || [], data.products || []);
+    const message = `\u2728 ${generateCustomerSmartMessage(customer, data.invoices || [], data.products || [])}`;
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/965${customer.phone}?text=${encodedMessage}`, '_blank');
     toast.success("تم تجهيز الرسالة الذكية", { 

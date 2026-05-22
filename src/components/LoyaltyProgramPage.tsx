@@ -108,31 +108,31 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
 
  if (classification ==="شريك التراث" || classification ==="عميل ذهبي") {
  smartAdvice ="عميل مميز وشريك حقيقي، دلاله واجب!";
- whatsappMessage = `✨ هلا ${namePart}، أنت من عملاء التراث المميزين وعندك ${activePoints} نقطة. جهزنا لك عرض خاص يليق فيك.`;
+ whatsappMessage = `\u2728 هلا ${namePart}، أنت من عملاء التراث المميزين وعندك ${activePoints} نقطة. جهزنا لك عرض خاص يليق فيك.`;
  actionLabel ="مكافأة الشريك";
  } else if (classification ==="عاشق التراث") {
  smartAdvice ="ولاء مطلق للمطعم، كافئه ليصبح شريكاً";
- whatsappMessage = `✨ أصيل يا ${namePart}، ولاؤك للتراث محل تقدير. رصيدك ${activePoints} نقطة، وجهزنا لك عرض خاص اليوم.`;
+ whatsappMessage = `\u2728 أصيل يا ${namePart}، ولاؤك للتراث محل تقدير. رصيدك ${activePoints} نقطة، وجهزنا لك عرض خاص اليوم.`;
  actionLabel ="تقدير العاشق";
  } else if (classification ==="صياد العروض") {
  smartAdvice ="يعشق التوفير، ارسل له عروض حصرية ومباشرة";
- whatsappMessage = `✨ يا هلا ${namePart}، جهزنا لك عرض حصري مع رصيدك الحالي ${activePoints} نقطة. لا يفوتك.`;
+ whatsappMessage = `\u2728 يا هلا ${namePart}، جهزنا لك عرض حصري مع رصيدك الحالي ${activePoints} نقطة. لا يفوتك.`;
  actionLabel ="طُعم الاقتناص";
  } else if (classification ==="منقطع") {
  smartAdvice ="اشتقنا له، فرصة استرجاعه بكود قوي";
- whatsappMessage = `✨ اشتقنا لك ${namePart}، لك فترة ما طلبت من التراث. عندك ${activePoints} نقطة ناطرتك.`;
+ whatsappMessage = `\u2728 اشتقنا لك ${namePart}، لك فترة ما طلبت من التراث. عندك ${activePoints} نقطة ناطرتك.`;
  actionLabel ="رسالة استرجاع";
  } else if (activePoints >= 150 && activePoints < 250) {
  smartAdvice ="باقي له قليل للوصول لمكافأة كبيرة";
- whatsappMessage = `✨ ${namePart}، باقي لك شوي وتوصل للمكافأة الكبيرة. رصيدك الحين ${activePoints} نقطة.`;
+ whatsappMessage = `\u2728 ${namePart}، باقي لك شوي وتوصل للمكافأة الكبيرة. رصيدك الحين ${activePoints} نقطة.`;
  actionLabel ="تحفيز الوصول";
  } else if (activePoints >= 250) {
  smartAdvice ="رصيده عالي، شجعه على الاستبدال";
- whatsappMessage = `✨ ما شاء الله ${namePart}، رصيدك ${activePoints} نقطة. تقدر تستخدمها كخصم مباشر. حياك الله.`;
+ whatsappMessage = `\u2728 ما شاء الله ${namePart}، رصيدك ${activePoints} نقطة. تقدر تستخدمها كخصم مباشر. حياك الله.`;
  actionLabel ="رسالة استبدال";
  } else {
  smartAdvice ="العميل يبني ولاءه، شجعه لتجميع النقاط";
- whatsappMessage = `✨ يا هلا ${namePart}، رصيد نقاطك ${activePoints} نقطة. استمر بجمع النقاط لفتح عروض التراث.`;
+ whatsappMessage = `\u2728 يا هلا ${namePart}، رصيد نقاطك ${activePoints} نقطة. استمر بجمع النقاط لفتح عروض التراث.`;
  actionLabel ="تذكير بالولاء";
  }
 

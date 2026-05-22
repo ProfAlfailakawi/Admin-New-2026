@@ -316,9 +316,9 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
             : invoice.address)
         : invoice.deliveryInfo?.zoneName || "غير محدد";
 
-      const invoiceEmoji = "✨";
-      const linkEmoji = "✅";
-      const trackingUrl = "https://alturathkw.shop/track";
+      const invoiceEmoji = "\u2728";
+      const linkEmoji = "\u2705";
+      const trackingUrl = `https://alturathkw.shop/track?tracked_order=${encodeURIComponent(String(invoice.id))}`;
       const customerName = customer?.name || "عميلنا العزيز";
       const paymentSection = paymentLinkLine
         ? `
