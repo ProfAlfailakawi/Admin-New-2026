@@ -2461,37 +2461,253 @@ button:has(.invoice-product-price-hint){overflow:visible!important;isolation:iso
   .login-install-btn{width:48px!important;height:48px!important;margin-top:16px!important;border-radius:18px!important;}
 }
 
+/* Partner dashboard polish — partner only */
+.partner-clean-shell .partner-time-filter{
+  position: relative !important;
+  inset: auto !important;
+  margin: 0 auto 14px !important;
+  padding: 0 4px !important;
+  width: 100% !important;
+  max-width: 520px !important;
+  z-index: 25 !important;
+}
+.partner-clean-shell .partner-time-filter > div{
+  box-shadow: 0 12px 34px rgba(15,23,42,.08) !important;
+  background: rgba(255,255,255,.86) !important;
+  border: 1px solid rgba(226,232,240,.72) !important;
+}
+.partner-clean-shell .heritage-command-brief{
+  margin-top: 0 !important;
+  overflow: visible !important;
+}
+.partner-clean-shell .heritage-command-brief .heritage-command-grid{
+  gap: 12px !important;
+  align-items: stretch !important;
+  padding-bottom: 10px !important;
+}
+.partner-clean-shell .heritage-command-brief .heritage-command-tile{
+  min-height: 118px !important;
+  padding: 13px 14px !important;
+  border-radius: 22px !important;
+  background: rgba(255,255,255,.065) !important;
+  border-color: rgba(255,255,255,.14) !important;
+  color: rgba(248,250,252,.94) !important;
+}
+.partner-clean-shell .heritage-command-brief .heritage-command-tile strong,
+.partner-clean-shell .heritage-command-brief .heritage-command-tile .heritage-tile-label{
+  font-size: clamp(.82rem, 1.05vw, .98rem) !important;
+  line-height: 1.65 !important;
+  font-weight: 850 !important;
+  letter-spacing: -.01em !important;
+  color: rgba(255,255,255,.92) !important;
+}
+.partner-clean-shell .heritage-command-brief .heritage-command-tile small{
+  font-size: .68rem !important;
+  line-height: 1.55 !important;
+  color: rgba(226,232,240,.72) !important;
+  min-height: 0 !important;
+}
+.partner-clean-shell .heritage-command-brief .heritage-tile-icon{
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 13px !important;
+  background: rgba(255,255,255,.09) !important;
+}
+.partner-clean-shell .executive-morning-brief{
+  padding: 14px 16px !important;
+  border-radius: 22px !important;
+  background: linear-gradient(135deg,rgba(15,23,42,.92),rgba(17,24,39,.78)) !important;
+}
+.partner-clean-shell .executive-morning-brief strong{
+  font-size: clamp(1rem,1.4vw,1.3rem) !important;
+  line-height: 1.35 !important;
+}
+.partner-clean-shell .executive-morning-brief li{
+  font-size: .76rem !important;
+  line-height: 1.8 !important;
+  color: rgba(255,255,255,.78) !important;
+}
+@media (max-width: 760px){
+  .partner-clean-shell{ padding-bottom: 22px !important; }
+  .partner-clean-shell .partner-time-filter{ max-width: 100% !important; margin-bottom: 10px !important; }
+  .partner-clean-shell .partner-time-filter > div{ max-width: 100% !important; border-radius: 20px !important; padding: 10px 14px !important; }
+  .partner-clean-shell .heritage-command-brief .heritage-command-grid{ grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 9px !important; }
+  .partner-clean-shell .heritage-command-brief .heritage-command-tile{ min-height: 108px !important; padding: 11px !important; border-radius: 20px !important; }
+  .partner-clean-shell .heritage-command-brief .heritage-command-tile strong,
+  .partner-clean-shell .heritage-command-brief .heritage-command-tile .heritage-tile-label{ font-size: .78rem !important; line-height: 1.55 !important; }
+}
 
-/* Admin4545 request: remove offers tile in code and show 3 command tiles per row on compact screens */
-@media (max-width:900px){
-  .heritage-command-brief.is-open .heritage-command-grid{
-    grid-template-columns:repeat(3,minmax(0,1fr))!important;
-    gap:6px!important;
+
+/* FINAL COMMAND CENTER CONTAINMENT FIX
+   Prevents the command center from creating horizontal page scroll/blank side areas,
+   keeps it in the dashboard flow, and makes the opened panel compact and readable. */
+html, body, #root {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+.admin-heritage-shell,
+.admin-heritage-shell main,
+.admin-experience-stack,
+.admin-content-polish {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: clip !important;
+}
+
+.admin-experience-stack > .heritage-command-brief {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-inline: 0 !important;
+  transform: none !important;
+  left: auto !important;
+  right: auto !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  contain: layout paint !important;
+}
+
+.heritage-command-brief,
+.heritage-command-brief *,
+.heritage-command-grid,
+.heritage-command-tile,
+.executive-morning-brief {
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+}
+
+.heritage-command-brief.is-collapsed {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  min-height: 76px !important;
+  padding: 14px 18px !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+}
+
+.heritage-command-brief.is-collapsed .heritage-command-grid,
+.heritage-command-brief.is-collapsed .executive-morning-brief {
+  display: none !important;
+}
+
+.heritage-command-brief.is-open {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  padding: 14px !important;
+  border-radius: 22px !important;
+}
+
+.heritage-command-brief.is-open .heritage-command-grid {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+  margin-top: 10px !important;
+  overflow: hidden !important;
+}
+
+.heritage-command-brief.is-open .executive-morning-brief {
+  grid-column: 1 / -1 !important;
+  min-height: 0 !important;
+  padding: 10px 12px !important;
+  border-radius: 16px !important;
+  background: rgba(15, 23, 42, .34) !important;
+  border-color: rgba(255,255,255,.10) !important;
+}
+
+.heritage-command-brief.is-open .executive-morning-brief ul {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+}
+
+.heritage-command-brief.is-open .executive-morning-brief li {
+  font-size: 10px !important;
+  line-height: 1.45 !important;
+  padding: 6px 8px !important;
+  color: rgba(241,245,249,.82) !important;
+  background: rgba(255,255,255,.055) !important;
+}
+
+.heritage-command-brief.is-open .heritage-command-tile {
+  min-height: 72px !important;
+  padding: 8px 10px !important;
+  border-radius: 15px !important;
+  background: rgba(15, 23, 42, .38) !important;
+  border-color: rgba(255,255,255,.10) !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+.heritage-command-brief.is-open .heritage-tile-icon {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 10px !important;
+}
+
+.heritage-command-brief.is-open .heritage-tile-icon svg {
+  width: 13px !important;
+  height: 13px !important;
+}
+
+.heritage-command-brief.is-open .heritage-command-tile .heritage-tile-label {
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+  color: rgba(226,232,240,.80) !important;
+}
+
+.heritage-command-brief.is-open .heritage-command-tile strong {
+  font-size: 17px !important;
+  line-height: 1 !important;
+  color: #fff !important;
+}
+
+.heritage-command-brief.is-open .heritage-command-tile small {
+  font-size: 8.5px !important;
+  line-height: 1.35 !important;
+  color: rgba(203,213,225,.68) !important;
+  min-height: 0 !important;
+}
+
+@media (max-width: 900px) {
+  .admin-experience-stack > .heritage-command-brief {
+    margin: 0 0 12px !important;
   }
-  .heritage-command-brief.is-open .heritage-command-tile{
-    min-height:58px!important;
-    padding:6px 6px!important;
-    border-radius:14px!important;
+
+  .heritage-command-brief.is-collapsed {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    min-height: 0 !important;
+    padding: 12px !important;
+    border-radius: 20px !important;
   }
-  .heritage-command-brief.is-open .heritage-command-tile .heritage-tile-label{
-    font-size:9px!important;
-    line-height:1.2!important;
+
+  .heritage-command-brief.is-collapsed .heritage-command-actions,
+  .heritage-command-brief.is-collapsed .heritage-command-toggle {
+    width: 100% !important;
   }
-  .heritage-command-brief.is-open .heritage-command-tile strong{
-    font-size:15px!important;
+
+  .heritage-command-brief.is-open {
+    max-height: 58dvh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 10px !important;
   }
-  .heritage-command-brief.is-open .heritage-command-tile small{
-    font-size:7.4px!important;
-    line-height:1.2!important;
+
+  .heritage-command-brief.is-open .heritage-command-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
   }
-  .heritage-command-brief.is-open .heritage-tile-icon,
-  .heritage-command-brief.is-open .heritage-command-tile .heritage-tile-icon{
-    width:23px!important;
-    height:23px!important;
-    border-radius:9px!important;
+
+  .heritage-command-brief.is-open .executive-morning-brief ul {
+    grid-template-columns: 1fr !important;
   }
-  .heritage-command-brief.is-open .heritage-tile-icon svg{
-    width:12px!important;
-    height:12px!important;
+
+  .heritage-command-brief.is-open .heritage-command-tile {
+    min-height: 66px !important;
+    padding: 7px 8px !important;
   }
 }

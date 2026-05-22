@@ -218,7 +218,7 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  // Actions
  const handleWhatsApp = (phone: string, msg: string) => {
  const formattedPhone = phone?.startsWith('965') ? phone : `965${phone}`;
- window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(sanitizeWhatsAppText(msg))}`, '_blank');
+ window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(sanitizeWhatsAppText(`${msg}\n\nhttps://alturathkw.shop`))}`, '_blank');
  };
 
  const updateLoyaltySettings = (exp: number, dyn: boolean) => {

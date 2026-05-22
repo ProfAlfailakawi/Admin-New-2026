@@ -676,7 +676,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                   <Trash2 size={16} />
                                 </button>
                                 <a 
-                                  href={`https://api.whatsapp.com/send?phone=${s.phone}&text=${encodeURIComponent(sanitizeWhatsAppText(waMsg))}`}
+                                  href={`https://api.whatsapp.com/send?phone=${s.phone}&text=${encodeURIComponent(sanitizeWhatsAppText(`${waMsg}\n\nhttps://alturathkw.shop`))}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-500 hover:text-white transition-colors tooltip inline-block"
