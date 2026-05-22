@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Users, Trophy, Crown, Medal, Swords, Target, Settings, Flame, Star, ExternalLink, MessageCircle, X, Plus, Trash2, Edit2, Check, Copy } from 'lucide-react';
+import { Users, Trophy, Crown, Medal, Swords, Target, Settings, Flame, Star, ExternalLink, MessageCircle, X, Plus, Trash2, Edit2, Check, Copy, MapPin, Radio, Navigation, BellRing, Compass, Smartphone, Laptop, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { DEFAULT_SQUADS } from '../data';
 
 export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate?: (page: string) => void }> = ({ data, setData, onNavigate }) => {
-  const [activeTab, setActiveTab] = useState<'leaderboard' | 'squads' | 'settings'>('leaderboard');
+  const [activeTab, setActiveTab] = useState<'leaderboard' | 'squads' | 'settings' | 'radar'>('leaderboard');
   const [isConfiguring, setIsConfiguring] = useState(false);
 
   // Use global squads if available, otherwise fallback to initial ones
   const squads = Array.isArray(data.squads) ? data.squads : DEFAULT_SQUADS;
 
   const setSquads = (newSquads: any[]) => {
-    setData((prev: any) => ({ ...prev, squads: newSquads }));
+    setData((prev: any) => {
+      const updated = { ...prev, squads: newSquads };
+      localStorage.setItem('ktk_accounting_data', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   React.useEffect(() => {
@@ -89,9 +93,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       const normalized = resolved.map(normalizeAdminTier);
       const sharedTiers = normalizeForOrder(normalized);
 
-      // Persist through the shared AppState using a functional update.
-      // This prevents newly added levels from being overwritten by a stale
-      // `data` object when the screen is closed, reopened, or after logout/login.
+      // Persist through the shared AppState using a functional update
       setData((current: any) => ({
         ...current,
         diwaniyaTiers: normalized,
@@ -146,10 +148,76 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   const [expandedSquadId, setExpandedSquadId] = useState<number | string | null>(null); // To expand squad details
   const [editingSquadId, setEditingSquadId] = useState<number | string | null>(null);
   const [editedSquadName, setEditedSquadName] = useState('');
+  const [editedSquadFounder, setEditedSquadFounder] = useState('');
+  const [editedSquadPhone, setEditedSquadPhone] = useState('');
+  const [levelsBarExpanded, setLevelsBarExpanded] = useState(false);
+
+  // Manual Squad registration states
+  const [showAddSquad, setShowAddSquad] = useState(false);
+  const [newSquadName, setNewSquadName] = useState('');
+  const [newSquadFounder, setNewSquadFounder] = useState('');
+  const [newSquadPhone, setNewSquadPhone] = useState('');
+  const [squadSearchQuery, setSquadSearchQuery] = useState('');
+
+  // Geolocation & Kuwait Map coordinates states
+  const [activeMapSquadId, setActiveMapSquadId] = useState<number | string | null>(null);
+
+  const governorates = [
+    { name: 'العاصمة', x: 74, y: 38 },
+    { name: 'حولي', x: 78, y: 44 },
+    { name: 'الفروانية', x: 67, y: 50 },
+    { name: 'مبارك الكبير', x: 78, y: 51 },
+    { name: 'الأحمدي', x: 73, y: 68 },
+    { name: 'الجهراء', x: 35, y: 35 }
+  ];
+
+  const mappedSquadsForMap = React.useMemo(() => {
+    return squads.map((sq: any, index: number) => {
+      // Deterministic governorate index
+      const govIndex = index % governorates.length;
+      const gov = governorates[govIndex];
+      
+      const step = index * 1.7; 
+      const radiusX = 3 + (index % 3) * 1.5;
+      const radiusY = 3 + (index % 2) * 1.5;
+      let posX = Math.min(92, Math.max(8, gov.x + radiusX * Math.cos(step)));
+      let posY = Math.min(92, Math.max(8, gov.y + radiusY * Math.sin(step)));
+      let govName = gov.name;
+
+      if (sq.name && sq.name.includes('الفيلكاوي')) {
+        posX = 88;
+        posY = 36;
+        govName = 'جزيرة فيلكا';
+      }
+      
+      return {
+        ...sq,
+        govName,
+        x: posX,
+        y: posY,
+      };
+    });
+  }, [squads]);
+
+  const selectedSquad = React.useMemo(() => {
+    return mappedSquadsForMap.find((s: any) => String(s.id) === String(activeMapSquadId)) || null;
+  }, [mappedSquadsForMap, activeMapSquadId]);
+
+  const geofenceDistance = data.geofenceDistance !== undefined ? data.geofenceDistance : 100;
+
+  const handleDistanceChange = (val: number) => {
+    setData((prev: any) => {
+      const updated = { ...prev, geofenceDistance: val };
+      localStorage.setItem('ktk_accounting_data', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const startEditSquad = (squad: any) => {
     setEditingSquadId(squad.id);
     setEditedSquadName(squad.name || '');
+    setEditedSquadFounder(squad.founder || squad.king || squad.membersList?.[0]?.name || '');
+    setEditedSquadPhone(squad.phone || squad.membersList?.[0]?.phone || '');
   };
 
   const saveSquadName = (id: any) => {
@@ -158,10 +226,47 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       toast.error('اكتب اسم الديوانية أولاً');
       return;
     }
-    setSquads(squads.map((sq: any) => sq.id === id ? { ...sq, name: nextName } : sq));
+    setSquads(squads.map((sq: any) => sq.id === id ? { 
+      ...sq, 
+      name: nextName,
+      founder: editedSquadFounder.trim() || sq.founder,
+      phone: editedSquadPhone.trim() || sq.phone
+    } : sq));
     setEditingSquadId(null);
     setEditedSquadName('');
-    toast.success('تم تعديل اسم الديوانية');
+    setEditedSquadFounder('');
+    setEditedSquadPhone('');
+    toast.success('تم تعديل بيانات الديوانية والمؤسس بنجاح');
+  };
+
+  const handleAddSquad = () => {
+    const name = newSquadName.trim();
+    const founder = newSquadFounder.trim();
+    const phone = newSquadPhone.trim();
+    if (!name) {
+      toast.error('يرجى كِتابة اسم الديوانية');
+      return;
+    }
+    const newId = Date.now();
+    const newSquadObj = {
+      id: newId,
+      name,
+      founder: founder || 'غير محدد',
+      phone: phone || '',
+      points: 0,
+      tier: 'شلة ديوانية',
+      members: 1,
+      king: founder || 'المؤسس',
+      kingOrders: 0,
+      membersList: founder ? [{ name: founder, phone: phone || '90000000', points: 0 }] : []
+    };
+
+    setSquads([...squads, newSquadObj]);
+    setNewSquadName('');
+    setNewSquadFounder('');
+    setNewSquadPhone('');
+    setShowAddSquad(false);
+    toast.success('تم تسجِيل الديوانية والمؤسس الجديد بنجاح! 🎉');
   };
 
   const deleteSquad = (squad: any) => {
@@ -172,9 +277,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     const currentSquads = Array.isArray(data?.squads) ? data.squads : squads;
     const nextSquads = currentSquads.filter((sq: any) => String(sq.id) !== String(squad.id));
 
-    // Use the direct object update because this project persists setData through Firebase;
-    // functional setData was not always applied from this screen.
-    setData({ ...data, squads: nextSquads });
+    setData((prev: any) => {
+      const updated = { ...prev, squads: nextSquads };
+      localStorage.setItem('ktk_accounting_data', JSON.stringify(updated));
+      return updated;
+    });
 
     if (String(expandedSquadId) === String(squad.id)) setExpandedSquadId(null);
     if (String(editingSquadId) === String(squad.id)) {
@@ -318,7 +425,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                </div>
                <div>
                   <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500">
-                    بطولات الديوانية (Squad Rewards)
+                     بطولات الديوانية (Squad Rewards)
                   </h2>
                   <p className="text-amber-100/70 font-medium mt-1">حوّل ولاء الأفراد إلى ولاء جماعي وتنافس شرس بين الدواوين!</p>
                </div>
@@ -362,85 +469,93 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       <div className="flex gap-2 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto">
         <button onClick={() => setActiveTab('leaderboard')} className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'leaderboard' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>لوحة الصدارة 🔥</button>
         <button onClick={() => setActiveTab('squads')} className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'squads' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>إدارة الدواوين 👥</button>
+        <button onClick={() => setActiveTab('radar')} className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'radar' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>رادار الانضمام الجغرافي 📍</button>
         <button onClick={() => setActiveTab('settings')} className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>إعدادات التحديات ⚙️</button>
       </div>
 
       <div className="bg-white border border-slate-200/70 rounded-3xl p-4 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div className="text-sm font-black text-slate-800 flex items-center gap-2"><Crown className="w-4 h-4 text-amber-500" /> شريط المستويات</div>
-          <div className="text-[10px] font-bold text-slate-400">يتم تحديد مستوى الديوانية تلقائياً حسب النقاط إذا لم يكن محدداً</div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {[...tiers].sort((a, b) => parseTierPoints(a.points) - parseTierPoints(b.points)).map((tier) => (
-            <div key={tier.id} className="relative overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 p-3">
-              <div className={`absolute inset-y-0 right-0 w-1.5 bg-gradient-to-b ${tier.color || 'from-slate-300 to-slate-500'}`} />
-              <div className="pr-3 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white bg-gradient-to-br ${tier.color || 'from-slate-300 to-slate-500'} shadow-sm shrink-0`}>{getIcon(tier.iconType)}</div>
-                <div className="min-w-0">
-                  <div className="font-black text-slate-800 text-sm truncate">{tier.name}</div>
-                  <div className="text-[10px] font-bold text-slate-500">من {tier.points} نقطة</div>
-                  <div className="text-[10px] font-semibold text-slate-400 truncate">{tier.label}</div>
-                </div>
-              </div>
+        <button 
+          onClick={() => setLevelsBarExpanded(!levelsBarExpanded)} 
+          className="w-full flex items-center justify-between gap-3 text-right group focus:outline-none"
+        >
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-amber-50 rounded-xl">
+              <Crown className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
             </div>
-          ))}
-        </div>
+            <div>
+              <div className="text-sm font-black text-slate-800 flex items-center gap-2">
+                 شريط مستويات الدواوين 
+                <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {tiers.length} مستويات تتبع النقاط
+                </span>
+              </div>
+              <div className="text-[10px] font-bold text-slate-400 mt-0.5">اضغط لرؤية المستويات وهدايا النقاط بالتفصيل</div>
+            </div>
+          </div>
+          <div className="p-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 group-hover:bg-slate-100 transition">
+            {levelsBarExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </div>
+        </button>
+
+        <AnimatePresence>
+          {levelsBarExpanded && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1, marginTop: 16 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                {[...tiers].sort((a, b) => parseTierPoints(a.points) - parseTierPoints(b.points)).map((tier) => (
+                  <div key={tier.id} className="relative overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                    <div className={`absolute inset-y-0 right-0 w-1.5 bg-gradient-to-b ${tier.color || 'from-slate-300 to-slate-500'}`} />
+                    <div className="pr-3 flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white bg-gradient-to-br ${tier.color || 'from-slate-300 to-slate-500'} shadow-sm shrink-0`}>{getIcon(tier.iconType)}</div>
+                      <div className="min-w-0">
+                        <div className="font-black text-slate-800 text-sm truncate">{tier.name}</div>
+                        <div className="text-[10px] font-bold text-slate-500">من {tier.points} نقطة</div>
+                        <div className="text-[10px] font-semibold text-slate-400 truncate">{tier.label}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {activeTab === 'leaderboard' && (
         <AnimatePresence mode="wait">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-               <div className="lg:col-span-2 space-y-4">
-                 <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">أقوى 5 دواوين هذا الأسبوع <Flame className="text-rose-500" /></h3>
-                 
-                 <div className="bg-white border text-right border-slate-200/60 rounded-3xl p-2 shadow-sm overflow-hidden">
-                   {[...squads].sort((a,b) => (b.points || 0) - (a.points || 0)).slice(0,5).map((squad, i) => (
-                     <div key={squad.id} className="flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 rounded-2xl">
-                       <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center font-bold text-xl shadow-inner border ${i === 0 ? 'bg-amber-100 border-amber-300 text-amber-600' : i === 1 ? 'bg-slate-100 border-slate-300 text-slate-600' : i === 2 ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
-                         #{i + 1}
-                       </div>
-                       <div className="flex-1 min-w-0">
-                         <h4 className="font-bold text-slate-800 text-lg flex items-center gap-2 truncate">
-                           {squad.name} 
-                           {squad.tier === 'شيوخ' && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-md text-[10px] uppercase font-black tracking-wider shrink-0">شيوخ</span>}
-                           {squad.tier === 'نواخذة' && <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md text-[10px] uppercase font-black shrink-0">نواخذة</span>}
-                         </h4>
-                         <div className="flex items-center gap-4 text-xs font-bold text-slate-500 mt-1">
-                           <span className="flex items-center gap-1"><Users size={14} /> {squad.members} أعضاء</span>
-                           <span className="flex items-center gap-1 text-amber-600"><Star size={14} /> {(squad.points || 0).toLocaleString('en-GB')} نقطة جماعية</span>
-                         </div>
-                       </div>
-                       <div className="hidden sm:flex flex-col items-center bg-slate-50 p-2 border border-slate-100 rounded-xl min-w-[120px]">
-                         <span className="text-[10px] text-slate-400 font-bold mb-1">ملك الديوانية 👑</span>
-                         <span className="text-sm font-bold text-slate-800 truncate max-w-[100px]">{squad.king}</span>
-                       </div>
-                     </div>
-                   ))}
-                 </div>
-               </div>
-
-               <div className="space-y-6">
-                 <div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-3xl p-6 text-white text-center relative overflow-hidden shadow-xl border border-purple-800">
-                    <Trophy className="w-48 h-48 text-yellow-400 opacity-[0.03] absolute -top-8 -right-8 pointer-events-none" />
-                    <h3 className="font-bold text-xl mb-2 relative z-10">وسام الفخر (الفاتورة)</h3>
-                    <p className="text-sm font-medium text-purple-200 opacity-90 relative z-10 leading-relaxed">
-                      هكذا ستظهر الفاتورة للديوانية المتصدرة، مما يخلق شعوراً بالفخر والتنافس كل مرة يطلبون فيها:
-                    </p>
-                    <div className="mt-6 bg-white text-slate-800 p-4 rounded-xl text-right relative z-10 shadow-2xl skew-y-1 transform scale-95 border-b-4 border-slate-200">
-                      <div className="text-center font-black mb-4 border-b border-dashed border-slate-300 pb-2">مطعم التراث</div>
-                      <div className="flex justify-between text-sm font-bold mb-1"><span>مجبوس لحم</span> <span>6.500 د.ك</span></div>
-                      <div className="flex justify-between text-sm font-bold mb-4"><span>مربين</span> <span>5.500 د.ك</span></div>
-                      
-                      <div className="bg-amber-50 p-3 rounded-lg border-2 border-amber-200 text-center animate-pulse relative overflow-hidden">
-                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
-                         <Crown className="w-5 h-5 text-amber-500 mx-auto mb-1 relative z-10" />
-                         <div className="font-extrabold text-amber-800 text-xs relative z-10">عضو في "{[...squads].sort((a,b) => (b.points || 0) - (a.points || 0))[0]?.name || 'ديوانية'}"</div>
-                         <div className="font-bold text-amber-600 text-[10px] mt-1 relative z-10">المركز الأول 🥇</div>
+             <div className="space-y-4">
+                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">أقوى 5 دواوين هذا الأسبوع <Flame className="text-rose-500" /></h3>
+                
+                <div className="bg-white border text-right border-slate-200/60 rounded-3xl p-2 shadow-sm overflow-hidden">
+                  {[...squads].sort((a,b) => (b.points || 0) - (a.points || 0)).slice(0,5).map((squad, i) => (
+                    <div key={squad.id} className="flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 rounded-2xl">
+                      <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center font-bold text-xl shadow-inner border ${i === 0 ? 'bg-amber-100 border-amber-300 text-amber-600' : i === 1 ? 'bg-slate-100 border-slate-300 text-slate-600' : i === 2 ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
+                        #{i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-slate-800 text-lg flex items-center gap-2 truncate">
+                          {squad.name} 
+                          {squad.tier === 'شيوخ' && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-md text-[10px] uppercase font-black tracking-wider shrink-0">شيوخ</span>}
+                          {squad.tier === 'نواخذة' && <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md text-[10px] uppercase font-black shrink-0">نواخذة</span>}
+                        </h4>
+                        <div className="flex items-center gap-4 text-xs font-bold text-slate-500 mt-1">
+                          <span className="flex items-center gap-1"><Users size={14} /> {squad.members} أعضاء</span>
+                          <span className="flex items-center gap-1 text-amber-600"><Star size={14} /> {(squad.points || 0).toLocaleString('en-GB')} نقطة جماعية</span>
+                        </div>
+                      </div>
+                      <div className="hidden sm:flex flex-col items-center bg-slate-50 p-2 border border-slate-100 rounded-xl min-w-[120px]">
+                        <span className="text-[10px] text-slate-400 font-bold mb-1">ملك الديوانية 👑</span>
+                        <span className="text-sm font-bold text-slate-800 truncate max-w-[100px]">{squad.king}</span>
                       </div>
                     </div>
-                 </div>
-               </div>
+                  ))}
+                </div>
              </div>
           </motion.div>
         </AnimatePresence>
@@ -453,10 +568,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                 <div className="flex justify-between items-start mb-6">
                   <div>
                     <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2 mb-2">
-                      مستويات الدواوين (Tiers & Rewards)
+                       مستويات الدواوين (Tiers & Rewards)
                     </h3>
                     <p className="text-slate-500 text-sm font-medium max-w-2xl">
-                      كلما طلبت مجموعة الديوانية أكثر، ارتقوا للمستوى التالي وفتحوا ميزات دائمة. هذا يضمن ولائهم التام وصعوبة انتقالهم لمنافس لأنهم سيفقدون امتيازاتهم التراكمية.
+                       كلما طلبت مجموعة الديوانية أكثر، ارتقوا للمستوى التالي وفتحوا ميزات دائمة. هذا يضمن ولائهم التام وصعوبة انتقالهم لمنافس لأنهم سيفقدون امتيازاتهم التراكمية.
                     </p>
                   </div>
                   <button onClick={addTier} className="p-2 bg-slate-900 border text-white font-bold rounded-xl text-sm flex items-center gap-2 hover:bg-slate-800 shrink-0">
@@ -583,16 +698,98 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                     <h3 className="font-bold text-xl text-slate-800">إدارة الدواوين (Squads CRM)</h3>
                     <p className="text-xs text-slate-500 mt-1">يتم احتساب النقاط بناءً على المبيعات: <strong>كل ١ دينار = ١ نقطة</strong> لجميع أعضاء الديوانية بناءً على أرقام هواتفهم.</p>
                   </div>
-                  <div className="flex gap-2">
-                    <input type="text" placeholder="ابحث عن ديوانية..." className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-sm font-medium outline-none focus:border-blue-500 w-full max-w-[200px]" />
+                  <div className="flex gap-2 items-center w-full md:w-auto">
+                    <input 
+                      type="text" 
+                      placeholder="ابحث باسم الديوانية أو المؤسس..." 
+                      value={squadSearchQuery}
+                      onChange={(e) => setSquadSearchQuery(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-sm font-medium outline-none focus:border-blue-500 w-full sm:max-w-[240px]" 
+                    />
+                    <button 
+                      onClick={() => setShowAddSquad(!showAddSquad)} 
+                      className="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-slate-800 transition flex items-center gap-1 shrink-0"
+                    >
+                      <Plus size={14} /> إضافة ديوانية
+                    </button>
                   </div>
                 </div>
 
+                {/* Manual Register Diwaniya Form */}
+                {showAddSquad && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-5 bg-slate-50 rounded-2xl border border-slate-200 mb-6 space-y-4"
+                  >
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                      <h4 className="font-extrabold text-sm text-slate-800 flex items-center gap-1.5">
+                        <Plus className="w-4 h-4 text-emerald-600" /> تسجيل ديوانية جديدة مع المؤسس
+                      </h4>
+                      <button 
+                        onClick={() => setShowAddSquad(false)}
+                        className="p-1 hover:bg-slate-250 rounded-lg text-slate-400 hover:text-slate-600 transition"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-[11px] font-black text-slate-500 block mb-1">اسم الديوانية</label>
+                        <input
+                          type="text"
+                          value={newSquadName}
+                          onChange={(e) => setNewSquadName(e.target.value)}
+                          placeholder="مثال: ديوانية العسعوسي"
+                          className="w-full text-xs font-bold leading-6 bg-white border border-slate-200 p-2.5 rounded-xl text-right placeholder:text-slate-300 outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-black text-slate-500 block mb-1">اسم المؤسس الأول</label>
+                        <input
+                          type="text"
+                          value={newSquadFounder}
+                          onChange={(e) => setNewSquadFounder(e.target.value)}
+                          placeholder="مثال: صالح العسعوسي"
+                          className="w-full text-xs font-bold leading-6 bg-white border border-slate-200 p-2.5 rounded-xl text-right placeholder:text-slate-300 outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-black text-slate-500 block mb-1">رقم هاتف المؤسس</label>
+                        <input
+                          type="text"
+                          value={newSquadPhone}
+                          onChange={(e) => setNewSquadPhone(e.target.value)}
+                          placeholder="مثال: 99xxxxxx"
+                          className="w-full text-xs font-bold leading-6 bg-white border border-slate-200 p-2.5 rounded-xl text-right placeholder:text-slate-300 outline-none focus:border-indigo-500 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2">
+                      <button 
+                        onClick={() => setShowAddSquad(false)}
+                        className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-extrabold text-xs rounded-xl transition duration-150"
+                      >
+                        إلغاء
+                      </button>
+                      <button 
+                        onClick={handleAddSquad}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl transition duration-150"
+                      >
+                        تأكيد وإضافة الديوانية
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
                 <div className="w-full overflow-x-auto rounded-xl border border-slate-100">
-                  <table className="w-full text-right whitespace-nowrap min-w-[700px]" dir="rtl">
+                  <table className="w-full text-right whitespace-nowrap min-w-[850px]" dir="rtl">
                     <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase border-b border-slate-100">
                       <tr>
                         <th className="p-4 pr-6">اسم الديوانية</th>
+                        <th className="p-4">المؤسس الرئيسي 👑</th>
                         <th className="p-4">المستوى</th>
                         <th className="p-4 text-center">النقاط الإجمالية</th>
                         <th className="p-4 text-center">الأعضاء</th>
@@ -601,151 +798,288 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-sm">
-                        {squads.map(s => {
-                          const sortedArr = [...squads].sort((a,b) => (b.points || 0) - (a.points || 0));
-                          const rank = sortedArr.findIndex(x => x.id === s.id) + 1;
-                          const points = s.points || 0;
-                          const displayTier = s.tier || getTierForPoints(points)?.name || 'شلة ديوانية';
-                          
-                          let waMsg = `\u2728 مرحباً يا ${s.name}!\nرصيدكم الحالي ${points} نقطة، وتصنيفكم ${s.tier}.\nكل طلب يقربكم من الصدارة.`;
-                          if (rank === 1 && points > 0) {
-                            waMsg = `\u2728 مرحباً يا ${s.name}!\nنبارك لكم تصدركم المركز الأول في بطولات الديوانية برصيد ${points} نقطة.\nاستمروا وفالكم البيرق يا ${s.tier}.`;
-                          } else if (rank <= 3 && points > 0) {
-                            waMsg = `\u2728 مرحباً يا ${s.name}!\nأنتم في المركز ${rank} برصيد ${points} نقطة.\nالمركز الأول قريب، شدوا حيلكم.`;
-                          } else if (points === 0) {
-                            waMsg = `\u2728 مرحباً يا ${s.name}!\nسجلنا ديوانيتكم عندنا، ناطرين أول طلب عشان تبدأون المنافسة وتجمعون النقاط.`;
-                          }
-                          
-                          return (
-                        <React.Fragment key={s.id}>
-                          <tr className={`transition-colors cursor-pointer ${expandedSquadId === s.id ? 'bg-blue-50/30' : 'hover:bg-slate-50/50'}`} onClick={() => setExpandedSquadId(expandedSquadId === s.id ? null : s.id)}>
-                            <td className="p-4 pr-6 font-bold text-slate-800">
-                              <div className="flex items-center gap-2">
-                                {editingSquadId === s.id ? (
-                                  <input
-                                    value={editedSquadName}
-                                    onChange={(e) => setEditedSquadName(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="bg-white border border-blue-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100 min-w-[180px]"
-                                    autoFocus
-                                  />
-                                ) : (
-                                  <span>{s.name}</span>
-                                )}
-                                {expandedSquadId === s.id ? <span className="text-blue-500 text-xs">▼</span> : <span className="text-slate-400 text-xs">◀</span>}
-                              </div>
-                            </td>
-                            <td className="p-4">
-                               <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${displayTier === 'شيوخ' ? 'bg-purple-100 text-purple-700' : displayTier === 'نواخذة' ? 'bg-amber-100 text-amber-700' : displayTier === 'عزوة' ? 'bg-slate-200 text-slate-700' : 'bg-orange-100 text-orange-700'}`}>
-                                 {displayTier}
-                               </span>
-                            </td>
-                            <td className="p-4 text-center font-bold text-slate-600">{(s.points || 0).toLocaleString()} نقطة</td>
-                            <td className="p-4 text-center font-bold">{s.members}</td>
-                            <td className="p-4">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold shrink-0 text-slate-700">{(s.king || '?').charAt(0)}</div>
-                                <div className="flex flex-col">
-                                  <span className="font-bold text-xs text-slate-700">{s.king || 'لا يوجد'} 👑</span>
-                                  <span className="text-[10px] text-slate-400">{s.kingOrders || 0} طلبات</span>
+                        {squads
+                          .filter(s => {
+                            const query = squadSearchQuery.trim().toLowerCase();
+                            if (!query) return true;
+                            const nameMatch = (s.name || '').toLowerCase().includes(query);
+                            const founderName = (s.founder || s.king || s.membersList?.[0]?.name || '');
+                            const founderMatch = founderName.toLowerCase().includes(query);
+                            const phoneMatch = (s.phone || '').includes(query);
+                            return nameMatch || founderMatch || phoneMatch;
+                          })
+                          .map(s => {
+                            const sortedArr = [...squads].sort((a,b) => (b.points || 0) - (a.points || 0));
+                            const rank = sortedArr.findIndex(x => x.id === s.id) + 1;
+                            const points = s.points || 0;
+                            const displayTier = s.tier || getTierForPoints(points)?.name || 'شلة ديوانية';
+                            const founderName = s.founder || s.king || s.membersList?.[0]?.name || 'غير محدد';
+                            const founderPhone = s.phone || s.membersList?.[0]?.phone || '';
+                            
+                            let waMsg = `\u2728 مرحباً يا ${s.name}!\nرصيدكم الحالي ${points} نقطة، وتصنيفكم ${s.tier}.\nكل طلب يقربكم من الصدارة.`;
+                            if (rank === 1 && points > 0) {
+                              waMsg = `\u2728 مرحباً يا ${s.name}!\nنبارك لكم تصدركم المركز الأول في بطولات الديوانية برصيد ${points} نقطة.\nاستمروا وفالكم البيرق يا ${s.tier}.`;
+                            } else if (rank <= 3 && points > 0) {
+                              waMsg = `\u2728 مرحباً يا ${s.name}!\nأنتم في المركز ${rank} برصيد ${points} نقطة.\nالمركز الأول قريب، شدوا حيلكم.`;
+                            } else if (points === 0) {
+                              waMsg = `\u2728 مرحباً يا ${s.name}!\nسجلنا ديوانيتكم عندنا، ناطرين أول طلب عشان تبدأون المنافسة وتجمعون النقاط.`;
+                            }
+                            
+                            return (
+                          <React.Fragment key={s.id}>
+                            <tr className={`transition-colors cursor-pointer ${expandedSquadId === s.id ? 'bg-blue-50/30' : 'hover:bg-slate-50/50'}`} onClick={() => setExpandedSquadId(expandedSquadId === s.id ? null : s.id)}>
+                              <td className="p-4 pr-6 font-bold text-slate-800">
+                                <div className="flex items-center gap-2">
+                                  {editingSquadId === s.id ? (
+                                    <input
+                                      value={editedSquadName}
+                                      onChange={(e) => setEditedSquadName(e.target.value)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="bg-white border border-blue-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100 min-w-[180px]"
+                                      autoFocus
+                                    />
+                                  ) : (
+                                    <span>{s.name}</span>
+                                  )}
+                                  {expandedSquadId === s.id ? <span className="text-blue-500 text-xs">▼</span> : <span className="text-slate-400 text-xs">◀</span>}
                                 </div>
-                              </div>
-                            </td>
-                            <td className="p-4 pl-6 text-left" onClick={e => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-2">
-                                {editingSquadId === s.id ? (
-                                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveSquadName(s.id); }} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors" title="حفظ الاسم">
-                                    <Check size={16} />
-                                  </button>
-                                ) : (
-                                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); startEditSquad(s); }} className="p-2 bg-slate-50 text-slate-500 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors" title="تعديل اسم الديوانية">
-                                    <Edit2 size={16} />
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    deleteSquad(s);
-                                  }}
-                                  className="relative z-30 inline-flex items-center justify-center p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white active:scale-95 transition-all cursor-pointer pointer-events-auto"
-                                  title="حذف الديوانية"
-                                  aria-label="حذف الديوانية"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                                <a 
-                                  href={`https://api.whatsapp.com/send?phone=${s.phone}&text=${encodeURIComponent(sanitizeWhatsAppText(`${waMsg}\n\nhttps://alturathkw.shop`))}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-500 hover:text-white transition-colors tooltip inline-block"
-                                  title="تواصل عبر الواتساب"
-                                >
-                                  <MessageCircle size={16} />
-                                </a>
-                              </div>
-                            </td>
-                          </tr>
-                          {expandedSquadId === s.id && s.membersList && (
-                            <tr className="bg-slate-50/50 hidden md:table-row">
-                              <td colSpan={6} className="p-0">
-                                <div className="p-4 pr-12 bg-blue-50/10 border-t border-b border-blue-100/50">
-                                  <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">تفاصيل نقاط الأعضاء الفردية</h4>
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    {s.membersList.map((member, i) => (
-                                      <div key={i} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold flex items-center justify-center text-xs shrink-0">
-                                          {(member.name || '?').charAt(0)}
-                                        </div>
-                                        <div className="flex-1">
-                                          <div className="font-bold text-sm text-slate-800">{member.name || 'غير معروف'}</div>
-                                          <div className="text-[10px] text-slate-400 font-mono">{member.phone}</div>
-                                        </div>
-                                        <div className="text-left">
-                                          <div className="font-black text-blue-600">{(member.points || 0).toLocaleString()}</div>
-                                          <div className="text-[9px] text-slate-400">نقطة</div>
-                                        </div>
-                                      </div>
-                                    ))}
+                              </td>
+                              <td className="p-4">
+                                <div className="flex flex-col" onClick={(e) => e.stopPropagation()}>
+                                  {editingSquadId === s.id ? (
+                                    <div className="flex flex-col gap-1.5 max-w-[200px]">
+                                      <input
+                                        placeholder="اسم المؤسس"
+                                        value={editedSquadFounder}
+                                        onChange={(e) => setEditedSquadFounder(e.target.value)}
+                                        className="bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none"
+                                      />
+                                      <input
+                                        placeholder="رقم الهاتف"
+                                        value={editedSquadPhone}
+                                        onChange={(e) => setEditedSquadPhone(e.target.value)}
+                                        className="bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold font-mono outline-none"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <span className="font-bold text-slate-700 text-xs flex items-center gap-1.5">
+                                        {founderName}
+                                        <span className="text-[9px] font-bold tracking-wide text-amber-800 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded-md">المؤسس الرئيسي 👑</span>
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                 <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${displayTier === 'شيوخ' ? 'bg-purple-100 text-purple-700' : displayTier === 'نواخذة' ? 'bg-amber-100 text-amber-700' : displayTier === 'عزوة' ? 'bg-slate-200 text-slate-700' : 'bg-orange-100 text-orange-700'}`}>
+                                   {displayTier}
+                                 </span>
+                              </td>
+                              <td className="p-4 text-center font-bold text-slate-600">{(points).toLocaleString()} نقطة</td>
+                              <td className="p-4 text-center font-bold">{s.members}</td>
+                              <td className="p-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold shrink-0 text-slate-700">{(s.king || '?').charAt(0)}</div>
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-xs text-slate-700">{s.king || 'لا يوجد'} 👑</span>
+                                    <span className="text-[10px] text-slate-400">{s.kingOrders || 0} طلبات</span>
                                   </div>
                                 </div>
                               </td>
-                            </tr>
-                          )}
-                          {expandedSquadId === s.id && s.membersList && (
-                            <tr className="bg-slate-50/50 md:hidden table-row">
-                              <td colSpan={6} className="p-0">
-                                <div className="p-4 bg-blue-50/10 border-t border-b border-blue-100/50">
-                                  <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">تفاصيل نقاط الأعضاء الفردية</h4>
-                                  <div className="flex flex-col gap-2">
-                                    {s.membersList.map((member, i) => (
-                                      <div key={i} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold flex items-center justify-center text-xs shrink-0">
-                                          {(member.name || '?').charAt(0)}
-                                        </div>
-                                        <div className="flex-1">
-                                          <div className="font-bold text-sm text-slate-800">{member.name || 'غير معروف'}</div>
-                                          <div className="text-[10px] text-slate-400 font-mono">{member.phone}</div>
-                                        </div>
-                                        <div className="text-left">
-                                          <div className="font-black text-blue-600">{(member.points || 0).toLocaleString()}</div>
-                                          <div className="text-[9px] text-slate-400">نقطة</div>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
+                              <td className="p-4 pl-6 text-left" onClick={e => e.stopPropagation()}>
+                                <div className="flex items-center justify-end gap-2">
+                                  {editingSquadId === s.id ? (
+                                    <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveSquadName(s.id); }} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors" title="حفظ الاسم">
+                                      <Check size={16} />
+                                    </button>
+                                  ) : (
+                                    <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); startEditSquad(s); }} className="p-2 bg-slate-50 text-slate-500 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors" title="تعديل اسم الديوانية">
+                                      <Edit2 size={16} />
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      deleteSquad(s);
+                                    }}
+                                    className="relative z-30 inline-flex items-center justify-center p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white active:scale-95 transition-all cursor-pointer pointer-events-auto"
+                                    title="حذف الديوانية"
+                                    aria-label="حذف الديوانية"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                  <a 
+                                    href={`https://api.whatsapp.com/send?phone=${s.phone || founderPhone}&text=${encodeURIComponent(sanitizeWhatsAppText(`${waMsg}\n\nhttps://alturathkw.shop`))}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-500 hover:text-white transition-colors tooltip inline-block"
+                                    title="تواصل عبر الواتساب"
+                                  >
+                                    <MessageCircle size={16} />
+                                  </a>
                                 </div>
                               </td>
                             </tr>
-                          )}
-                        </React.Fragment>
-                      );
+                            {expandedSquadId === s.id && s.membersList && (
+                              <tr className="bg-slate-50/50 table-row">
+                                <td colSpan={7} className="p-0">
+                                  <div className="p-4 pr-12 bg-blue-50/10 border-t border-b border-blue-100/50">
+                                    <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">تفاصيل نقاط الأعضاء الفردية</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                      {s.membersList.map((member: any, i: number) => (
+                                        <div key={i} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold flex items-center justify-center text-xs shrink-0">
+                                            {(member.name || '?').charAt(0)}
+                                          </div>
+                                          <div className="flex-1">
+                                            <div className="font-bold text-sm text-slate-800">{member.name || 'غير معروف'}</div>
+                                            <div className="text-[10px] text-slate-400 font-mono">{member.phone}</div>
+                                          </div>
+                                          <div className="text-left">
+                                            <div className="font-black text-blue-600">{(member.points || 0).toLocaleString()}</div>
+                                            <div className="text-[9px] text-slate-400">نقطة</div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
                       })}
                     </tbody>
                   </table>
                 </div>
-             </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+      {activeTab === 'radar' && (
+        <AnimatePresence mode="wait">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm text-right max-w-4xl mx-auto space-y-6">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
+                    <Compass className="w-5 h-5 text-amber-500" /> رادار التغطية الجغرافية للدواوين 📍
+                  </h3>
+                </div>
+                
+                {/* Distance Selector Tool */}
+                <div className="w-full md:w-auto mt-4 md:mt-0 flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-200/80" dir="rtl">
+                  <span className="text-xs font-bold text-slate-600 whitespace-nowrap">أداة تحديد البعد بالمسافة (متر):</span>
+                  <input 
+                    type="range" 
+                    min="10" 
+                    max="1000" 
+                    value={geofenceDistance} 
+                    onChange={(e) => handleDistanceChange(parseInt(e.target.value))}
+                    className="w-40 sm:w-48 accent-amber-500 h-1 bg-slate-200 rounded-lg cursor-pointer"
+                  />
+                  <span className="font-mono text-sm font-black text-amber-600 min-w-[60px] text-center bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+                    {geofenceDistance}م
+                  </span>
+                </div>
+              </div>
+
+              {/* Map Layout */}
+              <div className="relative border border-slate-200 bg-slate-50/30 rounded-2xl p-4 overflow-hidden flex flex-col md:flex-row items-stretch gap-6 min-h-[480px]">
+                
+                {/* Visual Map wrapper */}
+                <div className="flex-1 relative flex items-center justify-center p-2 border border-slate-200/60 rounded-xl bg-white min-h-[380px] overflow-hidden">
+                  {/* Grid Lines Overlay */}
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.02)_0%,transparent_75%)] pointer-events-none" />
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.015)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+                  
+                  {/* SVG Kuwait Background */}
+                  <img 
+                    src="https://simplemaps.com/static/svg/country/kw/all/kw.svg" 
+                    className="w-full h-full max-h-[420px] object-contain opacity-55 filter sepia-[0.4] brightness-[1.1] contrast-[0.9] saturate-[0.6] transition-all pointer-events-none select-none" 
+                    alt="Kuwait Map" 
+                  />
+
+                  {/* Diwaniya glowing pins */}
+                  {mappedSquadsForMap.map((sq: any) => {
+                    const isActive = String(activeMapSquadId) === String(sq.id);
+                    return (
+                      <div
+                        key={sq.id}
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20 cursor-pointer group"
+                        style={{ left: `${sq.x}%`, top: `${sq.y}%` }}
+                        onClick={() => setActiveMapSquadId(sq.id)}
+                      >
+                        {/* Glowing Ring */}
+                        <div className={`absolute -inset-2 rounded-full bg-amber-500/20 blur-[3px] transition-all group-hover:scale-150 ${isActive ? 'scale-150 animate-ping' : 'scale-100'}`} />
+                        
+                        {/* Main Dot Marker */}
+                        <div className={`relative w-4 h-4 rounded-full border-2 transition-all shadow-md flex items-center justify-center ${isActive ? 'bg-amber-500 border-amber-300 scale-125' : 'bg-white border-amber-500 group-hover:bg-amber-500 group-hover:border-amber-400'}`}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-slate-950' : 'bg-slate-800'}`} />
+                        </div>
+
+                        {/* Text Label Tag */}
+                        <div className={`absolute bottom-full mb-1.5 left-1/2 transform -translate-x-1/2 whitespace-nowrap text-[9px] font-black px-2 py-0.5 rounded shadow-lg transition-all ${isActive ? 'bg-amber-500 text-slate-950 scale-105 z-30' : 'bg-slate-900 border border-slate-855 text-slate-100 opacity-90 group-hover:opacity-100 group-hover:scale-105'}`}>
+                          {sq.name}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Info Card Drawer (Right align) */}
+                <div className="w-full md:w-80 bg-slate-50 border border-slate-200 rounded-xl p-5 flex flex-col justify-between text-right min-h-[220px]">
+                  {selectedSquad ? (
+                    <div className="space-y-4">
+                      <div className="border-b border-slate-200 pb-3 flex justify-between items-start">
+                        <div>
+                          <span className="px-2 py-0.5 rounded-md text-[9px] font-black bg-amber-500/10 text-amber-700 border border-amber-500/20">
+                            {selectedSquad.tier || 'شلة ديوانية'}
+                          </span>
+                          <h4 className="font-extrabold text-slate-800 text-base mt-2">{selectedSquad.name}</h4>
+                        </div>
+                        <div className="text-left font-mono">
+                          <span className="font-black text-amber-600 text-lg block">{(selectedSquad.points || 0).toLocaleString()}</span>
+                          <span className="text-[10px] text-slate-500 block mt-[-3px]">نقطة إجمالية</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 text-xs leading-6">
+                        <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-sm">
+                          <span className="text-[10px] font-bold text-slate-400 block mb-0.5">الموقع التقديري</span>
+                          <span className="font-extrabold text-slate-700 block">{selectedSquad.govName} · دولة الكويت</span>
+                          <span className="text-[11px] text-slate-500 font-mono mt-1 block flex items-center gap-1" dir="ltr">
+                            <span className="text-amber-500">📍</span>
+                            {(29.3375 + ((selectedSquad.y || 50) - 50) * -0.0065).toFixed(5)}° N, {(47.9782 + ((selectedSquad.x || 75) - 75) * 0.0075).toFixed(5)}° E
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-sm">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 block">المؤسس الرئيسي</span>
+                            <span className="font-extrabold text-slate-700">{selectedSquad.founder || selectedSquad.king || 'لا يوجد'}</span>
+                          </div>
+                          <div className="text-left font-mono">
+                            <span className="text-[10px] font-bold text-slate-400 block">الأعضاء</span>
+                            <span className="font-extrabold text-slate-800">{selectedSquad.members || 1}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-2 text-slate-400">
+                      <Compass className="w-8 h-8 opacity-40 animate-pulse text-amber-500" />
+                      <span className="text-xs font-bold leading-5">اختر ديوانية من على خريطة الكويت لعرض تفاصيل التغطية الجغرافية</span>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </div>
           </motion.div>
         </AnimatePresence>
       )}
@@ -756,4 +1090,3 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
 const sanitizeWhatsAppText = (text: string) =>
   String(text || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
-
