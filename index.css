@@ -1056,3 +1056,74 @@ body { text-rendering: optimizeLegibility; }
   .admin-heritage-shell [class*="gap-4"] { gap: .65rem !important; }
   .admin-heritage-shell .lucide { width: 1rem; height: 1rem; }
 }
+
+
+/* Admin4 precision fixes from user notes */
+.login-mobile-finish-card{display:none!important;}
+.ai-speak-button{display:none!important;}
+
+/* رادار الذكاء ومركز القيادة يظهران في الصفحة الأولى فقط عبر الشروط في React */
+
+/* برنامج الشريك: تحسين قراءة بطاقات مركز القيادة وعدم ضغط الخط */
+.partner-clean-shell .heritage-command-brief{
+  overflow:hidden!important;
+}
+.partner-clean-shell .heritage-command-grid{
+  gap:.75rem!important;
+}
+.partner-clean-shell .heritage-command-grid .motion-safe,
+.partner-clean-shell .heritage-command-grid > div,
+.partner-clean-shell .heritage-command-grid [class*="bg-white"]{
+  min-height:0!important;
+}
+.partner-clean-shell .heritage-command-grid p{
+  font-size:clamp(.78rem,2.55vw,.92rem)!important;
+  line-height:1.75!important;
+  letter-spacing:0!important;
+  text-align:right!important;
+  word-break:normal!important;
+  overflow-wrap:anywhere!important;
+}
+.partner-clean-shell .heritage-command-grid svg{
+  width:15px!important;
+  height:15px!important;
+}
+@media (max-width: 640px){
+  .partner-clean-shell .heritage-command-brief{padding:1rem!important;border-radius:1.5rem!important;}
+  .partner-clean-shell .heritage-command-grid{grid-template-columns:1fr!important;}
+  .partner-clean-shell .heritage-command-grid p{font-size:.82rem!important;line-height:1.7!important;}
+}
+
+/* تفاصيل الطلب في الجوال: لا يختفي أعلى النافذة تحت الهيدر */
+@media (max-width: 640px){
+  .admin-order-details-modal{
+    align-items:flex-start!important;
+    justify-content:center!important;
+    padding-top:calc(76px + env(safe-area-inset-top))!important;
+    padding-left:.65rem!important;
+    padding-right:.65rem!important;
+    padding-bottom:.65rem!important;
+  }
+  .admin-order-details-modal > .bg-white,
+  .admin-order-details-modal > div.bg-white{
+    max-height:calc(100dvh - 92px - env(safe-area-inset-top))!important;
+    border-radius:1.35rem!important;
+  }
+  .admin-order-details-modal .grid{
+    gap:.75rem!important;
+  }
+}
+
+/* محركات البحث: امنع دخول النص تحت أيقونة البحث */
+[dir="rtl"] input[type="search"],
+[dir="rtl"] input[placeholder*="ابحث"],
+[dir="rtl"] .command-premium-search-input{
+  padding-right:3.25rem!important;
+  padding-left:1rem!important;
+  text-align:right!important;
+  direction:rtl!important;
+}
+.command-search-field svg,
+.max-w-2xl .absolute.right-4{
+  pointer-events:none!important;
+}

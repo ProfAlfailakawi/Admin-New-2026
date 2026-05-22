@@ -1360,14 +1360,7 @@ Alturath.kw`;
             <div className="p-3 bg-indigo-500/20 rounded-2xl backdrop-blur-xl border border-indigo-500/30">
               <ClipboardList className="text-indigo-400" size={32} />
             </div>
-            <div>
-              <h1 className="text-xl md:text-3xl md:text-xl md:text-2xl font-bold text-white tracking-tighter">
-                طلبات التطبيق
-              </h1>
-              <p className="text-slate-500 font-bold text-sm md:text-base mt-1">
-                إدارة الطلبات القادمة من تطبيق العملاء
-              </p>
-            </div>
+            <div className="sr-only" aria-hidden="true" />
           </div>
         </div>
       </div>
@@ -1775,7 +1768,7 @@ Alturath.kw`;
       {/* Order Details Modal */}
       <AnimatePresence>
         {selectedOrder && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-3 md:p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-3 md:p-4 admin-order-details-modal">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

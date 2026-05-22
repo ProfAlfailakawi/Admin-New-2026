@@ -2408,7 +2408,7 @@ const MainApp: React.FC = () => {
                }));
             }} 
           />
-          {userRole !== 'partner' && (
+          {userRole !== 'partner' && currentPage === 'dashboard' && (
             <CompanyCommandCenter data={data} onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }} page={currentPage} />
           )}
           <AnimatePresence>
@@ -2453,7 +2453,7 @@ const MainApp: React.FC = () => {
 
       {/* Global Scroll to Top */}
       <AnimatePresence>
-        {showTopButton && (
+        {showTopButton && userRole !== 'partner' && (
           <motion.button
             initial={{ opacity: 0, scale: 0.5, y: 50 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2494,7 +2494,7 @@ const MainApp: React.FC = () => {
 
       {/* --- MOBILE QUICK NAVIGATION TRIGGER --- */}
       <AnimatePresence>
-        {isMobile && userRole !== 'partner' && !commandBarOpen && (
+        {isMobile && userRole !== 'partner' && currentPage === 'dashboard' && !commandBarOpen && (
           <motion.div
             initial={{ opacity: 0, y: 100, scale: 0.5 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
