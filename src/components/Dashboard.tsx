@@ -5115,7 +5115,7 @@ const [isPending, startTransition] = useTransition();
                                         const sanitizeWhatsAppText = (t: string) =>
                                           String(t || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
                                         window.open(
-                                          `https://api.whatsapp.com/send?phone=965${v.phone}&text=${encodeURIComponent(sanitizeWhatsAppText(decodeURIComponent(msg)))}`,
+                                          `https://api.whatsapp.com/send?phone=965${v.phone}&text=${encodeURIComponent(sanitizeWhatsAppText(`${decodeURIComponent(msg)}\n\nhttps://alturathkw.shop`))}`,
                                           "_blank",
                                         );
                                       }}
@@ -5143,7 +5143,7 @@ const [isPending, startTransition] = useTransition();
                                         const sanitizeWhatsAppText = (t: string) =>
                                           String(t || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
                                         window.open(
-                                          `https://api.whatsapp.com/send?phone=965${v.phone}&text=${encodeURIComponent(sanitizeWhatsAppText(decodeURIComponent(msg)))}`,
+                                          `https://api.whatsapp.com/send?phone=965${v.phone}&text=${encodeURIComponent(sanitizeWhatsAppText(`${decodeURIComponent(msg)}\n\nhttps://alturathkw.shop`))}`,
                                           "_blank",
                                         );
                                       }}

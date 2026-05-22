@@ -296,7 +296,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
   };
 
   const handleSendMessage = (customer: Customer) => {
-    const message = `\u2728 ${generateCustomerSmartMessage(customer, data.invoices || [], data.products || [])}`;
+    const message = `\u2728 ${generateCustomerSmartMessage(customer, data.invoices || [], data.products || [])}\n\nhttps://alturathkw.shop`;
     const encodedMessage = encodeURIComponent(sanitizeWhatsAppText(message));
     window.open(`https://api.whatsapp.com/send?phone=965${customer.phone}&text=${encodedMessage}`, '_blank');
     toast.success("تم تجهيز الرسالة الذكية", { 

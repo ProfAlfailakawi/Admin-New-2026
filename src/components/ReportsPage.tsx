@@ -1415,10 +1415,8 @@ Alturath.kw`;
                                               )}
                                             </div>
 
-                                            {(
-                                              (inv as any).splitParticipants ||
-                                              []
-                                            ).length > 0 && (
+                                            {Array.isArray((inv as any).splitParticipants) &&
+                                              (inv as any).splitParticipants.length > 0 && (
                                               <div className="mt-6 space-y-2">
                                                 <div className="text-[10px] font-bold text-purple-600 mb-2">
                                                   المشاركون باللعب:

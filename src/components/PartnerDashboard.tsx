@@ -402,17 +402,6 @@ const {
  
  return (
  <div className="partner-clean-shell min-h-full bg-slate-50 p-3 md:p-3 lg:p-3 md:p-4 animate-in fade-in duration-500 transition-colors" dir="rtl">
- <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-3 md:p-4">
- <div className="flex flex-col items-end gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0" style={{ flexWrap: 'nowrap' }}>
- <SectionHeader 
- title={greeting.title} 
- icon={Handshake} 
- color="indigo" 
- subtitle={greeting.sub} 
- />
- </div>
-  </div>
-
     <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex flex-col gap-3 mb-8">
 
         {isPushSupported && !pushEnabled && !pushDenied && (
@@ -501,8 +490,8 @@ const {
         </AnimatePresence>
 
        {/* Time Slider (Minimalist) */}
-       <div className="fixed bottom-3 left-0 right-0 z-[90] p-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-10 duration-700 delay-500">
-         <div className="bg-white/70 backdrop-blur-3xl rounded-[2rem] py-3.5 px-6 flex flex-col items-center gap-2.5 shadow-2xl pointer-events-auto w-[90%] max-w-[340px] border border-white/50 ring-1 ring-slate-900/5 transition-all hover:bg-white/80">
+       <div className="partner-time-filter relative z-20 px-1 flex justify-center pointer-events-auto fade-in animate-in slide-in-from-top-2 duration-500">
+         <div className="bg-white/80 backdrop-blur-3xl rounded-[1.4rem] py-2.5 px-4 flex flex-col items-center gap-2 shadow-lg pointer-events-auto w-full max-w-[420px] border border-white/60 ring-1 ring-slate-900/5 transition-all hover:bg-white/90">
            <input 
              type="range"
              min="0"

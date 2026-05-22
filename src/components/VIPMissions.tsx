@@ -27,7 +27,7 @@ export const VIPMissions: React.FC<VIPMissionsProps> = ({ data }) => {
  }, [data.customers, data.invoices]);
 
  const handleSendMission = (m: any) => {
- const text = encodeURIComponent(`\u2728 هلا ${m.name}،\n\nبما إنك من عملائنا المميزين، عندنا لك مهمة خاصة:\n${m.mission}\n\nننتظر طلبك.\nAlturath.kw`);
+ const text = encodeURIComponent(`\u2728 هلا ${m.name}،\n\nبما إنك من عملائنا المميزين، عندنا لك مهمة خاصة:\n${m.mission}\n\nننتظر طلبك.\nAlturath.kw\nhttps://alturathkw.shop`);
  const sanitizeWhatsAppText = (t: string) =>
    String(t || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
  const waUrl = `https://api.whatsapp.com/send?phone=${m.phone.replace(/\D/g, '')}&text=${encodeURIComponent(sanitizeWhatsAppText(decodeURIComponent(text)))}`;
