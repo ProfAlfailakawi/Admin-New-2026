@@ -1127,3 +1127,12 @@ body { text-rendering: optimizeLegibility; }
 .max-w-2xl .absolute.right-4{
   pointer-events:none!important;
 }
+
+/* Ahmad final admin6 fixes */
+@media (max-width: 640px){
+  .admin-order-details-modal{align-items:flex-start!important;justify-content:center!important;padding-top:calc(104px + env(safe-area-inset-top))!important;padding-left:.65rem!important;padding-right:.65rem!important;padding-bottom:.75rem!important;}
+  .admin-order-details-modal > .bg-white,.admin-order-details-modal > div.bg-white{max-height:calc(100dvh - 120px - env(safe-area-inset-top))!important;border-radius:1.35rem!important;}
+  .admin-order-details-modal > .bg-white > div:first-child,.admin-order-details-modal > div.bg-white > div:first-child{min-height:64px!important;padding-top:1rem!important;padding-bottom:1rem!important;flex-shrink:0!important;}
+  .admin-order-details-modal h2{font-size:1.05rem!important;line-height:1.45!important;word-break:break-word!important;}
+}
+.heritage-command-brief::before{content:none!important;display:none!important;animation:none!important;background:none!important;}

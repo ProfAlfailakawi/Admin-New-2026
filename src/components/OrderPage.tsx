@@ -1352,19 +1352,6 @@ Alturath.kw`;
       className="p-3 md:p-4 lg:p-3 md:p-3 space-y-6 animate-in fade-in duration-500"
       dir="rtl"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:p-4 bg-slate-900 p-3 md:p-4 md:p-3 rounded-3xl shadow-xl relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-
-        <div className="relative z-10 w-full flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-indigo-500/20 rounded-2xl backdrop-blur-xl border border-indigo-500/30">
-              <ClipboardList className="text-indigo-400" size={32} />
-            </div>
-            <div className="sr-only" aria-hidden="true" />
-          </div>
-        </div>
-      </div>
-
       {/* Quick Insights Bar */}
       <div className="flex overflow-x-auto lg:grid lg:grid-cols-7 gap-3 md:gap-4 pb-2 -mx-3 px-3 md:mx-0 md:px-0 md:pb-0 hide-scrollbar">
         <div className="min-w-[140px] md:min-w-0">
