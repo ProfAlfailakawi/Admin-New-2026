@@ -2386,7 +2386,7 @@ const [isPending, startTransition] = useTransition();
 
             {activeTab === "financials" && (
               <div className="space-y-8" dir="rtl">
-                <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-xl relative overflow-hidden flex flex-col items-start">
+                <div id="supplier-negotiation-duplicate" className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-xl relative overflow-hidden flex flex-col items-start">
                   <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-indigo-500 to-amber-400" />
                   <div className="absolute top-3 md:p-4 left-10 opacity-10 text-white rotate-12">
                     <DollarSign size={200} />
@@ -3102,7 +3102,7 @@ const [isPending, startTransition] = useTransition();
                         </div>
 
                         {/* 4. Supplier Intel (Full Width) */}
-                        <div className="bg-white rounded-[48px] border border-slate-200/60 overflow-hidden group hover:border-amber-400 transition-all shadow-sm hover:shadow-3xl hover:-translate-y-2 duration-700 flex flex-col min-h-[600px]">
+                        <div id="supplier-intel-duplicate-card" className="bg-white rounded-[48px] border border-slate-200/60 overflow-hidden group hover:border-amber-400 transition-all shadow-sm hover:shadow-3xl hover:-translate-y-2 duration-700 flex flex-col min-h-[600px]">
                           <div className="p-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-amber-50 transition-colors">
                             <div className="flex items-center gap-6">
                               <div className="p-5 bg-amber-50 rounded-[24px] shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all duration-500">

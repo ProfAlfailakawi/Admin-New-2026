@@ -32,17 +32,17 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
 
   const commands = useMemo<CommandItem[]>(() => {
     const allTabs: CommandItem[] = [
-      { id: 'dashboard-main', label: 'مركز القيادة / الرئيسية', hint: 'نبض اليوم والطلبات المعلقة وفشل الدفع', icon: <Home />, category: 'الرئيسية', action: () => onNavigate('dashboard', { exactId: 'pulse' }), roles: ['admin'] },
-      { id: 'dashboard-ai', label: 'مختبر الذكاء', hint: 'تحليلات واستقرار', icon: <Sparkles />, category: 'الرئيسية', action: () => onNavigate('dashboard-ai', { exactId: 'intelligence' }), roles: ['admin'] },
-      { id: 'dashboard-growth', label: 'محاكي النمو والتسويق', hint: 'سيناريوهات الأرباح ماذا لو', icon: <Target />, category: 'الرئيسية', action: () => onNavigate('growth-simulator', {}), roles: ['admin'] },
+      { id: 'dashboard-main', label: 'مركز القيادة / الرئيسية', hint: 'نبض اليوم والطلبات المعلقة وفشل الدفع', icon: <Home />, category: 'الأهم', action: () => onNavigate('dashboard', { exactId: 'pulse' }), roles: ['admin'] },
+      { id: 'reports', label: 'التقارير التنفيذية', hint: 'تفصيل مالي للأداء والمبيعات', icon: <PieChart />, category: 'الأهم', action: () => onNavigate('reports', {}), roles: ['admin'] },
+      { id: 'dashboard-loyalty', label: 'مملكة الولاء', hint: 'مستويات العملاء والـ VIP', icon: <TrendingUp />, category: 'الأهم', action: () => onNavigate('loyalty', {}), roles: ['admin'] },
+      { id: 'dashboard-promocodes', label: 'مسرح العروض الذكية / الكوبونات', hint: 'إدارة الخصومات وقياس الربح', icon: <Sparkles />, category: 'الأهم', action: () => onNavigate('coupons', {}), roles: ['admin'] },
+      { id: 'smart-studio', label: 'استوديو المحتوى الذكي', hint: 'رسائل الدعاية والتسويق', icon: <Zap />, category: 'الأهم', action: () => onNavigate('smart-studio', {}), roles: ['admin'] },
+      { id: 'dashboard-growth', label: 'محاكي النمو والتسويق', hint: 'سيناريوهات الأرباح ماذا لو', icon: <Target />, category: 'الأهم', action: () => onNavigate('growth-simulator', {}), roles: ['admin'] },
+      { id: 'ai', label: 'المساعد الذكي', hint: 'مستشار مالي وتوصيات', icon: <Sparkles />, category: 'الأهم', action: () => onNavigate('ai', {}), roles: ['admin', 'partner'] },
+      { id: 'dashboard-diwaniya', label: 'بطولات الديوانية', hint: 'النقاط والجوائز للبطولات', icon: <Users />, category: 'الأهم', action: () => onNavigate('diwaniya', {}), roles: ['admin'] },
+      { id: 'dashboard-financials', label: 'المالية وحماية الأرباح', hint: 'فحص هوامش الربح والمخاطر', icon: <DollarSign />, category: 'الأهم', action: () => onNavigate('profit-guard', {}), roles: ['admin'] },
       { id: 'dashboard-customers', label: 'العملاء والولاء', hint: 'نبض العملاء', icon: <Users />, category: 'الرئيسية', action: () => onNavigate('customers', {}), roles: ['admin'] },
       { id: 'dashboard-suppliers', label: 'الموردين والمخاطر', hint: 'توريد ومراجعة', icon: <Truck />, category: 'الرئيسية', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
-      { id: 'dashboard-financials', label: 'المالية وحماية الأرباح', hint: 'Profit Shield وهوامش الربح', icon: <DollarSign />, category: 'الرئيسية', action: () => onNavigate('profit-guard', {}), roles: ['admin'] },
-      { id: 'dashboard-loyalty', label: 'مملكة الولاء', hint: 'الفضي والذهبي والـ VIP', icon: <TrendingUp />, category: 'الولاء والكوبونات', action: () => onNavigate('loyalty', {}), roles: ['admin'] },
-      { id: 'dashboard-promocodes', label: 'مسرح العروض الذكية / الكوبونات', hint: 'قياس أثرها الربحي', icon: <Sparkles />, category: 'الولاء والكوبونات', action: () => onNavigate('coupons', {}), roles: ['admin'] },
-      { id: 'dashboard-diwaniya', label: 'بطولات الديوانية', hint: 'المجتمع والترتيب', icon: <Users />, category: 'الولاء والكوبونات', action: () => onNavigate('diwaniya', {}), roles: ['admin'] },
-      { id: 'ai', label: 'المساعد الذكي', hint: 'مستشار مالي للتوصيات', icon: <Sparkles />, category: 'الذكاء الاصطناعي', action: () => onNavigate('ai', {}), roles: ['admin', 'partner'] },
-      { id: 'smart-studio', label: 'استوديو المحتوى الذكي', hint: 'Creative Suite للدعاية والتسويق', icon: <Zap />, category: 'الذكاء الاصطناعي', action: () => onNavigate('smart-studio', {}), roles: ['admin'] },
       { id: 'new-invoice', label: 'فاتورة جديدة', hint: 'إنشاء سريع', icon: <PlusCircle />, category: 'الإجراءات السريعة', action: () => onNavigate('new-invoice', {}), roles: ['admin', 'partner'] },
       { id: 'customers-page', label: 'بيانات العملاء', hint: 'بحث وتفاصيل', icon: <Users />, category: 'التنقل', action: () => onNavigate('customers', {}), roles: ['admin'] },
       { id: 'products-page', label: 'إدارة المنتجات', hint: 'الأسعار والتصنيفات', icon: <Package />, category: 'التنقل', action: () => onNavigate('products', {}), roles: ['admin'] },
@@ -50,7 +50,6 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       { id: 'orders', label: 'طلبات الموقع', hint: 'حالات الدفع', icon: <ShoppingBag />, category: 'التنقل', action: () => onNavigate('orders', {}), roles: ['partner', 'admin'] },
       { id: 'invoices-list', label: 'سجل الفواتير', hint: 'فواتير وتقارير', icon: <FileText />, category: 'التنقل', action: () => onNavigate('invoices-list', {}), roles: ['partner', 'admin'] },
       { id: 'suppliers-audit', label: 'الموردين والمراجعة', hint: 'تدقيق الموردين والمخاطر', icon: <Truck />, category: 'التنقل', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
-      { id: 'reports', label: 'التقارير التنفيذية', hint: 'تفصيل مالي للأداء والمبيعات', icon: <PieChart />, category: 'التنقل', action: () => onNavigate('reports', {}), roles: ['admin'] },
       { id: 'settings', label: 'الإعدادات العامة', hint: 'هوية وتنبيهات وضبط', icon: <ShieldCheck />, category: 'التنقل', action: () => onNavigate('settings', {}), roles: ['admin'] },
       { id: 'alerts', label: 'التنبيهات الذكية', hint: 'راجع التنبيهات من اللوحة', icon: <Activity />, category: 'التنقل', action: () => onNavigate('dashboard', { exactId: 'pulse', scrollTarget: 'alerts-section' }), roles: ['admin'] },
       { id: 'partner', label: 'برنامج الشريك', hint: 'واجهة بسيطة للشريك', icon: <Users />, category: 'التنقل', action: () => onNavigate('dashboard', { exactId: 'pulse', scrollTarget: 'partner-section' }), roles: ['admin'] },
@@ -59,13 +58,6 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     const mainTabs = allTabs.filter(tab => tab.roles?.includes(userRole));
 
     const deepLinks: CommandItem[] = [
-      { id: 'bi-engine-core', label: 'قلب مختبر الذكاء', hint: 'تحليل الاستقرار', icon: <ShieldCheck />, category: 'تحليلات داخلية', tags: ['القلب', 'نواة', 'مؤشرات', 'استقرار'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'bi-engine-core-section' }) },
-      { id: 'strategic-manager', label: 'المدير الاستراتيجي الآلي', hint: 'خطط وقرارات', icon: <Target />, category: 'تحليلات داخلية', tags: ['مدير', 'آلي', 'استراتيجي', 'خطط'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'strategic-manager-section' }) },
-      { id: 'vip-missions', label: 'مهام كبار العملاء', hint: 'VIP ومهمات', icon: <Users />, category: 'تحليلات داخلية', tags: ['مهام', 'vip', 'كبار'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'vip-missions-section' }) },
-      { id: 'geo-heatmap', label: 'خريطة الذهب الاستراتيجية', hint: 'توزيع وحرارة', icon: <Activity />, category: 'تحليلات داخلية', tags: ['خريطة', 'حرارية', 'جغرافي', 'توزيع'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'geo-heatmap-section' }) },
-      { id: 'smart-offers', label: 'صانع العروض الذكية', hint: 'ترويج وخصومات', icon: <Sparkles />, category: 'تحليلات داخلية', tags: ['عروض', 'ترويج', 'خصم'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'smart-offers-section' }) },
-      { id: 'what-if', label: 'محاكي الطوارئ والسيناريوهات', hint: 'ماذا لو؟', icon: <Zap />, category: 'تحليلات داخلية', tags: ['طوارئ', 'سيناريو', 'توقع'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'what-if-section' }) },
-      { id: 'status-mirror', label: 'مرآة حالة العمل', hint: 'مؤشرات فورية', icon: <Activity />, category: 'تحليلات داخلية', tags: ['مرآة', 'حالة', 'مؤشرات'], action: () => onNavigate('dashboard-ai', { exactId: 'intelligence', scrollTarget: 'status-mirror-section' }) },
       { id: 'growth-campaigns', label: 'مختبر الحملات التسويقية', hint: 'خطط مبيعات', icon: <TrendingUp />, category: 'تحليلات داخلية', tags: ['حملات', 'تسويقية', 'مبيعات'], action: () => onNavigate('growth-simulator', { scrollTarget: 'smart-campaigns' }) },
       { id: 'customers-retention', label: 'رادار استرجاع العملاء', hint: 'الغائبين والاحتفاظ', icon: <Users />, category: 'تحليلات داخلية', tags: ['استرجاع', 'غائبين', 'احتفاظ'], action: () => onNavigate('dashboard', { exactId: 'customers', scrollTarget: 'retention-section' }) },
       { id: 'financial-guard', label: 'حارس الأرباح الحقيقية', hint: 'هدر وصافي ربح', icon: <DollarSign />, category: 'تحليلات داخلية', tags: ['ارباح', 'هدر', 'صافي'], action: () => onNavigate('dashboard', { exactId: 'financials', scrollTarget: 'profit-guard-section' }) },
@@ -110,7 +102,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     return commands.filter(c => clean(c.label).includes(q) || clean(c.category).includes(q) || clean(c.hint).includes(q) || c.tags?.some((t) => clean(t).includes(q)));
   }, [commands, deferredQuery]);
 
-  const priority = ['dashboard-main','reports','dashboard-loyalty','dashboard-promocodes','smart-studio','dashboard-growth','ai','dashboard-diwaniya','dashboard-financials','new-invoice','orders','invoices-list','products-page','customers-page','settings'];
+  const priority = ['dashboard-main','reports','dashboard-loyalty','dashboard-promocodes','smart-studio','dashboard-growth','ai','dashboard-diwaniya','dashboard-financials'];
   const featured = useMemo(() => {
     const sorted = [...filteredCommands].sort((a, b) => {
       const ai = priority.indexOf(a.id);
@@ -183,27 +175,26 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
             className="relative w-full max-w-3xl overflow-hidden rounded-[2rem] border border-white/70 bg-white/95 shadow-[0_30px_90px_rgba(15,23,42,0.35)]"
             dir="rtl"
           >
-            <div className="command-compact-close-row">
-              <input
-                ref={inputRef}
-                type="text"
-                aria-label="بحث الأوامر"
-                className="command-hidden-search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
+            <div className="command-search-header">
+              <div className="command-search-field">
+                <Search size={18} />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  aria-label="بحث الأوامر"
+                  placeholder="ابحث في الكوماند عن صفحة، عميل، منتج، فاتورة أو مورد..."
+                  className="command-premium-search-input"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
               <button type="button" onClick={onClose} className="command-premium-close"><X size={18} /></button>
-            </div>
-
-            <div className="px-4 md:px-5 py-3 border-b border-slate-100 bg-slate-50/70 text-right">
-              <strong className="block text-sm text-slate-800">الأهم أولاً</strong>
-              <span className="text-[11px] font-bold text-slate-400">مركز القيادة، التقارير، الولاء، العروض، المحتوى، النمو، المساعد، الديوانية، وحماية الأرباح.</span>
             </div>
 
             <div className="max-h-[46vh] md:max-h-[390px] overflow-y-auto p-3 md:p-4 custom-scrollbar">
               {filteredCommands.length > 0 ? (
                 <div className="space-y-4">
-                  {['نتائج مباشرة', 'الرئيسية', 'التنقل', 'الإجراءات السريعة', 'الذكاء الاصطناعي', 'تحليلات داخلية', 'الولاء والكوبونات'].map(category => {
+                  {['نتائج مباشرة', 'الأهم', 'الرئيسية', 'التنقل', 'الإجراءات السريعة', 'الذكاء الاصطناعي', 'تحليلات داخلية', 'الولاء والكوبونات'].map(category => {
                     const catCommands = filteredCommands.filter(c => c.category === category);
                     if (catCommands.length === 0) return null;
                     return (

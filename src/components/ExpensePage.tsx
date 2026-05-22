@@ -122,18 +122,6 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
 
  return (
  <div className="space-y-6">
- <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-right">
- <div className="order-2 md:order-1 flex-1">
- <h1 className="text-xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-3 justify-end leading-tight">
- سجل المصروفات
- <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
- <Wallet className="text-white" />
- </div>
- </h1>
- <p className="text-slate-500 font-medium font-bold italic">إدارة تكاليف التشغيل والمصاريف النثرية</p>
- </div>
- </div>
-
  <div className="grid grid-cols-2 gap-2 md:gap-3 md:p-3 mb-2 md:mb-0 text-right">
  <StatCard label="إجمالي المصروفات" value={Number(totalExpenses || 0).toFixed(3)} icon={<Wallet />} color="red" description="كامل المصاريف المسجلة" />
  <StatCard label="مصروف اليوم" value={Number(todayExpenses || 0).toFixed(3)} icon={<ArrowDownRight />} color="amber" description="إجمالي الصرف لليوم الحالي" />
