@@ -134,7 +134,7 @@ app.use(express.urlencoded({ extended: true }));
 
     const paymentId = params.payment_id || params.track_id || params.tran_id || "";
 
-    const orderId =
+    let orderId =
       params.invoiceNo ||
       params.invoice_no ||
       params.invoice ||
@@ -145,6 +145,10 @@ app.use(express.urlencoded({ extended: true }));
       params.reference?.id ||
       params.reference_id ||
       params.track_id;
+
+    if (orderId && typeof orderId === "string" && orderId.includes("_")) {
+      orderId = orderId.split("_")[0];
+    }
 
     if (!orderId) {
       console.warn("Payment update ignored: missing orderId/invoiceNo", params);
@@ -1521,7 +1525,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
   app.get("/api/payment-return/:invoiceNo", async (req, res) => {
     try {
-      const { invoiceNo } = req.params;
+      let { invoiceNo } = req.params;
+      if (invoiceNo && typeof invoiceNo === "string" && invoiceNo.includes("_")) {
+        invoiceNo = invoiceNo.split("_")[0];
+      }
       const q = req.query;
 
       const result = String(q.result || "").toUpperCase();
@@ -1569,7 +1576,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
   app.get("/api/payment-return", async (req, res) => {
       const q = req.query;
-      const invoiceNo = String(q.track_id || q.order_id || q.invoice_id || "");
+      let invoiceNo = String(q.track_id || q.order_id || q.invoice_id || "");
+      if (invoiceNo && typeof invoiceNo === "string" && invoiceNo.includes("_")) {
+        invoiceNo = invoiceNo.split("_")[0];
+      }
       try {
         const result = String(q.result || "").toUpperCase();
         const isPaid = result === "CAPTURED" || result === "SUCCESS" || result === "PAID";
@@ -1632,6 +1642,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
     try {
       const baseUrl = "https://apiv2api.upayments.com/api/v1"; // Forced Live Mode as requested
+      const orderIdForGateway = `${orderId}_${Date.now()}`;
       
       // Clean and format phone number (ensure 965 prefix for Kuwait)
       let cleanMobile = customerMobile ? customerMobile.toString().replace(/[^0-9]/g, '') : '';
@@ -1649,8 +1660,8 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
       const payload: any = {
         order: {
-          id: orderId,
-          reference: orderId,
+          id: orderIdForGateway,
+          reference: orderIdForGateway,
           description: description || 'Payment for order ' + orderId,
           currency: 'KWD',
           amount: safeAmount
@@ -1659,9 +1670,9 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         is_sms: 0,
         is_email: 0,
         paymentGateway: { src: paymentGateway || 'knet' },
-        reference: { id: orderId },
+        reference: { id: orderIdForGateway },
         customer: {
-          uniqueId: cleanMobile || orderId,
+          uniqueId: cleanMobile || orderIdForGateway,
           name: customerName,
           email: safeEmail,
           mobile: cleanMobile
