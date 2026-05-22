@@ -8,14 +8,15 @@ interface ProactiveAlertsProps {
  notifications: Notification[];
  onMarkAsRead: (id: string) => void;
  userRole?: string | null;
+ currentPage?: string;
 }
 
-const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMarkAsRead, userRole }) => {
+const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMarkAsRead, userRole, currentPage = 'dashboard' }) => {
  const activeAlerts = notifications.filter(n => !n.read && n.insightType).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
  const [selectedAlert, setSelectedAlert] = useState<Notification | null>(null);
  const [showHub, setShowHub] = useState(false);
 
- if (userRole === 'partner' || activeAlerts.length === 0) return null;
+ if (userRole === 'partner' || currentPage !== 'dashboard' || activeAlerts.length === 0) return null;
 
  const getIcon = (type: string) => {
  if (type === 'خطر') return <AlertCircle size={24} className="text-rose-500" />;

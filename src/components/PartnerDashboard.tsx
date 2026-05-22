@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
  ShoppingBag, TrendingUp, Handshake, DollarSign, Target, Sparkles, Activity, Puzzle,
  ChevronRight, Star, LineChart as LineChartIcon, FlaskConical, LayoutGrid, Filter, X, 
- Zap, ArrowUpRight, PieChart, Users, Truck, Briefcase, Cpu, Layers, Search, Bell, BellRing, ChevronDown, FileText, Package, Camera
+ Zap, ArrowUpRight, PieChart, Users, Truck, Briefcase, Cpu, Layers, Search, Bell, BellRing, ChevronDown, FileText, Package, Camera, CloudSun, CalendarDays, ThermometerSun
 } from 'lucide-react';
 import { AppState } from '../types';
 import { cn } from '../lib/utils';
@@ -131,6 +131,88 @@ const SectionHeader = ({ title, icon: Icon, color ="indigo", subtitle }: { title
  </div>
  </motion.div>
 );
+
+
+const TeslaSeasonalEngine: React.FC<{ data: AppState }> = ({ data }) => {
+ const now = new Date();
+ const month = now.getMonth() + 1;
+ const day = now.getDay();
+ const isWeekendWindow = day === 3 || day === 4 || day === 5 || day === 6; // Wed-Sat: prepare before Kuwait weekend
+ const estimatedTemp = month >= 6 && month <= 9 ? 44 : month === 5 || month === 10 ? 34 : month === 4 || month === 11 ? 27 : 20;
+ const weatherMood = estimatedTemp <= 28 ? 'طقس كشتات مثالي' : estimatedTemp <= 36 ? 'طقس طلعات خفيف' : 'حرارة عالية — ركّز على الطلبات المنزلية';
+ const picnicReady = estimatedTemp <= 34 && isWeekendWindow;
+ const keywords = picnicReady
+   ? ['مشوي', 'مشويات', 'كباب', 'ريوق', 'كشتة', 'مندي', 'ورق', 'محشي']
+   : ['سلطة', 'بارد', 'مشروب', 'حلو', 'ورق', 'ميني'];
+ const products = (data.products || []).filter((p) => p?.isActive !== false && !p?.isOutOfStock);
+ const matched = products
+   .filter((p) => keywords.some((k) => `${p.name || ''} ${p.category || ''} ${p.description || ''}`.toLowerCase().includes(k.toLowerCase())))
+   .slice(0, 4);
+ const fallback = products.slice(0, 4);
+ const suggestions = matched.length ? matched : fallback;
+ const activationText = picnicReady
+   ? 'رادار القنص يقترح تجهيز أطباق الكشتات والمشويات قبل عطلة الكويت بيومين.'
+   : 'الرادار يختار أصنافاً أخف حسب حرارة الكويت الحالية وتوقيت الأسبوع.';
+
+ return (
+  <motion.section
+   initial={{ opacity: 0, y: 18 }}
+   animate={{ opacity: 1, y: 0 }}
+   className="tesla-seasonal-engine mb-10 relative overflow-hidden rounded-[2rem] border border-emerald-500/15 bg-gradient-to-br from-slate-950 via-[#13251d] to-slate-900 p-4 md:p-5 text-white shadow-[0_24px_80px_rgba(15,23,42,.18)]"
+   dir="rtl"
+  >
+   <div className="absolute -top-16 -left-16 h-44 w-44 rounded-full bg-emerald-400/20 blur-3xl" />
+   <div className="absolute -bottom-20 right-20 h-56 w-56 rounded-full bg-amber-400/10 blur-3xl" />
+   <div className="relative z-10 grid gap-5 lg:grid-cols-[1.05fr_.95fr] items-stretch">
+    <div className="flex flex-col justify-between gap-5">
+     <div>
+      <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black text-emerald-200 backdrop-blur-xl">
+       <CloudSun size={14} /> Tesla Predictive Engine
+      </div>
+      <h3 className="mt-3 text-2xl md:text-3xl font-black tracking-tight leading-tight">التوقع الموسمي والمناخي لمطبخ التراث</h3>
+      <p className="mt-3 max-w-2xl text-sm md:text-[15px] font-bold leading-8 text-slate-300">{activationText}</p>
+     </div>
+     <div className="grid grid-cols-3 gap-2">
+      <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
+       <ThermometerSun size={18} className="text-amber-300 mb-2" />
+       <div className="text-xl font-black">{estimatedTemp}°</div>
+       <div className="text-[10px] font-bold text-slate-400">تقدير الكويت</div>
+      </div>
+      <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
+       <CalendarDays size={18} className="text-emerald-300 mb-2" />
+       <div className="text-xl font-black">{isWeekendWindow ? 'نشط' : 'مراقبة'}</div>
+       <div className="text-[10px] font-bold text-slate-400">عطلة الأسبوع</div>
+      </div>
+      <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
+       <Sparkles size={18} className="text-indigo-300 mb-2" />
+       <div className="text-sm font-black leading-6">{weatherMood}</div>
+       <div className="text-[10px] font-bold text-slate-400">إشارة المناخ</div>
+      </div>
+     </div>
+    </div>
+    <div className="rounded-[1.5rem] border border-white/10 bg-white/[.07] p-3 md:p-4 backdrop-blur-xl">
+     <div className="mb-3 flex items-center justify-between gap-3">
+      <span className="text-[11px] font-black text-slate-300">اقتراحات تلقائية مرتبطة بالمنيو</span>
+      <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black text-emerald-200">جاهزة للقنص</span>
+     </div>
+     <div className="space-y-2">
+      {suggestions.length > 0 ? suggestions.map((p) => (
+       <div key={p.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3">
+        <div className="min-w-0 text-right">
+         <div className="truncate text-sm font-black text-white">{p.name}</div>
+         <div className="text-[10px] font-bold text-slate-400">{p.category || 'منتج'} · {Number(p.price || 0).toFixed(3)} د.ك</div>
+        </div>
+        <div className="shrink-0 rounded-xl bg-white/10 px-3 py-2 text-[10px] font-black text-amber-200">اقترح قبلها بيومين</div>
+       </div>
+      )) : (
+       <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-center text-xs font-bold text-slate-300">أضف منتجات فعالة ليبدأ الرادار بربط التوقعات بالمنيو.</div>
+      )}
+     </div>
+    </div>
+   </div>
+  </motion.section>
+ );
+};
 
 
 const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ data, onNavigate, onLogout, deepLinkData }) => {
@@ -520,6 +602,8 @@ const {
        <div className="mb-8">
          <CommandBrief data={data} dateFilter={filter} />
        </div>
+
+       <TeslaSeasonalEngine data={data} />
 
         {/* Stats Grid - Exactly like Admin */}
         <motion.div layout className="mb-12 bg-white rounded-3xl p-2 md:p-5 border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden relative z-10">
