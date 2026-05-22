@@ -2130,295 +2130,368 @@ button:has(.invoice-product-price-hint){overflow:visible!important;isolation:iso
   }
 }
 
-/* FINAL-ADMIN-COMMAND-LOGIN-PRECISION — 2026-05-22
-   مركز قيادة واحد، مغلق افتراضياً، مرتب على الداشبورد فقط + ضبط شاشة الدخول */
-.admin-heritage-shell main > .heritage-command-brief:not(:first-of-type){
-  display:none!important;
-}
-.admin-heritage-shell main > .heritage-command-brief{
-  width:min(100%,1480px)!important;
-  margin:0 auto 16px!important;
-  border-radius:26px!important;
-  border:1px solid rgba(255,255,255,.16)!important;
-  background:radial-gradient(circle at 88% 20%,rgba(245,158,11,.18),transparent 28%),linear-gradient(135deg,#070b14 0%,#101827 58%,#08160f 100%)!important;
-  color:#fff!important;
-  box-shadow:0 18px 46px rgba(2,6,23,.18)!important;
-  overflow:hidden!important;
+/* Final polish — compact command center: smaller boxes, cleaner contrast, mobile-safe sizing */
+.heritage-command-brief.is-open{
   padding:16px 18px!important;
-  display:grid!important;
-  grid-template-columns:minmax(0,1fr) auto!important;
-  gap:14px!important;
-  align-items:center!important;
+  border-radius:24px!important;
+  margin-bottom:14px!important;
+  max-height:none!important;
 }
-.admin-heritage-shell main > .heritage-command-brief::before{display:none!important;content:none!important;}
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-hero{
-  min-height:0!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:flex-start!important;
-  gap:12px!important;
-  min-width:0!important;
-  overflow:hidden!important;
+.heritage-command-brief.is-open .heritage-command-hero{
+  min-height:52px!important;
+  gap:10px!important;
 }
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-orb{
-  width:46px!important;
-  height:46px!important;
+.heritage-command-brief.is-open .heritage-command-orb{
+  width:42px!important;
+  height:42px!important;
   border-radius:16px!important;
-  flex:0 0 46px!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  background:linear-gradient(135deg,rgba(245,158,11,.42),rgba(245,158,11,.10))!important;
-  color:#fbbf24!important;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.13),0 14px 36px rgba(245,158,11,.16)!important;
 }
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-copy{min-width:0!important;overflow:hidden!important;}
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-kicker{
-  color:#fbbf24!important;
-  font-size:10px!important;
-  font-weight:950!important;
-  letter-spacing:.12em!important;
-  margin-bottom:3px!important;
-  opacity:.95!important;
+.heritage-command-brief.is-open .heritage-command-orb svg{
+  width:18px!important;
+  height:18px!important;
 }
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-copy h2{
-  color:#fff!important;
-  font-size:clamp(1.28rem,2vw,2rem)!important;
-  line-height:1.18!important;
-  margin:0!important;
-  letter-spacing:-.02em!important;
-  white-space:normal!important;
-  text-wrap:balance!important;
-  overflow:visible!important;
-}
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-copy p{
-  color:rgba(255,255,255,.72)!important;
-  font-size:clamp(.78rem,1vw,.92rem)!important;
-  line-height:1.6!important;
-  margin-top:4px!important;
-  font-weight:800!important;
-}
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-actions{
-  width:auto!important;
-  justify-self:start!important;
-  align-self:center!important;
-  position:relative!important;
-  z-index:2!important;
-}
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-toggle{
-  width:auto!important;
-  min-width:132px!important;
-  height:46px!important;
-  padding:0 16px!important;
-  border-radius:999px!important;
-  background:rgba(255,255,255,.10)!important;
-  color:#fff!important;
-  border:1px solid rgba(255,255,255,.16)!important;
-  box-shadow:inset 0 1px rgba(255,255,255,.12)!important;
-  font-size:13px!important;
-  font-weight:950!important;
-  display:inline-flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  gap:8px!important;
-}
-.admin-heritage-shell main > .heritage-command-brief.is-collapsed,
-.admin-heritage-shell main > .heritage-command-brief:not(.is-open){
-  min-height:96px!important;
-}
-.admin-heritage-shell main > .heritage-command-brief.is-collapsed .heritage-command-grid,
-.admin-heritage-shell main > .heritage-command-brief:not(.is-open) .heritage-command-grid{
-  display:none!important;
-}
-.admin-heritage-shell main > .heritage-command-brief.is-open{
-  grid-template-columns:1fr auto!important;
-  align-items:start!important;
-  padding:18px!important;
-  min-height:0!important;
-}
-.admin-heritage-shell main > .heritage-command-brief.is-open .heritage-command-grid{
-  grid-column:1/-1!important;
-  display:grid!important;
-  grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  gap:12px!important;
-  margin-top:8px!important;
-  align-items:stretch!important;
-  overflow:visible!important;
-}
-.admin-heritage-shell main > .heritage-command-brief .executive-morning-brief{
-  grid-column:span 2!important;
-  min-height:116px!important;
-  border-radius:22px!important;
-  padding:14px 16px!important;
-  background:linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,.045))!important;
-  border:1px solid rgba(255,255,255,.14)!important;
-  box-shadow:none!important;
-  color:#fff!important;
-}
-.admin-heritage-shell main > .heritage-command-brief .executive-morning-brief strong{
-  font-size:18px!important;
-  line-height:1.25!important;
-  margin:2px 0 8px!important;
-  color:#fff!important;
-}
-.admin-heritage-shell main > .heritage-command-brief .executive-morning-brief span{
-  color:#fde68a!important;
+.heritage-command-brief.is-open .heritage-command-kicker{
   font-size:9px!important;
-  letter-spacing:.14em!important;
+  margin-bottom:2px!important;
+  letter-spacing:.13em!important;
 }
-.admin-heritage-shell main > .heritage-command-brief .executive-morning-brief ul{margin:0!important;display:grid!important;gap:5px!important;}
-.admin-heritage-shell main > .heritage-command-brief .executive-morning-brief li{
-  color:rgba(255,255,255,.76)!important;
+.heritage-command-brief.is-open .heritage-command-copy h2,
+.heritage-command-brief.is-open .heritage-command-hero h2{
+  font-size:clamp(1.25rem,2vw,1.95rem)!important;
+  line-height:1.15!important;
+  letter-spacing:-.035em!important;
+}
+.heritage-command-brief.is-open .heritage-command-copy p,
+.heritage-command-brief.is-open .heritage-command-hero p{
+  font-size:clamp(.72rem,.95vw,.86rem)!important;
+  line-height:1.55!important;
+  margin-top:.25rem!important;
+  color:rgba(226,232,240,.74)!important;
+}
+.heritage-command-brief.is-open .heritage-command-actions .heritage-command-toggle,
+.heritage-command-brief.is-open .heritage-command-open-btn{
+  min-height:38px!important;
+  padding:8px 12px!important;
   font-size:12px!important;
-  line-height:1.45!important;
-  margin:0!important;
 }
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-tile{
-  min-height:110px!important;
-  padding:13px!important;
-  border-radius:20px!important;
-  background:rgba(255,255,255,.075)!important;
-  border:1px solid rgba(255,255,255,.13)!important;
+.heritage-command-brief.is-open .heritage-command-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:8px!important;
+  margin-top:10px!important;
+  align-items:stretch!important;
+}
+.heritage-command-brief.is-open .executive-morning-brief{
+  grid-column:span 2!important;
+  min-height:96px!important;
+  padding:12px 14px!important;
+  border-radius:18px!important;
+  background:rgba(255,255,255,.055)!important;
+  border:1px solid rgba(255,255,255,.11)!important;
   box-shadow:none!important;
-  color:#fff!important;
-  display:flex!important;
-  flex-direction:column!important;
-  gap:6px!important;
-  justify-content:space-between!important;
 }
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-tile .heritage-tile-icon{
-  width:32px!important;height:32px!important;border-radius:12px!important;background:rgba(255,255,255,.10)!important;color:#fbbf24!important;display:flex!important;align-items:center!important;justify-content:center!important;
+.heritage-command-brief.is-open .executive-morning-brief span{
+  font-size:8px!important;
+  letter-spacing:.14em!important;
+  color:#f6d37d!important;
 }
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-tile .heritage-tile-label{
-  color:rgba(255,255,255,.70)!important;
+.heritage-command-brief.is-open .executive-morning-brief strong{
+  font-size:17px!important;
+  line-height:1.25!important;
+  margin:2px 0 6px!important;
+}
+.heritage-command-brief.is-open .executive-morning-brief ul{
+  display:grid!important;
+  gap:5px!important;
+  margin:0!important;
+  padding:0!important;
+}
+.heritage-command-brief.is-open .executive-morning-brief li{
+  list-style:none!important;
   font-size:11px!important;
-  font-weight:950!important;
+  line-height:1.55!important;
+  font-weight:800!important;
+  color:rgba(255,255,255,.70)!important;
+  background:rgba(255,255,255,.07)!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  border-radius:12px!important;
+  padding:7px 9px!important;
 }
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-tile strong{
-  font-size:22px!important;
+.heritage-command-brief.is-open .heritage-command-tile{
+  min-height:84px!important;
+  padding:10px 12px!important;
+  border-radius:18px!important;
+  background:rgba(15,23,42,.36)!important;
+  border:1px solid rgba(255,255,255,.095)!important;
+  box-shadow:none!important;
+  color:#e5e7eb!important;
+}
+.heritage-command-brief.is-open .heritage-command-tile:hover{
+  background:rgba(15,23,42,.48)!important;
+  transform:translateY(-1px)!important;
+}
+.heritage-command-brief.is-open .heritage-command-tile.is-active{
+  background:linear-gradient(135deg,rgba(17,24,39,.92),rgba(20,83,45,.42))!important;
+  border-color:rgba(245,158,11,.26)!important;
+}
+.heritage-command-brief.is-open .heritage-tile-icon,
+.heritage-command-brief.is-open .heritage-command-tile .heritage-tile-icon{
+  width:30px!important;
+  height:30px!important;
+  border-radius:12px!important;
+  background:rgba(255,255,255,.075)!important;
+  color:#fbbf24!important;
+}
+.heritage-command-brief.is-open .heritage-tile-icon svg{
+  width:15px!important;
+  height:15px!important;
+}
+.heritage-command-brief.is-open .heritage-command-tile .heritage-tile-label{
+  font-size:11px!important;
+  line-height:1.35!important;
+  font-weight:900!important;
+  color:rgba(226,232,240,.78)!important;
+  margin-top:4px!important;
+}
+.heritage-command-brief.is-open .heritage-command-tile strong{
+  font-size:20px!important;
   line-height:1!important;
+  margin-top:4px!important;
   color:#fff!important;
 }
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-tile small{
-  font-size:10px!important;
+.heritage-command-brief.is-open .heritage-command-tile small{
+  font-size:9px!important;
   line-height:1.45!important;
-  color:rgba(255,255,255,.58)!important;
-}
-.admin-heritage-shell main > .heritage-command-brief .heritage-command-tile.is-active{
-  background:rgba(245,158,11,.13)!important;
-  border-color:rgba(245,158,11,.28)!important;
-}
-@media(max-width:900px){
-  .admin-heritage-shell main > .heritage-command-brief{
-    grid-template-columns:1fr!important;
-    padding:12px!important;
-    border-radius:22px!important;
-    gap:10px!important;
-    margin-bottom:12px!important;
-  }
-  .admin-heritage-shell main > .heritage-command-brief .heritage-command-hero{
-    gap:10px!important;
-    align-items:center!important;
-  }
-  .admin-heritage-shell main > .heritage-command-brief .heritage-command-orb{
-    width:38px!important;height:38px!important;flex-basis:38px!important;border-radius:14px!important;
-  }
-  .admin-heritage-shell main > .heritage-command-brief .heritage-command-kicker{font-size:8px!important;letter-spacing:.07em!important;}
-  .admin-heritage-shell main > .heritage-command-brief .heritage-command-copy h2{font-size:1.08rem!important;line-height:1.25!important;}
-  .admin-heritage-shell main > .heritage-command-brief .heritage-command-copy p{font-size:.68rem!important;line-height:1.55!important;}
-  .admin-heritage-shell main > .heritage-command-brief .heritage-command-actions{width:100%!important;justify-self:stretch!important;}
-  .admin-heritage-shell main > .heritage-command-brief .heritage-command-toggle{
-    width:100%!important;min-width:0!important;height:40px!important;font-size:12px!important;padding:0 12px!important;
-  }
-  .admin-heritage-shell main > .heritage-command-brief.is-collapsed,
-  .admin-heritage-shell main > .heritage-command-brief:not(.is-open){min-height:0!important;}
-  .admin-heritage-shell main > .heritage-command-brief.is-open .heritage-command-grid{
-    grid-template-columns:repeat(2,minmax(0,1fr))!important;
-    gap:8px!important;
-    margin-top:4px!important;
-  }
-  .admin-heritage-shell main > .heritage-command-brief .executive-morning-brief{
-    grid-column:1/-1!important;
-    min-height:0!important;
-    padding:12px!important;
-    border-radius:18px!important;
-  }
-  .admin-heritage-shell main > .heritage-command-brief .executive-morning-brief strong{font-size:15px!important;}
-  .admin-heritage-shell main > .heritage-command-brief .executive-morning-brief li{font-size:10px!important;}
-  .admin-heritage-shell main > .heritage-command-brief .heritage-command-tile{
-    min-height:82px!important;
-    padding:10px!important;
-    border-radius:16px!important;
-    gap:4px!important;
-  }
-  .admin-heritage-shell main > .heritage-command-brief .heritage-command-tile .heritage-tile-icon{width:28px!important;height:28px!important;border-radius:10px!important;}
-  .admin-heritage-shell main > .heritage-command-brief .heritage-command-tile strong{font-size:18px!important;}
-  .admin-heritage-shell main > .heritage-command-brief .heritage-command-tile .heritage-tile-label{font-size:10px!important;}
-  .admin-heritage-shell main > .heritage-command-brief .heritage-command-tile small{font-size:9px!important;}
-}
-@media(max-width:430px){
-  .admin-heritage-shell main > .heritage-command-brief.is-open .heritage-command-grid{grid-template-columns:1fr!important;}
-  .admin-heritage-shell main > .heritage-command-brief .heritage-command-tile{min-height:68px!important;}
+  min-height:0!important;
+  margin-top:4px!important;
+  color:rgba(203,213,225,.64)!important;
 }
 
-/* Login final: bigger logo mark, stable title, and install cloud as a quiet footer pill */
+@media (min-width:1280px){
+  .heritage-command-brief.is-open .heritage-command-grid{
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  }
+  .heritage-command-brief.is-open .executive-morning-brief{grid-column:span 2!important;}
+}
+@media (max-width:900px){
+  .heritage-command-brief.is-open{
+    padding:13px!important;
+    border-radius:20px!important;
+    max-height:72dvh!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+  .heritage-command-brief.is-open .heritage-command-hero{
+    min-height:0!important;
+    align-items:center!important;
+  }
+  .heritage-command-brief.is-open .heritage-command-copy h2,
+  .heritage-command-brief.is-open .heritage-command-hero h2{
+    font-size:1.08rem!important;
+    line-height:1.28!important;
+  }
+  .heritage-command-brief.is-open .heritage-command-copy p,
+  .heritage-command-brief.is-open .heritage-command-hero p{
+    font-size:.68rem!important;
+    line-height:1.55!important;
+  }
+  .heritage-command-brief.is-open .heritage-command-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:7px!important;
+  }
+  .heritage-command-brief.is-open .executive-morning-brief{
+    grid-column:1/-1!important;
+    min-height:0!important;
+    padding:10px!important;
+    border-radius:16px!important;
+  }
+  .heritage-command-brief.is-open .executive-morning-brief strong{font-size:14px!important;}
+  .heritage-command-brief.is-open .executive-morning-brief li{font-size:10px!important;padding:6px 8px!important;}
+  .heritage-command-brief.is-open .heritage-command-tile{
+    min-height:74px!important;
+    padding:8px!important;
+    border-radius:16px!important;
+  }
+  .heritage-command-brief.is-open .heritage-command-tile strong{font-size:17px!important;}
+  .heritage-command-brief.is-open .heritage-command-tile .heritage-tile-label{font-size:10px!important;}
+  .heritage-command-brief.is-open .heritage-command-tile small{font-size:8.5px!important;}
+}
+
+/* Admin final micro-polish requested: 4 command tiles per row, calmer typography, better login logo/install placement */
+.heritage-command-brief.is-open{
+  padding:12px 14px!important;
+  border-radius:22px!important;
+  background:linear-gradient(135deg,rgba(8,13,28,.96),rgba(17,34,28,.92))!important;
+}
+.heritage-command-brief.is-open .heritage-command-hero{
+  min-height:42px!important;
+  margin-bottom:4px!important;
+}
+.heritage-command-brief.is-open .heritage-command-copy h2,
+.heritage-command-brief.is-open .heritage-command-hero h2{
+  font-size:clamp(1.05rem,1.55vw,1.55rem)!important;
+  line-height:1.2!important;
+}
+.heritage-command-brief.is-open .heritage-command-copy p,
+.heritage-command-brief.is-open .heritage-command-hero p{
+  font-size:clamp(.66rem,.78vw,.78rem)!important;
+  color:rgba(226,232,240,.68)!important;
+}
+.heritage-command-brief.is-open .heritage-command-grid{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:8px!important;
+  margin-top:9px!important;
+}
+.heritage-command-brief.is-open .executive-morning-brief{
+  grid-column:1/-1!important;
+  min-height:0!important;
+  padding:10px 12px!important;
+  border-radius:16px!important;
+  background:rgba(255,255,255,.045)!important;
+  border-color:rgba(255,255,255,.10)!important;
+}
+.heritage-command-brief.is-open .executive-morning-brief ul{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:6px!important;
+}
+.heritage-command-brief.is-open .executive-morning-brief li{
+  background:rgba(15,23,42,.42)!important;
+  color:rgba(241,245,249,.82)!important;
+  border-color:rgba(255,255,255,.10)!important;
+  font-size:10px!important;
+  line-height:1.45!important;
+  padding:6px 8px!important;
+}
+.heritage-command-brief.is-open .heritage-command-tile{
+  min-height:68px!important;
+  padding:8px 10px!important;
+  border-radius:16px!important;
+  background:rgba(15,23,42,.48)!important;
+  border-color:rgba(255,255,255,.10)!important;
+  color:#f8fafc!important;
+}
+.heritage-command-brief.is-open .heritage-command-tile .heritage-tile-label{
+  font-size:10px!important;
+  color:rgba(226,232,240,.82)!important;
+  margin-top:2px!important;
+}
+.heritage-command-brief.is-open .heritage-command-tile strong{
+  font-size:17px!important;
+  color:#fff!important;
+  margin-top:2px!important;
+}
+.heritage-command-brief.is-open .heritage-command-tile small{
+  font-size:8px!important;
+  line-height:1.3!important;
+  color:rgba(203,213,225,.68)!important;
+  margin-top:2px!important;
+}
+.heritage-command-brief.is-open .heritage-tile-icon,
+.heritage-command-brief.is-open .heritage-command-tile .heritage-tile-icon{
+  width:26px!important;
+  height:26px!important;
+  border-radius:10px!important;
+}
+.heritage-command-brief.is-open .heritage-tile-icon svg{
+  width:13px!important;
+  height:13px!important;
+}
+@media (min-width:1280px){
+  .heritage-command-brief.is-open .heritage-command-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;}
+  .heritage-command-brief.is-open .executive-morning-brief{grid-column:1/-1!important;}
+}
+@media (max-width:900px){
+  .heritage-command-brief.is-open{padding:10px!important;border-radius:19px!important;max-height:64dvh!important;}
+  .heritage-command-brief.is-open .heritage-command-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;}
+  .heritage-command-brief.is-open .executive-morning-brief ul{grid-template-columns:1fr!important;}
+  .heritage-command-brief.is-open .heritage-command-tile{min-height:62px!important;padding:7px 8px!important;}
+}
+
+/* Login logo + install cloud: bigger logo, safe title, install button placed as a quiet helper below actions */
 .login-hero-logo{
-  max-height:112px!important;
-  transform:scale(.92)!important;
-  margin:0 auto 14px!important;
+  max-height:132px!important;
+  transform:scale(1.02)!important;
+  margin:0 auto 16px!important;
 }
 .login-brand-stage h1{
-  font-size:clamp(3.35rem,5.4vw,5.65rem)!important;
-  line-height:1.2!important;
-  letter-spacing:-.025em!important;
-  padding:.08em .03em .2em!important;
-  margin:0 auto 18px!important;
-  max-width:100%!important;
+  white-space:nowrap!important;
   overflow:visible!important;
-  white-space:normal!important;
-  text-wrap:balance!important;
+  text-wrap:nowrap!important;
+  font-size:clamp(3.4rem,8.2vw,7.4rem)!important;
+  line-height:1.03!important;
+  padding:.06em .04em .14em!important;
+  margin:8px auto 14px!important;
+  max-width:100%!important;
 }
-.login-form-stage{position:relative!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;}
 .login-install-btn{
   position:static!important;
-  align-self:center!important;
-  width:auto!important;
-  min-width:46px!important;
-  height:42px!important;
-  margin:14px auto 0!important;
-  padding:0 14px!important;
-  border-radius:999px!important;
-  background:rgba(255,251,235,.92)!important;
-  border:1px solid rgba(245,158,11,.20)!important;
+  inset:auto!important;
+  width:52px!important;
+  height:52px!important;
+  margin:18px auto 0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:20px!important;
+  background:linear-gradient(135deg,#fff7ed,#ffffff)!important;
+  border:1px solid rgba(212,175,55,.32)!important;
+  box-shadow:0 14px 32px rgba(120,53,15,.10)!important;
   color:#b45309!important;
-  box-shadow:0 12px 30px rgba(120,53,15,.08)!important;
-  z-index:1!important;
 }
-.login-install-btn::after{
+.login-form-stage-cloud-first .login-install-btn::after{
   content:'تثبيت التطبيق';
-  font-size:11px;
-  font-weight:950;
-  margin-inline-start:6px;
+  position:absolute;
+  transform:translateY(34px);
+  font-size:10px;
+  font-weight:900;
+  color:#b45309;
+  white-space:nowrap;
 }
-@media(max-width:900px){
-  .login-brand-stage{padding-top:calc(env(safe-area-inset-top,0px) + 28px)!important;}
-  .login-hero-logo{max-height:88px!important;transform:scale(.84)!important;margin-bottom:10px!important;}
+@media (max-width:640px){
+  .login-brand-stage{padding-top:calc(env(safe-area-inset-top,0px) + 26px)!important;padding-inline:18px!important;}
+  .login-hero-logo{max-height:102px!important;transform:scale(.88)!important;margin-bottom:10px!important;}
   .login-brand-stage h1{
-    font-size:clamp(2.9rem,11vw,3.9rem)!important;
-    line-height:1.24!important;
-    letter-spacing:-.01em!important;
-    max-width:96vw!important;
-    padding:.08em .04em .24em!important;
-    margin-bottom:12px!important;
+    font-size:clamp(3.05rem,15vw,4.7rem)!important;
+    line-height:1.06!important;
+    letter-spacing:-.055em!important;
+    padding:.04em .08em .16em!important;
+    margin:6px auto 12px!important;
   }
-  .login-install-btn{height:40px!important;margin-top:12px!important;padding:0 12px!important;}
+  .login-install-btn{width:48px!important;height:48px!important;margin-top:16px!important;border-radius:18px!important;}
 }
-@media(max-width:430px){
-  .login-hero-logo{max-height:78px!important;transform:scale(.80)!important;}
-  .login-brand-stage h1{
-    font-size:clamp(2.55rem,10vw,3.15rem)!important;
-    line-height:1.28!important;
-    letter-spacing:0!important;
-    padding-bottom:.28em!important;
+
+
+/* Admin4545 request: remove offers tile in code and show 3 command tiles per row on compact screens */
+@media (max-width:900px){
+  .heritage-command-brief.is-open .heritage-command-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;
+  }
+  .heritage-command-brief.is-open .heritage-command-tile{
+    min-height:58px!important;
+    padding:6px 6px!important;
+    border-radius:14px!important;
+  }
+  .heritage-command-brief.is-open .heritage-command-tile .heritage-tile-label{
+    font-size:9px!important;
+    line-height:1.2!important;
+  }
+  .heritage-command-brief.is-open .heritage-command-tile strong{
+    font-size:15px!important;
+  }
+  .heritage-command-brief.is-open .heritage-command-tile small{
+    font-size:7.4px!important;
+    line-height:1.2!important;
+  }
+  .heritage-command-brief.is-open .heritage-tile-icon,
+  .heritage-command-brief.is-open .heritage-command-tile .heritage-tile-icon{
+    width:23px!important;
+    height:23px!important;
+    border-radius:9px!important;
+  }
+  .heritage-command-brief.is-open .heritage-tile-icon svg{
+    width:12px!important;
+    height:12px!important;
   }
 }

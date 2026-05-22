@@ -5112,8 +5112,10 @@ const [isPending, startTransition] = useTransition();
                                           ];
                                         const msg =
                                           encodeURIComponent(randomMsg);
+                                        const sanitizeWhatsAppText = (t: string) =>
+                                          String(t || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
                                         window.open(
-                                          `https://wa.me/965${v.phone}?text=${msg}`,
+                                          `https://api.whatsapp.com/send?phone=965${v.phone}&text=${encodeURIComponent(sanitizeWhatsAppText(decodeURIComponent(msg)))}`,
                                           "_blank",
                                         );
                                       }}
@@ -5138,8 +5140,10 @@ const [isPending, startTransition] = useTransition();
                                           ];
                                         const msg =
                                           encodeURIComponent(randomMsg);
+                                        const sanitizeWhatsAppText = (t: string) =>
+                                          String(t || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
                                         window.open(
-                                          `https://wa.me/965${v.phone}?text=${msg}`,
+                                          `https://api.whatsapp.com/send?phone=965${v.phone}&text=${encodeURIComponent(sanitizeWhatsAppText(decodeURIComponent(msg)))}`,
                                           "_blank",
                                         );
                                       }}

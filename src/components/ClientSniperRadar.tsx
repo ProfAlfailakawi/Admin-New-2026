@@ -103,7 +103,9 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  text = encodeURIComponent(`\u2728 أهلاً ${target.name}، اشتقنا لك في مطبخ التراث الكويتي.\n\nجهزنا لك عرض خاص بانتظارك، ويسعدنا نستقبل طلبك بأي وقت.\n\nAlturath.kw`);
  toast.success(`تم تشغيل بروتوكول الاستعادة للعميل ${target.name}`);
  }
- const waUrl = `https://wa.me/${target.phone.replace(/\D/g, '')}?text=${text}`;
+ const sanitizeWhatsAppText = (t: string) =>
+   String(t || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
+ const waUrl = `https://api.whatsapp.com/send?phone=${target.phone.replace(/\D/g, '')}&text=${encodeURIComponent(sanitizeWhatsAppText(decodeURIComponent(text)))}`;
  window.open(waUrl, '_blank');
  setSelectedTarget(null);
  };

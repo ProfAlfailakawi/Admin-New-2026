@@ -337,7 +337,6 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
   const invoices = Array.isArray(data?.invoices) ? data.invoices : [];
   const orders = Array.isArray(data?.orders) ? data.orders : [];
   const products = Array.isArray(data?.products) ? data.products : [];
-  const suppliers = Array.isArray(data?.suppliers) ? data.suppliers : [];
   const allSales = [...invoices, ...orders];
   const pending = allSales.filter((item: any) => isPendingStatus(item?.status || item?.paymentStatus)).length;
   const failed = allSales.filter((item: any) => isFailedStatus(item?.status || item?.paymentStatus)).length;
@@ -369,9 +368,7 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     { label: 'تم الدفع', value: `${paid}`, hint: 'جاهز للإجراء', page: 'invoices-list', tone: 'emerald', icon: <BadgeCheck size={18} /> },
     { label: 'نبض اليوم', value: `${allSales.length}`, hint: `${total.toFixed(3)} د.ك`, page: 'dashboard', tone: 'gold', icon: <Gauge size={18} /> },
     { label: 'المنتجات', value: `${products.length}`, hint: outOfStock ? `${outOfStock} يحتاج مراجعة` : 'جاهزة', page: 'products', tone: 'slate', icon: <Boxes size={18} /> },
-    { label: 'الموردين', value: `${suppliers.length}`, hint: 'المراجعة والمخاطر', page: 'suppliers-audit', tone: 'indigo', icon: <Truck size={18} /> },
     { label: 'العملاء', value: `${Array.isArray(data?.customers) ? data.customers.length : 0}`, hint: 'ذكاء العملاء والولاء', page: 'customers', tone: 'emerald', icon: <Users size={18} /> },
-    { label: 'العروض', value: `${Array.isArray(data?.promocodes) ? data.promocodes.length : 0}`, hint: 'مسرح الكوبونات', page: 'coupons', tone: 'gold', icon: <Receipt size={18} /> },
   ];
 
   const go = (target: string) => {

@@ -343,7 +343,9 @@ Alturath.kw`;
 
       let digits = phone.replace(/[^0-9]/g, "");
       if (digits.length === 8) digits = `965${digits}`;
-      return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+      const sanitizeWhatsAppText = (text: string) =>
+        String(text || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
+      return `https://api.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(sanitizeWhatsAppText(message))}`;
     };
 
     useEffect(() => {
