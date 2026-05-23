@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3 } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, Star } from 'lucide-react';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from '../constants';
 import { toast } from 'sonner';
 import { Product } from '../types';
@@ -13,6 +13,7 @@ import { AdaptiveBranding } from './AdaptiveBranding';
 import { applyLogoBranding } from '../lib/brandingUtils';
 import { BrandingControls } from './BrandingControls';
 import { REAL_RESTAURANT_BACKGROUNDS, STUDIO_REALITY_MODES, STUDIO_REALITY_NEGATIVE_PROMPT, type StudioBackgroundPresetId, type StudioRealityMode } from '../lib/studioReality';
+import { buildStudioTastePrompt, loadStudioBackgroundLibrary, markStudioBackgroundUsed, recordStudioTasteChoice, saveStudioBackgroundToLibrary, type StudioBackgroundLibraryItem } from '../lib/studioLearning';
 
 interface SmartContentStudioProps {
   data: any;
@@ -116,6 +117,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [realityBoost, setRealityBoost] = useState(true);
   const [isAuditingReality, setIsAuditingReality] = useState(false);
   const [realityAudit, setRealityAudit] = useState<RealityAuditResult | null>(null);
+  const [backgroundLibrary, setBackgroundLibrary] = useState<StudioBackgroundLibraryItem[]>([]);
+  const [isSavingBackground, setIsSavingBackground] = useState(false);
+  const [tasteMemoryPrompt, setTasteMemoryPrompt] = useState('');
   const [showInstagramPreview, setShowInstagramPreview] = useState(false);
   const [useBranding, setUseBranding] = useState(true);
   const [brandingStyle, setBrandingStyle] = useState<'smooth' | 'elegant' | 'classic' | 'polaroid' | 'heritage'>('smooth');
@@ -124,7 +128,18 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [customText, setCustomText] = useState('');
   const [textPosition, setTextPosition] = useState<'bottom' | 'top' | 'center' | 'hidden'>('bottom');
   const [aiImage, setAiImage] = useState<string | null>(null);
-  const [history, setHistory] = useState<{url: string, caption: string | null, date: Date}[]>([]);
+  const [history, setHistory] = useState<{url: string, caption: string | null, date: Date, mode?: StudioRealityMode, background?: StudioBackgroundPresetId, theme?: string, format?: string}[]>([]);
+
+
+  const refreshStudioLearning = async () => {
+    setTasteMemoryPrompt(buildStudioTastePrompt());
+    const library = await loadStudioBackgroundLibrary();
+    setBackgroundLibrary(library);
+  };
+
+  useEffect(() => {
+    refreshStudioLearning();
+  }, []);
 
   useEffect(() => {
     try {
@@ -156,9 +171,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     }
   }, [useBranding, logoOpacity, logoPosition, brandingStyle, customText, textPosition, aiImage]);
 
-  const addToHistory = (url: string, caption: string | null) => {
+  const addToHistory = (url: string, caption: string | null, meta?: { mode?: StudioRealityMode; background?: StudioBackgroundPresetId; theme?: string; format?: string }) => {
     setHistory(prev => {
-      const nextItem = { url, caption, date: new Date() };
+      const nextItem = { url, caption, date: new Date(), ...meta };
       const newHistory = [nextItem, ...prev.filter(item => item.url !== url)].slice(0, 12);
       // التخزين يتم في useEffect بنسخة خفيفة، حتى تبقى الصورة الحالية ظاهرة بدون كسر المتصفح.
       return newHistory;
@@ -273,6 +288,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           strictPlateLock,
           realityBoost,
           correctionHint: variantOverride?.label?.includes('أصدق') ? 'أعد بناء الخلفية لتكون أبسط وأكثر بشرية: ظلال تلامس صحيحة، سطح مطعم عادي، إضاءة أقل مثالية، بدون لمعان أو عمق مبالغ.' : undefined,
+          tasteProfile: buildStudioTastePrompt(),
           speedTier: 'turbo' // Signal for faster generation logic if available
         })
       });
@@ -294,7 +310,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         setAiImage(imageResult);
         const branded = await applyBranding(imageResult).catch(() => imageResult);
         setGeneratedImage(branded);
-        addToHistory(branded, null);
+        const usedMode = variantOverride?.mode || realityMode;
+        const usedBackground = variantOverride?.background || backgroundPreset;
+        const themeUsed = themeText;
+        addToHistory(branded, null, { mode: usedMode, background: usedBackground, theme: themeUsed, format: selectedFormat });
+        recordStudioTasteChoice({ mode: usedMode, background: usedBackground, theme: themeUsed, format: selectedFormat, label: variantOverride?.label || STUDIO_REALITY_MODES[usedMode].label, source: 'generated-image' });
+        refreshStudioLearning();
         if (variantOverride?.label) {
           setRealityVariants(prev => [...prev, {
             label: variantOverride.label || STUDIO_REALITY_MODES[variantOverride.mode || realityMode].label,
@@ -365,6 +386,57 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setRealityMode('finalBoss');
     const hint = realityAudit?.fixHint || 'خل الخلفية أبسط وأكثر بشرية: مطعم حقيقي عادي، ظلال صحيحة، إضاءة أقل مثالية، لا لمعان زائد، لا عمق مبالغ، لا ديكور وهمي.';
     await generateContent({ mode: 'finalBoss', background: backgroundPreset || 'wood-table', label: `أصدق بصرياً: ${hint}` });
+  };
+
+
+  const rememberCurrentChoice = (label = 'اختيار يدوي') => {
+    recordStudioTasteChoice({
+      mode: realityMode,
+      background: backgroundPreset,
+      theme: selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme,
+      format: selectedFormat,
+      label,
+      source: 'manual-choice'
+    });
+    refreshStudioLearning();
+    toast.success('تم حفظ ذوقك لهذا الأسلوب — الاستوديو راح يفضله لاحقاً');
+  };
+
+  const saveCurrentBackground = async () => {
+    const source = aiImage || generatedImage;
+    if (!source || isSavingBackground) return;
+    setIsSavingBackground(true);
+    try {
+      const saved = await saveStudioBackgroundToLibrary({
+        url: source,
+        caption: aiCaption,
+        mode: realityMode,
+        background: backgroundPreset,
+        theme: selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme,
+        format: selectedFormat,
+        label: STUDIO_REALITY_MODES[realityMode]?.label || 'لقطة واقعية',
+        auditScore: realityAudit?.score ?? null,
+        source: 'product-studio'
+      });
+      setBackgroundLibrary(prev => [saved, ...prev.filter(item => item.id !== saved.id)].slice(0, 24));
+      setTasteMemoryPrompt(buildStudioTastePrompt());
+      toast.success('تم حفظ اللقطة في مكتبة الخلفيات — وجرى تعلّم ذوقك');
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر حفظ الخلفية');
+    } finally {
+      setIsSavingBackground(false);
+    }
+  };
+
+  const useLibraryBackground = (item: StudioBackgroundLibraryItem) => {
+    setAiImage(item.url);
+    setGeneratedImage(item.url);
+    setAiCaption(item.caption || null);
+    if (item.mode) setRealityMode(item.mode);
+    if (item.background) setBackgroundPreset(item.background);
+    markStudioBackgroundUsed(item);
+    refreshStudioLearning();
+    toast.success('تم اختيار لقطة من مكتبتك — النظام تعلم هذا الذوق');
   };
 
   const handleDownload = () => {
@@ -757,6 +829,41 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               </div>
             </div>
 
+            <div className="bg-white p-5 rounded-3xl shadow-sm border border-emerald-100">
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="text-right">
+                  <h3 className="font-black text-slate-800 flex items-center gap-2"><Brain size={16} className="text-emerald-500" /> ذاكرة الذوق الذكية</h3>
+                  <p className="text-[11px] font-bold text-slate-400 mt-1">كل اختيار أو حفظ لصورة يعلّم الاستوديو نوع الخلفية والعدسة اللي تفضلها.</p>
+                </div>
+                <button type="button" onClick={() => rememberCurrentChoice('preferred-controls')} className="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-black hover:bg-emerald-100">
+                  احفظ ذوقي الحالي
+                </button>
+              </div>
+              {tasteMemoryPrompt ? (
+                <div className="rounded-2xl bg-emerald-50/70 border border-emerald-100 p-3 text-[11px] font-bold text-emerald-800 leading-6">
+                  الذاكرة مفعلة: الاستوديو سيكرر الخلفيات والأوضاع التي تختارها أكثر.
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-[11px] font-bold text-slate-500 leading-6">
+                  بعد أول اختيار/حفظ، يبدأ النظام يتعلم ذوقك بدون تغيير منطق الذكاء الأساسي.
+                </div>
+              )}
+            </div>
+
+            {backgroundLibrary.length > 0 && (
+              <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
+                <h3 className="font-black text-slate-800 mb-3 flex items-center gap-2"><Library size={16} className="text-indigo-500" /> مكتبة الخلفيات المحفوظة</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {backgroundLibrary.slice(0, 6).map((item) => (
+                    <button key={item.id} type="button" onClick={() => useLibraryBackground(item)} className="group rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm hover:shadow-md transition-all text-right">
+                      <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
+                      <div className="p-2 text-[10px] font-bold text-slate-500 truncate">{item.label || item.background || 'خلفية محفوظة'}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-800 text-white">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="text-right">
@@ -969,7 +1076,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                           {history.map((item, idx) => (
                             <button 
                               key={idx}
-                              onClick={() => { setGeneratedImage(item.url); setAiCaption(item.caption); setAiImage(item.url); }}
+                              onClick={() => { setGeneratedImage(item.url); setAiCaption(item.caption); setAiImage(item.url); recordStudioTasteChoice({ mode: item.mode, background: item.background, theme: item.theme || selectedTheme, format: item.format || selectedFormat, label: 'history-picked', source: 'history' }); refreshStudioLearning(); }}
                               className="w-12 h-12 rounded-lg border flex-shrink-0 overflow-hidden"
                             >
                               <img src={item.url} alt="hist" className="w-full h-full object-cover" />
@@ -987,7 +1094,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           {realityVariants.map((item, idx) => (
-                            <button key={`${item.label}-${idx}`} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); }} className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden text-right shadow-sm hover:shadow-md transition-all">
+                            <button key={`${item.label}-${idx}`} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); recordStudioTasteChoice({ mode: item.mode, background: item.background, theme: selectedTheme, format: selectedFormat, label: item.label, source: 'variant-picked' }); refreshStudioLearning(); }} className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden text-right shadow-sm hover:shadow-md transition-all">
                               <img src={item.url} alt={item.label} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
                               <div className="p-2 text-[10px] font-black text-slate-600 truncate">{item.label}</div>
                             </button>
@@ -1023,6 +1130,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                       <button type="button" onClick={auditReality} disabled={isAuditingReality || !generatedImage} className="px-6 py-3 bg-white border border-emerald-200 text-emerald-700 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         {isAuditingReality ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
                         قيّم الواقعية
+                      </button>
+                      <button type="button" onClick={saveCurrentBackground} disabled={isSavingBackground || !generatedImage} className="px-6 py-3 bg-white border border-amber-200 text-amber-700 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        {isSavingBackground ? <Loader2 className="animate-spin" size={18} /> : <Star size={18} />}
+                        احفظ الخلفية للمكتبة
                       </button>
                       <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !selectedImage} className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         <Sparkles size={18} />

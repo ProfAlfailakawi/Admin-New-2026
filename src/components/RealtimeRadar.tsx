@@ -6,6 +6,7 @@ import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { BrandingControls } from './BrandingControls';
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
 import { buildTextRealityPrompt } from '../lib/studioReality';
+import { buildStudioTastePrompt, recordStudioTasteChoice } from '../lib/studioLearning';
 
 export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [loading, setLoading] = useState(false);
@@ -80,13 +81,14 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat, realityBoost: true })
+        body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat, realityBoost: true, tasteProfile: buildStudioTastePrompt() })
       });
       const imgData = await imgRes.json();
       
       if (imgData.imageUrl) {
         setGeneratedBaseImage(imgData.imageUrl);
         setHistory(prev => [{url: imgData.imageUrl, text: txtData.text, topic: eventLabel}, ...prev].slice(0, 10));
+        recordStudioTasteChoice({ theme: eventLabel, format: selectedFormat, label: 'رادار التريندات', source: 'radar-tab' });
       }
 
     } catch (e) {
