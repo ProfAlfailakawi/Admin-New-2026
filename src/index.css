@@ -2918,3 +2918,138 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
     }
   }
 }
+
+/* Mobile-only admin refinements requested: preserve desktop/tablet and all business logic. */
+@media (max-width: 640px) {
+  .admin-sync-toast {
+    display: none !important;
+  }
+
+  .admin-login-showcase {
+    min-height: 100svh !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom)) !important;
+    overflow: hidden !important;
+  }
+
+  .login-showcase-shell {
+    width: min(100%, 430px) !important;
+    min-height: calc(100svh - 20px) !important;
+    max-height: calc(100svh - 20px) !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: minmax(310px, 43svh) 1fr !important;
+    border-radius: 34px !important;
+  }
+
+  .login-brand-stage {
+    min-height: 0 !important;
+    padding: 22px 20px 18px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .login-stage-content {
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+  }
+
+  .login-hero-logo {
+    margin: 0 0 20px !important;
+    transform: scale(1.04) !important;
+  }
+
+  .login-brand-stage h1 {
+    font-size: clamp(3rem, 14vw, 4.25rem) !important;
+    line-height: .98 !important;
+    margin-bottom: 18px !important;
+  }
+
+  .login-metrics-row {
+    margin-top: 18px !important;
+    gap: 8px !important;
+  }
+
+  .login-metrics-row div {
+    border-radius: 20px !important;
+    padding: 11px 8px !important;
+  }
+
+  .login-metrics-row strong {
+    font-size: 16px !important;
+  }
+
+  .login-metrics-row span {
+    font-size: 10px !important;
+  }
+
+  .login-form-stage {
+    min-height: 0 !important;
+    justify-content: flex-start !important;
+    padding: 20px 18px max(18px, env(safe-area-inset-bottom)) !important;
+    background:
+      radial-gradient(circle at 50% 112%, rgba(212,175,55,.16), transparent 38%),
+      linear-gradient(180deg, rgba(255,255,255,.99), rgba(255,250,240,.97)) !important;
+  }
+
+  .login-form-stage:before {
+    inset: 12px !important;
+    border-radius: 28px !important;
+  }
+
+  .login-cloud-note {
+    margin-bottom: 12px !important;
+    padding: 12px 13px !important;
+    border-radius: 18px !important;
+    font-size: 12px !important;
+    line-height: 1.65 !important;
+  }
+
+  .login-google-btn,
+  .login-local-link-btn {
+    min-height: 54px !important;
+    border-radius: 20px !important;
+  }
+
+  .login-google-btn svg {
+    width: 21px !important;
+    height: 21px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .login-showcase-shell {
+    grid-template-rows: minmax(285px, 40svh) 1fr !important;
+  }
+
+  .login-brand-stage h1 {
+    font-size: clamp(2.65rem, 13vw, 3.65rem) !important;
+  }
+
+  .login-metrics-row div {
+    padding: 9px 6px !important;
+  }
+}
+
+/* Final admin PWA refinements: no business logic, no notification/payment/AI/location changes. */
+@media(max-width:900px){
+  .login-form-stage-cloud-first:not(:has(.login-install-btn)){
+    min-height:auto!important;
+    padding-bottom:max(1.35rem, env(safe-area-inset-bottom))!important;
+  }
+  .login-form-stage-cloud-first:has(.login-install-btn){
+    min-height:auto!important;
+  }
+}
+@media(max-width:640px){
+  .login-showcase-shell{
+    max-height:none!important;
+    overflow:visible!important;
+  }
+  .admin-login-showcase{
+    overflow:auto!important;
+  }
+}
