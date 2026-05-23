@@ -8,6 +8,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'squads' | 'settings' | 'radar'>('leaderboard');
   const [isConfiguring, setIsConfiguring] = useState(false);
   const radarMapRef = React.useRef<HTMLDivElement | null>(null);
+  const coordinatesBoxRef = React.useRef<HTMLDivElement | null>(null);
   const [radarMapSize, setRadarMapSize] = useState({ width: 0, height: 0 });
 
   const normalizeSquadRecord = (sq: any, fallbackIndex = 0) => {
@@ -578,25 +579,70 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     return Math.round(2 * R * Math.asin(Math.sqrt(h)));
   };
 
+  const getSquadKeyCandidates = (sq: any) => new Set([
+    sq?.id,
+    sq?.diwaniyaId,
+    sq?.squadId,
+    sq?.docId,
+    sq?.name,
+    sq?.diwaniyaName,
+    sq?.squadName,
+    sq?.phone,
+  ].filter((value) => value !== undefined && value !== null && String(value).trim() !== '').map((value) => String(value).trim().toLowerCase()));
+
+  const isLinkedToSquad = (item: any, sq: any) => {
+    if (!item || !sq) return false;
+    const keys = getSquadKeyCandidates(sq);
+    const candidates = [
+      item?.squadId,
+      item?.diwaniyaId,
+      item?.squad?.id,
+      item?.diwaniya?.id,
+      item?.targetSquadId,
+      item?.hostedSquadId,
+      item?.squadName,
+      item?.diwaniyaName,
+      item?.squad?.name,
+      item?.diwaniya?.name,
+      item?.toPhone,
+      item?.ownerPhone,
+      item?.hostPhone,
+    ];
+    return candidates.some((value) => value !== undefined && value !== null && keys.has(String(value).trim().toLowerCase()));
+  };
+
+  const getSharedArray = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = data?.[key];
+      if (Array.isArray(value)) return value;
+    }
+    return [];
+  };
+
   const getSquadJoinRequests = (sq: any) => {
-    const raw = sq?.geofenceJoinRequests ?? sq?.joinRequests ?? sq?.pendingJoinRequests ?? sq?.diwaniyaJoinRequests ?? [];
-    if (!Array.isArray(raw)) return [];
+    const embedded = sq?.geofenceJoinRequests ?? sq?.joinRequests ?? sq?.pendingJoinRequests ?? sq?.diwaniyaJoinRequests ?? [];
+    const shared = getSharedArray('geofenceJoinRequests', 'diwaniyaJoinRequests', 'squadJoinRequests').filter((request: any) => isLinkedToSquad(request, sq));
+    const raw = [...(Array.isArray(embedded) ? embedded : []), ...shared];
     return raw.filter((request: any) => !request?.status || request.status === 'pending' || request.status === 'معلق');
   };
 
   const getSquadPresence = (sq: any) => {
-    const raw = sq?.presenceNow ?? sq?.presentMembers ?? sq?.currentPresence ?? sq?.checkedInMembers ?? [];
-    return Array.isArray(raw) ? raw.filter(Boolean) : [];
+    const embedded = sq?.presenceNow ?? sq?.presentMembers ?? sq?.currentPresence ?? sq?.checkedInMembers ?? [];
+    const shared = getSharedArray('squadPresence', 'diwaniyaPresence', 'presenceNow').filter((presence: any) => isLinkedToSquad(presence, sq));
+    return [...(Array.isArray(embedded) ? embedded : []), ...shared].filter(Boolean);
   };
 
   const getSquadOpenOrder = (sq: any) => {
-    const orders = [sq?.openGroupOrder, sq?.groupOrder, sq?.collectiveOrder, ...(Array.isArray(sq?.groupOrders) ? sq.groupOrders : [])].filter(Boolean);
+    const embedded = [sq?.openGroupOrder, sq?.groupOrder, sq?.collectiveOrder, ...(Array.isArray(sq?.groupOrders) ? sq.groupOrders : [])].filter(Boolean);
+    const shared = getSharedArray('squadGroupOrders', 'diwaniyaGroupOrders', 'groupOrders').filter((order: any) => isLinkedToSquad(order, sq));
+    const orders = [...embedded, ...shared];
     return orders.find((order: any) => !order?.status || ['open', 'active', 'مفتوح'].includes(String(order.status))) || null;
   };
 
   const getSquadTemporaryCodes = (sq: any) => {
-    const raw = sq?.temporaryInviteCodes ?? sq?.tempInviteCodes ?? sq?.guestCodes ?? sq?.inviteCodes ?? sq?.accessCodes ?? [];
-    if (!Array.isArray(raw)) return [];
+    const embedded = sq?.temporaryInviteCodes ?? sq?.tempInviteCodes ?? sq?.guestCodes ?? sq?.inviteCodes ?? sq?.accessCodes ?? [];
+    const shared = getSharedArray('squadTempCodes', 'diwaniyaTempCodes', 'temporaryInviteCodes', 'guestCodes').filter((code: any) => isLinkedToSquad(code, sq));
+    const raw = [...(Array.isArray(embedded) ? embedded : []), ...shared];
     const now = Date.now();
     return raw.filter((code: any) => {
       const status = String(code?.status ?? '').trim().toLowerCase();
@@ -701,7 +747,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     );
 
     return { enriched, missingLocation, pending, stalePending, duplicateWarnings, topJoinSquads, openGroupOrders, activePresence, activeCodes, heatPoints, riskSquads };
-  }, [squads, mappedSquadsForMap, geofenceDistance, allOrders]);
+  }, [squads, mappedSquadsForMap, geofenceDistance, allOrders, data?.geofenceJoinRequests, data?.diwaniyaJoinRequests, data?.squadJoinRequests, data?.squadPresence, data?.diwaniyaPresence, data?.squadGroupOrders, data?.diwaniyaGroupOrders, data?.squadTempCodes, data?.diwaniyaTempCodes]);
 
   const filteredRiskSquads = React.useMemo(() => {
     if (riskFilter === 'missing') return diwaniyaAdminRadar.enriched.filter((sq: any) => !sq.actualLocation);
@@ -869,13 +915,22 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     toast.success('تم تركيز الخريطة على الديوانية');
   };
 
+  const scrollToCoordinatesBox = () => {
+    window.setTimeout(() => {
+      coordinatesBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      coordinatesBoxRef.current?.focus?.();
+    }, 80);
+  };
+
   const selectRadarSquad = (sq: any) => {
+    if (!sq) return;
+    setActiveTab('radar');
     setActiveMapSquadId(sq.id);
     setRadarMapMode('map');
     if (sq?.actualLocation) {
       setRadarMapCenter({ lat: sq.actualLocation.lat, lng: sq.actualLocation.lng });
     }
-    requestAnimationFrame(() => radarMapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+    scrollToCoordinatesBox();
   };
 
   return (
@@ -1299,7 +1354,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                             
                             return (
                           <React.Fragment key={s.id}>
-                            <tr className={`transition-colors cursor-pointer ${expandedSquadId === s.id ? 'bg-blue-50/30' : 'hover:bg-slate-50/50'}`} onClick={() => setExpandedSquadId(expandedSquadId === s.id ? null : s.id)}>
+                            <tr className={`transition-colors cursor-pointer ${expandedSquadId === s.id ? 'bg-blue-50/30' : 'hover:bg-slate-50/50'}`} onClick={() => selectRadarSquad(s)}>
                               <td className="p-4 pr-6 font-bold text-slate-800">
                                 <div className="flex items-center gap-2">
                                   {editingSquadId === s.id ? (
@@ -1584,7 +1639,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           key={`heat-${sq.id}`}
                           className="absolute z-20 -translate-x-1/2 -translate-y-1/2 group"
                           style={{ left: point.x, top: point.y }}
-                          onClick={() => setActiveMapSquadId(sq.id)}
+                          onClick={() => selectRadarSquad(sq)}
                           title={`${sq.name} - العدد: ${sq.heatValue || 0} | طلبات: ${sq.heatBreakdown?.orders || 0} | حضور: ${sq.heatBreakdown?.presence || 0} | انضمام: ${sq.heatBreakdown?.pending || 0} | أكواد: ${sq.heatBreakdown?.codes || 0}`}
                         >
                           <span
@@ -1610,7 +1665,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           key={sq.id}
                           className="absolute z-20 -translate-x-1/2 -translate-y-1/2 group text-right"
                           style={{ left: point.x, top: point.y }}
-                          onClick={() => setActiveMapSquadId(sq.id)}
+                          onClick={() => selectRadarSquad(sq)}
                         >
                           <span className={`absolute -inset-4 rounded-full blur-md transition-all ${hasPending ? 'bg-amber-400/30 animate-pulse' : hasLocation ? 'bg-emerald-400/20' : 'bg-rose-400/20'} ${isActive ? 'scale-125' : 'scale-100'}`} />
                           <span className={`relative flex items-center justify-center rounded-full border-2 shadow-lg transition-all ${isBusy ? 'w-6 h-6 animate-pulse' : 'w-5 h-5'} ${isActive ? 'scale-125 bg-slate-950 border-amber-300' : hasLocation ? 'bg-emerald-500 border-white' : 'bg-slate-400 border-white'}`}>
@@ -1661,7 +1716,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3"><div className="text-[10px] text-indigo-700 font-bold">أكواد فعالة</div><div className="text-lg font-black text-indigo-700">{selected.tempCodes.length}</div></div>
                         </div>
 
-                        <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs leading-6">
+                        <div ref={coordinatesBoxRef} tabIndex={-1} className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs leading-6 outline-none ring-0 focus:ring-4 focus:ring-amber-200/70 transition-shadow">
                           <div className="font-black text-slate-700 mb-1">الإحداثيات</div>
                           {selected.actualLocation ? (
                             <>
