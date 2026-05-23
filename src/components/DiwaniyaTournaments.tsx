@@ -28,7 +28,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
   // Merge all client/admin diwaniya collections so hosted diwaniyas do not disappear when leaving the screen or reopening the app.
   const squads = React.useMemo(() => {
-    const sources = [data?.squads, data?.diwaniyas, data?.diwaniyaSquads, data?.hostedDiwaniyas, data?.hostedSquads, data?.clientDiwaniyas].filter(Array.isArray) as any[][];
+    // Reverse the order so data.squads (the source of truth) overwrites the others during merge
+    const sources = [data?.clientDiwaniyas, data?.hostedSquads, data?.hostedDiwaniyas, data?.diwaniyaSquads, data?.diwaniyas, data?.squads].filter(Array.isArray) as any[][];
     if (!sources.length) return DEFAULT_SQUADS.map(normalizeSquadRecord);
     const merged = new Map<string, any>();
     sources.flat().filter(Boolean).forEach((sq: any, index: number) => {
@@ -47,7 +48,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
         squads: normalizedSquads,
         diwaniyas: normalizedSquads,
         diwaniyaSquads: normalizedSquads,
+        hostedDiwaniyas: normalizedSquads,
+        hostedSquads: normalizedSquads,
       };
+      // Keep clientDiwaniyas untouched unless specifically requested, to avoid blasting client state unnecessarily, but normally they use the same DB.
       localStorage.setItem('ktk_accounting_data', JSON.stringify(updated));
       return updated;
     });
@@ -384,11 +388,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     const currentSquads = Array.isArray(data?.squads) ? data.squads : squads;
     const nextSquads = currentSquads.filter((sq: any) => String(sq.id) !== String(squad.id));
 
-    setData((prev: any) => {
-      const updated = { ...prev, squads: nextSquads };
-      localStorage.setItem('ktk_accounting_data', JSON.stringify(updated));
-      return updated;
-    });
+    setSquads(nextSquads);
 
     if (String(expandedSquadId) === String(squad.id)) setExpandedSquadId(null);
     if (String(editingSquadId) === String(squad.id)) {
