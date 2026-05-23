@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getMessaging, getToken, isSupported } from "firebase/messaging";
+import { getMessaging, getToken, isSupported, onMessage, type Messaging } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBBVG0C-xjkuT3WeqiNAmJjw6lI8M6Gt6k",
@@ -12,6 +12,90 @@ const firebaseConfig = {
 
 export const FALLBACK_VAPID_KEY =
   "BGL4HY3Wt_Mlvf-aOyxUJA1TwffllGlkm19H5IVijVfxBzGUWWFrIkQVlIr5-FQ_xQd2JGxsdCuZpBcjABpv3Fw";
+
+let foregroundPushListenerStarted = false;
+
+function readPayloadText(payload: any) {
+  const title =
+    payload?.notification?.title ||
+    payload?.data?.title ||
+    "التراث";
+
+  const body =
+    payload?.notification?.body ||
+    payload?.data?.body ||
+    "تنبيه جديد";
+
+  const url =
+    payload?.fcmOptions?.link ||
+    payload?.data?.url ||
+    payload?.data?.click_action ||
+    "/";
+
+  const eventId =
+    payload?.data?.eventId ||
+    `${title}:${body}:${url}`;
+
+  return { title, body, url, eventId };
+}
+
+function startForegroundPushListener(messaging: Messaging) {
+  if (foregroundPushListenerStarted || typeof window === "undefined") return;
+  foregroundPushListenerStarted = true;
+
+  onMessage(messaging, (payload) => {
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+
+    const { title, body, url, eventId } = readPayloadText(payload);
+    const dedupeKey = `foreground_push_${eventId}`;
+    const lastShown = Number(sessionStorage.getItem(dedupeKey) || "0");
+
+    if (lastShown && Date.now() - lastShown < 60 * 1000) return;
+    sessionStorage.setItem(dedupeKey, String(Date.now()));
+
+    const notification = new Notification(title, {
+      body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: eventId,
+      renotify: false,
+      requireInteraction: true,
+      data: { url, eventId },
+    } as NotificationOptions);
+
+    notification.onclick = () => {
+      notification.close();
+      window.focus();
+      if (url && url !== "/") {
+        window.location.href = url;
+      }
+    };
+  });
+}
+
+export async function startForegroundPushListenerIfAllowed() {
+  try {
+    if (
+      typeof Notification === "undefined" ||
+      Notification.permission !== "granted" ||
+      foregroundPushListenerStarted
+    ) {
+      return;
+    }
+
+    const supported = await isSupported().catch(() => false);
+    if (!supported) return;
+
+    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    startForegroundPushListener(getMessaging(app));
+  } catch (error) {
+    console.warn("[Push] Foreground listener setup skipped:", error);
+  }
+}
+
+if (typeof window !== "undefined") {
+  startForegroundPushListenerIfAllowed();
+}
 
 export async function getPushSupportStatus() {
   const hasNotification = typeof Notification !== "undefined";
@@ -129,6 +213,7 @@ export async function registerPushNotifications(options?: {
 
     const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
     const messaging = getMessaging(app);
+    startForegroundPushListener(messaging);
     const registration = await getFreshMessagingServiceWorkerRegistration();
 
     let token = "";
@@ -189,6 +274,7 @@ export async function refreshPushRegistrationIfAlreadyAllowed(options?: {
 
     const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
     const messaging = getMessaging(app);
+    startForegroundPushListener(messaging);
     const registration = await getFreshMessagingServiceWorkerRegistration();
 
     let token = "";

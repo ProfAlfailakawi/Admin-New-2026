@@ -2,6 +2,7 @@
 
 const PUSH_DEDUPE_CACHE = "alturath-push-dedupe-v1";
 const PUSH_DEDUPE_TTL_MS = 48 * 60 * 60 * 1000;
+const PUSH_DEDUPE_TIMEOUT_MS = 250;
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -67,8 +68,11 @@ self.addEventListener("push", (event) => {
     "تنبيه جديد";
 
   const url =
+    payload.fcmOptions?.link ||
+    payload.notification?.fcmOptions?.link ||
     payload.data?.url ||
     payload.notification?.data?.url ||
+    payload.data?.click_action ||
     payload.url ||
     "/";
 
@@ -85,7 +89,12 @@ self.addEventListener("push", (event) => {
     "general";
 
   event.waitUntil((async () => {
-    if (await wasPushAlreadyShown(eventId)) return;
+    const alreadyShown = await Promise.race([
+      wasPushAlreadyShown(eventId),
+      new Promise((resolve) => setTimeout(() => resolve(false), PUSH_DEDUPE_TIMEOUT_MS)),
+    ]);
+
+    if (alreadyShown) return;
 
     await self.registration.showNotification(title, {
       body,

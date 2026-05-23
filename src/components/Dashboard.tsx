@@ -1858,7 +1858,7 @@ const [isPending, startTransition] = useTransition();
     ].filter(Boolean);
 
     const bentoCardStyle =
-      "bg-[#fdfbf7] p-4 md:p-6 rounded-3xl border border-[#f0e6d2] shadow-[0_4px_20px_-10px_rgba(212,192,152,0.3)] text-right relative overflow-hidden flex flex-col interactive-hover mb-6";
+      "bg-[#fdfbf7] w-full max-w-full min-w-0 p-4 md:p-5 lg:p-6 rounded-3xl border border-[#f0e6d2] shadow-[0_4px_20px_-10px_rgba(212,192,152,0.3)] text-right relative overflow-hidden flex flex-col interactive-hover mb-6 [overflow-wrap:anywhere]";
     const glassCardStyle =
       "bg-[#fdfbf7]/80 backdrop-blur-xl border border-white/50 shadow-xl p-3 md:p-4 rounded-2xl text-right relative overflow-hidden flex flex-col text-[#4a3f35] hover:shadow-indigo-500/10 transition-all duration-300 hover:opacity-90";
 
@@ -2375,7 +2375,7 @@ const [isPending, startTransition] = useTransition();
           </AnimatePresence>
 
           {/* TOP ROW: HEADER WITH INTEGRATED TAB BAR */}
-          <div className="flex flex-col gap-6 w-full" dir="rtl">
+          <div className="dashboard-executive-shell flex flex-col gap-4 md:gap-6 w-full max-w-full min-w-0 overflow-hidden" dir="rtl">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-3 text-right">
                 <div className="w-11 h-11 rounded-2xl bg-slate-950 text-amber-300 flex items-center justify-center shadow-lg shadow-slate-900/10 shrink-0">
@@ -2395,7 +2395,7 @@ const [isPending, startTransition] = useTransition();
             </div>
 
             {/* Apple-style Premium Tab list */}
-            <div className="w-full max-w-full min-w-0 overflow-hidden rounded-3xl border border-slate-100 bg-white/70 p-2 shadow-sm" dir="rtl">
+            <div className="dashboard-tab-shell w-full max-w-full min-w-0 overflow-hidden rounded-3xl border border-slate-100 bg-white/70 p-2 shadow-sm" dir="rtl">
               <div className="flex w-full max-w-full min-w-0 items-center gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide py-1 snap-x" style={{ WebkitOverflowScrolling: 'touch' }}>
               {tabs.map((tab) => {
                 const isActive = activeGroupConfig.id === tab.id;
@@ -2433,7 +2433,7 @@ const [isPending, startTransition] = useTransition();
             </div>
 
             {activeGroupConfig.tabs.length > 1 && (
-              <div className="rounded-3xl border border-slate-100 bg-slate-50/80 p-2 shadow-inner" dir="rtl">
+              <div className="dashboard-subtab-shell rounded-3xl border border-slate-100 bg-slate-50/80 p-2 shadow-inner max-w-full min-w-0 overflow-hidden" dir="rtl">
                 <div className="mb-2 flex items-center justify-between gap-3 px-2 text-right">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">المجموعة النشطة</p>
@@ -2477,7 +2477,7 @@ const [isPending, startTransition] = useTransition();
         {/* 4) CONTENT - Full Width */}
         <div
           className={cn(
-            "container w-full max-w-none flex flex-col transition-opacity duration-300 relative [overflow-wrap:anywhere] [&_h1]:leading-tight [&_h2]:leading-tight [&_h3]:leading-tight [&_p]:leading-relaxed [&_h1]:text-2xl md:[&_h1]:text-3xl xl:[&_h1]:text-4xl [&_h2]:text-xl md:[&_h2]:text-2xl xl:[&_h2]:text-3xl [&_h3]:text-base md:[&_h3]:text-xl [&_p]:text-sm md:[&_p]:text-base",
+            "dashboard-content-shell container w-full max-w-none min-w-0 overflow-hidden flex flex-col transition-opacity duration-300 relative [overflow-wrap:anywhere] [&_h1]:leading-tight [&_h2]:leading-tight [&_h3]:leading-tight [&_p]:leading-relaxed [&_h1]:text-2xl md:[&_h1]:text-3xl xl:[&_h1]:text-4xl [&_h2]:text-xl md:[&_h2]:text-2xl xl:[&_h2]:text-3xl [&_h3]:text-base md:[&_h3]:text-xl [&_p]:text-sm md:[&_p]:text-base",
             isPending ? "opacity-50" : "opacity-100",
             isExecutiveMode ? "py-12" : ""
           )}
