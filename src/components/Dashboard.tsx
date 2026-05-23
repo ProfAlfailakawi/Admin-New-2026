@@ -2395,7 +2395,8 @@ const [isPending, startTransition] = useTransition();
             </div>
 
             {/* Apple-style Premium Tab list */}
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-1.5 -mx-4 px-4 md:-mx-0 md:px-0 border-b border-slate-100 pb-3 snap-x" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="w-full max-w-full min-w-0 overflow-hidden rounded-3xl border border-slate-100 bg-white/70 p-2 shadow-sm" dir="rtl">
+              <div className="flex w-full max-w-full min-w-0 items-center gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide py-1 snap-x" style={{ WebkitOverflowScrolling: 'touch' }}>
               {tabs.map((tab) => {
                 const isActive = activeGroupConfig.id === tab.id;
                 const firstTab = tab.tabs[0] as DashboardTab;
@@ -2428,6 +2429,7 @@ const [isPending, startTransition] = useTransition();
                   </button>
                 );
               })}
+              </div>
             </div>
 
             {activeGroupConfig.tabs.length > 1 && (
@@ -2441,7 +2443,7 @@ const [isPending, startTransition] = useTransition();
                     {activeGroupConfig.tabs.length} أقسام
                   </span>
                 </div>
-                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+                <div className="flex w-full max-w-full min-w-0 items-center gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide pb-1" style={{ WebkitOverflowScrolling: 'touch' }}>
                   {activeGroupConfig.tabs.map((tabId) => {
                     const childTab = tabLookup[tabId];
                     const isChildActive = activeTab === tabId;
