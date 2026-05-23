@@ -85,7 +85,6 @@ import ProactiveAlerts from './components/ProactiveAlerts';
 import InstallPrompt from './components/InstallPrompt';
 import CloudStatus from './components/CloudStatus';
 import { InstagramMagicWand } from './components/InstagramMagicWand';
-import { DynamicIslandNotch } from './components/DynamicIslandNotch';
 import { recalculateStateBalances } from './lib/business-logic';
 import { INITIAL_DATA, GET_DEMO_DATA, DEFAULT_SQUADS } from './data';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from './constants';
@@ -2588,7 +2587,6 @@ const MainApp: React.FC = () => {
           {/* Global Background Accents - Removed for performance */}
           <div className="fixed inset-0 pointer-events-none z-0">
           </div>
-          <DynamicIslandNotch data={data} />
           <InstallPrompt />
           <ProactiveAlerts 
             userRole={userRole}
