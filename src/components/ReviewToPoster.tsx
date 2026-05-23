@@ -6,6 +6,7 @@ import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { BrandingControls } from './BrandingControls';
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
 import { buildTextRealityPrompt } from '../lib/studioReality';
+import { buildStudioTastePrompt, recordStudioTasteChoice } from '../lib/studioLearning';
 
 export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [loading, setLoading] = useState(false);
@@ -56,13 +57,14 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat, realityBoost: true })
+        body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat, realityBoost: true, tasteProfile: buildStudioTastePrompt() })
       });
       const imgData = await imgRes.json();
       
       if (imgData.imageUrl) {
         setGeneratedBaseImage(imgData.imageUrl);
         setHistory(prev => [{url: imgData.imageUrl, review}, ...prev].slice(0, 10));
+        recordStudioTasteChoice({ theme: review.slice(0, 60), format: selectedFormat, label: 'مدح سينمائي', source: 'review-tab' });
       }
     } catch (e) {
       toast.error("فشل التوليد");

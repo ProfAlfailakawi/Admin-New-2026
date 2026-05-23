@@ -2279,7 +2279,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 
   app.post("/api/smart-studio/generate", express.json({ limit: '50mb' }), async (req, res) => {
     try {
-      const { imageContent, mimeType, format, theme, mood, realityMode, backgroundPreset, strictPlateLock, realityBoost, correctionHint } = req.body;
+      const { imageContent, mimeType, format, theme, mood, realityMode, backgroundPreset, strictPlateLock, realityBoost, correctionHint, tasteProfile } = req.body;
       if (!imageContent) return res.status(400).json({ error: "Missing image" });
       
       const systemInstruction = "أنت مصور أطعمة بشري محترف ومدير فني لمطاعم واقعية. هدفك جعل الصورة تبدو مصورة بكاميرا حقيقية داخل مطعم حقيقي، وليس مولدة بالذكاء الاصطناعي.";
@@ -2315,7 +2315,7 @@ ${strictPlateLock !== false ? '- قفل صارم: لا تبدّل الصحن إ�
 - استخدم عناصر مطعم قابلة للتصديق فقط: طاولة، كرسي، بوث، كاونتر استلام، جدار محايد، زجاج، مطبخ ستانلس، منديل، كوب ماء بسيط، تغليف plain.
 - أضف عيوب تصوير بشرية بسيطة: منظور 35mm/50mm، نعومة عدسة خفيفة، ظل صحيح، scale منطقي، انعكاسات قليلة، عدم تماثل مثالي.
 - اترك مساحة هادئة للهوية/النص لاحقاً، لكن لا تضع أي نص داخل الصورة.
-${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان عادياً ومقنعاً قبل أن يكون جميلاً؛ تجنب اللمعان الزائد، الخلفية الفارغة الفاخرة، العمق غير المنطقي، والديكور المثالي. أضف عيوب تصوير بشرية صغيرة وظلال تلامس حقيقية.\n' : ''}${correctionHint ? `- طلب تحسين إضافي من المستخدم: ${correctionHint}\n` : ''}
+${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان عادياً ومقنعاً قبل أن يكون جميلاً؛ تجنب اللمعان الزائد، الخلفية الفارغة الفاخرة، العمق غير المنطقي، والديكور المثالي. أضف عيوب تصوير بشرية صغيرة وظلال تلامس حقيقية.\n' : ''}${tasteProfile ? `- ذاكرة ذوق المستخدم: ${String(tasteProfile).slice(0, 900)}\n` : ''}${correctionHint ? `- طلب تحسين إضافي من المستخدم: ${correctionHint}\n` : ''}
 
 الاختيارات الحالية:
 - الثيم: ${theme || 'مطعم واقعي'}.
@@ -2398,7 +2398,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان عاد�
 
   app.post("/api/smart-studio/generate-from-text", express.json({ limit: "5mb" }), async (req, res) => {
     try {
-      const { prompt, format, realityBoost } = req.body;
+      const { prompt, format, realityBoost, tasteProfile } = req.body;
       let ar = "1:1";
       if (format === "9:16") { ar = "9:16"; }
       if (format === "4:3") { ar = "4:3"; }
@@ -2415,7 +2415,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان عاد�
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-image",
         contents: {
-          parts: [{ text: `${prompt}\n\nSERVER REALITY ENFORCEMENT: Every smart-studio text image must look like a real human restaurant photograph. Use a believable restaurant background from: wooden table, marble table, pickup counter, open kitchen pass, window booth, delivery packaging, busy dining blur, or neutral menu setup. Make it ordinary and physically plausible before making it beautiful: realistic scale, grounded shadows, natural lens softness, small human-camera imperfections. No dallah, no incense, no sadu, no lanterns, no fantasy decor, no palace, no CGI, no text/logos/watermarks. ${realityBoost ? "FINAL BOSS: remove any AI tells; make viewers believe this was photographed on location." : ""}` }]
+          parts: [{ text: `${prompt}\n\nSERVER REALITY ENFORCEMENT: Every smart-studio text image must look like a real human restaurant photograph. Use a believable restaurant background from: wooden table, marble table, pickup counter, open kitchen pass, window booth, delivery packaging, busy dining blur, or neutral menu setup. Make it ordinary and physically plausible before making it beautiful: realistic scale, grounded shadows, natural lens softness, small human-camera imperfections. No dallah, no incense, no sadu, no lanterns, no fantasy decor, no palace, no CGI, no text/logos/watermarks. ${tasteProfile ? `USER TASTE MEMORY: ${String(tasteProfile).slice(0, 900)} ` : ""}${realityBoost ? "FINAL BOSS: remove any AI tells; make viewers believe this was photographed on location." : ""}` }]
         },
         config: {
           imageConfig: {

@@ -6,6 +6,7 @@ import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { BrandingControls } from './BrandingControls';
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
 import { buildTextRealityPrompt } from '../lib/studioReality';
+import { buildStudioTastePrompt, recordStudioTasteChoice } from '../lib/studioLearning';
 
 export const AdaptiveBranding: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [activeTheme, setActiveTheme] = useState('morning');
@@ -89,13 +90,14 @@ No markdown formatting, just pure JSON.`;
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat, realityBoost: true })
+        body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat, realityBoost: true, tasteProfile: buildStudioTastePrompt() })
       });
       const imgData = await imgRes.json();
       
       const newTheme = { ...themeData, baseImageUrl: imgData.imageUrl };
       setGeneratedTheme(newTheme);
       setHistory(prev => [newTheme, ...prev].slice(0, 10));
+      recordStudioTasteChoice({ theme: themeData.name, format: selectedFormat, label: 'الهوية المتغيرة', source: 'branding-tab' });
       setActiveTheme('custom');
       toast.success(`تم ابتكار وتطبيق ثيم: ${themeData.name} ✨`);
     } catch (e) {
