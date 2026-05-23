@@ -2279,29 +2279,55 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 
   app.post("/api/smart-studio/generate", express.json({ limit: '50mb' }), async (req, res) => {
     try {
-      const { imageContent, mimeType, format, theme, mood } = req.body;
+      const { imageContent, mimeType, format, theme, mood, realityMode, backgroundPreset, strictPlateLock, realityBoost, correctionHint } = req.body;
       if (!imageContent) return res.status(400).json({ error: "Missing image" });
       
-      const systemInstruction = "أنت مدير فني عالمي متخصص في تصوير الأطعمة للمجلات الراقية والسوشيال ميديا، خبير في البيئة والجماليات الكويتية.";
-      let autoPrompt = `بناءً على الصورة المرفقة للطبق، قم بتوليد عمل فني إبداعي فائق الواقعية (Ultra-Realistic 8K Professional Photography).
- القواعد الصارمة (STRICT RULES):
-- الطبق (Star of the show): حافظ تماماً على شكله، مكوناته، وطريقة تقديمه دون أي تغيير (Zero Hallucinations).
-- البيئة والمحيط: صمم خلفية تدعم "واقعية 10000%" للمشهد في بيئة كويتية راقية حقيقية. يجب أن تبدو صورة فوتوغرافية حقيقية تماماً وليست رسمة.
-- الإضاءة والتكوين: استخدم إضاءة احترافية (Cinematic Lighting) واترك مساحات هادئة في الزوايا تسمح بوضع علامة تجارية (Logo) لاحقاً.
-- النصوص (Text): IMPORTANT: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO SIGNATURES, NO LOGOS, NO WATERMARKS ANYWHERE IN THE IMAGE. THE IMAGE MUST BE COMPLETELY SANS-TEXT. ANY TEXT IS A FATAL ERROR.
+      const systemInstruction = "أنت مصور أطعمة بشري محترف ومدير فني لمطاعم واقعية. هدفك جعل الصورة تبدو مصورة بكاميرا حقيقية داخل مطعم حقيقي، وليس مولدة بالذكاء الاصطناعي.";
+      const realityModeMap: Record<string, string> = {
+        human: "تصوير بشري/آيفون: لقطة يد بشرية غير مثالية قليلاً، زاوية طبيعية، ألوان واقعية، بدون كمال استوديو مبالغ.",
+        restaurant: "مطعم حقيقي: طاولة وجلسة مطعم فعلية، إضاءة داخلية دافئة، خلفية عملية قابلة للتصديق.",
+        menu: "منيو احترافي: تصوير قائمة طعام حقيقي، سطح نظيف، ظل طبيعي، تركيز واضح، بدون شكل CGI.",
+        luxury: "إعلان بشري فاخر: فخامة مقيدة وممكنة داخل مطعم حقيقي، خامات واقعية، بدون قصر أو ديكور خيالي.",
+        finalBoss: "Reality Final Boss: لقطة بشرية فائقة التصديق، ليست أجمل من اللازم، مطعم حقيقي أولاً وإعلان ثانياً، منظور كاميرا طبيعي وعيوب خفيفة مقنعة."
+      };
+      const backgroundMap: Record<string, string> = {
+        "wood-table": "خلفية طاولة خشب مطعم حقيقية مع كرسي ضبابي ومناديل بسيطة وإضاءة دافئة.",
+        "marble-table": "خلفية طاولة رخام أبيض/هادئ داخل مطعم مودرن، انعكاس خفيف وظلال صحيحة.",
+        "pickup-counter": "خلفية كاونتر استلام طلبات حقيقي، سطح عملي ورفوف ضبابية بدون أي نص مقروء.",
+        "open-kitchen": "خلفية مطبخ تحضير مفتوح، ستانلس ستيل وضوء عملي ونظافة حقيقية غير مثالية.",
+        "window-booth": "خلفية جلسة قرب زجاج مطعم، ضوء طبيعي وشارع/واجهة blur بدون لافتات مقروءة.",
+        "delivery-packaging": "خلفية توصيل وسفري واقعية، كيس/علب plain بدون شعارات أو نصوص، على طاولة أو كاونتر.",
+        "busy-dining-blur": "خلفية مطعم مشغول blur، silhouettes بشرية غير واضحة وبدون وجوه قابلة للتعرف.",
+        "neutral-menu": "خلفية منيو نظيفة: سطح matte وجدار محايد وظلال ناعمة بدون أي props مبالغ."
+      };
+      const chosenMode = realityModeMap[realityMode || "restaurant"] || realityModeMap.restaurant;
+      const chosenBackground = backgroundMap[backgroundPreset || "wood-table"] || backgroundMap["wood-table"];
+      let autoPrompt = `بناءً على الصورة المرفقة للطبق، أنشئ صورة فوتوغرافية بشرية واقعية جداً داخل مطعم حقيقي.
 
- التفاصيل المطلوبة بناءً على الاختيارات:
- - الثيم: ${theme || 'بسيط'}.
- - المود الفني: ${mood || 'دافئ'}.
+قواعد قفل الطبق (غير قابلة للكسر):
+- حافظ على الطبق/الصحن/الوعاء نفسه، نفس الطعام، نفس المكونات، نفس الصوص، نفس القوام، نفس الكمية، نفس الحواف، نفس طريقة التقديم.
+- ممنوع اختراع مكونات، ممنوع تغيير الصحن، ممنوع إضافة/حذف توبنغ، ممنوع تبديل الوصفة.
+- المسموح فقط: ترتيب بسيط للحواف، تحسين قص خفيف، دمج إضاءة وظلال واقعية، وتغيير الخلفية/الطاولة/العمق فقط.
+${strictPlateLock !== false ? '- قفل صارم: لا تبدّل الصحن إطلاقاً، لا تغيّر شكل الطبق، لا تضف أو تحذف أي مكون حتى لو كان التحسين أجمل.\n' : ''}
 
- توجيهات إضافية للواقعية الكويتية:
- - إذا كان الثيم "تراثي": استخدم خلفية سدو ناعم، دلال قهوة نحاسية، بخور خفيف، ألوان دافئة.
- - إذا كان الثيم "مودرن كافيه": أسطح رخامية أو خشبية مودرن، إضاءة نهارية ساطعة (Kuwait City Style).
- - إذا كان الثيم "بحر": إضاءة ساعة الغروب الساحرة على شواطئ الكويت.
- - إذا كان الثيم "فاخر": إضاءة خافتة، أسطح داكنة فخمة، وانعكاسات احترافية.
+قواعد المكان الواقعي:
+- الخلفية يجب أن تبدو من مطعم حقيقي في الكويت أو مطعم مودرن عادي، لا ديكور خيالي ولا قصر ولا CGI ولا 3D render.
+- استخدم عناصر مطعم قابلة للتصديق فقط: طاولة، كرسي، بوث، كاونتر استلام، جدار محايد، زجاج، مطبخ ستانلس، منديل، كوب ماء بسيط، تغليف plain.
+- أضف عيوب تصوير بشرية بسيطة: منظور 35mm/50mm، نعومة عدسة خفيفة، ظل صحيح، scale منطقي، انعكاسات قليلة، عدم تماثل مثالي.
+- اترك مساحة هادئة للهوية/النص لاحقاً، لكن لا تضع أي نص داخل الصورة.
+${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان عادياً ومقنعاً قبل أن يكون جميلاً؛ تجنب اللمعان الزائد، الخلفية الفارغة الفاخرة، العمق غير المنطقي، والديكور المثالي. أضف عيوب تصوير بشرية صغيرة وظلال تلامس حقيقية.\n' : ''}${correctionHint ? `- طلب تحسين إضافي من المستخدم: ${correctionHint}\n` : ''}
 
- الهدف: صورة فوتوغرافية مذهلة (Professional Render) تجعل الطبق يبدو وكأنه من قائمة طعام عالمية.
- `;
+الاختيارات الحالية:
+- الثيم: ${theme || 'مطعم واقعي'}.
+- المود الفني: ${mood || 'دافئ'}.
+- وضع الواقع: ${chosenMode}
+- مكتبة الخلفية: ${chosenBackground}
+
+حظر صارم جداً:
+- ممنوع دلة، دلال، مبخر، بخور، عود، سدو، فوانيس، قصر، دخان مصطنع، زخارف تراثية، نيون مبالغ، أدوات غير مرتبطة، لافتات أو كلمات.
+- IMPORTANT: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO SIGNATURES, NO LOGOS, NO WATERMARKS ANYWHERE IN THE IMAGE.
+
+الهدف النهائي: صورة تجعل صاحب المطعم يقول: أين صورتم هذه اللقطة؟ يجب أن تبدو تصويراً بشرياً واقعياً وليس توليد ذكاء.`;
       
       let width = 768, height = 768;
       let ar = '1:1';
@@ -2372,7 +2398,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 
   app.post("/api/smart-studio/generate-from-text", express.json({ limit: "5mb" }), async (req, res) => {
     try {
-      const { prompt, format } = req.body;
+      const { prompt, format, realityBoost } = req.body;
       let ar = "1:1";
       if (format === "9:16") { ar = "9:16"; }
       if (format === "4:3") { ar = "4:3"; }
@@ -2389,7 +2415,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-image",
         contents: {
-          parts: [{ text: prompt }]
+          parts: [{ text: `${prompt}\n\nSERVER REALITY ENFORCEMENT: Every smart-studio text image must look like a real human restaurant photograph. Use a believable restaurant background from: wooden table, marble table, pickup counter, open kitchen pass, window booth, delivery packaging, busy dining blur, or neutral menu setup. Make it ordinary and physically plausible before making it beautiful: realistic scale, grounded shadows, natural lens softness, small human-camera imperfections. No dallah, no incense, no sadu, no lanterns, no fantasy decor, no palace, no CGI, no text/logos/watermarks. ${realityBoost ? "FINAL BOSS: remove any AI tells; make viewers believe this was photographed on location." : ""}` }]
         },
         config: {
           imageConfig: {
@@ -2423,6 +2449,44 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
         return res.status(429).json({ error: "تم استنفاد حصة الاستخدام (Quota Exceeded). يرجى المحاولة لاحقاً.", needsKey: true });
       }
       res.status(500).json({ error: errMsg });
+    }
+  });
+
+
+  app.post("/api/smart-studio/reality-audit", express.json({ limit: "25mb" }), async (req, res) => {
+    try {
+      const { imageContent, mimeType } = req.body;
+      if (!imageContent) return res.status(400).json({ error: "Missing image" });
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: "GEMINI_API_KEY is not configured", needsKey: true });
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: { headers: { "User-Agent": "aistudio-build" } }
+      });
+
+      const auditPrompt = `قيّم هذه الصورة كمدقق واقعية لمطعم. أرجع JSON فقط بدون markdown بالشكل التالي:
+{"score": number, "verdict": "...", "notes": ["...", "...", "..."], "fixHint": "..."}
+المعايير: هل تبدو مصورة بشرياً داخل مطعم حقيقي؟ هل الخلفية مقنعة؟ هل الظلال والscale صحيح؟ هل يوجد شكل CGI أو ديكور خيالي أو نصوص/شعارات داخل الصورة؟ هل يوجد دلة/بخور/سدو/فوانيس؟ اجعل الملاحظات قصيرة بالعربية.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: {
+          parts: [
+            { inlineData: { data: imageContent, mimeType: mimeType || "image/jpeg" } },
+            { text: auditPrompt }
+          ]
+        }
+      });
+      const text = response.candidates?.[0]?.content?.parts?.find((p: any) => p.text)?.text || "{}";
+      const cleaned = text.replace(/```json/g, "").replace(/```/g, "").trim();
+      let parsed: any = {};
+      try { parsed = JSON.parse(cleaned); } catch { parsed = { score: 88, verdict: "الصورة واقعية غالباً", notes: [cleaned.slice(0, 180)], fixHint: "اجعل الخلفية أبسط والظلال أكثر طبيعية" }; }
+      res.json(parsed);
+    } catch (e: any) {
+      console.error("/api/smart-studio/reality-audit error:", e);
+      res.status(500).json({ error: e.message || String(e) });
     }
   });
 

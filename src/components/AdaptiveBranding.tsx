@@ -5,6 +5,7 @@ import { applyLogoBranding } from '../lib/brandingUtils';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { BrandingControls } from './BrandingControls';
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
+import { buildTextRealityPrompt } from '../lib/studioReality';
 
 export const AdaptiveBranding: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [activeTheme, setActiveTheme] = useState('morning');
@@ -83,12 +84,12 @@ No markdown formatting, just pure JSON.`;
       const rawText = result.text.replace(/```json/g, '').replace(/```/g, '').trim();
       const themeData = JSON.parse(rawText);
       
-      const imgPrompt = `Generate a 10000% photorealistic, highly realistic, real-world photograph for a hero image representing the theme: "${themeData.name}" (${themeData.description}). Use these colors prominently: ${themeData.colors.join(", ")}. Natural lighting, real textures, high-end photography aesthetic, NOT abstract art unless strictly necessary. Clean, modern Kuwaiti branding aesthetic. IMPORTANT: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO SIGNATURES, NO LOGOS, NO WATERMARKS ANYWHERE IN THE IMAGE. THE IMAGE MUST BE COMPLETELY TEXTLESS.`;
+      const imgPrompt = buildTextRealityPrompt('Adaptive restaurant brand identity hero image', `${themeData.name} - ${themeData.description} - colors: ${themeData.colors.join(', ')}`, 'Represent the identity through real restaurant materials, lighting, table/counter/background, packaging without text, and color mood only. No abstract wallpaper, no fantasy branding scene.');
       
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat })
+        body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat, realityBoost: true })
       });
       const imgData = await imgRes.json();
       

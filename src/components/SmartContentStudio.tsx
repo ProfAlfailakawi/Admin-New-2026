@@ -12,12 +12,20 @@ import { ReviewToPoster } from './ReviewToPoster';
 import { AdaptiveBranding } from './AdaptiveBranding';
 import { applyLogoBranding } from '../lib/brandingUtils';
 import { BrandingControls } from './BrandingControls';
+import { REAL_RESTAURANT_BACKGROUNDS, STUDIO_REALITY_MODES, STUDIO_REALITY_NEGATIVE_PROMPT, type StudioBackgroundPresetId, type StudioRealityMode } from '../lib/studioReality';
 
 interface SmartContentStudioProps {
   data: any;
   setData: (data: any) => void;
   onNavigate: (page: string) => void;
 }
+
+type RealityAuditResult = {
+  score?: number;
+  verdict?: string;
+  notes?: string[];
+  fixHint?: string;
+};
 
 class StudioErrorBoundary extends React.Component<{ title: string; children: React.ReactNode }, { hasError: boolean; message: string }> {
   declare props: Readonly<{ title: string; children: React.ReactNode }>;
@@ -74,14 +82,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   ];
 
   const themes = [
-    { id: 'تراثي', label: 'تراثي كويتي', desc: 'سدو، زخارف كويتية ناعمة، ديكور تراثي بسيط', icon: '🏛️', color: 'bg-amber-100 text-amber-700' },
-    { id: 'مودرن', label: 'مودرن راقٍ', desc: 'رخام مودرن، نباتات، إضاءة نهارية', icon: '🍽️', color: 'bg-stone-100 text-stone-700' },
-    { id: 'بحر', label: 'بحر الكويت', desc: 'واجهة بحرية، شاطئ المسيلة، غروب', icon: '🌊', color: 'bg-blue-100 text-blue-700' },
-    { id: 'فاخر', label: 'مطعم أفنيوز', desc: 'إضاءة راقية، ديكور مخملي عالمي', icon: '💎', color: 'bg-indigo-100 text-indigo-700' },
-    { id: 'بسيط', label: 'تصوير ستوديو', desc: 'خلفية نظيفة، تركيز فني عالي', icon: '🍽️', color: 'bg-slate-100 text-slate-700' },
-    { id: 'رمضان', label: 'رمضانيات', desc: 'فوانيس، ليالي رمضان الكويتية', icon: '🌙', color: 'bg-emerald-100 text-emerald-700' },
-    { id: 'سينمائي', label: 'بورتريه سينمائي', desc: 'خلفية ضبابية عازلة للطبق', icon: '🎬', color: 'bg-rose-100 text-rose-700' },
-    { id: 'تنظيف', label: 'تحسين فقط', desc: 'تحسين الألوان والإضاءة الأصلية', icon: '✨', color: 'bg-blue-100 text-blue-700' }
+    { id: 'طاولة مطعم', label: 'طاولة مطعم حقيقية', desc: 'خشب/رخام، كرسي ضبابي، إضاءة مطعم طبيعية', icon: '🍽️', color: 'bg-amber-100 text-amber-700' },
+    { id: 'مودرن', label: 'مطعم مودرن واقعي', desc: 'جلسة داخلية فعلية، خامات عادية، ضوء طبيعي', icon: '🪑', color: 'bg-stone-100 text-stone-700' },
+    { id: 'خارجي', label: 'جلسة خارجية واقعية', desc: 'زجاج/شارع blur، بدون ديكور خيالي أو تراث مصطنع', icon: '🌤️', color: 'bg-blue-100 text-blue-700' },
+    { id: 'فاخر', label: 'إعلان بشري فاخر', desc: 'فخم لكن مصور فعلاً، بدون CGI أو قصر مبالغ', icon: '💎', color: 'bg-indigo-100 text-indigo-700' },
+    { id: 'بسيط', label: 'منيو احترافي واقعي', desc: 'خلفية نظيفة، ظل طبيعي، صورة قائمة طعام بشرية', icon: '📸', color: 'bg-slate-100 text-slate-700' },
+    { id: 'عشاء', label: 'عشاء مطعم دافئ', desc: 'إضاءة دافئة وطاولة حقيقية بدون فوانيس أو بخور', icon: '🌙', color: 'bg-emerald-100 text-emerald-700' },
+    { id: 'سينمائي', label: 'سينمائي واقعي', desc: 'عمق وعدسة بشرية بدون مبالغة أو خلفية وهمية', icon: '🎬', color: 'bg-rose-100 text-rose-700' },
+    { id: 'تنظيف', label: 'تحسين فقط', desc: 'تحسين الألوان والإضاءة الأصلية دون تغيير المشهد', icon: '✨', color: 'bg-blue-100 text-blue-700' }
   ];
 
   const moods = [
@@ -93,13 +101,21 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
 
 
-  const FORBIDDEN_STUDIO_WORDS = ['دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود'];
+  const FORBIDDEN_STUDIO_WORDS = ['دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود', 'سدو', 'فانوس', 'فوانيس'];
   const hasForbiddenStudioWord = (value: string) =>
     FORBIDDEN_STUDIO_WORDS.some((word) => String(value || '').includes(word));
-  const STUDIO_NEGATIVE_PROMPT = 'Strictly avoid any traditional coffee pot, dallah, arabic coffee pot, incense burner, incense smoke, oud burner, bukhoor burner, perfume burner, brass pot, or unrelated heritage prop. Do not add any extra objects unrelated to the product.';
+  const STUDIO_NEGATIVE_PROMPT = STUDIO_REALITY_NEGATIVE_PROMPT;
 
   const [customThemeQuery, setCustomThemeQuery] = useState('');
   const [selectedMood, setSelectedMood] = useState('دافئ');
+  const [realityMode, setRealityMode] = useState<StudioRealityMode>('restaurant');
+  const [backgroundPreset, setBackgroundPreset] = useState<StudioBackgroundPresetId>('wood-table');
+  const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
+  const [realityVariants, setRealityVariants] = useState<{ label: string; url: string; mode: StudioRealityMode; background: StudioBackgroundPresetId }[]>([]);
+  const [strictPlateLock, setStrictPlateLock] = useState(true);
+  const [realityBoost, setRealityBoost] = useState(true);
+  const [isAuditingReality, setIsAuditingReality] = useState(false);
+  const [realityAudit, setRealityAudit] = useState<RealityAuditResult | null>(null);
   const [showInstagramPreview, setShowInstagramPreview] = useState(false);
   const [useBranding, setUseBranding] = useState(true);
   const [brandingStyle, setBrandingStyle] = useState<'smooth' | 'elegant' | 'classic' | 'polaroid' | 'heritage'>('smooth');
@@ -149,6 +165,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     });
   };
 
+  const getDataImagePayload = (dataUrl: string) => {
+    const [header, data] = String(dataUrl || '').split(',');
+    return {
+      imageContent: data || dataUrl,
+      mimeType: header?.includes(':') ? header.split(';')[0].split(':')[1] : 'image/jpeg'
+    };
+  };
+
   const applyBranding = async (sourceImage: string): Promise<string> => {
     const storeName = data.settings?.storeName || '';
     const logoUrl = data.settings?.companyLogo || DEFAULT_GLOBAL_LOGO;
@@ -162,7 +186,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     });
   };
 
-  const compressImage = (base64Str: string, maxWidth = 854): Promise<{base64: string, size: number, originalSize: number}> => {
+  const compressImage = (base64Str: string, maxWidth = 1080): Promise<{base64: string, size: number, originalSize: number}> => {
     return new Promise((resolve) => {
       const img = new Image();
       img.src = base64Str;
@@ -183,7 +207,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         ctx?.drawImage(img, 0, 0, width, height);
         
         // Output as jpeg with a balanced 0.8 quality for social media excellence
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.88);
         const originalSize = Math.round((base64Str.length * 3) / 4);
         const compressedSize = Math.round((compressedBase64.length * 3) / 4);
         
@@ -214,12 +238,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         setSelectedImage(result.base64);
         setCompressionStats({ original: result.originalSize, compressed: result.size });
         setGeneratedImage(null);
+        setRealityAudit(null);
+    if (!variantOverride) setRealityVariants([]);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const generateContent = async () => {
+  const generateContent = async (variantOverride?: { mode?: StudioRealityMode; background?: StudioBackgroundPresetId; label?: string }) => {
     if (!selectedImage) return;
     const themeText = selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme;
     if (hasForbiddenStudioWord(themeText)) {
@@ -229,6 +255,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
     setIsGenerating(true);
     setGeneratedImage(null);
+    setRealityAudit(null);
 
     // Call backend API to process the realistic AI image
     try {
@@ -241,6 +268,11 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           format: selectedFormat,
           theme: `${themeText}. ${STUDIO_NEGATIVE_PROMPT}`,
           mood: selectedMood,
+          realityMode: variantOverride?.mode || realityMode,
+          backgroundPreset: variantOverride?.background || backgroundPreset,
+          strictPlateLock,
+          realityBoost,
+          correctionHint: variantOverride?.label?.includes('أصدق') ? 'أعد بناء الخلفية لتكون أبسط وأكثر بشرية: ظلال تلامس صحيحة، سطح مطعم عادي، إضاءة أقل مثالية، بدون لمعان أو عمق مبالغ.' : undefined,
           speedTier: 'turbo' // Signal for faster generation logic if available
         })
       });
@@ -263,6 +295,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         const branded = await applyBranding(imageResult).catch(() => imageResult);
         setGeneratedImage(branded);
         addToHistory(branded, null);
+        if (variantOverride?.label) {
+          setRealityVariants(prev => [...prev, {
+            label: variantOverride.label || STUDIO_REALITY_MODES[variantOverride.mode || realityMode].label,
+            url: branded,
+            mode: variantOverride.mode || realityMode,
+            background: variantOverride.background || backgroundPreset
+          }].slice(-4));
+        }
       } else {
         toast.error("تم التوليد لكن لم يصل رابط الصورة بشكل مفهوم");
       }
@@ -276,6 +316,55 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const generateFourRealityOptions = async () => {
+    if (!selectedImage || isGenerating || isGeneratingVariants) return;
+    setIsGeneratingVariants(true);
+    setRealityVariants([]);
+    const variantPlan: { label: string; mode: StudioRealityMode; background: StudioBackgroundPresetId }[] = [
+      { label: 'بشري / آيفون', mode: 'human', background: 'wood-table' },
+      { label: 'مطعم حقيقي', mode: 'restaurant', background: 'window-booth' },
+      { label: 'منيو احترافي', mode: 'menu', background: 'neutral-menu' },
+      { label: 'Final Boss', mode: 'finalBoss', background: 'pickup-counter' },
+    ];
+    try {
+      for (const variant of variantPlan) {
+        await generateContent(variant);
+      }
+      toast.success('تم توليد 4 خيارات واقعية — اختر الأنسب للنشر');
+    } finally {
+      setIsGeneratingVariants(false);
+    }
+  };
+
+  const auditReality = async () => {
+    const source = aiImage || generatedImage;
+    if (!source || isAuditingReality) return;
+    setIsAuditingReality(true);
+    try {
+      const payload = getDataImagePayload(source);
+      const response = await fetch('/api/smart-studio/reality-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error('فشل تقييم الواقعية');
+      const result = await response.json();
+      setRealityAudit(result);
+      toast.success(`تقييم الواقعية: ${Math.round(Number(result.score || 0))}%`);
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر تقييم الواقعية');
+    } finally {
+      setIsAuditingReality(false);
+    }
+  };
+
+  const makeMoreHuman = async () => {
+    if (!selectedImage || isGenerating || isGeneratingVariants) return;
+    setRealityMode('finalBoss');
+    const hint = realityAudit?.fixHint || 'خل الخلفية أبسط وأكثر بشرية: مطعم حقيقي عادي، ظلال صحيحة، إضاءة أقل مثالية، لا لمعان زائد، لا عمق مبالغ، لا ديكور وهمي.';
+    await generateContent({ mode: 'finalBoss', background: backgroundPreset || 'wood-table', label: `أصدق بصرياً: ${hint}` });
   };
 
   const handleDownload = () => {
@@ -631,6 +720,67 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               </div>
             </div>
 
+
+            <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
+              <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Camera size={16} className="text-emerald-500" />
+                4. وضع الواقع البشري
+              </h3>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {(Object.entries(STUDIO_REALITY_MODES) as [StudioRealityMode, typeof STUDIO_REALITY_MODES[StudioRealityMode]][]).map(([id, item]) => (
+                  <button
+                    key={id}
+                    onClick={() => setRealityMode(id)}
+                    className={cn(
+                      "p-3 rounded-xl border text-right transition-all",
+                      realityMode === id ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    <span className="block text-xs font-black">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] font-bold text-slate-400 mb-2">مكتبة خلفيات مطعم واقعية</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(Object.entries(REAL_RESTAURANT_BACKGROUNDS) as [StudioBackgroundPresetId, typeof REAL_RESTAURANT_BACKGROUNDS[StudioBackgroundPresetId]][]).map(([id, item]) => (
+                  <button
+                    key={id}
+                    onClick={() => setBackgroundPreset(id)}
+                    className={cn(
+                      "px-3 py-2 rounded-xl border text-[11px] font-bold text-right transition-all",
+                      backgroundPreset === id ? "bg-slate-900 border-slate-900 text-white" : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-white"
+                    )}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-800 text-white">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="text-right">
+                  <h3 className="font-black text-white text-sm">Reality Final Boss</h3>
+                  <p className="text-[11px] text-slate-300 mt-1">أقوى وضع: الخلفية بشرية، عادية، مقنعة، وتخفي أي إحساس AI.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRealityBoost((v) => !v)}
+                  className={cn("px-3 py-2 rounded-xl text-xs font-black border transition-all", realityBoost ? "bg-emerald-400 border-emerald-300 text-slate-950" : "bg-slate-800 border-slate-700 text-slate-300")}
+                >
+                  {realityBoost ? 'مفعل' : 'متوقف'}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStrictPlateLock((v) => !v)}
+                className={cn("w-full p-3 rounded-2xl border text-right transition-all", strictPlateLock ? "bg-white/10 border-emerald-400/40" : "bg-white/5 border-slate-700")}
+              >
+                <span className="block text-sm font-black">قفل الصحن والطبق 100%</span>
+                <span className="block text-[11px] text-slate-300 mt-1">{strictPlateLock ? 'ممنوع تبديل الصحن أو المكونات — الخلفية فقط تتغير.' : 'القفل مخفف، غير مفضل للواقعية الدقيقة.'}</span>
+              </button>
+            </div>
+
             <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
               <BrandingControls
                 useBranding={useBranding}
@@ -646,7 +796,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 textPosition={textPosition}
                 setTextPosition={setTextPosition}
                 colorClass="indigo"
-                title="4. هوية العلامة (Logo)"
+                title="5. هوية العلامة (Logo)"
               />
             </div>
 
@@ -658,8 +808,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             </div>
 
             <button
-              onClick={generateContent}
-              disabled={isGenerating}
+              onClick={() => generateContent()}
+              disabled={isGenerating || isGeneratingVariants}
               className="w-full p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 transition-all disabled:opacity-50"
             >
               {isGenerating ? (
@@ -673,6 +823,16 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   انشئ المشهد
                 </>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={generateFourRealityOptions}
+              disabled={isGenerating || isGeneratingVariants || !selectedImage}
+              className="w-full p-4 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-2xl font-black flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50"
+            >
+              {isGeneratingVariants ? <Loader2 className="animate-spin" size={20} /> : <Layout size={20} />}
+              ولّد 4 خيارات واقعية (اختياري)
             </button>
           </div>
 
@@ -727,9 +887,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="max-w-xs mx-auto space-y-4">
                     {[
                       "تحليل بصمة الطبق الأصلية...",
-                      "تصميم خلفية إبداعية مذهلة...",
-                      "ضبط الإضاءة والمود الفني...",
-                      "دمج العناصر بواقعية مطلقة..."
+                      "اختيار خلفية مطعم حقيقية...",
+                      "مطابقة الظلال والعدسة البشرية...",
+                      "منع أي مظهر CGI أو ديكور وهمي..."
                     ].map((step, idx) => (
                       <motion.div 
                         key={idx}
@@ -819,9 +979,54 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                       </div>
                     )}
 
+                    {realityVariants.length > 0 && (
+                      <div className="mt-6 w-full rounded-3xl border border-emerald-100 bg-emerald-50/50 p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-[10px] font-black text-emerald-600">اختيارات واقعية اختيارية</span>
+                          <p className="text-sm font-black text-slate-800">٤ لقطات بشرية</p>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {realityVariants.map((item, idx) => (
+                            <button key={`${item.label}-${idx}`} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); }} className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden text-right shadow-sm hover:shadow-md transition-all">
+                              <img src={item.url} alt={item.label} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
+                              <div className="p-2 text-[10px] font-black text-slate-600 truncate">{item.label}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {realityAudit && (
+                      <div className="mt-6 rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm text-right">
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                          <span className="text-3xl font-black text-emerald-600">{Math.round(Number(realityAudit.score || 0))}%</span>
+                          <div>
+                            <p className="text-sm font-black text-slate-800">تقييم الواقعية البشرية</p>
+                            <p className="text-xs font-bold text-emerald-700">{realityAudit.verdict || 'الصورة واقعية وجاهزة للنشر'}</p>
+                          </div>
+                        </div>
+                        {Array.isArray(realityAudit.notes) && realityAudit.notes.length > 0 && (
+                          <div className="grid gap-2">
+                            {realityAudit.notes.slice(0, 3).map((note, idx) => (
+                              <div key={idx} className="text-xs font-bold text-slate-600 bg-slate-50 rounded-2xl p-3">{note}</div>
+                            ))}
+                          </div>
+                        )}
+                        {realityAudit.fixHint && <p className="mt-3 text-[11px] font-bold text-slate-400">تحسين مقترح: {realityAudit.fixHint}</p>}
+                      </div>
+                    )}
+
                     <div className="mt-6 flex flex-wrap gap-2 justify-center">
                       <button onClick={handleDownload} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2">
                         <Download size={18} /> تحميل
+                      </button>
+                      <button type="button" onClick={auditReality} disabled={isAuditingReality || !generatedImage} className="px-6 py-3 bg-white border border-emerald-200 text-emerald-700 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        {isAuditingReality ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
+                        قيّم الواقعية
+                      </button>
+                      <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !selectedImage} className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <Sparkles size={18} />
+                        خلها أصدق بصرياً
                       </button>
                       <button type="button" onClick={generateCaption} disabled={isCapturing || !generatedImage} className="px-6 py-3 bg-white border border-indigo-200 text-indigo-600 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         {isCapturing ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}

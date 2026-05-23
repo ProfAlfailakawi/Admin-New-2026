@@ -669,6 +669,7 @@ const MainApp: React.FC = () => {
   });
 
   const onboardingRole: 'admin' | 'partner' | 'demo' = appMode === 'local' ? 'demo' : (userRole === 'partner' ? 'partner' : 'admin');
+  const effectiveUserRole: 'admin' | 'partner' = appMode === 'local' ? 'admin' : (userRole || 'admin');
   const [onboardingOpen, setOnboardingOpen] = useState(false);
 
   useEffect(() => {
@@ -707,7 +708,7 @@ const MainApp: React.FC = () => {
 
     refreshPushRegistrationIfAlreadyAllowed({
       userId: user.uid || 'admin',
-      restaurantId: userRole === 'partner' ? 'partner' : 'kitchen_default',
+      restaurantId: effectiveUserRole === 'partner' ? 'partner' : 'kitchen_default',
     });
   }, [isAuthenticated, user, userRole]);
 
@@ -1790,7 +1791,7 @@ const MainApp: React.FC = () => {
   }
 
   const renderAppContent = () => {
-    if (userRole === 'partner') {
+    if (effectiveUserRole === 'partner') {
       switch (currentPage) {
         case 'orders': return <OrderPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} isPartner={true} />;
         case 'invoices-list': return (
@@ -1964,7 +1965,7 @@ const MainApp: React.FC = () => {
           )}
         </div>
 
-        {userRole !== 'partner' && (
+        {effectiveUserRole !== 'partner' && (
           <nav className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar overflow-x-hidden relative z-10">
             <div className="pt-2">
                <div 
@@ -2126,7 +2127,7 @@ const MainApp: React.FC = () => {
           className="h-12 md:h-20 glass-surface border-b border-slate-200/60/50 flex items-center justify-between px-4 lg:px-10 z-[100] sticky top-0 shadow-sm"
         >
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-4 md:p-8 shrink min-w-0">
-            {userRole !== 'partner' && (
+            {effectiveUserRole !== 'partner' && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setSidebarOpen(!sidebarOpen); }}
                 className="p-2.5 sm:p-3 hover:bg-slate-900 group rounded-[1.2rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0"
@@ -2134,7 +2135,7 @@ const MainApp: React.FC = () => {
                 <Menu size={20} className="group-hover:rotate-180 transition-transform duration-500" />
               </button>
             )}
-            {userRole !== 'partner' && <div className="hidden sm:block h-4 w-[1px] bg-slate-200" />}
+            {effectiveUserRole !== 'partner' && <div className="hidden sm:block h-4 w-[1px] bg-slate-200" />}
             
             <button 
               onClick={() => {
@@ -2167,7 +2168,7 @@ const MainApp: React.FC = () => {
 
           <div className="flex items-center gap-3 lg:gap-4 md:p-6 shrink-0">
              {/* Magic Command Bar Trigger */}
-             {userRole !== 'partner' && (
+             {effectiveUserRole !== 'partner' && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setCommandBarOpen(true); }}
                 title="البحث السريع (Ctrl+K)"
@@ -2351,13 +2352,13 @@ const MainApp: React.FC = () => {
 
             <div 
               onClick={(e) => {
-                if (userRole === 'partner') {
+                if (effectiveUserRole === 'partner') {
                   e.preventDefault();
                   return;
                 }
                 setCurrentPage('settings');
               }}
-              className={cn("flex items-center gap-2 sm:gap-3 pl-2 p-1.5 rounded-2xl transition-colors max-w-[120px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent", userRole === 'partner' ? "cursor-default opacity-80" : "cursor-pointer hover:bg-slate-100 hover:border-slate-200/60")}
+              className={cn("flex items-center gap-2 sm:gap-3 pl-2 p-1.5 rounded-2xl transition-colors max-w-[120px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent", effectiveUserRole === 'partner' ? "cursor-default opacity-80" : "cursor-pointer hover:bg-slate-100 hover:border-slate-200/60")}
             >
               <div className="text-left hidden xs:block overflow-hidden">
                 <div className="text-sm font-bold truncate text-slate-800">{user?.displayName || 'أحمد الفيلكاوي'}</div>
@@ -2399,7 +2400,7 @@ const MainApp: React.FC = () => {
           </div>
           <InstallPrompt />
           <ProactiveAlerts 
-            userRole={userRole}
+            userRole={effectiveUserRole}
             notifications={data.notifications || []} 
             onMarkAsRead={(id) => {
                setData(prev => ({
@@ -2408,7 +2409,7 @@ const MainApp: React.FC = () => {
                }));
             }} 
           />
-          {userRole !== 'partner' && currentPage === 'dashboard' && (
+          {effectiveUserRole !== 'partner' && currentPage === 'dashboard' && (
             <CompanyCommandCenter data={data} onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }} page={currentPage} />
           )}
           <AnimatePresence>
@@ -2424,7 +2425,7 @@ const MainApp: React.FC = () => {
               className="w-full min-h-full relative z-10 px-4 md:px-6"
             >
               <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /><p className="text-slate-500 text-sm font-bold animate-pulse">جاري التحميل...</p></div>}>
-                 {userRole === 'partner' ? renderAppContent() : (
+                 {effectiveUserRole === 'partner' ? renderAppContent() : (
                   <AdminExperienceFrame page={currentPage} data={data} onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }}>
                     {renderAppContent()}
                   </AdminExperienceFrame>
@@ -2448,12 +2449,12 @@ const MainApp: React.FC = () => {
            }
         }}
         data={data}
-        userRole={userRole}
+        userRole={effectiveUserRole}
       />
 
       {/* Global Scroll to Top */}
       <AnimatePresence>
-        {showTopButton && userRole !== 'partner' && (
+        {showTopButton && effectiveUserRole !== 'partner' && (
           <motion.button
             initial={{ opacity: 0, scale: 0.5, y: 50 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2494,7 +2495,7 @@ const MainApp: React.FC = () => {
 
       {/* --- MOBILE QUICK NAVIGATION TRIGGER --- */}
       <AnimatePresence>
-        {isMobile && userRole !== 'partner' && currentPage === 'dashboard' && !commandBarOpen && (
+        {isMobile && effectiveUserRole !== 'partner' && currentPage === 'dashboard' && !commandBarOpen && (
           <motion.div
             initial={{ opacity: 0, y: 100, scale: 0.5 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}

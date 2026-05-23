@@ -105,6 +105,7 @@ const PromoCodePage = React.lazy(() =>
 const OrderPage = React.lazy(() => import("./OrderPage"));
 import { MarketingLab } from "./MarketingLab";
 import { DiwaniyaTournaments } from "./DiwaniyaTournaments";
+import { SmartContentStudio } from "./SmartContentStudio";
 const GoalManager = React.lazy(() =>
   import("./GoalManager").then((m) => ({ default: m.GoalManager })),
 );
@@ -284,6 +285,10 @@ const GlobalStatBox = React.memo(
 export type DashboardTab =
   | "pulse"
   | "intelligence"
+  | "intelligence-decisions"
+  | "intelligence-learning"
+  | "intelligence-risks"
+  | "intelligence-strategy"
   | "financials"
   | "advanced"
   | "customers"
@@ -292,6 +297,7 @@ export type DashboardTab =
   | "diwaniya"
   | "loyalty"
   | "promocodes"
+  | "contentStudio"
   | "orders";
 
 // Build Version: 2026-05-20-PULSE-4X4-STRICT-V2.6
@@ -338,7 +344,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
   return (
     <div
       id="bi-engine-core-section"
-      className="relative w-full min-h-[400px] md:min-h-[500px] lg:min-h-[650px] py-16 flex items-center justify-center mb-8 lg:mb-16 overflow-hidden rounded-3xl rounded-3xl sm:rounded-2xl bg-slate-950 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-800/20 group"
+      className="relative w-full min-h-[400px] md:min-h-[500px] lg:min-h-[650px] py-16 flex items-center justify-center mb-4 lg:mb-16 overflow-hidden rounded-3xl rounded-3xl sm:rounded-2xl bg-slate-950 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-800/20 group"
     >
       {/* Immersive Atmospheric Gradients */}
       <div
@@ -529,7 +535,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-6 sm:mt-12 mx-4 sm:mx-0 w-full max-w-none bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 flex flex-col gap-6 justify-between items-center relative overflow-hidden z-40 mb-8"
+          className="mt-6 sm:mt-12 mx-4 sm:mx-0 w-full max-w-none bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 flex flex-col gap-6 justify-between items-center relative overflow-hidden z-40 mb-4"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent pointer-events-none" />
 
@@ -789,6 +795,87 @@ const BusinessStatusMirror: React.FC<{
         </div>
       </motion.div>
     </div>
+  );
+};
+
+
+const AdminSeasonalWeatherEngine: React.FC<{ data: AppState }> = ({ data }) => {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const day = now.getDay();
+  const isWeekendWindow = day === 3 || day === 4 || day === 5 || day === 6;
+  const estimatedTemp = month >= 6 && month <= 9 ? 44 : month === 5 || month === 10 ? 34 : month === 4 || month === 11 ? 27 : 20;
+  const weatherMood = estimatedTemp <= 28 ? "طقس كشتات مثالي" : estimatedTemp <= 36 ? "طقس طلعات خفيف" : "حرارة عالية — ركّز على الطلبات المنزلية";
+  const picnicReady = estimatedTemp <= 34 && isWeekendWindow;
+  const keywords = picnicReady
+    ? ["مشوي", "مشويات", "كباب", "ريوق", "كشتة", "مندي", "ورق", "محشي"]
+    : ["سلطة", "بارد", "مشروب", "حلو", "ورق", "ميني"];
+  const products = (data.products || []).filter((p: any) => p?.isActive !== false && !p?.isOutOfStock);
+  const matched = products
+    .filter((p: any) => keywords.some((k) => `${p.name || ""} ${p.category || ""} ${p.description || ""}`.toLowerCase().includes(k.toLowerCase())))
+    .slice(0, 4);
+  const suggestions = matched.length ? matched : products.slice(0, 4);
+  const activationText = picnicReady
+    ? "رادار القنص يقترح تجهيز أطباق الكشتات والمشويات قبل عطلة الكويت بيومين."
+    : "الرادار يختار أصنافاً أخف حسب حرارة الكويت الحالية وتوقيت الأسبوع.";
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-6 md:mb-8 relative overflow-hidden rounded-[1.75rem] border border-emerald-500/15 bg-gradient-to-br from-slate-950 via-[#13251d] to-slate-900 p-4 md:p-5 text-white shadow-[0_24px_80px_rgba(15,23,42,.16)]"
+      dir="rtl"
+    >
+      <div className="absolute -top-16 -left-16 h-44 w-44 rounded-full bg-emerald-400/20 blur-3xl" />
+      <div className="absolute -bottom-20 right-20 h-56 w-56 rounded-full bg-amber-400/10 blur-3xl" />
+      <div className="relative z-10 grid gap-5 lg:grid-cols-[1.05fr_.95fr] items-stretch">
+        <div className="flex flex-col justify-between gap-5">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black text-emerald-200 backdrop-blur-xl">
+              <CloudRain size={14} /> Seasonal Admin Engine
+            </div>
+            <h3 className="mt-3 text-xl md:text-2xl font-black tracking-tight leading-tight">التوقع الموسمي والمناخي لمطبخ التراث</h3>
+            <p className="mt-3 max-w-2xl text-xs md:text-sm font-bold leading-7 text-slate-300">{activationText}</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
+              <CloudRain size={18} className="text-amber-300 mb-2" />
+              <div className="text-lg md:text-xl font-black">{estimatedTemp}°</div>
+              <div className="text-[10px] font-bold text-slate-400">تقدير الكويت</div>
+            </div>
+            <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
+              <Calendar size={18} className="text-emerald-300 mb-2" />
+              <div className="text-lg md:text-xl font-black">{isWeekendWindow ? "نشط" : "مراقبة"}</div>
+              <div className="text-[10px] font-bold text-slate-400">عطلة الأسبوع</div>
+            </div>
+            <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
+              <Sparkles size={18} className="text-indigo-300 mb-2" />
+              <div className="text-xs md:text-sm font-black leading-6">{weatherMood}</div>
+              <div className="text-[10px] font-bold text-slate-400">إشارة المناخ</div>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-[1.5rem] border border-white/10 bg-white/[.07] p-3 md:p-4 backdrop-blur-xl">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="text-[11px] font-black text-slate-300">اقتراحات تلقائية مرتبطة بالمنيو</span>
+            <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black text-emerald-200">جاهزة للقنص</span>
+          </div>
+          <div className="space-y-2">
+            {suggestions.length > 0 ? suggestions.map((p: any) => (
+              <div key={p.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3">
+                <div className="min-w-0 text-right">
+                  <div className="truncate text-sm font-black text-white">{p.name}</div>
+                  <div className="text-[10px] font-bold text-slate-400">{p.category || "منتج"} · {Number(p.price || 0).toFixed(3)} د.ك</div>
+                </div>
+                <div className="shrink-0 rounded-xl bg-white/10 px-3 py-2 text-[10px] font-black text-amber-200">اقترح قبلها بيومين</div>
+              </div>
+            )) : (
+              <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-center text-xs font-bold text-slate-300">أضف منتجات فعالة ليبدأ الرادار بربط التوقعات بالمنيو.</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.section>
   );
 };
 
@@ -1668,35 +1755,103 @@ const [isPending, startTransition] = useTransition();
     const allDashboardTabs = [
       { id: "pulse", label: "النبض التنفيذي", icon: <Activity size={14} /> },
       {
-        id: "financials",
-        label: "المالية وحماية الأرباح",
-        icon: <DollarSign size={14} />,
-      },
-      {
         id: "intelligence",
-        label: "عقل النظام",
+        label: "النظرة",
         icon: <BrainCircuit size={14} />,
       },
       {
+        id: "intelligence-decisions",
+        label: "القرارات",
+        icon: <Rocket size={14} />,
+      },
+      {
+        id: "intelligence-learning",
+        label: "التعلم",
+        icon: <Cpu size={14} />,
+      },
+      {
+        id: "intelligence-risks",
+        label: "المخاطر",
+        icon: <ShieldAlert size={14} />,
+      },
+      {
+        id: "intelligence-strategy",
+        label: "الاستراتيجية",
+        icon: <Briefcase size={14} />,
+      },
+      {
+        id: "financials",
+        label: "المالية",
+        icon: <DollarSign size={14} />,
+      },
+      { id: "suppliers", label: "الموردين", icon: <Truck size={14} /> },
+      {
         id: "customers",
-        label: "تحليل العملاء والولاء",
+        label: "تحليل العملاء",
         icon: <Users size={14} />,
       },
-      { id: "suppliers", label: "ذكاء الموردين", icon: <Truck size={14} /> },
-      { id: "growth", label: "النمو والتسويق", icon: <Target size={14} /> },
-      { id: "diwaniya", label: "بطولات الديوانية", icon: <Users size={14} /> },
-      { id: "orders", label: "طلبات التطبيق", icon: <ShoppingCart size={14} /> },
-      { id: "loyalty", label: "الولاء (Loyalty)", icon: <Award size={14} /> },
+      { id: "loyalty", label: "الولاء", icon: <Award size={14} /> },
       {
         id: "promocodes",
-        label: "الكوبونات (Coupons)",
+        label: "الكوبونات",
         icon: <Tag size={14} />,
       },
+      { id: "diwaniya", label: "بطولات الديوانية", icon: <Users size={14} /> },
+      { id: "growth", label: "النمو", icon: <Target size={14} /> },
+      { id: "contentStudio", label: "استوديو المحتوى", icon: <Sparkles size={14} /> },
     ];
 
-    const tabs = allDashboardTabs;
-    const pulseTabConfig = tabs.find((tab) => tab.id === "pulse") || tabs[0];
-    const activeTabConfig = tabs.find((tab) => tab.id === activeTab) || pulseTabConfig;
+    const dashboardTabGroups = [
+      {
+        id: "pulse-core",
+        label: "النبض التنفيذي",
+        description: "نبض مختصر ونظيف للمؤشرات العامة فقط",
+        icon: <Activity size={14} />,
+        tabs: ["pulse"],
+      },
+      {
+        id: "system-brain",
+        label: "عقل النظام",
+        description: "مقسّم إلى 5 أقسام خفيفة بدل صفحة واحدة مزدحمة",
+        icon: <BrainCircuit size={14} />,
+        tabs: ["intelligence", "intelligence-decisions", "intelligence-learning", "intelligence-risks", "intelligence-strategy"],
+      },
+      {
+        id: "profit-shield",
+        label: "المالية",
+        description: "الربح، الهامش، التكاليف، النزيف، وحماية الأرباح",
+        icon: <DollarSign size={14} />,
+        tabs: ["financials"],
+      },
+      {
+        id: "ops-suppliers-products",
+        label: "الموردين والتشغيل",
+        description: "ذكاء الموردين ومتابعة التشغيل بدون تكرار طلبات الموقع",
+        icon: <Truck size={14} />,
+        tabs: ["suppliers"],
+      },
+      {
+        id: "customers-loyalty-offers",
+        label: "العملاء والولاء",
+        description: "تحليل العملاء، الولاء، الكوبونات، وبطولات الديوانية",
+        icon: <Users size={14} />,
+        tabs: ["customers", "loyalty", "promocodes", "diwaniya"],
+      },
+      {
+        id: "growth-marketing",
+        label: "النمو والمحتوى",
+        description: "النمو، الحملات، واستوديو المحتوى الذكي",
+        icon: <Target size={14} />,
+        tabs: ["growth", "contentStudio"],
+      },
+    ] as const;
+
+    const tabLookup = Object.fromEntries(allDashboardTabs.map((tab) => [tab.id, tab]));
+    const activeTabConfig = tabLookup[activeTab] || tabLookup.pulse;
+    const activeGroupConfig =
+      dashboardTabGroups.find((group) => (group.tabs as readonly DashboardTab[]).includes(activeTab)) || dashboardTabGroups[0];
+    const tabs = dashboardTabGroups;
+    const pulseTabConfig = tabLookup.pulse;
     const compactDropdownTabs = [
       activeTabConfig,
       ...(activeTabConfig.id === "pulse" ? [] : [pulseTabConfig]),
@@ -1709,7 +1864,13 @@ const [isPending, startTransition] = useTransition();
 
     const isLoyalty = activeTab === "loyalty";
     const isPromo = activeTab === "promocodes";
+    const intelligenceTabs: DashboardTab[] = ["intelligence", "intelligence-decisions", "intelligence-learning", "intelligence-risks", "intelligence-strategy"];
+    const isIntelligenceGroup = intelligenceTabs.includes(activeTab);
     const isIntelligence = activeTab === "intelligence";
+    const isIntelligenceDecisions = activeTab === "intelligence-decisions";
+    const isIntelligenceLearning = activeTab === "intelligence-learning";
+    const isIntelligenceRisks = activeTab === "intelligence-risks";
+    const isIntelligenceStrategy = activeTab === "intelligence-strategy";
     const isPulse = activeTab === "pulse";
     const isFinancials = activeTab === "financials";
     const isGrowth = activeTab === "growth";
@@ -1719,7 +1880,7 @@ const [isPending, startTransition] = useTransition();
     const totalOrdersCount = useMemo(() => data.orders?.length || 0, [data.orders]);
 
     const QuickActions = () => (
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
         <MagneticButton
           onClick={() => onNavigate!("new-invoice")}
           className="flex flex-col items-center justify-center p-6 bg-rose-600 text-white rounded-2xl shadow-xl shadow-rose-500/20 interactive-hover active:scale-95 group relative overflow-visible"
@@ -1858,7 +2019,7 @@ const [isPending, startTransition] = useTransition();
           if (isPulse || isCustomers)
             nextInsights = generateBusinessInsights(data);
           if (isGrowth) nextAutoStrategies = generateAutoStrategies(data);
-          if (isIntelligence) {
+          if (isIntelligenceGroup) {
             nextHiddenRisks = generateHiddenRisks(data);
             nextAiLearningLogs = generateAILearningInsights(data);
           }
@@ -1898,7 +2059,7 @@ const [isPending, startTransition] = useTransition();
       isPulse,
       isCustomers,
       isGrowth,
-      isIntelligence,
+      isIntelligenceGroup,
       isFinancials,
       isSuppliers,
     ]);
@@ -2111,7 +2272,7 @@ const [isPending, startTransition] = useTransition();
               <div className="flex justify-end gap-2 shrink-0 relative z-10 w-auto">
                 <button
                   onClick={handleLoadDemoData}
-                  className="bg-indigo-600 outline-none text-white font-bold text-[11px] px-3 py-1.5 rounded-md hover:bg-indigo-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95"
+                  className="bg-indigo-600 outline-none text-white font-bold text-sm text-[11px] px-3 py-1.5 rounded-md hover:bg-indigo-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95"
                 >
                   <Download size={14} />
                   <span>تحميل</span>
@@ -2129,7 +2290,7 @@ const [isPending, startTransition] = useTransition();
           )}
 
           <AnimatePresence>
-            {showLocalOnboardingTour && appMode === 'local' && (
+            {false && showLocalOnboardingTour && appMode === 'local' && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -2234,17 +2395,19 @@ const [isPending, startTransition] = useTransition();
             </div>
 
             {/* Apple-style Premium Tab list */}
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-1.5 -mx-4 px-4 md:-mx-0 md:px-0 border-b border-slate-100 pb-3" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-1.5 -mx-4 px-4 md:-mx-0 md:px-0 border-b border-slate-100 pb-3 snap-x" style={{ WebkitOverflowScrolling: 'touch' }}>
               {tabs.map((tab) => {
-                const isActive = activeTab === tab.id;
+                const isActive = activeGroupConfig.id === tab.id;
+                const firstTab = tab.tabs[0] as DashboardTab;
                 return (
                   <button
                     key={tab.id}
+                    title={tab.description}
                     onClick={() => startTransition(() => {
-                      setActiveTab(tab.id as any);
+                      setActiveTab(firstTab);
                     })}
                     className={cn(
-                      "flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all duration-300 outline-none whitespace-nowrap shrink-0 border relative",
+                      "flex items-center justify-center gap-2 px-3.5 md:px-4 py-2 md:py-2.5 rounded-2xl text-[11px] md:text-xs font-black transition-all duration-300 outline-none whitespace-nowrap shrink-0 border relative snap-start",
                       isActive
                         ? "bg-slate-950 text-white border-slate-950 shadow-md scale-100 relative z-10"
                         : "bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-900 border-slate-100/80"
@@ -2266,13 +2429,53 @@ const [isPending, startTransition] = useTransition();
                 );
               })}
             </div>
+
+            {activeGroupConfig.tabs.length > 1 && (
+              <div className="rounded-3xl border border-slate-100 bg-slate-50/80 p-2 shadow-inner" dir="rtl">
+                <div className="mb-2 flex items-center justify-between gap-3 px-2 text-right">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">المجموعة النشطة</p>
+                    <p className="text-xs font-black text-slate-700">{activeGroupConfig.description}</p>
+                  </div>
+                  <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-slate-500 border border-slate-100">
+                    {activeGroupConfig.tabs.length} أقسام
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+                  {activeGroupConfig.tabs.map((tabId) => {
+                    const childTab = tabLookup[tabId];
+                    const isChildActive = activeTab === tabId;
+                    if (!childTab) return null;
+                    return (
+                      <button
+                        key={tabId}
+                        type="button"
+                        onClick={() => startTransition(() => setActiveTab(tabId as DashboardTab))}
+                        className={cn(
+                          "flex shrink-0 items-center gap-2 rounded-2xl border px-3 md:px-3.5 py-2 text-[10px] md:text-[11px] font-black transition-all",
+                          isChildActive
+                            ? "bg-white text-slate-950 border-amber-200 shadow-sm"
+                            : "bg-transparent text-slate-500 border-transparent hover:bg-white/70 hover:text-slate-800"
+                        )}
+                      >
+                        {childTab.icon && React.cloneElement(childTab.icon as any, {
+                          size: 13,
+                          className: cn(isChildActive ? "text-amber-500" : "text-slate-400")
+                        })}
+                        <span>{childTab.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* 4) CONTENT - Full Width */}
         <div
           className={cn(
-            "container w-full max-w-none flex flex-col transition-opacity duration-300 relative",
+            "container w-full max-w-none flex flex-col transition-opacity duration-300 relative [overflow-wrap:anywhere] [&_h1]:leading-tight [&_h2]:leading-tight [&_h3]:leading-tight [&_p]:leading-relaxed [&_h1]:text-2xl md:[&_h1]:text-3xl xl:[&_h1]:text-4xl [&_h2]:text-xl md:[&_h2]:text-2xl xl:[&_h2]:text-3xl [&_h3]:text-base md:[&_h3]:text-xl [&_p]:text-sm md:[&_p]:text-base",
             isPending ? "opacity-50" : "opacity-100",
             isExecutiveMode ? "py-12" : ""
           )}
@@ -2284,14 +2487,14 @@ const [isPending, startTransition] = useTransition();
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="w-full mb-12 p-8 lg:p-12 bg-slate-950 rounded-[48px] border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.5)] relative overflow-hidden"
+                className="w-full mb-4 md:mb-10 p-5 md:p-8 lg:p-10 bg-slate-950 rounded-2xl md:rounded-[40px] border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.5)] relative overflow-hidden"
                 dir="rtl"
               >
                 {/* Decorative Elements */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-500" />
                 <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px]" />
                 
-                <div className="relative z-10 grid grid-cols-1 lg:grid-cols-4 gap-12 items-center">
+                <div className="relative z-10 grid grid-cols-1 lg:grid-cols-4 gap-5 md:gap-7 items-center">
                   <div className="lg:col-span-1 space-y-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center border border-amber-500/30">
@@ -2299,20 +2502,20 @@ const [isPending, startTransition] = useTransition();
                       </div>
                       <span className="text-amber-500 text-xs font-black uppercase tracking-[0.3em]">Operational Pulse</span>
                     </div>
-                    <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-tight">
+                    <h2 className="text-2xl md:text-3xl md:text-4xl font-black text-white tracking-tighter leading-tight">
                       {isGrowthPos ? "الأداء اليوم ممتاز." : "أداء اليوم يحتاج انتباه."}
                     </h2>
-                    <p className="text-slate-400 font-bold text-lg leading-relaxed">
+                    <p className="text-slate-400 font-bold text-sm md:text-base leading-relaxed">
                       {rawGrowthText}
                     </p>
                   </div>
 
                   <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
                     {/* Stat 1: Revenue */}
-                    <div className="bg-white/5 border border-white/10 p-8 rounded-[32px] backdrop-blur-xl group hover:bg-white/10 transition-all duration-500">
+                    <div className="bg-white/5 border border-white/10 p-5 md:p-6 rounded-[28px] backdrop-blur-xl group hover:bg-white/10 transition-all duration-500">
                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4">إجمالي مبيعات اليوم</span>
                       <div className="flex items-baseline gap-3">
-                         <span className="text-4xl font-black text-white tabular-nums tracking-tighter">{tRev.toFixed(2)}</span>
+                         <span className="text-3xl md:text-4xl font-black text-white tabular-nums tracking-tighter">{tRev.toFixed(2)}</span>
                          <span className="text-slate-400 text-sm font-bold">د.ك</span>
                       </div>
                       <div className={cn("mt-4 text-xs font-black inline-flex items-center gap-1 px-3 py-1 rounded-full", isGrowthPos ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400")}>
@@ -2322,10 +2525,10 @@ const [isPending, startTransition] = useTransition();
                     </div>
 
                     {/* Stat 2: Orders */}
-                    <div className="bg-white/5 border border-white/10 p-8 rounded-[32px] backdrop-blur-xl group hover:bg-white/10 transition-all duration-500">
+                    <div className="bg-white/5 border border-white/10 p-5 md:p-6 rounded-[28px] backdrop-blur-xl group hover:bg-white/10 transition-all duration-500">
                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4">طلبات التطبيق المكتملة</span>
                       <div className="flex items-baseline gap-3">
-                         <span className="text-4xl font-black text-white tabular-nums tracking-tighter">{totals.orders}</span>
+                         <span className="text-3xl md:text-4xl font-black text-white tabular-nums tracking-tighter">{totals.orders}</span>
                          <span className="text-slate-400 text-sm font-bold">طلب</span>
                       </div>
                       <div className="mt-4 text-xs font-black inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400">
@@ -2335,10 +2538,10 @@ const [isPending, startTransition] = useTransition();
                     </div>
 
                     {/* Stat 3: Efficiency */}
-                    <div className="bg-white/5 border border-white/10 p-8 rounded-[32px] backdrop-blur-xl group hover:bg-white/10 transition-all duration-500">
+                    <div className="bg-white/5 border border-white/10 p-5 md:p-6 rounded-[28px] backdrop-blur-xl group hover:bg-white/10 transition-all duration-500">
                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4">معدل كفاءة التشغيل</span>
                       <div className="flex items-baseline gap-3">
-                         <span className="text-4xl font-black text-white tabular-nums tracking-tighter">98.4</span>
+                         <span className="text-3xl md:text-4xl font-black text-white tabular-nums tracking-tighter">98.4</span>
                          <span className="text-slate-400 text-sm font-bold">%</span>
                       </div>
                       <div className="mt-4 text-xs font-black inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400">
@@ -2383,26 +2586,26 @@ const [isPending, startTransition] = useTransition();
 
             {activeTab === "financials" && (
               <div className="space-y-8" dir="rtl">
-                <div id="supplier-negotiation-duplicate" className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-xl relative overflow-hidden flex flex-col items-start">
+                <div id="supplier-negotiation-duplicate" className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-3xl p-4 md:p-5 shadow-xl relative overflow-hidden flex flex-col items-start">
                   <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-indigo-500 to-amber-400" />
-                  <div className="absolute top-3 md:p-4 left-10 opacity-10 text-white rotate-12">
+                  <div className="absolute top-3 left-6 opacity-10 text-white rotate-12">
                     <DollarSign size={200} />
                   </div>
 
-                  <h2 className="text-2xl md:text-lg md:text-xl font-bold text-white mb-6 relative z-10 flex items-center gap-4">
+                  <h2 className="text-xl md:text-2xl font-bold text-white mb-3 relative z-10 flex items-center gap-4">
                     تحليل الربحية الحقيقية{" "}
                     <Activity className="text-emerald-400" />
                   </h2>
-                  <p className="text-indigo-100 text-lg font-medium leading-relaxed max-w-2xl relative z-10 mb-8">
+                  <p className="text-indigo-100 text-lg font-medium leading-relaxed max-w-2xl relative z-10 mb-4">
                     هل تربح فعلاً؟ أم أنك ترى"وهم الربح"؟ هذا النظام يحلل
                     التكاليف الخفية التي تلتهم أرباحك بصمت: رسوم بوابات الدفع،
                     خسائر التوصيل المجمعة، والهدر التشغيلي الموزع.
                   </p>
 
                   <div className="flex gap-4 relative z-10">
-                    <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl flex items-center gap-3 border border-white/10">
+                    <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl flex items-center gap-3 border border-white/10">
                       <Percent className="text-emerald-400" size={20} />
-                      <span className="text-white font-bold">
+                      <span className="text-white font-bold text-sm">
                         رصدنا {profitInsights.length} تحليلاً مالياً دقيقاً
                       </span>
                     </div>
@@ -2626,26 +2829,26 @@ const [isPending, startTransition] = useTransition();
 
             {activeTab === "suppliers" && (
               <div className="space-y-8" dir="rtl">
-                <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 shadow-xl relative overflow-hidden flex flex-col items-start">
+                <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-3xl p-4 md:p-5 shadow-xl relative overflow-hidden flex flex-col items-start">
                   <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-indigo-500 to-amber-400" />
-                  <div className="absolute top-3 md:p-4 left-10 opacity-10 text-white rotate-12">
-                    <Handshake size={200} />
+                  <div className="absolute top-3 left-6 opacity-10 text-white rotate-12">
+                    <Handshake size={120} />
                   </div>
 
-                  <h2 className="text-2xl md:text-lg md:text-xl font-bold text-white mb-6 relative z-10 flex items-center gap-4">
+                  <h2 className="text-xl md:text-2xl font-bold text-white mb-3 relative z-10 flex items-center gap-4">
                     ذكاء مفاوضات الموردين{" "}
                     <ArrowLeftRight className="text-emerald-400" />
                   </h2>
-                  <p className="text-indigo-100 text-lg font-medium leading-relaxed max-w-2xl relative z-10 mb-8">
+                  <p className="text-indigo-100 text-lg font-medium leading-relaxed max-w-2xl relative z-10 mb-4">
                     يحلل هذا المحرك أنماط التسعير التاريخية لكل مورد، يكتشف
                     الزيادات غير المبررة، ويقترح عليك استراتيجية تفاوض مبنية على
                     الأرقام لتأمين أفضل سعر ممكن.
                   </p>
 
                   <div className="flex gap-4 relative z-10">
-                    <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl flex items-center gap-3 border border-white/10">
+                    <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl flex items-center gap-3 border border-white/10">
                       <Truck className="text-emerald-400" size={20} />
-                      <span className="text-white font-bold">
+                      <span className="text-white font-bold text-sm">
                         رصدنا {supplierNegotiationInsights.length} فرصة تفاوض
                         ذكية
                       </span>
@@ -2701,7 +2904,7 @@ const [isPending, startTransition] = useTransition();
                     "bg-white border-indigo-100 shadow-xl",
                   )}
                 >
-                  <div className="flex justify-between items-center mb-8 flex-row-reverse">
+                  <div className="flex justify-between items-center mb-4 flex-row-reverse">
                     <div className="text-right">
                       <h3 className="font-bold text-2xl text-slate-800 flex items-center gap-3 justify-end">
                         رادار الموردين الذكي
@@ -2860,34 +3063,34 @@ const [isPending, startTransition] = useTransition();
               </div>
             )}
 
-            {activeTab === "intelligence" && (
-                <div className="space-y-8 md:space-y-12 max-w-[1850px] mx-auto px-3 sm:px-5 md:px-8 xl:px-12 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full pb-20 overflow-x-hidden" dir="rtl">
+            {isIntelligenceGroup && (
+                <div className="space-y-6 md:space-y-8 max-w-[1600px] mx-auto px-3 sm:px-5 md:px-6 xl:px-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full pb-20 overflow-x-hidden" dir="rtl">
                   
                   {/* Dashboard - AI Lab Intro - Re-styled for premium feel */}
-                  <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-5 md:gap-8 pt-5 md:pt-10 border-b border-slate-200 pb-6 md:pb-10 min-w-0">
+                  <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-4 md:gap-6 pt-4 md:pt-6 border-b border-slate-200 pb-5 md:pb-7 min-w-0">
                     <div className="space-y-2">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-ping" />
                         <span className="text-xs font-black text-indigo-600 uppercase tracking-[0.4em]">Strategic Intelligence Laboratory</span>
                       </div>
-                      <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter">
+                      <h1 className="text-2xl md:text-3xl xl:text-4xl font-black text-slate-900 tracking-tighter">
                         مختبر الذكاء الاصطناعي
                       </h1>
-                      <p className="text-slate-500 font-bold text-sm md:text-lg max-w-2xl">المركز الاستراتيجي لاتخاذ القرارات وتحسين كفاءة المطبخ.</p>
+                      <p className="text-slate-500 font-bold text-sm md:text-base max-w-2xl">المركز الاستراتيجي لاتخاذ القرارات وتحسين كفاءة المطبخ.</p>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-4 bg-slate-50 p-1.5 rounded-3xl border border-slate-200 shadow-inner self-stretch lg:self-auto w-full lg:w-auto min-w-0">
-                      <div className="bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center min-w-[120px]">
+                      <div className="bg-white px-4 md:px-5 py-3 md:py-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center min-w-[120px]">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">قوة المعالجة</span>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-black text-indigo-600 tabular-nums font-mono">98.4</span>
+                          <span className="text-xl md:text-2xl font-black text-indigo-600 tabular-nums font-mono">98.4</span>
                           <span className="text-xs font-bold text-slate-400 font-mono">%</span>
                         </div>
                       </div>
-                      <div className="bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center min-w-[120px]">
+                      <div className="bg-white px-4 md:px-5 py-3 md:py-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center min-w-[120px]">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">دقة المحاكاة</span>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-black text-emerald-600 tabular-nums font-mono">94</span>
+                          <span className="text-xl md:text-2xl font-black text-emerald-600 tabular-nums font-mono">94</span>
                           <span className="text-xs font-bold text-slate-400 font-mono">%</span>
                         </div>
                       </div>
@@ -2895,7 +3098,7 @@ const [isPending, startTransition] = useTransition();
                   </div>
 
                   {/* Phase 1: High-Performance Analytics Core */}
-                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 md:gap-8 xl:gap-10 items-stretch w-full min-w-0">
+                  {isIntelligence && <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 md:gap-8 xl:gap-10 items-stretch w-full min-w-0">
                     <div className="xl:col-span-8 group">
                       <div className="relative">
                         <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[2.5rem] blur opacity-10 group-hover:opacity-20 transition duration-1000"></div>
@@ -2911,9 +3114,10 @@ const [isPending, startTransition] = useTransition();
                         />
                       </div>
                     </div>
-                  </div>
+                  </div>}
 
                   {/* Phase 2: Tactical Simulator - Re-organized for Desktop Presence */}
+                  {isIntelligenceDecisions && <>
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 md:gap-8 xl:gap-10 w-full items-start min-w-0">
                     {/* Main Simulator - Now Primary on Desktop */}
                     <div className="xl:col-span-8 flex flex-col h-full order-1 lg:order-2">
@@ -2947,7 +3151,7 @@ const [isPending, startTransition] = useTransition();
 
                     {/* Sidebar tools - Map is taller and smarter */}
                     <div className="xl:col-span-4 space-y-10 order-2 lg:order-1 flex flex-col">
-                       <div id="geo-heatmap-section" className="bg-slate-900 rounded-[32px] p-1 border border-slate-800 overflow-hidden shadow-2xl group transition-all duration-500 h-full flex flex-col min-h-[500px]">
+                       <div id="geo-heatmap-section" className="bg-slate-900 rounded-2xl p-1 border border-slate-800 overflow-hidden shadow-2xl group transition-all duration-500 h-full flex flex-col min-h-[500px]">
                         <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                           <div className="flex items-center gap-3">
                              <div className="p-2.5 bg-amber-500/10 rounded-xl">
@@ -2967,7 +3171,7 @@ const [isPending, startTransition] = useTransition();
                         <div className="p-5 bg-white/[0.03] text-[10px] font-bold text-slate-500 text-center uppercase tracking-[0.3em]">تحليل جغرافي مباشر مدعوم ببيانات توصيل الكويت</div>
                       </div>
 
-                      <div id="smart-offers-section" className="bg-white rounded-[32px] p-1 border border-slate-200 overflow-hidden shadow-xl group hover:border-indigo-500/30 transition-all duration-500">
+                      <div id="smart-offers-section" className="bg-white rounded-2xl p-1 border border-slate-200 overflow-hidden shadow-xl group hover:border-indigo-500/30 transition-all duration-500">
                         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                           <div className="flex items-center gap-3">
                              <div className="p-2.5 bg-indigo-50 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500">
@@ -3004,12 +3208,13 @@ const [isPending, startTransition] = useTransition();
                           </React.Suspense>
                         </div>
                       </div>
+                  </>}
 
                       {/* Phase 3: Self-Learning Brain Cluster - The Grand Command Center */}
-                  <div className="pt-16 border-t-4 border-slate-200/60 border-double">
-                    <div className="space-y-12">
+                  {isIntelligenceLearning && <div className="pt-6 md:pt-8 border-t border-slate-200/60 border-double">
+                    <div className="space-y-6 md:space-y-8">
                       {/* Brand Header: Self-Learning Brain Cluster */}
-                      <div className="bg-slate-950 rounded-[40px] p-6 lg:p-16 shadow-[0_40px_100px_-20px_rgba(15,23,42,0.4)] relative overflow-hidden border border-slate-800">
+                      <div className="bg-slate-950 rounded-3xl p-4 md:p-6 lg:p-8 shadow-[0_40px_100px_-20px_rgba(15,23,42,0.4)] relative overflow-hidden border border-slate-800">
                         <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-indigo-500 via-rose-500 to-indigo-500" />
                         <div className="absolute -top-20 -left-20 opacity-[0.05] text-indigo-400 rotate-12 pointer-events-none">
                           <BrainCircuit size={500} />
@@ -3018,14 +3223,14 @@ const [isPending, startTransition] = useTransition();
                           <Zap size={600} />
                         </div>
 
-                        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-12">
+                        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-5 md:gap-7">
                           <div className="max-w-4xl">
-                            <div className="flex items-center gap-4 lg:gap-6 mb-6 lg:mb-10">
-                              <div className="bg-rose-500 p-4 lg:p-6 rounded-[24px] shadow-[0_0_50px_rgba(244,63,94,0.4)] animate-pulse">
+                            <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-5">
+                              <div className="bg-rose-500 p-3 md:p-4 rounded-2xl shadow-[0_0_50px_rgba(244,63,94,0.4)] animate-pulse">
                                 <BrainCircuit className="text-white w-8 h-8 lg:w-12 lg:h-12" />
                               </div>
                               <div>
-                                <h2 className="text-3xl sm:text-5xl lg:text-7xl font-black text-white tracking-tighter leading-none mb-2 md:mb-4">
+                                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tighter leading-none mb-2 md:mb-4">
                                   عقل النظام ذاتي التعلم
                                 </h2>
                                 <div className="flex items-center gap-2">
@@ -3034,123 +3239,123 @@ const [isPending, startTransition] = useTransition();
                                 </div>
                               </div>
                             </div>
-                            <p className="text-slate-400 font-bold text-base md:text-xl lg:text-3xl max-w-4xl leading-relaxed lg:leading-[1.4]">
+                            <p className="text-slate-400 font-bold text-sm md:text-base lg:text-lg max-w-4xl leading-relaxed lg:leading-[1.4]">
                               محرك التفكير المركزي الذي يراقب صحة عملك بشكل آلي، يكتشف الأنماط الخفية، ويقوم بتصحيح مساره ذاتياً ليصبح أكثر دقة مع كل قرار يتخذه.
                             </p>
                           </div>
                           
-                          <div className="bg-white/[0.03] backdrop-blur-3xl px-8 lg:px-16 py-10 rounded-[32px] border border-white/10 shadow-2xl flex flex-col items-center text-center gap-6 group hover:border-indigo-500/50 transition-all duration-700">
-                             <div className="w-24 h-24 lg:w-32 lg:h-32 rounded-full bg-indigo-500/10 flex items-center justify-center border-4 border-indigo-500/20 group-hover:scale-110 transition-transform duration-700 relative">
-                                <History className="text-indigo-400 w-12 h-12 lg:w-16 lg:h-16" />
+                          <div className="bg-white/[0.03] backdrop-blur-3xl px-5 md:px-7 py-5 md:py-6 rounded-3xl border border-white/10 shadow-2xl flex flex-col items-center text-center gap-6 group hover:border-indigo-500/50 transition-all duration-700">
+                             <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-indigo-500/10 flex items-center justify-center border-4 border-indigo-500/20 group-hover:scale-110 transition-transform duration-700 relative">
+                                <History className="text-indigo-400 w-8 h-8 lg:w-10 lg:h-10" />
                                 <div className="absolute inset-0 rounded-full border-4 border-indigo-500/40 border-t-transparent animate-spin" style={{ animationDuration: '3s' }} />
                              </div>
                              <div>
                                <div className="text-xs lg:text-sm font-bold text-slate-500 uppercase tracking-[0.4em] mb-2">ذاكرة النظام المتراكمة</div>
-                               <div className="text-4xl lg:text-6xl font-black text-white tabular-nums tracking-tighter">{aiLearningLogs.length} دراسة</div>
+                               <div className="text-2xl lg:text-3xl font-black text-white tabular-nums tracking-tighter">{aiLearningLogs.length} دراسة</div>
                              </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Tactical Components Center - Fully Stacked and Full Width for Premium Feel */}
-                      <div className="flex flex-col gap-12 w-full p-2 md:p-0">
+                      <div className="flex flex-col gap-5 md:gap-7 w-full p-2 md:p-0">
                         {/* 1. Processing Speed (Ultra Wide) */}
-                        <div className="bg-slate-900 rounded-[48px] p-12 border border-white/10 flex flex-col items-center justify-center text-center group hover:bg-slate-800 transition-all duration-700 shadow-2xl min-h-[350px] relative overflow-hidden">
+                        <div className="bg-slate-900 rounded-3xl p-5 md:p-6 border border-white/10 flex flex-col items-center justify-center text-center group hover:bg-slate-800 transition-all duration-700 shadow-2xl min-h-[180px] md:min-h-[220px] relative overflow-hidden">
                           <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500" />
-                          <div className="w-20 h-20 bg-indigo-500/20 rounded-[32px] flex items-center justify-center mb-8 border border-indigo-500/30">
-                             <Zap className="text-indigo-400" size={40} />
+                          <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center mb-4 border border-indigo-500/30">
+                             <Zap className="text-indigo-400" size={26} />
                           </div>
                           <span className="text-sm font-black text-slate-500 uppercase tracking-[0.4em] mb-4">قوة المعالجة اللحظية</span>
-                          <span className="text-7xl lg:text-9xl font-black text-white tabular-nums tracking-tighter">0.02s</span>
+                          <span className="text-4xl lg:text-5xl font-black text-white tabular-nums tracking-tighter">0.02s</span>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-7">
                           {/* 2. Health Score */}
-                          <div className="bg-white rounded-[48px] border border-slate-200/60 overflow-hidden group hover:border-emerald-400 transition-all shadow-sm hover:shadow-3xl hover:-translate-y-2 duration-700 flex flex-col min-h-[600px]">
-                            <div className="p-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-emerald-50 transition-colors">
-                              <div className="flex items-center gap-6">
-                                <div className="p-5 bg-emerald-50 rounded-[24px] shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500">
-                                  <Activity size={32} />
+                          <div className="bg-white rounded-3xl border border-slate-200/60 overflow-hidden group hover:border-emerald-400 transition-all shadow-sm hover:shadow-3xl hover:-translate-y-2 duration-700 flex flex-col min-h-[360px]">
+                            <div className="p-4 md:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-emerald-50 transition-colors">
+                              <div className="flex items-center gap-3 md:gap-4">
+                                <div className="p-3 bg-emerald-50 rounded-2xl shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500">
+                                  <Activity size={22} />
                                 </div>
-                                <span className="text-2xl font-black text-slate-800 uppercase tracking-widest">معدل الصحة العامة</span>
+                                <span className="text-sm md:text-base font-black text-slate-800 uppercase tracking-wide">معدل الصحة العامة</span>
                               </div>
                               <div className="w-4 h-4 rounded-full bg-emerald-500 animate-ping" />
                             </div>
-                            <div className="p-10 flex-grow overflow-auto">
+                            <div className="p-4 md:p-5 flex-grow overflow-auto">
                               <BusinessHealthFeature data={data} />
                             </div>
                           </div>
 
                           {/* 3. Profit Guard */}
-                          <div className="bg-white rounded-[48px] border border-slate-200/60 overflow-hidden group hover:border-rose-400 transition-all shadow-sm hover:shadow-3xl hover:-translate-y-2 duration-700 flex flex-col min-h-[600px]">
-                            <div className="p-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-rose-50 transition-colors">
-                              <div className="flex items-center gap-6">
-                                <div className="p-5 bg-rose-50 rounded-[24px] shadow-sm group-hover:bg-rose-500 group-hover:text-white transition-all duration-500">
-                                  <ShieldAlert size={32} />
+                          <div className="bg-white rounded-3xl border border-slate-200/60 overflow-hidden group hover:border-rose-400 transition-all shadow-sm hover:shadow-3xl hover:-translate-y-2 duration-700 flex flex-col min-h-[360px]">
+                            <div className="p-4 md:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-rose-50 transition-colors">
+                              <div className="flex items-center gap-3 md:gap-4">
+                                <div className="p-3 bg-rose-50 rounded-2xl shadow-sm group-hover:bg-rose-500 group-hover:text-white transition-all duration-500">
+                                  <ShieldAlert size={22} />
                                 </div>
-                                <span className="text-2xl font-black text-slate-800 uppercase tracking-widest">حارس الأرباح المتقدم</span>
+                                <span className="text-sm md:text-base font-black text-slate-800 uppercase tracking-wide">حارس الأرباح المتقدم</span>
                               </div>
                               <div className="w-4 h-4 rounded-full bg-rose-500 animate-ping" />
                             </div>
-                            <div className="p-10 flex-grow overflow-auto">
+                            <div className="p-4 md:p-5 flex-grow overflow-auto">
                               <ProfitGuardFeature data={data} />
                             </div>
                           </div>
                         </div>
 
                         {/* 4. Supplier Intel (Full Width) */}
-                        <div id="supplier-intel-duplicate-card" className="bg-white rounded-[48px] border border-slate-200/60 overflow-hidden group hover:border-amber-400 transition-all shadow-sm hover:shadow-3xl hover:-translate-y-2 duration-700 flex flex-col min-h-[600px]">
-                          <div className="p-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-amber-50 transition-colors">
-                            <div className="flex items-center gap-6">
-                              <div className="p-5 bg-amber-50 rounded-[24px] shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all duration-500">
-                                <Handshake size={32} />
+                        <div id="supplier-intel-duplicate-card" className="bg-white rounded-3xl border border-slate-200/60 overflow-hidden group hover:border-amber-400 transition-all shadow-sm hover:shadow-3xl hover:-translate-y-2 duration-700 flex flex-col min-h-[360px]">
+                          <div className="p-4 md:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-amber-50 transition-colors">
+                            <div className="flex items-center gap-3 md:gap-4">
+                              <div className="p-3 bg-amber-50 rounded-2xl shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all duration-500">
+                                <Handshake size={22} />
                               </div>
-                              <span className="text-2xl font-black text-slate-800 uppercase tracking-widest">تحليل ذكاء الموردين</span>
+                              <span className="text-sm md:text-base font-black text-slate-800 uppercase tracking-wide">تحليل ذكاء الموردين</span>
                             </div>
                             <div className="w-4 h-4 rounded-full bg-amber-500 animate-ping" />
                           </div>
-                          <div className="p-10 flex-grow overflow-auto">
+                          <div className="p-4 md:p-5 flex-grow overflow-auto">
                             <SupplierNegotiatorFeature data={data} />
                           </div>
                         </div>
 
                         {/* 5. Action Plan (Hero sized) */}
-                        <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-950 rounded-[48px] p-12 border border-white/10 shadow-3xl relative overflow-hidden group hover:border-indigo-500/50 transition-all duration-700 min-h-[500px] flex flex-col justify-center text-center">
+                        <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-950 rounded-3xl p-5 md:p-6 border border-white/10 shadow-2xl relative overflow-hidden group hover:border-indigo-500/50 transition-all duration-500 min-h-[320px] flex flex-col justify-center text-center">
                           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500" />
                           <div className="absolute -bottom-20 -right-20 opacity-10 text-white rotate-12 group-hover:scale-110 transition-transform duration-1000">
                              <Briefcase size={300} />
                           </div>
-                          <div className="relative z-10 space-y-12 max-w-5xl mx-auto w-full">
-                             <div className="flex flex-col items-center gap-8">
-                               <div className="w-24 h-24 bg-indigo-500/20 rounded-[32px] flex items-center justify-center border border-indigo-500/30 shadow-2xl shadow-indigo-500/20">
-                                 <Zap className="text-indigo-400" size={48} />
+                          <div className="relative z-10 space-y-4 md:space-y-6 max-w-4xl mx-auto w-full">
+                             <div className="flex flex-col items-center gap-4">
+                               <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center border border-indigo-500/30 shadow-2xl shadow-indigo-500/20">
+                                 <Zap className="text-indigo-400" size={28} />
                                </div>
-                               <h4 className="font-black text-white text-5xl lg:text-8xl tracking-tighter">خطة عمل التحسين الفوري</h4>
+                               <h4 className="font-black text-white text-2xl md:text-3xl lg:text-4xl tracking-tight">خطة عمل التحسين الفوري</h4>
                              </div>
                              
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                               <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-10 rounded-[40px] flex flex-col items-center justify-center gap-6 group/item hover:bg-white/10 transition-all">
-                                  <div className="w-16 h-16 bg-amber-500 rounded-full flex items-center justify-center shadow-2xl shadow-amber-500/20">
-                                    <CheckCircle2 className="text-white" size={32} />
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                               <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 group/item hover:bg-white/10 transition-all">
+                                  <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center shadow-2xl shadow-amber-500/20">
+                                    <CheckCircle2 className="text-white" size={20} />
                                   </div>
-                                  <p className="text-white text-2xl font-black leading-tight">راجع تكاليف التشغيل المخفية.</p>
+                                  <p className="text-white text-base md:text-lg font-black leading-relaxed">راجع تكاليف التشغيل المخفية.</p>
                                </div>
-                               <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-10 rounded-[40px] flex flex-col items-center justify-center gap-6 group/item hover:bg-white/10 transition-all">
-                                  <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center shadow-2xl shadow-emerald-500/20">
-                                    <CheckCircle2 className="text-white" size={32} />
+                               <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 group/item hover:bg-white/10 transition-all">
+                                  <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center shadow-2xl shadow-emerald-500/20">
+                                    <CheckCircle2 className="text-white" size={20} />
                                   </div>
-                                  <p className="text-white text-2xl font-black leading-tight">قم بتفعيل حملة إعادة استهداف للعملاء المنقطعين.</p>
+                                  <p className="text-white text-base md:text-lg font-black leading-relaxed">قم بتفعيل حملة إعادة استهداف للعملاء المنقطعين.</p>
                                </div>
                              </div>
 
-                             <p className="text-indigo-200/80 text-xl lg:text-2xl font-bold leading-relaxed max-w-3xl mx-auto">بناءً على النبض الحالي للموردين والمبيعات، تم توليد {autoStrategies.length} استراتيجيات فورية متاحة للتطبيق الآن.</p>
+                             <p className="text-indigo-200/80 text-sm md:text-base font-bold leading-relaxed max-w-3xl mx-auto">بناءً على النبض الحالي للموردين والمبيعات، تم توليد {autoStrategies.length} استراتيجيات فورية متاحة للتطبيق الآن.</p>
                              
                              <button 
                                onClick={() => {
                                  const element = document.getElementById('strategic-manager-section');
                                  if (element) element.scrollIntoView({ behavior: 'smooth' });
                                }}
-                               className="w-full max-w-xl mx-auto py-10 bg-indigo-600 hover:bg-indigo-500 text-white text-2xl font-black uppercase tracking-widest rounded-[32px] transition-all active:scale-95 shadow-2xl shadow-indigo-600/40"
+                               className="w-full max-w-xl mx-auto py-4 md:py-5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm md:text-base font-black uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-2xl shadow-indigo-600/40"
                              >
                                إطلاق خطوات التنفيذ الفوري
                              </button>
@@ -3159,23 +3364,23 @@ const [isPending, startTransition] = useTransition();
                       </div>
 
                       {/* Learning Logs Section - Modern Grid */}
-                      <div className="space-y-10 bg-slate-100/50 p-6 lg:p-14 rounded-[48px] border border-slate-200/60 shadow-inner">
-                         <div className="flex flex-col md:flex-row items-center justify-between px-4 gap-8">
-                            <div className="flex items-center gap-6">
-                              <div className="w-16 h-16 bg-indigo-600 rounded-[24px] flex items-center justify-center shadow-2xl shadow-indigo-400/40 shrink-0">
-                                <RefreshCcw className="text-white animate-spin w-8 h-8" style={{ animationDuration: '6s' }} />
+                      <div className="space-y-4 bg-slate-100/50 p-4 md:p-5 lg:p-6 rounded-3xl border border-slate-200/60 shadow-inner">
+                         <div className="flex flex-col md:flex-row items-center justify-between px-2 gap-4">
+                            <div className="flex items-center gap-3 md:gap-4">
+                              <div className="w-11 h-11 md:w-12 md:h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-400/40 shrink-0">
+                                <RefreshCcw className="text-white animate-spin w-5 h-5 md:w-6 md:h-6" style={{ animationDuration: '6s' }} />
                               </div>
                               <div>
-                                <h3 className="font-black text-3xl lg:text-5xl text-slate-900 tracking-tighter">سجل التطور الذاتي</h3>
-                                <p className="text-slate-500 text-sm lg:text-xl font-bold mt-2">توثيق رحلة نضج الخوارزميات من البيانات الخام إلى الذكاء التشغيلي</p>
+                                <h3 className="font-black text-2xl lg:text-3xl text-slate-900 tracking-tight">سجل التطور الذاتي</h3>
+                                <p className="text-slate-500 text-xs md:text-sm font-bold mt-1">توثيق رحلة نضج الخوارزميات من البيانات الخام إلى الذكاء التشغيلي</p>
                               </div>
                             </div>
-                            <div className="bg-white text-indigo-600 px-8 py-4 rounded-[40px] text-lg font-black border border-indigo-100 shadow-xl shadow-indigo-100/50 whitespace-nowrap">
+                            <div className="bg-white text-indigo-600 px-4 py-2 rounded-2xl text-xs md:text-sm font-black border border-indigo-100 shadow-xl shadow-indigo-100/50 whitespace-nowrap">
                               تحديث لحظي نشط
                             </div>
                          </div>
                          
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {aiLearningLogs.length > 0 ? (
                             aiLearningLogs.map((log, i) => (
                               <motion.div
@@ -3184,30 +3389,30 @@ const [isPending, startTransition] = useTransition();
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true, margin: "-100px" }}
                                 transition={{ delay: i * 0.1, duration: 0.8, ease: "easeOut" }}
-                                className="bg-white p-8 lg:p-12 rounded-[40px] border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col group hover:shadow-2xl transition-all duration-700 hover:-translate-y-2 border-b-[8px] border-b-indigo-500/10 hover:border-b-indigo-500"
+                                className="bg-white p-4 md:p-5 rounded-3xl border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col group hover:shadow-xl transition-all duration-500 hover:-translate-y-1 border-b-[4px] border-b-indigo-500/10 hover:border-b-indigo-500"
                               >
                                 {/* Accuracy Badge */}
-                                <div className="absolute top-8 left-8">
+                                <div className="absolute top-4 left-4">
                                   {log.isAccurate ? (
-                                    <div className="bg-emerald-50 text-emerald-600 text-xs font-black px-5 py-2.5 rounded-2xl border border-emerald-100 flex items-center gap-2 uppercase tracking-widest shadow-sm">
-                                      <CheckCircle2 size={16} /> توقع ناجح
+                                    <div className="bg-emerald-50 text-emerald-600 text-[10px] md:text-xs font-black px-3 py-1.5 rounded-xl border border-emerald-100 flex items-center gap-2 uppercase tracking-widest shadow-sm">
+                                      <CheckCircle2 size={14} /> توقع ناجح
                                     </div>
                                   ) : (
-                                    <div className="bg-amber-50 text-amber-600 text-xs font-black px-5 py-2.5 rounded-2xl border border-amber-100 flex items-center gap-2 uppercase tracking-widest shadow-sm">
-                                      <Zap size={16} /> تحديث المنهجية
+                                    <div className="bg-amber-50 text-amber-600 text-[10px] md:text-xs font-black px-3 py-1.5 rounded-xl border border-amber-100 flex items-center gap-2 uppercase tracking-widest shadow-sm">
+                                      <Zap size={14} /> تحديث المنهجية
                                     </div>
                                   )}
                                 </div>
 
-                                <div className="mt-12 mb-8">
-                                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] mb-4">الفرضية والنمط المكتشف:</div>
-                                  <h4 className="text-2xl lg:text-3xl font-black text-slate-900 leading-[1.2] group-hover:text-indigo-600 transition-colors duration-500">
+                                <div className="mt-10 mb-3">
+                                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">الفرضية والنمط المكتشف:</div>
+                                  <h4 className="text-lg md:text-xl font-black text-slate-900 leading-[1.2] group-hover:text-indigo-600 transition-colors duration-500">
                                     {log.prediction}
                                   </h4>
                                 </div>
 
-                                <div className="space-y-5">
-                                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 group-hover:bg-slate-100 transition-colors">
+                                <div className="space-y-4">
+                                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 group-hover:bg-slate-100 transition-colors">
                                     <div className="flex items-center gap-2 mb-2">
                                       <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                                       <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest block">القرار التشغيلي المتخذ:</span>
@@ -3216,14 +3421,14 @@ const [isPending, startTransition] = useTransition();
                                   </div>
 
                                   <div className={cn(
-                                    "p-5 rounded-2xl border flex items-start gap-5",
+                                    "p-4 rounded-2xl border flex items-start gap-3",
                                     log.isAccurate ? "bg-emerald-50/50 border-emerald-100" : "bg-amber-50/50 border-amber-100"
                                   )}>
                                     <div className={cn(
-                                      "shrink-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-sm",
+                                      "shrink-0 w-8 h-8 rounded-lg flex items-center justify-center shadow-sm",
                                       log.isAccurate ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"
                                     )}>
-                                      {log.isAccurate ? <Target size={20} /> : <RefreshCw size={20} />}
+                                      {log.isAccurate ? <Target size={16} /> : <RefreshCw size={16} />}
                                     </div>
                                     <div className="flex-1">
                                       <span className={cn(
@@ -3235,14 +3440,14 @@ const [isPending, startTransition] = useTransition();
                                   </div>
                                 </div>
 
-                                <div className="bg-slate-900 text-white p-7 rounded-3xl mt-auto relative overflow-hidden group/brain shadow-xl">
+                                <div className="bg-slate-900 text-white p-4 md:p-5 rounded-3xl mt-auto relative overflow-hidden group/brain shadow-xl">
                                   <div className="absolute top-0 right-0 w-full h-full bg-indigo-500/10 opacity-0 group-hover/brain:opacity-100 transition-opacity" />
                                   <div className="absolute top-0 right-0 w-2 h-full bg-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.6)]" />
-                                  <div className="flex items-center gap-3 mb-4">
+                                  <div className="flex items-center gap-2 mb-3">
                                     <div className="p-1.5 bg-rose-500/20 rounded-lg border border-rose-500/20">
                                       <Cpu size={16} className="text-rose-400 animate-pulse" />
                                     </div>
-                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.25em]">تعديل الوزن الخوارزمي في الوقت الحقيقي:</span>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">تعديل الوزن الخوارزمي في الوقت الحقيقي:</span>
                                   </div>
                                   <p className="text-sm font-bold text-slate-100 leading-relaxed pr-2">
                                     {log.correction}
@@ -3252,7 +3457,7 @@ const [isPending, startTransition] = useTransition();
                             ))
                           ) : (
                             <div className="col-span-1 lg:col-span-2 bg-white/50 border-4 border-dashed border-slate-200/60 rounded-3xl lg:rounded-2xl p-6 md:p-12 lg:p-24 flex flex-col items-center justify-center text-center group hover:border-indigo-200 transition-colors">
-                              <div className="w-16 h-16 lg:w-24 lg:h-24 bg-slate-100 rounded-2xl lg:rounded-2xl flex items-center justify-center mb-4 lg:mb-8 text-slate-300 group-hover:scale-110 group-hover:text-indigo-300 transition-all duration-500">
+                              <div className="w-16 h-16 lg:w-24 lg:h-24 bg-slate-100 rounded-2xl lg:rounded-2xl flex items-center justify-center mb-4 lg:mb-4 text-slate-300 group-hover:scale-110 group-hover:text-indigo-300 transition-all duration-500">
                                  <BrainCircuit className="w-8 h-8 lg:w-12 lg:h-12" />
                               </div>
                               <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 mb-2 lg:mb-4 tracking-tight">جاري البناء المعرفي العميق</h3>
@@ -3264,9 +3469,10 @@ const [isPending, startTransition] = useTransition();
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </div>}
 
                   {/* Hidden Risks Section */}
+                  {isIntelligenceRisks && <>
                   <div className="pt-16 pb-8">
                     <div className="bg-gradient-to-br from-rose-950 via-slate-950 to-slate-900 rounded-3xl lg:rounded-[3.5rem] p-6 sm:p-10 lg:p-16 shadow-xl relative overflow-hidden border border-rose-900/30">
                       <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-600 via-rose-500 to-amber-500" />
@@ -3274,7 +3480,7 @@ const [isPending, startTransition] = useTransition();
                         <ShieldAlert className="w-[300px] h-[300px] lg:w-[450px] lg:h-[450px]" />
                       </div>
 
-                      <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center gap-6 md:p-8 lg:gap-12">
+                      <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center gap-6 md:p-8 lg:gap-5 md:gap-7">
                         <div className="flex-1 space-y-6 lg:space-y-8">
                           <div className="flex items-center gap-3 lg:gap-5">
                             <div className="bg-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.7)] p-2.5 lg:p-4 rounded-xl lg:rounded-2xl border border-rose-400/30 shrink-0">
@@ -3313,7 +3519,7 @@ const [isPending, startTransition] = useTransition();
                           <div className="pt-4 relative z-10 flex gap-4">
                             <div className="bg-white/10 backdrop-blur-md px-8 py-4 rounded-2xl flex items-center gap-3 border border-white/10 shadow-xl group/badge hover:bg-white/20 transition-all cursor-default">
                               <Search className="text-rose-400 group-hover:scale-110 transition-transform" size={24} />
-                              <span className="text-white font-bold text-lg">
+                              <span className="text-white font-bold text-sm text-lg">
                                 رصدنا {hiddenRisks.length} ثغرات خفية
                               </span>
                             </div>
@@ -3324,7 +3530,7 @@ const [isPending, startTransition] = useTransition();
                            <div className="absolute inset-0 bg-rose-500/10 blur-[100px] rounded-full" />
                            <div className="relative bg-slate-950/60 backdrop-blur-3xl border border-white/10 p-2 rounded-2xl shadow-2xl overflow-hidden">
                              <div className="bg-slate-950/90 rounded-2xl p-6 md:p-8 border border-white/5">
-                               <div className="flex items-center justify-between mb-8">
+                               <div className="flex items-center justify-between mb-4">
                                  <div className="text-[10px] font-bold text-rose-500 uppercase tracking-[0.3em]">مراقب الاستقرار</div>
                                  <div className="flex gap-1.5">
                                    {[1,2,3].map(i => <div key={i} className="w-2 h-8 bg-rose-500/20 rounded-full overflow-hidden relative">
@@ -3332,7 +3538,7 @@ const [isPending, startTransition] = useTransition();
                                    </div>)}
                                  </div>
                                </div>
-                               <div className="space-y-4 mb-8">
+                               <div className="space-y-4 mb-4">
                                  <div className="h-3 w-3/4 bg-white/5 rounded-full animate-skeleton" />
                                  <div className="h-3 w-full bg-white/5 rounded-full animate-skeleton" />
                                  <div className="h-3 w-1/2 bg-white/5 rounded-full animate-skeleton" />
@@ -3470,7 +3676,7 @@ const [isPending, startTransition] = useTransition();
                               )}
                             >
                               <h4 className="text-sm font-bold mb-2 flex items-center gap-2">
-                                <CheckCircle2 size={16} /> الإجراء التصحيحي
+                                <CheckCircle2 size={14} /> الإجراء التصحيحي
                                 المقترح
                               </h4>
                               <p className="text-sm font-bold leading-relaxed">
@@ -3496,9 +3702,9 @@ const [isPending, startTransition] = useTransition();
                         </p>
                       </div>
                     )}
-                  </div>
+                  </div></>}
 
-                <div
+                {isIntelligenceStrategy && <><div
                   id="strategic-manager-section"
                   className="bg-slate-950 rounded-[48px] p-10 md:p-16 shadow-2xl relative overflow-hidden flex flex-col items-start border border-white/5"
                 >
@@ -3507,7 +3713,7 @@ const [isPending, startTransition] = useTransition();
                     <Briefcase size={300} />
                   </div>
 
-                  <h2 className="text-4xl md:text-5xl font-black text-white mb-8 relative z-10 flex items-center gap-6 tracking-tighter">
+                  <h2 className="text-4xl md:text-5xl font-black text-white mb-4 relative z-10 flex items-center gap-3 md:gap-4 tracking-tighter">
                     المدير الاستراتيجي الآلي{" "}
                     <div className="w-16 h-16 bg-amber-500/20 rounded-3xl flex items-center justify-center border border-amber-500/30">
                       <Zap className="text-amber-400" size={32} />
@@ -3520,7 +3726,7 @@ const [isPending, startTransition] = useTransition();
                   </p>
 
                   <div className="flex gap-6 relative z-10">
-                    <div className="bg-white/5 backdrop-blur-xl px-8 py-4 rounded-[32px] flex items-center gap-4 border border-white/10 shadow-lg">
+                    <div className="bg-white/5 backdrop-blur-xl px-8 py-4 rounded-2xl flex items-center gap-4 border border-white/10 shadow-lg">
                       <Target className="text-emerald-400" size={24} />
                       <span className="text-white text-lg font-black tracking-widest uppercase">
                         {autoStrategies.length} استراتيجية جاهزة للتنفيذ
@@ -3529,7 +3735,7 @@ const [isPending, startTransition] = useTransition();
                   </div>
                 </div>
 
-                  <div className="grid grid-cols-1 gap-12 w-full">
+                  <div className="grid grid-cols-1 gap-5 md:gap-7 w-full">
                     {autoStrategies.length > 0 ? (
                       autoStrategies.map((strat, i) => (
                         <motion.div
@@ -3577,7 +3783,7 @@ const [isPending, startTransition] = useTransition();
                             {strat.title}
                           </h3>
 
-                          <div className="space-y-4 mb-8">
+                          <div className="space-y-4 mb-4">
                             <div className="bg-red-50/50 p-3 rounded-2xl border border-red-100/50">
                               <h4 className="text-xs font-bold text-red-800 mb-2 flex items-center gap-2 justify-end">
                                 <AlertCircle size={14} /> المشكلة المرصودة
@@ -3614,7 +3820,7 @@ const [isPending, startTransition] = useTransition();
                                       النتيجة: {step.expectedOutcome}
                                     </p>
                                   </div>
-                                  <div className="w-8 h-8 shrink-0 bg-slate-900 text-white font-bold flex items-center justify-center rounded-xl text-xs">
+                                  <div className="w-8 h-8 shrink-0 bg-slate-900 text-white font-bold text-sm flex items-center justify-center rounded-xl text-xs">
                                     {stepIdx + 1}
                                   </div>
                                 </div>
@@ -3649,7 +3855,14 @@ const [isPending, startTransition] = useTransition();
                       </div>
                     )}
                   </div>
+                </>}
                 </div>
+            )}
+
+            {activeTab === "contentStudio" && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-700" dir="rtl">
+                <SmartContentStudio data={data} setData={onUpdateData} onNavigate={onNavigate!} />
+              </div>
             )}
 
             {activeTab === "diwaniya" && (
@@ -3686,7 +3899,7 @@ const [isPending, startTransition] = useTransition();
               <React.Fragment>
                 {/* Quick Access Tasks Hidden as requested */}
                 {/* 
-                <div className="mb-8" dir="rtl">
+                <div className="mb-4" dir="rtl">
                   <div className="flex items-center gap-2 mb-4 justify-end opacity-60">
                     <Zap size={14} className="text-amber-500" />
                     <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">الوصول السريع للمهام</span>
@@ -3976,7 +4189,7 @@ const [isPending, startTransition] = useTransition();
                   </div>
 
                   {/* FIRST BENTO (Health & Intelligence Stacked Layout) */}
-                  <div className="flex flex-col gap-4 mb-8" dir="rtl">
+                  <div className="flex flex-col gap-4 mb-4" dir="rtl">
                     {/* System Status (small compact card) */}
                     <div
                       className={cn(
@@ -4385,7 +4598,7 @@ const [isPending, startTransition] = useTransition();
                     </div>
                     <div className="relative z-10 h-full flex flex-col items-center justify-between gap-4 md:p-3 p-3 md:p-3">
                       <div className="flex-1 w-full lg:w-auto">
-                        <div className="flex items-center gap-3 mb-4">
+                        <div className="flex items-center gap-2 mb-3">
                           <button
                             onClick={() =>
                               toast.info(
@@ -4979,7 +5192,7 @@ const [isPending, startTransition] = useTransition();
             )}
 
             {activeTab === "customers" && (
-              <div className="space-y-12">
+              <div className="space-y-6 md:space-y-8">
                 <React.Suspense
                   fallback={
                     <div className="h-64 animate-pulse bg-slate-900 rounded-2xl" />
@@ -4996,7 +5209,7 @@ const [isPending, startTransition] = useTransition();
                   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(56,189,248,0.1)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
                   <div className="absolute top-0 right-0 w-64 h-64 bg-slate-800/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-                  <h3 className="font-bold text-2xl text-white mb-8 flex items-center gap-3 justify-end relative z-10">
+                  <h3 className="font-bold text-2xl text-white mb-4 flex items-center gap-3 justify-end relative z-10">
                     أبرز عملاء التراث
                     <button
                       onClick={() =>
@@ -5247,7 +5460,7 @@ const [isPending, startTransition] = useTransition();
                       "bg-slate-900 border-indigo-500/30 text-white overflow-visible",
                     )}
                   >
-                    <div className="flex justify-between items-start mb-8 flex-row-reverse relative z-10">
+                    <div className="flex justify-between items-start mb-4 flex-row-reverse relative z-10">
                       <div className="text-right">
                         <h3 className="text-2xl font-bold flex items-center justify-end gap-3 mb-2">
                           توصيات ذكية من الذكاء الاصطناعي{" "}
@@ -5784,7 +5997,8 @@ const [isPending, startTransition] = useTransition();
             )}
 
             {activeTab === "growth" && (
-              <div className="space-y-12">
+              <div className="space-y-6 md:space-y-8">
+                <AdminSeasonalWeatherEngine data={data} />
                 <React.Suspense
                   fallback={
                     <div className="h-64 animate-pulse bg-slate-100 rounded-2xl" />
@@ -5877,7 +6091,7 @@ const [isPending, startTransition] = useTransition();
                 <Sparkles size={24} className="text-amber-400 relative z-10" />
               </div>
               <div className="flex flex-col">
-                <p className="text-white font-bold text-sm">شارف الشهر على الانتهاء</p>
+                <p className="text-white font-bold text-sm text-sm">شارف الشهر على الانتهاء</p>
                 <p className="text-slate-300 text-xs font-medium">هل نُعدّ تقرير الإقفال المالي الذكي؟</p>
               </div>
               <button 

@@ -523,18 +523,6 @@ const {
           </motion.div>
         )}
 
-        {isPushSupported && pushEnabled && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-emerald-50 border border-emerald-100 text-emerald-600 p-3 rounded-2xl flex items-center justify-between gap-4 self-stretch xl:self-auto"
-          >
-            <div className="flex items-center gap-2 text-right text-[11px] font-bold">
-               <Bell size={16} />
-               <span>الإشعارات مفعلة بنجاح</span>
-            </div>
-          </motion.div>
-        )}
 
         <AnimatePresence>
           {showPushModal && (
@@ -603,7 +591,6 @@ const {
          <CommandBrief data={data} dateFilter={filter} />
        </div>
 
-       <TeslaSeasonalEngine data={data} />
 
         {/* Stats Grid - Exactly like Admin */}
         <motion.div layout className="mb-12 bg-white rounded-3xl p-2 md:p-5 border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden relative z-10">

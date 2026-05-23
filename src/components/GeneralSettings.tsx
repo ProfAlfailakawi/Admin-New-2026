@@ -673,7 +673,14 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
             <div className="p-3 md:p-4 space-y-4">
               <div className="flex flex-col gap-2">
                 <p className="text-sm text-slate-500 font-bold mb-2">تفعيل الإشعارات للحصول على التنبيهات الفورية من النظام.</p>
-                <EnableNotificationsButton userId={auth?.currentUser?.uid || "local_user"} restaurantId="kitchen_default" />
+                {appMode === 'local' ? (
+                  <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-6 py-3 text-slate-400 border border-slate-200/60 font-bold cursor-not-allowed w-fit" aria-disabled="true">
+                    <Bell size={18} />
+                    <span>تفعيل الإشعارات غير متاح للحساب المحلي</span>
+                  </div>
+                ) : (
+                  <EnableNotificationsButton userId={auth?.currentUser?.uid || "local_user"} restaurantId="kitchen_default" />
+                )}
               </div>
             </div>
           </div>

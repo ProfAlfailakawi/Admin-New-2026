@@ -5,6 +5,7 @@ import { applyLogoBranding } from '../lib/brandingUtils';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { BrandingControls } from './BrandingControls';
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
+import { buildTextRealityPrompt } from '../lib/studioReality';
 
 export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [loading, setLoading] = useState(false);
@@ -75,11 +76,11 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
       const txtData = await txtRes.json();
       setResultText(txtData.text);
 
-      const imgPrompt = `Generate a 10000% photorealistic, ultra-high quality, and hyper-realistic scene for a social media post related to this Kuwaiti trend/event: "${eventLabel}". The image must look like a real, high-end commercial photograph with realistic textures, lighting, and a real-world natural background. DO NOT USE ANY cartoonish or illustration styles. Clean composition, leaving space for UI. Warm, inviting atmosphere. Minimalist, creative lighting. IMPORTANT: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO LOGOS, NO SIGNATURES, NO WATERMARKS ANYWHERE IN THE IMAGE. THE IMAGE MUST BE COMPLETELY TEXTLESS.`;
+      const imgPrompt = buildTextRealityPrompt('Realtime restaurant trend social image', eventLabel, 'Connect the event to a believable restaurant scene: if rain use warm dine-in table; if traffic use pickup/takeout counter; if weekend use busy dining blur; if sports/national use casual restaurant gathering without flags/text/heritage props.');
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat })
+        body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat, realityBoost: true })
       });
       const imgData = await imgRes.json();
       
@@ -113,7 +114,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
             رادار التريندات الكويتي (Real-time)
           </h2>
         </div>
-        <p className="text-slate-500 text-sm max-w-2xl">واكب السوالف واللحظة! احصل على بوست وعرض وصورة بضغطة زر وتفاعل مع زبائنك في نفس الوقت وبابداع غير عادي يناسب السوق الكويتي.</p>
+        <p className="text-slate-500 text-sm max-w-2xl">واكب السوالف واللحظة بصورة كأنها مصورة فعلاً داخل مطعم: طاولة، كاونتر، زجاج، إضاءة، وظلال بشرية بدون خلفيات خيالية.</p>
 
         {history.length > 0 && (
           <div className="bg-slate-50 rounded-3xl border border-slate-100 p-4 shadow-sm">

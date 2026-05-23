@@ -5,6 +5,7 @@ import { applyLogoBranding } from '../lib/brandingUtils';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { BrandingControls } from './BrandingControls';
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
+import { buildTextRealityPrompt } from '../lib/studioReality';
 
 export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [loading, setLoading] = useState(false);
@@ -51,11 +52,11 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
     setResultImage(null);
     setGeneratedBaseImage(null);
     try {
-      const imgPrompt = `Generate a 10000% photorealistic, ultra-high quality, and hyper-realistic photograph that represents the subject of this Arabic review: "${review}". The image must look like a real, high-end commercial photograph with realistic textures, lighting, and a completely natural, real-world background. Do not use cartoonish or illustration styles. The subject should match the exact product or service mentioned in the text. Keep the composition clean with some empty space for adding overlays later. IMPORTANT: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO SIGNATURES, NO LOGOS, NO WATERMARKS ANYWHERE IN THE IMAGE. IT MUST BE COMPLETELY SANS-TEXT.`;
+      const imgPrompt = buildTextRealityPrompt('Review-to-poster real restaurant hero image', review, 'Represent the food/service mentioned in the review as a believable photographed restaurant moment. Use realistic table/counter/window-booth/open-kitchen context. Make it feel like a customer or restaurant photographer actually captured it.');
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat })
+        body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat, realityBoost: true })
       });
       const imgData = await imgRes.json();
       
@@ -79,7 +80,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
             مدح سينمائي (Review-to-Poster)
           </h2>
         </div>
-        <p className="text-slate-500 text-sm max-w-2xl">لا تنزل سكرين شوت للتعليقات! حول مدح زباينك إلى بوستر سينمائي فخم يجبرهم على مشاركته مع أصدقائهم ليصبحوا أبطال قصتك.</p>
+        <p className="text-slate-500 text-sm max-w-2xl">حوّل مدح الزبائن إلى بوستر واقعي كأنه مصور داخل مطعمك: خلفية بشرية، إضاءة حقيقية، وبدون أي ديكور وهمي أو شكل CGI.</p>
         
         <div>
           <label className="text-xs font-bold text-slate-500 mb-2 block">اختر المقاس للتوليد</label>
