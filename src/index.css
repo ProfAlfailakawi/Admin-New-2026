@@ -2918,3 +2918,145 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
     }
   }
 }
+
+/* Mobile-only polish requested for admin: keep desktop/tablet untouched. */
+@media (max-width: 640px){
+  /* Hide the cloud/local refresh pill on phones only. */
+  .admin-sync-toast{
+    display:none!important;
+  }
+
+  /* Login phone layout: remove the dead white space by making the two stages own the full viewport. */
+  .admin-login-showcase{
+    min-height:100svh!important;
+    min-height:100dvh!important;
+    padding:0!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    overflow:auto!important;
+    background:linear-gradient(180deg,#06140e 0%,#0f172a 45%,#fffaf0 45%,#ffffff 100%)!important;
+  }
+  .admin-login-showcase:before,
+  .admin-login-showcase:after{
+    display:none!important;
+  }
+  .login-orb{
+    filter:blur(34px)!important;
+    opacity:.35!important;
+  }
+  .login-showcase-shell{
+    width:100%!important;
+    min-height:100svh!important;
+    min-height:100dvh!important;
+    display:flex!important;
+    flex-direction:column!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    background:#fff!important;
+    overflow:visible!important;
+  }
+  .login-brand-stage{
+    min-height:45svh!important;
+    min-height:45dvh!important;
+    padding:26px 24px 24px!important;
+    border-radius:0 0 36px 36px!important;
+    box-shadow:0 22px 60px rgba(15,23,42,.18)!important;
+  }
+  .login-stage-content{
+    align-items:center!important;
+    justify-content:center!important;
+    text-align:center!important;
+  }
+  .login-hero-logo{
+    margin:0 0 20px!important;
+    transform:scale(1.14)!important;
+  }
+  .login-brand-stage h1{
+    font-size:clamp(3.65rem,18vw,5.35rem)!important;
+    line-height:.9!important;
+    margin-bottom:22px!important;
+  }
+  .login-metrics-row{
+    width:min(100%,365px)!important;
+    gap:10px!important;
+    margin-top:0!important;
+  }
+  .login-metrics-row div{
+    min-height:66px!important;
+    padding:13px 8px!important;
+    border-radius:18px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+  .login-metrics-row strong{
+    font-size:19px!important;
+  }
+  .login-metrics-row span{
+    font-size:10.5px!important;
+  }
+  .login-form-stage{
+    flex:1 1 auto!important;
+    min-height:55svh!important;
+    min-height:55dvh!important;
+    justify-content:flex-start!important;
+    gap:16px!important;
+    padding:24px 20px max(24px,env(safe-area-inset-bottom))!important;
+    background:linear-gradient(180deg,#fff,#fffaf0 62%,#fff)!important;
+  }
+  .login-form-stage:before{
+    inset:12px!important;
+    border-radius:30px!important;
+    border-color:rgba(212,175,55,.22)!important;
+  }
+  .login-cloud-note{
+    position:relative!important;
+    z-index:1!important;
+    margin:0 0 6px!important;
+    padding:16px 18px!important;
+    border-radius:23px!important;
+    font-size:14px!important;
+    line-height:1.75!important;
+    text-align:center!important;
+    box-shadow:0 12px 34px rgba(30,64,175,.08)!important;
+  }
+  .login-google-btn{
+    position:relative!important;
+    z-index:1!important;
+    min-height:72px!important;
+    border-radius:25px!important;
+    font-size:18px!important;
+    gap:14px!important;
+    box-shadow:0 24px 58px rgba(49,46,129,.22)!important;
+  }
+  .login-google-btn svg{
+    width:30px!important;
+    height:30px!important;
+  }
+  .login-local-link-btn{
+    position:relative!important;
+    z-index:1!important;
+    min-height:60px!important;
+    border-radius:22px!important;
+    font-size:16px!important;
+    box-shadow:0 14px 36px rgba(120,53,15,.08)!important;
+  }
+  .login-install-btn{
+    position:relative!important;
+    z-index:1!important;
+    width:58px!important;
+    height:58px!important;
+    margin-top:2px!important;
+  }
+}
+
+@media (max-width: 380px){
+  .login-brand-stage{min-height:43svh!important;min-height:43dvh!important;padding:22px 18px!important;}
+  .login-brand-stage h1{font-size:clamp(3.25rem,17vw,4.6rem)!important;}
+  .login-metrics-row div{min-height:60px!important;padding:10px 6px!important;}
+  .login-form-stage{padding-inline:16px!important;}
+  .login-google-btn{font-size:16.5px!important;min-height:68px!important;}
+  .login-local-link-btn{font-size:15px!important;min-height:56px!important;}
+}
