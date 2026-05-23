@@ -499,22 +499,32 @@ Alturath.kw`;
     }, [data.products, searchQuery, supplierFilter]);
 
 
+    const normalizeAddonArray = (addons: any): any[] => {
+      if (!addons) return [];
+      if (Array.isArray(addons)) return addons.filter(Boolean);
+      if (typeof addons === "object") return Object.values(addons).filter(Boolean);
+      return [];
+    };
+
+    const getAddonKey = (addon: any) =>
+      String(addon?.id || addon?.addonId || addon?.name || "");
+
     const getAddonRuleLimits = (addon: any, productQty: number) => {
       const baseMin = addon?.isRequired ? Math.max(1, Number(addon?.minQuantity || 1)) : Number(addon?.minQuantity || 0);
       const baseMax = addon?.maxQuantity !== undefined && addon?.maxQuantity !== null && addon?.maxQuantity !== '' ? Number(addon.maxQuantity) : 999;
       const rule = addon?.quantityRule || {};
       if (!rule?.enabled) {
-        return { available: true, min: baseMin, max: Math.max(baseMin, baseMax), suggested: Math.max(baseMin, addon?.calculationType === 'fixed' ? 1 : baseMin) };
+        return { available: true, min: baseMin, max: Math.max(baseMin, baseMax), suggested: Math.max(baseMin, addon?.calculationType === 'fixed' ? 1 : baseMin), minProductQty: 1 };
       }
       const minProductQty = Math.max(1, Number(rule.minProductQty || 1));
       const perAddon = Math.max(1, Number(rule.maxProductQtyPerAddon || 1));
       if (Number(productQty || 0) < minProductQty) {
-        return { available: false, min: 0, max: 0, suggested: 0 };
+        return { available: false, min: 0, max: 0, suggested: 0, minProductQty };
       }
       const suggested = Math.max(1, Math.ceil(Number(productQty || 0) / perAddon));
       const min = rule.mode === 'required' ? Math.max(baseMin, suggested) : baseMin;
       const max = Math.max(min, baseMax);
-      return { available: true, min, max, suggested: Math.min(max, Math.max(min, suggested)) };
+      return { available: true, min, max, suggested: Math.min(max, Math.max(min, suggested)), minProductQty };
     };
 
     const getInitialAddonQuantity = (addon: any, productQty: number) => {
@@ -524,45 +534,80 @@ Alturath.kw`;
       if (addon?.quantityRule?.mode === 'auto') return limits.suggested;
       return 0;
     };
+
+    const reconcileCartAddons = (product: Product, productQty: number, currentAddons: any[] = []) => {
+      const currentByKey = new Map(
+        normalizeAddonArray(currentAddons).map((addon: any) => [getAddonKey(addon), addon]),
+      );
+
+      return normalizeAddonArray((product as any).addons).map((catalogAddon: any) => {
+        const key = getAddonKey(catalogAddon);
+        const existing = currentByKey.get(key) || {};
+        const merged = { ...catalogAddon, ...existing, id: catalogAddon.id || existing.id };
+        const limits = getAddonRuleLimits(merged, productQty);
+
+        if (!limits.available) {
+          return { ...merged, quantity: 0 };
+        }
+
+        const currentQty = Number(merged.quantity || 0);
+        const initialQty = getInitialAddonQuantity(merged, productQty);
+        const requiredQty = Math.max(limits.min, initialQty);
+        let nextQty = currentQty;
+
+        if (currentQty <= 0) nextQty = initialQty;
+        if (merged?.isRequired || Number(merged?.minQuantity || 0) > 0 || merged?.quantityRule?.mode === "required") {
+          nextQty = Math.max(nextQty, requiredQty);
+        }
+        if (merged?.quantityRule?.mode === "auto" && currentQty <= 0) {
+          nextQty = Math.max(nextQty, limits.suggested);
+        }
+
+        nextQty = Math.max(limits.min, Math.min(limits.max, nextQty));
+        return { ...merged, quantity: nextQty };
+      });
+    };
+
+    const validateCartAddons = () => {
+      for (const item of cartItems) {
+        const product = item.product!;
+        for (const addon of normalizeAddonArray(item.addons)) {
+          const limits = getAddonRuleLimits(addon, item.qty || 1);
+          const qty = Number(addon.quantity || 0);
+          if (!limits.available && qty > 0) {
+            toast.error(`الإضافة "${addon.name}" غير متاحة لكمية ${product.name} الحالية`);
+            return false;
+          }
+          if (limits.available && qty < limits.min) {
+            toast.error(`الإضافة "${addon.name}" تحتاج حد أدنى ${limits.min}`);
+            return false;
+          }
+          if (limits.available && qty > limits.max) {
+            toast.error(`الإضافة "${addon.name}" تجاوزت الحد الأقصى ${limits.max}`);
+            return false;
+          }
+        }
+      }
+      return true;
+    };
+
     const addToCart = (productId: string) => {
       // FORCING VITE CACHE INVALIDATION
       const product = (data.products || []).find((p) => p.id === productId);
       if (!product) return;
-      
-      const rawAddons = product.addons as any;
-      const safeList: any[] = [];
-      if (rawAddons) {
-        if (Array.isArray(rawAddons)) {
-          for (let i = 0; i < rawAddons.length; i++) {
-            safeList.push(rawAddons[i]);
-          }
-        } else if (typeof rawAddons === 'object') {
-           // just in case they are objects
-           const vals = Object.values(rawAddons);
-           for (let i = 0; i < vals.length; i++) {
-             safeList.push(vals[i]);
-           }
-        }
-      }
-      
+
       toast.success(`تم إضافة ${product.name} للسلة`);
       
       setCart((prev) => {
         const existing = prev[productId];
+        const nextQuantity = (existing ? existing.quantity : 0) + 1;
         return {
           ...prev,
           [productId]: {
-            quantity: (existing ? existing.quantity : 0) + 1,
+            quantity: nextQuantity,
             priceAtTime: product.price,
             costAtTime: product.cost,
-            addons: existing
-              ? existing.addons
-              : safeList.map(
-                  (a) => ({
-                    ...a,
-                    quantity: getInitialAddonQuantity(a, (existing ? existing.quantity : 0) + 1),
-                  }),
-                ),
+            addons: reconcileCartAddons(product, nextQuantity, existing?.addons || []),
           },
         };
       });
@@ -573,9 +618,15 @@ Alturath.kw`;
         const existing = prev[productId];
         if (!existing) return prev;
         if (existing.quantity > 1) {
+          const product = (data.products || []).find((p) => p.id === productId);
+          const nextQuantity = existing.quantity - 1;
           return {
             ...prev,
-            [productId]: { ...existing, quantity: existing.quantity - 1 },
+            [productId]: {
+              ...existing,
+              quantity: nextQuantity,
+              addons: product ? reconcileCartAddons(product, nextQuantity, existing.addons || []) : existing.addons,
+            },
           };
         } else {
           toast.info(
@@ -601,16 +652,11 @@ Alturath.kw`;
     ) => {
       setCart((prev) => {
         const item = prev[productId];
-        if (!Array.isArray(item?.addons)) return prev;
-        let baseArray: any[] = [];
-        if (item.addons && Array.isArray(item.addons)) {
-          for(let i = 0; i < item.addons.length; i++) { baseArray.push(item.addons[i]); }
-        } else if (item.addons && typeof item.addons === 'object') {
-           baseArray = Object.values(item.addons);
-        }
+        if (!item?.addons) return prev;
+        const baseArray = normalizeAddonArray(item.addons);
         
         const newAddons = baseArray.map((a) => {
-          if (a.id === addonId) {
+          if (getAddonKey(a) === addonId) {
             const cur = Number(a.quantity || 0);
             const limits = getAddonRuleLimits(a, item.quantity || 1);
             if (!limits.available) return { ...a, quantity: 0 };
@@ -692,6 +738,7 @@ Alturath.kw`;
         !addressDetails.building
       )
         return toast.error("يرجى إكمال تفاصيل العنوان");
+      if (!validateCartAddons()) return;
 
       setLoading(true);
       const invoiceId =
@@ -1297,10 +1344,12 @@ Alturath.kw`;
                           إضافات الوجبة:
                         </div>
                         <div className="grid grid-cols-1 gap-1.5">
-                          {(it.product!.addons && Array.isArray(it.product!.addons) ? Array.from(it.product!.addons) : (it.product!.addons && typeof it.product!.addons === 'object' ? Object.values(it.product!.addons) : [])).map((a: any) => {
+                          {normalizeAddonArray(it.product!.addons).map((a: any) => {
                             const cartAddon = (
                               Array.isArray(it.addons) ? it.addons : []
-                            ).find((ca) => ca.id === a.id);
+                            ).find((ca) => getAddonKey(ca) === getAddonKey(a));
+                            const effectiveAddon = { ...a, ...(cartAddon || {}) };
+                            const limits = getAddonRuleLimits(effectiveAddon, it.qty || 1);
                             const currentQty = cartAddon
                               ? cartAddon.quantity
                               : 0;
@@ -1308,8 +1357,11 @@ Alturath.kw`;
                               Number(a.freeQuantity || 0) > 0;
                             return (
                               <div
-                                key={a.id}
-                                className="flex justify-between items-center bg-slate-100/50 p-1.5 rounded-lg"
+                                key={getAddonKey(a)}
+                                className={cn(
+                                  "flex justify-between items-center p-1.5 rounded-lg",
+                                  limits.available ? "bg-slate-100/50" : "bg-slate-50 opacity-60",
+                                )}
                               >
                                 <div className="flex items-center gap-1.5 bg-white rounded-md p-0.5 border border-slate-200">
                                   <button
@@ -1317,19 +1369,13 @@ Alturath.kw`;
                                     onClick={() =>
                                       updateAddonQuantity(
                                         it.product!.id,
-                                        a.id,
+                                        getAddonKey(a),
                                         -1,
                                       )
                                     }
                                     className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 rounded text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed"
                                     disabled={
-                                      currentQty <=
-                                      (a.isRequired
-                                        ? Math.max(
-                                            1,
-                                            Number(a.minQuantity || 1),
-                                          )
-                                        : Number(a.minQuantity || 0))
+                                      !limits.available || currentQty <= limits.min
                                     }
                                   >
                                     <Minus size={11} />
@@ -1342,13 +1388,13 @@ Alturath.kw`;
                                     onClick={() =>
                                       updateAddonQuantity(
                                         it.product!.id,
-                                        a.id,
+                                        getAddonKey(a),
                                         1,
                                       )
                                     }
                                     className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 rounded text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed"
                                     disabled={
-                                      currentQty >= Number(a.maxQuantity || 999)
+                                      !limits.available || currentQty >= limits.max
                                     }
                                   >
                                     <Plus size={11} />
@@ -1371,6 +1417,16 @@ Alturath.kw`;
                                   {(a.isRequired || Number(a.minQuantity || 0) > 0 || a.quantityRule?.mode === "required") && (
                                     <span className="text-[8px] text-indigo-500 font-bold">
                                       إلزامي
+                                    </span>
+                                  )}
+                                  {!limits.available && (
+                                    <span className="text-[8px] text-amber-600 font-bold">
+                                      متاحة من كمية {limits.minProductQty}+
+                                    </span>
+                                  )}
+                                  {limits.available && a.quantityRule?.enabled && (
+                                    <span className="text-[8px] text-slate-400 font-bold">
+                                      المقترح {limits.suggested}
                                     </span>
                                   )}
                                 </div>
