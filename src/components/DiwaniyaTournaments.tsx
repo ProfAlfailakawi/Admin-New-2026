@@ -410,6 +410,96 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     }, 100);
   };
 
+
+
+  const toNumber = (value: any) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const getSquadLatLng = (sq: any) => {
+    const lat = toNumber(sq?.lat ?? sq?.latitude ?? sq?.location?.lat ?? sq?.geo?.lat ?? sq?.diwaniyaLocation?.lat ?? sq?.radarLocation?.lat);
+    const lng = toNumber(sq?.lng ?? sq?.longitude ?? sq?.location?.lng ?? sq?.location?.lon ?? sq?.geo?.lng ?? sq?.diwaniyaLocation?.lng ?? sq?.radarLocation?.lng);
+    return lat !== null && lng !== null ? { lat, lng } : null;
+  };
+
+  const getDistanceMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+    const R = 6371000;
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const lat1 = toRad(a.lat);
+    const lat2 = toRad(b.lat);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    return Math.round(2 * R * Math.asin(Math.sqrt(h)));
+  };
+
+  const getSquadJoinRequests = (sq: any) => {
+    const raw = sq?.geofenceJoinRequests ?? sq?.joinRequests ?? sq?.pendingJoinRequests ?? sq?.diwaniyaJoinRequests ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((request: any) => !request?.status || request.status === 'pending' || request.status === 'معلق');
+  };
+
+  const getSquadPresence = (sq: any) => {
+    const raw = sq?.presenceNow ?? sq?.presentMembers ?? sq?.currentPresence ?? sq?.checkedInMembers ?? [];
+    return Array.isArray(raw) ? raw.filter(Boolean) : [];
+  };
+
+  const getSquadOpenOrder = (sq: any) => {
+    const orders = [sq?.openGroupOrder, sq?.groupOrder, sq?.collectiveOrder, ...(Array.isArray(sq?.groupOrders) ? sq.groupOrders : [])].filter(Boolean);
+    return orders.find((order: any) => !order?.status || ['open', 'active', 'مفتوح'].includes(String(order.status))) || null;
+  };
+
+  const getSquadTemporaryCodes = (sq: any) => {
+    const raw = sq?.temporaryInviteCodes ?? sq?.tempInviteCodes ?? sq?.guestCodes ?? sq?.inviteCodes ?? [];
+    return Array.isArray(raw) ? raw.filter((code: any) => !code?.expired && code?.status !== 'used') : [];
+  };
+
+  const diwaniyaAdminRadar = React.useMemo(() => {
+    const enriched = squads.map((sq: any, index: number) => {
+      const actualLocation = getSquadLatLng(sq);
+      const mapFallback = mappedSquadsForMap[index];
+      const pendingRequests = getSquadJoinRequests(sq);
+      const presence = getSquadPresence(sq);
+      const openOrder = getSquadOpenOrder(sq);
+      const tempCodes = getSquadTemporaryCodes(sq);
+      const requestDistances = pendingRequests.map((r: any) => toNumber(r?.distance ?? r?.distanceMeters ?? r?.meters)).filter((v: any) => v !== null) as number[];
+      const avgRequestDistance = requestDistances.length ? Math.round(requestDistances.reduce((sum, value) => sum + value, 0) / requestDistances.length) : null;
+      return {
+        ...sq,
+        actualLocation,
+        mapX: actualLocation ? Math.min(92, Math.max(8, ((actualLocation.lng - 47.35) / (48.45 - 47.35)) * 84 + 8)) : mapFallback?.x,
+        mapY: actualLocation ? Math.min(92, Math.max(8, 92 - ((actualLocation.lat - 28.55) / (30.10 - 28.55)) * 84)) : mapFallback?.y,
+        govName: mapFallback?.govName || 'الكويت',
+        pendingRequests,
+        presence,
+        openOrder,
+        tempCodes,
+        avgRequestDistance,
+        membersCount: Number(sq?.members ?? sq?.membersList?.length ?? 0) || 0,
+      };
+    });
+
+    const missingLocation = enriched.filter((sq: any) => !sq.actualLocation);
+    const pending = enriched.flatMap((sq: any) => sq.pendingRequests.map((request: any) => ({ ...request, squadId: sq.id, squadName: sq.name })));
+    const duplicateWarnings: any[] = [];
+    for (let i = 0; i < enriched.length; i += 1) {
+      for (let j = i + 1; j < enriched.length; j += 1) {
+        if (!enriched[i].actualLocation || !enriched[j].actualLocation) continue;
+        const distance = getDistanceMeters(enriched[i].actualLocation, enriched[j].actualLocation);
+        if (distance <= Math.max(25, Number(geofenceDistance) || 100)) {
+          duplicateWarnings.push({ first: enriched[i], second: enriched[j], distance });
+        }
+      }
+    }
+    const topJoinSquads = [...enriched].sort((a: any, b: any) => b.pendingRequests.length - a.pendingRequests.length).slice(0, 5);
+    const openGroupOrders = enriched.filter((sq: any) => sq.openOrder);
+    const activePresence = enriched.filter((sq: any) => sq.presence.length > 0).sort((a: any, b: any) => b.presence.length - a.presence.length);
+    const activeCodes = enriched.filter((sq: any) => sq.tempCodes.length > 0);
+
+    return { enriched, missingLocation, pending, duplicateWarnings, topJoinSquads, openGroupOrders, activePresence, activeCodes };
+  }, [squads, mappedSquadsForMap, geofenceDistance]);
+
   return (
     <div className="space-y-6 pb-20" dir="rtl">
       {/* Header section */}
@@ -963,121 +1053,238 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       {activeTab === 'radar' && (
         <AnimatePresence mode="wait">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm text-right max-w-4xl mx-auto space-y-6">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-100 pb-4">
-                <div>
-                  <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
-                    <Compass className="w-5 h-5 text-amber-500" /> رادار التغطية الجغرافية للدواوين 📍
-                  </h3>
-                </div>
-                
-                {/* Distance Selector Tool */}
-                <div className="w-full md:w-auto mt-4 md:mt-0 flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-200/80" dir="rtl">
-                  <span className="text-xs font-bold text-slate-600 whitespace-nowrap">أداة تحديد البعد بالمسافة (متر):</span>
-                  <input 
-                    type="range" 
-                    min="10" 
-                    max="1000" 
-                    value={geofenceDistance} 
-                    onChange={(e) => handleDistanceChange(parseInt(e.target.value))}
-                    className="w-40 sm:w-48 accent-amber-500 h-1 bg-slate-200 rounded-lg cursor-pointer"
-                  />
-                  <span className="font-mono text-sm font-black text-amber-600 min-w-[60px] text-center bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
-                    {geofenceDistance}م
-                  </span>
+            <div className="max-w-7xl mx-auto space-y-6 text-right">
+              <div className="relative overflow-hidden rounded-[32px] bg-slate-950 text-white border border-slate-800 shadow-2xl p-5 md:p-7">
+                <div className="absolute -top-24 -right-24 w-80 h-80 bg-amber-500/20 rounded-full blur-3xl" />
+                <div className="absolute -bottom-28 -left-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+                <div className="relative z-10 flex flex-col lg:flex-row gap-5 lg:items-center lg:justify-between">
+                  <div className="space-y-2">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/20 text-amber-200 text-xs font-black">
+                      <Radio className="w-4 h-4" /> مركز مراقبة الدواوين
+                    </div>
+                    <h3 className="text-2xl md:text-3xl font-black text-white">رادار الدواوين في الأدمن</h3>
+                    <p className="text-sm text-slate-300 leading-7 max-w-3xl">
+                      متابعة مواقع الدواوين، طلبات الانضمام، الأكواد المؤقتة، الطلبات الجماعية، والحضور الحالي من غير لمس الدفع أو إشعارات الدفع.
+                    </p>
+                  </div>
+
+                  <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white/5 px-4 py-3 rounded-3xl border border-white/10" dir="rtl">
+                    <span className="text-xs font-bold text-slate-300 whitespace-nowrap">مدى رادار الانضمام:</span>
+                    <input
+                      type="range"
+                      min="10"
+                      max="1000"
+                      value={geofenceDistance}
+                      onChange={(e) => handleDistanceChange(parseInt(e.target.value))}
+                      className="w-full sm:w-56 accent-amber-400 h-1 bg-slate-700 rounded-lg cursor-pointer"
+                    />
+                    <span className="font-mono text-sm font-black text-amber-200 min-w-[70px] text-center bg-amber-400/10 px-3 py-1.5 rounded-xl border border-amber-400/20">
+                      {geofenceDistance}م
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Map Layout */}
-              <div className="relative border border-slate-200 bg-slate-50/30 rounded-2xl p-4 overflow-hidden flex flex-col md:flex-row items-stretch gap-6 min-h-[480px]">
-                
-                {/* Visual Map wrapper */}
-                <div className="flex-1 relative flex items-center justify-center p-2 border border-slate-200/60 rounded-xl bg-white min-h-[380px] overflow-hidden">
-                  {/* Grid Lines Overlay */}
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.02)_0%,transparent_75%)] pointer-events-none" />
-                  <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.015)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-                  
-                  {/* SVG Kuwait Background */}
-                  <img 
-                    src="https://simplemaps.com/static/svg/country/kw/all/kw.svg" 
-                    className="w-full h-full max-h-[420px] object-contain opacity-55 filter sepia-[0.4] brightness-[1.1] contrast-[0.9] saturate-[0.6] transition-all pointer-events-none select-none" 
-                    alt="Kuwait Map" 
-                  />
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+                {[
+                  { label: 'طلبات انضمام معلقة', value: diwaniyaAdminRadar.pending.length, hint: 'تحتاج متابعة المعزب', tone: 'amber', icon: <BellRing className="w-5 h-5" /> },
+                  { label: 'مواقع غير مثبتة', value: diwaniyaAdminRadar.missingLocation.length, hint: 'لن تظهر بالرادار', tone: 'rose', icon: <MapPin className="w-5 h-5" /> },
+                  { label: 'دواوين متقاربة', value: diwaniyaAdminRadar.duplicateWarnings.length, hint: 'راجع التداخل الجغرافي', tone: 'orange', icon: <Navigation className="w-5 h-5" /> },
+                  { label: 'طلبات جماعية مفتوحة', value: diwaniyaAdminRadar.openGroupOrders.length, hint: 'نشاط مباشر', tone: 'emerald', icon: <Users className="w-5 h-5" /> },
+                  { label: 'أكواد دخول فعالة', value: diwaniyaAdminRadar.activeCodes.length, hint: 'ضيوف مؤقتون', tone: 'indigo', icon: <Copy className="w-5 h-5" /> },
+                ].map((card: any) => (
+                  <div key={card.label} className="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm hover:shadow-lg transition-all">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center bg-${card.tone}-50 text-${card.tone}-600 border border-${card.tone}-100`}>
+                        {card.icon}
+                      </div>
+                      <div className="text-left">
+                        <div className="text-2xl font-black text-slate-900">{card.value}</div>
+                        <div className="text-[10px] font-bold text-slate-400">{card.hint}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-xs font-black text-slate-700">{card.label}</div>
+                  </div>
+                ))}
+              </div>
 
-                  {/* Diwaniya glowing pins */}
-                  {mappedSquadsForMap.map((sq: any) => {
-                    const isActive = String(activeMapSquadId) === String(sq.id);
-                    return (
-                      <div
-                        key={sq.id}
-                        className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20 cursor-pointer group"
-                        style={{ left: `${sq.x}%`, top: `${sq.y}%` }}
-                        onClick={() => setActiveMapSquadId(sq.id)}
-                      >
-                        {/* Glowing Ring */}
-                        <div className={`absolute -inset-2 rounded-full bg-amber-500/20 blur-[3px] transition-all group-hover:scale-150 ${isActive ? 'scale-150 animate-ping' : 'scale-100'}`} />
-                        
-                        {/* Main Dot Marker */}
-                        <div className={`relative w-4 h-4 rounded-full border-2 transition-all shadow-md flex items-center justify-center ${isActive ? 'bg-amber-500 border-amber-300 scale-125' : 'bg-white border-amber-500 group-hover:bg-amber-500 group-hover:border-amber-400'}`}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-slate-950' : 'bg-slate-800'}`} />
+              <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_0.9fr] gap-6">
+                <div className="bg-white rounded-[32px] border border-slate-200 p-4 md:p-6 shadow-sm overflow-hidden">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
+                    <div>
+                      <h4 className="font-black text-slate-900 text-lg flex items-center gap-2"><Compass className="w-5 h-5 text-amber-500" /> خريطة الدواوين الحية</h4>
+                      <p className="text-xs text-slate-500 mt-1">الإحداثيات الحقيقية تُقرأ من بيانات العميل عند تثبيت موقع الديوانية، ومع عدم وجودها تظهر كنقطة تقديرية فقط.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-[10px] font-black">
+                      <span className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">موقع مثبت</span>
+                      <span className="px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100">يحتاج تثبيت</span>
+                      <span className="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">طلبات معلقة</span>
+                    </div>
+                  </div>
+
+                  <div className="relative border border-slate-200 bg-slate-50/60 rounded-3xl min-h-[500px] overflow-hidden">
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.035)_1px,transparent_1px)] bg-[size:28px_28px]" />
+                    <img
+                      src="https://simplemaps.com/static/svg/country/kw/all/kw.svg"
+                      className="absolute inset-0 w-full h-full object-contain opacity-45 filter sepia-[0.25] saturate-[0.7] pointer-events-none select-none p-5"
+                      alt="Kuwait Map"
+                    />
+
+                    {diwaniyaAdminRadar.enriched.map((sq: any) => {
+                      const isActive = String(activeMapSquadId) === String(sq.id);
+                      const hasLocation = Boolean(sq.actualLocation);
+                      const hasPending = sq.pendingRequests.length > 0;
+                      return (
+                        <button
+                          type="button"
+                          key={sq.id}
+                          className="absolute z-20 -translate-x-1/2 -translate-y-1/2 group text-right"
+                          style={{ left: `${sq.mapX || 50}%`, top: `${sq.mapY || 50}%` }}
+                          onClick={() => setActiveMapSquadId(sq.id)}
+                        >
+                          <span className={`absolute -inset-4 rounded-full blur-md transition-all ${hasPending ? 'bg-amber-400/30 animate-pulse' : hasLocation ? 'bg-emerald-400/20' : 'bg-rose-400/20'} ${isActive ? 'scale-125' : 'scale-100'}`} />
+                          <span className={`relative flex items-center justify-center w-5 h-5 rounded-full border-2 shadow-lg ${isActive ? 'scale-125 bg-slate-950 border-amber-300' : hasLocation ? 'bg-emerald-500 border-white' : 'bg-rose-500 border-white'}`}>
+                            <span className="w-1.5 h-1.5 bg-white rounded-full" />
+                          </span>
+                          <span className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border ${isActive ? 'bg-slate-950 text-white border-amber-300' : 'bg-white text-slate-800 border-slate-200 group-hover:border-amber-300'}`}>
+                            {sq.name}
+                            {hasPending ? <span className="mr-1 text-amber-500">• {sq.pendingRequests.length}</span> : null}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {(() => {
+                    const selected = diwaniyaAdminRadar.enriched.find((sq: any) => String(sq.id) === String(activeMapSquadId));
+                    return selected ? (
+                      <div className="bg-white rounded-[32px] border border-slate-200 p-5 shadow-sm space-y-4">
+                        <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+                          <div>
+                            <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black border ${selected.actualLocation ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
+                              {selected.actualLocation ? 'موقع مثبت من العميل' : 'يحتاج تثبيت موقع'}
+                            </span>
+                            <h4 className="font-black text-slate-900 text-xl mt-2">{selected.name}</h4>
+                            <p className="text-xs text-slate-500 mt-1">{selected.founder || selected.king || 'المعزب غير محدد'} · {selected.phone || selected.membersList?.[0]?.phone || 'لا يوجد رقم'}</p>
+                          </div>
+                          <div className="text-left">
+                            <div className="text-2xl font-black text-amber-600">{(selected.points || 0).toLocaleString()}</div>
+                            <div className="text-[10px] text-slate-400 font-bold">نقطة</div>
+                          </div>
                         </div>
 
-                        {/* Text Label Tag */}
-                        <div className={`absolute bottom-full mb-1.5 left-1/2 transform -translate-x-1/2 whitespace-nowrap text-[9px] font-black px-2 py-0.5 rounded shadow-lg transition-all ${isActive ? 'bg-amber-500 text-slate-950 scale-105 z-30' : 'bg-slate-900 border border-slate-855 text-slate-100 opacity-90 group-hover:opacity-100 group-hover:scale-105'}`}>
-                          {sq.name}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3"><div className="text-[10px] text-slate-400 font-bold">الأعضاء</div><div className="text-lg font-black text-slate-800">{selected.membersCount}</div></div>
+                          <div className="rounded-2xl bg-amber-50 border border-amber-100 p-3"><div className="text-[10px] text-amber-700 font-bold">طلبات دخول</div><div className="text-lg font-black text-amber-700">{selected.pendingRequests.length}</div></div>
+                          <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-3"><div className="text-[10px] text-emerald-700 font-bold">موجودين الآن</div><div className="text-lg font-black text-emerald-700">{selected.presence.length}</div></div>
+                          <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3"><div className="text-[10px] text-indigo-700 font-bold">أكواد فعالة</div><div className="text-lg font-black text-indigo-700">{selected.tempCodes.length}</div></div>
                         </div>
+
+                        <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs leading-6">
+                          <div className="font-black text-slate-700 mb-1">الإحداثيات</div>
+                          {selected.actualLocation ? (
+                            <div className="font-mono text-slate-600" dir="ltr">{selected.actualLocation.lat.toFixed(6)}, {selected.actualLocation.lng.toFixed(6)}</div>
+                          ) : (
+                            <div className="text-rose-600 font-bold">لا توجد إحداثيات حقيقية. ثبّت الموقع من برنامج العميل حتى تظهر على الخريطة بدقة.</div>
+                          )}
+                        </div>
+
+                        {selected.pendingRequests.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="font-black text-slate-800 text-sm">طلبات الانضمام المعلقة</div>
+                            {selected.pendingRequests.slice(0, 4).map((request: any, index: number) => (
+                              <div key={request.id || index} className="flex items-center justify-between gap-3 rounded-2xl border border-amber-100 bg-amber-50/60 p-3">
+                                <div>
+                                  <div className="font-black text-slate-800 text-sm">{request.name || request.customerName || 'ضيف قريب'}</div>
+                                  <div className="text-[11px] text-slate-500 font-mono">{request.phone || request.customerPhone || 'بدون رقم'}</div>
+                                </div>
+                                <div className="text-left text-xs font-black text-amber-700">{Math.round(Number(request.distance || request.distanceMeters || 0)) || '—'}م</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-[32px] border border-slate-200 p-8 shadow-sm text-center text-slate-500 min-h-[280px] flex flex-col items-center justify-center">
+                        <Compass className="w-10 h-10 text-amber-400 mb-3" />
+                        <div className="font-black text-slate-700">اختر ديوانية من الخريطة</div>
+                        <p className="text-xs mt-2 leading-6">راح تظهر تفاصيل الموقع، الطلبات المعلقة، الحضور، الأكواد، والطلب الجماعي.</p>
                       </div>
                     );
-                  })}
+                  })()}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+                <div className="bg-white rounded-[32px] border border-slate-200 p-5 shadow-sm">
+                  <h4 className="font-black text-slate-900 flex items-center gap-2 mb-4"><BellRing className="w-5 h-5 text-amber-500" /> أكثر دواوين عليها طلبات انضمام</h4>
+                  <div className="space-y-3">
+                    {diwaniyaAdminRadar.topJoinSquads.some((sq: any) => sq.pendingRequests.length > 0) ? diwaniyaAdminRadar.topJoinSquads.filter((sq: any) => sq.pendingRequests.length > 0).map((sq: any) => (
+                      <button key={sq.id} type="button" onClick={() => setActiveMapSquadId(sq.id)} className="w-full flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-amber-50 hover:border-amber-200 p-3 transition-all">
+                        <div><div className="font-black text-slate-800 text-sm">{sq.name}</div><div className="text-[11px] text-slate-500">متوسط قرب الطلب: {sq.avgRequestDistance ? `${sq.avgRequestDistance}م` : 'غير متوفر'}</div></div>
+                        <div className="text-xl font-black text-amber-600">{sq.pendingRequests.length}</div>
+                      </button>
+                    )) : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 text-xs font-bold text-slate-500 text-center">لا توجد طلبات معلقة حالياً.</div>}
+                  </div>
                 </div>
 
-                {/* Info Card Drawer (Right align) */}
-                <div className="w-full md:w-80 bg-slate-50 border border-slate-200 rounded-xl p-5 flex flex-col justify-between text-right min-h-[220px]">
-                  {selectedSquad ? (
-                    <div className="space-y-4">
-                      <div className="border-b border-slate-200 pb-3 flex justify-between items-start">
-                        <div>
-                          <span className="px-2 py-0.5 rounded-md text-[9px] font-black bg-amber-500/10 text-amber-700 border border-amber-500/20">
-                            {selectedSquad.tier || 'شلة ديوانية'}
-                          </span>
-                          <h4 className="font-extrabold text-slate-800 text-base mt-2">{selectedSquad.name}</h4>
-                        </div>
-                        <div className="text-left font-mono">
-                          <span className="font-black text-amber-600 text-lg block">{(selectedSquad.points || 0).toLocaleString()}</span>
-                          <span className="text-[10px] text-slate-500 block mt-[-3px]">نقطة إجمالية</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3 text-xs leading-6">
-                        <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-sm">
-                          <span className="text-[10px] font-bold text-slate-400 block mb-0.5">الموقع التقديري</span>
-                          <span className="font-extrabold text-slate-700 block">{selectedSquad.govName} · دولة الكويت</span>
-                          <span className="text-[11px] text-slate-500 font-mono mt-1 block flex items-center gap-1" dir="ltr">
-                            <span className="text-amber-500">📍</span>
-                            {(29.3375 + ((selectedSquad.y || 50) - 50) * -0.0065).toFixed(5)}° N, {(47.9782 + ((selectedSquad.x || 75) - 75) * 0.0075).toFixed(5)}° E
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-sm">
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 block">المؤسس الرئيسي</span>
-                            <span className="font-extrabold text-slate-700">{selectedSquad.founder || selectedSquad.king || 'لا يوجد'}</span>
-                          </div>
-                          <div className="text-left font-mono">
-                            <span className="text-[10px] font-bold text-slate-400 block">الأعضاء</span>
-                            <span className="font-extrabold text-slate-800">{selectedSquad.members || 1}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-2 text-slate-400">
-                      <Compass className="w-8 h-8 opacity-40 animate-pulse text-amber-500" />
-                      <span className="text-xs font-bold leading-5">اختر ديوانية من على خريطة الكويت لعرض تفاصيل التغطية الجغرافية</span>
-                    </div>
-                  )}
+                <div className="bg-white rounded-[32px] border border-slate-200 p-5 shadow-sm">
+                  <h4 className="font-black text-slate-900 flex items-center gap-2 mb-4"><MapPin className="w-5 h-5 text-rose-500" /> دواوين تحتاج تثبيت موقع</h4>
+                  <div className="space-y-3 max-h-[320px] overflow-auto pr-1">
+                    {diwaniyaAdminRadar.missingLocation.length > 0 ? diwaniyaAdminRadar.missingLocation.map((sq: any) => (
+                      <button key={sq.id} type="button" onClick={() => setActiveMapSquadId(sq.id)} className="w-full rounded-2xl border border-rose-100 bg-rose-50/60 p-3 text-right hover:bg-rose-50 transition-all">
+                        <div className="font-black text-slate-800 text-sm">{sq.name}</div>
+                        <div className="text-[11px] text-rose-700 mt-1">لن تظهر للضيوف القريبين إلا بعد تثبيت موقعها من برنامج العميل.</div>
+                      </button>
+                    )) : <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-4 text-xs font-bold text-emerald-700 text-center">كل الدواوين لديها مواقع مثبتة.</div>}
+                  </div>
                 </div>
 
+                <div className="bg-white rounded-[32px] border border-slate-200 p-5 shadow-sm">
+                  <h4 className="font-black text-slate-900 flex items-center gap-2 mb-4"><Navigation className="w-5 h-5 text-orange-500" /> تحذيرات التداخل الجغرافي</h4>
+                  <div className="space-y-3 max-h-[320px] overflow-auto pr-1">
+                    {diwaniyaAdminRadar.duplicateWarnings.length > 0 ? diwaniyaAdminRadar.duplicateWarnings.map((item: any, index: number) => (
+                      <div key={index} className="rounded-2xl border border-orange-100 bg-orange-50/70 p-3">
+                        <div className="font-black text-slate-800 text-sm">{item.first.name} + {item.second.name}</div>
+                        <div className="text-[11px] text-orange-700 mt-1">المسافة بينهما تقريباً {item.distance}م، راجعها حتى لا تظهر للضيف ديوانية غير مقصودة.</div>
+                      </div>
+                    )) : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 text-xs font-bold text-slate-500 text-center">لا توجد دواوين متداخلة ضمن مدى الرادار الحالي.</div>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                <div className="bg-white rounded-[32px] border border-slate-200 p-5 shadow-sm">
+                  <h4 className="font-black text-slate-900 flex items-center gap-2 mb-4"><Users className="w-5 h-5 text-emerald-500" /> ربط مزايا العميل في الأدمن</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      { title: 'الحضور الآن', value: diwaniyaAdminRadar.activePresence.reduce((sum: number, sq: any) => sum + sq.presence.length, 0), hint: 'عدد الربع اللي ضغطوا أنا وصلت' },
+                      { title: 'طلبات جماعية مفتوحة', value: diwaniyaAdminRadar.openGroupOrders.length, hint: 'للمراجعة التشغيلية بدون دخول الدفع' },
+                      { title: 'أكواد مؤقتة', value: diwaniyaAdminRadar.activeCodes.reduce((sum: number, sq: any) => sum + sq.tempCodes.length, 0), hint: 'أكواد ضيوف فعالة' },
+                      { title: 'دواوين نشطة اليوم', value: diwaniyaAdminRadar.activePresence.length + diwaniyaAdminRadar.openGroupOrders.length, hint: 'حضور أو طلب جماعي' },
+                    ].map((item: any) => (
+                      <div key={item.title} className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                        <div className="text-[11px] font-black text-slate-500">{item.title}</div>
+                        <div className="text-2xl font-black text-slate-900 mt-1">{item.value}</div>
+                        <div className="text-[10px] font-bold text-slate-400 mt-1">{item.hint}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-slate-950 rounded-[32px] border border-slate-800 p-5 shadow-sm text-white overflow-hidden relative">
+                  <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-amber-500/10 blur-3xl rounded-full" />
+                  <div className="relative z-10">
+                    <h4 className="font-black text-white flex items-center gap-2 mb-4"><Sparkles className="w-5 h-5 text-amber-300" /> أفكار تطوير جاهزة للمرحلة التالية</h4>
+                    <div className="space-y-3 text-sm leading-7 text-slate-300">
+                      <div className="rounded-2xl bg-white/5 border border-white/10 p-3"><b className="text-amber-200">خريطة حرارية للدواوين:</b> تجمع الطلبات والحضور حسب المنطقة بدون أي تدخل في الدفع.</div>
+                      <div className="rounded-2xl bg-white/5 border border-white/10 p-3"><b className="text-amber-200">فلتر مخاطر:</b> يعرض الدواوين بلا موقع، المتداخلة، أو التي عليها طلبات معلقة لمدة طويلة.</div>
+                      <div className="rounded-2xl bg-white/5 border border-white/10 p-3"><b className="text-amber-200">تصدير تقرير الديوانية:</b> ملف مختصر للمعزب: أعضاء، حضور، أكواد، وطلبات جماعية، منفصل عن تقارير الدفع.</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
