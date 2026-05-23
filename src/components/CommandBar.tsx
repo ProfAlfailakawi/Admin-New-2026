@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
-import { Search, Command, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, Home, ShoppingBag, FileText, Clock, ShieldCheck } from 'lucide-react';
+import { Search, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, Home, ShoppingBag, FileText, ShieldCheck, BrainCircuit, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../lib/utils';
+import { cn, normalizeArabic } from '../lib/utils';
 
 interface CommandBarProps {
   isOpen: boolean;
@@ -22,7 +22,20 @@ type CommandItem = {
   roles?: string[];
 };
 
-const clean = (value?: string) => String(value || '').toLowerCase().trim();
+const clean = (value?: string) => normalizeArabic(String(value || '')).toLowerCase().trim();
+const splitWords = (value?: string) => clean(value).split(/\s+/).filter(Boolean);
+const commandSearchText = (cmd: CommandItem) => clean([cmd.label, cmd.hint, cmd.category, ...(cmd.tags || [])].join(' '));
+const commandScore = (cmd: CommandItem, query: string) => {
+  const q = clean(query);
+  if (!q) return 1;
+  const haystack = commandSearchText(cmd);
+  if (clean(cmd.label) === q) return 100;
+  if (clean(cmd.label).startsWith(q)) return 80;
+  if (haystack.includes(q)) return 60;
+  const words = splitWords(q);
+  const matches = words.filter(w => haystack.includes(w)).length;
+  return matches ? 20 + matches * 8 : 0;
+};
 
 const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, data, userRole }) => {
   const [query, setQuery] = useState('');
@@ -32,36 +45,37 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
 
   const commands = useMemo<CommandItem[]>(() => {
     const allTabs: CommandItem[] = [
-      { id: 'dashboard-main', label: 'مركز القيادة / الرئيسية', hint: 'نبض اليوم والطلبات المعلقة وفشل الدفع', icon: <Home />, category: 'الأهم', action: () => onNavigate('dashboard', { exactId: 'pulse' }), roles: ['admin'] },
-      { id: 'reports', label: 'التقارير التنفيذية', hint: 'تفصيل مالي للأداء والمبيعات', icon: <PieChart />, category: 'الأهم', action: () => onNavigate('reports', {}), roles: ['admin'] },
-      { id: 'dashboard-loyalty', label: 'مملكة الولاء', hint: 'مستويات العملاء والـ VIP', icon: <TrendingUp />, category: 'الأهم', action: () => onNavigate('loyalty', {}), roles: ['admin'] },
-      { id: 'dashboard-promocodes', label: 'مسرح العروض الذكية / الكوبونات', hint: 'إدارة الخصومات وقياس الربح', icon: <Sparkles />, category: 'الأهم', action: () => onNavigate('coupons', {}), roles: ['admin'] },
-      { id: 'smart-studio', label: 'استوديو المحتوى الذكي', hint: 'رسائل الدعاية والتسويق', icon: <Zap />, category: 'الأهم', action: () => onNavigate('smart-studio', {}), roles: ['admin'] },
-      { id: 'dashboard-growth', label: 'محاكي النمو والتسويق', hint: 'سيناريوهات الأرباح ماذا لو', icon: <Target />, category: 'الأهم', action: () => onNavigate('growth-simulator', {}), roles: ['admin'] },
-      { id: 'ai', label: 'المساعد الذكي', hint: 'مستشار مالي وتوصيات', icon: <Sparkles />, category: 'الأهم', action: () => onNavigate('ai', {}), roles: ['admin', 'partner'] },
-      { id: 'dashboard-diwaniya', label: 'بطولات الديوانية', hint: 'النقاط والجوائز للبطولات', icon: <Users />, category: 'الأهم', action: () => onNavigate('diwaniya', {}), roles: ['admin'] },
-      { id: 'dashboard-financials', label: 'المالية وحماية الأرباح', hint: 'فحص هوامش الربح والمخاطر', icon: <DollarSign />, category: 'الأهم', action: () => onNavigate('profit-guard', {}), roles: ['admin'] },
-      { id: 'dashboard-customers', label: 'العملاء والولاء', hint: 'نبض العملاء', icon: <Users />, category: 'الرئيسية', action: () => onNavigate('customers', {}), roles: ['admin'] },
-      { id: 'dashboard-suppliers', label: 'الموردين والمخاطر', hint: 'توريد ومراجعة', icon: <Truck />, category: 'الرئيسية', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
-      { id: 'new-invoice', label: 'فاتورة جديدة', hint: 'إنشاء سريع', icon: <PlusCircle />, category: 'الإجراءات السريعة', action: () => onNavigate('new-invoice', {}), roles: ['admin', 'partner'] },
-      { id: 'customers-page', label: 'بيانات العملاء', hint: 'بحث وتفاصيل', icon: <Users />, category: 'التنقل', action: () => onNavigate('customers', {}), roles: ['admin'] },
-      { id: 'products-page', label: 'إدارة المنتجات', hint: 'الأسعار والتصنيفات', icon: <Package />, category: 'التنقل', action: () => onNavigate('products', {}), roles: ['admin'] },
-      { id: 'expenses', label: 'المصروفات', hint: 'تسجيل ومراجعة', icon: <PieChart />, category: 'الإجراءات السريعة', action: () => onNavigate('expenses', {}), roles: ['admin'] },
-      { id: 'orders', label: 'طلبات الموقع', hint: 'حالات الدفع', icon: <ShoppingBag />, category: 'التنقل', action: () => onNavigate('orders', {}), roles: ['partner', 'admin'] },
-      { id: 'invoices-list', label: 'سجل الفواتير', hint: 'فواتير وتقارير', icon: <FileText />, category: 'التنقل', action: () => onNavigate('invoices-list', {}), roles: ['partner', 'admin'] },
-      { id: 'suppliers-audit', label: 'الموردين والمراجعة', hint: 'تدقيق الموردين والمخاطر', icon: <Truck />, category: 'التنقل', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
-      { id: 'settings', label: 'الإعدادات العامة', hint: 'هوية وتنبيهات وضبط', icon: <ShieldCheck />, category: 'التنقل', action: () => onNavigate('settings', {}), roles: ['admin'] },
-      { id: 'alerts', label: 'التنبيهات الذكية', hint: 'راجع التنبيهات من اللوحة', icon: <Activity />, category: 'التنقل', action: () => onNavigate('dashboard', { exactId: 'pulse', scrollTarget: 'alerts-section' }), roles: ['admin'] },
-      { id: 'partner', label: 'برنامج الشريك', hint: 'واجهة بسيطة للشريك', icon: <Users />, category: 'التنقل', action: () => onNavigate('dashboard', { exactId: 'pulse', scrollTarget: 'partner-section' }), roles: ['admin'] },
-    ];
+      { id: 'dashboard-pulse', label: 'النبض التنفيذي', hint: 'مركز القيادة، ملخص اليوم، مؤشرات الإدارة', icon: <Activity />, category: 'خريطة التحكم الذكية', tags: ['مركز القيادة','داشبورد','الرئيسية','ملخص'], action: () => onNavigate('dashboard', { exactId: 'pulse' }), roles: ['admin'] },
+      { id: 'dashboard-brain', label: 'عقل النظام', hint: 'التحليل، القرارات، التعلم، المخاطر، والاستراتيجية', icon: <BrainCircuit />, category: 'خريطة التحكم الذكية', tags: ['تعلم','مخاطر','توصيات','ذكاء','تحليل'], action: () => onNavigate('dashboard', { exactId: 'intelligence' }), roles: ['admin'] },
+      { id: 'dashboard-profit', label: 'المالية وحماية الأرباح', hint: 'الربحية، الهامش، النزيف، وحماية الربح', icon: <DollarSign />, category: 'خريطة التحكم الذكية', tags: ['فلوس','أرباح','ربح','خسارة','هامش','تكاليف'], action: () => onNavigate('dashboard', { exactId: 'financials' }), roles: ['admin'] },
+      { id: 'dashboard-suppliers', label: 'الموردين والتشغيل', hint: 'ذكاء الموردين ومراجعة المخاطر', icon: <Truck />, category: 'خريطة التحكم الذكية', tags: ['مورد','موردين','تفاوض','تشغيل','منتجات'], action: () => onNavigate('dashboard', { exactId: 'suppliers' }), roles: ['admin'] },
+      { id: 'dashboard-customers', label: 'العملاء والولاء', hint: 'العملاء، الولاء، الكوبونات، والبطولات', icon: <Award />, category: 'خريطة التحكم الذكية', tags: ['عميل','عملاء','ولاء','كوبون','كوبونات','ديوانية'], action: () => onNavigate('dashboard', { exactId: 'customers' }), roles: ['admin'] },
+      { id: 'dashboard-growth', label: 'النمو والمحتوى', hint: 'النمو، الحملات، والتوقع الموسمي واستوديو المحتوى', icon: <Target />, category: 'خريطة التحكم الذكية', tags: ['نمو','تسويق','حملات','محتوى','استوديو','موسم','مناخ'], action: () => onNavigate('dashboard', { exactId: 'growth' }), roles: ['admin'] },
 
+      { id: 'invoices-list', label: 'سجل الفواتير', hint: 'فواتير وتقارير', icon: <FileText />, category: 'التشغيل اليومي', tags: ['فاتورة','فواتير','سجل','مبيعات'], action: () => onNavigate('invoices-list', {}), roles: ['partner', 'admin'] },
+      { id: 'new-invoice', label: 'فاتورة جديدة', hint: 'إنشاء سريع', icon: <PlusCircle />, category: 'التشغيل اليومي', tags: ['فاتورة','جديدة','بيع','نقطة البيع'], action: () => onNavigate('new-invoice', {}), roles: ['admin', 'partner'] },
+      { id: 'orders', label: 'طلبات الموقع', hint: 'حالات الدفع', icon: <ShoppingBag />, category: 'التشغيل اليومي', tags: ['طلب','طلبات','موقع','دفع'], action: () => onNavigate('orders', {}), roles: ['partner', 'admin'] },
+      { id: 'reports', label: 'التقارير التنفيذية', hint: 'تفصيل مالي للأداء والمبيعات', icon: <PieChart />, category: 'التشغيل اليومي', action: () => onNavigate('reports', {}), roles: ['admin'] },
+
+      { id: 'smart-studio', label: 'استوديو المحتوى الذكي', hint: 'رسائل الدعاية والتسويق', icon: <Zap />, category: 'النمو والمحتوى', action: () => onNavigate('smart-studio', {}), roles: ['admin', 'partner'] },
+      { id: 'dashboard-promocodes', label: 'الكوبونات', hint: 'إدارة الخصومات وقياس الربح', icon: <Sparkles />, category: 'العملاء والولاء', action: () => onNavigate('coupons', {}), roles: ['admin'] },
+      { id: 'dashboard-loyalty', label: 'الولاء', hint: 'مستويات العملاء والـ VIP', icon: <TrendingUp />, category: 'العملاء والولاء', action: () => onNavigate('loyalty', {}), roles: ['admin'] },
+      { id: 'dashboard-diwaniya', label: 'بطولات الديوانية', hint: 'النقاط والجوائز للبطولات', icon: <Users />, category: 'العملاء والولاء', action: () => onNavigate('diwaniya', {}), roles: ['admin'] },
+
+      { id: 'customers-page', label: 'بيانات العملاء', hint: 'بحث وتفاصيل', icon: <Users />, category: 'الإدارة الأساسية', action: () => onNavigate('customers', {}), roles: ['admin'] },
+      { id: 'products-page', label: 'إدارة المنتجات', hint: 'الأسعار والتصنيفات', icon: <Package />, category: 'الإدارة الأساسية', action: () => onNavigate('products', {}), roles: ['admin'] },
+      { id: 'suppliers-audit', label: 'الموردين والمراجعة', hint: 'تدقيق الموردين والمخاطر', icon: <Truck />, category: 'الإدارة الأساسية', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
+      { id: 'expenses', label: 'المصروفات', hint: 'تسجيل ومراجعة', icon: <PieChart />, category: 'الإدارة الأساسية', action: () => onNavigate('expenses', {}), roles: ['admin'] },
+      { id: 'settings', label: 'الإعدادات العامة', hint: 'هوية وتنبيهات وضبط', icon: <ShieldCheck />, category: 'الإدارة الأساسية', action: () => onNavigate('settings', {}), roles: ['admin'] },
+      { id: 'ai', label: 'المساعد الذكي', hint: 'مستشار مالي وتوصيات', icon: <Sparkles />, category: 'الذكاء الاصطناعي', action: () => onNavigate('ai', {}), roles: ['admin', 'partner'] },
+    ];
     const mainTabs = allTabs.filter(tab => tab.roles?.includes(userRole));
 
     const deepLinks: CommandItem[] = [
-      { id: 'growth-campaigns', label: 'مختبر الحملات التسويقية', hint: 'خطط مبيعات', icon: <TrendingUp />, category: 'تحليلات داخلية', tags: ['حملات', 'تسويقية', 'مبيعات'], action: () => onNavigate('growth-simulator', { scrollTarget: 'smart-campaigns' }) },
-      { id: 'customers-retention', label: 'رادار استرجاع العملاء', hint: 'الغائبين والاحتفاظ', icon: <Users />, category: 'تحليلات داخلية', tags: ['استرجاع', 'غائبين', 'احتفاظ'], action: () => onNavigate('dashboard', { exactId: 'customers', scrollTarget: 'retention-section' }) },
-      { id: 'financial-guard', label: 'حارس الأرباح الحقيقية', hint: 'هدر وصافي ربح', icon: <DollarSign />, category: 'تحليلات داخلية', tags: ['ارباح', 'هدر', 'صافي'], action: () => onNavigate('dashboard', { exactId: 'financials', scrollTarget: 'profit-guard-section' }) },
-      { id: 'pulse-matrix', label: 'مصفوفة نبض المنتجات', hint: 'الأصناف المربحة', icon: <Package />, category: 'تحليلات داخلية', tags: ['مصفوفة', 'نبض', 'منتجات'], action: () => onNavigate('dashboard', { exactId: 'pulse', scrollTarget: 'products-matrix-section' }) },
+      { id: 'growth-campaigns', label: 'مختبر الحملات التسويقية', hint: 'خطط مبيعات', icon: <TrendingUp />, category: 'اختصارات ذكية', tags: ['حملات', 'تسويقية', 'مبيعات'], action: () => onNavigate('growth-simulator', { scrollTarget: 'smart-campaigns' }) },
+      { id: 'customers-retention', label: 'رادار استرجاع العملاء', hint: 'الغائبين والاحتفاظ', icon: <Users />, category: 'اختصارات ذكية', tags: ['استرجاع', 'غائبين', 'احتفاظ'], action: () => onNavigate('dashboard', { exactId: 'customers', scrollTarget: 'retention-section' }) },
+      { id: 'financial-guard', label: 'حارس الأرباح الحقيقية', hint: 'هدر وصافي ربح', icon: <DollarSign />, category: 'اختصارات ذكية', tags: ['ارباح', 'هدر', 'صافي'], action: () => onNavigate('dashboard', { exactId: 'financials', scrollTarget: 'profit-guard-section' }) },
+      { id: 'pulse-matrix', label: 'مصفوفة نبض المنتجات', hint: 'الأصناف المربحة', icon: <Package />, category: 'اختصارات ذكية', tags: ['مصفوفة', 'نبض', 'منتجات'], action: () => onNavigate('dashboard', { exactId: 'pulse', scrollTarget: 'products-matrix-section' }) },
     ];
 
     const base = [...mainTabs, ...deepLinks];
@@ -69,27 +83,27 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     if (!q) return base;
 
     const customerMatches = (data?.customers || [])
-      .filter((c: any) => clean(c.name).includes(q) || String(c.phone || '').includes(q))
+      .filter((c: any) => clean([c.name, c.phone, c.email, c.area].join(' ')).includes(q))
       .slice(0, 4)
       .map((c: any) => ({ id: `cust-${c.id}`, label: `عميل: ${c.name || c.phone}`, hint: c.phone, icon: <Users />, category: 'نتائج مباشرة', action: () => onNavigate('customers', { exactId: c.id, search: c.name || c.phone }) }));
 
     const productMatches = (data?.products || [])
-      .filter((p: any) => clean(p.name).includes(q))
+      .filter((p: any) => clean([p.name, p.category, p.description].join(' ')).includes(q))
       .slice(0, 4)
       .map((p: any) => ({ id: `prod-${p.id}`, label: `منتج: ${p.name}`, hint: p.category || 'منتج', icon: <Package />, category: 'نتائج مباشرة', action: () => onNavigate('products', { exactId: p.id, search: p.name }) }));
 
     const invoiceMatches = (data?.invoices || [])
-      .filter((inv: any) => clean(inv.id).includes(q))
+      .filter((inv: any) => clean([inv.id, inv.customerName, inv.customerPhone, inv.phone].join(' ')).includes(q))
       .slice(0, 4)
       .map((inv: any) => ({ id: `inv-${inv.id}`, label: `فاتورة: ${inv.id}`, hint: `${Number(inv.total || 0).toFixed(3)} د.ك`, icon: <FileText />, category: 'نتائج مباشرة', action: () => onNavigate('invoices-list', { exactId: inv.id, search: inv.id }) }));
 
     const supplierMatches = (data?.suppliers || [])
-      .filter((s: any) => clean(s.name).includes(q))
+      .filter((s: any) => clean([s.name, s.phone, s.category, s.notes].join(' ')).includes(q))
       .slice(0, 3)
       .map((s: any) => ({ id: `supp-${s.id}`, label: `مورد: ${s.name}`, hint: 'مورد', icon: <Truck />, category: 'نتائج مباشرة', action: () => onNavigate('suppliers', { exactId: s.id, search: s.name }) }));
 
     const expenseMatches = (data?.expenses || [])
-      .filter((e: any) => clean(e.description).includes(q))
+      .filter((e: any) => clean([e.description, e.category, e.vendor].join(' ')).includes(q))
       .slice(0, 3)
       .map((e: any) => ({ id: `exp-${e.id}`, label: `مصروف: ${e.description}`, hint: `${Number(e.amount || 0).toFixed(3)} د.ك`, icon: <PieChart />, category: 'نتائج مباشرة', action: () => onNavigate('expenses', { exactId: e.id, search: e.description }) }));
 
@@ -99,10 +113,14 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
   const filteredCommands = useMemo(() => {
     const q = clean(deferredQuery);
     if (!q) return commands;
-    return commands.filter(c => clean(c.label).includes(q) || clean(c.category).includes(q) || clean(c.hint).includes(q) || c.tags?.some((t) => clean(t).includes(q)));
+    return commands
+      .map((cmd) => ({ cmd, score: commandScore(cmd, q) }))
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.cmd);
   }, [commands, deferredQuery]);
 
-  const priority = ['dashboard-main','reports','dashboard-loyalty','dashboard-promocodes','smart-studio','dashboard-growth','ai','dashboard-diwaniya','dashboard-financials'];
+  const priority = ['dashboard-pulse','dashboard-brain','dashboard-profit','dashboard-suppliers','dashboard-customers','dashboard-growth','invoices-list','new-invoice','orders','smart-studio'];
   const featured = useMemo(() => {
     const sorted = [...filteredCommands].sort((a, b) => {
       const ai = priority.indexOf(a.id);
@@ -131,6 +149,11 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       setSelectedIndex(0);
     }
   }, [isOpen]);
+
+
+  const categoryOrder = deferredQuery
+    ? ['نتائج مباشرة', 'خريطة التحكم الذكية', 'التشغيل اليومي', 'النمو والمحتوى', 'العملاء والولاء', 'الإدارة الأساسية', 'الذكاء الاصطناعي', 'اختصارات ذكية', 'تحليلات داخلية']
+    : ['خريطة التحكم الذكية', 'التشغيل اليومي', 'العملاء والولاء', 'النمو والمحتوى', 'الإدارة الأساسية', 'الذكاء الاصطناعي', 'اختصارات ذكية', 'تحليلات داخلية'];
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -176,13 +199,17 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
             dir="rtl"
           >
             <div className="command-search-header">
+              <div className="hidden md:flex flex-col text-right min-w-[150px]">
+                <span className="text-[10px] font-black tracking-[0.18em] text-amber-600">كوماند ذكي</span>
+                <span className="text-xs font-black text-slate-700">ابحث أو انتقل فوراً</span>
+              </div>
               <div className="command-search-field">
                 <Search size={18} />
                 <input
                   ref={inputRef}
                   type="text"
                   aria-label="بحث الأوامر"
-                  placeholder="ابحث في الكوماند عن صفحة، عميل، منتج، فاتورة أو مورد..."
+                  placeholder="اكتب: عميل، منتج، فاتورة، مورد، كوبون، أرباح، محتوى..."
                   className="command-premium-search-input"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -194,7 +221,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
             <div className="max-h-[46vh] md:max-h-[390px] overflow-y-auto p-3 md:p-4 custom-scrollbar">
               {filteredCommands.length > 0 ? (
                 <div className="space-y-4">
-                  {['نتائج مباشرة', 'الأهم', 'الرئيسية', 'التنقل', 'الإجراءات السريعة', 'الذكاء الاصطناعي', 'تحليلات داخلية', 'الولاء والكوبونات'].map(category => {
+                  {categoryOrder.map(category => {
                     const catCommands = filteredCommands.filter(c => c.category === category);
                     if (catCommands.length === 0) return null;
                     return (
@@ -233,10 +260,6 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
               )}
             </div>
 
-            <div className="command-premium-footer">
-              <div className="flex items-center gap-2"><Command size={12} /><span>أداة قيادة</span></div>
-              <div className="flex items-center gap-2"><Clock size={12} /><span>اختيار سريع بدون تنقل طويل</span></div>
-            </div>
           </motion.div>
         </div>
       )}

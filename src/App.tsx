@@ -71,6 +71,7 @@ const AIAssistant = React.lazy(() => import('./components/AIAssistant'));
 import { SmartContentStudio } from './components/SmartContentStudio';
 import { DiwaniyaTournaments } from './components/DiwaniyaTournaments';
 import PartnerDashboard from './components/PartnerDashboard';
+import { CommandBrief } from './components/CommandBrief';
 import Login from './components/Login';
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
 const SupplierAudit = React.lazy(() => import('./components/SupplierAudit'));
@@ -477,85 +478,20 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     : coreModules;
 
   return (
-    <section dir="rtl" className={`heritage-command-brief heritage-command-brief-${tone} ${isOpen ? 'is-open' : 'is-collapsed'}`} aria-label="مركز القيادة">
-      <div className="heritage-command-hero">
-        <span className="heritage-command-orb"><Sparkles size={22} /></span>
-        <div className="min-w-0 text-right heritage-command-copy">
-          <div className="heritage-command-kicker">مركز القيادة · شركة مطبخ التراث</div>
-          <h2>{greeting.title}</h2>
-          <p>{greeting.sub}</p>
+    <section dir="rtl" className={`heritage-command-brief heritage-command-brief-${tone} is-open`} aria-label="مركز القيادة">
+      <div className="executive-morning-brief pb-2 mb-2">
+        <div>
+          <span>Executive Morning Brief</span>
+          <strong>مركز القيادة</strong>
         </div>
+        <ul>
+          {briefLines.map((line) => <li key={line}>{line}</li>)}
+        </ul>
       </div>
-
-      <div className="heritage-command-actions">
-        <button
-          type="button"
-          className="heritage-command-toggle heritage-command-open-btn"
-          onClick={() => setIsOpen((value) => !value)}
-          aria-expanded={isOpen}
-        >
-          {isOpen ? 'إغلاق مركز القيادة' : 'فتح مركز القيادة'}
-          <ChevronDown size={16} className={isOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
-        </button>
-      </div>
-
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            className="heritage-command-grid"
-            initial={{ opacity: 0, y: -8, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: 'auto' }}
-            exit={{ opacity: 0, y: -8, height: 0 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
-          >
-            <div className="executive-morning-brief pb-2 mb-2">
-              <div>
-                <span>Executive Morning Brief</span>
-                <strong>ملخص الإدارة الآن</strong>
-              </div>
-              <ul>
-                {briefLines.map((line) => <li key={line}>{line}</li>)}
-              </ul>
-            </div>
-
-            <div className="col-span-full mb-3" dir="rtl">
-              <div className="flex items-center gap-2 bg-slate-900/45 border border-white/10 rounded-xl px-3.5 py-2.5 w-full shadow-inner">
-                <Search size={16} className="text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="ابحث عن أداة أو اكتب أمراً كتركيز إضافي (مثال: المنتجات، الإعدادات)..."
-                  className="bg-transparent text-white placeholder-slate-400/80 text-xs md:text-sm focus:outline-none w-full font-medium"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                {searchQuery && (
-                  <button type="button" onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-white transition-colors">
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {filteredTools.map((item) => (
-              <button key={item.id} onClick={() => go(item.id)} className={`heritage-command-tile heritage-tone-${item.tone} ${page === item.id ? 'is-active' : ''}`}>
-                <span className="heritage-tile-icon">{item.icon}</span>
-                <span className="heritage-tile-label">{item.label}</span>
-                <strong>{item.value}</strong>
-                <small>{item.hint}</small>
-              </button>
-            ))}
-
-            {filteredTools.length === 0 && (
-              <div className="col-span-full py-8 text-center text-slate-400 text-xs md:text-sm">
-                لا توجد أدوات مطابقة لنص البحث.. تفضل بكتابة كلمة أخرى كتركيز إضافي ✨
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </section>
   );
 };
+
 
 
 
@@ -921,13 +857,12 @@ const MainApp: React.FC = () => {
     localStorage.removeItem('currentPage');
   }, [isAuthenticated]);
 
-  // Force cloud mode when user is authenticated for authorized emails
+  // Demo/local mode must remain fully local. Do not auto-switch it to cloud.
   useEffect(() => {
-    if (user && appMode === 'local') {
+    if (appMode === 'local') return;
+    if (user && appMode === 'cloud') {
       const email = user.email?.toLowerCase() || '';
       if (AUTHORIZED_EMAILS.includes(email) || AUTHORIZED_PARTNERS.includes(email)) {
-        console.log("Auto-switching to cloud mode for authenticated authorized user.");
-        setAppMode('cloud');
         localStorage.setItem('appMode', 'cloud');
       }
     }
@@ -1605,17 +1540,24 @@ const MainApp: React.FC = () => {
 
         // Delay state updates to prevent "Cannot update a component while rendering"
         setTimeout(() => {
-          // Auto-switch to cloud mode on login if authorized
-          if (isAuthorized || isPartner) {
-            setAppMode('cloud');
-            localStorage.setItem('appMode', 'cloud');
+          // Cloud login only: never pull the demo/local mode into cloud.
+          if (currentMode === 'cloud') {
+            if (isAuthorized || isPartner) {
+              setAppMode('cloud');
+              localStorage.setItem('appMode', 'cloud');
+            }
+
+            setUser(currentUser);
+            setUserRole(isAuthorized ? 'admin' : 'partner');
+            setIsAuthenticated(true);
+            localStorage.setItem('isAuthenticated', 'true');
+            setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+          } else {
+            // Demo/local mode is isolated: local data only, admin experience, no cloud role.
+            setUser(null);
+            setUserRole('admin');
           }
-            
-          setUser(currentUser);
-          setUserRole(isAuthorized ? 'admin' : 'partner');
-          setIsAuthenticated(true);
-          localStorage.setItem('isAuthenticated', 'true');
-          setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+
           setAuthError(null);
           setAuthLoading(false);
         }, 0);
@@ -2077,6 +2019,12 @@ const MainApp: React.FC = () => {
           onLogin={(mode) => {
             setAppMode(mode);
             localStorage.setItem('appMode', mode);
+            if (mode === 'local') {
+              // Demo login is admin-style and local-only; no partner/cloud session leakage.
+              setUser(null);
+              setUserRole('admin');
+              setQuotaError(null);
+            }
             setIsAuthenticated(true);
             localStorage.setItem('isAuthenticated', 'true');
             setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
@@ -2088,7 +2036,8 @@ const MainApp: React.FC = () => {
   }
 
   const renderAppContent = () => {
-    if (userRole === 'partner') {
+    // Demo/local mode must use the admin experience, even if a previous cloud user was a partner.
+    if (appMode !== 'local' && userRole === 'partner') {
       switch (currentPage) {
         case 'orders': return <OrderPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} isPartner={true} />;
         case 'invoices-list': return (
@@ -2114,9 +2063,9 @@ const MainApp: React.FC = () => {
           />
         );
         case 'ai':
-        case 'smart-studio':
         case 'diwaniya':
           return <div className="partner-clean-shell"><PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} /></div>;
+        case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
         default: return <div className="partner-clean-shell"><PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} /></div>;
       }
     }
@@ -2693,11 +2642,7 @@ const MainApp: React.FC = () => {
             }} 
           />
           {userRole !== 'partner' && currentPage === 'dashboard' && (
-            <CompanyCommandCenter
-              data={data}
-              onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }}
-              page={currentPage}
-            />
+            <CommandBrief data={data} dateFilter="day" />
           )}
           <AnimatePresence>
             <motion.div

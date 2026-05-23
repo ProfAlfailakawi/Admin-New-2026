@@ -2833,3 +2833,88 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
   .tesla-seasonal-engine{border-radius:1.55rem!important;padding:1rem!important;}
   .tesla-seasonal-engine h3{font-size:1.35rem!important;line-height:1.45!important;}
 }
+
+/* --------------------------------------------------------------------------
+ * Arabic typography polish
+ * Softens overly heavy Arabic text in admin/partner command cards without
+ * changing any feature or data logic. Keeps headings strong, but prevents
+ * long Arabic sentences from looking oversized or cramped.
+ */
+@layer utilities {
+  .font-black {
+    font-weight: 800;
+  }
+
+  .font-extrabold {
+    font-weight: 750;
+  }
+}
+
+@layer components {
+  .heritage-command-brief,
+  .heritage-command-brief * {
+    letter-spacing: 0;
+  }
+
+  .heritage-command-brief {
+    padding: clamp(1rem, 2vw, 1.5rem);
+    border-radius: clamp(1.25rem, 2.5vw, 1.75rem);
+  }
+
+  .heritage-command-brief h1,
+  .heritage-command-brief h2,
+  .heritage-command-brief h3 {
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
+  .heritage-command-brief p,
+  .heritage-command-brief span,
+  .heritage-command-brief button {
+    line-height: 1.75;
+  }
+
+  .heritage-command-brief .heritage-command-hero h2 {
+    font-size: clamp(1rem, 2.2vw, 1.35rem);
+  }
+
+  .heritage-command-brief .heritage-command-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    gap: 0.75rem;
+    margin-top: 1rem !important;
+  }
+
+  .heritage-command-brief .heritage-command-grid > * {
+    margin-top: 0 !important;
+    padding: clamp(0.75rem, 1.5vw, 1rem);
+    align-items: flex-start;
+  }
+
+  .heritage-command-brief .heritage-command-grid p {
+    font-size: clamp(0.78rem, 1.3vw, 0.95rem);
+    font-weight: 650;
+    line-height: 1.8;
+  }
+
+  @media (max-width: 640px) {
+    .heritage-command-brief {
+      padding: 1rem;
+    }
+
+    .heritage-command-brief .heritage-command-hero {
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .heritage-command-brief .heritage-command-open-btn {
+      min-height: 36px;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.68rem;
+    }
+
+    .heritage-command-brief .heritage-command-orb {
+      padding: 0.45rem;
+    }
+  }
+}
