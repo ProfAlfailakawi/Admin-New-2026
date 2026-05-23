@@ -254,7 +254,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         setCompressionStats({ original: result.originalSize, compressed: result.size });
         setGeneratedImage(null);
         setRealityAudit(null);
-    if (!variantOverride) setRealityVariants([]);
+        setRealityVariants([]);
       };
       reader.readAsDataURL(file);
     }
