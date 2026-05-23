@@ -3053,3 +3053,99 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
     overflow:auto!important;
   }
 }
+
+/* Admin28 patch: keep executive dashboard bento and tabs inside their frame on desktop and mobile */
+.dashboard-executive-shell,
+.dashboard-content-shell,
+.dashboard-tab-shell,
+.dashboard-subtab-shell{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  overflow-x:hidden!important;
+  box-sizing:border-box!important;
+}
+.dashboard-executive-shell *,
+.dashboard-content-shell *{
+  min-width:0;
+  box-sizing:border-box;
+}
+.dashboard-tab-shell > div,
+.dashboard-subtab-shell > div:last-child{
+  max-width:100%!important;
+  min-width:0!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  scroll-padding-inline:12px!important;
+  padding-inline:2px!important;
+}
+.dashboard-tab-shell button,
+.dashboard-subtab-shell button{
+  max-width:min(240px,78vw)!important;
+}
+.dashboard-tab-shell button span,
+.dashboard-subtab-shell button span{
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.dashboard-content-shell .grid{
+  max-width:100%!important;
+}
+.dashboard-content-shell table{
+  max-width:100%!important;
+}
+@media(max-width:768px){
+  .dashboard-executive-shell{gap:14px!important;}
+  .dashboard-tab-shell,
+  .dashboard-subtab-shell{border-radius:22px!important;padding:7px!important;}
+  .dashboard-tab-shell button,
+  .dashboard-subtab-shell button{padding-inline:12px!important;font-size:10px!important;}
+  .dashboard-content-shell{padding-inline:0!important;}
+}
+
+/* Admin28 patch: stabilize new-invoice product search after selecting products without changing the design */
+.invoice-new-page,
+.invoice-new-page *{
+  box-sizing:border-box;
+}
+.invoice-new-page{
+  max-width:100vw!important;
+}
+.invoice-new-page .invoice-products-grid{
+  align-items:stretch!important;
+  grid-auto-flow:row!important;
+  grid-auto-rows:minmax(132px,auto)!important;
+  contain:layout paint;
+}
+.invoice-new-page .invoice-product-card{
+  min-height:132px!important;
+  max-width:100%!important;
+  transform:none!important;
+  isolation:isolate!important;
+}
+.invoice-new-page .invoice-product-card:hover{
+  transform:none!important;
+}
+.invoice-new-page .invoice-product-card-title{
+  padding-left:38px!important;
+  display:block!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  display:-webkit-box!important;
+  -webkit-line-clamp:2!important;
+  -webkit-box-orient:vertical!important;
+}
+.invoice-new-page .invoice-product-price-hint{
+  z-index:20!important;
+}
+.invoice-new-page .invoice-product-price-popover{
+  max-width:150px!important;
+}
+@media(max-width:1024px){
+  .invoice-new-page{grid-template-columns:minmax(0,1fr)!important;}
+}
+@media(max-width:640px){
+  .invoice-new-page{padding:12px!important;}
+  .invoice-new-page .invoice-products-grid{grid-template-columns:minmax(0,1fr)!important;grid-auto-rows:minmax(118px,auto)!important;}
+  .invoice-new-page .invoice-product-card{min-height:118px!important;}
+}

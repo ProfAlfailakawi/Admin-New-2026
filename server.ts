@@ -9,6 +9,15 @@ import { GoogleGenAI } from "@google/genai";
 
 let firebaseInitialized = false;
 let db: any = null;
+const PAYMENT_PENDING_GRACE_SECONDS = Math.max(
+  30,
+  Math.min(600, Number(process.env.PAYMENT_PENDING_GRACE_SECONDS || 120))
+);
+const PAYMENT_PENDING_GRACE_MS = PAYMENT_PENDING_GRACE_SECONDS * 1000;
+const PAYMENT_PENDING_GRACE_LABEL =
+  PAYMENT_PENDING_GRACE_SECONDS % 60 === 0
+    ? `${PAYMENT_PENDING_GRACE_SECONDS / 60} دقيقة`
+    : `${PAYMENT_PENDING_GRACE_SECONDS} ثانية`;
 
 try {
 
@@ -82,6 +91,79 @@ function removeUndefinedDeep(value: any): any {
   }
 
   return value === undefined ? undefined : value;
+}
+
+function dateFromBusinessId(id: any) {
+  const match = String(id || "").match(/^(INV|ORD)-(\d{13})-/);
+  if (!match) return null;
+  const parsed = new Date(Number(match[2]));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function dateValue(value: any): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (value?.toDate) return value.toDate();
+  if (value?.seconds) return new Date(value.seconds * 1000);
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function bestCreatedDateForPaymentItem(item: any, fallbackId?: any) {
+  const ids = [
+    item?.id,
+    item?.invoiceId,
+    item?.invoiceNo,
+    item?.invoiceNumber,
+    item?.orderId,
+    item?.orderNo,
+    item?.orderNumber,
+    item?.linkedInvoiceId,
+    fallbackId,
+  ].filter(Boolean);
+
+  for (const id of ids) {
+    const parsed = dateFromBusinessId(id);
+    if (parsed) return parsed;
+  }
+
+  return dateValue(
+    item?.createdAt ||
+    item?.created_at ||
+    item?.orderDate ||
+    item?.timestamp ||
+    item?.date ||
+    item?.paymentCreatedAt ||
+    item?.created
+  );
+}
+
+function pendingPaymentGraceInfo(item: any, fallbackId?: any, now = new Date()) {
+  const createdAt = bestCreatedDateForPaymentItem(item, fallbackId) || now;
+  const ageMs = Math.max(0, now.getTime() - createdAt.getTime());
+  const remainingMs = Math.max(0, PAYMENT_PENDING_GRACE_MS - ageMs);
+
+  return {
+    createdAt,
+    ageMs,
+    shouldDelay: remainingMs > 0,
+    remainingSeconds: Math.ceil(remainingMs / 1000),
+  };
+}
+
+async function rememberPushEvent(eventId: string, payload: any, result: any) {
+  if (!db || !eventId) return;
+  try {
+    await db.collection("pushEvents").doc(eventId).set({
+      eventId,
+      ...removeUndefinedDeep(payload),
+      result: removeUndefinedDeep(result),
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  } catch (error: any) {
+    console.warn("[PUSH] Could not remember push event:", eventId, error?.message || error);
+  }
 }
 
 
@@ -180,12 +262,18 @@ app.use(express.urlencoded({ extended: true }));
                     for (const doc of orderQ.docs) {
                         await doc.ref.update({ status: 'تم الدفع وجاري التوصيل', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                     }
+                    const eventId = `safe-worker-invoice-paid-${orderId}`;
                     sendSmartAlertPushNotification({
                     title: "✅ تم الدفع",
                     body: `تم دفع الفاتورة ${orderId}${data?.totalAmount ? ` — ${data.totalAmount} د.ك` : ""}`,
                     alertType: "payment_paid",
+                    eventId,
                     url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(orderId)}`,
-                  }).catch(console.error);
+                  }).then((result) => rememberPushEvent(eventId, {
+                    source: "payment-webhook",
+                    type: "invoice_paid",
+                    invoiceId: orderId,
+                  }, result)).catch(console.error);
                 }
             } else {
                 const orderRef = db.collection('orders').doc(orderId);
@@ -194,12 +282,18 @@ app.use(express.urlencoded({ extended: true }));
                     const data = ordSnap.data();
                     if (data?.status !== 'paid' && data?.status !== 'تم الدفع وجاري التوصيل') {
                         await orderRef.update({ status: 'تم الدفع وجاري التوصيل', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                        const eventId = `safe-worker-payment-paid-${orderId}`;
                         sendSmartAlertPushNotification({
                         title: "✅ تم الدفع",
                         body: `تم دفع الطلب ${orderId}${data?.total ? ` — ${data.total} د.ك` : ""}`,
                         alertType: "payment_paid",
+                        eventId,
                         url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
-                      }).catch(console.error);
+                      }).then((result) => rememberPushEvent(eventId, {
+                        source: "payment-webhook",
+                        type: "payment_paid",
+                        orderId,
+                      }, result)).catch(console.error);
                     }
                 }
             }
@@ -218,12 +312,18 @@ app.use(express.urlencoded({ extended: true }));
                         }
                     }
 
+                    const eventId = `safe-worker-invoice-failed-${orderId}`;
                     sendSmartAlertPushNotification({
                       title: "❌ فشل دفع فاتورة",
                       body: `الفاتورة ${orderId} فشل دفعها — راجعوا الطلب وأعيدوا إرسال الرابط عند الحاجة`,
                       alertType: "payment_failed",
+                      eventId,
                       url: `/?invoice=${orderId}`
-                    }).catch(console.error);
+                    }).then((result) => rememberPushEvent(eventId, {
+                      source: "payment-webhook",
+                      type: "invoice_payment_failed",
+                      invoiceId: orderId,
+                    }, result)).catch(console.error);
                 }
             } else {
                 const orderRef = db.collection('orders').doc(orderId);
@@ -233,12 +333,18 @@ app.use(express.urlencoded({ extended: true }));
                     if (data?.status !== 'تم الدفع وجاري التوصيل' && data?.status !== 'paid') {
                         await orderRef.update({ status: 'فشلت عملية الدفع', paymentStatus: 'failed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
 
+                        const eventId = `safe-worker-payment-failed-${orderId}`;
                         sendSmartAlertPushNotification({
                           title: "❌ فشل دفع طلب",
                           body: `الطلب ${orderId} فشل دفعه — يحتاج متابعة`,
                           alertType: "payment_failed",
+                          eventId,
                           url: `/?invoice=${orderId}`
-                        }).catch(console.error);
+                        }).then((result) => rememberPushEvent(eventId, {
+                          source: "payment-webhook",
+                          type: "payment_failed",
+                          orderId,
+                        }, result)).catch(console.error);
                     }
                 }
             }
@@ -620,6 +726,18 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         });
       }
 
+      const graceInfo = pendingPaymentGraceInfo(order, resolvedOrderId);
+      if (graceInfo.shouldDelay) {
+        return res.json({
+          success: true,
+          skipped: true,
+          scheduled: true,
+          reason: "Pending payment push delayed until grace period passes",
+          delaySeconds: graceInfo.remainingSeconds,
+          graceSeconds: PAYMENT_PENDING_GRACE_SECONDS,
+        });
+      }
+
       const eventId = `order-created-${resolvedOrderId}`;
       let eventSnap: any;
       try {
@@ -652,8 +770,8 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         "";
 
       const result = await sendSmartAlertPushNotification({
-        title: isInvoiceAlert ? "⏳ فاتورة بانتظار الدفع" : "⏳ طلب بانتظار الدفع",
-        body: `${isInvoiceAlert ? "الفاتورة" : "طلب"} ${orderNumber} وصل الآن بانتظار الدفع${total ? ` — القيمة ${total} د.ك` : ""} ⏳`,
+        title: isInvoiceAlert ? "⏳ فاتورة لم تُدفع" : "⏳ طلب لم يدفع",
+        body: `${isInvoiceAlert ? "الفاتورة" : "الطلب"} ${orderNumber} لم يتم دفعه بعد ${PAYMENT_PENDING_GRACE_LABEL}${total ? ` — القيمة ${total} د.ك` : ""}`,
         alertType: isInvoiceAlert ? "invoice_pending_immediate" : "payment_pending_immediate",
         url: isInvoiceAlert
           ? `/?invoice=${encodeURIComponent(resolvedOrderId)}`
@@ -850,6 +968,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
       const newOrderWindowStart = new Date(now.getTime() - 15 * 60 * 1000);
       const pendingPaymentWindowStart = new Date(now.getTime() - 30 * 60 * 1000);
+      const pendingPaymentGraceAgo = new Date(now.getTime() - PAYMENT_PENDING_GRACE_MS);
       const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
       const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
@@ -958,7 +1077,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
       const orders = Array.from(ordersMap.values());
 
-      // 0) طلب بانتظار الدفع - server-side, works even if admin app is closed
+      // 0) طلب لم يدفع بعد مهلة قصيرة - server-side, works even if admin app is closed
       for (const order of orders) {
         const createdAt =
           getDateValue((order as any).createdAt) ||
@@ -968,6 +1087,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
         if (!createdAt) continue;
         if (createdAt < newOrderWindowStart || createdAt > now) continue;
+        if (createdAt > pendingPaymentGraceAgo) continue;
         if (!isPendingPayment(order)) continue;
 
         const eventId = `order-created-${(order as any).id}`;
@@ -980,8 +1100,8 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         const total = getTotal(order);
 
         const result = await sendSmartAlertPushNotification({
-          title: "⏳ طلب بانتظار الدفع",
-          body: `طلب ${orderNumber} وصل الآن بانتظار الدفع${total ? ` — القيمة ${total.toFixed(3)} د.ك` : ""} ⏳`,
+          title: "⏳ طلب لم يدفع",
+          body: `الطلب ${orderNumber} لم يتم دفعه بعد ${PAYMENT_PENDING_GRACE_LABEL}${total ? ` — القيمة ${total.toFixed(3)} د.ك` : ""}`,
           alertType: "payment_pending_immediate",
           url: `/?order=${encodeURIComponent((order as any).id)}`
         });
@@ -1318,6 +1438,10 @@ async function sendSmartAlertPushNotification({
 
     const message = {
       tokens,
+      notification: {
+        title: String(title || "تنبيه"),
+        body: String(body || ""),
+      },
       data: {
         type: "smart_alert",
         alertType: normalizedAlertType,
@@ -1752,19 +1876,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         data?.data?.link ||
         (typeof data?.data === "string" && /^https?:\/\//i.test(data.data) ? data.data : "");
 
-      // Send immediate pending-payment alert when payment link is created
-      sendSmartAlertPushNotification({
-        title: String(orderId).startsWith("INV-")
-          ? "⏳ فاتورة بانتظار الدفع"
-          : "⏳ طلب بانتظار الدفع",
-        body: `${String(orderId).startsWith("INV-") ? "الفاتورة" : "الطلب"} ${orderId} بانتظار الدفع${amount ? ` — ${amount} د.ك` : ""}`,
-        alertType: String(orderId).startsWith("INV-")
-          ? "invoice_pending_immediate"
-          : "payment_pending_immediate",
-        url: String(orderId).startsWith("INV-")
-          ? `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(orderId)}`
-          : `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
-      } as any).catch(console.error);
+      // Pending-payment push is intentionally handled by the alerts worker after a short grace period.
+      // If the customer pays quickly, only the paid notification is sent.
+      const pendingGrace = pendingPaymentGraceInfo({ id: orderId, totalAmount: amount, total: amount }, orderId);
+      console.log(`[PUSH] Pending-payment alert queued for worker: ${orderId}; grace remaining ${pendingGrace.remainingSeconds}s`);
 
       res.json({
         ...data,
@@ -2118,6 +2233,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     const counters = { sent: 0 };
     const results: any[] = [];
     const now = new Date();
+    const pendingPaymentGraceAgo = new Date(now.getTime() - PAYMENT_PENDING_GRACE_MS);
     const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
     let syncResult = { updated: 0, ids: [] as string[] };
     if (!dryRun) syncResult = await alertsSyncFailedInvoicesFromPushEvents();
@@ -2141,8 +2257,8 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       }
       if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-invoice-paid-${invoiceId}`, { title: "✅ تم دفع فاتورة", body: `تم دفع الفاتورة ${invoiceId}${alertsAmountText(inv)}`, alertType: "invoice_paid", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters); continue; }
       if (alertsIsPending(st)) {
-        await alertsSendOnce(results, `safe-worker-invoice-pending-immediate-${invoiceId}`, { title: "⏳ فاتورة بانتظار الدفع", body: `الفاتورة ${invoiceId} بانتظار الدفع${alertsAmountText(inv)}`, alertType: "invoice_pending_immediate", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
         const d = alertsBestDate(inv) || now;
+        if (d <= pendingPaymentGraceAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-immediate-${invoiceId}`, { title: "⏳ فاتورة لم تُدفع", body: `الفاتورة ${invoiceId} لم يتم دفعها بعد ${PAYMENT_PENDING_GRACE_LABEL}${alertsAmountText(inv)}`, alertType: "invoice_pending_immediate", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
         if (d <= tenMinutesAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-10min-${invoiceId}`, { title: "⏳ فاتورة لم تُدفع بعد 10 دقائق", body: `الفاتورة ${invoiceId} لم تُدفع بعد 10 دقائق${alertsAmountText(inv)}`, alertType: "invoice_pending_10min", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
       }
     }
@@ -2159,8 +2275,8 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-payment-paid-${orderId}`, { title: "✅ تم دفع طلب", body: `تم دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_paid", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
       if (alertsIsCancelled(st)) { await alertsSendOnce(results, `safe-worker-order-cancelled-admin-${orderId}`, { title: "🚫 تم إلغاء طلب", body: `تم إلغاء الطلب ${orderId}${alertsAmountText(order)}`, alertType: "order_cancelled_admin", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
       if (alertsIsPending(st)) {
-        await alertsSendOnce(results, `safe-worker-payment-pending-immediate-${orderId}`, { title: "⏳ طلب بانتظار الدفع", body: `الطلب ${orderId} بانتظار الدفع${alertsAmountText(order)}`, alertType: "payment_pending_immediate", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
         const d = alertsBestDate(order) || now;
+        if (d <= pendingPaymentGraceAgo) await alertsSendOnce(results, `safe-worker-payment-pending-immediate-${orderId}`, { title: "⏳ طلب لم يدفع", body: `الطلب ${orderId} لم يتم دفعه بعد ${PAYMENT_PENDING_GRACE_LABEL}${alertsAmountText(order)}`, alertType: "payment_pending_immediate", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
         if (d <= tenMinutesAgo) await alertsSendOnce(results, `safe-worker-payment-pending-10min-${orderId}`, { title: "⏳ طلب لم يُدفع بعد 10 دقائق", body: `الطلب ${orderId} لم يُدفع بعد 10 دقائق${alertsAmountText(order)}`, alertType: "payment_pending_10min", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
       }
     }
@@ -2634,4 +2750,3 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان عاد�
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
-

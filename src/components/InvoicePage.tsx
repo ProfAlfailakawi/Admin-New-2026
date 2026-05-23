@@ -849,10 +849,10 @@ Alturath.kw`;
     };
 
     return (
-      <div className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-6 bg-slate-50 min-h-screen">
+      <div className="invoice-new-page p-4 grid grid-cols-1 lg:grid-cols-3 gap-6 bg-slate-50 min-h-screen overflow-x-hidden">
         {/* Product Selection */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+          <div className="bg-white rounded-3xl p-4 md:p-6 shadow-sm border border-slate-200 overflow-hidden">
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <div className="relative flex-1">
                 <Search
@@ -893,7 +893,7 @@ Alturath.kw`;
                 <button
                   key={p.id}
                   onClick={() => { setOpenCheaperHintId(null); addToCart(p.id); }}
-                  className="bg-white border p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative ceramic-glint overflow-visible shadow-sm hover:shadow-xl"
+                  className="invoice-product-card bg-white border p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative ceramic-glint overflow-hidden shadow-sm hover:shadow-xl min-w-0 w-full h-full"
                 >
                   {p.isOutOfStock && (
                     <div className="absolute top-2 left-2 text-rose-500 z-10 flex items-center gap-1 bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded-lg border border-rose-100 shadow-sm">
@@ -937,7 +937,7 @@ Alturath.kw`;
                     }
                     return null;
                   })()}
-                  <h3 className={cn("font-extrabold text-slate-800 title-premium text-xs sm:text-sm leading-snug", p.isOutOfStock && "opacity-50")}>{p.name}</h3>
+                  <h3 className={cn("invoice-product-card-title font-extrabold text-slate-800 title-premium text-xs sm:text-sm leading-snug min-w-0", p.isOutOfStock && "opacity-50")}>{p.name}</h3>
                   <div className="text-[10px] font-bold text-slate-400 title-premium">{normalizeCategoryName((p as any).category)}</div>
                   <div className="flex justify-between items-center mt-auto">
                     <div className="flex items-center gap-0.5">
@@ -951,7 +951,7 @@ Alturath.kw`;
 
               if (isSearching) {
                 return (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 overflow-y-auto max-h-[70vh] pr-2">
+                  <div className="invoice-products-grid grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3 overflow-y-auto overflow-x-hidden max-h-[70vh] pr-2 pb-2">
                     {filteredProducts.map(renderProductCard)}
                   </div>
                 );
@@ -985,7 +985,7 @@ Alturath.kw`;
                               transition={{ duration: 0.2 }}
                               className="overflow-hidden"
                             >
-                              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 p-4 pt-0">
+                              <div className="invoice-products-grid grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3 p-4 pt-0 overflow-x-hidden">
                                 {group.items.map(renderProductCard)}
                               </div>
                             </motion.div>
