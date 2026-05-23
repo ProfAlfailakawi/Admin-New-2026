@@ -119,6 +119,13 @@ const ProductPage: React.FC<ProductPageProps> = ({
   const productCategories = useMemo(() => getProductCategories(data), [data]);
   // Management list keeps the saved order; only the product list view uses RTL visual reversal.
   const productCategoriesVisual = useMemo(() => [...productCategories], [productCategories]);
+  const productCategoryOrder = useMemo(() => {
+    const order = new Map<string, number>();
+    productCategories.forEach((category, index) => {
+      order.set(normalizeCategoryName(category), index);
+    });
+    return order;
+  }, [productCategories]);
 
   const saveProductCategories = (categories: string[]) => {
     const cleaned = Array.from(new Set(categories.map(normalizeCategoryName).filter(Boolean))).filter((cat) => cat !== "عام");
@@ -332,8 +339,16 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
         return matchesSearch && matchesPerformance && matchesSupplier;
       })
-      .map((pStat) => pStat.p);
-  }, [data?.products, data?.invoices, search, filterType, selectedSupplierId]);
+      .map((pStat) => pStat.p)
+      .sort((a: any, b: any) => {
+        const categoryA = normalizeCategoryName(a?.category);
+        const categoryB = normalizeCategoryName(b?.category);
+        const orderA = productCategoryOrder.get(categoryA) ?? 9999;
+        const orderB = productCategoryOrder.get(categoryB) ?? 9999;
+        if (orderA !== orderB) return orderA - orderB;
+        return String(a?.name || "").localeCompare(String(b?.name || ""), "ar");
+      });
+  }, [data?.products, data?.invoices, search, filterType, selectedSupplierId, productCategoryOrder]);
 
   const productListCategories = useMemo(() => {
     const filteredNames = new Set((filteredProducts || []).map((p: any) => normalizeCategoryName(p?.category)));
@@ -1030,7 +1045,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
               <Layers size={16} className="text-primary" />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
-              {[...productListCategories].reverse().map((category) => {
+              {productListCategories.map((category) => {
                 const normalized = normalizeCategoryName(category);
                 const count = (filteredProducts || []).filter((p: any) => normalizeCategoryName(p?.category) === normalized).length;
                 const isOpen = normalizeCategoryName(openProductListCategory || "") === normalized;
