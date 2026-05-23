@@ -537,22 +537,25 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   };
 
   const kuwaitGeoToMapPoint = (lat: number, lng: number) => {
-    // إسقاط مضبوط على شكل الكويت الظاهر داخل كرت الأدمن، وليس على عرض الكرت كاملاً.
-    // الحدود التالية تمنع انزياح نقاط GPS إلى اليمين كما كان يحدث في ديوانية الفيلكاوي.
-    const minLng = 46.55;
-    const maxLng = 48.43;
-    const minLat = 28.52;
-    const maxLat = 30.10;
+    // رجعنا معايرة اللوكيشن القريبة السابقة لأنها كانت الأقرب للصورة الفعلية.
+    // هذه الحدود تحول GPS القادم من برنامج العميل إلى موضع داخل كرت خريطة الكويت فقط.
+    const minLng = 46.545;
+    const maxLng = 48.455;
+    const minLat = 28.515;
+    const maxLat = 30.105;
     const normalizedX = Math.min(1, Math.max(0, (lng - minLng) / (maxLng - minLng)));
     const normalizedY = Math.min(1, Math.max(0, (lat - minLat) / (maxLat - minLat)));
 
-    // x: 29..72 تقريباً هي مساحة اليابسة/الجزر في الصورة الحالية.
-    // y: 10..88 لتغطية شمال الكويت حتى الجنوب.
     return {
-      x: Math.min(74, Math.max(29, 29 + normalizedX * 45)),
-      y: Math.min(88, Math.max(10, 88 - normalizedY * 78)),
+      x: Math.min(76, Math.max(27, 27 + normalizedX * 49)),
+      y: Math.min(90, Math.max(9, 90 - normalizedY * 81)),
     };
   };
+
+  const getMissingLocationDockPoint = (index: number) => ({
+    x: 6.5,
+    y: Math.min(90, 16 + (index % 12) * 6),
+  });
 
   const getDistanceMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
     const R = 6371000;
@@ -595,9 +598,9 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   };
 
   const diwaniyaAdminRadar = React.useMemo(() => {
-    const enriched = squads.map((sq: any, index: number) => {
+    const enrichedBase = squads.map((sq: any, index: number) => {
       const actualLocation = getSquadLatLng(sq);
-      const mapFallback = mappedSquadsForMap[index];
+      const missingDock = getMissingLocationDockPoint(index);
       const pendingRequests = getSquadJoinRequests(sq);
       const presence = getSquadPresence(sq);
       const openOrder = getSquadOpenOrder(sq);
@@ -606,12 +609,17 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       const staleRequests = pendingRequests.filter(isStaleJoinRequest);
       const requestDistances = pendingRequests.map((r: any) => toNumber(r?.distance ?? r?.distanceMeters ?? r?.meters)).filter((v: any) => v !== null) as number[];
       const avgRequestDistance = requestDistances.length ? Math.round(requestDistances.reduce((sum, value) => sum + value, 0) / requestDistances.length) : null;
+      const mapPoint = actualLocation ? kuwaitGeoToMapPoint(actualLocation.lat, actualLocation.lng) : missingDock;
+      const heatRawCount = linkedOrders.length + presence.length + pendingRequests.length + tempCodes.length + (openOrder ? 1 : 0);
+      const heatWeight = linkedOrders.length * 2 + presence.length * 3 + pendingRequests.length + tempCodes.length + (openOrder ? 4 : 0);
       return {
         ...sq,
         actualLocation,
-        mapX: actualLocation ? kuwaitGeoToMapPoint(actualLocation.lat, actualLocation.lng).x : mapFallback?.x,
-        mapY: actualLocation ? kuwaitGeoToMapPoint(actualLocation.lat, actualLocation.lng).y : mapFallback?.y,
-        govName: mapFallback?.govName || 'الكويت',
+        mapX: mapPoint.x,
+        mapY: mapPoint.y,
+        originalMapX: mapPoint.x,
+        originalMapY: mapPoint.y,
+        govName: actualLocation ? 'الكويت' : 'غير مثبت',
         pendingRequests,
         presence,
         openOrder,
@@ -619,10 +627,42 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
         linkedOrders,
         staleRequests,
         avgRequestDistance,
-        activityWeight: linkedOrders.length * 2 + presence.length * 3 + pendingRequests.length + (openOrder ? 4 : 0),
+        activityWeight: heatWeight,
+        heatValue: heatRawCount,
+        heatWeight,
+        heatBreakdown: {
+          orders: linkedOrders.length,
+          presence: presence.length,
+          pending: pendingRequests.length,
+          codes: tempCodes.length,
+          openGroupOrders: openOrder ? 1 : 0,
+        },
         membersCount: Number(sq?.members ?? sq?.membersList?.length ?? 0) || 0,
       };
     });
+
+    // نفصل النقاط المتطابقة أو المتقاربة بصرياً فقط حتى لا تظهر فوق بعض،
+    // مع الحفاظ على المعايرة الأصلية القريبة لموقع العميل.
+    const buckets = new Map<string, any[]>();
+    enrichedBase.forEach((sq: any) => {
+      if (!sq.actualLocation) return;
+      const key = `${Math.round((sq.originalMapX || 0) * 2) / 2}:${Math.round((sq.originalMapY || 0) * 2) / 2}`;
+      const list = buckets.get(key) || [];
+      list.push(sq);
+      buckets.set(key, list);
+    });
+    buckets.forEach((items) => {
+      if (items.length <= 1) return;
+      const radius = Math.min(3.8, 1.25 + items.length * 0.28);
+      items.forEach((sq: any, idx: number) => {
+        const angle = (-Math.PI / 2) + ((Math.PI * 2 * idx) / items.length);
+        sq.mapX = Math.min(78, Math.max(24, (sq.originalMapX || 50) + Math.cos(angle) * radius));
+        sq.mapY = Math.min(91, Math.max(8, (sq.originalMapY || 50) + Math.sin(angle) * radius));
+        sq.clusterCount = items.length;
+      });
+    });
+
+    const enriched = enrichedBase;
 
     const missingLocation = enriched.filter((sq: any) => !sq.actualLocation);
     const pending = enriched.flatMap((sq: any) => sq.pendingRequests.map((request: any) => ({ ...request, squadId: sq.id, squadName: sq.name })));
@@ -641,10 +681,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     const openGroupOrders = enriched.filter((sq: any) => sq.openOrder);
     const activePresence = enriched.filter((sq: any) => sq.presence.length > 0).sort((a: any, b: any) => b.presence.length - a.presence.length);
     const activeCodes = enriched.filter((sq: any) => sq.tempCodes.length > 0);
-    const heatMax = Math.max(1, ...enriched.map((sq: any) => sq.activityWeight || 0));
-    const heatPoints = enriched.filter((sq: any) => sq.actualLocation || sq.activityWeight > 0).map((sq: any) => ({
+    const heatMax = Math.max(1, ...enriched.map((sq: any) => sq.heatWeight || 0));
+    const heatPoints = enriched.map((sq: any) => ({
       ...sq,
-      heatLevel: Math.max(0.18, Math.min(1, (sq.activityWeight || 0) / heatMax)),
+      heatLevel: Math.max(0.18, Math.min(1, (sq.heatWeight || 0) / heatMax)),
     }));
     const riskSquads = enriched.filter((sq: any) =>
       !sq.actualLocation || sq.pendingRequests.length > 0 || sq.staleRequests.length > 0 || duplicateWarnings.some((w: any) => String(w.first.id) === String(sq.id) || String(w.second.id) === String(sq.id))
@@ -652,41 +692,6 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
     return { enriched, missingLocation, pending, stalePending, duplicateWarnings, topJoinSquads, openGroupOrders, activePresence, activeCodes, heatPoints, riskSquads };
   }, [squads, mappedSquadsForMap, geofenceDistance, allOrders]);
-
-
-
-  const buildMapClusters = React.useCallback((items: any[], mode: 'map' | 'heatmap') => {
-    const clusters: any[] = [];
-    const threshold = mode === 'heatmap' ? 4.2 : 3.2;
-    items.filter(Boolean).forEach((sq: any) => {
-      const x = Number(sq.mapX || 50);
-      const y = Number(sq.mapY || 50);
-      let target = clusters.find((cluster: any) => Math.hypot(Number(cluster.x) - x, Number(cluster.y) - y) <= threshold);
-      if (!target) {
-        target = { id: `${mode}-cluster-${clusters.length + 1}`, x, y, items: [] };
-        clusters.push(target);
-      }
-      target.items.push(sq);
-      target.x = target.items.reduce((sum: number, item: any) => sum + Number(item.mapX || 50), 0) / target.items.length;
-      target.y = target.items.reduce((sum: number, item: any) => sum + Number(item.mapY || 50), 0) / target.items.length;
-      target.activityWeight = target.items.reduce((sum: number, item: any) => sum + Number(item.activityWeight || 0), 0);
-      target.heatLevel = Math.max(...target.items.map((item: any) => Number(item.heatLevel || 0.18)));
-    });
-    return clusters.map((cluster: any) => ({
-      ...cluster,
-      key: `${mode}-${cluster.items.map((item: any) => item.id).join('-')}`,
-      hasPending: cluster.items.some((item: any) => item.pendingRequests?.length > 0),
-      hasMissingLocation: cluster.items.some((item: any) => !item.actualLocation),
-      representative: cluster.items[0],
-    }));
-  }, []);
-
-  const mapClusters = React.useMemo(() => buildMapClusters(diwaniyaAdminRadar.enriched, 'map'), [buildMapClusters, diwaniyaAdminRadar.enriched]);
-  const heatMapClusters = React.useMemo(() => buildMapClusters(diwaniyaAdminRadar.heatPoints, 'heatmap'), [buildMapClusters, diwaniyaAdminRadar.heatPoints]);
-  const activeMapCluster = React.useMemo(() => {
-    if (!activeMapSquadId) return null;
-    return mapClusters.find((cluster: any) => cluster.items.some((item: any) => String(item.id) === String(activeMapSquadId))) || null;
-  }, [mapClusters, activeMapSquadId]);
 
   const filteredRiskSquads = React.useMemo(() => {
     if (riskFilter === 'missing') return diwaniyaAdminRadar.enriched.filter((sq: any) => !sq.actualLocation);
@@ -1313,7 +1318,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
                     <div>
                       <h4 className="font-black text-slate-900 text-lg flex items-center gap-2"><Compass className="w-5 h-5 text-amber-500" /> خريطة الدواوين</h4>
-                      <p className="text-xs text-slate-500 mt-1">تبويبين منفصلين: الخريطة الحالية كما هي، وخريطة حرارية تجمع الطلبات والحضور حسب المنطقة بدون أي تدخل في الدفع.</p>
+                      <p className="text-xs text-slate-500 mt-1">تبويبين منفصلين: خريطة مكبرة لمواقع الدواوين، وخريطة حرارية تجمع النشاط التشغيلي حسب كل ديوانية.</p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                       <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
@@ -1322,7 +1327,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       </div>
                       <div className="flex flex-wrap gap-2 text-[10px] font-black">
                         <span className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">موقع مثبت</span>
-                        <span className="px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100">يحتاج تثبيت</span>
+                        <span className="px-3 py-1.5 rounded-full bg-slate-50 text-slate-600 border border-slate-100">غير مثبت</span>
                         <span className="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">طلبات معلقة</span>
                       </div>
                     </div>
@@ -1336,59 +1341,72 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       alt="Kuwait Map"
                     />
 
-                    {radarMapMode === 'heatmap' && (
-                      <div className="absolute top-4 left-4 z-30 bg-white/95 backdrop-blur border border-rose-100 rounded-2xl p-3 shadow-sm max-w-[260px] text-right">
-                        <div className="flex items-center justify-end gap-2 font-black text-slate-800 text-xs"><span>حرارة النشاط</span><Activity className="w-4 h-4 text-rose-500" /></div>
-                        <p className="text-[10px] text-slate-500 leading-5 mt-1">الحجم يحسب من الطلبات والحضور وطلبات الدخول والطلب الجماعي، بدون بيانات الدفع.</p>
+                    {radarMapMode === 'map' && diwaniyaAdminRadar.missingLocation.length > 0 && (
+                      <div className="absolute left-3 top-3 z-30 w-[150px] sm:w-[180px] rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-md shadow-sm p-2 text-right" dir="rtl">
+                        <div className="mb-1.5 flex items-center justify-between gap-1">
+                          <span className="text-[10px] font-black text-slate-500">بدون لوكيشن</span>
+                          <span className="rounded-full bg-slate-950 px-2 py-0.5 text-[9px] font-black text-white">{diwaniyaAdminRadar.missingLocation.length}</span>
+                        </div>
+                        <div className="max-h-[185px] overflow-auto space-y-1 pr-0.5">
+                          {diwaniyaAdminRadar.missingLocation.map((sq: any) => (
+                            <button
+                              key={`missing-name-${sq.id}`}
+                              type="button"
+                              onClick={() => setActiveMapSquadId(sq.id)}
+                              className={`block w-full truncate rounded-xl border px-2.5 py-1.5 text-right text-[11px] font-black transition ${String(activeMapSquadId) === String(sq.id) ? 'border-amber-300 bg-amber-50 text-slate-950' : 'border-slate-100 bg-white/75 text-slate-700 hover:border-amber-200 hover:bg-amber-50/50'}`}
+                              title={sq.name}
+                            >
+                              {sq.name}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
 
-                    {radarMapMode === 'heatmap' && heatMapClusters.map((cluster: any) => {
-                      const first = cluster.representative;
-                      const isGrouped = cluster.items.length > 1;
-                      return (
-                        <button
-                          type="button"
-                          key={cluster.key}
-                          className="absolute z-20 -translate-x-1/2 -translate-y-1/2 group"
-                          style={{ left: `${cluster.x || 50}%`, top: `${cluster.y || 50}%` }}
-                          onClick={() => setActiveMapSquadId(first.id)}
-                          title={isGrouped ? `${cluster.items.length} دواوين في هذا الموقع` : `${first.name} - نشاط: ${first.activityWeight || 0}`}
-                        >
-                          <span
-                            className="absolute rounded-full bg-rose-400/30 border border-rose-300/50 blur-[1px] group-hover:bg-rose-500/45 transition-all"
-                            style={{ width: `${38 + (cluster.heatLevel || 0.2) * 110}px`, height: `${38 + (cluster.heatLevel || 0.2) * 110}px`, right: `${-19 - (cluster.heatLevel || 0.2) * 55}px`, top: `${-19 - (cluster.heatLevel || 0.2) * 55}px` }}
-                          />
-                          <span className="relative flex items-center justify-center min-w-7 h-7 px-1.5 rounded-full bg-rose-600 text-white border-2 border-white shadow-xl text-[9px] font-black">
-                            {isGrouped ? cluster.items.length : (cluster.activityWeight || 0)}
-                          </span>
-                          <span className={`absolute bottom-full mb-2 whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border bg-white text-slate-800 border-rose-200 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity ${Number(cluster.x || 50) > 62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'}`}>{isGrouped ? `${cluster.items.length} دواوين — اضغط للقائمة` : first.name}</span>
-                        </button>
-                      );
-                    })}
+                    {radarMapMode === 'heatmap' && (
+                      <div className="absolute top-4 left-4 z-30 bg-white/95 backdrop-blur border border-rose-100 rounded-2xl p-3 shadow-sm max-w-[260px] text-right">
+                        <div className="flex items-center justify-end gap-2 font-black text-slate-800 text-xs"><span>حرارة النشاط</span><Activity className="w-4 h-4 text-rose-500" /></div>
+                        <p className="text-[10px] text-slate-500 leading-5 mt-1">الرقم الظاهر هو العدد الفعلي لعناصر النشاط: الطلبات المرتبطة + الحضور الآن + طلبات الانضمام + الأكواد الفعالة + الطلب الجماعي المفتوح. حجم الدائرة فقط يستخدم وزن النشاط.</p>
+                      </div>
+                    )}
 
-                    {radarMapMode === 'map' && mapClusters.map((cluster: any) => {
-                      const first = cluster.representative;
-                      const isGrouped = cluster.items.length > 1;
-                      const isActive = cluster.items.some((item: any) => String(activeMapSquadId) === String(item.id));
-                      const hasLocation = !cluster.hasMissingLocation;
-                      const pendingCount = cluster.items.reduce((sum: number, item: any) => sum + Number(item.pendingRequests?.length || 0), 0);
+                    {radarMapMode === 'heatmap' && diwaniyaAdminRadar.heatPoints.filter((sq: any) => sq.actualLocation).map((sq: any) => (
+                      <button
+                        type="button"
+                        key={`heat-${sq.id}`}
+                        className="absolute z-20 -translate-x-1/2 -translate-y-1/2 group"
+                        style={{ left: `${sq.mapX || 50}%`, top: `${sq.mapY || 50}%` }}
+                        onClick={() => setActiveMapSquadId(sq.id)}
+                        title={`${sq.name} - العدد: ${sq.heatValue || 0} | طلبات: ${sq.heatBreakdown?.orders || 0} | حضور: ${sq.heatBreakdown?.presence || 0} | انضمام: ${sq.heatBreakdown?.pending || 0} | أكواد: ${sq.heatBreakdown?.codes || 0}`}
+                      >
+                        <span
+                          className="absolute rounded-full bg-rose-400/35 border border-rose-300/50 blur-[1px] group-hover:bg-rose-500/45 transition-all"
+                          style={{ width: `${34 + (sq.heatLevel || 0.2) * 96}px`, height: `${34 + (sq.heatLevel || 0.2) * 96}px`, right: `${-17 - (sq.heatLevel || 0.2) * 48}px`, top: `${-17 - (sq.heatLevel || 0.2) * 48}px` }}
+                        />
+                        <span className="relative flex items-center justify-center w-6 h-6 rounded-full bg-rose-600 text-white border-2 border-white shadow-xl text-[9px] font-black">{sq.heatValue || 0}</span>
+                        <span className={`absolute bottom-full mb-2 max-w-[120px] truncate whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border bg-white text-slate-800 border-rose-200 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity ${Number(sq.mapX || 50) > 62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'}`}>{sq.actualLocation ? sq.name : ''}</span>
+                      </button>
+                    ))}
+
+                    {radarMapMode === 'map' && diwaniyaAdminRadar.enriched.filter((sq: any) => sq.actualLocation).map((sq: any) => {
+                      const isActive = String(activeMapSquadId) === String(sq.id);
+                      const hasLocation = Boolean(sq.actualLocation);
+                      const hasPending = sq.pendingRequests.length > 0;
                       return (
                         <button
                           type="button"
-                          key={cluster.key}
+                          key={sq.id}
                           className="absolute z-20 -translate-x-1/2 -translate-y-1/2 group text-right"
-                          style={{ left: `${cluster.x || 50}%`, top: `${cluster.y || 50}%` }}
-                          onClick={() => setActiveMapSquadId(first.id)}
-                          title={isGrouped ? `${cluster.items.length} دواوين في نفس الموقع أو قريب جداً` : first.name}
+                          style={{ left: `${sq.mapX || 50}%`, top: `${sq.mapY || 50}%` }}
+                          onClick={() => setActiveMapSquadId(sq.id)}
                         >
-                          <span className={`absolute -inset-4 rounded-full blur-md transition-all ${pendingCount ? 'bg-amber-400/30 animate-pulse' : hasLocation ? 'bg-emerald-400/20' : 'bg-rose-400/20'} ${isActive ? 'scale-125' : 'scale-100'}`} />
-                          <span className={`relative flex items-center justify-center ${isGrouped ? 'min-w-9 h-9 px-2' : 'w-5 h-5'} rounded-full border-2 shadow-lg font-black ${isActive ? 'scale-110 bg-slate-950 text-white border-amber-300' : hasLocation ? 'bg-emerald-500 text-white border-white' : 'bg-rose-500 text-white border-white'}`}>
-                            {isGrouped ? <span className="text-[11px]">{cluster.items.length}</span> : <span className="w-1.5 h-1.5 bg-white rounded-full" />}
+                          <span className={`absolute -inset-4 rounded-full blur-md transition-all ${hasPending ? 'bg-amber-400/30 animate-pulse' : hasLocation ? 'bg-emerald-400/20' : 'bg-rose-400/20'} ${isActive ? 'scale-125' : 'scale-100'}`} />
+                          <span className={`relative flex items-center justify-center rounded-full border-2 shadow-lg w-5 h-5 ${isActive ? 'scale-125 bg-slate-950 border-amber-300' : hasLocation ? 'bg-emerald-500 border-white' : 'bg-slate-400 border-white'}`}>
+                            <span className="w-1.5 h-1.5 bg-white rounded-full" />
                           </span>
-                          <span className={`absolute bottom-full mb-2 whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border ${Number(cluster.x || 50) > 62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'} ${isActive ? 'bg-slate-950 text-white border-amber-300' : 'bg-white text-slate-800 border-slate-200 group-hover:border-amber-300'}`}>
-                            {isGrouped ? `${cluster.items.length} دواوين — اضغط للقائمة` : first.name}
-                            {pendingCount ? <span className="mr-1 text-amber-500">• {pendingCount}</span> : null}
+                          <span className={`absolute bottom-full mb-2 max-w-[120px] truncate whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border transition-opacity ${Number(sq.mapX || 50) > 62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'} ${isActive ? 'opacity-100 bg-slate-950 text-white border-amber-300' : 'opacity-0 group-hover:opacity-100 group-focus:opacity-100 bg-white text-slate-800 border-slate-200 group-hover:border-amber-300'}`}>
+                            {hasLocation ? sq.name : ''}
+                            {hasPending && hasLocation ? <span className="mr-1 text-amber-500">• {sq.pendingRequests.length}</span> : null}
                           </span>
                         </button>
                       );
@@ -1399,35 +1417,12 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                 <div className="space-y-4">
                   {(() => {
                     const selected = diwaniyaAdminRadar.enriched.find((sq: any) => String(sq.id) === String(activeMapSquadId));
-                    const selectedCluster = activeMapCluster;
                     return selected ? (
                       <div className="bg-white rounded-[32px] border border-slate-200 p-5 shadow-sm space-y-4">
-                        {selectedCluster && selectedCluster.items.length > 1 && (
-                          <div className="rounded-3xl border border-amber-200 bg-amber-50/70 p-4">
-                            <div className="flex items-center justify-between gap-3 mb-3">
-                              <span className="text-[11px] font-black text-amber-700">موقع مشترك</span>
-                              <span className="inline-flex items-center justify-center min-w-8 h-8 px-2 rounded-full bg-slate-950 text-white text-xs font-black shadow-sm">{selectedCluster.items.length}</span>
-                            </div>
-                            <p className="text-xs font-bold text-slate-600 leading-6 mb-3">هذا الموقع يحتوي على أكثر من ديوانية. اختر الاسم من القائمة بدل تكديس المؤشرات فوق بعض.</p>
-                            <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pl-1">
-                              {selectedCluster.items.map((item: any) => (
-                                <button
-                                  key={`cluster-list-${item.id}`}
-                                  type="button"
-                                  onClick={() => setActiveMapSquadId(item.id)}
-                                  className={`w-full flex items-center justify-between gap-3 rounded-2xl border p-3 text-right transition-all ${String(activeMapSquadId) === String(item.id) ? 'bg-slate-950 text-white border-amber-300 shadow-lg' : 'bg-white text-slate-800 border-amber-100 hover:border-amber-300 hover:shadow-sm'}`}
-                                >
-                                  <span className="font-black text-sm truncate">{item.name}</span>
-                                  <span className={`text-[10px] font-black px-2 py-1 rounded-full ${String(activeMapSquadId) === String(item.id) ? 'bg-white/10 text-amber-200' : item.actualLocation ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>{item.actualLocation ? 'مثبت' : 'بدون GPS'}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                         <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
                           <div>
                             <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black border ${selected.actualLocation ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
-                              {selected.actualLocation ? 'موقع مثبت من العميل' : 'يحتاج تثبيت موقع'}
+                              {selected.actualLocation ? 'موقع مثبت من العميل' : 'غير مثبت على الخريطة'}
                             </span>
                             <h4 className="font-black text-slate-900 text-xl mt-2">{selected.name}</h4>
                             <p className="text-xs text-slate-500 mt-1">{selected.founder || selected.king || 'المعزب غير محدد'} · {selected.phone || selected.membersList?.[0]?.phone || 'لا يوجد رقم'}</p>
