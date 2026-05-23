@@ -54,6 +54,7 @@ import {
   Puzzle,
 } from "lucide-react";
 import { AppState, Invoice } from "../types";
+import { triggerDynamicIsland } from "./DynamicIslandNotch";
 import { DEFAULT_GLOBAL_LOGO } from "../constants";
 import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
@@ -398,8 +399,21 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       invoiceId: string,
       currentStatus: string | undefined,
     ) => {
+      const parentInvoice = data.invoices?.find((i) => i.id === invoiceId);
+      const customerName = parentInvoice?.customerName || "عميل عام";
+      const amount = parentInvoice?.totalAmount || 0;
+      const newStatus = currentStatus === "paid" ? "pending" : "paid";
+
+      // Trigger the spectacular Dynamic Island Notch!
+      triggerDynamicIsland({
+        status: newStatus,
+        invoiceId,
+        customerName,
+        amount,
+        notes: newStatus === "paid" ? "تأكيد الدفع اليدوي من المسؤول" : "تغيير إداري لحالة المستند المالي"
+      });
+
       setData((prev) => {
-        const newStatus = currentStatus === "paid" ? "pending" : "paid";
         const newInvoices = prev.invoices.map((inv) =>
           inv.id === invoiceId
             ? {
