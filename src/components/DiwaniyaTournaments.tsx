@@ -208,12 +208,12 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   const [riskFilter, setRiskFilter] = useState<'all' | 'missing' | 'overlap' | 'stale' | 'pending'>('all');
 
   const governorates = [
-    { name: 'العاصمة', x: 74, y: 38 },
-    { name: 'حولي', x: 78, y: 44 },
-    { name: 'الفروانية', x: 67, y: 50 },
-    { name: 'مبارك الكبير', x: 78, y: 51 },
-    { name: 'الأحمدي', x: 73, y: 68 },
-    { name: 'الجهراء', x: 35, y: 35 }
+    { name: 'العاصمة', x: 58, y: 35 },
+    { name: 'حولي', x: 60, y: 39 },
+    { name: 'الفروانية', x: 55, y: 43 },
+    { name: 'مبارك الكبير', x: 60, y: 47 },
+    { name: 'الأحمدي', x: 59, y: 69 },
+    { name: 'الجهراء', x: 35, y: 34 }
   ];
 
   const mappedSquadsForMap = React.useMemo(() => {
@@ -229,11 +229,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       let posY = Math.min(92, Math.max(8, gov.y + radiusY * Math.sin(step)));
       let govName = gov.name;
 
-      if (sq.name && sq.name.includes('الفيلكاوي')) {
-        posX = 88;
-        posY = 36;
-        govName = 'جزيرة فيلكا';
-      }
+      // لا نربط اسم العائلة/الديوانية بمكان جغرافي. الموقع الحقيقي يأتي من lat/lng فقط؛
+      // أي ديوانية بلا إحداثيات تبقى على توزيع احتياطي داخل الكويت ولا تُنقل تلقائياً إلى فيلكا.
       
       return {
         ...sq,
@@ -540,16 +537,25 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   };
 
   const kuwaitGeoToMapPoint = (lat: number, lng: number) => {
-    // Bounds tuned for the full Kuwait SVG including islands; keeps accurate client pins inside the visible country shape.
-    const minLng = 46.45;
-    const maxLng = 48.55;
-    const minLat = 28.45;
-    const maxLat = 30.20;
+    // رجعنا معايرة اللوكيشن القريبة السابقة لأنها كانت الأقرب للصورة الفعلية.
+    // هذه الحدود تحول GPS القادم من برنامج العميل إلى موضع داخل كرت خريطة الكويت فقط.
+    const minLng = 46.545;
+    const maxLng = 48.455;
+    const minLat = 28.515;
+    const maxLat = 30.105;
+    const normalizedX = Math.min(1, Math.max(0, (lng - minLng) / (maxLng - minLng)));
+    const normalizedY = Math.min(1, Math.max(0, (lat - minLat) / (maxLat - minLat)));
+
     return {
-      x: Math.min(95, Math.max(5, ((lng - minLng) / (maxLng - minLng)) * 90 + 5)),
-      y: Math.min(95, Math.max(5, 95 - ((lat - minLat) / (maxLat - minLat)) * 90)),
+      x: Math.min(76, Math.max(27, 27 + normalizedX * 49)),
+      y: Math.min(90, Math.max(9, 90 - normalizedY * 81)),
     };
   };
+
+  const getMissingLocationDockPoint = (index: number) => ({
+    x: 6.5,
+    y: Math.min(90, 16 + (index % 12) * 6),
+  });
 
   const getDistanceMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
     const R = 6371000;
@@ -594,7 +600,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   const diwaniyaAdminRadar = React.useMemo(() => {
     const enriched = squads.map((sq: any, index: number) => {
       const actualLocation = getSquadLatLng(sq);
-      const mapFallback = mappedSquadsForMap[index];
+      const missingDock = getMissingLocationDockPoint(index);
       const pendingRequests = getSquadJoinRequests(sq);
       const presence = getSquadPresence(sq);
       const openOrder = getSquadOpenOrder(sq);
@@ -603,12 +609,15 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       const staleRequests = pendingRequests.filter(isStaleJoinRequest);
       const requestDistances = pendingRequests.map((r: any) => toNumber(r?.distance ?? r?.distanceMeters ?? r?.meters)).filter((v: any) => v !== null) as number[];
       const avgRequestDistance = requestDistances.length ? Math.round(requestDistances.reduce((sum, value) => sum + value, 0) / requestDistances.length) : null;
+      const mapPoint = actualLocation ? kuwaitGeoToMapPoint(actualLocation.lat, actualLocation.lng) : missingDock;
+      const heatRawCount = linkedOrders.length + presence.length + pendingRequests.length + tempCodes.length + (openOrder ? 1 : 0);
+      const heatWeight = linkedOrders.length * 2 + presence.length * 3 + pendingRequests.length + tempCodes.length + (openOrder ? 4 : 0);
       return {
         ...sq,
         actualLocation,
-        mapX: actualLocation ? kuwaitGeoToMapPoint(actualLocation.lat, actualLocation.lng).x : mapFallback?.x,
-        mapY: actualLocation ? kuwaitGeoToMapPoint(actualLocation.lat, actualLocation.lng).y : mapFallback?.y,
-        govName: mapFallback?.govName || 'الكويت',
+        mapX: mapPoint.x,
+        mapY: mapPoint.y,
+        govName: actualLocation ? 'الكويت' : 'غير مثبت',
         pendingRequests,
         presence,
         openOrder,
@@ -616,7 +625,16 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
         linkedOrders,
         staleRequests,
         avgRequestDistance,
-        activityWeight: linkedOrders.length * 2 + presence.length * 3 + pendingRequests.length + (openOrder ? 4 : 0),
+        activityWeight: heatWeight,
+        heatValue: heatRawCount,
+        heatWeight,
+        heatBreakdown: {
+          orders: linkedOrders.length,
+          presence: presence.length,
+          pending: pendingRequests.length,
+          codes: tempCodes.length,
+          openGroupOrders: openOrder ? 1 : 0,
+        },
         membersCount: Number(sq?.members ?? sq?.membersList?.length ?? 0) || 0,
       };
     });
@@ -638,10 +656,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     const openGroupOrders = enriched.filter((sq: any) => sq.openOrder);
     const activePresence = enriched.filter((sq: any) => sq.presence.length > 0).sort((a: any, b: any) => b.presence.length - a.presence.length);
     const activeCodes = enriched.filter((sq: any) => sq.tempCodes.length > 0);
-    const heatMax = Math.max(1, ...enriched.map((sq: any) => sq.activityWeight || 0));
-    const heatPoints = enriched.filter((sq: any) => sq.actualLocation || sq.activityWeight > 0).map((sq: any) => ({
+    const heatMax = Math.max(1, ...enriched.map((sq: any) => sq.heatWeight || 0));
+    const heatPoints = enriched.map((sq: any) => ({
       ...sq,
-      heatLevel: Math.max(0.18, Math.min(1, (sq.activityWeight || 0) / heatMax)),
+      heatLevel: Math.max(0.18, Math.min(1, (sq.heatWeight || 0) / heatMax)),
     }));
     const riskSquads = enriched.filter((sq: any) =>
       !sq.actualLocation || sq.pendingRequests.length > 0 || sq.staleRequests.length > 0 || duplicateWarnings.some((w: any) => String(w.first.id) === String(sq.id) || String(w.second.id) === String(sq.id))
@@ -1275,7 +1293,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
                     <div>
                       <h4 className="font-black text-slate-900 text-lg flex items-center gap-2"><Compass className="w-5 h-5 text-amber-500" /> خريطة الدواوين</h4>
-                      <p className="text-xs text-slate-500 mt-1">تبويبين منفصلين: الخريطة الحالية كما هي، وخريطة حرارية تجمع الطلبات والحضور حسب المنطقة بدون أي تدخل في الدفع.</p>
+                      <p className="text-xs text-slate-500 mt-1">تبويبين منفصلين: خريطة مكبرة لمواقع الدواوين، وخريطة حرارية تجمع النشاط التشغيلي حسب كل ديوانية.</p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                       <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
@@ -1284,7 +1302,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       </div>
                       <div className="flex flex-wrap gap-2 text-[10px] font-black">
                         <span className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">موقع مثبت</span>
-                        <span className="px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100">يحتاج تثبيت</span>
+                        <span className="px-3 py-1.5 rounded-full bg-slate-50 text-slate-600 border border-slate-100">غير مثبت</span>
                         <span className="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">طلبات معلقة</span>
                       </div>
                     </div>
@@ -1299,9 +1317,9 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                     />
 
                     {radarMapMode === 'heatmap' && (
-                      <div className="absolute top-4 left-4 z-30 bg-white/95 backdrop-blur border border-rose-100 rounded-2xl p-3 shadow-sm max-w-[300px] text-right">
-                        <div className="flex items-center gap-2 font-black text-slate-800 text-xs"><Activity className="w-4 h-4 text-rose-500" /> حرارة النشاط</div>
-                        <p className="text-[10px] text-slate-500 leading-5 mt-1">الحجم يعتمد على الطلبات المرتبطة بالديوانية + الحضور الحالي + طلبات الدخول + الطلب الجماعي المفتوح، بدون استخدام بيانات الدفع.</p>
+                      <div className="absolute top-4 left-4 z-30 bg-white/95 backdrop-blur border border-rose-100 rounded-2xl p-3 shadow-sm max-w-[260px] text-right">
+                        <div className="flex items-center justify-end gap-2 font-black text-slate-800 text-xs"><span>حرارة النشاط</span><Activity className="w-4 h-4 text-rose-500" /></div>
+                        <p className="text-[10px] text-slate-500 leading-5 mt-1">الرقم الظاهر هو العدد الفعلي لعناصر النشاط: الطلبات المرتبطة + الحضور الآن + طلبات الانضمام + الأكواد الفعالة + الطلب الجماعي المفتوح. حجم الدائرة فقط يستخدم وزن النشاط.</p>
                       </div>
                     )}
 
@@ -1312,14 +1330,14 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         className="absolute z-20 -translate-x-1/2 -translate-y-1/2 group"
                         style={{ left: `${sq.mapX || 50}%`, top: `${sq.mapY || 50}%` }}
                         onClick={() => setActiveMapSquadId(sq.id)}
-                        title={`${sq.name} - نشاط: ${sq.activityWeight || 0}`}
+                        title={`${sq.name} - العدد: ${sq.heatValue || 0} | طلبات: ${sq.heatBreakdown?.orders || 0} | حضور: ${sq.heatBreakdown?.presence || 0} | انضمام: ${sq.heatBreakdown?.pending || 0} | أكواد: ${sq.heatBreakdown?.codes || 0}`}
                       >
                         <span
                           className="absolute rounded-full bg-rose-400/35 border border-rose-300/50 blur-[1px] group-hover:bg-rose-500/45 transition-all"
                           style={{ width: `${34 + (sq.heatLevel || 0.2) * 96}px`, height: `${34 + (sq.heatLevel || 0.2) * 96}px`, right: `${-17 - (sq.heatLevel || 0.2) * 48}px`, top: `${-17 - (sq.heatLevel || 0.2) * 48}px` }}
                         />
-                        <span className="relative flex items-center justify-center w-6 h-6 rounded-full bg-rose-600 text-white border-2 border-white shadow-xl text-[9px] font-black">{sq.activityWeight || 0}</span>
-                        <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border bg-white text-slate-800 border-rose-200">{sq.name}</span>
+                        <span className="relative flex items-center justify-center w-6 h-6 rounded-full bg-rose-600 text-white border-2 border-white shadow-xl text-[9px] font-black">{sq.heatValue || 0}</span>
+                        <span className={`absolute bottom-full mb-2 whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border bg-white text-slate-800 border-rose-200 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity ${Number(sq.mapX || 50) > 62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'}`}>{sq.name}</span>
                       </button>
                     ))}
 
@@ -1336,10 +1354,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           onClick={() => setActiveMapSquadId(sq.id)}
                         >
                           <span className={`absolute -inset-4 rounded-full blur-md transition-all ${hasPending ? 'bg-amber-400/30 animate-pulse' : hasLocation ? 'bg-emerald-400/20' : 'bg-rose-400/20'} ${isActive ? 'scale-125' : 'scale-100'}`} />
-                          <span className={`relative flex items-center justify-center w-5 h-5 rounded-full border-2 shadow-lg ${isActive ? 'scale-125 bg-slate-950 border-amber-300' : hasLocation ? 'bg-emerald-500 border-white' : 'bg-rose-500 border-white'}`}>
+                          <span className={`relative flex items-center justify-center rounded-full border-2 shadow-lg w-5 h-5 ${isActive ? 'scale-125 bg-slate-950 border-amber-300' : hasLocation ? 'bg-emerald-500 border-white' : 'bg-slate-400 border-white'}`}>
                             <span className="w-1.5 h-1.5 bg-white rounded-full" />
                           </span>
-                          <span className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border ${isActive ? 'bg-slate-950 text-white border-amber-300' : 'bg-white text-slate-800 border-slate-200 group-hover:border-amber-300'}`}>
+                          <span className={`absolute bottom-full mb-2 whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border ${Number(sq.mapX || 50) > 62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'} ${isActive ? 'bg-slate-950 text-white border-amber-300' : 'bg-white text-slate-800 border-slate-200 group-hover:border-amber-300'}`}>
                             {sq.name}
                             {hasPending ? <span className="mr-1 text-amber-500">• {sq.pendingRequests.length}</span> : null}
                           </span>
@@ -1357,7 +1375,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
                           <div>
                             <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black border ${selected.actualLocation ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
-                              {selected.actualLocation ? 'موقع مثبت من العميل' : 'يحتاج تثبيت موقع'}
+                              {selected.actualLocation ? 'موقع مثبت من العميل' : 'بدون لوكيشن - معروض في يسار الخريطة'}
                             </span>
                             <h4 className="font-black text-slate-900 text-xl mt-2">{selected.name}</h4>
                             <p className="text-xs text-slate-500 mt-1">{selected.founder || selected.king || 'المعزب غير محدد'} · {selected.phone || selected.membersList?.[0]?.phone || 'لا يوجد رقم'}</p>
