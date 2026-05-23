@@ -557,6 +557,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     y: Math.min(90, 16 + (index % 12) * 6),
   });
 
+  const clampMapPoint = (point: { x: number; y: number }) => ({
+    x: Math.min(92, Math.max(8, point.x)),
+    y: Math.min(92, Math.max(8, point.y)),
+  });
+
   const getDistanceMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
     const R = 6371000;
     const toRad = (v: number) => (v * Math.PI) / 180;
@@ -598,7 +603,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   };
 
   const diwaniyaAdminRadar = React.useMemo(() => {
-    const enriched = squads.map((sq: any, index: number) => {
+    const baseEnriched = squads.map((sq: any, index: number) => {
       const actualLocation = getSquadLatLng(sq);
       const missingDock = getMissingLocationDockPoint(index);
       const pendingRequests = getSquadJoinRequests(sq);
@@ -615,6 +620,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       return {
         ...sq,
         actualLocation,
+        baseMapX: mapPoint.x,
+        baseMapY: mapPoint.y,
         mapX: mapPoint.x,
         mapY: mapPoint.y,
         govName: actualLocation ? 'الكويت' : 'غير مثبت',
@@ -639,6 +646,37 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       };
     });
 
+    const visualGroups: any[][] = [];
+    baseEnriched.forEach((sq: any) => {
+      if (!sq.actualLocation) return;
+      const group = visualGroups.find((items) => {
+        const first = items[0];
+        const pixelDistance = Math.hypot((first.baseMapX || 0) - (sq.baseMapX || 0), (first.baseMapY || 0) - (sq.baseMapY || 0));
+        return getDistanceMeters(first.actualLocation, sq.actualLocation) <= Math.max(8, Math.min(35, Number(geofenceDistance) / 4 || 25)) || pixelDistance <= 2.2;
+      });
+      if (group) group.push(sq);
+      else visualGroups.push([sq]);
+    });
+
+    const visualById = new Map<string, any>();
+    visualGroups.forEach((group) => {
+      const sortedGroup = [...group].sort((a, b) => (b.pendingRequests.length + b.presence.length + b.heatWeight) - (a.pendingRequests.length + a.presence.length + a.heatWeight));
+      sortedGroup.forEach((sq: any, index: number) => {
+        const spread = group.length <= 1 ? 0 : Math.min(8, 2.7 + group.length * 0.45);
+        const angle = group.length <= 1 ? 0 : (-Math.PI / 2) + (Math.PI * 2 * index) / group.length;
+        const point = clampMapPoint({ x: sq.baseMapX + Math.cos(angle) * spread, y: sq.baseMapY + Math.sin(angle) * spread });
+        visualById.set(String(sq.id), {
+          mapX: point.x,
+          mapY: point.y,
+          stackIndex: index,
+          stackCount: group.length,
+          stackNames: sortedGroup.map((item: any) => item.name).join('، '),
+        });
+      });
+    });
+
+    const enriched = baseEnriched.map((sq: any) => ({ ...sq, ...(visualById.get(String(sq.id)) || {}) }));
+
     const missingLocation = enriched.filter((sq: any) => !sq.actualLocation);
     const pending = enriched.flatMap((sq: any) => sq.pendingRequests.map((request: any) => ({ ...request, squadId: sq.id, squadName: sq.name })));
     const stalePending = enriched.flatMap((sq: any) => sq.staleRequests.map((request: any) => ({ ...request, squadId: sq.id, squadName: sq.name })));
@@ -656,8 +694,9 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     const openGroupOrders = enriched.filter((sq: any) => sq.openOrder);
     const activePresence = enriched.filter((sq: any) => sq.presence.length > 0).sort((a: any, b: any) => b.presence.length - a.presence.length);
     const activeCodes = enriched.filter((sq: any) => sq.tempCodes.length > 0);
-    const heatMax = Math.max(1, ...enriched.map((sq: any) => sq.heatWeight || 0));
-    const heatPoints = enriched.map((sq: any) => ({
+    const heatSource = enriched.filter((sq: any) => sq.actualLocation);
+    const heatMax = Math.max(1, ...heatSource.map((sq: any) => sq.heatWeight || 0));
+    const heatPoints = heatSource.map((sq: any) => ({
       ...sq,
       heatLevel: Math.max(0.18, Math.min(1, (sq.heatWeight || 0) / heatMax)),
     }));
@@ -1308,7 +1347,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                     </div>
                   </div>
 
-                  <div className="relative border border-slate-200 bg-slate-50/60 rounded-3xl min-h-[500px] overflow-hidden">
+                  <div className="relative border border-slate-200 bg-slate-50/60 rounded-3xl min-h-[500px] overflow-x-auto overflow-y-hidden md:overflow-hidden">
+                    <div className="relative h-[500px] min-w-[720px] md:min-w-0 md:h-[560px]">
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.035)_1px,transparent_1px)] bg-[size:28px_28px]" />
                     <img
                       src="https://simplemaps.com/static/svg/country/kw/all/kw.svg"
@@ -1341,7 +1381,24 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       </button>
                     ))}
 
-                    {radarMapMode === 'map' && diwaniyaAdminRadar.enriched.map((sq: any) => {
+                    {radarMapMode === 'map' && diwaniyaAdminRadar.missingLocation.length > 0 && (
+                      <div className="absolute top-4 right-4 z-30 w-[220px] rounded-3xl border border-slate-200 bg-white/95 p-3 shadow-xl backdrop-blur text-right">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-[10px] font-black text-slate-500">اختر من القائمة</span>
+                          <span className="rounded-full bg-slate-900 px-2 py-1 text-[10px] font-black text-white">بدون لوكيشن</span>
+                        </div>
+                        <div className="space-y-2 max-h-[260px] overflow-auto pr-1">
+                          {diwaniyaAdminRadar.missingLocation.map((sq: any) => (
+                            <button key={`missing-${sq.id}`} type="button" onClick={() => setActiveMapSquadId(sq.id)} className={`w-full rounded-2xl border px-3 py-2 text-right transition ${String(activeMapSquadId) === String(sq.id) ? 'border-amber-300 bg-amber-50 text-slate-950' : 'border-slate-100 bg-slate-50 text-slate-700 hover:border-amber-200 hover:bg-amber-50/70'}`}>
+                              <div className="truncate text-xs font-black">{sq.name}</div>
+                              <div className="mt-0.5 truncate text-[10px] font-bold text-slate-400">{sq.founder || sq.king || sq.phone || 'بانتظار تثبيت الموقع'}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {radarMapMode === 'map' && diwaniyaAdminRadar.enriched.filter((sq: any) => sq.actualLocation).map((sq: any) => {
                       const isActive = String(activeMapSquadId) === String(sq.id);
                       const hasLocation = Boolean(sq.actualLocation);
                       const hasPending = sq.pendingRequests.length > 0;
@@ -1357,13 +1414,15 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           <span className={`relative flex items-center justify-center rounded-full border-2 shadow-lg w-5 h-5 ${isActive ? 'scale-125 bg-slate-950 border-amber-300' : hasLocation ? 'bg-emerald-500 border-white' : 'bg-slate-400 border-white'}`}>
                             <span className="w-1.5 h-1.5 bg-white rounded-full" />
                           </span>
-                          <span className={`absolute bottom-full mb-2 whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border ${Number(sq.mapX || 50) > 62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'} ${isActive ? 'bg-slate-950 text-white border-amber-300' : 'bg-white text-slate-800 border-slate-200 group-hover:border-amber-300'}`}>
+                          <span className={`absolute bottom-full mb-2 whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border ${Number(sq.mapX || 50) > 62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'} ${isActive ? 'bg-slate-950 text-white border-amber-300' : 'bg-white text-slate-800 border-slate-200 group-hover:border-amber-300'}`} title={sq.stackNames || sq.name}>
                             {sq.name}
+                            {Number(sq.stackCount || 1) > 1 ? <span className="mr-1 text-sky-500">• {sq.stackCount}</span> : null}
                             {hasPending ? <span className="mr-1 text-amber-500">• {sq.pendingRequests.length}</span> : null}
                           </span>
                         </button>
                       );
                     })}
+                    </div>
                   </div>
                 </div>
 
@@ -1375,7 +1434,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
                           <div>
                             <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black border ${selected.actualLocation ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
-                              {selected.actualLocation ? 'موقع مثبت من العميل' : 'بدون لوكيشن - معروض في يسار الخريطة'}
+                              {selected.actualLocation ? (Number(selected.stackCount || 1) > 1 ? `موقع مثبت - ضمن ${selected.stackCount} دواوين متقاربة` : 'موقع مثبت من العميل') : 'بدون لوكيشن - اخترته من قائمة الأسماء'}
                             </span>
                             <h4 className="font-black text-slate-900 text-xl mt-2">{selected.name}</h4>
                             <p className="text-xs text-slate-500 mt-1">{selected.founder || selected.king || 'المعزب غير محدد'} · {selected.phone || selected.membersList?.[0]?.phone || 'لا يوجد رقم'}</p>
