@@ -23,7 +23,6 @@ import {
   Dices,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { triggerDynamicIsland } from "./DynamicIslandNotch";
 import { cn, normalizeArabic, robustNormalize } from "../lib/utils";
 import {
   recalculateStateBalances,
@@ -587,33 +586,6 @@ const OrderPage: React.FC<OrderPageProps> = ({
     try {
       const order = orders.find((o) => o.id === orderId);
       if (!order) return;
-
-      // Trigger the spectacular Dynamic Island Notch!
-      if (newStatus === "paid" || newStatus === "تم الدفع" || newStatus === "تم الاستلام") {
-        triggerDynamicIsland({
-          status: "paid",
-          invoiceId: order.linkedInvoiceId || order.id,
-          customerName: order.customerName || "عميل متجر",
-          amount: Number(order.totalAmount || 0),
-          notes: "تحويل حالة الطلب والتحقق التلقائي للبنك"
-        });
-      } else if (newStatus === "cancelled" || newStatus === "مرفوض" || newStatus === "فشلت") {
-        triggerDynamicIsland({
-          status: "failed",
-          invoiceId: order.linkedInvoiceId || order.id,
-          customerName: order.customerName || "عميل متجر",
-          amount: Number(order.totalAmount || 0),
-          notes: newStatus === "cancelled" ? "تم إلغاء المعاملة من الإدارة" : "فشل تفويض الدفع الآمن"
-        });
-      } else if (newStatus === "pending" || newStatus === "بانتظار الدفع") {
-        triggerDynamicIsland({
-          status: "pending",
-          invoiceId: order.linkedInvoiceId || order.id,
-          customerName: order.customerName || "عميل متجر",
-          amount: Number(order.totalAmount || 0),
-          notes: "بانتظار إتمام السداد عبر الرابط"
-        });
-      }
 
       if (typeof window !== "undefined") {
         import("../lib/haptics").then((m) => {
