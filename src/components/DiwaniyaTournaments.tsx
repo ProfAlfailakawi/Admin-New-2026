@@ -208,6 +208,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   const [activeMapSquadId, setActiveMapSquadId] = useState<number | string | null>(null);
   const [radarMapMode, setRadarMapMode] = useState<'map' | 'heatmap'>('map');
   const [riskFilter, setRiskFilter] = useState<'all' | 'missing' | 'overlap' | 'stale' | 'pending'>('all');
+  const [missingLocationPage, setMissingLocationPage] = useState(1);
+  const [riskPage, setRiskPage] = useState(1);
+  const RADAR_LIST_PAGE_SIZE = 12;
+  const RADAR_MAP_MARKER_LIMIT = 500;
   const RADAR_TILE_SIZE = 256;
   const RADAR_MAP_ZOOM = 9;
   const RADAR_INITIAL_MAP_CENTER = { lat: 29.27, lng: 47.86 };
@@ -707,6 +711,42 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     return diwaniyaAdminRadar.riskSquads;
   }, [diwaniyaAdminRadar, riskFilter]);
 
+  const missingLocationTotalPages = Math.max(1, Math.ceil(diwaniyaAdminRadar.missingLocation.length / RADAR_LIST_PAGE_SIZE));
+  const visibleMissingLocation = React.useMemo(() => {
+    const safePage = Math.min(Math.max(1, missingLocationPage), missingLocationTotalPages);
+    const start = (safePage - 1) * RADAR_LIST_PAGE_SIZE;
+    return diwaniyaAdminRadar.missingLocation.slice(start, start + RADAR_LIST_PAGE_SIZE);
+  }, [diwaniyaAdminRadar.missingLocation, missingLocationPage, missingLocationTotalPages]);
+
+  const riskTotalPages = Math.max(1, Math.ceil(filteredRiskSquads.length / RADAR_LIST_PAGE_SIZE));
+  const visibleRiskSquads = React.useMemo(() => {
+    const safePage = Math.min(Math.max(1, riskPage), riskTotalPages);
+    const start = (safePage - 1) * RADAR_LIST_PAGE_SIZE;
+    return filteredRiskSquads.slice(start, start + RADAR_LIST_PAGE_SIZE);
+  }, [filteredRiskSquads, riskPage, riskTotalPages]);
+
+  const visibleMapSquads = React.useMemo(() => {
+    const withLocation = diwaniyaAdminRadar.enriched.filter((sq: any) => sq.actualLocation);
+    if (withLocation.length <= RADAR_MAP_MARKER_LIMIT) return withLocation;
+    return withLocation
+      .map((sq: any) => ({ ...sq, __distanceFromCenter: getDistanceMeters(radarMapCenter, sq.actualLocation) }))
+      .sort((a: any, b: any) => a.__distanceFromCenter - b.__distanceFromCenter)
+      .slice(0, RADAR_MAP_MARKER_LIMIT);
+  }, [diwaniyaAdminRadar.enriched, radarMapCenter]);
+
+  const visibleHeatMapSquads = React.useMemo(() => {
+    const withLocation = diwaniyaAdminRadar.heatPoints.filter((sq: any) => sq.actualLocation);
+    if (withLocation.length <= RADAR_MAP_MARKER_LIMIT) return withLocation;
+    return withLocation
+      .map((sq: any) => ({ ...sq, __distanceFromCenter: getDistanceMeters(radarMapCenter, sq.actualLocation) }))
+      .sort((a: any, b: any) => a.__distanceFromCenter - b.__distanceFromCenter)
+      .slice(0, RADAR_MAP_MARKER_LIMIT);
+  }, [diwaniyaAdminRadar.heatPoints, radarMapCenter]);
+
+  useEffect(() => { setRiskPage(1); }, [riskFilter]);
+  useEffect(() => { if (missingLocationPage > missingLocationTotalPages) setMissingLocationPage(missingLocationTotalPages); }, [missingLocationPage, missingLocationTotalPages]);
+  useEffect(() => { if (riskPage > riskTotalPages) setRiskPage(riskTotalPages); }, [riskPage, riskTotalPages]);
+
   useEffect(() => {
     const el = radarMapRef.current;
     if (!el) return;
@@ -829,6 +869,15 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     toast.success('تم تركيز الخريطة على الديوانية');
   };
 
+  const selectRadarSquad = (sq: any) => {
+    setActiveMapSquadId(sq.id);
+    setRadarMapMode('map');
+    if (sq?.actualLocation) {
+      setRadarMapCenter({ lat: sq.actualLocation.lat, lng: sq.actualLocation.lng });
+    }
+    requestAnimationFrame(() => radarMapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+  };
+
   return (
     <div className="space-y-6 pb-20" dir="rtl">
       {/* Header section */}
@@ -885,11 +934,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
         </div>
       </div>
 
-      <div className="flex gap-2 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto">
-        <button onClick={() => setActiveTab('leaderboard')} className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'leaderboard' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>لوحة الصدارة 🔥</button>
-        <button onClick={() => setActiveTab('squads')} className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'squads' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>إدارة الدواوين 👥</button>
-        <button onClick={() => setActiveTab('radar')} className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'radar' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>رادار الانضمام الجغرافي 📍</button>
-        <button onClick={() => setActiveTab('settings')} className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>إعدادات التحديات ⚙️</button>
+      <div className="w-full max-w-full flex gap-2 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-thin snap-x" dir="rtl">
+        <button onClick={() => setActiveTab('leaderboard')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'leaderboard' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>لوحة الصدارة 🔥</button>
+        <button onClick={() => setActiveTab('squads')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'squads' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>إدارة الدواوين 👥</button>
+        <button onClick={() => setActiveTab('radar')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'radar' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>رادار الانضمام الجغرافي 📍</button>
+        <button onClick={() => setActiveTab('settings')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>إعدادات التحديات ⚙️</button>
       </div>
 
       <div className="bg-white border border-slate-200/70 rounded-3xl p-4 shadow-sm overflow-hidden">
@@ -1457,7 +1506,6 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         <span className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">موقع مثبت</span>
                         <span className="px-3 py-1.5 rounded-full bg-slate-50 text-slate-600 border border-slate-100">غير مثبت</span>
                         <span className="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">طلبات معلقة</span>
-                        <button type="button" onClick={() => setRadarMapCenter(RADAR_INITIAL_MAP_CENTER)} className="px-3 py-1.5 rounded-full bg-white text-slate-600 border border-slate-200 hover:border-amber-200 hover:text-amber-700 transition">إعادة تمركز الكويت</button>
                       </div>
                     </div>
                   </div>
@@ -1484,11 +1532,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           <span className="rounded-full bg-slate-950 px-2 py-0.5 text-[9px] font-black text-white">{diwaniyaAdminRadar.missingLocation.length}</span>
                         </div>
                         <div className="max-h-[185px] overflow-auto space-y-1 pr-0.5">
-                          {diwaniyaAdminRadar.missingLocation.map((sq: any) => (
+                          {visibleMissingLocation.map((sq: any) => (
                             <button
                               key={`missing-name-${sq.id}`}
                               type="button"
-                              onClick={() => setActiveMapSquadId(sq.id)}
+                              onClick={() => selectRadarSquad(sq)}
                               className={`block w-full truncate rounded-xl border px-2.5 py-1.5 text-right text-[11px] font-black transition ${String(activeMapSquadId) === String(sq.id) ? 'border-amber-300 bg-amber-50 text-slate-950' : 'border-slate-100 bg-white/75 text-slate-700 hover:border-amber-200 hover:bg-amber-50/50'}`}
                               title={sq.name}
                             >
@@ -1496,6 +1544,13 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                             </button>
                           ))}
                         </div>
+                        {missingLocationTotalPages > 1 && (
+                          <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2 text-[10px] font-black text-slate-500">
+                            <button type="button" onClick={() => setMissingLocationPage((page) => Math.min(missingLocationTotalPages, page + 1))} disabled={missingLocationPage >= missingLocationTotalPages} className="rounded-lg border border-slate-200 bg-white px-2 py-1 disabled:opacity-40">التالي</button>
+                            <span>{Math.min(missingLocationPage, missingLocationTotalPages)} / {missingLocationTotalPages}</span>
+                            <button type="button" onClick={() => setMissingLocationPage((page) => Math.max(1, page - 1))} disabled={missingLocationPage <= 1} className="rounded-lg border border-slate-200 bg-white px-2 py-1 disabled:opacity-40">السابق</button>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1506,8 +1561,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       </div>
                     )}
 
-                    {radarMapMode === 'map' && diwaniyaAdminRadar.enriched.filter((sq: any) => sq.actualLocation).map((sq: any) => {
-                      const point = getClusterDisplayPoint(sq, diwaniyaAdminRadar.enriched);
+                    {radarMapMode === 'map' && visibleMapSquads.map((sq: any) => {
+                      const point = getClusterDisplayPoint(sq, visibleMapSquads);
                       const range = getRadarRangePixels(sq);
                       const isActive = String(activeMapSquadId) === String(sq.id);
                       const isBusy = sq.presence.length > 0 || sq.pendingRequests.length > 0 || sq.openOrder;
@@ -1521,8 +1576,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       );
                     })}
 
-                    {radarMapMode === 'heatmap' && diwaniyaAdminRadar.heatPoints.filter((sq: any) => sq.actualLocation).map((sq: any) => {
-                      const point = getClusterDisplayPoint(sq, diwaniyaAdminRadar.heatPoints);
+                    {radarMapMode === 'heatmap' && visibleHeatMapSquads.map((sq: any) => {
+                      const point = getClusterDisplayPoint(sq, visibleHeatMapSquads);
                       return (
                         <button
                           type="button"
@@ -1543,11 +1598,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       );
                     })}
 
-                    {radarMapMode === 'map' && diwaniyaAdminRadar.enriched.filter((sq: any) => sq.actualLocation).map((sq: any) => {
+                    {radarMapMode === 'map' && visibleMapSquads.map((sq: any) => {
                       const isActive = String(activeMapSquadId) === String(sq.id);
                       const hasLocation = Boolean(sq.actualLocation);
                       const hasPending = sq.pendingRequests.length > 0;
-                      const point = getClusterDisplayPoint(sq, diwaniyaAdminRadar.enriched);
+                      const point = getClusterDisplayPoint(sq, visibleMapSquads);
                       const isBusy = sq.presence.length > 0 || hasPending || sq.openOrder;
                       return (
                         <button
@@ -1591,9 +1646,6 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                               <div className="text-2xl font-black text-amber-600">{(selected.points || 0).toLocaleString()}</div>
                               <div className="text-[10px] text-slate-400 font-bold">نقطة</div>
                             </div>
-                            <button type="button" onClick={() => exportDiwaniyaReport(selected)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-black hover:bg-slate-800 transition">
-                              <Download size={13} /> تقرير
-                            </button>
                             {selected.actualLocation && (
                               <button type="button" onClick={() => focusRadarOnSquad(selected)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-black hover:bg-amber-100 transition">
                                 <Compass size={13} /> ركز
@@ -1652,7 +1704,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                   <h4 className="font-black text-slate-900 flex items-center gap-2 mb-4"><BellRing className="w-5 h-5 text-amber-500" /> أكثر دواوين عليها طلبات انضمام</h4>
                   <div className="space-y-3">
                     {diwaniyaAdminRadar.topJoinSquads.some((sq: any) => sq.pendingRequests.length > 0) ? diwaniyaAdminRadar.topJoinSquads.filter((sq: any) => sq.pendingRequests.length > 0).map((sq: any) => (
-                      <button key={sq.id} type="button" onClick={() => setActiveMapSquadId(sq.id)} className="w-full flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-amber-50 hover:border-amber-200 p-3 transition-all">
+                      <button key={sq.id} type="button" onClick={() => selectRadarSquad(sq)} className="w-full flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-amber-50 hover:border-amber-200 p-3 transition-all">
                         <div><div className="font-black text-slate-800 text-sm">{sq.name}</div><div className="text-[11px] text-slate-500">متوسط قرب الطلب: {sq.avgRequestDistance ? `${sq.avgRequestDistance}م` : 'غير متوفر'}</div></div>
                         <div className="text-xl font-black text-amber-600">{sq.pendingRequests.length}</div>
                       </button>
@@ -1664,7 +1716,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                   <h4 className="font-black text-slate-900 flex items-center gap-2 mb-4"><MapPin className="w-5 h-5 text-rose-500" /> دواوين تحتاج تثبيت موقع</h4>
                   <div className="space-y-3 max-h-[320px] overflow-auto pr-1">
                     {diwaniyaAdminRadar.missingLocation.length > 0 ? diwaniyaAdminRadar.missingLocation.map((sq: any) => (
-                      <button key={sq.id} type="button" onClick={() => setActiveMapSquadId(sq.id)} className="w-full rounded-2xl border border-rose-100 bg-rose-50/60 p-3 text-right hover:bg-rose-50 transition-all">
+                      <button key={sq.id} type="button" onClick={() => selectRadarSquad(sq)} className="w-full rounded-2xl border border-rose-100 bg-rose-50/60 p-3 text-right hover:bg-rose-50 transition-all">
                         <div className="font-black text-slate-800 text-sm">{sq.name}</div>
                         <div className="text-[11px] text-rose-700 mt-1">لن تظهر للضيوف القريبين إلا بعد تثبيت موقعها من برنامج العميل.</div>
                       </button>
@@ -1707,10 +1759,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {filteredRiskSquads.length > 0 ? filteredRiskSquads.map((sq: any) => {
+                  {filteredRiskSquads.length > 0 ? visibleRiskSquads.map((sq: any) => {
                     const hasOverlap = diwaniyaAdminRadar.duplicateWarnings.some((w: any) => String(w.first.id) === String(sq.id) || String(w.second.id) === String(sq.id));
                     return (
-                      <button key={`risk-${sq.id}`} type="button" onClick={() => { setActiveMapSquadId(sq.id); setRadarMapMode('map'); }} className="text-right rounded-2xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-rose-200 hover:shadow-md transition-all p-4">
+                      <button key={`risk-${sq.id}`} type="button" onClick={() => selectRadarSquad(sq)} className="text-right rounded-2xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-rose-200 hover:shadow-md transition-all p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="font-black text-slate-900">{sq.name}</div>
@@ -1730,11 +1782,21 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                     <div className="md:col-span-2 xl:col-span-3 rounded-2xl bg-emerald-50 border border-emerald-100 p-5 text-center text-sm font-black text-emerald-700">لا توجد مخاطر ضمن الفلتر الحالي.</div>
                   )}
                 </div>
+                {filteredRiskSquads.length > RADAR_LIST_PAGE_SIZE && (
+                  <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 text-xs font-black text-slate-600">
+                    <span>عرض {visibleRiskSquads.length} من {filteredRiskSquads.length} ديوانية</span>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => setRiskPage((page) => Math.max(1, page - 1))} disabled={riskPage <= 1} className="rounded-xl border border-slate-200 bg-white px-3 py-2 disabled:opacity-40">السابق</button>
+                      <span className="px-3">{Math.min(riskPage, riskTotalPages)} / {riskTotalPages}</span>
+                      <button type="button" onClick={() => setRiskPage((page) => Math.min(riskTotalPages, page + 1))} disabled={riskPage >= riskTotalPages} className="rounded-xl border border-slate-200 bg-white px-3 py-2 disabled:opacity-40">التالي</button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="w-full">
                 <div className="bg-white rounded-[32px] border border-slate-200 p-5 shadow-sm">
-                  <h4 className="font-black text-slate-900 flex items-center gap-2 mb-4"><Users className="w-5 h-5 text-emerald-500" /> مزايا الدواوين القادمة من برنامج العميل</h4>
+                  <h4 className="font-black text-slate-900 flex items-center gap-2 mb-4"><Users className="w-5 h-5 text-emerald-500" /> إعدادات ومزايا الدواوين</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                     {[
                       { title: 'الحضور الآن', value: diwaniyaAdminRadar.activePresence.reduce((sum: number, sq: any) => sum + sq.presence.length, 0), hint: 'عدد الربع اللي ضغطوا أنا وصلت' },
