@@ -1009,17 +1009,17 @@ const MainApp: React.FC = () => {
   const [data, setData] = useState<AppState>(INITIAL_DATA);
   const [hasRunMigration, setHasRunMigration] = useState(false);
 
-  // MIGRATION: Ensure old orders have the correct customer names matching the DB, and squads are updated
+  // MIGRATION: Ensure old orders have the correct customer names matching the DB
   useEffect(() => {
      if (data?.orders && data?.customers && hasLoadedDataRef.current && !hasRunMigration) {
         let migrationNeeded = false;
-        const normalizedOrders = data.orders.map(o => {
+        const normalizedOrders = data.orders.map((o: any) => {
             let correctName = o.customerName;
             if (o.customerId) {
-                const c = (data?.customers || []).find(c => c.id === o.customerId);
+                const c = (data?.customers || []).find((c: any) => c.id === o.customerId);
                 if (c && c.name && c.name !== o.customerName) { correctName = c.name; }
             } else if (o.customerPhone) {
-                const c = (data?.customers || []).find(c => c.phone === o.customerPhone);
+                const c = (data?.customers || []).find((c: any) => c.phone === o.customerPhone);
                 if (c && c.name && c.name !== o.customerName) { correctName = c.name; }
             }
             if (correctName && correctName !== o.customerName) {
@@ -1029,58 +1029,16 @@ const MainApp: React.FC = () => {
             return o;
         });
 
-        const normalizePhoneForMatch = (p: string) => p ? p.replace(/\D/g, '').slice(-8) : '';
-        let newSquads = data.squads || [];
-        let squadMigrationNeeded = false;
-        
-        if (newSquads.length > 1) { // They have the fake squads
-            const customer568 = (data.customers || []).find(c => {
-                const cPhone = c.phone ? c.phone.replace(/\D/g, '').slice(-8) : '';
-                return cPhone === '56855555';
-            });
-            const correctName = customer568?.name || 'أبو أحمد';
-
-            newSquads = [{
-                id: 1, 
-                name: 'ديوانية الفيلكاوي', 
-                points: 0, 
-                tier: 'عزوة', 
-                members: 1, 
-                king: correctName, 
-                kingOrders: 0, 
-                phone: '90000000', 
-                membersList: [{name: correctName, phone: '56855555', points: 0}] 
-            }];
-            squadMigrationNeeded = true;
-        } else if (newSquads.length === 1) {
-            const customer568 = (data.customers || []).find(c => {
-                const cPhone = c.phone ? c.phone.replace(/\D/g, '').slice(-8) : '';
-                return cPhone === '56855555';
-            });
-            if (customer568 && customer568.name) {
-                if (newSquads[0].king !== customer568.name) {
-                    newSquads[0] = { ...newSquads[0], king: customer568.name };
-                    squadMigrationNeeded = true;
-                }
-                const memberIndex = (newSquads[0].membersList || []).findIndex(m => m.phone === '56855555');
-                if (memberIndex !== -1 && newSquads[0].membersList![memberIndex].name !== customer568.name) {
-                    newSquads[0].membersList![memberIndex] = { ...newSquads[0].membersList![memberIndex], name: customer568.name };
-                    squadMigrationNeeded = true;
-                }
-            }
-        }
-        
-        if (migrationNeeded || squadMigrationNeeded) {
+        if (migrationNeeded) {
             setData(prev => ({ 
                 ...prev, 
-                orders: migrationNeeded ? normalizedOrders : prev.orders,
-                squads: squadMigrationNeeded ? newSquads : prev.squads
+                orders: normalizedOrders
             }));
             console.log("Migration executed: updated old data structure.");
         }
         setHasRunMigration(true);
      }
-  }, [data?.orders, data?.customers, data?.squads, hasRunMigration]);
+  }, [data?.orders, data?.customers, hasRunMigration]);
   
   // AUTO SYNC BACKGROUND EFFECT FOR PAYMENTS
   const dataRef = useRef<AppState>(data);
