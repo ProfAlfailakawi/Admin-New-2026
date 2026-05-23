@@ -88,7 +88,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'خارجي', label: 'جلسة خارجية واقعية', desc: 'زجاج/شارع blur، بدون ديكور خيالي أو تراث مصطنع', icon: '🌤️', color: 'bg-blue-100 text-blue-700' },
     { id: 'فاخر', label: 'إعلان بشري فاخر', desc: 'فخم لكن مصور فعلاً، بدون CGI أو قصر مبالغ', icon: '💎', color: 'bg-indigo-100 text-indigo-700' },
     { id: 'بسيط', label: 'منيو احترافي واقعي', desc: 'خلفية نظيفة، ظل طبيعي، صورة قائمة طعام بشرية', icon: '📸', color: 'bg-slate-100 text-slate-700' },
-    { id: 'عشاء', label: 'عشاء مطعم دافئ', desc: 'إضاءة دافئة وطاولة حقيقية بدون فوانيس أو بخور', icon: '🌙', color: 'bg-emerald-100 text-emerald-700' },
+    { id: 'عشاء', label: 'عشاء مطعم دافئ', desc: 'إضاءة دافئة وطاولة حقيقية بدون أي عناصر تراثية مصطنعة', icon: '🌙', color: 'bg-emerald-100 text-emerald-700' },
     { id: 'سينمائي', label: 'سينمائي واقعي', desc: 'عمق وعدسة بشرية بدون مبالغة أو خلفية وهمية', icon: '🎬', color: 'bg-rose-100 text-rose-700' },
     { id: 'تنظيف', label: 'تحسين فقط', desc: 'تحسين الألوان والإضاءة الأصلية دون تغيير المشهد', icon: '✨', color: 'bg-blue-100 text-blue-700' }
   ];
@@ -102,7 +102,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
 
 
-  const FORBIDDEN_STUDIO_WORDS = ['دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود', 'سدو', 'فانوس', 'فوانيس'];
+  const FORBIDDEN_STUDIO_WORDS = ['دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود', 'سدو', 'فانوس', 'فوانيس', 'قهوة', 'قهوت', 'بن', 'فنجان', 'فناجين'];
   const hasForbiddenStudioWord = (value: string) =>
     FORBIDDEN_STUDIO_WORDS.some((word) => String(value || '').includes(word));
   const STUDIO_NEGATIVE_PROMPT = STUDIO_REALITY_NEGATIVE_PROMPT;
@@ -264,7 +264,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     if (!selectedImage) return;
     const themeText = selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme;
     if (hasForbiddenStudioWord(themeText)) {
-      toast.error('هذا الوصف يحتوي عناصر محظورة للتوليد. احذف دلة/مبخر/بخور/عود وجرب مرة ثانية.');
+      toast.error('هذا الوصف يحتوي عناصر محظورة للتوليد. احذف القهوة/البخور/الدلة/السدو/الفوانيس وجرب مرة ثانية.');
       return;
     }
 
@@ -833,9 +833,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <div className="flex items-start justify-between gap-3 mb-4">
                 <div className="text-right">
                   <h3 className="font-black text-slate-800 flex items-center gap-2"><Brain size={16} className="text-emerald-500" /> ذاكرة الذوق الذكية</h3>
-                  <p className="text-[11px] font-bold text-slate-400 mt-1">كل اختيار أو حفظ لصورة يعلّم الاستوديو نوع الخلفية والعدسة اللي تفضلها.</p>
+                  <p className="text-[11px] font-bold text-slate-400 mt-1">كل اختيار أو حفظ لصورة بعد ظهورها يعلّم الاستوديو نوع الخلفية والعدسة اللي تفضلها.</p>
                 </div>
-                <button type="button" onClick={() => rememberCurrentChoice('preferred-controls')} className="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-black hover:bg-emerald-100">
+                <button type="button" onClick={() => rememberCurrentChoice('preferred-controls')} disabled={!generatedImage && !aiImage} className="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-black hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-50" title={!generatedImage && !aiImage ? 'يتفعل بعد ظهور صورة مولدة أو مختارة' : 'احفظ هذا الأسلوب في ذاكرة الذوق'}>
                   احفظ ذوقي الحالي
                 </button>
               </div>
@@ -878,14 +878,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   {realityBoost ? 'مفعل' : 'متوقف'}
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setStrictPlateLock((v) => !v)}
-                className={cn("w-full p-3 rounded-2xl border text-right transition-all", strictPlateLock ? "bg-white/10 border-emerald-400/40" : "bg-white/5 border-slate-700")}
+              <div
+                className={cn("w-full p-3 rounded-2xl border text-right", strictPlateLock ? "bg-white/10 border-emerald-400/40" : "bg-white/5 border-slate-700")}
               >
                 <span className="block text-sm font-black">قفل الصحن والطبق 100%</span>
                 <span className="block text-[11px] text-slate-300 mt-1">{strictPlateLock ? 'ممنوع تبديل الصحن أو المكونات — الخلفية فقط تتغير.' : 'القفل مخفف، غير مفضل للواقعية الدقيقة.'}</span>
-              </button>
+              </div>
             </div>
 
             <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">

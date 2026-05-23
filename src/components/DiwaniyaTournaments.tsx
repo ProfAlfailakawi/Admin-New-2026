@@ -1255,7 +1255,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+              <div className="w-full">
                 <div className="bg-white rounded-[32px] border border-slate-200 p-5 shadow-sm">
                   <h4 className="font-black text-slate-900 flex items-center gap-2 mb-4"><Users className="w-5 h-5 text-emerald-500" /> ربط مزايا العميل في الأدمن</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1271,18 +1271,6 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         <div className="text-[10px] font-bold text-slate-400 mt-1">{item.hint}</div>
                       </div>
                     ))}
-                  </div>
-                </div>
-
-                <div className="bg-slate-950 rounded-[32px] border border-slate-800 p-5 shadow-sm text-white overflow-hidden relative">
-                  <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-amber-500/10 blur-3xl rounded-full" />
-                  <div className="relative z-10">
-                    <h4 className="font-black text-white flex items-center gap-2 mb-4"><Sparkles className="w-5 h-5 text-amber-300" /> أفكار تطوير جاهزة للمرحلة التالية</h4>
-                    <div className="space-y-3 text-sm leading-7 text-slate-300">
-                      <div className="rounded-2xl bg-white/5 border border-white/10 p-3"><b className="text-amber-200">خريطة حرارية للدواوين:</b> تجمع الطلبات والحضور حسب المنطقة بدون أي تدخل في الدفع.</div>
-                      <div className="rounded-2xl bg-white/5 border border-white/10 p-3"><b className="text-amber-200">فلتر مخاطر:</b> يعرض الدواوين بلا موقع، المتداخلة، أو التي عليها طلبات معلقة لمدة طويلة.</div>
-                      <div className="rounded-2xl bg-white/5 border border-white/10 p-3"><b className="text-amber-200">تصدير تقرير الديوانية:</b> ملف مختصر للمعزب: أعضاء، حضور، أكواد، وطلبات جماعية، منفصل عن تقارير الدفع.</div>
-                    </div>
                   </div>
                 </div>
               </div>

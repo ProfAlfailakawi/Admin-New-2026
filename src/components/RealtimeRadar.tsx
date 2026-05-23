@@ -67,7 +67,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
     setResultImage(null);
     setGeneratedBaseImage(null);
     try {
-      const prompt = `أنت صانع محتوى كويتي ذكي (Real-time Marketer). الموضوع الحالي في الكويت هو: "${eventLabel}". اكتب بوست قصير (سطرين) يربط هذا الحدث بشكل إبداعي بـ مطعم أو كافيه (اختر شيء يناسب). اكتب العرض المناسب. استخدم لهجة كويتية.`;
+      const prompt = `أنت صانع محتوى كويتي ذكي لمطعم عيوش وأكل شعبي وأسماك ومحاشي وورق عنب، والمشاوي عنده خيار ثانوي فقط. الموضوع الحالي في الكويت هو: "${eventLabel}". اكتب بوست قصير (سطرين) يربط الحدث بأطباق شعبية/سمج/محاشي/ورق عنب بشكل واقعي. لا تقترح قهوة أو بخور أو دلة أو سدو أو فوانيس أو كافيه. استخدم لهجة كويتية محترمة وعبارة عرض مناسبة.`;
       
       const txtRes = await fetch('/api/smart-studio/text-ideas', {
         method: 'POST',
@@ -77,7 +77,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
       const txtData = await txtRes.json();
       setResultText(txtData.text);
 
-      const imgPrompt = buildTextRealityPrompt('Realtime restaurant trend social image', eventLabel, 'Connect the event to a believable restaurant scene: if rain use warm dine-in table; if traffic use pickup/takeout counter; if weekend use busy dining blur; if sports/national use casual restaurant gathering without flags/text/heritage props.');
+      const imgPrompt = buildTextRealityPrompt('Realtime popular Kuwaiti restaurant trend social image', eventLabel, 'Connect the event to a believable casual popular-food restaurant scene for rice dishes, fish, mahshi, grape leaves, or occasional grills: if rain use warm dine-in table with food context, if traffic use pickup/takeout counter, if weekend use busy dining blur, if sports/national use casual restaurant gathering without flags/text/heritage props. Never show coffee, incense, dallah, sadu, lanterns, cafe props, or fantasy decor.');
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -206,7 +206,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
         {loading && (
           <div className="flex flex-col items-center justify-center py-10 bg-slate-50 rounded-2xl">
             <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
-            <p className="text-slate-500 font-bold">جاري تحليل التريند وتجهيز المحتوى الصاروخي...</p>
+            <p className="text-slate-500 font-bold">جاري تحليل التريند وتجهيز المحتوى المناسب...</p>
           </div>
         )}
 

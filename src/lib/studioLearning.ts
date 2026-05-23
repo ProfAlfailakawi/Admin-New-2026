@@ -33,11 +33,13 @@ const DB_NAME = 'smart_content_studio_learning';
 const STORE_NAME = 'background_assets';
 const DB_VERSION = 1;
 const isBrowser = typeof window !== 'undefined' && typeof indexedDB !== 'undefined';
+const FORBIDDEN_TASTE_TERMS = /دلة|دلال|مبخر|مباخر|بخور|عود|سدو|فانوس|فوانيس|قهوة|قهوت|بن|فنجان|فناجين|dallah|coffee|incense|bukhoor|oud|sadu|lantern/gi;
+const sanitizeTasteText = (value?: string) => String(value || '').replace(FORBIDDEN_TASTE_TERMS, '').replace(/\s{2,}/g, ' ').trim();
 
 const emptyProfile = (): StudioTasteProfile => ({ modes: {}, backgrounds: {}, themes: {}, formats: {}, labels: {}, lastUpdated: new Date().toISOString() });
 
 const increment = (bucket: Record<string, number>, key?: string) => {
-  const clean = String(key || '').trim();
+  const clean = sanitizeTasteText(key);
   if (!clean) return;
   bucket[clean] = (bucket[clean] || 0) + 1;
 };
@@ -128,7 +130,7 @@ export const buildStudioTastePrompt = () => {
     favoriteFormats.length ? `Preferred content formats: ${favoriteFormats.join(', ')}` : '',
   ].filter(Boolean);
   if (!parts.length) return '';
-  return `USER TASTE MEMORY: Respect the user's repeated selections when choosing the background and camera feel. ${parts.join('. ')}. Keep the result human-real, ordinary, and believable; never override the dish lock or reality bans.`;
+  return sanitizeTasteText(`USER TASTE MEMORY: Respect the user's repeated selections when choosing the background and camera feel. ${parts.join('. ')}. Keep the result human-real, ordinary, and believable; never override the dish lock, the popular-food identity, or the strict reality bans.`);
 };
 
 export const loadStudioBackgroundLibrary = async (): Promise<StudioBackgroundLibraryItem[]> => {

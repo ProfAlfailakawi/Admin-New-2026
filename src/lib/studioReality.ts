@@ -10,11 +10,19 @@ export type StudioBackgroundPresetId =
   | 'neutral-menu';
 
 export const STUDIO_FORBIDDEN_REALITY_OBJECTS = [
-  'دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود', 'سدو', 'فانوس', 'فوانيس',
-  'dallah', 'arabic coffee pot', 'incense', 'bukhoor', 'oud burner', 'sadu', 'lantern'
+  'دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود', 'سدو', 'فانوس', 'فوانيس', 'قهوة', 'قهوت', 'بن', 'فنجان', 'فناجين',
+  'dallah', 'arabic coffee pot', 'arabic coffee', 'coffee cup', 'coffee beans', 'incense', 'bukhoor', 'oud burner', 'sadu', 'lantern'
 ];
 
-export const STUDIO_REALITY_NEGATIVE_PROMPT = `STRICT REALITY BAN: no dallah, no Arabic coffee pot, no incense, no bukhoor, no oud burner, no sadu patterns, no lanterns, no fake heritage props, no fantasy restaurant, no palace, no CGI, no 3D render, no plastic food, no floating objects, no fake smoke, no neon overkill, no text, no letters, no logos, no watermark. Keep all backgrounds believable, ordinary, human-photographed, and restaurant-real.`;
+export const STUDIO_REALITY_NEGATIVE_PROMPT = `STRICT REALITY BAN: no dallah, no Arabic coffee pot, no Arabic coffee, no coffee cups, no coffee beans, no espresso/cappuccino props, no incense, no bukhoor, no oud burner, no sadu patterns, no lanterns, no fake heritage props, no fantasy restaurant, no palace, no CGI, no 3D render, no plastic food, no floating objects, no fake smoke, no neon overkill, no text, no letters, no logos, no watermark. Keep all backgrounds believable, ordinary, human-photographed, and restaurant-real.`;
+
+
+export const RESTAURANT_MENU_IDENTITY = `
+RESTAURANT MENU IDENTITY:
+- This restaurant is mainly Kuwaiti/Gulf popular food: rice dishes (ayoush), fish/seafood, machboos-style meals, stuffed vegetables (mahshi), grape leaves, and occasional grills.
+- Visual suggestions must fit a real casual popular-food restaurant, not a cafe, dessert shop, coffee brand, luxury lounge, or Western fast-food concept.
+- Never add coffee, Arabic coffee, cups, dallah, incense, bukhoor, sadu, lanterns, or heritage props as decoration.
+`;
 
 export const RESTAURANT_REALITY_POLICY = `
 HUMAN RESTAURANT REALITY POLICY:
@@ -119,7 +127,7 @@ Return concise Arabic notes and a 0-100 realism score.
 export const buildProductRealityPrompt = ({ theme, mood, mode, background }: { theme?: string; mood?: string; mode?: StudioRealityMode; background?: StudioBackgroundPresetId }) => {
   const modePrompt = STUDIO_REALITY_MODES[mode || 'restaurant']?.prompt || STUDIO_REALITY_MODES.restaurant.prompt;
   const backgroundPrompt = REAL_RESTAURANT_BACKGROUNDS[background || 'wood-table']?.prompt || REAL_RESTAURANT_BACKGROUNDS['wood-table'].prompt;
-  return `${PRODUCT_LOCK_POLICY}\n${STRICT_PLATE_LOCK_POLICY}\n${RESTAURANT_REALITY_POLICY}\n${REALITY_FINAL_BOSS_POLICY}\n${modePrompt}\n${backgroundPrompt}\nUser theme: ${theme || 'مطعم واقعي'}. Mood: ${mood || 'دافئ'}.\n${STUDIO_REALITY_NEGATIVE_PROMPT}`;
+  return `${PRODUCT_LOCK_POLICY}\n${STRICT_PLATE_LOCK_POLICY}\n${RESTAURANT_MENU_IDENTITY}\n${RESTAURANT_REALITY_POLICY}\n${REALITY_FINAL_BOSS_POLICY}\n${modePrompt}\n${backgroundPrompt}\nUser theme: ${theme || 'مطعم واقعي'}. Mood: ${mood || 'دافئ'}.\n${STUDIO_REALITY_NEGATIVE_PROMPT}`;
 };
 
-export const buildTextRealityPrompt = (purpose: string, subject: string, formatHint = '') => `${RESTAURANT_REALITY_POLICY}\n${REALITY_FINAL_BOSS_POLICY}\nPurpose: ${purpose}.\nSubject: ${subject}.\n${formatHint}\nChoose one believable real restaurant location from the internal library: wooden table, marble table, pickup counter, open kitchen pass, window booth, delivery packaging, busy dining blur, or neutral menu setup. Build the image as a plausible human photo for a real restaurant in Kuwait: ordinary table/counter/window/kitchen context, natural scale, practical lighting, no fake event props. The final image must make viewers ask where it was photographed, not which AI made it.\n${STUDIO_REALITY_NEGATIVE_PROMPT}`;
+export const buildTextRealityPrompt = (purpose: string, subject: string, formatHint = '') => `${RESTAURANT_MENU_IDENTITY}\n${RESTAURANT_REALITY_POLICY}\n${REALITY_FINAL_BOSS_POLICY}\nPurpose: ${purpose}.\nSubject: ${subject}.\n${formatHint}\nChoose one believable real restaurant location from the internal library: wooden table, marble table, pickup counter, open kitchen pass, window booth, delivery packaging, busy dining blur, or neutral menu setup. Build the image as a plausible human photo for a real restaurant in Kuwait: ordinary table/counter/window/kitchen context, natural scale, practical lighting, no fake event props. The final image must make viewers ask where it was photographed, not which AI made it.\n${STUDIO_REALITY_NEGATIVE_PROMPT}`;

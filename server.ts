@@ -2282,7 +2282,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       const { imageContent, mimeType, format, theme, mood, realityMode, backgroundPreset, strictPlateLock, realityBoost, correctionHint, tasteProfile } = req.body;
       if (!imageContent) return res.status(400).json({ error: "Missing image" });
       
-      const systemInstruction = "أنت مصور أطعمة بشري محترف ومدير فني لمطاعم واقعية. هدفك جعل الصورة تبدو مصورة بكاميرا حقيقية داخل مطعم حقيقي، وليس مولدة بالذكاء الاصطناعي.";
+      const systemInstruction = "أنت مصور أطعمة بشري محترف ومدير فني لمطاعم واقعية. هدفك جعل الصورة تبدو مصورة بكاميرا حقيقية داخل مطعم حقيقي، وليس مولدة بالذكاء الاصطناعي. المطعم متخصص أساساً في العيوش والأكل الشعبي والأسماك والمحاشي وورق العنب، والمشاوي خيار ثانوي فقط؛ لا تتعامل معه ككافيه أو محل قهوة.";
       const realityModeMap: Record<string, string> = {
         human: "تصوير بشري/آيفون: لقطة يد بشرية غير مثالية قليلاً، زاوية طبيعية، ألوان واقعية، بدون كمال استوديو مبالغ.",
         restaurant: "مطعم حقيقي: طاولة وجلسة مطعم فعلية، إضاءة داخلية دافئة، خلفية عملية قابلة للتصديق.",
@@ -2310,7 +2310,8 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 - المسموح فقط: ترتيب بسيط للحواف، تحسين قص خفيف، دمج إضاءة وظلال واقعية، وتغيير الخلفية/الطاولة/العمق فقط.
 ${strictPlateLock !== false ? '- قفل صارم: لا تبدّل الصحن إطلاقاً، لا تغيّر شكل الطبق، لا تضف أو تحذف أي مكون حتى لو كان التحسين أجمل.\n' : ''}
 
-قواعد المكان الواقعي:
+قواعد هوية المطعم والمكان الواقعي:
+- هوية المطعم: عيوش، أكل شعبي، أسماك، محاشي، ورق عنب، ومشاوي أحياناً؛ ممنوع تحويل المشهد إلى كافيه أو قهوة أو ديكور ضيافة.
 - الخلفية يجب أن تبدو من مطعم حقيقي في الكويت أو مطعم مودرن عادي، لا ديكور خيالي ولا قصر ولا CGI ولا 3D render.
 - استخدم عناصر مطعم قابلة للتصديق فقط: طاولة، كرسي، بوث، كاونتر استلام، جدار محايد، زجاج، مطبخ ستانلس، منديل، كوب ماء بسيط، تغليف plain.
 - أضف عيوب تصوير بشرية بسيطة: منظور 35mm/50mm، نعومة عدسة خفيفة، ظل صحيح، scale منطقي، انعكاسات قليلة، عدم تماثل مثالي.
@@ -2324,7 +2325,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان عاد�
 - مكتبة الخلفية: ${chosenBackground}
 
 حظر صارم جداً:
-- ممنوع دلة، دلال، مبخر، بخور، عود، سدو، فوانيس، قصر، دخان مصطنع، زخارف تراثية، نيون مبالغ، أدوات غير مرتبطة، لافتات أو كلمات.
+- ممنوع دلة، دلال، قهوة عربية، قهوة، فناجين، أكواب قهوة، حبوب قهوة، مبخر، بخور، عود، سدو، فوانيس، قصر، دخان مصطنع، زخارف تراثية، نيون مبالغ، أدوات غير مرتبطة، لافتات أو كلمات.
 - IMPORTANT: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO SIGNATURES, NO LOGOS, NO WATERMARKS ANYWHERE IN THE IMAGE.
 
 الهدف النهائي: صورة تجعل صاحب المطعم يقول: أين صورتم هذه اللقطة؟ يجب أن تبدو تصويراً بشرياً واقعياً وليس توليد ذكاء.`;
@@ -2415,7 +2416,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان عاد�
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-image",
         contents: {
-          parts: [{ text: `${prompt}\n\nSERVER REALITY ENFORCEMENT: Every smart-studio text image must look like a real human restaurant photograph. Use a believable restaurant background from: wooden table, marble table, pickup counter, open kitchen pass, window booth, delivery packaging, busy dining blur, or neutral menu setup. Make it ordinary and physically plausible before making it beautiful: realistic scale, grounded shadows, natural lens softness, small human-camera imperfections. No dallah, no incense, no sadu, no lanterns, no fantasy decor, no palace, no CGI, no text/logos/watermarks. ${tasteProfile ? `USER TASTE MEMORY: ${String(tasteProfile).slice(0, 900)} ` : ""}${realityBoost ? "FINAL BOSS: remove any AI tells; make viewers believe this was photographed on location." : ""}` }]
+          parts: [{ text: `${prompt}\n\nSERVER REALITY ENFORCEMENT: Every smart-studio text image must look like a real human restaurant photograph for a Kuwaiti/Gulf popular-food restaurant focused on rice dishes, fish/seafood, mahshi, grape leaves, and occasional grills; never a cafe or coffee concept. Use a believable restaurant background from: wooden table, marble table, pickup counter, open kitchen pass, window booth, delivery packaging, busy dining blur, or neutral menu setup. Make it ordinary and physically plausible before making it beautiful: realistic scale, grounded shadows, natural lens softness, small human-camera imperfections. No dallah, no Arabic coffee, no coffee cups, no coffee beans, no incense, no sadu, no lanterns, no cafe props, no fantasy decor, no palace, no CGI, no text/logos/watermarks. ${tasteProfile ? `USER TASTE MEMORY: ${String(tasteProfile).slice(0, 900)} ` : ""}${realityBoost ? "FINAL BOSS: remove any AI tells; make viewers believe this was photographed on location." : ""}` }]
         },
         config: {
           imageConfig: {
@@ -2468,7 +2469,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان عاد�
 
       const auditPrompt = `قيّم هذه الصورة كمدقق واقعية لمطعم. أرجع JSON فقط بدون markdown بالشكل التالي:
 {"score": number, "verdict": "...", "notes": ["...", "...", "..."], "fixHint": "..."}
-المعايير: هل تبدو مصورة بشرياً داخل مطعم حقيقي؟ هل الخلفية مقنعة؟ هل الظلال والscale صحيح؟ هل يوجد شكل CGI أو ديكور خيالي أو نصوص/شعارات داخل الصورة؟ هل يوجد دلة/بخور/سدو/فوانيس؟ اجعل الملاحظات قصيرة بالعربية.`;
+المعايير: هل تبدو مصورة بشرياً داخل مطعم حقيقي؟ هل الخلفية مقنعة؟ هل الظلال والscale صحيح؟ هل يوجد شكل CGI أو ديكور خيالي أو نصوص/شعارات داخل الصورة؟ هل يوجد دلة/قهوة/فناجين/بخور/سدو/فوانيس؟ اجعل الملاحظات قصيرة بالعربية.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
