@@ -295,6 +295,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  return (
 	 <div className="ai-executive-assistant-shell animate-in fade-in slide-in-from-bottom-4 duration-700" dir="rtl">
 
+	  {(!messages || messages.length === 0) && (
 	  <section className="ai-mission-strip">
 	    {(intel.missions.length ? intel.missions : [{
 	      tone: 'opportunity' as MissionTone,
@@ -310,6 +311,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
 	      </button>
 	    ))}
 	  </section>
+	  )}
 
 	  <section className="ai-executive-console">
     <div className="ai-executive-messages custom-scrollbar">

@@ -1184,8 +1184,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const fullStudioSteps = [
     { n: 1, t: 'مقاس' },
     { n: 2, t: 'فكرة' },
-    { n: 3, t: 'مشهد' },
-    { n: 4, t: 'بيئة' },
+    { n: 3, t: 'المشهد والبيئة' },
     { n: 5, t: 'أدوات' },
     { n: 6, t: 'توليد' },
   ];
@@ -1620,9 +1619,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
                 {productStep === 3 && (
                   <div className="space-y-4">
-                    <button type="button" onClick={() => setShowProductOccasion(!showProductOccasion)} className="w-full rounded-3xl border border-slate-100 bg-slate-50 p-4 text-right flex items-center justify-between">
-                      <span><span className="block text-xs font-black text-slate-500">المشهد</span><span className="block text-lg font-black text-slate-900 mt-1">{activePulsePack.icon} {activePulsePack.label}</span></span>
-                      <ChevronLeft className={cn("transition-transform text-slate-400", showProductOccasion ? "-rotate-90" : "")} size={20} />
+                    <button type="button" onClick={() => setShowProductOccasion(!showProductOccasion)} className="w-full rounded-2xl border border-rose-200 bg-rose-50 p-4 text-right flex items-center justify-between">
+                      <span><span className="block text-xs font-black text-rose-500">المشهد (الحالة)</span><span className="block text-lg font-black text-rose-900 mt-1">{activePulsePack.icon} {activePulsePack.label}</span></span>
+                      <ChevronLeft className={cn("transition-transform text-rose-400", showProductOccasion ? "-rotate-90" : "")} size={20} />
                     </button>
                     {showProductOccasion && (
                       <div className="grid grid-cols-2 gap-2">
@@ -1633,23 +1632,15 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                         ))}
                       </div>
                     )}
-                    <div className="rounded-3xl border border-slate-100 bg-white p-3">
-                      <p className="mb-3 text-xs font-black text-slate-500">البيئة</p>
-                      {renderPlaceLibrary()}
+                    <div className="rounded-2xl border-2 border-indigo-50 bg-indigo-50/20 p-3 pt-4 relative mt-2">
+                      <p className="absolute -top-3 right-4 bg-white px-2 text-xs font-black text-indigo-500 rounded-full border border-indigo-100 shadow-sm">البيئة الواقعية (المكان)</p>
+                      <div className="mt-2">
+                        {renderPlaceLibrary()}
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => goProductStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                      <button type="button" onClick={() => advanceProductStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
-                    </div>
-                  </div>
-                )}
-
-                {productStep === 4 && (
-                  <div className="space-y-4">
-                    {renderPlaceLibrary()}
-                    <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => goProductStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                      <button type="button" onClick={() => advanceProductStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                      <button type="button" onClick={() => goProductStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black hover:bg-slate-50 transition-colors">رجوع</button>
+                      <button type="button" onClick={() => advanceProductStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg hover:bg-slate-800 transition-colors">التالي</button>
                     </div>
                   </div>
                 )}
@@ -1692,13 +1683,23 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100 min-h-[250px] md:min-h-[500px] flex items-center justify-center bg-slate-50 relative overflow-hidden">
               {!generatedImage && !isGenerating && (
                 <div className="text-center w-full max-w-lg mx-auto p-4 space-y-5">
-                  <div className="w-full max-w-[260px] mx-auto aspect-square bg-white rounded-2xl border shadow-sm p-2 overflow-hidden flex items-center justify-center">
+                  <div className="w-full max-w-[260px] mx-auto aspect-square bg-white rounded-2xl border shadow-sm p-2 overflow-hidden flex items-center justify-center relative group">
                     {compressedImage || selectedImage || originalImage ? (
-                      <img src={compressedImage || selectedImage || originalImage} alt="Product" className="w-full h-full object-cover rounded-xl" />
+                      <>
+                        <img src={compressedImage || selectedImage || originalImage} alt="Product" className="w-full h-full object-cover rounded-xl" />
+                        <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-slate-900/80 text-white rounded-full p-2.5 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md shadow-lg" title="تغيير الصورة">
+                          <RotateCcw size={16} />
+                        </button>
+                      </>
                     ) : (
                       <span className="text-xs font-bold text-slate-400">بانتظار صورة المنتج</span>
                     )}
                   </div>
+                  {compressedImage || selectedImage || originalImage ? (
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black rounded-full transition-colors mt-2">
+                      <RotateCcw size={14} /> تغيير الصورة
+                    </button>
+                  ) : null}
                   {compressionSavedPercent !== null && (
                     <p className="-mt-3 text-[10px] font-medium text-emerald-600/80 tracking-tight">
                       {compressionSavedPercent > 0
