@@ -2095,6 +2095,8 @@ const MainApp: React.FC = () => {
     }
   };
 
+  const showExecutiveFloatingTools = currentPage === 'dashboard';
+
   return (
     <div className="admin-heritage-shell flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font" dir="rtl">
       <AmbientBackground />
@@ -2638,7 +2640,7 @@ const MainApp: React.FC = () => {
 
       {/* Global Scroll to Top */}
       <AnimatePresence>
-        {showTopButton && userRole !== 'partner' && (
+        {showTopButton && userRole !== 'partner' && showExecutiveFloatingTools && (
           <motion.button
             initial={{ opacity: 0, scale: 0.5, y: 50 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2679,7 +2681,7 @@ const MainApp: React.FC = () => {
 
       {/* --- MOBILE QUICK NAVIGATION TRIGGER --- */}
       <AnimatePresence>
-        {isMobile && userRole !== 'partner' && !commandBarOpen && currentPage === 'dashboard' && (
+        {isMobile && userRole !== 'partner' && !commandBarOpen && showExecutiveFloatingTools && (
           <motion.div
             initial={{ opacity: 0, y: 100, scale: 0.5 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -2708,7 +2710,7 @@ const MainApp: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {(isAuthenticated || appMode === 'local') && <InstagramMagicWand data={data} currentPage={currentPage} />}
+      {(isAuthenticated || appMode === 'local') && showExecutiveFloatingTools && <InstagramMagicWand data={data} currentPage={currentPage} />}
       <Toaster richColors position="bottom-right" closeButton />
       
 
@@ -2907,4 +2909,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

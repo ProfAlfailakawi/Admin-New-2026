@@ -43,6 +43,18 @@ async function wasPushAlreadyShown(eventId) {
   return false;
 }
 
+function paymentNotificationTag(alertType, url, eventId) {
+  const type = String(alertType || "").toLowerCase();
+  if (!type.includes("payment") && !type.includes("invoice")) return eventId;
+
+  const text = String(url || "");
+  const invoiceMatch = text.match(/[?&]invoice=([^&#]+)/);
+  const orderMatch = text.match(/[?&]order=([^&#]+)/);
+  const id = decodeURIComponent((invoiceMatch && invoiceMatch[1]) || (orderMatch && orderMatch[1]) || "");
+
+  return id ? `payment-final-state-${invoiceMatch ? "invoice" : "order"}-${id}` : eventId;
+}
+
 self.addEventListener("push", (event) => {
   let payload = {};
 
@@ -88,6 +100,12 @@ self.addEventListener("push", (event) => {
     payload.alertType ||
     "general";
 
+  const notificationTag =
+    payload.data?.notificationTag ||
+    payload.notification?.data?.notificationTag ||
+    payload.notificationTag ||
+    paymentNotificationTag(alertType, url, eventId);
+
   event.waitUntil((async () => {
     const alreadyShown = await Promise.race([
       wasPushAlreadyShown(eventId),
@@ -96,14 +114,17 @@ self.addEventListener("push", (event) => {
 
     if (alreadyShown) return;
 
+    const oldNotifications = await self.registration.getNotifications({ tag: notificationTag });
+    oldNotifications.forEach((notification) => notification.close());
+
     await self.registration.showNotification(title, {
       body,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
-      tag: eventId,
+      tag: notificationTag,
       renotify: false,
       requireInteraction: true,
-      data: { url, eventId, alertType },
+      data: { url, eventId, alertType, notificationTag },
     });
   })());
 });
