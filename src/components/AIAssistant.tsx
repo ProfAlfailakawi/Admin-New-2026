@@ -352,7 +352,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
       {isLoading && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ai-chat-row is-assistant">
           <div className="ai-chat-avatar"><Bot size={15} /></div>
-          <div className="ai-chat-bubble ai-loading-bubble"><Loader2 size={14} className="animate-spin" /> جاري تحليل بيانات التراث...</div>
+          <div className="ai-chat-bubble ai-loading-bubble"><Loader2 size={14} className="animate-spin" /> نحلل بيانات التراث...</div>
         </motion.div>
       )}
       <div ref={messagesEndRef} className="h-4" />

@@ -134,13 +134,13 @@ export async function testFirestoreConnection() {
       });
     } else if (error.code === 'not-found' || error.message?.includes('5 NOT_FOUND')) {
       toast.error("قاعدة البيانات غير موجودة!", {
-        description: `يرجى التأكد من إنشاء قاعدة بيانات Firestore في مشروعك (${activeConfig.projectId}) على Firebase.`
+        description: `تأكد إن قاعدة Firestore موجودة في مشروعك (${activeConfig.projectId}) على Firebase.`
       });
     } else if (error.code === 'unavailable' || error.message?.includes('the client is offline')) {
-      const msg = "جاري الاتصال بقاعدة البيانات...";
+      const msg = "نحاول نوصل لقاعدة البيانات...";
       console.warn(msg, "Check if Firestore is provisioned and Database ID is correct.");
       toast.info(msg, {
-        description: "إذا استمر هذا الخطأ لأكثر من دقيقة، يرجى التأكد من إنشاء قاعدة البيانات واختيار الـ Database ID الصحيح من الإعدادات.",
+        description: "إذا استمر الخطأ أكثر من دقيقة، تأكد من إنشاء قاعدة البيانات واختيار Database ID الصحيح من الإعدادات.",
         duration: 8000
       });
     }
@@ -150,4 +150,3 @@ export async function testFirestoreConnection() {
   testFirestoreConnection() removed to avoid noise 403 errors and cookie warnings for anonymous users
 */
 // testFirestoreConnection();
-

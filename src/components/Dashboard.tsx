@@ -612,7 +612,7 @@ const BusinessStatusMirror: React.FC<{
   const profit = totalSales - totalCost;
 
   const [aiRecommendation, setAiRecommendation] = useState<any>({
-    recommendation: "جاري تحليل الأنماط لتوليد توصية مبنية على البيانات...",
+    recommendation: "نحلل الأنماط عشان نطلع توصية مبنية على البيانات...",
     context: "loading",
   });
 
@@ -1328,7 +1328,7 @@ const [isPending, startTransition] = useTransition();
           console.error("Archive Analysis Error:", err);
           setIsArchiving(false);
           toast.error("خطأ في التحليل", {
-            description: "حدث خطأ غير متوقع أثناء معالجة البيانات.",
+            description: "صار خلل غير متوقع أثناء معالجة البيانات.",
           });
         }
       }, 100);
@@ -2075,7 +2075,7 @@ const [isPending, startTransition] = useTransition();
 
     const generateCampaign = () => {
       if (!campaignTopic) {
-        toast.info("يرجى اختيار موضوع", {
+        toast.info("اختار موضوع", {
           description: "اختر نوع الحملة التي ترغب في توليد محتوى لها.",
         });
         return;
@@ -2084,7 +2084,7 @@ const [isPending, startTransition] = useTransition();
 
       if (!campaign) {
         toast.error("بيانات غير كافية", {
-          description: "لا توجد بيانات مبيعات أو عملاء لابتكار حملة حقيقية.",
+          description: "ماكو بيانات مبيعات أو عملاء كافية لحملة حقيقية.",
         });
         return;
       }
@@ -2204,7 +2204,7 @@ const [isPending, startTransition] = useTransition();
       else if (t >= yesterdayStart && t < todayStart) yRev += amount;
     });
 
-    let rawGrowthText = "لا توجد بيانات كافية لاحتساب النمو مقارنة بالأمس";
+    let rawGrowthText = "ماكو بيانات كافية لحساب النمو مقارنة بالأمس";
     let growthValText = "0%";
     let isGrowthPos = true;
 
@@ -2218,7 +2218,7 @@ const [isPending, startTransition] = useTransition();
     } else if (tRev > 0) {
       isGrowthPos = true;
       growthValText = "+100%";
-      rawGrowthText = `مبيعات اليوم ${tRev.toFixed(0)} د.ك (لا توجد مبيعات في الأمس)`;
+      rawGrowthText = `مبيعات اليوم ${tRev.toFixed(0)} د.ك (ماكو مبيعات أمس)`;
     }
 
     useEffect(() => {
@@ -2569,7 +2569,7 @@ const [isPending, startTransition] = useTransition();
                   <React.Suspense
                     fallback={
                       <div className="h-96 flex items-center justify-center font-bold text-slate-500">
-                        جاري تحميل الطلبات...
+                        نحمّل الطلبات...
                       </div>
                     }
                   >
@@ -2715,7 +2715,7 @@ const [isPending, startTransition] = useTransition();
                             ))}
                             {stars.length === 0 && (
                               <span className="text-xs text-white/30 italic">
-                                لا توجد أصناف في هذه الفئة حالياً
+                                ماكو أصناف في هذه الفئة حالياً
                               </span>
                             )}
                           </div>
@@ -2752,7 +2752,7 @@ const [isPending, startTransition] = useTransition();
                             ))}
                             {plowhorses.length === 0 && (
                               <span className="text-xs text-white/30 italic">
-                                لا توجد أصناف في هذه الفئة حالياً
+                                ماكو أصناف في هذه الفئة حالياً
                               </span>
                             )}
                           </div>
@@ -2910,7 +2910,7 @@ const [isPending, startTransition] = useTransition();
                         رادار الموردين الذكي
                         <button
                           onClick={() =>
-                            toast.info("جاري فحص جميع مسارات التوريد...", {
+                            toast.info("نفحص كل مسارات التوريد...", {
                               icon: "📡",
                             })
                           }
@@ -4291,7 +4291,7 @@ const [isPending, startTransition] = useTransition();
                                   size={32}
                                 />
                                 <span className="text-xs md:text-sm font-bold relative z-10">
-                                  جاري الاستنباط الذكي...
+                                  نستنبط بذكاء...
                                 </span>
                               </div>
                             );
@@ -4637,7 +4637,7 @@ const [isPending, startTransition] = useTransition();
                         {isArchiving ? (
                           <>
                             <RefreshCw size={20} className="animate-spin" />
-                            <span>جاري المسح العميق...</span>
+                            <span>نسوي مسح عميق...</span>
                           </>
                         ) : (
                           <>
@@ -5230,7 +5230,7 @@ const [isPending, startTransition] = useTransition();
                     {topCustomers.slice(0, 8).map((c) => (
                       <div
                         onClick={() => {
-                          toast.info(`جاري تحويلك لملف العميل: ${c.name}...`, {
+                          toast.info(`بنحوّلك لملف العميل: ${c.name}...`, {
                             icon: "🧑‍💼",
                           });
                           if (setDeepLinkData) {
@@ -5267,7 +5267,7 @@ const [isPending, startTransition] = useTransition();
                     {topCustomers.length === 0 && (
                       <div className="col-span-full text-center p-3 md:p-3 border border-dashed border-slate-800 rounded-2xl">
                         <p className="text-slate-500 font-bold text-sm">
-                          لا توجد بيانات عملاء كافية لتحليل صفوة العملاء حتى
+                          ماكو بيانات عملاء كافية لتحليل صفوة العملاء حتى
                           الآن.
                         </p>
                       </div>
@@ -5285,7 +5285,7 @@ const [isPending, startTransition] = useTransition();
                             size={32}
                           />
                           <span className="font-bold text-sm text-rose-900">
-                            جاري التحليل الشخصي...
+                            نحلل العميل...
                           </span>
                         </div>
                       )}
@@ -5308,7 +5308,7 @@ const [isPending, startTransition] = useTransition();
                           {vipDisengaged.length === 0 ? (
                             <div className="text-center p-3 md:p-4 bg-slate-50 rounded-2xl border border-slate-100">
                               <p className="text-xs font-bold text-slate-500 leading-relaxed">
-                                لا توجد بيانات كافية للتحليل، أو لا يوجد عملاء
+                                ماكو بيانات كافية للتحليل، أو ماكو عملاء
                                 VIP تنطبق عليهم شروط الغياب (أكثر من 15 يوم).
                               </p>
                             </div>
@@ -5473,10 +5473,10 @@ const [isPending, startTransition] = useTransition();
                       {!allInsights || allInsights.length === 0 ? (
                         <div className="col-span-1 md:col-span-3 text-center p-3 md:p-4 bg-white/5 rounded-3xl border border-white/10">
                           <p className="font-bold text-indigo-300">
-                            لا توجد بيانات كافية للتحليل الاستراتيجي.
+                            ماكو بيانات كافية للتحليل الاستراتيجي.
                           </p>
                           <p className="text-[10px] text-white/50 mt-2 font-bold">
-                            يرجى تسجيل حركة مبيعات وملاحظات ليتسنى للذكاء
+                            سجل حركة مبيعات وملاحظات عشان يقدر الذكاء
                             الاصطناعي قراءة الأنماط.
                           </p>
                         </div>
@@ -5592,7 +5592,7 @@ const [isPending, startTransition] = useTransition();
                               value={reviewInput}
                               onChange={(e) => setReviewInput(e.target.value)}
                               className="w-full bg-transparent border-0 resize-none outline-none text-right font-bold text-slate-700 placeholder:text-slate-300 text-sm md:text-base min-h-[120px]"
-                              placeholder="أدخل ملاحظة عشوائية أو تعليقاً للتحليل السريع..."
+                              placeholder="اكتب ملاحظة أو تعليق للتحليل السريع..."
                               rows={4}
                             />
                             <div className="flex flex-col gap-3 mt-4 md:mt-6">
@@ -5628,7 +5628,7 @@ const [isPending, startTransition] = useTransition();
                                   ];
 
                                   if (allComments.length === 0) {
-                                    toast.info("لا توجد تعليقات مسجلة", {
+                                    toast.info("ماكو تعليقات مسجلة", {
                                       description:
                                         "لا يوجد أرشيف تعليقات مخزن لتحليله.",
                                     });
@@ -5672,9 +5672,9 @@ const [isPending, startTransition] = useTransition();
                                       },
                                     );
                                   } catch (error) {
-                                    toast.error("فشل التحليل", {
+                                    toast.error("التحليل ما ضبط", {
                                       description:
-                                        "حدث خطأ أثناء تحليل البيانات. تأكد من إعدادات الذكاء الاصطناعي.",
+                                        "تعطل تحليل البيانات. تأكد من إعدادات الذكاء الاصطناعي.",
                                     });
                                   } finally {
                                     setIsPulseAnalyzing(false);
@@ -5845,7 +5845,7 @@ const [isPending, startTransition] = useTransition();
                             <RefreshCw size={28} className="animate-spin" />
                           </div>
                           <h4 className="font-bold text-slate-700 text-lg">
-                            جاري تحليل الأرشيف...
+                            نحلل الأرشيف...
                           </h4>
                           <p className="text-xs text-slate-500 font-bold mt-2">
                             يتم الآن قراءة التعليقات وفهم الانطباعات.
@@ -5860,7 +5860,7 @@ const [isPending, startTransition] = useTransition();
                             </h4>
                             <p className="text-sm font-bold text-slate-800 leading-relaxed whitespace-pre-wrap break-words">
                               {pulseArchiveAnalysis?.summary ||
-                                "جاري توليد الملخص..."}
+                                "نجهز الملخص..."}
                             </p>
                           </div>
 
@@ -6096,7 +6096,7 @@ const [isPending, startTransition] = useTransition();
               </div>
               <button 
                 onClick={() => {
-                  toast.success("جاري إعداد تقرير الإقفال المالي الشامل...", {
+                  toast.success("نجهز تقرير الإقفال المالي الشامل...", {
                     icon: <CheckCircle className="text-emerald-500" />
                   });
                   setTimeout(() => window.print(), 1000);

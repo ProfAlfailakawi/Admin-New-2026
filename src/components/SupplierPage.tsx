@@ -69,7 +69,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
  const handleSaveSupplier = () => {
  if (!supplierForm.name || !supplierForm.phone) {
- toast.error("بيان ناقص", { description:"يرجى إدخال اسم المورد ورقم الهاتف." });
+ toast.error("بيانات ناقصة", { description:"اكتب اسم المورد ورقم التلفون." });
  return;
  }
  
@@ -79,7 +79,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  // Strict validation: 8 digits, English numbers only
  const phoneRegex = /^[0-9]{8}$/;
  if (!phoneRegex.test(supplierForm.phone)) {
- toast.error("رقم غير صالح", { description:"رقم الهاتف يجب أن يتكون من 8 أرقام إنجليزية فقط (مثال: 99881122)." });
+ toast.error("الرقم مو مضبوط", { description:"رقم التلفون لازم يكون 8 أرقام إنجليزية فقط (مثال: 99881122)." });
  return;
  }
 
@@ -135,8 +135,8 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  const hasProducts = (data?.products || []).some(p => p.supplierId === supplier.id);
  
  if (hasProducts) {
- const errorMsg = `المورد"${supplier.name}" مرتبط بمنتجات حالية. يرجى حذف المنتجات أو تغيير تبعيتها أولاً.`;
- toast.error("لا يمكن الحذف", { 
+ const errorMsg = `المورد "${supplier.name}" مربوط بمنتجات حالية. احذف المنتجات أو غيّر تبعيتها أول.`;
+ toast.error("ما يصير نحذف", { 
  description: errorMsg,
  duration: 6000,
  position: 'bottom-right'
@@ -152,7 +152,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  }
 
  if (supplier.balance > 0) {
- const errorMsg = `لا يمكن حذف المورد"${supplier.name}" قبل سداد المبالغ المستحقة له (${Number(supplier.balance || 0).toFixed(3)} د.ك).`;
+ const errorMsg = `ما يصير نحذف المورد "${supplier.name}" قبل سداد مستحقاته (${Number(supplier.balance || 0).toFixed(3)} د.ك).`;
  toast.error("مديونية معلقة", { 
  description: errorMsg,
  duration: 6000,
@@ -365,7 +365,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <span className="text-primary">{Number(p.price || 0).toFixed(3)} د.ك</span>
  </div>
 ))}
- {productsToShow.length === 0 && <p className="text-center text-slate-500 font-bold italic py-4 md:py-8">لا توجد منتجات مرتبطة بهذا المورد حالياً.</p>}
+ {productsToShow.length === 0 && <p className="text-center text-slate-500 font-bold italic py-4 md:py-8">ماكو منتجات مرتبطة بهذا المورد حالياً.</p>}
  </div>
  </div>
  

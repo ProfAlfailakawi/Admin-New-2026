@@ -143,7 +143,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 
  const handleSaveCustomer = () => {
     if (!customerForm.name || !customerForm.phone) {
-      toast.error("بيان ناقص", { description: "يرجى إدخال الاسم ورقم الهاتف." });
+      toast.error("بيانات ناقصة", { description: "اكتب الاسم ورقم التلفون." });
       return;
     }
 
@@ -151,7 +151,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
       const { block, street, building } = customerForm.detailedAddress;
       if (!customerForm.area || !block || !street || !building) {
         toast.error("بيانات العنوان ناقصة", { 
-          description: "يرجى إكمال بيانات العنوان (المنطقة، القطعة، الشارع، والمنزل) لاستكمال التسجيل." 
+          description: "كمل بيانات العنوان: المنطقة، القطعة، الشارع، والمنزل." 
         });
         return;
       }
@@ -159,7 +159,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
     
     const phoneRegex = /^[0-9]{8}$/;
     if (!phoneRegex.test(customerForm.phone)) {
-      toast.error("رقم غير صالح", { description: "رقم الهاتف يجب أن يتكون من 8 أرقام إنجليزية فقط (مثال: 99881122)." });
+      toast.error("الرقم مو مضبوط", { description: "رقم التلفون لازم يكون 8 أرقام إنجليزية فقط (مثال: 99881122)." });
       return;
     }
 
@@ -284,7 +284,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
   const handleDeleteCustomer = (customer: Customer) => {
    const stats = getCustomerStats(customer.id);
    if (stats.totalOrders > 0) {
-     toast.error("لا يمكن الحذف", { description: "العميل لديه طلبات سابقة." });
+     toast.error("ما يصير نحذف", { description: "العميل عنده طلبات سابقة." });
      return;
    }
    setData(prev => ({
@@ -333,7 +333,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
         <input 
           id="search-input"
           type="text" 
-          placeholder="ابحث بالاسم أو رقم الهاتف..."
+          placeholder="ابحث بالاسم أو رقم التلفون..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right text-sm"
@@ -399,7 +399,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
        <th className="p-6">العنوان والتفاصيل</th>
        <th className="p-6">إجمالي الإنفاق</th>
        <th className="p-6">نقاط الولاء</th>
-       <th className="p-6">رقم الهاتف</th>
+       <th className="p-6">رقم التلفون</th>
        <th className="p-6">الديوانية</th>
        <th className="p-6">المشاعر الذكية</th>
        <th className="p-4 px-6 text-left sticky left-0 bg-slate-50/80 backdrop-blur-md shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)]">الإجراءات</th>
@@ -579,7 +579,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
          </div>
 
          <div className="space-y-2">
-           <label className="text-xs font-bold text-slate-500 uppercase mr-1">رقم الهاتف *</label>
+           <label className="text-xs font-bold text-slate-500 uppercase mr-1">رقم التلفون *</label>
            <NumericInput value={customerForm.phone} onChange={val => setCustomerForm({...customerForm, phone: val.toString()})} className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold font-mono text-left" maxLength={8} />
          </div>
 

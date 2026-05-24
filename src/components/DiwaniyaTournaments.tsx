@@ -388,7 +388,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     const founder = newSquadFounder.trim();
     const phone = newSquadPhone.trim();
     if (!name) {
-      toast.error('يرجى كِتابة اسم الديوانية');
+      toast.error('اكتب اسم الديوانية');
       return;
     }
     const newId = Date.now();
@@ -415,7 +415,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
   const deleteSquad = (squad: any) => {
     if (!squad || squad.id === undefined || squad.id === null) {
-      toast.error('تعذر تحديد الديوانية المراد حذفها');
+      toast.error('ما قدرنا نحدد الديوانية اللي تبي تحذفها');
       return;
     }
     const currentSquads = Array.isArray(data?.squads) ? data.squads : squads;
@@ -468,10 +468,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       if (successful) {
         toast.success('تم نسخ رابط دعوة الدواوين! (' + text + ')');
       } else {
-        toast.error('فشل في نسخ الرابط');
+        toast.error('ما قدرنا ننسخ الرابط');
       }
     } catch (err) {
-      toast.error('فشل في نسخ الرابط');
+      toast.error('ما قدرنا ننسخ الرابط');
     }
     
     document.body.removeChild(textArea);
@@ -499,14 +499,14 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       if (currentIndex > 0) {
         const prevPoints = parsePoints(tiers[currentIndex - 1].points);
         if (newPoints <= prevPoints) {
-          toast.error(`عذراً، يجب أن تكون النقاط للمستوى الحالي أكبر من نقاط المستوى السابق (${tiers[currentIndex - 1].name}: ${tiers[currentIndex - 1].points})`);
+          toast.error(`المعذرة، نقاط المستوى الحالي لازم تكون أكبر من المستوى السابق (${tiers[currentIndex - 1].name}: ${tiers[currentIndex - 1].points})`);
           return;
         }
       }
       if (currentIndex < tiers.length - 1) {
         const nextPoints = parsePoints(tiers[currentIndex + 1].points);
         if (newPoints >= nextPoints) {
-          toast.error(`عذراً، يجب أن تكون النقاط للمستوى الحالي أقل من نقاط المستوى التالي (${tiers[currentIndex + 1].name}: ${tiers[currentIndex + 1].points})`);
+          toast.error(`المعذرة، نقاط المستوى الحالي لازم تكون أقل من المستوى التالي (${tiers[currentIndex + 1].name}: ${tiers[currentIndex + 1].points})`);
           return;
         }
       }
@@ -1257,7 +1257,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                     <Filter className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input 
                       type="text" 
-                      placeholder="ابحث باسم الديوانية، المؤسس، الهاتف، أو الكود..." 
+                      placeholder="ابحث باسم الديوانية، المؤسس، التلفون، أو الكود..." 
                       value={squadSearchQuery}
                       onChange={(e) => setSquadSearchQuery(e.target.value)}
                       className="bg-slate-50 border border-slate-200 pr-11 pl-4 py-3.5 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-50 w-full shadow-sm" 
@@ -1406,7 +1406,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                         className="bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none"
                                       />
                                       <input
-                                        placeholder="رقم الهاتف"
+                                        placeholder="رقم التلفون"
                                         value={editedSquadPhone}
                                         onChange={(e) => setEditedSquadPhone(e.target.value)}
                                         className="bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold font-mono outline-none"
@@ -1754,7 +1754,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                               <div className="mt-2 text-[11px] font-bold text-amber-700">مدى الانضمام الحالي: {getSquadGeofenceDistance(selected)}م</div>
                             </>
                           ) : (
-                            <div className="text-rose-600 font-bold">لا توجد إحداثيات حقيقية. ثبّت الموقع من برنامج العميل حتى تظهر على الخريطة بدقة.</div>
+                            <div className="text-rose-600 font-bold">ماكو إحداثيات حقيقية. ثبّت الموقع من برنامج العميل عشان تظهر على الخريطة بدقة.</div>
                           )}
                         </div>
 
@@ -1793,7 +1793,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         <div><div className="font-black text-slate-800 text-sm">{sq.name}</div><div className="text-[11px] text-slate-500">متوسط قرب الطلب: {sq.avgRequestDistance ? `${sq.avgRequestDistance}م` : 'غير متوفر'}</div></div>
                         <div className="text-xl font-black text-amber-600">{sq.pendingRequests.length}</div>
                       </button>
-                    )) : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 text-xs font-bold text-slate-500 text-center">لا توجد طلبات معلقة حالياً.</div>}
+                    )) : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 text-xs font-bold text-slate-500 text-center">ماكو طلبات معلقة حالياً.</div>}
                   </div>
                 </div>
 
@@ -1817,7 +1817,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         <div className="font-black text-slate-800 text-sm">{item.first.name} + {item.second.name}</div>
                         <div className="text-[11px] text-orange-700 mt-1">المسافة بينهما تقريباً {item.distance}م، راجعها حتى لا تظهر للضيف ديوانية غير مقصودة.</div>
                       </div>
-                    )) : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 text-xs font-bold text-slate-500 text-center">لا توجد دواوين متداخلة ضمن مدى الرادار الحالي.</div>}
+                    )) : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 text-xs font-bold text-slate-500 text-center">ماكو دواوين متداخلة ضمن مدى الرادار الحالي.</div>}
                   </div>
                 </div>
               </div>
@@ -1865,7 +1865,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       </button>
                     );
                   }) : (
-                    <div className="md:col-span-2 xl:col-span-3 rounded-2xl bg-emerald-50 border border-emerald-100 p-5 text-center text-sm font-black text-emerald-700">لا توجد مخاطر ضمن الفلتر الحالي.</div>
+                    <div className="md:col-span-2 xl:col-span-3 rounded-2xl bg-emerald-50 border border-emerald-100 p-5 text-center text-sm font-black text-emerald-700">ماكو مخاطر ضمن الفلتر الحالي.</div>
                   )}
                 </div>
                 {filteredRiskSquads.length > RADAR_LIST_PAGE_SIZE && (

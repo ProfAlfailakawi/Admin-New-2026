@@ -178,7 +178,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
   useEffect(() => {
     const showMessageAndRedirect = (status: 'success' | 'failed', invoiceIdToSearch: string) => {
         if (status === 'success') {
-            setStatusMsg({ title: "اكتملت العملية", sub: "Payment completed successfully", isError: false });
+            setStatusMsg({ title: "تمت العملية", sub: "الدفع تم بنجاح", isError: false });
         } else {
             setStatusMsg({ title: "لم تكتمل العملية", sub: "Payment was not completed, you can try again", isError: true });
         }
@@ -296,13 +296,13 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
                    
                    <div className="flex items-center justify-center gap-3 text-sm text-slate-500 font-bold">
                        <Loader2 size={16} className="animate-spin text-blue-500" />
-                       جاري تحويلك لصفحة التتبع...
+                       بنحوّلك لصفحة التتبع...
                    </div>
                </div>
            ) : (
                <div className="py-6 md:py-12 flex flex-col items-center justify-center">
                   <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-emerald-500 border-t-transparent flex items-center justify-center rounded-full animate-spin mb-4" />
-                  <p className="font-bold text-slate-500">جاري تأكيد عملية الدفع...</p>
+                  <p className="font-bold text-slate-500">نتأكد من عملية الدفع...</p>
                </div>
            )}
        </div>
@@ -1451,7 +1451,7 @@ const MainApp: React.FC = () => {
       addToast("تمت المزامنة ✨", "تم حفظ كافة البيانات في السحابة بنجاح.", "success");
     } catch (err) {
       console.error(err);
-      addToast("خطأ في المزامنة", "لم نتمكن من حفظ البيانات حالياً. قد يكون حجم البيانات كبير جداً.", "warning");
+      addToast("المزامنة تعثرت", "ما قدرنا نحفظ البيانات الحين. يمكن حجم البيانات كبير.", "warning");
     } finally {
       setDataLoading(false);
     }
@@ -1737,7 +1737,7 @@ const MainApp: React.FC = () => {
            }
         }
         if (error.code === 'permission-denied' && user) {
-          setAuthError(`عذراً، ليس لديك صلاحية الوصول إلى البيانات. يرجى التأكد من أن حسابك مصرح له.\nالبريد: ${user.email}`);
+          setAuthError(`المعذرة، حسابك ما عنده صلاحية للوصول للبيانات. تأكد إن الحساب مصرح له.\nالبريد: ${user.email}`);
         }
         setDataLoading(false);
       });
@@ -1782,7 +1782,7 @@ const MainApp: React.FC = () => {
           
         } catch (e) {
           if (!String(e).includes("Missing or insufficient permissions") && !String(e).includes("PERMISSION_DENIED")) console.error("Firestore auto-save error", e);
-          toast.error("حدث خطأ أثناء الحفظ التلقائي للسحابة. قد يكون حجم البيانات تجاوز 1 ميجابايت.");
+          toast.error("تعطل الحفظ التلقائي للسحابة. يمكن حجم البيانات تعدى 1 ميجابايت.");
         }
       }
     }, 1000); // 1 second debounce to prevent extreme UI lag on every keystroke
@@ -1862,7 +1862,7 @@ const MainApp: React.FC = () => {
     return (
       <div className="h-[100dvh] w-full flex flex-col items-center justify-center bg-slate-50 gap-4 arabic-font">
         <Loader2 className="animate-spin text-primary" size={48} />
-        <p className="text-slate-500 font-bold">جاري التحميل طال عمرك...</p>
+        <p className="text-slate-500 font-bold">نحمّل طال عمرك...</p>
       </div>
     );
   }
@@ -1875,7 +1875,7 @@ const MainApp: React.FC = () => {
               <div className="w-12 h-12 md:w-16 md:h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
                   <ShieldAlert size={32} />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-3">عذراً!</h2>
+              <h2 className="text-2xl font-bold text-slate-800 mb-3">المعذرة!</h2>
               <p className="text-red-600 font-bold leading-relaxed mb-8 break-words">{authError}</p>
               <button 
                 onClick={() => setAuthError(null)}
@@ -2530,7 +2530,7 @@ const MainApp: React.FC = () => {
                           <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
                             <Bell size={28} className="text-slate-200" />
                           </div>
-                          <div className="font-bold text-slate-500">لا توجد تنبيهات</div>
+                          <div className="font-bold text-slate-500">ماكو تنبيهات</div>
                           <div className="text-[11px] text-slate-300 mt-1">سيظهر هنا كل جديد يخص المطعم</div>
                         </div>
                       )}
@@ -2616,7 +2616,7 @@ const MainApp: React.FC = () => {
               }}
               className="w-full min-h-full relative z-10 px-4 md:px-6"
             >
-              <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /><p className="text-slate-500 text-sm font-bold animate-pulse">جاري التحميل...</p></div>}>
+              <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /><p className="text-slate-500 text-sm font-bold animate-pulse">نحمّل...</p></div>}>
                  {userRole === 'partner' ? renderAppContent() : (
                   <AdminExperienceFrame page={currentPage} data={data} onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }}>
                     {renderAppContent()}
@@ -2673,7 +2673,7 @@ const MainApp: React.FC = () => {
                 <Bot className="text-indigo-600" size={24} />
                 <Sparkles className="absolute -top-2 -right-2 text-amber-500 animate-pulse" size={12} />
               </div>
-              <span className="font-bold text-slate-800 text-sm">جاري تحليل البيانات...</span>
+              <span className="font-bold text-slate-800 text-sm">نحلل البيانات...</span>
             </div>
           </motion.div>
         )}

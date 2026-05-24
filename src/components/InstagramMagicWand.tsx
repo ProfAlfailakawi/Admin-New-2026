@@ -28,7 +28,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  setMessages(msgs);
  playSwoosh();
  } catch (error) {
- toast.error('عذراً، تعذر توليد الرسائل حالياً');
+ toast.error('المعذرة، ما قدرنا نولّد الرسائل الحين');
  } finally {
  setIsGenerating(false);
  }
@@ -173,7 +173,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  </div>
  </div>
  <div className="text-center space-y-2">
- <h4 className="text-lg font-bold text-slate-800">جاري الابتكار...</h4>
+ <h4 className="text-lg font-bold text-slate-800">نبتكر...</h4>
  <p className="text-xs font-bold text-slate-500">محرك الإبداع الذكي يكتب لك الآن</p>
  </div>
  </div>

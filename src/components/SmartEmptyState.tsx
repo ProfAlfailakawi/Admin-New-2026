@@ -22,7 +22,7 @@ const quotes = [
 const SmartEmptyState: React.FC<Props> = ({ 
     icon = <Coffee className="w-12 h-12 text-slate-300" />, 
     title, 
-    subtitle = "لا توجد بيانات حالياً في هذا القسم", 
+    subtitle = "ماكو بيانات حالياً في هذا القسم", 
     actionLabel, 
     onAction,
     className

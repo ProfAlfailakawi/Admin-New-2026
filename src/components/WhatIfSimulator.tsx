@@ -35,8 +35,8 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  return (
  <div className="flex flex-col items-center justify-center p-3 md:p-4 bg-slate-950 rounded-3xl border border-slate-800 text-center">
  <AlertCircle className="text-slate-600 mb-4" size={48} />
- <h3 className="text-xl font-bold text-white mb-2">لا توجد أصناف متاحة</h3>
- <p className="text-slate-500 font-bold mb-6 text-sm max-w-sm">لإجراء محاكاة"ماذا لو" أو إنشاء حملة تسويقية بالذكاء الاصطناعي، يرجى إضافة بعض الأصناف إلى المتجر أولاً.</p>
+ <h3 className="text-xl font-bold text-white mb-2">ماكو أصناف متاحة</h3>
+ <p className="text-slate-500 font-bold mb-6 text-sm max-w-sm">عشان نسوي محاكاة "ماذا لو" أو حملة بالذكاء الاصطناعي، أضف كم صنف للمتجر أول.</p>
  </div>
 );
  }
@@ -44,7 +44,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  const generateCampaign = async () => {
  if (data.invoices.length < 2) {
  toast.error("بيانات غير كافية", { 
- description:"لا توجد بيانات كافية لإنشاء حملة دقيقة. نحتاج لـ 5 فواتير على الأقل." 
+ description:"ماكو بيانات كافية لحملة دقيقة. نحتاج 5 فواتير على الأقل." 
  });
  return;
  }
@@ -100,12 +100,12 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  const errStr = String(error?.message || error);
  if (errStr.includes("429") || errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("depleted")) {
  toast.error("نفدت نقاط الذكاء الاصطناعي", {
- description:"يرجى تجديد الباقة للاستمرار في استخدام ميزات الذكاء الاصطناعي."
+ description:"جدّد الباقة عشان تكمل تستخدم ميزات الذكاء الاصطناعي."
  });
  } else {
  console.error("Campaign generation failed:", error);
- toast.error("فشل إنشاء الحملة", { 
- description:"خدمة الذكاء الاصطناعي مشغولة جداً حالياً. يرجى المحاولة بعد قليل." 
+ toast.error("ما قدرنا ننشئ الحملة", { 
+ description:"خدمة الذكاء الاصطناعي مشغولة الحين. جرّب بعد شوي." 
  });
  }
  } finally {
@@ -123,7 +123,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
 
  const handleExecute = () => {
  if (!onUpdateData) {
- toast.error("حدث خطأ", { description:"محرك التحديث غير متاح حالياً." });
+ toast.error("صار خلل", { description:"محرك التحديث مو متاح الحين." });
  return;
  }
 
@@ -330,7 +330,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  className="w-full bg-slate-900 text-white p-3 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50 min-h-[44px]"
  >
  {isGenerating ? <RefreshCw size={20} className="animate-spin" /> : <Megaphone size={20} />}
- {isGenerating ? 'جاري تحليل البيانات...' : 'إنشاء خطة الحملة بالذكاء الاصطناعي'}
+ {isGenerating ? 'نحلل البيانات...' : 'إنشاء خطة الحملة بالذكاء الاصطناعي'}
  </button>
 )}
  </div>
@@ -356,7 +356,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  className="bg-indigo-600 text-white px-4 md:px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-base hover:bg-indigo-500 hover:shadow-lg hover:shadow-indigo-500/30 transition-all disabled:opacity-50 active:scale-95 flex items-center gap-3 relative z-10 min-h-[44px]"
  >
  {isGenerating ? <RefreshCw className="animate-spin" /> : <Sparkles />}
- {isGenerating ? 'جاري بناء الخطة والإعلانات...' : 'ابنِ الخطة الآن بضغطة زر 🚀'}
+ {isGenerating ? 'نبني الخطة والإعلانات...' : 'ابنِ الخطة الآن بضغطة زر 🚀'}
  </button>
  </>
 ) : (
@@ -388,7 +388,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
   <button onClick={() => { navigator.clipboard.writeText(campaignPlan.marketingMessage || campaignPlan.message || ''); toast.success('تم النسخ بنجاح'); }} className="text-slate-500 hover:text-white bg-slate-800 hover:bg-emerald-600 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold transition-all"><Copy size={14} /> نسخ</button>
  </div>
  <div className="bg-slate-950 p-3 rounded-xl text-xs sm:text-sm font-bold text-slate-300 border border-emerald-500/20 leading-relaxed overflow-x-hidden break-words whitespace-pre-wrap">
- {campaignPlan.marketingMessage || campaignPlan.message || 'جاري صياغة الرسالة... أو يرجى المحاولة مرة أخرى.'}
+ {campaignPlan.marketingMessage || campaignPlan.message || 'نصيغ الرسالة... أو جرّب مرة ثانية.'}
  </div>
  </div>
  <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">
@@ -407,7 +407,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  disabled={isExecuting}
  className="w-full md:w-auto bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 px-4 md:px-8 py-4 rounded-xl font-bold text-sm hover:bg-emerald-500 hover:text-slate-900 transition-all active:scale-95 disabled:opacity-50 min-h-[44px]"
  >
- {isExecuting ? 'جاري التنفيذ...' : 'موافق، قم بتسجيل الحملة في خططي 🚀'}
+ {isExecuting ? 'ننفذ...' : 'موافق، سجّل الحملة في خططي 🚀'}
  </button>
  </div>
  </div>
@@ -484,7 +484,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
 )}
  >
  {isExecuting ? <RefreshCw className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
- {isExecuting ? 'جاري تنفيذ و حفظ القرار...' : (isPositive ? 'تأكيد وحفظ التعديل الرابح 👍' : 'تنفيذ التعديل بالرغم من المخاطرة ⚠️')}
+ {isExecuting ? 'ننفذ ونحفظ القرار...' : (isPositive ? 'تأكيد وحفظ التعديل الرابح 👍' : 'تنفيذ التعديل بالرغم من المخاطرة ⚠️')}
  </button>
  </div>
  </div>
@@ -494,4 +494,3 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  </div>
 );
 };
-

@@ -218,7 +218,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <div className="absolute inset-0 bg-primary/10 rounded-3xl animate-ping opacity-20" />
  <Wallet size={48} />
  </div>
- <h3 className="text-xl md:text-3xl font-bold text-slate-800 mb-3 tracking-tight">لا توجد مصاريف!</h3>
+ <h3 className="text-xl md:text-3xl font-bold text-slate-800 mb-3 tracking-tight">ماكو مصاريف!</h3>
  <p className="text-slate-500 font-bold mb-8 leading-relaxed">لم تسجل أي مصروفات حتى الآن. أضف أول مصروف لتبدأ بتتبع تدفقاتك النقدية بدقة.</p>
  <button 
  onClick={() => { setShowModal(true); }} 

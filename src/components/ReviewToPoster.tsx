@@ -67,7 +67,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
         recordStudioTasteChoice({ theme: review.slice(0, 60), format: selectedFormat, label: 'مدح سينمائي', source: 'review-tab' });
       }
     } catch (e) {
-      toast.error("فشل التوليد");
+      toast.error("التوليد ما ضبط");
     } finally {
       setLoading(false);
     }
@@ -129,7 +129,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
               className="bg-purple-600 text-white px-8 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-purple-700 transition-colors w-full md:w-auto shadow-lg shadow-purple-200"
             >
               {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Star className="w-5 h-5" />}
-              {loading ? "جاري إنتاج البوستر..." : "حوّل إلى بوستر كويتي"}
+              {loading ? "ننتج البوستر..." : "حوّل إلى بوستر كويتي"}
             </button>
           </div>
         </div>
@@ -181,7 +181,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
         {loading && (
           <div className="text-center p-6 w-full flex flex-col items-center z-20">
             <Loader2 className="text-purple-400 w-12 h-12 mb-4 animate-spin" />
-            <p className="font-bold text-white">جاري تحليل التعليق وتصميم البوستر...</p>
+            <p className="font-bold text-white">نحلل التعليق ونصمم البوستر...</p>
           </div>
         )}
 

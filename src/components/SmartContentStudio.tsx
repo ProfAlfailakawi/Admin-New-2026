@@ -96,7 +96,7 @@ class StudioErrorBoundary extends React.Component<{ title: string; children: Rea
   return (
         <div className="rounded-3xl border border-rose-100 bg-rose-50/80 p-8 text-right shadow-sm">
           <h3 className="text-lg font-black text-rose-700 mb-2">ما قدرنا نفتح {this.props.title}</h3>
-          <p className="text-sm font-bold text-rose-600/80 leading-7">تم منع الشاشة البيضاء. حدّث الصفحة أو جرّب مرة ثانية، وإذا تكرر الخطأ راجع بيانات هذا القسم.</p>
+          <p className="text-sm font-bold text-rose-600/80 leading-7">منعنا الشاشة البيضاء. حدّث الصفحة أو جرّب مرة ثانية، وإذا تكرر الخطأ راجع بيانات هذا القسم.</p>
           {this.state.message && <p className="mt-3 text-xs text-rose-500 bg-white/70 rounded-2xl p-3 direction-ltr text-left">{this.state.message}</p>}
         </div>
       );
@@ -568,7 +568,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       if (err.message === 'KEY_REQUIRED') {
         alert("توليد الصور يحتاج مفتاح Gemini مدفوع ومفعّل من الإعدادات.");
       } else {
-        alert("التوليد تعطل: " + err.message + ". تأكد من المفتاح والإنترنت.");
+        alert("التوليد تعطل: " + err.message + ". تأكد من المفتاح والنت.");
       }
     } finally {
       setIsGenerating(false);
@@ -727,7 +727,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     if (item.background) setBackgroundPreset(item.background);
     markStudioBackgroundUsed(item);
     refreshStudioLearning();
-    toast.success('تم اختيار لقطة من مكتبتك — النظام تعلم هذا الذوق');
+      toast.success('اخترت لقطة من مكتبتك — النظام تعلم هذا الذوق');
   };
 
   const handleDownload = () => {
@@ -1351,7 +1351,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           <div className="rounded-[2.2rem] bg-slate-950 p-3 shadow-2xl border border-slate-900 min-h-[620px] flex items-center justify-center relative overflow-hidden">
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
             {!generatedReel && !isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-5xl shadow-2xl"><Film size={46} /></div><h3 className="text-3xl font-black mb-3">معاينة الريل تظهر هنا</h3><p className="text-sm font-bold text-white/55 leading-7">ريل عمودي واقعي · {reelDuration} ثواني</p></div>}
-            {isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">جاري توليد ريل واقعي...</p><p className="mt-3 text-xs font-bold text-white/45">نثبت الطعام ونحرك الكاميرا فقط</p></div>}
+            {isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نولّد ريل واقعي...</p><p className="mt-3 text-xs font-bold text-white/45">نثبت الطعام ونحرك الكاميرا فقط</p></div>}
             {generatedReel && !isGeneratingReel && <div className="relative z-10 w-full max-w-[380px] space-y-4"><button type="button" onClick={() => setShowReelSettings((v) => !v)} className="w-full aspect-[9/16] rounded-[1.8rem] overflow-hidden bg-black border border-white/10 shadow-2xl relative group"><video src={generatedReel} className="w-full h-full object-contain bg-black" controls playsInline /><span className="absolute bottom-4 right-4 rounded-2xl bg-white/90 px-3 py-2 text-[10px] font-black text-slate-700 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">الإعدادات</span></button>{showReelSettings && <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white"><div className="flex items-center justify-between gap-3 mb-3"><div><p className="text-xs font-black text-white/75">إعدادات هذا الريل</p><p className="text-[11px] font-bold text-white/45 mt-1">انسخها وكرر نفس الحركة لاحقاً.</p></div><button type="button" onClick={() => copyReelSettings()} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-xs font-black flex items-center gap-1"><Copy size={14} /> نسخ</button></div><pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans">{buildReelSettingsText()}</pre></div>}<div className="flex items-center justify-center gap-2"><button onClick={downloadReel} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-violet-500 text-white flex items-center justify-center"><Download size={18} /></button><button type="button" onClick={() => copyReelSettings()} title="نسخ الإعدادات" aria-label="نسخ الإعدادات" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Copy size={18} /></button><button type="button" onClick={() => { setGeneratedReel(null); setReelStep(4); }} title="إعادة بنفس الأسلوب" aria-label="إعادة بنفس الأسلوب" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><RotateCcw size={18} /></button></div></div>}
           </div>
         </div>
@@ -1472,7 +1472,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 <p className="text-sm font-bold text-white/55 leading-7">{activePulsePack.label} · {KUWAIT_PLACES[selectedOrderPlace]?.label}</p>
               </div>
             )}
-            {isGenerating && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">جاري تجهيز صورة واقعية...</p></div>}
+            {isGenerating && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نجهز صورة واقعية...</p></div>}
             {generatedImage && !isGenerating && (
               <div className="relative z-10 w-full space-y-4">
                 <button type="button" onClick={() => setShowImageSettings((v) => !v)} className={cn("w-full rounded-[1.6rem] overflow-hidden bg-white/5 border border-white/10 relative group", previewAspectClass)}>
@@ -1661,7 +1661,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                         </div>
                         <div className="min-w-0">
                           <p className="text-[11px] font-black text-emerald-700">
-                            {isSuggestingScene ? 'جاري اختيار أنسب مشهد...' : `اعتمدنا ${KUWAIT_PLACES[sceneSuggestion?.place || 'delivery']?.label}`}
+                            {isSuggestingScene ? 'نختار أنسب مشهد...' : `اعتمدنا ${KUWAIT_PLACES[sceneSuggestion?.place || 'delivery']?.label}`}
                           </p>
                           <p className="mt-1 text-[11px] font-bold text-emerald-900/70 leading-5">
                             {isSuggestingScene
@@ -1684,7 +1684,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }} transition={{ duration: 2, repeat: Infinity }} className="relative z-10"><Sparkles className="w-12 h-12 text-white" /></motion.div>
                     <motion.div animate={{ scale: [1, 2], opacity: [0.5, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute inset-0 bg-indigo-500 rounded-3xl" />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-800 mb-6">جاري تجهيز صورة واقعية...</h3>
+                  <h3 className="text-2xl font-black text-slate-800 mb-6">نجهز صورة واقعية...</h3>
                   <div className="max-w-xs mx-auto space-y-4">
                     {["فهم تفاصيل الصورة الأصلية...", "بناء المشهد المناسب...", "ضبط الظلال والإضاءة...", "تنظيف التفاصيل المزعجة..."].map((step, idx) => (
                       <motion.div key={idx} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 1.5 }} className="flex items-center gap-3 text-right">

@@ -93,23 +93,23 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
         return;
       }
       if (errString.includes('unauthorized-domain')) {
-        setError('هذا النطاق غير مصرح له بتسجيل الدخول. يرجى إضافة النطاق الحالي إلى قائمة النطاقات المصرح بها في إعدادات Firebase Auth.');
+        setError('هذا النطاق مو مصرح له بتسجيل الدخول. أضف النطاق الحالي لقائمة النطاقات المصرح بها في Firebase Auth.');
         return;
       }
       if (errString.includes('popup-blocked')) {
-        setError('تم فتح النافذة في وضع مقيد. يرجى الضغط على زر "Open in new tab" في أعلى اليمين (AI Studio)، أو السماح بالنوافذ المنبثقة.');
+        setError('النافذة مفتوحة بوضع مقيّد. اضغط "Open in new tab" فوق باليمين أو اسمح بالنوافذ المنبثقة.');
         return;
       }
       if (errString.includes('network-request-failed')) {
-        setError('فشل الاتصال بخوادم الدخول. يرجى التأكد من اتصالك بالإنترنت وإيقاف أي برامج حظر الإعلانات (Ad-blocker).');
+        setError('ما قدرنا نوصل لخوادم الدخول. تأكد من النت ووقف أي مانع إعلانات إذا موجود.');
         return;
       }
       if (errString.includes('internal-error')) {
-        setError('حدث خطأ داخلي في نظام الدخول. 1- يرجى التأكد من تحديد (Support Email) في إعدادات Firebase 2- افتح التطبيق في نافذة جديدة (Open in new tab).');
+        setError('صار خلل داخلي في الدخول. 1- تأكد من Support Email في Firebase 2- افتح التطبيق بنافذة جديدة.');
         return;
       }
       console.error('Login error:', err);
-      setError(`فشل تسجيل الدخول. الخطأ: ${err.message || String(err)}`);
+      setError(`تسجيل الدخول ما ضبط. الخطأ: ${err.message || String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -143,13 +143,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
         <section className="login-form-stage login-form-stage-cloud-first">
           {localStorage.getItem('appMode') === 'cloud' && (
             <div className="login-cloud-note">
-              لقد استخدمت التخزين السحابي مؤخراً. يرجى تسجيل الدخول بـ Google للوصول لبياناتك.
+              استخدمت التخزين السحابي قريب. سجل دخول بـ Google عشان توصل لبياناتك.
             </div>
           )}
 
           <button onClick={handleGoogleLogin} disabled={loading} className="login-google-btn" type="button">
             <Chrome size={20} />
-            <span>{loading ? 'جاري التحميل...' : 'تسجيل الدخول السحابي Google'}</span>
+            <span>{loading ? 'نحمّل...' : 'تسجيل الدخول السحابي Google'}</span>
           </button>
 
           <button type="button" onClick={() => setShowLocalLogin(true)} className="login-local-link-btn">
@@ -197,7 +197,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
                   <span>اسم المستخدم</span>
                   <div>
                     <User size={18} />
-                    <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="أدخل اسم المستخدم" required />
+                    <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="اكتب اسم المستخدم" required />
                   </div>
                 </label>
                 <label className="login-field">

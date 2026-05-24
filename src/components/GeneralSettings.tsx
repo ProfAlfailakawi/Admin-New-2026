@@ -106,7 +106,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  const handleLoadDemo = () => {
  if (appMode === 'cloud') {
- addToast("إجراء مرفوض","لا يمكن تحميل البيانات التجريبية الفرضية أثناء التزامن السحابي لتجنب اختلاطها ببيانات السحابة الحقيقية.","warning");
+ addToast("الإجراء مرفوض","ما يصير نحمّل البيانات التجريبية أثناء التزامن السحابي عشان ما تختلط مع بيانات السحابة الحقيقية.","warning");
  return;
  }
  const demo = GET_DEMO_DATA();
@@ -482,13 +482,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  addToast('تمت العملية', 'تم استيراد بيانات Excel ومزامنة الأرصدة بنجاح', 'success');
  } catch (renderError) {
  console.error("CRITICAL RENDER ERROR during import:", renderError);
- addToast('خطأ فادح في العرض', 'تم استيراد البيانات ولكن فشل التطبيق في عرضها.', 'warning');
+ addToast('خلل في العرض', 'استوردنا البيانات بس التطبيق ما قدر يعرضها.', 'warning');
  }
  }, 150);
  }
  } catch (error) {
  console.error("Import error:", error);
- addToast('خطأ', 'فشل في قراءة الملف أو تنسيق غير صالح: ' + (error instanceof Error ? error.message : ''), 'warning');
+ addToast('خطأ', 'ما قدرنا نقرأ الملف أو التنسيق مو صحيح: ' + (error instanceof Error ? error.message : ''), 'warning');
  }
  };
 
@@ -541,7 +541,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  toast.success("تم رفع وتقليل حجم الشعار بنجاح ✅");
  } catch (err) {
  console.error("Logo process error:", err);
- toast.error("خطأ في معالجة أبعاد الشعار");
+ toast.error("تعطلت معالجة أبعاد الشعار");
  }
  };
  if (event.target?.result) {
@@ -848,7 +848,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 ))}
  {(data.zones || []).length === 0 && (
  <tr key="empty-state">
- <td colSpan={5} className="p-3 md:p-4 text-center text-slate-500 font-bold text-xs">لا يوجد مناطق، الرجاء إضافة منطقة أو استعادة البيانات.</td>
+ <td colSpan={5} className="p-3 md:p-4 text-center text-slate-500 font-bold text-xs">ماكو مناطق، أضف منطقة أو استرجع البيانات.</td>
  </tr>
 )}
  </tbody>
@@ -908,7 +908,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  onChange={e => setSettings(p => ({ ...p, storeStatus: { ...p.storeStatus!, closeMessage: e.target.value } }))}
  
  className="disabled:opacity-50 w-full bg-slate-50 border border-slate-200/60 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold"
- placeholder="رسالة تظهر للعميل بدلاً من المتجر. مثال: عذراً المتجر مغلق، نعود قريباً."
+ placeholder="رسالة تظهر للعميل بدل المتجر. مثال: المعذرة المتجر مسكر، نرجع قريب."
  rows={2}
  />
  </div>

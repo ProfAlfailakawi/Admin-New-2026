@@ -59,7 +59,7 @@ export default function TrackPage() {
     if (paymentStatus === 'success') {
       toast.success('تمت عملية الدفع بنجاح');
     } else if (paymentStatus === 'failed') {
-      toast.error('فشلت عملية الدفع، يمكنك إعادة المحاولة');
+      toast.error('الدفع ما ضبط، تقدر تجرب مرة ثانية');
     }
 
     // Clear query params purely for UI aesthetics without reloading
@@ -194,7 +194,7 @@ export default function TrackPage() {
  }
  } catch(err) {
  console.error(err);
- toast.error('حدث خطأ أثناء البحث');
+ toast.error('تعطل البحث');
  } finally {
  setLoading(false);
  }
@@ -209,11 +209,11 @@ export default function TrackPage() {
  </div>
  
  <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">تتبع الطلب</h1>
- <p className="text-slate-500 text-center text-sm mb-8">أدخل رقم الهاتف المسجل أو رقم الطلب لتتبع الحالة والمسار</p>
+ <p className="text-slate-500 text-center text-sm mb-8">اكتب رقم التلفون المسجل أو رقم الطلب عشان تتابع الحالة</p>
  
  <form onSubmit={handleSearch} className="space-y-4">
  <div>
- <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">رقم الهاتف أو الفاتورة</label>
+ <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">رقم التلفون أو الفاتورة</label>
  <input
  type="text"
  value={phoneNumber}
@@ -234,7 +234,7 @@ export default function TrackPage() {
 )}
  >
  {loading ? (
- <span className="animate-pulse">جاري البحث...</span>
+ <span className="animate-pulse">ندور...</span>
 ) : (
  <>
  <span>البحث عن الطلب</span>
@@ -248,8 +248,8 @@ export default function TrackPage() {
  <div className="mt-8 space-y-4">
  {orders.length === 0 ? (
  <div className="bg-slate-50 border border-slate-100 p-3 md:p-4 rounded-2xl text-center">
- <h3 className="font-bold text-slate-800 mb-2">لا توجد طلبات نشطة</h3>
- <p className="text-xs text-slate-500">لم يتم العثور على طلبات حالية مسجلة برقم الهاتف الذي تم إدخاله.</p>
+ <h3 className="font-bold text-slate-800 mb-2">ماكو طلبات نشطة</h3>
+ <p className="text-xs text-slate-500">ما لقينا طلبات حالية على رقم التلفون اللي دخلته.</p>
  </div>
 ) : (
  orders.map((order: any) => {
@@ -292,7 +292,7 @@ export default function TrackPage() {
  </div>
 ))
 ) : (
- <div className="text-sm text-slate-500 text-center py-2">لا توجد تفاصيل المنتجات</div>
+ <div className="text-sm text-slate-500 text-center py-2">ماكو تفاصيل للمنتجات</div>
 )}
  </div>
 
