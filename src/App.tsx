@@ -2096,6 +2096,9 @@ const MainApp: React.FC = () => {
   };
 
   const showExecutiveFloatingTools = currentPage === 'dashboard';
+  const floatingToolRole = appMode === 'local' ? 'local' : userRole;
+  const showInstagramFloatingTool = (floatingToolRole === 'partner' && currentPage === 'dashboard') || ((floatingToolRole === 'admin' || floatingToolRole === 'local') && showExecutiveFloatingTools);
+  const showSecondFloatingTools = (floatingToolRole === 'admin' || floatingToolRole === 'local') && showExecutiveFloatingTools;
 
   return (
     <div className="admin-heritage-shell flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font" dir="rtl">
@@ -2681,7 +2684,7 @@ const MainApp: React.FC = () => {
 
       {/* --- MOBILE QUICK NAVIGATION TRIGGER --- */}
       <AnimatePresence>
-        {isMobile && userRole !== 'partner' && !commandBarOpen && showExecutiveFloatingTools && (
+        {isMobile && !commandBarOpen && showSecondFloatingTools && (
           <motion.div
             initial={{ opacity: 0, y: 100, scale: 0.5 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -2710,7 +2713,7 @@ const MainApp: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {(isAuthenticated || appMode === 'local') && showExecutiveFloatingTools && <InstagramMagicWand data={data} currentPage={currentPage} userRole={appMode === 'local' ? 'local' : userRole} />}
+      {(isAuthenticated || appMode === 'local') && showInstagramFloatingTool && <InstagramMagicWand data={data} currentPage={currentPage} userRole={floatingToolRole} />}
       <Toaster richColors position="bottom-right" closeButton />
       
 

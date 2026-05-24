@@ -13,19 +13,19 @@ interface InstagramMagicWandProps {
  userRole?: 'admin' | 'partner' | 'local' | null;
 }
 
-type Category = 'motivation' | 'engagement' | 'promo';
+type Category = 'motivation' | 'engagement' | 'promo' | 'contest';
 
 export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, currentPage = 'dashboard', userRole = 'admin' }) => {
  const [isOpen, setIsOpen] = useState(false);
- const [activeCategory, setActiveCategory] = useState<Category>('engagement');
+ const [activeCategory, setActiveCategory] = useState<Category>('contest');
  const [messages, setMessages] = useState<string[]>([]);
  const [isGenerating, setIsGenerating] = useState(false);
  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
- const fetchMessages = async (cat: Category = activeCategory) => {
+ const fetchMessages = async (cat: Category = activeCategory, forceRefresh = false) => {
  setIsGenerating(true);
  try {
- const msgs = await generateQuickInstagramMessages(data, cat);
+ const msgs = await generateQuickInstagramMessages(data, cat, forceRefresh);
  setMessages(msgs);
  playSwoosh();
  } catch (error) {
@@ -124,19 +124,32 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  </div>
 
  {/* Tabs */}
- <div className="flex p-3 bg-slate-50 border-b border-black/5 gap-3">
- {(['motivation', 'engagement', 'promo'] as Category[]).map((cat) => (
+ <div className="p-3 bg-slate-50 border-b border-black/5 space-y-3">
+ <button
+ onClick={() => { setActiveCategory('contest'); fetchMessages('contest', true); }}
+ className={cn(
+ "w-full py-4 px-4 rounded-3xl text-sm font-black border-2 transition-all active:scale-95 flex items-center justify-center gap-2",
+ activeCategory === 'contest'
+ ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-transparent shadow-xl shadow-emerald-500/30"
+ : "bg-white text-emerald-700 border-emerald-100 shadow-sm"
+ )}
+ >
+ 🏆 مسابقات إنستغرام بدون خسارة
+ </button>
+ <div className="grid grid-cols-3 gap-3">
+ {(['engagement', 'motivation', 'promo'] as Category[]).map((cat) => (
  <button
  key={cat}
  onClick={() => {
  setActiveCategory(cat);
- fetchMessages(cat);
+ fetchMessages(cat, true);
  }}
  className={cn(
 "flex-1 py-3 text-[11px] font-bold rounded-2xl transition-all duration-500 active:scale-90 border-2",
  activeCategory === cat 
  ? cn(
 "shadow-xl scale-[1.05] border-transparent text-white",
+ cat === 'contest' ? "bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30" :
  cat === 'motivation' ?"bg-gradient-to-br from-rose-500 to-pink-600 shadow-rose-500/30" :
  cat === 'engagement' ?"bg-gradient-to-br from-indigo-500 to-blue-600 shadow-indigo-500/30" :
 "bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/30"
@@ -144,14 +157,16 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  :"bg-white/80 text-slate-500 border-slate-100 hover:border-slate-200/60"
 )}
  >
- {cat === 'motivation' ? '🚀 إلهام' : cat === 'engagement' ? '💬 تفاعل' : '🎯 ترويج'}
+ {cat === 'contest' ? '🏆 مسابقات' : cat === 'motivation' ? '🚀 إلهام' : cat === 'engagement' ? '💬 تفاعل' : '🎯 ترويج'}
  </button>
 ))}
+ </div>
  </div>
 
  {/* Content Area */}
  <div className={cn(
 "flex-1 overflow-y-auto p-3 md:p-4 space-y-6 custom-scrollbar transition-colors duration-1000",
+ activeCategory === 'contest' ? "bg-emerald-50/50" :
  activeCategory === 'motivation' ?"bg-rose-50/50" :
  activeCategory === 'engagement' ?"bg-indigo-50/50" :
 "bg-amber-50/50"
@@ -161,6 +176,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  <div className="relative w-24 h-24">
  <div className={cn(
 "absolute inset-0 rounded-full transition-colors duration-1000",
+ activeCategory === 'contest' ? "bg-emerald-400/30" :
  activeCategory === 'motivation' ?"bg-rose-400/30" :
  activeCategory === 'engagement' ?"bg-indigo-400/30" :
 "bg-amber-400/30"
@@ -168,6 +184,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  <div className="absolute inset-0 border-[6px] border-white/50 rounded-2xl" />
  <div className={cn(
 "absolute inset-0 border-[6px] border-t-white rounded-2xl animate-spin",
+ activeCategory === 'contest' ? "border-emerald-500" :
  activeCategory === 'motivation' ?"border-rose-500" :
  activeCategory === 'engagement' ?"border-indigo-500" :
 "border-amber-500"
@@ -186,7 +203,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  <div className="flex justify-between items-center px-2">
  <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">أفكار حصرية</h5>
  <button 
- onClick={() => fetchMessages()}
+ onClick={() => fetchMessages(activeCategory, true)}
  className="text-slate-500 hover:text-slate-800 flex items-center gap-1.5 text-[10px] font-bold transition-all active:scale-95"
  >
  <RefreshCw size={12} /> تحديث المقترحات
@@ -204,6 +221,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  >
  <div className={cn(
 "absolute top-0 right-0 w-32 h-32 opacity-10 rounded-bl-[100px] transition-all duration-700",
+ activeCategory === 'contest' ? "bg-emerald-400" :
  activeCategory === 'motivation' ?"bg-rose-400" :
  activeCategory === 'engagement' ?"bg-indigo-400" :
 "bg-amber-400"
@@ -213,6 +231,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  <div className="flex items-center justify-between flex-row-reverse">
  <div className={cn(
 "w-14 h-14 rounded-3xl flex items-center justify-center text-white shadow-xl transition-all duration-500 group-hover:rotate-12",
+ activeCategory === 'contest' ? "bg-gradient-to-br from-emerald-400 to-teal-600 shadow-emerald-500/20" :
  activeCategory === 'motivation' ?"bg-gradient-to-br from-rose-400 to-pink-600 shadow-rose-500/20" :
  activeCategory === 'engagement' ?"bg-gradient-to-br from-indigo-400 to-blue-600 shadow-indigo-500/20" :
 "bg-gradient-to-br from-amber-400 to-orange-600 shadow-amber-500/20"
@@ -284,6 +303,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  <div className="aspect-square bg-slate-950 flex items-center justify-center relative overflow-hidden group">
  <div className={cn(
 "absolute inset-0 opacity-30 mix-blend-overlay transition-colors duration-1000",
+ activeCategory === 'contest' ? "bg-emerald-500" :
  activeCategory === 'motivation' ?"bg-rose-500" :
  activeCategory === 'engagement' ?"bg-indigo-500" :
 "bg-amber-500"
@@ -330,8 +350,8 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  {/* Footer */}
  <div className="p-3 md:p-4 border-t border-slate-100 bg-slate-50">
  <p className="text-[10px] text-center font-bold text-slate-500 leading-relaxed">
- استخدم هذه الرسائل لإلهام متابعينك في انستغرام. <br/>
- هذه الخدمة تعمل بالذكاء الاصطناعي حصرياً لتراث بي.
+ استخدم هذه الرسائل والمسابقات لرفع التفاعل بدون خصومات مؤذية أو خسارة. <br/>
+ المسابقات تُنوّع تلقائياً وتراعي التكلفة، والنصوص جاهزة للنسخ.
  </p>
  </div>
  </motion.div>

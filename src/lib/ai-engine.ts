@@ -57,9 +57,118 @@ function generateStateHash(data: AppState): string {
 /**
  * Generate Quick Instagram Engagement Messages
  */
-export async function generateQuickInstagramMessages(data: AppState, category: 'motivation' | 'engagement' | 'promo') {
+
+export async function generateQuickInstagramMessages(data: AppState, category: 'motivation' | 'engagement' | 'promo' | 'contest', forceRefresh = false) {
+  if (category === 'contest') {
+    const products = (data?.products || []).filter((p: any) => !p.isDeleted);
+    const invoices = (data?.invoices || []).filter((i: any) => !i.isDeleted);
+    const paidInvoices = invoices.filter((inv: any) => isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined);
+    const productStats = products.map((product: any) => {
+      const qty = paidInvoices.reduce((sum: number, inv: any) => {
+        const item = (inv.items || []).find((it: any) => it.productId === product.id || it.productName === product.name || it.name === product.name);
+        return sum + (item ? Number(item.quantity || 0) : 0);
+      }, 0);
+      const margin = Number(product.price || 0) - Number(product.cost || 0);
+      return { name: product.name || product.title || 'منتج من المنيو', qty, margin };
+    }).sort((a: any, b: any) => b.qty - a.qty);
+
+    const topProduct = productStats[0]?.name || products[0]?.name || 'طبقكم المفضل';
+    const hiddenProduct = [...productStats].reverse().find((p: any) => p.name)?.name || products[1]?.name || 'طبق مظلوم من المنيو';
+    const profitableProduct = [...productStats].sort((a: any, b: any) => b.margin - a.margin)[0]?.name || topProduct;
+    const day = new Date().getDay();
+    const weekend = day === 4 || day === 5 || day === 6;
+    const themes = weekend ? ['اليمعة', 'الديوانية', 'طلبات الويكند', 'قعدة الأهل'] : ['مزاج اليوم', 'سؤال سريع', 'تحدي خفيف', 'تصويت المتابعين'];
+    const seed = Date.now() + invoices.length + products.length + (forceRefresh ? Math.floor(Math.random() * 9999) : 0);
+    const rotate = <T,>(arr: T[]) => arr.map((_, i) => arr[(i + seed) % arr.length]);
+
+    const templates = [
+      {
+        title: 'مسابقة اسم الطبق', cost: 'صفر', target: 'تعليقات وإبداع', prize: 'ظهور بالستوري + لقب صاحب الاسم', channel: 'بوست', duration: '24 ساعة',
+        text: `نبي اسم ناطع حق ${hiddenProduct} 👀\nاكتب اقتراحك بالكومنت، وأحلى اسم بننزله بالستوري مع اسم صاحبه.\nالجائزة؟ لقب صاحب الاسم وظهور قدام الكل ✨`
+      },
+      {
+        title: 'توقع الأكثر طلبًا', cost: 'صفر إلى منخفض جدًا', target: 'تعليقات + فضول', prize: '50 نقطة ولاء أو ظهور بالستوري', channel: 'ستوري + بوست نتيجة', duration: 'نهاية اليوم',
+        text: `توقعوا أكثر شي بينطلب اليوم 🔥\nهل بيكون ${topProduct} ولا مفاجأة من المنيو؟\nأقرب إجابة بنحط اسمه بستوري ضيف اليوم.`
+      },
+      {
+        title: 'ركّب طلبك بثلاث كلمات', cost: 'صفر', target: 'تعليقات سريعة', prize: 'أفضل تعليق يظهر بالستوري', channel: 'بوست', duration: '12 ساعة',
+        text: `ركّب طلبك بثلاث كلمات بس 😍\nمثال: خفيف، حار، يبرد الجبد.\nأمتع تعليق بننزله بالستوري الليلة.`
+      },
+      {
+        title: 'هذا ولا هذا', cost: 'صفر', target: 'تفاعل ستوري', prize: 'بدون جائزة مباشرة', channel: 'ستوري تصويت', duration: 'ساعتين',
+        text: `قرار اليوم عندكم 👇\n${topProduct} ولا ${profitableProduct}؟\nصوّتوا، وبالليل نعلن اختيار الجمهور.`
+      },
+      {
+        title: 'خبير المنيو', cost: 'صفر', target: 'حفظ المنيو في الذاكرة', prize: 'لقب خبير المنيو', channel: 'ستوري سؤال', duration: '3 ساعات',
+        text: `اختبار خبير المنيو 😎\nشنو الطبق اللي تحسونه مظلوم ويستاهل شهرة أكثر؟\nأقوى إجابة تاخذ لقب خبير المنيو اليوم.`
+      },
+      {
+        title: 'ديوانية الاختيارات', cost: 'صفر', target: 'مشاركة جماعية', prize: 'إعادة نشر الفائز', channel: 'ستوري', duration: '24 ساعة',
+        text: `لو عندكم ديوانية اليوم، شنو الطلب اللي لازم يكون موجود؟ ☕️\nجاوبونا، وبنختار أجمل ذوق وننزله بستوري ${themes[0]}.`
+      },
+      {
+        title: 'ايموجي المنتج', cost: 'صفر', target: 'تعليقات خفيفة جدًا', prize: 'منشن بالستوري', channel: 'بوست', duration: '6 ساعات',
+        text: `وصفوا ${topProduct} بإيموجي واحد بس 🔥😍🤤\nأقرب إيموجي للمزاج بننزله بستوري اليوم.`
+      },
+      {
+        title: 'اختار الإضافة', cost: 'صفر', target: 'استطلاع رغبة العملاء', prize: 'اسم الفائز في النتيجة', channel: 'ستوري تصويت', duration: 'ساعتين',
+        text: `لو بنضيف لمسة جديدة على ${hiddenProduct}، شنو تختارون؟\n١) صوص خفيف\n٢) لمسة حارة\n٣) قرمشة زيادة\nصوّتوا وخلّوا القرار لكم.`
+      },
+      {
+        title: 'تعليق يكمل الجملة', cost: 'صفر', target: 'كومنتات كثيرة', prize: 'أفضل تكملة بالستوري', channel: 'بوست', duration: '24 ساعة',
+        text: `كمّل الجملة: أحلى طلب عندي لازم يكون فيه ________ 😍\nأطرف وأذكى تكملة بننشرها بالستوري.`
+      },
+      {
+        title: 'لقب الذوّاق', cost: 'منخفض جدًا', target: 'ولاء وعودة للطلب', prize: '75 نقطة ولاء فقط', channel: 'بوست', duration: '24 ساعة',
+        text: `من يستاهل لقب ذوّاق الأسبوع؟ 👑\nمنشن شخص يعرف يختار من المنيو، وبنختار اسم يحصل على 75 نقطة ولاء.`
+      },
+      {
+        title: 'اختيار الجمهور للويكند', cost: 'صفر', target: 'تهيئة مبيعات الويكند', prize: 'إعلان المنتج الفائز فقط', channel: 'ستوري + بوست', duration: 'حتى نهاية اليوم',
+        text: `اختيار الويكند عندكم 🎉\nصوتوا للطبق اللي تبونه نبرزه اليوم: ${topProduct} أو ${hiddenProduct}.\nالفائز بيكون نجم الستوري الليلة.`
+      },
+      {
+        title: 'سر الصورة', cost: 'صفر', target: 'مشاهدات وتعليقات', prize: 'أول إجابة صحيحة تظهر بالستوري', channel: 'ستوري صورة', duration: 'ساعة',
+        text: `بننزل صورة قريبة من منتج... من يعرف شنو هو؟ 👀\nأول إجابة صحيحة بنحط اسمها بالستوري.`
+      },
+      {
+        title: 'صندوق الأسرار', cost: 'صفر', target: 'فضول ومشاركات', prize: 'نشر أفضل تخمين', channel: 'ستوري أسئلة', duration: '4 ساعات',
+        text: `في منتج من المنيو له سر صغير اليوم 👀\nاكتبوا توقعكم: شنو المنتج؟ وليش تحبونه؟ أفضل تخمين بننشره.`
+      },
+      {
+        title: 'معركة الذوق', cost: 'صفر', target: 'تصويتات متكررة', prize: 'المنتج الفائز يصبح نجم الستوري', channel: 'ستوري تصويتات', duration: 'نصف يوم',
+        text: `معركة الذوق بدأت ⚔️\n${topProduct} ضد ${hiddenProduct}... منو يستاهل لقب نجم اليوم؟ صوتكم يقرر.`
+      },
+      {
+        title: 'منشن رفيق الطلب', cost: 'صفر', target: 'وصول لحسابات جديدة', prize: 'منشن ثنائي بالستوري', channel: 'بوست', duration: '24 ساعة',
+        text: `منشن الشخص اللي ما يعرف يطلب إلا معاك 😄\nأحلى ثنائي طلبات بنحطه بستوري اليوم.`
+      },
+      {
+        title: 'تحدي الميزانية', cost: 'صفر', target: 'تعليقات مفيدة للمبيعات', prize: 'لقب أذكى طلب', channel: 'بوست', duration: '24 ساعة',
+        text: `عندك ميزانية بسيطة وذوق كبير؟ ركب أفضل طلب من المنيو وخلنا نشوف شطارتك 😎\nأذكى اختيار بننزله بالستوري.`
+      },
+      {
+        title: 'نجم الديوانية', cost: 'صفر', target: 'ربط المحتوى بالديوانيات', prize: 'لقب نجم الديوانية', channel: 'ستوري', duration: 'الليلة',
+        text: `سؤال الديوانية: شنو الطلب اللي يرضي الكل وما يختلفون عليه؟ ☕️\nأقوى إجابة تاخذ لقب نجم الديوانية الليلة.`
+      },
+      {
+        title: 'صح أو خطأ', cost: 'صفر', target: 'مشاهدات ستوري', prize: 'أول إجابة صحيحة تظهر', channel: 'ستوري كويز', duration: 'ساعة',
+        text: `صح أو خطأ: ${topProduct} هو أكثر منتج عليه كلام اليوم؟ 👀\nجاوبوا، وبنعلن الإجابة بعد شوي.`
+      },
+      {
+        title: 'اختار البوستر', cost: 'صفر', target: 'إحساس المشاركة', prize: 'ذكر أسماء المصوتين', channel: 'ستوري تصويت', duration: '3 ساعات',
+        text: `نختار ستايل إعلان ${profitableProduct} معاكم ✨\nستايل هادي ولا ناري؟ صوتوا والاختيار النهائي منكم.`
+      }
+    ];
+
+    const selected = rotate(templates).slice(0, 5).map((item, index) =>
+      `🏆 ${item.title}\nالتكلفة: ${item.cost}\nالهدف: ${item.target}\nالنشر: ${item.channel} | المدة: ${item.duration}\nالجائزة الآمنة: ${item.prize}\nالنص الجاهز:\n${item.text}`
+    );
+    setCache(`insta-contest-${generateStateHash(data)}`, selected);
+    return selected;
+  }
+
   const cacheKey = `insta-${category}-${generateStateHash(data)}`;
-  const cached = getCached<string[]>(cacheKey);
+  const cached = forceRefresh ? null : getCached<string[]>(cacheKey);
   if (cached) return cached;
   try {
     const key = process.env.GEMINI_API_KEY;
