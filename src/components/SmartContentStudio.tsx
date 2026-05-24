@@ -15,6 +15,7 @@ import { BrandingControls } from './BrandingControls';
 import { REAL_RESTAURANT_BACKGROUNDS, STUDIO_REALITY_MODES, STUDIO_REALITY_NEGATIVE_PROMPT, type StudioBackgroundPresetId, type StudioRealityMode } from '../lib/studioReality';
 import { buildStudioTastePrompt, loadStudioBackgroundLibrary, markStudioBackgroundUsed, recordStudioTasteChoice, saveStudioBackgroundToLibrary, type StudioBackgroundLibraryItem } from '../lib/studioLearning';
 import { KUWAIT_CONTENT_GOALS, KUWAIT_PLACES, KUWAIT_PULSE_PACKS, buildKuwaitCaptionFallback, buildKuwaitStudioTheme, getKuwaitPulsePack, type KuwaitContentGoal, type KuwaitOrderPlace } from '../lib/kuwaitContentPulse';
+import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
 
 interface SmartContentStudioProps {
   data: any;
@@ -82,7 +83,7 @@ class StudioErrorBoundary extends React.Component<{ title: string; children: Rea
   }
 
   static getDerivedStateFromError(error: any) {
-    return { hasError: true, message: error?.message || 'حدث خطأ غير متوقع' };
+    return { hasError: true, message: error?.message || 'صار خلل غير متوقع' };
   }
 
   componentDidCatch(error: any) {
@@ -94,7 +95,7 @@ class StudioErrorBoundary extends React.Component<{ title: string; children: Rea
     
   return (
         <div className="rounded-3xl border border-rose-100 bg-rose-50/80 p-8 text-right shadow-sm">
-          <h3 className="text-lg font-black text-rose-700 mb-2">تعذر فتح {this.props.title}</h3>
+          <h3 className="text-lg font-black text-rose-700 mb-2">ما قدرنا نفتح {this.props.title}</h3>
           <p className="text-sm font-bold text-rose-600/80 leading-7">تم منع الشاشة البيضاء. حدّث الصفحة أو جرّب مرة ثانية، وإذا تكرر الخطأ راجع بيانات هذا القسم.</p>
           {this.state.message && <p className="mt-3 text-xs text-rose-500 bg-white/70 rounded-2xl p-3 direction-ltr text-left">{this.state.message}</p>}
         </div>
@@ -156,7 +157,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   ];
 
   const themes = [
-    { id: 'نبض الكويت', label: 'نبض الكويت', desc: 'مناسبة + مكان + هدف، بأبسط طريق للموظف', icon: '🇰🇼', color: 'bg-rose-100 text-rose-700' },
+    { id: 'نبض الكويت', label: 'نبض الكويت', desc: 'مشهد + بيئة + هدف، بأبسط طريق للموظف', icon: '🇰🇼', color: 'bg-rose-100 text-rose-700' },
     { id: 'بيت', label: 'سفرة بيتية', desc: 'طلب منزلي مرتب وواقعي', icon: '🏠', color: 'bg-amber-100 text-amber-700' },
     { id: 'ديوانية', label: 'ديوانية', desc: 'يمعة ربع وطلب جماعي', icon: '🛋️', color: 'bg-slate-100 text-slate-700' },
     { id: 'شاليه', label: 'شاليه', desc: 'طلعة وويكند بدون زحمة', icon: '🌊', color: 'bg-blue-100 text-blue-700' },
@@ -176,8 +177,11 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
 
   const FORBIDDEN_STUDIO_WORDS = ['دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود', 'سدو', 'فانوس', 'فوانيس', 'قهوة', 'قهوت', 'بن', 'فنجان', 'فناجين', 'كلينكس', 'منديل مستخدم', 'مناديل مستخدمة', 'منديل وصخ', 'مناديل وصخة', 'مخلفات'];
-  const hasForbiddenStudioWord = (value: string) =>
-    FORBIDDEN_STUDIO_WORDS.some((word) => String(value || '').includes(word));
+  const sanitizeStudioPrompt = (value: string) =>
+    FORBIDDEN_STUDIO_WORDS.reduce((text, word) => text.replace(new RegExp(word, 'g'), ''), String(value || ''))
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+([،.])/g, '$1')
+      .trim();
   const STUDIO_NEGATIVE_PROMPT = STUDIO_REALITY_NEGATIVE_PROMPT;
 
   const [customThemeQuery, setCustomThemeQuery] = useState('');
@@ -233,7 +237,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     kuwait: {
       icon: '🇰🇼',
       title: 'بيئة واقعية',
-      desc: 'اختر مناسبة ومكان واقعيين بعد المقاس والفكرة.',
+      desc: 'اختار مشهد وبيئة واقعية بعد المقاس والفكرة.',
       badge: 'للإبداع',
       tone: 'bg-rose-50 border-rose-200 text-rose-700'
     },
@@ -326,50 +330,28 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     const pack = getKuwaitPulsePack(selectedPulseId);
     setRealityMode(pack.mode);
     setBackgroundPreset(pack.background);
-    if (!selectedOrderPlace) setSelectedOrderPlace(pack.defaultPlace);
+    setSelectedOrderPlace(pack.defaultPlace);
+    setSceneSuggestion(null);
   }, [selectedPulseId]);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('smart_studio_history');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setHistory(parsed.map((item: any) => ({ ...item, date: new Date(item.date) })));
-      }
-    } catch (e) {}
+    loadStudioArchive<StudioHistoryItem>('smart_studio_history', ['url']).then((items) => {
+      setHistory(items.map((item: any) => ({ ...item, date: new Date(item.date) })));
+    });
   }, []);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('smart_studio_reel_history');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setReelHistory(parsed.map((item: any) => ({ ...item, date: new Date(item.date) })));
-      }
-    } catch (e) {}
+    loadStudioArchive<StudioReelHistoryItem>('smart_studio_reel_history', ['url', 'poster']).then((items) => {
+      setReelHistory(items.map((item: any) => ({ ...item, date: new Date(item.date) })));
+    });
   }, []);
 
   useEffect(() => {
-    try {
-      const lightHistory = history.map((item) => ({
-        ...item,
-        // لا نخزن صور base64 كبيرة داخل المتصفح حتى لا تظهر شاشة بيضاء بسبب امتلاء التخزين.
-        url: String(item.url || '').startsWith('data:') ? '' : item.url
-      })).filter((item) => item.url);
-      if (lightHistory.length > 0) localStorage.setItem('smart_studio_history', JSON.stringify(lightHistory));
-    } catch (err) {
-      console.warn('Smart studio history storage skipped:', err);
-      try { localStorage.removeItem('smart_studio_history'); } catch {}
-    }
+    saveStudioArchive('smart_studio_history', history, ['url'], 18);
   }, [history]);
 
   useEffect(() => {
-    try {
-      const safeReels = reelHistory.filter((item) => item.url && !String(item.url).startsWith('data:')).slice(0, 18);
-      if (safeReels.length > 0) localStorage.setItem('smart_studio_reel_history', JSON.stringify(safeReels));
-    } catch (err) {
-      console.warn('Smart studio reel history storage skipped:', err);
-    }
+    saveStudioArchive('smart_studio_reel_history', reelHistory, ['url', 'poster'], 18);
   }, [reelHistory]);
 
   useEffect(() => {
@@ -473,7 +455,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         const result = await compressImage(base64);
         setCompressedImage(result.base64);
         if (result.size > 5 * 1024 * 1024) {
-          alert('الصورة ما زالت كبيرة بعد الضغط. يرجى اختيار صورة أصغر أو قصّها قبل الرفع.');
+          alert('الصورة بعدها كبيرة حتى بعد الضغط. اختار صورة أصغر أو قصّها قبل الرفع.');
           return;
         }
         setSelectedImage(result.base64);
@@ -513,16 +495,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   const generateContent = async (variantOverride?: { mode?: StudioRealityMode; background?: StudioBackgroundPresetId; label?: string }) => {
     if (!selectedImage) return;
-    const themeText = buildKuwaitStudioTheme({
+    const themeText = sanitizeStudioPrompt(buildKuwaitStudioTheme({
       packId: selectedPulseId,
       place: selectedOrderPlace || activePulsePack.defaultPlace,
       goal: selectedContentGoal,
       customText: selectedTheme === 'مخصص' ? customThemeQuery : `${selectedTheme}. ${customThemeQuery}`
-    });
-    if (hasForbiddenStudioWord(themeText)) {
-      toast.error('هذا الوصف يحتوي عناصر محظورة للتوليد. احذف القهوة/البخور/الدلة/السدو/الفوانيس وجرب مرة ثانية.');
-      return;
-    }
+    }));
 
     setIsGenerating(true);
     setGeneratedImage(null);
@@ -556,7 +534,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         if (errorData.needsKey) {
           throw new Error('KEY_REQUIRED');
         }
-        throw new Error(errorData.error || 'فشل توليد الصورة');
+        throw new Error(errorData.error || 'ما قدرنا نولّد الصورة');
       }
 
       const resData = await response.json();
@@ -583,14 +561,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           }].slice(-4));
         }
       } else {
-        toast.error("تم التوليد لكن لم يصل رابط الصورة بشكل مفهوم");
+        toast.error("تم التوليد، بس رابط الصورة ما وصل بشكل مفهوم");
       }
     } catch (err: any) {
       console.error(err);
       if (err.message === 'KEY_REQUIRED') {
-        alert("تتطلب هذه الخاصية (توليد الصور) مفتاح API مدفوع. يرجى تفعيل مفتاح Gemini في الإعدادات.");
+        alert("توليد الصور يحتاج مفتاح Gemini مدفوع ومفعّل من الإعدادات.");
       } else {
-        alert("حدث خطأ أثناء الإنشاء: " + err.message + ". تأكد من إعدادات المفتاح وللاتصال بالإنترنت.");
+        alert("التوليد تعطل: " + err.message + ". تأكد من المفتاح والإنترنت.");
       }
     } finally {
       setIsGenerating(false);
@@ -600,16 +578,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
 
   const generateKuwaitNoProduct = async () => {
-    const themeText = buildKuwaitStudioTheme({
+    const themeText = sanitizeStudioPrompt(buildKuwaitStudioTheme({
       packId: selectedPulseId,
       place: selectedOrderPlace || activePulsePack.defaultPlace,
       goal: selectedContentGoal,
       customText: customThemeQuery || activePulsePack.label
-    });
-    if (hasForbiddenStudioWord(themeText)) {
-      toast.error('هذا الوصف يحتوي عناصر محظورة للتوليد. احذف القهوة/البخور/الدلة/السدو/الفوانيس وجرب مرة ثانية.');
-      return;
-    }
+    }));
     setIsGenerating(true);
     setGeneratedImage(null);
     setShowImageSettings(false);
@@ -623,10 +597,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         body: JSON.stringify({ prompt, format: selectedFormat, realityBoost: true, tasteProfile: buildStudioTastePrompt() })
       });
       const imgData = await imgRes.json().catch(() => ({}));
-      if (!imgRes.ok) throw new Error(imgData?.error || 'فشل توليد صورة المناسبة');
+      if (!imgRes.ok) throw new Error(imgData?.error || 'ما قدرنا نولّد صورة المشهد');
       let imageResult = imgData.imageUrl || imgData.image || imgData.url || imgData.base64 || imgData.data?.imageUrl || imgData.data?.url;
       if (imageResult && typeof imageResult === 'string' && !imageResult.startsWith('http') && !imageResult.startsWith('data:')) imageResult = `data:image/png;base64,${imageResult}`;
-      if (!imageResult) throw new Error('تم التوليد لكن لم يصل رابط الصورة بشكل مفهوم');
+      if (!imageResult) throw new Error('تم التوليد، بس رابط الصورة ما وصل بشكل مفهوم');
       setAiImage(imageResult);
       const branded = await applyBranding(imageResult).catch(() => imageResult);
       setGeneratedImage(branded);
@@ -639,7 +613,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       toast.success('تم تجهيز صورة ورسالة كويتية بدون رفع منتج');
     } catch (err: any) {
       console.error(err);
-      toast.error(err?.message || 'تعذر توليد المناسبة');
+      toast.error(err?.message || 'ما قدرنا نولّد المشهد');
     } finally {
       setIsGenerating(false);
     }
@@ -687,12 +661,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!response.ok) throw new Error('فشل تقييم الواقعية');
+      if (!response.ok) throw new Error('ما قدرنا نفحص الواقعية');
       const result = await response.json();
       setRealityAudit(result);
       toast.success(`تقييم الواقعية: ${Math.round(Number(result.score || 0))}%`);
     } catch (err: any) {
-      toast.error(err?.message || 'تعذر تقييم الواقعية');
+      toast.error(err?.message || 'ما قدرنا نفحص الواقعية');
     } finally {
       setIsAuditingReality(false);
     }
@@ -739,7 +713,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       setTasteMemoryPrompt(buildStudioTastePrompt());
       toast.success('تم حفظ اللقطة في مكتبة الخلفيات — وجرى تعلّم ذوقك');
     } catch (err: any) {
-      toast.error(err?.message || 'تعذر حفظ الخلفية');
+      toast.error(err?.message || 'ما قدرنا نحفظ الخلفية');
     } finally {
       setIsSavingBackground(false);
     }
@@ -821,7 +795,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       }
       
       if (!response.ok) {
-        throw new Error(isHtml ? 'عذراً، حجم الصورة كبير جداً لمعالجتها (تجاوز الحد المسموح)' : (res?.error || 'Failed to generate caption'));
+        throw new Error(isHtml ? 'المعذرة، حجم الصورة كبير جداً للمعالجة' : (res?.error || 'Failed to generate caption'));
       }
 
       const caption = res?.caption || `صورة تسويقية جاهزة بأسلوب ${selectedTheme}.`;
@@ -839,7 +813,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       if (generatedImage) {
         setHistory(prev => prev.map(item => item.url === generatedImage ? {...item, caption: fallbackCaption} : item));
       }
-      toast.info('تم إنشاء نص مبدئي، وتعذر الاتصال بخدمة النص الذكي حالياً');
+      toast.info('جهزنا نص مبدئي، بس خدمة النص الذكي ما ردت الحين');
     } finally {
       setIsCapturing(false);
     }
@@ -871,7 +845,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       }
     } catch (e) {
       console.error(e);
-      alert('حدث خطأ أثناء الحفظ');
+      alert('تعطل الحفظ. جرّب مرة ثانية.');
     } finally {
       setIsSaving(false);
     }
@@ -951,7 +925,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         body: JSON.stringify(payload)
       });
       const result = await response.json().catch(() => null);
-      if (!response.ok || !result?.videoUrl) throw new Error(result?.error || 'تعذر توليد الريل');
+      if (!response.ok || !result?.videoUrl) throw new Error(result?.error || 'ما قدرنا نولّد الريل');
       setGeneratedReel(result.videoUrl);
       const item: StudioReelHistoryItem = {
         url: result.videoUrl,
@@ -968,7 +942,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       setReelHistory(prev => [item, ...prev.filter(r => r.url !== item.url)].slice(0, 18));
       toast.success('الريل جاهز — احفظ نفس الإعدادات وكرر الأسلوب متى ما تبي');
     } catch (e: any) {
-      toast.error(e?.message || 'تعذر توليد الريل الآن');
+      toast.error(e?.message || 'ما قدرنا نولّد الريل الحين');
     } finally {
       setIsGeneratingReel(false);
     }
@@ -1038,7 +1012,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
             {fineToolTab === 'reality' && (
               <div className="rounded-3xl border border-emerald-100 bg-white p-4">
-                <p className="text-[11px] font-black text-emerald-700 mb-3">اختر قوة الواقعية</p>
+                <p className="text-[11px] font-black text-emerald-700 mb-3">أسلوب الصورة النهائي</p>
                 <div className="grid grid-cols-2 gap-2">
                   {(Object.entries(STUDIO_REALITY_MODES) as [StudioRealityMode, typeof STUDIO_REALITY_MODES[StudioRealityMode]][]).map(([id, item]) => (
                     <button key={id} type="button" onClick={() => setRealityMode(id)} className={cn("p-3 rounded-2xl border text-right transition-all", realityMode === id ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm" : "bg-slate-50 border-slate-100 text-slate-600") }>
@@ -1088,10 +1062,21 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setShowPlaceLibrary(false);
   };
 
+  const resetGeneratedOutput = () => {
+    setGeneratedImage(null);
+    setAiImage(null);
+    setAiCaption(null);
+    setPreviousAiCaption(null);
+    setRealityVariants([]);
+    setRealityAudit(null);
+    setShowImageSettings(false);
+    setShowBrandingPanel(false);
+    setShowInstagramPreview(false);
+  };
+
   const goHome = () => {
     closeOpenPanels();
-    setShowBrandingPanel(false);
-    setShowImageSettings(false);
+    resetGeneratedOutput();
     setStudioTab('home');
   };
 
@@ -1129,8 +1114,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     return [
       `المسار: ${(item?.source || (studioTab === 'product' ? 'image' : 'idea')) === 'image' ? 'من صورة' : 'من فكرة'}`,
       `المقاس: ${formatLabel}`,
-      `المناسبة: ${pack?.label || activePulsePack.label}`,
-      `المشهد: ${KUWAIT_PLACES[placeId]?.label || KUWAIT_PLACES[selectedOrderPlace]?.label}`,
+      `المشهد الذكي: ${pack?.label || activePulsePack.label} / ${KUWAIT_PLACES[placeId]?.label || KUWAIT_PLACES[selectedOrderPlace]?.label}`,
       `الإضاءة: ${moods.find((m) => m.id === moodLabel)?.label || moodLabel}`,
       `الواقعية: ${cleanRealityLabel(STUDIO_REALITY_MODES[modeId]?.label || '')}`,
       ideaText ? `الفكرة: ${ideaText}` : ''
@@ -1155,8 +1139,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const fullStudioSteps = [
     { n: 1, t: 'مقاس' },
     { n: 2, t: 'فكرة' },
-    { n: 3, t: 'مناسبة' },
-    { n: 4, t: 'مكان' },
+    { n: 3, t: 'مشهد' },
+    { n: 4, t: 'بيئة' },
     { n: 5, t: 'أدوات' },
     { n: 6, t: 'توليد' },
   ];
@@ -1232,17 +1216,17 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             </div>
           </div>
           <div className="grid sm:grid-cols-3 gap-3">
-            <button onClick={() => { closeOpenPanels(); setCreateStep(1); setMaxCreateStepReached(1); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Sparkles className="text-indigo-500 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من فكرة</div>
               <div className="text-xs font-bold text-slate-400 mt-1">اكتب وصفك، أو اختر قالباً جاهزاً.</div>
             </button>
-            <button onClick={() => { closeOpenPanels(); setProductStep(1); setMaxProductStepReached(1); setStudioTab('product'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setProductStep(1); setMaxProductStepReached(1); setStudioTab('product'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Camera className="text-indigo-500 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من صورة</div>
               <div className="text-xs font-bold text-slate-400 mt-1">ارفع صورة المنتج ونرتّبها بواقعية أعلى.</div>
             </button>
-            <button onClick={() => { closeOpenPanels(); setSelectedFormat('9:16'); setReelStep(1); setReelSource('idea'); setGeneratedReel(null); setStudioTab('reel'); }} className="rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setSelectedFormat('9:16'); setReelStep(1); setReelSource('idea'); setGeneratedReel(null); setShowReelSettings(false); setStudioTab('reel'); }} className="rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
               <Film className="text-violet-600 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">ريل قصير</div>
               <div className="text-xs font-bold text-slate-400 mt-1">فيديو واقعي 4–8 ثواني جاهز لريلز.</div>
@@ -1411,10 +1395,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <input type="text" placeholder="اكتب وصف الصورة المطلوبة..." value={customThemeQuery} onChange={(e) => { setCustomThemeQuery(e.target.value); setSelectedTheme(e.target.value ? 'مخصص' : 'نبض الكويت'); }} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-indigo-500" />
                   <p className="text-[11px] font-bold text-slate-400">اكتب وصفك ونختصر لك الطريق، أو اتركها فارغة للاقتراحات الجاهزة.</p>
                 </div>
-                {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">تم اعتماد الفكرة. بعدها لمسات نهائية ثم التوليد.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تفضّل الاختيارات الجاهزة؟ التالي يفتح المناسبة ثم المكان.</div>}
+                {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">اعتمدنا الفكرة. بعدها لمسات نهائية ثم التوليد.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تبي اختيارات جاهزة؟ التالي يفتح لك المشهد والبيئة.</div>}
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => goCreateStep(1)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                  <button type="button" onClick={() => advanceCreateStep(customThemeQuery.trim() ? 5 : 3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">{customThemeQuery.trim() ? 'أدوات دقيقة' : 'المناسبة'}</button>
+                  <button type="button" onClick={() => advanceCreateStep(customThemeQuery.trim() ? 5 : 3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">{customThemeQuery.trim() ? 'أدوات دقيقة' : 'المشهد'}</button>
                 </div>
               </div>
             )}
@@ -1422,7 +1406,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             {createStep === 3 && (
               <div className="space-y-4">
                 <button type="button" onClick={() => setShowCreateOccasion(!showCreateOccasion)} className="w-full rounded-3xl border border-slate-100 bg-slate-50 p-4 text-right flex items-center justify-between">
-                  <span><span className="block text-xs font-black text-slate-500">المناسبة</span><span className="block text-lg font-black text-slate-900 mt-1">{activePulsePack.icon} {activePulsePack.label}</span></span>
+                  <span><span className="block text-xs font-black text-slate-500">المشهد</span><span className="block text-lg font-black text-slate-900 mt-1">{activePulsePack.icon} {activePulsePack.label}</span></span>
                   <ChevronLeft className={cn("transition-transform text-slate-400", showCreateOccasion ? "-rotate-90" : "")} size={20} />
                 </button>
                 {showCreateOccasion && (
@@ -1577,10 +1561,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                       <input type="text" placeholder="اكتب الجو أو المطلوب للصورة..." value={customThemeQuery} onChange={(e) => { setCustomThemeQuery(e.target.value); setSelectedTheme(e.target.value ? 'مخصص' : 'نبض الكويت'); }} className="w-full p-4 rounded-2xl border-2 text-sm text-right focus:outline-none border-slate-200 bg-white focus:border-indigo-500" />
                       <p className="text-[11px] font-bold text-slate-400">اكتب فكرتك وننتقل مباشرة للمسات النهائية، أو اتركها فارغة للاختيارات الجاهزة.</p>
                     </div>
-                    {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">تم اعتماد الفكرة. بعدها لمسات نهائية ثم التوليد.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تفضّل الاختيارات الجاهزة؟ التالي يفتح المناسبة ثم المكان.</div>}
+                    {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">اعتمدنا الفكرة. بعدها لمسات نهائية ثم التوليد.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تبي اختيارات جاهزة؟ التالي يفتح لك المشهد والبيئة.</div>}
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(1)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                      <button type="button" onClick={() => advanceProductStep(customThemeQuery.trim() ? 5 : 3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">{customThemeQuery.trim() ? 'أدوات دقيقة' : 'المناسبة'}</button>
+                      <button type="button" onClick={() => advanceProductStep(customThemeQuery.trim() ? 5 : 3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">{customThemeQuery.trim() ? 'أدوات دقيقة' : 'المشهد'}</button>
                     </div>
                   </div>
                 )}
@@ -1588,7 +1572,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 {productStep === 3 && (
                   <div className="space-y-4">
                     <button type="button" onClick={() => setShowProductOccasion(!showProductOccasion)} className="w-full rounded-3xl border border-slate-100 bg-slate-50 p-4 text-right flex items-center justify-between">
-                      <span><span className="block text-xs font-black text-slate-500">المناسبة</span><span className="block text-lg font-black text-slate-900 mt-1">{activePulsePack.icon} {activePulsePack.label}</span></span>
+                      <span><span className="block text-xs font-black text-slate-500">المشهد</span><span className="block text-lg font-black text-slate-900 mt-1">{activePulsePack.icon} {activePulsePack.label}</span></span>
                       <ChevronLeft className={cn("transition-transform text-slate-400", showProductOccasion ? "-rotate-90" : "")} size={20} />
                     </button>
                     {showProductOccasion && (
@@ -1643,7 +1627,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     </div>
                     <button type="button" onClick={generateFourRealityOptions} disabled={isGenerating || isGeneratingVariants || !selectedImage} className="w-full p-4 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-2xl font-black flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50">
                       {isGeneratingVariants ? <Loader2 className="animate-spin" size={20} /> : <Layout size={20} />}
-                      ٤ نسخ واقعية
+                      4 نسخ واقعية
                     </button>
                   </div>
                 )}
@@ -1757,7 +1741,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
                   {realityVariants.length > 0 && (
                     <div className="w-full rounded-3xl border border-emerald-100 bg-emerald-50/50 p-4">
-                      <div className="flex items-center justify-between mb-3"><span className="text-[10px] font-black text-emerald-600">٤ نسخ واقعية</span></div>
+                      <div className="flex items-center justify-between mb-3"><span className="text-[10px] font-black text-emerald-600">4 نسخ واقعية</span></div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {realityVariants.map((item, idx) => (
                           <button key={`${item.label}-${idx}`} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); recordStudioTasteChoice({ mode: item.mode, background: item.background, theme: selectedTheme, format: selectedFormat, label: item.label, source: 'variant-picked' }); refreshStudioLearning(); }} className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden text-right shadow-sm hover:shadow-md transition-all">
@@ -1771,7 +1755,6 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
                   <div className="flex flex-wrap gap-2 justify-center">
                     <button onClick={handleDownload} title="تحميل" aria-label="تحميل" className="h-12 w-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center"><Download size={18} /></button>
-                    <button type="button" onClick={auditReality} disabled={isAuditingReality || !generatedImage} title="فحص الواقعية" aria-label="فحص الواقعية" className="h-12 w-12 bg-white border border-emerald-200 text-emerald-700 rounded-2xl flex items-center justify-center disabled:opacity-50">{isAuditingReality ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}</button>
                     <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !selectedImage} title="اجعلها أصدق" aria-label="اجعلها أصدق" className="h-12 w-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center disabled:opacity-50"><Sparkles size={18} /></button>
                   </div>
 

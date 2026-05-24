@@ -204,7 +204,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
 	     toast.success('تم نسخ آخر رد');
 	     setTimeout(() => setCopied(false), 1600);
 	   } catch {
-	     toast.error('تعذر النسخ');
+	     toast.error('ما قدرنا ننسخ');
 	   }
 	 };
 
@@ -250,7 +250,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  throw new Error(serverError);
  }
 
- const aiText = assistantPayload?.text || 'عذراً يا طويل العمر، حصل خلل فني بسيط في التحليل. جرب مرة ثانية.';
+ const aiText = assistantPayload?.text || 'المعذرة يا طويل العمر، التحليل تعطل شوي. جرّب مرة ثانية.';
  setMessages(prev => [...prev, { 
  role: 'assistant', 
  content: aiText 
@@ -262,7 +262,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  if (errStr.includes("429") || errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("depleted")) {
  setMessages(prev => [...prev, { 
  role: 'assistant', 
- content: 'عذراً، لقد نفدت نقاط (Credits) الذكاء الاصطناعي الخاص بك. يرجى التجديد للاستمرار في استخدام المساعد.' 
+ content: 'نقاط الذكاء الاصطناعي خلصت. جدّد الباقة عشان المساعد يكمل معاك.' 
  }]);
  setIsLoading(false);
  return;
@@ -274,7 +274,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  if (attempts >= maxAttempts) {
  setMessages(prev => [...prev, { 
  role: 'assistant', 
- content: 'نعتذر، واجه المساعد مشكلة تقنية متكررة بعد عدة محاولات. يرجى المحاولة بعد قليل.' 
+ content: 'المساعد واجه مشكلة تقنية أكثر من مرة. عطه شوي وجرب مرة ثانية.' 
  }]);
  setIsLoading(false);
  return;

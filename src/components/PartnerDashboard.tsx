@@ -445,6 +445,7 @@ const {
 
  const pendingOrdersCount = (data.orders || []).filter(o => o.status === 'pending').length;
  const totalOrdersCount = data.orders?.length || 0;
+ const hasRealTimeFilterUse = (data.invoices || []).some((inv: any) => !inv.isDeleted) || (data.orders || []).length > 0;
 
  const getContextualGreeting = () => {
  const hour = now.getHours();
@@ -560,7 +561,7 @@ const {
         </AnimatePresence>
 
        {/* Time Slider (Minimalist) */}
-       <div className="partner-time-filter relative z-20 px-1 flex justify-center pointer-events-auto fade-in animate-in slide-in-from-top-2 duration-500">
+       {hasRealTimeFilterUse && <div className="partner-time-filter relative z-20 px-1 flex justify-center pointer-events-auto fade-in animate-in slide-in-from-top-2 duration-500">
          <div className="bg-white/80 backdrop-blur-3xl rounded-[1.4rem] py-2.5 px-4 flex flex-col items-center gap-2 shadow-lg pointer-events-auto w-full max-w-[420px] border border-white/60 ring-1 ring-slate-900/5 transition-all hover:bg-white/90">
            <input 
              type="range"
@@ -585,7 +586,7 @@ const {
              <span onClick={() => startTransition(() => setFilter("day"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-right", filter === "day" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>اليوم</span>
            </div>
          </div>
-       </div>
+       </div>}
       
        <div className="mb-8">
          <CommandBrief data={data} dateFilter={filter} />
