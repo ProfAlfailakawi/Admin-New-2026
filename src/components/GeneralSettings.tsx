@@ -1159,17 +1159,17 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  {showResetConfirm && (
  <div 
- className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-3"
+ className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4"
  onClick={() => setShowResetConfirm(false)}
  >
  <motion.div 
  initial={{ opacity: 0, scale: 0.9, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
- className="bg-white rounded-3xl md:rounded-2xl p-3 md:p-4 md:p-3 max-w-sm w-[95%] shadow-xl text-center border border-slate-100 flex flex-col max-h-[85vh] overflow-hidden"
- 
+ className="bg-white rounded-[2rem] p-6 max-w-md w-full shadow-2xl text-center border border-slate-100 flex flex-col max-h-[90vh] overflow-visible"
+ onClick={(e) => e.stopPropagation()}
  >
  <div className="overflow-y-auto custom-scrollbar flex-1 px-1">
- <div className="w-12 md:w-20 h-12 md:h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500">
+ <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500">
  <Trash2 size={40} />
  </div>
  <h3 className="text-2xl font-bold text-slate-800 mb-4">هل أنت متأكد؟</h3>
@@ -1177,7 +1177,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  هذا الإجراء سيقوم بحذف <span className="text-rose-600 underline">كافة</span> بيانات المبيعات والعملاء والمصروفات نهائياً.
  </p>
  </div>
- <div className="flex flex-col gap-3 pt-6 mt-auto border-t border-slate-50">
+ <div className="flex flex-col gap-3 pt-5 mt-auto border-t border-slate-100 bg-white">
  <button 
  onClick={handleResetData}
  className="w-full py-4 bg-rose-500 text-white rounded-2xl font-bold shadow-xl shadow-rose-500/30 hover:bg-rose-600 transition-all active:scale-95"

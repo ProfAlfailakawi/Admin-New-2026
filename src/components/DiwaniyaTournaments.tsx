@@ -9,6 +9,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   const [isConfiguring, setIsConfiguring] = useState(false);
   const radarMapRef = React.useRef<HTMLDivElement | null>(null);
   const coordinatesBoxRef = React.useRef<HTMLDivElement | null>(null);
+  const selectedSquadCardRef = React.useRef<HTMLDivElement | null>(null);
   const [radarMapSize, setRadarMapSize] = useState({ width: 0, height: 0 });
 
   const normalizeSquadRecord = (sq: any, fallbackIndex = 0) => {
@@ -915,10 +916,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     toast.success('تم تركيز الخريطة على الديوانية');
   };
 
-  const scrollToCoordinatesBox = () => {
+  const scrollToSelectedSquadCard = () => {
     window.setTimeout(() => {
-      coordinatesBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      coordinatesBoxRef.current?.focus?.();
+      selectedSquadCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      selectedSquadCardRef.current?.focus?.();
     }, 80);
   };
 
@@ -927,10 +928,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     setActiveTab('radar');
     setActiveMapSquadId(sq.id);
     setRadarMapMode('map');
-    if (sq?.actualLocation) {
-      setRadarMapCenter({ lat: sq.actualLocation.lat, lng: sq.actualLocation.lng });
-    }
-    scrollToCoordinatesBox();
+    scrollToSelectedSquadCard();
   };
 
   return (
@@ -1354,7 +1352,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                             
                             return (
                           <React.Fragment key={s.id}>
-                            <tr className={`transition-colors cursor-pointer ${expandedSquadId === s.id ? 'bg-blue-50/30' : 'hover:bg-slate-50/50'}`} onClick={() => selectRadarSquad(s)}>
+                            <tr className={`transition-colors cursor-pointer ${expandedSquadId === s.id ? 'bg-blue-50/30' : 'hover:bg-slate-50/50'}`} onClick={() => setExpandedSquadId(String(expandedSquadId) === String(s.id) ? null : s.id)}>
                               <td className="p-4 pr-6 font-bold text-slate-800">
                                 <div className="flex items-center gap-2">
                                   {editingSquadId === s.id ? (
@@ -1648,7 +1646,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           />
                           <span className="relative flex items-center justify-center w-6 h-6 rounded-full bg-rose-600 text-white border-2 border-white shadow-xl text-[9px] font-black">{sq.heatValue || 0}</span>
                           {point.clusterCount > 1 && <span className="absolute -top-3 -right-3 flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-950 px-1.5 text-[9px] font-black text-white border border-white shadow-lg">{point.clusterCount}</span>}
-                          <span className={`absolute bottom-full mb-2 max-w-[120px] truncate whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border bg-white text-slate-800 border-rose-200 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity ${point.x > radarMapSize.width * 0.62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'}`}>{sq.actualLocation ? sq.name : ''}</span>
+                          <span className={`pointer-events-none absolute bottom-full mb-2 max-w-[160px] truncate whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border bg-white text-slate-800 border-rose-200 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity ${point.x > radarMapSize.width * 0.62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'}`}>{sq.actualLocation ? sq.name : ''}</span>
                         </button>
                       );
                     })}
@@ -1663,7 +1661,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         <button
                           type="button"
                           key={sq.id}
-                          className="absolute z-20 -translate-x-1/2 -translate-y-1/2 group text-right"
+                          className={`absolute -translate-x-1/2 -translate-y-1/2 group text-right ${isActive ? 'z-40' : 'z-20'}`}
                           style={{ left: point.x, top: point.y }}
                           onClick={() => selectRadarSquad(sq)}
                         >
@@ -1672,7 +1670,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                             <span className="w-1.5 h-1.5 bg-white rounded-full" />
                           </span>
                           {point.clusterCount > 1 && <span className="absolute -top-4 -right-4 flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-950 px-1.5 text-[9px] font-black text-white border border-white shadow-lg">{point.clusterCount}</span>}
-                          <span className={`absolute bottom-full mb-2 max-w-[120px] truncate whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border transition-opacity ${point.x > radarMapSize.width * 0.62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'} ${isActive ? 'opacity-100 bg-slate-950 text-white border-amber-300' : 'opacity-0 group-hover:opacity-100 group-focus:opacity-100 bg-white text-slate-800 border-slate-200 group-hover:border-amber-300'}`}>
+                          <span className={`pointer-events-none absolute bottom-full mb-2 max-w-[160px] truncate whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border transition-opacity ${point.x > radarMapSize.width * 0.62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'} ${isActive ? 'opacity-100 bg-slate-950 text-white border-amber-300' : 'opacity-0 group-hover:opacity-100 group-focus:opacity-100 bg-white text-slate-800 border-slate-200 group-hover:border-amber-300'}`}>
                             {hasLocation ? sq.name : ''}
                             {hasPending && hasLocation ? <span className="mr-1 text-amber-500">• {sq.pendingRequests.length}</span> : null}
                             {point.clusterCount > 1 ? <span className="mr-1 text-slate-400">مجموعة {point.clusterIndex + 1}/{point.clusterCount}</span> : null}
@@ -1687,7 +1685,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                   {(() => {
                     const selected = diwaniyaAdminRadar.enriched.find((sq: any) => String(sq.id) === String(activeMapSquadId));
                     return selected ? (
-                      <div className="bg-white rounded-[32px] border border-slate-200 p-5 shadow-sm space-y-4">
+                      <div ref={selectedSquadCardRef} tabIndex={-1} className="bg-white rounded-[32px] border border-slate-200 p-5 shadow-sm space-y-4 outline-none ring-0 focus:ring-4 focus:ring-amber-200/70 transition-shadow">
                         <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
                           <div>
                             <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black border ${selected.actualLocation ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
@@ -1716,8 +1714,14 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3"><div className="text-[10px] text-indigo-700 font-bold">أكواد فعالة</div><div className="text-lg font-black text-indigo-700">{selected.tempCodes.length}</div></div>
                         </div>
 
-                        <div ref={coordinatesBoxRef} tabIndex={-1} className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs leading-6 outline-none ring-0 focus:ring-4 focus:ring-amber-200/70 transition-shadow">
-                          <div className="font-black text-slate-700 mb-1">الإحداثيات</div>
+                        <div ref={coordinatesBoxRef} tabIndex={-1} className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs leading-6 outline-none">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div>
+                              <div className="font-black text-slate-800">{selected.name}</div>
+                              <div className="text-[10px] font-bold text-slate-400 mt-0.5">الإحداثيات</div>
+                            </div>
+                            <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-1" />
+                          </div>
                           {selected.actualLocation ? (
                             <>
                               <div className="font-mono text-slate-600" dir="ltr">{selected.actualLocation.lat.toFixed(6)}, {selected.actualLocation.lng.toFixed(6)}</div>
