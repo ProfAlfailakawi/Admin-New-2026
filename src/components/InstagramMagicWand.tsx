@@ -10,11 +10,12 @@ import { toast } from 'sonner';
 interface InstagramMagicWandProps {
  data: AppState;
  currentPage?: string;
+ userRole?: 'admin' | 'partner' | 'local' | null;
 }
 
 type Category = 'motivation' | 'engagement' | 'promo';
 
-export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, currentPage = 'dashboard' }) => {
+export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, currentPage = 'dashboard', userRole = 'admin' }) => {
  const [isOpen, setIsOpen] = useState(false);
  const [activeCategory, setActiveCategory] = useState<Category>('engagement');
  const [messages, setMessages] = useState<string[]>([]);
@@ -47,6 +48,9 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  setTimeout(() => setCopiedIndex(null), 2000);
  };
 
+ const canShow = currentPage === 'dashboard';
+ if (!canShow) return null;
+
  return (
  <>
  {/* Floating Sparkle Toggle - Left Sidebar Position (Desktop) */}
@@ -65,7 +69,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  </div>
 
  {/* Floating Action Button (Mobile) */}
- <div className={cn("fixed bottom-40 left-6 z-[60] md:hidden", currentPage !== 'dashboard' && "hidden")}>
+ <div className="fixed bottom-40 left-6 z-[60] md:hidden">
  <motion.button
  whileTap={{ scale: 0.8 }}
  onClick={() => setIsOpen(true)}

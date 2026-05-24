@@ -2710,7 +2710,7 @@ const MainApp: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {(isAuthenticated || appMode === 'local') && showExecutiveFloatingTools && <InstagramMagicWand data={data} currentPage={currentPage} />}
+      {(isAuthenticated || appMode === 'local') && showExecutiveFloatingTools && <InstagramMagicWand data={data} currentPage={currentPage} userRole={appMode === 'local' ? 'local' : userRole} />}
       <Toaster richColors position="bottom-right" closeButton />
       
 

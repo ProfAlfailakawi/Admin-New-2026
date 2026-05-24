@@ -120,7 +120,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [showBrandingPanel, setShowBrandingPanel] = useState(false);
   const [archiveTab, setArchiveTab] = useState<'idea' | 'image' | 'reel'>('idea');
   const [reelStep, setReelStep] = useState<number>(1);
-  const [reelDuration, setReelDuration] = useState<number>(4);
+  const [reelDuration, setReelDuration] = useState<number>(8);
   const [reelShot, setReelShot] = useState<string>('hero-push');
   const [reelSource, setReelSource] = useState<'idea' | 'image'>('idea');
   const [generatedReel, setGeneratedReel] = useState<string | null>(null);
@@ -622,7 +622,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const copyCaption = async () => {
     if (!aiCaption) return;
     try {
-      await navigator.clipboard.writeText(aiCaption);
+      await writeClipboardText(aiCaption);
       toast.success('تم نسخ رسالة الواتساب');
     } catch {
       toast.info('انسخ الرسالة يدويًا من المعاينة');
@@ -860,12 +860,30 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     .replace(/Core/gi, '')
     .trim() || 'واقعية عالية';
 
+  const writeClipboardText = async (text: string) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    if (!ok) throw new Error('copy-failed');
+    return true;
+  };
+
 
   const buildReelPrompt = () => {
     const shot = reelShots.find((s) => s.id === reelShot);
     const place = KUWAIT_PLACES[selectedOrderPlace] || KUWAIT_PLACES.delivery;
     const idea = customThemeQuery.trim() || `${activePulsePack.label} لطلب كويتي واقعي من مطبخ التراث الكويتي`;
-    return `Instagram Reel عمودي 9:16 لمشروع مطبخ التراث الكويتي. المطلوب: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب سينمائي'} - ${shot?.desc || ''}. المكان الواقعي: ${place.label}. المدة ${reelDuration} ثواني. تصوير طعام واقعي جداً كأنه مصور بآيفون/كاميرا حقيقية في الكويت، حركة كاميرا بسيطة وبطيئة، لا وجوه واضحة، لا نصوص، لا شعارات، لا كلينكس مستخدم، لا مناديل متسخة، لا بقايا أو فوضى، لا قهوة ولا دلال ولا بخور ولا سدو ولا فوانيس. اجعل الطعام ثابتاً ومنطقياً؛ لا يتحول شكله أثناء الحركة. واقعية بشرية، ظلال صحيحة، إضاءة ${selectedMood}.`;
+    return `Reel عمودي 9:16 خفيف واقتصادي لمطبخ التراث الكويتي. فكرة مختصرة: ${idea}. لقطة واحدة بسيطة: ${shot?.label || 'اقتراب ناعم'}. مكان: ${place.label}. مدة ${reelDuration} ثواني. حركة كاميرا بطيئة جداً وثابتة، تفاصيل قليلة، طعام واضح، بدون تعليق صوتي، بدون شخص يتكلم، بدون شفاه، بدون وجوه واضحة، بدون نصوص أو شعارات. جودة سريعة مضغوطة مناسبة للموبايل فقط، لا cinematic ولا ultra detail. إضاءة ${selectedMood}.`;
   };
 
   const buildReelSettingsText = (item?: Partial<StudioReelHistoryItem>) => {
@@ -885,7 +903,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   const copyReelSettings = async (item?: StudioReelHistoryItem) => {
     try {
-      await navigator.clipboard.writeText(buildReelSettingsText(item));
+      await writeClipboardText(buildReelSettingsText(item));
       toast.success('تم نسخ إعدادات الريل');
     } catch {
       toast.info('الإعدادات ظاهرة أمامك للنسخ اليدوي');
@@ -910,6 +928,17 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         duration: reelDuration,
         shotType: reelShot,
         format: '9:16',
+        resolution: '480x854',
+        targetResolution: '480x854',
+        quality: 'economy',
+        renderMode: 'fast-low-cost',
+        compression: 'aggressive',
+        bitrate: '550k',
+        fps: 18,
+        audio: false,
+        voiceover: false,
+        noTalking: true,
+        tokenBudget: 'low',
         place: selectedOrderPlace,
         mood: selectedMood,
         tasteProfile: buildStudioTastePrompt(),
@@ -940,7 +969,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         mood: selectedMood
       };
       setReelHistory(prev => [item, ...prev.filter(r => r.url !== item.url)].slice(0, 18));
-      toast.success('الريل جاهز — احفظ نفس الإعدادات وكرر الأسلوب متى ما تبي');
+      toast.success('الريل جاهز وخفيف ومحفوظ في أرشيف الريلز');
     } catch (e: any) {
       toast.error(e?.message || 'ما قدرنا نولّد الريل الحين');
     } finally {
@@ -1074,6 +1103,16 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setShowInstagramPreview(false);
   };
 
+  const startFreshImageUpload = () => {
+    resetGeneratedOutput();
+    setSelectedImage(null);
+    setCompressionStats(null);
+    setProductStep(1);
+    setMaxProductStepReached(1);
+    setStudioTab('product');
+    setTimeout(() => fileInputRef.current?.click(), 50);
+  };
+
   const goHome = () => {
     closeOpenPanels();
     resetGeneratedOutput();
@@ -1124,7 +1163,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const copyCurrentSettings = async () => {
     const text = buildSettingsText();
     try {
-      await navigator.clipboard.writeText(text);
+      await writeClipboardText(text);
       toast.success('تم نسخ إعدادات الصورة');
     } catch {
       toast.info('الإعدادات ظاهرة أمامك للنسخ اليدوي');
@@ -1307,7 +1346,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div onClick={() => fileInputRef.current?.click()} className="rounded-3xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-5 cursor-pointer text-center">
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleReelImageUpload} />
                     <Camera className="mx-auto mb-2 text-violet-600" size={26} />
-                    <p className="text-sm font-black text-slate-800">{selectedImage ? 'الصورة جاهزة للريل' : 'ارفع صورة طبق للريل'}</p>
+                    <p className="text-sm font-black text-slate-800">{selectedImage ? 'الصورة جاهزة للريل' : 'ارفع صورة طبق للريل'}</p>{selectedImage && <p className="mt-1 text-[10px] font-bold text-violet-500">اضغط هنا لتغيير الصورة</p>}
                   </div>
                 )}
                 <button type="button" onClick={() => setReelStep(2)} className="w-full p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
@@ -1331,8 +1370,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             {reelStep === 3 && (
               <div className="space-y-4">
                 <p className="text-xs font-black text-slate-500">مدة الريل</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {[4, 6, 8].map((seconds) => <button key={seconds} type="button" onClick={() => setReelDuration(seconds)} className={cn("rounded-2xl border p-5 text-center transition-all", reelDuration === seconds ? "bg-violet-50 border-violet-500 text-violet-700 shadow-sm" : "bg-white border-slate-100 text-slate-500")}><span className="text-2xl font-black">{seconds}</span><span className="block text-[10px] font-bold mt-1">ثواني</span></button>)}
+                <div className="grid grid-cols-2 gap-2">
+                  {[6, 8].map((seconds) => <button key={seconds} type="button" onClick={() => setReelDuration(seconds)} className={cn("rounded-2xl border p-5 text-center transition-all", reelDuration === seconds ? "bg-violet-50 border-violet-500 text-violet-700 shadow-sm" : "bg-white border-slate-100 text-slate-500")}><span className="text-2xl font-black">{seconds}</span><span className="block text-[10px] font-bold mt-1">ثواني</span></button>)}
                 </div>
                 {renderPlaceLibrary()}
                 <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => setReelStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button><button type="button" onClick={() => setReelStep(4)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button></div>
@@ -1488,7 +1527,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                         <p className="text-xs font-black text-white/75">إعدادات هذه الصورة</p>
                         <p className="text-[11px] font-bold text-white/45 mt-1">انسخها لتكرار نفس النتيجة لاحقاً.</p>
                       </div>
-                      <button type="button" onClick={copyCurrentSettings} className="rounded-2xl bg-white text-slate-950 px-4 py-2 text-xs font-black">نسخ الإعدادات</button>
+                      <div className="flex gap-2"><button type="button" onClick={startFreshImageUpload} className="rounded-2xl bg-white/10 border border-white/15 text-white px-4 py-2 text-xs font-black">رفع صورة جديدة</button><button type="button" onClick={copyCurrentSettings} className="rounded-2xl bg-white text-slate-950 px-4 py-2 text-xs font-black">نسخ الإعدادات</button></div>
                     </div>
                     <pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans">{buildSettingsText()}</pre>
                   </div>
@@ -1717,7 +1756,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                           <p className="text-xs font-black text-slate-500">إعدادات هذه الصورة</p>
                           <p className="text-[11px] font-bold text-slate-400 mt-1">انسخها لتكرار نفس النتيجة لاحقاً.</p>
                         </div>
-                        <button type="button" onClick={copyCurrentSettings} className="rounded-2xl bg-slate-950 text-white px-4 py-2 text-xs font-black">نسخ الإعدادات</button>
+                        <div className="flex gap-2"><button type="button" onClick={startFreshImageUpload} className="rounded-2xl bg-slate-100 text-slate-700 px-4 py-2 text-xs font-black">رفع صورة جديدة</button><button type="button" onClick={copyCurrentSettings} className="rounded-2xl bg-slate-950 text-white px-4 py-2 text-xs font-black">نسخ الإعدادات</button></div>
                       </div>
                       <pre className="whitespace-pre-wrap rounded-2xl bg-slate-50 border border-slate-100 p-3 text-[11px] leading-6 font-bold text-slate-600 text-right font-sans">{buildSettingsText()}</pre>
                     </div>
