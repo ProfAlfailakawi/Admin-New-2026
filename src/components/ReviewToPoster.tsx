@@ -53,7 +53,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
     setResultImage(null);
     setGeneratedBaseImage(null);
     try {
-      const imgPrompt = buildTextRealityPrompt('Review-to-poster real restaurant hero image', review, 'Represent the food/service mentioned in the review as a believable photographed restaurant moment. Use realistic table/counter/window-booth/open-kitchen context. Make it feel like a customer or restaurant photographer actually captured it.');
+      const imgPrompt = buildTextRealityPrompt('Review-to-poster real Kuwaiti home-order hero image', review, 'Represent the food/service mentioned in the review as a believable photographed Kuwaiti order moment. Use realistic home table, diwaniya, delivery packaging, chalet, or prep counter context. Make it feel like a real customer or photographer in Kuwait actually captured it. Do not imply a dine-in restaurant.');
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -79,10 +79,10 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
         <div className="flex justify-between items-start">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
             <Clapperboard className="text-purple-500" />
-            مدح سينمائي (Review-to-Poster)
+            مدح العملاء
           </h2>
         </div>
-        <p className="text-slate-500 text-sm max-w-2xl">حوّل مدح الزبائن إلى بوستر واقعي كأنه مصور داخل مطعمك: خلفية بشرية، إضاءة حقيقية، وبدون أي ديكور وهمي أو شكل CGI.</p>
+        <p className="text-slate-500 text-sm max-w-2xl">حوّل مدح الزبائن إلى بوستر واقعي كأنه مصور لطلب كويتي واصل للبيت أو الديوانية: خلفية بشرية، إضاءة حقيقية، وبدون أي ديكور وهمي أو شكل CGI.</p>
         
         <div>
           <label className="text-xs font-bold text-slate-500 mb-2 block">اختر المقاس للتوليد</label>
@@ -129,7 +129,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
               className="bg-purple-600 text-white px-8 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-purple-700 transition-colors w-full md:w-auto shadow-lg shadow-purple-200"
             >
               {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Star className="w-5 h-5" />}
-              {loading ? "جاري الإنتاج السينمائي..." : "حول إلى بوستر سينمائي"}
+              {loading ? "جاري إنتاج البوستر..." : "حوّل إلى بوستر كويتي"}
             </button>
           </div>
         </div>
@@ -174,7 +174,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
         {!resultImage && !loading && (
           <div className="text-center p-6 w-full flex flex-col items-center opacity-30">
             <Clapperboard className="text-white w-24 h-24 mb-4" />
-            <p className="font-bold text-slate-300">سيتم عرض البوستر السينمائي هنا</p>
+            <p className="font-bold text-slate-300">سيتم عرض البوستر هنا</p>
           </div>
         )}
 

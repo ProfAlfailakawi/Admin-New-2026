@@ -14,6 +14,7 @@ import { applyLogoBranding } from '../lib/brandingUtils';
 import { BrandingControls } from './BrandingControls';
 import { REAL_RESTAURANT_BACKGROUNDS, STUDIO_REALITY_MODES, STUDIO_REALITY_NEGATIVE_PROMPT, type StudioBackgroundPresetId, type StudioRealityMode } from '../lib/studioReality';
 import { buildStudioTastePrompt, loadStudioBackgroundLibrary, markStudioBackgroundUsed, recordStudioTasteChoice, saveStudioBackgroundToLibrary, type StudioBackgroundLibraryItem } from '../lib/studioLearning';
+import { KUWAIT_CONTENT_GOALS, KUWAIT_PLACES, KUWAIT_PULSE_PACKS, buildKuwaitCaptionFallback, buildKuwaitStudioTheme, getKuwaitPulsePack, type KuwaitContentGoal, type KuwaitOrderPlace } from '../lib/kuwaitContentPulse';
 
 interface SmartContentStudioProps {
   data: any;
@@ -64,7 +65,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState('1:1');
-  const [selectedTheme, setSelectedTheme] = useState('بسيط');
+  const [selectedTheme, setSelectedTheme] = useState('نبض الكويت');
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [compressedImage, setCompressedImage] = useState<string | null>(null);
   const [compressionStats, setCompressionStats] = useState<{ original: number; compressed: number } | null>(null);
@@ -83,14 +84,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   ];
 
   const themes = [
-    { id: 'طاولة مطعم', label: 'طاولة مطعم حقيقية', desc: 'خشب/رخام، كرسي ضبابي، إضاءة مطعم طبيعية', icon: '🍽️', color: 'bg-amber-100 text-amber-700' },
-    { id: 'مودرن', label: 'مطعم مودرن واقعي', desc: 'جلسة داخلية فعلية، خامات عادية، ضوء طبيعي', icon: '🪑', color: 'bg-stone-100 text-stone-700' },
-    { id: 'خارجي', label: 'جلسة خارجية واقعية', desc: 'زجاج/شارع blur، بدون ديكور خيالي أو تراث مصطنع', icon: '🌤️', color: 'bg-blue-100 text-blue-700' },
-    { id: 'فاخر', label: 'إعلان بشري فاخر', desc: 'فخم لكن مصور فعلاً، بدون CGI أو قصر مبالغ', icon: '💎', color: 'bg-indigo-100 text-indigo-700' },
-    { id: 'بسيط', label: 'منيو احترافي واقعي', desc: 'خلفية نظيفة، ظل طبيعي، صورة قائمة طعام بشرية', icon: '📸', color: 'bg-slate-100 text-slate-700' },
-    { id: 'عشاء', label: 'عشاء مطعم دافئ', desc: 'إضاءة دافئة وطاولة حقيقية بدون أي عناصر تراثية مصطنعة', icon: '🌙', color: 'bg-emerald-100 text-emerald-700' },
-    { id: 'سينمائي', label: 'سينمائي واقعي', desc: 'عمق وعدسة بشرية بدون مبالغة أو خلفية وهمية', icon: '🎬', color: 'bg-rose-100 text-rose-700' },
-    { id: 'تنظيف', label: 'تحسين فقط', desc: 'تحسين الألوان والإضاءة الأصلية دون تغيير المشهد', icon: '✨', color: 'bg-blue-100 text-blue-700' }
+    { id: 'نبض الكويت', label: 'نبض الكويت', desc: 'مناسبة + مكان + هدف، بأبسط طريق للموظف', icon: '🇰🇼', color: 'bg-rose-100 text-rose-700' },
+    { id: 'بيت', label: 'سفرة بيتية', desc: 'طلب منزلي مرتب وواقعي', icon: '🏠', color: 'bg-amber-100 text-amber-700' },
+    { id: 'ديوانية', label: 'ديوانية', desc: 'يمعة ربع وطلب جماعي', icon: '🛋️', color: 'bg-slate-100 text-slate-700' },
+    { id: 'شاليه', label: 'شاليه', desc: 'طلعة وويكند بدون زحمة', icon: '🌊', color: 'bg-blue-100 text-blue-700' },
+    { id: 'مزرعة', label: 'مزرعة', desc: 'سفرة خارجية واقعية', icon: '🌴', color: 'bg-emerald-100 text-emerald-700' },
+    { id: 'جاخور', label: 'جاخور', desc: 'طلب ربع عملي ومرتب', icon: '🐪', color: 'bg-orange-100 text-orange-700' },
+    { id: 'زوارة', label: 'زوارة / عزيمة', desc: 'لمة أهل وطلب يبيض الوجه', icon: '👨‍👩‍👧‍👦', color: 'bg-purple-100 text-purple-700' },
+    { id: 'تنظيف', label: 'تحسين فقط', desc: 'تحسين الألوان والإضاءة الأصلية دون تغيير المشهد', icon: '✨', color: 'bg-indigo-100 text-indigo-700' }
   ];
 
   const moods = [
@@ -108,6 +109,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const STUDIO_NEGATIVE_PROMPT = STUDIO_REALITY_NEGATIVE_PROMPT;
 
   const [customThemeQuery, setCustomThemeQuery] = useState('');
+  const [selectedPulseId, setSelectedPulseId] = useState<string>('quick-kuwait');
+  const [selectedOrderPlace, setSelectedOrderPlace] = useState<KuwaitOrderPlace>('delivery');
+  const [selectedContentGoal, setSelectedContentGoal] = useState<KuwaitContentGoal>('post');
+  const [showAdvancedStudio, setShowAdvancedStudio] = useState(false);
   const [selectedMood, setSelectedMood] = useState('دافئ');
   const [realityMode, setRealityMode] = useState<StudioRealityMode>('restaurant');
   const [backgroundPreset, setBackgroundPreset] = useState<StudioBackgroundPresetId>('wood-table');
@@ -140,6 +145,15 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   useEffect(() => {
     refreshStudioLearning();
   }, []);
+
+  const activePulsePack = getKuwaitPulsePack(selectedPulseId);
+
+  useEffect(() => {
+    const pack = getKuwaitPulsePack(selectedPulseId);
+    setRealityMode(pack.mode);
+    setBackgroundPreset(pack.background);
+    if (!selectedOrderPlace) setSelectedOrderPlace(pack.defaultPlace);
+  }, [selectedPulseId]);
 
   useEffect(() => {
     try {
@@ -262,7 +276,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   const generateContent = async (variantOverride?: { mode?: StudioRealityMode; background?: StudioBackgroundPresetId; label?: string }) => {
     if (!selectedImage) return;
-    const themeText = selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme;
+    const themeText = buildKuwaitStudioTheme({
+      packId: selectedPulseId,
+      place: selectedOrderPlace || activePulsePack.defaultPlace,
+      goal: selectedContentGoal,
+      customText: selectedTheme === 'مخصص' ? customThemeQuery : `${selectedTheme}. ${customThemeQuery}`
+    });
     if (hasForbiddenStudioWord(themeText)) {
       toast.error('هذا الوصف يحتوي عناصر محظورة للتوليد. احذف القهوة/البخور/الدلة/السدو/الفوانيس وجرب مرة ثانية.');
       return;
@@ -287,7 +306,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           backgroundPreset: variantOverride?.background || backgroundPreset,
           strictPlateLock,
           realityBoost,
-          correctionHint: variantOverride?.label?.includes('أصدق') ? 'أعد بناء الخلفية لتكون أبسط وأكثر بشرية: ظلال تلامس صحيحة، سطح مطعم عادي، إضاءة أقل مثالية، بدون لمعان أو عمق مبالغ.' : undefined,
+          correctionHint: variantOverride?.label?.includes('أصدق') ? 'أعد بناء الخلفية لتكون أبسط وأكثر بشرية وكويتية: ظلال تلامس صحيحة، سفرة/طلب عادي، إضاءة أقل مثالية، بدون لمعان أو عمق مبالغ، وبدون إيحاء مطعم.' : undefined,
           tasteProfile: buildStudioTastePrompt(),
           speedTier: 'turbo' // Signal for faster generation logic if available
         })
@@ -345,9 +364,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setRealityVariants([]);
     const variantPlan: { label: string; mode: StudioRealityMode; background: StudioBackgroundPresetId }[] = [
       { label: 'بشري / آيفون', mode: 'human', background: 'wood-table' },
-      { label: 'مطعم حقيقي', mode: 'restaurant', background: 'window-booth' },
+      { label: 'طلب كويتي واقعي', mode: 'restaurant', background: 'home-table' },
       { label: 'منيو احترافي', mode: 'menu', background: 'neutral-menu' },
-      { label: 'Final Boss', mode: 'finalBoss', background: 'pickup-counter' },
+      { label: 'Final Boss كويتي', mode: 'finalBoss', background: 'diwaniya-table' },
     ];
     try {
       for (const variant of variantPlan) {
@@ -384,7 +403,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const makeMoreHuman = async () => {
     if (!selectedImage || isGenerating || isGeneratingVariants) return;
     setRealityMode('finalBoss');
-    const hint = realityAudit?.fixHint || 'خل الخلفية أبسط وأكثر بشرية: مطعم حقيقي عادي، ظلال صحيحة، إضاءة أقل مثالية، لا لمعان زائد، لا عمق مبالغ، لا ديكور وهمي.';
+    const hint = realityAudit?.fixHint || 'خل الخلفية أبسط وأكثر بشرية وكويتية: طلب بيت/ديوانية/شاليه عادي، ظلال صحيحة، إضاءة أقل مثالية، لا لمعان زائد، لا عمق مبالغ، لا ديكور وهمي.';
     await generateContent({ mode: 'finalBoss', background: backgroundPreset || 'wood-table', label: `أصدق بصرياً: ${hint}` });
   };
 
@@ -492,7 +511,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           image: safeBase64,
-          theme: `${selectedTheme}. ${STUDIO_NEGATIVE_PROMPT}`
+          theme: `${buildKuwaitStudioTheme({ packId: selectedPulseId, place: selectedOrderPlace || activePulsePack.defaultPlace, goal: selectedContentGoal, customText: customThemeQuery || selectedTheme })}. ${STUDIO_NEGATIVE_PROMPT}`
         })
       });
       let res: any = null;
@@ -571,10 +590,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           <div>
             <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
               <Camera className="w-8 h-8 text-indigo-300" />
-              استوديو المحتوى الذكي
+              استوديو المحتوى الكويتي
             </h1>
             <p className="text-indigo-200 mt-2 max-w-xl text-sm leading-relaxed">
-              ارفع صورة منتجاتك الحقيقية، وسنحولها إلى صور تسويقية احترافية للسوشيال ميديا مع الحفاظ الكامل على واقعية وشكل الطبق الأصلي دون أي تزييف.
+              ارفع صورة المنتج الحقيقي، واختر المناسبة والمكان. الاستوديو يحافظ على الواقعية الحالية ويحوّلها لمحتوى كويتي للبيت والديوانية والشاليه والمزرعة والجاخور بدون زحمة.
             </p>
           </div>
           {originalImage && studioTab === 'product' && (
@@ -588,25 +607,25 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         </div>
         
         <div className="relative z-10 flex gap-2 mt-6 overflow-x-auto pb-2 scrollbar-none">
-          <button onClick={() => setStudioTab('product')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'product' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>تحويل صور المنتجات</button>
-          <button onClick={() => setStudioTab('radar')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'radar' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>رادار التريندات</button>
-          <button onClick={() => setStudioTab('review')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'review' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>مدح سينمائي</button>
-          <button onClick={() => setStudioTab('branding')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'branding' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>الهوية المتغيرة</button>
+          <button onClick={() => setStudioTab('product')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'product' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>إنشاء سريع</button>
+          <button onClick={() => setStudioTab('radar')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'radar' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>نبض الكويت</button>
+          <button onClick={() => setStudioTab('review')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'review' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>مدح العملاء</button>
+          <button onClick={() => setStudioTab('branding')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'branding' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>هوية متقدمة</button>
         </div>
       </div>
 
       {studioTab === 'radar' && (
-        <StudioErrorBoundary title="رادار التريندات">
+        <StudioErrorBoundary title="نبض الكويت">
           <RealtimeRadar data={data} setData={setData} />
         </StudioErrorBoundary>
       )}
       {studioTab === 'review' && (
-        <StudioErrorBoundary title="مدح سينمائي">
+        <StudioErrorBoundary title="مدح العملاء">
           <ReviewToPoster data={data} setData={setData} />
         </StudioErrorBoundary>
       )}
       {studioTab === 'branding' && (
-        <StudioErrorBoundary title="الهوية المتغيرة">
+        <StudioErrorBoundary title="هوية متقدمة">
           <AdaptiveBranding data={data} setData={setData} />
         </StudioErrorBoundary>
       )}
@@ -618,7 +637,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               {history.length > 0 && (
                 <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-black text-slate-800 flex items-center gap-2"><ImageIcon size={18} className="text-indigo-500" /> أرشيف الصور السابقة</h3>
+                    <h3 className="font-black text-slate-800 flex items-center gap-2"><ImageIcon size={18} className="text-indigo-500" /> مكتبة الصور السابقة</h3>
                     <span className="text-[10px] font-bold text-slate-400">اضغط على أي صورة لفتحها</span>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -638,7 +657,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center mb-6 group-hover:scale-110 shadow-sm transition-transform">
             <Camera className="w-10 h-10 text-indigo-600" />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">اضغط لرفع صورة الطبق</h3>
+          <h3 className="text-xl font-bold text-slate-800 mb-2">اضغط لرفع صورة المنتج</h3>
           <p className="text-slate-500 text-sm">JPG, PNG (جودة عالية مفضلة)</p>
           <input
             type="file"
@@ -657,7 +676,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                <div className="flex items-center justify-between mb-4">
                  <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
                    <Zap size={16} className="text-amber-500" />
-                   تحسين الصورة (تلقائي)
+                   تحسين الصورة (تلقائي — لا نلمس الطبق)
                  </h3>
                  <span className="text-[10px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase tracking-tighter">Smart Core</span>
                </div>
@@ -678,7 +697,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     />
                   </div>
                   <p className="text-[10px] text-emerald-600 font-black text-center mt-2">
-                    تم توفير {Math.round((1 - compressionStats.compressed / compressionStats.original) * 100)}% من المساحة (مثالي للسوشيال ميديا)
+                    تم توفير {Math.round((1 - compressionStats.compressed / compressionStats.original) * 100)}% من المساحة
                   </p>
                 </div>
                ) : (
@@ -711,65 +730,133 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
-              <h3 className="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
-                <Sparkles size={16} className="text-purple-600" />
-                2. اختر الثيم (خلفية المشهد)
-              </h3>
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                {themes.map(t => (
+            <div className="bg-white p-5 rounded-3xl shadow-sm border border-rose-100">
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
+                    <Sparkles size={16} className="text-rose-600" />
+                    2. نبض الكويت — اختار ولا تزحم نفسك
+                  </h3>
+                  <p className="text-[11px] font-bold text-slate-400 mt-1">مناسبة + مكان + نوع محتوى. والباقي يضبطه الاستوديو بنفس الواقعية الحالية.</p>
+                </div>
+                <span className="text-[10px] font-black bg-rose-50 text-rose-700 px-3 py-1 rounded-full border border-rose-100">كويتي 100%</span>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+                {KUWAIT_PULSE_PACKS.slice(0, 9).map(pack => (
                   <button
-                    key={t.id}
-                    onClick={() => { setSelectedTheme(t.id); setCustomThemeQuery(''); }}
+                    key={pack.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPulseId(pack.id);
+                      setSelectedOrderPlace(pack.defaultPlace);
+                      setBackgroundPreset(pack.background);
+                      setRealityMode(pack.mode);
+                      setSelectedTheme('نبض الكويت');
+                    }}
                     className={cn(
-                      "p-3 rounded-2xl border-2 text-right flex flex-col gap-1 transition-all h-28 relative overflow-hidden group",
-                      selectedTheme === t.id ? "border-purple-500 bg-purple-50/30 shadow-md ring-4 ring-purple-500/10" : "bg-white border-slate-100 hover:border-purple-200 hover:bg-slate-50"
+                      "p-3 rounded-2xl border text-right transition-all min-h-[92px]",
+                      selectedPulseId === pack.id ? "bg-rose-50 border-rose-400 shadow-sm ring-4 ring-rose-500/10" : "bg-white border-slate-100 hover:border-rose-200 hover:bg-slate-50"
                     )}
                   >
-                    <div className="flex items-center justify-between mb-1 relative z-10">
-                      <div className={cn("p-2 rounded-xl transition-transform group-hover:scale-110", t.color)}>
-                        <span className="text-xl">{t.icon}</span>
-                      </div>
-                      {selectedTheme === t.id && (
-                        <div className="bg-purple-500 text-white p-0.5 rounded-full">
-                          <Check size={12} />
-                        </div>
-                      )}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xl">{pack.icon}</span>
+                      <span className="text-[9px] font-black text-rose-600 bg-white/80 border border-rose-100 rounded-full px-2 py-0.5">{pack.badge}</span>
                     </div>
-                    <div className={cn("text-xs font-bold relative z-10", selectedTheme === t.id ? "text-purple-900" : "text-slate-800")}>{t.label}</div>
-                    <div className="text-[10px] text-slate-500 line-clamp-1 relative z-10">{t.desc}</div>
-                    
-                    {/* Background decoration */}
-                    <div className={cn("absolute -bottom-4 -left-4 w-12 h-12 rounded-full opacity-10 group-hover:opacity-20 transition-opacity", t.color.split(' ')[0])} />
+                    <div className="text-xs font-black text-slate-900">{pack.label}</div>
+                    <div className="text-[10px] font-bold text-slate-400 mt-1 line-clamp-1">{pack.tone}</div>
                   </button>
                 ))}
               </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                  <label className="text-[11px] font-black text-slate-500 mb-2 block">وين رايح الطلب؟</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(Object.entries(KUWAIT_PLACES) as [KuwaitOrderPlace, typeof KUWAIT_PLACES[KuwaitOrderPlace]][]).map(([id, place]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => { setSelectedOrderPlace(id); setBackgroundPreset(place.background); }}
+                        className={cn("px-3 py-2 rounded-xl border text-[11px] font-black transition-all flex items-center justify-between", selectedOrderPlace === id ? "bg-slate-900 text-white border-slate-900" : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-white")}
+                      >
+                        <span>{place.label}</span><span>{place.icon}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-black text-slate-500 mb-2 block">شنو تبي تطلع؟</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(Object.entries(KUWAIT_CONTENT_GOALS) as [KuwaitContentGoal, typeof KUWAIT_CONTENT_GOALS[KuwaitContentGoal]][]).map(([id, goal]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setSelectedContentGoal(id)}
+                        className={cn("px-3 py-2 rounded-xl border text-[11px] font-black transition-all flex items-center justify-between", selectedContentGoal === id ? "bg-indigo-600 text-white border-indigo-600" : "bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-white")}
+                      >
+                        <span>{goal.label}</span><span>{goal.icon}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 mb-4 text-right">
+                <div className="text-[11px] font-black text-slate-500 mb-1">المسار المختار</div>
+                <div className="text-sm font-black text-slate-900">{activePulsePack.icon} {activePulsePack.label} ← {KUWAIT_PLACES[selectedOrderPlace]?.label} ← {KUWAIT_CONTENT_GOALS[selectedContentGoal]?.label}</div>
+                <p className="text-[11px] font-bold text-slate-400 mt-1">النظام لا يذكر مطعم جلوس، ولا يضيف دلة/بخور/سدو/فوانيس، ويحافظ على الطبق والواقعية.</p>
+              </div>
+
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                  <Edit3 size={14} /> اكتب وانت تولد (ثيم مخصص)
+                  <Edit3 size={14} /> اكتب فكرتك — اختياري
                 </label>
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="اكتب وصفاً مفصلاً للخلفية (مثال: منظر تراثي ناعم على البحر وقت الشروق)"
+                    placeholder="مثال: فوز المنتخب، العيد الوطني، زوارة أهل، عرض ديوانية، طلب شاليه..."
                     value={customThemeQuery}
                     onChange={(e) => {
                       setCustomThemeQuery(e.target.value);
-                      if (e.target.value) {
-                         setSelectedTheme('مخصص');
-                      } else {
-                         setSelectedTheme('تراثي');
-                      }
+                      setSelectedTheme(e.target.value ? 'مخصص' : 'نبض الكويت');
                     }}
-                    className={cn("w-full p-3 rounded-xl border-2 text-sm text-right focus:outline-none transition-all pr-10", selectedTheme === 'مخصص' ? "border-purple-500 bg-purple-50 focus:ring-4 focus:ring-purple-500/20" : "border-slate-200 bg-white focus:border-slate-400")}
+                    className={cn("w-full p-3 rounded-xl border-2 text-sm text-right focus:outline-none transition-all pr-10", customThemeQuery ? "border-rose-500 bg-rose-50 focus:ring-4 focus:ring-rose-500/20" : "border-slate-200 bg-white focus:border-slate-400")}
                   />
-                  <div className={cn("absolute right-3 top-1/2 -translate-y-1/2", selectedTheme === 'مخصص' ? "text-purple-500" : "text-slate-400")}>
+                  <div className={cn("absolute right-3 top-1/2 -translate-y-1/2", customThemeQuery ? "text-rose-500" : "text-slate-400")}>
                     <Sparkles size={16} />
                   </div>
                 </div>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAdvancedStudio(v => !v)}
+                className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+              >
+                {showAdvancedStudio ? 'إخفاء الخيارات الاحترافية' : 'خيارات احترافية اختيارية'}
+              </button>
+
+              {showAdvancedStudio && (
+                <div className="mt-4 rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                  <p className="text-[11px] font-black text-slate-500 mb-3">ثيمات إضافية — لا تحتاجها غالباً</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {themes.map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => { setSelectedTheme(t.id); if (t.id !== 'نبض الكويت') setCustomThemeQuery(''); }}
+                        className={cn("p-2 rounded-xl border text-right flex items-center gap-2 transition-all", selectedTheme === t.id ? "border-purple-500 bg-purple-50 text-purple-900" : "bg-white border-slate-100 text-slate-700")}
+                      >
+                        <span>{t.icon}</span>
+                        <span className="text-[11px] font-black">{t.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
+            {showAdvancedStudio && (<>
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
               <h3 className="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
                 <Zap size={16} className="text-amber-500" />
@@ -796,7 +883,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
               <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <Camera size={16} className="text-emerald-500" />
-                4. وضع الواقع البشري
+                4. الوضع الاحترافي للواقعية
               </h3>
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {(Object.entries(STUDIO_REALITY_MODES) as [StudioRealityMode, typeof STUDIO_REALITY_MODES[StudioRealityMode]][]).map(([id, item]) => (
@@ -812,7 +899,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] font-bold text-slate-400 mb-2">مكتبة خلفيات مطعم واقعية</p>
+              <p className="text-[11px] font-bold text-slate-400 mb-2">مكتبة مشاهد كويتية واقعية</p>
               <div className="grid grid-cols-2 gap-2">
                 {(Object.entries(REAL_RESTAURANT_BACKGROUNDS) as [StudioBackgroundPresetId, typeof REAL_RESTAURANT_BACKGROUNDS[StudioBackgroundPresetId]][]).map(([id, item]) => (
                   <button
@@ -868,7 +955,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="text-right">
                   <h3 className="font-black text-white text-sm">Reality Final Boss</h3>
-                  <p className="text-[11px] text-slate-300 mt-1">أقوى وضع: الخلفية بشرية، عادية، مقنعة، وتخفي أي إحساس AI.</p>
+                  <p className="text-[11px] text-slate-300 mt-1">أقوى وضع: الخلفية بشرية، كويتية، عادية، مقنعة، وتخفي أي إحساس AI.</p>
                 </div>
                 <button
                   type="button"
@@ -905,6 +992,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               />
             </div>
 
+            </>)}
+
             <div className="p-5 bg-amber-50 rounded-2xl border border-amber-200">
               <p className="text-xs text-amber-800 font-medium leading-relaxed">
                 <b className="block mb-1">💡 قاعدة حماية الهوية:</b>
@@ -920,12 +1009,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               {isGenerating ? (
                 <>
                   <Loader2 className="animate-spin" size={20} />
-                  جاري تصميم الصورة...
+                  جاري توليد المشهد الكويتي...
                 </>
               ) : (
                 <>
                   <Sparkles size={20} />
-                  انشئ المشهد
+                  ولّعها
                 </>
               )}
             </button>
@@ -965,7 +1054,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   </div>
                   <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
                     <p className="text-sm text-indigo-900 font-bold">الصورة جاهزة للإنشاء الذكي بمقاسات السوشيال ميديا.</p>
-                    <p className="text-xs text-indigo-500 mt-1">اضغط "انشئ المشهد" لإضافة اللمسات الاحترافية.</p>
+                    <p className="text-xs text-indigo-500 mt-1">اضغط "ولّعها" لإضافة اللمسات الاحترافية.</p>
                   </div>
                 </div>
               )}
@@ -992,7 +1081,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="max-w-xs mx-auto space-y-4">
                     {[
                       "تحليل بصمة الطبق الأصلية...",
-                      "اختيار خلفية مطعم حقيقية...",
+                      "اختيار مشهد كويتي واقعي...",
                       "مطابقة الظلال والعدسة البشرية...",
                       "منع أي مظهر CGI أو ديكور وهمي..."
                     ].map((step, idx) => (

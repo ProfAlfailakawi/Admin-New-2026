@@ -67,7 +67,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
     setResultImage(null);
     setGeneratedBaseImage(null);
     try {
-      const prompt = `أنت صانع محتوى كويتي ذكي لمطعم عيوش وأكل شعبي وأسماك ومحاشي وورق عنب، والمشاوي عنده خيار ثانوي فقط. الموضوع الحالي في الكويت هو: "${eventLabel}". اكتب بوست قصير (سطرين) يربط الحدث بأطباق شعبية/سمج/محاشي/ورق عنب بشكل واقعي. لا تقترح قهوة أو بخور أو دلة أو سدو أو فوانيس أو كافيه. استخدم لهجة كويتية محترمة وعبارة عرض مناسبة.`;
+      const prompt = `أنت صانع محتوى كويتي ذكي لمطبخ طلبات كويتي منزلي للعيوش والأكل الشعبي والأسماك والمحاشي وورق العنب، والمشاوي عنده خيار ثانوي فقط. الموضوع الحالي في الكويت هو: "${eventLabel}". اكتب بوست قصير (سطرين) يربط الحدث بأطباق شعبية/سمج/محاشي/ورق عنب بشكل واقعي. لا تقترح قهوة أو بخور أو دلة أو سدو أو فوانيس أو كافيه. استخدم لهجة كويتية محترمة وعبارة عرض مناسبة.`;
       
       const txtRes = await fetch('/api/smart-studio/text-ideas', {
         method: 'POST',
@@ -77,7 +77,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
       const txtData = await txtRes.json();
       setResultText(txtData.text);
 
-      const imgPrompt = buildTextRealityPrompt('Realtime popular Kuwaiti restaurant trend social image', eventLabel, 'Connect the event to a believable casual popular-food restaurant scene for rice dishes, fish, mahshi, grape leaves, or occasional grills: if rain use warm dine-in table with food context, if traffic use pickup/takeout counter, if weekend use busy dining blur, if sports/national use casual restaurant gathering without flags/text/heritage props. Never show coffee, incense, dallah, sadu, lanterns, cafe props, or fantasy decor.');
+      const imgPrompt = buildTextRealityPrompt('Realtime Kuwaiti home-order trend social image', eventLabel, 'Connect the event to a believable Kuwaiti home-order or gathering scene for rice dishes, fish, mahshi, grape leaves, or occasional grills: if rain use warm home table, if traffic use delivery packaging, if weekend use chalet/diwaniya gathering, if sports/national use casual Kuwaiti diwaniya/home gathering without flags/text/heritage props. Never show coffee, incense, dallah, sadu, lanterns, cafe props, or fantasy decor. Do not imply a dine-in restaurant.');
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -116,7 +116,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
             رادار التريندات الكويتي (Real-time)
           </h2>
         </div>
-        <p className="text-slate-500 text-sm max-w-2xl">واكب السوالف واللحظة بصورة كأنها مصورة فعلاً داخل مطعم: طاولة، كاونتر، زجاج، إضاءة، وظلال بشرية بدون خلفيات خيالية.</p>
+        <p className="text-slate-500 text-sm max-w-2xl">واكب السوالف واللحظة بصورة كأنها مصورة فعلاً في بيت/ديوانية/شاليه/توصيل: سفرة، علب مرتبة، إضاءة، وظلال بشرية بدون خلفيات خيالية.</p>
 
         {history.length > 0 && (
           <div className="bg-slate-50 rounded-3xl border border-slate-100 p-4 shadow-sm">
