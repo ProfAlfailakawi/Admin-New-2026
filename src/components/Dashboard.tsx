@@ -6111,9 +6111,9 @@ const [isPending, startTransition] = useTransition();
 
 
         {/* Time Slider (Minimalist) */}
-        {!isExecutiveMode && (
+        {!isExecutiveMode && (((data?.orders?.length || 0) + (data?.invoices?.length || 0) + (data?.expenses?.length || 0)) > 0) && (
           <div className="fixed bottom-3 left-0 right-0 z-[90] p-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-10 duration-700 delay-500">
-            <div className="bg-white/70 backdrop-blur-3xl rounded-[2rem] py-3.5 px-6 flex flex-col items-center gap-2.5 shadow-2xl pointer-events-auto w-[90%] max-w-[340px] border border-white/50 ring-1 ring-slate-900/5 transition-all hover:bg-white/80">
+            <div className="bg-white/85 backdrop-blur-3xl rounded-[2rem] py-3.5 px-6 flex flex-col items-center gap-2.5 shadow-[0_18px_55px_rgba(15,23,42,0.16)] pointer-events-auto w-[92%] max-w-[380px] border border-slate-200/70 ring-1 ring-white/80 transition-all hover:bg-white">
               <input 
                 type="range"
                 min="0"

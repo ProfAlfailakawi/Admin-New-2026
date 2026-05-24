@@ -113,8 +113,8 @@ export const buildKuwaitStudioTheme = ({ packId, place, goal, customText }: { pa
   const userText = String(customText || '').trim();
   return [
     'KUWAIT CONTENT PULSE LAYER: This is not a dine-in restaurant scene. It is a Kuwaiti home-order and delivery brand for homes, diwaniyas, chalets, farms, jakhours, zowaras, and gatherings.',
-    `Occasion: ${pack.label}. Tone: ${pack.tone}.`,
-    `Place: ${placeInfo.label}. ${placeInfo.prompt}`,
+    `Occasion + place must be merged into one believable Kuwaiti moment: ${pack.label} at ${placeInfo.label}. Tone: ${pack.tone}. ${placeInfo.prompt}`,
+    `Scene + environment must stay consistent together: ${pack.prompt} Environment: ${placeInfo.prompt}`,
     `Content goal: ${goalInfo.label}. ${goalInfo.prompt}`,
     `Scene direction: ${pack.prompt}`,
     userText ? `User custom idea: ${userText}` : '',
