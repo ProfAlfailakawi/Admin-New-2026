@@ -134,7 +134,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  : "bg-white text-emerald-700 border-emerald-100 shadow-sm"
  )}
  >
- 🏆 مسابقات إنستغرام بدون خسارة
+ 🏆 مسابقات الانستغرام
  </button>
  <div className="grid grid-cols-3 gap-3">
  {(['engagement', 'motivation', 'promo'] as Category[]).map((cat) => (
@@ -211,7 +211,14 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  </div>
 
  <div className="space-y-8">
- {messages.map((msg, index) => (
+ {messages.map((rawMsg, index) => {
+  const parts = rawMsg.split('$$');
+  const isContest = parts.length >= 7 && parts[0] === 'CONTEST';
+  let title = '', cost = '', target = '', channel = '', duration = '', prize = '', text = rawMsg;
+  if (isContest) {
+    [, title, cost, target, channel, duration, prize, text] = parts;
+  }
+  return (
  <motion.div
  key={index}
  initial={{ opacity: 0, scale: 0.9 }}
@@ -238,12 +245,33 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
 )}>
  <Instagram size={24} />
  </div>
- <span className="text-[10px] font-bold text-slate-300 tracking-tighter">0{index + 1} / {messages.length}</span>
+ {isContest ? (
+   <h3 className="text-xl md:text-2xl font-black text-slate-800 text-right pr-4 leading-tight flex-1" style={{direction: "rtl"}}>{title}</h3>
+ ) : (
+   <span className="text-[10px] font-bold text-slate-300 tracking-tighter mr-auto">0{index + 1} / {messages.length}</span>
+ )}
  </div>
 
  <div className="text-right">
- <p className="text-lg md:text-xl font-bold text-slate-900 leading-[1.6] mb-10">
- {msg}
+ {isContest && (
+   <div className="mb-6 space-y-3" dir="rtl">
+     <div className="flex flex-wrap gap-2 text-[10.5px] font-bold">
+         <span className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-xl border border-emerald-100 flex items-center gap-1"><span className="text-emerald-400/80">💰</span>التكلفة: {cost}</span>
+         <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl border border-blue-100 flex items-center gap-1"><span className="text-blue-400/80">🎯</span>الهدف: {target}</span>
+     </div>
+     <div className="flex flex-wrap gap-2 text-[10.5px] font-bold">
+         <span className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-xl border border-purple-100 flex items-center gap-1"><span className="text-purple-400/80">📱</span>النشر: {channel}</span>
+         <span className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-100 flex items-center gap-1"><span className="text-amber-400/80">⏱</span>المدة: {duration}</span>
+     </div>
+     <div className="flex flex-wrap gap-2 text-[10.5px] font-bold">
+         <span className="bg-rose-50 text-rose-700 px-3 py-1.5 rounded-xl border border-rose-100 flex w-full items-center gap-1"><span className="text-rose-400/80">🎁</span>الجائزة: {prize}</span>
+     </div>
+   </div>
+ )}
+
+ {isContest && <div className="text-[11px] font-bold text-slate-400 mb-3 border-b border-black/5 pb-2">النص الجاهز للنسخ:</div>}
+ <p className="text-lg md:text-xl font-bold text-slate-900 leading-[1.6] mb-10 whitespace-pre-line text-right" dir="rtl">
+ {text}
  </p>
  
  <div className="flex items-center justify-between pt-6 border-t border-black/5">
@@ -252,7 +280,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  <Send className="text-slate-500 -rotate-45 cursor-pointer hover:scale-110 transition-transform" />
  </div>
  <button 
- onClick={() => copyToClipboard(msg, index)}
+ onClick={() => copyToClipboard(text, index)}
  className={cn(
 "flex items-center gap-2 text-[11px] font-bold px-4 md:px-8 py-4 rounded-3xl transition-all active:scale-90 shadow-xl",
  copiedIndex === index 
@@ -267,7 +295,8 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  </div>
  </div>
  </motion.div>
-))}
+  );
+ })}
  </div>
 
  {/* Live Preview Area */}

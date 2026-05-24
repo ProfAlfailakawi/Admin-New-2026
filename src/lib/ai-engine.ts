@@ -161,7 +161,7 @@ export async function generateQuickInstagramMessages(data: AppState, category: '
     ];
 
     const selected = rotate(templates).slice(0, 5).map((item, index) =>
-      `🏆 ${item.title}\nالتكلفة: ${item.cost}\nالهدف: ${item.target}\nالنشر: ${item.channel} | المدة: ${item.duration}\nالجائزة الآمنة: ${item.prize}\nالنص الجاهز:\n${item.text}`
+      `CONTEST$$${item.title}$$${item.cost}$$${item.target}$$${item.channel}$$${item.duration}$$${item.prize}$$${item.text}`
     );
     setCache(`insta-contest-${generateStateHash(data)}`, selected);
     return selected;
@@ -171,50 +171,22 @@ export async function generateQuickInstagramMessages(data: AppState, category: '
   const cached = forceRefresh ? null : getCached<string[]>(cacheKey);
   if (cached) return cached;
   try {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key || key === 'undefined' || key === 'MISSING_API_KEY') {
-      throw new Error('API key is missing');
-    }
-    const ai = new GoogleGenAI({ apiKey: key });
-
-    const prompt = `
-      بصفتك خبير تسويق كويتي ذكي ومبدع. قم بتوليد 3 رسائل قصيرة جداً للانستغرام (Caption or Story) تتناسب مع طبيعة العمل (حلويات ومطاعم) في الكويت.
-      
-      التصنيف المطلوب: ${category === 'motivation' ? 'تحفيزي وإيجابي' : category === 'engagement' ? 'تفاعلي مع المتابعين (سؤال أو نقاش)' : 'ترويجي سريع لمنتج'}.
-      
-      الشروط:
-      1. اللهجة: كويتية بيضاء راقية ومحببة.
-      2. الطول: لا تتجاوز سطرين.
-      3. الشخصية: مرحة، قريبة من القلب، وتعكس روح "مطبخ التراث الكويتي".
-      4. المحتوى: استخدم كلمات مثل "ناطع"، "خنين"، "يبرد الجبد"، "من الآخر".
-      
-      أخرج النتيجة بصيغة JSON فقط:
-      {
-        "messages": ["رسالة 1", "رسالة 2", "رسالة 3"]
-      }
-    `;
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      }
+    const response = await fetch('/api/ai/quick-messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, forceRefresh })
     });
-
-    const resText = response.text;
-    if (!resText) throw new Error("Empty AI response");
-
-    let jsonPayload = resText;
-    const match = resText.match(/```json\n?([\s\S]*?)\n?```/) || resText.match(/{[\s\S]*}/);
-    if (match) {
-      jsonPayload = match[1] || match[0];
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
     }
     
-    const result = JSON.parse(jsonPayload);
-    const msgs = result.messages as string[];
-    setCache(cacheKey, msgs);
-    return msgs;
+    const result = await response.json();
+    if (result.messages && Array.isArray(result.messages)) {
+      setCache(cacheKey, result.messages);
+      return result.messages;
+    }
+    throw new Error("Invalid format returned from API");
   } catch (error: any) {
     const errString = String(error?.message || error);
     if (errString.includes('429') || errString.includes('RESOURCE_EXHAUSTED') || errString.includes('credits are depleted')) {

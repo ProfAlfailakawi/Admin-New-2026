@@ -834,6 +834,7 @@ const MainApp: React.FC = () => {
 
 
   const [currentPage, setCurrentPage] = useState(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+  const [dashboardTab, setDashboardTab] = useState<string>('pulse');
 
   const navigateAdminPage = (page: string, payload?: any) => {
     setCurrentPage(page);
@@ -2029,8 +2030,8 @@ const MainApp: React.FC = () => {
     }
 
     switch (currentPage) {
-      case 'dashboard': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab={deepLinkData.exactId || 'pulse'} scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} />;
-      case 'dashboard-ai': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="intelligence" scrollTarget={deepLinkData.scrollTarget} />;
+      case 'dashboard': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab={deepLinkData.exactId || 'pulse'} scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} onActiveTabChange={setDashboardTab} />;
+      case 'dashboard-ai': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="intelligence" scrollTarget={deepLinkData.scrollTarget} onActiveTabChange={setDashboardTab} />;
       case 'new-invoice': return (
         <InvoicePage 
           data={data} 
@@ -2091,13 +2092,17 @@ const MainApp: React.FC = () => {
           deepLinkData={deepLinkData}
         />
       );
-      default: return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={setCurrentPage} />;
+      default: return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={setCurrentPage} onActiveTabChange={setDashboardTab} />;
     }
   };
 
-  const showExecutiveFloatingTools = currentPage === 'dashboard';
+  const showExecutiveFloatingTools = currentPage === 'dashboard' && dashboardTab === 'pulse';
   const floatingToolRole = appMode === 'local' ? 'local' : userRole;
-  const showInstagramFloatingTool = (floatingToolRole === 'partner' && currentPage === 'dashboard') || ((floatingToolRole === 'admin' || floatingToolRole === 'local') && showExecutiveFloatingTools);
+  
+  // Instagram Wand: For admin/local -> only on dashboard pulse. For partner -> only on dashboard pulse.
+  const showInstagramFloatingTool = showExecutiveFloatingTools;
+
+  // Second Tool (Radar/Search): Admin/local -> only on pulse. Partner -> hide completely.
   const showSecondFloatingTools = (floatingToolRole === 'admin' || floatingToolRole === 'local') && showExecutiveFloatingTools;
 
   return (
@@ -2593,17 +2598,19 @@ const MainApp: React.FC = () => {
           <div className="fixed inset-0 pointer-events-none z-0">
           </div>
           <InstallPrompt />
-          <ProactiveAlerts 
-            userRole={userRole}
-            currentPage={currentPage}
-            notifications={data.notifications || []} 
-            onMarkAsRead={(id) => {
-               setData(prev => ({
-                   ...prev,
-                   notifications: (prev?.notifications || []).map(n => n.id === id ? { ...n, read: true } : n)
-               }));
-            }} 
-          />
+          {showSecondFloatingTools && (
+            <ProactiveAlerts 
+              userRole={userRole}
+              currentPage={currentPage}
+              notifications={data.notifications || []} 
+              onMarkAsRead={(id) => {
+                 setData(prev => ({
+                     ...prev,
+                     notifications: (prev?.notifications || []).map(n => n.id === id ? { ...n, read: true } : n)
+                 }));
+              }} 
+            />
+          )}
           {userRole !== 'partner' && currentPage === 'dashboard' && (
             <CommandBrief data={data} dateFilter="day" />
           )}

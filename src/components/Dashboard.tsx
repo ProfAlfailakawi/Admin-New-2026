@@ -185,6 +185,7 @@ interface DashboardProps {
   onUpdateData: (newData: AppState) => void;
   appMode?: "local" | "cloud";
   setDeepLinkData?: (data: any) => void;
+  onActiveTabChange?: (tab: string) => void;
 }
 
 
@@ -930,6 +931,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     scrollTarget,
     scrollTargetTimestamp,
     setDeepLinkData,
+    onActiveTabChange,
   }) => {
     
     const data = rawData;
@@ -967,6 +969,10 @@ const [isPending, startTransition] = useTransition();
       if (tab === "loyalty" || tab === "promocodes" || tab === "diwaniya") return tab;
       return "pulse";
     });
+
+    useEffect(() => {
+      if (onActiveTabChange) onActiveTabChange(activeTab);
+    }, [activeTab, onActiveTabChange]);
 
     useEffect(() => {
       // Prompt for sample data on local mode if empty & not dismissed
@@ -6110,32 +6116,34 @@ const [isPending, startTransition] = useTransition();
         </AnimatePresence>
 
 
-        {/* Time Slider (Minimalist) */}
-        {isExecutiveMode && (((data?.orders?.length || 0) + (data?.invoices?.length || 0) + (data?.expenses?.length || 0)) > 0) && (
-          <div className="fixed bottom-3 left-0 right-0 z-[90] p-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-10 duration-700 delay-500">
-            <div className="admin-date-filter-elegant bg-white/90 backdrop-blur-3xl rounded-[2rem] py-3.5 px-6 flex flex-col items-center gap-2.5 pointer-events-auto w-[92%] max-w-[380px] border border-slate-200/70 ring-1 ring-white/80 transition-all hover:bg-white">
-              <input 
-                type="range"
-                min="0"
-                max="4"
-                value={["all", "year", "month", "week", "day"].indexOf(dateFilter)}
-                onChange={(e) => {
-                  const map = ["all", "year", "month", "week", "day"];
-                  startTransition(() => setDateFilter(map[parseInt(e.target.value)] as any));
-                }}
-                className="w-full h-1 bg-slate-200/80 rounded-full appearance-none cursor-grab active:cursor-grabbing outline-none transition-all duration-300
-                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
-                [&::-webkit-slider-thumb]:bg-slate-800 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white"
-                style={{ direction: 'ltr' }}
-              />
-              
-              <div className="flex justify-between w-full text-[10px] font-sans font-extrabold text-slate-400 px-0.5" style={{ direction: 'ltr' }}>
-                <span onClick={() => startTransition(() => setDateFilter("all"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-left", dateFilter === "all" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>الكل</span>
-                <span onClick={() => startTransition(() => setDateFilter("year"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", dateFilter === "year" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>سنة</span>
-                <span onClick={() => startTransition(() => setDateFilter("month"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", dateFilter === "month" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>شهر</span>
-                <span onClick={() => startTransition(() => setDateFilter("week"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", dateFilter === "week" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>أسبوع</span>
-                <span onClick={() => startTransition(() => setDateFilter("day"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-right", dateFilter === "day" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>اليوم</span>
-              </div>
+        {/* Time Filter (Ultra Elegant Segmented Pill) */}
+        {isExecutiveMode && (activeTab === "pulse" || activeTab === "financials" || activeTab === "advanced") && (((data?.orders?.length || 0) + (data?.invoices?.length || 0) + (data?.expenses?.length || 0)) > 0) && (
+          <div className="fixed bottom-3 left-0 right-0 z-[90] p-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-10 duration-700">
+            <div className="admin-date-filter-elegant bg-slate-950/95 border border-white/10 text-white backdrop-blur-3xl rounded-full p-1.5 flex items-center justify-between gap-1 pointer-events-auto w-[92%] max-w-[340px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all">
+              {[
+                { id: "day", label: "اليوم" },
+                { id: "week", label: "أسبوع" },
+                { id: "month", label: "شهر" },
+                { id: "year", label: "سنة" },
+                { id: "all", label: "الكل" },
+              ].map((opt) => {
+                const isActive = dateFilter === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => startTransition(() => setDateFilter(opt.id as any))}
+                    className={cn(
+                      "flex-1 text-center py-2 px-1 rounded-full text-xs font-black transition-all active:scale-95 duration-200",
+                      isActive 
+                        ? "bg-amber-500 text-slate-950 shadow-md font-extrabold" 
+                        : "text-slate-400 hover:text-white"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

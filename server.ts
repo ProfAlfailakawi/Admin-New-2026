@@ -2364,7 +2364,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 
   app.post("/api/ai/quick-messages", express.json({ limit: "2mb" }), async (req, res) => {
     try {
-      const { category } = req.body;
+      const { category, forceRefresh } = req.body;
       if (!category) {
         return res.status(400).json({ error: "Missing category" });
       }
@@ -2382,6 +2382,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       2. الطول: لا تتجاوز سطرين.
       3. الشخصية: مرحة، قريبة من القلب، وتعكس روح "مطبخ التراث الكويتي".
       4. المحتوى: استخدم كلمات مثل "ناطع"، "خنين"، "يبرد الجبد"، "من الآخر".
+      5. ${forceRefresh ? 'ابحث عن أفكار وزوايا جديدة كلياً ومختلفة عن المعتاد ' + Math.random().toString(36).substring(7) : 'اعتمد أسلوب مألوف ومحبب'}
       
       أخرج النتيجة بصيغة JSON فقط:
       {
@@ -2723,7 +2724,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
         return res.status(403).json({ error: "مفتاح توليد الفيديو غير صالح أو لا يملك صلاحية توليد الفيديو.", needsKey: true });
       }
       if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("429") || errMsg.includes("quota")) {
-        return res.status(429).json({ error: "تم استنفاد حصة توليد الفيديو. يرجى المحاولة لاحقاً." });
+        return res.status(429).json({ error: "تم استنفاد حصة توليد الفيديو (Google Gemini Veo) أو لم يتم تفعيلها. جرب لاحقاً أو تأكد من حصص Google Cloud." });
       }
       return res.status(500).json({ error: errMsg });
     }
