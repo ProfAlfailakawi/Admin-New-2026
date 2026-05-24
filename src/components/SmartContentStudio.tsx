@@ -31,6 +31,21 @@ type RealityAuditResult = {
 
 type ProductStudioFlow = 'quick' | 'kuwait' | 'pro';
 
+type StudioHistoryItem = {
+  url: string;
+  caption: string | null;
+  date: Date;
+  mode?: StudioRealityMode;
+  background?: StudioBackgroundPresetId;
+  theme?: string;
+  format?: string;
+  source?: 'idea' | 'image';
+  packId?: string;
+  place?: KuwaitOrderPlace;
+  mood?: string;
+  customIdea?: string;
+};
+
 class StudioErrorBoundary extends React.Component<{ title: string; children: React.ReactNode }, { hasError: boolean; message: string }> {
   declare props: Readonly<{ title: string; children: React.ReactNode }>;
   declare state: Readonly<{ hasError: boolean; message: string }>;
@@ -50,7 +65,8 @@ class StudioErrorBoundary extends React.Component<{ title: string; children: Rea
 
   render() {
     if (this.state.hasError) {
-      return (
+    
+  return (
         <div className="rounded-3xl border border-rose-100 bg-rose-50/80 p-8 text-right shadow-sm">
           <h3 className="text-lg font-black text-rose-700 mb-2">تعذر فتح {this.props.title}</h3>
           <p className="text-sm font-bold text-rose-600/80 leading-7">تم منع الشاشة البيضاء. حدّث الصفحة أو جرّب مرة ثانية، وإذا تكرر الخطأ راجع بيانات هذا القسم.</p>
@@ -63,7 +79,16 @@ class StudioErrorBoundary extends React.Component<{ title: string; children: Rea
 }
 
 export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, setData, onNavigate }) => {
-  const [studioTab, setStudioTab] = useState<'home' | 'quick' | 'whatsapp' | 'occasions' | 'product' | 'library' | 'advanced'>('home');
+  const [studioTab, setStudioTab] = useState<'home' | 'create' | 'quick' | 'whatsapp' | 'occasions' | 'product' | 'library' | 'advanced'>('home');
+  const [createStep, setCreateStep] = useState<number>(1);
+  const [productStep, setProductStep] = useState<number>(1);
+  const [showCreateOccasion, setShowCreateOccasion] = useState(false);
+  const [showProductOccasion, setShowProductOccasion] = useState(false);
+  const [fineToolTab, setFineToolTab] = useState<'lighting' | 'reality'>('lighting');
+  const [showFineTools, setShowFineTools] = useState(false);
+  const [showPlaceLibrary, setShowPlaceLibrary] = useState(false);
+  const [showImageSettings, setShowImageSettings] = useState(false);
+  const [archiveTab, setArchiveTab] = useState<'idea' | 'image'>('idea');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState('1:1');
@@ -105,7 +130,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
 
 
-  const FORBIDDEN_STUDIO_WORDS = ['دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود', 'سدو', 'فانوس', 'فوانيس', 'قهوة', 'قهوت', 'بن', 'فنجان', 'فناجين'];
+  const FORBIDDEN_STUDIO_WORDS = ['دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود', 'سدو', 'فانوس', 'فوانيس', 'قهوة', 'قهوت', 'بن', 'فنجان', 'فناجين', 'كلينكس', 'منديل مستخدم', 'مناديل مستخدمة', 'منديل وصخ', 'مناديل وصخة', 'مخلفات'];
   const hasForbiddenStudioWord = (value: string) =>
     FORBIDDEN_STUDIO_WORDS.some((word) => String(value || '').includes(word));
   const STUDIO_NEGATIVE_PROMPT = STUDIO_REALITY_NEGATIVE_PROMPT;
@@ -136,7 +161,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [customText, setCustomText] = useState('');
   const [textPosition, setTextPosition] = useState<'bottom' | 'top' | 'center' | 'hidden'>('bottom');
   const [aiImage, setAiImage] = useState<string | null>(null);
-  const [history, setHistory] = useState<{url: string, caption: string | null, date: Date, mode?: StudioRealityMode, background?: StudioBackgroundPresetId, theme?: string, format?: string}[]>([]);
+  const [history, setHistory] = useState<StudioHistoryItem[]>([]);
 
 
   const refreshStudioLearning = async () => {
@@ -160,8 +185,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     },
     kuwait: {
       icon: '🇰🇼',
-      title: 'مشهد كويتي',
-      desc: 'حط المنتج في بيت، ديوانية، شاليه، مزرعة، جاخور أو زوارة.',
+      title: 'بيئة واقعية',
+      desc: 'اختر مناسبة ومكان واقعيين بعد المقاس والفكرة.',
       badge: 'للإبداع',
       tone: 'bg-rose-50 border-rose-200 text-rose-700'
     },
@@ -230,9 +255,22 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     }
   }, [useBranding, logoOpacity, logoPosition, brandingStyle, customText, textPosition, aiImage]);
 
-  const addToHistory = (url: string, caption: string | null, meta?: { mode?: StudioRealityMode; background?: StudioBackgroundPresetId; theme?: string; format?: string }) => {
+  const addToHistory = (url: string, caption: string | null, meta?: Partial<StudioHistoryItem>) => {
     setHistory(prev => {
-      const nextItem = { url, caption, date: new Date(), ...meta };
+      const nextItem: StudioHistoryItem = {
+        url,
+        caption,
+        date: new Date(),
+        mode: realityMode,
+        background: backgroundPreset,
+        theme: selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme,
+        format: selectedFormat,
+        packId: selectedPulseId,
+        place: selectedOrderPlace,
+        mood: selectedMood,
+        customIdea: customThemeQuery,
+        ...meta
+      };
       const newHistory = [nextItem, ...prev.filter(item => item.url !== url)].slice(0, 12);
       // التخزين يتم في useEffect بنسخة خفيفة، حتى تبقى الصورة الحالية ظاهرة بدون كسر المتصفح.
       return newHistory;
@@ -312,8 +350,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         setSelectedImage(result.base64);
         setCompressionStats({ original: result.originalSize, compressed: result.size });
         setGeneratedImage(null);
+        setShowImageSettings(false);
         setRealityAudit(null);
         setRealityVariants([]);
+        setProductStep(1);
       };
       reader.readAsDataURL(file);
     }
@@ -334,6 +374,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
     setIsGenerating(true);
     setGeneratedImage(null);
+    setShowImageSettings(false);
     setRealityAudit(null);
 
     // Call backend API to process the realistic AI image
@@ -377,7 +418,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         const usedMode = variantOverride?.mode || realityMode;
         const usedBackground = variantOverride?.background || backgroundPreset;
         const themeUsed = themeText;
-        addToHistory(branded, null, { mode: usedMode, background: usedBackground, theme: themeUsed, format: selectedFormat });
+        addToHistory(branded, null, { mode: usedMode, background: usedBackground, theme: themeUsed, format: selectedFormat, source: 'image' });
         recordStudioTasteChoice({ mode: usedMode, background: usedBackground, theme: themeUsed, format: selectedFormat, label: variantOverride?.label || STUDIO_REALITY_MODES[usedMode].label, source: 'generated-image' });
         refreshStudioLearning();
         if (variantOverride?.label) {
@@ -418,6 +459,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     }
     setIsGenerating(true);
     setGeneratedImage(null);
+    setShowImageSettings(false);
     setRealityAudit(null);
     try {
       const prompt = `${themeText}\nGenerate a believable Kuwaiti occasion / delivery / gathering image without requiring a product upload. Make it look like a real photographed Kuwaiti order moment, suitable for WhatsApp first. No readable text inside the image. ${STUDIO_NEGATIVE_PROMPT}`;
@@ -437,7 +479,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       const caption = buildKuwaitCaptionFallback({ packId: selectedPulseId, place: selectedOrderPlace || activePulsePack.defaultPlace, goal: selectedContentGoal });
       setPreviousAiCaption(aiCaption);
       setAiCaption(caption);
-      addToHistory(branded, caption, { mode: realityMode, background: backgroundPreset, theme: themeText, format: selectedFormat });
+      addToHistory(branded, caption, { mode: realityMode, background: backgroundPreset, theme: themeText, format: selectedFormat, source: 'idea' });
       recordStudioTasteChoice({ mode: realityMode, background: backgroundPreset, theme: themeText, format: selectedFormat, label: 'kuwait-no-product', source: 'quick-no-product' });
       refreshStudioLearning();
       toast.success('تم تجهيز صورة ورسالة كويتية بدون رفع منتج');
@@ -463,11 +505,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     if (!selectedImage || isGenerating || isGeneratingVariants) return;
     setIsGeneratingVariants(true);
     setRealityVariants([]);
+        setProductStep(1);
     const variantPlan: { label: string; mode: StudioRealityMode; background: StudioBackgroundPresetId }[] = [
       { label: 'بشري / آيفون', mode: 'human', background: 'wood-table' },
       { label: 'طلب كويتي واقعي', mode: 'restaurant', background: 'home-table' },
       { label: 'منيو احترافي', mode: 'menu', background: 'neutral-menu' },
-      { label: 'Final Boss كويتي', mode: 'finalBoss', background: 'diwaniya-table' },
+      { label: 'واقعية قصوى', mode: 'finalBoss', background: 'diwaniya-table' },
     ];
     try {
       for (const variant of variantPlan) {
@@ -519,7 +562,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       source: 'manual-choice'
     });
     refreshStudioLearning();
-    toast.success('تم حفظ ذوقك لهذا الأسلوب — الاستوديو راح يفضله لاحقاً');
+    toast.success('تم حفظ ذوقك لهذا الأسلوب — استوديو الصورة الذكية راح يفضله لاحقاً');
   };
 
   const saveCurrentBackground = async () => {
@@ -680,312 +723,435 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     }
   };
 
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500 pb-32">
-      
-      <div className="mb-8 p-6 bg-gradient-to-br from-indigo-900 to-indigo-800 rounded-3xl shadow-xl border border-indigo-700/50 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
-          <Sparkles className="w-64 h-64" />
-        </div>
-        <div className="relative z-10 flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-              <Camera className="w-8 h-8 text-indigo-300" />
-              استوديو المحتوى الكويتي
-            </h1>
-            <p className="text-indigo-200 mt-2 max-w-xl text-sm leading-relaxed">
-              مناسبة أو واتساب أو صورة منتج — المنتج اختياري. واجهة بسيطة للموظف والشريك، والوضع الاحترافي مخفي للأدمن، مع الحفاظ على الواقعية الحالية بدون لمس محرك الذكاء.
-            </p>
-          </div>
-          {originalImage && studioTab === 'product' && (
-            <button 
-              onClick={() => { setSelectedImage(null); setOriginalImage(null); setGeneratedImage(null); }}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur transition-all text-sm font-bold flex items-center gap-2"
-            >
-              <Upload size={16} /> رفع صورة أخرى
-            </button>
-          )}
-        </div>
-        
-        <div className="relative z-10 mt-6 flex items-center justify-between gap-3">
-          {studioTab !== 'home' ? (
-            <button onClick={() => setStudioTab('home')} className="px-4 py-2 rounded-xl text-sm font-black bg-white/10 hover:bg-white/20 text-white transition-colors">
-              رجوع للواجهة البسيطة
-            </button>
-          ) : <div />}
-          <div className="flex gap-2">
-            <button onClick={() => setStudioTab('library')} className={cn("px-4 py-2 rounded-xl text-sm font-black transition-colors", studioTab === 'library' ? "bg-white text-indigo-900" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>المكتبة</button>
-            <button onClick={() => setStudioTab('advanced')} className={cn("px-4 py-2 rounded-xl text-sm font-black transition-colors", studioTab === 'advanced' ? "bg-white text-indigo-900" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>الوضع الاحترافي</button>
-          </div>
-        </div>
-      </div>
 
-      <div className="mb-8 rounded-[30px] border border-slate-100 bg-white/95 p-2 shadow-sm sticky top-3 z-40 backdrop-blur-xl">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-right">
-          {[
-            { id: 'whatsapp', label: 'واتساب', desc: 'رسالة وصورة سريعة', icon: <MessageCircle size={17} />, action: () => { setSelectedContentGoal('whatsapp'); setStudioTab('whatsapp'); } },
-            { id: 'occasions', label: 'مناسبة', desc: 'موسم وحملة', icon: <Sparkles size={17} />, action: () => { setSelectedContentGoal('campaign'); setStudioTab('occasions'); } },
-            { id: 'product', label: 'منتج', desc: 'تصوير وتحسين', icon: <Camera size={17} />, action: () => setStudioTab('product') },
-            { id: 'library', label: 'المكتبة', desc: 'إعادة استخدام', icon: <Library size={17} />, action: () => setStudioTab('library') },
-            { id: 'advanced', label: 'احترافي', desc: 'كل المحركات', icon: <Brain size={17} />, action: () => setStudioTab('advanced') },
-          ].map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={item.action}
-              className={cn(
-                "rounded-[22px] border p-3 transition-all active:scale-[0.98] flex items-center justify-between gap-3 min-h-[72px]",
-                studioTab === item.id
-                  ? "bg-slate-950 text-white border-slate-950 shadow-lg"
-                  : "bg-slate-50 text-slate-700 border-slate-100 hover:bg-white hover:border-indigo-100 hover:shadow-md"
-              )}
-            >
-              <span className={cn("h-10 w-10 shrink-0 rounded-2xl flex items-center justify-center", studioTab === item.id ? "bg-white/10 text-indigo-100" : "bg-white text-indigo-600 border border-slate-100")}>{item.icon}</span>
-              <span className="min-w-0">
-                <span className="block text-sm font-black">{item.label}</span>
-                <span className={cn("block text-[10px] font-bold mt-0.5", studioTab === item.id ? "text-white/55" : "text-slate-400")}>{item.desc}</span>
-              </span>
+
+  const cleanRealityLabel = (label: string) => String(label || '')
+    .replace(/Reality\s*/gi, '')
+    .replace(/Final\s*Boss/gi, 'واقعية قصوى')
+    .replace(/Boss/gi, 'قصوى')
+    .replace(/Core/gi, '')
+    .trim() || 'واقعية عالية';
+
+  const renderFineTools = () => {
+    const toolTabs = [
+      { id: 'lighting' as const, label: 'الإضاءة', icon: '☀️' },
+      { id: 'reality' as const, label: 'الواقعية', icon: '✓' },
+    ];
+
+    return (
+      <div className="rounded-[1.7rem] border border-slate-100 bg-slate-50 p-3 space-y-3">
+        <button
+          type="button"
+          onClick={() => setShowFineTools(!showFineTools)}
+          className="w-full rounded-3xl bg-white border border-slate-100 p-4 text-right flex items-center justify-between gap-3"
+        >
+          <span>
+            <span className="block text-xs font-black text-slate-500">أدوات دقيقة</span>
+            <span className="block text-sm font-black text-slate-950 mt-1">افتحها فقط عند الحاجة للتعديل</span>
+          </span>
+          <ChevronLeft className={cn("transition-transform text-slate-400", showFineTools ? "-rotate-90" : "")} size={20} />
+        </button>
+
+        {showFineTools && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              {toolTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setFineToolTab(tab.id)}
+                  className={cn(
+                    "rounded-2xl px-3 py-3 text-sm font-black transition-all flex items-center justify-center gap-2",
+                    fineToolTab === tab.id ? "bg-slate-950 text-white shadow-md" : "bg-white text-slate-500 border border-slate-100"
+                  )}
+                >
+                  <span>{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {fineToolTab === 'lighting' && (
+              <div className="rounded-3xl border border-amber-100 bg-white p-4">
+                <p className="text-[11px] font-black text-amber-700 mb-3">اختر إحساس الإضاءة</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {moods.map(m => (
+                    <button key={m.id} type="button" onClick={() => setSelectedMood(m.id)} className={cn("p-3 rounded-2xl border flex items-center justify-between gap-2 transition-all", selectedMood === m.id ? "bg-amber-50 border-amber-500 text-amber-700 shadow-sm" : "bg-slate-50 border-slate-100 text-slate-600") }>
+                      <span className="text-xl">{m.icon}</span><span className="text-[11px] font-black">{m.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {fineToolTab === 'reality' && (
+              <div className="rounded-3xl border border-emerald-100 bg-white p-4">
+                <p className="text-[11px] font-black text-emerald-700 mb-3">اختر قوة الواقعية</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.entries(STUDIO_REALITY_MODES) as [StudioRealityMode, typeof STUDIO_REALITY_MODES[StudioRealityMode]][]).map(([id, item]) => (
+                    <button key={id} type="button" onClick={() => setRealityMode(id)} className={cn("p-3 rounded-2xl border text-right transition-all", realityMode === id ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm" : "bg-slate-50 border-slate-100 text-slate-600") }>
+                      <span className="block text-xs font-black">{cleanRealityLabel(item.label)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderPlaceLibrary = () => (
+    <div className="rounded-[1.7rem] border border-slate-100 bg-slate-50 p-3 space-y-3">
+      <button
+        type="button"
+        onClick={() => setShowPlaceLibrary(!showPlaceLibrary)}
+        className="w-full rounded-3xl bg-white border border-slate-100 p-4 text-right flex items-center justify-between gap-3"
+      >
+        <span>
+          <span className="block text-xs font-black text-slate-500">مشاهد واقعية جاهزة</span>
+          <span className="block text-sm font-black text-slate-950 mt-1">{KUWAIT_PLACES[selectedOrderPlace]?.icon} {KUWAIT_PLACES[selectedOrderPlace]?.label}</span>
+        </span>
+        <ChevronLeft className={cn("transition-transform text-slate-400", showPlaceLibrary ? "-rotate-90" : "")} size={20} />
+      </button>
+      {showPlaceLibrary && (
+        <div className="grid grid-cols-2 gap-2">
+          {(Object.entries(KUWAIT_PLACES) as [KuwaitOrderPlace, typeof KUWAIT_PLACES[KuwaitOrderPlace]][]).map(([id, place]) => (
+            <button key={id} type="button" onClick={() => { setSelectedOrderPlace(id); setBackgroundPreset(place.background); setShowPlaceLibrary(false); }} className={cn("rounded-2xl border p-3 text-right transition-all min-h-[72px]", selectedOrderPlace === id ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-white text-slate-600 border-slate-100 hover:bg-slate-50") }>
+              <span className="text-xl">{place.icon}</span>
+              <span className="block text-xs font-black mt-1">{place.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+
+  const closeOpenPanels = () => {
+    setShowCreateOccasion(false);
+    setShowProductOccasion(false);
+    setShowFineTools(false);
+    setShowPlaceLibrary(false);
+  };
+
+  const goHome = () => {
+    closeOpenPanels();
+    setStudioTab('home');
+  };
+
+  const goCreateStep = (step: number) => {
+    closeOpenPanels();
+    setCreateStep(step);
+  };
+
+  const goProductStep = (step: number) => {
+    closeOpenPanels();
+    setProductStep(step);
+  };
+
+  const buildSettingsText = (item?: Partial<StudioHistoryItem>) => {
+    const formatLabel = item?.format || selectedFormat;
+    const pack = item?.packId ? getKuwaitPulsePack(item.packId) : activePulsePack;
+    const placeId = item?.place || selectedOrderPlace;
+    const modeId = item?.mode || realityMode;
+    const moodLabel = item?.mood || selectedMood;
+    const ideaText = item?.customIdea || customThemeQuery;
+    return [
+      `المسار: ${(item?.source || (studioTab === 'product' ? 'image' : 'idea')) === 'image' ? 'من صورة' : 'من فكرة'}`,
+      `المقاس: ${formatLabel}`,
+      `المناسبة: ${pack?.label || activePulsePack.label}`,
+      `المشهد: ${KUWAIT_PLACES[placeId]?.label || KUWAIT_PLACES[selectedOrderPlace]?.label}`,
+      `الإضاءة: ${moods.find((m) => m.id === moodLabel)?.label || moodLabel}`,
+      `الواقعية: ${cleanRealityLabel(STUDIO_REALITY_MODES[modeId]?.label || '')}`,
+      ideaText ? `الفكرة: ${ideaText}` : ''
+    ].filter(Boolean).join('\n');
+  };
+
+  const copyCurrentSettings = async () => {
+    const text = buildSettingsText();
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('تم نسخ إعدادات الصورة');
+    } catch {
+      toast.info('الإعدادات ظاهرة أمامك للنسخ اليدوي');
+    }
+  };
+
+  const compressionSavedPercent = compressionStats?.original
+    ? Math.max(0, Math.round((1 - compressionStats.compressed / compressionStats.original) * 100))
+    : null;
+
+  const hasWrittenIdea = customThemeQuery.trim().length > 0;
+  const fullStudioSteps = [
+    { n: 1, t: 'مقاس' },
+    { n: 2, t: 'فكرة' },
+    { n: 3, t: 'مناسبة' },
+    { n: 4, t: 'مكان' },
+    { n: 5, t: 'أدوات' },
+    { n: 6, t: 'توليد' },
+  ];
+  const ideaFastSteps = [
+    { n: 1, t: 'مقاس' },
+    { n: 2, t: 'فكرة' },
+    { n: 5, t: 'أدوات' },
+    { n: 6, t: 'توليد' },
+  ];
+  const visibleStudioSteps = hasWrittenIdea ? ideaFastSteps : fullStudioSteps;
+  const renderStageProgress = (currentStep: number, setStep: (step: number) => void) => {
+    const steps = visibleStudioSteps;
+    const currentIndex = Math.max(0, steps.findIndex((s) => s.n === currentStep));
+    const current = steps[currentIndex] || steps[0];
+    return (
+      <div className="mb-5">
+        <div className="md:hidden rounded-[22px] border border-slate-100 bg-slate-50 p-3 flex items-center justify-between gap-3">
+          <span className="h-10 px-4 rounded-2xl bg-slate-950 text-white flex items-center justify-center text-xs font-black">{currentIndex + 1} من {steps.length}</span>
+          <div className="text-right">
+            <div className="text-sm font-black text-slate-900">{current.t}</div>
+            <div className="text-[10px] font-bold text-slate-400">المرحلة الحالية</div>
+          </div>
+        </div>
+        <div className="hidden md:grid gap-1 rounded-[24px] border border-slate-100 bg-slate-50 p-2" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
+          {steps.map((s, idx) => (
+            <button key={s.n} type="button" onClick={() => { closeOpenPanels(); setStep(s.n); }} className={cn("rounded-2xl px-2 py-2 text-center transition-all", currentStep === s.n ? "bg-slate-950 text-white shadow-md" : "bg-white text-slate-500 border border-slate-100") }>
+              <div className="text-[10px] font-black">{idx + 1}</div>
+              <div className="text-[9px] font-black mt-1 whitespace-nowrap">{s.t}</div>
             </button>
           ))}
         </div>
       </div>
+    );
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500 pb-32">
+      
+      <div className="mb-8 rounded-[2.4rem] bg-[radial-gradient(circle_at_top_left,_#4338ca,_#0f172a_46%,_#020617)] p-6 md:p-7 shadow-2xl border border-white/10 text-white relative overflow-hidden">
+        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl pointer-events-none" />
+        <div className="absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-cyan-300/10 blur-3xl pointer-events-none" />
+        <div className="absolute inset-x-8 bottom-0 h-px bg-gradient-to-l from-transparent via-white/25 to-transparent" />
+
+        <div className="relative z-10 flex items-center justify-between gap-4">
+          <div className="text-right">
+            <h1 className="text-3xl md:text-4xl font-black flex items-center gap-3">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 border border-white/10"><Camera className="w-7 h-7 text-indigo-200" /></span>
+              استوديو الصورة الذكية
+            </h1>
+          </div>
+          <button onClick={() => setStudioTab('library')} className="h-12 w-12 rounded-2xl border border-white/10 bg-white/10 text-white flex items-center justify-center backdrop-blur shrink-0" title="الأرشيف">
+            <Library size={18} />
+          </button>
+        </div>
+        
+        <div className="relative z-10 mt-5 flex items-center justify-between gap-3">
+          {studioTab !== 'home' ? (
+            <button onClick={goHome} className="h-10 w-10 md:w-auto md:px-4 rounded-2xl text-sm font-black bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10 flex items-center justify-center gap-2">
+              <ChevronLeft size={18} className="rotate-180" />
+              <span className="hidden md:inline">رجوع</span>
+            </button>
+          ) : <div />}
+        </div>
+      </div>
 
       {studioTab === 'home' && (
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-7">
-            <p className="text-sm font-black text-indigo-500 mb-2">لا حذف مزايا — بس ترتيب ذكي</p>
-            <h2 className="text-3xl font-black text-slate-900">شنو تبي تسوي؟</h2>
-            <p className="text-sm font-bold text-slate-500 mt-3">ثلاث اختيارات فقط للواجهة اليومية. كل الأدوات الجميلة باقية في الوضع الاحترافي.</p>
+        <div className="max-w-4xl mx-auto rounded-[2rem] bg-white border border-slate-100 shadow-sm p-5 text-right">
+          <div className="flex items-center justify-between gap-3 mb-5">
+            <div>
+              <p className="text-xs font-black text-indigo-500 mb-1">اختَر البداية</p>
+              <h2 className="text-2xl font-black text-slate-950">ابدأ بفكرة أو بصورة</h2>
+            </div>
           </div>
-
-          <div className="mb-5 grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-[28px] border border-slate-100 bg-white p-2 shadow-sm">
-            {[
-              { label: 'اختر المهمة', sub: 'واتساب / مناسبة / منتج', icon: <MousePointerSquareDashed size={16} /> },
-              { label: 'املأ أقل شيء', sub: 'مكان + فكرة اختيارية', icon: <Edit3 size={16} /> },
-              { label: 'استلم الناتج', sub: 'صورة ورسالة ومكتبة', icon: <Check size={16} /> },
-            ].map((step) => (
-              <div key={step.label} className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-right">
-                <div className="flex items-center justify-end gap-2 text-slate-900 font-black text-xs">{step.label}{step.icon}</div>
-                <div className="mt-1 text-[10px] font-bold text-slate-400">{step.sub}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            <button
-              onClick={() => { setSelectedContentGoal('whatsapp'); setStudioTab('whatsapp'); }}
-              className="group rounded-[2rem] bg-white border border-emerald-100 p-6 text-right shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all min-h-[230px]"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-3xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">☏</div>
-              <h3 className="text-xl font-black text-slate-900 mb-2">رسالة واتساب</h3>
-              <p className="text-sm font-bold text-slate-500 leading-7">تهنئة، عرض، ديوانية، شاليه، زوارة. صورة اختيارية ورسالة جاهزة للنسخ.</p>
-              <span className="inline-flex mt-5 text-xs font-black text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">الأسرع للموظف</span>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <button onClick={() => { closeOpenPanels(); setCreateStep(1); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
+              <Sparkles className="text-indigo-500 mb-3" size={26} />
+              <div className="font-black text-slate-900 text-lg">من فكرة</div>
+              <div className="text-xs font-bold text-slate-400 mt-1">اكتب وصفك، أو اختر قالباً جاهزاً.</div>
             </button>
-
-            <button
-              onClick={() => { setSelectedContentGoal('campaign'); setStudioTab('occasions'); }}
-              className="group rounded-[2rem] bg-white border border-rose-100 p-6 text-right shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all min-h-[230px]"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-rose-50 text-3xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">🇰🇼</div>
-              <h3 className="text-xl font-black text-slate-900 mb-2">صورة مناسبة</h3>
-              <p className="text-sm font-bold text-slate-500 leading-7">العيد الوطني، عيد الأضحى، رمضان، فوز المنتخب، مطر. بدون رفع منتج.</p>
-              <span className="inline-flex mt-5 text-xs font-black text-rose-700 bg-rose-50 px-3 py-1 rounded-full">المنتج اختياري</span>
-            </button>
-
-            <button
-              onClick={() => setStudioTab('product')}
-              className="group rounded-[2rem] bg-white border border-indigo-100 p-6 text-right shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all min-h-[230px]"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-3xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">📸</div>
-              <h3 className="text-xl font-black text-slate-900 mb-2">صورة منتج</h3>
-              <p className="text-sm font-bold text-slate-500 leading-7">ارفع صورة المنتج، ونخليها واقعية كويتية مع الحفاظ على الطبق والمكتبة الحالية.</p>
-              <span className="inline-flex mt-5 text-xs font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full">نفس القوة الحالية</span>
+            <button onClick={() => { closeOpenPanels(); setProductStep(1); setStudioTab('product'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
+              <Camera className="text-indigo-500 mb-3" size={26} />
+              <div className="font-black text-slate-900 text-lg">من صورة</div>
+              <div className="text-xs font-bold text-slate-400 mt-1">ارفع صورة المنتج ونرتّبها بواقعية أعلى.</div>
             </button>
           </div>
-        </div>
-      )}
-
-      {studioTab === 'advanced' && (
-        <div className="grid gap-6">
-          <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-5 text-right">
-            <h2 className="text-xl font-black text-slate-900">الوضع الاحترافي</h2>
-            <p className="text-sm font-bold text-slate-500 mt-2">كل الأدوات القوية موجودة هنا للإدارة والمتقدمين، بعيد عن واجهة الموظف اليومية.</p>
-          </div>
-          <StudioErrorBoundary title="رادار الترند الكويتي"><RealtimeRadar data={data} setData={setData} /></StudioErrorBoundary>
-          <StudioErrorBoundary title="مدح العملاء"><ReviewToPoster data={data} setData={setData} /></StudioErrorBoundary>
-          <StudioErrorBoundary title="الهوية المتغيرة"><AdaptiveBranding data={data} setData={setData} /></StudioErrorBoundary>
         </div>
       )}
 
       {studioTab === 'library' && (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 text-right">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl font-black text-slate-900 flex items-center gap-2"><Library size={20} className="text-indigo-500" /> مكتبة المحتوى</h2>
-            <span className="text-xs font-black text-slate-400">صور ورسائل تم توليدها سابقاً</span>
-          </div>
-          {history.filter(item => item.url).length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {history.filter(item => item.url).map((item, idx) => (
-                <button key={idx} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); setAiCaption(item.caption); setStudioTab('quick'); }} className="group rounded-3xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm hover:shadow-md transition-all text-right">
-                  <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
-                  <div className="p-3 text-[11px] font-bold text-slate-500 line-clamp-2">{item.caption || 'محتوى محفوظ'}</div>
-                </button>
-              ))}
+          <div className="flex items-center justify-between mb-5 gap-3">
+            <div>
+              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2"><Library size={20} className="text-indigo-500" /> الأرشيف</h2>
+              <p className="text-xs font-bold text-slate-400 mt-1">كل الصور المحفوظة من استوديو الصورة الذكية</p>
             </div>
-          ) : (
-            <div className="rounded-3xl bg-slate-50 border border-dashed border-slate-200 p-12 text-center text-slate-500 font-bold">بعد أول توليد، تظهر الصور والرسائل هنا لإعادة الاستخدام.</div>
-          )}
+            <div className="grid grid-cols-2 gap-1 rounded-2xl bg-slate-50 border border-slate-100 p-1 min-w-[180px]">
+              <button type="button" onClick={() => setArchiveTab('idea')} className={cn("rounded-xl px-3 py-2 text-xs font-black transition-all", archiveTab === 'idea' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>من فكرة</button>
+              <button type="button" onClick={() => setArchiveTab('image')} className={cn("rounded-xl px-3 py-2 text-xs font-black transition-all", archiveTab === 'image' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>من صورة</button>
+            </div>
+          </div>
+          {(() => {
+            const allItems = history.filter(item => item.url);
+            const items = allItems.filter((item) => archiveTab === 'idea' ? item.source !== 'image' : item.source === 'image');
+            return items.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {items.map((item, idx) => (
+                  <button key={idx} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); setAiCaption(item.caption); if (item.format) setSelectedFormat(item.format); if (item.mode) setRealityMode(item.mode); if (item.background) setBackgroundPreset(item.background); if (item.packId) setSelectedPulseId(item.packId); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); if (item.customIdea) { setCustomThemeQuery(item.customIdea); setSelectedTheme('مخصص'); } setShowImageSettings(true); setStudioTab(archiveTab === 'image' ? 'product' : 'create'); }} className="group rounded-3xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm hover:shadow-md transition-all text-right">
+                    <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
+                    <div className="p-3 text-[11px] font-bold text-slate-500 line-clamp-2">{item.caption || (archiveTab === 'image' ? 'صورة منتج' : 'صورة من فكرة')}</div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-3xl bg-slate-50 border border-dashed border-slate-200 p-12 text-center text-slate-500 font-bold">
+                {archiveTab === 'idea' ? 'صور الأفكار المحفوظة تظهر هنا.' : 'صور المنتجات المحفوظة تظهر هنا.'}
+              </div>
+            );
+          })()}
         </div>
       )}
 
-      {(studioTab === 'quick' || studioTab === 'whatsapp' || studioTab === 'occasions') && (
-        <div className="grid lg:grid-cols-[0.85fr_1.15fr] gap-8 items-start">
-          <div className="rounded-[2rem] border border-slate-100 bg-white shadow-sm p-6 text-right">
-            <div className="flex items-start justify-between gap-4 mb-6">
+      {(studioTab === 'create' || studioTab === 'quick' || studioTab === 'whatsapp' || studioTab === 'occasions') && (
+        <div className="grid lg:grid-cols-[390px_minmax(0,1fr)] gap-6 items-start">
+          <div className="rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 text-right">
+            <div className="flex items-start justify-between gap-4 mb-5">
               <div>
-                <p className="text-xs font-black text-indigo-500 mb-1">واجهة بسيطة بدون زحمة</p>
-                <h2 className="text-2xl font-black text-slate-900">
-                  {studioTab === 'whatsapp' ? 'رسالة واتساب' : studioTab === 'occasions' ? 'صورة مناسبة' : 'إنشاء سريع'}
-                </h2>
-                <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختر المناسبة والمكان فقط. اكتب فكرتك لو تبي، والباقي على النظام.</p>
-              </div>
-              <button onClick={() => setStudioTab('home')} className="px-3 py-2 rounded-xl bg-slate-50 text-slate-600 text-xs font-black hover:bg-slate-100">تغيير النوع</button>
-	            </div>
-
-	            <div className="mb-5 grid grid-cols-3 gap-2 rounded-[24px] border border-slate-100 bg-slate-50 p-2">
-	              {[
-	                { label: '١', text: 'المناسبة' },
-	                { label: '٢', text: 'المكان' },
-	                { label: '٣', text: 'توليد' },
-	              ].map((step) => (
-	                <div key={step.label} className="rounded-2xl bg-white border border-slate-100 px-3 py-2 text-center">
-	                  <div className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-xl bg-slate-900 text-white text-[11px] font-black">{step.label}</div>
-	                  <div className="text-[10px] font-black text-slate-600">{step.text}</div>
-	                </div>
-	              ))}
-	            </div>
-
-	            <div className="space-y-4">
-	              <div className="rounded-[26px] border border-indigo-100 bg-indigo-50/50 p-3">
-	                <div className="mb-3 flex items-center justify-between">
-	                  <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-indigo-700 border border-indigo-100">اختيار سريع</span>
-	                  <span className="text-xs font-black text-slate-700">الأكثر استخداماً</span>
-	                </div>
-	                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-	                  {KUWAIT_PULSE_PACKS.slice(0, 6).map((pack) => (
-	                    <button
-	                      key={pack.id}
-	                      type="button"
-	                      onClick={() => {
-	                        setSelectedPulseId(pack.id);
-	                        setSelectedOrderPlace(pack.defaultPlace);
-	                        setBackgroundPreset(pack.background);
-	                        setRealityMode(pack.mode);
-	                      }}
-	                      className={cn(
-	                        "rounded-2xl border px-3 py-2 text-right transition-all min-h-[64px]",
-	                        selectedPulseId === pack.id ? "bg-white border-indigo-400 shadow-sm ring-4 ring-indigo-500/10" : "bg-white/65 border-white hover:bg-white"
-	                      )}
-	                    >
-	                      <span className="block text-xs font-black text-slate-900">{pack.icon} {pack.label}</span>
-	                      <span className="block text-[9px] font-bold text-slate-400 mt-1">{pack.badge} · {pack.tone}</span>
-	                    </button>
-	                  ))}
-	                </div>
-	              </div>
-
-	              <div>
-	                <label className="text-xs font-black text-slate-500 mb-2 block">شنو المناسبة؟</label>
-                <select
-                  value={selectedPulseId}
-                  onChange={(e) => {
-                    const next = getKuwaitPulsePack(e.target.value);
-                    setSelectedPulseId(next.id);
-                    setSelectedOrderPlace(next.defaultPlace);
-                    setBackgroundPreset(next.background);
-                    setRealityMode(next.mode);
-                  }}
-                  className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm font-black text-slate-800 text-right focus:outline-none focus:border-indigo-500"
-                >
-                  {KUWAIT_PULSE_PACKS.map(pack => <option key={pack.id} value={pack.id}>{pack.icon} {pack.label}</option>)}
-                </select>
-	              </div>
-
-	              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-	                {(Object.entries(KUWAIT_PLACES) as [KuwaitOrderPlace, typeof KUWAIT_PLACES[KuwaitOrderPlace]][]).map(([id, place]) => (
-	                  <button
-	                    key={id}
-	                    type="button"
-	                    onClick={() => {
-	                      setSelectedOrderPlace(id);
-	                      setBackgroundPreset(place.background);
-	                    }}
-	                    className={cn(
-	                      "rounded-2xl border p-2 text-center transition-all min-h-[66px]",
-	                      selectedOrderPlace === id ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100 hover:bg-white"
-	                    )}
-	                  >
-	                    <span className="block text-lg">{place.icon}</span>
-	                    <span className="block text-[10px] font-black mt-1">{place.label}</span>
-	                  </button>
-	                ))}
-	              </div>
-
-	              <div>
-	                <label className="text-xs font-black text-slate-500 mb-2 block">وين رايح الطلب؟</label>
-                <select
-                  value={selectedOrderPlace}
-                  onChange={(e) => {
-                    const place = e.target.value as KuwaitOrderPlace;
-                    setSelectedOrderPlace(place);
-                    setBackgroundPreset(KUWAIT_PLACES[place].background);
-                  }}
-                  className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm font-black text-slate-800 text-right focus:outline-none focus:border-indigo-500"
-                >
-                  {(Object.entries(KUWAIT_PLACES) as [KuwaitOrderPlace, typeof KUWAIT_PLACES[KuwaitOrderPlace]][]).map(([id, place]) => <option key={id} value={id}>{place.icon} {place.label}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-slate-500 mb-2 flex items-center gap-1"><Edit3 size={14} /> اكتب فكرتك — اختياري</label>
-                <input
-                  value={customThemeQuery}
-                  onChange={(e) => setCustomThemeQuery(e.target.value)}
-                  placeholder="مثال: تهنئة عيد الأضحى، فوز المنتخب، زوارة أهل..."
-                  className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
-                />
-              </div>
-
-              <button
-                onClick={generateKuwaitNoProduct}
-                disabled={isGenerating}
-                className="w-full p-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
-              >
-                {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
-                {studioTab === 'whatsapp' ? 'جهز رسالة واتساب' : 'ولّعها'}
-              </button>
-
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <button onClick={() => setStudioTab('product')} className="p-3 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-black hover:bg-indigo-100">عندي صورة منتج</button>
-                <button onClick={() => setStudioTab('advanced')} className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-slate-600 text-xs font-black hover:bg-slate-100">خيارات احترافية</button>
+                <p className="text-xs font-black text-indigo-500 mb-1">من فكرة</p>
+                <h2 className="text-2xl font-black text-slate-900">صورة من فكرة</h2>
+                <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختر المقاس المناسب، ثم اكتب فكرتك أو خلّ استوديو الصورة الذكية يقترح لك المسار.</p>
               </div>
             </div>
-          </div>
 
-          <div className="sticky top-4 z-30 rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 min-h-[520px] flex flex-col items-center justify-center">
-            {!generatedImage && !isGenerating && (
-              <div className="text-center max-w-md">
-                <div className="text-6xl mb-5">{activePulsePack.icon}</div>
-                <h3 className="text-2xl font-black text-slate-900 mb-3">جاهز بدون زحمة</h3>
-                <p className="text-sm font-bold text-slate-500 leading-7">{activePulsePack.label} ← {KUWAIT_PLACES[selectedOrderPlace]?.label}</p>
+            {renderStageProgress(createStep, goCreateStep)}
+
+            {createStep === 1 && (
+              <div className="space-y-4">
+                <p className="text-xs font-black text-slate-500">اختر المقاس المناسب</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {formats.map((f) => (
+                    <button key={f.id} onClick={() => setSelectedFormat(f.id)} className={cn("p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all", selectedFormat === f.id ? "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm" : "bg-white border-slate-100 text-slate-500") }>
+                      {f.icon}<span className="text-[10px] font-black">{f.sub}</span>
+                    </button>
+                  ))}
+                </div>
+                <button type="button" onClick={() => goCreateStep(2)} className="w-full p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
               </div>
             )}
-            {isGenerating && <div className="text-center"><Loader2 className="w-14 h-14 animate-spin mx-auto text-indigo-600 mb-4" /><p className="font-black text-slate-800">جاري تجهيز المحتوى...</p></div>}
-            {generatedImage && (
-              <div className="w-full space-y-4 text-right">
-                <img src={generatedImage} className="w-full max-h-[520px] object-contain rounded-3xl bg-slate-50 border border-slate-100" />
-                {aiCaption && <div className="rounded-3xl bg-slate-900 text-white p-4 shadow-lg"><p className="text-sm font-extrabold leading-7 whitespace-pre-wrap">{aiCaption}</p></div>}
-                <div className="grid grid-cols-2 gap-2"><button onClick={copyCaption} disabled={!aiCaption} className="p-3 rounded-2xl bg-emerald-600 text-white font-black disabled:opacity-40">نسخ الرسالة</button><button onClick={handleDownload} className="p-3 rounded-2xl bg-indigo-600 text-white font-black">تحميل الصورة</button><button onClick={saveCurrentBackground} disabled={isSavingBackground} className="col-span-2 p-3 rounded-2xl bg-white border border-amber-200 text-amber-700 font-black">حفظ للمكتبة</button></div>
+
+            {createStep === 2 && (
+              <div className="space-y-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-slate-600 flex items-center gap-1"><Edit3 size={14} /> فكرتك</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" className={cn("rounded-2xl border p-3 text-xs font-black transition-all", customThemeQuery.trim() ? "bg-slate-950 text-white border-slate-950" : "bg-white text-slate-500 border-slate-100")}>اكتب فكرة</button>
+                    <button type="button" onClick={() => { setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); }} className={cn("rounded-2xl border p-3 text-xs font-black transition-all", !customThemeQuery.trim() ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-slate-500 border-slate-100")}>اختيارات جاهزة</button>
+                  </div>
+                  <input type="text" placeholder="اكتب وصف الصورة المطلوبة..." value={customThemeQuery} onChange={(e) => { setCustomThemeQuery(e.target.value); setSelectedTheme(e.target.value ? 'مخصص' : 'نبض الكويت'); }} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-indigo-500" />
+                  <p className="text-[11px] font-bold text-slate-400">اكتب وصفك ونختصر لك الطريق، أو اتركها فارغة للاقتراحات الجاهزة.</p>
+                </div>
+                {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">تم اعتماد الفكرة. بعدها لمسات نهائية ثم التوليد.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تفضّل الاختيارات الجاهزة؟ التالي يفتح المناسبة ثم المكان.</div>}
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => goCreateStep(1)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                  <button type="button" onClick={() => goCreateStep(customThemeQuery.trim() ? 5 : 3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">{customThemeQuery.trim() ? 'أدوات دقيقة' : 'المناسبة'}</button>
+                </div>
+              </div>
+            )}
+
+            {createStep === 3 && (
+              <div className="space-y-4">
+                <button type="button" onClick={() => setShowCreateOccasion(!showCreateOccasion)} className="w-full rounded-3xl border border-slate-100 bg-slate-50 p-4 text-right flex items-center justify-between">
+                  <span><span className="block text-xs font-black text-slate-500">المناسبة</span><span className="block text-lg font-black text-slate-900 mt-1">{activePulsePack.icon} {activePulsePack.label}</span></span>
+                  <ChevronLeft className={cn("transition-transform text-slate-400", showCreateOccasion ? "-rotate-90" : "")} size={20} />
+                </button>
+                {showCreateOccasion && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {KUWAIT_PULSE_PACKS.slice(0, 8).map((pack) => (
+                      <button key={pack.id} type="button" onClick={() => { setSelectedPulseId(pack.id); setSelectedOrderPlace(pack.defaultPlace); setBackgroundPreset(pack.background); setRealityMode(pack.mode); setShowCreateOccasion(false); }} className={cn("rounded-2xl border px-3 py-3 text-right transition-all min-h-[72px]", selectedPulseId === pack.id ? "bg-indigo-50 border-indigo-400 shadow-sm ring-4 ring-indigo-500/10" : "bg-white border-slate-100 hover:bg-slate-50") }>
+                        <span className="block text-xs font-black text-slate-900">{pack.icon} {pack.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => goCreateStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                  <button type="button" onClick={() => goCreateStep(4)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                </div>
+              </div>
+            )}
+
+            {createStep === 4 && (
+              <div className="space-y-4">
+                {renderPlaceLibrary()}
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => goCreateStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                  <button type="button" onClick={() => goCreateStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                </div>
+              </div>
+            )}
+
+            {createStep === 5 && (
+              <div className="space-y-4">
+                {renderFineTools()}
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => goCreateStep(customThemeQuery.trim() ? 2 : 4)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                  <button type="button" onClick={() => goCreateStep(6)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                </div>
+              </div>
+            )}
+
+            {createStep === 6 && (
+              <div className="space-y-4">
+                <div className="rounded-3xl bg-slate-950 text-white p-5">
+                  <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
+                  <div className="text-lg font-black">{activePulsePack.icon} {activePulsePack.label}</div>
+                  <div className="mt-2 text-sm font-bold text-white/60">{KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => goCreateStep(5)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                  <button onClick={generateKuwaitNoProduct} disabled={isGenerating} className="p-4 bg-slate-950 hover:bg-slate-800 text-white rounded-2xl font-black flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
+                    {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+                    ولّد الصورة
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-[2.2rem] bg-slate-950 p-3 shadow-2xl border border-slate-900 min-h-[560px] flex items-center justify-center relative overflow-hidden">
+            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
+            {!generatedImage && !isGenerating && (
+              <div className="relative z-10 text-center text-white p-8">
+                <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-6xl shadow-2xl">{activePulsePack.icon}</div>
+                <h3 className="text-3xl font-black mb-3">المعاينة تظهر هنا</h3>
+                <p className="text-sm font-bold text-white/55 leading-7">{activePulsePack.label} · {KUWAIT_PLACES[selectedOrderPlace]?.label}</p>
+              </div>
+            )}
+            {isGenerating && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">جاري تجهيز صورة واقعية...</p></div>}
+            {generatedImage && !isGenerating && (
+              <div className="relative z-10 w-full space-y-4">
+                <button type="button" onClick={() => setShowImageSettings((v) => !v)} className={cn("w-full rounded-[1.6rem] overflow-hidden bg-white/5 border border-white/10 relative group", previewAspectClass)}>
+                  {generatedImage ? (
+                    <img src={generatedImage} alt="Generated" className="w-full h-full object-contain" />
+                  ) : null}
+                  <span className="absolute bottom-4 right-4 rounded-2xl bg-white/90 px-3 py-2 text-[10px] font-black text-slate-700 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">الإعدادات</span>
+                </button>
+                {showImageSettings && (
+                  <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white shadow-sm">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-xs font-black text-white/75">إعدادات هذه الصورة</p>
+                        <p className="text-[11px] font-bold text-white/45 mt-1">انسخها لتكرار نفس النتيجة لاحقاً.</p>
+                      </div>
+                      <button type="button" onClick={copyCurrentSettings} className="rounded-2xl bg-white text-slate-950 px-4 py-2 text-xs font-black">نسخ الإعدادات</button>
+                    </div>
+                    <pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans">{buildSettingsText()}</pre>
+                  </div>
+                )}
+                {aiCaption && selectedContentGoal === 'whatsapp' && <div className="rounded-3xl bg-white/10 text-white p-4 shadow-lg border border-white/10"><p className="text-sm font-extrabold leading-7 whitespace-pre-wrap">{aiCaption}</p></div>}
+                <div className={cn('grid gap-2', selectedContentGoal === 'whatsapp' ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2')}>
+                  {selectedContentGoal === 'whatsapp' && <button onClick={copyCaption} disabled={!aiCaption} className="p-3 rounded-2xl bg-emerald-500 text-white font-black disabled:opacity-40">نسخ</button>}
+                  <button onClick={handleDownload} className="p-3 rounded-2xl bg-indigo-500 text-white font-black">تحميل</button>
+                  <button onClick={saveCurrentBackground} disabled={isSavingBackground} className={cn('p-3 rounded-2xl bg-white/10 border border-white/10 text-white font-black', selectedContentGoal === 'whatsapp' ? 'col-span-2' : '')}>حفظ للأرشيف</button>
+                </div>
               </div>
             )}
           </div>
@@ -993,525 +1159,153 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       )}
 
       {studioTab === 'product' && (
-        <>
-          {!originalImage ? (
-            <div className="space-y-6">
-              <div className="rounded-[2rem] bg-white border border-slate-100 shadow-sm p-6 text-right">
-                <div className="flex items-start justify-between gap-4 mb-5">
+        <div className="grid lg:grid-cols-[390px_minmax(0,1fr)] gap-6 items-start">
+          <div className="rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 text-right">
+            {!originalImage ? (
+              <div className="space-y-5">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-black text-indigo-500 mb-1">صور المنتج — بدون زحمة</p>
-                    <h2 className="text-2xl font-black text-slate-900">شنو تبي تسوي بالصورة؟</h2>
-                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختار مسار واحد فقط. كل المزايا الجميلة موجودة، لكن ما تظهر إلا في وقتها.</p>
+                    <p className="text-xs font-black text-indigo-500 mb-1">من صورة</p>
+                    <h2 className="text-2xl font-black text-slate-950">ارفع صورة المنتج</h2>
+                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">بعد الرفع نمر بخطوات قصيرة وواضحة قبل التوليد.</p>
                   </div>
                 </div>
-	                <div className="grid md:grid-cols-3 gap-3">
-	                  {(Object.entries(productStudioFlows) as [ProductStudioFlow, typeof productStudioFlows[ProductStudioFlow]][]).map(([id, flow]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => selectProductStudioFlow(id)}
-                      className={cn(
-                        "rounded-3xl border p-4 text-right transition-all hover:-translate-y-0.5 hover:shadow-lg min-h-[150px]",
-                        productStudioFlow === id ? `${flow.tone} ring-4 ring-current/10 shadow-sm` : "bg-slate-50 border-slate-100 text-slate-700 hover:bg-white"
-                      )}
-                    >
-                      <div className="flex items-center justify-between mb-3"><span className="text-3xl">{flow.icon}</span><span className="text-[10px] font-black px-2 py-1 rounded-full bg-white/70 border border-current/10">{flow.badge}</span></div>
-                      <div className="text-base font-black">{flow.title}</div>
-                      <p className="text-xs font-bold opacity-75 leading-6 mt-2">{flow.desc}</p>
-                    </button>
-	                  ))}
-	                </div>
-	                <div className="mt-5 rounded-[26px] border border-slate-100 bg-slate-50 p-3">
-	                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-	                    {[
-	                      { title: 'سريع', detail: 'أقل قرارات', active: productStudioFlow === 'quick' },
-	                      { title: 'كويتي', detail: 'مكان ومناسبة', active: productStudioFlow === 'kuwait' },
-	                      { title: 'احترافي', detail: 'كل المفاتيح', active: productStudioFlow === 'pro' },
-	                    ].map((item) => (
-	                      <div key={item.title} className={cn("rounded-2xl border p-3 text-right", item.active ? "bg-white border-indigo-200 shadow-sm" : "bg-white/60 border-white")}>
-	                        <div className="text-xs font-black text-slate-900">{item.title}</div>
-	                        <div className="text-[10px] font-bold text-slate-400 mt-1">{item.detail}</div>
-	                      </div>
-	                    ))}
-	                  </div>
-	                </div>
-	              </div>
-              {history.length > 0 && (
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-black text-slate-800 flex items-center gap-2"><ImageIcon size={18} className="text-indigo-500" /> مكتبة الصور السابقة</h3>
-                    <span className="text-[10px] font-bold text-slate-400">اضغط على أي صورة لفتحها</span>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {history.filter(item => item.url).slice(0, 8).map((item, idx) => (
-                      <button key={idx} onClick={() => { setOriginalImage(item.url); setSelectedImage(item.url); setAiImage(item.url); setGeneratedImage(item.url); setAiCaption(item.caption); }} className="group rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm hover:shadow-md transition-all text-right">
-                        <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
-                        <div className="p-2 text-[10px] font-bold text-slate-500 truncate">{item.caption || 'صورة سابقة'}</div>
-                      </button>
-                    ))}
-                  </div>
+                <div onClick={() => fileInputRef.current?.click()} className="w-full h-80 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-gradient-to-br from-indigo-50 to-white rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition-all group shadow-inner">
+                  <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center mb-6 group-hover:scale-110 shadow-sm transition-transform"><Camera className="w-10 h-10 text-indigo-600" /></div>
+                  <h3 className="text-2xl font-black text-slate-900 mb-2">ارفع صورة المنتج</h3>
+                  <p className="text-slate-500 text-sm font-bold">JPG / PNG</p>
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                 </div>
-              )}
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full mt-10 h-80 border-4 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/50 hover:bg-indigo-50 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all group"
-            >
-          <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center mb-6 group-hover:scale-110 shadow-sm transition-transform">
-            <Camera className="w-10 h-10 text-indigo-600" />
-          </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">اضغط لرفع صورة المنتج</h3>
-          <p className="text-slate-500 text-sm">JPG, PNG (جودة عالية مفضلة)</p>
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            accept="image/*"
-            onChange={handleImageUpload}
-          />
-        </div>
-        </div>
-      ) : (
-	        <div className="grid lg:grid-cols-[minmax(320px,0.92fr)_minmax(0,1.08fr)] gap-6 items-start">
-	          
-	          <div className="w-full space-y-6">
-	            <div className="bg-slate-950 text-white p-5 rounded-[30px] shadow-xl border border-slate-800 text-right overflow-hidden relative">
-	              <div className="absolute -left-16 -top-16 h-36 w-36 rounded-full bg-indigo-500/20 blur-3xl" />
-	              <div className="relative flex items-start justify-between gap-4">
-	                <span className="rounded-2xl bg-white/10 px-3 py-2 text-[10px] font-black text-indigo-100 border border-white/10">{productStudioFlows[productStudioFlow].badge}</span>
-	                <div>
-	                  <p className="text-[10px] font-black text-indigo-200 mb-1">لوحة قيادة الصورة</p>
-	                  <h3 className="text-xl font-black">{productStudioFlows[productStudioFlow].title}</h3>
-	                  <p className="text-xs font-bold text-white/65 leading-6 mt-2">{productStudioFlows[productStudioFlow].desc}</p>
-	                </div>
-	              </div>
-	              <div className="relative mt-4 grid grid-cols-3 gap-2 text-center">
-	                {[
-	                  { label: 'الأصل', value: originalImage ? 'جاهز' : 'ناقص' },
-	                  { label: 'المسار', value: productStudioFlows[productStudioFlow].title },
-	                  { label: 'الاحترافي', value: showAdvancedStudio ? 'ظاهر' : 'مخفي' },
-	                ].map((item) => (
-	                  <div key={item.label} className="rounded-2xl bg-white/8 border border-white/10 p-3">
-	                    <div className="text-[10px] font-black text-white">{item.value}</div>
-	                    <div className="text-[9px] font-bold text-white/45 mt-1">{item.label}</div>
-	                  </div>
-	                ))}
-	              </div>
-	            </div>
-
-	            <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-xs font-black text-indigo-500">مسار صورة المنتج</p>
-                  <h3 className="text-lg font-black text-slate-900">اختر طريقة العمل</h3>
-                </div>
-                <button onClick={() => { setOriginalImage(null); setSelectedImage(null); setGeneratedImage(null); }} className="text-xs font-black text-slate-500 bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-xl">صورة أخرى</button>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                {(Object.entries(productStudioFlows) as [ProductStudioFlow, typeof productStudioFlows[ProductStudioFlow]][]).map(([id, flow]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => selectProductStudioFlow(id)}
-                    className={cn(
-                      "rounded-2xl border p-3 text-center transition-all",
-                      productStudioFlow === id ? `${flow.tone} ring-4 ring-current/10` : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-white"
-                    )}
-                  >
-                    <div className="text-2xl mb-1">{flow.icon}</div>
-                    <div className="text-[11px] font-black">{flow.title}</div>
-                  </button>
-                ))}
-              </div>
-              <p className="text-[11px] font-bold text-slate-400 leading-6 mt-3">{productStudioFlows[productStudioFlow].desc}</p>
-            </div>
-
-            <div className="bg-slate-50 p-5 rounded-2xl shadow-sm border border-slate-200/50 italic mb-4">
-               <div className="flex items-center justify-between mb-4">
-                 <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                   <Zap size={16} className="text-amber-500" />
-                   تحسين الصورة (تلقائي — لا نلمس الطبق)
-                 </h3>
-                 <span className="text-[10px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase tracking-tighter">Smart Core</span>
-               </div>
-               {compressionStats ? (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-bold">
-                    <span className="text-slate-400">الحجم الأصلي:</span>
-                    <span className="text-slate-600">{(compressionStats.original / 1024 / 1024).toFixed(2)} MB</span>
+            ) : (
+              <div className="space-y-5">
+                <div className="flex items-start justify-between gap-4 mb-1">
+                  <div>
+                    <p className="text-xs font-black text-indigo-500 mb-1">من صورة</p>
+                    <h2 className="text-2xl font-black text-slate-950">تحسين صورة المنتج</h2>
+                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">كل خطوة فيها قرار واحد فقط.</p>
                   </div>
-                  <div className="flex justify-between text-[10px] font-bold">
-                    <span className="text-slate-400">الحجم المحسّن:</span>
-                    <span className="text-emerald-600">{(compressionStats.compressed / 1024).toFixed(0)} KB</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-2">
-                    <div 
-                      className="h-full bg-emerald-500 rounded-full transition-all duration-1000" 
-                      style={{ width: `${Math.max(10, (compressionStats.compressed / compressionStats.original) * 100)}%` }} 
-                    />
-                  </div>
-                  <p className="text-[10px] text-emerald-600 font-black text-center mt-2">
-                    تم توفير {Math.round((1 - compressionStats.compressed / compressionStats.original) * 100)}% من المساحة
-                  </p>
                 </div>
-               ) : (
-                <p className="text-[10px] text-slate-400">جاري انتظار رفع الصورة...</p>
-               )}
-            </div>
 
-            {productStudioFlow !== 'quick' && (
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-              <h3 className="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
-                <MousePointerSquareDashed size={16} className="text-indigo-600" />
-                اختر المقاس — اختياري
-              </h3>
-              <div className="grid grid-cols-3 gap-3">
-                {formats.map(f => (
-                  <button
-                    key={f.id}
-                    onClick={() => setSelectedFormat(f.id)}
-                    className={cn(
-                      "p-3 rounded-xl border flex flex-col items-center gap-2 transition-all",
-                      selectedFormat === f.id ? "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                    )}
-                  >
-                    {f.icon}
-                    <div className="text-center">
-                      <div className="text-xs font-bold">{f.label}</div>
-                      <div className="text-[10px] opacity-70 mt-0.5">{f.sub}</div>
+                {renderStageProgress(productStep, goProductStep)}
+
+                {productStep === 1 && (
+                  <div className="space-y-4">
+                    <p className="text-xs font-black text-slate-500">اختر المقاس المناسب</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {formats.map((f) => (
+                        <button key={f.id} onClick={() => setSelectedFormat(f.id)} className={cn("p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all", selectedFormat === f.id ? "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm" : "bg-white border-slate-100 text-slate-500") }>
+                          {f.icon}<span className="text-[10px] font-black">{f.sub}</span>
+                        </button>
+                      ))}
                     </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-            )}
+                    <button type="button" onClick={() => goProductStep(2)} className="w-full p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                  </div>
+                )}
 
-            {productStudioFlow !== 'quick' && (
-            <div className="bg-white p-5 rounded-3xl shadow-sm border border-rose-100">
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <div>
-                  <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                    <Sparkles size={16} className="text-rose-600" />
-                    2. نبض الكويت — اختار ولا تزحم نفسك
-                  </h3>
-                  <p className="text-[11px] font-bold text-slate-400 mt-1">مناسبة + مكان + نوع محتوى. والباقي يضبطه الاستوديو بنفس الواقعية الحالية.</p>
-                </div>
-                <span className="text-[10px] font-black bg-rose-50 text-rose-700 px-3 py-1 rounded-full border border-rose-100">كويتي 100%</span>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-                {KUWAIT_PULSE_PACKS.slice(0, 9).map(pack => (
-                  <button
-                    key={pack.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedPulseId(pack.id);
-                      setSelectedOrderPlace(pack.defaultPlace);
-                      setBackgroundPreset(pack.background);
-                      setRealityMode(pack.mode);
-                      setSelectedTheme('نبض الكويت');
-                    }}
-                    className={cn(
-                      "p-3 rounded-2xl border text-right transition-all min-h-[92px]",
-                      selectedPulseId === pack.id ? "bg-rose-50 border-rose-400 shadow-sm ring-4 ring-rose-500/10" : "bg-white border-slate-100 hover:border-rose-200 hover:bg-slate-50"
-                    )}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xl">{pack.icon}</span>
-                      <span className="text-[9px] font-black text-rose-600 bg-white/80 border border-rose-100 rounded-full px-2 py-0.5">{pack.badge}</span>
+                {productStep === 2 && (
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold text-slate-600 flex items-center gap-1"><Edit3 size={14} /> فكرتك</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button type="button" className={cn("rounded-2xl border p-3 text-xs font-black transition-all", customThemeQuery.trim() ? "bg-slate-950 text-white border-slate-950" : "bg-white text-slate-500 border-slate-100")}>اكتب فكرة</button>
+                        <button type="button" onClick={() => { setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); }} className={cn("rounded-2xl border p-3 text-xs font-black transition-all", !customThemeQuery.trim() ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-slate-500 border-slate-100")}>اختيارات جاهزة</button>
+                      </div>
+                      <input type="text" placeholder="اكتب الجو أو المطلوب للصورة..." value={customThemeQuery} onChange={(e) => { setCustomThemeQuery(e.target.value); setSelectedTheme(e.target.value ? 'مخصص' : 'نبض الكويت'); }} className="w-full p-4 rounded-2xl border-2 text-sm text-right focus:outline-none border-slate-200 bg-white focus:border-indigo-500" />
+                      <p className="text-[11px] font-bold text-slate-400">اكتب فكرتك وننتقل مباشرة للمسات النهائية، أو اتركها فارغة للاختيارات الجاهزة.</p>
                     </div>
-                    <div className="text-xs font-black text-slate-900">{pack.label}</div>
-                    <div className="text-[10px] font-bold text-slate-400 mt-1 line-clamp-1">{pack.tone}</div>
-                  </button>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                  <label className="text-[11px] font-black text-slate-500 mb-2 block">وين رايح الطلب؟</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(Object.entries(KUWAIT_PLACES) as [KuwaitOrderPlace, typeof KUWAIT_PLACES[KuwaitOrderPlace]][]).map(([id, place]) => (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => { setSelectedOrderPlace(id); setBackgroundPreset(place.background); }}
-                        className={cn("px-3 py-2 rounded-xl border text-[11px] font-black transition-all flex items-center justify-between", selectedOrderPlace === id ? "bg-slate-900 text-white border-slate-900" : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-white")}
-                      >
-                        <span>{place.label}</span><span>{place.icon}</span>
-                      </button>
-                    ))}
+                    {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">تم اعتماد الفكرة. بعدها لمسات نهائية ثم التوليد.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تفضّل الاختيارات الجاهزة؟ التالي يفتح المناسبة ثم المكان.</div>}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => goProductStep(1)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                      <button type="button" onClick={() => goProductStep(customThemeQuery.trim() ? 5 : 3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">{customThemeQuery.trim() ? 'أدوات دقيقة' : 'المناسبة'}</button>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label className="text-[11px] font-black text-slate-500 mb-2 block">شنو تبي تطلع؟</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(Object.entries(KUWAIT_CONTENT_GOALS) as [KuwaitContentGoal, typeof KUWAIT_CONTENT_GOALS[KuwaitContentGoal]][]).map(([id, goal]) => (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => setSelectedContentGoal(id)}
-                        className={cn("px-3 py-2 rounded-xl border text-[11px] font-black transition-all flex items-center justify-between", selectedContentGoal === id ? "bg-indigo-600 text-white border-indigo-600" : "bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-white")}
-                      >
-                        <span>{goal.label}</span><span>{goal.icon}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+                )}
 
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 mb-4 text-right">
-                <div className="text-[11px] font-black text-slate-500 mb-1">المسار المختار</div>
-                <div className="text-sm font-black text-slate-900">{activePulsePack.icon} {activePulsePack.label} ← {KUWAIT_PLACES[selectedOrderPlace]?.label} ← {KUWAIT_CONTENT_GOALS[selectedContentGoal]?.label}</div>
-                <p className="text-[11px] font-bold text-slate-400 mt-1">النظام لا يذكر مطعم جلوس، ولا يضيف دلة/بخور/سدو/فوانيس، ويحافظ على الطبق والواقعية.</p>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                  <Edit3 size={14} /> اكتب فكرتك — اختياري
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="مثال: فوز المنتخب، العيد الوطني، زوارة أهل، عرض ديوانية، طلب شاليه..."
-                    value={customThemeQuery}
-                    onChange={(e) => {
-                      setCustomThemeQuery(e.target.value);
-                      setSelectedTheme(e.target.value ? 'مخصص' : 'نبض الكويت');
-                    }}
-                    className={cn("w-full p-3 rounded-xl border-2 text-sm text-right focus:outline-none transition-all pr-10", customThemeQuery ? "border-rose-500 bg-rose-50 focus:ring-4 focus:ring-rose-500/20" : "border-slate-200 bg-white focus:border-slate-400")}
-                  />
-                  <div className={cn("absolute right-3 top-1/2 -translate-y-1/2", customThemeQuery ? "text-rose-500" : "text-slate-400")}>
-                    <Sparkles size={16} />
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowAdvancedStudio(v => !v)}
-                className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
-              >
-                {showAdvancedStudio ? 'إخفاء الخيارات الاحترافية' : 'خيارات احترافية اختيارية'}
-              </button>
-
-              {showAdvancedStudio && (
-                <div className="mt-4 rounded-2xl bg-slate-50 border border-slate-100 p-3">
-                  <p className="text-[11px] font-black text-slate-500 mb-3">ثيمات إضافية — لا تحتاجها غالباً</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {themes.map(t => (
-                      <button
-                        key={t.id}
-                        onClick={() => { setSelectedTheme(t.id); if (t.id !== 'نبض الكويت') setCustomThemeQuery(''); }}
-                        className={cn("p-2 rounded-xl border text-right flex items-center gap-2 transition-all", selectedTheme === t.id ? "border-purple-500 bg-purple-50 text-purple-900" : "bg-white border-slate-100 text-slate-700")}
-                      >
-                        <span>{t.icon}</span>
-                        <span className="text-[11px] font-black">{t.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            )}
-
-            {showAdvancedStudio && (<>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-              <h3 className="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
-                <Zap size={16} className="text-amber-500" />
-                3. المود الفني
-              </h3>
-              <div className="grid grid-cols-4 gap-2">
-                {moods.map(m => (
-                  <button
-                    key={m.id}
-                    onClick={() => setSelectedMood(m.id)}
-                    className={cn(
-                      "p-2 rounded-xl border flex flex-col items-center gap-1 transition-all",
-                      selectedMood === m.id ? "bg-amber-50 border-amber-500 text-amber-700 shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                    )}
-                  >
-                    <span className="text-sm">{m.icon}</span>
-                    <span className="text-[10px] font-bold">{m.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-
-            <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
-              <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <Camera size={16} className="text-emerald-500" />
-                4. الوضع الاحترافي للواقعية
-              </h3>
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                {(Object.entries(STUDIO_REALITY_MODES) as [StudioRealityMode, typeof STUDIO_REALITY_MODES[StudioRealityMode]][]).map(([id, item]) => (
-                  <button
-                    key={id}
-                    onClick={() => setRealityMode(id)}
-                    className={cn(
-                      "p-3 rounded-xl border text-right transition-all",
-                      realityMode === id ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                    )}
-                  >
-                    <span className="block text-xs font-black">{item.label}</span>
-                  </button>
-                ))}
-              </div>
-              <p className="text-[11px] font-bold text-slate-400 mb-2">مكتبة مشاهد كويتية واقعية</p>
-              <div className="grid grid-cols-2 gap-2">
-                {(Object.entries(REAL_RESTAURANT_BACKGROUNDS) as [StudioBackgroundPresetId, typeof REAL_RESTAURANT_BACKGROUNDS[StudioBackgroundPresetId]][]).map(([id, item]) => (
-                  <button
-                    key={id}
-                    onClick={() => setBackgroundPreset(id)}
-                    className={cn(
-                      "px-3 py-2 rounded-xl border text-[11px] font-bold text-right transition-all",
-                      backgroundPreset === id ? "bg-slate-900 border-slate-900 text-white" : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-white"
-                    )}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-3xl shadow-sm border border-emerald-100">
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <div className="text-right">
-                  <h3 className="font-black text-slate-800 flex items-center gap-2"><Brain size={16} className="text-emerald-500" /> ذاكرة الذوق الذكية</h3>
-                  <p className="text-[11px] font-bold text-slate-400 mt-1">كل اختيار أو حفظ لصورة بعد ظهورها يعلّم الاستوديو نوع الخلفية والعدسة اللي تفضلها.</p>
-                </div>
-                <button type="button" onClick={() => rememberCurrentChoice('preferred-controls')} disabled={!generatedImage && !aiImage} className="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-black hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-50" title={!generatedImage && !aiImage ? 'يتفعل بعد ظهور صورة مولدة أو مختارة' : 'احفظ هذا الأسلوب في ذاكرة الذوق'}>
-                  احفظ ذوقي الحالي
-                </button>
-              </div>
-              {tasteMemoryPrompt ? (
-                <div className="rounded-2xl bg-emerald-50/70 border border-emerald-100 p-3 text-[11px] font-bold text-emerald-800 leading-6">
-                  الذاكرة مفعلة: الاستوديو سيكرر الخلفيات والأوضاع التي تختارها أكثر.
-                </div>
-              ) : (
-                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-[11px] font-bold text-slate-500 leading-6">
-                  بعد أول اختيار/حفظ، يبدأ النظام يتعلم ذوقك بدون تغيير منطق الذكاء الأساسي.
-                </div>
-              )}
-            </div>
-
-            {backgroundLibrary.length > 0 && (
-              <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
-                <h3 className="font-black text-slate-800 mb-3 flex items-center gap-2"><Library size={16} className="text-indigo-500" /> مكتبة الخلفيات المحفوظة</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {backgroundLibrary.slice(0, 6).map((item) => (
-                    <button key={item.id} type="button" onClick={() => useLibraryBackground(item)} className="group rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm hover:shadow-md transition-all text-right">
-                      <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
-                      <div className="p-2 text-[10px] font-bold text-slate-500 truncate">{item.label || item.background || 'خلفية محفوظة'}</div>
+                {productStep === 3 && (
+                  <div className="space-y-4">
+                    <button type="button" onClick={() => setShowProductOccasion(!showProductOccasion)} className="w-full rounded-3xl border border-slate-100 bg-slate-50 p-4 text-right flex items-center justify-between">
+                      <span><span className="block text-xs font-black text-slate-500">المناسبة</span><span className="block text-lg font-black text-slate-900 mt-1">{activePulsePack.icon} {activePulsePack.label}</span></span>
+                      <ChevronLeft className={cn("transition-transform text-slate-400", showProductOccasion ? "-rotate-90" : "")} size={20} />
                     </button>
-                  ))}
-                </div>
+                    {showProductOccasion && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {KUWAIT_PULSE_PACKS.slice(0, 8).map(pack => (
+                          <button key={pack.id} type="button" onClick={() => { setSelectedPulseId(pack.id); setSelectedOrderPlace(pack.defaultPlace); setBackgroundPreset(pack.background); setRealityMode(pack.mode); setSelectedTheme('نبض الكويت'); setShowProductOccasion(false); }} className={cn("p-3 rounded-2xl border text-right transition-all min-h-[76px]", selectedPulseId === pack.id ? "bg-rose-50 border-rose-400 shadow-sm ring-4 ring-rose-500/10" : "bg-white border-slate-100 hover:border-rose-200 hover:bg-slate-50") }>
+                            <span className="block text-xs font-black text-slate-900">{pack.icon} {pack.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => goProductStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                      <button type="button" onClick={() => goProductStep(4)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                    </div>
+                  </div>
+                )}
+
+                {productStep === 4 && (
+                  <div className="space-y-4">
+                    {renderPlaceLibrary()}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => goProductStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                      <button type="button" onClick={() => goProductStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                    </div>
+                  </div>
+                )}
+
+                {productStep === 5 && (
+                  <div className="space-y-4">
+                    {renderFineTools()}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => goProductStep(customThemeQuery.trim() ? 2 : 4)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                      <button type="button" onClick={() => goProductStep(6)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                    </div>
+                  </div>
+                )}
+
+                {productStep === 6 && (
+                  <div className="space-y-4">
+                    <div className="rounded-3xl bg-slate-950 text-white p-5">
+                      <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
+                      <div className="text-lg font-black">{activePulsePack.icon} {activePulsePack.label}</div>
+                      <div className="mt-2 text-sm font-bold text-white/60">{KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => goProductStep(5)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                      <button onClick={() => generateContent()} disabled={isGenerating || isGeneratingVariants} className="p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 transition-all disabled:opacity-50">
+                        {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+                        توليد
+                      </button>
+                    </div>
+                    <button type="button" onClick={generateFourRealityOptions} disabled={isGenerating || isGeneratingVariants || !selectedImage} className="w-full p-4 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-2xl font-black flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50">
+                      {isGeneratingVariants ? <Loader2 className="animate-spin" size={20} /> : <Layout size={20} />}
+                      ٤ نسخ واقعية
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-
-            <div className="bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-800 text-white">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <div className="text-right">
-                  <h3 className="font-black text-white text-sm">Reality Final Boss</h3>
-                  <p className="text-[11px] text-slate-300 mt-1">أقوى وضع: الخلفية بشرية، كويتية، عادية، مقنعة، وتخفي أي إحساس AI.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setRealityBoost((v) => !v)}
-                  className={cn("px-3 py-2 rounded-xl text-xs font-black border transition-all", realityBoost ? "bg-emerald-400 border-emerald-300 text-slate-950" : "bg-slate-800 border-slate-700 text-slate-300")}
-                >
-                  {realityBoost ? 'مفعل' : 'متوقف'}
-                </button>
-              </div>
-              <div
-                className={cn("w-full p-3 rounded-2xl border text-right", strictPlateLock ? "bg-white/10 border-emerald-400/40" : "bg-white/5 border-slate-700")}
-              >
-                <span className="block text-sm font-black">قفل الصحن والطبق 100%</span>
-                <span className="block text-[11px] text-slate-300 mt-1">{strictPlateLock ? 'ممنوع تبديل الصحن أو المكونات — الخلفية فقط تتغير.' : 'القفل مخفف، غير مفضل للواقعية الدقيقة.'}</span>
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
-              <BrandingControls
-                useBranding={useBranding}
-                setUseBranding={setUseBranding}
-                brandingStyle={brandingStyle}
-                setBrandingStyle={setBrandingStyle}
-                logoPosition={logoPosition}
-                setLogoPosition={setLogoPosition}
-                logoOpacity={logoOpacity}
-                setLogoOpacity={setLogoOpacity}
-                customText={customText}
-                setCustomText={setCustomText}
-                textPosition={textPosition}
-                setTextPosition={setTextPosition}
-                colorClass="indigo"
-                title="5. هوية العلامة (Logo)"
-              />
-            </div>
-
-            </>)}
-
-            <div className="p-5 bg-amber-50 rounded-2xl border border-amber-200">
-              <p className="text-xs text-amber-800 font-medium leading-relaxed">
-                <b className="block mb-1">💡 قاعدة حماية الهوية:</b>
-                النظام مصمم ليغير فقط الإضاءة، المشهد الخلفي، واقتصاص الصورة بدون المساس أو تغيير شكل ومكونات الطبق الأصلي نهائياً.
-              </p>
-            </div>
-
-            <button
-              onClick={() => generateContent()}
-              disabled={isGenerating || isGeneratingVariants}
-              className="w-full p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 transition-all disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="animate-spin" size={20} />
-                  جاري توليد المشهد الكويتي...
-                </>
-              ) : (
-                <>
-                  <Sparkles size={20} />
-                  {productStudioFlow === 'quick' ? 'حسّنها بسرعة' : productStudioFlow === 'kuwait' ? 'ركّبها بمشهد كويتي' : 'ولّعها باحتراف'}
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={generateFourRealityOptions}
-              disabled={isGenerating || isGeneratingVariants || !selectedImage}
-              className="w-full p-4 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-2xl font-black flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50"
-            >
-              {isGeneratingVariants ? <Loader2 className="animate-spin" size={20} /> : <Layout size={20} />}
-              ولّد 4 خيارات واقعية (اختياري)
-            </button>
           </div>
 
           <div className="w-full space-y-6 sticky top-4 z-40">
             <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100 min-h-[250px] md:min-h-[500px] flex items-center justify-center bg-slate-50 relative overflow-hidden">
-              
               {!generatedImage && !isGenerating && (
-                <div className="text-center w-full max-w-lg mx-auto p-4 space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">الأصل</p>
-                      <div className="w-full aspect-square bg-white rounded-2xl border shadow-sm p-2 relative overflow-hidden group">
-                        <img src={originalImage || null} alt="Original" className="w-full h-full object-cover rounded-xl opacity-60 grayscale-[0.5]" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest text-center">النسخة المحسنة للويب</p>
-                      <div className="w-full aspect-square bg-white rounded-2xl border-2 border-emerald-400 shadow-xl p-2 relative overflow-hidden">
-                        <img src={compressedImage || selectedImage || null} alt="Compressed" className="w-full h-full object-cover rounded-xl" />
-                        <div className="absolute top-4 left-4 bg-emerald-500 text-white text-[10px] px-2 py-1 rounded-md font-bold shadow-md">
-                          WebP 80% Optimal
-                        </div>
-                      </div>
-                    </div>
+                <div className="text-center w-full max-w-lg mx-auto p-4 space-y-5">
+                  <div className="w-full max-w-[260px] mx-auto aspect-square bg-white rounded-2xl border shadow-sm p-2 overflow-hidden flex items-center justify-center">
+                    {compressedImage || selectedImage || originalImage ? (
+                      <img src={compressedImage || selectedImage || originalImage} alt="Product" className="w-full h-full object-cover rounded-xl" />
+                    ) : (
+                      <span className="text-xs font-bold text-slate-400">بانتظار صورة المنتج</span>
+                    )}
                   </div>
+                  {compressionSavedPercent !== null && (
+                    <p className="-mt-3 text-[10px] font-medium text-slate-400 tracking-tight">
+                      تم تحسين الصورة تلقائياً وتوفير {compressionSavedPercent}% من حجمها مع الحفاظ على جودة مناسبة للنشر.
+                    </p>
+                  )}
                   <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
-                    <p className="text-sm text-indigo-900 font-bold">الصورة جاهزة. اختر المسار واضغط الزر — بدون زحمة.</p>
-                    <p className="text-xs text-indigo-500 mt-1">التحسين السريع يخفي الخيارات المتقدمة، والمشهد الكويتي يفتحها وقت الحاجة.</p>
+                    <p className="text-sm text-indigo-900 font-bold">الصورة مرفوعة. كمّل الخطوات ثم اضغط توليد.</p>
                   </div>
                 </div>
               )}
@@ -1519,46 +1313,15 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               {isGenerating && (
                 <div className="text-center px-6 py-12">
                   <div className="w-24 h-24 rounded-3xl bg-indigo-600 flex items-center justify-center mx-auto mb-8 shadow-indigo-500/30 shadow-2xl relative">
-                     <motion.div 
-                        animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="relative z-10"
-                     >
-                        <Sparkles className="w-12 h-12 text-white" />
-                     </motion.div>
-                     <motion.div 
-                        animate={{ scale: [1, 2], opacity: [0.5, 0] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                        className="absolute inset-0 bg-indigo-500 rounded-3xl"
-                     />
+                    <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }} transition={{ duration: 2, repeat: Infinity }} className="relative z-10"><Sparkles className="w-12 h-12 text-white" /></motion.div>
+                    <motion.div animate={{ scale: [1, 2], opacity: [0.5, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute inset-0 bg-indigo-500 rounded-3xl" />
                   </div>
-                  
-                  <h3 className="text-2xl font-black text-slate-800 mb-6">جاري الإبداع الهندسي...</h3>
-                  
+                  <h3 className="text-2xl font-black text-slate-800 mb-6">جاري تجهيز صورة واقعية...</h3>
                   <div className="max-w-xs mx-auto space-y-4">
-                    {[
-                      "تحليل بصمة الطبق الأصلية...",
-                      "اختيار مشهد كويتي واقعي...",
-                      "مطابقة الظلال والعدسة البشرية...",
-                      "منع أي مظهر CGI أو ديكور وهمي..."
-                    ].map((step, idx) => (
-                      <motion.div 
-                        key={idx}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 2 }}
-                        className="flex items-center gap-3 text-right"
-                      >
-                         <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
-                            <motion.div 
-                               initial={{ scale: 0 }}
-                               animate={{ scale: 1 }}
-                               transition={{ delay: idx * 2 + 0.5 }}
-                            >
-                               <Check size={12} className="text-emerald-600" />
-                            </motion.div>
-                         </div>
-                         <span className="text-sm font-bold text-slate-600">{step}</span>
+                    {["فهم تفاصيل الصورة الأصلية...", "بناء المشهد المناسب...", "ضبط الظلال والإضاءة...", "تنظيف التفاصيل المزعجة..."].map((step, idx) => (
+                      <motion.div key={idx} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 1.5 }} className="flex items-center gap-3 text-right">
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center"><Check size={12} className="text-emerald-600" /></div>
+                        <span className="text-sm font-bold text-slate-600">{step}</span>
                       </motion.div>
                     ))}
                   </div>
@@ -1566,164 +1329,72 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               )}
 
               {generatedImage && !isGenerating && (
-                <div className="w-full h-full flex flex-col md:flex-row gap-6 p-4">
-                  <div className="flex-1 flex flex-col items-center">
-                    <p className="text-xs font-bold text-slate-400 mb-3 text-center">الصورة قبل</p>
-                    <div className="w-full max-w-[200px] aspect-square bg-white rounded-2xl border shadow-sm p-1 inline-block">
-                      <img src={originalImage || ""} alt="Original" className="w-full h-full object-cover rounded-xl" />
+                <div className="w-full h-full flex flex-col gap-5 p-4">
+                  <div className="flex items-center justify-between mb-1 text-right">
+                    <p className="text-sm font-bold text-indigo-600">الصورة الجاهزة</p>
+                  </div>
+                  <button type="button" onClick={() => setShowImageSettings((v) => !v)} className={cn("w-full bg-slate-50 rounded-3xl border shadow-2xl p-2 relative flex items-stretch overflow-hidden group mx-auto", previewAspectClass)}>
+                    <div className="relative flex-1 w-full h-full rounded-2xl overflow-hidden">
+                      {generatedImage ? (
+                        <img src={generatedImage} alt="Generated" className="absolute inset-0 w-full h-full object-contain bg-slate-50" />
+                      ) : null}
                     </div>
+                    <span className="absolute bottom-4 right-4 rounded-2xl bg-white/90 px-3 py-2 text-[10px] font-black text-slate-600 shadow-sm border border-white/80 opacity-0 group-hover:opacity-100 transition-opacity">الإعدادات</span>
+                  </button>
+
+                  {showImageSettings && (
+                    <div className="rounded-3xl border border-slate-100 bg-white p-4 text-right shadow-sm">
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-xs font-black text-slate-500">إعدادات هذه الصورة</p>
+                          <p className="text-[11px] font-bold text-slate-400 mt-1">انسخها لتكرار نفس النتيجة لاحقاً.</p>
+                        </div>
+                        <button type="button" onClick={copyCurrentSettings} className="rounded-2xl bg-slate-950 text-white px-4 py-2 text-xs font-black">نسخ الإعدادات</button>
+                      </div>
+                      <pre className="whitespace-pre-wrap rounded-2xl bg-slate-50 border border-slate-100 p-3 text-[11px] leading-6 font-bold text-slate-600 text-right font-sans">{buildSettingsText()}</pre>
+                    </div>
+                  )}
+
+                  <div className="rounded-3xl border border-indigo-100 bg-indigo-50/40 p-4">
+                    <div className="flex items-center justify-between mb-3 text-right">
+                      <span className="text-xs font-black text-indigo-700">هوية العلامة</span>
+                      <span className="text-[10px] font-bold text-indigo-400">اختياري</span>
+                    </div>
+                    <BrandingControls useBranding={useBranding} setUseBranding={setUseBranding} brandingStyle={brandingStyle} setBrandingStyle={setBrandingStyle} logoPosition={logoPosition} setLogoPosition={setLogoPosition} logoOpacity={logoOpacity} setLogoOpacity={setLogoOpacity} customText={customText} setCustomText={setCustomText} textPosition={textPosition} setTextPosition={setTextPosition} colorClass="indigo" title="هوية العلامة" />
                   </div>
 
-                  <div className="flex-[3] flex flex-col">
-                    <div className="flex items-center justify-between mb-3 text-right">
-                      <p className="text-sm font-bold text-indigo-600">النتيجة النهائية (جاهزة للنشر)</p>
+
+                  {realityVariants.length > 0 && (
+                    <div className="w-full rounded-3xl border border-emerald-100 bg-emerald-50/50 p-4">
+                      <div className="flex items-center justify-between mb-3"><span className="text-[10px] font-black text-emerald-600">٤ نسخ واقعية</span></div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {realityVariants.map((item, idx) => (
+                          <button key={`${item.label}-${idx}`} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); recordStudioTasteChoice({ mode: item.mode, background: item.background, theme: selectedTheme, format: selectedFormat, label: item.label, source: 'variant-picked' }); refreshStudioLearning(); }} className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden text-right shadow-sm hover:shadow-md transition-all">
+                            <img src={item.url} alt={item.label} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
+                            <div className="p-2 text-[10px] font-black text-slate-600 truncate">{item.label}</div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    
-                    <div className={cn("w-full bg-slate-50 rounded-3xl border shadow-2xl p-2 relative flex items-stretch overflow-hidden group mx-auto", previewAspectClass)}>
-                      <div className="relative flex-1 w-full h-full rounded-2xl overflow-hidden">
-                        <img 
-                          src={generatedImage || ""} 
-                          alt="Generated" 
-                          className="absolute inset-0 w-full h-full object-contain bg-slate-50"
-                        />
-                        {aiCaption && (
-                          <div className="absolute left-4 right-4 bottom-4 z-10 rounded-2xl bg-black/55 backdrop-blur-md text-white p-3 shadow-2xl border border-white/20">
-                            <p className="text-sm md:text-base font-extrabold leading-7 text-center whitespace-pre-wrap">{aiCaption}</p>
-                          </div>
-                        )}
-                      </div>
+                  )}
 
-                      <AnimatePresence>
-                        {showInstagramPreview && (
-                          <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-slate-50 pointer-events-none z-20 flex flex-col"
-                          >
-                            <div className="p-3 border-b flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-slate-200" />
-                              <span className="text-xs font-bold text-slate-900">preview_mode</span>
-                            </div>
-                            <div className="flex-1 overflow-hidden">
-                              <img src={generatedImage || ""} alt="Preview" className="w-full h-full object-contain bg-slate-50" />
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <button onClick={handleDownload} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2"><Download size={18} /> تحميل</button>
+                    <button type="button" onClick={auditReality} disabled={isAuditingReality || !generatedImage} className="px-6 py-3 bg-white border border-emerald-200 text-emerald-700 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50">{isAuditingReality ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />} فحص الواقعية</button>
+                    <button type="button" onClick={saveCurrentBackground} disabled={isSavingBackground || !generatedImage} className="px-6 py-3 bg-white border border-amber-200 text-amber-700 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50">{isSavingBackground ? <Loader2 className="animate-spin" size={18} /> : <Star size={18} />} حفظ للأرشيف</button>
+                    <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !selectedImage} className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-2 disabled:opacity-50"><Sparkles size={18} /> اجعلها أصدق</button>
+                  </div>
 
-                    {history.length > 0 && (
-                      <div className="mt-8 pt-4 border-t border-slate-100">
-                        
-                        <div className="flex gap-2 overflow-x-auto pb-2">
-                          {history.map((item, idx) => (
-                            <button 
-                              key={idx}
-                              onClick={() => { setGeneratedImage(item.url); setAiCaption(item.caption); setAiImage(item.url); recordStudioTasteChoice({ mode: item.mode, background: item.background, theme: item.theme || selectedTheme, format: item.format || selectedFormat, label: 'history-picked', source: 'history' }); refreshStudioLearning(); }}
-                              className="w-12 h-12 rounded-lg border flex-shrink-0 overflow-hidden"
-                            >
-                              <img src={item.url} alt="hist" className="w-full h-full object-cover" />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {realityVariants.length > 0 && (
-                      <div className="mt-6 w-full rounded-3xl border border-emerald-100 bg-emerald-50/50 p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-[10px] font-black text-emerald-600">اختيارات واقعية اختيارية</span>
-                          <p className="text-sm font-black text-slate-800">٤ لقطات بشرية</p>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {realityVariants.map((item, idx) => (
-                            <button key={`${item.label}-${idx}`} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); recordStudioTasteChoice({ mode: item.mode, background: item.background, theme: selectedTheme, format: selectedFormat, label: item.label, source: 'variant-picked' }); refreshStudioLearning(); }} className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden text-right shadow-sm hover:shadow-md transition-all">
-                              <img src={item.url} alt={item.label} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
-                              <div className="p-2 text-[10px] font-black text-slate-600 truncate">{item.label}</div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {realityAudit && (
-                      <div className="mt-6 rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm text-right">
-                        <div className="flex items-center justify-between gap-3 mb-3">
-                          <span className="text-3xl font-black text-emerald-600">{Math.round(Number(realityAudit.score || 0))}%</span>
-                          <div>
-                            <p className="text-sm font-black text-slate-800">تقييم الواقعية البشرية</p>
-                            <p className="text-xs font-bold text-emerald-700">{realityAudit.verdict || 'الصورة واقعية وجاهزة للنشر'}</p>
-                          </div>
-                        </div>
-                        {Array.isArray(realityAudit.notes) && realityAudit.notes.length > 0 && (
-                          <div className="grid gap-2">
-                            {realityAudit.notes.slice(0, 3).map((note, idx) => (
-                              <div key={idx} className="text-xs font-bold text-slate-600 bg-slate-50 rounded-2xl p-3">{note}</div>
-                            ))}
-                          </div>
-                        )}
-                        {realityAudit.fixHint && <p className="mt-3 text-[11px] font-bold text-slate-400">تحسين مقترح: {realityAudit.fixHint}</p>}
-                      </div>
-                    )}
-
-                    <div className="mt-6 flex flex-wrap gap-2 justify-center">
-                      <button onClick={handleDownload} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2">
-                        <Download size={18} /> تحميل
+                  <div className="pt-4 border-t border-slate-100 w-full flex flex-col items-center gap-3">
+                    <p className="text-xs font-bold text-slate-500">حفظها داخل المنتج</p>
+                    <div className="flex gap-2 w-full max-w-sm">
+                      <select className="flex-1 p-3 border rounded-xl bg-slate-50 text-slate-800 text-sm focus:border-indigo-500 outline-none text-right" value={selectedProductId} onChange={(e) => setSelectedProductId(e.target.value)}>
+                        <option value="">اختر المنتج</option>
+                        {data?.products?.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                      <button onClick={handleSaveToProduct} disabled={!selectedProductId || isSaving} className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold disabled:opacity-50 flex items-center gap-2">
+                        {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} حفظ
                       </button>
-                      <button type="button" onClick={auditReality} disabled={isAuditingReality || !generatedImage} className="px-6 py-3 bg-white border border-emerald-200 text-emerald-700 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        {isAuditingReality ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
-                        قيّم الواقعية
-                      </button>
-                      <button type="button" onClick={saveCurrentBackground} disabled={isSavingBackground || !generatedImage} className="px-6 py-3 bg-white border border-amber-200 text-amber-700 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        {isSavingBackground ? <Loader2 className="animate-spin" size={18} /> : <Star size={18} />}
-                        احفظ الخلفية للمكتبة
-                      </button>
-                      <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !selectedImage} className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <Sparkles size={18} />
-                        خلها أصدق بصرياً
-                      </button>
-                      <button type="button" onClick={generateCaption} disabled={isCapturing || !generatedImage} className="px-6 py-3 bg-white border border-indigo-200 text-indigo-600 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        {isCapturing ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
-                        توليد نص ذكي
-                      </button>
-                      {aiCaption && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAiCaption(previousAiCaption);
-                            setPreviousAiCaption(null);
-                            toast.info('تم التراجع عن آخر نص ذكي');
-                          }}
-                          className="px-5 py-3 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-100 transition-all"
-                        >
-                          تراجع
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="mt-8 pt-4 border-t border-slate-100 w-full flex flex-col items-center gap-3">
-                      <p className="text-xs font-bold text-slate-500">حفظ الصورة في أصول المنتج</p>
-                      <div className="flex gap-2 w-full max-w-sm">
-                        <select 
-                          className="flex-1 p-3 border rounded-xl bg-slate-50 text-slate-800 text-sm focus:border-indigo-500 outline-none text-right"
-                          value={selectedProductId}
-                          onChange={(e) => setSelectedProductId(e.target.value)}
-                        >
-                          <option value="">-- اختر المنتج --</option>
-                          {data?.products?.map((p: any) => (
-                            <option key={p.id} value={p.id}>{p.name}</option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={handleSaveToProduct}
-                          disabled={!selectedProductId || isSaving}
-                          className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold disabled:opacity-50 flex items-center gap-2"
-                        >
-                          {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                          حفظ
-                        </button>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -1731,8 +1402,6 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             </div>
           </div>
         </div>
-      )}
-      </>
       )}
     </div>
   );
