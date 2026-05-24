@@ -106,9 +106,7 @@ const OrderPage = React.lazy(() => import("./OrderPage"));
 import { MarketingLab } from "./MarketingLab";
 import { DiwaniyaTournaments } from "./DiwaniyaTournaments";
 import { SmartContentStudio } from "./SmartContentStudio";
-const GoalManager = React.lazy(() =>
-  import("./GoalManager").then((m) => ({ default: m.GoalManager })),
-);
+import { GoalManager } from "./GoalManager";
 const KuwaitSeasonalCalendar = React.lazy(() =>
   import("./KuwaitSeasonalCalendar").then((m) => ({
     default: m.KuwaitSeasonalCalendar,

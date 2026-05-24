@@ -31,6 +31,18 @@ type RealityAuditResult = {
 
 type ProductStudioFlow = 'quick' | 'kuwait' | 'pro';
 
+type StudioSceneSuggestion = {
+  productType?: string;
+  reason?: string;
+  place: KuwaitOrderPlace;
+  pulseId: string;
+  mode: StudioRealityMode;
+  background: StudioBackgroundPresetId;
+  mood: string;
+  themeHint?: string;
+  confidence?: number;
+};
+
 type StudioHistoryItem = {
   url: string;
   caption: string | null;
@@ -82,6 +94,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [studioTab, setStudioTab] = useState<'home' | 'create' | 'quick' | 'whatsapp' | 'occasions' | 'product' | 'library' | 'advanced'>('home');
   const [createStep, setCreateStep] = useState<number>(1);
   const [productStep, setProductStep] = useState<number>(1);
+  const [maxCreateStepReached, setMaxCreateStepReached] = useState<number>(1);
+  const [maxProductStepReached, setMaxProductStepReached] = useState<number>(1);
   const [showCreateOccasion, setShowCreateOccasion] = useState(false);
   const [showProductOccasion, setShowProductOccasion] = useState(false);
   const [fineToolTab, setFineToolTab] = useState<'lighting' | 'reality'>('lighting');
@@ -147,6 +161,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [backgroundPreset, setBackgroundPreset] = useState<StudioBackgroundPresetId>('wood-table');
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
   const [realityVariants, setRealityVariants] = useState<{ label: string; url: string; mode: StudioRealityMode; background: StudioBackgroundPresetId }[]>([]);
+  const [isSuggestingScene, setIsSuggestingScene] = useState(false);
+  const [sceneSuggestion, setSceneSuggestion] = useState<StudioSceneSuggestion | null>(null);
   const [strictPlateLock, setStrictPlateLock] = useState(true);
   const [realityBoost, setRealityBoost] = useState(true);
   const [isAuditingReality, setIsAuditingReality] = useState(false);
@@ -219,6 +235,63 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   const activePulsePack = getKuwaitPulsePack(selectedPulseId);
 
+  const applySceneSuggestion = (suggestion: StudioSceneSuggestion) => {
+    const pack = getKuwaitPulsePack(suggestion.pulseId);
+    const place = KUWAIT_PLACES[suggestion.place] ? suggestion.place : pack.defaultPlace;
+    setSelectedPulseId(pack.id);
+    setSelectedOrderPlace(place);
+    setBackgroundPreset(suggestion.background || KUWAIT_PLACES[place].background);
+    setRealityMode(suggestion.mode || pack.mode);
+    setSelectedMood(suggestion.mood || 'دافئ');
+    setSelectedTheme('نبض الكويت');
+    setSelectedContentGoal('product');
+    setRealityBoost(true);
+    setStrictPlateLock(true);
+    setProductStudioFlow('kuwait');
+    setShowAdvancedStudio(false);
+  };
+
+  const recommendSceneFromImage = async (imageDataUrl: string) => {
+    setIsSuggestingScene(true);
+    setSceneSuggestion(null);
+    try {
+      const productHints = (data?.products || [])
+        .slice(0, 80)
+        .map((p: any) => [p?.name, p?.category, p?.description].filter(Boolean).join(' - '))
+        .filter(Boolean);
+      const response = await fetch('/api/smart-studio/recommend-scene', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: imageDataUrl,
+          productHints,
+          currentFormat: selectedFormat,
+          tasteProfile: buildStudioTastePrompt()
+        })
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result) throw new Error(result?.error || 'recommendation failed');
+      const suggestion = result as StudioSceneSuggestion;
+      applySceneSuggestion(suggestion);
+      setSceneSuggestion(suggestion);
+    } catch (err) {
+      const fallback: StudioSceneSuggestion = {
+        productType: 'طبق كويتي',
+        reason: 'اعتمدت إعدادات واقعية آمنة لأن التحليل الذكي لم يكتمل.',
+        place: 'delivery',
+        pulseId: 'quick-kuwait',
+        mode: 'finalBoss',
+        background: 'delivery-packaging',
+        mood: 'دافئ',
+        confidence: 68
+      };
+      applySceneSuggestion(fallback);
+      setSceneSuggestion(fallback);
+    } finally {
+      setIsSuggestingScene(false);
+    }
+  };
+
   useEffect(() => {
     const pack = getKuwaitPulsePack(selectedPulseId);
     setRealityMode(pack.mode);
@@ -255,6 +328,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       applyBranding(aiImage).then(setGeneratedImage);
     }
   }, [useBranding, logoOpacity, logoPosition, brandingStyle, customText, textPosition, aiImage]);
+
+  useEffect(() => {
+    if (!generatedImage || studioTab !== 'product') {
+      setShowBrandingPanel(false);
+    }
+  }, [generatedImage, studioTab]);
 
   const addToHistory = (url: string, caption: string | null, meta?: Partial<StudioHistoryItem>) => {
     setHistory(prev => {
@@ -356,6 +435,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         setRealityAudit(null);
         setRealityVariants([]);
         setProductStep(1);
+        setMaxProductStepReached(1);
+        recommendSceneFromImage(result.base64);
       };
       reader.readAsDataURL(file);
     }
@@ -377,6 +458,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setIsGenerating(true);
     setGeneratedImage(null);
     setShowImageSettings(false);
+    setShowBrandingPanel(false);
     setRealityAudit(null);
 
     // Call backend API to process the realistic AI image
@@ -462,6 +544,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setIsGenerating(true);
     setGeneratedImage(null);
     setShowImageSettings(false);
+    setShowBrandingPanel(false);
     setRealityAudit(null);
     try {
       const prompt = `${themeText}\nGenerate a believable Kuwaiti occasion / delivery / gathering image without requiring a product upload. Make it look like a real photographed Kuwaiti order moment, suitable for WhatsApp first. No readable text inside the image. ${STUDIO_NEGATIVE_PROMPT}`;
@@ -840,16 +923,32 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   const goHome = () => {
     closeOpenPanels();
+    setShowBrandingPanel(false);
+    setShowImageSettings(false);
     setStudioTab('home');
   };
 
   const goCreateStep = (step: number) => {
+    if (step > maxCreateStepReached) return;
     closeOpenPanels();
     setCreateStep(step);
   };
 
   const goProductStep = (step: number) => {
+    if (step > maxProductStepReached) return;
     closeOpenPanels();
+    setProductStep(step);
+  };
+
+  const advanceCreateStep = (step: number) => {
+    closeOpenPanels();
+    setMaxCreateStepReached(prev => Math.max(prev, step));
+    setCreateStep(step);
+  };
+
+  const advanceProductStep = (step: number) => {
+    closeOpenPanels();
+    setMaxProductStepReached(prev => Math.max(prev, step));
     setProductStep(step);
   };
 
@@ -903,6 +1002,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const visibleStudioSteps = hasWrittenIdea ? ideaFastSteps : fullStudioSteps;
   const renderStageProgress = (currentStep: number, setStep: (step: number) => void) => {
     const steps = visibleStudioSteps;
+    const maxAllowedStep = studioTab === 'product' ? maxProductStepReached : maxCreateStepReached;
     const currentIndex = Math.max(0, steps.findIndex((s) => s.n === currentStep));
     const current = steps[currentIndex] || steps[0];
     return (
@@ -916,7 +1016,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         </div>
         <div className="hidden md:grid gap-1 rounded-[24px] border border-slate-100 bg-slate-50 p-2" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
           {steps.map((s, idx) => (
-            <button key={s.n} type="button" onClick={() => { closeOpenPanels(); setStep(s.n); }} className={cn("rounded-2xl px-2 py-2 text-center transition-all", currentStep === s.n ? "bg-slate-950 text-white shadow-md" : "bg-white text-slate-500 border border-slate-100") }>
+            <button key={s.n} type="button" disabled={s.n > maxAllowedStep} onClick={() => { closeOpenPanels(); setStep(s.n); }} className={cn("rounded-2xl px-2 py-2 text-center transition-all", currentStep === s.n ? "bg-slate-950 text-white shadow-md" : s.n > maxAllowedStep ? "bg-slate-100 text-slate-300 border border-slate-100 cursor-not-allowed opacity-60" : "bg-white text-slate-500 border border-slate-100") }>
               <div className="text-[10px] font-black">{idx + 1}</div>
               <div className="text-[9px] font-black mt-1 whitespace-nowrap">{s.t}</div>
             </button>
@@ -965,12 +1065,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             </div>
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
-            <button onClick={() => { closeOpenPanels(); setCreateStep(1); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
+            <button onClick={() => { closeOpenPanels(); setCreateStep(1); setMaxCreateStepReached(1); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Sparkles className="text-indigo-500 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من فكرة</div>
               <div className="text-xs font-bold text-slate-400 mt-1">اكتب وصفك، أو اختر قالباً جاهزاً.</div>
             </button>
-            <button onClick={() => { closeOpenPanels(); setProductStep(1); setStudioTab('product'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
+            <button onClick={() => { closeOpenPanels(); setProductStep(1); setMaxProductStepReached(1); setStudioTab('product'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Camera className="text-indigo-500 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من صورة</div>
               <div className="text-xs font-bold text-slate-400 mt-1">ارفع صورة المنتج ونرتّبها بواقعية أعلى.</div>
@@ -1035,7 +1135,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     </button>
                   ))}
                 </div>
-                <button type="button" onClick={() => goCreateStep(2)} className="w-full p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                <button type="button" onClick={() => advanceCreateStep(2)} className="w-full p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
               </div>
             )}
 
@@ -1053,7 +1153,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">تم اعتماد الفكرة. بعدها لمسات نهائية ثم التوليد.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تفضّل الاختيارات الجاهزة؟ التالي يفتح المناسبة ثم المكان.</div>}
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => goCreateStep(1)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                  <button type="button" onClick={() => goCreateStep(customThemeQuery.trim() ? 5 : 3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">{customThemeQuery.trim() ? 'أدوات دقيقة' : 'المناسبة'}</button>
+                  <button type="button" onClick={() => advanceCreateStep(customThemeQuery.trim() ? 5 : 3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">{customThemeQuery.trim() ? 'أدوات دقيقة' : 'المناسبة'}</button>
                 </div>
               </div>
             )}
@@ -1075,7 +1175,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 )}
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => goCreateStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                  <button type="button" onClick={() => goCreateStep(4)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                  <button type="button" onClick={() => advanceCreateStep(4)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                 </div>
               </div>
             )}
@@ -1085,7 +1185,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 {renderPlaceLibrary()}
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => goCreateStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                  <button type="button" onClick={() => goCreateStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                  <button type="button" onClick={() => advanceCreateStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                 </div>
               </div>
             )}
@@ -1095,7 +1195,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 {renderFineTools()}
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => goCreateStep(customThemeQuery.trim() ? 2 : 4)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                  <button type="button" onClick={() => goCreateStep(6)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                  <button type="button" onClick={() => advanceCreateStep(6)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                 </div>
               </div>
             )}
@@ -1201,7 +1301,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                         </button>
                       ))}
                     </div>
-                    <button type="button" onClick={() => goProductStep(2)} className="w-full p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                    <button type="button" onClick={() => advanceProductStep(2)} className="w-full p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                   </div>
                 )}
 
@@ -1219,7 +1319,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">تم اعتماد الفكرة. بعدها لمسات نهائية ثم التوليد.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تفضّل الاختيارات الجاهزة؟ التالي يفتح المناسبة ثم المكان.</div>}
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(1)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                      <button type="button" onClick={() => goProductStep(customThemeQuery.trim() ? 5 : 3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">{customThemeQuery.trim() ? 'أدوات دقيقة' : 'المناسبة'}</button>
+                      <button type="button" onClick={() => advanceProductStep(customThemeQuery.trim() ? 5 : 3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">{customThemeQuery.trim() ? 'أدوات دقيقة' : 'المناسبة'}</button>
                     </div>
                   </div>
                 )}
@@ -1241,7 +1341,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     )}
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                      <button type="button" onClick={() => goProductStep(4)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                      <button type="button" onClick={() => advanceProductStep(4)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                     </div>
                   </div>
                 )}
@@ -1251,7 +1351,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     {renderPlaceLibrary()}
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                      <button type="button" onClick={() => goProductStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                      <button type="button" onClick={() => advanceProductStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                     </div>
                   </div>
                 )}
@@ -1261,7 +1361,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     {renderFineTools()}
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(customThemeQuery.trim() ? 2 : 4)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                      <button type="button" onClick={() => goProductStep(6)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                      <button type="button" onClick={() => advanceProductStep(6)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                     </div>
                   </div>
                 )}
@@ -1307,6 +1407,25 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                         ? `تم تحسين الصورة تلقائياً وتوفير ${compressionSavedPercent}% من حجمها مع الحفاظ على جودة مناسبة للنشر.`
                         : 'تم فحص الصورة وتحسينها تلقائياً مع الحفاظ على جودة مناسبة للنشر.'}
                     </p>
+                  )}
+                  {(isSuggestingScene || sceneSuggestion) && (
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-right">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 h-8 w-8 rounded-xl bg-white text-emerald-700 flex items-center justify-center shadow-sm shrink-0">
+                          {isSuggestingScene ? <Loader2 className="animate-spin" size={16} /> : <Brain size={16} />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-black text-emerald-700">
+                            {isSuggestingScene ? 'جاري اختيار أنسب مشهد...' : `اعتمدنا ${KUWAIT_PLACES[sceneSuggestion?.place || 'delivery']?.label}`}
+                          </p>
+                          <p className="mt-1 text-[11px] font-bold text-emerald-900/70 leading-5">
+                            {isSuggestingScene
+                              ? 'نحلل نوع الطبق ونختار بيئة كويتية واقعية بدون قرارات إضافية.'
+                              : sceneSuggestion?.reason || 'تم ضبط المكان والإضاءة والواقعية حسب الصورة.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   )}
                   <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
                     <p className="text-sm text-indigo-900 font-bold">الصورة مرفوعة. كمّل الخطوات ثم اضغط توليد.</p>

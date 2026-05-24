@@ -18,6 +18,11 @@ const PAYMENT_PENDING_GRACE_LABEL =
   PAYMENT_PENDING_GRACE_SECONDS % 60 === 0
     ? `${PAYMENT_PENDING_GRACE_SECONDS / 60} دقيقة`
     : `${PAYMENT_PENDING_GRACE_SECONDS} ثانية`;
+const PAYMENT_FAILURE_GRACE_SECONDS = Math.max(
+  30,
+  Math.min(600, Number(process.env.PAYMENT_FAILURE_GRACE_SECONDS || 120))
+);
+const PAYMENT_FAILURE_GRACE_MS = PAYMENT_FAILURE_GRACE_SECONDS * 1000;
 
 try {
 
@@ -303,27 +308,14 @@ app.use(express.urlencoded({ extended: true }));
             if (invSnap.exists) {
                 const data = invSnap.data();
                 if (data?.paymentStatus !== 'paid') {
-                    await invoiceRef.update({ paymentStatus: 'failed', status: 'فشلت عملية الدفع', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                    await invoiceRef.update({ paymentStatus: 'failed', status: 'فشلت عملية الدفع', failedAt: admin.firestore.FieldValue.serverTimestamp(), paymentUpdatedAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                     const orderQ = await db.collection('orders').where('linkedInvoiceId', '==', orderId).get();
                     for (const doc of orderQ.docs) {
                         const oData = doc.data();
                         if (oData.status !== 'تم الدفع وجاري التوصيل' && oData.status !== 'paid') {
-                            await doc.ref.update({ status: 'فشلت عملية الدفع', paymentStatus: 'failed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                            await doc.ref.update({ status: 'فشلت عملية الدفع', paymentStatus: 'failed', failedAt: admin.firestore.FieldValue.serverTimestamp(), paymentUpdatedAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                         }
                     }
-
-                    const eventId = `safe-worker-invoice-failed-${orderId}`;
-                    sendSmartAlertPushNotification({
-                      title: "❌ فشل دفع فاتورة",
-                      body: `الفاتورة ${orderId} فشل دفعها — راجعوا الطلب وأعيدوا إرسال الرابط عند الحاجة`,
-                      alertType: "payment_failed",
-                      eventId,
-                      url: `/?invoice=${orderId}`
-                    }).then((result) => rememberPushEvent(eventId, {
-                      source: "payment-webhook",
-                      type: "invoice_payment_failed",
-                      invoiceId: orderId,
-                    }, result)).catch(console.error);
                 }
             } else {
                 const orderRef = db.collection('orders').doc(orderId);
@@ -331,20 +323,7 @@ app.use(express.urlencoded({ extended: true }));
                 if (ordSnap.exists) {
                     const data = ordSnap.data();
                     if (data?.status !== 'تم الدفع وجاري التوصيل' && data?.status !== 'paid') {
-                        await orderRef.update({ status: 'فشلت عملية الدفع', paymentStatus: 'failed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-
-                        const eventId = `safe-worker-payment-failed-${orderId}`;
-                        sendSmartAlertPushNotification({
-                          title: "❌ فشل دفع طلب",
-                          body: `الطلب ${orderId} فشل دفعه — يحتاج متابعة`,
-                          alertType: "payment_failed",
-                          eventId,
-                          url: `/?invoice=${orderId}`
-                        }).then((result) => rememberPushEvent(eventId, {
-                          source: "payment-webhook",
-                          type: "payment_failed",
-                          orderId,
-                        }, result)).catch(console.error);
+                        await orderRef.update({ status: 'فشلت عملية الدفع', paymentStatus: 'failed', failedAt: admin.firestore.FieldValue.serverTimestamp(), paymentUpdatedAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                     }
                 }
             }
@@ -970,6 +949,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       const newOrderWindowStart = new Date(now.getTime() - 15 * 60 * 1000);
       const pendingPaymentWindowStart = new Date(now.getTime() - 30 * 60 * 1000);
       const pendingPaymentGraceAgo = new Date(now.getTime() - PAYMENT_PENDING_GRACE_MS);
+      const paymentFailureGraceAgo = new Date(now.getTime() - PAYMENT_FAILURE_GRACE_MS);
       const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
       const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
@@ -1381,6 +1361,19 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
   });
 
   
+function smartNotificationTag(alertType: string, url: string, fallbackEventId: string) {
+  const type = String(alertType || "").toLowerCase();
+  if (!type.includes("payment") && !type.includes("invoice")) return fallbackEventId;
+
+  const text = String(url || "");
+  const invoiceMatch = text.match(/[?&]invoice=([^&#]+)/);
+  const orderMatch = text.match(/[?&]order=([^&#]+)/);
+  const id = decodeURIComponent(invoiceMatch?.[1] || orderMatch?.[1] || "");
+  if (!id) return fallbackEventId;
+
+  return `payment-final-state-${invoiceMatch ? "invoice" : "order"}-${id}`;
+}
+
 async function sendSmartAlertPushNotification({
   title,
   body,
@@ -1389,6 +1382,7 @@ async function sendSmartAlertPushNotification({
   eventId = `manual-smart-alert-${Date.now()}`,
   ttlSeconds,
   requireInteraction = true,
+  notificationTag,
 }: {
   title: string;
   body: string;
@@ -1397,6 +1391,7 @@ async function sendSmartAlertPushNotification({
   eventId?: string;
   ttlSeconds?: number;
   requireInteraction?: boolean;
+  notificationTag?: string;
 }) {
   try {
     if (!firebaseInitialized || !db) {
@@ -1425,6 +1420,8 @@ async function sendSmartAlertPushNotification({
 
     const normalizedEventId = String(eventId || `manual-smart-alert-${Date.now()}`);
     const normalizedAlertType = String(alertType || "general");
+    const normalizedUrl = String(url);
+    const normalizedNotificationTag = String(notificationTag || smartNotificationTag(normalizedAlertType, normalizedUrl, normalizedEventId));
     const effectiveTtlSeconds = Number.isFinite(Number(ttlSeconds))
       ? Math.max(60, Math.min(86400, Number(ttlSeconds)))
       : (
@@ -1447,8 +1444,9 @@ async function sendSmartAlertPushNotification({
         type: "smart_alert",
         alertType: normalizedAlertType,
         eventId: normalizedEventId,
-        url: String(url),
-        click_action: String(url),
+        notificationTag: normalizedNotificationTag,
+        url: normalizedUrl,
+        click_action: normalizedUrl,
         title: String(title || "تنبيه"),
         body: String(body || ""),
       },
@@ -1462,17 +1460,18 @@ async function sendSmartAlertPushNotification({
           body: String(body || ""),
           icon: "/icons/icon-192.png",
           badge: "/icons/icon-192.png",
-          tag: normalizedEventId,
+          tag: normalizedNotificationTag,
           renotify: false,
           requireInteraction: Boolean(requireInteraction),
           data: {
-            url: String(url),
+            url: normalizedUrl,
             eventId: normalizedEventId,
+            notificationTag: normalizedNotificationTag,
             alertType: normalizedAlertType,
           },
         },
         fcmOptions: {
-          link: String(url),
+          link: normalizedUrl,
         },
       },
     };
@@ -2232,10 +2231,11 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
     try {
     const counters = { sent: 0 };
-    const results: any[] = [];
-    const now = new Date();
-    const pendingPaymentGraceAgo = new Date(now.getTime() - PAYMENT_PENDING_GRACE_MS);
-    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+	    const results: any[] = [];
+	    const now = new Date();
+	    const pendingPaymentGraceAgo = new Date(now.getTime() - PAYMENT_PENDING_GRACE_MS);
+	    const paymentFailureGraceAgo = new Date(now.getTime() - PAYMENT_FAILURE_GRACE_MS);
+	    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
     let syncResult = { updated: 0, ids: [] as string[] };
     if (!dryRun) syncResult = await alertsSyncFailedInvoicesFromPushEvents();
     const failedInvoiceIds = new Set(await alertsGetRecentFailedInvoiceIdsFromPushEvents());
@@ -2248,6 +2248,8 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       if (!invoiceId || !alertsInWindow(inv, now)) continue;
       const st = alertsStatusFor(inv);
       if (failedInvoiceIds.has(invoiceId) || alertsIsFailed(st)) {
+        const d = alertsBestDate(inv) || now;
+        if (d > paymentFailureGraceAgo) continue;
         await alertsSendOnce(results, `safe-worker-invoice-failed-${invoiceId}`, {
           title: "❌ فشلت عملية الدفع",
           body: `فشلت عملية الدفع للفاتورة ${invoiceId}${alertsAmountText(inv)}`,
@@ -2272,7 +2274,11 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       if (qatia && alertsIsPaid(st) && !alertsIsQatiaExpired(st)) { await alertsSendOnce(results, `safe-worker-qatia-completed-${orderId}`, { title: "✅ اكتملت القطية", body: `اكتملت القطية للطلب ${orderId} — تم الدفع وجاري التوصيل${alertsAmountText(order)}`, alertType: "qatia_completed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
       if (qatia && alertsIsQatiaExpired(st)) { await alertsSendOnce(results, `safe-worker-qatia-expired-${orderId}`, { title: "⏰ ملغي - انتهى وقت القطية", body: `الطلب ${orderId} تم إلغاؤه لانتهاء وقت القطية${alertsAmountText(order)}`, alertType: "qatia_expired", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
       if (qatia) continue;
-      if (alertsIsFailed(st)) { await alertsSendOnce(results, `safe-worker-payment-failed-${orderId}`, { title: "❌ فشل دفع طلب", body: `فشل دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_failed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
+      if (alertsIsFailed(st)) {
+        const d = alertsBestDate(order) || now;
+        if (d > paymentFailureGraceAgo) continue;
+        await alertsSendOnce(results, `safe-worker-payment-failed-${orderId}`, { title: "❌ فشل دفع طلب", body: `فشل دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_failed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue;
+      }
       if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-payment-paid-${orderId}`, { title: "✅ تم دفع طلب", body: `تم دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_paid", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
       if (alertsIsCancelled(st)) { await alertsSendOnce(results, `safe-worker-order-cancelled-admin-${orderId}`, { title: "🚫 تم إلغاء طلب", body: `تم إلغاء الطلب ${orderId}${alertsAmountText(order)}`, alertType: "order_cancelled_admin", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
       if (alertsIsPending(st)) {
@@ -2636,6 +2642,129 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
       }
       if (errMsg.includes("RESOURCE_EXHAUSTED")) {
         return res.status(429).json({ error: "تم استنفاد حصة الاستخدام (Quota Exceeded). يرجى المحاولة لاحقاً.", needsKey: true });
+      }
+      res.status(500).json({ error: errMsg });
+    }
+  });
+
+  app.post("/api/smart-studio/recommend-scene", express.json({ limit: "18mb" }), async (req, res) => {
+    try {
+      const { image, productHints, tasteProfile } = req.body;
+      if (!image) return res.status(400).json({ error: "Missing image" });
+
+      let base64Data = image;
+      let mimeType = "image/jpeg";
+      if (typeof image === "string" && image.includes("data:")) {
+        const firstCommaIndex = image.indexOf(",");
+        const header = image.substring(0, firstCommaIndex);
+        mimeType = header.split(":")[1]?.split(";")[0] || "image/jpeg";
+        base64Data = image.substring(firstCommaIndex + 1);
+      }
+
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: "GEMINI_API_KEY is not configured", needsKey: true });
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: { headers: { "User-Agent": "aistudio-build" } }
+      });
+
+      const menuHintsText = Array.isArray(productHints)
+        ? productHints.slice(0, 60).map((x: any) => String(x).slice(0, 90)).join("\n")
+        : "";
+
+      const prompt = `أنت مخرج تصوير واقعي لمطبخ كويتي منزلي متخصص في التوصيل. حلل صورة المنتج المرفقة، ثم اختر أفضل مشهد كويتي موجود فقط من القوائم المسموحة.
+
+هوية المطعم:
+- توصيل أطباق كويتية ومنزلية: عيوش، أكل شعبي، أسماك/بحريات، محاشي، ورق عنب، ومشاوي أحياناً.
+- الاستخدام للبيت، الديوانية، الشاليه، المزرعة، الجاخور، الزوارة، والتوصيل.
+- ممنوع تحويلها لكافيه أو مطعم جلوس أو ضيافة قهوة.
+- الواقعية أهم من الفخامة: صورة بشرية كويتية قابلة للتصديق.
+
+أصناف من النظام إن وجدت:
+${menuHintsText || "لا توجد قائمة منتجات مرسلة؛ اعتمد على الصورة فقط."}
+
+اختَر JSON فقط بدون markdown:
+{
+  "productType": "وصف قصير للطبق",
+  "reason": "سبب عربي قصير جداً لا يتجاوز 90 حرف",
+  "place": "home|diwaniya|chalet|farm|jakhour|zowara|delivery",
+  "pulseId": "quick-kuwait|diwaniya-night|chalet-weekend|zowara-family|weekend|rain-cold",
+  "mode": "human|restaurant|menu|luxury|finalBoss",
+  "background": "home-table|diwaniya-table|chalet-spread|farm-gathering|jakhour-setup|zowara-spread|delivery-packaging|neutral-menu|wood-table|marble-table",
+  "mood": "دافئ|بارد|غروب|ناعم",
+  "themeHint": "توجيه قصير للصورة",
+  "confidence": 0-100
+}
+
+قواعد القرار:
+- صورة صينية/كمية/طلب جماعي: diwaniya أو zowara أو chalet.
+- طبق فردي مرتب/منيو: menu + neutral-menu أو home.
+- تغليف/علب/أكياس: delivery + delivery-packaging.
+- أكل بيت/عيش/سمك ومحاشي: home أو zowara غالباً.
+- إذا الصورة ضعيفة أو عادية: finalBoss مع خلفية بسيطة.
+- لا تقترح قهوة، دلة، بخور، سدو، فوانيس، نصوص، شعارات، أو ديكور تراثي مصطنع.
+${tasteProfile ? `ذاكرة الذوق: ${String(tasteProfile).slice(0, 700)}` : ""}`;
+
+      const result = await ai.models.generateContent({
+        model: "gemini-2.5-flash-lite",
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { inlineData: { data: base64Data, mimeType } },
+              { text: prompt }
+            ]
+          }
+        ],
+        config: { temperature: 0.35 }
+      });
+
+      const raw = result.text || "{}";
+      const cleaned = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      let parsed: any = {};
+      try { parsed = JSON.parse(match ? match[0] : cleaned); } catch { parsed = {}; }
+
+      const allowedPlaces = new Set(["home", "diwaniya", "chalet", "farm", "jakhour", "zowara", "delivery"]);
+      const allowedPulses = new Set(["quick-kuwait", "diwaniya-night", "chalet-weekend", "zowara-family", "weekend", "rain-cold"]);
+      const allowedModes = new Set(["human", "restaurant", "menu", "luxury", "finalBoss"]);
+      const allowedBackgrounds = new Set(["home-table", "diwaniya-table", "chalet-spread", "farm-gathering", "jakhour-setup", "zowara-spread", "delivery-packaging", "neutral-menu", "wood-table", "marble-table"]);
+      const allowedMoods = new Set(["دافئ", "بارد", "غروب", "ناعم"]);
+
+      const fallbackByPlace: Record<string, string> = {
+        home: "home-table",
+        diwaniya: "diwaniya-table",
+        chalet: "chalet-spread",
+        farm: "farm-gathering",
+        jakhour: "jakhour-setup",
+        zowara: "zowara-spread",
+        delivery: "delivery-packaging"
+      };
+
+      const place = allowedPlaces.has(parsed.place) ? parsed.place : "delivery";
+      const response = {
+        productType: String(parsed.productType || "طبق كويتي").slice(0, 80),
+        reason: String(parsed.reason || "اخترنا مشهداً كويتياً واقعياً يناسب الصورة.").slice(0, 120),
+        place,
+        pulseId: allowedPulses.has(parsed.pulseId) ? parsed.pulseId : "quick-kuwait",
+        mode: allowedModes.has(parsed.mode) ? parsed.mode : "finalBoss",
+        background: allowedBackgrounds.has(parsed.background) ? parsed.background : fallbackByPlace[place],
+        mood: allowedMoods.has(parsed.mood) ? parsed.mood : "دافئ",
+        themeHint: String(parsed.themeHint || "").slice(0, 160),
+        confidence: Math.max(0, Math.min(100, Number(parsed.confidence || 75)))
+      };
+
+      res.json(response);
+    } catch (e: any) {
+      console.error("/api/smart-studio/recommend-scene error:", e);
+      const errMsg = e.message || String(e);
+      if (errMsg.includes("PERMISSION_DENIED") || errMsg.includes("API_KEY_INVALID") || errMsg.includes("suspended")) {
+        return res.status(403).json({ error: "عذراً، مفتاح API الخاص بك موقوف أو غير صالح.", needsKey: true });
+      }
+      if (errMsg.includes("RESOURCE_EXHAUSTED")) {
+        return res.status(429).json({ error: "تم استنفاد حصة الاستخدام.", needsKey: true });
       }
       res.status(500).json({ error: errMsg });
     }

@@ -36,7 +36,24 @@ function readPayloadText(payload: any) {
     payload?.data?.eventId ||
     `${title}:${body}:${url}`;
 
-  return { title, body, url, eventId };
+  const alertType = payload?.data?.alertType || "general";
+  const notificationTag =
+    payload?.data?.notificationTag ||
+    paymentNotificationTag(alertType, url, eventId);
+
+  return { title, body, url, eventId, alertType, notificationTag };
+}
+
+function paymentNotificationTag(alertType: string, url: string, eventId: string) {
+  const type = String(alertType || "").toLowerCase();
+  if (!type.includes("payment") && !type.includes("invoice")) return eventId;
+
+  const text = String(url || "");
+  const invoiceMatch = text.match(/[?&]invoice=([^&#]+)/);
+  const orderMatch = text.match(/[?&]order=([^&#]+)/);
+  const id = decodeURIComponent(invoiceMatch?.[1] || orderMatch?.[1] || "");
+
+  return id ? `payment-final-state-${invoiceMatch ? "invoice" : "order"}-${id}` : eventId;
 }
 
 function startForegroundPushListener(messaging: Messaging) {
@@ -46,7 +63,7 @@ function startForegroundPushListener(messaging: Messaging) {
   onMessage(messaging, (payload) => {
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
 
-    const { title, body, url, eventId } = readPayloadText(payload);
+    const { title, body, url, eventId, alertType, notificationTag } = readPayloadText(payload);
     const dedupeKey = `foreground_push_${eventId}`;
     const lastShown = Number(sessionStorage.getItem(dedupeKey) || "0");
 
@@ -57,10 +74,10 @@ function startForegroundPushListener(messaging: Messaging) {
       body,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
-      tag: eventId,
+      tag: notificationTag,
       renotify: false,
       requireInteraction: true,
-      data: { url, eventId },
+      data: { url, eventId, alertType, notificationTag },
     } as NotificationOptions);
 
     notification.onclick = () => {

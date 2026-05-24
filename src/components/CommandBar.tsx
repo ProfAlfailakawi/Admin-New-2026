@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
-import { Search, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, Home, ShoppingBag, FileText, ShieldCheck, BrainCircuit, Award } from 'lucide-react';
+import { Search, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, ShoppingBag, FileText, ShieldCheck, BrainCircuit, Award, Clock3, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, normalizeArabic } from '../lib/utils';
 
@@ -23,27 +23,61 @@ type CommandItem = {
 };
 
 const clean = (value?: string) => normalizeArabic(String(value || '')).toLowerCase().trim();
+const cleanDigits = (value?: string) => String(value || '').replace(/\D/g, '');
 const splitWords = (value?: string) => clean(value).split(/\s+/).filter(Boolean);
 const commandSearchText = (cmd: CommandItem) => clean([cmd.label, cmd.hint, cmd.category, ...(cmd.tags || [])].join(' '));
 const commandScore = (cmd: CommandItem, query: string) => {
   const q = clean(query);
   if (!q) return 1;
+  const qDigits = cleanDigits(query);
   const haystack = commandSearchText(cmd);
+  const haystackDigits = cleanDigits([cmd.label, cmd.hint, ...(cmd.tags || [])].join(' '));
   if (clean(cmd.label) === q) return 100;
   if (clean(cmd.label).startsWith(q)) return 80;
+  if (qDigits && haystackDigits.includes(qDigits)) return 78;
   if (haystack.includes(q)) return 60;
   const words = splitWords(q);
   const matches = words.filter(w => haystack.includes(w)).length;
   return matches ? 20 + matches * 8 : 0;
 };
 
+const money = (value: any) => {
+  const n = Number(value || 0);
+  return Number.isFinite(n) ? n.toFixed(3) : '0.000';
+};
+
+const isPaidText = (value: any) => {
+  const text = clean(value);
+  return text.includes('paid') || text.includes('تم الدفع') || text.includes('مدفوع') || text.includes('مدفوعه');
+};
+
+const isFailedText = (value: any) => {
+  const text = clean(value);
+  return text.includes('failed') || text.includes('declined') || text.includes('فشل') || text.includes('فشلت');
+};
+
+const isPendingText = (value: any) => {
+  const text = clean(value);
+  return !text || text.includes('pending') || text.includes('بانتظار') || text.includes('انتظار') || text.includes('جديد');
+};
+
 const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, data, userRole }) => {
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [recentCommandIds, setRecentCommandIds] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const commands = useMemo<CommandItem[]>(() => {
+    const orders = Array.isArray(data?.orders) ? data.orders : [];
+    const invoices = Array.isArray(data?.invoices) ? data.invoices : [];
+    const pendingOrders = orders.filter((o: any) => isPendingText(o?.paymentStatus || o?.status)).length;
+    const failedOrders = orders.filter((o: any) => isFailedText(o?.paymentStatus || o?.status)).length;
+    const paidOrders = orders.filter((o: any) => isPaidText(o?.paymentStatus || o?.status)).length;
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const todayInvoices = invoices.filter((inv: any) => String(inv?.date || inv?.createdAt || '').startsWith(todayKey));
+    const todaySales = todayInvoices.reduce((sum: number, inv: any) => sum + Number(inv?.totalAmount || inv?.total || 0), 0);
+
     const allTabs: CommandItem[] = [
       { id: 'dashboard-pulse', label: 'النبض التنفيذي', hint: 'مركز القيادة، ملخص اليوم، مؤشرات الإدارة', icon: <Activity />, category: 'خريطة التحكم الذكية', tags: ['مركز القيادة','داشبورد','الرئيسية','ملخص'], action: () => onNavigate('dashboard', { exactId: 'pulse' }), roles: ['admin'] },
       { id: 'dashboard-brain', label: 'عقل النظام', hint: 'التحليل، القرارات، التعلم، المخاطر، والاستراتيجية', icon: <BrainCircuit />, category: 'خريطة التحكم الذكية', tags: ['تعلم','مخاطر','توصيات','ذكاء','تحليل'], action: () => onNavigate('dashboard', { exactId: 'intelligence' }), roles: ['admin'] },
@@ -78,12 +112,46 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       { id: 'pulse-matrix', label: 'مصفوفة نبض المنتجات', hint: 'الأصناف المربحة', icon: <Package />, category: 'اختصارات ذكية', tags: ['مصفوفة', 'نبض', 'منتجات'], action: () => onNavigate('dashboard', { exactId: 'pulse', scrollTarget: 'products-matrix-section' }) },
     ];
 
-    const base = [...mainTabs, ...deepLinks];
+    const liveSuggestions: CommandItem[] = [
+      failedOrders > 0 && {
+        id: 'live-failed-orders',
+        label: `راجع فشل الدفع (${failedOrders})`,
+        hint: 'يفتح طلبات الموقع مباشرة',
+        icon: <AlertTriangle />,
+        category: 'اقتراحات الآن',
+        tags: ['فشل الدفع', 'طلبات', 'مهم'],
+        action: () => onNavigate('orders', { search: 'فشل' }),
+        roles: ['admin', 'partner'],
+      },
+      pendingOrders > 0 && {
+        id: 'live-pending-orders',
+        label: `طلبات بانتظار الدفع (${pendingOrders})`,
+        hint: 'متابعة الطلبات المعلقة',
+        icon: <Clock3 />,
+        category: 'اقتراحات الآن',
+        tags: ['بانتظار الدفع', 'معلق', 'طلبات'],
+        action: () => onNavigate('orders', { search: 'بانتظار' }),
+        roles: ['admin', 'partner'],
+      },
+      paidOrders > 0 && {
+        id: 'live-paid-orders',
+        label: `المدفوع اليومي (${paidOrders})`,
+        hint: `مبيعات اليوم ${money(todaySales)} د.ك`,
+        icon: <CheckCircle2 />,
+        category: 'اقتراحات الآن',
+        tags: ['تم الدفع', 'مبيعات', 'اليوم'],
+        action: () => onNavigate('orders', { search: 'تم الدفع' }),
+        roles: ['admin', 'partner'],
+      },
+    ].filter(Boolean) as CommandItem[];
+
+    const base = [...liveSuggestions.filter(item => item.roles?.includes(userRole)), ...mainTabs, ...deepLinks];
     const q = clean(deferredQuery);
     if (!q) return base;
+    const qDigits = cleanDigits(deferredQuery);
 
     const customerMatches = (data?.customers || [])
-      .filter((c: any) => clean([c.name, c.phone, c.email, c.area].join(' ')).includes(q))
+      .filter((c: any) => clean([c.name, c.phone, c.email, c.area].join(' ')).includes(q) || (qDigits && cleanDigits(c.phone).includes(qDigits)))
       .slice(0, 4)
       .map((c: any) => ({ id: `cust-${c.id}`, label: `عميل: ${c.name || c.phone}`, hint: c.phone, icon: <Users />, category: 'نتائج مباشرة', action: () => onNavigate('customers', { exactId: c.id, search: c.name || c.phone }) }));
 
@@ -93,9 +161,21 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       .map((p: any) => ({ id: `prod-${p.id}`, label: `منتج: ${p.name}`, hint: p.category || 'منتج', icon: <Package />, category: 'نتائج مباشرة', action: () => onNavigate('products', { exactId: p.id, search: p.name }) }));
 
     const invoiceMatches = (data?.invoices || [])
-      .filter((inv: any) => clean([inv.id, inv.customerName, inv.customerPhone, inv.phone].join(' ')).includes(q))
+      .filter((inv: any) => clean([inv.id, inv.customerName, inv.customerPhone, inv.phone].join(' ')).includes(q) || (qDigits && cleanDigits([inv.id, inv.customerPhone, inv.phone].join(' ')).includes(qDigits)))
       .slice(0, 4)
-      .map((inv: any) => ({ id: `inv-${inv.id}`, label: `فاتورة: ${inv.id}`, hint: `${Number(inv.total || 0).toFixed(3)} د.ك`, icon: <FileText />, category: 'نتائج مباشرة', action: () => onNavigate('invoices-list', { exactId: inv.id, search: inv.id }) }));
+      .map((inv: any) => ({ id: `inv-${inv.id}`, label: `فاتورة: ${inv.id}`, hint: `${money(inv.totalAmount || inv.total)} د.ك`, icon: <FileText />, category: 'نتائج مباشرة', action: () => onNavigate('invoices-list', { exactId: inv.id, search: inv.id }) }));
+
+    const orderMatches = (data?.orders || [])
+      .filter((order: any) => clean([order.id, order.orderNumber, order.customerName, order.customerPhone, order.phone, order.status, order.paymentStatus].join(' ')).includes(q) || (qDigits && cleanDigits([order.id, order.orderNumber, order.customerPhone, order.phone].join(' ')).includes(qDigits)))
+      .slice(0, 4)
+      .map((order: any) => ({
+        id: `order-${order.id}`,
+        label: `طلب: ${order.orderNumber || order.id}`,
+        hint: `${order.customerName || order.customerPhone || 'طلب موقع'} · ${money(order.total || order.totalAmount)} د.ك`,
+        icon: <ShoppingBag />,
+        category: 'نتائج مباشرة',
+        action: () => onNavigate('orders', { exactId: order.id, search: order.id }),
+      }));
 
     const supplierMatches = (data?.suppliers || [])
       .filter((s: any) => clean([s.name, s.phone, s.category, s.notes].join(' ')).includes(q))
@@ -107,7 +187,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       .slice(0, 3)
       .map((e: any) => ({ id: `exp-${e.id}`, label: `مصروف: ${e.description}`, hint: `${Number(e.amount || 0).toFixed(3)} د.ك`, icon: <PieChart />, category: 'نتائج مباشرة', action: () => onNavigate('expenses', { exactId: e.id, search: e.description }) }));
 
-    return [...base, ...customerMatches, ...productMatches, ...invoiceMatches, ...supplierMatches, ...expenseMatches];
+    return [...base, ...orderMatches, ...customerMatches, ...productMatches, ...invoiceMatches, ...supplierMatches, ...expenseMatches];
   }, [deferredQuery, data, onNavigate, userRole]);
 
   const filteredCommands = useMemo(() => {
@@ -120,7 +200,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       .map(item => item.cmd);
   }, [commands, deferredQuery]);
 
-  const priority = ['dashboard-pulse','dashboard-brain','dashboard-profit','dashboard-suppliers','dashboard-customers','dashboard-growth','invoices-list','new-invoice','orders','smart-studio'];
+  const priority = ['live-failed-orders','live-pending-orders','live-paid-orders','dashboard-pulse','dashboard-profit','orders','invoices-list','new-invoice','products-page','customers-page','smart-studio'];
   const featured = useMemo(() => {
     const sorted = [...filteredCommands].sort((a, b) => {
       const ai = priority.indexOf(a.id);
@@ -130,8 +210,21 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     return sorted.slice(0, deferredQuery ? 8 : 7);
   }, [filteredCommands, deferredQuery]);
 
+  const recentCommands = useMemo(() => {
+    if (deferredQuery) return [];
+    return recentCommandIds
+      .map(id => commands.find(cmd => cmd.id === id))
+      .filter(Boolean)
+      .slice(0, 4) as CommandItem[];
+  }, [commands, deferredQuery, recentCommandIds]);
+
   const runCommand = (cmd: CommandItem) => {
     try {
+      setRecentCommandIds(prev => {
+        const next = [cmd.id, ...prev.filter(id => id !== cmd.id)].slice(0, 6);
+        try { localStorage.setItem('alturath_command_recent', JSON.stringify(next)); } catch {}
+        return next;
+      });
       cmd.action();
     } catch (error) {
       console.error('CommandBar navigation failed:', error);
@@ -147,13 +240,17 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       setTimeout(() => inputRef.current?.focus(), 80);
       setQuery('');
       setSelectedIndex(0);
+      try {
+        const stored = JSON.parse(localStorage.getItem('alturath_command_recent') || '[]');
+        if (Array.isArray(stored)) setRecentCommandIds(stored.slice(0, 6));
+      } catch {}
     }
   }, [isOpen]);
 
 
   const categoryOrder = deferredQuery
-    ? ['نتائج مباشرة', 'خريطة التحكم الذكية', 'التشغيل اليومي', 'النمو والمحتوى', 'العملاء والولاء', 'الإدارة الأساسية', 'الذكاء الاصطناعي', 'اختصارات ذكية', 'تحليلات داخلية']
-    : ['خريطة التحكم الذكية', 'التشغيل اليومي', 'العملاء والولاء', 'النمو والمحتوى', 'الإدارة الأساسية', 'الذكاء الاصطناعي', 'اختصارات ذكية', 'تحليلات داخلية'];
+    ? ['نتائج مباشرة', 'اقتراحات الآن', 'خريطة التحكم الذكية', 'التشغيل اليومي', 'النمو والمحتوى', 'العملاء والولاء', 'الإدارة الأساسية', 'الذكاء الاصطناعي', 'اختصارات ذكية', 'تحليلات داخلية']
+    : ['اقتراحات الآن', 'خريطة التحكم الذكية', 'التشغيل اليومي', 'العملاء والولاء', 'النمو والمحتوى', 'الإدارة الأساسية', 'الذكاء الاصطناعي', 'اختصارات ذكية', 'تحليلات داخلية'];
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -218,6 +315,23 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
               <button type="button" onClick={onClose} className="command-premium-close"><X size={18} /></button>
             </div>
 
+            {!deferredQuery && (
+              <div className="command-smart-strip">
+                <div className="command-strip-title">
+                  <Sparkles size={14} />
+                  <span>الأقرب لاستخدامك الآن</span>
+                </div>
+                <div className="command-chip-row">
+                  {(recentCommands.length ? recentCommands : featured.slice(0, 4)).map((cmd) => (
+                    <button key={`quick-${cmd.id}`} type="button" onClick={() => runCommand(cmd)} className="command-quick-chip">
+                      {React.cloneElement(cmd.icon as React.ReactElement, { size: 14 } as any)}
+                      <span>{cmd.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="max-h-[46vh] md:max-h-[390px] overflow-y-auto p-3 md:p-4 custom-scrollbar">
               {filteredCommands.length > 0 ? (
                 <div className="space-y-4">
@@ -258,6 +372,12 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                   <div className="text-xs text-slate-400 mt-1">جرب اسم عميل، منتج، فاتورة، أو صفحة</div>
                 </div>
               )}
+            </div>
+
+            <div className="command-premium-footer">
+              <span>Enter للتنفيذ</span>
+              <span>↑ ↓ للتنقل</span>
+              <span>Esc للإغلاق</span>
             </div>
 
           </motion.div>
