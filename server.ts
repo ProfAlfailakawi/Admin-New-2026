@@ -2626,8 +2626,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
         config: {
           numberOfVideos: 1,
           durationSeconds,
-          aspectRatio: "9:16",
-          personGeneration: "dont_allow"
+          aspectRatio: "9:16"
         }
       });
 
