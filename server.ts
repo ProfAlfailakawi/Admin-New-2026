@@ -4,6 +4,7 @@ import cors from 'cors';
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import fsSync from 'fs';
+import os from 'os';
 import 'dotenv/config';
 import { GoogleGenAI } from "@google/genai";
 
@@ -2640,7 +2641,22 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
       const videoUrl = videoObj?.uri || videoObj?.url || generated?.uri || generated?.url;
       const videoBase64 = videoObj?.bytesBase64Encoded || videoObj?.data;
 
-      if (videoUrl) return res.json({ videoUrl, posterUrl: generated?.thumbnail?.uri || generated?.poster?.uri || null, provider: "veo" });
+      if (videoUrl) {
+        try {
+          const downloadPath = path.join(os.tmpdir(), `smart-studio-reel-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
+          await (ai as any).files.download({ file: videoObj || generated, downloadPath });
+          const fileBuffer = fsSync.readFileSync(downloadPath);
+          try { fsSync.unlinkSync(downloadPath); } catch {}
+          return res.json({
+            videoUrl: `data:video/mp4;base64,${fileBuffer.toString("base64")}`,
+            posterUrl: generated?.thumbnail?.uri || generated?.poster?.uri || null,
+            provider: "veo"
+          });
+        } catch (downloadError) {
+          console.warn("/api/smart-studio/generate-reel download fallback:", downloadError);
+          return res.json({ videoUrl, posterUrl: generated?.thumbnail?.uri || generated?.poster?.uri || null, provider: "veo" });
+        }
+      }
       if (videoBase64) return res.json({ videoUrl: `data:video/mp4;base64,${videoBase64}`, posterUrl: null, provider: "veo" });
 
       return res.status(500).json({ error: "No video output generated" });
