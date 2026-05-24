@@ -139,6 +139,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [previousAiCaption, setPreviousAiCaption] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const productImageInputRef = useRef<HTMLInputElement>(null);
+  const reelImageInputRef = useRef<HTMLInputElement>(null);
 
   const previewAspectClass = selectedFormat === '9:16' ? 'aspect-[9/16] max-h-[680px]' : selectedFormat === '4:3' ? 'aspect-[4/3]' : 'aspect-square';
 
@@ -1116,7 +1118,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setProductStep(1);
     setMaxProductStepReached(1);
     setStudioTab('product');
-    setTimeout(() => fileInputRef.current?.click(), 50);
+    setTimeout(() => productImageInputRef.current?.click(), 50);
   };
 
   const goHome = () => {
@@ -1184,7 +1186,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const fullStudioSteps = [
     { n: 1, t: 'مقاس' },
     { n: 2, t: 'فكرة' },
-    { n: 3, t: 'المشهد والبيئة' },
+    { n: 3, t: 'المشهد' },
     { n: 5, t: 'أدوات' },
     { n: 6, t: 'توليد' },
   ];
@@ -1348,8 +1350,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 </div>
                 <input type="text" placeholder="مثال: لقطة مجبوس حار يفتح الشهية لريلز إنستغرام..." value={customThemeQuery} onChange={(e) => setCustomThemeQuery(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-violet-500" />
                 {reelSource === 'image' && (
-                  <div onClick={() => fileInputRef.current?.click()} className="rounded-3xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-5 cursor-pointer text-center">
-                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleReelImageUpload} />
+                  <div onClick={() => reelImageInputRef.current?.click()} className="rounded-3xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-5 cursor-pointer text-center">
+                    <input type="file" ref={reelImageInputRef} className="hidden" accept="image/*" onChange={handleReelImageUpload} />
                     <Camera className="mx-auto mb-2 text-violet-600" size={26} />
                     <p className="text-sm font-black text-slate-800">{selectedImage ? 'الصورة جاهزة للريل' : 'ارفع صورة طبق للريل'}</p>{selectedImage && <p className="mt-1 text-[10px] font-bold text-violet-500">اضغط هنا لتغيير الصورة</p>}
                   </div>
@@ -1449,36 +1451,28 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
             {createStep === 3 && (
               <div className="space-y-4">
-                <button type="button" onClick={() => setShowCreateOccasion(!showCreateOccasion)} className="w-full rounded-3xl border border-slate-100 bg-slate-50 p-4 text-right flex items-center justify-between">
-                  <span><span className="block text-xs font-black text-slate-500">المشهد</span><span className="block text-lg font-black text-slate-900 mt-1">{activePulsePack.icon} {activePulsePack.label}</span></span>
-                  <ChevronLeft className={cn("transition-transform text-slate-400", showCreateOccasion ? "-rotate-90" : "")} size={20} />
+                <button type="button" onClick={() => setShowCreateOccasion(!showCreateOccasion)} className="w-full rounded-2xl border border-rose-200 bg-rose-50 p-4 text-right flex items-center justify-between">
+                  <span><span className="block text-xs font-black text-rose-500">المشهد (الحالة)</span><span className="block text-lg font-black text-rose-900 mt-1">{activePulsePack.icon} {activePulsePack.label}</span></span>
+                  <ChevronLeft className={cn("transition-transform text-rose-400", showCreateOccasion ? "-rotate-90" : "")} size={20} />
                 </button>
                 {showCreateOccasion && (
                   <div className="grid grid-cols-2 gap-2">
                     {KUWAIT_PULSE_PACKS.slice(0, 8).map((pack) => (
-                      <button key={pack.id} type="button" onClick={() => { setSelectedPulseId(pack.id); setSelectedOrderPlace(pack.defaultPlace); setBackgroundPreset(pack.background); setRealityMode(pack.mode); setShowCreateOccasion(false); }} className={cn("rounded-2xl border px-3 py-3 text-right transition-all min-h-[72px]", selectedPulseId === pack.id ? "bg-indigo-50 border-indigo-400 shadow-sm ring-4 ring-indigo-500/10" : "bg-white border-slate-100 hover:bg-slate-50") }>
+                      <button key={pack.id} type="button" onClick={() => { setSelectedPulseId(pack.id); setSelectedOrderPlace(pack.defaultPlace); setBackgroundPreset(pack.background); setRealityMode(pack.mode); setSelectedTheme('نبض الكويت'); setShowCreateOccasion(false); }} className={cn("p-3 rounded-2xl border text-right transition-all min-h-[76px]", selectedPulseId === pack.id ? "bg-rose-50 border-rose-400 shadow-sm ring-4 ring-rose-500/10" : "bg-white border-slate-100 hover:border-rose-200 hover:bg-slate-50") }>
                         <span className="block text-xs font-black text-slate-900">{pack.icon} {pack.label}</span>
                       </button>
                     ))}
                   </div>
                 )}
-                <div className="rounded-3xl border border-slate-100 bg-white p-3">
-                  <p className="mb-3 text-xs font-black text-slate-500">البيئة</p>
-                  {renderPlaceLibrary()}
+                <div className="rounded-2xl border-2 border-indigo-50 bg-indigo-50/20 p-3 pt-4 relative mt-2">
+                  <p className="absolute -top-3 right-4 bg-white px-2 text-xs font-black text-indigo-500 rounded-full border border-indigo-100 shadow-sm">البيئة الواقعية (المكان)</p>
+                  <div className="mt-2">
+                    {renderPlaceLibrary()}
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => goCreateStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                  <button type="button" onClick={() => advanceCreateStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
-                </div>
-              </div>
-            )}
-
-            {createStep === 4 && (
-              <div className="space-y-4">
-                {renderPlaceLibrary()}
-                <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => goCreateStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                  <button type="button" onClick={() => advanceCreateStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                <div className="grid grid-cols-2 gap-2 mt-4">
+                  <button type="button" onClick={() => goCreateStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black hover:bg-slate-50 transition-colors">رجوع</button>
+                  <button type="button" onClick={() => advanceCreateStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg hover:bg-slate-800 transition-colors">التالي</button>
                 </div>
               </div>
             )}
@@ -1555,6 +1549,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
       {studioTab === 'product' && (
         <div className="grid lg:grid-cols-[390px_minmax(0,1fr)] gap-6 items-start">
+          <input type="file" ref={productImageInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
           <div className="rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 text-right">
             {!originalImage ? (
               <div className="space-y-5">
@@ -1565,11 +1560,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     <p className="text-sm font-bold text-slate-500 mt-2 leading-7">بعد الرفع نمر بخطوات قصيرة وواضحة قبل التوليد.</p>
                   </div>
                 </div>
-                <div onClick={() => fileInputRef.current?.click()} className="w-full h-80 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-gradient-to-br from-indigo-50 to-white rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition-all group shadow-inner">
+                <div onClick={() => productImageInputRef.current?.click()} className="w-full h-80 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-gradient-to-br from-indigo-50 to-white rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition-all group shadow-inner">
                   <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center mb-6 group-hover:scale-110 shadow-sm transition-transform"><Camera className="w-10 h-10 text-indigo-600" /></div>
                   <h3 className="text-2xl font-black text-slate-900 mb-2">ارفع صورة المنتج</h3>
                   <p className="text-slate-500 text-sm font-bold">JPG / PNG</p>
-                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                 </div>
               </div>
             ) : (
@@ -1687,7 +1681,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     {compressedImage || selectedImage || originalImage ? (
                       <>
                         <img src={compressedImage || selectedImage || originalImage} alt="Product" className="w-full h-full object-cover rounded-xl" />
-                        <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute top-4 right-4 bg-slate-900/80 text-white rounded-full p-2.5 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md shadow-lg" title="تغيير الصورة">
+                        <button type="button" onClick={() => productImageInputRef.current?.click()} className="absolute top-4 right-4 bg-slate-900/80 text-white rounded-full p-2.5 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md shadow-lg" title="تغيير الصورة">
                           <RotateCcw size={16} />
                         </button>
                       </>
@@ -1696,7 +1690,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     )}
                   </div>
                   {compressedImage || selectedImage || originalImage ? (
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black rounded-full transition-colors mt-2">
+                    <button type="button" onClick={() => productImageInputRef.current?.click()} className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black rounded-full transition-colors mt-2">
                       <RotateCcw size={14} /> تغيير الصورة
                     </button>
                   ) : null}
