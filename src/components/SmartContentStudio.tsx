@@ -61,7 +61,7 @@ class StudioErrorBoundary extends React.Component<{ title: string; children: Rea
 }
 
 export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, setData, onNavigate }) => {
-  const [studioTab, setStudioTab] = useState<'product' | 'radar' | 'review' | 'branding'>('product');
+  const [studioTab, setStudioTab] = useState<'quick' | 'whatsapp' | 'occasions' | 'product' | 'library' | 'advanced'>('quick');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState('1:1');
@@ -111,7 +111,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [customThemeQuery, setCustomThemeQuery] = useState('');
   const [selectedPulseId, setSelectedPulseId] = useState<string>('quick-kuwait');
   const [selectedOrderPlace, setSelectedOrderPlace] = useState<KuwaitOrderPlace>('delivery');
-  const [selectedContentGoal, setSelectedContentGoal] = useState<KuwaitContentGoal>('post');
+  const [selectedContentGoal, setSelectedContentGoal] = useState<KuwaitContentGoal>('whatsapp');
   const [showAdvancedStudio, setShowAdvancedStudio] = useState(false);
   const [selectedMood, setSelectedMood] = useState('دافئ');
   const [realityMode, setRealityMode] = useState<StudioRealityMode>('restaurant');
@@ -358,6 +358,62 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     }
   };
 
+
+
+  const generateKuwaitNoProduct = async () => {
+    const themeText = buildKuwaitStudioTheme({
+      packId: selectedPulseId,
+      place: selectedOrderPlace || activePulsePack.defaultPlace,
+      goal: selectedContentGoal,
+      customText: customThemeQuery || activePulsePack.label
+    });
+    if (hasForbiddenStudioWord(themeText)) {
+      toast.error('هذا الوصف يحتوي عناصر محظورة للتوليد. احذف القهوة/البخور/الدلة/السدو/الفوانيس وجرب مرة ثانية.');
+      return;
+    }
+    setIsGenerating(true);
+    setGeneratedImage(null);
+    setRealityAudit(null);
+    try {
+      const prompt = `${themeText}\nGenerate a believable Kuwaiti occasion / delivery / gathering image without requiring a product upload. Make it look like a real photographed Kuwaiti order moment, suitable for WhatsApp first. No readable text inside the image. ${STUDIO_NEGATIVE_PROMPT}`;
+      const imgRes = await fetch('/api/smart-studio/generate-from-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, format: selectedFormat, realityBoost: true, tasteProfile: buildStudioTastePrompt() })
+      });
+      const imgData = await imgRes.json().catch(() => ({}));
+      if (!imgRes.ok) throw new Error(imgData?.error || 'فشل توليد صورة المناسبة');
+      let imageResult = imgData.imageUrl || imgData.image || imgData.url || imgData.base64 || imgData.data?.imageUrl || imgData.data?.url;
+      if (imageResult && typeof imageResult === 'string' && !imageResult.startsWith('http') && !imageResult.startsWith('data:')) imageResult = `data:image/png;base64,${imageResult}`;
+      if (!imageResult) throw new Error('تم التوليد لكن لم يصل رابط الصورة بشكل مفهوم');
+      setAiImage(imageResult);
+      const branded = await applyBranding(imageResult).catch(() => imageResult);
+      setGeneratedImage(branded);
+      const caption = buildKuwaitCaptionFallback({ packId: selectedPulseId, place: selectedOrderPlace || activePulsePack.defaultPlace, goal: selectedContentGoal });
+      setPreviousAiCaption(aiCaption);
+      setAiCaption(caption);
+      addToHistory(branded, caption, { mode: realityMode, background: backgroundPreset, theme: themeText, format: selectedFormat });
+      recordStudioTasteChoice({ mode: realityMode, background: backgroundPreset, theme: themeText, format: selectedFormat, label: 'kuwait-no-product', source: 'quick-no-product' });
+      refreshStudioLearning();
+      toast.success('تم تجهيز صورة ورسالة كويتية بدون رفع منتج');
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || 'تعذر توليد المناسبة');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const copyCaption = async () => {
+    if (!aiCaption) return;
+    try {
+      await navigator.clipboard.writeText(aiCaption);
+      toast.success('تم نسخ رسالة الواتساب');
+    } catch {
+      toast.info('انسخ الرسالة يدويًا من المعاينة');
+    }
+  };
+
   const generateFourRealityOptions = async () => {
     if (!selectedImage || isGenerating || isGeneratingVariants) return;
     setIsGeneratingVariants(true);
@@ -593,7 +649,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               استوديو المحتوى الكويتي
             </h1>
             <p className="text-indigo-200 mt-2 max-w-xl text-sm leading-relaxed">
-              ارفع صورة المنتج الحقيقي، واختر المناسبة والمكان. الاستوديو يحافظ على الواقعية الحالية ويحوّلها لمحتوى كويتي للبيت والديوانية والشاليه والمزرعة والجاخور بدون زحمة.
+              مناسبة أو واتساب أو صورة منتج — المنتج اختياري. واجهة بسيطة للموظف والشريك، والوضع الاحترافي مخفي للأدمن، مع الحفاظ على الواقعية الحالية بدون لمس محرك الذكاء.
             </p>
           </div>
           {originalImage && studioTab === 'product' && (
@@ -607,27 +663,119 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         </div>
         
         <div className="relative z-10 flex gap-2 mt-6 overflow-x-auto pb-2 scrollbar-none">
-          <button onClick={() => setStudioTab('product')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'product' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>إنشاء سريع</button>
-          <button onClick={() => setStudioTab('radar')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'radar' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>نبض الكويت</button>
-          <button onClick={() => setStudioTab('review')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'review' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>مدح العملاء</button>
-          <button onClick={() => setStudioTab('branding')} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === 'branding' ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>هوية متقدمة</button>
+          {[
+            ['quick', 'إنشاء سريع'],
+            ['whatsapp', 'واتساب'],
+            ['occasions', 'المناسبات'],
+            ['product', 'صور المنتجات'],
+            ['library', 'مكتبة المحتوى'],
+            ['advanced', 'الوضع الاحترافي']
+          ].map(([id, label]) => (
+            <button key={id} onClick={() => setStudioTab(id as any)} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === id ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>{label}</button>
+          ))}
         </div>
       </div>
 
-      {studioTab === 'radar' && (
-        <StudioErrorBoundary title="نبض الكويت">
-          <RealtimeRadar data={data} setData={setData} />
-        </StudioErrorBoundary>
+      {studioTab === 'advanced' && (
+        <div className="grid gap-6">
+          <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-5 text-right">
+            <h2 className="text-xl font-black text-slate-900">الوضع الاحترافي</h2>
+            <p className="text-sm font-bold text-slate-500 mt-2">كل الأدوات القوية موجودة هنا للإدارة والمتقدمين، بعيد عن واجهة الموظف اليومية.</p>
+          </div>
+          <StudioErrorBoundary title="رادار الترند الكويتي"><RealtimeRadar data={data} setData={setData} /></StudioErrorBoundary>
+          <StudioErrorBoundary title="مدح العملاء"><ReviewToPoster data={data} setData={setData} /></StudioErrorBoundary>
+          <StudioErrorBoundary title="الهوية المتغيرة"><AdaptiveBranding data={data} setData={setData} /></StudioErrorBoundary>
+        </div>
       )}
-      {studioTab === 'review' && (
-        <StudioErrorBoundary title="مدح العملاء">
-          <ReviewToPoster data={data} setData={setData} />
-        </StudioErrorBoundary>
+
+      {studioTab === 'library' && (
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 text-right">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-black text-slate-900 flex items-center gap-2"><Library size={20} className="text-indigo-500" /> مكتبة المحتوى</h2>
+            <span className="text-xs font-black text-slate-400">صور ورسائل تم توليدها سابقاً</span>
+          </div>
+          {history.filter(item => item.url).length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {history.filter(item => item.url).map((item, idx) => (
+                <button key={idx} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); setAiCaption(item.caption); setStudioTab('quick'); }} className="group rounded-3xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm hover:shadow-md transition-all text-right">
+                  <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
+                  <div className="p-3 text-[11px] font-bold text-slate-500 line-clamp-2">{item.caption || 'محتوى محفوظ'}</div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl bg-slate-50 border border-dashed border-slate-200 p-12 text-center text-slate-500 font-bold">بعد أول توليد، تظهر الصور والرسائل هنا لإعادة الاستخدام.</div>
+          )}
+        </div>
       )}
-      {studioTab === 'branding' && (
-        <StudioErrorBoundary title="هوية متقدمة">
-          <AdaptiveBranding data={data} setData={setData} />
-        </StudioErrorBoundary>
+
+      {(studioTab === 'quick' || studioTab === 'whatsapp' || studioTab === 'occasions') && (
+        <div className="grid lg:grid-cols-[0.92fr_1.08fr] gap-8 items-start">
+          <div className="space-y-5">
+            <div className="rounded-[2rem] border border-rose-100 bg-white shadow-sm p-6 text-right">
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div>
+                  <p className="text-xs font-black text-rose-500 mb-1">واجهة الموظف اليومية</p>
+                  <h2 className="text-2xl font-black text-slate-900">شنو نجهز لك اليوم؟</h2>
+                  <p className="text-sm font-bold text-slate-500 mt-2 leading-7">المنتج اختياري. اختر المناسبة والمكان، واكتب فكرتك لو تبي. الخلفية معقدة وذكية، والواجهة بسيطة.</p>
+                </div>
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500 to-indigo-600 text-white flex items-center justify-center text-2xl shadow-lg">🇰🇼</div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-5">
+                {KUWAIT_PULSE_PACKS.map(pack => (
+                  <button key={pack.id} type="button" onClick={() => { setSelectedPulseId(pack.id); setSelectedOrderPlace(pack.defaultPlace); setBackgroundPreset(pack.background); setRealityMode(pack.mode); }} className={cn("p-3 rounded-2xl border text-right min-h-[92px] transition-all", selectedPulseId === pack.id ? "bg-rose-50 border-rose-400 ring-4 ring-rose-500/10 shadow-sm" : "bg-white border-slate-100 hover:bg-slate-50 hover:border-rose-200")}>
+                    <div className="flex items-center justify-between mb-2"><span className="text-xl">{pack.icon}</span><span className="text-[9px] font-black text-rose-600 bg-white/80 border border-rose-100 rounded-full px-2 py-0.5">{pack.badge}</span></div>
+                    <div className="text-xs font-black text-slate-900">{pack.label}</div>
+                    <div className="text-[10px] font-bold text-slate-400 mt-1 line-clamp-1">{pack.tone}</div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4 mb-5">
+                <div>
+                  <label className="text-[11px] font-black text-slate-500 mb-2 block">وين رايح الطلب؟</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(Object.entries(KUWAIT_PLACES) as [KuwaitOrderPlace, typeof KUWAIT_PLACES[KuwaitOrderPlace]][]).map(([id, place]) => (
+                      <button key={id} type="button" onClick={() => { setSelectedOrderPlace(id); setBackgroundPreset(place.background); }} className={cn("px-3 py-2 rounded-xl border text-[11px] font-black transition-all flex items-center justify-between", selectedOrderPlace === id ? "bg-slate-900 text-white border-slate-900" : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-white")}><span>{place.label}</span><span>{place.icon}</span></button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-black text-slate-500 mb-2 block">شنو تبي تطلع؟</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(Object.entries(KUWAIT_CONTENT_GOALS) as [KuwaitContentGoal, typeof KUWAIT_CONTENT_GOALS[KuwaitContentGoal]][]).filter(([id]) => studioTab === 'whatsapp' ? id === 'whatsapp' : id !== 'post').map(([id, goal]) => (
+                      <button key={id} type="button" onClick={() => setSelectedContentGoal(id)} className={cn("px-3 py-2 rounded-xl border text-[11px] font-black transition-all flex items-center justify-between", selectedContentGoal === id ? "bg-indigo-600 text-white border-indigo-600" : "bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-white")}><span>{goal.label}</span><span>{goal.icon}</span></button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <label className="text-xs font-bold text-slate-600 flex items-center gap-1 mb-2"><Edit3 size={14} /> اكتب فكرتك — اختياري</label>
+              <input value={customThemeQuery} onChange={(e) => setCustomThemeQuery(e.target.value)} placeholder="مثال: عيد الأضحى، العيد الوطني، فوز المنتخب، زوارة أهل، ديوانية اليوم..." className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10" />
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <button onClick={generateKuwaitNoProduct} disabled={isGenerating} className="col-span-2 p-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">{isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />} ولّعها بدون رفع منتج</button>
+                <button onClick={() => setStudioTab('product')} className="p-3 rounded-2xl bg-white border border-indigo-200 text-indigo-700 font-black hover:bg-indigo-50">عندي صورة منتج</button>
+                <button onClick={() => { setSelectedContentGoal('whatsapp'); setStudioTab('whatsapp'); }} className="p-3 rounded-2xl bg-white border border-emerald-200 text-emerald-700 font-black hover:bg-emerald-50">واتساب فقط</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="sticky top-4 z-30 rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 min-h-[520px] flex flex-col items-center justify-center">
+            {!generatedImage && !isGenerating && (
+              <div className="text-center max-w-md"><div className="text-6xl mb-5">{activePulsePack.icon}</div><h3 className="text-2xl font-black text-slate-900 mb-3">جاهز يطلع محتوى يصرخ كويت</h3><p className="text-sm font-bold text-slate-500 leading-7">{activePulsePack.label} ← {KUWAIT_PLACES[selectedOrderPlace]?.label} ← {KUWAIT_CONTENT_GOALS[selectedContentGoal]?.label}</p></div>
+            )}
+            {isGenerating && <div className="text-center"><Loader2 className="w-14 h-14 animate-spin mx-auto text-indigo-600 mb-4" /><p className="font-black text-slate-800">جاري تجهيز المشهد والرسالة...</p></div>}
+            {generatedImage && (
+              <div className="w-full space-y-4 text-right">
+                <img src={generatedImage} className="w-full max-h-[520px] object-contain rounded-3xl bg-slate-50 border border-slate-100" />
+                {aiCaption && <div className="rounded-3xl bg-slate-900 text-white p-4 shadow-lg"><p className="text-sm font-extrabold leading-7 whitespace-pre-wrap">{aiCaption}</p></div>}
+                <div className="grid grid-cols-2 gap-2"><button onClick={copyCaption} disabled={!aiCaption} className="p-3 rounded-2xl bg-emerald-600 text-white font-black disabled:opacity-40">نسخ الرسالة</button><button onClick={handleDownload} className="p-3 rounded-2xl bg-indigo-600 text-white font-black">تحميل الصورة</button><button onClick={saveCurrentBackground} disabled={isSavingBackground} className="col-span-2 p-3 rounded-2xl bg-white border border-amber-200 text-amber-700 font-black">حفظ للمكتبة</button></div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {studioTab === 'product' && (
