@@ -772,6 +772,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       const result = await sendSmartAlertPushNotification({
         title: isInvoiceAlert ? "⏳ فاتورة لم تُدفع" : "⏳ طلب لم يدفع",
         body: `${isInvoiceAlert ? "الفاتورة" : "الطلب"} ${orderNumber} لم يتم دفعه بعد ${PAYMENT_PENDING_GRACE_LABEL}${total ? ` — القيمة ${total} د.ك` : ""}`,
+        eventId,
         alertType: isInvoiceAlert ? "invoice_pending_immediate" : "payment_pending_immediate",
         url: isInvoiceAlert
           ? `/?invoice=${encodeURIComponent(resolvedOrderId)}`
