@@ -1798,7 +1798,7 @@ const [isPending, startTransition] = useTransition();
       },
       { id: "diwaniya", label: "بطولات الديوانية", icon: <Users size={14} /> },
       { id: "growth", label: "النمو", icon: <Target size={14} /> },
-      { id: "contentStudio", label: "استوديو المحتوى", icon: <Sparkles size={14} /> },
+      { id: "contentStudio", label: "استوديو الصورة الذكية", icon: <Sparkles size={14} /> },
     ];
 
     const dashboardTabGroups = [
@@ -1840,7 +1840,7 @@ const [isPending, startTransition] = useTransition();
       {
         id: "growth-marketing",
         label: "النمو والمحتوى",
-        description: "النمو، الحملات، واستوديو المحتوى الذكي",
+        description: "النمو، الحملات، واستوديو الصورة الذكية",
         icon: <Target size={14} />,
         tabs: ["growth", "contentStudio"],
       },

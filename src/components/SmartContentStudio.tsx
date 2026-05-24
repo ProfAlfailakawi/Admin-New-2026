@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, Star, MessageCircle } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, MessageCircle } from 'lucide-react';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from '../constants';
 import { toast } from 'sonner';
 import { Product } from '../types';
@@ -88,6 +88,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [showFineTools, setShowFineTools] = useState(false);
   const [showPlaceLibrary, setShowPlaceLibrary] = useState(false);
   const [showImageSettings, setShowImageSettings] = useState(false);
+  const [showBrandingPanel, setShowBrandingPanel] = useState(false);
   const [archiveTab, setArchiveTab] = useState<'idea' | 'image'>('idea');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -351,6 +352,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         setCompressionStats({ original: result.originalSize, compressed: result.size });
         setGeneratedImage(null);
         setShowImageSettings(false);
+        setShowBrandingPanel(false);
         setRealityAudit(null);
         setRealityVariants([]);
         setProductStep(1);
@@ -979,14 +981,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
       {studioTab === 'library' && (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 text-right">
-          <div className="flex items-center justify-between mb-5 gap-3">
-            <div>
-              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2"><Library size={20} className="text-indigo-500" /> الأرشيف</h2>
-              <p className="text-xs font-bold text-slate-400 mt-1">كل الصور المحفوظة من استوديو الصورة الذكية</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 gap-4">
+            <div className="min-w-0">
+              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2"><Library size={20} className="text-indigo-500 shrink-0" /> الأرشيف</h2>
+              <p className="text-xs font-bold text-slate-400 mt-1">صورك المحفوظة من الاستوديو</p>
             </div>
-            <div className="grid grid-cols-2 gap-1 rounded-2xl bg-slate-50 border border-slate-100 p-1 min-w-[180px]">
-              <button type="button" onClick={() => setArchiveTab('idea')} className={cn("rounded-xl px-3 py-2 text-xs font-black transition-all", archiveTab === 'idea' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>من فكرة</button>
-              <button type="button" onClick={() => setArchiveTab('image')} className={cn("rounded-xl px-3 py-2 text-xs font-black transition-all", archiveTab === 'image' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>من صورة</button>
+            <div className="grid grid-cols-2 gap-1 rounded-2xl bg-slate-50 border border-slate-100 p-1 w-full sm:w-auto sm:min-w-[190px]">
+              <button type="button" onClick={() => setArchiveTab('idea')} className={cn("rounded-xl px-3 py-2 text-xs font-black transition-all whitespace-nowrap", archiveTab === 'idea' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>الفكرة</button>
+              <button type="button" onClick={() => setArchiveTab('image')} className={cn("rounded-xl px-3 py-2 text-xs font-black transition-all whitespace-nowrap", archiveTab === 'image' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>الصورة</button>
             </div>
           </div>
           {(() => {
@@ -1026,10 +1028,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             {createStep === 1 && (
               <div className="space-y-4">
                 <p className="text-xs font-black text-slate-500">اختر المقاس المناسب</p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {formats.map((f) => (
-                    <button key={f.id} onClick={() => setSelectedFormat(f.id)} className={cn("p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all", selectedFormat === f.id ? "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm" : "bg-white border-slate-100 text-slate-500") }>
-                      {f.icon}<span className="text-[10px] font-black">{f.sub}</span>
+                    <button key={f.id} onClick={() => setSelectedFormat(f.id)} className={cn("shrink-0 w-[118px] sm:w-auto sm:flex-1 p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all snap-center", selectedFormat === f.id ? "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm" : "bg-white border-slate-100 text-slate-500") }>
+                      {f.icon}<span className="text-[10px] font-black whitespace-nowrap">{f.sub}</span>
                     </button>
                   ))}
                 </div>
@@ -1147,10 +1149,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   </div>
                 )}
                 {aiCaption && selectedContentGoal === 'whatsapp' && <div className="rounded-3xl bg-white/10 text-white p-4 shadow-lg border border-white/10"><p className="text-sm font-extrabold leading-7 whitespace-pre-wrap">{aiCaption}</p></div>}
-                <div className={cn('grid gap-2', selectedContentGoal === 'whatsapp' ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2')}>
-                  {selectedContentGoal === 'whatsapp' && <button onClick={copyCaption} disabled={!aiCaption} className="p-3 rounded-2xl bg-emerald-500 text-white font-black disabled:opacity-40">نسخ</button>}
-                  <button onClick={handleDownload} className="p-3 rounded-2xl bg-indigo-500 text-white font-black">تحميل</button>
-                  <button onClick={saveCurrentBackground} disabled={isSavingBackground} className={cn('p-3 rounded-2xl bg-white/10 border border-white/10 text-white font-black', selectedContentGoal === 'whatsapp' ? 'col-span-2' : '')}>حفظ للأرشيف</button>
+                <div className="flex items-center justify-center gap-2">
+                  {selectedContentGoal === 'whatsapp' && <button onClick={copyCaption} disabled={!aiCaption} title="نسخ" aria-label="نسخ" className="h-12 w-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center disabled:opacity-40"><MessageCircle size={18} /></button>}
+                  <button onClick={handleDownload} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-indigo-500 text-white flex items-center justify-center"><Download size={18} /></button>
+                  <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !generatedImage} title="اجعلها أصدق" aria-label="اجعلها أصدق" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center disabled:opacity-40"><Sparkles size={18} /></button>
                 </div>
               </div>
             )}
@@ -1192,10 +1194,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 {productStep === 1 && (
                   <div className="space-y-4">
                     <p className="text-xs font-black text-slate-500">اختر المقاس المناسب</p>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                       {formats.map((f) => (
-                        <button key={f.id} onClick={() => setSelectedFormat(f.id)} className={cn("p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all", selectedFormat === f.id ? "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm" : "bg-white border-slate-100 text-slate-500") }>
-                          {f.icon}<span className="text-[10px] font-black">{f.sub}</span>
+                        <button key={f.id} onClick={() => setSelectedFormat(f.id)} className={cn("shrink-0 w-[118px] sm:w-auto sm:flex-1 p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all snap-center", selectedFormat === f.id ? "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm" : "bg-white border-slate-100 text-slate-500") }>
+                          {f.icon}<span className="text-[10px] font-black whitespace-nowrap">{f.sub}</span>
                         </button>
                       ))}
                     </div>
@@ -1300,8 +1302,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     )}
                   </div>
                   {compressionSavedPercent !== null && (
-                    <p className="-mt-3 text-[10px] font-medium text-slate-400 tracking-tight">
-                      تم تحسين الصورة تلقائياً وتوفير {compressionSavedPercent}% من حجمها مع الحفاظ على جودة مناسبة للنشر.
+                    <p className="-mt-3 text-[10px] font-medium text-emerald-600/80 tracking-tight">
+                      {compressionSavedPercent > 0
+                        ? `تم تحسين الصورة تلقائياً وتوفير ${compressionSavedPercent}% من حجمها مع الحفاظ على جودة مناسبة للنشر.`
+                        : 'تم فحص الصورة وتحسينها تلقائياً مع الحفاظ على جودة مناسبة للنشر.'}
                     </p>
                   )}
                   <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
@@ -1355,12 +1359,19 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     </div>
                   )}
 
-                  <div className="rounded-3xl border border-indigo-100 bg-indigo-50/40 p-4">
-                    <div className="flex items-center justify-between mb-3 text-right">
-                      <span className="text-xs font-black text-indigo-700">هوية العلامة</span>
-                      <span className="text-[10px] font-bold text-indigo-400">اختياري</span>
-                    </div>
-                    <BrandingControls useBranding={useBranding} setUseBranding={setUseBranding} brandingStyle={brandingStyle} setBrandingStyle={setBrandingStyle} logoPosition={logoPosition} setLogoPosition={setLogoPosition} logoOpacity={logoOpacity} setLogoOpacity={setLogoOpacity} customText={customText} setCustomText={setCustomText} textPosition={textPosition} setTextPosition={setTextPosition} colorClass="indigo" title="هوية العلامة" />
+                  <div className="rounded-3xl border border-indigo-100 bg-indigo-50/40 p-3">
+                    <button type="button" onClick={() => setShowBrandingPanel((v) => !v)} className="w-full rounded-2xl bg-white/70 border border-indigo-100 px-4 py-3 text-right flex items-center justify-between gap-3">
+                      <span>
+                        <span className="block text-xs font-black text-indigo-700">هوية العلامة</span>
+                        <span className="block text-[10px] font-bold text-indigo-400 mt-1">اختيارية بعد التوليد</span>
+                      </span>
+                      <ChevronLeft className={cn("transition-transform text-indigo-400", showBrandingPanel ? "-rotate-90" : "")} size={18} />
+                    </button>
+                    {showBrandingPanel && (
+                      <div className="mt-3">
+                        <BrandingControls useBranding={useBranding} setUseBranding={setUseBranding} brandingStyle={brandingStyle} setBrandingStyle={setBrandingStyle} logoPosition={logoPosition} setLogoPosition={setLogoPosition} logoOpacity={logoOpacity} setLogoOpacity={setLogoOpacity} customText={customText} setCustomText={setCustomText} textPosition={textPosition} setTextPosition={setTextPosition} colorClass="indigo" title="هوية العلامة" />
+                      </div>
+                    )}
                   </div>
 
 
@@ -1379,10 +1390,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   )}
 
                   <div className="flex flex-wrap gap-2 justify-center">
-                    <button onClick={handleDownload} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2"><Download size={18} /> تحميل</button>
-                    <button type="button" onClick={auditReality} disabled={isAuditingReality || !generatedImage} className="px-6 py-3 bg-white border border-emerald-200 text-emerald-700 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50">{isAuditingReality ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />} فحص الواقعية</button>
-                    <button type="button" onClick={saveCurrentBackground} disabled={isSavingBackground || !generatedImage} className="px-6 py-3 bg-white border border-amber-200 text-amber-700 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50">{isSavingBackground ? <Loader2 className="animate-spin" size={18} /> : <Star size={18} />} حفظ للأرشيف</button>
-                    <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !selectedImage} className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-2 disabled:opacity-50"><Sparkles size={18} /> اجعلها أصدق</button>
+                    <button onClick={handleDownload} title="تحميل" aria-label="تحميل" className="h-12 w-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center"><Download size={18} /></button>
+                    <button type="button" onClick={auditReality} disabled={isAuditingReality || !generatedImage} title="فحص الواقعية" aria-label="فحص الواقعية" className="h-12 w-12 bg-white border border-emerald-200 text-emerald-700 rounded-2xl flex items-center justify-center disabled:opacity-50">{isAuditingReality ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}</button>
+                    <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !selectedImage} title="اجعلها أصدق" aria-label="اجعلها أصدق" className="h-12 w-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center disabled:opacity-50"><Sparkles size={18} /></button>
                   </div>
 
                   <div className="pt-4 border-t border-slate-100 w-full flex flex-col items-center gap-3">
