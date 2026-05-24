@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { Settings, Save, Upload, Trash2, Shield, Bell, CreditCard, DownloadCloud, Database, Sparkles, RefreshCw, Loader2, Map as MapIcon, Plus, CheckCircle2, ChevronDown, ChevronRight, Edit2, X, AlertTriangle, Code, Store, Search } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -1157,7 +1158,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
  </div>
 
- {showResetConfirm && (
+ {showResetConfirm && createPortal(
  <div 
  className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4"
  onClick={() => setShowResetConfirm(false)}
@@ -1192,7 +1193,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </button>
  </div>
  </motion.div>
- </div>
+ </div>,
+ document.body
 )}
  </div>
  </section>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, Star } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, Star, MessageCircle } from 'lucide-react';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from '../constants';
 import { toast } from 'sonner';
 import { Product } from '../types';
@@ -28,6 +28,8 @@ type RealityAuditResult = {
   notes?: string[];
   fixHint?: string;
 };
+
+type ProductStudioFlow = 'quick' | 'kuwait' | 'pro';
 
 class StudioErrorBoundary extends React.Component<{ title: string; children: React.ReactNode }, { hasError: boolean; message: string }> {
   declare props: Readonly<{ title: string; children: React.ReactNode }>;
@@ -113,6 +115,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [selectedOrderPlace, setSelectedOrderPlace] = useState<KuwaitOrderPlace>('delivery');
   const [selectedContentGoal, setSelectedContentGoal] = useState<KuwaitContentGoal>('whatsapp');
   const [showAdvancedStudio, setShowAdvancedStudio] = useState(false);
+  const [productStudioFlow, setProductStudioFlow] = useState<ProductStudioFlow>('quick');
   const [selectedMood, setSelectedMood] = useState('دافئ');
   const [realityMode, setRealityMode] = useState<StudioRealityMode>('restaurant');
   const [backgroundPreset, setBackgroundPreset] = useState<StudioBackgroundPresetId>('wood-table');
@@ -145,6 +148,48 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   useEffect(() => {
     refreshStudioLearning();
   }, []);
+
+
+  const productStudioFlows: Record<ProductStudioFlow, { icon: string; title: string; desc: string; badge: string; tone: string }> = {
+    quick: {
+      icon: '⚡',
+      title: 'تحسين سريع',
+      desc: 'ارفع الصورة واضغط توليد. نضبط الإضاءة والواقعية بدون قرارات كثيرة.',
+      badge: 'للموظف',
+      tone: 'bg-emerald-50 border-emerald-200 text-emerald-700'
+    },
+    kuwait: {
+      icon: '🇰🇼',
+      title: 'مشهد كويتي',
+      desc: 'حط المنتج في بيت، ديوانية، شاليه، مزرعة، جاخور أو زوارة.',
+      badge: 'للإبداع',
+      tone: 'bg-rose-50 border-rose-200 text-rose-700'
+    },
+    pro: {
+      icon: '🎛️',
+      title: 'تصوير احترافي',
+      desc: 'كل الأدوات الجميلة: عدسات، خلفيات، شعار، تقييم، ٤ لقطات، ذاكرة الذوق.',
+      badge: 'للأدمن',
+      tone: 'bg-indigo-50 border-indigo-200 text-indigo-700'
+    }
+  };
+
+  const selectProductStudioFlow = (flow: ProductStudioFlow) => {
+    setProductStudioFlow(flow);
+    setShowAdvancedStudio(flow === 'pro');
+    if (flow === 'quick') {
+      setSelectedTheme('تنظيف');
+      setSelectedContentGoal('product');
+      setBackgroundPreset('neutral-menu');
+      setRealityMode('menu');
+    }
+    if (flow === 'kuwait') {
+      setSelectedTheme('نبض الكويت');
+      setSelectedContentGoal('product');
+      const place = KUWAIT_PLACES[selectedOrderPlace] || KUWAIT_PLACES.delivery;
+      setBackgroundPreset(place.background);
+    }
+  };
 
   const activePulsePack = getKuwaitPulsePack(selectedPulseId);
 
@@ -675,12 +720,55 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         </div>
       </div>
 
+      <div className="mb-8 rounded-[30px] border border-slate-100 bg-white/95 p-2 shadow-sm sticky top-3 z-40 backdrop-blur-xl">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-right">
+          {[
+            { id: 'whatsapp', label: 'واتساب', desc: 'رسالة وصورة سريعة', icon: <MessageCircle size={17} />, action: () => { setSelectedContentGoal('whatsapp'); setStudioTab('whatsapp'); } },
+            { id: 'occasions', label: 'مناسبة', desc: 'موسم وحملة', icon: <Sparkles size={17} />, action: () => { setSelectedContentGoal('campaign'); setStudioTab('occasions'); } },
+            { id: 'product', label: 'منتج', desc: 'تصوير وتحسين', icon: <Camera size={17} />, action: () => setStudioTab('product') },
+            { id: 'library', label: 'المكتبة', desc: 'إعادة استخدام', icon: <Library size={17} />, action: () => setStudioTab('library') },
+            { id: 'advanced', label: 'احترافي', desc: 'كل المحركات', icon: <Brain size={17} />, action: () => setStudioTab('advanced') },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={item.action}
+              className={cn(
+                "rounded-[22px] border p-3 transition-all active:scale-[0.98] flex items-center justify-between gap-3 min-h-[72px]",
+                studioTab === item.id
+                  ? "bg-slate-950 text-white border-slate-950 shadow-lg"
+                  : "bg-slate-50 text-slate-700 border-slate-100 hover:bg-white hover:border-indigo-100 hover:shadow-md"
+              )}
+            >
+              <span className={cn("h-10 w-10 shrink-0 rounded-2xl flex items-center justify-center", studioTab === item.id ? "bg-white/10 text-indigo-100" : "bg-white text-indigo-600 border border-slate-100")}>{item.icon}</span>
+              <span className="min-w-0">
+                <span className="block text-sm font-black">{item.label}</span>
+                <span className={cn("block text-[10px] font-bold mt-0.5", studioTab === item.id ? "text-white/55" : "text-slate-400")}>{item.desc}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {studioTab === 'home' && (
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-7">
             <p className="text-sm font-black text-indigo-500 mb-2">لا حذف مزايا — بس ترتيب ذكي</p>
             <h2 className="text-3xl font-black text-slate-900">شنو تبي تسوي؟</h2>
             <p className="text-sm font-bold text-slate-500 mt-3">ثلاث اختيارات فقط للواجهة اليومية. كل الأدوات الجميلة باقية في الوضع الاحترافي.</p>
+          </div>
+
+          <div className="mb-5 grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-[28px] border border-slate-100 bg-white p-2 shadow-sm">
+            {[
+              { label: 'اختر المهمة', sub: 'واتساب / مناسبة / منتج', icon: <MousePointerSquareDashed size={16} /> },
+              { label: 'املأ أقل شيء', sub: 'مكان + فكرة اختيارية', icon: <Edit3 size={16} /> },
+              { label: 'استلم الناتج', sub: 'صورة ورسالة ومكتبة', icon: <Check size={16} /> },
+            ].map((step) => (
+              <div key={step.label} className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-right">
+                <div className="flex items-center justify-end gap-2 text-slate-900 font-black text-xs">{step.label}{step.icon}</div>
+                <div className="mt-1 text-[10px] font-bold text-slate-400">{step.sub}</div>
+              </div>
+            ))}
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
@@ -762,11 +850,52 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختر المناسبة والمكان فقط. اكتب فكرتك لو تبي، والباقي على النظام.</p>
               </div>
               <button onClick={() => setStudioTab('home')} className="px-3 py-2 rounded-xl bg-slate-50 text-slate-600 text-xs font-black hover:bg-slate-100">تغيير النوع</button>
-            </div>
+	            </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-black text-slate-500 mb-2 block">شنو المناسبة؟</label>
+	            <div className="mb-5 grid grid-cols-3 gap-2 rounded-[24px] border border-slate-100 bg-slate-50 p-2">
+	              {[
+	                { label: '١', text: 'المناسبة' },
+	                { label: '٢', text: 'المكان' },
+	                { label: '٣', text: 'توليد' },
+	              ].map((step) => (
+	                <div key={step.label} className="rounded-2xl bg-white border border-slate-100 px-3 py-2 text-center">
+	                  <div className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-xl bg-slate-900 text-white text-[11px] font-black">{step.label}</div>
+	                  <div className="text-[10px] font-black text-slate-600">{step.text}</div>
+	                </div>
+	              ))}
+	            </div>
+
+	            <div className="space-y-4">
+	              <div className="rounded-[26px] border border-indigo-100 bg-indigo-50/50 p-3">
+	                <div className="mb-3 flex items-center justify-between">
+	                  <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-indigo-700 border border-indigo-100">اختيار سريع</span>
+	                  <span className="text-xs font-black text-slate-700">الأكثر استخداماً</span>
+	                </div>
+	                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+	                  {KUWAIT_PULSE_PACKS.slice(0, 6).map((pack) => (
+	                    <button
+	                      key={pack.id}
+	                      type="button"
+	                      onClick={() => {
+	                        setSelectedPulseId(pack.id);
+	                        setSelectedOrderPlace(pack.defaultPlace);
+	                        setBackgroundPreset(pack.background);
+	                        setRealityMode(pack.mode);
+	                      }}
+	                      className={cn(
+	                        "rounded-2xl border px-3 py-2 text-right transition-all min-h-[64px]",
+	                        selectedPulseId === pack.id ? "bg-white border-indigo-400 shadow-sm ring-4 ring-indigo-500/10" : "bg-white/65 border-white hover:bg-white"
+	                      )}
+	                    >
+	                      <span className="block text-xs font-black text-slate-900">{pack.icon} {pack.label}</span>
+	                      <span className="block text-[9px] font-bold text-slate-400 mt-1">{pack.badge} · {pack.tone}</span>
+	                    </button>
+	                  ))}
+	                </div>
+	              </div>
+
+	              <div>
+	                <label className="text-xs font-black text-slate-500 mb-2 block">شنو المناسبة؟</label>
                 <select
                   value={selectedPulseId}
                   onChange={(e) => {
@@ -780,10 +909,30 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 >
                   {KUWAIT_PULSE_PACKS.map(pack => <option key={pack.id} value={pack.id}>{pack.icon} {pack.label}</option>)}
                 </select>
-              </div>
+	              </div>
 
-              <div>
-                <label className="text-xs font-black text-slate-500 mb-2 block">وين رايح الطلب؟</label>
+	              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+	                {(Object.entries(KUWAIT_PLACES) as [KuwaitOrderPlace, typeof KUWAIT_PLACES[KuwaitOrderPlace]][]).map(([id, place]) => (
+	                  <button
+	                    key={id}
+	                    type="button"
+	                    onClick={() => {
+	                      setSelectedOrderPlace(id);
+	                      setBackgroundPreset(place.background);
+	                    }}
+	                    className={cn(
+	                      "rounded-2xl border p-2 text-center transition-all min-h-[66px]",
+	                      selectedOrderPlace === id ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100 hover:bg-white"
+	                    )}
+	                  >
+	                    <span className="block text-lg">{place.icon}</span>
+	                    <span className="block text-[10px] font-black mt-1">{place.label}</span>
+	                  </button>
+	                ))}
+	              </div>
+
+	              <div>
+	                <label className="text-xs font-black text-slate-500 mb-2 block">وين رايح الطلب؟</label>
                 <select
                   value={selectedOrderPlace}
                   onChange={(e) => {
@@ -847,6 +996,46 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         <>
           {!originalImage ? (
             <div className="space-y-6">
+              <div className="rounded-[2rem] bg-white border border-slate-100 shadow-sm p-6 text-right">
+                <div className="flex items-start justify-between gap-4 mb-5">
+                  <div>
+                    <p className="text-xs font-black text-indigo-500 mb-1">صور المنتج — بدون زحمة</p>
+                    <h2 className="text-2xl font-black text-slate-900">شنو تبي تسوي بالصورة؟</h2>
+                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختار مسار واحد فقط. كل المزايا الجميلة موجودة، لكن ما تظهر إلا في وقتها.</p>
+                  </div>
+                </div>
+	                <div className="grid md:grid-cols-3 gap-3">
+	                  {(Object.entries(productStudioFlows) as [ProductStudioFlow, typeof productStudioFlows[ProductStudioFlow]][]).map(([id, flow]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => selectProductStudioFlow(id)}
+                      className={cn(
+                        "rounded-3xl border p-4 text-right transition-all hover:-translate-y-0.5 hover:shadow-lg min-h-[150px]",
+                        productStudioFlow === id ? `${flow.tone} ring-4 ring-current/10 shadow-sm` : "bg-slate-50 border-slate-100 text-slate-700 hover:bg-white"
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-3"><span className="text-3xl">{flow.icon}</span><span className="text-[10px] font-black px-2 py-1 rounded-full bg-white/70 border border-current/10">{flow.badge}</span></div>
+                      <div className="text-base font-black">{flow.title}</div>
+                      <p className="text-xs font-bold opacity-75 leading-6 mt-2">{flow.desc}</p>
+                    </button>
+	                  ))}
+	                </div>
+	                <div className="mt-5 rounded-[26px] border border-slate-100 bg-slate-50 p-3">
+	                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+	                    {[
+	                      { title: 'سريع', detail: 'أقل قرارات', active: productStudioFlow === 'quick' },
+	                      { title: 'كويتي', detail: 'مكان ومناسبة', active: productStudioFlow === 'kuwait' },
+	                      { title: 'احترافي', detail: 'كل المفاتيح', active: productStudioFlow === 'pro' },
+	                    ].map((item) => (
+	                      <div key={item.title} className={cn("rounded-2xl border p-3 text-right", item.active ? "bg-white border-indigo-200 shadow-sm" : "bg-white/60 border-white")}>
+	                        <div className="text-xs font-black text-slate-900">{item.title}</div>
+	                        <div className="text-[10px] font-bold text-slate-400 mt-1">{item.detail}</div>
+	                      </div>
+	                    ))}
+	                  </div>
+	                </div>
+	              </div>
               {history.length > 0 && (
                 <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
                   <div className="flex items-center justify-between mb-4">
@@ -882,9 +1071,60 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         </div>
         </div>
       ) : (
-        <div className="flex flex-col-reverse lg:flex-row gap-8 items-start">
-          
-          <div className="w-full lg:w-[45%] space-y-6">
+	        <div className="grid lg:grid-cols-[minmax(320px,0.92fr)_minmax(0,1.08fr)] gap-6 items-start">
+	          
+	          <div className="w-full space-y-6">
+	            <div className="bg-slate-950 text-white p-5 rounded-[30px] shadow-xl border border-slate-800 text-right overflow-hidden relative">
+	              <div className="absolute -left-16 -top-16 h-36 w-36 rounded-full bg-indigo-500/20 blur-3xl" />
+	              <div className="relative flex items-start justify-between gap-4">
+	                <span className="rounded-2xl bg-white/10 px-3 py-2 text-[10px] font-black text-indigo-100 border border-white/10">{productStudioFlows[productStudioFlow].badge}</span>
+	                <div>
+	                  <p className="text-[10px] font-black text-indigo-200 mb-1">لوحة قيادة الصورة</p>
+	                  <h3 className="text-xl font-black">{productStudioFlows[productStudioFlow].title}</h3>
+	                  <p className="text-xs font-bold text-white/65 leading-6 mt-2">{productStudioFlows[productStudioFlow].desc}</p>
+	                </div>
+	              </div>
+	              <div className="relative mt-4 grid grid-cols-3 gap-2 text-center">
+	                {[
+	                  { label: 'الأصل', value: originalImage ? 'جاهز' : 'ناقص' },
+	                  { label: 'المسار', value: productStudioFlows[productStudioFlow].title },
+	                  { label: 'الاحترافي', value: showAdvancedStudio ? 'ظاهر' : 'مخفي' },
+	                ].map((item) => (
+	                  <div key={item.label} className="rounded-2xl bg-white/8 border border-white/10 p-3">
+	                    <div className="text-[10px] font-black text-white">{item.value}</div>
+	                    <div className="text-[9px] font-bold text-white/45 mt-1">{item.label}</div>
+	                  </div>
+	                ))}
+	              </div>
+	            </div>
+
+	            <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-xs font-black text-indigo-500">مسار صورة المنتج</p>
+                  <h3 className="text-lg font-black text-slate-900">اختر طريقة العمل</h3>
+                </div>
+                <button onClick={() => { setOriginalImage(null); setSelectedImage(null); setGeneratedImage(null); }} className="text-xs font-black text-slate-500 bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-xl">صورة أخرى</button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {(Object.entries(productStudioFlows) as [ProductStudioFlow, typeof productStudioFlows[ProductStudioFlow]][]).map(([id, flow]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => selectProductStudioFlow(id)}
+                    className={cn(
+                      "rounded-2xl border p-3 text-center transition-all",
+                      productStudioFlow === id ? `${flow.tone} ring-4 ring-current/10` : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-white"
+                    )}
+                  >
+                    <div className="text-2xl mb-1">{flow.icon}</div>
+                    <div className="text-[11px] font-black">{flow.title}</div>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] font-bold text-slate-400 leading-6 mt-3">{productStudioFlows[productStudioFlow].desc}</p>
+            </div>
+
             <div className="bg-slate-50 p-5 rounded-2xl shadow-sm border border-slate-200/50 italic mb-4">
                <div className="flex items-center justify-between mb-4">
                  <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -918,10 +1158,11 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                )}
             </div>
 
+            {productStudioFlow !== 'quick' && (
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
               <h3 className="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
                 <MousePointerSquareDashed size={16} className="text-indigo-600" />
-                1. اختر المقاس والتنسيق
+                اختر المقاس — اختياري
               </h3>
               <div className="grid grid-cols-3 gap-3">
                 {formats.map(f => (
@@ -942,7 +1183,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 ))}
               </div>
             </div>
+            )}
 
+            {productStudioFlow !== 'quick' && (
             <div className="bg-white p-5 rounded-3xl shadow-sm border border-rose-100">
               <div className="flex items-start justify-between gap-3 mb-4">
                 <div>
@@ -1068,6 +1311,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 </div>
               )}
             </div>
+            )}
 
             {showAdvancedStudio && (<>
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
@@ -1227,7 +1471,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               ) : (
                 <>
                   <Sparkles size={20} />
-                  ولّعها
+                  {productStudioFlow === 'quick' ? 'حسّنها بسرعة' : productStudioFlow === 'kuwait' ? 'ركّبها بمشهد كويتي' : 'ولّعها باحتراف'}
                 </>
               )}
             </button>
@@ -1243,7 +1487,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             </button>
           </div>
 
-          <div className="w-full lg:w-[55%] space-y-6 sticky top-4 z-40">
+          <div className="w-full space-y-6 sticky top-4 z-40">
             <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100 min-h-[250px] md:min-h-[500px] flex items-center justify-center bg-slate-50 relative overflow-hidden">
               
               {!generatedImage && !isGenerating && (
@@ -1266,8 +1510,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     </div>
                   </div>
                   <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
-                    <p className="text-sm text-indigo-900 font-bold">الصورة جاهزة للإنشاء الذكي بمقاسات السوشيال ميديا.</p>
-                    <p className="text-xs text-indigo-500 mt-1">اضغط "ولّعها" لإضافة اللمسات الاحترافية.</p>
+                    <p className="text-sm text-indigo-900 font-bold">الصورة جاهزة. اختر المسار واضغط الزر — بدون زحمة.</p>
+                    <p className="text-xs text-indigo-500 mt-1">التحسين السريع يخفي الخيارات المتقدمة، والمشهد الكويتي يفتحها وقت الحاجة.</p>
                   </div>
                 </div>
               )}

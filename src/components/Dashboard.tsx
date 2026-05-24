@@ -2252,7 +2252,7 @@ const [isPending, startTransition] = useTransition();
 
         {/* Main Dashboard Header & Navigation */}
         <div
-          className="container relative z-40 border-b border-slate-200/60 bg-white/90 backdrop-blur-md py-4 transition-all duration-500"
+          className="relative z-40 w-full max-w-none min-w-0 border-b border-slate-200/60 bg-white/90 backdrop-blur-md px-3 sm:px-4 lg:px-5 py-4 transition-all duration-500"
           dir="rtl"
         >
           {showSampleDataPrompt && (
@@ -2477,7 +2477,7 @@ const [isPending, startTransition] = useTransition();
         {/* 4) CONTENT - Full Width */}
         <div
           className={cn(
-            "dashboard-content-shell container w-full max-w-none min-w-0 overflow-hidden flex flex-col transition-opacity duration-300 relative [overflow-wrap:anywhere] [&_h1]:leading-tight [&_h2]:leading-tight [&_h3]:leading-tight [&_p]:leading-relaxed [&_h1]:text-2xl md:[&_h1]:text-3xl xl:[&_h1]:text-4xl [&_h2]:text-xl md:[&_h2]:text-2xl xl:[&_h2]:text-3xl [&_h3]:text-base md:[&_h3]:text-xl [&_p]:text-sm md:[&_p]:text-base",
+            "dashboard-content-shell w-full max-w-none min-w-0 overflow-hidden flex flex-col transition-opacity duration-300 relative px-3 sm:px-4 lg:px-5 [overflow-wrap:anywhere] [&_h1]:leading-tight [&_h2]:leading-tight [&_h3]:leading-tight [&_p]:leading-relaxed [&_h1]:text-2xl md:[&_h1]:text-3xl xl:[&_h1]:text-4xl [&_h2]:text-xl md:[&_h2]:text-2xl xl:[&_h2]:text-3xl [&_h3]:text-base md:[&_h3]:text-xl [&_p]:text-sm md:[&_p]:text-base",
             isPending ? "opacity-50" : "opacity-100",
             isExecutiveMode ? "py-12" : ""
           )}

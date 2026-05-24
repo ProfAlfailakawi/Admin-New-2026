@@ -257,7 +257,25 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     return mappedSquadsForMap.find((s: any) => String(s.id) === String(activeMapSquadId)) || null;
   }, [mappedSquadsForMap, activeMapSquadId]);
 
-  const geofenceDistance = data.geofenceDistance !== undefined ? data.geofenceDistance : 100;
+  const clampGeofenceDistance = (value: any, fallback = 100) => {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return fallback;
+    return Math.max(10, Math.min(100, Math.round(n)));
+  };
+
+  const getSquadGeofenceDistance = (sq?: any) => clampGeofenceDistance(
+    sq?.geofenceDistance ??
+      sq?.squadGeofenceDistance ??
+      sq?.diwaniyaGeofenceDistance ??
+      sq?.radarDistance ??
+      sq?.location?.geofenceDistance ??
+      data?.settings?.squadGeofenceDistance ??
+      data?.squadGeofenceDistance ??
+      data?.geofenceDistance,
+    100
+  );
+
+  const geofenceDistance = clampGeofenceDistance(data?.settings?.squadGeofenceDistance ?? data?.squadGeofenceDistance ?? data?.geofenceDistance, 100);
 
   const allOrders = Array.isArray(data?.orders) ? data.orders : Array.isArray(data?.invoices) ? data.invoices : [];
 
@@ -327,7 +345,13 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
   const handleDistanceChange = (val: number) => {
     setData((prev: any) => {
-      const updated = { ...prev, geofenceDistance: val };
+      const normalized = clampGeofenceDistance(val);
+      const updated = {
+        ...prev,
+        geofenceDistance: normalized,
+        squadGeofenceDistance: normalized,
+        settings: { ...(prev?.settings || {}), squadGeofenceDistance: normalized },
+      };
       localStorage.setItem('ktk_accounting_data', JSON.stringify(updated));
       return updated;
     });
@@ -729,7 +753,9 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       for (let j = i + 1; j < enriched.length; j += 1) {
         if (!enriched[i].actualLocation || !enriched[j].actualLocation) continue;
         const distance = getDistanceMeters(enriched[i].actualLocation, enriched[j].actualLocation);
-        if (distance <= Math.max(25, Number(geofenceDistance) || 100)) {
+        const firstRange = getSquadGeofenceDistance(enriched[i]);
+        const secondRange = getSquadGeofenceDistance(enriched[j]);
+        if (distance <= Math.max(25, Math.min(firstRange, secondRange))) {
           duplicateWarnings.push({ first: enriched[i], second: enriched[j], distance });
         }
       }
@@ -871,13 +897,13 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   const getRadarRangePixels = (sq: any) => {
     const lat = Number(sq?.actualLocation?.lat ?? radarMapCenter.lat);
     const metersPerPixel = getMetersPerPixel(lat);
-    const actualRadius = (Number(geofenceDistance) || 100) / Math.max(1, metersPerPixel);
+    const actualRadius = getSquadGeofenceDistance(sq) / Math.max(1, metersPerPixel);
     return Math.max(24, Math.min(180, actualRadius));
   };
 
   const getNearbyLocationCluster = (sq: any, allSquads: any[]) => {
     if (!sq?.actualLocation) return [sq];
-    const thresholdMeters = Math.max(25, Math.min(120, Number(geofenceDistance) || 100));
+    const thresholdMeters = Math.max(18, Math.min(80, getSquadGeofenceDistance(sq)));
     return allSquads
       .filter((item: any) => item?.actualLocation && getDistanceMeters(sq.actualLocation, item.actualLocation) <= thresholdMeters)
       .sort((a: any, b: any) => String(a.name || a.id).localeCompare(String(b.name || b.id), 'ar'));
@@ -896,11 +922,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       ring += 1;
       capacity = ring * 8;
     }
-    const radius = Math.min(150, 18 + ring * 16);
+    const radius = Math.min(72, 10 + ring * 10);
     const angle = ((Math.PI * 2 * remaining) / capacity) - Math.PI / 2 + ring * 0.21;
     return {
-      x: base.x + Math.cos(angle) * radius,
-      y: base.y + Math.sin(angle) * radius,
+      x: Math.max(18, Math.min(Math.max(18, radarMapSize.width - 18), base.x + Math.cos(angle) * radius)),
+      y: Math.max(18, Math.min(Math.max(18, radarMapSize.height - 18), base.y + Math.sin(angle) * radius)),
       clusterCount: members.length,
       clusterIndex: index,
     };
@@ -1508,7 +1534,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                     <input
                       type="range"
                       min="10"
-                      max="1000"
+                      max="100"
                       value={geofenceDistance}
                       onChange={(e) => handleDistanceChange(parseInt(e.target.value))}
                       className="w-full sm:w-56 accent-amber-400 h-1 bg-slate-700 rounded-lg cursor-pointer"
@@ -1624,7 +1650,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           key={`range-${sq.id}`}
                           className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border pointer-events-none transition-opacity ${isActive ? 'border-amber-400/70 bg-amber-300/12 opacity-100' : isBusy ? 'border-emerald-400/35 bg-emerald-300/10 opacity-70' : 'border-slate-400/25 bg-white/10 opacity-45'}`}
                           style={{ left: point.x, top: point.y, width: range * 2, height: range * 2 }}
-                          title={`مدى الديوانية ${geofenceDistance}م`}
+                          title={`مدى الديوانية ${getSquadGeofenceDistance(sq)}م`}
                         />
                       );
                     })}
@@ -1711,7 +1737,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3"><div className="text-[10px] text-slate-400 font-bold">الأعضاء</div><div className="text-lg font-black text-slate-800">{selected.membersCount}</div></div>
                           <div className="rounded-2xl bg-amber-50 border border-amber-100 p-3"><div className="text-[10px] text-amber-700 font-bold">طلبات دخول</div><div className="text-lg font-black text-amber-700">{selected.pendingRequests.length}</div></div>
                           <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-3"><div className="text-[10px] text-emerald-700 font-bold">موجودين الآن</div><div className="text-lg font-black text-emerald-700">{selected.presence.length}</div></div>
-                          <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3"><div className="text-[10px] text-indigo-700 font-bold">أكواد فعالة</div><div className="text-lg font-black text-indigo-700">{selected.tempCodes.length}</div></div>
+                          <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3"><div className="text-[10px] text-indigo-700 font-bold">مدى الدخول</div><div className="text-lg font-black text-indigo-700">{getSquadGeofenceDistance(selected)}م</div></div>
                         </div>
 
                         <div ref={coordinatesBoxRef} tabIndex={-1} className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs leading-6 outline-none">
@@ -1725,7 +1751,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           {selected.actualLocation ? (
                             <>
                               <div className="font-mono text-slate-600" dir="ltr">{selected.actualLocation.lat.toFixed(6)}, {selected.actualLocation.lng.toFixed(6)}</div>
-                              <div className="mt-2 text-[11px] font-bold text-amber-700">مدى الانضمام الحالي: {geofenceDistance}م</div>
+                              <div className="mt-2 text-[11px] font-bold text-amber-700">مدى الانضمام الحالي: {getSquadGeofenceDistance(selected)}م</div>
                             </>
                           ) : (
                             <div className="text-rose-600 font-bold">لا توجد إحداثيات حقيقية. ثبّت الموقع من برنامج العميل حتى تظهر على الخريطة بدقة.</div>
@@ -1831,6 +1857,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         </div>
                         <div className="flex flex-wrap gap-1.5 mt-3 text-[10px] font-black">
                           {!sq.actualLocation && <span className="px-2 py-1 rounded-lg bg-rose-100 text-rose-700">بلا موقع</span>}
+                          <span className="px-2 py-1 rounded-lg bg-indigo-100 text-indigo-700">مدى الدخول {getSquadGeofenceDistance(sq)}م</span>
                           {hasOverlap && <span className="px-2 py-1 rounded-lg bg-orange-100 text-orange-700">تداخل موقع</span>}
                           {sq.pendingRequests.length > 0 && <span className="px-2 py-1 rounded-lg bg-amber-100 text-amber-700">{sq.pendingRequests.length} طلب معلق</span>}
                           {sq.staleRequests.length > 0 && <span className="px-2 py-1 rounded-lg bg-red-100 text-red-700">{sq.staleRequests.length} متأخر</span>}
