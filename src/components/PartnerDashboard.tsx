@@ -560,33 +560,37 @@ const {
           )}
         </AnimatePresence>
 
-       {/* Time Slider (Minimalist) */}
-       {hasRealTimeFilterUse && <div className="partner-time-filter relative z-20 px-1 flex justify-center pointer-events-auto fade-in animate-in slide-in-from-top-2 duration-500">
-         <div className="bg-white/80 backdrop-blur-3xl rounded-[1.4rem] py-2.5 px-4 flex flex-col items-center gap-2 shadow-lg pointer-events-auto w-full max-w-[420px] border border-white/60 ring-1 ring-slate-900/5 transition-all hover:bg-white/90">
-           <input 
-             type="range"
-             min="0"
-             max="4"
-             value={["all", "year", "month", "week", "day"].indexOf(filter)}
-             onChange={(e) => {
-               const map = ["all", "year", "month", "week", "day"] as const;
-               startTransition(() => setFilter(map[parseInt(e.target.value)]));
-             }}
-             className="w-full h-1 bg-slate-200/80 rounded-full appearance-none cursor-grab active:cursor-grabbing outline-none transition-all duration-300
-             [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
-             [&::-webkit-slider-thumb]:bg-slate-800 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white"
-             style={{ direction: 'ltr' }}
-           />
-           
-           <div className="flex justify-between w-full text-[10px] font-sans font-extrabold text-slate-400 px-0.5" style={{ direction: 'ltr' }}>
-             <span onClick={() => startTransition(() => setFilter("all"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-left", filter === "all" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>الكل</span>
-             <span onClick={() => startTransition(() => setFilter("year"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", filter === "year" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>سنة</span>
-             <span onClick={() => startTransition(() => setFilter("month"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", filter === "month" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>شهر</span>
-             <span onClick={() => startTransition(() => setFilter("week"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-center", filter === "week" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>أسبوع</span>
-             <span onClick={() => startTransition(() => setFilter("day"))} className={cn("cursor-pointer transition-all duration-200 flex-1 text-right", filter === "day" ? "text-slate-800 scale-110" : "hover:text-slate-600")}>اليوم</span>
+       {/* Ultra-Sleek Time Filter (Segmented Control - Floating Pill) */}
+       {!activeWidget && hasRealTimeFilterUse && (
+         <div className="fixed bottom-3 left-0 right-0 z-[90] p-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-10 duration-700">
+           <div className="partner-date-filter-elegant bg-slate-950/95 border border-white/10 text-white backdrop-blur-3xl rounded-full p-1 flex items-center justify-between gap-1 pointer-events-auto w-[92%] max-w-[320px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all">
+             {[
+               { id: "day", label: "اليوم" },
+               { id: "week", label: "أسبوع" },
+               { id: "month", label: "شهر" },
+               { id: "year", label: "سنة" },
+               { id: "all", label: "الكل" },
+             ].map((opt) => {
+               const isActive = filter === opt.id;
+               return (
+                 <button
+                   key={opt.id}
+                   type="button"
+                   onClick={() => startTransition(() => setFilter(opt.id as any))}
+                   className={cn(
+                     "flex-1 text-center py-1.5 px-0.5 rounded-full text-[11px] font-black transition-all active:scale-95 duration-200",
+                     isActive 
+                       ? "bg-amber-500 text-slate-950 shadow-sm font-extrabold" 
+                       : "text-slate-400 hover:text-white"
+                   )}
+                 >
+                   {opt.label}
+                 </button>
+               );
+             })}
            </div>
          </div>
-       </div>}
+       )}
       
        <div className="mb-8">
          <CommandBrief data={data} dateFilter={filter} />
