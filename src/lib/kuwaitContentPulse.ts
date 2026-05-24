@@ -29,7 +29,7 @@ export const KUWAIT_PLACES: Record<KuwaitOrderPlace, { label: string; icon: stri
 };
 
 export const KUWAIT_CONTENT_GOALS: Record<KuwaitContentGoal, { label: string; icon: string; prompt: string }> = {
-  post: { label: 'بوست', icon: '▣', prompt: 'المخرجات مناسبة لبوست انستغرام واضح ومباشر.' },
+  post: { label: 'كابشن اختياري', icon: '▣', prompt: 'المخرجات نص قصير يمكن استخدامه لاحقاً إذا احتاجوا، لكن واتساب هو الأساس.' },
   story: { label: 'ستوري', icon: '▯', prompt: 'المخرجات مناسبة لستوري سريع مع مساحة آمنة للنص لاحقاً.' },
   whatsapp: { label: 'واتساب', icon: '☏', prompt: 'اكتب نبرة واتساب قصيرة ومقنعة بدون إطالة أو ضغط مزعج.' },
   campaign: { label: 'حملة كاملة', icon: '✦', prompt: 'فكر كحزمة حملة: صورة، كابشن، واتساب، ونداء طلب واضح.' },
@@ -78,7 +78,27 @@ export const KUWAIT_PULSE_PACKS: KuwaitPulsePack[] = [
     captionSeed: 'سفرة رمضان تكمل بالطلب اللي يرضي الكل.', whatsappSeed: 'جهز سفرة رمضان بدون تعب، طلب مرتب ويوصل بالوقت.'
   },
   {
-    id: 'eid', label: 'العيد', badge: 'فرحة', icon: '🎉', category: 'season', tone: 'فرحة عائلية', defaultPlace: 'zowara', mode: 'finalBoss', background: 'zowara-spread',
+    id: 'eid-adha', label: 'عيد الأضحى', badge: 'عيدكم مبارك', icon: '🐏', category: 'season', tone: 'تهنئة كويتية راقية', defaultPlace: 'zowara', mode: 'finalBoss', background: 'zowara-spread',
+    prompt: 'أجواء عيد أضحى كويتية بيتية راقية، زوارة ولمة أهل وطلب جاهز للتقديم، بدون مشاهد ذبح، بدون مبالغة، بدون نص داخل الصورة، فخامة هادئة وواقعية.',
+    captionSeed: 'عيد الأضحى يحلى باللمة والطلب اللي يبيض الوجه.', whatsappSeed: 'عيدكم مبارك 🌙 جهزوا اليمعة وخلو الطلب علينا، نوصل للبيت والديوانية والشاليه بكل ترتيب.'
+  },
+  {
+    id: 'eid-fitr', label: 'عيد الفطر', badge: 'فرحة العيد', icon: '✨', category: 'season', tone: 'فرحة عائلية دافئة', defaultPlace: 'home', mode: 'finalBoss', background: 'home-table',
+    prompt: 'أجواء عيد فطر كويتية داخل بيت حقيقي، سفرة مرتبة ولمة أهل، بدون فوانيس أو ديكور مصطنع أو نصوص داخل الصورة.',
+    captionSeed: 'فرحة العيد تكمل باليمعة والطلب المرتب.', whatsappSeed: 'عيدكم مبارك ✨ نجهز لكم الطلب للبيت أو الزوارة بدون تعب.'
+  },
+  {
+    id: 'match-night', label: 'مباراة اليوم', badge: 'ديوانية', icon: '⚽', category: 'national', tone: 'حماس ديوانية', defaultPlace: 'diwaniya', mode: 'human', background: 'diwaniya-table',
+    prompt: 'ليلة مباراة في ديوانية كويتية عصرية، طلب جماعي مرتب، حماس ولمة بدون شاشات بنصوص واضحة أو شعارات مشوهة، صورة بشرية واقعية.',
+    captionSeed: 'المباراة تحلى بالربع والطلب اللي يضبط اليمعة.', whatsappSeed: 'حق مباراة اليوم؟ جهزوا الربع ونوصل لكم الطلب مرتب للديواينة.'
+  },
+  {
+    id: 'weekend', label: 'الويكند', badge: 'راحة', icon: '🗓️', category: 'daily', tone: 'خفيف وعملي', defaultPlace: 'chalet', mode: 'human', background: 'chalet-spread',
+    prompt: 'أجواء ويكند كويتية بسيطة، شاليه أو بيت أو ديوانية، طلبات مرتبة وواقعية، بدون مطعم وبدون ديكور مبالغ.',
+    captionSeed: 'الويكند يبيله طلب يضبط الجو.', whatsappSeed: 'الويكند وصل، اطلبوا قبل الزحمة ونجهز لكم الطلب وين ما تكونون.'
+  },
+  {
+    id: 'eid', label: 'العيد العام', badge: 'فرحة', icon: '🎉', category: 'season', tone: 'فرحة عائلية', defaultPlace: 'zowara', mode: 'finalBoss', background: 'zowara-spread',
     prompt: 'أجواء عيد كويتي بيتية، زوارة ولمة، طلبات مرتبة للتقديم، فرحة ناعمة بدون مبالغة أو ديكور مصطنع.',
     captionSeed: 'العيد يحلى باللمة والطلب اللي يبيض الوجه.', whatsappSeed: 'عيدكم مبارك، جهزوا اليمعة وخلو الطلب علينا.'
   }
