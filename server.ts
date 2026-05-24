@@ -2362,6 +2362,62 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
   // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_END
 
 
+  app.post("/api/ai/quick-messages", express.json({ limit: "2mb" }), async (req, res) => {
+    try {
+      const { category } = req.body;
+      if (!category) {
+        return res.status(400).json({ error: "Missing category" });
+      }
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: "GEMINI_API_KEY is not configured on server", needsKey: true });
+      }
+
+      const prompt = `
+      بصفتك خبير تسويق كويتي ذكي ومبدع. قم بتوليد 3 رسائل قصيرة جداً للانستغرام (Caption or Story) تتناسب مع طبيعة العمل (حلويات ومطاعم) في الكويت.
+      
+      التصنيف المطلوب: ${category === 'motivation' ? 'تحفيزي وإيجابي' : category === 'engagement' ? 'تفاعلي مع المتابعين (سؤال أو نقاش)' : 'ترويجي سريع لمنتج'}.
+      
+      الشروط:
+      1. اللهجة: كويتية بيضاء راقية ومحببة.
+      2. الطول: لا تتجاوز سطرين.
+      3. الشخصية: مرحة، قريبة من القلب، وتعكس روح "مطبخ التراث الكويتي".
+      4. المحتوى: استخدم كلمات مثل "ناطع"، "خنين"، "يبرد الجبد"، "من الآخر".
+      
+      أخرج النتيجة بصيغة JSON فقط:
+      {
+        "messages": ["رسالة 1", "رسالة 2", "رسالة 3"]
+      }
+    `;
+
+      const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: { headers: { "User-Agent": "alturath-admin-server" } }
+      });
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-lite",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+
+      const resText = response.text;
+      if (!resText) throw new Error("Empty AI response");
+
+      let jsonPayload = resText;
+      const match = resText.match(/```json\n?([\s\S]*?)\n?```/) || resText.match(/{[\s\S]*}/);
+      if (match) {
+        jsonPayload = match[1] || match[0];
+      }
+      
+      res.json(JSON.parse(jsonPayload));
+    } catch (e: any) {
+      console.error("[Quick Messages API Error]", e);
+      res.status(500).json({ error: "Failed to generate messages" });
+    }
+  });
+
   app.post("/api/ai/assistant", express.json({ limit: "2mb" }), async (req, res) => {
     try {
       const { message, systemPrompt } = req.body || {};

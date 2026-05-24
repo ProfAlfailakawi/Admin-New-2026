@@ -954,7 +954,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         body: JSON.stringify(payload)
       });
       const result = await response.json().catch(() => null);
-      if (!response.ok || !result?.videoUrl) throw new Error(result?.error || 'ما قدرنا نولّد الريل');
+      if (!response.ok || !result?.videoUrl) {
+        const rawError = String(result?.error || '');
+        const friendlyError = /quota|حصة|limit|exhaust/i.test(rawError)
+          ? 'تعذّر توليد الريل من الخادم حالياً. جرّب مرة ثانية أو قلّل المدة؛ الرصيد لا يمنع ظهور المحاولة هنا.'
+          : (rawError || 'ما قدرنا نولّد الريل');
+        throw new Error(friendlyError);
+      }
       setGeneratedReel(result.videoUrl);
       const item: StudioReelHistoryItem = {
         url: result.videoUrl,
@@ -1457,9 +1463,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     ))}
                   </div>
                 )}
+                <div className="rounded-3xl border border-slate-100 bg-white p-3">
+                  <p className="mb-3 text-xs font-black text-slate-500">البيئة</p>
+                  {renderPlaceLibrary()}
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => goCreateStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                  <button type="button" onClick={() => advanceCreateStep(4)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                  <button type="button" onClick={() => advanceCreateStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                 </div>
               </div>
             )}
@@ -1478,7 +1488,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <div className="space-y-4">
                 {renderFineTools()}
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => goCreateStep(customThemeQuery.trim() ? 2 : 4)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                  <button type="button" onClick={() => goCreateStep(customThemeQuery.trim() ? 2 : 3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
                   <button type="button" onClick={() => advanceCreateStep(6)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                 </div>
               </div>
@@ -1623,9 +1633,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                         ))}
                       </div>
                     )}
+                    <div className="rounded-3xl border border-slate-100 bg-white p-3">
+                      <p className="mb-3 text-xs font-black text-slate-500">البيئة</p>
+                      {renderPlaceLibrary()}
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                      <button type="button" onClick={() => advanceProductStep(4)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                      <button type="button" onClick={() => advanceProductStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                     </div>
                   </div>
                 )}
@@ -1644,7 +1658,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="space-y-4">
                     {renderFineTools()}
                     <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => goProductStep(customThemeQuery.trim() ? 2 : 4)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                      <button type="button" onClick={() => goProductStep(customThemeQuery.trim() ? 2 : 3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
                       <button type="button" onClick={() => advanceProductStep(6)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                     </div>
                   </div>
@@ -1738,6 +1752,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               {generatedImage && !isGenerating && (
                 <div className="w-full h-full flex flex-col gap-5 p-4">
                   <div className="flex items-center justify-between mb-1 text-right">
+                    <button type="button" onClick={startFreshImageUpload} className="rounded-2xl bg-slate-900 text-white px-4 py-2 text-xs font-black shadow-sm">صورة ثانية</button>
                     <p className="text-sm font-bold text-indigo-600">الصورة الجاهزة</p>
                   </div>
                   <button type="button" onClick={() => setShowImageSettings((v) => !v)} className={cn("w-full bg-slate-50 rounded-3xl border shadow-2xl p-2 relative flex items-stretch overflow-hidden group mx-auto", previewAspectClass)}>
