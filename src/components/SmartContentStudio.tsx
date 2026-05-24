@@ -61,7 +61,7 @@ class StudioErrorBoundary extends React.Component<{ title: string; children: Rea
 }
 
 export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, setData, onNavigate }) => {
-  const [studioTab, setStudioTab] = useState<'quick' | 'whatsapp' | 'occasions' | 'product' | 'library' | 'advanced'>('quick');
+  const [studioTab, setStudioTab] = useState<'home' | 'quick' | 'whatsapp' | 'occasions' | 'product' | 'library' | 'advanced'>('home');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState('1:1');
@@ -662,19 +662,60 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           )}
         </div>
         
-        <div className="relative z-10 flex gap-2 mt-6 overflow-x-auto pb-2 scrollbar-none">
-          {[
-            ['quick', 'إنشاء سريع'],
-            ['whatsapp', 'واتساب'],
-            ['occasions', 'المناسبات'],
-            ['product', 'صور المنتجات'],
-            ['library', 'مكتبة المحتوى'],
-            ['advanced', 'الوضع الاحترافي']
-          ].map(([id, label]) => (
-            <button key={id} onClick={() => setStudioTab(id as any)} className={cn("px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors", studioTab === id ? "bg-indigo-500 text-white" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>{label}</button>
-          ))}
+        <div className="relative z-10 mt-6 flex items-center justify-between gap-3">
+          {studioTab !== 'home' ? (
+            <button onClick={() => setStudioTab('home')} className="px-4 py-2 rounded-xl text-sm font-black bg-white/10 hover:bg-white/20 text-white transition-colors">
+              رجوع للواجهة البسيطة
+            </button>
+          ) : <div />}
+          <div className="flex gap-2">
+            <button onClick={() => setStudioTab('library')} className={cn("px-4 py-2 rounded-xl text-sm font-black transition-colors", studioTab === 'library' ? "bg-white text-indigo-900" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>المكتبة</button>
+            <button onClick={() => setStudioTab('advanced')} className={cn("px-4 py-2 rounded-xl text-sm font-black transition-colors", studioTab === 'advanced' ? "bg-white text-indigo-900" : "bg-indigo-900/50 text-indigo-100 hover:bg-indigo-800")}>الوضع الاحترافي</button>
+          </div>
         </div>
       </div>
+
+      {studioTab === 'home' && (
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-7">
+            <p className="text-sm font-black text-indigo-500 mb-2">لا حذف مزايا — بس ترتيب ذكي</p>
+            <h2 className="text-3xl font-black text-slate-900">شنو تبي تسوي؟</h2>
+            <p className="text-sm font-bold text-slate-500 mt-3">ثلاث اختيارات فقط للواجهة اليومية. كل الأدوات الجميلة باقية في الوضع الاحترافي.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            <button
+              onClick={() => { setSelectedContentGoal('whatsapp'); setStudioTab('whatsapp'); }}
+              className="group rounded-[2rem] bg-white border border-emerald-100 p-6 text-right shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all min-h-[230px]"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-3xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">☏</div>
+              <h3 className="text-xl font-black text-slate-900 mb-2">رسالة واتساب</h3>
+              <p className="text-sm font-bold text-slate-500 leading-7">تهنئة، عرض، ديوانية، شاليه، زوارة. صورة اختيارية ورسالة جاهزة للنسخ.</p>
+              <span className="inline-flex mt-5 text-xs font-black text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">الأسرع للموظف</span>
+            </button>
+
+            <button
+              onClick={() => { setSelectedContentGoal('campaign'); setStudioTab('occasions'); }}
+              className="group rounded-[2rem] bg-white border border-rose-100 p-6 text-right shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all min-h-[230px]"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-rose-50 text-3xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">🇰🇼</div>
+              <h3 className="text-xl font-black text-slate-900 mb-2">صورة مناسبة</h3>
+              <p className="text-sm font-bold text-slate-500 leading-7">العيد الوطني، عيد الأضحى، رمضان، فوز المنتخب، مطر. بدون رفع منتج.</p>
+              <span className="inline-flex mt-5 text-xs font-black text-rose-700 bg-rose-50 px-3 py-1 rounded-full">المنتج اختياري</span>
+            </button>
+
+            <button
+              onClick={() => setStudioTab('product')}
+              className="group rounded-[2rem] bg-white border border-indigo-100 p-6 text-right shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all min-h-[230px]"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-3xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">📸</div>
+              <h3 className="text-xl font-black text-slate-900 mb-2">صورة منتج</h3>
+              <p className="text-sm font-bold text-slate-500 leading-7">ارفع صورة المنتج، ونخليها واقعية كويتية مع الحفاظ على الطبق والمكتبة الحالية.</p>
+              <span className="inline-flex mt-5 text-xs font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full">نفس القوة الحالية</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {studioTab === 'advanced' && (
         <div className="grid gap-6">
@@ -710,63 +751,87 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       )}
 
       {(studioTab === 'quick' || studioTab === 'whatsapp' || studioTab === 'occasions') && (
-        <div className="grid lg:grid-cols-[0.92fr_1.08fr] gap-8 items-start">
-          <div className="space-y-5">
-            <div className="rounded-[2rem] border border-rose-100 bg-white shadow-sm p-6 text-right">
-              <div className="flex items-start justify-between gap-4 mb-5">
-                <div>
-                  <p className="text-xs font-black text-rose-500 mb-1">واجهة الموظف اليومية</p>
-                  <h2 className="text-2xl font-black text-slate-900">شنو نجهز لك اليوم؟</h2>
-                  <p className="text-sm font-bold text-slate-500 mt-2 leading-7">المنتج اختياري. اختر المناسبة والمكان، واكتب فكرتك لو تبي. الخلفية معقدة وذكية، والواجهة بسيطة.</p>
-                </div>
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500 to-indigo-600 text-white flex items-center justify-center text-2xl shadow-lg">🇰🇼</div>
+        <div className="grid lg:grid-cols-[0.85fr_1.15fr] gap-8 items-start">
+          <div className="rounded-[2rem] border border-slate-100 bg-white shadow-sm p-6 text-right">
+            <div className="flex items-start justify-between gap-4 mb-6">
+              <div>
+                <p className="text-xs font-black text-indigo-500 mb-1">واجهة بسيطة بدون زحمة</p>
+                <h2 className="text-2xl font-black text-slate-900">
+                  {studioTab === 'whatsapp' ? 'رسالة واتساب' : studioTab === 'occasions' ? 'صورة مناسبة' : 'إنشاء سريع'}
+                </h2>
+                <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختر المناسبة والمكان فقط. اكتب فكرتك لو تبي، والباقي على النظام.</p>
+              </div>
+              <button onClick={() => setStudioTab('home')} className="px-3 py-2 rounded-xl bg-slate-50 text-slate-600 text-xs font-black hover:bg-slate-100">تغيير النوع</button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-black text-slate-500 mb-2 block">شنو المناسبة؟</label>
+                <select
+                  value={selectedPulseId}
+                  onChange={(e) => {
+                    const next = getKuwaitPulsePack(e.target.value);
+                    setSelectedPulseId(next.id);
+                    setSelectedOrderPlace(next.defaultPlace);
+                    setBackgroundPreset(next.background);
+                    setRealityMode(next.mode);
+                  }}
+                  className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm font-black text-slate-800 text-right focus:outline-none focus:border-indigo-500"
+                >
+                  {KUWAIT_PULSE_PACKS.map(pack => <option key={pack.id} value={pack.id}>{pack.icon} {pack.label}</option>)}
+                </select>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-5">
-                {KUWAIT_PULSE_PACKS.map(pack => (
-                  <button key={pack.id} type="button" onClick={() => { setSelectedPulseId(pack.id); setSelectedOrderPlace(pack.defaultPlace); setBackgroundPreset(pack.background); setRealityMode(pack.mode); }} className={cn("p-3 rounded-2xl border text-right min-h-[92px] transition-all", selectedPulseId === pack.id ? "bg-rose-50 border-rose-400 ring-4 ring-rose-500/10 shadow-sm" : "bg-white border-slate-100 hover:bg-slate-50 hover:border-rose-200")}>
-                    <div className="flex items-center justify-between mb-2"><span className="text-xl">{pack.icon}</span><span className="text-[9px] font-black text-rose-600 bg-white/80 border border-rose-100 rounded-full px-2 py-0.5">{pack.badge}</span></div>
-                    <div className="text-xs font-black text-slate-900">{pack.label}</div>
-                    <div className="text-[10px] font-bold text-slate-400 mt-1 line-clamp-1">{pack.tone}</div>
-                  </button>
-                ))}
+              <div>
+                <label className="text-xs font-black text-slate-500 mb-2 block">وين رايح الطلب؟</label>
+                <select
+                  value={selectedOrderPlace}
+                  onChange={(e) => {
+                    const place = e.target.value as KuwaitOrderPlace;
+                    setSelectedOrderPlace(place);
+                    setBackgroundPreset(KUWAIT_PLACES[place].background);
+                  }}
+                  className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm font-black text-slate-800 text-right focus:outline-none focus:border-indigo-500"
+                >
+                  {(Object.entries(KUWAIT_PLACES) as [KuwaitOrderPlace, typeof KUWAIT_PLACES[KuwaitOrderPlace]][]).map(([id, place]) => <option key={id} value={id}>{place.icon} {place.label}</option>)}
+                </select>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4 mb-5">
-                <div>
-                  <label className="text-[11px] font-black text-slate-500 mb-2 block">وين رايح الطلب؟</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(Object.entries(KUWAIT_PLACES) as [KuwaitOrderPlace, typeof KUWAIT_PLACES[KuwaitOrderPlace]][]).map(([id, place]) => (
-                      <button key={id} type="button" onClick={() => { setSelectedOrderPlace(id); setBackgroundPreset(place.background); }} className={cn("px-3 py-2 rounded-xl border text-[11px] font-black transition-all flex items-center justify-between", selectedOrderPlace === id ? "bg-slate-900 text-white border-slate-900" : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-white")}><span>{place.label}</span><span>{place.icon}</span></button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[11px] font-black text-slate-500 mb-2 block">شنو تبي تطلع؟</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(Object.entries(KUWAIT_CONTENT_GOALS) as [KuwaitContentGoal, typeof KUWAIT_CONTENT_GOALS[KuwaitContentGoal]][]).filter(([id]) => studioTab === 'whatsapp' ? id === 'whatsapp' : id !== 'post').map(([id, goal]) => (
-                      <button key={id} type="button" onClick={() => setSelectedContentGoal(id)} className={cn("px-3 py-2 rounded-xl border text-[11px] font-black transition-all flex items-center justify-between", selectedContentGoal === id ? "bg-indigo-600 text-white border-indigo-600" : "bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-white")}><span>{goal.label}</span><span>{goal.icon}</span></button>
-                    ))}
-                  </div>
-                </div>
+              <div>
+                <label className="text-xs font-black text-slate-500 mb-2 flex items-center gap-1"><Edit3 size={14} /> اكتب فكرتك — اختياري</label>
+                <input
+                  value={customThemeQuery}
+                  onChange={(e) => setCustomThemeQuery(e.target.value)}
+                  placeholder="مثال: تهنئة عيد الأضحى، فوز المنتخب، زوارة أهل..."
+                  className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
+                />
               </div>
 
-              <label className="text-xs font-bold text-slate-600 flex items-center gap-1 mb-2"><Edit3 size={14} /> اكتب فكرتك — اختياري</label>
-              <input value={customThemeQuery} onChange={(e) => setCustomThemeQuery(e.target.value)} placeholder="مثال: عيد الأضحى، العيد الوطني، فوز المنتخب، زوارة أهل، ديوانية اليوم..." className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10" />
+              <button
+                onClick={generateKuwaitNoProduct}
+                disabled={isGenerating}
+                className="w-full p-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+              >
+                {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+                {studioTab === 'whatsapp' ? 'جهز رسالة واتساب' : 'ولّعها'}
+              </button>
 
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                <button onClick={generateKuwaitNoProduct} disabled={isGenerating} className="col-span-2 p-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">{isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />} ولّعها بدون رفع منتج</button>
-                <button onClick={() => setStudioTab('product')} className="p-3 rounded-2xl bg-white border border-indigo-200 text-indigo-700 font-black hover:bg-indigo-50">عندي صورة منتج</button>
-                <button onClick={() => { setSelectedContentGoal('whatsapp'); setStudioTab('whatsapp'); }} className="p-3 rounded-2xl bg-white border border-emerald-200 text-emerald-700 font-black hover:bg-emerald-50">واتساب فقط</button>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button onClick={() => setStudioTab('product')} className="p-3 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-black hover:bg-indigo-100">عندي صورة منتج</button>
+                <button onClick={() => setStudioTab('advanced')} className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-slate-600 text-xs font-black hover:bg-slate-100">خيارات احترافية</button>
               </div>
             </div>
           </div>
 
           <div className="sticky top-4 z-30 rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 min-h-[520px] flex flex-col items-center justify-center">
             {!generatedImage && !isGenerating && (
-              <div className="text-center max-w-md"><div className="text-6xl mb-5">{activePulsePack.icon}</div><h3 className="text-2xl font-black text-slate-900 mb-3">جاهز يطلع محتوى يصرخ كويت</h3><p className="text-sm font-bold text-slate-500 leading-7">{activePulsePack.label} ← {KUWAIT_PLACES[selectedOrderPlace]?.label} ← {KUWAIT_CONTENT_GOALS[selectedContentGoal]?.label}</p></div>
+              <div className="text-center max-w-md">
+                <div className="text-6xl mb-5">{activePulsePack.icon}</div>
+                <h3 className="text-2xl font-black text-slate-900 mb-3">جاهز بدون زحمة</h3>
+                <p className="text-sm font-bold text-slate-500 leading-7">{activePulsePack.label} ← {KUWAIT_PLACES[selectedOrderPlace]?.label}</p>
+              </div>
             )}
-            {isGenerating && <div className="text-center"><Loader2 className="w-14 h-14 animate-spin mx-auto text-indigo-600 mb-4" /><p className="font-black text-slate-800">جاري تجهيز المشهد والرسالة...</p></div>}
+            {isGenerating && <div className="text-center"><Loader2 className="w-14 h-14 animate-spin mx-auto text-indigo-600 mb-4" /><p className="font-black text-slate-800">جاري تجهيز المحتوى...</p></div>}
             {generatedImage && (
               <div className="w-full space-y-4 text-right">
                 <img src={generatedImage} className="w-full max-h-[520px] object-contain rounded-3xl bg-slate-50 border border-slate-100" />
