@@ -155,7 +155,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
     const name = normalizeCategoryName(category);
     const usedProducts = (data?.products || []).filter((p: any) => normalizeCategoryName(p?.category) === name);
     if (usedProducts.length > 0) {
-      toast.error(`لا يمكن حذف التصنيف لأنه يحتوي على ${usedProducts.length} منتج. انقل المنتجات أولاً ثم احذف التصنيف.`);
+      toast.error(`ما يصير نحذف التصنيف لأن فيه ${usedProducts.length} منتج. انقل المنتجات أول وبعدها احذفه.`);
       return;
     }
 
@@ -390,7 +390,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
     );
 
     if (isUsedInActiveInvoices) {
-      const errorMsg = `لا يمكن حذف المنتج"${product.name}" لآنه مسجل في فواتير مبيعات نشطة.`;
+      const errorMsg = `ما يصير نحذف المنتج "${product.name}" لأنه مسجل في فواتير مبيعات نشطة.`;
       setDeleteError(errorMsg);
       setShakingId(product.id);
 
@@ -490,7 +490,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
               setUploading(false);
             } catch (err: any) {
               console.error("Process error:", err);
-              toast.error("خطأ في معالجة أبعاد الصورة");
+              toast.error("تعطلت معالجة أبعاد الصورة");
               setUploading(false);
             }
           };
@@ -502,12 +502,12 @@ const ProductPage: React.FC<ProductPageProps> = ({
         };
         reader.onerror = () => {
           setUploading(false);
-          toast.error("فشل قراءة الملف من الجهاز");
+          toast.error("ما قدرنا نقرأ الملف من الجهاز");
         };
         reader.readAsDataURL(file);
       } catch (err) {
         setUploading(false);
-        toast.error("خطأ تقني في مشغل الصور");
+        toast.error("صار خلل تقني في مشغل الصور");
       }
     },
     [],
@@ -522,13 +522,13 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
       const emptyAddonIndex = (Array.isArray((productForm as any)?.addons) ? (productForm as any).addons : []).findIndex((addon: any) => !String(addon?.name || '').trim());
       if (emptyAddonIndex !== -1) {
-        toast.error(`اسم الإضافة رقم ${emptyAddonIndex + 1} إلزامي ولا يمكن تركه فارغاً`);
+        toast.error(`اسم الإضافة رقم ${emptyAddonIndex + 1} مطلوب، ما يصير تخليه فاضي`);
         return;
       }
 
       if (parsedPrice <= parsedCost) {
         setPriceError(
-          "لا يمكن أن يكون سعر البيع أقل من أو يساوي تكلفة المنتج.",
+          "ما يصير سعر البيع يكون أقل من أو يساوي تكلفة المنتج.",
         );
         return;
       }
@@ -564,7 +564,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
       if (duplicateProduct) {
         toast.error("تنبيه الحماية من التكرار 🛡️", {
-          description: `الاسم "${productForm.name}" مسجل مسبقاً لهذا المورد. يرجى استخدام اسم مختلف لتمييز الصنف.`,
+            description: `الاسم "${productForm.name}" مسجل من قبل لهذا المورد. استخدم اسم مختلف عشان تميّز الصنف.`,
           duration: 6000,
         });
         return;
@@ -613,7 +613,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
         closeModal();
       } catch (error) {
         console.error("Error saving product:", error);
-        toast.error("حدث خطأ أثناء الحفظ. يرجى المحاولة مرة أخرى.");
+        toast.error("تعطل الحفظ. جرّب مرة ثانية.");
       } finally {
         setIsSaving(false);
       }
@@ -625,7 +625,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
   const handleSyncToCustomerApp = async () => {
     setIsSyncing(true);
-    const toastId = toast.loading("جاري مزامنة المنتجات مع تطبيق العميل...");
+    const toastId = toast.loading("نزامن المنتجات مع برنامج العميل...");
 
     try {
       const { seedClientDatabase } = await import("../scripts/seed-client-db");
@@ -637,7 +637,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       });
     } catch (error) {
       console.error("Sync Error:", error);
-      toast.error("فشل المزامنة مع تطبيق العميل", { id: toastId });
+      toast.error("ما ضبطت المزامنة مع برنامج العميل", { id: toastId });
     } finally {
       setIsSyncing(false);
     }
@@ -853,7 +853,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
               className="overflow-hidden"
             >
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-4 mt-4 border-t border-slate-100">
-                <div className="text-xs font-bold text-slate-400">لا يمكن حذف تصنيف يحتوي منتجات.</div>
+                <div className="text-xs font-bold text-slate-400">ما يصير حذف تصنيف فيه منتجات.</div>
                 <div className="flex flex-col sm:flex-row gap-2 lg:w-[420px]">
                   <input
                     value={newCategoryName}
@@ -1099,7 +1099,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 <Package size={48} />
               </div>
               <h3 className="text-xl md:text-3xl font-bold text-slate-800 mb-3 tracking-tight">
-                لا توجد منتجات حالياً!
+                ماكو منتجات حالياً!
               </h3>
               <p className="text-slate-500 font-bold max-w-sm mb-8 leading-relaxed">
                 قائمتك فارغة تماماً. أضف أول صنف وابدأ في رحلة الأرباح وتحليل
@@ -1495,7 +1495,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         )}
                       >
                         {uploading
-                          ? "جاري الرفع..."
+                          ? "نرفع الصورة..."
                           : productForm.imageUrl
                             ? "تغيير الصورة"
                             : "اختر صورة من جهازك"}
@@ -2002,7 +2002,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     (uploading || isSaving) && "opacity-50 cursor-not-allowed",
                   )}
                 >
-                  {uploading ? "جاري رفع الصورة..." : isSaving ? "جاري الحفظ..." : "اصدار المنتج"}
+                  {uploading ? "نرفع الصورة..." : isSaving ? "نحفظ..." : "اصدار المنتج"}
                 </button>
               </div>
             </motion.div>

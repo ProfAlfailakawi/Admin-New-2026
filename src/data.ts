@@ -77,7 +77,7 @@ export const INITIAL_DATA: AppState = {
     storeStatus: {
       isOpen: true,
       manualClose: false,
-      closeMessage: 'عذراً، المتجر مغلق حالياً ولا يمكننا استقبال طلبات جديدة.',
+      closeMessage: 'المعذرة، المتجر مسكر الحين وما نستقبل طلبات جديدة.',
       openingHours: {
         sunday: { open: '09:00', close: '23:00', enabled: true },
         monday: { open: '09:00', close: '23:00', enabled: true },
@@ -280,7 +280,7 @@ export const GET_DEMO_DATA = (): AppState => {
             storeStatus: {
               isOpen: true,
               manualClose: false,
-              closeMessage: 'عذراً، المتجر مغلق حالياً ولا يمكننا استقبال طلبات جديدة.',
+              closeMessage: 'المعذرة، المتجر مسكر الحين وما نستقبل طلبات جديدة.',
               openingHours: {
                 sunday: { open: '09:00', close: '23:00', enabled: true },
                 monday: { open: '09:00', close: '23:00', enabled: true },
@@ -313,7 +313,7 @@ export const GET_DEMO_DATA = (): AppState => {
                 status: 'pending',
                 date: new Date().toISOString(),
                 totalAmount: 35.000,
-                notes: 'يرجى التأكد من الملاعق والمناديل الإضافية',
+                notes: 'تأكد من الملاعق والمناديل الإضافية',
                 items: [
                     { productId: 'p1', quantity: 2, priceAtTime: 12.500, costAtTime: 3.500, itemNotes: 'بدون بصل' },
                     { productId: 'p4', quantity: 1, priceAtTime: 6.500, costAtTime: 2.500, itemNotes: 'أقل فلفل' }

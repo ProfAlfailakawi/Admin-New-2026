@@ -51,11 +51,11 @@ export function EnableNotificationsButton(props?: {
         setMessage("تم تفعيل الإشعارات بنجاح");
       } else {
         setEnabled(false);
-        setMessage(result.error || "فشل تفعيل الإشعارات");
+        setMessage(result.error || "ما قدرنا نفعّل الإشعارات");
       }
     } catch (error: any) {
       setEnabled(false);
-      setMessage(error?.message || "فشل تفعيل الإشعارات");
+      setMessage(error?.message || "ما قدرنا نفعّل الإشعارات");
     } finally {
       setLoading(false);
     }
@@ -79,7 +79,7 @@ export function EnableNotificationsButton(props?: {
         className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-white disabled:opacity-60 font-bold hover:shadow-lg hover:shadow-slate-900/20 active:scale-95 transition-all w-fit"
       >
         <Bell size={18} />
-        {loading ? "جاري التفعيل..." : "تفعيل الإشعارات الآن"}
+        {loading ? "نفعّلها..." : "تفعيل الإشعارات الآن"}
       </button>
 
       {message && (

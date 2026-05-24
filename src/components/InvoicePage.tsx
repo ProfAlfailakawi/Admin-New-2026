@@ -707,14 +707,14 @@ Alturath.kw`;
 
     const handleCreateInvoice = async () => {
       if (isNewCustomer && normalizePhoneDigits(customerPhone).length !== 8) {
-        toast.error("رقم الهاتف يجب أن يكون 8 أرقام");
+        toast.error("رقم التلفون لازم يكون 8 أرقام");
         return;
       }
       let targetId = selectedCustomerId;
 
       if (isNewCustomer) {
         if (!newCustomerName || !customerPhone)
-          return toast.error("يرجى إدخال اسم ورقم الهاتف للعميل الجديد");
+          return toast.error("اكتب اسم ورقم تلفون العميل الجديد");
         targetId = `cust-${Date.now()}`;
         const newCust: Customer = {
           id: targetId,
@@ -737,7 +737,7 @@ Alturath.kw`;
         !addressDetails.street ||
         !addressDetails.building
       )
-        return toast.error("يرجى إكمال تفاصيل العنوان");
+        return toast.error("كمل تفاصيل العنوان");
       if (!validateCartAddons()) return;
 
       setLoading(true);
@@ -804,7 +804,7 @@ Alturath.kw`;
       } catch (err: any) {
         console.error("Payment API Error:", err);
         setLoading(false);
-        return toast.error(`تعذر الاتصال بخدمة الدفع: ${err?.message || String(err)}`);
+        return toast.error(`ما قدرنا نوصل لخدمة الدفع: ${err?.message || String(err)}`);
       }
 
       if (!createdLink) {
@@ -1007,7 +1007,7 @@ Alturath.kw`;
               return (
                 <div className="space-y-3 overflow-y-auto max-h-[70vh] pr-2">
                   {groupedProducts.length === 0 ? (
-                    <div className="p-8 text-center text-slate-400 font-bold border border-dashed rounded-2xl">لا توجد منتجات</div>
+                    <div className="p-8 text-center text-slate-400 font-bold border border-dashed rounded-2xl">ماكو منتجات</div>
                   ) : groupedProducts.map((group) => {
                     const isOpen = activeInvoiceCategory === group.category;
                     return (
@@ -1072,7 +1072,7 @@ Alturath.kw`;
                     setShowCustomerDropdown(true);
                   }}
                   onFocus={() => setShowCustomerDropdown(true)}
-                  placeholder="ابحث بالاسم أو الهاتف..."
+                  placeholder="ابحث بالاسم أو التلفون..."
                   className="w-full bg-slate-50 border rounded-2xl p-4 pr-11 text-right font-bold focus:ring-2 focus:ring-primary/20 transition-all"
                 />
                 <Search
@@ -1096,7 +1096,7 @@ Alturath.kw`;
                               customerSearch.replace(/[^0-9]/g, ""),
                             );
                             setShowCustomerDropdown(false);
-                            toast.info("تم اختيار إنشاء عميل جديد");
+                            toast.info("اخترت إنشاء عميل جديد");
                           }}
                           className="p-4 hover:bg-primary/5 cursor-pointer text-right border-b border-slate-100 flex items-center justify-between group"
                         >
@@ -1164,7 +1164,7 @@ Alturath.kw`;
                     onChange={(e) =>
                       setCustomerPhone(normalizePhoneDigits(e.target.value))
                     }
-                    placeholder="رقم الهاتف"
+                    placeholder="رقم التلفون"
                     className="w-full bg-white border rounded-xl p-2 text-right text-sm"
                   />
                 </motion.div>

@@ -331,7 +331,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       if (id.startsWith("ORD-")) {
         import("sonner").then((m) =>
           m.toast.error(
-            "ممنوع حذف طلبات التطبيق من سجل الفواتير. يرجى تعديلها من الطلبات.",
+            "طلبات التطبيق ما تنحذف من سجل الفواتير. عدلها من قسم الطلبات.",
           ),
         );
         return;
@@ -382,7 +382,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       if (invoice.id.startsWith("ORD-")) {
         import("sonner").then((m) =>
           m.toast.error(
-            "لا يمكن تعديل طلبات التطبيق من سجل الفواتير. يرجى تعديلها من قسم الطلبات.",
+            "ما يصير نعدل طلبات التطبيق من سجل الفواتير. عدلها من قسم الطلبات.",
           ),
         );
         return;
@@ -436,7 +436,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         (c) => c.id === invoice.customerId,
       );
       const invoiceId = invoice.id;
-      const loadingToast = toast.loading("جاري إنشاء رابط دفع جديد...");
+      const loadingToast = toast.loading("نجهز رابط دفع جديد...");
       try {
         const response = await fetch("/api/create-payment", {
           method: "POST",
@@ -517,16 +517,16 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
             }, 500);
           } else {
             toast.dismiss(loadingToast);
-            toast.error("فشل الحصول على الرابط من الرد");
+            toast.error("ما وصلنا الرابط من الرد");
           }
         } else {
           toast.dismiss(loadingToast);
-          toast.error("خطأ: " + (paymentData.message || "فشل إنشاء الرابط"));
+          toast.error("خطأ: " + (paymentData.message || "ما قدرنا ننشئ الرابط"));
         }
       } catch (error) {
         console.error("Regenerate Error:", error);
         toast.dismiss(loadingToast);
-        toast.error("خطأ في الاتصال بخادم الدفع");
+        toast.error("الاتصال بخادم الدفع تعطل");
       }
     };
 
@@ -925,7 +925,7 @@ Alturath.kw`;
                                 <TrendingUp size={48} />
                               </div>
                               <h3 className="text-xl md:text-3xl font-bold text-slate-800 mb-3 tracking-tight">
-                                لا توجد فواتير!
+                                ماكو فواتير!
                               </h3>
                               <p className="text-slate-500 font-bold mb-8 leading-relaxed">
                                 لم تقم بإصدار أي فاتورة حتى الآن. الذكاء
@@ -1170,7 +1170,7 @@ Alturath.kw`;
                                           } else {
                                             import("sonner").then((m) =>
                                               m.toast.error(
-                                                "لا يمكن فتح واتساب لعدم توفر رقم عميل",
+                                                "ما نقدر نفتح واتساب لأن رقم العميل مو موجود",
                                               ),
                                             );
                                           }
@@ -1576,7 +1576,7 @@ Alturath.kw`;
                             colSpan={6}
                             className="p-3 md:p-4 text-center text-slate-500 font-bold italic"
                           >
-                            لا توجد فواتير مطابقة للبحث.
+                            ماكو فواتير مطابقة للبحث.
                           </td>
                         </tr>
                       )}

@@ -55,7 +55,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
 
  const handleCreateCode = () => {
  if (!newCode.code || !newCode.value) {
- toast.error('يرجى ملء جميع الحقول المطلوبة');
+ toast.error('عبّي كل الحقول المطلوبة');
  return;
  }
 
@@ -238,7 +238,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  <tr>
  <td colSpan={5} className="p-3 md:p-4 md:p-3 md:p-4 text-center">
  <Tag size={48} className="mx-auto text-slate-200 mb-4" />
- <p className="text-slate-500 font-bold">لا توجد كوبونات حالياً. ابدأ بإنشاء أول كود!</p>
+ <p className="text-slate-500 font-bold">ماكو كوبونات حالياً. ابدأ بأول كود!</p>
  </td>
  </tr>
 )}

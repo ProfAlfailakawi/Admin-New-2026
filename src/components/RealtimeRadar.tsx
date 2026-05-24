@@ -92,7 +92,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
       }
 
     } catch (e) {
-      toast.error("فشل التوليد الذكي");
+      toast.error("التوليد الذكي ما ضبط");
     } finally {
       setLoading(false);
     }
@@ -206,7 +206,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
         {loading && (
           <div className="flex flex-col items-center justify-center py-10 bg-slate-50 rounded-2xl">
             <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
-            <p className="text-slate-500 font-bold">جاري تحليل التريند وتجهيز المحتوى المناسب...</p>
+            <p className="text-slate-500 font-bold">نحلل التريند ونجهز المحتوى المناسب...</p>
           </div>
         )}
 

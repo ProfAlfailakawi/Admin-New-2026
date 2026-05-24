@@ -26,7 +26,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  toast.success('تم ابتكار حملة جديدة بنجاح! 🚀');
  } catch (error: any) {
  console.error("Marketing campaign generation failed:", error);
- toast.error('خدمة الذكاء الاصطناعي مشغولة جداً حالياً. يرجى المحاولة بعد قليل.');
+ toast.error('خدمة الذكاء الاصطناعي مشغولة الحين. جرّب بعد شوي.');
  } finally {
  setIsGenerating(false);
  }
@@ -56,7 +56,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 md:px-8 md:px-12 py-3 md:py-5 rounded-xl md:rounded-2xl font-bold text-sm md:text-xl flex items-center gap-3 transition-all active:scale-95 shadow-xl shadow-indigo-900/50 min-h-[44px]"
  >
  {isGenerating ? (
- <>جاري الابتكار... <RefreshCw className="animate-spin" size={20} /></>
+ <>نبتكر... <RefreshCw className="animate-spin" size={20} /></>
 ) : (
  <>ابتكر حملة جديدة الآن <Sparkles size={20} /></>
 )}
@@ -176,7 +176,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  <div className="w-16 md:w-20 h-16 md:h-20 bg-white rounded-3xl shadow-sm flex items-center justify-center text-slate-300 mx-auto mb-6">
  <Target size={40} />
  </div>
- <h3 className="text-xl md:text-2xl font-bold text-slate-500">لا توجد حملة مفعلة حالياً</h3>
+ <h3 className="text-xl md:text-2xl font-bold text-slate-500">ماكو حملة مفعلة حالياً</h3>
  <p className="text-slate-500 text-sm md:text-base font-medium mt-2">اضغط على زر الابتكار أعلاه ليبدأ الذكاء الاصطناعي في تصميم حملتك القادمة.</p>
  </motion.div>
 )}

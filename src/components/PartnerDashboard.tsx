@@ -292,7 +292,7 @@ const browserAlreadyGranted =
      toast.success("تم تفعيل إشعارات الطلبات بنجاح! 🔔");
      setShowPushModal(false);
    } catch (err: any) {
-     toast.error(err.message || 'فشل تفعيل الإشعارات');
+     toast.error(err.message || 'ما قدرنا نفعّل الإشعارات');
    } finally {
      setIsActivatingPush(false);
    }
@@ -545,7 +545,7 @@ const {
                           disabled={isActivatingPush}
                           className="bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 transition-colors"
                         >
-                          {isActivatingPush ? 'جاري التفعيل...' : 'تفعيل الإشعارات الآن'}
+                          {isActivatingPush ? 'نفعّلها...' : 'تفعيل الإشعارات الآن'}
                         </button>
                         <button
                           onClick={() => setShowPushModal(false)}
@@ -730,7 +730,7 @@ const {
        {menuEngineering.stars.slice(0, 5).map(s => (
        <span key={s.product.id} className="text-xs font-bold text-white bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/20 shadow-sm">{s.product.name}</span>
       ))}
-       {menuEngineering.stars.length === 0 && <span className="text-xs text-white/30 italic">لا توجد أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.stars.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
       
@@ -748,7 +748,7 @@ const {
        {menuEngineering.plowhorses.slice(0, 5).map(s => (
        <span key={s.product.id} className="text-xs font-bold text-white bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/20 shadow-sm">{s.product.name}</span>
       ))}
-       {menuEngineering.plowhorses.length === 0 && <span className="text-xs text-white/30 italic">لا توجد أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.plowhorses.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
       
@@ -766,7 +766,7 @@ const {
        {menuEngineering.puzzles.slice(0, 5).map(s => (
        <span key={s.product.id} className="text-xs font-bold text-white bg-blue-500/20 px-3 py-1.5 rounded-lg border border-blue-500/20 shadow-sm">{s.product.name}</span>
       ))}
-       {menuEngineering.puzzles.length === 0 && <span className="text-xs text-white/30 italic">لا توجد أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.puzzles.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
       
@@ -784,7 +784,7 @@ const {
        {menuEngineering.turtles.slice(0, 5).map(s => (
        <span key={s.product.id} className="text-xs font-bold text-white bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/20 shadow-sm">{s.product.name}</span>
       ))}
-       {menuEngineering.turtles.length === 0 && <span className="text-xs text-white/30 italic">لا توجد أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.turtles.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
        </div>

@@ -101,7 +101,7 @@ No markdown formatting, just pure JSON.`;
       setActiveTheme('custom');
       toast.success(`تم ابتكار وتطبيق ثيم: ${themeData.name} ✨`);
     } catch (e) {
-      toast.error('لم نتمكن من توليد الثيم، تأكد من الاتصال أو مفتاح API.');
+      toast.error('ما قدرنا نولّد الثيم، تأكد من الاتصال أو مفتاح API.');
     } finally {
       setIsApplying(false);
     }
@@ -225,7 +225,7 @@ No markdown formatting, just pure JSON.`;
           {isApplying && (
              <div className="w-full h-full min-h-[300px] md:min-h-[500px] border-2 border-purple-200 rounded-3xl flex flex-col items-center justify-center text-purple-600 gap-4 bg-white/50 shadow-inner">
                 <Loader2 className="w-16 h-16 animate-spin" />
-                <p className="font-bold">جاري التصميم والابتكار...</p>
+                <p className="font-bold">نصمم ونبتكر...</p>
              </div>
           )}
 

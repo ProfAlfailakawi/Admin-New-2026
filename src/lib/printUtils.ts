@@ -171,7 +171,7 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
       <div class="card">
         <h2><span class="icon">♡</span> معلومات العميل</h2>
         <div class="row"><span class="label">اسم العميل</span><span class="value">${customerName}</span></div>
-        <div class="row"><span class="label">رقم الهاتف</span><span class="value">${customerPhone || '-'}</span></div>
+        <div class="row"><span class="label">رقم التلفون</span><span class="value">${customerPhone || '-'}</span></div>
         <div class="row"><span class="label">العنوان</span><span class="value">${address}</span></div>
       </div>
     </section>
@@ -179,7 +179,7 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
     <section class="table-wrap">
       <table>
         <thead class="head"><tr><th>المنتج / الإضافات</th><th>الكمية</th><th>السعر الفردي</th><th>إجمالي المنتج</th></tr></thead>
-        <tbody>${itemsHtml || `<tr class="item-row"><td colspan="4" class="center">لا توجد منتجات</td></tr>`}</tbody>
+        <tbody>${itemsHtml || `<tr class="item-row"><td colspan="4" class="center">ماكو منتجات</td></tr>`}</tbody>
       </table>
     </section>
 
