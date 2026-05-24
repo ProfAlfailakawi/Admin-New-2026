@@ -294,19 +294,6 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
 
  return (
 	 <div className="ai-executive-assistant-shell animate-in fade-in slide-in-from-bottom-4 duration-700" dir="rtl">
-	  <section className="ai-command-hero">
-	    <div className="ai-command-title">
-	      <span><BrainCircuit size={16} /> المساعد التنفيذي</span>
-	      <h2>قرار واضح بدل شاشة معقدة</h2>
-	      <p>يعرف نبض البيع، الطلبات، العملاء، المنتجات، والموردين. اضغط بطاقة أو اكتب سؤالك.</p>
-	    </div>
-	    <div className="ai-command-metrics">
-	      <div><strong>{money(intel.todaySales)}</strong><span>مبيعات اليوم</span></div>
-	      <div><strong>{intel.margin}%</strong><span>هامش الربح</span></div>
-	      <div><strong>{intel.pendingOrders}</strong><span>بانتظار</span></div>
-	      <div><strong>{intel.failedOrders}</strong><span>فشل دفع</span></div>
-	    </div>
-	  </section>
 
 	  <section className="ai-mission-strip">
 	    {(intel.missions.length ? intel.missions : [{
