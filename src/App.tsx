@@ -406,11 +406,11 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     },
     {
       id: 'smart-studio',
-      label: 'استوديو المحتوى الذكي',
+      label: 'استوديو الصورة الذكية',
       subtitle: 'تجهيز رسائل الدعاية والتسويق التلقائي',
       icon: <Send size={18} />,
       tone: 'sky',
-      value: `استوديو المحتوى`,
+      value: `استوديو الصورة الذكية`,
       hint: 'دعاية وتواصل ذكي'
     },
     {
@@ -521,14 +521,14 @@ const getOnboardingProfile = (role: 'admin' | 'partner' | 'demo') => {
         { icon: <Gauge size={19} />, title: 'مركز القيادة', text: 'ابدأ من الملخص التنفيذي لتفهم نبض النظام خلال ثواني.', page: 'dashboard' },
         { icon: <Receipt size={19} />, title: 'الفواتير', text: 'جرّب إنشاء فاتورة ومراجعة سجل الفواتير.', page: 'new-invoice' },
         { icon: <ShoppingBag size={19} />, title: 'طلبات الموقع', text: 'شاهد كيف تظهر حالات الطلبات والدفعات للمتابعة.', page: 'orders' },
-        { icon: <Sparkles size={19} />, title: 'استوديو المحتوى', text: 'استعرض أدوات المحتوى والأرشيف من غير لمس منطق الذكاء.', page: 'smart-studio' },
+        { icon: <Sparkles size={19} />, title: 'استوديو الصورة الذكية', text: 'استعرض أدوات المحتوى والأرشيف من غير لمس منطق الذكاء.', page: 'smart-studio' },
       ]
     };
   }
   return {
     eyebrow: 'مرشد الأدمن التنفيذي',
     title: 'أهلاً بك في مركز قيادة شركة مطبخ التراث',
-    subtitle: 'جولة سريعة لأول دخول: مبيعات، طلبات، منتجات، تنبيهات، واستوديو المحتوى في مسار واضح.',
+    subtitle: 'جولة سريعة لأول دخول: مبيعات، طلبات، منتجات، تنبيهات، واستوديو الصورة الذكية في مسار واضح.',
     accent: 'gold',
     steps: [
       { icon: <Gauge size={19} />, title: 'مركز القيادة', text: 'نبض اليوم، بانتظار الدفع، فشل الدفع، والمنتجات التي تحتاج مراجعة.', page: 'dashboard' },
@@ -670,7 +670,7 @@ const getAdminPageMeta = (page: string) => {
     'suppliers-audit': { title: 'الموردين والمخاطر', subtitle: 'ربط أثر المورد بالمنتجات والطلبات والربح.', tag: 'Supplier Intelligence' },
     reports: { title: 'التقارير', subtitle: 'قراءة تنفيذية للفواتير والمبيعات والأداء.', tag: 'Executive Reports' },
     ai: { title: 'المساعد الذكي', subtitle: 'مساعد تنفيذي يعرض الملخص والأسباب والإجراء المقترح.', tag: 'Executive Assistant' },
-    'smart-studio': { title: 'استوديو المحتوى الذكي', subtitle: 'اختيار المحتوى، التوليد، المعاينة، والأرشيف في تجربة واحدة.', tag: 'Creative Suite' },
+    'smart-studio': { title: 'استوديو الصورة الذكية', subtitle: 'اختيار المحتوى، التوليد، المعاينة، والأرشيف في تجربة واحدة.', tag: 'Creative Suite' },
     loyalty: { title: 'مملكة الولاء', subtitle: 'مستويات عادي، فضي، ذهبي، وVIP مع شارات وترقيات.', tag: 'Loyalty Kingdom' },
     coupons: { title: 'مسرح العروض الذكية', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'Smart Offers Theater' },
     'growth-simulator': { title: 'محاكي النمو والتسويق', subtitle: 'سيناريوهات ماذا لو للمبيعات والربح والمخاطر.', tag: 'Growth Simulator Pro' },
@@ -739,7 +739,7 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
       {showCustomers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Customer Intelligence Board</span><h2>لوحة ذكاء العملاء</h2></div><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{c.spend.toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></section>}
       {showSuppliers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Supplier Risk Radar</span><h2>رادار الموردين</h2></div><button type="button" onClick={() => onNavigate('suppliers-audit')}>فتح المراجعة</button></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>المورد</span><b>→</b><span>المنتجات</span><b>→</b><span>الطلبات</span><b>→</b><span>الربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات مرتبطة · {sup.debt.toFixed(3)} د.ك</p><strong>{sup.risk}</strong></div>)}</div></section>}
       {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح العروض الذكية</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span>تأثير الربح: {tone}</span></div>})}</div></section>}
-      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>AI Lab Gallery</span><h2>معرض مختبر الذكاء</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو المحتوى</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
+      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>AI Lab Gallery</span><h2>معرض مختبر الذكاء</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو الصورة الذكية</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
         { label: 'تحليل العملاء', page: 'customers' },
         { label: 'تحليل المنتجات', page: 'products' },
         { label: 'تحليل الموردين', page: 'suppliers-audit' },
