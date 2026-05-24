@@ -2583,6 +2583,81 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
   });
 
 
+
+  app.post("/api/smart-studio/generate-reel", express.json({ limit: "50mb" }), async (req, res) => {
+    try {
+      const { prompt, imageContent, mimeType, duration, shotType, format, place, mood, tasteProfile } = req.body || {};
+      if (!prompt || typeof prompt !== "string") return res.status(400).json({ error: "Missing prompt" });
+
+      const durationSeconds = Math.min(8, Math.max(4, Number(duration) || 4));
+      const finalPrompt = `${prompt}\n\nSMART STUDIO REEL ENFORCEMENT:\n- Create a vertical Instagram Reel, aspect ratio 9:16, duration ${durationSeconds} seconds.\n- Brand context: Kuwaiti home-order kitchen focused on rice dishes, seafood/fish, mahshi, grape leaves, and occasional grills.\n- Shot type: ${shotType || "hero-push"}. Place context: ${place || "delivery"}. Mood: ${mood || "warm"}.\n- Ultra-realistic human food videography, simple believable camera movement only.\n- Keep food stable and physically plausible across frames; no morphing food, no melting plates, no warped hands.\n- No visible faces, no readable text, no logos, no watermarks.\n- No used tissues, no dirty napkins, no crumpled kleenex, no table trash, no paper scraps, no crumbs, no messy leftovers.\n- No dallah, no Arabic coffee, no coffee cups, no incense, no sadu, no lanterns, no fantasy decor, no palace, no CGI.\n${tasteProfile ? `User taste memory: ${String(tasteProfile).slice(0, 900)}\n` : ""}\nMake viewers believe it was shot by a real videographer in Kuwait.`;
+
+      if (process.env.SMART_STUDIO_REEL_API_URL) {
+        const upstream = await fetch(process.env.SMART_STUDIO_REEL_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(process.env.SMART_STUDIO_REEL_API_KEY ? { "Authorization": `Bearer ${process.env.SMART_STUDIO_REEL_API_KEY}` } : {})
+          },
+          body: JSON.stringify({ prompt: finalPrompt, imageContent, mimeType, duration: durationSeconds, format: format || "9:16" })
+        });
+        const data = await upstream.json().catch(() => null);
+        if (!upstream.ok || !data) return res.status(upstream.status || 500).json({ error: data?.error || "Reel API failed" });
+        return res.json({ videoUrl: data.videoUrl || data.url || data.video, posterUrl: data.posterUrl || data.thumbnail || null, provider: "custom" });
+      }
+
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: "GEMINI_API_KEY is not configured on server", needsKey: true });
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: { headers: { "User-Agent": "alturath-admin-server" } }
+      });
+
+      const parts: any[] = [];
+      if (imageContent) parts.push({ inlineData: { data: imageContent, mimeType: mimeType || "image/jpeg" } });
+      parts.push({ text: finalPrompt });
+
+      let operation = await (ai as any).models.generateVideos({
+        model: process.env.SMART_STUDIO_REEL_MODEL || "veo-3.1-generate-preview",
+        prompt: imageContent ? undefined : finalPrompt,
+        image: imageContent ? { imageBytes: imageContent, mimeType: mimeType || "image/jpeg" } : undefined,
+        config: {
+          numberOfVideos: 1,
+          durationSeconds,
+          aspectRatio: "9:16",
+          personGeneration: "dont_allow"
+        }
+      });
+
+      for (let i = 0; i < 60 && operation && !operation.done; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        operation = await (ai as any).operations.getVideosOperation({ operation });
+      }
+
+      const generated = operation?.response?.generatedVideos?.[0];
+      const videoObj = generated?.video || generated;
+      const videoUrl = videoObj?.uri || videoObj?.url || generated?.uri || generated?.url;
+      const videoBase64 = videoObj?.bytesBase64Encoded || videoObj?.data;
+
+      if (videoUrl) return res.json({ videoUrl, posterUrl: generated?.thumbnail?.uri || generated?.poster?.uri || null, provider: "veo" });
+      if (videoBase64) return res.json({ videoUrl: `data:video/mp4;base64,${videoBase64}`, posterUrl: null, provider: "veo" });
+
+      return res.status(500).json({ error: "No video output generated" });
+    } catch (e: any) {
+      console.error("/api/smart-studio/generate-reel error:", e);
+      const errMsg = e?.message || String(e);
+      if (errMsg.includes("PERMISSION_DENIED") || errMsg.includes("API_KEY_INVALID") || errMsg.includes("suspended")) {
+        return res.status(403).json({ error: "مفتاح توليد الفيديو غير صالح أو لا يملك صلاحية توليد الفيديو.", needsKey: true });
+      }
+      if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("429") || errMsg.includes("quota")) {
+        return res.status(429).json({ error: "تم استنفاد حصة توليد الفيديو. يرجى المحاولة لاحقاً." });
+      }
+      return res.status(500).json({ error: errMsg });
+    }
+  });
+
   app.post("/api/smart-studio/reality-audit", express.json({ limit: "25mb" }), async (req, res) => {
     try {
       const { imageContent, mimeType } = req.body;
