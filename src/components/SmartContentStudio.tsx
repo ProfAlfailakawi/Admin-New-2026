@@ -176,6 +176,17 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'ناعم', label: 'إضاءة استوديو', icon: '☁️' }
   ];
 
+  const mergedScenes = [
+    { id: 'quick-kuwait', label: 'طلب سريع (توصيل)', desc: 'كرتون وتغليف جاهز للتوصيل', icon: '⚡', place: 'delivery', mode: 'finalBoss', background: 'delivery-packaging' },
+    { id: 'home-delivery', label: 'طلب منزلي (سفرة)', desc: 'على سفرة بيتية واقعية ومرتبة', icon: '🏠', place: 'home', mode: 'finalBoss', background: 'home-table' },
+    { id: 'diwaniya-night', label: 'ديوانية الربع', desc: 'يمعة ربع وطلب جماعي بالديوانية', icon: '🛋️', place: 'diwaniya', mode: 'human', background: 'diwaniya-table' },
+    { id: 'chalet-weekend', label: 'يمعة الشاليه', desc: 'طلعة البحر وأجواء عطلة ويكند مريحة', icon: '🌊', place: 'chalet', mode: 'human', background: 'chalet-spread' },
+    { id: 'zowara-family', label: 'زوارة أهل', desc: 'لمة العائلة وسفرة تفتح النفس للضيافة', icon: '👨‍👩‍👧‍👦', place: 'zowara', mode: 'menu', background: 'zowara-spread' },
+    { id: 'farm-gathering', label: 'سفرة المزرعة', desc: 'جلسة خارجية بظل طبيعي لمزرعة أو حديقة', icon: '🌴', place: 'farm', mode: 'human', background: 'farm-gathering' },
+    { id: 'jakhour-setup', label: 'قعدة الجاخور', desc: 'طلعة عملية للربع في قعدة الجاخور المرتبة', icon: '🐪', place: 'jakhour', mode: 'human', background: 'jakhour-setup' },
+    { id: 'national-day', label: 'أجواء العيد الوطني', desc: 'لمة كويتية دافئة وراقية بنكهة العيد الوطني', icon: '🇰🇼', place: 'home', mode: 'finalBoss', background: 'home-table' },
+  ];
+
 
 
   const FORBIDDEN_STUDIO_WORDS = ['دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود', 'سدو', 'فانوس', 'فوانيس', 'قهوة', 'قهوت', 'بن', 'فنجان', 'فناجين', 'كلينكس', 'منديل مستخدم', 'مناديل مستخدمة', 'منديل وصخ', 'مناديل وصخة', 'مخلفات'];
@@ -1449,33 +1460,98 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               </div>
             )}
 
-            {createStep === 3 && (
-              <div className="space-y-4">
-                <button type="button" onClick={() => setShowCreateOccasion(!showCreateOccasion)} className="w-full rounded-2xl border border-rose-200 bg-rose-50 p-4 text-right flex items-center justify-between">
-                  <span><span className="block text-xs font-black text-rose-500">المشهد (الحالة)</span><span className="block text-lg font-black text-rose-900 mt-1">{activePulsePack.icon} {activePulsePack.label}</span></span>
-                  <ChevronLeft className={cn("transition-transform text-rose-400", showCreateOccasion ? "-rotate-90" : "")} size={20} />
-                </button>
-                {showCreateOccasion && (
-                  <div className="grid grid-cols-2 gap-2">
-                    {KUWAIT_PULSE_PACKS.slice(0, 8).map((pack) => (
-                      <button key={pack.id} type="button" onClick={() => { setSelectedPulseId(pack.id); setSelectedOrderPlace(pack.defaultPlace); setBackgroundPreset(pack.background); setRealityMode(pack.mode); setSelectedTheme('نبض الكويت'); setShowCreateOccasion(false); }} className={cn("p-3 rounded-2xl border text-right transition-all min-h-[76px]", selectedPulseId === pack.id ? "bg-rose-50 border-rose-400 shadow-sm ring-4 ring-rose-500/10" : "bg-white border-slate-100 hover:border-rose-200 hover:bg-slate-50") }>
-                        <span className="block text-xs font-black text-slate-900">{pack.icon} {pack.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <div className="rounded-2xl border-2 border-indigo-50 bg-indigo-50/20 p-3 pt-4 relative mt-2">
-                  <p className="absolute -top-3 right-4 bg-white px-2 text-xs font-black text-indigo-500 rounded-full border border-indigo-100 shadow-sm">البيئة الواقعية (المكان)</p>
-                  <div className="mt-2">
-                    {renderPlaceLibrary()}
+            {createStep === 3 && (() => {
+              const activeScene = mergedScenes.find(scene => {
+                const isNationalDay = selectedPulseId === 'national-day';
+                if (scene.id === 'national-day') {
+                  return isNationalDay;
+                }
+                if (scene.id === 'home-delivery') {
+                  return !isNationalDay && selectedOrderPlace === 'home';
+                }
+                return selectedOrderPlace === scene.place;
+              }) || mergedScenes[0];
+
+              return (
+                <div className="space-y-4 text-right">
+                  <p className="text-xs font-black text-slate-500 mb-2">المشهد والبيئة الحالية لقائمة الطعام والمنتجات:</p>
+                  
+                  {/* Trigger Header Button - Collapsed By Default */}
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateOccasion(!showCreateOccasion)}
+                    className="w-full rounded-3xl border border-rose-200 bg-rose-50/70 p-4 text-right flex items-center justify-between hover:bg-rose-50 hover:border-rose-300 transition-all cursor-pointer group shadow-sm outline-none select-none"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl p-2.5 rounded-2xl bg-white border border-rose-100 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                        {activeScene.icon}
+                      </div>
+                      <div className="flex-1 text-right min-w-0 pr-1 select-none">
+                        <span className="block text-[11px] font-black text-rose-500">مشهد الصورة</span>
+                        <span className="block text-sm font-black text-rose-950 mt-0.5">{activeScene.label}</span>
+                        <span className="block text-[10px] font-bold text-slate-500 mt-1 truncate">{activeScene.desc}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-white border border-rose-200 text-rose-600 hover:text-rose-700 px-3 py-1.5 rounded-2xl text-[10px] font-black shadow-sm transition-all shrink-0">
+                      <span>{showCreateOccasion ? 'إغلاق' : 'تغيير المشهد'}</span>
+                      <ChevronLeft className={cn("transition-transform text-rose-400 w-3.5 h-3.5", showCreateOccasion ? "-rotate-90" : "")} />
+                    </div>
+                  </button>
+
+                  {/* Collapsible List of Scenes - Closed By Default */}
+                  <AnimatePresence>
+                    {showCreateOccasion && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                      >
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-slate-50 border border-slate-100/80 p-3 rounded-2xl mt-1">
+                          {mergedScenes.map((scene) => {
+                            const isSelected = selectedOrderPlace === scene.place && (scene.id === 'national-day' ? selectedPulseId === 'national-day' : selectedPulseId !== 'national-day');
+                            return (
+                              <button
+                                key={scene.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedPulseId(scene.id === 'farm-gathering' || scene.id === 'jakhour-setup' || scene.id === 'home-delivery' ? 'quick-kuwait' : scene.id);
+                                  setSelectedOrderPlace(scene.place as any);
+                                  setBackgroundPreset(scene.background as any);
+                                  setRealityMode(scene.mode as any);
+                                  setSelectedTheme('نبض الكويت');
+                                  setShowCreateOccasion(false); // Close list after selection
+                                }}
+                                className={cn(
+                                  "relative p-3 rounded-2xl border text-right transition-all flex items-center gap-3 cursor-pointer outline-none select-none",
+                                  isSelected 
+                                    ? "bg-rose-50 border-rose-400 shadow-sm ring-4 ring-rose-500/10 font-bold" 
+                                    : "bg-white border-slate-100/50 hover:border-rose-200 hover:bg-slate-50"
+                                )}
+                              >
+                                <span className="text-xl p-2 rounded-xl bg-slate-50 border border-slate-100/30 flex items-center justify-center shrink-0">
+                                  {scene.icon}
+                                </span>
+                                <div className="flex-1 min-w-0 pr-1">
+                                  <span className="block text-xs font-black text-slate-900">{scene.label}</span>
+                                  <span className="block text-[10px] font-bold text-slate-400 mt-1 leading-normal">{scene.desc}</span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="grid grid-cols-2 gap-2 mt-4">
+                    <button type="button" onClick={() => goCreateStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black hover:bg-slate-50 transition-colors">رجوع</button>
+                    <button type="button" onClick={() => advanceCreateStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg hover:bg-slate-800 transition-colors">التالي</button>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 mt-4">
-                  <button type="button" onClick={() => goCreateStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black hover:bg-slate-50 transition-colors">رجوع</button>
-                  <button type="button" onClick={() => advanceCreateStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg hover:bg-slate-800 transition-colors">التالي</button>
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
             {createStep === 5 && (
               <div className="space-y-4">
@@ -1611,33 +1687,98 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   </div>
                 )}
 
-                {productStep === 3 && (
-                  <div className="space-y-4">
-                    <button type="button" onClick={() => setShowProductOccasion(!showProductOccasion)} className="w-full rounded-2xl border border-rose-200 bg-rose-50 p-4 text-right flex items-center justify-between">
-                      <span><span className="block text-xs font-black text-rose-500">المشهد (الحالة)</span><span className="block text-lg font-black text-rose-900 mt-1">{activePulsePack.icon} {activePulsePack.label}</span></span>
-                      <ChevronLeft className={cn("transition-transform text-rose-400", showProductOccasion ? "-rotate-90" : "")} size={20} />
-                    </button>
-                    {showProductOccasion && (
-                      <div className="grid grid-cols-2 gap-2">
-                        {KUWAIT_PULSE_PACKS.slice(0, 8).map(pack => (
-                          <button key={pack.id} type="button" onClick={() => { setSelectedPulseId(pack.id); setSelectedOrderPlace(pack.defaultPlace); setBackgroundPreset(pack.background); setRealityMode(pack.mode); setSelectedTheme('نبض الكويت'); setShowProductOccasion(false); }} className={cn("p-3 rounded-2xl border text-right transition-all min-h-[76px]", selectedPulseId === pack.id ? "bg-rose-50 border-rose-400 shadow-sm ring-4 ring-rose-500/10" : "bg-white border-slate-100 hover:border-rose-200 hover:bg-slate-50") }>
-                            <span className="block text-xs font-black text-slate-900">{pack.icon} {pack.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    <div className="rounded-2xl border-2 border-indigo-50 bg-indigo-50/20 p-3 pt-4 relative mt-2">
-                      <p className="absolute -top-3 right-4 bg-white px-2 text-xs font-black text-indigo-500 rounded-full border border-indigo-100 shadow-sm">البيئة الواقعية (المكان)</p>
-                      <div className="mt-2">
-                        {renderPlaceLibrary()}
+                {productStep === 3 && (() => {
+                  const activeScene = mergedScenes.find(scene => {
+                    const isNationalDay = selectedPulseId === 'national-day';
+                    if (scene.id === 'national-day') {
+                      return isNationalDay;
+                    }
+                    if (scene.id === 'home-delivery') {
+                      return !isNationalDay && selectedOrderPlace === 'home';
+                    }
+                    return selectedOrderPlace === scene.place;
+                  }) || mergedScenes[0];
+
+                  return (
+                    <div className="space-y-4 text-right">
+                      <p className="text-xs font-black text-slate-500 mb-2">المشهد والبيئة الحالية لقائمة الطعام والمنتجات:</p>
+                      
+                      {/* Trigger Header Button - Collapsed By Default */}
+                      <button
+                        type="button"
+                        onClick={() => setShowProductOccasion(!showProductOccasion)}
+                        className="w-full rounded-3xl border border-rose-200 bg-rose-50/70 p-4 text-right flex items-center justify-between hover:bg-rose-50 hover:border-rose-300 transition-all cursor-pointer group shadow-sm outline-none select-none"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="text-3xl p-2.5 rounded-2xl bg-white border border-rose-100 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                            {activeScene.icon}
+                          </div>
+                          <div className="flex-1 text-right min-w-0 pr-1 select-none">
+                            <span className="block text-[11px] font-black text-rose-500">مشهد الصورة</span>
+                            <span className="block text-sm font-black text-rose-950 mt-0.5">{activeScene.label}</span>
+                            <span className="block text-[10px] font-bold text-slate-500 mt-1 truncate">{activeScene.desc}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-white border border-rose-200 text-rose-600 hover:text-rose-700 px-3 py-1.5 rounded-2xl text-[10px] font-black shadow-sm transition-all shrink-0">
+                          <span>{showProductOccasion ? 'إغلاق' : 'تغيير المشهد'}</span>
+                          <ChevronLeft className={cn("transition-transform text-rose-400 w-3.5 h-3.5", showProductOccasion ? "-rotate-90" : "")} />
+                        </div>
+                      </button>
+
+                      {/* Collapsible List of Scenes - Closed By Default */}
+                      <AnimatePresence>
+                        {showProductOccasion && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2, ease: "easeInOut" }}
+                            className="overflow-hidden"
+                          >
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-slate-50 border border-slate-100/80 p-3 rounded-2xl mt-1">
+                              {mergedScenes.map((scene) => {
+                                const isSelected = selectedOrderPlace === scene.place && (scene.id === 'national-day' ? selectedPulseId === 'national-day' : selectedPulseId !== 'national-day');
+                                return (
+                                  <button
+                                    key={scene.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedPulseId(scene.id === 'farm-gathering' || scene.id === 'jakhour-setup' || scene.id === 'home-delivery' ? 'quick-kuwait' : scene.id);
+                                      setSelectedOrderPlace(scene.place as any);
+                                      setBackgroundPreset(scene.background as any);
+                                      setRealityMode(scene.mode as any);
+                                      setSelectedTheme('نبض الكويت');
+                                      setShowProductOccasion(false); // Close list after selection
+                                    }}
+                                    className={cn(
+                                      "relative p-3 rounded-2xl border text-right transition-all flex items-center gap-3 cursor-pointer outline-none select-none",
+                                      isSelected 
+                                        ? "bg-rose-50 border-rose-400 shadow-sm ring-4 ring-rose-500/10 font-bold" 
+                                        : "bg-white border-slate-100/50 hover:border-rose-200 hover:bg-slate-50"
+                                    )}
+                                  >
+                                    <span className="text-xl p-2 rounded-xl bg-slate-50 border border-slate-100/30 flex items-center justify-center shrink-0">
+                                      {scene.icon}
+                                    </span>
+                                    <div className="flex-1 min-w-0 pr-1">
+                                      <span className="block text-xs font-black text-slate-900">{scene.label}</span>
+                                      <span className="block text-[10px] font-bold text-slate-400 mt-1 leading-normal">{scene.desc}</span>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <div className="grid grid-cols-2 gap-2 mt-4">
+                        <button type="button" onClick={() => goProductStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black hover:bg-slate-50 transition-colors">رجوع</button>
+                        <button type="button" onClick={() => advanceProductStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg hover:bg-slate-800 transition-colors">التالي</button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 mt-4">
-                      <button type="button" onClick={() => goProductStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black hover:bg-slate-50 transition-colors">رجوع</button>
-                      <button type="button" onClick={() => advanceProductStep(5)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg hover:bg-slate-800 transition-colors">التالي</button>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {productStep === 5 && (
                   <div className="space-y-4">

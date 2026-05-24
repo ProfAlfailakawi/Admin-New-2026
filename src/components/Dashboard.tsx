@@ -6116,37 +6116,58 @@ const [isPending, startTransition] = useTransition();
         </AnimatePresence>
 
 
-        {/* Time Filter (Ultra Elegant Segmented Pill) */}
-        {isExecutiveMode && (activeTab === "pulse" || activeTab === "financials" || activeTab === "advanced") && (((data?.orders?.length || 0) + (data?.invoices?.length || 0) + (data?.expenses?.length || 0)) > 0) && (
-          <div className="fixed bottom-3 left-0 right-0 z-[90] p-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-10 duration-700">
-            <div className="admin-date-filter-elegant bg-slate-950/95 border border-white/10 text-white backdrop-blur-3xl rounded-full p-1.5 flex items-center justify-between gap-1 pointer-events-auto w-[92%] max-w-[340px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all">
-              {[
-                { id: "day", label: "اليوم" },
-                { id: "week", label: "أسبوع" },
-                { id: "month", label: "شهر" },
-                { id: "year", label: "سنة" },
-                { id: "all", label: "الكل" },
-              ].map((opt) => {
-                const isActive = dateFilter === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => startTransition(() => setDateFilter(opt.id as any))}
-                    className={cn(
-                      "flex-1 text-center py-2 px-1 rounded-full text-xs font-black transition-all active:scale-95 duration-200",
-                      isActive 
-                        ? "bg-amber-500 text-slate-950 shadow-md font-extrabold" 
-                        : "text-slate-400 hover:text-white"
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+         {/* Soft-Laser Micro-Thread Filter (Ultra-slim, luxury minimalist design, perfect for mobile layout) */}
+         {(activeTab === "pulse" || activeTab === "financials" || activeTab === "advanced" || activeTab === "growth" || activeTab === "intelligence") && (
+           <div className="fixed bottom-6 left-0 right-0 z-[100] px-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-5 duration-500 font-mono">
+             {(() => {
+               const options = [
+                 { id: "day", label: "1" },
+                 { id: "week", label: "7" },
+                 { id: "month", label: "30" },
+                 { id: "year", label: "365" },
+                 { id: "all", label: "∞" },
+               ];
+
+               return (
+                 <div className="admin-date-filter-elegant bg-slate-950/80 border border-white/5 text-white backdrop-blur-3xl rounded-full py-0.5 px-1 flex items-center justify-between gap-0.5 pointer-events-auto w-[68%] max-w-[190px] h-7 shadow-[0_12px_28px_rgba(0,0,0,0.85),_inset_0_1px_0_rgba(255,255,255,0.03)] relative overflow-visible">
+                   
+                   {options.map((opt) => {
+                     const isActive = dateFilter === opt.id;
+                     return (
+                       <button
+                         key={opt.id}
+                         type="button"
+                         onClick={() => startTransition(() => setDateFilter(opt.id as any))}
+                         className={cn(
+                           "relative flex-1 text-center h-full text-[10px] font-bold transition-all duration-300 z-10 select-none cursor-pointer outline-none flex flex-col items-center justify-center",
+                           isActive ? "text-amber-400 font-extrabold" : "text-slate-400 hover:text-white"
+                         )}
+                       >
+                         {isActive && (
+                           <>
+                             {/* Ultra-soft background capsule glow */}
+                             <motion.div
+                               layoutId="softCapsuleAdmin"
+                               className="absolute inset-[1px] bg-gradient-to-r from-amber-400/5 to-orange-500/5 border border-amber-400/10 rounded-full -z-10"
+                               transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                             />
+                             {/* Micro Laser Glowing Dot/Thread at bottom of option */}
+                             <motion.span 
+                               layoutId="microThreadAdmin"
+                               className="absolute bottom-0 w-1.5 h-[1.5px] rounded-full bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_1px_4px_rgba(245,158,11,0.8)]"
+                               transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                             />
+                           </>
+                         )}
+                         <span className="relative z-20 block">{opt.label}</span>
+                       </button>
+                     );
+                   })}
+                 </div>
+               );
+             })()}
+           </div>
+         )}
 
       </div>
     );
