@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, MessageCircle } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, MessageCircle, Film, PlayCircle, Copy, RotateCcw } from 'lucide-react';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from '../constants';
 import { toast } from 'sonner';
 import { Product } from '../types';
@@ -43,6 +43,20 @@ type StudioSceneSuggestion = {
   confidence?: number;
 };
 
+
+type StudioReelHistoryItem = {
+  url: string;
+  poster?: string | null;
+  date: Date;
+  duration: number;
+  shot: string;
+  source: 'idea' | 'image';
+  format: '9:16';
+  idea?: string;
+  place?: KuwaitOrderPlace;
+  mood?: string;
+};
+
 type StudioHistoryItem = {
   url: string;
   caption: string | null;
@@ -51,7 +65,7 @@ type StudioHistoryItem = {
   background?: StudioBackgroundPresetId;
   theme?: string;
   format?: string;
-  source?: 'idea' | 'image';
+  source?: 'idea' | 'image' | 'reel';
   packId?: string;
   place?: KuwaitOrderPlace;
   mood?: string;
@@ -91,7 +105,7 @@ class StudioErrorBoundary extends React.Component<{ title: string; children: Rea
 }
 
 export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, setData, onNavigate }) => {
-  const [studioTab, setStudioTab] = useState<'home' | 'create' | 'quick' | 'whatsapp' | 'occasions' | 'product' | 'library' | 'advanced'>('home');
+  const [studioTab, setStudioTab] = useState<'home' | 'create' | 'quick' | 'whatsapp' | 'occasions' | 'product' | 'reel' | 'library' | 'advanced'>('home');
   const [createStep, setCreateStep] = useState<number>(1);
   const [productStep, setProductStep] = useState<number>(1);
   const [maxCreateStepReached, setMaxCreateStepReached] = useState<number>(1);
@@ -103,7 +117,15 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [showPlaceLibrary, setShowPlaceLibrary] = useState(false);
   const [showImageSettings, setShowImageSettings] = useState(false);
   const [showBrandingPanel, setShowBrandingPanel] = useState(false);
-  const [archiveTab, setArchiveTab] = useState<'idea' | 'image'>('idea');
+  const [archiveTab, setArchiveTab] = useState<'idea' | 'image' | 'reel'>('idea');
+  const [reelStep, setReelStep] = useState<number>(1);
+  const [reelDuration, setReelDuration] = useState<number>(4);
+  const [reelShot, setReelShot] = useState<string>('hero-push');
+  const [reelSource, setReelSource] = useState<'idea' | 'image'>('idea');
+  const [generatedReel, setGeneratedReel] = useState<string | null>(null);
+  const [isGeneratingReel, setIsGeneratingReel] = useState(false);
+  const [showReelSettings, setShowReelSettings] = useState(false);
+  const [reelHistory, setReelHistory] = useState<StudioReelHistoryItem[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState('1:1');
@@ -123,6 +145,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: '1:1', label: 'Instagram Post', sub: '1:1', icon: <ImageIcon size={16} /> },
     { id: '9:16', label: 'Story / TikTok', sub: '9:16', icon: <ImageIcon size={16} className="h-5" /> },
     { id: '4:3', label: 'إعلان بسيط', sub: '4:3', icon: <ImageIcon size={16} className="w-5" /> }
+  ];
+
+  const reelShots = [
+    { id: 'hero-push', label: 'اقتراب سينمائي', desc: 'الكاميرا تدخل بهدوء على الطبق', icon: '🎥' },
+    { id: 'box-open', label: 'فتح علبة طلب', desc: 'كشف نظيف وسريع للطلب', icon: '📦' },
+    { id: 'steam-close', label: 'بخار ولمعة', desc: 'لقطة قريبة دافئة جداً', icon: '♨️' },
+    { id: 'table-pass', label: 'مرور على السفرة', desc: 'حركة بسيطة على عدة أطباق', icon: '🍽️' },
+    { id: 'sauce-motion', label: 'حركة صوص', desc: 'تفصيل صغير يفتح الشهية', icon: '🥄' },
   ];
 
   const themes = [
@@ -311,6 +341,16 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   useEffect(() => {
     try {
+      const saved = localStorage.getItem('smart_studio_reel_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setReelHistory(parsed.map((item: any) => ({ ...item, date: new Date(item.date) })));
+      }
+    } catch (e) {}
+  }, []);
+
+  useEffect(() => {
+    try {
       const lightHistory = history.map((item) => ({
         ...item,
         // لا نخزن صور base64 كبيرة داخل المتصفح حتى لا تظهر شاشة بيضاء بسبب امتلاء التخزين.
@@ -322,6 +362,15 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       try { localStorage.removeItem('smart_studio_history'); } catch {}
     }
   }, [history]);
+
+  useEffect(() => {
+    try {
+      const safeReels = reelHistory.filter((item) => item.url && !String(item.url).startsWith('data:')).slice(0, 18);
+      if (safeReels.length > 0) localStorage.setItem('smart_studio_reel_history', JSON.stringify(safeReels));
+    } catch (err) {
+      console.warn('Smart studio reel history storage skipped:', err);
+    }
+  }, [reelHistory]);
 
   useEffect(() => {
     if (aiImage) {
@@ -440,6 +489,26 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       };
       reader.readAsDataURL(file);
     }
+  };
+
+
+  const handleReelImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string;
+      const result = await compressImage(base64, 1080);
+      setOriginalImage(base64);
+      setCompressedImage(result.base64);
+      setSelectedImage(result.base64);
+      setCompressionStats({ original: result.originalSize, compressed: result.size });
+      setReelSource('image');
+      setGeneratedReel(null);
+      setShowReelSettings(false);
+      toast.success('تم تجهيز الصورة كمصدر للريل');
+    };
+    reader.readAsDataURL(file);
   };
 
   const generateContent = async (variantOverride?: { mode?: StudioRealityMode; background?: StudioBackgroundPresetId; label?: string }) => {
@@ -817,6 +886,104 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     .replace(/Core/gi, '')
     .trim() || 'واقعية عالية';
 
+
+  const buildReelPrompt = () => {
+    const shot = reelShots.find((s) => s.id === reelShot);
+    const place = KUWAIT_PLACES[selectedOrderPlace] || KUWAIT_PLACES.delivery;
+    const idea = customThemeQuery.trim() || `${activePulsePack.label} لطلب كويتي واقعي من مطبخ التراث الكويتي`;
+    return `Instagram Reel عمودي 9:16 لمشروع مطبخ التراث الكويتي. المطلوب: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب سينمائي'} - ${shot?.desc || ''}. المكان الواقعي: ${place.label}. المدة ${reelDuration} ثواني. تصوير طعام واقعي جداً كأنه مصور بآيفون/كاميرا حقيقية في الكويت، حركة كاميرا بسيطة وبطيئة، لا وجوه واضحة، لا نصوص، لا شعارات، لا كلينكس مستخدم، لا مناديل متسخة، لا بقايا أو فوضى، لا قهوة ولا دلال ولا بخور ولا سدو ولا فوانيس. اجعل الطعام ثابتاً ومنطقياً؛ لا يتحول شكله أثناء الحركة. واقعية بشرية، ظلال صحيحة، إضاءة ${selectedMood}.`;
+  };
+
+  const buildReelSettingsText = (item?: Partial<StudioReelHistoryItem>) => {
+    const shot = reelShots.find((s) => s.id === (item?.shot || reelShot));
+    const placeId = item?.place || selectedOrderPlace;
+    return [
+      `المسار: ريل قصير`,
+      `المصدر: ${(item?.source || reelSource) === 'image' ? 'من صورة' : 'من فكرة'}`,
+      `المقاس: 9:16`,
+      `المدة: ${item?.duration || reelDuration} ثواني`,
+      `اللقطة: ${shot?.label || reelShot}`,
+      `المكان: ${KUWAIT_PLACES[placeId]?.label || KUWAIT_PLACES.delivery.label}`,
+      `الإضاءة: ${moods.find((m) => m.id === (item?.mood || selectedMood))?.label || selectedMood}`,
+      (item?.idea || customThemeQuery.trim()) ? `الفكرة: ${item?.idea || customThemeQuery.trim()}` : ''
+    ].filter(Boolean).join('\n');
+  };
+
+  const copyReelSettings = async (item?: StudioReelHistoryItem) => {
+    try {
+      await navigator.clipboard.writeText(buildReelSettingsText(item));
+      toast.success('تم نسخ إعدادات الريل');
+    } catch {
+      toast.info('الإعدادات ظاهرة أمامك للنسخ اليدوي');
+    }
+  };
+
+  const generateReel = async () => {
+    if (!customThemeQuery.trim() && reelSource === 'idea') {
+      toast.error('اكتب فكرة قصيرة للريل أو اختر من صورة');
+      return;
+    }
+    if (reelSource === 'image' && !selectedImage) {
+      toast.error('ارفع صورة للطبق أولاً');
+      return;
+    }
+    setIsGeneratingReel(true);
+    setGeneratedReel(null);
+    setShowReelSettings(false);
+    try {
+      const payload: any = {
+        prompt: buildReelPrompt(),
+        duration: reelDuration,
+        shotType: reelShot,
+        format: '9:16',
+        place: selectedOrderPlace,
+        mood: selectedMood,
+        tasteProfile: buildStudioTastePrompt(),
+      };
+      if (reelSource === 'image' && selectedImage) {
+        const img = getDataImagePayload(selectedImage);
+        payload.imageContent = img.imageContent;
+        payload.mimeType = img.mimeType;
+      }
+      const response = await fetch('/api/smart-studio/generate-reel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.videoUrl) throw new Error(result?.error || 'تعذر توليد الريل');
+      setGeneratedReel(result.videoUrl);
+      const item: StudioReelHistoryItem = {
+        url: result.videoUrl,
+        poster: result.posterUrl || null,
+        date: new Date(),
+        duration: reelDuration,
+        shot: reelShot,
+        source: reelSource,
+        format: '9:16',
+        idea: customThemeQuery.trim(),
+        place: selectedOrderPlace,
+        mood: selectedMood
+      };
+      setReelHistory(prev => [item, ...prev.filter(r => r.url !== item.url)].slice(0, 18));
+      toast.success('الريل جاهز — احفظ نفس الإعدادات وكرر الأسلوب متى ما تبي');
+    } catch (e: any) {
+      toast.error(e?.message || 'تعذر توليد الريل الآن');
+    } finally {
+      setIsGeneratingReel(false);
+    }
+  };
+
+  const downloadReel = () => {
+    if (!generatedReel) return;
+    const a = document.createElement('a');
+    a.href = generatedReel;
+    a.download = `smart-studio-reel-${Date.now()}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   const renderFineTools = () => {
     const toolTabs = [
       { id: 'lighting' as const, label: 'الإضاءة', icon: '☀️' },
@@ -1064,7 +1231,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <h2 className="text-2xl font-black text-slate-950">ابدأ بفكرة أو بصورة</h2>
             </div>
           </div>
-          <div className="grid sm:grid-cols-2 gap-3">
+          <div className="grid sm:grid-cols-3 gap-3">
             <button onClick={() => { closeOpenPanels(); setCreateStep(1); setMaxCreateStepReached(1); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Sparkles className="text-indigo-500 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من فكرة</div>
@@ -1074,6 +1241,11 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <Camera className="text-indigo-500 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من صورة</div>
               <div className="text-xs font-bold text-slate-400 mt-1">ارفع صورة المنتج ونرتّبها بواقعية أعلى.</div>
+            </button>
+            <button onClick={() => { closeOpenPanels(); setSelectedFormat('9:16'); setReelStep(1); setReelSource('idea'); setGeneratedReel(null); setStudioTab('reel'); }} className="rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
+              <Film className="text-violet-600 mb-3" size={26} />
+              <div className="font-black text-slate-900 text-lg">ريل قصير</div>
+              <div className="text-xs font-bold text-slate-400 mt-1">فيديو واقعي 4–8 ثواني جاهز لريلز.</div>
             </button>
           </div>
         </div>
@@ -1086,12 +1258,25 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <h2 className="text-xl font-black text-slate-900 flex items-center gap-2"><Library size={20} className="text-indigo-500 shrink-0" /> الأرشيف</h2>
               <p className="text-xs font-bold text-slate-400 mt-1">صورك المحفوظة من الاستوديو</p>
             </div>
-            <div className="grid grid-cols-2 gap-1 rounded-2xl bg-slate-50 border border-slate-100 p-1 w-full sm:w-auto sm:min-w-[190px]">
+            <div className="grid grid-cols-3 gap-1 rounded-2xl bg-slate-50 border border-slate-100 p-1 w-full sm:w-auto sm:min-w-[190px]">
               <button type="button" onClick={() => setArchiveTab('idea')} className={cn("rounded-xl px-3 py-2 text-xs font-black transition-all whitespace-nowrap", archiveTab === 'idea' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>الفكرة</button>
               <button type="button" onClick={() => setArchiveTab('image')} className={cn("rounded-xl px-3 py-2 text-xs font-black transition-all whitespace-nowrap", archiveTab === 'image' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>الصورة</button>
+              <button type="button" onClick={() => setArchiveTab('reel')} className={cn("rounded-xl px-3 py-2 text-xs font-black transition-all whitespace-nowrap", archiveTab === 'reel' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>الريلز</button>
             </div>
           </div>
           {(() => {
+            if (archiveTab === 'reel') {
+              return reelHistory.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {reelHistory.map((item, idx) => (
+                    <button key={idx} onClick={() => { setGeneratedReel(item.url); setReelDuration(item.duration); setReelShot(item.shot); setReelSource(item.source); if (item.idea) setCustomThemeQuery(item.idea); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); setShowReelSettings(true); setStudioTab('reel'); }} className="group rounded-3xl overflow-hidden border border-slate-100 bg-slate-950 shadow-sm hover:shadow-md transition-all text-right">
+                      <video src={item.url} className="w-full aspect-[9/16] object-cover bg-black" muted playsInline />
+                      <div className="p-3 text-[11px] font-bold text-white/70 line-clamp-2">ريل {item.duration} ثواني · {reelShots.find(s => s.id === item.shot)?.label || 'لقطة واقعية'}</div>
+                    </button>
+                  ))}
+                </div>
+              ) : <div className="rounded-3xl bg-slate-50 border border-dashed border-slate-200 p-12 text-center text-slate-500 font-bold">الريلز المحفوظة تظهر هنا.</div>;
+            }
             const allItems = history.filter(item => item.url);
             const items = allItems.filter((item) => archiveTab === 'idea' ? item.source !== 'image' : item.source === 'image');
             return items.length > 0 ? (
@@ -1109,6 +1294,82 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               </div>
             );
           })()}
+        </div>
+      )}
+
+
+      {studioTab === 'reel' && (
+        <div className="grid lg:grid-cols-[390px_minmax(0,1fr)] gap-6 items-start">
+          <div className="rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 text-right">
+            <div className="mb-5">
+              <p className="text-xs font-black text-violet-500 mb-1">ريل قصير</p>
+              <h2 className="text-2xl font-black text-slate-950">فيديو واقعي جاهز للنشر</h2>
+              <p className="text-sm font-bold text-slate-500 mt-2 leading-7">4–8 ثواني، عمودي، حركة بسيطة، وواقعية نظيفة لمشروعك.</p>
+            </div>
+
+            <div className="mb-5 md:hidden rounded-[22px] border border-slate-100 bg-slate-50 p-3 flex items-center justify-between gap-3">
+              <span className="h-10 px-4 rounded-2xl bg-slate-950 text-white flex items-center justify-center text-xs font-black">{reelStep} من 4</span>
+              <div className="text-right"><div className="text-sm font-black text-slate-900">{reelStep === 1 ? 'البداية' : reelStep === 2 ? 'اللقطة' : reelStep === 3 ? 'المدة' : 'التوليد'}</div><div className="text-[10px] font-bold text-slate-400">ريل واقعي</div></div>
+            </div>
+
+            {reelStep === 1 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setReelSource('idea')} className={cn("rounded-2xl border p-4 text-right transition-all", reelSource === 'idea' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}><Sparkles size={18} className="mb-2" /><span className="block text-sm font-black">من فكرة</span></button>
+                  <button type="button" onClick={() => setReelSource('image')} className={cn("rounded-2xl border p-4 text-right transition-all", reelSource === 'image' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}><Camera size={18} className="mb-2" /><span className="block text-sm font-black">من صورة</span></button>
+                </div>
+                <input type="text" placeholder="مثال: لقطة مجبوس حار يفتح الشهية لريلز إنستغرام..." value={customThemeQuery} onChange={(e) => setCustomThemeQuery(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-violet-500" />
+                {reelSource === 'image' && (
+                  <div onClick={() => fileInputRef.current?.click()} className="rounded-3xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-5 cursor-pointer text-center">
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleReelImageUpload} />
+                    <Camera className="mx-auto mb-2 text-violet-600" size={26} />
+                    <p className="text-sm font-black text-slate-800">{selectedImage ? 'الصورة جاهزة للريل' : 'ارفع صورة طبق للريل'}</p>
+                  </div>
+                )}
+                <button type="button" onClick={() => setReelStep(2)} className="w-full p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+              </div>
+            )}
+
+            {reelStep === 2 && (
+              <div className="space-y-4">
+                <p className="text-xs font-black text-slate-500">اختر نوع اللقطة</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {reelShots.map((shot) => (
+                    <button key={shot.id} type="button" onClick={() => setReelShot(shot.id)} className={cn("rounded-2xl border p-4 text-right transition-all flex items-center gap-3", reelShot === shot.id ? "bg-violet-50 border-violet-400 shadow-sm" : "bg-white border-slate-100 hover:bg-slate-50")}>
+                      <span className="text-2xl">{shot.icon}</span><span><span className="block text-sm font-black text-slate-900">{shot.label}</span><span className="block text-[11px] font-bold text-slate-400 mt-1">{shot.desc}</span></span>
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => setReelStep(1)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button><button type="button" onClick={() => setReelStep(3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button></div>
+              </div>
+            )}
+
+            {reelStep === 3 && (
+              <div className="space-y-4">
+                <p className="text-xs font-black text-slate-500">مدة الريل</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[4, 6, 8].map((seconds) => <button key={seconds} type="button" onClick={() => setReelDuration(seconds)} className={cn("rounded-2xl border p-5 text-center transition-all", reelDuration === seconds ? "bg-violet-50 border-violet-500 text-violet-700 shadow-sm" : "bg-white border-slate-100 text-slate-500")}><span className="text-2xl font-black">{seconds}</span><span className="block text-[10px] font-bold mt-1">ثواني</span></button>)}
+                </div>
+                {renderPlaceLibrary()}
+                <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => setReelStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button><button type="button" onClick={() => setReelStep(4)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button></div>
+              </div>
+            )}
+
+            {reelStep === 4 && (
+              <div className="space-y-4">
+                {renderFineTools()}
+                <div className="rounded-3xl bg-slate-950 text-white p-5"><div className="text-[11px] font-black text-white/45 mb-2">جاهز للتوليد</div><div className="text-lg font-black">{reelShots.find(s => s.id === reelShot)?.icon} {reelShots.find(s => s.id === reelShot)?.label}</div><div className="mt-2 text-sm font-bold text-white/60">9:16 · {reelDuration} ثواني · {KUWAIT_PLACES[selectedOrderPlace]?.label}</div></div>
+                <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => setReelStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button><button type="button" onClick={generateReel} disabled={isGeneratingReel} className="p-4 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white font-black shadow-lg flex items-center justify-center gap-2 disabled:opacity-50">{isGeneratingReel ? <Loader2 className="animate-spin" size={18} /> : <PlayCircle size={18} />} ولّد الريل</button></div>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-[2.2rem] bg-slate-950 p-3 shadow-2xl border border-slate-900 min-h-[620px] flex items-center justify-center relative overflow-hidden">
+            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
+            {!generatedReel && !isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-5xl shadow-2xl"><Film size={46} /></div><h3 className="text-3xl font-black mb-3">معاينة الريل تظهر هنا</h3><p className="text-sm font-bold text-white/55 leading-7">ريل عمودي واقعي · {reelDuration} ثواني</p></div>}
+            {isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">جاري توليد ريل واقعي...</p><p className="mt-3 text-xs font-bold text-white/45">نثبت الطعام ونحرك الكاميرا فقط</p></div>}
+            {generatedReel && !isGeneratingReel && <div className="relative z-10 w-full max-w-[380px] space-y-4"><button type="button" onClick={() => setShowReelSettings((v) => !v)} className="w-full aspect-[9/16] rounded-[1.8rem] overflow-hidden bg-black border border-white/10 shadow-2xl relative group"><video src={generatedReel} className="w-full h-full object-contain bg-black" controls playsInline /><span className="absolute bottom-4 right-4 rounded-2xl bg-white/90 px-3 py-2 text-[10px] font-black text-slate-700 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">الإعدادات</span></button>{showReelSettings && <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white"><div className="flex items-center justify-between gap-3 mb-3"><div><p className="text-xs font-black text-white/75">إعدادات هذا الريل</p><p className="text-[11px] font-bold text-white/45 mt-1">انسخها وكرر نفس الحركة لاحقاً.</p></div><button type="button" onClick={() => copyReelSettings()} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-xs font-black flex items-center gap-1"><Copy size={14} /> نسخ</button></div><pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans">{buildReelSettingsText()}</pre></div>}<div className="flex items-center justify-center gap-2"><button onClick={downloadReel} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-violet-500 text-white flex items-center justify-center"><Download size={18} /></button><button type="button" onClick={() => copyReelSettings()} title="نسخ الإعدادات" aria-label="نسخ الإعدادات" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Copy size={18} /></button><button type="button" onClick={() => { setGeneratedReel(null); setReelStep(4); }} title="إعادة بنفس الأسلوب" aria-label="إعادة بنفس الأسلوب" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><RotateCcw size={18} /></button></div></div>}
+          </div>
         </div>
       )}
 
