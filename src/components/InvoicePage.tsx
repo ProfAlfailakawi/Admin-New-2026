@@ -1237,6 +1237,52 @@ Alturath.kw`;
                 </div>
               )}
 
+              {/* خيارات الخصم (رقم ونسبة) */}
+              <div className="space-y-1.5 border-t border-b py-4 my-2" dir="rtl">
+                <div className="text-[10px] font-bold text-slate-500 text-right uppercase">
+                  خصم إضافي (رقم ونسبة)
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <input
+                      type="number"
+                      step={discountType === "amount" ? "0.050" : "1"}
+                      min="0"
+                      value={discountValue || ""}
+                      onChange={(e) => setDiscountValue(Math.max(0, parseFloat(e.target.value) || 0))}
+                      placeholder={discountType === "amount" ? "مثال: 1.500 د.ك" : "مثال: 10%"}
+                      className="w-full bg-slate-50 border rounded-2xl p-4 text-right font-bold focus:ring-2 focus:ring-primary/20 transition-all text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-2xl shrink-0 w-36">
+                    <button
+                      type="button"
+                      onClick={() => setDiscountType("amount")}
+                      className={cn(
+                        "rounded-xl text-[11px] font-black transition-all py-2",
+                        discountType === "amount"
+                          ? "bg-white text-slate-900 shadow-sm"
+                          : "text-slate-500 hover:text-slate-700 hover:bg-white/40"
+                      )}
+                    >
+                      مبلغ (د.ك)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDiscountType("percentage")}
+                      className={cn(
+                        "rounded-xl text-[11px] font-black transition-all py-2",
+                        discountType === "percentage"
+                          ? "bg-white text-slate-900 shadow-sm"
+                          : "text-slate-500 hover:text-slate-700 hover:bg-white/40"
+                      )}
+                    >
+                      نسبة (%)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
                   <span>القطعة</span>
