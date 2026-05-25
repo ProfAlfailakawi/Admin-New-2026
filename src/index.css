@@ -3285,3 +3285,14 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
   .ai-executive-messages{padding:12px!important;flex:1 1 0!important;overflow-y:auto!important;}
   .ai-chat-row.is-assistant .ai-chat-bubble{width:100%!important;max-width:100%!important;min-height:120px!important;padding:18px 16px!important;font-size:1.02rem!important;line-height:1.9!important;}
 }
+
+
+/* Mobile spacing fix: reduce empty gap between command brief toggle and dashboard content */
+@media (max-width: 760px){
+  .dashboard-executive-shell{gap:10px!important;}
+  .dashboard-subtab-shell{margin-bottom:0!important;}
+  .admin-content-polish{margin-top:0!important;}
+  .admin-experience-stack{gap:10px!important;}
+  .heritage-command-brief{margin-bottom:.45rem!important;}
+  .executive-morning-brief{padding:12px!important;gap:10px!important;border-radius:20px!important;}
+}
