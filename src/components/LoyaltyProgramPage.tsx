@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Award, Users, Star, Gift, MessageCircle, Clock, Settings, TrendingUp, Zap, Search, ChevronRight, ChevronLeft, Tag, X, History } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, normalizeArabicNumerals } from '../lib/utils';
 import { AppState } from '../types';
 import { toast } from 'sonner';
 import { PromoCodePage } from './PromoCodePage';
@@ -562,7 +562,9 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-bold text-sm placeholder:text-slate-500"
  value={searchTerm}
  onChange={(e) => {
- setSearchTerm(e.target.value);
+ let val = normalizeArabicNumerals(e.target.value);
+if (/^[0-9]*$/.test(val)) val = val.slice(0, 8);
+setSearchTerm(val);
  setCurrentPage(1);
  }}
  />

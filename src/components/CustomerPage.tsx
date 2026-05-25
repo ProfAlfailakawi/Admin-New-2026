@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { AppState, Customer } from '../types';
 import { DEFAULT_SQUADS } from '../data';
-import { cn, formatCustomerAddress, normalizeArabic, normalizeAddressObject, formatFullAddress } from '../lib/utils';
+import { cn, formatCustomerAddress, normalizeArabic, normalizeAddressObject, formatFullAddress, normalizeArabicNumerals } from '../lib/utils';
 import { isPaidStatus } from '../lib/status-utils';
 import { calculateCustomerSentiment, generateCustomerSmartMessage } from '../lib/ai-engine';
 import { motion, AnimatePresence } from 'motion/react';
@@ -335,7 +335,13 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
           type="text" 
           placeholder="ابحث بالاسم أو رقم التلفون..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            let val = normalizeArabicNumerals(e.target.value);
+            if (/^[0-9]*$/.test(val)) {
+              val = val.slice(0, 8);
+            }
+            setSearch(val);
+          }}
           className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right text-sm"
         />
       </div>

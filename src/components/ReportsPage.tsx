@@ -25,7 +25,7 @@ const isSuccessfulPayerForDisplay = (payer: any) => {
   );
 };
 
-import { getUnifiedInvoices } from "../lib/utils";
+import { getUnifiedInvoices, normalizeArabicNumerals } from "../lib/utils";
 import React, { useState, useEffect } from "react";
 import {
   FileText,
@@ -863,7 +863,13 @@ Alturath.kw`;
                       type="text"
                       placeholder="ابحث برقم الفاتورة أو اسم العميل..."
                       value={search}
-                      onChange={(e) => setSearch(e.target.value)}
+                      onChange={(e) => {
+                        let val = normalizeArabicNumerals(e.target.value);
+                        if (/^[0-9]*$/.test(val)) {
+                          val = val.slice(0, 8);
+                        }
+                        setSearch(val);
+                      }}
                       className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
                     />
                   </div>

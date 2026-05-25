@@ -404,6 +404,13 @@ Alturath.kw`;
           setCart(newCart);
           setInvoiceDate(inv.date.slice(0, 10));
           setDiscountValue(inv.discount || 0);
+          
+          const customer = (data.customers || []).find((c) => c.id === inv.customerId);
+          if (customer) {
+            setCustomerSearch(customer.name);
+          } else if ((inv as any).customerName) {
+            setCustomerSearch((inv as any).customerName);
+          }
 
           if (inv.address && typeof inv.address === "object") {
             setAddressDetails({
@@ -837,9 +844,10 @@ Alturath.kw`;
       })();
 
       const newInvoice: Invoice = {
+        ...(existingInvoice || {}),
         id: invoiceId,
         customerId: targetId,
-        address: { region: regionName, ...addressDetails },
+        address: { ...(existingInvoice?.address || {}), region: regionName, ...addressDetails },
         items: cartItems.map((it) => ({
           ...it,
           productId: it.product!.id,
@@ -934,7 +942,7 @@ Alturath.kw`;
                   type="text"
                   placeholder="ابحث عن وجبة..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => setSearchQuery(normalizeArabicNumerals(e.target.value))}
                   className="w-full bg-slate-50 border rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Wallet, Search, Plus, Trash2, Edit2, Calendar, CreditCard, TrendingUp, ArrowDownRight, Target, PlusCircle, X } from 'lucide-react';
 import { AppState, Expense, PaymentMethod } from '../types';
-import { cn } from '../lib/utils';
+import { cn, normalizeArabicNumerals } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import { NumericInput } from './ui/NumericInput';
@@ -136,7 +136,13 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  type="text" 
  placeholder="ابحث في بيان المصروف..."
  value={search}
- onChange={(e) => setSearch(e.target.value)}
+ onChange={(e) => {
+    let val = normalizeArabicNumerals(e.target.value);
+    if (/^[0-9]*$/.test(val)) {
+      val = val.slice(0, 8);
+    }
+    setSearch(val);
+  }}
  className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
  />
  </div>

@@ -23,7 +23,7 @@ import {
   Dices,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { cn, normalizeArabic, robustNormalize } from "../lib/utils";
+import { cn, normalizeArabic, robustNormalize, normalizeArabicNumerals } from "../lib/utils";
 import {
   recalculateStateBalances,
   generateNextInvoiceId,
@@ -1473,7 +1473,13 @@ Alturath.kw`;
             placeholder="ابحث بالاسم، الهاتف..."
             className="w-full pl-4 pr-12 py-3.5 bg-slate-50 rounded-2xl border border-transparent focus:border-indigo-600/20 focus:bg-white transition-all font-bold text-sm shadow-sm"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              let val = normalizeArabicNumerals(e.target.value);
+              if (/^[0-9]*$/.test(val)) {
+                val = val.slice(0, 8);
+              }
+              setSearchTerm(val);
+            }}
           />
         </div>
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Truck, Search, History, DollarSign, Calendar, TrendingUp, CreditCard, Filter, AlertCircle, FileText, CheckCircle2, Clock, Edit2, Trash2, ArrowUpRight, X } from 'lucide-react';
 import { AppState, SupplierTransfer, PaymentMethod } from '../types';
-import { cn, normalizeArabic } from '../lib/utils';
+import { cn, normalizeArabic, normalizeArabicNumerals } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import { MagneticButton } from './ui/MagneticButton';
@@ -268,7 +268,13 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  type="text" 
  placeholder="ابحث في سجل التحويلات أو الملاحظات..."
  value={search}
- onChange={(e) => setSearch(e.target.value)}
+ onChange={(e) => {
+    let val = normalizeArabicNumerals(e.target.value);
+    if (/^[0-9]*$/.test(val)) {
+      val = val.slice(0, 8);
+    }
+    setSearch(val);
+  }}
  className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium text-right"
  />
  </div>
