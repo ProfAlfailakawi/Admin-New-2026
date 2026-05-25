@@ -120,7 +120,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [showBrandingPanel, setShowBrandingPanel] = useState(false);
   const [archiveTab, setArchiveTab] = useState<'idea' | 'image' | 'reel'>('idea');
   const [reelStep, setReelStep] = useState<number>(1);
-  const [reelDuration, setReelDuration] = useState<number>(8);
+  const [reelDuration, setReelDuration] = useState<number>(4);
   const [reelShot, setReelShot] = useState<string>('hero-push');
   const [reelSource, setReelSource] = useState<'idea' | 'image'>('idea');
   const [generatedReel, setGeneratedReel] = useState<string | null>(null);
@@ -1394,7 +1394,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <div className="space-y-4">
                 <p className="text-xs font-black text-slate-500">مدة الريل</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {[6, 8].map((seconds) => <button key={seconds} type="button" onClick={() => setReelDuration(seconds)} className={cn("rounded-2xl border p-5 text-center transition-all", reelDuration === seconds ? "bg-violet-50 border-violet-500 text-violet-700 shadow-sm" : "bg-white border-slate-100 text-slate-500")}><span className="text-2xl font-black">{seconds}</span><span className="block text-[10px] font-bold mt-1">ثواني</span></button>)}
+                  {[4, 6, 8].map((seconds) => <button key={seconds} type="button" onClick={() => setReelDuration(seconds)} className={cn("rounded-2xl border p-5 text-center transition-all", reelDuration === seconds ? "bg-violet-50 border-violet-500 text-violet-700 shadow-sm" : "bg-white border-slate-100 text-slate-500")}><span className="text-2xl font-black">{seconds}</span><span className="block text-[10px] font-bold mt-1">ثواني</span></button>)}
                 </div>
                 {renderPlaceLibrary()}
                 <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => setReelStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button><button type="button" onClick={() => setReelStep(4)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button></div>

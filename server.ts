@@ -2839,7 +2839,12 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
       if (!prompt || typeof prompt !== "string") return res.status(400).json({ error: "Missing prompt" });
 
       const wantsEconomy = String(quality || renderMode || "").toLowerCase().includes("economy") || String(renderMode || "").toLowerCase().includes("fast");
-      const durationSeconds = wantsEconomy ? Math.min(5, Math.max(4, Number(duration) || 5)) : Math.min(6, Math.max(5, Number(duration) || 5));
+      const requestedDuration = Number(duration);
+      const safeDuration = Number.isFinite(requestedDuration) ? requestedDuration : 4;
+      // Veo currently rejects any durationSeconds outside 4..8.
+      // Keep Smart Studio reels fast and cheap by defaulting economy/fast renders to 4s,
+      // while still hard-clamping every request before it reaches the video provider.
+      const durationSeconds = wantsEconomy ? 4 : Math.min(8, Math.max(4, Math.round(safeDuration)));
       const localFallback = (reason: string) => res.json({
         videoUrl: buildLocalMotionReelDataUrl({ prompt, imageContent, mimeType, duration: durationSeconds, shotType, place, mood }),
         posterUrl: null,
@@ -2922,13 +2927,15 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
       if (errMsg.includes("PERMISSION_DENIED") || errMsg.includes("API_KEY_INVALID") || errMsg.includes("suspended")) {
         return res.status(403).json({ error: "مفتاح توليد الفيديو غير صالح أو لا يملك صلاحية توليد الفيديو.", needsKey: true });
       }
-      if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("429") || errMsg.includes("quota")) {
+      if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("durationSeconds") || errMsg.includes("INVALID_ARGUMENT")) {
         return res.json({
-          videoUrl: buildLocalMotionReelDataUrl({ prompt: req.body?.prompt, imageContent: req.body?.imageContent, mimeType: req.body?.mimeType, duration: req.body?.duration || 4, shotType: req.body?.shotType, place: req.body?.place, mood: req.body?.mood }),
+          videoUrl: buildLocalMotionReelDataUrl({ prompt: req.body?.prompt, imageContent: req.body?.imageContent, mimeType: req.body?.mimeType, duration: 4, shotType: req.body?.shotType, place: req.body?.place, mood: req.body?.mood }),
           posterUrl: null,
           provider: "local-motion-reel",
           fallback: true,
-          reason: "Veo quota exhausted; generated local motion reel instantly"
+          reason: errMsg.includes("durationSeconds") || errMsg.includes("INVALID_ARGUMENT")
+            ? "Veo rejected durationSeconds; generated instant 4-second local motion reel"
+            : "Veo quota exhausted; generated local motion reel instantly"
         });
       }
       return res.status(500).json({ error: errMsg });

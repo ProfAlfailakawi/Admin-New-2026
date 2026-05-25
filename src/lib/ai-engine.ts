@@ -2081,7 +2081,7 @@ export function getProfitCamera(product: any, data: AppState) {
   const qty = Number(row.qty || 0);
   const margin = Number(row.margin || 0);
   if (margin <= 0) return { tone: 'danger', label: 'يكسر الربح', hint: 'السعر أقل من التكلفة أو قريب منها، راجع التسعير قبل أي حملة.' };
-  if (qty >= 8 && margin >= 35) return { tone: 'winner', label: 'يبيع ويربح', hint: 'هذا صنف بطل: حافظ عليه وادفعه في أوقات الذروة.' };
+  if (qty >= 8 && margin >= 35) return { tone: 'winner', label: 'يبيع ويربح', hint: 'هذا صنف بطل: حافظ عليه وركّز على تسويقه في أوقات الذروة.' };
   if (qty >= 5 && margin < 18) return { tone: 'warning', label: 'حذر هامش', hint: 'يبيع لكن الربح ضيق؛ لا تحط عليه خصم مباشر.' };
   if (qty <= 2 && margin >= 30) return { tone: 'opportunity', label: 'دفعة ذكية', hint: 'هامشه حلو لكن ظهوره ضعيف؛ يستاهل ستوري يبيع.' };
   if (qty === 0) return { tone: 'sleep', label: 'نايم', hint: 'ما عليه حركة مسجلة؛ يحتاج ظهور بسيط أو صورة أقوى.' };
@@ -2130,7 +2130,7 @@ export function getKuwaitiSeasonalMove(data: AppState) {
   const product = rows[0]?.name || kActiveProducts(data)[0]?.name || 'أقوى طبق عندك';
   if (month === 3 || month === 4) return { title: 'نبض رمضان والغبقات', text: `ركز على ${product} بصياغة عائلية/ديوانية، بدون خصم عام يضرب الربح.`, tag: 'رمضان/غبقة' };
   if ([4,5,6].includes(day)) return { title: 'محرك الويكند الكويتي', text: `الويكند يحب القرار السريع: ستوري ديوانية على ${product} مع دعوة "طلب الربع".`, tag: 'ويكند' };
-  if (hour >= 17 && hour <= 22) return { title: 'ذروة العشى والديوانية', text: `هذا وقت بيع، مو وقت خصومات. ادفع ${product} بستوري مباشر وواضح.`, tag: 'ذروة' };
+  if (hour >= 17 && hour <= 22) return { title: 'ذروة العشى والديوانية', text: `هذا وقت بيع، مو وقت خصومات. سوّق للـ ${product} بستوري مباشر وواضح.`, tag: 'ذروة' };
   if (hour >= 10 && hour <= 14) return { title: 'موجة الغداء', text: `خل الرسالة سريعة: "غداك جاهز" وابرز منتج سهل القرار مثل ${product}.`, tag: 'غداء' };
   return { title: 'نبضة كويتية هادية', text: `وقت مناسب لتجهيز محتوى ذكي على ${product} قبل الزحمة.`, tag: 'هدوء' };
 }
@@ -2158,7 +2158,7 @@ export function getKitchenNowDecision(data: AppState, currentPage = 'dashboard')
     action = hiddenGem ? `إذا تبي عرض، اربطه بـ ${hiddenGem.name} لأنه هامشه ${hiddenGem.margin.toFixed(0)}%.` : 'خل الخصم بحد أدنى للطلب وبمدة قصيرة.';
   } else if (currentPage.includes('product')) {
     title = 'قرار المنتجات الآن';
-    decision = hiddenGem ? `ادفع ${hiddenGem.name} اليوم.` : top ? `راقب ${top.name} وخله واجهة المنيو.` : decision;
+    decision = hiddenGem ? `ركّز على تسويق ${hiddenGem.name} اليوم.` : top ? `راقب ${top.name} وخله واجهة المنيو.` : decision;
     proof = hiddenGem ? `هامشه ${hiddenGem.margin.toFixed(0)}% ومبيعاته قليلة (${hiddenGem.qty})، يعني فرصة ما أخذت ظهور كافي.` : proof;
     action = hiddenGem ? 'سوّ له ستوري يبيع، لا خصم. خل الصورة والنداء واضحين.' : action;
   } else if (currentPage.includes('supplier')) {
@@ -2172,7 +2172,7 @@ export function getKitchenNowDecision(data: AppState, currentPage = 'dashboard')
     proof = customers[0] ? `غائب ${customers[0].idle} يوم وإنفاقه ${kMoney(customers[0].spent)} د.ك.` : proof;
     action = customers[0] ? 'اكتب له رسالة شخصية بدون خصم قوي.' : 'ركز على آخر العملاء النشطين برسالة شكر.';
   } else if (hiddenGem) {
-    decision = `ادفع ${hiddenGem.name} اليوم بدل الخصم العام.`;
+    decision = `سوّق حق ${hiddenGem.name} اليوم وشجّع عليه بدل الخصم العام.`;
     proof = `هامشه ${hiddenGem.margin.toFixed(0)}% ومبيعاته ${hiddenGem.qty}، فرصة ربح نظيفة.`;
     action = 'نزّل ستوري يبيع عليه وقت الذروة، وخله أول اقتراح للمساعد.';
   } else if (suppliers[0]) {
