@@ -144,6 +144,88 @@ function bestCreatedDateForPaymentItem(item: any, fallbackId?: any) {
   );
 }
 
+function escapeXml(value: any) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function buildLocalMotionReelDataUrl({
+  prompt,
+  duration,
+  shotType,
+  place,
+  mood,
+  imageContent,
+  mimeType
+}: any) {
+  const cleanPrompt = String(prompt || "لقطة طلب كويتي واقعية")
+    .replace(/\s+/g, " ")
+    .slice(0, 140);
+  const seconds = Math.min(8, Math.max(4, Number(duration) || 6));
+  const imageHref = imageContent
+    ? `data:${mimeType || "image/jpeg"};base64,${String(imageContent).slice(0, 9_000_000)}`
+    : "";
+  const placeLabel = String(place || "delivery").replace(/[-_]/g, " ");
+  const shotLabel = String(shotType || "hero-push").replace(/[-_]/g, " ");
+  const moodLabel = String(mood || "دافئ");
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280" viewBox="0 0 720 1280">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#130f1f"/>
+      <stop offset="42%" stop-color="#24102f"/>
+      <stop offset="100%" stop-color="#06130d"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="25%" r="70%">
+      <stop offset="0%" stop-color="#f5c66b" stop-opacity=".45"/>
+      <stop offset="55%" stop-color="#9b5cf6" stop-opacity=".16"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <clipPath id="plate"><rect x="72" y="210" width="576" height="790" rx="54"/></clipPath>
+  </defs>
+  <rect width="720" height="1280" fill="url(#bg)"/>
+  <rect width="720" height="1280" fill="url(#glow)">
+    <animate attributeName="opacity" values=".65;.95;.65" dur="${seconds}s" repeatCount="indefinite"/>
+  </rect>
+  <circle cx="112" cy="156" r="180" fill="#f6c35b" opacity=".18" filter="url(#soft)">
+    <animate attributeName="cx" values="90;150;90" dur="${seconds}s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="650" cy="1120" r="240" fill="#22c55e" opacity=".13" filter="url(#soft)">
+    <animate attributeName="cy" values="1120;1020;1120" dur="${seconds}s" repeatCount="indefinite"/>
+  </circle>
+  <g clip-path="url(#plate)">
+    ${imageHref ? `<image href="${imageHref}" x="42" y="180" width="636" height="850" preserveAspectRatio="xMidYMid slice">
+      <animateTransform attributeName="transform" type="scale" values="1;1.045;1" dur="${seconds}s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".98;1;.98" dur="${Math.max(4, seconds / 2)}s" repeatCount="indefinite"/>
+    </image>` : `<rect x="72" y="210" width="576" height="790" rx="54" fill="#1b2730"/>
+      <ellipse cx="360" cy="585" rx="228" ry="142" fill="#f4efe5"/>
+      <ellipse cx="360" cy="585" rx="168" ry="98" fill="#d2a24a"/>
+      <circle cx="300" cy="560" r="38" fill="#8a2d21"/>
+      <circle cx="408" cy="610" r="46" fill="#174d32"/>`}
+  </g>
+  <rect x="72" y="210" width="576" height="790" rx="54" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="2"/>
+  <path d="M90 1015 C220 968 502 968 630 1015" stroke="#f5c66b" stroke-opacity=".32" stroke-width="2" fill="none"/>
+  <g>
+    <rect x="76" y="1032" width="568" height="148" rx="38" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.18)"/>
+    <text x="604" y="1084" fill="#f8e7bd" font-family="Arial, sans-serif" font-size="22" font-weight="900" text-anchor="end">ريل خفيف جاهز للنشر</text>
+    <text x="604" y="1128" fill="#ffffff" font-family="Arial, sans-serif" font-size="28" font-weight="900" text-anchor="end">${escapeXml(cleanPrompt)}</text>
+    <text x="604" y="1166" fill="rgba(255,255,255,.65)" font-family="Arial, sans-serif" font-size="18" font-weight="700" text-anchor="end">${escapeXml(shotLabel)} · ${escapeXml(placeLabel)} · ${escapeXml(moodLabel)}</text>
+  </g>
+  <g opacity=".55">
+    <rect x="94" y="84" width="148" height="38" rx="19" fill="rgba(255,255,255,.10)"/>
+    <text x="168" y="109" fill="#f5c66b" font-family="Arial, sans-serif" font-size="16" font-weight="900" text-anchor="middle">9:16 · ${seconds}s</text>
+  </g>
+  <rect x="0" y="0" width="720" height="1280" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="20"/>
+</svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+}
+
 function pendingPaymentGraceInfo(item: any, fallbackId?: any, now = new Date()) {
   const createdAt = bestCreatedDateForPaymentItem(item, fallbackId) || now;
   const ageMs = Math.max(0, now.getTime() - createdAt.getTime());
@@ -2062,7 +2144,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
   async function alertsReadRecentPushEvents(limit = 100) {
     const now = Date.now();
-    if (now - __alertsPushEventsCache.time < 5 * 60 * 1000) {
+    if (now - __alertsPushEventsCache.time < 15 * 1000) {
         return { docs: __alertsPushEventsCache.docs };
     }
     try { 
@@ -2310,9 +2392,14 @@ function startPaymentAlertsAutoRunner() {
   if (__paymentAlertsAutoRunnerStarted) return;
   __paymentAlertsAutoRunnerStarted = true;
 
-  console.log("[ALERTS] Auto runner started: every 60 seconds");
+  const alertsAutoRunnerIntervalMs = Math.max(
+    3000,
+    Math.min(60000, Number(process.env.ALERTS_AUTO_RUNNER_INTERVAL_MS || 5000))
+  );
 
-  setInterval(async () => {
+  console.log(`[ALERTS] Auto runner started: every ${alertsAutoRunnerIntervalMs / 1000} seconds`);
+
+  const runAlertsPass = async () => {
     if (!firebaseInitialized || !db) return; // Silent if not ready
     try {
       const { meta } = await alertsReconcile({ dryRun: false });
@@ -2325,7 +2412,10 @@ function startPaymentAlertsAutoRunner() {
     } catch (error) {
       console.error("[ALERTS] Auto runner error:", error);
     }
-  }, 60 * 1000);
+  };
+
+  setTimeout(runAlertsPass, 750);
+  setInterval(runAlertsPass, alertsAutoRunnerIntervalMs);
 }
 
 if (String(process.env.ENABLE_INTERNAL_ALERTS_RUNNER || "true").toLowerCase() !== "false") {
@@ -2644,10 +2734,18 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
 
   app.post("/api/smart-studio/generate-reel", express.json({ limit: "50mb" }), async (req, res) => {
     try {
-      const { prompt, imageContent, mimeType, duration, shotType, format, place, mood, tasteProfile } = req.body || {};
+      const { prompt, imageContent, mimeType, duration, shotType, format, place, mood, tasteProfile, quality, renderMode } = req.body || {};
       if (!prompt || typeof prompt !== "string") return res.status(400).json({ error: "Missing prompt" });
 
-      const durationSeconds = Math.min(8, Math.max(4, Number(duration) || 4));
+      const wantsEconomy = String(quality || renderMode || "").toLowerCase().includes("economy") || String(renderMode || "").toLowerCase().includes("fast");
+      const durationSeconds = wantsEconomy ? Math.min(6, Math.max(4, Number(duration) || 4)) : Math.min(8, Math.max(4, Number(duration) || 4));
+      const localFallback = (reason: string) => res.json({
+        videoUrl: buildLocalMotionReelDataUrl({ prompt, imageContent, mimeType, duration: durationSeconds, shotType, place, mood }),
+        posterUrl: null,
+        provider: "local-motion-reel",
+        fallback: true,
+        reason,
+      });
       const finalPrompt = `${prompt}\n\nSMART STUDIO REEL ENFORCEMENT:\n- Create a vertical Instagram Reel, aspect ratio 9:16, duration ${durationSeconds} seconds.\n- Brand context: Kuwaiti home-order kitchen focused on rice dishes, seafood/fish, mahshi, grape leaves, and occasional grills.\n- Shot type: ${shotType || "hero-push"}. Place context: ${place || "delivery"}. Mood: ${mood || "warm"}.\n- Ultra-realistic human food videography, simple believable camera movement only.\n- Keep food stable and physically plausible across frames; no morphing food, no melting plates, no warped hands.\n- No visible faces, no readable text, no logos, no watermarks.\n- No used tissues, no dirty napkins, no crumpled kleenex, no table trash, no paper scraps, no crumbs, no messy leftovers.\n- No dallah, no Arabic coffee, no coffee cups, no incense, no sadu, no lanterns, no fantasy decor, no palace, no CGI.\n${tasteProfile ? `User taste memory: ${String(tasteProfile).slice(0, 900)}\n` : ""}\nMake viewers believe it was shot by a real videographer in Kuwait.`;
 
       if (process.env.SMART_STUDIO_REEL_API_URL) {
@@ -2665,7 +2763,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
       }
 
       if (!process.env.GEMINI_API_KEY) {
-        return res.status(500).json({ error: "GEMINI_API_KEY is not configured on server", needsKey: true });
+        return localFallback("GEMINI_API_KEY is not configured; generated local motion reel");
       }
 
       const ai = new GoogleGenAI({
@@ -2724,7 +2822,13 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
         return res.status(403).json({ error: "مفتاح توليد الفيديو غير صالح أو لا يملك صلاحية توليد الفيديو.", needsKey: true });
       }
       if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("429") || errMsg.includes("quota")) {
-        return res.status(429).json({ error: "تم استنفاد حصة توليد الفيديو (Google Gemini Veo) أو لم يتم تفعيلها. جرب لاحقاً أو تأكد من حصص Google Cloud." });
+        return res.json({
+          videoUrl: buildLocalMotionReelDataUrl({ prompt: req.body?.prompt, imageContent: req.body?.imageContent, mimeType: req.body?.mimeType, duration: req.body?.duration || 4, shotType: req.body?.shotType, place: req.body?.place, mood: req.body?.mood }),
+          posterUrl: null,
+          provider: "local-motion-reel",
+          fallback: true,
+          reason: "Veo quota exhausted; generated local motion reel instantly"
+        });
       }
       return res.status(500).json({ error: errMsg });
     }
