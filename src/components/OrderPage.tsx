@@ -356,10 +356,11 @@ const OrderPage: React.FC<OrderPageProps> = ({
   const filteredOrders = orders.filter((order) => {
     const nameStr = getOrderCustomerName(order) || "";
     const phoneStr = order.customerPhone || "";
+    const normSearch = normalizeArabic(searchTerm);
     const matchesSearch =
-      nameStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      normalizeArabic(nameStr).includes(normSearch) ||
       phoneStr.includes(searchTerm) ||
-      order.id.includes(searchTerm);
+      order.id.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesFilter =
       filterStatus === "all" ||

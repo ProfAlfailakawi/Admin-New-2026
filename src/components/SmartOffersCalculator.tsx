@@ -1,7 +1,7 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calculator, Gift, Target, TrendingUp, Sparkles, AlertTriangle, Plus, X, ShoppingBag, BadgePercent, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
-import { cn, normalizeArabicNumerals } from '../lib/utils';
+import { cn, normalizeArabicNumerals, normalizeArabic } from '../lib/utils';
 
 // Lazy load heavy components if needed, or simply optimize current render
 // In this case, optimizing the rendering of the product list should be enough.
@@ -18,7 +18,7 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  const products = useMemo(() => data?.products || [], [data?.products]);
  
  const filteredProducts = useMemo(() => {
- return products.filter((p: any) => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+ return products.filter((p: any) => normalizeArabic(p.name).includes(normalizeArabic(searchTerm)));
  }, [products, searchTerm]);
  
  const selectedProducts = useMemo(() => {

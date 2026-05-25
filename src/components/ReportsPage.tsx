@@ -25,7 +25,7 @@ const isSuccessfulPayerForDisplay = (payer: any) => {
   );
 };
 
-import { getUnifiedInvoices, normalizeArabicNumerals } from "../lib/utils";
+import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic } from "../lib/utils";
 import React, { useState, useEffect } from "react";
 import {
   FileText,
@@ -282,17 +282,16 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           })
           .join(" ");
 
-        const lowerSearch = search.toLowerCase();
+        const normSearch = normalizeArabic(search);
         const matchesSearch =
-          (inv.id || "").toLowerCase().includes(lowerSearch) ||
-          (customer?.name || "").toLowerCase().includes(lowerSearch) ||
-          (customer?.phone || "").includes(lowerSearch) ||
-          ((inv as any).customerName || "")
-            .toLowerCase()
-            .includes(lowerSearch) ||
-          ((inv as any).customerPhone || "").includes(lowerSearch) ||
-          productNames.includes(lowerSearch) ||
-          noteStr.toLowerCase().includes(lowerSearch);
+          (inv.id || "").toLowerCase().includes(search.toLowerCase()) ||
+          normalizeArabic(customer?.name || "").includes(normSearch) ||
+          (customer?.phone || "").includes(search) ||
+          normalizeArabic((inv as any).customerName || "")
+            .includes(normSearch) ||
+          ((inv as any).customerPhone || "").includes(search) ||
+          normalizeArabic(productNames).includes(normSearch) ||
+          normalizeArabic(noteStr).includes(normSearch);
 
         if (timeFilter === "all") return matchesSearch;
         const invDate = new Date(inv.date);

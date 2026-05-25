@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Testimonial } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, normalizeArabicNumerals } from '../lib/utils';
+import { cn, normalizeArabicNumerals, normalizeArabic } from '../lib/utils';
 import { analyzeKuwaitiSentiment } from '../lib/ai-engine';
 
 interface Props {
@@ -39,7 +39,7 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  });
 
  const filtered = (testimonials || []).filter(t => 
- t.content.toLowerCase().includes(searchTerm.toLowerCase())
+ normalizeArabic(t.content || '').includes(normalizeArabic(searchTerm))
 ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
  const handleEdit = (t: Testimonial) => {
