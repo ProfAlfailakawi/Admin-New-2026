@@ -52,7 +52,7 @@ import {
   BadgeCheck,
   Gauge,
   Clock,
-  Microscope
+  Command
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, normalizeArabic } from './lib/utils';
@@ -2717,7 +2717,7 @@ const MainApp: React.FC = () => {
             <button
               onClick={() => setCommandBarOpen(true)}
               className="flex items-center justify-center w-11 h-11 bg-slate-950/95 backdrop-blur-3xl rounded-full shadow-[0_16px_35px_rgba(0,0,0,0.7)] border border-white/10 active:scale-95 transition-all relative group overflow-hidden"
-              title="العدسة المجهرية للقيادة الذكية"
+              title="مركز الأوامر الذكي"
             >
               <motion.div 
                 className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/20 to-indigo-500/0 opacity-50"
@@ -2725,7 +2725,7 @@ const MainApp: React.FC = () => {
                 transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
               />
               <div className="relative z-10 flex items-center justify-center bg-white/5 rounded-full w-7 h-7 backdrop-blur-md border border-white/5">
-                <Microscope className="text-amber-400 group-hover:scale-110 transition-transform duration-300" size={14} />
+                <Command className="text-amber-400 group-hover:scale-110 transition-transform duration-300" size={15} />
               </div>
               <div className="absolute top-2.5 right-2.5 flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-[120%] w-[120%] rounded-full bg-amber-400 opacity-60"></span>
