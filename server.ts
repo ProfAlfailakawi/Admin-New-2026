@@ -12,7 +12,7 @@ let firebaseInitialized = false;
 let db: any = null;
 const PAYMENT_PENDING_GRACE_SECONDS = Math.max(
   30,
-  Math.min(600, Number(process.env.PAYMENT_PENDING_GRACE_SECONDS || 120))
+  Math.min(1800, Number(process.env.PAYMENT_PENDING_GRACE_SECONDS || 600))
 );
 const PAYMENT_PENDING_GRACE_MS = PAYMENT_PENDING_GRACE_SECONDS * 1000;
 const PAYMENT_PENDING_GRACE_LABEL =
@@ -1090,10 +1090,10 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       const dayEnd = new Date(`${todayKey}T23:59:59.999+03:00`);
 
       const newOrderWindowStart = new Date(now.getTime() - 15 * 60 * 1000);
-      const pendingPaymentWindowStart = new Date(now.getTime() - 30 * 60 * 1000);
+      const pendingPaymentWindowStart = new Date(now.getTime() - 60 * 60 * 1000);
       const pendingPaymentGraceAgo = new Date(now.getTime() - PAYMENT_PENDING_GRACE_MS);
       const paymentFailureGraceAgo = new Date(now.getTime() - PAYMENT_FAILURE_GRACE_MS);
-      const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+      const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
       const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
 
@@ -1239,7 +1239,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         results.push({ eventId, result });
       }
 
-      // 1) طلب لم يدفع بعد 10 دقائق
+      // 1) طلب لم يدفع بعد 30 دقيقة
       for (const order of orders) {
         const createdAt =
           getDateValue((order as any).createdAt) ||
@@ -1250,9 +1250,9 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         if (!createdAt) continue;
 
         // Only alert for recent pending payments:
-        // older than 10 minutes, but not older than 30 minutes.
+        // older than 30 minutes, but not too old.
         // This prevents sending a backlog of old pending orders all at once.
-        if (createdAt > tenMinutesAgo) continue;
+        if (createdAt > thirtyMinutesAgo) continue;
         if (createdAt < pendingPaymentWindowStart) continue;
 
         if (!isPendingPayment(order)) continue;
@@ -1268,7 +1268,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
         const result = await sendSmartAlertPushNotification({
           title: "⏳ طلب لم يُدفع بعد",
-          body: `الطلب ${orderNumber} صار له 10 دقائق بدون دفع${total ? ` — القيمة ${total.toFixed(3)} د.ك` : ""}`,
+          body: `الطلب ${orderNumber} صار له 30 دقيقة بدون دفع${total ? ` — القيمة ${total.toFixed(3)} د.ك` : ""}`,
           alertType: "payment_pending_10min",
           url: `/?order=${encodeURIComponent((order as any).id)}`
         });
@@ -2378,7 +2378,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 	    const now = new Date();
 	    const pendingPaymentGraceAgo = new Date(now.getTime() - PAYMENT_PENDING_GRACE_MS);
 	    const paymentFailureGraceAgo = new Date(now.getTime() - PAYMENT_FAILURE_GRACE_MS);
-	    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+	    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
     let syncResult = { updated: 0, ids: [] as string[] };
     if (!dryRun) syncResult = await alertsSyncFailedInvoicesFromPushEvents();
     const failedInvoiceIds = new Set(await alertsGetRecentFailedInvoiceIdsFromPushEvents());
@@ -2405,7 +2405,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       if (alertsIsPending(st)) {
         const d = alertsBestDate(inv) || now;
         if (d <= pendingPaymentGraceAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-immediate-${invoiceId}`, { title: "⏳ فاتورة لم تُدفع", body: `الفاتورة ${invoiceId} لم يتم دفعها بعد ${PAYMENT_PENDING_GRACE_LABEL}${alertsAmountText(inv)}`, alertType: "invoice_pending_immediate", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
-        if (d <= tenMinutesAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-10min-${invoiceId}`, { title: "⏳ فاتورة لم تُدفع بعد 10 دقائق", body: `الفاتورة ${invoiceId} لم تُدفع بعد 10 دقائق${alertsAmountText(inv)}`, alertType: "invoice_pending_10min", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
+        if (d <= thirtyMinutesAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-10min-${invoiceId}`, { title: "⏳ فاتورة لم تُدفع بعد 30 دقيقة", body: `الفاتورة ${invoiceId} لم تُدفع بعد 30 دقيقة${alertsAmountText(inv)}`, alertType: "invoice_pending_10min", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
       }
     }
 
@@ -2427,7 +2427,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       if (alertsIsPending(st)) {
         const d = alertsBestDate(order) || now;
         if (d <= pendingPaymentGraceAgo) await alertsSendOnce(results, `safe-worker-payment-pending-immediate-${orderId}`, { title: "⏳ طلب لم يدفع", body: `الطلب ${orderId} لم يتم دفعه بعد ${PAYMENT_PENDING_GRACE_LABEL}${alertsAmountText(order)}`, alertType: "payment_pending_immediate", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
-        if (d <= tenMinutesAgo) await alertsSendOnce(results, `safe-worker-payment-pending-10min-${orderId}`, { title: "⏳ طلب لم يُدفع بعد 10 دقائق", body: `الطلب ${orderId} لم يُدفع بعد 10 دقائق${alertsAmountText(order)}`, alertType: "payment_pending_10min", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
+        if (d <= thirtyMinutesAgo) await alertsSendOnce(results, `safe-worker-payment-pending-10min-${orderId}`, { title: "⏳ طلب لم يُدفع بعد 30 دقيقة", body: `الطلب ${orderId} لم يُدفع بعد 30 دقيقة${alertsAmountText(order)}`, alertType: "payment_pending_10min", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
       }
     }
     return { meta: { lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN, startFromIso: ALERTS_START_FROM_ISO || null, sent: counters.sent, syncFailedInvoices: syncResult }, results };
