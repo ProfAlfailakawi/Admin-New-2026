@@ -46,6 +46,7 @@ import {
 import {
   cn,
   normalizeArabic,
+  normalizeArabicNumerals,
   robustNormalize,
   normalizePhoneDigits,
   normalizeAddressNumber,
@@ -747,70 +748,93 @@ Alturath.kw`;
       const regionName = zone ? zone.name : "غير محدد";
       const customer = (data.customers || []).find((c) => c.id === targetId);
 
-      // PRE-CREATE PAYMENT LINK
-      let createdLink = "";
-      let createdPaymentId = "";
-      try {
-        const response = await fetch("/api/create-payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount: Number(totalValue.toFixed(3)),
-            isAdmin: true,
-            customerName: customer?.name || newCustomerName || "Customer",
-            customerEmail: customer?.email || "no-email@example.com",
-            customerMobile: customer?.phone || customerPhone || "+96500000000",
-            orderId: invoiceId,
-            description: `Invoice ${invoiceId}`,
-            returnUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
-            cancelUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
-            notificationUrl: `https://admin.alturathkw.shop/api/webhook/upayments`,
-          }),
-        });
-        const paymentData = await response.json();
-        if (response.ok) {
-          createdLink =
-            paymentData.paymentLink ||
-            paymentData.payment_url ||
-            paymentData.paymentURL ||
-            paymentData.paymentUrl ||
-            paymentData.url ||
-            paymentData.link ||
-            paymentData.data?.paymentLink ||
-            paymentData.data?.payment_url ||
-            paymentData.data?.paymentURL ||
-            paymentData.data?.paymentUrl ||
-            paymentData.data?.url ||
-            paymentData.data?.link ||
-            (typeof paymentData.data === "string" && /^https?:\/\//i.test(paymentData.data) ? paymentData.data : "") ||
-            "";
-          createdPaymentId =
-            paymentData.paymentId ||
-            paymentData.payment_id ||
-            paymentData.session_id ||
-            paymentData.data?.paymentId ||
-            paymentData.data?.payment_id ||
-            paymentData.data?.session_id ||
-            "";
-        } else {
-          const detailMsg = paymentData.message || paymentData.error || "خطأ غير معروف";
-          console.warn(
-            "Payment creation failed:",
-            detailMsg,
-          );
+      const existingInvoice = editingInvoiceId ? data.invoices.find((i) => i.id === editingInvoiceId) : null;
+
+      // PRE-CREATE PAYMENT LINK ONLY IF NEW OR PRICE CHANGED OR EMPTY
+      let createdLink = existingInvoice?.paymentLink || "";
+      let createdPaymentId = existingInvoice?.paymentId || "";
+
+      const priceChanged = existingInvoice ? Math.abs(existingInvoice.totalAmount - totalValue) > 0.005 : true;
+      const needsNewPayment = !createdLink || priceChanged;
+
+      if (needsNewPayment) {
+        try {
+          const response = await fetch("/api/create-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              amount: Number(totalValue.toFixed(3)),
+              isAdmin: true,
+              customerName: customer?.name || newCustomerName || "Customer",
+              customerEmail: customer?.email || "no-email@example.com",
+              customerMobile: customer?.phone || customerPhone || "+96500000000",
+              orderId: invoiceId,
+              description: `Invoice ${invoiceId}`,
+              returnUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
+              cancelUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
+              notificationUrl: `https://admin.alturathkw.shop/api/webhook/upayments`,
+            }),
+          });
+          const paymentData = await response.json();
+          if (response.ok) {
+            createdLink =
+              paymentData.paymentLink ||
+              paymentData.payment_url ||
+              paymentData.paymentURL ||
+              paymentData.paymentUrl ||
+              paymentData.url ||
+              paymentData.link ||
+              paymentData.data?.paymentLink ||
+              paymentData.data?.payment_url ||
+              paymentData.data?.paymentURL ||
+              paymentData.data?.paymentUrl ||
+              paymentData.data?.url ||
+              paymentData.data?.link ||
+              (typeof paymentData.data === "string" && /^https?:\/\//i.test(paymentData.data) ? paymentData.data : "") ||
+              "";
+            createdPaymentId =
+              paymentData.paymentId ||
+              paymentData.payment_id ||
+              paymentData.session_id ||
+              paymentData.data?.paymentId ||
+              paymentData.data?.payment_id ||
+              paymentData.data?.session_id ||
+              "";
+          } else {
+            const detailMsg = paymentData.message || paymentData.error || "خطأ غير معروف";
+            console.warn(
+              "Payment creation failed:",
+              detailMsg,
+            );
+            setLoading(false);
+            return toast.error(`لم يتم إنشاء رابط الدفع: ${detailMsg}`);
+          }
+        } catch (err: any) {
+          console.error("Payment API Error:", err);
           setLoading(false);
-          return toast.error(`لم يتم إنشاء رابط الدفع: ${detailMsg}`);
+          return toast.error(`ما قدرنا نوصل لخدمة الدفع: ${err?.message || String(err)}`);
         }
-      } catch (err: any) {
-        console.error("Payment API Error:", err);
-        setLoading(false);
-        return toast.error(`ما قدرنا نوصل لخدمة الدفع: ${err?.message || String(err)}`);
+
+        if (!createdLink) {
+          setLoading(false);
+          return toast.error("لم يتم إنشاء رابط الدفع، لن يتم فتح الواتساب بدون الرابط");
+        }
       }
 
-      if (!createdLink) {
-        setLoading(false);
-        return toast.error("لم يتم إنشاء رابط الدفع، لن يتم فتح الواتساب بدون الرابط");
-      }
+      // Compute proper date representation as requested by the user
+      const finalInvoiceDate = (() => {
+        if (existingInvoice) {
+          // If the day shown in input matches original day, keep original date timestamp exactly.
+          if (existingInvoice.date.slice(0, 10) === invoiceDate) {
+            return existingInvoice.date;
+          } else {
+            // Otherwise, preserve original hours/minutes/seconds but replace day
+            const tPart = existingInvoice.date.includes("T") ? existingInvoice.date.split("T")[1] : "12:00:00.000Z";
+            return `${invoiceDate}T${tPart}`;
+          }
+        }
+        return mergeDateWithCurrentTime(invoiceDate);
+      })();
 
       const newInvoice: Invoice = {
         id: invoiceId,
@@ -830,40 +854,40 @@ Alturath.kw`;
           profit: deliveryProfit,
           finalPrice: deliveryFee,
         },
-        date: editingInvoiceId
-          ? data.invoices.find((i) => i.id === editingInvoiceId)?.date ||
-            new Date().toISOString()
-          : mergeDateWithCurrentTime(invoiceDate),
+        date: finalInvoiceDate,
         totalAmount: totalValue,
         totalCost: computeInvoiceCost(mockInv, data.products),
         profit: computeInvoiceProfit(mockInv, data.products),
         discount: discountAmount,
-        status: "بانتظار الدفع",
-        paymentStatus: "pending",
-        paymentMethod: "KNet",
+        status: existingInvoice?.status || "بانتظار الدفع",
+        paymentStatus: existingInvoice?.paymentStatus || "pending",
+        paymentMethod: existingInvoice?.paymentMethod || "KNet",
         paymentLink: createdLink,
         paymentId: createdPaymentId,
         gatewayFee: data.settings.gatewayFeeAmount || 0,
         notes: notesText || "---",
       };
 
-      setData((prev) => ({
-        ...prev,
-        invoices: editingInvoiceId
-          ? prev.invoices.map((i) =>
-              i.id === editingInvoiceId ? newInvoice : i,
-            )
-          : [...prev.invoices, newInvoice],
-        customers: prev.customers.map((c) =>
-          c.id === targetId
-            ? {
-                ...c,
-                area: regionName,
-                address: { region: regionName, ...addressDetails },
-              }
-            : c,
-        ),
-      }));
+      setData((prev) => {
+        const nextState = {
+          ...prev,
+          invoices: editingInvoiceId
+            ? prev.invoices.map((i) =>
+                i.id === editingInvoiceId ? newInvoice : i,
+              )
+            : [...prev.invoices, newInvoice],
+          customers: prev.customers.map((c) =>
+            c.id === targetId
+              ? {
+                  ...c,
+                  area: regionName,
+                  address: { region: regionName, ...addressDetails },
+                }
+              : c,
+          ),
+        };
+        return recalculateStateBalances(nextState);
+      });
 
       // Safe notification nudge for new admin invoices (INV-...).
       // This uses the existing push endpoint and does not change notification delivery logic.
@@ -1068,7 +1092,11 @@ Alturath.kw`;
                   type="text"
                   value={customerSearch}
                   onChange={(e) => {
-                    setCustomerSearch(e.target.value);
+                    let val = normalizeArabicNumerals(e.target.value);
+                    if (/^[0-9]*$/.test(val)) {
+                      val = val.slice(0, 8);
+                    }
+                    setCustomerSearch(val);
                     setShowCustomerDropdown(true);
                   }}
                   onFocus={() => setShowCustomerDropdown(true)}

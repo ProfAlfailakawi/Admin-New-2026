@@ -61,6 +61,12 @@ const getProductCategories = (data: any) => {
     : Array.isArray(data?.settings?.productCategories)
       ? data.settings.productCategories
       : null;
+  
+  const hasProducts = Array.isArray(data?.products) && data.products.length > 0;
+  if (!configuredSource && !hasProducts) {
+    return [];
+  }
+
   const configuredNames = Array.isArray(configuredSource)
     ? configuredSource.map((cat: any) => normalizeCategoryName(typeof cat === "string" ? cat : cat?.name || cat?.title)).filter(Boolean)
     : DEFAULT_PRODUCT_CATEGORIES;
@@ -524,7 +530,26 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
   const handleSaveProduct = React.useCallback(
     (force = false) => {
-      if (!productForm.name || !productForm.supplierId || isSaving) return;
+      if (isSaving) return;
+
+      const missingFields = [];
+      if (!productForm.name || !productForm.name.trim()) {
+        missingFields.push("اسم المنتج");
+      }
+      if (!productForm.category || !productForm.category.trim()) {
+        missingFields.push("تصنيف المنتج");
+      }
+      if (!productForm.supplierId) {
+        missingFields.push("المورد");
+      }
+
+      if (missingFields.length > 0) {
+        toast.error("بيانات المنتج غير مكتملة ⚠️", {
+          description: `الرجاء كتابة أو اختيار الحقول التالية لتتمكن من حفظ المنتج: ${missingFields.join("، ")}.`,
+          duration: 6000,
+        });
+        return;
+      }
 
       const parsedPrice = parseFloat(productForm.price as any) || 0;
       const parsedCost = parseFloat(productForm.cost as any) || 0;
@@ -659,7 +684,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       name: "",
       price: 0,
       cost: 0,
-      category: productCategories[0] || "الولائم",
+      category: "",
       supplierId: "",
       imageUrl: "",
       isActive: true,
@@ -1493,10 +1518,11 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       تصنيف المنتج
                     </label>
                     <select
-                      value={productForm.category || productCategories[0] || "الولائم"}
+                      value={productForm.category}
                       onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right"
                     >
+                      <option value="">— اختر تصنيفاً —</option>
                       {productCategories.map((category) => (
                         <option key={category} value={category}>{category}</option>
                       ))}

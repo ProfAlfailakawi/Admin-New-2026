@@ -341,6 +341,15 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       );
       if (!invoiceToDeleteObj) return;
 
+      if (isPaidStatus(invoiceToDeleteObj.paymentStatus)) {
+        import("sonner").then((m) =>
+          m.toast.error(
+            "هذه الفاتورة مدفوعة ولا يمكن حذفها نهائياً! 🚫",
+          ),
+        );
+        return;
+      }
+
       setData((prev) => {
         const updatedInvoices = (prev?.invoices || []).map((inv) =>
           inv.id === id ? { ...inv, isDeleted: true } : inv,
@@ -383,6 +392,14 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         import("sonner").then((m) =>
           m.toast.error(
             "ما يصير نعدل طلبات التطبيق من سجل الفواتير. عدلها من قسم الطلبات.",
+          ),
+        );
+        return;
+      }
+      if (isPaidStatus(invoice.paymentStatus)) {
+        import("sonner").then((m) =>
+          m.toast.error(
+            "هذه الفاتورة مدفوعة ولا يمكن تعديل بياناتها! 🚫",
           ),
         );
         return;
@@ -1193,26 +1210,30 @@ Alturath.kw`;
                                     </button>
                                     {!isPartner && (
                                       <>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditInvoice(inv);
-                                          }}
-                                          className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-600 transition-colors"
-                                          title="تعديل"
-                                        >
-                                          <Edit2 size={16} />
-                                        </button>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setInvoiceToDelete(inv.id);
-                                          }}
-                                          className="p-2 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-500 transition-colors"
-                                          title="حذف"
-                                        >
-                                          <Trash2 size={16} />
-                                        </button>
+                                        {!isPaidStatus(inv.paymentStatus) && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleEditInvoice(inv);
+                                            }}
+                                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-600 transition-colors"
+                                            title="تعديل"
+                                          >
+                                            <Edit2 size={16} />
+                                          </button>
+                                        )}
+                                        {!isPaidStatus(inv.paymentStatus) && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setInvoiceToDelete(inv.id);
+                                            }}
+                                            className="p-2 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-500 transition-colors"
+                                            title="حذف"
+                                          >
+                                            <Trash2 size={16} />
+                                          </button>
+                                        )}
                                       </>
                                     )}
                                   </div>
