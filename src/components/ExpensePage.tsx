@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Wallet, Search, Plus, Trash2, Edit2, Calendar, CreditCard, TrendingUp, ArrowDownRight, Target, PlusCircle, X } from 'lucide-react';
 import { AppState, Expense, PaymentMethod } from '../types';
-import { cn, normalizeArabicNumerals } from '../lib/utils';
+import { cn, normalizeArabicNumerals, normalizeArabic } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import { NumericInput } from './ui/NumericInput';
@@ -45,7 +45,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  });
 
  const filteredExpenses = (data?.expenses || []).filter(e => 
- (e.description || '').toLowerCase().includes(search.toLowerCase())
+ normalizeArabic(e.description || '').includes(normalizeArabic(search))
 ).sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
 
  // Stats Logic

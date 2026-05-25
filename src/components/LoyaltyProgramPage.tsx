@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Award, Users, Star, Gift, MessageCircle, Clock, Settings, TrendingUp, Zap, Search, ChevronRight, ChevronLeft, Tag, X, History } from 'lucide-react';
-import { cn, normalizeArabicNumerals } from '../lib/utils';
+import { cn, normalizeArabicNumerals, normalizeArabic } from '../lib/utils';
 import { AppState } from '../types';
 import { toast } from 'sonner';
 import { PromoCodePage } from './PromoCodePage';
@@ -294,7 +294,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  let filtered = loyaltyData.filter((c: any) => {
  const segMatch = activeSegment === 'all' || c.classification === activeSegment;
  const searchMatch = !searchTerm || 
- c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+ normalizeArabic(c.name || "").includes(normalizeArabic(searchTerm)) || 
  c.phone?.includes(searchTerm);
  return segMatch && searchMatch;
  });

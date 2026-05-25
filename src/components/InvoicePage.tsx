@@ -1451,7 +1451,10 @@ Alturath.kw`;
                       <X size={14} />
                     </button>
                     <div className="text-right font-bold text-sm w-40">
-                      {it.product!.name}
+                      <div>{it.product!.name}</div>
+                      <div className="text-[9px] font-extralight text-slate-400 opacity-60 mt-0.5 tracking-tighter">
+                        {(data.suppliers || []).find(s => s.id === it.product!.supplierId)?.name}
+                      </div>
                     </div>
                   </div>
                   <div className="flex justify-between items-center">

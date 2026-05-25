@@ -6,7 +6,7 @@ import { motion } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { AppState, AppSettings, Zone, Product, Customer, Expense, Supplier, Testimonial, PulseAnalysisRecord, AICampaign, SupplierTransfer } from '../types';
 import { GET_DEMO_DATA } from '../data';
-import { cn, formatFullAddress, normalizeAddressObject, normalizeArabicNumerals } from '../lib/utils';
+import { cn, formatFullAddress, normalizeAddressObject, normalizeArabicNumerals, normalizeArabic } from '../lib/utils';
 import * as XLSX from 'xlsx';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore'; 
 import { db, auth, getSmartDoc } from '../firebase'; 
@@ -782,7 +782,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </tr>
  </thead>
  <tbody className="divide-y divide-slate-100 text-sm font-bold text-slate-700">
- {(data.zones || []).filter((z) => !searchZoneTerm || z.name.toLowerCase().includes(searchZoneTerm.toLowerCase())).map((zone, index) => (
+ {(data.zones || []).filter((z) => !searchZoneTerm || normalizeArabic(z.name).includes(normalizeArabic(searchZoneTerm))).map((zone, index) => (
  <tr key={zone.id} className="hover:bg-slate-50 transition-colors">
  <td className="p-3">
  <input 
