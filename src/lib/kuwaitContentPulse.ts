@@ -19,13 +19,13 @@ export type KuwaitPulsePack = {
 };
 
 export const KUWAIT_PLACES: Record<KuwaitOrderPlace, { label: string; icon: string; prompt: string; background: StudioBackgroundPresetId }> = {
-  home: { label: 'بيت', icon: '🏠', background: 'home-table', prompt: 'مشهد طلب كويتي منزلي على سفرة بيتية مرتبة، ضوء طبيعي، إحساس بيت حقيقي، بدون مطعم وبدون ديكور مصطنع.' },
-  diwaniya: { label: 'ديوانية', icon: '🛋️', background: 'diwaniya-table', prompt: 'مشهد ديوانية كويتية عصرية واقعية: سفرة ربع وطلب جماعي، زاوية هادئة، بدون وجوه واضحة، بدون سدو أو بخور أو دلة.' },
-  chalet: { label: 'شاليه', icon: '🌊', background: 'chalet-spread', prompt: 'مشهد شاليه كويتي واقعي: طلبات مرتبة ليمعة، إضاءة نهارية أو غروب ناعم، إحساس عطلة وطلعة بدون مبالغة.' },
-  farm: { label: 'مزرعة', icon: '🌴', background: 'farm-gathering', prompt: 'مشهد مزرعة كويتية بسيط وواقعي: سفرة خارجية نظيفة، ظل طبيعي، طلبات جماعية، بدون زخارف تراثية مصطنعة.' },
-  jakhour: { label: 'جاخور', icon: '🐪', background: 'jakhour-setup', prompt: 'مشهد جاخور كويتي عملي وراقي: طلبات للربع على طاولة بسيطة، إضاءة واقعية، بدون فوضى وبدون ديكور مبالغ.' },
-  zowara: { label: 'زوارة', icon: '👨‍👩‍👧‍👦', background: 'zowara-spread', prompt: 'مشهد زوارة كويتية بيتية دافئة: سفرة عائلية مرتبة، طلب يبيض الوجه، واقعية عالية وبدون مطعم.' },
-  delivery: { label: 'توصيل', icon: '🚗', background: 'delivery-packaging', prompt: 'مشهد طلب جاهز للتوصيل: علب وتغليف plain مرتب، سطح نظيف، إحساس مطبخ وطلبات بيتية وليس مطعم جلوس.' }
+  home: { label: 'بيت', icon: '🏠', background: 'home-table', prompt: 'سفرة بيتية كويتية عادية ومرتبة: طبق أو صينية من المطبخ على طاولة نظيفة، ضوء طبيعي أو دافئ، بدون مطعم جلوس وبدون قهوة أو دلة أو بخور أو ديكور مصطنع.' },
+  diwaniya: { label: 'ديوانية', icon: '🛋️', background: 'diwaniya-table', prompt: 'ديوانية كويتية عصرية بخلفية blur: طلب جماعي للربع، سفرة/علب مرتبة، بدون وجوه واضحة، بدون دخان، بدون سدو أو بخور أو دلة أو ديكور تراثي زائد.' },
+  chalet: { label: 'شاليه', icon: '🌊', background: 'chalet-spread', prompt: 'طلب شاليه كويتي واقعي للويكند: طاولة بسيطة، إضاءة نهارية أو غروب ناعم، طلبات مرتبة، بدون ناس واضحة أو بحر مبالغ أو مشهد سياحي مصطنع.' },
+  farm: { label: 'مزرعة', icon: '🌴', background: 'farm-gathering', prompt: 'مزرعة كويتية نظيفة وهادئة: طاولة خارجية تحت ظل طبيعي، طلب جماعي مرتب، بدون خيام تراثية أو زخارف مصطنعة أو فوضى.' },
+  jakhour: { label: 'جاخور', icon: '🐪', background: 'jakhour-setup', prompt: 'جاخور كويتي مرتب وحذر: طاولة عملية نظيفة، طلب للربع، خلفية بسيطة blur، بدون حيوانات أو تراب أو مخلفات أو فوضى أو ديكور مبالغ.' },
+  zowara: { label: 'زوارة', icon: '👨‍👩‍👧‍👦', background: 'zowara-spread', prompt: 'زوارة كويتية داخل بيت: سفرة عائلية مرتبة، محاشي/ورق عنب/عيوش أو أطباق جاهزة للتقديم، بدون وجوه واضحة أو عرس أو قهوة أو دلة.' },
+  delivery: { label: 'توصيل', icon: '🚗', background: 'delivery-packaging', prompt: 'مشهد طلب جاهز للتوصيل وهو الافتراضي: علب plain مرتبة وكيس plain على كاونتر أو طاولة نظيفة، إحساس مطبخ وطلبات بيتية، بدون سيارة أو سائق أو شعارات أو مطعم جلوس.' }
 };
 
 export const KUWAIT_CONTENT_GOALS: Record<KuwaitContentGoal, { label: string; icon: string; prompt: string }> = {

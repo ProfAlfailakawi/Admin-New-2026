@@ -141,6 +141,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
     const [supplierFilter, setSupplierFilter] = useState<string>("all");
     const [activeInvoiceCategory, setActiveInvoiceCategory] = useState<string | null>(null);
     const [promoCodeInput, setPromoCodeInput] = useState("");
+
     const [appliedPromoCode, setAppliedPromoCode] = useState<PromoCode | null>(
       null,
     );
@@ -486,22 +487,18 @@ Alturath.kw`;
     }, [selectedCustomerId]);
 
     const filteredProducts = React.useMemo(() => {
-      const uniqueProductsMap = new Map<string, Product>();
-      data.products.forEach((p) => {
-        if (p.isActive !== false) {
-          const normName = robustNormalize(p.name || "");
-          if (!uniqueProductsMap.has(normName))
-            uniqueProductsMap.set(normName, p);
-        }
-      });
-      return Array.from(uniqueProductsMap.values())
+      const normalizedSearch = normalizeArabic(searchQuery.trim());
+      return data.products
         .filter((p) => {
-          return (
-            normalizeArabic(p.name || "").includes(
-              normalizeArabic(searchQuery),
-            ) &&
-            (supplierFilter === "all" || p.supplierId === supplierFilter)
-          );
+          if (p.isActive === false) return false;
+          const matchesSearch =
+            normalizeArabic(p.name || "").includes(normalizedSearch) ||
+            normalizeArabic((p as any).category || "").includes(
+              normalizedSearch,
+            );
+          const matchesSupplier =
+            supplierFilter === "all" || p.supplierId === supplierFilter;
+          return matchesSearch && matchesSupplier;
         })
         .sort((a, b) => (a.name || "").localeCompare(b.name || "", "ar"));
     }, [data.products, searchQuery, supplierFilter]);
@@ -603,6 +600,12 @@ Alturath.kw`;
       // FORCING VITE CACHE INVALIDATION
       const product = (data.products || []).find((p) => p.id === productId);
       if (!product) return;
+
+      // Automatically set delivery company from product's supplier
+      const supplier = (data.suppliers || []).find((s) => s.id === product.supplierId);
+      if (supplier) {
+        setDeliveryCompany(supplier.name);
+      }
 
       toast.success(`تم إضافة ${product.name} للسلة`);
       
@@ -968,65 +971,118 @@ Alturath.kw`;
                 }))
                 .filter((group) => group.items.length > 0);
               const isSearching = searchQuery.trim().length > 0;
-              const renderProductCard = (p: Product) => (
-                <button
-                  key={p.id}
-                  onClick={() => { setOpenCheaperHintId(null); addToCart(p.id); }}
-                  className="invoice-product-card bg-white border p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative ceramic-glint overflow-hidden shadow-sm hover:shadow-xl min-w-0 w-full h-full"
-                >
-                  {p.isOutOfStock && (
-                    <div className="absolute top-2 left-2 text-rose-500 z-10 flex items-center gap-1 bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded-lg border border-rose-100 shadow-sm">
-                      <AlertCircle size={14} />
-                      <span className="text-[10px] font-bold title-premium">نفد</span>
-                    </div>
-                  )}
-                  {(() => {
-                    const bestPrice = getBestPriceInfo(p);
-                    if (bestPrice) {
-                      return (
-                        <span
-                          className={cn("invoice-product-price-hint absolute top-2 left-2 text-amber-500 z-20 p-1 group/cheaper", openCheaperHintId === p.id && "is-open")}
-                          role="button"
-                          tabIndex={0}
-                          aria-label="معلومة سعر المورد"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            setOpenCheaperHintId((current) => current === p.id ? null : p.id);
-                          }}
-                          onMouseDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
-                          onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
-                          onTouchStart={(event) => { event.preventDefault(); event.stopPropagation(); }}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
+              const renderProductCard = (p: Product) => {
+                const supplier = (data.suppliers || []).find((s) => s.id === p.supplierId);
+                const supplierName = supplier?.name || "مورد غير معروف";
+                
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setOpenCheaperHintId(null);
+                      addToCart(p.id);
+                    }}
+                    className="invoice-product-card bg-white border border-slate-200 p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative ceramic-glint overflow-hidden shadow-sm hover:shadow-xl min-w-0"
+                  >
+                    {p.isOutOfStock && (
+                      <div className="absolute top-2 left-2 text-rose-500 z-10 flex items-center gap-1 bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded-lg border border-rose-100 shadow-sm">
+                        <AlertCircle size={14} />
+                        <span className="text-[10px] font-bold title-premium">نفد</span>
+                      </div>
+                    )}
+                    {(() => {
+                      const bestPrice = getBestPriceInfo(p);
+                      if (bestPrice) {
+                        return (
+                          <span
+                            className={cn(
+                              "invoice-product-price-hint absolute top-2 left-2 text-amber-500 z-20 p-1 group/cheaper",
+                              openCheaperHintId === p.id && "is-open",
+                            )}
+                            role="button"
+                            tabIndex={0}
+                            aria-label="معلومة سعر المورد"
+                            onClick={(event) => {
                               event.preventDefault();
                               event.stopPropagation();
-                              setOpenCheaperHintId((current) => current === p.id ? null : p.id);
-                            }
-                          }}
-                        >
-                          <span className="invoice-price-alert-icon"><AlertTriangle size={16} className="animate-pulse" /></span>
-                          <span className="invoice-product-price-popover">
-                            <strong>{bestPrice.supplier || 'مورد آخر'}</strong>
-                            <span>يوفره بسعر أقل!</span>
-                            <b><span className="num-premium">{bestPrice.cost.toFixed(3)}</span> د.ك</b>
+                              setOpenCheaperHintId((current) =>
+                                current === p.id ? null : p.id,
+                              );
+                            }}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                            }}
+                            onPointerDown={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                            }}
+                            onTouchStart={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                setOpenCheaperHintId((current) =>
+                                  current === p.id ? null : p.id,
+                                );
+                              }
+                            }}
+                          >
+                            <span className="invoice-price-alert-icon">
+                              <AlertTriangle size={16} className="animate-pulse" />
+                            </span>
+                            <span className="invoice-product-price-popover">
+                              <strong>{bestPrice.supplier || "مورد آخر"}</strong>
+                              <span>يوفره بسعر أقل!</span>
+                              <b>
+                                <span className="num-premium">
+                                  {bestPrice.cost.toFixed(3)}
+                                </span>{" "}
+                                د.ك
+                              </b>
+                            </span>
                           </span>
-                        </span>
-                      );
-                    }
-                    return null;
-                  })()}
-                  <h3 className={cn("invoice-product-card-title font-extrabold text-slate-800 title-premium text-xs sm:text-sm leading-snug min-w-0", p.isOutOfStock && "opacity-50")}>{p.name}</h3>
-                  <div className="text-[10px] font-bold text-slate-400 title-premium">{normalizeCategoryName((p as any).category)}</div>
-                  <div className="flex justify-between items-center mt-auto">
-                    <div className="flex items-center gap-0.5">
-                      <span className="text-primary font-black num-premium text-sm">{p.price.toFixed(3)}</span>
-                      <span className="text-[9px] font-bold text-slate-500 title-premium">د.ك</span>
+                        );
+                      }
+                      return null;
+                    })()}
+                    <h3
+                      className={cn(
+                        "invoice-product-card-title font-extrabold text-slate-800 title-premium text-[13px] leading-snug min-w-0 mb-1",
+                        p.isOutOfStock && "opacity-50",
+                      )}
+                    >
+                      {p.name}
+                    </h3>
+                    
+                    <div className="flex flex-wrap items-center gap-1.5 mt-auto mb-3">
+                      <span className="px-2 py-0.5 rounded-lg bg-slate-50 text-slate-400 text-[9px] font-bold border border-slate-100 uppercase tracking-wider">
+                        {normalizeCategoryName((p as any).category)}
+                      </span>
+                      <span className="text-[8px] font-extralight text-slate-300 title-premium tracking-tighter opacity-70 leading-none">
+                        {supplierName}
+                      </span>
                     </div>
-                    <Plus size={16} className="text-slate-300 group-hover:text-primary transition-colors duration-200" />
-                  </div>
-                </button>
-              );
+
+                    <div className="flex justify-between items-center bg-slate-50/50 -mx-4 -mb-4 p-3 border-t border-slate-100/50">
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-primary font-black num-premium text-base">
+                          {p.price.toFixed(3)}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-500 title-premium">
+                          د.ك
+                        </span>
+                      </div>
+                      <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all shadow-sm">
+                        <Plus size={18} />
+                      </div>
+                    </div>
+                  </button>
+                );
+              };
 
               if (isSearching) {
                 return (
@@ -1221,7 +1277,7 @@ Alturath.kw`;
 
               {/* فاتورة جديدة: خيارات طريقة التوصيل */}
               {!isPartner && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="text-[10px] font-bold text-slate-500 text-right">
                   طريقة التوصيل
                 </div>
@@ -1262,6 +1318,19 @@ Alturath.kw`;
                       {t.label}
                     </button>
                   ))}
+                </div>
+
+                <div className="relative">
+                  <div className="text-[9px] font-bold text-slate-400 text-right mb-1">
+                    اسم شركة التوصيل
+                  </div>
+                  <input
+                    type="text"
+                    value={deliveryCompany}
+                    onChange={(e) => setDeliveryCompany(e.target.value)}
+                    placeholder="اسم شركة التوصيل..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-right text-xs font-bold focus:ring-2 focus:ring-primary/10 outline-none transition-all"
+                  />
                 </div>
               </div>
               )}
