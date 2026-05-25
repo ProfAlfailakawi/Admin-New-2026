@@ -64,7 +64,7 @@ const getProductCategories = (data: any) => {
     ? configuredSource.map((cat: any) => normalizeCategoryName(typeof cat === "string" ? cat : cat?.name || cat?.title)).filter(Boolean)
     : DEFAULT_PRODUCT_CATEGORIES;
   const productNames = (data?.products || []).map((p: any) => normalizeCategoryName(p?.category)).filter(Boolean);
-  return Array.from(new Set([...configuredNames, ...productNames]));
+  return Array.from(new Set([...configuredNames, ...productNames, "عام"]));
 };
 
 interface ProductPageProps {
@@ -153,6 +153,10 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
   const deleteProductCategory = (category: string) => {
     const name = normalizeCategoryName(category);
+    if (name === "عام") {
+      toast.error("ما يصير نحذف التصنيف العام الأساسي للنظام.");
+      return;
+    }
     const usedProducts = (data?.products || []).filter((p: any) => normalizeCategoryName(p?.category) === name);
     if (usedProducts.length > 0) {
       toast.error(`ما يصير نحذف التصنيف لأن فيه ${usedProducts.length} منتج. انقل المنتجات أول وبعدها احذفه.`);
@@ -187,6 +191,10 @@ const ProductPage: React.FC<ProductPageProps> = ({
   const saveEditedProductCategory = () => {
     const oldName = normalizeCategoryName(editingCategoryName || "");
     const newName = normalizeCategoryName(editingCategoryValue);
+    if (oldName === "عام") {
+      toast.error("ما يصير نعدل اسم التصنيف العام الأساسي للنظام.");
+      return;
+    }
     if (!oldName || !newName || newName === "عام") {
       toast.error("اكتب اسم تصنيف واضح");
       return;
@@ -1048,7 +1056,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
               {productListCategories.map((category) => {
                 const normalized = normalizeCategoryName(category);
                 const count = (filteredProducts || []).filter((p: any) => normalizeCategoryName(p?.category) === normalized).length;
-                const isOpen = normalizeCategoryName(openProductListCategory || "") === normalized;
+                const isOpen = !!openProductListCategory && normalizeCategoryName(openProductListCategory) === normalized;
                 return (
                   <button
                     key={category}
