@@ -76,6 +76,31 @@ const buildAssistantIntel = (data: AppState) => {
  const pendingOrders = orders.filter((o: any) => isPending(o.paymentStatus || o.status));
  const failedOrders = orders.filter((o: any) => isFailed(o.paymentStatus || o.status));
  const paidOrders = orders.filter((o: any) => isPaid(o.paymentStatus || o.status));
+ const startOfDay = (offsetDays: number) => {
+   const d = new Date();
+   d.setHours(0, 0, 0, 0);
+   d.setDate(d.getDate() + offsetDays);
+   return d.getTime();
+ };
+ const invoiceTime = (inv: any) => new Date(inv.date || inv.createdAt || inv.updatedAt || 0).getTime();
+ const sumInvoicesBetween = (fromOffset: number, toOffset: number) => {
+   const from = startOfDay(fromOffset);
+   const to = startOfDay(toOffset);
+   const bucket = paidInvoices.filter((inv: any) => {
+     const t = invoiceTime(inv);
+     return t >= from && t < to;
+   });
+   return {
+     count: bucket.length,
+     sales: bucket.reduce((sum: number, inv: any) => sum + Number(inv.totalAmount || inv.total || 0), 0),
+     profit: bucket.reduce((sum: number, inv: any) => sum + Number(inv.profit || 0), 0),
+   };
+ };
+ const yesterday = sumInvoicesBetween(-1, 0);
+ const last7 = sumInvoicesBetween(-7, 1);
+ const prev7 = sumInvoicesBetween(-14, -7);
+ const salesTrend7 = prev7.sales > 0 ? Math.round(((last7.sales - prev7.sales) / prev7.sales) * 100) : null;
+ const avgOrderValue = paidInvoices.length > 0 ? totalSales / paidInvoices.length : 0;
 
  const productSales = new Map<string, { qty: number; revenue: number }>();
  paidInvoices.forEach((inv: any) => {
@@ -92,13 +117,21 @@ const buildAssistantIntel = (data: AppState) => {
  const productRank = products
    .map((p: any) => {
      const sold = productSales.get(String(p.id)) || { qty: 0, revenue: 0 };
-     const profitPerUnit = Number(p.price || 0) - Number(p.cost || 0);
+     const price = Number(p.price || 0);
+     const cost = Number(p.cost || 0);
+     const profitPerUnit = price - cost;
+     const stock = Number(p.stock ?? p.quantity ?? 0);
      return {
+       id: p.id,
        name: p.name || 'منتج',
+       category: p.category || p.type || 'غير مصنف',
+       price,
+       cost,
+       stock,
        soldQty: sold.qty,
        revenue: sold.revenue,
        profitPerUnit,
-       margin: Number(p.price || 0) > 0 ? Math.round((profitPerUnit / Number(p.price || 1)) * 100) : 0,
+       margin: price > 0 ? Math.round((profitPerUnit / Number(price || 1)) * 100) : 0,
      };
    })
    .sort((a, b) => (b.revenue + b.profitPerUnit * 2) - (a.revenue + a.profitPerUnit * 2));
@@ -114,6 +147,31 @@ const buildAssistantIntel = (data: AppState) => {
 
  const supplierDebt = suppliers.reduce((sum: number, s: any) => sum + Math.max(0, Number(s.balance || 0)), 0);
  const topSupplierDebt = [...suppliers].sort((a: any, b: any) => Number(b.balance || 0) - Number(a.balance || 0))[0];
+ const recentInvoices = [...paidInvoices]
+   .sort((a: any, b: any) => new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime())
+   .slice(0, 8)
+   .map((inv: any) => ({
+     date: String(inv.date || inv.createdAt || '').slice(0, 10) || 'بدون تاريخ',
+     total: Number(inv.totalAmount || inv.total || 0),
+     profit: Number(inv.profit || 0),
+     items: (inv.items || []).slice(0, 4).map((it: any) => `${it.name || it.productName || 'منتج'} x${it.quantity || 1}`).join(', ')
+   }));
+ const topCustomers = [...customers]
+   .map((c: any) => ({
+     name: c.name || c.phone || 'عميل',
+     phone: c.phone || '',
+     spent: Number(c.totalSpent || 0),
+     orders: Number(c.totalOrders || c.orderCount || 0),
+     lastActive: c.lastActive || c.lastOrderDate || ''
+   }))
+   .sort((a: any, b: any) => b.spent - a.spent)
+   .slice(0, 6);
+ const weakProducts = [...productRank]
+   .filter((p: any) => p.soldQty === 0 || (p.margin > 20 && p.soldQty <= 2))
+   .slice(0, 6);
+ const lowStockProducts = [...productRank]
+   .filter((p: any) => p.stock > 0 && p.stock <= 5)
+   .slice(0, 6);
 
  const missions = [
    failedOrders.length > 0 && {
@@ -161,10 +219,22 @@ const buildAssistantIntel = (data: AppState) => {
    productCount: products.length,
    supplierCount: suppliers.length,
    supplierDebt,
+   yesterdaySales: yesterday.sales,
+   yesterdayProfit: yesterday.profit,
+   last7Sales: last7.sales,
+   last7Profit: last7.profit,
+   prev7Sales: prev7.sales,
+   salesTrend7: salesTrend7 === null ? 'لا توجد بيانات كافية للمقارنة' : `${salesTrend7}%`,
+   avgOrderValue,
    topSupplierDebt: topSupplierDebt ? `${topSupplierDebt.name || 'مورد'} (${money(topSupplierDebt.balance)} د.ك)` : 'لا يوجد',
-   topProducts: productRank.slice(0, 5).map((p) => `${p.name}: ${p.soldQty} مبيع / هامش ${p.margin}%`).join(' | '),
-   hiddenGem: hiddenGem ? `${hiddenGem.name} / هامش ${hiddenGem.margin}% / مبيعات ${hiddenGem.soldQty}` : 'لا يوجد',
+   topProducts: productRank.slice(0, 5).map((p) => `${p.name}: ${p.soldQty} مبيع / هامش ${p.margin}% / سعر ${money(p.price)} / تكلفة ${money(p.cost)}`).join(' | '),
+   weakProducts: weakProducts.map((p) => `${p.name}: مبيعات ${p.soldQty} / هامش ${p.margin}% / مخزون ${p.stock}`).join(' | ') || 'لا يوجد',
+   lowStockProducts: lowStockProducts.map((p) => `${p.name}: مخزون ${p.stock}`).join(' | ') || 'لا يوجد',
+   topCustomers: topCustomers.map((c) => `${c.name}: إنفاق ${money(c.spent)} د.ك / طلبات ${c.orders}`).join(' | ') || 'لا يوجد',
+   recentInvoices: recentInvoices.map((i) => `${i.date}: ${money(i.total)} د.ك / ربح ${money(i.profit)} / ${i.items}`).join(' | ') || 'لا توجد فواتير حديثة',
+   hiddenGem: hiddenGem ? `${hiddenGem.name} / هامش ${hiddenGem.margin}% / مبيعات ${hiddenGem.soldQty} / سعر ${money(hiddenGem.price)} / تكلفة ${money(hiddenGem.cost)}` : 'لا يوجد',
    atRiskCustomer: atRiskCustomer ? `${atRiskCustomer.name || atRiskCustomer.phone} / غياب ${atRiskCustomer.idleDays} يوم / إنفاق ${money(atRiskCustomer.spent)}` : 'لا يوجد',
+   dataFreshness: `${paidInvoiceCount} فاتورة مدفوعة من أصل ${invoices.length} / ${orders.length} طلب / ${products.length} منتج / ${customers.length} عميل`,
    missions: missions.slice(0, 4),
  };
 };
@@ -175,12 +245,46 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
 	 const [messages, setMessages] = useState<Message[]>([
 	 { 
 	 role: 'assistant', 
-	 content: 'جاهز. أعطني سؤال أو اضغط إحدى البطاقات، وأنا أحوّل بياناتك إلى قرار واضح، رسالة جاهزة، أو أولوية تنفيذ.' 
+	 content: 'حاضر يا طويل العمر. أنا أقرأ بيانات مطعمك أولاً، وبعدها أعطيك قرار واضح: شنو صار، ليش صار، وشنو تسوي الحين. ما راح أعطيك كلام عام.' 
 	 }
 	 ]);
  const [input, setInput] = useState('');
  const [isLoading, setIsLoading] = useState(false);
  const messagesEndRef = useRef<HTMLDivElement>(null);
+ const memoryKey = 'alturath_ai_executive_memory_v1';
+ const readMemory = () => {
+   try {
+     const parsed = JSON.parse(localStorage.getItem(memoryKey) || '{}');
+     return {
+       ownerStyle: parsed.ownerStyle || 'يفضل قرارات مختصرة، مباشرة، مبنية على بيانات مطعمه فقط وبلهجة كويتية راقية.',
+       repeatedConcerns: Array.isArray(parsed.repeatedConcerns) ? parsed.repeatedConcerns.slice(-12) : [],
+       lastDecisions: Array.isArray(parsed.lastDecisions) ? parsed.lastDecisions.slice(-12) : [],
+       bannedPatterns: ['الكلام العام', 'الاقتراحات غير المرتبطة بالأرقام', 'اختراع أرقام أو منتجات'],
+     };
+   } catch {
+     return {
+       ownerStyle: 'يفضل قرارات مختصرة، مباشرة، مبنية على بيانات مطعمه فقط وبلهجة كويتية راقية.',
+       repeatedConcerns: [],
+       lastDecisions: [],
+       bannedPatterns: ['الكلام العام', 'الاقتراحات غير المرتبطة بالأرقام', 'اختراع أرقام أو منتجات'],
+     };
+   }
+ };
+ const rememberTurn = (userText: string, assistantText: string) => {
+   try {
+     const current = readMemory();
+     const concern = userText.slice(0, 180);
+     const decision = assistantText.slice(0, 220);
+     localStorage.setItem(memoryKey, JSON.stringify({
+       ownerStyle: current.ownerStyle,
+       repeatedConcerns: [...current.repeatedConcerns, concern].slice(-12),
+       lastDecisions: [...current.lastDecisions, decision].slice(-12),
+       updatedAt: new Date().toISOString(),
+     }));
+   } catch {
+     // الذاكرة المحلية اختيارية ولا توقف المساعد
+   }
+ };
 
  const scrollToBottom = () => {
  messagesEndRef.current?.scrollIntoView({ behavior:"smooth" });
@@ -226,21 +330,32 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
 	   ...intel,
 	   missions: undefined,
 	 };
+	 const memorySnapshot = readMemory();
 	
 	 const assistantResponse = await fetch('/api/ai/assistant', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
 	 message: cleanMessage,
-	 systemPrompt: `أنت مساعد تنفيذي كويتي لمطبخ التراث داخل لوحة الأدمن. هدفك تحويل البيانات إلى قرار بسيط.
-القواعد:
-- اكتب بالعربية الواضحة وبلهجة كويتية بيضاء راقية عند الحاجة.
-- لا تخترع أرقاماً؛ استخدم فقط الملخص المرسل.
+	 systemPrompt: `أنت عقل تنفيذي كويتي خاص بمطعم/مشروع المستخدم داخل لوحة الأدمن، مو مساعد عام.
+شخصيتك:
+- تفهم المطعم من البيانات المرسلة فقط: المبيعات، الفواتير، المنتجات، العملاء، الموردين، الطلبات، الربح، الهامش.
+- تتكلم كأنك مستشار ملازم للتاجر ويفهمه من رمشة العين، لكن بدون مبالغة أو اختراع.
+- إذا السؤال عام، اربطه فوراً بأرقام مطعمه وواقعه الحالي.
+قواعد صارمة:
+- ممنوع الكلام العام مثل: حسّن التسويق أو راقب المبيعات بدون ربطه برقم/منتج/عميل/مورد من البيانات.
+- لا تخترع أرقاماً ولا أسماء منتجات ولا عملاء؛ إذا البيانات ناقصة قل: ما عندي هالرقم حالياً.
 - لا تطلب خطوات تقنية من المستخدم.
 - لا تنفذ ولا تدعي أنك نفذت.
-- الرد المثالي: خلاصة قصيرة، السبب، الإجراء التالي، ونص جاهز إذا كان مناسباً.
-- لا تكثر؛ المستخدم يريد قراراً لا محاضرة.`,
-	 statsSummary
+- اكتب بلهجة كويتية بيضاء راقية، مختصرة وواضحة.
+- الرد المثالي دائماً: الحكم، الدليل من البيانات، القرار العملي، ثم نص جاهز إذا يناسب.
+- قبل أي رد، افحص: هل عندي رقم/منتج/عميل/مورد يثبت كلامي؟ إذا لا، اطلب الناقص بوضوح.
+- استخدم ذاكرة التاجر المحلية المرسلة لك عشان ما تكرر نفس النصائح وتفهم أسلوبه.
+- ممنوع تذكر أنك نموذج أو ذكاء اصطناعي أو تعتذر بكثرة.
+- إذا في مخاطرة، قلها بصراحة وبهدوء. إذا في فرصة، عطه خطوة قابلة للتنفيذ اليوم.`,
+	 statsSummary,
+	 memorySnapshot,
+	 conversationHistory: messages.slice(-6).map((m) => ({ role: m.role, content: m.content.slice(0, 900) }))
 	 })
  });
 
@@ -251,6 +366,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  }
 
  const aiText = assistantPayload?.text || 'المعذرة يا طويل العمر، التحليل تعطل شوي. جرّب مرة ثانية.';
+ rememberTurn(cleanMessage, aiText);
  setMessages(prev => [...prev, { 
  role: 'assistant', 
  content: aiText 
@@ -286,10 +402,10 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  };
 
 	 const suggestions = [
-	  { label: 'شنو أسوي الحين؟', prompt: 'اعطني أهم 3 أولويات الآن من البيانات، بالترتيب: عاجل، مهم، فرصة.' },
-	  { label: 'اكتب رسالة عميل', prompt: 'اختر أفضل عميل يحتاج متابعة أو استرجاع واكتب لي رسالة واتساب قصيرة راقية.' },
-	  { label: 'طلع فرصة بيع', prompt: 'استخرج أفضل فرصة نمو أو منتج يستحق حملة اليوم مع سبب واضح ونص حملة قصير.' },
-	  { label: 'فسّر الربح', prompt: 'فسر لي الربحية والهامش الحالي، واذكر قرار واحد يحسن الربح بدون تعقيد.' },
+	  { label: 'شنو أسوي الحين؟', prompt: 'من بيانات مطعمي الحالية فقط، عطِني أهم 3 أولويات الآن: خطر، فرصة، إجراء اليوم. اذكر الرقم أو المنتج اللي بنيت عليه كلامك.' },
+	  { label: 'اكتب رسالة عميل', prompt: 'اختَر من بياناتي عميل يستاهل متابعة أو استرجاع، وكتب له رسالة واتساب كويتية قصيرة. إذا ما عندك اسم واضح، قل لي شنو الناقص.' },
+	  { label: 'طلع فرصة بيع', prompt: 'من منتجاتي وفواتيري الحالية، اختر منتج واحد يستاهل حملة اليوم، واشرح لي ليش، واكتب نص حملة قصير.' },
+	  { label: 'فسّر الربح', prompt: 'حلل ربح مطعمي وهامشه من البيانات الحالية، وقل لي قرار واحد يحسن الربح اليوم بدون تخفيض عشوائي.' },
 	 ];
 
  return (

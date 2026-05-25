@@ -51,6 +51,13 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  const canShow = currentPage === 'dashboard';
  if (!canShow) return null;
 
+ const previewRaw = messages[0] || '';
+ const previewParts = previewRaw.split('$$');
+ const previewIsContest = previewParts.length >= 8 && previewParts[0] === 'CONTEST';
+ const previewTitle = previewIsContest ? previewParts[1] : (previewRaw.split('\n')[0] || 'فكرة انستغرام جاهزة');
+ const previewText = previewIsContest ? previewParts.slice(7).join('$$') : previewRaw;
+ const previewCardText = (previewText || previewTitle || 'فكرة انستغرام جاهزة').replace(/CONTEST|\$\$/g, ' ').trim();
+
  return (
  <>
  {/* Floating Sparkle Toggle - Left Sidebar Position (Desktop) */}
@@ -340,7 +347,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  
  <div className="absolute inset-x-8 text-center space-y-4">
  <p className="text-white text-xl font-bold leading-tight drop-shadow-xl">
- {messages[0].split('\n')[0].substring(0, 45)}...
+ {previewIsContest ? previewTitle : previewCardText.substring(0, 45)}{!previewIsContest && previewCardText.length > 45 ? '...' : ''}
  </p>
  <div className="w-12 h-1 bg-white/30 mx-auto rounded-full" />
  </div>
@@ -362,7 +369,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  <div className="px-6 pb-8 text-right">
  <p className="text-[12px] leading-[1.8] text-slate-800">
  <span className="font-bold ml-2 text-slate-950">alturath.kw</span>
- {messages[0]}
+ {previewText}
  </p>
  <div className="flex justify-start mt-4">
  <p className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">#تراث_بي #الكويت #ذكاء_أعمال</p>

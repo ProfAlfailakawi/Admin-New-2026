@@ -2556,13 +2556,33 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 
   app.post("/api/ai/assistant", express.json({ limit: "2mb" }), async (req, res) => {
     try {
-      const { message, systemPrompt } = req.body || {};
+      const { message, systemPrompt, statsSummary, conversationHistory, memorySnapshot } = req.body || {};
       if (!message || typeof message !== "string") {
         return res.status(400).json({ error: "Missing message" });
       }
       if (!process.env.GEMINI_API_KEY) {
         return res.status(500).json({ error: "GEMINI_API_KEY is not configured on server", needsKey: true });
       }
+
+      const safeJson = (value: any, maxLength = 12000) => {
+        try {
+          const text = JSON.stringify(value ?? {}, null, 2);
+          return text.length > maxLength ? `${text.slice(0, maxLength)}
+...تم اختصار بقية البيانات لحماية السرعة والتكلفة` : text;
+        } catch {
+          return "{}";
+        }
+      };
+
+      const businessContext = statsSummary && typeof statsSummary === "object"
+        ? safeJson(statsSummary)
+        : "{}";
+      const recentContext = Array.isArray(conversationHistory)
+        ? safeJson(conversationHistory.slice(-8), 5000)
+        : "[]";
+      const ownerMemory = memorySnapshot && typeof memorySnapshot === "object"
+        ? safeJson(memorySnapshot, 5000)
+        : "{}";
 
       const ai = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
@@ -2572,11 +2592,32 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-lite",
         config: {
+          temperature: 0.18,
+          topP: 0.75,
           systemInstruction: typeof systemPrompt === "string" && systemPrompt.trim()
             ? systemPrompt
-            : "أنت مساعد إداري ذكي. أجب بالعربية وباختصار ووضوح."
+            : "أنت مساعد إداري ذكي خاص ببيانات المطعم. أجب بالعربية وباختصار ووضوح، ولا تعطِ كلاماً عاماً."
         },
-        contents: [{ role: "user", parts: [{ text: message }] }]
+        contents: [{ role: "user", parts: [{ text: `سؤال التاجر:
+${message}
+
+بيانات المطعم المتاحة الآن، وهي المصدر الوحيد للأرقام والأسماء:
+${businessContext}
+
+آخر سياق من المحادثة حتى لا تكرر نفسك:
+${recentContext}
+
+ذاكرة التاجر المحلية وتفضيلاته السابقة:
+${ownerMemory}
+
+بروتوكول الرد الإجباري:
+1) لا تبدأ بنصيحة عامة. ابدأ بالحكم المباشر.
+2) اربط كل توصية برقم أو منتج أو عميل أو مورد ظاهر في البيانات.
+3) إذا طلب التاجر قرار سريع، أعطه قرار واحد واضح ثم السبب.
+4) إذا البيانات ناقصة، قل: "البيانات اللي عندي ما تكفي لهالحكم" ثم اذكر الناقص بالضبط.
+5) اكتب باللهجة الكويتية البيضاء وبأسلوب تاجر يفهم التشغيل، بدون تنظير.
+
+اكتب الرد الآن كقرار عملي مرتبط بهذه البيانات فقط. إذا البيانات لا تكفي، قل شنو الناقص تحديداً بدل الكلام العام.` }] }]
       });
 
       return res.json({ text: response.text || "" });
