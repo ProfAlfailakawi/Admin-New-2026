@@ -896,7 +896,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     const shot = reelShots.find((s) => s.id === reelShot);
     const place = KUWAIT_PLACES[selectedOrderPlace] || KUWAIT_PLACES.delivery;
     const idea = customThemeQuery.trim() || `${activePulsePack.label} لطلب كويتي واقعي من مطبخ التراث الكويتي`;
-    return `Reel عمودي 9:16 خفيف واقتصادي لمطبخ التراث الكويتي. فكرة مختصرة: ${idea}. لقطة واحدة بسيطة: ${shot?.label || 'اقتراب ناعم'}. مكان: ${place.label}. مدة ${reelDuration} ثواني. حركة كاميرا بطيئة جداً وثابتة، تفاصيل قليلة، طعام واضح، بدون تعليق صوتي، بدون شخص يتكلم، بدون شفاه، بدون وجوه واضحة، بدون نصوص أو شعارات. جودة سريعة مضغوطة مناسبة للموبايل فقط، لا cinematic ولا ultra detail. إضاءة ${selectedMood}.`;
+    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي. فكرة مختصرة: ${idea}. لقطة واحدة فاخرة وواضحة: ${shot?.label || 'اقتراب ناعم'}. مكان: ${place.label}. مدة ${reelDuration} ثواني. حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، تكوين بصري نظيف، إضاءة واقعية شهية، عمق ميدان خفيف، بدون تعليق صوتي، بدون شخص يتكلم، بدون شفاه، بدون وجوه واضحة، بدون نصوص أو شعارات أو تشويه. جودة عالية مناسبة لريلز إنستغرام مع مظهر تصوير طعام حقيقي. إضاءة ${selectedMood}.`;
   };
 
   const buildReelSettingsText = (item?: Partial<StudioReelHistoryItem>) => {
@@ -941,13 +941,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         duration: reelDuration,
         shotType: reelShot,
         format: '9:16',
-        resolution: '480x854',
-        targetResolution: '480x854',
-        quality: 'economy',
-        renderMode: 'fast-low-cost',
-        compression: 'aggressive',
-        bitrate: '550k',
-        fps: 18,
+        resolution: '720x1280',
+        targetResolution: '720x1280',
+        quality: 'premium',
+        renderMode: 'balanced-premium',
+        compression: 'balanced',
+        bitrate: '2200k',
+        fps: 24,
         audio: false,
         voiceover: false,
         noTalking: true,

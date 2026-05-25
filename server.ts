@@ -2783,7 +2783,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
       if (!prompt || typeof prompt !== "string") return res.status(400).json({ error: "Missing prompt" });
 
       const wantsEconomy = String(quality || renderMode || "").toLowerCase().includes("economy") || String(renderMode || "").toLowerCase().includes("fast");
-      const durationSeconds = wantsEconomy ? Math.min(6, Math.max(4, Number(duration) || 4)) : Math.min(8, Math.max(4, Number(duration) || 4));
+      const durationSeconds = wantsEconomy ? Math.min(5, Math.max(4, Number(duration) || 5)) : Math.min(6, Math.max(5, Number(duration) || 5));
       const localFallback = (reason: string) => res.json({
         videoUrl: buildLocalMotionReelDataUrl({ prompt, imageContent, mimeType, duration: durationSeconds, shotType, place, mood }),
         posterUrl: null,
@@ -2791,7 +2791,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
         fallback: true,
         reason,
       });
-      const finalPrompt = `${prompt}\n\nSMART STUDIO REEL ENFORCEMENT:\n- Create a vertical Instagram Reel, aspect ratio 9:16, duration ${durationSeconds} seconds.\n- Brand context: Kuwaiti home-order kitchen focused on rice dishes, seafood/fish, mahshi, grape leaves, and occasional grills.\n- Shot type: ${shotType || "hero-push"}. Place context: ${place || "delivery"}. Mood: ${mood || "warm"}.\n- Ultra-realistic human food videography, simple believable camera movement only.\n- Keep food stable and physically plausible across frames; no morphing food, no melting plates, no warped hands.\n- No visible faces, no readable text, no logos, no watermarks.\n- No used tissues, no dirty napkins, no crumpled kleenex, no table trash, no paper scraps, no crumbs, no messy leftovers.\n- No dallah, no Arabic coffee, no coffee cups, no incense, no sadu, no lanterns, no fantasy decor, no palace, no CGI.\n${tasteProfile ? `User taste memory: ${String(tasteProfile).slice(0, 900)}\n` : ""}\nMake viewers believe it was shot by a real videographer in Kuwait.`;
+      const finalPrompt = `${prompt}\n\nSMART STUDIO REEL ENFORCEMENT:\n- Create a vertical Instagram Reel, aspect ratio 9:16, duration ${durationSeconds} seconds.\n- Brand context: Kuwaiti home-order kitchen focused on rice dishes, seafood/fish, mahshi, grape leaves, and occasional grills.\n- Shot type: ${shotType || "hero-push"}. Place context: ${place || "delivery"}. Mood: ${mood || "warm"}.\n- Cost-conscious realistic food videography with a clean professional Instagram Reel composition; prioritize good framing and stable food details over expensive ultra-premium generation.\n- Keep food centered, sharp, stable and physically plausible across frames; no morphing food, no melting plates, no warped hands.\n- No visible faces, no readable text, no logos, no watermarks.\n- No used tissues, no dirty napkins, no crumpled kleenex, no table trash, no paper scraps, no crumbs, no messy leftovers.\n- No dallah, no Arabic coffee, no coffee cups, no incense, no sadu, no lanterns, no fantasy decor, no palace, no CGI.\n${tasteProfile ? `User taste memory: ${String(tasteProfile).slice(0, 900)}\n` : ""}\nMake viewers believe it was shot by a real videographer in Kuwait.`;
 
       if (process.env.SMART_STUDIO_REEL_API_URL) {
         const upstream = await fetch(process.env.SMART_STUDIO_REEL_API_URL, {
