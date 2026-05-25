@@ -1362,7 +1362,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <button type="button" onClick={() => setReelSource('idea')} className={cn("rounded-2xl border p-4 text-right transition-all", reelSource === 'idea' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}><Sparkles size={18} className="mb-2" /><span className="block text-sm font-black">من فكرة</span></button>
                   <button type="button" onClick={() => setReelSource('image')} className={cn("rounded-2xl border p-4 text-right transition-all", reelSource === 'image' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}><Camera size={18} className="mb-2" /><span className="block text-sm font-black">من صورة</span></button>
                 </div>
-                <input type="text" placeholder="مثال: لقطة مجبوس حار يفتح الشهية لريلز إنستغرام..." value={customThemeQuery} onChange={(e) => setCustomThemeQuery(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-violet-500" />
+                {reelSource === 'idea' && (
+                  <input type="text" placeholder="مثال: لقطة مجبوس حار يفتح الشهية لريلز إنستغرام..." value={customThemeQuery} onChange={(e) => setCustomThemeQuery(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-violet-500 transition-all duration-300 animate-in fade-in" />
+                )}
                 {reelSource === 'image' && (
                   <div onClick={() => reelImageInputRef.current?.click()} className="rounded-3xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-5 cursor-pointer text-center">
                     <input type="file" ref={reelImageInputRef} className="hidden" accept="image/*" onChange={handleReelImageUpload} />
@@ -1949,6 +1951,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="flex flex-wrap gap-2 justify-center">
                     <button onClick={handleDownload} title="تحميل" aria-label="تحميل" className="h-12 w-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center"><Download size={18} /></button>
                     <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !selectedImage} title="اجعلها أصدق" aria-label="اجعلها أصدق" className="h-12 w-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center disabled:opacity-50"><Sparkles size={18} /></button>
+                    {generatedImage && (
+                      <button type="button" onClick={() => { setReelSource('image'); setSelectedImage(generatedImage); setGeneratedReel(null); setShowReelSettings(false); setStudioTab('reel'); setReelStep(1); }} className="h-12 px-5 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl flex items-center justify-center gap-2 font-black text-xs shadow-md transition-all animate-in fade-in"><Film size={16} /> حولها لريل</button>
+                    )}
                   </div>
 
                   <div className="pt-4 border-t border-slate-100 w-full flex flex-col items-center gap-3">
