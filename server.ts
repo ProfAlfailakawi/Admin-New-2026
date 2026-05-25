@@ -819,6 +819,21 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       }
       const paymentStatus = String(order.paymentStatus || "").toLowerCase();
       const status = String(order.status || "");
+      const isCancelledOrder =
+        paymentStatus.includes("cancel") ||
+        status.toLowerCase().includes("cancel") ||
+        status.includes("ملغي") ||
+        status.includes("ملغى") ||
+        status.includes("تم الإلغاء") ||
+        status.includes("تم الالغاء");
+
+      if (isCancelledOrder) {
+        return res.json({
+          success: true,
+          skipped: true,
+          reason: "Cancelled order alerts are disabled",
+        });
+      }
 
       const isAlreadyPaid =
         paymentStatus === "paid" ||
@@ -2400,7 +2415,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       const st = alertsStatusFor(order);
       const qatia = alertsIsQatiaLike(order, st);
       if (qatia && alertsIsPaid(st) && !alertsIsQatiaExpired(st)) { await alertsSendOnce(results, `safe-worker-qatia-completed-${orderId}`, { title: "✅ اكتملت القطية", body: `اكتملت القطية للطلب ${orderId} — تم الدفع وجاري التوصيل${alertsAmountText(order)}`, alertType: "qatia_completed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
-      if (qatia && alertsIsQatiaExpired(st)) { await alertsSendOnce(results, `safe-worker-qatia-expired-${orderId}`, { title: "⏰ ملغي - انتهى وقت القطية", body: `الطلب ${orderId} تم إلغاؤه لانتهاء وقت القطية${alertsAmountText(order)}`, alertType: "qatia_expired", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
+      if (qatia && alertsIsQatiaExpired(st)) { results.push({ eventId: `safe-worker-qatia-expired-${orderId}`, skipped: true, reason: "cancelled-order-alert-disabled" }); continue; }
       if (qatia) continue;
       if (alertsIsFailed(st)) {
         const d = alertsBestDate(order) || now;
@@ -2408,7 +2423,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         await alertsSendOnce(results, `safe-worker-payment-failed-${orderId}`, { title: "❌ فشل دفع طلب", body: `فشل دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_failed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue;
       }
       if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-payment-paid-${orderId}`, { title: "✅ تم دفع طلب", body: `تم دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_paid", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
-      if (alertsIsCancelled(st)) { await alertsSendOnce(results, `safe-worker-order-cancelled-admin-${orderId}`, { title: "🚫 تم إلغاء طلب", body: `تم إلغاء الطلب ${orderId}${alertsAmountText(order)}`, alertType: "order_cancelled_admin", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
+      if (alertsIsCancelled(st)) { results.push({ eventId: `safe-worker-order-cancelled-admin-${orderId}`, skipped: true, reason: "cancelled-order-alert-disabled" }); continue; }
       if (alertsIsPending(st)) {
         const d = alertsBestDate(order) || now;
         if (d <= pendingPaymentGraceAgo) await alertsSendOnce(results, `safe-worker-payment-pending-immediate-${orderId}`, { title: "⏳ طلب لم يدفع", body: `الطلب ${orderId} لم يتم دفعه بعد ${PAYMENT_PENDING_GRACE_LABEL}${alertsAmountText(order)}`, alertType: "payment_pending_immediate", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);

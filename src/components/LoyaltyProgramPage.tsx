@@ -1,11 +1,23 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Award, Users, Star, Gift, MessageCircle, Clock, Settings, TrendingUp, Zap, Search, ChevronRight, ChevronLeft, Tag, X, History } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { AppState } from '../types';
 import { toast } from 'sonner';
+import { PromoCodePage } from './PromoCodePage';
 
-export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data: AppState) => void }> = ({ data, onUpdateData }) => {
+interface LoyaltyProgramPageProps {
+  data: AppState;
+  onUpdateData?: (data: AppState) => void;
+  defaultTab?: 'loyalty' | 'promocodes';
+}
+
+export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, onUpdateData, defaultTab = 'loyalty' }) => {
+  const [activeSubTab, setActiveSubTab] = useState<'loyalty' | 'promocodes'>(defaultTab);
+
+  useEffect(() => {
+    setActiveSubTab(defaultTab);
+  }, [defaultTab]);
  const [expirationRule, setExpirationRule] = useState<number>(data.loyaltySettings?.expirationDays || 120);
  const [activeSegment, setActiveSegment] = useState<string>('all');
  const [searchTerm, setSearchTerm] = useState('');
@@ -309,8 +321,62 @@ export const LoyaltyProgramPage: React.FC<{ data: AppState; onUpdateData?: (data
  }
  };
 
+ if (activeSubTab === 'promocodes') {
+  return (
+   <div className="space-y-8" dir="rtl">
+     {/* Modern Tab Switcher */}
+     <div className="flex items-center gap-2 bg-slate-100 border border-slate-200/60 p-1.5 rounded-2xl w-fit">
+       <button
+         onClick={() => setActiveSubTab('loyalty')}
+         className={cn(
+           "px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all flex items-center gap-2",
+           "text-slate-500 hover:text-slate-800"
+         )}
+       >
+         <Award size={16} />
+         برنامج الولاء والعملاء
+       </button>
+       <button
+         onClick={() => setActiveSubTab('promocodes')}
+         className={cn(
+           "px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all flex items-center gap-2",
+           "bg-white text-rose-600 shadow-md border border-slate-200/40"
+         )}
+       >
+         <Tag size={16} />
+         كوبونات الخصم والترويج
+       </button>
+     </div>
+     <PromoCodePage data={data} onUpdateData={onUpdateData} />
+   </div>
+  );
+ }
+
  return (
  <div className="space-y-8" dir="rtl">
+  {/* Modern Tab Switcher */}
+  <div className="flex items-center gap-2 bg-slate-100 border border-slate-200/60 p-1.5 rounded-2xl w-fit">
+    <button
+      onClick={() => setActiveSubTab('loyalty')}
+      className={cn(
+        "px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all flex items-center gap-2",
+        "bg-white text-amber-600 shadow-md border border-slate-200/40"
+      )}
+    >
+      <Award size={16} />
+      برنامج الولاء والعملاء
+    </button>
+    <button
+      onClick={() => setActiveSubTab('promocodes')}
+      className={cn(
+        "px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all flex items-center gap-2",
+        "text-slate-500 hover:text-slate-800"
+      )}
+    >
+      <Tag size={16} />
+      كوبونات الخصم والترويج
+    </button>
+  </div>
  {/* Header Stats */}
  <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-2 md:p-6 text-white shadow-xl relative overflow-hidden">
  <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
