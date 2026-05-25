@@ -2777,7 +2777,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
 
       let operation = await (ai as any).models.generateVideos({
         model: process.env.SMART_STUDIO_REEL_MODEL || "veo-3.1-generate-preview",
-        prompt: imageContent ? undefined : finalPrompt,
+        prompt: finalPrompt,
         image: imageContent ? { imageBytes: imageContent, mimeType: mimeType || "image/jpeg" } : undefined,
         config: {
           numberOfVideos: 1,
