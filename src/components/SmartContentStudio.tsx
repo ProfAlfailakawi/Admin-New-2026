@@ -151,11 +151,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   ];
 
   const reelShots = [
-    { id: 'hero-push', label: 'اقتراب سينمائي', desc: 'الكاميرا تدخل بهدوء على الطبق', icon: '🎥' },
-    { id: 'box-open', label: 'فتح علبة طلب', desc: 'كشف نظيف وسريع للطلب', icon: '📦' },
-    { id: 'steam-close', label: 'بخار ولمعة', desc: 'لقطة قريبة دافئة جداً', icon: '♨️' },
-    { id: 'table-pass', label: 'مرور على السفرة', desc: 'حركة بسيطة على عدة أطباق', icon: '🍽️' },
-    { id: 'sauce-motion', label: 'حركة صوص', desc: 'تفصيل صغير يفتح الشهية', icon: '🥄' },
+    { id: 'hero-push', label: 'اقتراب على الطلب', desc: 'الكاميرا تدخل بهدوء على الطبق مع ثبات كامل للأكل', icon: '🎥' },
+    { id: 'box-open', label: 'فتح علبة التوصيل', desc: 'كشف واقعي لعلبة طلب نظيفة بدون يد معقدة', icon: '📦' },
+    { id: 'table-pass', label: 'مرور على السفرة', desc: 'حركة جانبية هادئة على صينية أو عدة أطباق', icon: '🍽️' },
+    { id: 'top-spread', label: 'من فوق السفرة', desc: 'لقطة top shot مرتبة للبيت أو الزوارة أو الطلبات الجماعية', icon: '⬇️' },
+    { id: 'steam-close', label: 'بخار خفيف واقعي', desc: 'للطبق الحار فقط: بخار بسيط ولمعة طبيعية بدون مبالغة', icon: '♨️' },
+    { id: 'texture-close', label: 'تفاصيل شهية قريبة', desc: 'قوام الرز/اللحم/السمك/ورق العنب بدون صوص طائر أو حركة غريبة', icon: '🔎' },
   ];
 
   const themes = [
@@ -177,14 +178,15 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   ];
 
   const mergedScenes = [
-    { id: 'quick-kuwait', label: 'طلب سريع (توصيل)', desc: 'كرتون وتغليف جاهز للتوصيل', icon: '⚡', place: 'delivery', mode: 'finalBoss', background: 'delivery-packaging' },
-    { id: 'home-delivery', label: 'طلب منزلي (سفرة)', desc: 'على سفرة بيتية واقعية ومرتبة', icon: '🏠', place: 'home', mode: 'finalBoss', background: 'home-table' },
-    { id: 'diwaniya-night', label: 'ديوانية الربع', desc: 'يمعة ربع وطلب جماعي بالديوانية', icon: '🛋️', place: 'diwaniya', mode: 'human', background: 'diwaniya-table' },
-    { id: 'chalet-weekend', label: 'يمعة الشاليه', desc: 'طلعة البحر وأجواء عطلة ويكند مريحة', icon: '🌊', place: 'chalet', mode: 'human', background: 'chalet-spread' },
-    { id: 'zowara-family', label: 'زوارة أهل', desc: 'لمة العائلة وسفرة تفتح النفس للضيافة', icon: '👨‍👩‍👧‍👦', place: 'zowara', mode: 'menu', background: 'zowara-spread' },
-    { id: 'farm-gathering', label: 'سفرة المزرعة', desc: 'جلسة خارجية بظل طبيعي لمزرعة أو حديقة', icon: '🌴', place: 'farm', mode: 'human', background: 'farm-gathering' },
-    { id: 'jakhour-setup', label: 'قعدة الجاخور', desc: 'طلعة عملية للربع في قعدة الجاخور المرتبة', icon: '🐪', place: 'jakhour', mode: 'human', background: 'jakhour-setup' },
-    { id: 'national-day', label: 'أجواء العيد الوطني', desc: 'لمة كويتية دافئة وراقية بنكهة العيد الوطني', icon: '🇰🇼', place: 'home', mode: 'finalBoss', background: 'home-table' },
+    { id: 'delivery-ready', label: 'طلب توصيل جاهز', desc: 'علب مرتبة وكيس plain على كاونتر نظيف؛ أقوى خيار افتراضي', icon: '⚡', place: 'delivery', mode: 'finalBoss', background: 'delivery-packaging' },
+    { id: 'box-reveal', label: 'فتح علبة الطلب', desc: 'كشف بسيط للطبق داخل التغليف بدون يد معقدة أو فوضى', icon: '📦', place: 'delivery', mode: 'finalBoss', background: 'delivery-packaging' },
+    { id: 'home-rice-tray', label: 'صينية عيوش للبيت', desc: 'مجبوس/مربين/عيش وسمك على سفرة بيتية مرتبة', icon: '🏠', place: 'home', mode: 'finalBoss', background: 'home-table' },
+    { id: 'diwaniya-order', label: 'طلب ديوانية للربع', desc: 'طلب جماعي مرتب بخلفية ديوانية blur بدون وجوه أو ديكور مصطنع', icon: '🛋️', place: 'diwaniya', mode: 'human', background: 'diwaniya-table' },
+    { id: 'zowara-spread', label: 'سفرة زوارة', desc: 'محاشي/ورق عنب/أطباق عائلية جاهزة للتقديم داخل بيت', icon: '👨‍👩‍👧‍👦', place: 'zowara', mode: 'menu', background: 'zowara-spread' },
+    { id: 'chalet-weekend-order', label: 'طلب الشاليه', desc: 'طلبات ويكند مرتبة على طاولة بسيطة بإضاءة نهارية أو غروب ناعم', icon: '🌊', place: 'chalet', mode: 'human', background: 'chalet-spread' },
+    { id: 'farm-clean-table', label: 'طلب المزرعة', desc: 'طاولة خارجية نظيفة تحت ظل طبيعي؛ بدون خيم وزخارف مبالغ فيها', icon: '🌴', place: 'farm', mode: 'human', background: 'farm-gathering' },
+    { id: 'jakhour-clean-order', label: 'طلب الجاخور', desc: 'قعدة عملية نظيفة للربع بخلفية هادئة؛ بدون حيوانات أو تراب أو فوضى', icon: '🐪', place: 'jakhour', mode: 'human', background: 'jakhour-setup' },
+    { id: 'food-detail', label: 'تفاصيل الطبق', desc: 'لقطة قريبة للرز أو السمك أو اللحم أو ورق العنب مع ثبات كامل', icon: '🔎', place: 'delivery', mode: 'finalBoss', background: 'neutral-menu' },
   ];
 
 
@@ -896,7 +898,24 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     const shot = reelShots.find((s) => s.id === reelShot);
     const place = KUWAIT_PLACES[selectedOrderPlace] || KUWAIT_PLACES.delivery;
     const idea = customThemeQuery.trim() || `${activePulsePack.label} لطلب كويتي واقعي من مطبخ التراث الكويتي`;
-    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي. فكرة مختصرة: ${idea}. لقطة واحدة فاخرة وواضحة: ${shot?.label || 'اقتراب ناعم'}. مكان: ${place.label}. مدة ${reelDuration} ثواني. حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، تكوين بصري نظيف، إضاءة واقعية شهية، عمق ميدان خفيف، بدون تعليق صوتي، بدون شخص يتكلم، بدون شفاه، بدون وجوه واضحة، بدون نصوص أو شعارات أو تشويه. جودة عالية مناسبة لريلز إنستغرام مع مظهر تصوير طعام حقيقي. إضاءة ${selectedMood}.`;
+    const shotGuide: Record<string, string> = {
+      'hero-push': 'حركة push-in بطيئة على الطبق، لا تغيّر ترتيب الطعام ولا تضف عناصر جديدة.',
+      'box-open': 'علبة توصيل plain تُفتح أو تُكشف بشكل بسيط؛ اليد إن ظهرت تكون جزئية وطبيعية جداً، بدون أصابع غريبة.',
+      'table-pass': 'حركة جانبية قصيرة على سفرة أو صينية مرتبة؛ الأطباق ثابتة ولا تظهر صحون جديدة فجأة.',
+      'top-spread': 'لقطة من الأعلى لسفرة مرتبة، حركة خفيفة جداً أو zoom بسيط، مناسبة للطلبات الجماعية.',
+      'steam-close': 'بخار خفيف فقط إذا الطبق حار؛ لا تستخدمه للحلويات أو ورق العنب البارد أو التغليف.',
+      'texture-close': 'لقطة قريبة للملمس: رز، لحم، سمك، محاشي أو ورق عنب؛ بدون سكب صوص أو حركة سوائل غير منطقية.'
+    };
+    const placeGuide: Record<string, string> = {
+      delivery: 'مشهد توصيل هو الافتراضي: علب مرتبة وكيس plain على كاونتر أو طاولة نظيفة، بدون سيارة أو سائق أو شعارات.',
+      home: 'سفرة بيتية كويتية بسيطة: طبق أو صينية على طاولة عادية، كوب ماء بسيط مسموح، بدون قهوة أو دلة أو بخور.',
+      diwaniya: 'ديوانية عصرية blur: طلب جماعي للربع، بدون وجوه واضحة، بدون دخان، بدون سدو أو ديكور تراثي مصطنع.',
+      chalet: 'شاليه كويتي واقعي: طاولة بسيطة وضوء نهاري أو غروب، بدون ناس واضحة أو بحر مبالغ أو مشهد سياحي.',
+      farm: 'مزرعة نظيفة وهادئة: طاولة خارجية تحت ظل طبيعي، بدون خيام تراثية أو فوضى أو ديكور زائد.',
+      jakhour: 'جاخور مرتب وحذر: طاولة عملية نظيفة وخلفية blur، بدون حيوانات أو تراب أو مخلفات أو فوضى.',
+      zowara: 'زوارة عائلية داخل بيت: سفرة مرتبة ومحاشي/ورق عنب/أطباق عائلية، بدون وجوه أو عرس أو قهوة.'
+    };
+    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي، نشاط مطبخ وتوصيل أكل كويتي وليس مطعم جلوس. فكرة مختصرة: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب على الطلب'} — ${shotGuide[reelShot] || shotGuide['hero-push']}. المكان: ${place.label} — ${placeGuide[selectedOrderPlace] || placeGuide.delivery}. مدة ${Math.min(8, Math.max(4, reelDuration))} ثواني. المطلوب لقطة واحدة واقعية جداً، حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، لا يتغير شكل الطبق أو الكمية أو المكونات عبر الفيديو. حافظ على الطبق والتغليف كما هما إذا كان المصدر صورة. تكوين بصري نظيف وإضاءة شهية واقعية. ممنوع وجوه واضحة، شخص يتكلم، شفاه، نصوص، شعارات، دلة، قهوة، بخور، سدو، فوانيس، سيارة توصيل، مطعم جلوس، كافيه، كلينكس مستخدم، فوضى، صحون تظهر فجأة، صوص يطير، أو أي حركة غير منطقية. إضاءة ${selectedMood}.`;
   };
 
   const buildReelSettingsText = (item?: Partial<StudioReelHistoryItem>) => {
@@ -938,7 +957,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     try {
       const payload: any = {
         prompt: buildReelPrompt(),
-        duration: reelDuration,
+        duration: Math.min(8, Math.max(4, reelDuration)),
         shotType: reelShot,
         format: '9:16',
         resolution: '540x960',
@@ -982,7 +1001,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         url: result.videoUrl,
         poster: result.posterUrl || null,
         date: new Date(),
-        duration: reelDuration,
+        duration: Math.min(8, Math.max(4, reelDuration)),
         shot: reelShot,
         source: reelSource,
         format: '9:16',

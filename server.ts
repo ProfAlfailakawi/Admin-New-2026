@@ -188,11 +188,13 @@ function buildLocalMotionReelDataUrl({
 
   // Translate English IDs to premium and authentic Arabic labels
   const shotMap: Record<string, string> = {
-    "hero-push": "اقتراب سينمائي",
-    "box-open": "فتح علبة طلب",
-    "steam-close": "بخار ولمعة",
+    "hero-push": "اقتراب على الطلب",
+    "box-open": "فتح علبة التوصيل",
+    "steam-close": "بخار خفيف واقعي",
     "table-pass": "مرور على السفرة",
-    "sauce-motion": "حركة صوص",
+    "top-spread": "من فوق السفرة",
+    "texture-close": "تفاصيل شهية قريبة",
+    "sauce-motion": "تفاصيل شهية قريبة",
   };
   const placeMap: Record<string, string> = {
     home: "بيت",
@@ -2840,11 +2842,28 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
 
       const wantsEconomy = String(quality || renderMode || "").toLowerCase().includes("economy") || String(renderMode || "").toLowerCase().includes("fast");
       const requestedDuration = Number(duration);
-      const safeDuration = Number.isFinite(requestedDuration) ? requestedDuration : 4;
-      // Veo currently rejects any durationSeconds outside 4..8.
-      // Keep Smart Studio reels fast and cheap by defaulting economy/fast renders to 4s,
-      // while still hard-clamping every request before it reaches the video provider.
-      const durationSeconds = wantsEconomy ? 4 : Math.min(8, Math.max(4, Math.round(safeDuration)));
+      const durationSeconds = wantsEconomy ? 4 : Math.min(8, Math.max(4, Number.isFinite(requestedDuration) ? requestedDuration : 6));
+
+      const shotGuides: Record<string, string> = {
+        "hero-push": "Slow realistic push-in toward the food/order; keep the dish, quantity, packaging and ingredients completely stable across frames.",
+        "box-open": "Delivery box reveal on a clean counter; if a hand appears, it is partial, natural and simple; no warped fingers, no complex hand choreography.",
+        "table-pass": "Gentle side pass over an arranged tray or several dishes; no new plates appear suddenly and no food morphing.",
+        "top-spread": "Top-down organized spread for home/zowara/group orders; very light motion only, like a small zoom or drift.",
+        "steam-close": "Subtle steam only for hot rice/fish/grill dishes; never add steam to cold grape leaves, desserts, or packaging.",
+        "texture-close": "Close-up texture detail of rice, meat, fish, mahshi or grape leaves; no flying sauce, no impossible liquid motion.",
+        "sauce-motion": "Close-up appetite detail only; avoid pouring sauce unless already visible and physically plausible."
+      };
+      const placeGuides: Record<string, string> = {
+        delivery: "Default delivery scene: plain food boxes and plain bag on a clean counter/table, kitchen-order feeling, no car, no driver, no logos, no readable text.",
+        home: "Simple Kuwaiti home table: dish or tray on a normal table, possibly one clean water cup; no Arabic coffee, no dallah, no incense, no staged heritage decor.",
+        diwaniya: "Modern diwaniya background with shallow blur: group order for friends, no visible faces, no smoke, no sadu, no heritage props.",
+        chalet: "Believable Kuwaiti chalet order: simple table, daylight or soft sunset, weekend feeling, no obvious people, no exaggerated sea/tourism scene.",
+        farm: "Clean farm/outdoor table under natural shade, group order, no tents, no fake heritage setup, no clutter.",
+        jakhour: "Careful clean jakhour setup: practical clean table, quiet blurred background, no animals, no dirt, no waste, no chaos.",
+        zowara: "Family zowara inside a home: arranged family spread, mahshi/grape leaves/rice dishes ready to serve, no faces, no wedding scene, no coffee props."
+      };
+      const selectedShotGuide = shotGuides[String(shotType || "hero-push")] || shotGuides["hero-push"];
+      const selectedPlaceGuide = placeGuides[String(place || "delivery")] || placeGuides.delivery;
       const localFallback = (reason: string) => res.json({
         videoUrl: buildLocalMotionReelDataUrl({ prompt, imageContent, mimeType, duration: durationSeconds, shotType, place, mood }),
         posterUrl: null,
@@ -2852,7 +2871,26 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
         fallback: true,
         reason,
       });
-      const finalPrompt = `${prompt}\n\nSMART STUDIO REEL ENFORCEMENT:\n- Create a vertical Instagram Reel, aspect ratio 9:16, duration ${durationSeconds} seconds.\n- Brand context: Kuwaiti home-order kitchen focused on rice dishes, seafood/fish, mahshi, grape leaves, and occasional grills.\n- Shot type: ${shotType || "hero-push"}. Place context: ${place || "delivery"}. Mood: ${mood || "warm"}.\n- Cost-conscious realistic food videography with a clean professional Instagram Reel composition; prioritize good framing and stable food details over expensive ultra-premium generation.\n- Keep food centered, sharp, stable and physically plausible across frames; no morphing food, no melting plates, no warped hands.\n- No visible faces, no readable text, no logos, no watermarks.\n- No used tissues, no dirty napkins, no crumpled kleenex, no table trash, no paper scraps, no crumbs, no messy leftovers.\n- No dallah, no Arabic coffee, no coffee cups, no incense, no sadu, no lanterns, no fantasy decor, no palace, no CGI.\n${tasteProfile ? `User taste memory: ${String(tasteProfile).slice(0, 900)}\n` : ""}\nMake viewers believe it was shot by a real videographer in Kuwait.`;
+      const finalPrompt = `${prompt}
+
+SMART STUDIO REEL ENFORCEMENT:
+- Create a vertical Instagram Reel, aspect ratio 9:16, duration ${durationSeconds} seconds.
+- Brand context: Kuwaiti home-order kitchen and delivery business, not a dine-in restaurant, not a cafe, not a coffee shop.
+- Food identity: rice dishes (ayoush/machboos/murabyan), seafood/fish, mahshi, grape leaves, and occasional grills.
+- Shot type: ${shotType || "hero-push"}. Shot behavior: ${selectedShotGuide}
+- Place context: ${place || "delivery"}. Place behavior: ${selectedPlaceGuide}
+- Mood/light: ${mood || "warm"}. Use believable Kuwaiti home/delivery lighting, not fantasy studio CGI.
+- One coherent scene only; no random montage, no scene jumping, no objects appearing or disappearing.
+- Preserve the uploaded food/plate/box: same dish, ingredients, quantity, shape, color, plate/box edges, and serving style.
+- Keep food centered, sharp, stable and physically plausible across frames; no morphing food, no melting plates, no warped hands.
+- Avoid complex human actions. If any hand is necessary, show only a small natural partial hand; no faces, no talking, no lips.
+- No visible faces, no readable text, no logos, no watermarks.
+- No used tissues, no dirty napkins, no crumpled kleenex, no table trash, no paper scraps, no crumbs, no messy leftovers.
+- No delivery car, no driver scene, no restaurant dining room, no cafe counter.
+- No dallah, no Arabic coffee, no coffee cups, no incense, no sadu, no lanterns, no fantasy decor, no palace, no CGI.
+${tasteProfile ? `User taste memory: ${String(tasteProfile).slice(0, 900)}
+` : ""}
+Make viewers believe it was shot quickly by a real videographer in Kuwait for an Instagram Reel about a real kitchen delivery order.`;
 
       if (process.env.SMART_STUDIO_REEL_API_URL) {
         const upstream = await fetch(process.env.SMART_STUDIO_REEL_API_URL, {
@@ -2929,13 +2967,11 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
       }
       if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("durationSeconds") || errMsg.includes("INVALID_ARGUMENT")) {
         return res.json({
-          videoUrl: buildLocalMotionReelDataUrl({ prompt: req.body?.prompt, imageContent: req.body?.imageContent, mimeType: req.body?.mimeType, duration: 4, shotType: req.body?.shotType, place: req.body?.place, mood: req.body?.mood }),
+          videoUrl: buildLocalMotionReelDataUrl({ prompt: req.body?.prompt, imageContent: req.body?.imageContent, mimeType: req.body?.mimeType, duration: Math.min(8, Math.max(4, Number(req.body?.duration) || 4)), shotType: req.body?.shotType, place: req.body?.place, mood: req.body?.mood }),
           posterUrl: null,
           provider: "local-motion-reel",
           fallback: true,
-          reason: errMsg.includes("durationSeconds") || errMsg.includes("INVALID_ARGUMENT")
-            ? "Veo rejected durationSeconds; generated instant 4-second local motion reel"
-            : "Veo quota exhausted; generated local motion reel instantly"
+          reason: errMsg.includes("durationSeconds") || errMsg.includes("INVALID_ARGUMENT") ? "Reel duration was normalized to the supported 4-8 second range" : "Veo quota exhausted; generated local motion reel instantly"
         });
       }
       return res.status(500).json({ error: errMsg });
