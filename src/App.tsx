@@ -51,7 +51,8 @@ import {
   HandCoins,
   BadgeCheck,
   Gauge,
-  Clock
+  Clock,
+  Microscope
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, normalizeArabic } from './lib/utils';
@@ -2711,23 +2712,24 @@ const MainApp: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.5 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className={`fixed transition-all duration-700 ease-in-out left-1/2 -translate-x-1/2 z-[100] md:hidden bottom-24`}
+            className={`fixed transition-all duration-700 ease-in-out left-1/2 -translate-x-1/2 z-[100] md:hidden bottom-[3.42rem]`}
           >
             <button
               onClick={() => setCommandBarOpen(true)}
-              className="flex items-center justify-center w-14 h-14 bg-slate-900/95 backdrop-blur-2xl rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.6)] border border-white/10 active:scale-95 transition-all relative group overflow-hidden"
+              className="flex items-center justify-center w-11 h-11 bg-slate-950/95 backdrop-blur-3xl rounded-full shadow-[0_16px_35px_rgba(0,0,0,0.7)] border border-white/10 active:scale-95 transition-all relative group overflow-hidden"
+              title="العدسة المجهرية للقيادة الذكية"
             >
               <motion.div 
                 className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/20 to-indigo-500/0 opacity-50"
                 animate={{ x: ['-100%', '100%'] }}
                 transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
               />
-              <div className="relative z-10 flex items-center justify-center bg-white/10 rounded-full w-8 h-8 backdrop-blur-sm border border-white/5">
-                <Search className="text-amber-400" size={16} />
+              <div className="relative z-10 flex items-center justify-center bg-white/5 rounded-full w-7 h-7 backdrop-blur-md border border-white/5">
+                <Microscope className="text-amber-400 group-hover:scale-110 transition-transform duration-300" size={14} />
               </div>
-              <div className="absolute top-3 right-3 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              <div className="absolute top-2.5 right-2.5 flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-[120%] w-[120%] rounded-full bg-amber-400 opacity-60"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
               </div>
             </button>
           </motion.div>
