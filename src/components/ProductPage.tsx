@@ -42,6 +42,7 @@ import { motion, AnimatePresence } from "motion/react";
 import ConfirmModal from "./ui/ConfirmModal";
 import { SmartOfferModal } from "./SmartOfferModal";
 import { findBestProductMatch } from "../lib/name-matching";
+import { getProfitCamera } from "../lib/ai-engine";
 import { storage, auth } from "../firebase";
 import {
   ref,
@@ -1132,6 +1133,14 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 (s) => s.id === product.supplierId,
               );
               const isSlow = sales > 0 && sales < 3;
+              const profitCamera = getProfitCamera(product, data);
+              const profitCameraClass =
+                profitCamera.tone === 'winner' ? 'bg-emerald-500/85 text-white' :
+                profitCamera.tone === 'opportunity' ? 'bg-amber-400/90 text-slate-950' :
+                profitCamera.tone === 'warning' ? 'bg-orange-500/85 text-white' :
+                profitCamera.tone === 'danger' ? 'bg-rose-600/90 text-white' :
+                profitCamera.tone === 'sleep' ? 'bg-slate-700/85 text-white' :
+                'bg-blue-500/85 text-white';
 
               return (
                 <motion.div
@@ -1254,6 +1263,12 @@ const ProductPage: React.FC<ProductPageProps> = ({
                           رائج 🔥
                         </span>
                       )}
+                      <span
+                        title={profitCamera.hint}
+                        className={cn("backdrop-blur-sm text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase pointer-events-auto title-premium", profitCameraClass)}
+                      >
+                        كاميرا الربح · {profitCamera.label}
+                      </span>
                     </div>
                   </div>
 

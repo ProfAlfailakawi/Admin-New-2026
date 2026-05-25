@@ -4,6 +4,7 @@ import { Tag, Plus, Trash2, CheckCircle, Clock, Percent, DollarSign, Activity, X
 import { AppState } from '../types';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
+import { getCouponProfitGuard, getKuwaitiSeasonalMove } from '../lib/ai-engine';
 
 import ConfirmModal from './ui/ConfirmModal';
 
@@ -12,6 +13,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  const [showModal, setShowModal] = useState(false);
  const [couponToDelete, setCouponToDelete] = useState<string | null>(null);
  const [newCode, setNewCode] = useState({ code: '', value: '', type: 'percentage' as 'percentage' | 'fixed', description: '' });
+ const seasonalMove = useMemo(() => getKuwaitiSeasonalMove(data), [data]);
 
  const stats = useMemo(() => {
  const totalSales = (data?.invoices || []).reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
@@ -26,32 +28,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  };
  }, [coupons, data.invoices]);
 
-  const analysis = useMemo(() => {
-  if (!newCode.value || isNaN(parseFloat(newCode.value)) || parseFloat(newCode.value) <= 0) return null;
-  const invoices = data.invoices || [];
-  let totalRevenue = 0, totalCost = 0, validOrders = 0;
-  invoices.forEach(inv => {
-     if (!inv.isDeleted) {
-        totalRevenue += inv.totalAmount;
-        validOrders++;
-        inv.items?.forEach(item => {
-           const p = data.products?.find(prod => prod.id === item.productId);
-           totalCost += ((item.costAtTime !== undefined ? item.costAtTime : p?.cost) || (item.priceAtTime * 0.6)) * item.quantity;
-        });
-     }
-  });
-  const aov = validOrders > 0 ? totalRevenue / validOrders : 15;
-  const avgCost = validOrders > 0 ? totalCost / validOrders : aov * 0.6;
-  const profitBefore = aov - avgCost - 2.5;
-  const val = parseFloat(newCode.value);
-  const expectedDiscount = newCode.type === 'fixed' ? val : (aov * (val / 100));
-  const profitAfter = profitBefore - expectedDiscount;
-  const marginPercentAfter = (profitAfter / aov) * 100;
-  let suggestion = "";
-  if (profitAfter <= 0) suggestion = "مرفوض حمايةً للربح: الخصم يسبب خسارة محققة بناءً على التكلفة ومتوسط سلة العميل. الأفضل تقديم منتج جانبي وتحديد حد أدنى للطلب.";
-  else if (marginPercentAfter < 15) suggestion = "تحذير: هذا الخصم سيخفض هامش الربح لمستوى خطير (أقل من 15%). نقترح تقليل نسبة الخصم لرفع الأرباح.";
-  return { aov, profitBefore, profitAfter, expectedDiscount, isLosing: profitAfter <= 0, isWarning: marginPercentAfter > 0 && marginPercentAfter < 15, marginPercentAfter, suggestion };
- }, [newCode.value, newCode.type, data.orders, data.products]);
+  const analysis = useMemo(() => getCouponProfitGuard(data, newCode.value, newCode.type), [data, newCode.value, newCode.type]);
 
  const handleCreateCode = () => {
  if (!newCode.code || !newCode.value) {
@@ -59,7 +36,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  return;
  }
 
- if (analysis?.isLosing) {
+ if (analysis?.level === 'danger') {
    toast.error(analysis.suggestion, { duration: 5000, icon: '🛑' });
    return;
  }
@@ -270,9 +247,13 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  </button>
  <Sparkles className="text-amber-500 mb-4" size={32} />
  <h3 className="text-2xl font-bold">إنشاء كود ترويجي ذكي</h3>
- <p className="text-slate-500 text-sm font-bold mt-1">سيتم ربط هذا الكود تلقائياً بكافة أنظمة التتبع.</p>
+ <p className="text-slate-500 text-sm font-bold mt-1">سيتم فحص الخصم قبل إطلاقه حتى ما يكسر الربح.</p>
  </div>
  <div className="p-3 md:p-3 space-y-6 text-right">
+ <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+   <div className="text-[11px] font-black text-amber-700">محرك المناسبات الكويتي · {seasonalMove.tag}</div>
+   <div className="mt-1 text-sm font-bold leading-7 text-slate-700">{seasonalMove.text}</div>
+ </div>
  <div>
  <label className="block text-xs font-bold text-slate-500 mb-2 mr-1 uppercase">رمز الخصم</label>
  <input 
@@ -324,17 +305,17 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
          exit={{ opacity: 0, height: 0 }}
          className={cn(
            "rounded-2xl p-4 border overflow-hidden text-right",
-           analysis.isLosing ? "bg-rose-50 border-rose-200" : analysis.isWarning ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"
+           analysis.level === 'danger' ? "bg-rose-50 border-rose-200" : analysis.level === 'warning' ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"
          )}
        >
          <div className="flex items-center gap-2 mb-2 flex-row-reverse">
-           {analysis.isLosing ? <X className="text-rose-500" size={18} /> : analysis.isWarning ? <Activity className="text-amber-500" size={18} /> : <CheckCircle className="text-emerald-500" size={18} />}
-           <h4 className={cn("font-bold", analysis.isLosing ? "text-rose-700" : analysis.isWarning ? "text-amber-700" : "text-emerald-700")}>
-             {analysis.isLosing ? 'غير آمن - خسارة محققة' : analysis.isWarning ? 'تحذير مساحة الربح' : 'آمن - خصم مقبول'}
+           {analysis.level === 'danger' ? <X className="text-rose-500" size={18} /> : analysis.level === 'warning' ? <Activity className="text-amber-500" size={18} /> : <CheckCircle className="text-emerald-500" size={18} />}
+           <h4 className={cn("font-bold", analysis.level === 'danger' ? "text-rose-700" : analysis.level === 'warning' ? "text-amber-700" : "text-emerald-700")}>
+             {analysis.title}
            </h4>
          </div>
-         <p className={cn("text-sm font-bold leading-relaxed", analysis.isLosing ? "text-rose-600" : analysis.isWarning ? "text-amber-600" : "text-emerald-600")}>
-           {analysis.suggestion || `هامش الربح المتوقع بعد الخصم هو ${analysis.marginPercentAfter.toFixed(1)}% وهو ضمن الحد الآمن.`}
+         <p className={cn("text-sm font-bold leading-relaxed", analysis.level === 'danger' ? "text-rose-600" : analysis.level === 'warning' ? "text-amber-600" : "text-emerald-600")}>
+           {analysis.suggestion}
          </p>
        </motion.div>
      )}

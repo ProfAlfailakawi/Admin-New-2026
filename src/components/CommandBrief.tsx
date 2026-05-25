@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { AppState } from '../types';
+import { getKitchenNowDecision, getKuwaitiSeasonalMove } from '../lib/ai-engine';
 import { AlertCircle, Target, Users, TrendingUp, Zap, ShieldAlert, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 
 interface Props {
@@ -17,6 +18,8 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
         ? { title: 'مرحباً، وقت الغداء والتركيز! 🍽️', sub: 'تابع الحركة، الطلبات، والفرص من مركز القيادة.' }
         : { title: 'نظرة هادئة على الأرقام ☕', sub: 'هدوء الليل أفضل وقت لمراجعة الأداء والتجهيز للغد.' };
   const [isExpanded, setIsExpanded] = useState(false);
+  const nowDecision = useMemo(() => getKitchenNowDecision(data, 'dashboard'), [data]);
+  const seasonalMove = useMemo(() => getKuwaitiSeasonalMove(data), [data]);
 
    const brief = useMemo(() => {
     const lines = [];
@@ -228,6 +231,12 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
             <p className="text-xs md:text-sm font-medium leading-7 text-slate-500 break-words">
               {greeting.sub}
             </p>
+            <div className="mt-2 max-w-2xl rounded-2xl border border-amber-200/70 bg-white/80 px-3 py-2 shadow-sm">
+              <div className="flex items-center gap-2 text-[11px] font-black text-amber-700">
+                <Target size={13} /> شنو أسوي الحين؟
+              </div>
+              <p className="mt-1 text-xs md:text-sm font-extrabold leading-6 text-slate-800">{nowDecision.decision}</p>
+            </div>
           </div>
         </div>
 
@@ -239,6 +248,20 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
 
       {isExpanded && (
         <div className="w-full max-w-full overflow-hidden border-t border-slate-100 bg-slate-50/70 p-3 md:p-4">
+          <div className="mb-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-xs font-black text-slate-500"><Target size={15} /> زر القرار الواحد</div>
+              <h3 className="mt-2 text-base font-black text-slate-900">{nowDecision.title}</h3>
+              <p className="mt-2 text-sm font-bold leading-7 text-slate-700">{nowDecision.proof}</p>
+              <p className="mt-2 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-black leading-7 text-amber-800">{nowDecision.action}</p>
+            </div>
+            <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-white to-emerald-50 p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-xs font-black text-emerald-700"><Sparkles size={15} /> محرك المناسبات الكويتي</div>
+              <h3 className="mt-2 text-base font-black text-slate-900">{seasonalMove.title}</h3>
+              <p className="mt-2 text-sm font-bold leading-7 text-slate-700">{seasonalMove.text}</p>
+              <span className="mt-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black text-emerald-700">{seasonalMove.tag}</span>
+            </div>
+          </div>
           <div className="grid w-full max-w-full grid-cols-1 gap-3 lg:grid-cols-2">
             {brief.map((item, idx) => (
               <div
