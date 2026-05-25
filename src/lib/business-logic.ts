@@ -79,6 +79,19 @@ export function recalculateStateBalances(state: AppState): AppState {
     lastOrderDate: customerStats[c.id]?.lastOrderDate || c.lastOrderDate
   }));
 
+  // Synchronize product categories to ensure consistency with current products if they are empty or undefined
+  if (!newState.productCategories || newState.productCategories.length === 0) {
+    const fromProducts = (newState.products || []).map((p: any) => String(p.category || '').trim()).filter(Boolean);
+    const uniqueCats = Array.from(new Set(fromProducts));
+    if (uniqueCats.length > 0) {
+      newState.productCategories = uniqueCats;
+      newState.settings = {
+        ...(newState.settings || {}),
+        productCategories: uniqueCats
+      } as any;
+    }
+  }
+
   return newState;
 }
 
