@@ -255,7 +255,9 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 	 const [messages, setMessages] = useState<Message[]>([
 	 { 
 	 role: 'assistant', 
-	 content: 'حاضر يا طويل العمر. أنا أقرأ بيانات مطعمك أولاً، وبعدها أعطيك قرار واضح: شنو صار، ليش صار، وشنو تسوي الحين. ما راح أعطيك كلام عام.' 
+	 content: `🌸 يا هلا بك يا طويل العمر في عقل النظام التنفيذي!
+
+أنا مستشارك ومساعدك الذكي. قمت بفحص وتحليل المبيعات، التكاليف، هوامش الربح، والمخزون، وجاهز لمساعدتك فوراً` 
 	 }
 	 ]);
  const [input, setInput] = useState('');

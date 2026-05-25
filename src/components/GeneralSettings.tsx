@@ -52,6 +52,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   
  const [showConfirm, setShowConfirm] = useState(false);
  const [showResetConfirm, setShowResetConfirm] = useState(false);
+ const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
  const [isSyncing, setIsSyncing] = useState(false);
 
  const [activeSection, setActiveSection] = useState<string>('');
@@ -73,6 +74,16 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  };
 
  const handleResetData = async () => {
+ // Capture robust backup before purging
+ const hasRealData = (data.invoices && data.invoices.length > 0) || (data.products && data.products.length > 0) || (data.customers && data.customers.length > 0);
+ if (hasRealData) {
+   try {
+     localStorage.setItem('ktk_accounting_data_backup', JSON.stringify(data));
+   } catch (e) {
+     console.warn("Could not write reset backup:", e);
+   }
+ }
+
  // 1. Reset Internal State
  setData(INITIAL_DATA);
  
@@ -104,15 +115,26 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  }, 1000);
  };
 
- const handleLoadDemo = () => {
- if (appMode === 'cloud') {
- addToast("الإجراء مرفوض","ما يصير نحمّل البيانات التجريبية أثناء التزامن السحابي عشان ما تختلط مع بيانات السحابة الحقيقية.","warning");
- return;
- }
- const demo = GET_DEMO_DATA();
- setData(demo);
- sessionStorage.setItem('hideSampleDataPrompt', 'true');
-  addToast("تم تحميل البيانات","تم ملء النظام ببيانات تجريبية شاملة للمعاينة.","info");
+ const handleRestoreBackup = () => {
+   try {
+     const backupStr = localStorage.getItem('ktk_accounting_data_backup');
+     if (backupStr) {
+       const parsed = JSON.parse(backupStr);
+       setData(parsed);
+       sessionStorage.setItem('hideSampleDataPrompt', 'true');
+       setShowRestoreConfirm(false);
+       addToast("تمت استعادة البيانات الأخيرة", "تم استرجاع كافة مبيعاتك وعملائك وعملياتك من النسخة الاحتياطية بنجاح ⛑️", "success");
+     } else {
+       const demo = GET_DEMO_DATA();
+       setData(demo);
+       sessionStorage.setItem('hideSampleDataPrompt', 'true');
+       setShowRestoreConfirm(false);
+       addToast("تم ملء البيانات التجريبية", "ما لقينا نسخة احتياطية سابقة بالمتصفح، فملأنا لك النظام ببيانات ترويجية جاهزة للاستكشاف والتحليل.", "info");
+     }
+   } catch (e) {
+     console.error("Restore error", e);
+     addToast("فشلت الاستعادة", "حدث خطأ غير متوقع أثناء تفكيك بيانات النسخة الاحتياطية.", "warning");
+   }
  };
 
  // removed handleSave
@@ -1060,30 +1082,26 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
  {(() => {
     const hasData = (data.invoices && data.invoices.length > 0) || (data.products && data.products.length > 0);
-    const isDisabled = appMode === 'cloud' || hasData;
+    const isDisabled = hasData;
     
     return (
       <button 
-        onClick={handleLoadDemo}
+        onClick={() => setShowRestoreConfirm(true)}
         disabled={isDisabled}
         className={cn(
           "w-full flex items-center justify-between p-3 border rounded-2xl group transition-all shadow-sm",
-          appMode === 'cloud' 
+          hasData
             ? "bg-slate-50 border-slate-200/60 text-slate-500 cursor-not-allowed opacity-60"
-            : hasData
-            ? "bg-slate-50 border-slate-200/60 text-slate-500 cursor-not-allowed opacity-60"
-            : "bg-indigo-50 border-indigo-100 hover:bg-indigo-100 text-indigo-700 active:scale-[0.98]"
+            : "bg-indigo-50 border-indigo-150 hover:bg-indigo-100 text-indigo-700 active:scale-[0.98]"
         )}
       >
-        <Sparkles size={18} className={appMode === 'cloud' || hasData ? "" : "group-hover:rotate-12 transition-transform"} />
+        <Sparkles size={18} className={hasData ? "" : "group-hover:rotate-12 transition-transform text-amber-500"} />
         <div className="text-right">
-          <div className="text-xs font-bold">تحميل بيانات تجريبية (Demo)</div>
+          <div className="text-xs font-bold font-sans">إسترجاع البيانات والملء السريع ⛑️</div>
           <div className="text-[10px] opacity-80">
-            {appMode === 'cloud' 
-              ? "غير متاح في وضع التزامن السحابي" 
-              : hasData 
-              ? "النظام يحتوي على بيانات مسبقاً" 
-              : "لمعاينة النظام ببيانات واقعية جاهزة"}
+            {hasData 
+              ? "النظام يحتوي على بيانات فعالّة الحين" 
+              : "استعادة المبيعات، الفواتير، والعمليات كاملة فوراً"}
           </div>
         </div>
       </button>
@@ -1196,6 +1214,46 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>,
  document.body
 )}
+
+ {showRestoreConfirm && createPortal(
+  <div 
+  className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4 text-right"
+  dir="rtl"
+  onClick={() => setShowRestoreConfirm(false)}
+  >
+  <motion.div 
+  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+  animate={{ opacity: 1, scale: 1, y: 0 }}
+  className="bg-white rounded-[2rem] p-6 max-w-md w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-visible"
+  onClick={(e) => e.stopPropagation()}
+  >
+  <div className="overflow-y-auto custom-scrollbar flex-1 px-1">
+  <div className="w-20 h-20 bg-indigo-50/80 rounded-full flex items-center justify-center mx-auto mb-6 text-indigo-600">
+  <Sparkles size={40} className="animate-pulse text-indigo-600" />
+  </div>
+  <h3 className="text-xl font-bold text-slate-800 mb-4 font-sans text-center">استرجاع وملء البيانات الطارئ ⛑️</h3>
+  <p className="text-slate-500 font-bold mb-8 leading-relaxed text-sm text-center">
+  يا طويل العمر، هذا الإجراء بيسترجع لك نسخة شاملة من كافة المبيعات، العملاء والموردين، الفواتير، وهيكل المكافآت والخصومات لإعادة لوحة التحكم للعمل فوراً.
+  </p>
+  </div>
+  <div className="flex flex-col gap-3 pt-5 mt-auto border-t border-slate-100 bg-white">
+  <button 
+  onClick={handleRestoreBackup}
+  className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
+  >
+  نعم، استرجع كافة البيانات
+  </button>
+  <button 
+  onClick={() => setShowRestoreConfirm(false)}
+  className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+  >
+  تراجع
+  </button>
+  </div>
+  </motion.div>
+  </div>,
+  document.body
+ )}
  </div>
  </section>
 

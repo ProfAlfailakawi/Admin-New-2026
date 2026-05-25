@@ -938,6 +938,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
   
 const [isPending, startTransition] = useTransition();
     const [isExecutiveMode, setIsExecutiveMode] = useState(false);
+    const [showSystemBrainFinancials, setShowSystemBrainFinancials] = useState(true);
     const [showSampleDataPrompt, setShowSampleDataPrompt] = useState(false);
     const [showContextualAssist, setShowContextualAssist] = useState(false);
     const [isLoyaltyAnalyzing, setIsLoyaltyAnalyzing] = useState(false);
@@ -975,22 +976,41 @@ const [isPending, startTransition] = useTransition();
     }, [activeTab, onActiveTabChange]);
 
     useEffect(() => {
-      // Prompt for sample data on local mode if empty & not dismissed
-      if (appMode === 'local' && (getUnifiedInvoices(data)?.length === 0 || !getUnifiedInvoices(data)) && (data.products?.length === 0 || !data.products)) {
+      // Prompt for sample data in both local and cloud modes if empty & not dismissed
+      const isDataEmpty = (!data.invoices || data.invoices.length === 0) && (!data.products || data.products.length === 0);
+      if (isDataEmpty) {
         if (!sessionStorage.getItem('hideSampleDataPrompt')) {
           setShowSampleDataPrompt(true);
         }
       } else {
         setShowSampleDataPrompt(false);
       }
-    }, [appMode, getUnifiedInvoices(data)?.length, data.products?.length]);
+    }, [data.invoices?.length, data.products?.length]);
 
     const handleLoadDemoData = React.useCallback(() => {
-      const demo = GET_DEMO_DATA();
-      onUpdateData(demo);
-      setShowSampleDataPrompt(false);
-      sessionStorage.setItem('hideSampleDataPrompt', 'true');
-      toast.success("تم تحميل البيانات التجريبية بنجاح! 🎉");
+      try {
+        const backupStr = localStorage.getItem('ktk_accounting_data_backup');
+        if (backupStr) {
+          const parsed = JSON.parse(backupStr);
+          onUpdateData(parsed);
+          setShowSampleDataPrompt(false);
+          sessionStorage.setItem('hideSampleDataPrompt', 'true');
+          toast.success("تمت استعادة كافة مبيعاتك وعملائك الأخيرة بنجاح! ⛑️");
+        } else {
+          const demo = GET_DEMO_DATA();
+          onUpdateData(demo);
+          setShowSampleDataPrompt(false);
+          sessionStorage.setItem('hideSampleDataPrompt', 'true');
+          toast.success("تم تحميل البيانات التجريبية بنجاح! 🎉");
+        }
+      } catch (e) {
+        console.error("Dashboard restore backup error", e);
+        const demo = GET_DEMO_DATA();
+        onUpdateData(demo);
+        setShowSampleDataPrompt(false);
+        sessionStorage.setItem('hideSampleDataPrompt', 'true');
+        toast.success("تم تحميل البيانات التجريبية بنجاح! 🎉");
+      }
     }, [onUpdateData]);
 
     const handleDismissDemoData = React.useCallback(() => {
@@ -2240,6 +2260,7 @@ const [isPending, startTransition] = useTransition();
 
     const greeting = getContextualGreeting();
     const systemMoodClass = getSystemMoodStyles();
+    const hasLocalBackup = typeof window !== 'undefined' && !!localStorage.getItem('ktk_accounting_data_backup');
 
     return (
       <div className={cn("dashboard w-full pb-32 animate-in fade-in duration-500 relative overflow-visible transition-colors", isExecutiveMode ? "bg-slate-50 min-h-screen" : "")}>
@@ -2260,26 +2281,30 @@ const [isPending, startTransition] = useTransition();
           dir="rtl"
         >
           {showSampleDataPrompt && (
-            <div className="mb-4 bg-indigo-50/80 border border-indigo-100 rounded-xl p-2.5 flex flex-row items-center justify-between gap-3 animate-in slide-in-from-top-4 fade-in duration-500 text-right w-full overflow-hidden relative shadow-sm">
-              <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] bg-indigo-500/10 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+            <div className="mb-4 bg-amber-50/90 border border-amber-200 rounded-xl p-2.5 flex flex-row items-center justify-between gap-3 animate-in slide-in-from-top-4 fade-in duration-500 text-right w-full overflow-hidden relative shadow-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] bg-amber-500/10 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
               <div className="flex-1 relative z-10 flex items-center gap-3">
-                <div className="bg-indigo-500 text-white p-1.5 rounded-lg shrink-0">
+                <div className="bg-amber-500 text-white p-1.5 rounded-lg shrink-0">
                   <Database size={16} />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-slate-900 leading-tight mb-0.5">النظام فارغ حالياً</h3>
+                  <h3 className="text-xs font-bold text-slate-900 leading-tight mb-0.5">
+                    {hasLocalBackup ? "رصدنا تصفير النظام! هل مسحت البيانات بالخطأ؟ ⛑️" : "نظام لوحة التحكم فارغ حالياً"}
+                  </h3>
                   <p className="text-slate-600 font-bold text-[10px] leading-relaxed">
-                    هل ترغب في تحميل <strong className="text-indigo-700">بيانات تجريبية</strong> لاستكشاف المميزات؟
+                    {hasLocalBackup 
+                      ? "يا طويل العمر، تونا رصدنا مسح أو تصفير للبيانات، تقدر تسترجع فوراً كافة مبيعاتك وعملائك ومورديك اللي خزنها جهازك بشكل احترازي 💻" 
+                      : "تقدر تحمل بيانات تجريبية (Demo) شاملة عشان تجرب ميزات النظام وفواتيره وتقارير الذكاء الاصطناعي بكل سهولة."}
                   </p>
                 </div>
               </div>
-              <div className="flex justify-end gap-2 shrink-0 relative z-10 w-auto">
+              <div className="flex justify-end gap-2 shrink-0 relative z-10 w-auto font-sans">
                 <button
                   onClick={handleLoadDemoData}
-                  className="bg-indigo-600 outline-none text-white font-bold text-sm text-[11px] px-3 py-1.5 rounded-md hover:bg-indigo-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95"
+                  className="bg-amber-600 outline-none text-white font-bold text-sm text-[11px] px-3 py-1.5 rounded-md hover:bg-amber-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95"
                 >
                   <Download size={14} />
-                  <span>تحميل</span>
+                  <span>{hasLocalBackup ? "استرجاع بياناتي الأخيرة" : "تحميل بيانات تجريبية"}</span>
                 </button>
                 <button
                   onClick={handleDismissDemoData}
@@ -3884,7 +3909,7 @@ const [isPending, startTransition] = useTransition();
                     <div className="h-64 animate-pulse bg-slate-100 rounded-2xl" />
                   }
                 >
-                  <LoyaltyProgramPage data={data} onUpdateData={onUpdateData} />
+                  <LoyaltyProgramPage data={data} onUpdateData={onUpdateData} defaultTab="loyalty" />
                 </React.Suspense>
               </div>
             )}
@@ -3896,7 +3921,7 @@ const [isPending, startTransition] = useTransition();
                     <div className="h-64 animate-pulse bg-slate-100 rounded-2xl" />
                   }
                 >
-                  <PromoCodePage data={data} onUpdateData={onUpdateData} />
+                  <LoyaltyProgramPage data={data} onUpdateData={onUpdateData} defaultTab="promocodes" />
                 </React.Suspense>
               </div>
             )}
@@ -3916,36 +3941,92 @@ const [isPending, startTransition] = useTransition();
 
                 {/* مركز القيادة الرئيسي يظهر من App فقط حتى لا يتكرر داخل الداشبورد */}
                 <div className="space-y-6 mt-6">
-                  <div className="flex flex-col w-full ">
-                    <GlobalStatBox
-                      label="إجمالي المبيعات"
-                      value={totalSalesVal}
-                      color="blue"
-                      icon={TrendingUp}
-                      index={0}
-                    />
-                    <GlobalStatBox
-                      label="إجمالي التكاليف"
-                      value={totalCostVal + totalExpensesVal}
-                      color="red"
-                      icon={Briefcase}
-                      index={1}
-                    />
-                    <GlobalStatBox
-                      label="صافي الربح"
-                      value={Math.max(0, netProfit)}
-                      color="emerald"
-                      icon={DollarSign}
-                      index={2}
-                    />
-                    <GlobalStatBox
-                      label="هامش الربح"
-                      value={profitMargin}
-                      color="amber"
-                      icon={Target}
-                      index={3}
-                      isPercent
-                    />
+                  {/* الأداء المالي */}
+                  <div className="bg-slate-50/50 rounded-3xl border border-slate-200/60 overflow-hidden transition-all duration-500">
+                    <button
+                      onClick={() =>
+                        setActiveCategory((prev) =>
+                          prev === "financials" ? null : "financials",
+                        )
+                      }
+                      className="w-full flex items-center justify-between p-4 md:p-6 hover:bg-slate-100/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center">
+                          <TrendingUp size={20} />
+                        </div>
+                        <div className="text-right">
+                          <h4 className="font-bold text-slate-800">
+                            الأداء المالي
+                          </h4>
+                          <p className="text-[10px] text-slate-500 font-bold">
+                            المبيعات، التكاليف، والأرباح الصافية
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-lg font-bold text-slate-900">
+                          {totalSalesVal.toFixed(3)}{" "}
+                          <span className="text-sm">د.ك</span>
+                        </div>
+                        <ChevronDown
+                          size={20}
+                          className={cn(
+                            "text-slate-500 transition-transform duration-300",
+                            activeCategory === "financials" ? "rotate-180" : "",
+                          )}
+                        />
+                      </div>
+                    </button>
+
+                    <AnimatePresence>
+                      {activeCategory === "financials" && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <div className="px-4 md:px-6 pb-6 pt-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                              <GlobalStatBox
+                                label="إجمالي المبيعات"
+                                value={totalSalesVal}
+                                color="blue"
+                                icon={TrendingUp}
+                                index={0}
+                                unit="د.ك"
+                              />
+                              <GlobalStatBox
+                                label="إجمالي التكاليف"
+                                value={totalCostVal + totalExpensesVal}
+                                color="red"
+                                icon={Briefcase}
+                                index={1}
+                                unit="د.ك"
+                              />
+                              <GlobalStatBox
+                                label="صافي الربح"
+                                value={Math.max(0, netProfit)}
+                                color="emerald"
+                                icon={DollarSign}
+                                index={2}
+                                unit="د.ك"
+                              />
+                              <GlobalStatBox
+                                label="هامش الربح"
+                                value={profitMargin}
+                                color="amber"
+                                icon={Target}
+                                index={3}
+                                isPercent
+                                unit="٪"
+                              />
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   <div className="bg-slate-50/50 rounded-3xl border border-slate-200/60 overflow-hidden transition-all duration-500">
