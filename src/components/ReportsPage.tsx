@@ -1286,6 +1286,11 @@ Alturath.kw`;
                                                             {product?.name ||
                                                               "منتج غير معروف"}
                                                           </span>
+                                                          {product?.supplierId && (
+                                                            <span className="text-[10px] font-extralight text-slate-400 block -mt-0.5 opacity-70 tracking-tight">
+                                                              {(data.suppliers || []).find(s => s.id === product.supplierId)?.name}
+                                                            </span>
+                                                          )}
                                                           {item.itemNotes && (
                                                             <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded mt-1 inline-block w-fit">
                                                               ملاحظة:{" "}
