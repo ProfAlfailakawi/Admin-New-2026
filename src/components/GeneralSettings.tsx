@@ -6,7 +6,7 @@ import { motion } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { AppState, AppSettings, Zone, Product, Customer, Expense, Supplier, Testimonial, PulseAnalysisRecord, AICampaign, SupplierTransfer } from '../types';
 import { GET_DEMO_DATA } from '../data';
-import { cn, formatFullAddress, normalizeAddressObject } from '../lib/utils';
+import { cn, formatFullAddress, normalizeAddressObject, normalizeArabicNumerals } from '../lib/utils';
 import * as XLSX from 'xlsx';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore'; 
 import { db, auth, getSmartDoc } from '../firebase'; 
@@ -730,7 +730,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  type="text"
  placeholder="بحث عن منطقة..."
  value={searchZoneTerm}
- onChange={(e) => setSearchZoneTerm(e.target.value)}
+ onChange={(e) => setSearchZoneTerm(normalizeArabicNumerals(e.target.value))}
  className="w-full pl-3 pr-10 py-1.5 bg-white border border-slate-200/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold"
  />
  </div>

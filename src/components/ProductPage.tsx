@@ -37,7 +37,7 @@ import { AppState, Product } from "../types";
 import { DEFAULT_GLOBAL_LOGO } from "../constants";
 import { NumericInput } from "./ui/NumericInput";
 import { StatCardComponent } from "./StatCard";
-import { cn, normalizeArabic, robustNormalize } from "../lib/utils";
+import { cn, normalizeArabic, robustNormalize, normalizeArabicNumerals } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import ConfirmModal from "./ui/ConfirmModal";
 import { SmartOfferModal } from "./SmartOfferModal";
@@ -1011,7 +1011,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
               type="text"
               placeholder="ابحث عن اسم المنتج..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => setSearch(normalizeArabicNumerals(e.target.value))}
               className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
             />
           </div>

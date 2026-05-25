@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Testimonial } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../lib/utils';
+import { cn, normalizeArabicNumerals } from '../lib/utils';
 import { analyzeKuwaitiSentiment } from '../lib/ai-engine';
 
 interface Props {
@@ -100,7 +100,7 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  type="text"
  placeholder="ابحث في محتوى التعليقات..."
  defaultValue={searchTerm}
- onChange={(e) => setSearchTerm(e.target.value)}
+ onChange={(e) => setSearchTerm(normalizeArabicNumerals(e.target.value))}
  className="w-full bg-white border border-slate-200/60 rounded-3xl py-6 pr-14 pl-6 text-right font-bold text-slate-700 shadow-sm focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all"
  />
  </div>

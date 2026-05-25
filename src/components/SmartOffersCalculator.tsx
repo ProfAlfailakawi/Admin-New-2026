@@ -1,7 +1,7 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calculator, Gift, Target, TrendingUp, Sparkles, AlertTriangle, Plus, X, ShoppingBag, BadgePercent, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, normalizeArabicNumerals } from '../lib/utils';
 
 // Lazy load heavy components if needed, or simply optimize current render
 // In this case, optimizing the rendering of the product list should be enough.
@@ -127,7 +127,7 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  placeholder="ابحث عن منتج..."
  className="w-full px-4 py-2 rounded-xl border border-slate-200/60 mb-2"
  value={searchTerm}
- onChange={(e) => setSearchTerm(e.target.value)}
+ onChange={(e) => setSearchTerm(normalizeArabicNumerals(e.target.value))}
  />
  {filteredProducts.slice(0, 60).map((product: any) => {
  const isSelected = selectedProductIds.includes(product.id);

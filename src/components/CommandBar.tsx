@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
 import { Search, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, ShoppingBag, FileText, ShieldCheck, BrainCircuit, Award, Clock3, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, normalizeArabic } from '../lib/utils';
+import { cn, normalizeArabic, normalizeArabicNumerals } from '../lib/utils';
 
 interface CommandBarProps {
   isOpen: boolean;
@@ -309,7 +309,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                   placeholder="اكتب: عميل، منتج، فاتورة، مورد، كوبون، أرباح، محتوى..."
                   className="command-premium-search-input"
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => setQuery(normalizeArabicNumerals(e.target.value))}
                 />
               </div>
               <button type="button" onClick={onClose} className="command-premium-close"><X size={18} /></button>

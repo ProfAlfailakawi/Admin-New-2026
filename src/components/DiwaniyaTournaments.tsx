@@ -3,6 +3,7 @@ import { Users, Trophy, Crown, Medal, Swords, Target, Settings, Flame, Star, Ext
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { DEFAULT_SQUADS } from '../data';
+import { normalizeArabicNumerals } from '../lib/utils';
 
 export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate?: (page: string) => void }> = ({ data, setData, onNavigate }) => {
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'squads' | 'settings' | 'radar'>('leaderboard');
@@ -1259,7 +1260,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       type="text" 
                       placeholder="ابحث باسم الديوانية، المؤسس، التلفون، أو الكود..." 
                       value={squadSearchQuery}
-                      onChange={(e) => setSquadSearchQuery(e.target.value)}
+                      onChange={(e) => {
+                        let val = normalizeArabicNumerals(e.target.value);
+                        if (/^[0-9]*$/.test(val)) val = val.slice(0, 8);
+                        setSquadSearchQuery(val);
+                      }}
                       className="bg-slate-50 border border-slate-200 pr-11 pl-4 py-3.5 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-50 w-full shadow-sm" 
                     />
                   </div>

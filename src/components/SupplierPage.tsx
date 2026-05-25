@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Truck, Search, Plus, Trash2, Edit2, Phone, AlertCircle, Wallet, History, CreditCard, ArrowUpRight, PlusCircle, Package, Users, X } from 'lucide-react';
 import { AppState, Supplier, PaymentMethod, Product } from '../types';
-import { cn, normalizeArabic } from '../lib/utils';
+import { cn, normalizeArabic, normalizeArabicNumerals } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import { toast } from 'sonner';
@@ -226,7 +226,13 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  type="text" 
  placeholder="ابحث عن مورد بالاسم..."
  value={search}
- onChange={(e) => setSearch(e.target.value)}
+ onChange={(e) => {
+    let val = normalizeArabicNumerals(e.target.value);
+    if (/^[0-9]*$/.test(val)) {
+      val = val.slice(0, 8);
+    }
+    setSearch(val);
+  }}
  className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
  />
  </div>
