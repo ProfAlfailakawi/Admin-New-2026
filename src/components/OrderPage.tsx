@@ -1957,25 +1957,30 @@ Alturath.kw`;
                                   >
                                     <td className="p-3 md:p-4">
                                       <div className="flex flex-col gap-1 md:gap-2">
-                                        <div className="font-bold text-slate-800 flex flex-col items-start gap-1.5 text-[11px] md:text-sm">
-                                          <div className="flex items-center gap-1.5">
-                                            {productName}
-                                            {needsSelection && (
-                                              <motion.span
-                                                animate={{
-                                                  scale: [1, 1.1, 1],
-                                                  rotate: [0, -2, 2, 0],
-                                                }}
-                                                transition={{
-                                                  duration: 0.5,
-                                                  repeat: Infinity,
-                                                }}
-                                                className="text-[7px] md:text-[11px] font-bold px-2 md:px-3 py-1 rounded-full bg-rose-500 text-white shadow-lg shadow-rose-500/30"
-                                              >
-                                                تحديد مورد مطلوب ⚠️
-                                              </motion.span>
+                                          <div className="font-bold text-slate-800 flex flex-col items-start gap-0.5 text-[11px] md:text-sm">
+                                            <div className="flex items-center gap-1.5">
+                                              {productName}
+                                              {needsSelection && (
+                                                <motion.span
+                                                  animate={{
+                                                    scale: [1, 1.1, 1],
+                                                    rotate: [0, -2, 2, 0],
+                                                  }}
+                                                  transition={{
+                                                    duration: 0.5,
+                                                    repeat: Infinity,
+                                                  }}
+                                                  className="text-[7px] md:text-[11px] font-bold px-2 md:px-3 py-1 rounded-full bg-rose-500 text-white shadow-lg shadow-rose-500/30"
+                                                >
+                                                  تحديد مورد مطلوب ⚠️
+                                                </motion.span>
+                                              )}
+                                            </div>
+                                            {product?.supplierId && !needsSelection && (
+                                              <span className="text-[10px] font-extralight text-slate-400 block -mt-0.5 opacity-70 tracking-tight">
+                                                {(data.suppliers || []).find(s => s.id === product.supplierId)?.name}
+                                              </span>
                                             )}
-                                          </div>
                                           {prepInstructions && (
                                             <span className="text-[10px] md:text-[11px] bg-amber-100/90 border border-amber-200 text-amber-800 font-bold px-2 py-1 rounded-lg mt-1 w-fit flex items-center gap-1.5 shadow-sm">
                                               <AlertCircle

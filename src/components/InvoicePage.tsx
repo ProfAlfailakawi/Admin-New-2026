@@ -1062,7 +1062,7 @@ Alturath.kw`;
                       <span className="px-2 py-0.5 rounded-lg bg-slate-50 text-slate-400 text-[9px] font-bold border border-slate-100 uppercase tracking-wider">
                         {normalizeCategoryName((p as any).category)}
                       </span>
-                      <span className="text-[8px] font-extralight text-slate-300 title-premium tracking-tighter opacity-70 leading-none">
+                      <span className="px-2 py-0.5 rounded-lg bg-primary/5 text-primary/40 text-[8px] font-extralight border border-primary/10 tracking-tighter">
                         {supplierName}
                       </span>
                     </div>
