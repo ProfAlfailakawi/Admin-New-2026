@@ -161,16 +161,61 @@ function buildLocalMotionReelDataUrl({
   imageContent,
   mimeType
 }: any) {
-  const cleanPrompt = String(prompt || "لقطة طلب كويتي واقعية")
-    .replace(/\s+/g, " ")
-    .slice(0, 140);
+  let cleanPrompt = String(prompt || "لقطة طلب كويتي واقعية");
+  const match = cleanPrompt.match(/فكرة مختصرة:\s*([^.]+)/);
+  if (match && match[1]) {
+    cleanPrompt = match[1].trim();
+  } else {
+    cleanPrompt = cleanPrompt
+      .replace(/Reel /gi, "")
+      .replace(/عمودي \d+:\d+ /gi, "")
+      .replace(/خفيف واقتصادي /gi, "")
+      .replace(/لمطبخ التراث الكويتي\.?/gi, "")
+      .replace(/فكرة مختصرة:/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  // Ensure it fits gracefully inside the box width (max ~35 characters for font-size 22/24)
+  if (cleanPrompt.length > 32) {
+    cleanPrompt = cleanPrompt.slice(0, 31) + "…";
+  }
+
   const seconds = Math.min(8, Math.max(4, Number(duration) || 6));
   const imageHref = imageContent
     ? `data:${mimeType || "image/jpeg"};base64,${String(imageContent).slice(0, 9_000_000)}`
     : "";
-  const placeLabel = String(place || "delivery").replace(/[-_]/g, " ");
-  const shotLabel = String(shotType || "hero-push").replace(/[-_]/g, " ");
-  const moodLabel = String(mood || "دافئ");
+
+  // Translate English IDs to premium and authentic Arabic labels
+  const shotMap: Record<string, string> = {
+    "hero-push": "اقتراب سينمائي",
+    "box-open": "فتح علبة طلب",
+    "steam-close": "بخار ولمعة",
+    "table-pass": "مرور على السفرة",
+    "sauce-motion": "حركة صوص",
+  };
+  const placeMap: Record<string, string> = {
+    home: "بيت",
+    diwaniya: "ديوانية",
+    chalet: "شاليه",
+    farm: "مزرعة",
+    jakhour: "جاخور",
+    zowara: "زوارة",
+    delivery: "توصيل",
+  };
+  const moodMap: Record<string, string> = {
+    warm: "دافئ",
+    bright: "مشرق",
+    natural: "طبيعي",
+    evening: "مسائي دافئ",
+    cozy: "هادئ بيتوتي",
+    dramatic: "فخامة هادئة",
+  };
+
+  const shotLabel = shotMap[shotType] || String(shotType || "اقتراب سينمائي").replace(/[-_]/g, " ");
+  const placeLabel = placeMap[place] || String(place || "توصيل").replace(/[-_]/g, " ");
+  const moodLabel = moodMap[mood] || String(mood || "دافئ");
+
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280" viewBox="0 0 720 1280">
   <defs>
@@ -214,7 +259,7 @@ function buildLocalMotionReelDataUrl({
   <g>
     <rect x="76" y="1032" width="568" height="148" rx="38" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.18)"/>
     <text x="604" y="1084" fill="#f8e7bd" font-family="Arial, sans-serif" font-size="22" font-weight="900" text-anchor="end">ريل خفيف جاهز للنشر</text>
-    <text x="604" y="1128" fill="#ffffff" font-family="Arial, sans-serif" font-size="28" font-weight="900" text-anchor="end">${escapeXml(cleanPrompt)}</text>
+    <text x="604" y="1128" fill="#ffffff" font-family="Arial, sans-serif" font-size="24" font-weight="900" text-anchor="end">${escapeXml(cleanPrompt)}</text>
     <text x="604" y="1166" fill="rgba(255,255,255,.65)" font-family="Arial, sans-serif" font-size="18" font-weight="700" text-anchor="end">${escapeXml(shotLabel)} · ${escapeXml(placeLabel)} · ${escapeXml(moodLabel)}</text>
   </g>
   <g opacity=".55">
