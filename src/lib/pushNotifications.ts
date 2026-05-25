@@ -151,7 +151,7 @@ async function getFreshMessagingServiceWorkerRegistration(): Promise<ServiceWork
   }
 
   await navigator.serviceWorker.ready;
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+  await new Promise((resolve) => setTimeout(resolve, 180));
 
   return registration;
 }

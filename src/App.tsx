@@ -820,16 +820,30 @@ const MainApp: React.FC = () => {
     if (!isAuthenticated || !user) return;
     if (typeof Notification === 'undefined' || window.Notification.permission !== 'granted') return;
 
-    const lastRefresh = localStorage.getItem('push_last_silent_refresh');
-    const lastTime = lastRefresh ? new Date(lastRefresh).getTime() : 0;
-    const twelveHours = 12 * 60 * 60 * 1000;
+    const refreshIfNeeded = () => {
+      const lastRefresh = localStorage.getItem('push_last_silent_refresh');
+      const lastTime = lastRefresh ? new Date(lastRefresh).getTime() : 0;
+      const ninetyMinutes = 90 * 60 * 1000;
 
-    if (lastTime && Date.now() - lastTime < twelveHours) return;
+      if (lastTime && Date.now() - lastTime < ninetyMinutes) return;
 
-    refreshPushRegistrationIfAlreadyAllowed({
-      userId: user.uid || 'admin',
-      restaurantId: userRole === 'partner' ? 'partner' : 'kitchen_default',
-    });
+      refreshPushRegistrationIfAlreadyAllowed({
+        userId: user.uid || 'admin',
+        restaurantId: userRole === 'partner' ? 'partner' : 'kitchen_default',
+      });
+    };
+
+    refreshIfNeeded();
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshIfNeeded();
+    };
+    window.addEventListener('focus', refreshIfNeeded);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', refreshIfNeeded);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [isAuthenticated, user, userRole]);
 
 
