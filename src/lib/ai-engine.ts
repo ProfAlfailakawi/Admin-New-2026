@@ -167,6 +167,12 @@ export async function generateQuickInstagramMessages(data: AppState, category: '
     return selected;
   }
 
+  if (category === 'promo') {
+    const localStories = buildSalesDrivenStoryIdeas(data);
+    setCache(`insta-promo-${generateStateHash(data)}`, localStories);
+    return localStories;
+  }
+
   const cacheKey = `insta-${category}-${generateStateHash(data)}`;
   const cached = forceRefresh ? null : getCached<string[]>(cacheKey);
   if (cached) return cached;
@@ -2014,6 +2020,186 @@ export function analyzeKuwaitiSentiment(text: string): KuwaitiSentimentResult {
 }
 
 
+
+
+// --- Nuclear Kitchen Intelligence: lightweight, local, data-first decisions ---
+const kMoney = (value: any) => {
+  const n = Number(value || 0);
+  return Number.isFinite(n) ? n.toFixed(3) : '0.000';
+};
+
+const kDateTime = (value: any) => new Date(value?.date || value?.createdAt || value?.updatedAt || value || 0).getTime() || 0;
+const kIsDeleted = (value: any) => Boolean(value?.isDeleted || value?.deletedAt);
+const kIsPaid = (value: any) => {
+  const s = String(value || '').toLowerCase();
+  return !s || s.includes('paid') || s.includes('مدفوع') || s.includes('تم الدفع') || s.includes('success') || s.includes('completed');
+};
+
+const kActiveProducts = (data: any) => (data?.products || []).filter((p: any) => !kIsDeleted(p) && p?.isActive !== false);
+const kPaidInvoices = (data: any) => (data?.invoices || []).filter((i: any) => !kIsDeleted(i) && kIsPaid(i?.paymentStatus || i?.status));
+
+function kProductRows(data: any) {
+  const invoices = kPaidInvoices(data);
+  const productMap = new Map<string, { qty: number; revenue: number; profit: number; lastSale: number }>();
+  invoices.forEach((inv: any) => {
+    (inv.items || []).forEach((item: any) => {
+      const key = String(item.productId || item.id || item.name || item.productName || '');
+      if (!key) return;
+      const qty = Number(item.quantity || 0);
+      const price = Number(item.priceAtTime ?? item.price ?? 0);
+      const cost = Number(item.costAtTime ?? item.cost ?? price * 0.6);
+      const row = productMap.get(key) || { qty: 0, revenue: 0, profit: 0, lastSale: 0 };
+      row.qty += qty;
+      row.revenue += price * qty;
+      row.profit += (price - cost) * qty;
+      row.lastSale = Math.max(row.lastSale, kDateTime(inv));
+      productMap.set(key, row);
+    });
+  });
+
+  return kActiveProducts(data).map((p: any) => {
+    const stats = productMap.get(String(p.id)) || productMap.get(String(p.name)) || { qty: 0, revenue: 0, profit: 0, lastSale: 0 };
+    const price = Number(p.price || 0);
+    const cost = Number(p.cost || 0);
+    const unitProfit = price - cost;
+    const margin = price > 0 ? (unitProfit / price) * 100 : 0;
+    return { product: p, name: p.name || 'منتج', price, cost, unitProfit, margin, ...stats };
+  });
+}
+
+export function getProfitCamera(product: any, data: AppState) {
+  const rows = kProductRows(data);
+  const row = rows.find((r: any) => String(r.product?.id) === String(product?.id)) || {
+    name: product?.name || 'منتج',
+    price: Number(product?.price || 0),
+    cost: Number(product?.cost || 0),
+    qty: 0,
+    revenue: 0,
+    profit: 0,
+    margin: Number(product?.price || 0) > 0 ? ((Number(product?.price || 0) - Number(product?.cost || 0)) / Number(product?.price || 1)) * 100 : 0,
+  };
+  const qty = Number(row.qty || 0);
+  const margin = Number(row.margin || 0);
+  if (margin <= 0) return { tone: 'danger', label: 'يكسر الربح', hint: 'السعر أقل من التكلفة أو قريب منها، راجع التسعير قبل أي حملة.' };
+  if (qty >= 8 && margin >= 35) return { tone: 'winner', label: 'يبيع ويربح', hint: 'هذا صنف بطل: حافظ عليه وادفعه في أوقات الذروة.' };
+  if (qty >= 5 && margin < 18) return { tone: 'warning', label: 'حذر هامش', hint: 'يبيع لكن الربح ضيق؛ لا تحط عليه خصم مباشر.' };
+  if (qty <= 2 && margin >= 30) return { tone: 'opportunity', label: 'دفعة ذكية', hint: 'هامشه حلو لكن ظهوره ضعيف؛ يستاهل ستوري يبيع.' };
+  if (qty === 0) return { tone: 'sleep', label: 'نايم', hint: 'ما عليه حركة مسجلة؛ يحتاج ظهور بسيط أو صورة أقوى.' };
+  return { tone: 'steady', label: 'مستقر', hint: 'أداؤه مقبول، راقبه بدون قرار قاسي.' };
+}
+
+export function getCouponProfitGuard(data: AppState, value: any, type: 'percentage' | 'fixed') {
+  const val = Number(value || 0);
+  if (!val || val <= 0) return null;
+  const invoices = kPaidInvoices(data);
+  const totalRevenue = invoices.reduce((sum: number, inv: any) => sum + Number(inv.totalAmount || inv.total || 0), 0);
+  let totalCost = 0;
+  invoices.forEach((inv: any) => (inv.items || []).forEach((item: any) => {
+    const product = (data.products || []).find((p: any) => p.id === item.productId || p.name === item.name || p.name === item.productName);
+    const qty = Number(item.quantity || 0);
+    const price = Number(item.priceAtTime ?? item.price ?? product?.price ?? 0);
+    const cost = Number(item.costAtTime ?? item.cost ?? product?.cost ?? price * 0.6);
+    totalCost += cost * qty;
+  }));
+  const orderCount = invoices.length || 1;
+  const aov = totalRevenue > 0 ? totalRevenue / orderCount : 15;
+  const avgCost = totalRevenue > 0 ? totalCost / orderCount : aov * 0.6;
+  const operatingBuffer = Math.max(0.25, aov * 0.06);
+  const profitBefore = aov - avgCost - operatingBuffer;
+  const expectedDiscount = type === 'fixed' ? val : aov * (val / 100);
+  const profitAfter = profitBefore - expectedDiscount;
+  const marginPercentAfter = aov > 0 ? (profitAfter / aov) * 100 : 0;
+  const safeDiscount = Math.max(0, profitBefore - Math.max(aov * 0.18, 0.3));
+  const safePercentage = aov > 0 ? (safeDiscount / aov) * 100 : 0;
+  const level = profitAfter <= 0 ? 'danger' : marginPercentAfter < 15 ? 'warning' : 'safe';
+  const title = level === 'danger' ? 'مانع الخصومات: لا تطلقه' : level === 'warning' ? 'مانع الخصومات: انتبه للهامش' : 'مانع الخصومات: آمن مبدئياً';
+  const suggestion = level === 'danger'
+    ? `هذا الخصم ممكن يحوّل متوسط الطلب من ربح إلى خسارة. الحد الآمن تقريباً ${type === 'percentage' ? `${safePercentage.toFixed(1)}%` : `${kMoney(safeDiscount)} د.ك`}، أو خل الخصم على منتج عالي الهامش بدل خصم عام.`
+    : level === 'warning'
+      ? `الخصم يمشي لكن الهامش يصير ضيق (${marginPercentAfter.toFixed(1)}%). الأفضل تربطه بحد أدنى للطلب أو منتج رابح.`
+      : `الهامش المتوقع بعد الخصم ${marginPercentAfter.toFixed(1)}%، الوضع مقبول بشرط ما يكون الخصم عام طول الوقت.`;
+  return { level, title, suggestion, aov, profitBefore, profitAfter, expectedDiscount, marginPercentAfter, safePercentage, safeDiscount };
+}
+
+export function getKuwaitiSeasonalMove(data: AppState) {
+  const now = new Date();
+  const day = now.getDay();
+  const hour = now.getHours();
+  const month = now.getMonth() + 1;
+  const rows = kProductRows(data).filter((r: any) => r.margin > 15).sort((a: any, b: any) => (b.margin + b.qty) - (a.margin + a.qty));
+  const product = rows[0]?.name || kActiveProducts(data)[0]?.name || 'أقوى طبق عندك';
+  if (month === 3 || month === 4) return { title: 'نبض رمضان والغبقات', text: `ركز على ${product} بصياغة عائلية/ديوانية، بدون خصم عام يضرب الربح.`, tag: 'رمضان/غبقة' };
+  if ([4,5,6].includes(day)) return { title: 'محرك الويكند الكويتي', text: `الويكند يحب القرار السريع: ستوري ديوانية على ${product} مع دعوة "طلب الربع".`, tag: 'ويكند' };
+  if (hour >= 17 && hour <= 22) return { title: 'ذروة العشى والديوانية', text: `هذا وقت بيع، مو وقت خصومات. ادفع ${product} بستوري مباشر وواضح.`, tag: 'ذروة' };
+  if (hour >= 10 && hour <= 14) return { title: 'موجة الغداء', text: `خل الرسالة سريعة: "غداك جاهز" وابرز منتج سهل القرار مثل ${product}.`, tag: 'غداء' };
+  return { title: 'نبضة كويتية هادية', text: `وقت مناسب لتجهيز محتوى ذكي على ${product} قبل الزحمة.`, tag: 'هدوء' };
+}
+
+export function getKitchenNowDecision(data: AppState, currentPage = 'dashboard') {
+  const invoices = kPaidInvoices(data);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const todayInvoices = invoices.filter((inv: any) => kDateTime(inv) >= today.getTime());
+  const todaySales = todayInvoices.reduce((sum: number, inv: any) => sum + Number(inv.totalAmount || inv.total || 0), 0);
+  const rows = kProductRows(data);
+  const hiddenGem = rows.filter((r: any) => r.margin >= 30 && r.qty <= 3).sort((a: any,b: any) => b.margin - a.margin)[0];
+  const weakMargin = rows.filter((r: any) => r.qty >= 3 && r.margin < 18).sort((a: any,b: any) => a.margin - b.margin)[0];
+  const top = rows.sort((a: any,b: any) => (b.profit + b.revenue * 0.05) - (a.profit + a.revenue * 0.05))[0];
+  const suppliers = (data.suppliers || []).filter((s: any) => Number(s.balance || 0) > 0).sort((a: any,b: any) => Number(b.balance || 0) - Number(a.balance || 0));
+  const customers = (data.customers || []).map((c: any) => ({ ...c, spent: Number(c.totalSpent || 0), idle: Math.floor((Date.now() - new Date(c.lastActive || c.lastOrderDate || 0).getTime()) / 86400000) })).filter((c: any) => c.spent >= 30 && c.idle >= 30).sort((a: any,b: any) => b.spent - a.spent);
+  let title = 'شنو أسوي الحين؟';
+  let decision = 'خل القرار اليوم بسيط: لا تزحم التشغيل، ركز على منتج واحد ورسالة واحدة.';
+  let proof = `مبيعات اليوم ${kMoney(todaySales)} د.ك، وعدد الفواتير المدفوعة ${invoices.length}.`;
+  let action = 'جهّز ستوري واحد واضح، وراقب النتيجة قبل أي خصم.';
+  if (currentPage.includes('promo') || currentPage.includes('coupon')) {
+    title = 'قرار العروض الآن';
+    decision = weakMargin ? `لا تحط خصم على ${weakMargin.name}.` : 'لا تطلق خصم عام قبل فحص الهامش.';
+    proof = weakMargin ? `${weakMargin.name} هامشه ${weakMargin.margin.toFixed(0)}% ومبيعاته ${weakMargin.qty}.` : proof;
+    action = hiddenGem ? `إذا تبي عرض، اربطه بـ ${hiddenGem.name} لأنه هامشه ${hiddenGem.margin.toFixed(0)}%.` : 'خل الخصم بحد أدنى للطلب وبمدة قصيرة.';
+  } else if (currentPage.includes('product')) {
+    title = 'قرار المنتجات الآن';
+    decision = hiddenGem ? `ادفع ${hiddenGem.name} اليوم.` : top ? `راقب ${top.name} وخله واجهة المنيو.` : decision;
+    proof = hiddenGem ? `هامشه ${hiddenGem.margin.toFixed(0)}% ومبيعاته قليلة (${hiddenGem.qty})، يعني فرصة ما أخذت ظهور كافي.` : proof;
+    action = hiddenGem ? 'سوّ له ستوري يبيع، لا خصم. خل الصورة والنداء واضحين.' : action;
+  } else if (currentPage.includes('supplier')) {
+    title = 'قرار الموردين الآن';
+    decision = suppliers[0] ? `راجع ${suppliers[0].name || 'أكبر مورد'} أولاً.` : 'الموردين وضعهم هادي حالياً.';
+    proof = suppliers[0] ? `أعلى التزام ظاهر ${kMoney(suppliers[0].balance)} د.ك.` : 'ماكو التزامات موردين واضحة.';
+    action = suppliers[0] ? 'اطلب مراجعة سعر لأكثر صنف مرتبط فيه قبل ما تفتح خصومات.' : 'استغل الهدوء لتحديث التكاليف.';
+  } else if (currentPage.includes('customer')) {
+    title = 'قرار العملاء الآن';
+    decision = customers[0] ? `استرجع ${customers[0].name || customers[0].phone} برسالة راقية.` : 'ماكو عميل ذهبي واضح معرض للفقد حالياً.';
+    proof = customers[0] ? `غائب ${customers[0].idle} يوم وإنفاقه ${kMoney(customers[0].spent)} د.ك.` : proof;
+    action = customers[0] ? 'اكتب له رسالة شخصية بدون خصم قوي.' : 'ركز على آخر العملاء النشطين برسالة شكر.';
+  } else if (hiddenGem) {
+    decision = `ادفع ${hiddenGem.name} اليوم بدل الخصم العام.`;
+    proof = `هامشه ${hiddenGem.margin.toFixed(0)}% ومبيعاته ${hiddenGem.qty}، فرصة ربح نظيفة.`;
+    action = 'نزّل ستوري يبيع عليه وقت الذروة، وخله أول اقتراح للمساعد.';
+  } else if (suppliers[0]) {
+    decision = `رتّب التزام ${suppliers[0].name || 'المورد الأعلى'} قبل أي حملة.`;
+    proof = `عليه ${kMoney(suppliers[0].balance)} د.ك، وهذا ممكن يأثر على التشغيل.`;
+    action = 'لا توسع الطلبات على أصناف مورده إذا التكلفة مو محدثة.';
+  }
+  return { title, decision, proof, action, product: hiddenGem?.name || top?.name || '', page: currentPage };
+}
+
+export function buildSalesDrivenStoryIdeas(data: AppState) {
+  const rows = kProductRows(data);
+  const seasonal = getKuwaitiSeasonalMove(data);
+  const profitable = rows.filter((r: any) => r.margin > 20).sort((a: any,b: any) => (b.margin + b.qty) - (a.margin + a.qty))[0];
+  const hidden = rows.filter((r: any) => r.margin >= 30 && r.qty <= 3).sort((a: any,b: any) => b.margin - a.margin)[0] || profitable;
+  const top = rows.sort((a: any,b: any) => b.qty - a.qty)[0] || hidden;
+  const p1 = hidden?.name || top?.name || 'طبقكم المفضل';
+  const p2 = top?.name || p1;
+  return [
+    `STORY$$ستوري يبيع مو ستوري حلو$$${p1}$$${seasonal.tag}$$الهدف: بيع صنف رابح بدون خصم$$${seasonal.text}\n\nالنص الجاهز:\nاليوم نرشح لكم ${p1} 👌\nاختيار مضبوط حق اللي يبي طلب كويتي مرتب بدون حوسة. اطلبه الحين وخله يوصل على وقته.`,
+    `STORY$$دفعة منتج نائم$$${p1}$$هامش ذكي$$الهدف: رفع ظهور منتج رابح$$${p1} محتاج ظهور أكثر، مو خصم.\n\nالنص الجاهز:\nفي طبق مظلوم بالمنيو... ${p1} 😍\nإذا تحب الاختيار اللي ما يندم عليه، هذا وقته.`,
+    `STORY$$نجم اليوم$$${p2}$$ثقة اجتماعية$$الهدف: تحويل الرائج إلى طلبات أكثر$$${p2} عنده حركة واضحة.\n\nالنص الجاهز:\nنجم اليوم عندنا ${p2} 🔥\nاللي يبي طلب مضمون، هذا اختيار الناس اليوم.`,
+    `STORY$$قرار الديوانية$$${p1}$$ديوانية$$الهدف: ربط المنتج بطلب جماعي$$${seasonal.title}\n\nالنص الجاهز:\nحق الديوانية اليوم؟ ${p1} يضبط القعدة 👌\nاطلبه للربع وخل الباقي علينا.`,
+    `STORY$$بيع بلا خصم$$${p1}$$حماية ربح$$الهدف: رفع الطلب بدون كسر الهامش$$لا تستخدم خصم عام.\n\nالنص الجاهز:\nمو كل شي يحتاج خصم... بعض الطلبات تكفي جودتها. ${p1} جاهز لكم اليوم بطعم يبيض الوجه.`
+  ];
+}
+
 // --- Turaath Engine: Coordinated Brain ---
 // This object organizes the disjointed functions into logical categories.
 // It serves as the primary "arranged" interface for the platform's self-learning brain.
@@ -2047,7 +2233,8 @@ export const TuraathEngine = {
     Marketing: {
         generateMarketingCampaign,
         generateQuickInstagramMessages,
-        generateStructuredCampaign
+        generateStructuredCampaign,
+        buildSalesDrivenStoryIdeas
     },
     
     /**
@@ -2055,6 +2242,10 @@ export const TuraathEngine = {
      */
     Utils: {
         normalizeArabic,
-        generateStateHash
+        generateStateHash,
+        getKitchenNowDecision,
+        getCouponProfitGuard,
+        getKuwaitiSeasonalMove,
+        getProfitCamera
     }
 };

@@ -19,12 +19,14 @@ import {
 	} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppState } from '../types';
+import { getKitchenNowDecision } from '../lib/ai-engine';
 import { cn } from '../lib/utils';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
 
 interface AIAssistantProps {
  data: AppState;
+ currentPage?: string;
 }
 
 interface Message {
@@ -239,8 +241,16 @@ const buildAssistantIntel = (data: AppState) => {
  };
 };
 
-const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
+const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage = 'ai' }) => {
 	 const intel = React.useMemo(() => buildAssistantIntel(data), [data]);
+	 const effectivePage = React.useMemo(() => {
+	   try {
+	     return currentPage === 'ai' ? (localStorage.getItem('ai_context_page') || 'dashboard') : currentPage;
+	   } catch {
+	     return currentPage === 'ai' ? 'dashboard' : currentPage;
+	   }
+	 }, [currentPage]);
+	 const pageDecision = React.useMemo(() => getKitchenNowDecision(data, effectivePage), [data, effectivePage]);
 	 const [copied, setCopied] = useState(false);
 	 const [messages, setMessages] = useState<Message[]>([
 	 { 
@@ -315,7 +325,10 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
 	 const handleSend = async (message: string | null | undefined) => {
  const messageToSend = message || input;
  if (!messageToSend || typeof messageToSend !== 'string' || !messageToSend.trim() || isLoading) return;
- const cleanMessage = messageToSend.trim();
+ const rawMessage = messageToSend.trim();
+ const cleanMessage = rawMessage === 'ضبطها' || rawMessage === 'ضبطه' || rawMessage === 'ضبط'
+   ? `ضبطها حسب الصفحة الحالية (${effectivePage}). عطِني قرار واحد قابل للتنفيذ الآن. القرار المتوقع من النظام: ${pageDecision.decision}. الدليل: ${pageDecision.proof}. الإجراء: ${pageDecision.action}.`
+   : rawMessage;
 
  setMessages(prev => [...prev, { role: 'user', content: cleanMessage }]);
  setInput('');
@@ -328,6 +341,8 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  try {
 	 const statsSummary = {
 	   ...intel,
+	   currentPage: effectivePage,
+	   pageDecision,
 	   missions: undefined,
 	 };
 	 const memorySnapshot = readMemory();
@@ -352,6 +367,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
 - قبل أي رد، افحص: هل عندي رقم/منتج/عميل/مورد يثبت كلامي؟ إذا لا، اطلب الناقص بوضوح.
 - استخدم ذاكرة التاجر المحلية المرسلة لك عشان ما تكرر نفس النصائح وتفهم أسلوبه.
 - ممنوع تذكر أنك نموذج أو ذكاء اصطناعي أو تعتذر بكثرة.
+- إذا كتب التاجر كلمة "ضبطها" فقط، افهمها حسب الصفحة الحالية والقرار المرسل لك، ولا تسأله شنو يقصد إلا إذا البيانات ناقصة.
 - إذا في مخاطرة، قلها بصراحة وبهدوء. إذا في فرصة، عطه خطوة قابلة للتنفيذ اليوم.`,
 	 statsSummary,
 	 memorySnapshot,
@@ -402,7 +418,8 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data }) => {
  };
 
 	 const suggestions = [
-	  { label: 'شنو أسوي الحين؟', prompt: 'من بيانات مطعمي الحالية فقط، عطِني أهم 3 أولويات الآن: خطر، فرصة، إجراء اليوم. اذكر الرقم أو المنتج اللي بنيت عليه كلامك.' },
+	  { label: 'شنو أسوي الحين؟', prompt: `حسب الصفحة الحالية ${effectivePage} وبيانات مطعمي، عطِني قرار واحد فقط الآن. القرار المحلي المقترح: ${pageDecision.decision}. الدليل: ${pageDecision.proof}.` },
+	  { label: 'ضبطها', prompt: 'ضبطها' },
 	  { label: 'اكتب رسالة عميل', prompt: 'اختَر من بياناتي عميل يستاهل متابعة أو استرجاع، وكتب له رسالة واتساب كويتية قصيرة. إذا ما عندك اسم واضح، قل لي شنو الناقص.' },
 	  { label: 'طلع فرصة بيع', prompt: 'من منتجاتي وفواتيري الحالية، اختر منتج واحد يستاهل حملة اليوم، واشرح لي ليش، واكتب نص حملة قصير.' },
 	  { label: 'فسّر الربح', prompt: 'حلل ربح مطعمي وهامشه من البيانات الحالية، وقل لي قرار واحد يحسن الربح اليوم بدون تخفيض عشوائي.' },

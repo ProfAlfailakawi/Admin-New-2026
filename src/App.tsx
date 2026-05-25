@@ -2093,7 +2093,7 @@ const MainApp: React.FC = () => {
           onClearDeepLink={() => {}}
         />
       );
-      case 'ai': return <AIAssistant data={data} />;
+      case 'ai': return <AIAssistant data={data} currentPage={currentPage} />;
       case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
       case 'diwaniya': return <DiwaniyaTournaments data={data} setData={setData} onNavigate={setCurrentPage} />;
       case 'settings': return <GeneralSettings data={data} setData={setData} appMode={appMode} switchMode={switchMode} addToast={addToast} />;
@@ -2413,7 +2413,7 @@ const MainApp: React.FC = () => {
               </button>
 
               <button 
-                onClick={() => { setCurrentPage('ai'); setSidebarOpen(false); }}
+                onClick={() => { try { localStorage.setItem('ai_context_page', currentPage); } catch {} setCurrentPage('ai'); setSidebarOpen(false); }}
                 title="المساعد الذكي"
                 className={cn(
                   "flex w-12 h-12 rounded-[1rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden",

@@ -54,9 +54,10 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  const previewRaw = messages[0] || '';
  const previewParts = previewRaw.split('$$');
  const previewIsContest = previewParts.length >= 8 && previewParts[0] === 'CONTEST';
- const previewTitle = previewIsContest ? previewParts[1] : (previewRaw.split('\n')[0] || 'فكرة انستغرام جاهزة');
- const previewText = previewIsContest ? previewParts.slice(7).join('$$') : previewRaw;
- const previewCardText = (previewText || previewTitle || 'فكرة انستغرام جاهزة').replace(/CONTEST|\$\$/g, ' ').trim();
+ const previewIsStory = previewParts.length >= 6 && previewParts[0] === 'STORY';
+ const previewTitle = previewIsContest || previewIsStory ? previewParts[1] : (previewRaw.split('\n')[0] || 'فكرة انستغرام جاهزة');
+ const previewText = previewIsContest ? previewParts.slice(7).join('$$') : previewIsStory ? previewParts.slice(5).join('$$') : previewRaw;
+ const previewCardText = (previewText || previewTitle || 'فكرة انستغرام جاهزة').replace(/CONTEST|STORY|\$\$/g, ' ').trim();
 
  return (
  <>
@@ -221,9 +222,15 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  {messages.map((rawMsg, index) => {
   const parts = rawMsg.split('$$');
   const isContest = parts.length >= 7 && parts[0] === 'CONTEST';
+  const isStory = parts.length >= 6 && parts[0] === 'STORY';
   let title = '', cost = '', target = '', channel = '', duration = '', prize = '', text = rawMsg;
   if (isContest) {
     [, title, cost, target, channel, duration, prize, text] = parts;
+  } else if (isStory) {
+    [, title, channel, duration, target] = parts;
+    text = parts.slice(5).join('$$');
+    cost = 'بدون خصم';
+    prize = 'بيع مباشر';
   }
   return (
  <motion.div
@@ -252,7 +259,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
 )}>
  <Instagram size={24} />
  </div>
- {isContest ? (
+ {isContest || isStory ? (
    <h3 className="text-xl md:text-2xl font-black text-slate-800 text-right pr-4 leading-tight flex-1" style={{direction: "rtl"}}>{title}</h3>
  ) : (
    <span className="text-[10px] font-bold text-slate-300 tracking-tighter mr-auto">0{index + 1} / {messages.length}</span>
@@ -260,7 +267,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  </div>
 
  <div className="text-right">
- {isContest && (
+ {(isContest || isStory) && (
    <div className="mb-6 space-y-3" dir="rtl">
      <div className="flex flex-wrap gap-2 text-[10.5px] font-bold">
          <span className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-xl border border-emerald-100 flex items-center gap-1"><span className="text-emerald-400/80">💰</span>التكلفة: {cost}</span>
@@ -276,7 +283,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
    </div>
  )}
 
- {isContest && <div className="text-[11px] font-bold text-slate-400 mb-3 border-b border-black/5 pb-2">النص الجاهز للنسخ:</div>}
+ {(isContest || isStory) && <div className="text-[11px] font-bold text-slate-400 mb-3 border-b border-black/5 pb-2">{isStory ? 'ستوري هدفه يبيع، مو بس شكله حلو:' : 'النص الجاهز للنسخ:'}</div>}
  <p className="text-lg md:text-xl font-bold text-slate-900 leading-[1.6] mb-10 whitespace-pre-line text-right" dir="rtl">
  {text}
  </p>
