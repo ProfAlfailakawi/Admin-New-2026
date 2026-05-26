@@ -44,21 +44,12 @@ const formatAddress = (address: any, fallback?: string) => {
 };
 
 const getAddonQty = (addon: any, itemQty: number) => {
-  let mult = Number(addon?.quantity ?? addon?.qty ?? 0);
-  const rawHasQty = addon?.quantity !== undefined || addon?.qty !== undefined || addon?.count !== undefined || addon?.selectedQuantity !== undefined || addon?.value !== undefined;
-  if (!rawHasQty && (addon?.selected !== false && addon?.enabled !== false && addon?.isSelected !== false)) {
-    mult = 1;
+  let qty = Number(addon?.quantity ?? addon?.qty ?? 0);
+  if (!qty) {
+    if (addon?.calculationType === 'fixed') qty = 1;
+    else if (addon?.calculationType === 'per_x_items') qty = Math.ceil(itemQty / Math.max(1, Number(addon?.xItemsThreshold || 1)));
+    else qty = itemQty;
   }
-
-  let qty = 0;
-  if (addon?.calculationType === 'fixed') {
-    qty = mult;
-  } else if (addon?.calculationType === 'per_x_items') {
-    qty = Math.ceil(itemQty / Math.max(1, Number(addon?.xItemsThreshold || 1))) * mult;
-  } else {
-    qty = itemQty * mult;
-  }
-
   const min = Number(addon?.minQuantity || 0);
   const max = Number(addon?.maxQuantity || qty || 0);
   if (min) qty = Math.max(min, qty);
