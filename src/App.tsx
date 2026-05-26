@@ -2103,7 +2103,7 @@ const MainApp: React.FC = () => {
           setData={setData} 
           initialSupplierId={deepLinkData.supplierId} 
           autoOpenModal={deepLinkData.openModal}
-          onClearDeepLink={() => {}}
+          onClearDeepLink={() => setDeepLinkData({})}
           deepLinkData={deepLinkData}
         />
       );
