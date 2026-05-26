@@ -94,6 +94,7 @@ import { cn } from "../lib/utils";
 // Performance tracking removed as requested
 import { motion, AnimatePresence } from "motion/react";
 import { MagneticButton } from "./ui/MagneticButton";
+import { SpatialGlassCard } from "./ui/SpatialGlassCard";
 const LoyaltyProgramPage = React.lazy(() =>
   import("./LoyaltyProgramPage").then((m) => ({
     default: m.LoyaltyProgramPage,
@@ -200,62 +201,56 @@ const GlobalStatBox = React.memo(
     subtext = "",
     unit = "",
   }: any) => {
-    const getGradient = (color: string) => {
-      switch (color) {
-        case "blue":
-          return "from-blue-500/10 to-indigo-500/5 text-blue-600 border-blue-100 shadow-blue-500/5";
-        case "red":
-          return "from-rose-500/10 to-pink-500/5 text-rose-600 border-rose-100 shadow-rose-500/5";
-        case "emerald":
-          return "from-emerald-500/10 to-teal-500/5 text-emerald-600 border-emerald-100 shadow-emerald-500/5";
-        case "amber":
-          return "from-amber-500/10 to-yellow-500/5 text-amber-600 border-amber-100 shadow-amber-500/5";
-        case "purple":
-          return "from-purple-500/10 to-fuchsia-500/5 text-purple-600 border-purple-100 shadow-purple-500/5";
-        case "indigo":
-          return "from-indigo-500/10 to-blue-500/5 text-indigo-600 border-indigo-100 shadow-indigo-500/5";
-        case "rose":
-          return "from-rose-500/10 to-red-500/5 text-rose-600 border-rose-100 shadow-rose-500/5";
-        default:
-          return "from-slate-500/10 to-slate-500/5 text-slate-600 border-slate-100 shadow-slate-500/5";
+    const glowColors: Record<string, string> = {
+      blue: 'rgba(59, 130, 246, 0.16)',
+      red: 'rgba(244, 63, 94, 0.16)',
+      emerald: 'rgba(16, 185, 129, 0.20)',
+      amber: 'rgba(245, 158, 11, 0.16)',
+      purple: 'rgba(168, 85, 247, 0.16)',
+      indigo: 'rgba(99, 102, 241, 0.16)',
+      rose: 'rgba(244, 63, 94, 0.16)',
+    };
+
+    const getTextColor = (col: string) => {
+      switch (col) {
+        case "blue": return "text-blue-600";
+        case "red": return "text-rose-600";
+        case "emerald": return "text-emerald-600";
+        case "amber": return "text-amber-600";
+        case "purple": return "text-purple-600";
+        case "indigo": return "text-indigo-600";
+        case "rose": return "text-rose-600";
+        default: return "text-slate-600";
       }
     };
 
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -4, scale: 1.02 }}
-        whileTap={{ scale: 0.96 }}
-        transition={{ type: "spring", stiffness: 400, damping: 25 }}
-        className={cn(
-          "p-4 sm:p-6 rounded-2xl sm:rounded-2xl border bg-white relative overflow-hidden group shadow-sm flex flex-col justify-between h-full",
-          getGradient(color),
-        )}
-      >
-        {/* Decor Accents */}
-        <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-current opacity-[0.03] rounded-full blur-3xl group-hover:opacity-10 transition-opacity" />
+    const glowColor = glowColors[color] || 'rgba(100, 116, 139, 0.16)';
 
+    return (
+      <SpatialGlassCard
+        glowColor={glowColor}
+        className="p-5 sm:p-6 rounded-2xl sm:rounded-[28px] border border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.03)] flex flex-col justify-between h-full select-none"
+      >
         <div className="flex justify-between items-start mb-4 sm:mb-6 relative z-10 flex-row-reverse">
           <div
             className={cn(
-              "w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center bg-white shadow-lg shadow-current/10 border border-current/5 transition-transform group-hover:rotate-6 duration-300",
-              getGradient(color).split(" ")[2],
+              "w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center bg-white shadow-md border border-slate-100 transition-transform group-hover:rotate-6 duration-300",
+              getTextColor(color),
             )}
           >
             <Icon size={20} strokeWidth={2.5} className="sm:w-7 sm:h-7" />
           </div>
         </div>
 
-        <div className="text-right relative z-10">
+        <div className="text-right relative z-10 w-full">
           <div className="text-[10px] sm:text-xs font-bold uppercase opacity-60 mb-1 lg:mb-2 text-slate-500">
             {label}
           </div>
-          <div className="flex items-baseline justify-end gap-0.5 sm:gap-1 mb-0.5 sm:mb-1">
-            <span className="text-[10px] sm:text-xs font-bold opacity-40 uppercase tracking-tighter">
+          <div className="flex items-baseline justify-end gap-0.5 sm:gap-1 mb-0.5 sm:mb-1 w-full overflow-hidden">
+            <span className="text-[10px] sm:text-xs font-bold opacity-40 uppercase tracking-tighter shrink-0">
               {unit}
             </span>
-            <div className="text-lg min-[360px]:text-xl sm:text-3xl font-mono tracking-tighter font-bold text-slate-900 tracking-tighter interactive-hover origin-right truncate overflow-hidden text-ellipsis whitespace-nowrap auto-cols-min">
+            <div className="text-lg min-[360px]:text-xl sm:text-3xl font-mono tracking-tighter font-bold text-slate-800 interactive-hover origin-right truncate overflow-hidden text-ellipsis whitespace-nowrap leading-none shrink w-full">
               {isPercent
                 ? `${value.toFixed(1)}%`
                 : Number(value).toLocaleString("en-GB", {
@@ -268,15 +263,15 @@ const GlobalStatBox = React.memo(
           {subtext && (
             <div
               className={cn(
-                "text-[10px] sm:text-[10px] mt-1.5 sm:mt-2 font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-current/10 inline-block",
-                getGradient(color).split(" ")[2],
+                "text-[10px] sm:text-[10px] mt-1.5 sm:mt-2 font-bold px-2.5 py-0.5 sm:py-1 rounded-full bg-current/10 inline-block",
+                getTextColor(color),
               )}
             >
               {subtext}
             </div>
           )}
         </div>
-      </motion.div>
+      </SpatialGlassCard>
     );
   },
 );
