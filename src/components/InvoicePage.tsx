@@ -846,11 +846,41 @@ Alturath.kw`;
         return mergeDateWithCurrentTime(invoiceDate);
       })();
 
+      const fullAddressValue = [
+        regionName ? `المنطقة: ${regionName}` : "",
+        addressDetails.block ? `القطعة: ${addressDetails.block}` : "",
+        addressDetails.street ? `الشارع: ${addressDetails.street}` : "",
+        addressDetails.jaddah ? `الجادة: ${addressDetails.jaddah}` : "",
+        addressDetails.building ? `المنزل: ${addressDetails.building}` : "",
+        addressDetails.floor ? `الدور: ${addressDetails.floor}` : "",
+        addressDetails.apartment ? `الشقة: ${addressDetails.apartment}` : ""
+      ].filter(Boolean).join(" - ");
+
+      const deliveryAddressSnapshotValue = {
+        area: regionName || "",
+        block: addressDetails.block || "",
+        street: addressDetails.street || "",
+        avenue: addressDetails.jaddah || "",
+        house: addressDetails.building || "",
+        floor: addressDetails.floor || "",
+        apartment: addressDetails.apartment || "",
+        fullAddress: fullAddressValue
+      };
+
       const newInvoice: Invoice = {
         ...(existingInvoice || {}),
         id: invoiceId,
         customerId: targetId,
         address: { ...(existingInvoice?.address || {}), region: regionName, ...addressDetails },
+        area: regionName,
+        block: addressDetails.block,
+        street: addressDetails.street,
+        avenue: addressDetails.jaddah,
+        house: addressDetails.building,
+        floor: addressDetails.floor,
+        apartment: addressDetails.apartment,
+        fullAddress: fullAddressValue,
+        deliveryAddressSnapshot: deliveryAddressSnapshotValue,
         items: cartItems.map((it) => ({
           ...it,
           productId: it.product!.id,
@@ -860,11 +890,12 @@ Alturath.kw`;
         deliveryType,
         deliveryInfo: {
           company: deliveryCompany,
+          regionName: regionName, // Keep original
           zoneName: regionName,
           cost: deliveryCost,
           profit: deliveryProfit,
           finalPrice: deliveryFee,
-        },
+        } as any,
         date: finalInvoiceDate,
         totalAmount: totalValue,
         totalCost: computeInvoiceCost(mockInv, data.products),

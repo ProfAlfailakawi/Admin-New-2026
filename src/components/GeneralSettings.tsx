@@ -163,7 +163,18 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  const invoiceRows = (data?.invoices || []).map((i: any) => {
    const c: any = customerById.get(i.customerId) || customerByPhone.get(String(i.customerPhone || '')) || {};
+   const snap = i.deliveryAddressSnapshot || {};
    const addr = i.address || c.address || c.detailedAddress;
+
+   const areaVal = snap.area || i.area || addr?.region || addr?.area || c.area || '';
+   const blockVal = snap.block || i.block || addr?.block || '';
+   const streetVal = snap.street || i.street || addr?.street || '';
+   const avenueVal = snap.avenue || i.avenue || i.addressJaddah || addr?.jaddah || '';
+   const houseVal = snap.house || i.house || addr?.building || addr?.house || '';
+   const floorVal = snap.floor || i.floor || addr?.floor || '';
+   const apartmentVal = snap.apartment || i.apartment || addr?.apartment || '';
+   const calculatedAddressFull = i.fullAddress || snap.fullAddress || addressText(addr, i.area || c.area);
+
    return {
      id: i.id,
      date: i.date,
@@ -189,17 +200,25 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
      deliveryType: i.deliveryType,
      deliveryCompany: i.deliveryInfo?.company || '',
      deliveryInfo: json(i.deliveryInfo),
-     area: i.area || c.area || '',
-     addressFull: addressText(addr, i.area || c.area),
-     addressRegion: addr?.region || addr?.governorate || '',
-     addressArea: addr?.area || i.area || c.area || '',
-     addressBlock: addr?.block || '',
-     addressStreet: addr?.street || '',
-     addressJaddah: addr?.jaddah || '',
-     addressBuilding: addr?.building || addr?.house || '',
-     addressFloor: addr?.floor || '',
-     addressApartment: addr?.apartment || '',
+     area: areaVal,
+     addressFull: calculatedAddressFull,
+     addressRegion: areaVal,
+     addressArea: areaVal,
+     addressBlock: blockVal,
+     addressStreet: streetVal,
+     addressJaddah: avenueVal,
+     addressBuilding: houseVal,
+     addressFloor: floorVal,
+     addressApartment: apartmentVal,
      addressNotes: addr?.notes || addr?.addressNotes || '',
+     "المنطقة": areaVal,
+     "القطعة": blockVal,
+     "الشارع": streetVal,
+     "الجادة": avenueVal,
+     "المنزل": houseVal,
+     "الدور": floorVal,
+     "الشقة": apartmentVal,
+     "العنوان الكامل": calculatedAddressFull,
      splitParticipants: json(i.splitParticipants),
      splitPayments: json(i.splitPayments),
      rouletteLoser: i.rouletteLoser,
@@ -250,17 +269,47 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  });
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(payerRows), "Payers");
 
- const orderRows = (data?.orders || []).map((o: any) => ({
-   ...o,
-   customerName: o.customerName,
-   customerPhone: o.customerPhone,
-   addressFull: addressText(o.address, o.area || o.regionId),
-   address: json(o.address),
-   items: json(o.items),
-   splitParticipants: json(o.splitParticipants),
-   splitPayments: json(o.splitPayments),
-   rawOrder: json(o)
- }));
+ const orderRows = (data?.orders || []).map((o: any) => {
+   const c: any = customerById.get(o.customerId) || customerByPhone.get(String(o.customerPhone || '')) || {};
+   const snap = o.deliveryAddressSnapshot || {};
+   const addr = o.address || c.address || c.detailedAddress;
+
+   const areaVal = snap.area || o.area || o.regionId || addr?.region || addr?.area || c.area || '';
+   const blockVal = snap.block || o.block || addr?.block || '';
+   const streetVal = snap.street || o.street || addr?.street || '';
+   const avenueVal = snap.avenue || o.avenue || o.addressJaddah || addr?.jaddah || '';
+   const houseVal = snap.house || o.house || addr?.building || addr?.house || '';
+   const floorVal = snap.floor || o.floor || addr?.floor || '';
+   const apartmentVal = snap.apartment || o.apartment || addr?.apartment || '';
+   const calculatedAddressFull = o.fullAddress || snap.fullAddress || addressText(addr, o.area || o.regionId || c.area);
+
+   return {
+     ...o,
+     customerName: o.customerName,
+     customerPhone: o.customerPhone,
+     addressFull: calculatedAddressFull,
+     address: json(o.address),
+     items: json(o.items),
+     splitParticipants: json(o.splitParticipants),
+     splitPayments: json(o.splitPayments),
+     area: areaVal,
+     block: blockVal,
+     street: streetVal,
+     avenue: avenueVal,
+     house: houseVal,
+     floor: floorVal,
+     apartment: apartmentVal,
+     "المنطقة": areaVal,
+     "القطعة": blockVal,
+     "الشارع": streetVal,
+     "الجادة": avenueVal,
+     "المنزل": houseVal,
+     "الدور": floorVal,
+     "الشقة": apartmentVal,
+     "العنوان الكامل": calculatedAddressFull,
+     rawOrder: json(o)
+   };
+ });
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(orderRows), "Orders");
 
  const customerRows = (data?.customers || []).map((c: any) => {

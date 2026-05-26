@@ -118,6 +118,24 @@ export interface Order {
   isConvertedToInvoice?: boolean;
   linkedInvoiceId?: string;
   paymentStatus?: any;
+  area?: string;
+  block?: string;
+  street?: string;
+  avenue?: string;
+  house?: string;
+  floor?: string;
+  apartment?: string;
+  fullAddress?: string;
+  deliveryAddressSnapshot?: {
+    area?: string;
+    block?: string;
+    street?: string;
+    avenue?: string;
+    house?: string;
+    floor?: string;
+    apartment?: string;
+    fullAddress?: string;
+  };
 }
 
 export interface SelectedAddon {
@@ -180,6 +198,23 @@ export interface Invoice {
   paymentStatus?: any; // Payment status
   appliedPromoCodeName?: string;
   status?: any;
+  block?: string;
+  street?: string;
+  avenue?: string;
+  house?: string;
+  floor?: string;
+  apartment?: string;
+  fullAddress?: string;
+  deliveryAddressSnapshot?: {
+    area?: string;
+    block?: string;
+    street?: string;
+    avenue?: string;
+    house?: string;
+    floor?: string;
+    apartment?: string;
+    fullAddress?: string;
+  };
 }
 
 export interface Expense {

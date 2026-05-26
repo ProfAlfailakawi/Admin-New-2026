@@ -77,6 +77,29 @@ import {
 } from "../lib/invoice-calculations";
 import OrderPage from "./OrderPage";
 
+const getInvoiceAddress = (inv: any, customerObj?: any): string => {
+  if (inv.fullAddress) return inv.fullAddress;
+  if (inv.deliveryAddressSnapshot?.fullAddress) return inv.deliveryAddressSnapshot.fullAddress;
+  
+  const addr = inv.address || customerObj?.address || customerObj?.detailedAddress;
+  if (addr && addr !== "غير محدد") {
+    if (typeof addr === "object") {
+      const parts = [
+        addr.region || addr.area || "",
+        addr.block ? `قطعة ${addr.block}` : "",
+        addr.street ? `شارع ${addr.street}` : "",
+        addr.jaddah || addr.avenue ? `جادة ${addr.jaddah || addr.avenue}` : "",
+        addr.building || addr.house ? `منزل/قسيمة ${addr.building || addr.house}` : "",
+        addr.floor ? `دور ${addr.floor}` : "",
+        addr.apartment ? `شقة ${addr.apartment}` : ""
+      ];
+      return parts.filter(Boolean).join(" - ");
+    }
+    return String(addr);
+  }
+  return "";
+};
+
 interface ReportsPageProps {
   data: AppState;
   setData: React.Dispatch<React.SetStateAction<AppState>>;
@@ -1024,6 +1047,18 @@ Alturath.kw`;
                                   <div className="text-[10px] text-slate-500 font-medium">
                                     {customer?.phone ||
                                       (inv as any).customerPhone}
+                                   </div>
+                                   {(() => {
+                                     const addrStr = getInvoiceAddress(inv, customer);
+                                     return addrStr ? (
+                                       <div className="text-[9px] text-slate-400 font-light mt-1 max-w-[260px] leading-relaxed break-words border-t border-slate-100/50 pt-1" dir="rtl">
+                                         📍 {addrStr}
+                                       </div>
+                                     ) : null;
+                                   })()}
+                                 </td>
+                                 <td style={{ display: 'none' }}>
+                                   <div>
                                   </div>
                                 </td>
                                 <td className="p-3 md:p-3 text-slate-500 text-xs font-bold">
