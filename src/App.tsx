@@ -1715,7 +1715,11 @@ const MainApp: React.FC = () => {
 
       // 3. Sync SHARDS Data (Invoices, Customers, etc.)
       const shardUnsubs: any[] = [];
-      SHARDED_KEYS.forEach(key => {
+      
+      const registerShard = async (key: string, index: number) => {
+         // Staggered registration: 100ms delay per shard to ease initial network burst
+         await new Promise(resolve => setTimeout(resolve, index * 100));
+
          const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
          const unmanagedUnsub = onSnapshot(shardRef, (shardSnap) => {
             if (shardSnap.exists()) {
@@ -1744,6 +1748,10 @@ const MainApp: React.FC = () => {
             }
          });
          shardUnsubs.push(unmanagedUnsub);
+      };
+
+      SHARDED_KEYS.forEach((key, index) => {
+         registerShard(key, index);
       });
 
       // Combined cleanup
