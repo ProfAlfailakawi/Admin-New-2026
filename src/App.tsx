@@ -1777,16 +1777,6 @@ const MainApp: React.FC = () => {
       if (appMode === 'local') {
           localStorage.setItem('ktk_accounting_data', JSON.stringify(data));
       }
-
-      // Keep a robust background recovery backup if actual custom data exists
-      const hasRealCustomData = (data.invoices && data.invoices.length > 0) || (data.products && data.products.length > 0) || (data.customers && data.customers.length > 0);
-      if (hasRealCustomData) {
-        try {
-          localStorage.setItem('ktk_accounting_data_backup', JSON.stringify(data));
-        } catch (backupErr) {
-          console.warn("Could not write background recovery copy:", backupErr);
-        }
-      }
       
       // Auto-save to Cloud if in cloud mode and authenticated
       if (user && appMode === 'cloud') {
@@ -2091,8 +2081,8 @@ const MainApp: React.FC = () => {
       case 'suppliers': return <SupplierPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
       case 'expenses': return <ExpensePage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
       case 'orders': return <OrderPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} isPartner={false} />;
-      case 'coupons': return <LoyaltyProgramPage data={data} onUpdateData={setData} defaultTab="promocodes" />;
-      case 'loyalty': return <LoyaltyProgramPage data={data} onUpdateData={setData} defaultTab="loyalty" />;
+      case 'coupons': return <PromoCodePage data={data} onUpdateData={setData} />;
+      case 'loyalty': return <LoyaltyProgramPage data={data} onUpdateData={setData} />;
       case 'growth-simulator': return <WhatIfSimulator data={data} onUpdateData={setData} />;
       case 'profit-guard': return <RealProfitGuard data={data} />;
       case 'reports': return (
