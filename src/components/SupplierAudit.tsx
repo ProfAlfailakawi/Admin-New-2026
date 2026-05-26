@@ -16,6 +16,8 @@ interface SupplierAuditProps {
  deepLinkData?: { search?: string; exactId?: string };
 }
 
+const SUPPLIER_AUDIT_SEARCH_INPUT_ID = 'supplier-audit-search-input';
+
 const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSupplierId, autoOpenModal, onClearDeepLink, deepLinkData }) => {
  const [search, setSearch] = useState('');
  const [selectedSupplier, setSelectedSupplier] = useState<string>('all');
@@ -37,7 +39,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  if (deepLinkData?.search) {
  setSearch(deepLinkData.search);
  setTimeout(() => {
- const input = document.getElementById('search-input') as HTMLInputElement;
+ const input = document.getElementById(SUPPLIER_AUDIT_SEARCH_INPUT_ID) as HTMLInputElement;
  if (input) input.focus();
  }, 100);
  if (onClearDeepLink) onClearDeepLink();
@@ -263,7 +265,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="relative flex-1">
  <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
  <input 
- id="search-input"
+ id={SUPPLIER_AUDIT_SEARCH_INPUT_ID}
  type="text" 
  placeholder="ابحث في سجل التحويلات أو الملاحظات..."
  value={search}
