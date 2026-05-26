@@ -1099,7 +1099,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ type: "spring", stiffness: 180, damping: 22 }}
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-4 md:gap-5 md:p-2 w-full col-span-full"
+            className="admin-product-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-4 md:gap-5 md:p-2 w-full col-span-full"
           >
           {(visibleProducts || []).length === 0 ? (
             <div className="col-span-full py-20 px-4 flex flex-col items-center justify-center text-center bg-white/50 backdrop-blur-sm border border-slate-100 border-dashed rounded-3xl md:rounded-2xl">
@@ -1161,7 +1161,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   }
                   transition={shakingId === product.id ? { duration: 0.5 } : {}}
                   className={cn(
-                    "bg-white border border-slate-200/60 rounded-[24px] overflow-hidden shadow-sm hover:shadow-xl transition-all relative text-right flex flex-col z-10 group ceramic-glint",
+                    "admin-product-card bg-white border border-slate-200/60 rounded-[24px] overflow-hidden shadow-sm hover:shadow-xl transition-all relative text-right flex flex-col z-10 group ceramic-glint",
                     product.isActive === false
                       ? "opacity-80 grayscale-[0.3]"
                       : "hover:border-primary/40",
@@ -1171,7 +1171,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 >
                   {/* FULLY CLIPPED IMAGE CONTAINER WITH SPOTLIGHT LUXURY CONTRAST OVERLAYS */}
                   <div 
-                    className="w-full h-[140px] overflow-hidden relative bg-slate-950 border-b border-slate-800 group/img isolate"
+                    className="admin-product-media w-full h-[140px] overflow-hidden relative bg-slate-950 border-b border-slate-800 group/img isolate"
                     style={{ borderRadius: '24px 24px 0 0' }}
                   >
                     {/* Cinematic dark linear & radial gradient spotlight highlights */}
@@ -1199,7 +1199,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     )}
                     
                     {/* Modern Status Badge (Top-Left) */}
-                    <div className="absolute top-2.5 left-2.5 z-30 flex flex-row gap-2">
+                    <div className="admin-product-quick-actions absolute top-2.5 left-2.5 z-30 flex flex-row gap-2">
                        <button 
                          title={product.isOutOfStock ? 'إتاحة المنتج للبيع' : 'إيقاف البيع (نفدت الكمية)'}
                          onClick={(e) => {
@@ -1242,7 +1242,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     </div>
 
                     {/* Price Tag Overlay - Upgraded gold visual style */}
-                    <div className="absolute bottom-2.5 right-2.5 bg-gradient-to-r from-red-600 to-rose-700 backdrop-blur-md px-3 py-1.5 rounded-[12px] shadow-xl border border-white/10 z-20 pointer-events-none flex items-center gap-1">
+                    <div className="admin-product-price-badge absolute bottom-2.5 right-2.5 bg-gradient-to-r from-red-600 to-rose-700 backdrop-blur-md px-3 py-1.5 rounded-[12px] shadow-xl border border-white/10 z-20 pointer-events-none flex items-center gap-1">
                       <span className="text-[14px] font-extrabold text-white tracking-wider leading-none num-premium">
                         {Number(product.price || 0).toFixed(3)}
                       </span>
@@ -1250,7 +1250,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     </div>
 
                     {/* Marketing Badges (Top Right) */}
-                    <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end z-10">
+                    <div className="admin-product-badges absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end z-10">
                       {isSlow && (
                         <span 
                           title="هذا المنتج حركته بطيئة مقارنة بباقي المنتجات"
@@ -1272,7 +1272,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     </div>
                   </div>
 
-                  <div className="p-4 flex flex-col flex-1 gap-4">
+                  <div className="admin-product-body p-4 flex flex-col flex-1 gap-4">
                     <div className="space-y-0.5 sm:space-y-1">
                       <h3 className="font-extrabold text-slate-900 text-[13px] sm:text-base leading-[1.4] mb-0.5 sm:mb-1 line-clamp-2 min-h-[36px] sm:min-h-[50px] text-right title-premium">
                         {product.name}
