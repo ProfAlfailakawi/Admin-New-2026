@@ -7,6 +7,8 @@ import ConfirmModal from './ui/ConfirmModal';
 import { MagneticButton } from './ui/MagneticButton';
 import { toast } from 'sonner';
 
+import { playMetallicSettlementChime } from '../lib/sonic';
+
 interface SupplierAuditProps {
  data: AppState;
  setData: React.Dispatch<React.SetStateAction<AppState>>;
@@ -151,7 +153,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  ...prev,
  supplierTransfers: prev.supplierTransfers.map(t => 
  t.id === transferForm.id 
- ? { ...t, amount: transferForm.amount, method: transferForm.method, notes: transferForm.notes }
+ ? { ...t, amount: transferForm.amount, method: transferForm.method, notes: transferForm.notes, date: transferForm.date }
  : t
 ),
  suppliers: prev.suppliers.map(s => 
@@ -183,6 +185,15 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  }
 
  setShowAddModal(false);
+ try {
+   playMetallicSettlementChime();
+ } catch (e) {}
+ toast.success(transferForm.id ? "تم تعديل السداد ومطابقته ✨" : "تم السداد والمطابقة المالية بنجاح 🪙", {
+   description: transferForm.id 
+     ? "تم تحديث بيانات المعاملة وتعديل القيمة بنجاح." 
+     : `تم تسجيل دفعة بقيمة (${transferForm.amount.toFixed(3)} د.ك) وتخفيض مديونية المورد بنجاح.`,
+   position: 'bottom-right'
+ });
  setTransferForm({ id: '', supplierId: '', amount: 0, method: 'BankTransfer', notes: '', date: new Date().toISOString() });
  };
 
