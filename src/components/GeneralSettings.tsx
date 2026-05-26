@@ -343,7 +343,23 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.pulseReviews || []),"QuickPulse");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.campaigns || []),"AICampaigns");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.squads || []),"Diwaniyas");
- XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ exportedAt: new Date().toISOString(), invoices: invoiceRows.length, invoiceItems: invoiceItems.length, customers: customerRows.length, payers: payerRows.length, orders: orderRows.length }]),"Summary");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.promocodes || []),"PromoCodes");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.squadTiers || []),"SquadTiers");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.diwaniyaTiers || []),"DiwaniyaTiers");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.aiLearningMemory || []),"AILearningMemory");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.notifications || []),"Notifications");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([((data as any)?.loyaltySettings || {})]),"LoyaltySettings");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([((data as any)?.activeGoal || {})]),"ActiveGoal");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([((data as any)?.settings || {})]),"Settings");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ value: json((data as any)?.pulseArchiveAnalysis || null) }]),"PulseArchiveAnalysis");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ value: json((data as any)?.deepArchiveAnalysis || null) }]),"DeepArchiveAnalysis");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ value: json((data as any)?.nameMatchMemory || {}) }]),"NameMatchMemory");
+
+ const fullStateJson = JSON.stringify(data || {});
+ const fullStateChunks = fullStateJson.match(/[\s\S]{1,30000}/g) || ['{}'];
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fullStateChunks.map((chunk, index) => ({ part: index + 1, chunk }))), "FullState");
+
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ exportedAt: new Date().toISOString(), invoices: invoiceRows.length, invoiceItems: invoiceItems.length, customers: customerRows.length, payers: payerRows.length, orders: orderRows.length, products: (data?.products || []).length, suppliers: (data?.suppliers || []).length, expenses: (data?.expenses || []).length, exportedSheets: wb.SheetNames.join(', ') }]),"Summary");
  XLSX.writeFile(wb, `KTK_Full_Backup_${new Date().toISOString().split('T')[0]}.xlsx`);
  };
 
@@ -477,6 +493,34 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
    delete base.rawProduct;
    return stripUndefined(base);
  };
+
+ if (workbook.SheetNames.includes("FullState")) {
+   const fullStateRows = safeSheetToObj("FullState") as any[];
+   const joinedJson = fullStateRows
+     .sort((a: any, b: any) => Number(a.part || 0) - Number(b.part || 0))
+     .map((row: any) => String(row.chunk || ''))
+     .join('');
+   if (joinedJson.trim()) {
+     const importedFullState = JSON.parse(joinedJson);
+     const finalizedFullState = recalculateStateBalances({
+       ...INITIAL_DATA,
+       ...importedFullState,
+       products: Array.isArray(importedFullState.products) ? importedFullState.products : INITIAL_DATA.products,
+       customers: Array.isArray(importedFullState.customers) ? importedFullState.customers : INITIAL_DATA.customers,
+       invoices: Array.isArray(importedFullState.invoices) ? importedFullState.invoices : INITIAL_DATA.invoices,
+       orders: Array.isArray(importedFullState.orders) ? importedFullState.orders : INITIAL_DATA.orders,
+       suppliers: Array.isArray(importedFullState.suppliers) ? importedFullState.suppliers : INITIAL_DATA.suppliers,
+       expenses: Array.isArray(importedFullState.expenses) ? importedFullState.expenses : INITIAL_DATA.expenses,
+       zones: Array.isArray(importedFullState.zones) ? importedFullState.zones : INITIAL_DATA.zones,
+       supplierTransfers: Array.isArray(importedFullState.supplierTransfers) ? importedFullState.supplierTransfers : INITIAL_DATA.supplierTransfers,
+       settings: importedFullState.settings || INITIAL_DATA.settings
+     } as AppState);
+     setData(finalizedFullState);
+     addToast('تمت العملية', 'تم استيراد النسخة الكاملة من Excel بكل بيانات البرنامج.', 'success');
+     return;
+   }
+ }
+
  const newState: AppState = {
  ...INITIAL_DATA,
  products: (safeSheetToObj("Products") as any[]).map(restoreProductRow) as any as Product[],
@@ -491,7 +535,18 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  pulseAnalysisHistory: stripUndefined(safeSheetToObj("PulseHistory")) as any as PulseAnalysisRecord[],
  pulseReviews: stripUndefined(safeSheetToObj("QuickPulse")) as any as any[],
  campaigns: stripUndefined(safeSheetToObj("AICampaigns")) as any as AICampaign[],
- settings: data.settings || INITIAL_DATA.settings
+ promocodes: stripUndefined(safeSheetToObj("PromoCodes")) as any,
+ squads: stripUndefined(safeSheetToObj("Diwaniyas")) as any,
+ squadTiers: stripUndefined(safeSheetToObj("SquadTiers")) as any,
+ diwaniyaTiers: stripUndefined(safeSheetToObj("DiwaniyaTiers")) as any,
+ aiLearningMemory: stripUndefined(safeSheetToObj("AILearningMemory")) as any,
+ notifications: stripUndefined(safeSheetToObj("Notifications")) as any,
+ loyaltySettings: (safeSheetToObj("LoyaltySettings") as any[])[0] as any || (INITIAL_DATA as any).loyaltySettings,
+ activeGoal: (safeSheetToObj("ActiveGoal") as any[])[0] as any || null,
+ pulseArchiveAnalysis: parseSafeJson((safeSheetToObj("PulseArchiveAnalysis") as any[])[0]?.value, false),
+ deepArchiveAnalysis: parseSafeJson((safeSheetToObj("DeepArchiveAnalysis") as any[])[0]?.value, false),
+ nameMatchMemory: parseSafeJson((safeSheetToObj("NameMatchMemory") as any[])[0]?.value, false) || {},
+ settings: (safeSheetToObj("Settings") as any[])[0] as any || data.settings || INITIAL_DATA.settings
  };
  
  if (workbook.SheetNames.includes("Invoices")) {
