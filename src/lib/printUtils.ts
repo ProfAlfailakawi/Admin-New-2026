@@ -1,3 +1,4 @@
+import { computeAddonQuantity, computeAddonRevenue } from "./invoice-calculations";
 import { AppState, Invoice } from '../types';
 
 const toEnglishDigits = (value: any) => String(value ?? '').replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
@@ -44,23 +45,17 @@ const formatAddress = (address: any, fallback?: string) => {
 };
 
 const getAddonQty = (addon: any, itemQty: number) => {
-  let qty = Number(addon?.quantity ?? addon?.qty ?? 0);
-  if (!qty) {
-    if (addon?.calculationType === 'fixed') qty = 1;
-    else if (addon?.calculationType === 'per_x_items') qty = Math.ceil(itemQty / Math.max(1, Number(addon?.xItemsThreshold || 1)));
-    else qty = itemQty;
-  }
-  const min = Number(addon?.minQuantity || 0);
-  const max = Number(addon?.maxQuantity || qty || 0);
-  if (min) qty = Math.max(min, qty);
-  if (max) qty = Math.min(max, qty);
-  return Math.max(0, qty);
+  const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
+  if (userQty === 0) return 0;
+  if (addon?.selected === false || addon?.isSelected === false || addon?.enabled === false) return 0;
+  return computeAddonQuantity(addon, { quantity: itemQty });
 };
 
 const getAddonTotal = (addon: any, itemQty: number) => {
-  const qty = getAddonQty(addon, itemQty);
-  const freeQty = Number(addon?.freeQuantity || 0);
-  return Number((addon?.total ?? addon?.amount ?? (Number(addon?.price || 0) * Math.max(0, qty - freeQty))) || 0);
+  const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
+  if (userQty === 0) return 0;
+  if (addon?.selected === false || addon?.isSelected === false || addon?.enabled === false) return 0;
+  return computeAddonRevenue(addon, { quantity: itemQty });
 };
 
 export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {

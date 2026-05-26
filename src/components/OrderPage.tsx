@@ -505,8 +505,12 @@ const OrderPage: React.FC<OrderPageProps> = ({
 
           let itemTotal = itemPrice * Number(item.quantity || 0);
           if (Array.isArray((item as any).addons) && (item as any).addons.length > 0) {
-            ((item as any).addons as any[]).forEach((addon: any) => {
-              let addonQty = 0;
+            ((item as any).addons as any[]).forEach(
+                                           (addon: any) => {
+                                             const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
+                                                               if (userQty === 0) return;
+                                                               if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
+                                             let addonQty = 0;
               if (addon.calculationType === "fixed") addonQty = 1;
               else if (addon.calculationType === "per_x_items")
                 addonQty = Math.ceil(
@@ -1062,6 +1066,10 @@ const OrderPage: React.FC<OrderPageProps> = ({
               );
               if (!selectedAddon || !addon.trackStock) return addon;
 
+              const userQty = selectedAddon.quantity !== undefined ? Number(selectedAddon.quantity) : (selectedAddon.qty !== undefined ? Number(selectedAddon.qty) : 1);
+              if (userQty === 0) return addon;
+              if (selectedAddon.selected === false || selectedAddon.isSelected === false || selectedAddon.enabled === false) return addon;
+
               let addonQty = 0;
               if (addon.calculationType === "fixed") addonQty = 1;
               else if (addon.calculationType === "per_x_items")
@@ -1233,7 +1241,10 @@ const OrderPage: React.FC<OrderPageProps> = ({
 
         if (Array.isArray((item as any).addons) && (item as any).addons.length > 0) {
           ((item as any).addons as any[]).forEach((addon: any) => {
-            let addonQty = 0;
+            const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
+                                                               if (userQty === 0) return;
+                                                               if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
+                                                               let addonQty = 0;
             if (addon.calculationType === "fixed") addonQty = 1;
             else if (addon.calculationType === "per_x_items")
               addonQty = Math.ceil(
@@ -2109,7 +2120,10 @@ Alturath.kw`;
                                                               .addons as any[]
                                                           ).forEach(
                                                             (addon: any) => {
-                                                              let addonQty = 0;
+                                                              const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
+                                                               if (userQty === 0) return;
+                                                               if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
+                                                               let addonQty = 0;
                                                               if (
                                                                 addon.calculationType ===
                                                                 "fixed"
@@ -2322,7 +2336,10 @@ Alturath.kw`;
                                                 {(
                                                   (item as any).addons as any[]
                                                 ).map((addon: any, aIdx: number) => {
-                                                    let addonQty = 0;
+                                                     const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
+                                                               if (userQty === 0) return null;
+                                                               if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return null;
+                                                     let addonQty = 0;
                                                     if (
                                                       addon.calculationType ===
                                                       "fixed"

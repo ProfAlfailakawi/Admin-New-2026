@@ -233,6 +233,10 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
 
           if (Array.isArray(item.addons) && item.addons.length > 0) {
             item.addons.forEach((addon: any) => {
+              const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
+              if (userQty === 0) return;
+              if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
+              
               const addonQty = computeAddonQuantity(addon, item);
 
               if (addonQty > 0) {
@@ -535,7 +539,7 @@ Alturath.kw`;
     const getInitialAddonQuantity = (addon: any, productQty: number) => {
       const limits = getAddonRuleLimits(addon, productQty);
       if (!limits.available) return 0;
-      if (addon?.isRequired || Number(addon?.minQuantity || 0) > 0 || addon?.quantityRule?.mode === 'required') return Math.max(limits.min, limits.suggested || 1);
+      if (addon?.isRequired || addon?.quantityRule?.mode === 'required') return Math.max(limits.min, limits.suggested || 1);
       if (addon?.quantityRule?.mode === 'auto') return limits.suggested;
       return 0;
     };
@@ -561,14 +565,16 @@ Alturath.kw`;
         let nextQty = currentQty;
 
         if (currentQty <= 0) nextQty = initialQty;
-        if (merged?.isRequired || Number(merged?.minQuantity || 0) > 0 || merged?.quantityRule?.mode === "required") {
+        if (merged?.isRequired || merged?.quantityRule?.mode === "required") {
           nextQty = Math.max(nextQty, requiredQty);
         }
         if (merged?.quantityRule?.mode === "auto" && currentQty <= 0) {
           nextQty = Math.max(nextQty, limits.suggested);
         }
 
-        nextQty = Math.max(limits.min, Math.min(limits.max, nextQty));
+        const isSelectedOrRequired = merged?.isRequired || merged?.quantityRule?.mode === "required" || nextQty > 0;
+        const minVal = isSelectedOrRequired ? limits.min : 0;
+        nextQty = Math.max(minVal, Math.min(limits.max, nextQty));
         return { ...merged, quantity: nextQty };
       });
     };

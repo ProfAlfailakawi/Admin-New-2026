@@ -148,8 +148,40 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  };
 
  const handleAddTransfer = () => {
+ const supplier = (data?.suppliers || []).find(s => s.id === transferForm.supplierId);
+ const currentBalance = supplier ? (supplier.balance || 0) : 0;
+
  if (!transferForm.supplierId || transferForm.amount <= 0) return;
 
+ if (!transferForm.id) {
+   if (currentBalance <= 0) {
+     toast.error("لا يوجد التزامات مالية حالياً لهذا المورد! 🚫", {
+       description: "لقد تم سداد كافة ذمم ومستحقات هذا المورد بالكامل ولا توجد أي مبالغ مستحقة عليه.",
+       position: 'bottom-right'
+     });
+     return;
+   }
+   const enteredAmount = Math.round(transferForm.amount * 1000) / 1000;
+   if (enteredAmount > Math.round(currentBalance * 1000) / 1000) {
+     toast.error("المبلغ المدخل يتجاوز مديونية المورد! 🚫", {
+       description: `أقصى مبلغ يمكن سداده هو ${Number(currentBalance).toFixed(3)} د.ك.`,
+       position: 'bottom-right'
+     });
+     return;
+   }
+ } else {
+   const oldTransfer = (data?.supplierTransfers || []).find(t => t.id === transferForm.id);
+   const oldAmount = oldTransfer ? oldTransfer.amount : 0;
+   const maxAllowed = currentBalance + oldAmount;
+   const enteredAmount = Math.round(transferForm.amount * 1000) / 1000;
+   if (enteredAmount > Math.round(maxAllowed * 1000) / 1000) {
+     toast.error("تعديل المبلغ يتجاوز إجمالي مديونية المورد! 🚫", {
+       description: `أقصى مبلغ متاح للتحويل هو ${Number(maxAllowed).toFixed(3)} د.ك.`,
+       position: 'bottom-right'
+     });
+     return;
+   }
+ }
  if (transferForm.id) {
  // Edit existing
  setData(prev => {
@@ -402,6 +434,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </button>
  </>
 )}
+ {s && (s.balance || 0) > 0 && (
  <button 
  onClick={() => {
  setTransferForm({ id: '', supplierId: transaction.supplierId, amount: 0, method: 'BankTransfer', notes: '', date: new Date().toISOString() });
@@ -412,6 +445,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  >
  <ArrowUpRight size={16} />
  </button>
+ )}
  </div>
  </td>
  </motion.tr>
@@ -470,7 +504,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  onChange={(e) => setTransferForm({ ...transferForm, supplierId: e.target.value })}
  >
  <option value="">اختر مورد...</option>
- {(data?.suppliers || []).map(s => (
+ {(data?.suppliers || []).filter(s => transferForm.id || (s.balance || 0) > 0).map(s => (
  <option key={s.id} value={s.id}>{s.name} (المستحق: {Number(s.balance || 0).toFixed(3)})</option>
 ))}
  </select>
