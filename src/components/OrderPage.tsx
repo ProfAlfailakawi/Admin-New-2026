@@ -474,6 +474,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
   const getOrderSubtotal = (order: Order) => {
     // Priority 1: Calculate from individual items for maximum accuracy
     let itemsTotal = 0;
+    const processedFixedAddons = new Set<string>();
     try {
       itemsTotal =
         (order.items || []).reduce((sum, item) => {
@@ -507,20 +508,33 @@ const OrderPage: React.FC<OrderPageProps> = ({
           if (Array.isArray((item as any).addons) && (item as any).addons.length > 0) {
             ((item as any).addons as any[]).forEach((addon: any) => {
               let addonQty = 0;
-              if (addon.calculationType === "fixed") addonQty = 1;
-              else if (addon.calculationType === "per_x_items")
-                addonQty = Math.ceil(
-                  (item.quantity || 1) / (addon.xItemsThreshold || 1),
-                );
-              else addonQty = item.quantity || 1;
-              addonQty = Math.max(
-                addon.minQuantity || 0,
-                Math.min(addonQty, addon.maxQuantity || addonQty),
-              );
+              let isDuplicateFixed = false;
+              if (addon.calculationType === "fixed") {
+                const key = `${addon.id || addon.addonId || addon.name}-${addon.name || ""}`;
+                if (processedFixedAddons.has(key)) {
+                  isDuplicateFixed = true;
+                } else {
+                  processedFixedAddons.add(key);
+                }
+                addonQty = Number(addon.quantity ?? addon.qty ?? 1);
+              } else if (addon.calculationType === "per_x_items") {
+                const mult = Number(addon.quantity ?? addon.qty ?? 1);
+                addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1)) * mult;
+              } else {
+                const mult = Number(addon.quantity ?? addon.qty ?? 1);
+                addonQty = (item.quantity || 1) * mult;
+              }
 
-              itemTotal +=
-                Number(addon.price || 0) *
-                Math.max(0, addonQty - (addon.freeQuantity || 0));
+              if (!isDuplicateFixed) {
+                addonQty = Math.max(
+                  addon.minQuantity || 0,
+                  Math.min(addonQty, addon.maxQuantity || addonQty),
+                );
+
+                itemTotal +=
+                  Number(addon.price || 0) *
+                  Math.max(0, addonQty - (addon.freeQuantity || 0));
+              }
             });
           }
           return sum + itemTotal;
@@ -1219,6 +1233,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
 
   const getWhatsAppLink = (order: Order) => {
     const pData = data.products || [];
+    const processedFixedAddons = new Set<string>();
     const items = order.items
       .map((item) => {
         const p = pData.find((prod) => prod.id === item.productId);
@@ -1234,18 +1249,30 @@ const OrderPage: React.FC<OrderPageProps> = ({
         if (Array.isArray((item as any).addons) && (item as any).addons.length > 0) {
           ((item as any).addons as any[]).forEach((addon: any) => {
             let addonQty = 0;
-            if (addon.calculationType === "fixed") addonQty = 1;
-            else if (addon.calculationType === "per_x_items")
-              addonQty = Math.ceil(
-                (item.quantity || 1) / (addon.xItemsThreshold || 1),
-              );
-            else addonQty = item.quantity || 1;
-            addonQty = Math.max(
-              addon.minQuantity || 0,
-              Math.min(addonQty, addon.maxQuantity || addonQty),
-            );
+            let isDuplicateFixed = false;
+            
+            if (addon.calculationType === "fixed") {
+              const key = `${addon.id || addon.addonId || addon.name}-${addon.name || ""}`;
+              if (processedFixedAddons.has(key)) {
+                isDuplicateFixed = true;
+              } else {
+                processedFixedAddons.add(key);
+              }
+              addonQty = Number(addon.quantity ?? addon.qty ?? 1);
+            } else if (addon.calculationType === "per_x_items") {
+              const mult = Number(addon.quantity ?? addon.qty ?? 1);
+              addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1)) * mult;
+            } else {
+              const mult = Number(addon.quantity ?? addon.qty ?? 1);
+              addonQty = (item.quantity || 1) * mult;
+            }
 
-            if (addonQty > 0) {
+            if (!isDuplicateFixed && addonQty > 0) {
+              addonQty = Math.max(
+                addon.minQuantity || 0,
+                Math.min(addonQty, addon.maxQuantity || addonQty),
+              );
+
               if (addon.isHiddenPrice) {
                 displayPrice +=
                   (Number(addon.price || 0) *
