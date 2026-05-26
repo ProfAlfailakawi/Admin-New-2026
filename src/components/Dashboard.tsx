@@ -5030,8 +5030,7 @@ const [isPending, startTransition] = useTransition();
                             موسم السفر القادم
                           </h3>
                           <p className="text-[10px] text-[#8c7b68] font-bold leading-relaxed text-right">
-                            توقع انخفاض في طلبات المنازل وزيادة في طلبات 'بوكسات
-                            السفر' المجمدة. يرجى تجهيز المخزون.
+                            تحليل أنماط الطلب الفعلية من بياناتك لتوقع فترات الذروة واحتياجات المخزون القادمة بدقة.
                           </p>
                         </div>
 
@@ -5071,7 +5070,7 @@ const [isPending, startTransition] = useTransition();
                             </span>
                           </h3>
                           <div className="text-[10px] font-bold text-slate-500 bg-white/50 px-3 py-1 rounded-lg">
-                            آخر 10 طلبات
+                            آخر 5 طلبات
                           </div>
                         </div>
                         <div className="space-y-2.5 flex-1 overflow-y-auto custom-scrollbar pr-2 pb-2">
