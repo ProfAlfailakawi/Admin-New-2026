@@ -3579,3 +3579,56 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
     font-weight:900!important;
   }
 }
+
+
+/* Ahmad admin mobile fix: new invoice cart spacing only; no logic, payment, AI, or notification changes. */
+@media(max-width:640px){
+  .invoice-new-page{
+    padding:10px!important;
+    gap:12px!important;
+    background:#f8fafc!important;
+  }
+  .invoice-new-page > div{
+    min-width:0!important;
+  }
+  .invoice-new-page .lg\:col-span-1{
+    order:-1!important;
+  }
+  .invoice-new-page .lg\:col-span-1 > .bg-white{
+    position:relative!important;
+    top:auto!important;
+    padding:16px!important;
+    border-radius:24px!important;
+    box-shadow:0 14px 34px rgba(15,23,42,.08)!important;
+  }
+  .invoice-new-page h2{
+    justify-content:flex-start!important;
+    font-size:22px!important;
+    line-height:1.25!important;
+    margin-bottom:16px!important;
+  }
+  .invoice-new-page input[type="date"],
+  .invoice-new-page input[type="text"],
+  .invoice-new-page input[type="number"],
+  .invoice-new-page select,
+  .invoice-new-page textarea{
+    width:100%!important;
+    min-height:52px!important;
+    border-radius:22px!important;
+    padding:12px 44px 12px 14px!important;
+    font-size:15px!important;
+    line-height:1.35!important;
+  }
+  .invoice-new-page input[type="date"]{
+    direction:ltr!important;
+    text-align:center!important;
+    padding:12px 14px!important;
+    font-size:16px!important;
+  }
+  .invoice-new-page .space-y-4{
+    gap:12px!important;
+  }
+  .invoice-new-page .absolute.right-4{
+    right:14px!important;
+  }
+}

@@ -183,7 +183,7 @@ interface DashboardProps {
   defaultTab?: string;
   scrollTarget?: string;
   scrollTargetTimestamp?: number;
-  onUpdateData: (newData: AppState) => void;
+  onUpdateData: React.Dispatch<React.SetStateAction<AppState>>;
   appMode?: "local" | "cloud";
   setDeepLinkData?: (data: any) => void;
   onActiveTabChange?: (tab: string) => void;
@@ -1278,11 +1278,12 @@ const [isPending, startTransition] = useTransition();
     };
 
     const handleAddReview = async () => {
-      if (!reviewInput.trim()) return;
+      const text = reviewInput.trim();
+      if (!text) return;
       setIsAnalyzing(true);
       await new Promise((r) => setTimeout(r, 100));
 
-      const analysis = analyzeKuwaitiSentiment(reviewInput);
+      const analysis = analyzeKuwaitiSentiment(text);
       let sentimentIcon = "💬";
       if (analysis.level1 === "إيجابي") sentimentIcon = "😍";
       else if (analysis.level1 === "سلبي") sentimentIcon = "😡";
@@ -1293,12 +1294,13 @@ const [isPending, startTransition] = useTransition();
 
       const newReview = {
         id: Date.now(),
-        text: reviewInput,
+        text,
         sentiment: displayLabel,
         level1: analysis.level1,
         topics: topicsLabel,
         sentimentLabel: analysis.label,
         sentimentAlert: analysis.alert,
+        createdAt: new Date().toISOString(),
         date: new Date().toLocaleString("en-GB", {
           timeZone: "Asia/Kuwait",
           hour: "2-digit",
@@ -1306,9 +1308,12 @@ const [isPending, startTransition] = useTransition();
         }),
       };
 
-      const updated = [newReview, ...reviews];
+      const updated = [newReview, ...(reviews || [])];
       setReviews(updated);
-      onUpdateData({ ...data, pulseReviews: updated });
+      onUpdateData((prev: any) => ({
+        ...prev,
+        pulseReviews: [newReview, ...(Array.isArray(prev?.pulseReviews) ? prev.pulseReviews : [])],
+      }));
       setReviewInput("");
       toast.success("تم تصنيف النبض وتسجيله", {
         description: `النتيجة السريعة: ${displayLabel} (${topicsLabel})`,
@@ -1318,9 +1323,12 @@ const [isPending, startTransition] = useTransition();
     };
 
     const handleDeleteReview = (id: number) => {
-      const updated = reviews.filter((r) => r.id !== id);
+      const updated = (reviews || []).filter((r) => r.id !== id);
       setReviews(updated);
-      onUpdateData({ ...data, pulseReviews: updated });
+      onUpdateData((prev: any) => ({
+        ...prev,
+        pulseReviews: (Array.isArray(prev?.pulseReviews) ? prev.pulseReviews : []).filter((r: any) => r.id !== id),
+      }));
     };
 
     const handleArchiveAnalysis = () => {
@@ -5694,9 +5702,15 @@ const [isPending, startTransition] = useTransition();
                               </button>
                               <button
                                 onClick={async () => {
-                                  const pulseComments = (
-                                    data?.pulseReviews || []
-                                  )
+                                  const storedPulseReviews = Array.isArray(data?.pulseReviews) ? data.pulseReviews : [];
+                                  const livePulseReviews = Array.isArray(reviews) ? reviews : [];
+                                  const mergedPulseReviews = [
+                                    ...livePulseReviews,
+                                    ...storedPulseReviews.filter((stored: any) =>
+                                      !livePulseReviews.some((live: any) => String(live?.id) === String(stored?.id))
+                                    ),
+                                  ];
+                                  const pulseComments = mergedPulseReviews
                                     .map((r: any) => r.text)
                                     .filter(Boolean);
                                   const testimonialComments = (
@@ -5734,17 +5748,26 @@ const [isPending, startTransition] = useTransition();
                                       commentsSnapshot: allComments,
                                     };
 
-                                    setPulseArchiveAnalysis(analysis);
+                                    setPulseArchiveAnalysis(newRecord);
                                     const updatedHistory = [
                                       newRecord,
-                                      ...(data?.pulseAnalysisHistory || []),
+                                      ...(Array.isArray(data?.pulseAnalysisHistory) ? data.pulseAnalysisHistory : []),
                                     ].slice(0, 10);
                                     setPulseAnalysisHistory(updatedHistory);
 
-                                    onUpdateData({
-                                      ...data,
-                                      pulseArchiveAnalysis: analysis,
-                                      pulseAnalysisHistory: updatedHistory,
+                                    onUpdateData((prev: any) => {
+                                      const prevHistory = Array.isArray(prev?.pulseAnalysisHistory) ? prev.pulseAnalysisHistory : [];
+                                      const nextHistory = [
+                                        newRecord,
+                                        ...prevHistory.filter((record: any) => String(record?.id) !== String(newRecord.id)),
+                                      ].slice(0, 10);
+
+                                      return {
+                                        ...prev,
+                                        pulseReviews: mergedPulseReviews,
+                                        pulseArchiveAnalysis: newRecord,
+                                        pulseAnalysisHistory: nextHistory,
+                                      };
                                     });
                                     toast.success(
                                       "تم الانتهاء من التحليل وحفظه",
