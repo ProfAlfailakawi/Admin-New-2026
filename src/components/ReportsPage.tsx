@@ -596,6 +596,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
 
       let productsSubtotal = 0;
       let addonsSubtotal = 0;
+      const processedFixedAddons = new Set<string>();
 
       const items = (invoice?.items || [])
         .map((item) => {
@@ -610,18 +611,30 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           if (Array.isArray(item.addons) && item.addons.length > 0) {
             item.addons.forEach((addon: any) => {
               let addonQty = 0;
-              if (addon.calculationType === "fixed") addonQty = 1;
-              else if (addon.calculationType === "per_x_items")
-                addonQty = Math.ceil(
-                  (item.quantity || 1) / (addon.xItemsThreshold || 1),
-                );
-              else addonQty = item.quantity || 1;
-              addonQty = Math.max(
-                addon.minQuantity || 0,
-                Math.min(addonQty, addon.maxQuantity || addonQty),
-              );
+              let isDuplicateFixed = false;
+              
+              if (addon.calculationType === "fixed") {
+                const key = `${addon.id || addon.addonId || addon.name}-${addon.name || ""}`;
+                if (processedFixedAddons.has(key)) {
+                  isDuplicateFixed = true;
+                } else {
+                  processedFixedAddons.add(key);
+                }
+                addonQty = Number(addon.quantity ?? addon.qty ?? 1);
+              } else if (addon.calculationType === "per_x_items") {
+                const mult = Number(addon.quantity ?? addon.qty ?? 1);
+                addonQty = Math.ceil((item.quantity || 1) / (addon.xItemsThreshold || 1)) * mult;
+              } else {
+                const mult = Number(addon.quantity ?? addon.qty ?? 1);
+                addonQty = (item.quantity || 1) * mult;
+              }
 
-              if (addonQty > 0) {
+              if (!isDuplicateFixed && addonQty > 0) {
+                addonQty = Math.max(
+                  addon.minQuantity || 0,
+                  Math.min(addonQty, addon.maxQuantity || addonQty),
+                );
+
                 const aTotal =
                   Number(addon.price || 0) *
                   Math.max(0, addonQty - (addon.freeQuantity || 0));
