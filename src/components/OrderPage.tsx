@@ -1105,12 +1105,61 @@ const OrderPage: React.FC<OrderPageProps> = ({
       const subtotal = getOrderSubtotal(order);
       const updatedOrderTotal = subtotal + invoiceDeliveryFee;
 
+      const orderAddr = (order as any).address;
+      const calculatedOrderAddressSnapshot = (() => {
+        if (orderAddr && typeof orderAddr === "object") {
+          const areaName = orderAddr.region || zone?.name || String(order.regionId) || "";
+          const fullAddrLines = [
+            areaName ? `المنطقة: ${areaName}` : "",
+            orderAddr.block ? `القطعة: ${orderAddr.block}` : "",
+            orderAddr.street ? `الشارع: ${orderAddr.street}` : "",
+            orderAddr.jaddah ? `الجادة: ${orderAddr.jaddah}` : "",
+            (orderAddr.building || orderAddr.house) ? `المنزل: ${orderAddr.building || orderAddr.house}` : "",
+            orderAddr.floor ? `الدور: ${orderAddr.floor}` : "",
+            orderAddr.apartment ? `الشقة: ${orderAddr.apartment}` : ""
+          ].filter(Boolean).join(" - ");
+
+          return {
+            area: areaName,
+            block: String(orderAddr.block || ""),
+            street: String(orderAddr.street || ""),
+            avenue: String(orderAddr.jaddah || ""),
+            house: String(orderAddr.building || orderAddr.house || ""),
+            floor: String(orderAddr.floor || ""),
+            apartment: String(orderAddr.apartment || ""),
+            fullAddress: fullAddrLines
+          };
+        } else {
+          const areaName = zone?.name || String(order.regionId) || "";
+          const strAddr = typeof orderAddr === "string" ? orderAddr : "";
+          return {
+            area: areaName,
+            block: "",
+            street: "",
+            avenue: "",
+            house: "",
+            floor: "",
+            apartment: "",
+            fullAddress: strAddr || areaName
+          };
+        }
+      })();
+
       await updateOrderStatus(order.id, finalStatus, {
         isConvertedToInvoice: true,
         customerId: targetCustomerId,
         customerPhone:
           orderPhoneStr || (matchedCustomer ? matchedCustomer.phone : ""),
         address: (order as any).address,
+        area: calculatedOrderAddressSnapshot.area,
+        block: calculatedOrderAddressSnapshot.block,
+        street: calculatedOrderAddressSnapshot.street,
+        avenue: calculatedOrderAddressSnapshot.avenue,
+        house: calculatedOrderAddressSnapshot.house,
+        floor: calculatedOrderAddressSnapshot.floor,
+        apartment: calculatedOrderAddressSnapshot.apartment,
+        fullAddress: calculatedOrderAddressSnapshot.fullAddress,
+        deliveryAddressSnapshot: calculatedOrderAddressSnapshot,
         notes: orderNotesAggregated || "---",
         items: itemsWithPrices,
         totalCost,
