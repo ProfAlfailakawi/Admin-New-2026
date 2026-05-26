@@ -715,12 +715,20 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
     const label = spend > 150 || ordersCount >= 5 ? 'VIP' : ordersCount === 1 ? 'اشترى مرة واحدة' : ordersCount === 0 ? 'غائب' : 'نشط';
     return { ...c, spend, ordersCount, label };
   });
-  const supplierRows = suppliers.slice(0, 3).map((sup: any) => {
+  const supplierRows = suppliers.map((sup: any) => {
     const debt = Number(sup?.balance || sup?.debt || sup?.amountDue || 0) || 0;
     const linkedProducts = products.filter((p: any) => String(p?.supplierId || p?.supplier || '') === String(sup?.id || sup?.name || '')).length;
-    const risk = debt > 100 ? 'مستحقات مرتفعة - راجع السداد' : linkedProducts > 4 ? 'مورد أساسي - راقب الأسعار' : 'مستقر';
-    return { ...sup, debt, linkedProducts, risk };
-  });
+    const priorityScore = Math.round(Math.min(100, (debt > 0 ? Math.min(70, debt / 2) : 0) + Math.min(30, linkedProducts * 6)));
+    const risk = debt > 100 ? 'أولوية سداد عالية' : linkedProducts > 4 ? 'مورد مؤثر على التشغيل' : debt > 0 ? 'مستحقات عادية' : 'مستقر';
+    const recommendation = debt > 100
+      ? 'ابدأ بتسوية المستحق لأنه مؤثر مالياً.'
+      : linkedProducts > 4
+        ? 'راجع الأسعار والتوفر لأنه مرتبط بعدة منتجات.'
+        : debt > 0
+          ? 'تابع المستحق ضمن دورة السداد القادمة.'
+          : 'لا يوجد إجراء عاجل حالياً.';
+    return { ...sup, debt, linkedProducts, priorityScore, risk, recommendation };
+  }).sort((a: any, b: any) => b.priorityScore - a.priorityScore).slice(0, 3);
   const showProduct = page === 'products';
   const showCustomers = page === 'customers' || page === 'loyalty';
   const showSuppliers = page === 'suppliers' || page === 'suppliers-audit';
@@ -738,7 +746,7 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
       )}
       {showProduct && <section className="admin-smart-panel product-score-panel" dir="rtl"><div className="panel-head"><div><span>Product Score</span><h2>مؤشر قوة المنتج</h2></div><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></section>}
       {showCustomers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Customer Intelligence Board</span><h2>لوحة ذكاء العملاء</h2></div><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{c.spend.toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></section>}
-      {showSuppliers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Supplier Risk Radar</span><h2>رادار الموردين</h2><p className="text-xs font-bold text-slate-500 mt-1">يعرض وضع الموردين حسب المستحقات وعدد المنتجات المرتبطة بهم.</p></div><button type="button" onClick={() => onNavigate('suppliers-audit')}>فتح مراجعة وسداد الموردين</button></div><div className="supplier-radar-guide"><span><b>مستحقات مرتفعة:</b> يوجد رصيد كبير يحتاج متابعة أو سداد.</span><span><b>مورد أساسي:</b> لديه منتجات كثيرة مرتبطة، لذلك نراقب أسعاره وتوفره.</span><span><b>مستقر:</b> لا توجد مؤشرات مالية مقلقة حالياً.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>المورد</span><b>→</b><span>المنتجات</span><b>→</b><span>الطلبات</span><b>→</b><span>الربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات مرتبطة · مستحقات: {sup.debt.toFixed(3)} د.ك</p><strong title="هذه الحالة مبنية على المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk}</strong></div>)}</div></section>}
+      {showSuppliers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Supplier Risk Radar</span><h2>رادار الموردين</h2><p className="text-xs font-bold text-slate-500 mt-1">يعرض أهم 3 موردين حسب أولوية السداد وتأثيرهم على التشغيل.</p></div></div><div className="supplier-radar-guide"><span><b>أولوية سداد عالية:</b> مستحق مالي كبير يحتاج تسوية قريبة.</span><span><b>مورد مؤثر:</b> مرتبط بعدة منتجات وقد يؤثر على توفر الأصناف.</span><span><b>مستقر:</b> لا يحتاج إجراء عاجل حالياً.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>سداد</span><b>→</b><span>توفر</span><b>→</b><span>منتجات</span><b>→</b><span>ربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات مرتبطة · مستحقات: {sup.debt.toFixed(3)} د.ك</p><strong title="الحالة محسوبة من المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk} · {sup.priorityScore}/100</strong><p className="mt-2 text-[11px] font-bold text-slate-500">{sup.recommendation}</p></div>)}</div></section>}
       {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح العروض الذكية</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span>تأثير الربح: {tone}</span></div>})}</div></section>}
       {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>AI Lab Gallery</span><h2>معرض مختبر الذكاء</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو الصورة الذكية</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
         { label: 'تحليل العملاء', page: 'customers' },
