@@ -378,7 +378,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
     </button>
   </div>
  {/* Header Stats */}
- <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-2 md:p-6 text-white shadow-xl relative overflow-hidden">
+ <div className="loyalty-hero-panel bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-2 md:p-6 text-white shadow-xl relative overflow-hidden">
  <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
  <Award size={300} className="absolute -bottom-20 -right-20" />
  </div>
@@ -405,7 +405,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  قمنا بتصنيف عملائك ذكياً لتبدأ بتقديم العروض المناسبة بالوقت المناسب. من الآخر، النظام راح يحافظ عليهم!
  </p>
  
- <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-8">
+ <div className="loyalty-stats-grid grid grid-cols-2 lg:grid-cols-5 gap-3 mt-8">
  <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/10 transition-all hover:bg-white/20">
  <span className="text-[10px] font-bold text-amber-200 block mb-1">إجمالي النقاط الفعالة</span>
  <div className="text-xl md:text-2xl font-bold">{stats.totalPoints.toLocaleString('en-GB')} <span className="text-[10px] opacity-70 font-bold">نقطة</span></div>
@@ -542,7 +542,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  )}
 
  {/* Customer Segments Table */}
- <div className="bg-white border text-right border-slate-200/60 rounded-2xl p-3 shadow-sm">
+ <div className="loyalty-customers-panel bg-white border text-right border-slate-200/60 rounded-2xl p-3 shadow-sm">
  <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-8 gap-3 md:gap-4">
  <div />
  
@@ -570,7 +570,7 @@ setSearchTerm(val);
  />
  </div>
  
- <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/60 rounded-2xl p-1 overflow-x-auto w-full lg:w-auto max-w-full">
+ <div className="loyalty-segment-scroll flex items-center gap-2 bg-slate-50 border border-slate-200/60 rounded-2xl p-1 overflow-x-auto w-full lg:w-auto max-w-full">
  {[
  { id: 'all', label: 'الكل' },
  { id: 'VIP', label: 'VIP 👑' },
@@ -599,7 +599,81 @@ setSearchTerm(val);
  </div>
  </div>
 
- <div className="overflow-x-auto rounded-2xl border border-slate-100 pb-0">
+ <div className="loyalty-mobile-list md:hidden space-y-3">
+ <AnimatePresence mode="popLayout">
+ {paginatedCustomers.length > 0 ? paginatedCustomers.map((c: any) => (
+ <motion.div
+ key={c.id}
+ initial={{ opacity: 0, y: 8 }}
+ animate={{ opacity: 1, y: 0 }}
+ exit={{ opacity: 0, y: -8 }}
+ className="loyalty-mobile-card"
+ >
+ <div className="loyalty-mobile-card-head">
+ <button
+ onClick={() => setSelectedCustomer(c)}
+ className="loyalty-mobile-customer"
+ >
+ <div className={cn("loyalty-mobile-avatar", c.classificationColor)}>
+ {c.name?.charAt(0)}
+ </div>
+ <div>
+ <span className="loyalty-mobile-name">{c.name}</span>
+ <span className="loyalty-mobile-phone" dir="ltr">{c.phone}</span>
+ </div>
+ </button>
+ <div className="loyalty-mobile-points">
+ <Star size={17} className={c.pointsStatus ==="مجمدة" ?"fill-slate-400 text-slate-400" :"fill-amber-500 text-amber-500"} />
+ <strong className={c.pointsStatus ==="مجمدة" ?"line-through text-slate-500" :"text-amber-600"}>{c.points}</strong>
+ </div>
+ </div>
+
+ <div className="loyalty-mobile-meta-grid">
+ <div>
+ <small>التصنيف</small>
+ <span className={cn("loyalty-mobile-chip", c.classificationColor)}>{c.classification}</span>
+ </div>
+ <div>
+ <small>آخر طلب</small>
+ <span className="loyalty-mobile-muted">
+ <Clock size={14} />
+ {c.daysSinceLastOrder !== Infinity ? `منذ ${c.daysSinceLastOrder} يوم` : 'لا يوجد'}
+ </span>
+ </div>
+ <div>
+ <small>الخصومات</small>
+ <span className="loyalty-mobile-muted">
+ <Tag size={14} />
+ {c.totalDiscountReceived.toFixed(2)} د.ك
+ </span>
+ </div>
+ <div>
+ <small>حالة النقاط</small>
+ <span className="loyalty-mobile-muted">{c.pointsStatus}</span>
+ </div>
+ </div>
+
+ <div className="loyalty-mobile-advice">
+ {c.smartAdvice}
+ </div>
+
+ <button
+ onClick={() => handleWhatsApp(c.phone, c.whatsappMessage)}
+ className="loyalty-mobile-action"
+ >
+ <MessageCircle size={17} />
+ {c.actionLabel}
+ </button>
+ </motion.div>
+ )) : (
+ <div className="p-8 text-center text-slate-500 font-bold bg-slate-50 rounded-2xl">
+ لا يوجد عملاء في هذه الفئة.
+ </div>
+ )}
+ </AnimatePresence>
+ </div>
+
+ <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-100 pb-0">
  <table className="w-full text-right min-w-[700px]" dir="rtl">
  <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase">
  <tr>
@@ -954,4 +1028,3 @@ setSearchTerm(val);
 export default LoyaltyProgramPage;
 const sanitizeWhatsAppText = (text: string) =>
  String(text || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
-
