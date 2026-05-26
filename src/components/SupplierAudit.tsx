@@ -15,7 +15,7 @@ interface SupplierAuditProps {
  initialSupplierId?: string;
  autoOpenModal?: boolean;
  onClearDeepLink?: () => void;
- deepLinkData?: { search?: string; exactId?: string };
+ deepLinkData?: { search?: string; exactId?: string; supplierId?: string; openModal?: boolean };
 }
 
 const SUPPLIER_AUDIT_SEARCH_INPUT_ID = 'supplier-audit-search-input';
@@ -57,7 +57,10 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  setTransferForm(prev => ({ 
  ...prev, 
  supplierId: initialSupplierId,
- amount: 0 // Reset amount or pre-fill with balance if needed
+ amount: (() => {
+   const supplier = (data?.suppliers || []).find(s => s.id === initialSupplierId);
+   return supplier ? Math.max(0, Math.round((Number(supplier.balance || 0)) * 1000) / 1000) : 0;
+ })()
  }));
  }
  
@@ -68,7 +71,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  }, 100);
  
  return () => clearTimeout(timer);
- }, [initialSupplierId, autoOpenModal, onClearDeepLink]);
+ }, [initialSupplierId, autoOpenModal, onClearDeepLink, data?.suppliers]);
 
  const allTransactions = React.useMemo(() => {
  const transactions: any[] = [];

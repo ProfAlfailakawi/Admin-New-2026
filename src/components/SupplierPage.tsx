@@ -354,7 +354,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="space-y-6">
  <div className="flex gap-2">
  <div 
- onClick={() => { setDeepLinkData({ supplierId: supplier.id }); setCurrentPage('suppliers-audit'); }}
+ onClick={() => { setDeepLinkData({ supplierId: supplier.id, openModal: true }); setCurrentPage('suppliers-audit'); }}
  className={cn(
 "flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2",
  supplier.balance > 0 ?"bg-red-50 border-red-100 hover:border-red-300" :"bg-emerald-50 border-emerald-100 hover:border-emerald-300"
