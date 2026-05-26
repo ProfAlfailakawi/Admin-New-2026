@@ -1812,17 +1812,8 @@ const [isPending, startTransition] = useTransition();
         icon: <DollarSign size={14} />,
       },
       { id: "suppliers", label: "الموردين", icon: <Truck size={14} /> },
-      {
-        id: "customers",
-        label: "تحليل العملاء",
-        icon: <Users size={14} />,
-      },
-      { id: "loyalty", label: "الولاء", icon: <Award size={14} /> },
-      {
-        id: "promocodes",
-        label: "الكوبونات",
-        icon: <Tag size={14} />,
-      },
+      { id: "customers", label: "تحليل العملاء", icon: <Users size={14} /> },
+      { id: "rewards", label: "نظام المكافآت والخصومات", icon: <Award size={14} /> },
       { id: "diwaniya", label: "بطولات الديوانية", icon: <Users size={14} /> },
       { id: "growth", label: "النمو", icon: <Target size={14} /> },
       { id: "contentStudio", label: "استوديو الصورة الذكية", icon: <Sparkles size={14} /> },
@@ -1860,9 +1851,9 @@ const [isPending, startTransition] = useTransition();
       {
         id: "customers-loyalty-offers",
         label: "العملاء والولاء",
-        description: "تحليل العملاء، الولاء، الكوبونات، وبطولات الديوانية",
+        description: "تحليل العملاء، نظام المكافآت والخصومات، وبطولات الديوانية",
         icon: <Users size={14} />,
-        tabs: ["customers", "loyalty", "promocodes", "diwaniya"],
+        tabs: ["customers", "rewards", "diwaniya"],
       },
       {
         id: "growth-marketing",
@@ -1889,8 +1880,7 @@ const [isPending, startTransition] = useTransition();
     const glassCardStyle =
       "bg-[#fdfbf7]/80 backdrop-blur-xl border border-white/50 shadow-xl p-3 md:p-4 rounded-2xl text-right relative overflow-hidden flex flex-col text-[#4a3f35] hover:shadow-indigo-500/10 transition-all duration-300 hover:opacity-90";
 
-    const isLoyalty = activeTab === "loyalty";
-    const isPromo = activeTab === "promocodes";
+    const isRewards = activeTab === "rewards";
     const intelligenceTabs: DashboardTab[] = ["intelligence", "intelligence-decisions", "intelligence-learning", "intelligence-risks", "intelligence-strategy"];
     const isIntelligenceGroup = intelligenceTabs.includes(activeTab);
     const isIntelligence = activeTab === "intelligence";
@@ -3905,7 +3895,7 @@ const [isPending, startTransition] = useTransition();
               </div>
             )}
 
-            {activeTab === "loyalty" && (
+            {activeTab === "rewards" && (
               <div className="space-y-6" dir="rtl">
                 <React.Suspense
                   fallback={
@@ -3913,18 +3903,6 @@ const [isPending, startTransition] = useTransition();
                   }
                 >
                   <LoyaltyProgramPage data={data} onUpdateData={onUpdateData} defaultTab="loyalty" />
-                </React.Suspense>
-              </div>
-            )}
-
-            {activeTab === "promocodes" && (
-              <div className="space-y-6" dir="rtl">
-                <React.Suspense
-                  fallback={
-                    <div className="h-64 animate-pulse bg-slate-100 rounded-2xl" />
-                  }
-                >
-                  <LoyaltyProgramPage data={data} onUpdateData={onUpdateData} defaultTab="promocodes" />
                 </React.Suspense>
               </div>
             )}

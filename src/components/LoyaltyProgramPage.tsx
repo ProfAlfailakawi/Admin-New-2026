@@ -334,7 +334,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
          )}
        >
          <Award size={16} />
-         برنامج الولاء والعملاء
+         برنامج الولاء
        </button>
        <button
          onClick={() => setActiveSubTab('promocodes')}
@@ -344,7 +344,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
          )}
        >
          <Tag size={16} />
-         كوبونات الخصم والترويج
+         الكوبونات والخصم
        </button>
      </div>
      <PromoCodePage data={data} onUpdateData={onUpdateData} />
@@ -364,7 +364,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
       )}
     >
       <Award size={16} />
-      برنامج الولاء والعملاء
+      برنامج الولاء
     </button>
     <button
       onClick={() => setActiveSubTab('promocodes')}
@@ -374,7 +374,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
       )}
     >
       <Tag size={16} />
-      كوبونات الخصم والترويج
+      الكوبونات والخصم
     </button>
   </div>
  {/* Header Stats */}

@@ -27,7 +27,7 @@ interface Props {
 }
 
 const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, addToast }) => {
- const [settings, setSettingsState] = useState<AppSettings>(data.settings);
+ const [settings, setSettingsState] = useState<AppSettings>(data?.settings || INITIAL_DATA.settings);
   
   const setSettings = (updater: any) => {
     setSettingsState(prev => {
@@ -556,7 +556,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   pulseArchiveAnalysis: workbook.SheetNames.includes("PulseArchiveAnalysis") ? parseChunkedSheet("PulseArchiveAnalysis", false) : baseState.pulseArchiveAnalysis,
   deepArchiveAnalysis: workbook.SheetNames.includes("DeepArchiveAnalysis") ? parseChunkedSheet("DeepArchiveAnalysis", false) : baseState.deepArchiveAnalysis,
   nameMatchMemory: workbook.SheetNames.includes("NameMatchMemory") ? parseChunkedSheet("NameMatchMemory", false) || {} : (baseState.nameMatchMemory || {}),
-  settings: workbook.SheetNames.includes("Settings") ? (safeSheetToObj("Settings") as any[])[0] as any || baseState.settings || data.settings || INITIAL_DATA.settings : baseState.settings
+  settings: (workbook.SheetNames.includes("Settings") ? (safeSheetToObj("Settings") as any[])[0] as any : null) || baseState.settings || data.settings || INITIAL_DATA.settings,
   };
  
  if (workbook.SheetNames.includes("Invoices")) {
@@ -794,7 +794,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <input
  type="text"
  placeholder="أضف أرقام (مثال: 96512345678, 96587654321)"
- value={settings.restaurantNumbers.join(', ')}
+ value={(settings?.restaurantNumbers || []).join(', ')}
  onChange={e => setSettings({ ...settings, restaurantNumbers: e.target.value.split(',').map(s => s.trim()) })}
  
  className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 border border-slate-200/60 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
