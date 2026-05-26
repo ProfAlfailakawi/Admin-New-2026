@@ -426,7 +426,19 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
            </div>
            <div>
              <div className="font-black text-slate-800 text-base lg:text-lg tracking-tight">{customer.name}</div>
-             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{customer.lastOrderDate ? `آخر طلب: ${new Date(customer.lastOrderDate).toLocaleDateString('en-GB')}` : 'عميل جديد'}</div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{customer.lastOrderDate ? `آخر طلب: ${new Date(customer.lastOrderDate).toLocaleDateString('en-GB')}` : 'عميل جديد'}</div>
+            {(() => {
+              const addrStr = formatFullAddress(customer.address);
+              const displayAddr = [
+                customer.area ? `المنطقة: ${customer.area}` : "",
+                addrStr ? addrStr : ""
+              ].filter(Boolean).join(" - ");
+              return displayAddr ? (
+                <div className="text-[9px] text-slate-400 font-light mt-1 max-w-[260px] leading-relaxed break-words border-t border-slate-100/50 pt-1" dir="rtl">
+                  📍 {displayAddr}
+                </div>
+              ) : null;
+            })()}
            </div>
           </div>
          </td>
