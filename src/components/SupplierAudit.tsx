@@ -15,7 +15,7 @@ interface SupplierAuditProps {
  initialSupplierId?: string;
  autoOpenModal?: boolean;
  onClearDeepLink?: () => void;
- deepLinkData?: { search?: string; exactId?: string; supplierId?: string; openModal?: boolean };
+ deepLinkData?: { search?: string; exactId?: string; supplierId?: string; openModal?: boolean; _t?: number };
 }
 
 const SUPPLIER_AUDIT_SEARCH_INPUT_ID = 'supplier-audit-search-input';
@@ -49,8 +49,13 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  }, [deepLinkData?.search, onClearDeepLink]);
 
  // Deep Link logic
+ const consumedPaymentDeepLinkRef = React.useRef<string>('');
  React.useEffect(() => {
  if (!autoOpenModal) return;
+
+ const deepLinkKey = `${initialSupplierId || ''}-${deepLinkData?._t || ''}`;
+ if (consumedPaymentDeepLinkRef.current === deepLinkKey) return;
+ consumedPaymentDeepLinkRef.current = deepLinkKey;
 
  if (initialSupplierId) {
  setSelectedSupplier(initialSupplierId); // Filter the list too
@@ -71,7 +76,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  }, 100);
  
  return () => clearTimeout(timer);
- }, [initialSupplierId, autoOpenModal, onClearDeepLink, data?.suppliers]);
+ }, [initialSupplierId, autoOpenModal, deepLinkData?._t, data?.suppliers]);
 
  const allTransactions = React.useMemo(() => {
  const transactions: any[] = [];
