@@ -10,7 +10,7 @@ import { generateRealProfitAnalysis, generateSupplierNegotiationAnalysis, calcul
 
 export const ProfitGuardFeature = ({ data, filter }: { data: any; filter?: string }) => {
  const insights = useMemo(() => generateRealProfitAnalysis(data), [data]);
- return <RealProfitGuard insights={insights} filter={filter} />;
+ return <RealProfitGuard insights={insights} data={data} filter={filter} />;
 };
 
 export const SupplierNegotiatorFeature = ({ data }: { data: any }) => {

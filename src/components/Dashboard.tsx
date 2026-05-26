@@ -3329,12 +3329,12 @@ const [isPending, startTransition] = useTransition();
                                   </div>
                                   <span className="text-sm md:text-base font-black text-slate-800 uppercase tracking-wide">حارس الأرباح المتقدم</span>
                                 </div>
-                                <div className="relative group/search w-full sm:w-56 md:w-64 sm:mr-auto">
+                                <div className="relative group/search w-full min-w-0 sm:w-72 md:w-80 lg:w-96 sm:mr-auto">
                                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover/search:text-rose-500 transition-colors" size={16} />
                                   <input 
                                     type="text" 
                                     placeholder="بحث في المنتجات..." 
-                                    className="bg-white/90 border border-slate-200 rounded-xl py-2.5 pr-10 pl-3 text-sm focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 outline-none w-full transition-all"
+                                    className="bg-white/90 border border-slate-200 rounded-xl py-3 pr-10 pl-3 text-sm md:text-base focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 outline-none w-full transition-all"
                                     value={localProfitSearch}
                                     onChange={handleProfitSearchChange}
                                   />
