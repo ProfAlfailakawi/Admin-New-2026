@@ -609,6 +609,9 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           let addonsLines: string[] = [];
           if (Array.isArray(item.addons) && item.addons.length > 0) {
             item.addons.forEach((addon: any) => {
+              const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
+              if (userQty === 0) return;
+              if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
               let addonQty = 0;
               if (addon.calculationType === "fixed") addonQty = 1;
               else if (addon.calculationType === "per_x_items")
@@ -1034,7 +1037,7 @@ Alturath.kw`;
                                   ) : (
                                     <ChevronDown size={14} />
                                   )}
-                                  #{inv.id}
+                                  #{inv.id.startsWith("ORD") ? `ORD-${inv.id.slice(-4)}` : inv.id}
                                 </td>
                                 <td className="p-3 md:p-3">
                                   <div className="font-bold text-slate-800">
@@ -1250,7 +1253,7 @@ Alturath.kw`;
                                     </button>
                                     {!isPartner && (
                                       <>
-                                        {!isPaidStatus(inv.paymentStatus) && (
+                                        {!isPaidStatus(inv.paymentStatus) && !inv.id.startsWith("ORD") && (
                                           <button
                                             onClick={(e) => {
                                               e.stopPropagation();
@@ -1262,7 +1265,7 @@ Alturath.kw`;
                                             <Edit2 size={16} />
                                           </button>
                                         )}
-                                        {!isPaidStatus(inv.paymentStatus) && (
+                                        {!isPaidStatus(inv.paymentStatus) && !inv.id.startsWith("ORD") && (
                                           <button
                                             onClick={(e) => {
                                               e.stopPropagation();
@@ -1368,7 +1371,10 @@ Alturath.kw`;
                                                                 a: any,
                                                                 i: number,
                                                               ) => {
-                                                                let addonQty = 0;
+                                                                const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
+              if (userQty === 0) return;
+              if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
+              let addonQty = 0;
                                                                 if (
                                                                   a.calculationType ===
                                                                   "fixed"

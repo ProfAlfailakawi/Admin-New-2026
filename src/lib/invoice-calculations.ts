@@ -19,6 +19,7 @@ export const safeParsePrice = (val: any): number => {
  * Calculates the quantity for an addon based on its calculation type and the item quantity.
  */
 export const computeAddonQuantity = (addon: any, item: any): number => {
+    if (addon?.selected === false || addon?.enabled === false || addon?.isSelected === false) return 0;
     const itemQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
     const qty = Math.max(1, itemQty);
     const threshold = Math.max(1, Number(addon.xItemsThreshold || addon.threshold || 1));
