@@ -181,6 +181,13 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
  return isRevenueValid && isRealProfitValid && isHiddenCostsValid && isRawProfitValid;
  });
 
+ const normalizedFilter = String(filter || '').trim().toLowerCase();
+ const filteredInsights = normalizedFilter
+ ? validInsights.filter((insight) =>
+ String(insight.productName || '').toLowerCase().includes(normalizedFilter)
+ )
+ : validInsights;
+
  if (validInsights.length === 0) {
  return (
  <div className="bg-white p-3 md:p-4 rounded-2xl border border-[#f0e6d2] text-center shadow-sm">
@@ -205,12 +212,17 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
  </div>
 
  <div className="flex justify-between items-center px-1 text-[10px] font-bold text-slate-500 uppercase">
- <span>{validInsights.length} منتج متاح للتحليل</span>
+ <span>{filteredInsights.length} منتج متاح للتحليل</span>
  <span>قائمة المنتجات</span>
  </div>
 
  <div className="overflow-y-auto grid grid-cols-1 gap-3 pl-2 custom-scrollbar" style={{ maxHeight: '332px' }}>
- {validInsights.slice(0, 50).map((insight) => (
+ {filteredInsights.length === 0 && (
+ <div className="bg-white p-4 rounded-2xl border border-[#f0e6d2] text-center shadow-sm">
+ <p className="text-slate-500 font-bold text-sm">لا توجد منتجات مطابقة للبحث.</p>
+ </div>
+ )}
+ {filteredInsights.slice(0, 50).map((insight) => (
  <InsightRow key={insight.id} insight={insight} isOpen={activeInsightId === insight.id} onToggle={() => setActiveInsightId(activeInsightId === insight.id ? null : insight.id)} />
 ))}
  </div>

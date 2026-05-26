@@ -3321,24 +3321,26 @@ const [isPending, startTransition] = useTransition();
 
                           {/* 3. Profit Guard */}
                           <div className="bg-white rounded-3xl border border-slate-200/60 overflow-hidden group hover:border-rose-400 transition-all shadow-sm hover:shadow-3xl hover:-translate-y-2 duration-700 flex flex-col min-h-[360px]">
-                            <div className="p-4 md:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 group-hover:bg-rose-50 transition-colors">
-                              <div className="flex items-center gap-3 md:gap-4">
-                                <div className="p-3 bg-rose-50 rounded-2xl shadow-sm group-hover:bg-rose-500 group-hover:text-white transition-all duration-500">
-                                  <ShieldAlert size={22} />
+                            <div className="p-4 md:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-slate-50/50 group-hover:bg-rose-50 transition-colors gap-3">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-3 md:gap-4 w-full">
+                                <div className="flex items-center gap-3 md:gap-4">
+                                  <div className="p-3 bg-rose-50 rounded-2xl shadow-sm group-hover:bg-rose-500 group-hover:text-white transition-all duration-500">
+                                    <ShieldAlert size={22} />
+                                  </div>
+                                  <span className="text-sm md:text-base font-black text-slate-800 uppercase tracking-wide">حارس الأرباح المتقدم</span>
                                 </div>
-                                <span className="text-sm md:text-base font-black text-slate-800 uppercase tracking-wide">حارس الأرباح المتقدم</span>
-                                <div className="relative group/search ml-auto mr-4">
-                                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover/search:text-rose-500 transition-colors" size={14} />
+                                <div className="relative group/search w-full sm:w-56 md:w-64 sm:mr-auto">
+                                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover/search:text-rose-500 transition-colors" size={16} />
                                   <input 
                                     type="text" 
-                                    placeholder="بحث في الأرباح..." 
-                                    className="bg-white/80 border border-slate-200 rounded-xl py-1.5 pr-9 pl-3 text-xs focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 outline-none w-32 md:w-48 transition-all"
+                                    placeholder="بحث في المنتجات..." 
+                                    className="bg-white/90 border border-slate-200 rounded-xl py-2.5 pr-10 pl-3 text-sm focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 outline-none w-full transition-all"
                                     value={localProfitSearch}
                                     onChange={handleProfitSearchChange}
                                   />
                                 </div>
                               </div>
-                              <div className="w-4 h-4 rounded-full bg-rose-500 animate-ping" />
+                              <div className="hidden sm:block w-4 h-4 rounded-full bg-rose-500 animate-ping" />
                             </div>
                             <div className="p-4 md:p-5 flex-grow overflow-auto">
                               <ProfitGuardFeature data={data} filter={profitSearch} />
