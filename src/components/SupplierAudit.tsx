@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Truck, Search, History, DollarSign, Calendar, TrendingUp, CreditCard, Filter, AlertCircle, FileText, CheckCircle2, Clock, Edit2, Trash2, ArrowUpRight, X } from 'lucide-react';
+import { Search, History, DollarSign, Calendar, TrendingUp, CreditCard, FileText, CheckCircle2, Clock, Edit2, Trash2, ArrowUpRight, X } from 'lucide-react';
 import { AppState, SupplierTransfer, PaymentMethod } from '../types';
 import { cn, normalizeArabic, normalizeArabicNumerals } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -18,6 +18,20 @@ interface SupplierAuditProps {
 
 const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSupplierId, autoOpenModal, onClearDeepLink, deepLinkData }) => {
  const [search, setSearch] = useState('');
+ const [selectedSupplier, setSelectedSupplier] = useState<string>('all');
+ const [showAddModal, setShowAddModal] = useState(false);
+ const [viewingInvoiceId, setViewingInvoiceId] = useState<string | null>(null);
+ const [showWaitingList, setShowWaitingList] = useState(false);
+ const [transferToDelete, setTransferToDelete] = useState<SupplierTransfer | null>(null);
+ const [shakingId, setShakingId] = useState<string | null>(null);
+ const [transferForm, setTransferForm] = useState({ 
+ id: '', 
+ supplierId: '', 
+ amount: 0, 
+ method: 'BankTransfer' as PaymentMethod, 
+ notes: '',
+ date: new Date().toISOString()
+ });
  
  React.useEffect(() => {
  if (deepLinkData?.search) {
@@ -28,16 +42,12 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  }, 100);
  if (onClearDeepLink) onClearDeepLink();
  }
- }, [deepLinkData, onClearDeepLink]);
-
- const [selectedSupplier, setSelectedSupplier] = useState<string>('all');
- const [showAddModal, setShowAddModal] = useState(false);
- const [sortOrder, setSortOrder] = useState<'desc' | 'asc' | null>(null);
- const [showWaitingList, setShowWaitingList] = useState(false);
+ }, [deepLinkData?.search, onClearDeepLink]);
 
  // Deep Link logic
  React.useEffect(() => {
- if (autoOpenModal) {
+ if (!autoOpenModal) return;
+
  if (initialSupplierId) {
  setSelectedSupplier(initialSupplierId); // Filter the list too
  setTransferForm(prev => ({ 
@@ -54,18 +64,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  }, 100);
  
  return () => clearTimeout(timer);
- }
- }, [initialSupplierId, autoOpenModal]);
- const [transferToDelete, setTransferToDelete] = useState<SupplierTransfer | null>(null);
- const [shakingId, setShakingId] = useState<string | null>(null);
- const [transferForm, setTransferForm] = useState({ 
- id: '', 
- supplierId: '', 
- amount: 0, 
- method: 'BankTransfer' as PaymentMethod, 
- notes: '',
- date: new Date().toISOString()
- });
+ }, [initialSupplierId, autoOpenModal, onClearDeepLink]);
 
  const allTransactions = React.useMemo(() => {
  const transactions: any[] = [];
@@ -352,6 +351,15 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </td>
  <td className="p-3 md:p-3">
  <div className="flex items-center gap-2">
+ {isInvoice && (
+ <button 
+ onClick={() => setViewingInvoiceId(transaction.refId)}
+ className="p-2 bg-blue-50 rounded-lg text-blue-500 hover:bg-blue-100 transition-all active:scale-95 transition-all"
+ title="عرض الفاتورة المسددة"
+ >
+ <FileText size={16} />
+ </button>
+ )}
  {!isInvoice && (
  <>
  <button 
@@ -492,6 +500,13 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </div>
 
  <div className="space-y-2">
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">تاريخ التحويل</label>
+ <input 
+ type="date"
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-5 mb-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right text-lg"
+ value={transferForm.date.split('T')[0]}
+ onChange={(e) => setTransferForm({ ...transferForm, date: e.target.value ? new Date(e.target.value).toISOString() : new Date().toISOString() })}
+ />
  <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">ملاحظات / رقم المرجعي</label>
  <textarea 
  rows={2}
@@ -525,6 +540,142 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </motion.div>
  </motion.div>
 )}
+ </AnimatePresence>
+ 
+ <AnimatePresence>
+ {viewingInvoiceId && (
+ <motion.div 
+ initial={{ opacity: 0 }} 
+ animate={{ opacity: 1 }} 
+ exit={{ opacity: 0 }} 
+ className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 md:p-4"
+ onClick={() => setViewingInvoiceId(null)}
+ >
+ <motion.div 
+ initial={{ opacity: 0, scale: 0.95, y: 20 }}
+ animate={{ opacity: 1, scale: 1, y: 0 }}
+ exit={{ opacity: 0, scale: 0.95, y: 20 }}
+ className="bg-white rounded-[32px] w-full max-w-2xl shadow-2xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+ onClick={e => e.stopPropagation()}
+ >
+ {(() => {
+ const inv = (data.invoices || []).find(i => i.id === viewingInvoiceId);
+ if (!inv) return <div className="p-12 text-center font-bold text-slate-500">الفاتورة غير موجودة أو تم حذفها</div>;
+ const customer = (data.customers || []).find(c => c.id === inv.customerId);
+ 
+ return (
+ <>
+ <div className="p-5 border-b border-slate-50 shrink-0 flex justify-between items-center bg-slate-50/30">
+ <button onClick={() => setViewingInvoiceId(null)} className="p-2.5 hover:bg-white rounded-2xl transition-all text-slate-400 hover:text-slate-600 hover:shadow-md">
+ <X size={20} />
+ </button>
+ <div className="flex items-center gap-4">
+ <div className="text-right">
+ <h3 className="text-xl font-black text-slate-900 leading-tight">تفاصيل الفاتورة المسددة</h3>
+ <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mt-0.5">#{inv.id} • {new Date(inv.date).toLocaleDateString('en-GB')}</p>
+ </div>
+ <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
+ <FileText size={24} />
+ </div>
+ </div>
+ </div>
+ 
+ <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
+ {/* Contacts Segment */}
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+ <div className="p-5 bg-slate-50/50 rounded-3xl border border-slate-100/60 relative overflow-hidden group">
+ <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-blue-500/10 transition-colors" />
+ <div className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">بيانات العميل</div>
+ <div className="font-black text-slate-900 text-lg">{customer?.name || (inv as any).customerName || 'عميل مجهول'}</div>
+ <div className="text-xs font-bold text-slate-500 mt-0.5">{customer?.phone || (inv as any).customerPhone || 'بدون رقم'}</div>
+ </div>
+ <div className="p-5 bg-slate-50/50 rounded-3xl border border-slate-100/60 relative overflow-hidden group">
+ <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
+ <div className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">طريقة الدفع والحالة</div>
+ <div className="font-black text-slate-900 text-lg">
+ {inv.paymentMethod === 'BankTransfer' ? 'حوالة بنكية' : inv.paymentMethod === 'Cash' ? 'نقدي' : inv.paymentMethod === 'KNet' ? 'كي-نت' : inv.paymentMethod}
+ </div>
+ <div className="flex items-center gap-1.5 mt-1">
+ <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+ <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">عملية مكتملة ومسددة</span>
+ </div>
+ </div>
+ </div>
+ 
+ {/* Items Section */}
+ <div className="space-y-4">
+ <div className="flex justify-between items-center px-1">
+ <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+ <TrendingUp size={14} className="text-blue-500" /> تفاصيل الأصناف الموردة
+ </h4>
+ <span className="text-[10px] font-black text-slate-400">{(inv.items || []).length} صنف</span>
+ </div>
+ <div className="space-y-3">
+ {(inv.items || []).map((item, idx) => {
+ const p = (data.products || []).find(prod => prod.id === item.productId);
+ return (
+ <div key={idx} className="flex justify-between items-center p-4 border border-slate-100 rounded-3xl transition-all hover:shadow-lg hover:border-blue-100 bg-white group">
+ <div className="text-left">
+ <div className="font-black text-slate-900 group-hover:text-blue-600 transition-colors">{(item.quantity * (item.priceAtTime || 0)).toFixed(3)} <span className="text-[10px]">د.ك</span></div>
+ <div className="text-[10px] text-slate-400 font-bold tracking-tight">{item.quantity} وحدة × {(item.priceAtTime || 0).toFixed(3)}</div>
+ </div>
+ <div className="text-right">
+ <div className="font-bold text-slate-800 leading-tight">{p?.name || item.productId}</div>
+ <div className="text-[10px] font-black text-emerald-600 mt-1 flex items-center gap-1 justify-end">
+ <DollarSign size={10} />
+ تكلفة التوريد: {(item.quantity * (item.costAtTime || 0)).toFixed(3)} د.ك
+ </div>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ </div>
+ 
+ {/* Financial Recap */}
+ <div className="p-6 bg-slate-900 rounded-[32px] text-white shadow-2xl shadow-slate-900/30 relative overflow-hidden">
+ <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+ <div className="absolute top-0 left-0 w-32 h-32 bg-blue-500 rounded-full blur-3xl -ml-16 -mt-16" />
+ <div className="absolute bottom-0 right-0 w-32 h-32 bg-emerald-500 rounded-full blur-3xl -mr-16 -mb-16" />
+ </div>
+ <div className="relative z-10 space-y-4">
+ <div className="flex justify-between items-center pb-4 border-b border-white/10">
+ <span className="text-xs font-bold text-white/40 uppercase tracking-widest">إجمالي المبيعات</span>
+ <span className="font-black text-lg">{(inv.totalAmount || 0).toFixed(3)} <span className="text-[10px] opacity-40">د.ك</span></span>
+ </div>
+ <div className="flex justify-between items-center pb-4 border-b border-white/10">
+ <span className="text-xs font-bold text-white/40 uppercase tracking-widest">تكلفة التوريد النهائية</span>
+ <span className="font-black text-lg text-emerald-400">{(inv.totalCost || 0).toFixed(3)} <span className="text-[10px] opacity-40">د.ك</span></span>
+ </div>
+ <div className="flex justify-between items-center pt-2">
+ <div className="flex flex-col">
+ <span className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">صافي الربح الفعلي</span>
+ <span className="text-3xl font-black bg-gradient-to-l from-white to-white/60 bg-clip-text text-transparent italic">
+ {(inv.profit || 0).toFixed(3)} <span className="text-xs">د.ك</span>
+ </span>
+ </div>
+ <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/5">
+ <TrendingUp size={28} className="text-emerald-400" />
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ 
+ <div className="p-5 bg-slate-50/50 border-t border-slate-100 flex justify-center shrink-0">
+ <button 
+ onClick={() => setViewingInvoiceId(null)}
+ className="w-full py-4 bg-white border border-slate-200 rounded-2xl font-black text-slate-700 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm active:scale-[0.98] tracking-widest uppercase text-xs"
+ >
+ إغلاق سجل الفاتورة
+ </button>
+ </div>
+ </>
+ );
+ })()}
+ </motion.div>
+ </motion.div>
+ )}
  </AnimatePresence>
 
  <AnimatePresence>
