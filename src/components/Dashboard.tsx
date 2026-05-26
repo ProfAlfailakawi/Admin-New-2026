@@ -966,6 +966,15 @@ const [isPending, startTransition] = useTransition();
       return "pulse";
     });
 
+    const [profitSearch, setProfitSearch] = useState("");
+    const [localProfitSearch, setLocalProfitSearch] = useState("");
+
+    const handleProfitSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value;
+      setLocalProfitSearch(val);
+      setProfitSearch(val);
+    };
+
     useEffect(() => {
       if (onActiveTabChange) onActiveTabChange(activeTab);
     }, [activeTab, onActiveTabChange]);
@@ -1233,7 +1242,7 @@ const [isPending, startTransition] = useTransition();
                 ...r,
                 sentiment: `${a.level1} ${icon}`,
                 level1: a.level1,
-                topics: a.level2.join("، "),
+                topics: (Array.isArray(a.level2) ? a.level2 : []).join("، "),
               };
             }
           }
@@ -1290,7 +1299,7 @@ const [isPending, startTransition] = useTransition();
       else if (analysis.level1 === "محايد") sentimentIcon = "😐";
 
       const displayLabel = `${analysis.level1} ${sentimentIcon}`;
-      const topicsLabel = analysis.level2.join("، ");
+      const topicsLabel = (Array.isArray(analysis.level2) ? analysis.level2 : []).join("، ");
 
       const newReview = {
         id: Date.now(),
@@ -1707,7 +1716,7 @@ const [isPending, startTransition] = useTransition();
 
       return combined
         .sort((a, b) => getTimestamp(b) - getTimestamp(a))
-        .slice(0, 10);
+        .slice(0, 5);
     }, [data?.orders, getUnifiedInvoices(data)]);
 
     const getOrderSubtotal = (order: any) => {
@@ -3318,11 +3327,21 @@ const [isPending, startTransition] = useTransition();
                                   <ShieldAlert size={22} />
                                 </div>
                                 <span className="text-sm md:text-base font-black text-slate-800 uppercase tracking-wide">حارس الأرباح المتقدم</span>
+                                <div className="relative group/search ml-auto mr-4">
+                                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover/search:text-rose-500 transition-colors" size={14} />
+                                  <input 
+                                    type="text" 
+                                    placeholder="بحث في الأرباح..." 
+                                    className="bg-white/80 border border-slate-200 rounded-xl py-1.5 pr-9 pl-3 text-xs focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 outline-none w-32 md:w-48 transition-all"
+                                    value={localProfitSearch}
+                                    onChange={handleProfitSearchChange}
+                                  />
+                                </div>
                               </div>
                               <div className="w-4 h-4 rounded-full bg-rose-500 animate-ping" />
                             </div>
                             <div className="p-4 md:p-5 flex-grow overflow-auto">
-                              <ProfitGuardFeature data={data} />
+                              <ProfitGuardFeature data={data} filter={profitSearch} />
                             </div>
                           </div>
                         </div>

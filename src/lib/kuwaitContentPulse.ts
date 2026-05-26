@@ -106,18 +106,24 @@ export const KUWAIT_PULSE_PACKS: KuwaitPulsePack[] = [
 
 export const getKuwaitPulsePack = (id: string) => KUWAIT_PULSE_PACKS.find((pack) => pack.id === id) || KUWAIT_PULSE_PACKS[0];
 
-export const buildKuwaitStudioTheme = ({ packId, place, goal, customText }: { packId: string; place: KuwaitOrderPlace; goal: KuwaitContentGoal; customText?: string }) => {
+export const buildKuwaitStudioTheme = ({ packId, place, goal, customText, products }: { packId: string; place: KuwaitOrderPlace; goal: KuwaitContentGoal; customText?: string, products?: any[] }) => {
   const pack = getKuwaitPulsePack(packId);
   const placeInfo = KUWAIT_PLACES[place || pack.defaultPlace];
   const goalInfo = KUWAIT_CONTENT_GOALS[goal || 'post'];
   const userText = String(customText || '').trim();
+  const productContext = products && products.length > 0 
+    ? `AVAILABLE PRODUCTS (ONLY USE THESE): ${products.map(p => p.name).join(', ')}`
+    : '';
+
   return [
     'KUWAIT CONTENT PULSE LAYER: This is not a dine-in restaurant scene. It is a Kuwaiti home-order and delivery brand for homes, diwaniyas, chalets, farms, jakhours, zowaras, and gatherings.',
+    'STRICT RULE: Only use products found in the database. Do not invent items like "travel boxes" or "boxes of travel" (بوكسات السفر) if they are not in the products list.',
+    productContext,
     `Occasion + place must be merged into one believable Kuwaiti moment: ${pack.label} at ${placeInfo.label}. Tone: ${pack.tone}. ${placeInfo.prompt}`,
     `Scene + environment must stay consistent together: ${pack.prompt} Environment: ${placeInfo.prompt}`,
     `Content goal: ${goalInfo.label}. ${goalInfo.prompt}`,
     `Scene direction: ${pack.prompt}`,
-    userText ? `User custom idea: ${userText}` : '',
+    userText ? `User custom idea (STRICTLY ground it in existing products): ${userText}` : '',
     'Keep the current fast realistic generation style. Make it human-photographed in Kuwait, not a restaurant ad, not a cafe, and not fake heritage decor.'
   ].filter(Boolean).join('\n');
 };

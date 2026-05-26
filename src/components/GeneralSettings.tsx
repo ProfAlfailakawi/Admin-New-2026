@@ -368,7 +368,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const fullStateChunks = fullStateJson.match(/[\s\S]{1,30000}/g) || ['{}'];
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fullStateChunks.map((chunk, index) => ({ part: index + 1, chunk }))), "FullState");
 
- XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ exportedAt: new Date().toISOString(), invoices: invoiceRows.length, invoiceItems: invoiceItems.length, customers: customerRows.length, payers: payerRows.length, orders: orderRows.length, products: (data?.products || []).length, suppliers: (data?.suppliers || []).length, expenses: (data?.expenses || []).length, exportedSheets: wb.SheetNames.join(', ') }]),"Summary");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ exportedAt: new Date().toISOString(), invoices: invoiceRows.length, invoiceItems: invoiceItems.length, customers: customerRows.length, payers: payerRows.length, orders: orderRows.length, products: (data?.products || []).length, suppliers: (data?.suppliers || []).length, expenses: (data?.expenses || []).length, exportedSheets: (Array.isArray(wb.SheetNames) ? wb.SheetNames : []).join(', ') }]),"Summary");
  XLSX.writeFile(wb, `KTK_Full_Backup_${new Date().toISOString().split('T')[0]}.xlsx`);
  };
 
@@ -452,8 +452,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  const parseChunkedSheet = (sheetName: string, isArray: boolean = false) => {
    if (!workbook.SheetNames.includes(sheetName)) return isArray ? [] : null;
-   const rows = safeSheetToObj(sheetName) as any[];
-   if (rows.length === 0) return isArray ? [] : null;
+   const rows = (safeSheetToObj(sheetName) || []) as any[];
+   if (!Array.isArray(rows) || rows.length === 0) return isArray ? [] : null;
    const hasChunk = rows.some((r: any) => r.chunk !== undefined);
    if (hasChunk) {
      const joined = rows
@@ -520,8 +520,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  let baseState: any = {};
  if (workbook.SheetNames.includes("FullState")) {
-    const fullStateRows = safeSheetToObj("FullState") as any[];
-    const joinedJson = fullStateRows
+    const fullStateRows = (safeSheetToObj("FullState") || []) as any[];
+    const joinedJson = (Array.isArray(fullStateRows) ? fullStateRows : [])
       .sort((a: any, b: any) => Number(a.part || 0) - Number(b.part || 0))
       .map((row: any) => String(row.chunk || ''))
       .join('');

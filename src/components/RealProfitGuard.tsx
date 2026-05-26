@@ -7,6 +7,7 @@ import { RealProfitInsight } from '../types';
 interface RealProfitGuardProps {
  insights?: RealProfitInsight[];
  data?: any;
+ filter?: string;
 }
 
 const isValidNumber = (val: any): boolean => {
@@ -118,7 +119,7 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
 );
 };
 
-export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data }) => {
+export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data, filter }) => {
  const [activeInsightId, setActiveInsightId] = useState<string | null>(null);
 
  const computedInsights = useMemo<RealProfitInsight[]>(() => {

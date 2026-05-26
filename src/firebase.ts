@@ -92,14 +92,23 @@ export const handleFirestoreError = (error: any, operation: FirestoreErrorInfo['
 const getCollectionPath = (path: string) => path;
 
 export const getSmartCollection = (path: string) => collection(db, getCollectionPath(path));
-export const getSmartDoc = (path: string, uid: string, userEmail?: string | null) => {
+export const getSmartDoc = (path: string, uid: string, userEmail?: string | null, subDocPath?: string) => {
   const email = (userEmail || auth.currentUser?.email)?.toLowerCase()?.trim() || '';
   const currentUid = uid || auth.currentUser?.uid || '';
   const isSharedUser = AUTHORIZED_EMAILS.includes(email) || 
                        AUTHORIZED_PARTNERS.includes(email) || 
                        AUTHORIZED_UIDS.includes(currentUid) || 
                        AUTHORIZED_PARTNER_UIDS.includes(currentUid);
-  return doc(db, getCollectionPath(path), isSharedUser ? 'shared_company_data' : uid);
+  
+  const rootId = isSharedUser ? 'shared_company_data' : (currentUid || uid);
+  
+  if (subDocPath) {
+    // subDocPath could be "shards/invoices"
+    const parts = subDocPath.split('/').filter(Boolean);
+    return doc(db, getCollectionPath(path), rootId, ...parts);
+  }
+  
+  return doc(db, getCollectionPath(path), rootId);
 };
 
 export { deleteDoc };

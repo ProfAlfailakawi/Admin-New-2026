@@ -5,7 +5,9 @@ service cloud.firestore {
     // Admins and Partners
     function isAdmin() {
       return request.auth != null && (
-        request.auth.token.email == "volcanokw@gmail.com"
+        request.auth.token.email == "volcanokw@gmail.com" ||
+        request.auth.uid == "2KVrKwyvmVaKQYc9iiw87xoztrA3" ||
+        request.auth.uid == "abi4lzKo4VfiLkrBAkYfK8NjtLS2"
       );
     }
     
@@ -15,7 +17,9 @@ service cloud.firestore {
         request.auth.token.email == "alfailakawidrahmad@gmail.com" ||
         request.auth.token.email == "mfq241188@gmail.com" ||
         request.auth.token.email == "omaralawadhi67@gmail.com" ||
-        request.auth.uid == "L4qKc2PsZXamk96nvGTqPLjYhI03"
+        request.auth.uid == "L4qKc2PsZXamk96nvGTqPLjYhI03" ||
+        request.auth.uid == "0v30UI3SYyfzuGO15i5qRqejif62" ||
+        request.auth.uid == "2qUU5RXByXPkQASR1mJR9krryPd2"
       );
     }
     
