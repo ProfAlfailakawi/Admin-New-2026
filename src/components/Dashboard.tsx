@@ -2957,7 +2957,7 @@ const [isPending, startTransition] = useTransition();
                         </button>
                       </h3>
                       <p className="text-[10px] text-slate-500 font-bold mt-1">
-                        المقارنة اللحظية لأسعار التوريد والالتزامات المالية
+                        توضيح سريع لحالة أسعار الموردين ومستحقاتهم المالية
                       </p>
                     </div>
                     <button
@@ -3041,9 +3041,9 @@ const [isPending, startTransition] = useTransition();
                                   )}
                                 >
                                   {isHigh
-                                    ? "مخاطرة سبر تكلفة"
+                                    ? "ارتفاع سعر - راجع المورد"
                                     : isLow
-                                      ? "منافس جداً 🏆"
+                                      ? "سعر منافس جداً 🏆"
                                       : "مستقر"}
                                 </div>
                               </td>
@@ -3087,10 +3087,10 @@ const [isPending, startTransition] = useTransition();
                       </div>
                     </div>
                     <button
-                      onClick={() => onNavigate("suppliers")}
+                      onClick={() => onNavigate("suppliers-audit")}
                       className="text-xs font-bold text-indigo-600 border-b-2 border-indigo-200 hover:text-indigo-800 transition-colors"
                     >
-                      فتح سجل الطلبات
+                      فتح مراجعة وسداد الموردين
                     </button>
                   </div>
                 </div>
