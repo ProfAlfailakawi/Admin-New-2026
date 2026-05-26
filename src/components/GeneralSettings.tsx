@@ -142,7 +142,16 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const handleDownload = () => {
  const wb = XLSX.utils.book_new();
  const safe = (v: any) => v === undefined || v === null ? '' : v;
- const json = (v: any) => v === undefined || v === null ? '' : JSON.stringify(v);
+ const json = (v: any) => {
+   if (v === undefined || v === null) return '';
+   const str = JSON.stringify(v);
+   return str.length > 32000 ? str.slice(0, 32000) + '... (truncated)' : str;
+ };
+ const createChunkedSheet = (val: any) => {
+   const s = val === undefined || val === null ? '' : JSON.stringify(val);
+   const chunks = s.match(/[\s\S]{1,30000}/g) || [''];
+   return XLSX.utils.json_to_sheet(chunks.map((chunk, index) => ({ part: index + 1, chunk })));
+ };
  const addressText = (addr: any, fallbackArea?: string) => {
    const normalized = normalizeAddressObject(addr);
    const full = formatFullAddress(normalized);
@@ -351,9 +360,9 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([((data as any)?.loyaltySettings || {})]),"LoyaltySettings");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([((data as any)?.activeGoal || {})]),"ActiveGoal");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([((data as any)?.settings || {})]),"Settings");
- XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ value: json((data as any)?.pulseArchiveAnalysis || null) }]),"PulseArchiveAnalysis");
- XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ value: json((data as any)?.deepArchiveAnalysis || null) }]),"DeepArchiveAnalysis");
- XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ value: json((data as any)?.nameMatchMemory || {}) }]),"NameMatchMemory");
+ XLSX.utils.book_append_sheet(wb, createChunkedSheet((data as any)?.pulseArchiveAnalysis || null),"PulseArchiveAnalysis");
+ XLSX.utils.book_append_sheet(wb, createChunkedSheet((data as any)?.deepArchiveAnalysis || null),"DeepArchiveAnalysis");
+ XLSX.utils.book_append_sheet(wb, createChunkedSheet((data as any)?.nameMatchMemory || {}),"NameMatchMemory");
 
  const fullStateJson = JSON.stringify(data || {});
  const fullStateChunks = fullStateJson.match(/[\s\S]{1,30000}/g) || ['{}'];
@@ -439,6 +448,21 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  }
  if (isArray && !Array.isArray(result)) return [];
  return result;
+ };
+
+ const parseChunkedSheet = (sheetName: string, isArray: boolean = false) => {
+   if (!workbook.SheetNames.includes(sheetName)) return isArray ? [] : null;
+   const rows = safeSheetToObj(sheetName) as any[];
+   if (rows.length === 0) return isArray ? [] : null;
+   const hasChunk = rows.some((r: any) => r.chunk !== undefined);
+   if (hasChunk) {
+     const joined = rows
+       .sort((a: any, b: any) => Number(a.part || 0) - Number(b.part || 0))
+       .map((row: any) => String(row.chunk || ''))
+       .join('');
+     return parseSafeJson(joined, isArray);
+   }
+   return parseSafeJson(rows[0]?.value, isArray);
  };
 
  const stripUndefined = (obj: any): any => {
@@ -543,9 +567,9 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  notifications: stripUndefined(safeSheetToObj("Notifications")) as any,
  loyaltySettings: (safeSheetToObj("LoyaltySettings") as any[])[0] as any || (INITIAL_DATA as any).loyaltySettings,
  activeGoal: (safeSheetToObj("ActiveGoal") as any[])[0] as any || null,
- pulseArchiveAnalysis: parseSafeJson((safeSheetToObj("PulseArchiveAnalysis") as any[])[0]?.value, false),
- deepArchiveAnalysis: parseSafeJson((safeSheetToObj("DeepArchiveAnalysis") as any[])[0]?.value, false),
- nameMatchMemory: parseSafeJson((safeSheetToObj("NameMatchMemory") as any[])[0]?.value, false) || {},
+ pulseArchiveAnalysis: parseChunkedSheet("PulseArchiveAnalysis", false),
+ deepArchiveAnalysis: parseChunkedSheet("DeepArchiveAnalysis", false),
+ nameMatchMemory: parseChunkedSheet("NameMatchMemory", false) || {},
  settings: (safeSheetToObj("Settings") as any[])[0] as any || data.settings || INITIAL_DATA.settings
  };
  
