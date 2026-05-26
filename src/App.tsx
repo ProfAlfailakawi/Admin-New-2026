@@ -1467,15 +1467,35 @@ const MainApp: React.FC = () => {
     if (!user) return;
     setDataLoading(true);
     try {
-      const dataRef = getSmartDoc('appData', user.uid, user.email);
+      const rootDataRef = getSmartDoc('appData', user.uid, user.email);
       const splitData = splitProductsForDatabase(data);
-      let sanitizedData = JSON.parse(JSON.stringify(splitData));
-
-      await setDoc(dataRef, sanitizedData, { merge: true });
+      
+      const rootDocData: any = { ...splitData };
+      const shardedPayloads: Record<string, any> = {};
+      
+      SHARDED_KEYS.forEach(key => {
+        if (rootDocData[key]) {
+          shardedPayloads[key] = rootDocData[key];
+          rootDocData[key] = []; 
+        }
+      });
+      
+      const sanitizedRoot = JSON.parse(JSON.stringify(rootDocData));
+      const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
+      
+      SHARDED_KEYS.forEach(key => {
+         if (shardedPayloads[key]) {
+            const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+            const shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloads[key] }));
+            savePromises.push(setDoc(shardRef, shardContent, { merge: true }));
+         }
+      });
+      
+      await Promise.all(savePromises);
       addToast("تمت المزامنة ✨", "تم حفظ كافة البيانات في السحابة بنجاح.", "success");
     } catch (err) {
       console.error(err);
-      addToast("المزامنة تعثرت", "ما قدرنا نحفظ البيانات الحين. يمكن حجم البيانات كبير.", "warning");
+      addToast("المزامنة تعثرت", "ما قدرنا نحفظ البيانات الحين. تأكد من جودة الاتصال.", "warning");
     } finally {
       setDataLoading(false);
     }
@@ -1483,9 +1503,11 @@ const MainApp: React.FC = () => {
 
 // Removed the problematic JSON.stringify call for the defunct isSyncEnabled state.
 
-  // Use a ref to strictly prevent saving before we have loaded data
+  // Strictly prevent saving before we have loaded data
   const hasLoadedDataRef = useRef(false);
   const lastRemoteSnapshotRef = useRef<string | null>(null);
+
+  const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
 
   // Auth Listener - Optimized session management
   useEffect(() => {
@@ -1610,13 +1632,7 @@ const MainApp: React.FC = () => {
       setDataLoading(true);
       hasLoadedDataRef.current = false;
 
-      // Reference to the user's document in the 'appData' collection
-      const dataRef = getSmartDoc('appData', user.uid, user.email);
-      
-      // Run real-time listener if we are a shared user
-      const email = user.email?.toLowerCase() || '';
-
-      // Sync customer app orders independently
+      // 1. Sync orders independently (Legacy/Customer App)
       try {
          const qOrders = query(collection(db, 'orders'), orderBy('date', 'desc'), limit(50));
          ordersUnsubscribe = onSnapshot(qOrders, (snap) => {
@@ -1645,126 +1661,97 @@ const MainApp: React.FC = () => {
             });
          }, (err) => {
             if (!String(err).includes("Missing or insufficient permissions")) {
-               const isQuota = String(err).includes("quota") || String(err).includes("Quota") || String(err).includes("RESOURCE_EXHAUSTED") || String(err).includes("resource-exhausted");
-               if (isQuota) {
-                  console.warn("Firebase Quota Exceeded handled in UI.");
-                  setQuotaError(err.message || String(err));
-               } else {
-                  console.error("orders sync error: ", err);
-               }
+               console.error("orders sync error: ", err);
             }
          });
       } catch (e: any) {
           if (!String(e).includes("Missing or insufficient permissions")) {
-              const isQuota = String(e).includes("quota") || String(e).includes("Quota") || String(e).includes("RESOURCE_EXHAUSTED") || String(e).includes("resource-exhausted");
-              if (isQuota) {
-                 console.warn("Firebase Quota Exceeded handled in UI.");
-                 setQuotaError(e.message || String(e));
-              } else {
-                 console.error("Failed to sync orders collection:", e);
-              }
+               console.error("Failed to sync orders collection:", e);
           }
       }
       
-      // Listen for real-time updates
+      // 2. Sync ROOT Data (Metadata, config, small stats)
+      // Do not enable auto-save until the root document and all shard listeners
+      // have returned once. This prevents a partial cloud load from overwriting
+      // real invoices/customers/products with empty INITIAL_DATA arrays.
+      const shardInitialLoadState: Record<string, boolean> = Object.fromEntries(SHARDED_KEYS.map(key => [key, false]));
+      let rootInitialLoaded = false;
+      const markInitialCloudLoad = () => {
+        if (rootInitialLoaded && SHARDED_KEYS.every(key => shardInitialLoadState[key])) {
+          hasLoadedDataRef.current = true;
+          setDataLoading(false);
+        }
+      };
+
+      const dataRef = getSmartDoc('appData', user.uid, user.email);
       syncUnsubscribe = onSnapshot(dataRef, (docSnap) => {
-        console.log("Firestore update received for path:", dataRef.path);
         if (docSnap.exists()) {
-          const rawData = docSnap.data() as any;
-          const remoteDataRaw = joinProductsFromDatabase(rawData);
-          console.log("Data received, product count:", remoteDataRaw.products?.length);
-          
+          const rawRootData = docSnap.data() as any;
           setData(prev => {
-            // Check if remote data is actually different before setting to avoid loop
-            if (JSON.stringify(prev) === JSON.stringify(remoteDataRaw)) {
-                console.log("Data received is identical to current, skipping update.");
-                return prev;
-            }
+            const sanitizedRoot = { ...rawRootData };
+            // Root documents may contain empty array placeholders for sharded keys.
+            // Remove only those placeholders; keep any legacy non-empty values as a
+            // safe fallback until their shard has been created.
+            SHARDED_KEYS.forEach(key => {
+              if (Array.isArray(sanitizedRoot[key]) && sanitizedRoot[key].length === 0) {
+                delete sanitizedRoot[key];
+              }
+            });
             
-            const prevOrders = prev.orders || [];
-            const newOrders = remoteDataRaw.orders || [];
-            
-            // Check for newly created orders
-            if (newOrders.length > 0) {
-               const newlyCreatedOrders = newOrders.filter((no: any) => !prevOrders.some((po: any) => po.id === no.id));
-               if (newlyCreatedOrders.length > 0) {
-                  if (hasLoadedDataRef.current) {
-                     newlyCreatedOrders.forEach((order: any) => {
-                        fetch('/api/push/order-created-alert', {
-                           method: 'POST',
-                           headers: { 'Content-Type': 'application/json' },
-                           body: JSON.stringify({ orderId: order.id }),
-                        }).catch((error) => {
-                           if (!String(error).includes("Missing or insufficient permissions") && !String(error).includes("PERMISSION_DENIED")) console.error('Failed to send order-created push alert:', error);
-                        });
-                     });
-
-                     if (isSoundEnabled) {
-                        playNewOrderAlert();
-                        setTimeout(playNewOrderAlert, 2000);
-                     }
-                  }
-               }
-            }
-
-            let processedZones = INITIAL_DATA.zones;
-            if (remoteDataRaw.zones) {
-               const hasOldZones = remoteDataRaw.zones.some((z: any) => ['الشويخ التجارية', 'المقبرة', 'أم العيش', 'الحزام الأخضر', 'الصليبية الزراعية', 'الصليبية الصناعية'].includes(z.name));
-               if (hasOldZones) {
-                  const zoneMap = new Map(remoteDataRaw.zones.map((z: any) => [z.name, z]));
-                  processedZones = INITIAL_DATA.zones.map(z => {
-                     const existing = zoneMap.get(z.name) as any;
-                     return existing ? { ...z, cost: existing.cost, profit: existing.profit, finalPrice: existing.finalPrice, isActive: existing.isActive } : z;
-                  });
-               } else {
-                  processedZones = [...remoteDataRaw.zones].sort((a: any, b: any) => a.name.localeCompare(b.name, 'ar'));
-               }
-            }
-
-            const nextData = {
-              ...INITIAL_DATA,
-              ...remoteDataRaw,
-              zones: processedZones,
-              notifications: (remoteDataRaw.notifications && remoteDataRaw.notifications.length > 0) 
-                ? remoteDataRaw.notifications 
-                : []
-            };
-            lastRemoteSnapshotRef.current = JSON.stringify(nextData);
-            return nextData;
+            const merged = { ...prev, ...sanitizedRoot };
+            // Ensure products are joined if supplierCopies were in root or prev
+            return joinProductsFromDatabase(merged);
           });
-        } else {
-          console.log("No remote data found, trying to restore from local storage.");
-          // Restore from local storage if available to prevent perceived data loss when switching to cloud mode
-          const localData = localStorage.getItem('ktk_accounting_data');
-          if (localData) {
-            try {
-              const parsedLocal = JSON.parse(localData);
-              setData(parsedLocal);
-              console.log("Restored data from local storage.");
-            } catch (e) {
-              setData(INITIAL_DATA);
-            }
-          } else {
-            setData(INITIAL_DATA);
-          }
         }
-        hasLoadedDataRef.current = true;
-        setDataLoading(false);
-      }, (error: any) => {
-        if (!String(error).includes("Missing or insufficient permissions") && !String(error).includes("PERMISSION_DENIED")) {
-           const isQuota = String(error).includes("quota") || String(error).includes("Quota") || String(error).includes("RESOURCE_EXHAUSTED") || String(error).includes("resource-exhausted");
-           if (isQuota) {
-              console.warn("Firebase Quota Exceeded handled in UI.");
-              setQuotaError(error.message || String(error));
-           } else {
-              console.error("Firestore sync error", error);
-           }
-        }
-        if (error.code === 'permission-denied' && user) {
-          setAuthError(`المعذرة، حسابك ما عنده صلاحية للوصول للبيانات. تأكد إن الحساب مصرح له.\nالبريد: ${user.email}`);
-        }
-        setDataLoading(false);
+        rootInitialLoaded = true;
+        markInitialCloudLoad();
+      }, (err) => {
+         rootInitialLoaded = true;
+         markInitialCloudLoad();
+         if (!String(err).includes("Missing or insufficient permissions")) {
+            console.error("Root sync error:", err);
+         }
       });
+
+      // 3. Sync SHARDS Data (Invoices, Customers, etc.)
+      const shardUnsubs: any[] = [];
+      SHARDED_KEYS.forEach(key => {
+         const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+         const unmanagedUnsub = onSnapshot(shardRef, (shardSnap) => {
+            if (shardSnap.exists()) {
+               const shardData = shardSnap.data();
+               if (shardData && shardData[key] !== undefined) {
+                  setData(prev => {
+                     const updated = { ...prev, [key]: shardData[key] };
+                     // If everything is joined, keep sync logic happy
+                     if (key === 'products') {
+                        return joinProductsFromDatabase(updated);
+                     }
+                     return updated;
+                  });
+               }
+            }
+            shardInitialLoadState[key] = true;
+            markInitialCloudLoad();
+         }, (err) => {
+            shardInitialLoadState[key] = true;
+            markInitialCloudLoad();
+            // Handle permission denied or other errors gracefully
+            if (String(err).includes("permission-denied") || String(err).includes("Missing or insufficient permissions")) {
+               console.warn(`Shard sync skipped for ${key}: permission denied. Safe to ignore for customer apps.`);
+            } else {
+               console.error(`Shard sync error for ${key}:`, err);
+            }
+         });
+         shardUnsubs.push(unmanagedUnsub);
+      });
+
+      // Combined cleanup
+      const legacyUnsub = syncUnsubscribe;
+      syncUnsubscribe = () => {
+         if (legacyUnsub) legacyUnsub();
+         shardUnsubs.forEach(unsub => unsub());
+      };
     };
 
     startDataSync();
@@ -1788,7 +1775,6 @@ const MainApp: React.FC = () => {
       
       // Auto-save to Cloud if in cloud mode and authenticated
       if (user && appMode === 'cloud') {
-        const dataRef = getSmartDoc('appData', user.uid, user.email);
         try {
           const sanitizedDataStr = JSON.stringify(data);
           
@@ -1798,18 +1784,50 @@ const MainApp: React.FC = () => {
           }
 
           lastRemoteSnapshotRef.current = sanitizedDataStr;
-          console.log("Auto-saving to Firestore:", dataRef.path);
+          
+          // --- SHARDED AUTO-SAVE LOGIC ---
+          const rootDataRef = getSmartDoc('appData', user.uid, user.email);
           const splitData = splitProductsForDatabase(data);
-          const sanitizedData = JSON.parse(JSON.stringify(splitData));
-          await setDoc(dataRef, sanitizedData, { merge: true });
-          console.log("Auto-save successful");
+          
+          // Prepare the root document (everything EXCEPT sharded keys)
+          const rootDocData: any = { ...splitData };
+          const shardedPayloads: Record<string, any> = {};
+          
+          SHARDED_KEYS.forEach(key => {
+            if (rootDocData[key]) {
+              shardedPayloads[key] = rootDocData[key];
+              // Clear from root to save space
+              rootDocData[key] = []; 
+            }
+          });
+          
+          const sanitizedRoot = JSON.parse(JSON.stringify(rootDocData));
+          console.log("Auto-saving sharded data to Firestore...");
+          
+          // 1. Save Root
+          const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
+          
+          // 2. Save Shards (one per collection)
+          SHARDED_KEYS.forEach(key => {
+             if (shardedPayloads[key]) {
+                const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+                const shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloads[key] }));
+                savePromises.push(setDoc(shardRef, shardContent, { merge: true }));
+             }
+          });
+          
+          await Promise.all(savePromises);
+          console.log("Sharded auto-save successful");
           
         } catch (e) {
           if (!String(e).includes("Missing or insufficient permissions") && !String(e).includes("PERMISSION_DENIED")) console.error("Firestore auto-save error", e);
-          toast.error("تعطل الحفظ التلقائي للسحابة. يمكن حجم البيانات تعدى 1 ميجابايت.");
+          // Only show error if it's NOT a permission issue (common during sign-out)
+          if (user) {
+             toast.error("تعثر الحفظ التلقائي. جارٍ المحاولة مرة أخرى...");
+          }
         }
       }
-    }, 1000); // 1 second debounce to prevent extreme UI lag on every keystroke
+    }, 2000); // 2 second debounce for sharded saving
 
     return () => clearTimeout(timeoutId);
   }, [data, user, appMode]);

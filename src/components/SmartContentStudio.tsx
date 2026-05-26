@@ -514,7 +514,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       packId: selectedPulseId,
       place: selectedOrderPlace || activePulsePack.defaultPlace,
       goal: selectedContentGoal,
-      customText: selectedTheme === 'مخصص' ? customThemeQuery : `${selectedTheme}. ${customThemeQuery}`
+      customText: selectedTheme === 'مخصص' ? customThemeQuery : `${selectedTheme}. ${customThemeQuery}`,
+      products: data?.products
     }));
 
     setIsGenerating(true);
@@ -597,7 +598,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       packId: selectedPulseId,
       place: selectedOrderPlace || activePulsePack.defaultPlace,
       goal: selectedContentGoal,
-      customText: customThemeQuery || activePulsePack.label
+      customText: customThemeQuery || activePulsePack.label,
+      products: data?.products
     }));
     setIsGenerating(true);
     setGeneratedImage(null);
@@ -798,7 +800,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           image: safeBase64,
-          theme: `${buildKuwaitStudioTheme({ packId: selectedPulseId, place: selectedOrderPlace || activePulsePack.defaultPlace, goal: selectedContentGoal, customText: customThemeQuery || selectedTheme })}. ${STUDIO_NEGATIVE_PROMPT}`
+          theme: `${buildKuwaitStudioTheme({ 
+            packId: selectedPulseId, 
+            place: selectedOrderPlace || activePulsePack.defaultPlace, 
+            goal: selectedContentGoal, 
+            customText: customThemeQuery || selectedTheme,
+            products: data?.products
+          })}. ${STUDIO_NEGATIVE_PROMPT}`
         })
       });
       let res: any = null;
