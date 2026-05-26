@@ -14,6 +14,37 @@ const isValidNumber = (val: any): boolean => {
  return val !== null && val !== undefined && typeof val === 'number' && !isNaN(val) && isFinite(val);
 };
 
+const normalizeSearchText = (value: any): string => {
+ return String(value || '')
+   .toLowerCase()
+   .replace(/[\u064B-\u065F\u0670]/g, '')
+   .replace(/[إأآا]/g, 'ا')
+   .replace(/ى/g, 'ي')
+   .replace(/ؤ/g, 'و')
+   .replace(/ئ/g, 'ي')
+   .replace(/ة/g, 'ه')
+   .replace(/[\s\-_/]+/g, ' ')
+   .trim();
+};
+
+const getProductSearchText = (insight: RealProfitInsight, products: any[]): string => {
+ const productId = String((insight as any).productId || insight.id || '').replace(/^profit-/, '');
+ const relatedProduct = products.find((product: any) => String(product?.id || '') === productId || String(product?.name || '') === String(insight.productName || ''));
+ return normalizeSearchText([
+   insight.productName,
+   (insight as any).productNameAr,
+   (insight as any).name,
+   (insight as any).title,
+   (insight as any).sku,
+   (insight as any).category,
+   relatedProduct?.name,
+   relatedProduct?.title,
+   relatedProduct?.nameAr,
+   relatedProduct?.sku,
+   relatedProduct?.category,
+ ].filter(Boolean).join(' '));
+};
+
 const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onToggle: () => void }> = ({ insight, isOpen, onToggle }) => {
  // Strict Validation logic
  const isRevenueValid = isValidNumber(insight.revenue);
@@ -181,11 +212,14 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
  return isRevenueValid && isRealProfitValid && isHiddenCostsValid && isRawProfitValid;
  });
 
- const normalizedFilter = String(filter || '').trim().toLowerCase();
+ const productsForSearch = Array.isArray(data?.products) ? data.products : [];
+ const normalizedFilter = normalizeSearchText(filter);
+ const filterParts = normalizedFilter.split(' ').filter(Boolean);
  const filteredInsights = normalizedFilter
- ? validInsights.filter((insight) =>
- String(insight.productName || '').toLowerCase().includes(normalizedFilter)
- )
+ ? validInsights.filter((insight) => {
+   const searchableText = getProductSearchText(insight, productsForSearch);
+   return filterParts.every((part) => searchableText.includes(part));
+ })
  : validInsights;
 
  if (validInsights.length === 0) {
