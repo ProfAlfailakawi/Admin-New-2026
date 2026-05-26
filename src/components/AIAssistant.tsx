@@ -236,7 +236,7 @@ const buildAssistantIntel = (data: AppState) => {
    recentInvoices: recentInvoices.map((i) => `${i.date}: ${money(i.total)} د.ك / ربح ${money(i.profit)} / ${i.items}`).join(' | ') || 'لا توجد فواتير حديثة',
    hiddenGem: hiddenGem ? `${hiddenGem.name} / هامش ${hiddenGem.margin}% / مبيعات ${hiddenGem.soldQty} / سعر ${money(hiddenGem.price)} / تكلفة ${money(hiddenGem.cost)}` : 'لا يوجد',
    atRiskCustomer: atRiskCustomer ? `${atRiskCustomer.name || atRiskCustomer.phone} / غياب ${atRiskCustomer.idleDays} يوم / إنفاق ${money(atRiskCustomer.spent)}` : 'لا يوجد',
-   dataFreshness: `${paidInvoices.length} فاتورة مدفوعة من أصل ${invoices.length} / ${orders.length} طلب / ${products.length} منتج / ${customers.length} عميل`,
+   dataFreshness: `${paidInvoiceCount} فاتورة مدفوعة من أصل ${invoices.length} / ${orders.length} طلب / ${products.length} منتج / ${customers.length} عميل`,
    missions: missions.slice(0, 4),
  };
 };
@@ -255,9 +255,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 	 const [messages, setMessages] = useState<Message[]>([
 	 { 
 	 role: 'assistant', 
-	 content: `🌸 يا هلا بك يا طويل العمر في عقل النظام التنفيذي!
-
-أنا مستشارك ومساعدك الذكي. قمت بفحص وتحليل المبيعات، التكاليف، هوامش الربح، والمخزون، وجاهز لمساعدتك فوراً` 
+	 content: 'حاضر يا طويل العمر. أنا أقرأ بيانات مطعمك أولاً، وبعدها أعطيك قرار واضح: شنو صار، ليش صار، وشنو تسوي الحين. ما راح أعطيك كلام عام.' 
 	 }
 	 ]);
  const [input, setInput] = useState('');
