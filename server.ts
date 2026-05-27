@@ -452,6 +452,11 @@ app.get("/api/admin-dashboard-data", async (_req, res) => {
       console.warn("[admin-dashboard-data] Could not read appData/shared_company_data:", e?.message || e);
     }
 
+    const sharedGenerationId = String(sharedData.__adminDataGenerationId || "");
+    if (sharedGenerationId) {
+      rootSquads = rootSquads.filter((sq: any) => String(sq?.__adminDataGenerationId || "") === sharedGenerationId);
+    }
+
     const sharedSquads = asArray(sharedData.squads);
     const sharedOrders = asArray(sharedData.orders);
     const inferredSquads = squadsFromOrders(sharedOrders);
@@ -2458,14 +2463,19 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         console.error("[ALERTS] alertsSyncFailedInvoicesFromPushEvents get failed:", e);
       }
       return { updated: 0, ids: [] };
-    }
-    const shared = snap.data() || {};
-    let invoices = Array.isArray(shared.invoices) ? [...shared.invoices] : [];
-    let orders = Array.isArray(shared.orders) ? [...shared.orders] : [];
+	    }
+	    const shared = snap.data() || {};
+	    const authoritativeSince = new Date(shared.__adminLastAuthoritativeWriteAt || "").getTime();
+	    let invoices = Array.isArray(shared.invoices) ? [...shared.invoices] : [];
+	    let orders = Array.isArray(shared.orders) ? [...shared.orders] : [];
     const markFailed = (id: string, item: any = {}) => ({ ...item, id, invoiceId: id, invoiceNo: id, tracked_order: id, requested_order_id: id, source: item?.source || "payment-return-failed-event", type: item?.type || "admin_invoice", status: "فشل في عملية الدفع", paymentStatus: "failed", payment_status: "failed", paid: false, failed: true, canPay: true, createdAt: item?.createdAt || alertsDateFromBusinessId(id)?.toISOString() || new Date().toISOString(), failedAt: item?.failedAt || new Date().toISOString(), updatedAt: new Date().toISOString() });
-    let updated = 0;
-    for (const id of failedInvoiceIds) {
-      const invoiceMatches = invoices.filter((x: any) => alertsIdsFor(x).includes(id));
+	    let updated = 0;
+	    for (const id of failedInvoiceIds) {
+	      if (Number.isFinite(authoritativeSince) && authoritativeSince > 0) {
+	        const eventTime = alertsDateFromBusinessId(id)?.getTime() || 0;
+	        if (eventTime && eventTime < authoritativeSince) continue;
+	      }
+	      const invoiceMatches = invoices.filter((x: any) => alertsIdsFor(x).includes(id));
       const orderMatches = orders.filter((x: any) => alertsIdsFor(x).includes(id));
       const base = invoiceMatches[invoiceMatches.length - 1] || orderMatches[orderMatches.length - 1] || { id, invoiceId: id, invoiceNo: id, tracked_order: id, requested_order_id: id, source: "payment-return-failed-event", type: "admin_invoice" };
       invoices = [...invoices.filter((x: any) => !alertsIdsFor(x).includes(id)), markFailed(id, base)];

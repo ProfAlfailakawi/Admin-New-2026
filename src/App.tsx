@@ -1499,16 +1499,18 @@ const MainApp: React.FC = () => {
       const splitData = splitProductsForDatabase(data);
       
       const rootDocData: any = { ...splitData };
+      const generationId = getAdminDataGenerationId();
+      const rootDocDataWithMeta = withAuthoritativeSharedMeta(rootDocData, generationId);
       const shardedPayloads: Record<string, any> = {};
       
       SHARDED_KEYS.forEach(key => {
-        if (rootDocData[key]) {
-          shardedPayloads[key] = rootDocData[key];
-          rootDocData[key] = []; 
+        if (rootDocDataWithMeta[key]) {
+          shardedPayloads[key] = rootDocDataWithMeta[key];
+          rootDocDataWithMeta[key] = []; 
         }
       });
       
-      const sanitizedRoot = JSON.parse(JSON.stringify(rootDocData));
+      const sanitizedRoot = JSON.parse(JSON.stringify(rootDocDataWithMeta));
       const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
       
       SHARDED_KEYS.forEach(key => {
@@ -1546,6 +1548,7 @@ const MainApp: React.FC = () => {
   const loadedCloudShardKeysRef = useRef<Set<string>>(new Set());
   const isCloudSyncApplyingRef = useRef(false);
   const lastRemoteKeysRef = useRef<Record<string, string>>({});
+  const authoritativeDataWrittenAtRef = useRef<number>(0);
 
   const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
   
@@ -1565,6 +1568,34 @@ const MainApp: React.FC = () => {
     if (Array.isArray(value)) return value.length > 0;
     if (value && typeof value === 'object') return Object.keys(value).length > 0;
     return value !== undefined && value !== null && value !== '';
+  };
+
+  const getAdminDataGenerationId = (rotate = false) => {
+    const key = 'ktk_admin_data_generation_id';
+    try {
+      const current = localStorage.getItem(key);
+      if (!rotate && current) return current;
+      const next = `admin-data-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      localStorage.setItem(key, next);
+      return next;
+    } catch {
+      return `admin-data-${Date.now()}`;
+    }
+  };
+
+  const withAuthoritativeSharedMeta = (value: any, generationId = getAdminDataGenerationId()) => ({
+    ...value,
+    __adminDataGenerationId: generationId,
+    __adminLastAuthoritativeWriteAt: new Date().toISOString(),
+  });
+
+  const getRecordTime = (item: any) => {
+    const raw = item?.updatedAt || item?.createdAt || item?.date || item?.orderDate || item?.timestamp;
+    if (!raw) return 0;
+    if (typeof raw?.toDate === 'function') return raw.toDate().getTime();
+    if (typeof raw === 'number') return raw;
+    const parsed = new Date(raw).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
   };
 
   const parseStoredState = (raw: string | null): AppState | null => {
@@ -1595,10 +1626,12 @@ const MainApp: React.FC = () => {
     
     const performSave = async (isRetry = false): Promise<boolean> => {
       try {
-        const rootDataRef = getSmartDoc('appData', user.uid, user.email);
-        const splitData = splitProductsForDatabase(importedState);
-        
-        const rootDocData: any = { ...splitData };
+	        const rootDataRef = getSmartDoc('appData', user.uid, user.email);
+	        const generationId = getAdminDataGenerationId(true);
+        const authoritativeWriteAt = Date.now();
+	        const splitData = splitProductsForDatabase(importedState);
+	        
+	        const rootDocData: any = { ...splitData };
         const shardedPayloads: Record<string, any> = {};
         
 	        SHARDED_KEYS.forEach(key => {
@@ -1610,9 +1643,14 @@ const MainApp: React.FC = () => {
           }
         });
         
-        const serializedRootCurrent = stableStringify(rootDocData);
-        const sanitizedRoot = JSON.parse(JSON.stringify(rootDocData));
-        const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
+	        const authoritativeRoot = {
+	          ...rootDocData,
+	          __adminDataGenerationId: generationId,
+	          __adminLastAuthoritativeWriteAt: new Date(authoritativeWriteAt).toISOString(),
+	        };
+	        const serializedRootCurrent = stableStringify(authoritativeRoot);
+	        const sanitizedRoot = JSON.parse(JSON.stringify(authoritativeRoot));
+	        const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: false })];
         
 	        SHARDED_KEYS.forEach(key => {
 	           if (shardedPayloads[key] !== undefined) {
@@ -1628,11 +1666,29 @@ const MainApp: React.FC = () => {
               } else {
                   shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloads[key], isCompressed: false }));
               }
-              savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
-           }
-        });
-        
-        await Promise.all(savePromises);
+	              savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
+	           }
+	        });
+
+	        try {
+	          const squadsSnap = await getDocs(collection(db, 'squads'));
+	          squadsSnap.docs.forEach((squadDoc) => savePromises.push(deleteDoc(squadDoc.ref)));
+	          if (Array.isArray(shardedPayloads.squads)) {
+	            shardedPayloads.squads.forEach((sq: any) => {
+	              if (sq && sq.id !== undefined) {
+	                savePromises.push(setDoc(doc(db, 'squads', String(sq.id)), JSON.parse(JSON.stringify({
+	                  ...sq,
+	                  __adminDataGenerationId: generationId,
+	                  __adminSyncedFromSharedCompanyDataAt: new Date().toISOString(),
+	                })), { merge: false }));
+	              }
+	            });
+	          }
+	        } catch (mirrorErr) {
+	          console.warn('[DATA_GUARD] Could not fully refresh root squads mirror during import:', mirrorErr);
+	        }
+	        
+	        await Promise.all(savePromises);
         
         lastRemoteKeysRef.current['__root__'] = serializedRootCurrent;
         cloudRootExistsRef.current = true;
@@ -1644,8 +1700,14 @@ const MainApp: React.FC = () => {
            }
         });
         
-        const newFullStateStr = JSON.stringify(importedState);
-        lastRemoteSnapshotRef.current = newFullStateStr;
+	        const authoritativeImportedState = {
+	          ...importedState,
+	          __adminDataGenerationId: generationId,
+	          __adminLastAuthoritativeWriteAt: new Date(authoritativeWriteAt).toISOString(),
+	        } as AppState;
+	        const newFullStateStr = JSON.stringify(authoritativeImportedState);
+	        lastRemoteSnapshotRef.current = newFullStateStr;
+        authoritativeDataWrittenAtRef.current = authoritativeWriteAt;
         
         try {
           setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', newFullStateStr);
@@ -1654,7 +1716,7 @@ const MainApp: React.FC = () => {
           console.warn("localStorage sync skipped during cloud import:", err);
         }
         
-        setData(importedState);
+	        setData(authoritativeImportedState);
         console.log("Cloud Import completed successfully and all sync tracking references aligned.");
         return true;
       } catch (err) {
@@ -1811,17 +1873,25 @@ const MainApp: React.FC = () => {
         return;
       }
 
-      setDataLoading(true);
-      hasLoadedDataRef.current = false;
-      cloudRootExistsRef.current = false;
-      loadedCloudShardKeysRef.current = new Set();
-      lastRemoteKeysRef.current = {};
+	      setDataLoading(true);
+	      hasLoadedDataRef.current = false;
+	      cloudRootExistsRef.current = false;
+	      loadedCloudShardKeysRef.current = new Set();
+	      lastRemoteKeysRef.current = {};
+      authoritativeDataWrittenAtRef.current = 0;
 
       // 1. Sync orders independently (Legacy/Customer App)
       try {
          const qOrders = query(collection(db, 'orders'), orderBy('date', 'desc'), limit(50));
          ordersUnsubscribe = onSnapshot(qOrders, (snap) => {
-            const externalOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+	            const externalOrders = snap.docs
+	              .map(d => ({ id: d.id, ...d.data() }))
+	              .filter((order: any) => {
+	                const cutoff = authoritativeDataWrittenAtRef.current;
+	                if (!cutoff) return true;
+	                const orderTime = getRecordTime(order);
+	                return orderTime >= cutoff;
+	              });
             setData(prev => {
                 const prevOrders = prev.orders || [];
                 let changed = false;
@@ -1869,7 +1939,9 @@ const MainApp: React.FC = () => {
 
         if (rootSnap.exists()) {
           cloudRootExistsRef.current = true;
-          const rawRootData = rootSnap.data() as any;
+	          const rawRootData = rootSnap.data() as any;
+          const rootWrittenAt = new Date(rawRootData.__adminLastAuthoritativeWriteAt || '').getTime();
+          authoritativeDataWrittenAtRef.current = Number.isFinite(rootWrittenAt) ? rootWrittenAt : 0;
           const rootDataOnly = { ...rawRootData };
           SHARDED_KEYS.forEach(k => {
             if (k !== 'products') delete rootDataOnly[k];
@@ -1883,13 +1955,17 @@ const MainApp: React.FC = () => {
             }
           });
           loadedState = { ...loadedState, ...sanitizedRoot };
-        } else {
-          // Important: never restore local/demo data into an empty cloud account.
-          cloudRootExistsRef.current = false;
-          lastRemoteKeysRef.current['__root__'] = stableStringify(splitProductsForDatabase(INITIAL_DATA));
-        }
+	        } else {
+	          // Important: never restore local/demo data into an empty cloud account.
+	          cloudRootExistsRef.current = false;
+	          lastRemoteKeysRef.current['__root__'] = stableStringify(splitProductsForDatabase(INITIAL_DATA));
+	        }
 
-        const shardResults = await Promise.all(SHARDED_KEYS.map(async (key) => {
+        const cloudGenerationId = String(loadedState?.__adminDataGenerationId || "");
+        const localSnapshotGenerationId = String((localCloudSnapshot as any)?.__adminDataGenerationId || "");
+        const canUseLocalCloudSnapshot = Boolean(localCloudSnapshot) && (!cloudGenerationId || localSnapshotGenerationId === cloudGenerationId);
+
+	        const shardResults = await Promise.all(SHARDED_KEYS.map(async (key) => {
           const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
           try {
             const shardSnap = await getDocFromServer(shardRef).catch(() => getDoc(shardRef));
@@ -1902,7 +1978,7 @@ const MainApp: React.FC = () => {
 	            } else if (shardData && shardData[key] !== undefined) {
 	              parsedData = shardData[key];
 	            }
-	            if (!hasMeaningfulData(parsedData) && hasMeaningfulData((localCloudSnapshot as any)?.[key])) {
+	            if (canUseLocalCloudSnapshot && !hasMeaningfulData(parsedData) && hasMeaningfulData((localCloudSnapshot as any)?.[key])) {
 	              parsedData = (localCloudSnapshot as any)[key];
 	            }
 	            return { key, exists: true, value: parsedData };
@@ -1968,7 +2044,7 @@ const MainApp: React.FC = () => {
           }
         }
 
-	        if (cloudRootExistsRef.current && localCloudSnapshot) {
+	        if (cloudRootExistsRef.current && canUseLocalCloudSnapshot) {
 	          loadedState = safeMergeData(localCloudSnapshot, loadedState);
 	        }
 	        setData(loadedState);
@@ -2042,13 +2118,13 @@ const MainApp: React.FC = () => {
           // لا نحدّث آخر لقطة إلا بعد نجاح الحفظ، حتى لا نخسر محاولة لاحقة.
           
           // --- SHARDED AUTO-SAVE LOGIC ---
-          const rootDataRef = getSmartDoc('appData', user.uid, user.email);
-          const splitData = splitProductsForDatabase(data);
-          // 1. Detect if the Root document fields (non-sharded keys) have changed
-          const rootDocData = { ...splitData };
-          SHARDED_KEYS.forEach(key => {
-             if (key !== 'products') {
-                 delete rootDocData[key];
+	        const rootDataRef = getSmartDoc('appData', user.uid, user.email);
+	        const splitData = splitProductsForDatabase(data);
+	          // 1. Detect if the Root document fields (non-sharded keys) have changed
+	          const rootDocData = withAuthoritativeSharedMeta({ ...splitData });
+	          SHARDED_KEYS.forEach(key => {
+	             if (key !== 'products') {
+	                 delete rootDocData[key];
              }
           });
           const serializedRootCurrent = stableStringify(rootDocData);
@@ -2087,8 +2163,8 @@ const MainApp: React.FC = () => {
           // 3. Save Root (only if modified or doesn't exist yet)
           if (hasRootChanged || !cloudRootExistsRef.current) {
              // Retain placeholders for SHARDED_KEYS
-             const rootDocDataWithPlaceholders = { ...splitData };
-             SHARDED_KEYS.forEach(key => {
+	             const rootDocDataWithPlaceholders = withAuthoritativeSharedMeta({ ...splitData });
+	             SHARDED_KEYS.forEach(key => {
                if (rootDocDataWithPlaceholders[key] !== undefined) {
                  if (key === 'products') {
                      // Keep products in the root document because the Client App needs it!
@@ -2100,7 +2176,7 @@ const MainApp: React.FC = () => {
              });
              const sanitizedRoot = JSON.parse(JSON.stringify(rootDocDataWithPlaceholders));
              console.log("Saving root modifications to Firestore...");
-             savePromises.push(setDoc(rootDataRef, sanitizedRoot, { merge: true }));
+	            savePromises.push(setDoc(rootDataRef, sanitizedRoot, { merge: false }));
           }
 
           // 4. Save Shards (only for changed parts)
@@ -2129,9 +2205,13 @@ const MainApp: React.FC = () => {
                
                currentSquads.forEach((sq: any) => {
                  if (sq && sq.id !== undefined) {
-                   const squadDocRef = doc(db, 'squads', String(sq.id));
-                   const sanitizedsq = JSON.parse(JSON.stringify(sq));
-                   savePromises.push(setDoc(squadDocRef, sanitizedsq, { merge: true }));
+	                   const squadDocRef = doc(db, 'squads', String(sq.id));
+	                   const sanitizedsq = JSON.parse(JSON.stringify({
+	                     ...sq,
+	                     __adminDataGenerationId: getAdminDataGenerationId(),
+	                     __adminSyncedFromSharedCompanyDataAt: new Date().toISOString(),
+	                   }));
+	                   savePromises.push(setDoc(squadDocRef, sanitizedsq, { merge: true }));
                  }
                });
 

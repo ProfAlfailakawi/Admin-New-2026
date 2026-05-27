@@ -8,7 +8,7 @@ import { AppState, AppSettings, Zone, Product, Customer, Expense, Supplier, Test
 import { GET_DEMO_DATA } from '../data';
 import { cn, formatFullAddress, normalizeAddressObject, normalizeArabicNumerals, normalizeArabic } from '../lib/utils';
 import * as XLSX from 'xlsx';
-import { doc, setDoc } from 'firebase/firestore'; 
+import { collection, doc, getDocs, setDoc, writeBatch } from 'firebase/firestore'; 
 import { db, auth, getSmartDoc } from '../firebase'; 
 import { Toggle } from './ui/Toggle';
 import { INITIAL_DATA } from '../data'; 
@@ -95,9 +95,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     const currentUser = auth.currentUser;
     if (appMode === 'cloud' && currentUser) {
       try {
+        const generationId = `admin-data-reset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        try { localStorage.setItem('ktk_admin_data_generation_id', generationId); } catch {}
         const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
         const dataRef = getSmartDoc('appData', currentUser.uid, currentUser.email);
         const cleanRoot: any = { ...INITIAL_DATA };
+        cleanRoot.__adminDataGenerationId = generationId;
+        cleanRoot.__adminLastAuthoritativeWriteAt = new Date().toISOString();
         SHARDED_KEYS.forEach(key => {
           if (key !== 'products' && cleanRoot[key] !== undefined) cleanRoot[key] = [];
         });
@@ -111,6 +115,20 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
             console.warn(`Shard ${key} skip:`, e);
           }
         }));
+
+        const squadsSnap = await getDocs(collection(db, 'squads'));
+        let batch = writeBatch(db);
+        let batchCount = 0;
+        for (const squadDoc of squadsSnap.docs) {
+          batch.delete(squadDoc.ref);
+          batchCount += 1;
+          if (batchCount >= 450) {
+            await batch.commit();
+            batch = writeBatch(db);
+            batchCount = 0;
+          }
+        }
+        if (batchCount > 0) await batch.commit();
       } catch (cloudErr) {
         console.error("Cloud reset failed:", cloudErr);
         if (String(cloudErr).includes('permissions') || String(cloudErr).includes('permission-denied')) {
