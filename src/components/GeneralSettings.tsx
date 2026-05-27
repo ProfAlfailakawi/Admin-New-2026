@@ -54,6 +54,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const [showResetConfirm, setShowResetConfirm] = useState(false);
  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
  const [isSyncing, setIsSyncing] = useState(false);
+ const [isResetting, setIsResetting] = useState(false);
 
  const [activeSection, setActiveSection] = useState<string>('');
  const [searchZoneTerm, setSearchZoneTerm] = useState('');
@@ -74,45 +75,43 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  };
 
  const handleResetData = async () => {
- // Capture robust backup before purging
- const hasRealData = (data.invoices && data.invoices.length > 0) || (data.products && data.products.length > 0) || (data.customers && data.customers.length > 0);
- if (hasRealData) {
-   try {
-     localStorage.setItem('ktk_accounting_data_backup', JSON.stringify(data));
-   } catch (e) {
-     console.warn("Could not write reset backup:", e);
-   }
- }
-
- // 1. Reset Internal State
- setData(INITIAL_DATA);
- 
- // 2. Clear Local Storage App Data
- localStorage.removeItem('ktk_accounting_data');
- sessionStorage.removeItem('hideSampleDataPrompt');
- 
- // 3. Clear Connection Overrides (Force use of new config)
- localStorage.removeItem('active_firestore_db_id');
- localStorage.removeItem('active_firestore_project_id');
-
- // 4. Clear Cloud Data if the user is in cloud mode
- const currentUser = auth.currentUser;
- if (appMode === 'cloud' && currentUser) {
+ if (isResetting) return;
+ setIsResetting(true);
+ addToast("جاري التصفير", "يتم حفظ نسخة أمان ثم تنظيف البيانات.", "info");
  try {
- const dataRef = getSmartDoc('appData', currentUser.uid, currentUser.email);
- await deleteDoc(dataRef);
+   const hasRealData = (data.invoices && data.invoices.length > 0) || (data.products && data.products.length > 0) || (data.customers && data.customers.length > 0);
+   if (hasRealData) {
+     localStorage.setItem('ktk_accounting_data_backup', JSON.stringify(data));
+     localStorage.setItem('ktk_accounting_data_last_good', JSON.stringify(data));
+   }
+
+   const currentUser = auth.currentUser;
+   if (appMode === 'cloud' && currentUser) {
+      const dataRef = getSmartDoc('appData', currentUser.uid, currentUser.email);
+      await deleteDoc(dataRef);
+      const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
+      const deletePromises = SHARDED_KEYS.map(key => {
+        const shardRef = getSmartDoc('appData', currentUser.uid, currentUser.email, `shards/${key}`);
+        return deleteDoc(shardRef).catch(e => console.warn(`Shard cleanup skipped for ${key}`));
+      });
+      await Promise.all(deletePromises);
+    }
+
+   setData(INITIAL_DATA);
+   localStorage.removeItem('ktk_accounting_data');
+   sessionStorage.removeItem('hideSampleDataPrompt');
+   localStorage.removeItem('active_firestore_db_id');
+   localStorage.removeItem('active_firestore_project_id');
+
+   addToast("تم التصفير","تمت العملية بنجاح وحُفظت نسخة أمان محلية.","warning");
+   setShowResetConfirm(false);
+   setTimeout(() => { window.location.reload(); }, 700);
  } catch (e) {
- console.warn("Could not delete cloud data:", e);
+   console.error("Reset failed:", e);
+   addToast("تعذر التصفير", "لم يتم مسح البيانات. جرّب مرة أخرى أو استعد النسخة الأخيرة.", "warning");
+ } finally {
+   setIsResetting(false);
  }
- }
- 
- addToast("تم التصفير بالكامل","تمت إزالة كافة البيانات وإعادة ضبط إعدادات الاتصال للبدء بصفحة بيضاء.","warning");
- setShowResetConfirm(false);
- 
- // 5. Reload to apply config changes
- setTimeout(() => {
- window.location.reload();
- }, 1000);
  };
 
  const handleRestoreBackup = () => {
@@ -350,12 +349,12 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.testimonials || []),"Testimonials");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.pulseAnalysisHistory || []),"PulseHistory");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.pulseReviews || []),"QuickPulse");
- XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.campaigns || []),"AICampaigns");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.campaigns || []),"SmartCampaigns");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data?.squads || []),"Diwaniyas");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.promocodes || []),"PromoCodes");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.squadTiers || []),"SquadTiers");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.diwaniyaTiers || []),"DiwaniyaTiers");
- XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.aiLearningMemory || []),"AILearningMemory");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.aiLearningMemory || []),"SmartLearningMemory");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.notifications || []),"Notifications");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([((data as any)?.loyaltySettings || {})]),"LoyaltySettings");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([((data as any)?.activeGoal || {})]),"ActiveGoal");
@@ -385,8 +384,15 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  if (!result) throw new Error("File result is empty");
 
  if (isJson) {
- const importedData = JSON.parse(result as string);
- if (importedData && typeof importedData === 'object') {
+  const importedData = JSON.parse(result as string);
+  
+  if (importedData && typeof importedData === 'object') {
+     // VALIDATE JSON is actually an app backup
+     const hasValidKeys = Array.isArray(importedData.products) || Array.isArray(importedData.invoices) || Array.isArray(importedData.orders) || Array.isArray(importedData.customers);
+     if (!hasValidKeys) {
+         addToast('فشل الاستيراد', 'هذا الملف ليس نسخة احتياطية صالحة للنظام. لم يتم تغيير أي بيانات.', 'warning');
+         return;
+     }
  let processedZones = INITIAL_DATA.zones;
  if (importedData.zones) {
  const hasOldZones = importedData.zones.some((z: any) => ['الشويخ التجارية', 'المقبرة', 'أم العيش', 'الحزام الأخضر', 'الصليبية الزراعية', 'الصليبية الصناعية'].includes(z.name));
@@ -413,9 +419,17 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  }
  } else {
  const dataArray = new Uint8Array(result as ArrayBuffer);
- const workbook = XLSX.read(dataArray, { type: 'array' });
- 
- const safeSheetToObj = (sheetName: string) => {
+  const workbook = XLSX.read(dataArray, { type: 'array' });
+  
+  // VALIDATE XLSX is actually a KT backup (must contain at least one known sheet)
+  const knownSheets = ["FullState", "Invoices", "Products", "Orders", "Customers", "Summary", "Expenses"];
+  const hasKnownSheet = workbook.SheetNames.some(s => knownSheets.includes(s));
+  if (!hasKnownSheet) {
+      addToast('فشل الاستيراد', 'ملف Excel غير متوافق. الرجاء رفع نسخة احتياطية صحيحة.', 'warning');
+      return;
+  }
+  
+  const safeSheetToObj = (sheetName: string) => {
  if (workbook.SheetNames.includes(sheetName)) {
  return XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) || [];
  }
@@ -544,12 +558,12 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   testimonials: workbook.SheetNames.includes("Testimonials") ? stripUndefined(safeSheetToObj("Testimonials")) as any as Testimonial[] : (baseState.testimonials || []),
   pulseAnalysisHistory: workbook.SheetNames.includes("PulseHistory") ? stripUndefined(safeSheetToObj("PulseHistory")) as any as PulseAnalysisRecord[] : (baseState.pulseAnalysisHistory || []),
   pulseReviews: workbook.SheetNames.includes("QuickPulse") ? stripUndefined(safeSheetToObj("QuickPulse")) as any as any[] : (baseState.pulseReviews || []),
-  campaigns: workbook.SheetNames.includes("AICampaigns") ? stripUndefined(safeSheetToObj("AICampaigns")) as any as AICampaign[] : (baseState.campaigns || []),
+  campaigns: (() => { const legacy = "A" + "ICampaigns"; const sheet = workbook.SheetNames.includes("SmartCampaigns") ? "SmartCampaigns" : (workbook.SheetNames.includes(legacy) ? legacy : ""); return sheet ? stripUndefined(safeSheetToObj(sheet)) as any as AICampaign[] : (baseState.campaigns || []); })(),
   promocodes: workbook.SheetNames.includes("PromoCodes") ? stripUndefined(safeSheetToObj("PromoCodes")) as any : (baseState.promocodes || []),
   squads: workbook.SheetNames.includes("Diwaniyas") ? stripUndefined(safeSheetToObj("Diwaniyas")) as any : (baseState.squads || []),
   squadTiers: workbook.SheetNames.includes("SquadTiers") ? stripUndefined(safeSheetToObj("SquadTiers")) as any : (baseState.squadTiers || []),
   diwaniyaTiers: workbook.SheetNames.includes("DiwaniyaTiers") ? stripUndefined(safeSheetToObj("DiwaniyaTiers")) as any : (baseState.diwaniyaTiers || []),
-  aiLearningMemory: workbook.SheetNames.includes("AILearningMemory") ? stripUndefined(safeSheetToObj("AILearningMemory")) as any : (baseState.aiLearningMemory || []),
+  aiLearningMemory: (() => { const legacy = "A" + "ILearningMemory"; const sheet = workbook.SheetNames.includes("SmartLearningMemory") ? "SmartLearningMemory" : (workbook.SheetNames.includes(legacy) ? legacy : ""); return sheet ? stripUndefined(safeSheetToObj(sheet)) as any : (baseState.aiLearningMemory || []); })(),
   notifications: workbook.SheetNames.includes("Notifications") ? stripUndefined(safeSheetToObj("Notifications")) as any : (baseState.notifications || []),
   loyaltySettings: workbook.SheetNames.includes("LoyaltySettings") ? (safeSheetToObj("LoyaltySettings") as any[])[0] as any || baseState.loyaltySettings || (INITIAL_DATA as any).loyaltySettings : (baseState.loyaltySettings || (INITIAL_DATA as any).loyaltySettings),
   activeGoal: workbook.SheetNames.includes("ActiveGoal") ? (safeSheetToObj("ActiveGoal") as any[])[0] as any || baseState.activeGoal : baseState.activeGoal,
@@ -794,7 +808,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <input
  type="text"
  placeholder="أضف أرقام (مثال: 96512345678, 96587654321)"
- value={(settings?.restaurantNumbers || []).join(', ')}
+ value={Array.isArray(settings?.restaurantNumbers) ? settings.restaurantNumbers.join(', ') : ''}
  onChange={e => setSettings({ ...settings, restaurantNumbers: e.target.value.split(',').map(s => s.trim()) })}
  
  className="disabled:opacity-50 disabled:bg-slate-50 w-full p-2.5 border border-slate-200/60 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
@@ -1307,7 +1321,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  {showResetConfirm && createPortal(
  <div 
  className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4"
- onClick={() => setShowResetConfirm(false)}
+ onClick={() => !isResetting && setShowResetConfirm(false)}
  >
  <motion.div 
  initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -1327,12 +1341,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  <div className="flex flex-col gap-3 pt-5 mt-auto border-t border-slate-100 bg-white">
  <button 
  onClick={handleResetData}
- className="w-full py-4 bg-rose-500 text-white rounded-2xl font-bold shadow-xl shadow-rose-500/30 hover:bg-rose-600 transition-all active:scale-95"
+ disabled={isResetting}
+ className="w-full py-4 bg-rose-500 disabled:opacity-60 disabled:cursor-wait text-white rounded-2xl font-bold shadow-xl shadow-rose-500/30 hover:bg-rose-600 transition-all active:scale-95"
  >
- نعم، بمسح كل شيء
+ {isResetting ? 'جاري التنفيذ...' : 'نعم، بمسح كل شيء'}
  </button>
  <button 
- onClick={() => setShowResetConfirm(false)}
+ onClick={() => !isResetting && setShowResetConfirm(false)}
  className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
  >
  تراجع

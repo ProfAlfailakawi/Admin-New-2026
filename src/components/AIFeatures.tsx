@@ -19,7 +19,7 @@ export const BusinessHealthFeature = ({ data }: { data: any }) => {
  return <BusinessHealthIndex health={health} />;
 };
 
-// Also I'll expose hooks or wrappers for the other AI variables so they don't drag down Dashboard mount.
+// Expose lightweight wrappers so dashboard mount stays fast.
 export const useHeavyInsights = (data: any, shouldCompute: boolean) => {
  // We can conditionally compute them by passing empty if not shouldCompute,
  // but the safest way is a separate component.

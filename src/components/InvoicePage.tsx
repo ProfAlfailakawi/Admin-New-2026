@@ -968,7 +968,7 @@ Alturath.kw`;
     };
 
     return (
-      <div className="invoice-new-page p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 bg-slate-50 min-h-screen overflow-x-hidden">
+      <div className="invoice-new-page invoice-mobile-flow p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 bg-slate-50 min-h-screen overflow-x-hidden">
         {/* Product Selection */}
         <div className="lg:col-span-2 space-y-4 lg:space-y-6 order-1">
           <div className="bg-white rounded-3xl p-4 md:p-6 shadow-sm border border-slate-200 overflow-hidden">
@@ -1174,7 +1174,7 @@ Alturath.kw`;
         </div>
 
         {/* Cart Sidebar */}
-        <div className="lg:col-span-1 space-y-4 lg:space-y-6 order-2">
+        <div className="lg:col-span-1 space-y-4 lg:space-y-6 order-2 invoice-mobile-cart">
           <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-xl border border-slate-200 lg:sticky lg:top-6">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
               السلة <ShoppingCart size={20} className="text-primary" />
@@ -1185,7 +1185,7 @@ Alturath.kw`;
                 type="date"
                 value={invoiceDate}
                 onChange={(e) => setInvoiceDate(e.target.value)}
-                className="w-full bg-slate-50 border rounded-2xl p-3 sm:p-4 text-right font-bold text-sm sm:text-base"
+                className="w-full bg-slate-50 border rounded-xl sm:rounded-2xl p-2.5 sm:p-4 text-right font-bold text-xs sm:text-base"
               />
 
               <div className="relative">

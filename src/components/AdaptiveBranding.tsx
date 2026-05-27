@@ -65,7 +65,7 @@ export const AdaptiveBranding: React.FC<{ data: any; setData: any }> = ({ data, 
     setIsApplying(true);
     
     try {
-      // Prompting AI to generate a theme conceptually based on the text
+      // Prompting the engine to generate a theme conceptually based on the text
       const prompt = `You are an expert Kuwaiti brand designer. The user wants a custom theme for "${customThemeQuery}". 
 Respond with a JSON object containing:
 - name: string (A catchy short name for the theme in Arabic)

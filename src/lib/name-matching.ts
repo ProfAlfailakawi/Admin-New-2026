@@ -85,7 +85,7 @@ export const findBestProductMatch = (
 
   const normalizedInput = normalizeArabic(input);
 
-  // 1. Check AI Learning Memory first
+  // 1. Check learning memory first
   if (memory[normalizedInput]) {
     return memory[normalizedInput];
   }

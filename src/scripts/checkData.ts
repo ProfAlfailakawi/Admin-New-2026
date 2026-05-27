@@ -5,7 +5,7 @@ import LZString from 'lz-string';
 
 const activeConfig = JSON.parse(fs.readFileSync('./firebase-applet-config.json', 'utf8'));
 const app = initializeApp(activeConfig);
-const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+const db = initializeFirestore(app, { experimentalForceLongPolling: true }, activeConfig.firestoreDatabaseId);
 
 async function check() {
   const dataRef = doc(db, 'appData', 'shared_company_data');

@@ -524,7 +524,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setShowBrandingPanel(false);
     setRealityAudit(null);
 
-    // Call backend API to process the realistic AI image
+    // Call backend API to process the realistic image
     try {
       const response = await fetch('/api/smart-studio/generate', {
         method: 'POST',

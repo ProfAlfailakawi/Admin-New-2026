@@ -110,22 +110,24 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  const name = getFriendlyName(target.name);
  const productName = target.preemptiveMatch?.productName;
  const dayText = target.preemptiveMatch?.isTomorrow ? 'باجر' : `يوم ${target.preemptiveMatch?.dayOfWeekStr || 'قريب'}`;
- const productLine = productName ? `طلبك المعتاد (${productName}) حاضر.` : 'اختيارك المعتاد حاضر عندنا.';
+ const spendTier = Number(target.totalSpend || 0) > 500 ? 'vip' : Number(target.totalSpend || 0) > 200 ? 'loyal' : 'regular';
+ const absenceTier = Number(target.daysSinceLastOrder || 0) > 60 ? 'طالت الغيبة' : Number(target.daysSinceLastOrder || 0) > 30 ? 'صار لك فترة' : 'غبت كم يوم';
+ const productLine = productName ? `طلبك المعتاد (${productName}) حاضر.` : (spendTier === 'vip' ? 'نرتب لك اختيار يناسب طلباتك السابقة.' : 'نذكرك بأقرب اختيار من سجل طلباتك.');
  const templates = target.riskLevel === 'preemptive'
  ? [
    `هلا ${name}، واضح إن ${dayText} له ذوق خاص عندك. ${productLine} تحب نجهزه لك؟`,
-   `${name}، جهزنا لك تذكير ذكي قبل وقت طلبك المعتاد. ${productLine} نرتب لك الطلب؟`,
+   `${name}، قبل موعدك المعتاد جهزنا لك تذكير مختصر. ${productLine} نرتب لك الطلب؟`,
    `مساء الخير ${name}، قبل زحمة ${dayText}: ${productLine} إذا يناسبك نحجزه لك من الحين.`
  ]
  : target.riskLevel === 'critical'
  ? [
-   `${name}، لك مكان محفوظ عند التراث. رجعتك تهمنا، وحابين نجهز لك طلب يليق بذوقك.`,
+   `${name}، ${absenceTier}. رجعتك تهمنا، وحابين نجهز لك طلب يليق بذوقك.`,
    `هلا ${name}، طولت الغيبة. اخترنا لك عرض عودة خاص يناسب طلباتك السابقة.`,
-   `${name}، اشتقنا لطلباتك. نبي نرجع لك بتجربة مرتبة وهدية بسيطة مع الطلب القادم.`
+   `${name}، لأنك من عملائنا المميزين، نبي نرجع لك بتجربة مرتبة مع الطلب القادم.`
  ]
  : [
    `هلا ${name}، لاحظنا إنك غايب من فترة. نحب نذكرك إن طلبك عندنا دايم له اهتمام خاص.`,
-   `${name}، عندنا فرصة حلوة نرتب لك طلب سريع اليوم. حاب نجهزه؟`,
+   `${name}، ${absenceTier}. نقدر نرتب لك طلب سريع اليوم إذا يناسبك؟`,
    `مساء الخير ${name}، جهزنا لك ترشيح مناسب من التراث حسب طلباتك السابقة.`
  ];
  const rawMessage = `${pickMessage(templates, target.id || target.phone || target.name)}\n\nhttps://alturathkw.shop`;
