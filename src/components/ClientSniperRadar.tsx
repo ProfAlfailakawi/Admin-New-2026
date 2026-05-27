@@ -115,14 +115,16 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  const productLine = productName ? `طلبك المعتاد (${productName}) حاضر.` : (spendTier === 'vip' ? 'نرتب لك اختيار يناسب طلباتك السابقة.' : 'نذكرك بأقرب اختيار من سجل طلباتك.');
  const templates = target.riskLevel === 'preemptive'
  ? [
-   `هلا ${name}، واضح إن ${dayText} له ذوق خاص عندك. ${productLine} تحب نجهزه لك؟`,
-   `${name}، قبل موعدك المعتاد جهزنا لك تذكير مختصر. ${productLine} نرتب لك الطلب؟`,
-   `مساء الخير ${name}، قبل زحمة ${dayText}: ${productLine} إذا يناسبك نحجزه لك من الحين.`
+   `هلا ${name}، واضح إن ${dayText} له طلب مفضل عندك. ${productLine} نرتبه لك؟`,
+   `${name}، قبل موعدك المعتاد هذا تذكير سريع. ${productLine} نجهزه لك؟`,
+   `مساء الخير ${name}، قبل زحمة ${dayText}: ${productLine} إذا يناسبك نرتبه من الحين.`,
+   `${name}، عندك نمط طلب واضح يوم ${dayText}. ${productLine} نخليه جاهز؟`,
+   `يا هلا ${name}، طلبك المعتاد ظاهر في سجل التراث. ${productLine} نرتبه لك اليوم؟`
  ]
  : target.riskLevel === 'critical'
  ? [
    `${name}، ${absenceTier}. رجعتك تهمنا، وحابين نجهز لك طلب يليق بذوقك.`,
-   `هلا ${name}، طولت الغيبة. اخترنا لك عرض عودة خاص يناسب طلباتك السابقة.`,
+   `هلا ${name}، طولت الغيبة. نقدر نرجعك بطلب مرتب يناسب ذوقك السابق.`,
    `${name}، لأنك من عملائنا المميزين، نبي نرجع لك بتجربة مرتبة مع الطلب القادم.`
  ]
  : [
@@ -218,7 +220,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  <Target className="text-emerald-500" />
  </h3>
  <p className="text-slate-500 text-sm italic font-bold">
- يرصد العملاء الغائبين والفرص الاستباقية اعتمادًا على سجل الفواتير الفعلي. رسائل مختصرة، مخصصة، وجاهزة للتنفيذ.
+ يرصد العملاء الغائبين وفرص الطلب القادمة من سجل الفواتير الفعلي. رسائل قصيرة ومتنوعة وجاهزة للإرسال.
  </p>
  </div>
 
@@ -254,7 +256,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
 "px-3 py-1 rounded-full text-[10px] font-bold uppercase",
  selectedTarget.riskLevel === 'preemptive' ? 'bg-indigo-500/20 text-indigo-400' : selectedTarget.riskLevel === 'critical' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'
 )}>
- {selectedTarget.riskLevel === 'preemptive' ? 'توقع استباقي 🎯' : selectedTarget.riskLevel === 'critical' ? 'خطر فقدان عالي' : 'فرصة استعادة'}
+ {selectedTarget.riskLevel === 'preemptive' ? 'توقع استباقي' : selectedTarget.riskLevel === 'critical' ? 'خطر فقدان عالي' : 'فرصة عودة'}
  </div>
  </div>
  <div className="text-slate-300 font-bold text-sm flex items-center gap-2">
@@ -273,7 +275,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  >
  <div className="absolute inset-0 bg-slate-900/10 opacity-10 mix-blend-overlay" />
  <div className="relative z-10 flex items-center justify-center gap-3">
- <span>إطلاق رسالة الاستعادة (WhatsApp)</span>
+ <span>إرسال رسالة واتساب</span>
  <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
  </div>
  </button>

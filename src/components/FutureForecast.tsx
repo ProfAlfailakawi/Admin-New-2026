@@ -119,12 +119,12 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  let aiExplanation ="";
  if (isGrowing) {
  if (calculatedMonthlyGrowthRate > 0.05) {
- aiExplanation = `بناءً على بيانات المبيعات الحالية وسلوك العملاء، من المتوقع نمو سريع ومستمر خلال الـ ${monthsToProject} شهراً القادمة. فرصة التوسع عالية.`;
+ aiExplanation = `قراءة مستقبلية مختصرة: الاتجاه الحالي يدعم نمواً خلال ${monthsToProject} شهر. راقب التوسع بهدوء.`;
  } else {
- aiExplanation = `بناءً على المعطيات التاريخية والمبيعات، من المتوقع نمو تدريجي ومستقر. استمر بتحسين تجربة العميل.`;
+ aiExplanation = `المؤشرات تميل إلى نمو تدريجي مستقر. حافظ على جودة الطلب وتجربة العميل.`;
  }
  } else {
- aiExplanation = `تُظهر البيانات الحالية تباطؤاً أو انخفاضاً متوقعاً في وتيرة المبيعات المستقبلية. راجع التسعير والحملات بسرعة.`;
+ aiExplanation = `المؤشرات تحتاج انتباه: راجع التسعير والحملات قبل التوسع.`;
  }
 
  return {
@@ -196,7 +196,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  <h4 className={cn(
 "text-[11px] font-bold uppercase mb-1",
  trend === 'up' ?"text-emerald-700" :"text-rose-700"
-)}>قراءة الخوارزمية المستقبلية</h4>
+)}>قراءة مستقبلية</h4>
  <p className="text-sm font-bold leading-relaxed text-slate-700">{explanation}</p>
  </div>
  </div>

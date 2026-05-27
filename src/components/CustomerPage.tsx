@@ -378,18 +378,18 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
           ))}
         </div>
 
-        <div className="relative min-w-[120px]">
+        <div className="relative min-w-[150px]">
           <select 
             value={sentimentFilter}
             onChange={(e) => setSentimentFilter(e.target.value)}
-            className="bg-slate-100 border border-slate-200/60 rounded-2xl py-2.5 pr-8 pl-3 w-full text-[10px] font-bold text-slate-600 outline-none appearance-none cursor-pointer"
+            className="bg-slate-100 border border-slate-200/60 rounded-2xl py-2.5 pr-3 pl-8 w-full text-[10px] font-bold text-slate-600 outline-none appearance-none cursor-pointer"
           >
-            <option value="all">كل المشاعر</option>
+            <option value="all">كل الانطباعات</option>
             <option value="positive">😊 سعيد</option>
             <option value="neutral">😐 محايد</option>
             <option value="negative">😠 مستاء</option>
           </select>
-          <Heart className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={12} />
+          <Heart className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={12} />
         </div>
       </div>
     </div>
@@ -407,7 +407,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
        <th className="p-6">نقاط الولاء</th>
        <th className="p-6">رقم التلفون</th>
        <th className="p-6">الديوانية</th>
-       <th className="p-6">المشاعر الذكية</th>
+       <th className="p-6">الانطباع</th>
        <th className="p-4 px-6 text-left sticky left-0 bg-slate-50/80 backdrop-blur-md shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)]">الإجراءات</th>
       </tr>
      </thead>
@@ -560,16 +560,16 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
           </div>
          </td>
          <td className="p-6 text-left sticky left-0 bg-white group-hover:bg-indigo-50/30 transition-all shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)]">
-          <div className="customer-actions flex items-center gap-1.5 justify-end opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300">
-           <button onClick={() => handleSendMessage(customer)} className="w-8 h-8 flex items-center justify-center bg-indigo-600 hover:bg-slate-900 rounded-lg text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-500/40 transition-all hover:scale-110 active:scale-95 group/btn relative overflow-hidden" title="إرسال رسالة ذكية">
+          <div className="customer-actions flex items-center gap-1 justify-end opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300">
+           <button onClick={() => handleSendMessage(customer)} className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-indigo-600 hover:bg-slate-900 rounded-lg text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-500/40 transition-all hover:scale-110 active:scale-95 group/btn relative overflow-hidden" title="إرسال رسالة">
              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
              <div className="relative flex items-center justify-center">
                <MessageSquare size={15} className="group-hover/btn:scale-110 transition-transform" />
                <Sparkles size={6} className="absolute -top-1 -right-1 text-yellow-300 animate-pulse" />
              </div>
            </button>
-           <button onClick={() => openEditModal(customer)} className="w-8 h-8 flex items-center justify-center bg-white hover:bg-slate-50 rounded-lg text-slate-400 hover:text-indigo-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Edit2 size={15} /></button>
-           <button onClick={() => setCustomerToDelete(customer)} className="w-8 h-8 flex items-center justify-center bg-white hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Trash2 size={15} /></button>
+           <button onClick={() => openEditModal(customer)} className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white hover:bg-slate-50 rounded-lg text-slate-400 hover:text-indigo-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Edit2 size={15} /></button>
+           <button onClick={() => setCustomerToDelete(customer)} className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Trash2 size={15} /></button>
           </div>
          </td>
         </tr>

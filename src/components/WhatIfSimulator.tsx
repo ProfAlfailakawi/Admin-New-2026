@@ -348,7 +348,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  </div>
  <h3 className="text-xl md:text-2xl font-bold text-white mb-4 relative z-10 text-center">الخطة التسويقية الذكية للمنتج المختار</h3>
  <p className="text-slate-500 text-center max-w-md text-sm md:text-base font-bold leading-relaxed mb-8 relative z-10">
- سيقوم التراث الذكي بتحليل تاريخ مبيعات هذا الصنف، وسلوك عملاءك لبناء أفضل حملة تسويقية له مع رسائل واتساب جاهزة واستهداف دقيق.
+ سيعرض التراث الذكي قراءة مختصرة لتاريخ مبيعات هذا الصنف وسلوك العملاء، مع حملة جاهزة ورسائل واتساب دقيقة.
  </p>
  <button 
  onClick={generateCampaign}

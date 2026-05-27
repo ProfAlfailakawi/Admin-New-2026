@@ -970,7 +970,7 @@ Alturath.kw`;
     return (
       <div className="invoice-new-page invoice-mobile-flow p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 bg-slate-50 min-h-screen overflow-x-hidden">
         {/* Product Selection */}
-        <div className="lg:col-span-2 space-y-4 lg:space-y-6 order-1">
+        <div className="lg:col-span-2 space-y-4 lg:space-y-6 order-1 invoice-mobile-products">
           <div className="bg-white rounded-3xl p-4 md:p-6 shadow-sm border border-slate-200 overflow-hidden">
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <div className="relative flex-1">
@@ -980,7 +980,7 @@ Alturath.kw`;
                 />
                 <input
                   type="text"
-                  placeholder="ابحث عن وجبة..."
+                  placeholder="ابحث عن منتج..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(normalizeArabicNumerals(e.target.value))}
                   className="w-full bg-slate-50 border rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20"
@@ -1631,7 +1631,7 @@ Alturath.kw`;
               ))}
             </div>
 
-            <div className="space-y-2 border-t pt-4">
+            <div className="space-y-2 border-t pt-4 invoice-mobile-total">
               <div className="flex justify-between text-xs text-slate-500 font-bold">
                 <span>المنتجات</span>{" "}
                 <span>
@@ -1665,7 +1665,7 @@ Alturath.kw`;
             <button
               disabled={loading}
               onClick={handleCreateInvoice}
-              className="w-full mt-4 sm:mt-6 bg-rose-600 text-white py-3.5 sm:py-4 rounded-2xl font-bold shadow-lg shadow-rose-200 hover:bg-rose-700 transition-all hover:-translate-y-1 active:scale-95"
+              className="invoice-mobile-submit w-full mt-4 sm:mt-6 bg-rose-600 text-white py-3.5 sm:py-4 rounded-2xl font-bold shadow-lg shadow-rose-200 hover:bg-rose-700 transition-all hover:-translate-y-1 active:scale-95"
             >
               إصدار الفاتورة
             </button>

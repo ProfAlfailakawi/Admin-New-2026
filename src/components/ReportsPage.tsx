@@ -131,7 +131,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
   }) => {
     const [activeTab, setActiveTab] = useState<
       "invoices" | "tax" | "pnl" | "orders"
-    >(defaultTab as any);
+    >(defaultTab === "orders" ? "invoices" : (defaultTab as any));
     const [search, setSearch] = useState("");
 
     const today = new Date();
@@ -757,29 +757,8 @@ Alturath.kw`;
             <FileText size={16} />
             <span>الفواتير</span>
           </button>
-          <button
-            onClick={() => setActiveTab("orders")}
-            className={cn(
-              "px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 relative",
-              activeTab === "orders"
-                ? "bg-white text-slate-900 shadow-md scale-105"
-                : "text-slate-500 hover:text-slate-700",
-            )}
-          >
-            <ClipboardList size={16} />
-            <span>الطلبات</span>
-            {(data.orders || []).filter(
-              (o) => !o.isConvertedToInvoice && o.status !== "cancelled",
-            ).length > 0 && (
-              <span className="absolute -top-1 -left-1 bg-amber-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-sm animate-pulse">
-                {
-                  (data.orders || []).filter(
-                    (o) => !o.isConvertedToInvoice && o.status !== "cancelled",
-                  ).length
-                }
-              </span>
-            )}
-          </button>
+          {/* طلبات التطبيق مخفية من سجل المبيعات لأنها موجودة في صفحة الطلبات. */}
+
         </div>
 
         <AnimatePresence mode="wait">
@@ -976,7 +955,7 @@ Alturath.kw`;
                                 ماكو فواتير!
                               </h3>
                               <p className="text-slate-500 font-bold mb-8 leading-relaxed">
-                                لم تقم بإصدار أي فاتورة حتى الآن. الذكاء
+                                لم تقم بإصدار أي فاتورة حتى الآن. القراءة
                                 الاصطناعي بانتظار أول عملية بيع ليرسم لك
                                 استراتيجية النمو.
                               </p>

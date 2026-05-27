@@ -3756,3 +3756,83 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
     order: 4;
   }
 }
+
+/* Alturath admin professional polish pass - no payment, notification, or data logic changes */
+.dashboard-target-flash{
+  animation: dashboardTargetFlash 2.2s ease-out 1;
+}
+@keyframes dashboardTargetFlash{
+  0%{box-shadow:0 0 0 0 rgba(79,70,229,.55),0 0 0 10px rgba(79,70,229,.10);transform:translateY(-2px)}
+  100%{box-shadow:0 0 0 0 rgba(79,70,229,0);transform:translateY(0)}
+}
+
+.smart-collapsible-panel{padding:0!important;overflow:hidden!important;background:rgba(255,255,255,.78)!important}
+.smart-panel-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:right;padding:16px 18px;border:0;background:transparent;cursor:pointer}
+.smart-panel-toggle h2{font-size:18px;line-height:1.2;margin:2px 0;color:#0f172a;font-weight:950}
+.smart-panel-toggle p{font-size:12px!important;line-height:1.5!important;color:#64748b;margin:0;font-weight:800}
+.smart-panel-toggle span:first-child,.smart-panel-toggle div>span{font-size:10px;color:#a16207;text-transform:uppercase;letter-spacing:.12em;font-weight:950}
+.toggle-pill{display:inline-flex;align-items:center;justify-content:center;min-width:58px;padding:8px 13px;border-radius:999px;background:#fff;border:1px solid #e2e8f0;color:#4f46e5!important;font-size:12px!important;font-weight:950;box-shadow:0 8px 18px rgba(15,23,42,.06)}
+.smart-panel-body{padding:0 14px 14px;animation:smartPanelIn .22s ease-out}
+@keyframes smartPanelIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.panel-head.compact{margin-bottom:10px!important;justify-content:flex-start!important}
+.panel-head.compact button{padding:8px 12px!important;border-radius:14px!important;font-size:11px!important}
+
+@media(max-width:767px){
+  .admin-experience-stack{gap:12px!important}
+  .admin-page-hero{padding:16px!important;border-radius:26px!important}
+  .admin-page-hero-main h1{font-size:23px!important;line-height:1.25!important}
+  .admin-page-hero-main p{font-size:12px!important;line-height:1.6!important;max-width:100%!important}
+  .smart-panel-toggle{padding:14px!important}
+  .smart-panel-toggle h2{font-size:16px!important}
+  .smart-panel-toggle p{font-size:11px!important}
+
+  /* New invoice mobile: products first, cart/summary second */
+  .invoice-mobile-flow{display:flex!important;flex-direction:column!important}
+  .invoice-mobile-products{order:1!important}
+  .invoice-mobile-cart{order:2!important}
+  .invoice-mobile-cart>.bg-white{padding:14px!important;border-radius:24px!important}
+  .invoice-mobile-cart h2{font-size:20px!important;margin-bottom:12px!important;justify-content:flex-end!important}
+  .invoice-mobile-total{border-top:1px solid #e2e8f0!important;background:#fff7f7!important;border-radius:18px!important;padding:12px!important;margin-top:10px!important}
+  .invoice-mobile-submit{min-height:52px!important;border-radius:18px!important;margin-top:12px!important;font-size:15px!important}
+  .invoice-products-grid{grid-template-columns:1fr!important;gap:10px!important;padding:10px!important}
+  .invoice-new-page .bg-white.rounded-3xl{border-radius:24px!important}
+
+  /* Customer list: lighter mobile actions and no overlap */
+  .customer-actions{gap:5px!important;justify-content:flex-start!important}
+  .customer-actions button{width:30px!important;height:30px!important;min-height:30px!important;border-radius:12px!important;padding:0!important}
+  .customer-actions svg{width:14px!important;height:14px!important}
+  .customer-actions .absolute svg{width:6px!important;height:6px!important}
+  .customers-page table th,.customers-page table td{padding:12px 10px!important}
+
+  /* Command bar keyboard helper: compact on phone */
+  .command-premium-footer{gap:6px!important;padding:10px!important}
+  .command-premium-footer span{font-size:10px!important;padding:7px 10px!important;border-radius:14px!important}
+
+  /* Executive dashboard card: lighter mobile reading */
+  .dashboard-executive-shell .dashboard-tab-shell{border-radius:22px!important;padding:6px!important}
+  .dashboard-subtab-shell{border-radius:22px!important;padding:8px!important}
+  .dashboard-content-shell{padding-inline:8px!important}
+  .dashboard-content-shell p{line-height:1.55!important}
+  .dashboard-content-shell .recharts-wrapper{max-width:100%!important;margin-inline:auto!important}
+  .dashboard-content-shell .recharts-cartesian-axis-tick text{font-size:9px!important}
+}
+
+/* Compact system learning/strategy panels */
+@media(max-width:640px){
+  #smart-offers-section,#vip-missions-section,#strategic-manager-section,#products-matrix-section,#supplier-intel-duplicate-card{scroll-margin-top:110px!important}
+  .dashboard-content-shell .bg-slate-950.rounded-3xl{padding:18px!important;border-radius:26px!important}
+  .dashboard-content-shell .bg-slate-950 h2{font-size:24px!important;line-height:1.2!important}
+  .dashboard-content-shell .bg-slate-950 p{font-size:12px!important;line-height:1.65!important}
+}
+
+/* Supplier / money readability */
+.supplier-radar-card p,.supplier-radar-card strong{line-height:1.7!important}
+@media(max-width:767px){
+  .supplier-radar-card{display:grid!important;gap:8px!important}
+  .supplier-risk-path{font-size:10px!important;gap:4px!important;overflow:hidden!important}
+  .supplier-radar-card h3{font-size:16px!important;line-height:1.35!important}
+}
+
+/* A calmer command palette visual footer */
+.command-premium-footer{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;background:#0f172a;padding:14px;border-top:1px solid rgba(255,255,255,.08)}
+.command-premium-footer span{display:inline-flex;align-items:center;justify-content:center;padding:8px 14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);border-radius:999px;color:#f8fafc;font-weight:900;font-size:12px;line-height:1.2}
