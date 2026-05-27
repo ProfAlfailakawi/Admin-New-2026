@@ -535,7 +535,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
 
           <div className="text-center sm:text-right flex-1 min-w-0 order-1 sm:order-2">
             <h3 className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase mb-2 sm:mb-3 flex items-center justify-center sm:justify-end gap-2">
-              تحليل الذكاء الفوري
+              تحليل التراث الفوري
               <Sparkles size={14} className="text-amber-400" />
             </h3>
             <p className="text-white text-sm sm:text-lg lg:text-xl font-bold leading-relaxed sm:leading-tight">
@@ -550,7 +550,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
 
           <div className="flex flex-row sm:flex-col justify-center sm:justify-start gap-3 w-full shrink-0 order-2 sm:order-1">
             <div className="px-4 py-2 sm:px-5 sm:py-2 bg-emerald-500/20 text-emerald-400 rounded-xl sm:rounded-2xl border border-emerald-500/20 text-[10px] sm:text-[10px] font-bold text-center whitespace-nowrap flex-1 sm:flex-none">
-              محرك AI: جاهز
+              محرك التراث الذكي: جاهز
             </div>
             <div className="px-4 py-2 sm:px-5 sm:py-2 bg-blue-500/20 text-blue-400 rounded-xl sm:rounded-2xl border border-blue-500/20 text-[10px] sm:text-[10px] font-bold text-center whitespace-nowrap flex-1 sm:flex-none">
               اتصال البيانات: مستقر
@@ -568,7 +568,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
       </div>
       <div className="absolute bottom-10 right-10 flex items-center gap-4">
         <div className="text-[10px] font-mono text-slate-600">
-          KUWAIT_REGION_01
+          KUWذكيT_REGION_01
         </div>
         <div className="w-1.5 h-1.5 rounded-full bg-slate-800" />
       </div>
@@ -1610,8 +1610,10 @@ const [isPending, startTransition] = useTransition();
       
       if (threshold) {
          const getTimestamp = (obj: any) => {
-           if (obj.createdAt && typeof obj.createdAt === 'object' && obj.createdAt.seconds) return obj.createdAt.seconds * 1000;
            if (obj.date) return new Date(obj.date).getTime();
+           if (obj.invoiceDate) return new Date(obj.invoiceDate).getTime();
+           if (obj.orderDate) return new Date(obj.orderDate).getTime();
+           if (obj.createdAt && typeof obj.createdAt === 'object' && obj.createdAt.seconds) return obj.createdAt.seconds * 1000;
            if (obj.createdAt) return new Date(obj.createdAt).getTime();
            return 0;
          };
@@ -1651,27 +1653,18 @@ const [isPending, startTransition] = useTransition();
 
     const vipDisengaged = useMemo(() => {
       const fourteenDaysAgo = new Date().getTime() - 14 * 86400000;
+      const invoices = (data?.invoices || []).filter((i:any) => !i.isDeleted);
+      const lastInvoiceTime = (customerId: string) => invoices
+        .filter((inv:any) => inv.customerId === customerId)
+        .reduce((max:number, inv:any) => Math.max(max, new Date(inv.date || inv.invoiceDate || 0).getTime() || 0), 0);
 
       return (data?.customers || [])
-        .filter((c) => {
-          const lastActive = c.lastActive
-            ? new Date(c.lastActive).getTime()
-            : 0;
-          return lastActive < fourteenDaysAgo && c.totalSpent > 30;
-        })
-        .sort((a, b) => (b.totalSpent || 0) - (a.totalSpent || 0))
+        .map((c:any) => ({ ...c, _lastInvoiceAt: lastInvoiceTime(c.id) || (c.lastActive ? new Date(c.lastActive).getTime() : 0) }))
+        .filter((c:any) => c._lastInvoiceAt < fourteenDaysAgo && c.totalSpent > 30)
+        .sort((a:any, b:any) => (b.totalSpent || 0) - (a.totalSpent || 0))
         .slice(0, 3)
-        .map((c) => ({
-          ...c,
-          daysInactive: Math.floor(
-            (new Date().getTime() -
-              (c.lastActive
-                ? new Date(c.lastActive).getTime()
-                : new Date().getTime())) /
-              86400000,
-          ),
-        }));
-    }, [data.customers]);
+        .map((c:any) => ({ ...c, daysInactive: Math.floor((new Date().getTime() - (c._lastInvoiceAt || new Date().getTime())) / 86400000) }));
+    }, [data.customers, data.invoices]);
 
     const topCustomers = useMemo(() => {
       return [...(data?.customers || [])]
@@ -1688,28 +1681,11 @@ const [isPending, startTransition] = useTransition();
         .map(i => ({ ...i, _type: i.id?.startsWith('ORD-') ? 'order' : 'invoice' }));
       
       const getTimestamp = (obj: any) => {
-        if (obj.createdAt && typeof obj.createdAt === 'object' && obj.createdAt.seconds) return obj.createdAt.seconds * 1000;
-        if (obj.updatedAt && typeof obj.updatedAt === 'object' && obj.updatedAt.seconds) return obj.updatedAt.seconds * 1000;
-        if (obj.timestamp && typeof obj.timestamp === 'object' && obj.timestamp.seconds) return obj.timestamp.seconds * 1000;
-        if (obj.createdAt) {
-          const t = new Date(obj.createdAt).getTime();
-          if (!isNaN(t)) return t;
-        }
-        if (obj.updatedAt) {
-          const t = new Date(obj.updatedAt).getTime();
-          if (!isNaN(t)) return t;
-        }
-        if (obj.invoiceDate) {
-          const t = new Date(obj.invoiceDate).getTime();
-          if (!isNaN(t)) return t;
-        }
-        if (obj.orderDate) {
-          const t = new Date(obj.orderDate).getTime();
-          if (!isNaN(t)) return t;
-        }
-        if (obj.date) {
-          const t = new Date(obj.date).getTime();
-          if (!isNaN(t)) return t;
+        const preferred = [obj.date, obj.invoiceDate, obj.orderDate, obj.updatedAt, obj.createdAt, obj.timestamp];
+        for (const value of preferred) {
+          if (value && typeof value === 'object' && value.seconds) return value.seconds * 1000;
+          const t = new Date(value || 0).getTime();
+          if (!isNaN(t) && t > 0) return t;
         }
         return 0;
       };
@@ -1949,26 +1925,6 @@ const [isPending, startTransition] = useTransition();
         </MagneticButton>
 
         <MagneticButton
-          onClick={() => onNavigate!("orders")}
-          className="flex flex-col items-center justify-center p-6 bg-slate-800 text-white rounded-2xl shadow-xl shadow-slate-800/20 interactive-hover active:scale-95 group relative"
-        >
-          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-3 group-hover:-rotate-12 transition-transform relative">
-            <ShoppingCart size={24} strokeWidth={2} />
-            <div className="absolute -top-1.5 -right-1.5 bg-white text-slate-900 text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-800">
-              {totalOrdersCount}
-            </div>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="font-bold text-sm">طلبات التطبيق</span>
-            {pendingOrdersCount > 0 && (
-              <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-full mt-1 animate-pulse">
-                {pendingOrdersCount} معلق
-              </span>
-            )}
-          </div>
-        </MagneticButton>
-
-        <MagneticButton
           onClick={() => onNavigate!("diwaniya")}
           className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-purple-800 to-indigo-900 text-white rounded-2xl shadow-xl shadow-purple-900/20 interactive-hover active:scale-95 group"
         >
@@ -2074,7 +2030,7 @@ const [isPending, startTransition] = useTransition();
         });
       };
 
-      // Defer the heavy AI logic so UI renders instantly
+      // Defer the heavy smart logic so UI renders instantly
       const timer = setTimeout(runWorker, 100);
       return () => {
         isMounted = false;
@@ -2296,7 +2252,7 @@ const [isPending, startTransition] = useTransition();
                   <p className="text-slate-600 font-bold text-[10px] leading-relaxed">
                     {hasLocalBackup 
                       ? "يا طويل العمر، تونا رصدنا مسح أو تصفير للبيانات، تقدر تسترجع فوراً كافة مبيعاتك وعملائك ومورديك اللي خزنها جهازك بشكل احترازي 💻" 
-                      : "تقدر تحمل بيانات تجريبية (Demo) شاملة عشان تجرب ميزات النظام وفواتيره وتقارير الذكاء الاصطناعي بكل سهولة."}
+                      : "تقدر تحمل بيانات تجريبية (Demo) شاملة عشان تجرب ميزات النظام وفواتيره وتقارير التراث الذكي بكل سهولة."}
                   </p>
                 </div>
               </div>
@@ -3099,7 +3055,7 @@ const [isPending, startTransition] = useTransition();
             {isIntelligenceGroup && (
                 <div className="space-y-6 md:space-y-8 max-w-[1600px] mx-auto px-3 sm:px-5 md:px-6 xl:px-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full pb-20 overflow-x-hidden" dir="rtl">
                   
-                  {/* Dashboard - AI Lab Intro - Re-styled for premium feel */}
+                  {/* Dashboard - Smart Lab Intro - Re-styled for premium feel */}
                   <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-4 md:gap-6 pt-4 md:pt-6 border-b border-slate-200 pb-5 md:pb-7 min-w-0">
                     <div className="space-y-2">
                       <div className="flex items-center gap-3 mb-2">
@@ -3107,7 +3063,7 @@ const [isPending, startTransition] = useTransition();
                         <span className="text-xs font-black text-indigo-600 uppercase tracking-[0.4em]">Strategic Intelligence Laboratory</span>
                       </div>
                       <h1 className="text-2xl md:text-3xl xl:text-4xl font-black text-slate-900 tracking-tighter">
-                        مختبر الذكاء الاصطناعي
+                        مختبر التراث الذكي
                       </h1>
                       <p className="text-slate-500 font-bold text-sm md:text-base max-w-2xl">المركز الاستراتيجي لاتخاذ القرارات وتحسين كفاءة المطبخ.</p>
                     </div>
@@ -3171,7 +3127,7 @@ const [isPending, startTransition] = useTransition();
                                <div className="w-8 h-8 rounded-full border-2 border-white bg-rose-100" />
                                <div className="w-8 h-8 rounded-full border-2 border-white bg-emerald-100" />
                              </div>
-                             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">AI Powered Analytics</div>
+                             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">ذكي Powered Analytics</div>
                           </div>
                         </div>
                         <div className="p-4 h-full">
@@ -3397,8 +3353,9 @@ const [isPending, startTransition] = useTransition();
                              
                              <button 
                                onClick={() => {
+                                 setDeepLinkData?.({ scrollTarget: 'strategic-manager-section', _t: Date.now() });
                                  const element = document.getElementById('strategic-manager-section');
-                                 if (element) element.scrollIntoView({ behavior: 'smooth' });
+                                 if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                }}
                                className="w-full max-w-xl mx-auto py-4 md:py-5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm md:text-base font-black uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-2xl shadow-indigo-600/40"
                              >
@@ -3417,7 +3374,7 @@ const [isPending, startTransition] = useTransition();
                               </div>
                               <div>
                                 <h3 className="font-black text-2xl lg:text-3xl text-slate-900 tracking-tight">سجل التطور الذاتي</h3>
-                                <p className="text-slate-500 text-xs md:text-sm font-bold mt-1">توثيق رحلة نضج الخوارزميات من البيانات الخام إلى الذكاء التشغيلي</p>
+                                <p className="text-slate-500 text-xs md:text-sm font-bold mt-1">سجل مختصر لتطور قراءة النظام</p>
                               </div>
                             </div>
                             <div className="bg-white text-indigo-600 px-4 py-2 rounded-2xl text-xs md:text-sm font-black border border-indigo-100 shadow-xl shadow-indigo-100/50 whitespace-nowrap">
@@ -3741,7 +3698,7 @@ const [isPending, startTransition] = useTransition();
                           تهانينا! عملياتك نظيفة
                         </h3>
                         <p className="text-sm font-bold text-emerald-600 max-w-lg">
-                          لم يكتشف الذكاء الاصطناعي أي تسرب خفي في الأرباح أو
+                          لم يكتشف التراث الذكي أي تسرب خفي في الأرباح أو
                           مخاطر تشغيلية غير معلنة في الوقت الحالي. استمر في
                           متابعة لوحة القيادة.
                         </p>
@@ -4492,7 +4449,7 @@ const [isPending, startTransition] = useTransition();
                               <div className="mt-auto flex items-center justify-between">
                                 <div className="flex -space-x-2 flex-row-reverse">
                                   <div className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-[10px] font-bold">
-                                    AI
+                                    ذكي
                                   </div>
                                 </div>
                                 <button
@@ -4640,11 +4597,13 @@ const [isPending, startTransition] = useTransition();
                                     focusedInsight.actionPayload?.actionType ===
                                     "redirect_to_products"
                                   ) {
-                                    onNavigate("products");
+                                    onNavigate("products", { productIds: focusedInsight.actionPayload?.productIds, scrollTarget: "products-list", _t: Date.now() });
                                     setFocusedInsight(null);
                                     return;
                                   }
                                   setActiveTab("growth");
+                                  setDeepLinkData?.({ scrollTarget: "smart-campaigns", _t: Date.now() });
+                                  setTimeout(() => document.getElementById("smart-campaigns")?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
                                   setCampaignTopic("زيادة المبيعات");
                                   setGeneratedCampaign({
                                     id: `camp-insight-${Date.now()}`,
@@ -4675,7 +4634,7 @@ const [isPending, startTransition] = useTransition();
                     )}
                   </AnimatePresence>
 
-                  {/* MASTER AI CONTROL CENTER */}
+                  {/* MASTER SMART CONTROL CENTER */}
                   <div
                     className={cn(
                       glassCardStyle,
@@ -4707,12 +4666,12 @@ const [isPending, startTransition] = useTransition();
                               المستشار الشامل
                             </h3>
                             <p className="text-[10px] text-indigo-300/60 font-bold uppercase mt-0.5">
-                              Deep Archive AI v4.0
+                              محرك الأرشيف الذكي v4.0
                             </p>
                           </div>
                         </div>
                         <p className="text-xs text-slate-300 font-medium leading-relaxed mb-6">
-                          يقوم الذكاء الاصطناعي الآن بمسح شامل لـ{" "}
+                          يقوم التراث الذكي الآن بمسح شامل لـ{" "}
                           {getUnifiedInvoices(data).length} فاتورة و{" "}
                           {reviews.length} تعليق عميل لاستخراج الأنماط الخفية.
                         </p>
@@ -4926,7 +4885,7 @@ const [isPending, startTransition] = useTransition();
                         <button
                           onClick={() =>
                             toast.info(
-                              "الذكاء الاصطناعي يقوم بتحليل الأرقام الآن لتقديم هذه التوصيات الدقيقة",
+                              "التراث الذكي يقوم بتحليل الأرقام الآن لتقديم هذه التوصيات الدقيقة",
                               { icon: "🧠" },
                             )
                           }
@@ -4938,7 +4897,7 @@ const [isPending, startTransition] = useTransition();
                           />
                         </button>
                         <h3 className="text-xl font-bold text-right">
-                          مقترحات الذكاء الاصطناعي 🧠
+                          مقترحات التراث الذكي 🧠
                         </h3>
                       </div>
                       <div className="space-y-3 relative z-10 text-right">
@@ -5032,7 +4991,7 @@ const [isPending, startTransition] = useTransition();
                             <button
                               onClick={() =>
                                 toast.info(
-                                  "الذكاء الاصطناعي يتوقع زيادة في طلبات السفر قريباً بناءً على الأنماط التاريخية",
+                                  "التراث الذكي يتوقع زيادة في طلبات السفر قريباً بناءً على الأنماط التاريخية",
                                   { icon: "✈️" },
                                 )
                               }
@@ -5383,7 +5342,7 @@ const [isPending, startTransition] = useTransition();
                           <Zap size={24} className="text-rose-500" />
                         </h3>
                         <span className="bg-rose-100 text-rose-600 text-[10px] font-bold px-2 py-1 rounded-full border border-rose-200">
-                          تحليل الذكاء الاصطناعي
+                          تحليل التراث الذكي
                         </span>
                       </div>
 
@@ -5551,7 +5510,7 @@ const [isPending, startTransition] = useTransition();
                     <div className="flex justify-between items-start mb-4 flex-row-reverse relative z-10">
                       <div className="text-right">
                         <h3 className="text-2xl font-bold flex items-center justify-end gap-3 mb-2">
-                          توصيات ذكية من الذكاء الاصطناعي{" "}
+                          توصيات ذكية من التراث الذكي{" "}
                           <Cpu className="text-indigo-400" size={24} />
                         </h3>
                       </div>
@@ -5564,7 +5523,7 @@ const [isPending, startTransition] = useTransition();
                             ماكو بيانات كافية للتحليل الاستراتيجي.
                           </p>
                           <p className="text-[10px] text-white/50 mt-2 font-bold">
-                            سجل حركة مبيعات وملاحظات عشان يقدر الذكاء
+                            سجل حركة مبيعات وملاحظات عشان تقدر القراءة الذكية
                             الاصطناعي قراءة الأنماط.
                           </p>
                         </div>
@@ -5669,7 +5628,7 @@ const [isPending, startTransition] = useTransition();
                           تحليل نبض العملاء 🛰️
                         </h3>
                         <div className="text-[10px] md:text-[11px] font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100 w-full w-full">
-                          محلل الذكاء الاصطناعي مفعّل ✅
+                          محلل التراث الذكي مفعّل ✅
                         </div>
                       </div>
 
@@ -5777,7 +5736,7 @@ const [isPending, startTransition] = useTransition();
                                   } catch (error) {
                                     toast.error("التحليل ما ضبط", {
                                       description:
-                                        "تعطل تحليل البيانات. تأكد من إعدادات الذكاء الاصطناعي.",
+                                        "تعطل تحليل البيانات. تأكد من إعدادات التراث الذكي.",
                                     });
                                   } finally {
                                     setIsPulseAnalyzing(false);
@@ -5937,7 +5896,7 @@ const [isPending, startTransition] = useTransition();
                           تقرير التحليل الشامل
                         </h3>
                         <p className="text-[11px] text-slate-500 font-bold mt-2 pr-8 leading-relaxed">
-                          يعتمد هذا التقرير على تحليل الذكاء الاصطناعي لكافة
+                          يعتمد هذا التقرير على تحليل التراث الذكي لكافة
                           التقييمات والتعليقات التاريخية في الأرشيف.
                         </p>
                       </div>

@@ -188,7 +188,7 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  </div>
  </div>
 
- {/* Right Side: Results & AI Analysis */}
+ {/* Right Side: Results & Smart Analysis */}
  <div className="space-y-6">
  {selectedProducts.length === 0 ? (
  <div className="h-full flex flex-col items-center justify-center text-center p-3 md:p-3 bg-slate-50/50 rounded-2xl border border-dashed border-slate-300">

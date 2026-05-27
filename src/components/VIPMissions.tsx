@@ -18,12 +18,15 @@ export const VIPMissions: React.FC<VIPMissionsProps> = ({ data }) => {
  return data.customers
  .filter(c => c.totalOrders > 5)
  .slice(0, 5)
- .map(c => ({
- id: c.id,
- name: c.name,
- phone: c.phone,
- mission: `اطلب طلب واحد هالشهر، وراح نفتح لك خانة الطلب السري من الشيف.`
- }));
+ .map((c, idx) => {
+ const missionBank = [
+  'اطلب طلب واحد هالشهر، وراح نفتح لك خانة الطلب السري من الشيف.',
+  'اختار صنفك المفضل هذا الأسبوع، ونضيف لك لمسة ولاء خاصة.',
+  'ارجع بطلب خفيف اليوم، ونجهز لك تقدير خاص في الطلب القادم.',
+  'خل طلبك القادم من اختياراتك المعتادة، ونرفع لك أولوية التجهيز.'
+ ];
+ return { id: c.id, name: c.name, phone: c.phone, mission: missionBank[idx % missionBank.length] };
+ });
  }, [data.customers, data.invoices]);
 
  const handleSendMission = (m: any) => {
@@ -74,7 +77,7 @@ export const VIPMissions: React.FC<VIPMissionsProps> = ({ data }) => {
  
  {missions.length === 0 && (
  <div className="text-center p-3 md:p-3 bg-slate-900/50 rounded-2xl border border-slate-800">
- <p className="text-slate-500 font-bold">لا يوجد مهام حالية. سيقوم الذكاء الاصطناعي برصد كبار العملاء قريباً.</p>
+ <p className="text-slate-500 font-bold">لا توجد مهام حالية. ستظهر مهام العملاء عند توفر نشاط كافٍ في الفواتير.</p>
  </div>
 )}
  </div>

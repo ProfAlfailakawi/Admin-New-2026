@@ -68,7 +68,7 @@ import ReportsPage from './components/ReportsPage';
 import OrderPage from './components/OrderPage';
 import { isPendingStatus, isFailedStatus, isPaidStatus } from './lib/status-utils';
 const TrackPage = React.lazy(() => import('./components/TrackPage'));
-const AIAssistant = React.lazy(() => import('./components/AIAssistant'));
+const ذكيAssistant = React.lazy(() => import('./components/ذكيAssistant'));
 import { SmartContentStudio } from './components/SmartContentStudio';
 import { DiwaniyaTournaments } from './components/DiwaniyaTournaments';
 import PartnerDashboard from './components/PartnerDashboard';
@@ -88,7 +88,7 @@ import CloudStatus from './components/CloudStatus';
 import { InstagramMagicWand } from './components/InstagramMagicWand';
 import { recalculateStateBalances } from './lib/business-logic';
 import { INITIAL_DATA, GET_DEMO_DATA, DEFAULT_SQUADS } from './data';
-import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from './constants';
+import { AUTHORIZED_EMذكيLS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from './constants';
 import { AppState } from './types';
 import { playSuccessAction } from './lib/sonic';
 import { auth, db, logout } from './firebase';
@@ -173,7 +173,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
   const resultParam = (searchParams.get('result') || searchParams.get('Result') || searchParams.get('status') || searchParams.get('Status') || '')?.toUpperCase();
   const paymentIdParam = searchParams.get('track_id') || searchParams.get('TrackID') || searchParams.get('charge_id') || searchParams.get('id') || searchParams.get('payment_id') || searchParams.get('paymentId') || searchParams.get('PaymentID');
   
-  const isExplicitFail = path === '/cancel' || path === '/failed' || path === '/error' || resultParam === 'CANCELED' || resultParam === 'FAILED' || resultParam === 'DECLINED' || resultParam === 'VOIDED' || resultParam === 'NOT CAPTURED' || resultParam === 'NOT_CAPTURED';
+  const isExplicitFail = path === '/cancel' || path === '/failed' || path === '/error' || resultParam === 'CANCELED' || resultParam === 'FذكيLED' || resultParam === 'DECLINED' || resultParam === 'VOIDED' || resultParam === 'NOT CAPTURED' || resultParam === 'NOT_CAPTURED';
   const urlIndicatesSuccess = !isExplicitFail && (path === '/success' || resultParam === 'CAPTURED' || resultParam === 'SUCCESS' || resultParam === 'SUCCESSFUL' || isUpaymentsCallback);
 
   useEffect(() => {
@@ -660,7 +660,7 @@ const getItemName = (item: any, fallback = 'بدون اسم') => item?.name || i
 const getAdminPageMeta = (page: string) => {
   const map: Record<string, {title: string; subtitle: string; tag: string}> = {
     dashboard: { title: 'مركز القيادة', subtitle: 'ملخص اليوم، الحالات المهمة، والإجراءات السريعة في واجهة واحدة.', tag: 'Daily Command Brief' },
-    'dashboard-ai': { title: 'مختبر الذكاء', subtitle: 'معرض أدوات للقرارات الذكية بدون لمس منطق الذكاء الاصطناعي.', tag: 'AI Lab Gallery' },
+    'dashboard-ai': { title: 'مختبر الذكاء', subtitle: 'معرض أدوات للقرارات الذكية بواجهة تنفيذية موحدة.', tag: 'Smart Lab Gallery' },
     'new-invoice': { title: 'فاتورة جديدة', subtitle: 'العميل، المنتجات، الملخص، ثم الإنشاء في مسار واحد واضح.', tag: 'Receipt Builder' },
     'invoices-list': { title: 'سجل الفواتير', subtitle: 'سجل فخم للبحث والمراجعة والطباعة والمتابعة.', tag: 'Invoice Ledger' },
     orders: { title: 'طلبات الموقع', subtitle: 'لوحة تشغيل للطلبات الحالية وحالات الدفع الفعلية.', tag: 'Operations Board' },
@@ -748,7 +748,7 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
       {showCustomers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Customer Intelligence Board</span><h2>لوحة ذكاء العملاء</h2></div><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{c.spend.toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></section>}
       {showSuppliers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Supplier Risk Radar</span><h2>رادار الموردين</h2><p className="text-xs font-bold text-slate-500 mt-1">يعرض أهم 3 موردين حسب أولوية السداد وتأثيرهم على التشغيل.</p></div></div><div className="supplier-radar-guide"><span><b>أولوية سداد عالية:</b> مستحق مالي كبير يحتاج تسوية قريبة.</span><span><b>مورد مؤثر:</b> مرتبط بعدة منتجات وقد يؤثر على توفر الأصناف.</span><span><b>مستقر:</b> لا يحتاج إجراء عاجل حالياً.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>سداد</span><b>→</b><span>توفر</span><b>→</b><span>منتجات</span><b>→</b><span>ربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات مرتبطة · مستحقات: {sup.debt.toFixed(3)} د.ك</p><strong title="الحالة محسوبة من المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk} · {sup.priorityScore}/100</strong><p className="mt-2 text-[11px] font-bold text-slate-500">{sup.recommendation}</p></div>)}</div></section>}
       {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح العروض الذكية</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span>تأثير الربح: {tone}</span></div>})}</div></section>}
-      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>AI Lab Gallery</span><h2>معرض مختبر الذكاء</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو الصورة الذكية</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
+      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>Smart Lab Gallery</span><h2>معرض مختبر الذكاء</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو الصورة الذكية</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
         { label: 'تحليل العملاء', page: 'customers' },
         { label: 'تحليل المنتجات', page: 'products' },
         { label: 'تحليل الموردين', page: 'suppliers-audit' },
@@ -886,7 +886,7 @@ const MainApp: React.FC = () => {
     if (appMode === 'local') return;
     if (user && appMode === 'cloud') {
       const email = user.email?.toLowerCase() || '';
-      if (AUTHORIZED_EMAILS.includes(email) || AUTHORIZED_PARTNERS.includes(email)) {
+      if (AUTHORIZED_EMذكيLS.includes(email) || AUTHORIZED_PARTNERS.includes(email)) {
         localStorage.setItem('appMode', 'cloud');
       }
     }
@@ -900,7 +900,7 @@ const MainApp: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [currentPage]);
 
-  const [isAIThinking, setIsAIThinking] = useState(false);
+  const [isذكيThinking, setIsذكيThinking] = useState(false);
   const [deepLinkData, setDeepLinkData] = useState<any>(getInitialPushDeepLink() || {});
 
   // Removed ADMIN_PUSH_DEEPLINK_FORCE_REPORTS_EFFECT causing navigation lock
@@ -1517,6 +1517,15 @@ const MainApp: React.FC = () => {
     return value !== undefined && value !== null && value !== '';
   };
 
+  const isSameAsInitialShard = (key: string, value: any) => {
+    const initialValue = (INITIAL_DATA as any)?.[key];
+    try {
+      return JSON.stringify(value ?? null) === JSON.stringify(initialValue ?? null);
+    } catch {
+      return false;
+    }
+  };
+
   // Auth Listener - Optimized session management
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -1526,7 +1535,7 @@ const MainApp: React.FC = () => {
           const rawEmail = (currentUser.email || currentUser.providerData?.[0]?.email || '');
           const email = rawEmail.toLowerCase().trim();
           
-          const isAuthorized = AUTHORIZED_EMAILS.some(e => e.toLowerCase().trim() === email) || 
+          const isAuthorized = AUTHORIZED_EMذكيLS.some(e => e.toLowerCase().trim() === email) || 
             AUTHORIZED_UIDS.includes(currentUser.uid);
           
           const isPartner = AUTHORIZED_PARTNERS.some(e => e.toLowerCase().trim() === email) ||
@@ -1820,7 +1829,7 @@ const MainApp: React.FC = () => {
           
           SHARDED_KEYS.forEach(key => {
             if (rootDocData[key] !== undefined) {
-              const shouldPersistShard = loadedCloudShardKeysRef.current.has(key) || hasMeaningfulValue(rootDocData[key]);
+              const shouldPersistShard = loadedCloudShardKeysRef.current.has(key) || (hasMeaningfulValue(rootDocData[key]) && !isSameAsInitialShard(key, rootDocData[key]));
               if (shouldPersistShard) {
                 shardedPayloads[key] = rootDocData[key];
                 loadedCloudShardKeysRef.current.add(key);
@@ -2156,7 +2165,7 @@ const MainApp: React.FC = () => {
           onClearDeepLink={() => {}}
         />
       );
-      case 'ai': return <AIAssistant data={data} currentPage={currentPage} />;
+      case 'ai': return <ذكيAssistant data={data} currentPage={currentPage} />;
       case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
       case 'diwaniya': return <DiwaniyaTournaments data={data} setData={setData} onNavigate={setCurrentPage} />;
       case 'settings': return <GeneralSettings data={data} setData={setData} appMode={appMode} switchMode={switchMode} addToast={addToast} />;
@@ -2747,9 +2756,9 @@ const MainApp: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Floating Global AI Pulse Overlay */}
+      {/* Floating Global ذكي Pulse Overlay */}
       <AnimatePresence>
-        {isAIThinking && (
+        {isذكيThinking && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

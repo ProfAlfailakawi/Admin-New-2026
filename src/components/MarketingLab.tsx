@@ -26,7 +26,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  toast.success('تم ابتكار حملة جديدة بنجاح! 🚀');
  } catch (error: any) {
  console.error("Marketing campaign generation failed:", error);
- toast.error('خدمة الذكاء الاصطناعي مشغولة الحين. جرّب بعد شوي.');
+ toast.error('خدمة التراث الذكي مشغولة الحين. جرّب بعد شوي.');
  } finally {
  setIsGenerating(false);
  }
@@ -47,7 +47,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  </div>
  <h2 className="text-2xl md:text-3xl md:text-xl md:text-2xl font-bold text-white mb-2 md:mb-4 tracking-tight">مختبر الحملات التسويقية الذكي</h2>
  <p className="text-indigo-200 text-sm md:text-lg font-medium max-w-2xl leading-relaxed mb-6 md:mb-8">
- قم بتصميم وإطلاق حملات تسويقية كاملة في ثوانٍ. الذكاء الاصطناعي يحلل أفضل المنتجات مبيعاً وأكثر العملاء تفاعلاً ليصمم لك رسائل تسويقية لا تقاوم.
+ قم بتصميم وإطلاق حملات تسويقية كاملة في ثوانٍ. التراث الذكي يحلل أفضل المنتجات مبيعاً وأكثر العملاء تفاعلاً ليصمم لك رسائل تسويقية لا تقاوم.
  </p>
  
  <button 
@@ -121,7 +121,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  <div className="space-y-6 md:space-y-8 flex-grow">
  <div className="p-3 md:p-4 md:p-3 bg-slate-50 rounded-2xl border border-slate-100 relative">
  <div className="absolute top-4 left-4 text-slate-200"><MessageSquare size={40} /></div>
- <h5 className="text-[10px] md:text-xs font-bold text-slate-500 mb-3 uppercase tracking-tighter">مسودة محتوى الإعلان (AI Copy)</h5>
+ <h5 className="text-[10px] md:text-xs font-bold text-slate-500 mb-3 uppercase tracking-tighter">مسودة محتوى الإعلان (صياغة ذكية)</h5>
  {isEditing ? (
  <textarea 
  className="w-full text-base md:text-xl font-bold text-slate-800 leading-relaxed bg-white border border-slate-200/60 rounded-xl p-3 min-h-[120px] focus:outline-none focus:border-indigo-400 custom-scrollbar resize-none"
@@ -177,7 +177,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  <Target size={40} />
  </div>
  <h3 className="text-xl md:text-2xl font-bold text-slate-500">ماكو حملة مفعلة حالياً</h3>
- <p className="text-slate-500 text-sm md:text-base font-medium mt-2">اضغط على زر الابتكار أعلاه ليبدأ الذكاء الاصطناعي في تصميم حملتك القادمة.</p>
+ <p className="text-slate-500 text-sm md:text-base font-medium mt-2">اضغط على زر الابتكار أعلاه ليبدأ التراث الذكي في تصميم حملتك القادمة.</p>
  </motion.div>
 )}
  </AnimatePresence>

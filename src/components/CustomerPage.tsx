@@ -407,7 +407,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
        <th className="p-6">نقاط الولاء</th>
        <th className="p-6">رقم التلفون</th>
        <th className="p-6">الديوانية</th>
-       <th className="p-6">المشاعر الذكية</th>
+       <th className="p-6">المشاعر</th>
        <th className="p-4 px-6 text-left sticky left-0 bg-slate-50/80 backdrop-blur-md shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)]">الإجراءات</th>
       </tr>
      </thead>
@@ -547,7 +547,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
             <div className="absolute opacity-0 group-hover/sent:opacity-100 transition-all duration-500 bg-slate-950 text-white p-5 rounded-3xl text-sm whitespace-normal z-[100] bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 pointer-events-none shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 scale-90 group-hover/sent:scale-100 origin-bottom w-[280px] sm:w-[350px]">
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                  <span className="font-black text-indigo-400">تحليل العقل الاصطناعي</span>
+                  <span className="font-black text-indigo-400">قراءة العميل</span>
                   <span className="text-[10px] font-bold bg-white/10 px-2 py-0.5 rounded-full">{sentiment.score}%</span>
                 </div>
                 <p className="text-[11px] font-bold leading-relaxed text-right">{sentiment.reason}</p>
@@ -560,7 +560,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
           </div>
          </td>
          <td className="p-6 text-left sticky left-0 bg-white group-hover:bg-indigo-50/30 transition-all shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)]">
-          <div className="flex items-center gap-2 justify-end opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300">
+          <div className="mobile-actions-compact flex items-center gap-1.5 justify-end opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300">
            <button onClick={() => handleSendMessage(customer)} className="w-8 h-8 flex items-center justify-center bg-indigo-600 hover:bg-slate-900 rounded-lg text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-500/40 transition-all hover:scale-110 active:scale-95 group/btn relative overflow-hidden" title="إرسال رسالة ذكية">
              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
              <div className="relative flex items-center justify-center">

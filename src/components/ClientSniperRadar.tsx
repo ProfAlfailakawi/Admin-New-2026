@@ -13,6 +13,12 @@ interface ClientSniperRadarProps {
 const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  const [scanning, setScanning] = useState(true);
  const [selectedTarget, setSelectedTarget] = useState<any>(null);
+ const displayName = (name: string) => {
+   const parts = String(name || 'عميلنا العزيز').trim().split(/\s+/).filter(Boolean);
+   if (['بو','أبو','ابو','أم','ام'].includes(parts[0]) && parts[1]) return `${parts[0]} ${parts[1]}`;
+   return parts[0] || 'عميلنا العزيز';
+ };
+ const pickMessage = (items: string[], seed: string) => items[Math.abs([...String(seed)].reduce((a,c)=>a+c.charCodeAt(0),0)) % items.length];
 
  // Analyze customers to find"Sleeping VIPs"
  // A VIP is someone with high total spend, but hasn't had an invoice in 30+ days.
@@ -189,7 +195,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  <Target className="text-emerald-500" />
  </h3>
  <p className="text-slate-500 text-sm italic font-bold">
- النظام يرصد عملاء "VIP" نائمين وفرص مبيعات استباقية مبنية على الذكاء الاصطناعي.. 
+ النظام يرصد عملاء "VIP" نائمين وفرص مبيعات استباقية مبنية على قراءة التراث الذكي.. 
  الفرصة مهيأة لزيادة المبيعات.
  </p>
  </div>

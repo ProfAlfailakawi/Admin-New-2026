@@ -113,7 +113,7 @@ No markdown formatting, just pure JSON.`;
         <Palette className="text-blue-500" />
         الهوية المتغيرة (Adaptive Branding)
       </h2>
-      <p className="text-slate-500 text-sm mb-8 max-w-xl">دع الذكاء الاصطناعي يغير ألوان ومزاج صفحتك أو متجرك بناءً على الوقت أو الموسم، أو ابتكر ثيماً جديداً لأي مناسبة تخطر ببالك!</p>
+      <p className="text-slate-500 text-sm mb-8 max-w-xl">دع التراث الذكي يغير ألوان ومزاج صفحتك أو متجرك بناءً على الوقت أو الموسم، أو ابتكر ثيماً جديداً لأي مناسبة تخطر ببالك!</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative mb-8">
         <button 
@@ -158,10 +158,10 @@ No markdown formatting, just pure JSON.`;
           <div className="flex justify-between items-start gap-4">
              <h3 className="text-lg font-bold text-purple-900 flex items-center gap-2">
                <Sparkles className="text-purple-600 w-5 h-5 shrink-0" />
-               ابتكر ثيم خاص لمناسبة (AI Theme Generator)
+               ابتكر ثيم خاص لمناسبة (مولّد الثيم الذكي)
              </h3>
           </div>
-          <p className="text-sm text-purple-700 w-full max-w-xl">هل لديكم عرض للعيد الوطني؟ هل فاز المنتخب؟ اكتب المناسبة ودع الذكاء الاصطناعي يجهز لك ألوان وثيم خاص بمناسبتك.</p>
+          <p className="text-sm text-purple-700 w-full max-w-xl">هل لديكم عرض للعيد الوطني؟ هل فاز المنتخب؟ اكتب المناسبة ودع التراث الذكي يجهز لك ألوان وثيم خاص بمناسبتك.</p>
           
           <div>
             <label className="text-xs font-bold text-slate-500 mb-2 block">اختر المقاس لصورة الهيرو</label>

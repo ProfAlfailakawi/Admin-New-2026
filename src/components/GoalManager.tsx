@@ -29,7 +29,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
  <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(99,102,241,0.05)_50%,transparent_75%)] bg-[length:10px_10px] pointer-events-none" />
  <div className="text-right relative z-10">
  <h3 className="font-bold text-xl md:text-2xl text-white">قمرة قيادة الأهداف</h3>
- <p className="text-indigo-400 text-[10px] md:text-xs font-bold mt-1">AI Goal Commander 🚀</p>
+ <p className="text-indigo-400 text-[10px] md:text-xs font-bold mt-1">موجه الأهداف الذكي 🚀</p>
  </div>
  <div className="flex items-center gap-3 bg-indigo-500/10 px-4 py-2 rounded-full border border-indigo-500/30 relative z-10">
  <Target className="text-indigo-400" size={14} />
@@ -85,12 +85,12 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
  <div className="space-y-6 md:space-y-8">
  <h4 className="text-xl md:text-2xl font-bold text-white text-right">حدد وجهتك القادمة 🎯</h4>
  <p className="text-indigo-300 text-xs md:text-sm font-medium leading-relaxed text-right opacity-80">
- ما هو التغيير الحقيقي الذي تريد رؤيته في متجرك هذا الشهر؟ اختر أحد الأهداف المقترحة من قِبل الذكاء الاصطناعي.
+ ما هو التغيير الحقيقي الذي تريد رؤيته في متجرك هذا الشهر؟ اختر أحد الأهداف المقترحة من قِبل التراث الذكي.
  </p>
  <div className="bg-slate-950/50 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 relative overflow-hidden">
  <div className="absolute inset-0 bg-[linear-gradient(to_right,#6366f1_1px,transparent_1px),linear-gradient(to_bottom,#6366f1_1px,transparent_1px)] bg-[size:20px_20px] opacity-[0.03] pointer-events-none" />
  <RefreshCw className="text-indigo-500 mb-4 animate-spin-slow relative z-10" size={32} />
- <p className="text-slate-300 font-bold text-xs md:text-sm text-right relative z-10">الذكاء الاصطناعي يقوم بتحليل البيانات الآن لاقتراح أهداف ذكية تناسب متجرك...</p>
+ <p className="text-slate-300 font-bold text-xs md:text-sm text-right relative z-10">التراث الذكي يقوم بتحليل البيانات الآن لاقتراح أهداف ذكية تناسب متجرك...</p>
  </div>
  </div>
 )}

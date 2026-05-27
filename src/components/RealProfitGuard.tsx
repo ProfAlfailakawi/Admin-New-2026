@@ -237,7 +237,7 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(245,158,11,0.1)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
  <div className="text-right relative z-10">
  <h3 className="font-bold text-xl text-white">حارس الأرباح الحقيقية</h3>
- <p className="text-amber-400 text-[10px] font-bold mt-1">AI True Profitability Guard 🛡️</p>
+ <p className="text-amber-400 text-[10px] font-bold mt-1">True Profitability Guard 🛡️</p>
  </div>
  <div className="flex items-center gap-3 bg-emerald-500/10 px-4 py-2 rounded-full border border-emerald-500/30 relative z-10">
  <CheckCircle2 className="text-emerald-400" size={14} />

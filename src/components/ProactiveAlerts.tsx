@@ -97,7 +97,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  <div className="p-3 md:p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
  <div className="text-right">
  <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
- رادار الذكاء
+ رادار التراث الذكي
  </h3>
  <p className="text-[10px] text-slate-500 font-bold uppercase mt-0.5">نبض العمليات الفوري</p>
  </div>
@@ -183,7 +183,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  <div className="p-3 md:p-4 md:p-3 overflow-y-auto space-y-6">
  <div className="space-y-2 text-right">
  <h3 className="text-[11px] font-bold text-slate-500 uppercase flex items-center justify-end gap-2">
- تحليل الذكاء الاصطناعي <Zap size={14} className={getColors(selectedAlert.insightType!).text} /> 
+ تحليل التراث الذكي <Zap size={14} className={getColors(selectedAlert.insightType!).text} /> 
  </h3>
  <p className="text-sm md:text-base font-bold text-slate-800 leading-relaxed bg-slate-50 p-3 rounded-2xl border border-slate-100">
  {selectedAlert.explanation}
