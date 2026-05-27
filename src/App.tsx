@@ -1506,8 +1506,16 @@ const MainApp: React.FC = () => {
   // Strictly prevent saving before we have loaded data
   const hasLoadedDataRef = useRef(false);
   const lastRemoteSnapshotRef = useRef<string | null>(null);
+  const cloudRootExistsRef = useRef(false);
+  const loadedCloudShardKeysRef = useRef<Set<string>>(new Set());
+  const isCloudSyncApplyingRef = useRef(false);
 
   const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
+  const hasMeaningfulValue = (value: any) => {
+    if (Array.isArray(value)) return value.length > 0;
+    if (value && typeof value === 'object') return Object.keys(value).length > 0;
+    return value !== undefined && value !== null && value !== '';
+  };
 
   // Auth Listener - Optimized session management
   useEffect(() => {
@@ -1631,6 +1639,8 @@ const MainApp: React.FC = () => {
 
       setDataLoading(true);
       hasLoadedDataRef.current = false;
+      cloudRootExistsRef.current = false;
+      loadedCloudShardKeysRef.current = new Set();
 
       // 1. Sync orders independently (Legacy/Customer App)
       try {
@@ -1685,7 +1695,9 @@ const MainApp: React.FC = () => {
 
       const dataRef = getSmartDoc('appData', user.uid, user.email);
       syncUnsubscribe = onSnapshot(dataRef, (docSnap) => {
+        isCloudSyncApplyingRef.current = true;
         if (docSnap.exists()) {
+          cloudRootExistsRef.current = true;
           const rawRootData = docSnap.data() as any;
           setData(prev => {
             const sanitizedRoot = { ...rawRootData };
@@ -1705,7 +1717,9 @@ const MainApp: React.FC = () => {
         }
         rootInitialLoaded = true;
         markInitialCloudLoad();
+        setTimeout(() => { isCloudSyncApplyingRef.current = false; }, 0);
       }, (err) => {
+        setTimeout(() => { isCloudSyncApplyingRef.current = false; }, 0);
          rootInitialLoaded = true;
          markInitialCloudLoad();
          if (!String(err).includes("Missing or insufficient permissions")) {
@@ -1717,14 +1731,15 @@ const MainApp: React.FC = () => {
       const shardUnsubs: any[] = [];
       
       const registerShard = async (key: string, index: number) => {
-         // Staggered registration: 100ms delay per shard to ease initial network burst
-         await new Promise(resolve => setTimeout(resolve, index * 100));
-
+         // Register immediately. Waiting for every shard with artificial delays made
+         // cloud startup feel very slow on mobile. Firestore can handle these listeners.
          const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
          const unmanagedUnsub = onSnapshot(shardRef, (shardSnap) => {
+            isCloudSyncApplyingRef.current = true;
             if (shardSnap.exists()) {
                const shardData = shardSnap.data();
                if (shardData && shardData[key] !== undefined) {
+                  loadedCloudShardKeysRef.current.add(key);
                   setData(prev => {
                      const updated = { ...prev, [key]: shardData[key] };
                      // If everything is joined, keep sync logic happy
@@ -1737,7 +1752,9 @@ const MainApp: React.FC = () => {
             }
             shardInitialLoadState[key] = true;
             markInitialCloudLoad();
+            setTimeout(() => { isCloudSyncApplyingRef.current = false; }, 0);
          }, (err) => {
+            setTimeout(() => { isCloudSyncApplyingRef.current = false; }, 0);
             shardInitialLoadState[key] = true;
             markInitialCloudLoad();
             // Handle permission denied or other errors gracefully
@@ -1772,8 +1789,8 @@ const MainApp: React.FC = () => {
 
   // Auto-save: Handle Local and Cloud separately with debounce for performance
   useEffect(() => {
-    // Strictly prevent auto-saving INITIAL_DATA or overwritten data before loading completes
-    if (!hasLoadedDataRef.current) return;
+    // Strictly prevent auto-saving INITIAL_DATA or cloud snapshots while loading/applying remote data.
+    if (!hasLoadedDataRef.current || isCloudSyncApplyingRef.current) return;
 
     const timeoutId = setTimeout(async () => {
       // Save to Local Storage if explicitely in local mode
@@ -1802,12 +1819,24 @@ const MainApp: React.FC = () => {
           const shardedPayloads: Record<string, any> = {};
           
           SHARDED_KEYS.forEach(key => {
-            if (rootDocData[key]) {
-              shardedPayloads[key] = rootDocData[key];
-              // Clear from root to save space
-              rootDocData[key] = []; 
+            if (rootDocData[key] !== undefined) {
+              const shouldPersistShard = loadedCloudShardKeysRef.current.has(key) || hasMeaningfulValue(rootDocData[key]);
+              if (shouldPersistShard) {
+                shardedPayloads[key] = rootDocData[key];
+                loadedCloudShardKeysRef.current.add(key);
+                // Clear from root to save space, but keep a placeholder only for shards we actually save.
+                rootDocData[key] = [];
+              } else {
+                // Never create an empty cloud shard from INITIAL_DATA. This was the data-wipe trigger.
+                delete rootDocData[key];
+              }
             }
           });
+
+          if (!cloudRootExistsRef.current && Object.keys(shardedPayloads).length === 0) {
+            console.warn('Cloud auto-save skipped: no existing cloud document or meaningful data to persist.');
+            return;
+          }
           
           const sanitizedRoot = JSON.parse(JSON.stringify(rootDocData));
           console.log("Auto-saving sharded data to Firestore...");
