@@ -942,22 +942,46 @@ const MainApp: React.FC = () => {
     closeAllMenus();
   }, [currentPage]);
 
-  // Extreme Cache clearing for major updates
+  // Safe cache refresh for major updates.
+  // مهم: لا نحذف بيانات البرنامج من localStorage عند تحديث النسخة.
+  // الحذف السابق كان يمسح ktk_local_accounting_data ولقطات السحابة الاحتياطية،
+  // وهذا يفسر اختفاء البيانات بعد التحديث أو إعادة فتح التطبيق.
   useEffect(() => {
-    const CURRENT_VERSION = '4.0.0';
-    if (localStorage.getItem('app_version') !== CURRENT_VERSION) {
+    const CURRENT_VERSION = '4.0.1';
+    const previousVersion = localStorage.getItem('app_version');
+    if (previousVersion !== CURRENT_VERSION) {
       if ('caches' in window) {
         caches.keys().then(names => {
           for (const name of names) caches.delete(name);
-        });
+        }).catch(() => {});
       }
+
+      const SAFE_PRESERVE_PREFIXES = [
+        'ktk_',
+        'alturath_',
+        'push_',
+        'last_push_token',
+        'ai_',
+        'firebase:',
+        'firestore_'
+      ];
+      const SAFE_PRESERVE_KEYS = new Set([
+        'isAuthenticated',
+        'appMode',
+        'isSoundEnabled',
+        'payment_return_status',
+        'order_tracking_id',
+        'app_version'
+      ]);
+
       Object.keys(localStorage).forEach(key => {
-        if (key !== 'app_version') localStorage.removeItem(key);
+        const shouldPreserve = SAFE_PRESERVE_KEYS.has(key) || SAFE_PRESERVE_PREFIXES.some(prefix => key.startsWith(prefix));
+        if (!shouldPreserve) {
+          try { localStorage.removeItem(key); } catch {}
+        }
       });
+
       localStorage.setItem('app_version', CURRENT_VERSION);
-      setTimeout(() => {
-        window.location.replace(window.location.href); // Full location replace
-      }, 500);
     }
   }, []);
 
@@ -1541,6 +1565,18 @@ const MainApp: React.FC = () => {
     return value !== undefined && value !== null && value !== '';
   };
 
+  const isDangerousEmptyOverwrite = (key: string, currentVal: any) => {
+    if (!Array.isArray(currentVal) || currentVal.length > 0) return false;
+    const lastSerialized = lastRemoteKeysRef.current[key];
+    if (!lastSerialized) return false;
+    try {
+      const previousVal = JSON.parse(lastSerialized);
+      return Array.isArray(previousVal) && previousVal.length > 0;
+    } catch {
+      return false;
+    }
+  };
+
   const onCloudImport = async (importedState: AppState): Promise<boolean> => {
     if (!user) return false;
     isCloudSyncApplyingRef.current = true;
@@ -2012,8 +2048,12 @@ const MainApp: React.FC = () => {
               
               if (serializedCurrent !== serializedLast) {
                 const shouldPersistShard = loadedCloudShardKeysRef.current.has(key) || hasMeaningfulValue(currentVal);
-                if (shouldPersistShard) {
+                const dangerousEmptyOverwrite = isDangerousEmptyOverwrite(key, currentVal);
+                if (shouldPersistShard && !dangerousEmptyOverwrite) {
                   shardedPayloadsToSave[key] = currentVal;
+                } else if (dangerousEmptyOverwrite) {
+                  console.warn(`[DATA_GUARD] Prevented empty overwrite for shard '${key}'. Keeping existing cloud data safe.`);
+                  toast.warning('تم منع حفظ قائمة فارغة حتى لا تُحذف البيانات بالخطأ.');
                 }
               }
             }
