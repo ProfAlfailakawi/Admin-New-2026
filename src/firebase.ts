@@ -89,16 +89,46 @@ export const handleFirestoreError = (error: any, operation: FirestoreErrorInfo['
 // Unified collection path for absolute data persistence across environment stages
 const getCollectionPath = (path: string) => path;
 
+export let useIndividualStorageForce = typeof localStorage !== 'undefined' ? localStorage.getItem('ktk_use_individual_storage') === 'true' : false;
+
+export function setUseIndividualStorage(val: boolean) {
+  useIndividualStorageForce = val;
+  if (val) {
+    localStorage.setItem('ktk_use_individual_storage', 'true');
+  } else {
+    localStorage.removeItem('ktk_use_individual_storage');
+  }
+}
+
+export function isUsingIndividualStorage() {
+  return useIndividualStorageForce || localStorage.getItem('ktk_use_individual_storage') === 'true';
+}
+
 export const getSmartCollection = (path: string) => collection(db, getCollectionPath(path));
 export const getSmartDoc = (path: string, uid: string, userEmail?: string | null, subDocPath?: string) => {
   const email = (userEmail || auth.currentUser?.email)?.toLowerCase()?.trim() || '';
   const currentUid = uid || auth.currentUser?.uid || '';
-  const isSharedUser = AUTHORIZED_EMAILS.includes(email) || 
-                       AUTHORIZED_PARTNERS.includes(email) || 
-                       AUTHORIZED_UIDS.includes(currentUid) || 
-                       AUTHORIZED_PARTNER_UIDS.includes(currentUid);
+  const isAdminUser = AUTHORIZED_EMAILS.includes(email) || 
+                      AUTHORIZED_UIDS.includes(currentUid);
+  const isPartnerUser = AUTHORIZED_PARTNERS.includes(email) || 
+                        AUTHORIZED_PARTNER_UIDS.includes(currentUid);
   
-  const rootId = isSharedUser ? 'shared_company_data' : (currentUid || uid);
+  const isUsingIndiv = isUsingIndividualStorage();
+  // Keep every signed-in admin/partner/local account in its own Firestore document by UID.
+  // This avoids cross-account mixing and also works with the default secure rule
+  // /appData/{userId}: request.auth.uid == userId.
+  // A shared-company document can still be enabled explicitly from localStorage for
+  // legacy deployments, but it is never the default because it depends on custom
+  // rules being deployed and was causing permission errors for valid users.
+  const useLegacySharedCompanyStorage =
+    !isUsingIndiv &&
+    isAdminUser &&
+    typeof localStorage !== 'undefined' &&
+    localStorage.getItem('ktk_use_shared_company_storage') === 'true';
+
+  const rootId = useLegacySharedCompanyStorage
+    ? 'shared_company_data'
+    : (currentUid || uid);
   
   if (subDocPath) {
     // subDocPath could be "shards/invoices"

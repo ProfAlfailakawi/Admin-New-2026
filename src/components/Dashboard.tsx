@@ -748,19 +748,19 @@ const BusinessStatusMirror: React.FC<{
                     id: "geo",
                     label: "توسع",
                     section: "geo-heatmap-section",
-                    tab: "intelligence",
+                    tab: "intelligence-decisions",
                   },
                   {
                     id: "vip",
                     label: "VIP",
                     section: "vip-missions-section",
-                    tab: "intelligence",
+                    tab: "intelligence-decisions",
                   },
                   {
                     id: "offers",
                     label: "عروض",
                     section: "smart-offers-section",
-                    tab: "intelligence",
+                    tab: "intelligence-decisions",
                   },
                   {
                     id: "growth",

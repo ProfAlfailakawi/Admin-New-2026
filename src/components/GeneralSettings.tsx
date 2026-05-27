@@ -8,7 +8,7 @@ import { AppState, AppSettings, Zone, Product, Customer, Expense, Supplier, Test
 import { GET_DEMO_DATA } from '../data';
 import { cn, formatFullAddress, normalizeAddressObject, normalizeArabicNumerals, normalizeArabic } from '../lib/utils';
 import * as XLSX from 'xlsx';
-import { doc, setDoc, deleteDoc } from 'firebase/firestore'; 
+import { doc, setDoc } from 'firebase/firestore'; 
 import { db, auth, getSmartDoc } from '../firebase'; 
 import { Toggle } from './ui/Toggle';
 import { INITIAL_DATA } from '../data'; 
@@ -24,9 +24,10 @@ interface Props {
  appMode: 'local' | 'cloud';
  switchMode: (newMode: 'local' | 'cloud') => void;
  addToast: (title: string, message: string, type: 'info' | 'success' | 'warning') => void;
+ onCloudImport?: (importedState: AppState) => Promise<boolean>;
 }
 
-const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, addToast }) => {
+const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, addToast, onCloudImport }) => {
  const [settings, setSettingsState] = useState<AppSettings>(data?.settings || INITIAL_DATA.settings);
   
   const setSettings = (updater: any) => {
@@ -75,48 +76,82 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  };
 
  const handleResetData = async () => {
- if (isResetting) return;
- setIsResetting(true);
- addToast("جاري التصفير", "يتم حفظ نسخة أمان ثم تنظيف البيانات.", "info");
- try {
-   const hasRealData = (data.invoices && data.invoices.length > 0) || (data.products && data.products.length > 0) || (data.customers && data.customers.length > 0);
-   if (hasRealData) {
-     localStorage.setItem('ktk_accounting_data_backup', JSON.stringify(data));
-     localStorage.setItem('ktk_accounting_data_last_good', JSON.stringify(data));
-   }
-
-   const currentUser = auth.currentUser;
-   if (appMode === 'cloud' && currentUser) {
-      const dataRef = getSmartDoc('appData', currentUser.uid, currentUser.email);
-      await deleteDoc(dataRef);
-      const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
-      const deletePromises = SHARDED_KEYS.map(key => {
-        const shardRef = getSmartDoc('appData', currentUser.uid, currentUser.email, `shards/${key}`);
-        return deleteDoc(shardRef).catch(e => console.warn(`Shard cleanup skipped for ${key}`));
-      });
-      await Promise.all(deletePromises);
+  if (isResetting) return;
+  setIsResetting(true);
+  addToast("جاري التصفير", "يتم حفظ نسخة أمان ثم تنظيف البيانات.", "info");
+  try {
+    const hasRealData = (data.invoices && data.invoices.length > 0) || (data.products && data.products.length > 0) || (data.customers && data.customers.length > 0);
+    if (hasRealData) {
+      if (appMode === 'local') {
+        localStorage.setItem('ktk_local_accounting_data_backup', JSON.stringify(data));
+        localStorage.setItem('ktk_local_accounting_data_last_good', JSON.stringify(data));
+      } else {
+        localStorage.setItem('ktk_cloud_offline_snapshot_backup', JSON.stringify(data));
+        localStorage.setItem('ktk_cloud_offline_snapshot_last_good', JSON.stringify(data));
+      }
     }
 
-   setData(INITIAL_DATA);
-   localStorage.removeItem('ktk_accounting_data');
-   sessionStorage.removeItem('hideSampleDataPrompt');
-   localStorage.removeItem('active_firestore_db_id');
-   localStorage.removeItem('active_firestore_project_id');
+    const currentUser = auth.currentUser;
+    if (appMode === 'cloud' && currentUser) {
+      try {
+        const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
+        const dataRef = getSmartDoc('appData', currentUser.uid, currentUser.email);
+        const cleanRoot: any = { ...INITIAL_DATA };
+        SHARDED_KEYS.forEach(key => {
+          if (key !== 'products' && cleanRoot[key] !== undefined) cleanRoot[key] = [];
+        });
+        await setDoc(dataRef, JSON.parse(JSON.stringify(cleanRoot)), { merge: false });
+        
+        await Promise.all(SHARDED_KEYS.map(async (key) => {
+          try {
+            const shardRef = getSmartDoc('appData', currentUser.uid, currentUser.email, `shards/${key}`);
+            await setDoc(shardRef, { [key]: [], isCompressed: false }, { merge: false });
+          } catch (e) {
+            console.warn(`Shard ${key} skip:`, e);
+          }
+        }));
+      } catch (cloudErr) {
+        console.error("Cloud reset failed:", cloudErr);
+        if (String(cloudErr).includes('permissions') || String(cloudErr).includes('permission-denied')) {
+          throw new Error("FIRESTORE_PERMISSION_DENIED");
+        }
+        throw cloudErr;
+      }
+    }
 
-   addToast("تم التصفير","تمت العملية بنجاح وحُفظت نسخة أمان محلية.","warning");
-   setShowResetConfirm(false);
-   setTimeout(() => { window.location.reload(); }, 700);
- } catch (e) {
-   console.error("Reset failed:", e);
-   addToast("تعذر التصفير", "لم يتم مسح البيانات. جرّب مرة أخرى أو استعد النسخة الأخيرة.", "warning");
- } finally {
-   setIsResetting(false);
- }
+    setData(INITIAL_DATA);
+    localStorage.removeItem('ktk_local_accounting_data');
+    localStorage.removeItem('ktk_local_accounting_data_last_good');
+    localStorage.removeItem('ktk_accounting_data');
+    localStorage.removeItem('ktk_accounting_data_last_good');
+    localStorage.removeItem('ktk_cloud_offline_snapshot');
+    localStorage.removeItem('ktk_cloud_offline_snapshot_last_good');
+    sessionStorage.removeItem('hideSampleDataPrompt');
+    localStorage.removeItem('active_firestore_db_id');
+    localStorage.removeItem('active_firestore_project_id');
+
+    addToast("تم التصفير","تمت العملية بنجاح وحُفظت نسخة أمان محلية.","warning");
+    setShowResetConfirm(false);
+    setTimeout(() => { window.location.reload(); }, 700);
+  } catch (e) {
+    console.error("Reset failed:", e);
+    const msg = String(e);
+    const isPermission = msg.includes('FIRESTORE_PERMISSION_DENIED') || msg.includes('permissions') || msg.includes('permission-denied');
+    addToast("تعذر التصفير", isPermission
+      ? "Firestore رفض التصفير لهذا الحساب. تأكد من صلاحيات المشرف أو تفعيل المساحة الفردية."
+      : "لم يتم مسح البيانات. جرّب مرة أخرى.", "warning");
+  } finally {
+    setIsResetting(false);
+  }
  };
 
  const handleRestoreBackup = () => {
    try {
-     const backupStr = localStorage.getItem('ktk_accounting_data_backup');
+     const backupKey = appMode === 'local' ? 'ktk_local_accounting_data_backup' : 'ktk_cloud_offline_snapshot_backup';
+     let backupStr = localStorage.getItem(backupKey);
+     if (!backupStr && appMode === 'local') {
+       backupStr = localStorage.getItem('ktk_accounting_data_backup');
+     }
      if (backupStr) {
        const parsed = JSON.parse(backupStr);
        setData(parsed);
@@ -412,8 +447,20 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  ...importedData,
  zones: processedZones
  };
- setData(validatedData);
- addToast('تمت العملية', 'تم استيراد البيانات والتحليلات بنجاح', 'success');
+ if (appMode === 'cloud' && onCloudImport) {
+  addToast('جاري الرفع سحابياً', 'يتم مزامنة النسخة الاحتياطية سحابياً لتلافي الفقدان...', 'info');
+  onCloudImport(validatedData)
+    .then(() => {
+      addToast('تمت العملية', 'تم استيراد النسخة ومزامنتها سحابياً بنجاح ✨', 'success');
+    })
+    .catch((err) => {
+      console.error("Cloud import failed:", err);
+      addToast('فشل الحفظ', 'فشل تخزين النسخة سحابياً: ' + (err instanceof Error ? err.message : String(err)), 'warning');
+    });
+ } else {
+  setData(validatedData);
+  addToast('تمت العملية', 'تم استيراد البيانات والتحليلات محلياً بنجاح', 'success');
+ }
  } else {
  throw new Error("Invalid JSON structure");
  }
@@ -642,11 +689,31 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const finalizedState = recalculateStateBalances(newState);
  setTimeout(() => {
  try {
- setData(finalizedState);
- addToast('تمت العملية', 'تم استيراد بيانات Excel ومزامنة الأرصدة بنجاح', 'success');
+  if (appMode === 'cloud' && onCloudImport) {
+    addToast('جاري الرفع سحابياً', 'يتم رفع ومزامنة بيانات Excel سحابياً...', 'info');
+    onCloudImport(finalizedState)
+      .then(() => {
+        addToast('تمت العملية', 'تم استيراد بيانات Excel ومزامنتها سحابياً بنجاح ✨', 'success');
+      })
+      .catch((err) => {
+        console.error("Cloud Excel import failed:", err);
+        // Keep the imported file visible locally without overwriting another cloud account.
+        setData(finalizedState);
+        try {
+          localStorage.setItem('ktk_cloud_offline_snapshot_last_good', JSON.stringify(finalizedState));
+          localStorage.setItem('ktk_cloud_offline_snapshot', JSON.stringify(finalizedState));
+        } catch (storageErr) {
+          console.warn('Could not keep imported cloud fallback locally:', storageErr);
+        }
+        addToast('فشل الحفظ السحابي', 'تم إبقاء الاستيراد محلياً داخل هذا المتصفح، لكن Firestore رفض الحفظ: ' + (err instanceof Error ? err.message : String(err)), 'warning');
+      });
+  } else {
+    setData(finalizedState);
+    addToast('تمت العملية', 'تم استيراد بيانات Excel ومزامنة الأرصدة محلياً بنجاح', 'success');
+  }
  } catch (renderError) {
- console.error("CRITICAL RENDER ERROR during import:", renderError);
- addToast('خلل في العرض', 'استوردنا البيانات بس التطبيق ما قدر يعرضها.', 'warning');
+  console.error("CRITICAL RENDER ERROR during import:", renderError);
+  addToast('خلل في العرض', 'استوردنا البيانات بس التطبيق ما قدر يعرضها.', 'warning');
  }
  }, 150);
  }
@@ -1221,7 +1288,40 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
 
  <div className="space-y-3">
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+ {appMode === 'local' ? (
+   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+     <button 
+       onClick={() => setShowResetConfirm(true)}
+       className="w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group bg-rose-50 border-rose-100 hover:bg-rose-100 text-rose-700"
+     >
+       <Trash2 size={18} className="transition-transform group-hover:rotate-12 text-rose-600" />
+       <div className="text-right">
+         <div className="text-xs font-bold font-sans">تصفير النظام المحلي 🧹</div>
+         <div className="text-[10px] opacity-80">
+           مسح كافة البيانات وإعادة تصفير النظام بالكامل للبدء مجدداً
+         </div>
+       </div>
+     </button>
+
+     <button 
+       onClick={() => {
+         const demo = GET_DEMO_DATA();
+         setData(demo);
+         addToast("تم تحميل النسخة التجريبية", "تم شحن النظام بالبيانات التجريبية الترويجية بنجاح 🧪", "success");
+       }}
+       className="w-full flex items-center justify-between p-3 border rounded-2xl group transition-all shadow-sm bg-indigo-50 border-indigo-150 hover:bg-indigo-100 text-indigo-700 active:scale-[0.98]"
+     >
+       <Sparkles size={18} className="group-hover:rotate-12 transition-transform text-amber-500 animate-pulse" />
+       <div className="text-right">
+         <div className="text-xs font-bold font-sans">تعبئة بيانات تجريبية 🧪</div>
+         <div className="text-[10px] opacity-80">
+           ملء النظام بالبيانات الترويجية والمبيعات الكاملة فوراً
+         </div>
+       </div>
+     </button>
+   </div>
+ ) : (
+   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
  {(() => {
     const hasData = (data.invoices && data.invoices.length > 0) || (data.products && data.products.length > 0);
     const isDisabled = hasData;
@@ -1258,13 +1358,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  "bg-emerald-50 border-emerald-100 hover:bg-emerald-100 text-emerald-700"
 )}
  >
- <DownloadCloud size={18} className={cn("transition-transform", appMode !== 'local' &&"group-hover:-translate-y-1")} />
- <div className="text-right">
- <div className="text-xs font-bold">تصدير نسخة احتياطية</div>
- <div className="text-[10px] opacity-70 italic">
- {appMode === 'local' ?"مغلق حماية للبيانات" :"نسخة شاملة تشمل (نبض العملاء)"}
- </div>
- </div>
+  <DownloadCloud size={18} className="transition-transform group-hover:-translate-y-1" />
+  <div className="text-right">
+  <div className="text-xs font-bold">تصدير نسخة احتياطية</div>
+  <div className="text-[10px] opacity-70 italic">
+  نسخة شاملة تشمل (نبض العملاء)
+  </div>
+  </div>
  </button>
 
  <label 
@@ -1273,13 +1373,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  "bg-sky-50 border-sky-100 hover:bg-sky-100 text-sky-700 cursor-pointer"
 )}
  >
- <Upload size={18} className={cn("transition-transform", appMode !== 'local' &&"group-hover:-translate-y-1")} />
- <div className="text-right">
- <div className="text-xs font-bold">استيراد نسخة سابقة</div>
- <div className="text-[10px] opacity-70">
- {appMode === 'local' ?"مغلق حماية من العبث" :"رفع (JSON, Excel) لمزامنة النظام"}
- </div>
- </div>
+  <Upload size={18} className="transition-transform group-hover:-translate-y-1" />
+  <div className="text-right">
+  <div className="text-xs font-bold">استيراد نسخة سابقة</div>
+  <div className="text-[10px] opacity-70">
+  رفع (JSON, Excel) لمزامنة النظام
+  </div>
+  </div>
  <input 
  type="file" 
   
@@ -1291,23 +1391,18 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  <button 
  onClick={() => setShowResetConfirm(true)}
- 
- className={cn(
-"w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group",
- appMode === 'local'
- ?"bg-slate-100 border-slate-200/60 text-slate-500 cursor-not-allowed opacity-60"
- :"bg-rose-50 border-rose-100 hover:bg-rose-100 text-rose-700"
-)}
+ className="w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group bg-rose-50 border-rose-100 hover:bg-rose-100 text-rose-700"
  >
- <Trash2 size={18} className={cn("transition-transform", appMode !== 'local' &&"group-hover:rotate-12")} />
+ <Trash2 size={18} className="transition-transform group-hover:rotate-12 text-rose-600" />
  <div className="text-right">
- <div className="text-xs font-bold">تصفير النظام</div>
+ <div className="text-xs font-bold font-sans">تصفير السحابي للغسيل 🧹</div>
  <div className="text-[10px] opacity-70">
- {appMode === 'local' ?"مغلق حماية من العبث" :"مسح كافة البيانات للبدء من جديد"}
+ مسح كافة البيانات ومزامنة تنظيف السحابة للبدء مجدداً
  </div>
  </div>
  </button>
  </div>
+ )}
 
  {/* Developer Info - Hidden as requested */}
  {false && (

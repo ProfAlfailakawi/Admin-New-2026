@@ -202,30 +202,18 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  </div>
 
  {/* Chart */}
- <div className="h-[230px] sm:h-[300px] md:h-[400px] w-full mt-2 md:mt-4">
+ <div className="h-[230px] sm:h-[300px] md:h-[400px] w-full mt-2 md:mt-4" dir="ltr">
  <ResponsiveContainer width="100%" height="100%">
  <AreaChart data={chartData} margin={{ top: 12, right: 8, left: 8, bottom: 18 }}>
  
           <defs>
-            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="4" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
             <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
             </linearGradient>
             <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
               <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-            </linearGradient>
-            <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-            </linearGradient>
-            <linearGradient id="colorOptimistic" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
             </linearGradient>
           </defs>
  
@@ -272,7 +260,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  stroke="#6366f1"
  strokeWidth={4}
  fillOpacity={1}
- fill="url(#colorSales)" filter="url(#glow)"
+ fill="url(#colorSales)"
  activeDot={{ r: 6, strokeWidth: 0, fill: '#4f46e5' }}
  />
  <Area 
@@ -281,7 +269,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  stroke="#10b981"
  strokeWidth={3}
  fillOpacity={1}
- fill="url(#colorProfit)" filter="url(#glow)"
+ fill="url(#colorProfit)"
  />
  </AreaChart>
  </ResponsiveContainer>
