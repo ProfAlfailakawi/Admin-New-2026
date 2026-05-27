@@ -411,6 +411,11 @@ export interface AppState {
   orders: Order[];
   promocodes?: PromoCode[];
   squads?: Squad[];
+  diwaniyas?: any[];
+  diwaniyaSquads?: any[];
+  hostedDiwaniyas?: any[];
+  hostedSquads?: any[];
+  clientDiwaniyas?: any[];
   squadTiers?: any[];
   diwaniyaTiers?: any[];
   loyaltySettings?: {

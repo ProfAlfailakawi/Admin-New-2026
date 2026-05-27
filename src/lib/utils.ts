@@ -93,6 +93,18 @@ export function normalizeArabic(text: string) {
     .replace(/\s+/g, " "); // Remove extra spaces
 }
 
+export function stableStringify(obj: any): string {
+  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+    return JSON.stringify(obj);
+  }
+  const keys = Object.keys(obj).sort();
+  const sorted: any = {};
+  for (const key of keys) {
+    sorted[key] = stableStringify(obj[key]);
+  }
+  return JSON.stringify(sorted);
+}
+
 /**
  * Robust normalization specifically for merging duplicate product names
  * Removes symbols, brackets, and ensures uniform spacing.

@@ -113,20 +113,12 @@ export const getSmartDoc = (path: string, uid: string, userEmail?: string | null
   const isPartnerUser = AUTHORIZED_PARTNERS.includes(email) || 
                         AUTHORIZED_PARTNER_UIDS.includes(currentUid);
   
-  const isUsingIndiv = isUsingIndividualStorage();
-  // Keep every signed-in admin/partner/local account in its own Firestore document by UID.
-  // This avoids cross-account mixing and also works with the default secure rule
-  // /appData/{userId}: request.auth.uid == userId.
-  // A shared-company document can still be enabled explicitly from localStorage for
-  // legacy deployments, but it is never the default because it depends on custom
-  // rules being deployed and was causing permission errors for valid users.
-  const useLegacySharedCompanyStorage =
-    !isUsingIndiv &&
-    isAdminUser &&
-    typeof localStorage !== 'undefined' &&
-    localStorage.getItem('ktk_use_shared_company_storage') === 'true';
-
-  const rootId = useLegacySharedCompanyStorage
+  const useIndividual = isUsingIndividualStorage();
+  
+  // Professional Default: All authorized personnel (Admins & Partners) share the same central company database.
+  // This allows them to see each other's data (orders, diwaniyas, customer notes) in real-time.
+  // If they need privacy for testing or a clean state, they can enable "Individual Storage" from settings.
+  const rootId = (!useIndividual && (isAdminUser || isPartnerUser))
     ? 'shared_company_data'
     : (currentUid || uid);
   

@@ -237,13 +237,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="space-y-6">
  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 text-right">
  <div className="order-2 md:order-1 flex-1">
- <h1 className="text-xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-2 justify-end leading-tight">
- الموردون المعتمدون
- <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
- <Truck className="text-white" />
- </div>
- </h1>
- <p className="text-slate-500 font-medium font-bold italic">إدارة العلاقة مع الموردين وتتبع مديونيات المواد</p>
+{/* duplicate supplier title removed intentionally */}
  </div>
  </div>
 

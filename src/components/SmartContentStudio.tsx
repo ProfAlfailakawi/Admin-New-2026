@@ -170,6 +170,71 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'تنظيف', label: 'تحسين فقط', desc: 'تحسين الألوان والإضاءة الأصلية دون تغيير المشهد', icon: '✨', color: 'bg-indigo-100 text-indigo-700' }
   ];
 
+  const studioLaunchPads = [
+    {
+      title: 'لقطة ديوانية',
+      desc: 'طلب جماعي مرتب بخلفية هادئة للربع.',
+      icon: '🛋️',
+      action: () => {
+        closeOpenPanels();
+        resetGeneratedOutput();
+        setSelectedOrderPlace('diwaniya');
+        setSelectedPulseId('diwaniya-night');
+        setBackgroundPreset('diwaniya-table');
+        setRealityMode('human');
+        setCustomThemeQuery('');
+        setCreateStep(3);
+        setMaxCreateStepReached(5);
+        setStudioTab('create');
+      },
+    },
+    {
+      title: 'واتساب اليوم',
+      desc: 'صورة وكابشن قصير للبيع السريع.',
+      icon: '☏',
+      action: () => {
+        closeOpenPanels();
+        resetGeneratedOutput();
+        setSelectedContentGoal('whatsapp');
+        setSelectedPulseId('quick-kuwait');
+        setSelectedOrderPlace('delivery');
+        setSelectedFormat('1:1');
+        setCreateStep(2);
+        setMaxCreateStepReached(5);
+        setStudioTab('create');
+      },
+    },
+    {
+      title: 'ريل من صورة',
+      desc: 'حوّل صورة الطبق إلى حركة قصيرة نظيفة.',
+      icon: '🎥',
+      action: () => {
+        closeOpenPanels();
+        resetGeneratedOutput();
+        setSelectedFormat('9:16');
+        setReelSource('image');
+        setReelStep(1);
+        setGeneratedReel(null);
+        setShowReelSettings(false);
+        setStudioTab('reel');
+      },
+    },
+    {
+      title: 'صورة أصدق',
+      desc: 'مسار تحسين المنتج بواقعية أعلى.',
+      icon: '📷',
+      action: () => {
+        closeOpenPanels();
+        resetGeneratedOutput();
+        setRealityBoost(true);
+        setStrictPlateLock(true);
+        setProductStep(1);
+        setMaxProductStepReached(1);
+        setStudioTab('product');
+      },
+    },
+  ];
+
   const moods = [
     { id: 'دافئ', label: 'شمس دافئة', icon: '☀️' },
     { id: 'بارد', label: 'إضاءة باردة', icon: '❄️' },
@@ -707,7 +772,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       source: 'manual-choice'
     });
     refreshStudioLearning();
-    toast.success('تم حفظ ذوقك لهذا الأسلوب — استوديو الصورة الذكية راح يفضله لاحقاً');
+    toast.success('تم حفظ ذوقك لهذا الأسلوب — استوديو التراث الذكي راح يفضله لاحقاً');
   };
 
   const saveCurrentBackground = async () => {
@@ -1276,7 +1341,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           <div className="text-right">
             <h1 className="text-3xl md:text-4xl font-black flex items-center gap-3">
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 border border-white/10"><Camera className="w-7 h-7 text-indigo-200" /></span>
-              استوديو الصورة الذكية
+              استوديو التراث الذكي
             </h1>
           </div>
           <button onClick={() => setStudioTab('library')} className="h-12 w-12 rounded-2xl border border-white/10 bg-white/10 text-white flex items-center justify-center backdrop-blur shrink-0" title="الأرشيف">
@@ -1302,11 +1367,20 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <h2 className="text-2xl font-black text-slate-950">ابدأ بفكرة أو بصورة</h2>
             </div>
           </div>
+          <div className="grid sm:grid-cols-4 gap-2 mb-4">
+            {studioLaunchPads.map((item) => (
+              <button key={item.title} type="button" onClick={item.action} className="rounded-2xl border border-indigo-100 bg-indigo-50/50 hover:bg-white p-3 text-right transition-all">
+                <span className="text-2xl block mb-2">{item.icon}</span>
+                <strong className="block text-sm font-black text-slate-900">{item.title}</strong>
+                <small className="block text-[10px] font-bold text-slate-500 mt-1 leading-5">{item.desc}</small>
+              </button>
+            ))}
+          </div>
           <div className="grid sm:grid-cols-3 gap-3">
             <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Sparkles className="text-indigo-500 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من فكرة</div>
-              <div className="text-xs font-bold text-slate-400 mt-1">اكتب وصفك، أو اختر قالباً جاهزاً.</div>
+              <div className="text-xs font-bold text-slate-400 mt-1">اكتب وصفك، أو اختر بداية جاهزة.</div>
             </button>
             <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setProductStep(1); setMaxProductStepReached(1); setStudioTab('product'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Camera className="text-indigo-500 mb-3" size={26} />
@@ -1453,7 +1527,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <div>
                 <p className="text-xs font-black text-indigo-500 mb-1">من فكرة</p>
                 <h2 className="text-2xl font-black text-slate-900">صورة من فكرة</h2>
-                <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختر المقاس المناسب، ثم اكتب فكرتك أو خلّ استوديو الصورة الذكية يقترح لك المسار.</p>
+              <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختر المقاس المناسب، ثم اكتب فكرتك أو خلّ استوديو التراث الذكي يقترح لك المسار.</p>
               </div>
             </div>
 

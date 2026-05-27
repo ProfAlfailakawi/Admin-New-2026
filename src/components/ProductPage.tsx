@@ -713,9 +713,9 @@ const ProductPage: React.FC<ProductPageProps> = ({
     let newContent = "";
 
     if (soldCount > 0) {
-      newContent = `تحليل البيانات: إجمالي المبيعات المؤكدة للمنتج"${product.name}" بلغ ${soldCount} طلب.\n\nالنتيجة: الصنف يحظى بطلب فعلي ومثبت، مما يعزز ثقة العميل الجديد لتجربته.\n\nمحتوى الحملة المقترح:"المنتج المفضل والموثوق لدى عملائنا! طبق (${product.name}) متوفر بسعر ${product.price} د.ك.${descText}${caloriesText}\nاطلبه الآن وكن جزءاً من تجربة الطعم الكويتي."`;
+      newContent = `قراءة البيانات: إجمالي المبيعات المؤكدة للمنتج"${product.name}" بلغ ${soldCount} طلب.\n\nالنتيجة: الصنف يحظى بطلب فعلي ومثبت، مما يعزز ثقة العميل الجديد لتجربته.\n\nمحتوى الحملة المقترح:"المنتج المفضل والموثوق لدى عملائنا! طبق (${product.name}) متوفر بسعر ${product.price} د.ك.${descText}${caloriesText}\nاطلبه الآن وكن جزءاً من تجربة الطعم الكويتي."`;
     } else {
-      newContent = `تحليل البيانات: لا يوجد مبيعات سابقة مسجلة للمنتج"${product.name}" في النظام.\n\nالنتيجة: هذا المنتج يحتاج إلى حملة تعريفية للترويج لأول مرة لاختبار استجابة السوق.\n\nمحتوى الحملة المقترح:"منتج جديد ينضم لقائمتنا: (${product.name}).\nسعر الطرح: ${product.price} د.ك.${descText}${caloriesText}\nكن أول من يجربه الآن!"`;
+      newContent = `قراءة البيانات: لا يوجد مبيعات سابقة مسجلة للمنتج"${product.name}" في النظام.\n\nالنتيجة: هذا المنتج يحتاج إلى حملة تعريفية للترويج لأول مرة لاختبار استجابة السوق.\n\nمحتوى الحملة المقترح:"منتج جديد ينضم لقائمتنا: (${product.name}).\nسعر الطرح: ${product.price} د.ك.${descText}${caloriesText}\nكن أول من يجربه الآن!"`;
     }
 
     setMarketingContent(newContent);
@@ -726,15 +726,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 text-right">
         <div className="order-2 md:order-1 flex-1">
-          <h1 className="text-xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-2 justify-end leading-tight">
-            إدارة المنتجات والأصناف
-            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
-              <Package className="text-white" />
-            </div>
-          </h1>
-          <p className="text-slate-500 font-medium font-bold italic">
-            قائمة الطعام والتكاليف التشغيلية لكل صنف
-          </p>
+{/* duplicate title removed intentionally */}
         </div>
       </div>
 
