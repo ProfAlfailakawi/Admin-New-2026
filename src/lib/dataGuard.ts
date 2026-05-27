@@ -125,7 +125,25 @@ export const safeMergeData = <T = any>(oldValue: any, newValue: T): T => {
 };
 
 const writeRaw = (key: string, value: string) => {
-  rawStorage?.setItem(key, value);
+  try {
+    rawStorage?.setItem(key, value);
+  } catch (err: any) {
+    if (err.name === 'QuotaExceededError' || err.message?.includes('quota')) {
+      console.error(`[DATA_GUARD] LocalStorage quota exceeded while writing '${key}'.`);
+      // Optional: try to clear oldest backups if quota is hit
+      try {
+        const backupKeys = [];
+        for (let i = 0; i < (rawStorage?.length || 0); i++) {
+          const k = rawStorage?.key(i);
+          if (k && isBackupKey(k)) backupKeys.push(k);
+        }
+        // Remove oldest 2 backups to try making space
+        backupKeys.slice(0, 2).forEach(bk => rawStorage?.removeItem(bk));
+      } catch (e) {}
+    } else {
+      console.error(`[DATA_GUARD] LocalStorage write error for '${key}':`, err);
+    }
+  }
 };
 
 const rememberGoodCopy = (key: string, serializedValue: string) => {
@@ -133,11 +151,21 @@ const rememberGoodCopy = (key: string, serializedValue: string) => {
   const parsed = parseMaybeJson(serializedValue);
   if (!hasMeaningfulData(parsed)) return;
 
+  // Avoid redundant backups for large files to save quota
+  // If the data is > 500KB, we only keep one backup
+  const isLarge = serializedValue.length > 500000;
+  
   writeRaw(`${key}__last_good`, serializedValue);
-  writeRaw(`${key}__recovery`, JSON.stringify({
-    savedAt: new Date().toISOString(),
-    value: serializedValue,
-  }));
+  
+  if (!isLarge) {
+    writeRaw(`${key}__recovery`, JSON.stringify({
+      savedAt: new Date().toISOString(),
+      value: serializedValue,
+    }));
+  } else {
+    // For large files, cleanup the recovery key to save space
+    try { rawStorage.removeItem(`${key}__recovery`); } catch(e) {}
+  }
 };
 
 export const readLastGoodStorageValue = (key: string): string | null => {
@@ -164,6 +192,9 @@ export const setProtectedStorageItem = (key: string, value: string): boolean => 
   }
 
   const current = rawStorage.getItem(key);
+  // Optimization: If current value is exactly the same as incoming, skip everything
+  if (current === value && value !== null) return true;
+
   const currentParsed = parseMaybeJson(current);
   const incomingParsed = parseMaybeJson(value);
 
@@ -176,6 +207,9 @@ export const setProtectedStorageItem = (key: string, value: string): boolean => 
   const finalValue = hasMeaningfulData(currentParsed)
     ? JSON.stringify(safeMergeData(currentParsed, incomingParsed))
     : value;
+
+  // Final check: if merged value is same as current, skip redundant write
+  if (finalValue === current && current !== null) return true;
 
   if (hasMeaningfulData(currentParsed)) rememberGoodCopy(key, current || '');
   writeRaw(key, finalValue);
