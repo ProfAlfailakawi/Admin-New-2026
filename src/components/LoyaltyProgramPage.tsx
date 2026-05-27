@@ -33,27 +33,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  const invoices = data?.invoices || [];
  const coupons = data?.promocodes || [];
 
- const displayCustomerName = (name?: string) => {
- const parts = String(name || 'عميلنا العزيز').trim().split(/\s+/).filter(Boolean);
- if (['بو','أبو','ابو','أم','ام'].includes(parts[0]) && parts[1]) return `${parts[0]} ${parts[1]}`;
- return parts[0] || 'عميلنا العزيز';
-};
-const pickHeroMessage = (name: string, active: boolean, seed: number) => {
- const safeName = displayCustomerName(name);
- const activeMessages = [
-  `كفو يا ${safeName}. وجودك بين أبطال الطلبات له تقدير خاص، وهذه هدية بسيطة لطلبك القادم.`,
-  `${safeName} العزيز، أنت من العملاء اللي يرفعون القائمة. جهزنا لك مكافأة استمرار خاصة.`,
-  `يا هلا ${safeName}. لأنك من النشطين، لك تقدير خاص في الطلب القادم.`
- ];
- const returnMessages = [
-  `عاش من شافك ${safeName}. اشتقنا لطلباتك، وجهزنا لك خصم رجعة محترم.`,
-  `${safeName} الغالي، مكانك محفوظ. هذا عرض رجعة قصير لطلبك القادم.`,
-  `يا هلا ${safeName}. لاحظنا غيبتك، وقلنا نرجعك بعرض بسيط يليق فيك.`
- ];
- const bank = active ? activeMessages : returnMessages;
- return bank[Math.abs(seed) % bank.length];
-};
-const loyaltyData = useMemo(() => {
+ const loyaltyData = useMemo(() => {
  const now = new Date();
  
  return customers.map((c: any, index: number) => {
@@ -248,6 +228,20 @@ const loyaltyData = useMemo(() => {
  }, [isDynamicRewardsEnabled, businessPulse]);
 
  // Actions
+
+ const getFriendlyName = (name?: string) => {
+   const clean = String(name || '').trim().replace(/\s+/g, ' ');
+   if (!clean) return 'عميلنا العزيز';
+   const parts = clean.split(' ');
+   if (['بو', 'أبو', 'ابو', 'أم', 'ام'].includes(parts[0]) && parts[1]) return `${parts[0]} ${parts[1]}`;
+   return parts[0] || 'عميلنا العزيز';
+ };
+
+ const pickBySeed = (templates: string[], seed?: string) => {
+   const value = String(seed || '0').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+   return templates[value % templates.length];
+ };
+
  const handleWhatsApp = (phone: string, msg: string) => {
  const formattedPhone = phone?.startsWith('965') ? phone : `965${phone}`;
  window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(sanitizeWhatsAppText(`${msg}\n\nhttps://alturathkw.shop`))}`, '_blank');
@@ -305,7 +299,7 @@ const loyaltyData = useMemo(() => {
  });
  
  // Suggest sending the code via WhatsApp
- const msg = `هلا ${customer.name?.split(' ')[0]}، تم استبدال ${reward.points} نقطة بنجاح. كود الخصم الخاص بك: ${redemptionId}. تدلل.`;
+ const msg = `هلا ${getFriendlyName(customer.name)}، تم استبدال ${reward.points} نقطة بنجاح. كود الخصم الخاص بك: ${redemptionId}. تدلل.`;
  handleWhatsApp(customer.phone, msg);
  setSelectedCustomer(null);
  };
@@ -532,7 +526,12 @@ const loyaltyData = useMemo(() => {
  <p className="text-[10px] md:text-[11px] text-rose-300 font-bold mb-2">البطل غايب من {hero.daysSinceLastOrder} يوم!</p>
  <button 
  onClick={() => {
- const msg = pickHeroMessage(hero.name, false, idx);
+ const heroName = getFriendlyName(hero.name);
+ const msg = pickBySeed([
+   `عاش من شافك، ${heroName}. اشتقنا لك، وجهزنا لك خصم عودة خاص.`,
+   `${heroName}، غيبتك طولت. نحب نرجعك بطلب مرتب وخصم خاص لك.`,
+   `هلا ${heroName}، مكانك محفوظ بين أبطال التراث. عندك عرض عودة ينتظرك.`
+ ], hero.id || hero.phone || hero.name);
  handleWhatsApp(hero.phone, msg);
  }}
  className="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 py-2 rounded-lg text-[10px] md:text-[11px] font-bold transition-all"
@@ -546,7 +545,12 @@ const loyaltyData = useMemo(() => {
  <p className="text-[10px] md:text-[11px] text-emerald-300 font-bold mb-2">في قمة النشاط 🔥</p>
  <button 
  onClick={() => {
- const msg = pickHeroMessage(hero.name, true, idx);
+ const heroName = getFriendlyName(hero.name);
+ const msg = pickBySeed([
+   `كفو يا ${heroName}! أنت من أبطال الطلبات، ولك مكافأة خاصة في الطلب القادم.`,
+   `${heroName}، حضورك مستمر وذوقك واضح. جهزنا لك تقدير بسيط للطلب القادم.`,
+   `هلا ${heroName}، لأنك من العملاء المميزين، عندك هدية استمرار من التراث.`
+ ], hero.id || hero.phone || hero.name);
  handleWhatsApp(hero.phone, msg);
  }}
  className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 py-2 rounded-lg text-[10px] md:text-[11px] font-bold transition-all"
@@ -870,7 +874,7 @@ setSearchTerm(val);
 
  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
  <div>
- <div className="font-bold text-slate-800 text-sm">المكافآت التكيفية</div>
+ <div className="font-bold text-slate-800 text-sm">المكافآت التكيفية (ذكي)</div>
  <div className="text-[10px] text-slate-500 font-bold">تعديل قيمة النقاط بناءً على ضغط الحجز والنبض الاقتصادي.</div>
  </div>
  <button 

@@ -976,7 +976,7 @@ Alturath.kw`;
                                 ماكو فواتير!
                               </h3>
                               <p className="text-slate-500 font-bold mb-8 leading-relaxed">
-                                لم تقم بإصدار أي فاتورة حتى الآن. التراث الذكي
+                                لم تقم بإصدار أي فاتورة حتى الآن. الذكاء
                                 الاصطناعي بانتظار أول عملية بيع ليرسم لك
                                 استراتيجية النمو.
                               </p>
@@ -1374,7 +1374,7 @@ Alturath.kw`;
                                                                 const userQty = a.quantity !== undefined ? Number(a.quantity) : (a.qty !== undefined ? Number(a.qty) : 1);
                                                                 if (userQty === 0) return null;
                                                                 if (a.selected === false || a.isSelected === false || a.enabled === false) return null;
-              let addonQty = 0;
+                                                                let addonQty = 0;
                                                                 if (
                                                                   a.calculationType ===
                                                                   "fixed"

@@ -97,7 +97,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  <div className="p-3 md:p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
  <div className="text-right">
  <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
- رادار التراث الذكي
+ رادار الذكاء
  </h3>
  <p className="text-[10px] text-slate-500 font-bold uppercase mt-0.5">نبض العمليات الفوري</p>
  </div>

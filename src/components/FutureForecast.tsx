@@ -181,7 +181,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  </div>
  </div>
 
- {/* Smart Insight Box */}
+ {/* AI Insight Box */}
  <div className={cn(
 "p-3 md:p-4 md:p-3 rounded-2xl flex items-start gap-4 border",
  trend === 'up' ?"bg-emerald-50 border-emerald-100" :"bg-rose-50 border-rose-100"

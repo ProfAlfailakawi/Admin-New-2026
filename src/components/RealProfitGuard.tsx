@@ -85,7 +85,7 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
  {insight.riskLevel === 'low' && <CheckCircle2 className="text-emerald-500" size={16} />}
  <h4 className="font-bold text-sm md:text-base text-slate-800">{insight.productName}</h4>
  </div>
- <div className="flex items-center gap-4">
+ <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
  <span className={cn(
 "text-[10px] md:text-[11px] font-bold uppercase tracking-tighter sm:block hidden",
  insight.riskLevel === 'high' ? 'text-rose-600' : insight.riskLevel === 'medium' ? 'text-amber-600' : 'text-emerald-600'
@@ -181,6 +181,18 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
      const realProfitValue = rawProfit - revenue * hiddenCostsRatio;
      const margin = revenue > 0 ? realProfitValue / revenue : 0;
      const riskLevel = margin < 0.1 ? 'high' : margin < 0.22 ? 'medium' : 'low';
+     const turnover = quantity >= 12 ? 'سريع' : quantity >= 4 ? 'متوسط' : 'بطيء';
+     const recommendation = riskLevel === 'high'
+       ? (quantity > 0
+          ? `أوقف أي خصم على ${productName} مؤقتاً، وراجع التكلفة أو ارفع السعر تدريجياً قبل الترويج.`
+          : `لا تروّج ${productName} الآن؛ ابدأ باختبار سعر صغير أو عرض محدود لقياس الطلب أولاً.`)
+       : riskLevel === 'medium'
+          ? (turnover === 'سريع'
+             ? `الطلب على ${productName} جيد، لكن الهامش يحتاج ضبط: قلل الهدر أو اربطه بمنتج أعلى ربحية.`
+             : `حسّن ظهور ${productName} بعرض خفيف دون خصم عميق، وراقب أثره على الهامش خلال أسبوع.`)
+          : (turnover === 'سريع'
+             ? `${productName} مرشح قوي للترويج لأنه يجمع بين الحركة والهامش. اجعله في واجهة العروض.`
+             : `الهامش ممتاز، لكن الحركة محدودة؛ جرّب إبراز ${productName} في رسالة قصيرة أو باقة جانبية.`);
      return {
        id: productId || `profit-${index}`,
        productName,
@@ -189,8 +201,8 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
        hiddenCostsRatio,
        realProfitValue,
        riskLevel,
-       explanation: quantity > 0 ? 'تم احتساب الربح الحقيقي من المبيعات والتكلفة والتسربات التشغيلية.' : 'لا توجد مبيعات كافية لهذا المنتج، لذلك يظهر كتقدير احتياطي آمن.',
-       recommendation: riskLevel === 'high' ? 'راجع تكلفة المنتج أو سعره قبل أي حملة جديدة.' : riskLevel === 'medium' ? 'حسّن الهامش أو قلل الهدر التشغيلي.' : 'الهامش مستقر، استمر بمتابعته.'
+       explanation: quantity > 0 ? `تم احتساب الربح الحقيقي من ${quantity} عملية/كمية مباعة مع السعر والتكلفة والتسرب التشغيلي.` : 'لا توجد مبيعات كافية لهذا المنتج، لذلك يظهر كتقدير احتياطي آمن.',
+       recommendation
      } as RealProfitInsight;
    }).filter((x: any) => x.productName);
  }, [insights, data]);
@@ -237,7 +249,7 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(245,158,11,0.1)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
  <div className="text-right relative z-10">
  <h3 className="font-bold text-xl text-white">حارس الأرباح الحقيقية</h3>
- <p className="text-amber-400 text-[10px] font-bold mt-1">True Profitability Guard 🛡️</p>
+ <p className="text-amber-400 text-[10px] font-bold mt-1">حارس الربحية الحقيقي 🛡️</p>
  </div>
  <div className="flex items-center gap-3 bg-emerald-500/10 px-4 py-2 rounded-full border border-emerald-500/30 relative z-10">
  <CheckCircle2 className="text-emerald-400" size={14} />

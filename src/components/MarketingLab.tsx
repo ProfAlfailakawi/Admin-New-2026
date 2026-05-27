@@ -121,7 +121,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  <div className="space-y-6 md:space-y-8 flex-grow">
  <div className="p-3 md:p-4 md:p-3 bg-slate-50 rounded-2xl border border-slate-100 relative">
  <div className="absolute top-4 left-4 text-slate-200"><MessageSquare size={40} /></div>
- <h5 className="text-[10px] md:text-xs font-bold text-slate-500 mb-3 uppercase tracking-tighter">مسودة محتوى الإعلان (صياغة ذكية)</h5>
+ <h5 className="text-[10px] md:text-xs font-bold text-slate-500 mb-3 uppercase tracking-tighter">مسودة محتوى الإعلان (Smart Copy)</h5>
  {isEditing ? (
  <textarea 
  className="w-full text-base md:text-xl font-bold text-slate-800 leading-relaxed bg-white border border-slate-200/60 rounded-xl p-3 min-h-[120px] focus:outline-none focus:border-indigo-400 custom-scrollbar resize-none"

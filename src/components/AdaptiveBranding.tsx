@@ -158,7 +158,7 @@ No markdown formatting, just pure JSON.`;
           <div className="flex justify-between items-start gap-4">
              <h3 className="text-lg font-bold text-purple-900 flex items-center gap-2">
                <Sparkles className="text-purple-600 w-5 h-5 shrink-0" />
-               ابتكر ثيم خاص لمناسبة (مولّد الثيم الذكي)
+               ابتكر ثيم خاص لمناسبة (Smart Theme Generator)
              </h3>
           </div>
           <p className="text-sm text-purple-700 w-full max-w-xl">هل لديكم عرض للعيد الوطني؟ هل فاز المنتخب؟ اكتب المناسبة ودع التراث الذكي يجهز لك ألوان وثيم خاص بمناسبتك.</p>

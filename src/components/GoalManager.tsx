@@ -29,7 +29,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
  <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(99,102,241,0.05)_50%,transparent_75%)] bg-[length:10px_10px] pointer-events-none" />
  <div className="text-right relative z-10">
  <h3 className="font-bold text-xl md:text-2xl text-white">قمرة قيادة الأهداف</h3>
- <p className="text-indigo-400 text-[10px] md:text-xs font-bold mt-1">موجه الأهداف الذكي 🚀</p>
+ <p className="text-indigo-400 text-[10px] md:text-xs font-bold mt-1">Alturath Goal Commander 🚀</p>
  </div>
  <div className="flex items-center gap-3 bg-indigo-500/10 px-4 py-2 rounded-full border border-indigo-500/30 relative z-10">
  <Target className="text-indigo-400" size={14} />
