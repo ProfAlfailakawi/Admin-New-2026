@@ -536,7 +536,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
 
           <div className="text-center sm:text-right flex-1 min-w-0 order-1 sm:order-2">
             <h3 className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase mb-2 sm:mb-3 flex items-center justify-center sm:justify-end gap-2">
-              تحليل الذكاء الفوري
+              التحليل الفوري
               <Sparkles size={14} className="text-amber-400" />
             </h3>
             <p className="text-white text-sm sm:text-lg lg:text-xl font-bold leading-relaxed sm:leading-tight">
@@ -551,7 +551,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
 
           <div className="flex flex-row sm:flex-col justify-center sm:justify-start gap-3 w-full shrink-0 order-2 sm:order-1">
             <div className="px-4 py-2 sm:px-5 sm:py-2 bg-emerald-500/20 text-emerald-400 rounded-xl sm:rounded-2xl border border-emerald-500/20 text-[10px] sm:text-[10px] font-bold text-center whitespace-nowrap flex-1 sm:flex-none">
-              محرك التراث: جاهز
+              التراث الذكي: جاهز
             </div>
             <div className="px-4 py-2 sm:px-5 sm:py-2 bg-blue-500/20 text-blue-400 rounded-xl sm:rounded-2xl border border-blue-500/20 text-[10px] sm:text-[10px] font-bold text-center whitespace-nowrap flex-1 sm:flex-none">
               المزامنة مستقرة
@@ -678,12 +678,19 @@ const BusinessStatusMirror: React.FC<{
         onClick={() => {
           setActiveTab("intelligence");
           if (setDeepLinkData) {
-            setDeepLinkData({
-              exactId: "intelligence",
-              scrollTarget: "strategic-manager-section",
-              _t: Date.now(),
-            });
+            setDeepLinkData({ exactId: "intelligence", scrollTarget: "strategic-manager-section", _t: Date.now() });
           }
+          setTimeout(() => {
+            const el = document.getElementById('strategic-manager-section');
+            const mainContainer = document.querySelector('main');
+            if (el && mainContainer) {
+              const mainRect = mainContainer.getBoundingClientRect();
+              const elRect = el.getBoundingClientRect();
+              mainContainer.scrollTo({ top: mainContainer.scrollTop + elRect.top - mainRect.top - 96, behavior: 'smooth' });
+              el.classList.add('dashboard-target-flash');
+              setTimeout(() => el.classList.remove('dashboard-target-flash'), 2200);
+            }
+          }, 350);
         }}
         className="relative p-3 md:p-4 rounded-3xl md:rounded-2xl bg-white border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden group cursor-pointer active:scale-95 transition-all"
       >
@@ -766,7 +773,7 @@ const BusinessStatusMirror: React.FC<{
                     key={opp.id}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setActiveTab(opp.tab);
+                      setActiveTab(opp.tab as DashboardTab);
                       if (setDeepLinkData) {
                         setDeepLinkData({
                           exactId: opp.tab,
@@ -774,6 +781,20 @@ const BusinessStatusMirror: React.FC<{
                           _t: Date.now(),
                         });
                       }
+                      const scrollToTarget = (attempt = 0) => {
+                        const el = document.getElementById(opp.section);
+                        const mainContainer = document.querySelector('main');
+                        if (el && mainContainer) {
+                          const mainRect = mainContainer.getBoundingClientRect();
+                          const elRect = el.getBoundingClientRect();
+                          mainContainer.scrollTo({ top: mainContainer.scrollTop + elRect.top - mainRect.top - 96, behavior: 'smooth' });
+                          el.classList.add('dashboard-target-flash');
+                          setTimeout(() => el.classList.remove('dashboard-target-flash'), 2200);
+                        } else if (attempt < 18) {
+                          setTimeout(() => scrollToTarget(attempt + 1), 120);
+                        }
+                      };
+                      setTimeout(() => scrollToTarget(), 80);
                     }}
                     className="w-11 h-11 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 shadow-sm hover:bg-emerald-500 hover:text-white hover:border-emerald-500 hover:scale-110 hover:z-20 transition-all cursor-pointer active:scale-95"
                     title={`استكشاف ${opp.label}`}
@@ -1858,7 +1879,7 @@ const [isPending, startTransition] = useTransition();
       },
       { id: "suppliers", label: "الموردين", icon: <Truck size={14} /> },
       { id: "customers", label: "تحليل العملاء", icon: <Users size={14} /> },
-      { id: "rewards", label: "نظام المكافآت والخصومات", icon: <Award size={14} /> },
+      { id: "rewards", label: "المكافآت والخصومات", icon: <Award size={14} /> },
       { id: "diwaniya", label: "بطولات الديوانية", icon: <Users size={14} /> },
       { id: "growth", label: "النمو", icon: <Target size={14} /> },
       { id: "contentStudio", label: "استوديو الصورة الذكية", icon: <Sparkles size={14} /> },
@@ -1868,14 +1889,14 @@ const [isPending, startTransition] = useTransition();
       {
         id: "pulse-core",
         label: "النبض التنفيذي",
-        description: "نبض مختصر ونظيف للمؤشرات العامة فقط",
+        description: "مختصر نظيف للمؤشرات العامة فقط",
         icon: <Activity size={14} />,
         tabs: ["pulse"],
       },
       {
         id: "system-brain",
         label: "عقل النظام",
-        description: "مقسّم إلى 5 أقسام خفيفة بدل صفحة واحدة مزدحمة",
+        description: "5 أقسام خفيفة بدل صفحة واحدة مزدحمة",
         icon: <BrainCircuit size={14} />,
         tabs: ["intelligence", "intelligence-decisions", "intelligence-learning", "intelligence-risks", "intelligence-strategy"],
       },
@@ -1889,14 +1910,14 @@ const [isPending, startTransition] = useTransition();
       {
         id: "ops-suppliers-products",
         label: "الموردين والتشغيل",
-        description: "ذكاء الموردين ومتابعة التشغيل بدون تكرار طلبات الموقع",
+        description: "قراءة الموردين ومتابعة التشغيل بدون تكرار طلبات الموقع",
         icon: <Truck size={14} />,
         tabs: ["suppliers"],
       },
       {
         id: "customers-loyalty-offers",
         label: "العملاء والولاء",
-        description: "تحليل العملاء، نظام المكافآت والخصومات، وبطولات الديوانية",
+        description: "تحليل العملاء، المكافآت والخصومات، وبطولات الديوانية",
         icon: <Users size={14} />,
         tabs: ["customers", "rewards", "diwaniya"],
       },
@@ -2450,7 +2471,7 @@ const [isPending, startTransition] = useTransition();
                 </div>
                 <div>
                   <p className="text-[10px] font-black tracking-[0.18em] text-amber-600 uppercase leading-none">مطبخ التراث العربي</p>
-                  <h1 className="text-xl md:text-2xl font-black text-slate-950 leading-tight mt-1">عقل النظام التنفيذي</h1>
+                  <h1 className="text-xl md:text-2xl font-black text-slate-950 leading-tight mt-1">مركز القيادة التنفيذي</h1>
                 </div>
               </div>
 
@@ -2905,7 +2926,7 @@ const [isPending, startTransition] = useTransition();
                   </div>
 
                   <h2 className="text-xl md:text-2xl font-bold text-white mb-3 relative z-10 flex items-center gap-4">
-                    ذكاء مفاوضات الموردين{" "}
+                    مفاوضات الموردين{" "}
                     <ArrowLeftRight className="text-emerald-400" />
                   </h2>
                   <p className="text-indigo-100 text-lg font-medium leading-relaxed max-w-2xl relative z-10 mb-4">
@@ -3300,16 +3321,16 @@ const [isPending, startTransition] = useTransition();
                               </div>
                               <div>
                                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tighter leading-none mb-2 md:mb-4">
-                                  عقل النظام ذاتي التعلم
+                                  عقل التراث التشغيلي
                                 </h2>
                                 <div className="flex items-center gap-2">
                                   <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                                  <span className="text-emerald-400 text-xs md:text-sm font-bold uppercase tracking-[0.3em]">Core Intelligence Active</span>
+                                  <span className="text-emerald-400 text-xs md:text-sm font-bold uppercase tracking-[0.3em]">ALTURATH OPERATING MIND</span>
                                 </div>
                               </div>
                             </div>
                             <p className="text-slate-400 font-bold text-sm md:text-base lg:text-lg max-w-4xl leading-relaxed lg:leading-[1.4]">
-                              محرك التفكير المركزي الذي يراقب صحة عملك بشكل آلي، يكتشف الأنماط الخفية، ويقوم بتصحيح مساره ذاتياً ليصبح أكثر دقة مع كل قرار يتخذه.
+                              مركز قراءة تنفيذي يراقب صحة العمل، يلتقط الأنماط المهمة، ويحوّلها إلى مؤشرات وقرارات أوضح.
                             </p>
                           </div>
                           
@@ -3319,7 +3340,7 @@ const [isPending, startTransition] = useTransition();
                                 <div className="absolute inset-0 rounded-full border-4 border-indigo-500/40 border-t-transparent animate-spin" style={{ animationDuration: '3s' }} />
                              </div>
                              <div>
-                               <div className="text-xs lg:text-sm font-bold text-slate-500 uppercase tracking-[0.4em] mb-2">ذاكرة النظام المتراكمة</div>
+                               <div className="text-xs lg:text-sm font-bold text-slate-500 uppercase tracking-[0.4em] mb-2">سجل القراءات المتراكمة</div>
                                <div className="text-2xl lg:text-3xl font-black text-white tabular-nums tracking-tighter">{aiLearningLogs.length} دراسة</div>
                              </div>
                           </div>
@@ -3391,7 +3412,7 @@ const [isPending, startTransition] = useTransition();
                               <div className="p-3 bg-amber-50 rounded-2xl shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all duration-500">
                                 <Handshake size={22} />
                               </div>
-                              <span className="text-sm md:text-base font-black text-slate-800 uppercase tracking-wide">تحليل ذكاء الموردين</span>
+                              <span className="text-sm md:text-base font-black text-slate-800 uppercase tracking-wide">قراءة الموردين</span>
                             </div>
                             <div className="w-4 h-4 rounded-full bg-amber-500 animate-ping" />
                           </div>
@@ -3411,7 +3432,7 @@ const [isPending, startTransition] = useTransition();
                                <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center border border-indigo-500/30 shadow-2xl shadow-indigo-500/20">
                                  <Zap className="text-indigo-400" size={28} />
                                </div>
-                               <h4 className="font-black text-white text-2xl md:text-3xl lg:text-4xl tracking-tight">خطة عمل التحسين الفوري</h4>
+                               <h4 className="font-black text-white text-2xl md:text-3xl lg:text-4xl tracking-tight">خطة التحسين الفوري</h4>
                              </div>
                              
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3429,7 +3450,7 @@ const [isPending, startTransition] = useTransition();
                                </div>
                              </div>
 
-                             <p className="text-indigo-200/80 text-sm md:text-base font-bold leading-relaxed max-w-3xl mx-auto">بناءً على النبض الحالي للموردين والمبيعات، تم توليد {autoStrategies.length} استراتيجيات فورية متاحة للتطبيق الآن.</p>
+                             <p className="text-indigo-200/80 text-sm md:text-base font-bold leading-relaxed max-w-3xl mx-auto">حسب نبض الموردين والمبيعات، توجد {autoStrategies.length} خطوات عملية جاهزة للتطبيق.</p>
                              
                              <button 
                                onClick={() => {
@@ -3453,8 +3474,8 @@ const [isPending, startTransition] = useTransition();
                                 <RefreshCcw className="text-white animate-spin w-5 h-5 md:w-6 md:h-6" style={{ animationDuration: '6s' }} />
                               </div>
                               <div>
-                                <h3 className="font-black text-2xl lg:text-3xl text-slate-900 tracking-tight">سجل التطور الذاتي</h3>
-                                <p className="text-slate-500 text-xs md:text-sm font-bold mt-1">توثيق رحلة نضج الخوارزميات من البيانات الخام إلى الذكاء التشغيلي</p>
+                                <h3 className="font-black text-2xl lg:text-3xl text-slate-900 tracking-tight">سجل التحسن التشغيلي</h3>
+                                <p className="text-slate-500 text-xs md:text-sm font-bold mt-1">توثيق مختصر لتحسن قراءة البيانات والقرارات التشغيلية</p>
                               </div>
                             </div>
                             <div className="bg-white text-indigo-600 px-4 py-2 rounded-2xl text-xs md:text-sm font-black border border-indigo-100 shadow-xl shadow-indigo-100/50 whitespace-nowrap">
@@ -3542,7 +3563,7 @@ const [isPending, startTransition] = useTransition();
                               <div className="w-16 h-16 lg:w-24 lg:h-24 bg-slate-100 rounded-2xl lg:rounded-2xl flex items-center justify-center mb-4 lg:mb-4 text-slate-300 group-hover:scale-110 group-hover:text-indigo-300 transition-all duration-500">
                                  <BrainCircuit className="w-8 h-8 lg:w-12 lg:h-12" />
                               </div>
-                              <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 mb-2 lg:mb-4 tracking-tight">جاري البناء المعرفي العميق</h3>
+                              <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 mb-2 lg:mb-4 tracking-tight">جاري بناء سجل تشغيلي أوضح</h3>
                               <p className="text-slate-500 font-bold text-xs sm:text-sm lg:text-lg max-w-lg mx-auto leading-relaxed">
                                 بمجرد إصدار القرارات وتتبع نتائجها، يعرض النظام بعرض رحلة تطوره وتحسن دقته هنا بشكل آلي عبر معالجة البيانات التاريخية.
                               </p>
@@ -4417,7 +4438,7 @@ const [isPending, startTransition] = useTransition();
                                   size={32}
                                 />
                                 <span className="text-xs md:text-sm font-bold relative z-10">
-                                  نستنبط بذكاء...
+                                  نستنبط من البيانات...
                                 </span>
                               </div>
                             );
@@ -5591,7 +5612,7 @@ const [isPending, startTransition] = useTransition();
                             ماكو بيانات كافية للتحليل الاستراتيجي.
                           </p>
                           <p className="text-[10px] text-white/50 mt-2 font-bold">
-                            سجل حركة مبيعات وملاحظات عشان يقدر الذكاء
+                            سجل حركة مبيعات وملاحظات عشان تظهر القراءة
                             الاصطناعي قراءة الأنماط.
                           </p>
                         </div>
@@ -5997,7 +6018,7 @@ const [isPending, startTransition] = useTransition();
                           {/* Sentiment Bar */}
                           <div className="space-y-3">
                             <h4 className="text-[11px] font-bold text-slate-500 uppercase">
-                              تحليل المشاعر الإجمالي
+                              تحليل الانطباع الإجمالي
                             </h4>
                             <div className="h-4 flex rounded-full overflow-hidden shadow-inner">
                               <div

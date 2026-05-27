@@ -35,6 +35,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
 
  const loyaltyData = useMemo(() => {
  const now = new Date();
+ const pickBySeedLocal = (templates: string[], seed?: string) => { const value = String(seed || '0').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0); return templates[value % templates.length]; };
  
  return customers.map((c: any, index: number) => {
  const customerInvoices = invoices.filter((i: any) => i.customerId === c.id && !i.isDeleted);
@@ -116,36 +117,64 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  let whatsappMessage ="";
  let actionLabel ="إرسال عرض";
 
- const namePart = c.name?.split(' ')[0] ||"عميلنا";
+ const namePart = (() => { const clean = String(c.name || '').trim().replace(/\s+/g, ' '); if (!clean) return 'عميلنا العزيز'; const parts = clean.split(' '); return ['بو','أبو','ابو','أم','ام'].includes(parts[0]) && parts[1] ? `${parts[0]} ${parts[1]}` : parts[0]; })();
 
  if (classification ==="شريك التراث" || classification ==="عميل ذهبي") {
- smartAdvice ="عميل مميز وشريك حقيقي، دلاله واجب!";
- whatsappMessage = `\u2728 هلا ${namePart}، أنت من عملاء التراث المميزين وعندك ${activePoints} نقطة. جهزنا لك عرض خاص يليق فيك.`;
- actionLabel ="مكافأة الشريك";
+ smartAdvice ="عميل مميز؛ رسالة تقدير قصيرة أفضل من الكلام الطويل.";
+ whatsappMessage = pickBySeedLocal([
+  `هلا ${namePart}، لك مكانة خاصة عند التراث. رصيدك ${activePoints} نقطة، وجهزنا لك تقدير مناسب للطلب القادم.`,
+  `${namePart}، طلباتك لها قيمة عندنا. عندك ${activePoints} نقطة ونبي نخدمك بتجربة أرتب.`,
+  `يا هلا ${namePart}، رصيدك ${activePoints} نقطة. هذا تذكير تقدير لعميل نعتز فيه.`
+ ], c.id || c.phone || c.name);
+ actionLabel ="رسالة تقدير";
  } else if (classification ==="عاشق التراث") {
- smartAdvice ="ولاء مطلق للمطعم، كافئه ليصبح شريكاً";
- whatsappMessage = `\u2728 أصيل يا ${namePart}، ولاؤك للتراث محل تقدير. رصيدك ${activePoints} نقطة، وجهزنا لك عرض خاص اليوم.`;
- actionLabel ="تقدير العاشق";
+ smartAdvice ="ولاء واضح؛ كافئه برسالة تقدير لا خصم عشوائي.";
+ whatsappMessage = pickBySeedLocal([
+  `${namePart}، ذوقك حاضر في سجل التراث. عندك ${activePoints} نقطة ونحب نكافئ استمرارك.`,
+  `هلا ${namePart}، ولاؤك محل تقدير. رصيدك ${activePoints} نقطة، والطلب القادم له عناية خاصة.`,
+  `${namePart}، حضورك المتكرر يسعدنا. جهزنا لك تقدير بسيط يليق فيك.`
+ ], c.id || c.phone || c.name);
+ actionLabel ="تقدير الولاء";
  } else if (classification ==="صياد العروض") {
- smartAdvice ="يعشق التوفير، ارسل له عروض حصرية ومباشرة";
- whatsappMessage = `\u2728 يا هلا ${namePart}، جهزنا لك عرض حصري مع رصيدك الحالي ${activePoints} نقطة. لا يفوتك.`;
- actionLabel ="طُعم الاقتناص";
+ smartAdvice ="يفضل القيمة الواضحة؛ اجعل الرسالة مباشرة ومختصرة.";
+ whatsappMessage = pickBySeedLocal([
+  `هلا ${namePart}، عندك فرصة ذكية للاستفادة من رصيدك ${activePoints} نقطة في الطلب القادم.`,
+  `${namePart}، اخترنا لك تنبيه توفير مختصر يناسب سجل طلباتك. رصيدك ${activePoints} نقطة.`,
+  `يا هلا ${namePart}، رصيدك ${activePoints} نقطة جاهز يساعدك في طلبك القادم.`
+ ], c.id || c.phone || c.name);
+ actionLabel ="رسالة قيمة";
  } else if (classification ==="منقطع") {
- smartAdvice ="اشتقنا له، فرصة استرجاعه بكود قوي";
- whatsappMessage = `\u2728 اشتقنا لك ${namePart}، لك فترة ما طلبت من التراث. عندك ${activePoints} نقطة ناطرتك.`;
- actionLabel ="رسالة استرجاع";
+ smartAdvice ="فرصة استرجاع؛ رسالة دافئة بدون إلحاح.";
+ whatsappMessage = pickBySeedLocal([
+  `هلا ${namePart}، لك فترة عن التراث. نحب نرجع نخدمك بطلب مرتب على ذوقك.`,
+  `${namePart}، اشتقنا لطلبك. إذا ودك نرتب لك شي مناسب اليوم، حاضرين.`,
+  `يا هلا ${namePart}، رجعتك تهمنا. عندك ${activePoints} نقطة ونقدر نجهز لك طلب سريع.`
+ ], c.id || c.phone || c.name);
+ actionLabel ="استرجاع هادئ";
  } else if (activePoints >= 150 && activePoints < 250) {
- smartAdvice ="باقي له قليل للوصول لمكافأة كبيرة";
- whatsappMessage = `\u2728 ${namePart}، باقي لك شوي وتوصل للمكافأة الكبيرة. رصيدك الحين ${activePoints} نقطة.`;
- actionLabel ="تحفيز الوصول";
+ smartAdvice ="قريب من مكافأة؛ حفزه بجملة واحدة.";
+ whatsappMessage = pickBySeedLocal([
+  `${namePart}، قربت من مكافأة أعلى. رصيدك الآن ${activePoints} نقطة.`,
+  `هلا ${namePart}، باقي لك خطوة بسيطة وتفتح قيمة أفضل. رصيدك ${activePoints} نقطة.`,
+  `${namePart}، نقاطك تتحرك بشكل ممتاز: ${activePoints} نقطة حالياً.`
+ ], c.id || c.phone || c.name);
+ actionLabel ="تحفيز مختصر";
  } else if (activePoints >= 250) {
- smartAdvice ="رصيده عالي، شجعه على الاستبدال";
- whatsappMessage = `\u2728 ما شاء الله ${namePart}، رصيدك ${activePoints} نقطة. تقدر تستخدمها كخصم مباشر. حياك الله.`;
- actionLabel ="رسالة استبدال";
+ smartAdvice ="رصيد عالي؛ شجعه على الاستفادة الآن.";
+ whatsappMessage = pickBySeedLocal([
+  `ما شاء الله ${namePart}، رصيدك ${activePoints} نقطة جاهز للاستفادة في الطلب القادم.`,
+  `${namePart}، عندك رصيد ممتاز: ${activePoints} نقطة. نقدر نفعّله لك مع الطلب القادم.`,
+  `هلا ${namePart}، نقاطك وصلت مستوى ممتاز. رصيدك ${activePoints} نقطة.`
+ ], c.id || c.phone || c.name);
+ actionLabel ="استفادة الرصيد";
  } else {
- smartAdvice ="العميل يبني ولاءه، شجعه لتجميع النقاط";
- whatsappMessage = `\u2728 يا هلا ${namePart}، رصيد نقاطك ${activePoints} نقطة. استمر بجمع النقاط لفتح عروض التراث.`;
- actionLabel ="تذكير بالولاء";
+ smartAdvice ="عميل في بداية الولاء؛ رسالة خفيفة تكفي.";
+ whatsappMessage = pickBySeedLocal([
+  `يا هلا ${namePart}، رصيدك الحالي ${activePoints} نقطة. كل طلب يقرّبك من مكافأة أفضل.`,
+  `${namePart}، نورت التراث. نقاطك الآن ${activePoints} وتزيد مع طلباتك القادمة.`,
+  `هلا ${namePart}، عندك ${activePoints} نقطة كبداية طيبة في برنامج الولاء.`
+ ], c.id || c.phone || c.name);
+ actionLabel ="تذكير خفيف";
  }
 
  return {
@@ -547,9 +576,9 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  onClick={() => {
  const heroName = getFriendlyName(hero.name);
  const msg = pickBySeed([
-   `كفو يا ${heroName}! أنت من أبطال الطلبات، ولك مكافأة خاصة في الطلب القادم.`,
+   `هلا ${heroName}، أنت من أبطال الطلبات، ولك تقدير خاص في الطلب القادم.`,
    `${heroName}، حضورك مستمر وذوقك واضح. جهزنا لك تقدير بسيط للطلب القادم.`,
-   `هلا ${heroName}، لأنك من العملاء المميزين، عندك هدية استمرار من التراث.`
+   `يا هلا ${heroName}، استمرارك محل تقدير، وطلبك القادم له لمسة خاصة من التراث.`
  ], hero.id || hero.phone || hero.name);
  handleWhatsApp(hero.phone, msg);
  }}

@@ -462,7 +462,7 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     { id: 'new-invoice', label: 'إنشاء فاتورة جديدة', subtitle: 'مسار سريع لإدخال المبيعات الفورية للعملاء', icon: <PlusCircle size={18} />, tone: 'sky', value: 'فاتورة جديدة', hint: 'مسار إنشاء سريع' },
     { id: 'invoices-list', label: 'سجل الفواتير ونقاط البيع', subtitle: 'البحث والطباعة والمراجعة لجميع الفواتير السابقة', icon: <Receipt size={18} />, tone: 'emerald', value: 'أرشيف الفواتير', hint: `${invoices.length} فاتورة` },
     { id: 'orders', label: 'طلبات الموقع الإلكتروني', subtitle: 'متابعة تشغيل وتوصيل الطلبات والدفع الإلكتروني', icon: <ShoppingBag size={18} />, tone: 'slate', value: 'الطلبات والتشغيل', hint: `${orders.length} طلب ويب` },
-    { id: 'customers', label: 'إدارة العملاء وذكاء البيانات', subtitle: 'قائمة العملاء وبيانات الاتصال والترتيب', icon: <Users size={18} />, tone: 'emerald', value: 'قاعدة العملاء', hint: `${customers.length} عميل` },
+    { id: 'customers', label: 'إدارة العملاء وقراءة البيانات', subtitle: 'قائمة العملاء وبيانات الاتصال والترتيب', icon: <Users size={18} />, tone: 'emerald', value: 'قاعدة العملاء', hint: `${customers.length} عميل` },
     { id: 'settings', label: 'الإعدادات العامة لمطبخ التراث', subtitle: 'إعدادات التشغيل، التوصيل، الشركاء، والهوية', icon: <Settings size={18} />, tone: 'slate', value: 'الإعدادات والتهيئة', hint: 'تخصيص النظام' }
   ];
 
@@ -523,7 +523,7 @@ const getOnboardingProfile = (role: 'admin' | 'partner' | 'demo') => {
         { icon: <Gauge size={19} />, title: 'مركز القيادة', text: 'ابدأ من الملخص التنفيذي لتفهم نبض النظام خلال ثواني.', page: 'dashboard' },
         { icon: <Receipt size={19} />, title: 'الفواتير', text: 'جرّب إنشاء فاتورة ومراجعة سجل الفواتير.', page: 'new-invoice' },
         { icon: <ShoppingBag size={19} />, title: 'طلبات الموقع', text: 'شاهد كيف تظهر حالات الطلبات والدفعات للمتابعة.', page: 'orders' },
-        { icon: <Sparkles size={19} />, title: 'استوديو الصورة الذكية', text: 'استعرض أدوات المحتوى والأرشيف من غير لمس منطق الذكاء.', page: 'smart-studio' },
+        { icon: <Sparkles size={19} />, title: 'استوديو الصورة الذكية', text: 'استعرض أدوات المحتوى والأرشيف من غير لمس منطق التراث الذكي.', page: 'smart-studio' },
       ]
     };
   }
@@ -661,17 +661,17 @@ const getItemName = (item: any, fallback = 'بدون اسم') => item?.name || i
 const getAdminPageMeta = (page: string) => {
   const map: Record<string, {title: string; subtitle: string; tag: string}> = {
     dashboard: { title: 'مركز القيادة', subtitle: 'ملخص اليوم، الحالات المهمة، والإجراءات السريعة في واجهة واحدة.', tag: 'Daily Command Brief' },
-    'dashboard-ai': { title: 'مختبر الذكاء', subtitle: 'معرض أدوات للقرارات الذكية بدون لمس منطق التراث الذكي.', tag: 'Smart Lab Gallery' },
+    'dashboard-ai': { title: 'مختبر التراث الذكي', subtitle: 'معرض أدوات للقرارات التنفيذية بدون لمس منطق التراث الذكي.', tag: 'Smart Lab Gallery' },
     'new-invoice': { title: 'فاتورة جديدة', subtitle: 'العميل، المنتجات، الملخص، ثم الإنشاء في مسار واحد واضح.', tag: 'Receipt Builder' },
     'invoices-list': { title: 'سجل الفواتير', subtitle: 'سجل فخم للبحث والمراجعة والطباعة والمتابعة.', tag: 'Invoice Ledger' },
     orders: { title: 'طلبات الموقع', subtitle: 'لوحة تشغيل للطلبات الحالية وحالات الدفع الفعلية.', tag: 'Operations Board' },
-    customers: { title: 'لوحة ذكاء العملاء', subtitle: 'VIP، جدد، غائبون، عالي القيمة، وعملاء يحتاجون عرض.', tag: 'Customer Intelligence Board' },
+    customers: { title: 'لوحة العملاء', subtitle: 'VIP، جدد، غائبون، عالي القيمة، وعملاء يحتاجون عرض.', tag: 'Customer Intelligence Board' },
     products: { title: 'قائمة المنتجات', subtitle: 'استوديو منتجات مع مؤشر قوة المنتج من المبيعات والربحية والتوفر.', tag: 'Product Score' },
     expenses: { title: 'المصروفات العامة', subtitle: 'صفحة مالية هادئة توضّح المصروفات والنزيف بدون صراخ بصري.', tag: 'Expense Control' },
     suppliers: { title: 'الموردين والمراجعة', subtitle: 'رادار الموردين: انتظام، مديونية، اعتماد، منتجات مرتبطة، ومخاطر.', tag: 'Supplier Risk Radar' },
     'suppliers-audit': { title: 'الموردين والمخاطر', subtitle: 'ربط أثر المورد بالمنتجات والطلبات والربح.', tag: 'Supplier Intelligence' },
     reports: { title: 'التقارير', subtitle: 'قراءة تنفيذية للفواتير والمبيعات والأداء.', tag: 'Executive Reports' },
-    ai: { title: 'المساعد الذكي', subtitle: 'مساعد تنفيذي يعرض الملخص والأسباب والإجراء المقترح.', tag: 'Executive Assistant' },
+    ai: { title: 'مستشار التراث الذكي', subtitle: 'مستشار تنفيذي يعرض الملخص والأسباب والإجراء المقترح.', tag: 'Executive Assistant' },
     'smart-studio': { title: 'استوديو الصورة الذكية', subtitle: 'اختيار المحتوى، التوليد، المعاينة، والأرشيف في تجربة واحدة.', tag: 'Creative Suite' },
     loyalty: { title: 'مملكة الولاء', subtitle: 'مستويات عادي، فضي، ذهبي، وVIP مع شارات وترقيات.', tag: 'Loyalty Kingdom' },
     coupons: { title: 'مسرح العروض الذكية', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'Smart Offers Theater' },
@@ -685,6 +685,9 @@ const getAdminPageMeta = (page: string) => {
 
 const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page: string) => void; children: React.ReactNode}> = ({ page, data, onNavigate, children }) => {
   const meta = getAdminPageMeta(page);
+  const [openSmartPanel, setOpenSmartPanel] = React.useState<string | null>(null);
+  React.useEffect(() => { setOpenSmartPanel(null); }, [page]);
+  const toggleSmartPanel = (panel: string) => setOpenSmartPanel(prev => prev === panel ? null : panel);
   const invoices = Array.isArray(data?.invoices) ? data.invoices : [];
   const orders = Array.isArray(data?.orders) ? data.orders : [];
   const products = Array.isArray(data?.products) ? data.products : [];
@@ -734,7 +737,7 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
   const showCustomers = page === 'customers' || page === 'loyalty';
   const showSuppliers = page === 'suppliers' || page === 'suppliers-audit';
   const showCoupons = page === 'coupons';
-  const showAi = false; // تم إخفاء معرض مختبر الذكاء المكرر فقط
+  const showAi = false; // تم إخفاء معرض التراث الذكي المكرر فقط
   const showGrowth = page === 'growth-simulator';
   const showProfit = page === 'profit-guard' || page === 'expenses' || page === 'reports';
   const showPageHero = page !== 'dashboard';
@@ -745,11 +748,11 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
           <div className="admin-page-hero-main"><span className="admin-page-kicker">{meta.tag}</span><h1>{meta.title}</h1><p>{meta.subtitle}</p></div>
         </section>
       )}
-      {showProduct && <section className="admin-smart-panel product-score-panel" dir="rtl"><div className="panel-head"><div><span>Product Score</span><h2>مؤشر قوة المنتج</h2></div><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></section>}
-      {showCustomers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Customer Intelligence Board</span><h2>لوحة ذكاء العملاء</h2></div><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{c.spend.toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></section>}
-      {showSuppliers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Supplier Risk Radar</span><h2>رادار الموردين</h2><p className="text-xs font-bold text-slate-500 mt-1">يعرض أهم 3 موردين حسب أولوية السداد وتأثيرهم على التشغيل.</p></div></div><div className="supplier-radar-guide"><span><b>أولوية سداد عالية:</b> مستحق مالي كبير يحتاج تسوية قريبة.</span><span><b>مورد مؤثر:</b> مرتبط بعدة منتجات وقد يؤثر على توفر الأصناف.</span><span><b>مستقر:</b> لا يحتاج إجراء عاجل حالياً.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>سداد</span><b>→</b><span>توفر</span><b>→</b><span>منتجات</span><b>→</b><span>ربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات مرتبطة · مستحقات: {sup.debt.toFixed(3)} د.ك</p><strong title="الحالة محسوبة من المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk} · {sup.priorityScore}/100</strong><p className="mt-2 text-[11px] font-bold text-slate-500">{sup.recommendation}</p></div>)}</div></section>}
+      {showProduct && <section className={cn("admin-smart-panel product-score-panel smart-collapsible-panel", openSmartPanel==='product' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('product')}><div><span>Product Score</span><h2>مؤشر قوة المنتج</h2><p>أفضل الأصناف حسب المبيعات والربحية.</p></div><span className="toggle-pill">{openSmartPanel==='product' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='product' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></div>}</section>}
+      {showCustomers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='customers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('customers')}><div><span>Customer Board</span><h2>لوحة العملاء</h2><p>مختصر الولاء والقيمة الشرائية.</p></div><span className="toggle-pill">{openSmartPanel==='customers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='customers' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{c.spend.toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></div>}</section>}
+      {showSuppliers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='suppliers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('suppliers')}><div><span>Supplier Radar</span><h2>رادار الموردين</h2><p>أولوية السداد وتأثير التوريد.</p></div><span className="toggle-pill">{openSmartPanel==='suppliers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='suppliers' && <div className="smart-panel-body"><div className="supplier-radar-guide"><span><b>سداد عالي:</b> مستحق كبير.</span><span><b>مورد مؤثر:</b> مرتبط بعدة منتجات.</span><span><b>مستقر:</b> لا إجراء عاجل.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>سداد</span><b>→</b><span>توفر</span><b>→</b><span>ربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات · {sup.debt.toFixed(3)} د.ك</p><strong title="الحالة محسوبة من المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk} · {sup.priorityScore}/100</strong><p className="mt-2 text-[11px] font-bold text-slate-500">{sup.recommendation}</p></div>)}</div></div>}</section>}
       {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح العروض الذكية</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span>تأثير الربح: {tone}</span></div>})}</div></section>}
-      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>Smart Lab Gallery</span><h2>معرض مختبر الذكاء</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو الصورة الذكية</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
+      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>Smart Lab Gallery</span><h2>معرض التراث الذكي</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو الصورة الذكية</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
         { label: 'تحليل العملاء', page: 'customers' },
         { label: 'تحليل المنتجات', page: 'products' },
         { label: 'تحليل الموردين', page: 'suppliers-audit' },

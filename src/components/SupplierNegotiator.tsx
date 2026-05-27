@@ -31,7 +31,7 @@ export const SupplierNegotiator: React.FC<SupplierNegotiatorProps> = ({ insights
   <div className="space-y-5 md:space-y-7 w-full max-w-full overflow-hidden" dir="rtl">
     <div className="flex flex-col md:flex-row justify-between items-center bg-slate-50 p-4 md:p-6 rounded-3xl border border-slate-200 shadow-sm gap-4">
       <div className="text-right">
-        <h3 className="font-black text-xl sm:text-2xl md:text-3xl text-slate-800 tracking-tight leading-tight">ذكاء مفاوضات الموردين</h3>
+        <h3 className="font-black text-xl sm:text-2xl md:text-3xl text-slate-800 tracking-tight leading-tight">مفاوضات الموردين</h3>
         <p className="text-slate-500 text-xs md:text-sm font-bold mt-1 opacity-70">تحليل الموردين التنفيذي 🤝</p>
       </div>
       <div className="flex items-center gap-2 bg-indigo-500/10 px-4 py-2 rounded-2xl border border-indigo-500/20 shadow-sm">
@@ -94,7 +94,7 @@ export const SupplierNegotiator: React.FC<SupplierNegotiatorProps> = ({ insights
                       {insight.isUnfairPricing ? 'يبيعه أغلى !' : 'يبيعه أرخص !'}
                     </p>
                     <p className="text-sm md:text-base font-bold text-slate-500 max-w-[260px] leading-relaxed">
-                      بناءً على تحليل ذكاء الأعمال للصنف: <span className="text-slate-800">{insight.productName}</span>
+                      بناءً على قراءة أداء الصنف: <span className="text-slate-800">{insight.productName}</span>
                     </p>
                   </div>
 
