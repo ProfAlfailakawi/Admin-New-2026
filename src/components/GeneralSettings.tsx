@@ -16,6 +16,7 @@ import { INITIAL_DATA } from '../data';
 import { EnableNotificationsButton } from './EnableNotificationsButton';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { recalculateStateBalances } from '../lib/business-logic';
+import { getProtectedStorageItem, removeProtectedStorageItemIntentionally, setProtectedStorageItem } from '../lib/dataGuard';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 interface Props {
@@ -83,11 +84,11 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     const hasRealData = (data.invoices && data.invoices.length > 0) || (data.products && data.products.length > 0) || (data.customers && data.customers.length > 0);
     if (hasRealData) {
       if (appMode === 'local') {
-        localStorage.setItem('ktk_local_accounting_data_backup', JSON.stringify(data));
-        localStorage.setItem('ktk_local_accounting_data_last_good', JSON.stringify(data));
+        setProtectedStorageItem('ktk_local_accounting_data_backup', JSON.stringify(data));
+        setProtectedStorageItem('ktk_local_accounting_data_last_good', JSON.stringify(data));
       } else {
-        localStorage.setItem('ktk_cloud_offline_snapshot_backup', JSON.stringify(data));
-        localStorage.setItem('ktk_cloud_offline_snapshot_last_good', JSON.stringify(data));
+        setProtectedStorageItem('ktk_cloud_offline_snapshot_backup', JSON.stringify(data));
+        setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', JSON.stringify(data));
       }
     }
 
@@ -120,12 +121,12 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     }
 
     setData(INITIAL_DATA);
-    localStorage.removeItem('ktk_local_accounting_data');
-    localStorage.removeItem('ktk_local_accounting_data_last_good');
-    localStorage.removeItem('ktk_accounting_data');
-    localStorage.removeItem('ktk_accounting_data_last_good');
-    localStorage.removeItem('ktk_cloud_offline_snapshot');
-    localStorage.removeItem('ktk_cloud_offline_snapshot_last_good');
+    removeProtectedStorageItemIntentionally('ktk_local_accounting_data');
+    removeProtectedStorageItemIntentionally('ktk_local_accounting_data_last_good');
+    removeProtectedStorageItemIntentionally('ktk_accounting_data');
+    removeProtectedStorageItemIntentionally('ktk_accounting_data_last_good');
+    removeProtectedStorageItemIntentionally('ktk_cloud_offline_snapshot');
+    removeProtectedStorageItemIntentionally('ktk_cloud_offline_snapshot_last_good');
     sessionStorage.removeItem('hideSampleDataPrompt');
     localStorage.removeItem('active_firestore_db_id');
     localStorage.removeItem('active_firestore_project_id');
@@ -148,9 +149,9 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const handleRestoreBackup = () => {
    try {
      const backupKey = appMode === 'local' ? 'ktk_local_accounting_data_backup' : 'ktk_cloud_offline_snapshot_backup';
-     let backupStr = localStorage.getItem(backupKey);
+     let backupStr = getProtectedStorageItem(backupKey);
      if (!backupStr && appMode === 'local') {
-       backupStr = localStorage.getItem('ktk_accounting_data_backup');
+       backupStr = getProtectedStorageItem('ktk_accounting_data_backup');
      }
      if (backupStr) {
        const parsed = JSON.parse(backupStr);
@@ -700,8 +701,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
         // Keep the imported file visible locally without overwriting another cloud account.
         setData(finalizedState);
         try {
-          localStorage.setItem('ktk_cloud_offline_snapshot_last_good', JSON.stringify(finalizedState));
-          localStorage.setItem('ktk_cloud_offline_snapshot', JSON.stringify(finalizedState));
+          setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', JSON.stringify(finalizedState));
+          setProtectedStorageItem('ktk_cloud_offline_snapshot', JSON.stringify(finalizedState));
         } catch (storageErr) {
           console.warn('Could not keep imported cloud fallback locally:', storageErr);
         }

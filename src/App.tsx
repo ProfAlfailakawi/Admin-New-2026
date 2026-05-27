@@ -100,6 +100,7 @@ import { Toaster, toast } from 'sonner';
 import { playNewOrderAlert } from './lib/sounds';
 import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils';
 import { refreshPushRegistrationIfAlreadyAllowed } from './lib/pushNotifications';
+import { getProtectedStorageItem, hasMeaningfulData, safeMergeData, setProtectedStorageItem } from './lib/dataGuard';
 
 type AdminNotification = AppState['notifications'][number];
 
@@ -1511,8 +1512,9 @@ const MainApp: React.FC = () => {
       const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
       
       SHARDED_KEYS.forEach(key => {
-         if (shardedPayloads[key]) {
-            const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+	         if (shardedPayloads[key]) {
+            if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) return;
+	            const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
             const payloadStr = JSON.stringify(shardedPayloads[key]);
             let shardContent;
             if (payloadStr.length > 500000) {
@@ -1565,6 +1567,16 @@ const MainApp: React.FC = () => {
     return value !== undefined && value !== null && value !== '';
   };
 
+  const parseStoredState = (raw: string | null): AppState | null => {
+    if (!raw) return null;
+    try {
+      const parsed = joinProductsFromDatabase(JSON.parse(raw));
+      return hasMeaningfulData(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  };
+
   const isDangerousEmptyOverwrite = (key: string, currentVal: any) => {
     if (!Array.isArray(currentVal) || currentVal.length > 0) return false;
     const lastSerialized = lastRemoteKeysRef.current[key];
@@ -1589,11 +1601,11 @@ const MainApp: React.FC = () => {
         const rootDocData: any = { ...splitData };
         const shardedPayloads: Record<string, any> = {};
         
-        SHARDED_KEYS.forEach(key => {
-          if (rootDocData[key] !== undefined) {
-            shardedPayloads[key] = rootDocData[key];
-            if (key !== 'products') {
-              rootDocData[key] = [];
+	        SHARDED_KEYS.forEach(key => {
+	          if (rootDocData[key] !== undefined) {
+	            shardedPayloads[key] = rootDocData[key];
+	            if (key !== 'products') {
+	              rootDocData[key] = [];
             }
           }
         });
@@ -1602,9 +1614,10 @@ const MainApp: React.FC = () => {
         const sanitizedRoot = JSON.parse(JSON.stringify(rootDocData));
         const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
         
-        SHARDED_KEYS.forEach(key => {
-           if (shardedPayloads[key] !== undefined) {
-              const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+	        SHARDED_KEYS.forEach(key => {
+	           if (shardedPayloads[key] !== undefined) {
+              if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) return;
+	              const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
               const payloadStr = JSON.stringify(shardedPayloads[key]);
               let shardContent;
               
@@ -1635,8 +1648,8 @@ const MainApp: React.FC = () => {
         lastRemoteSnapshotRef.current = newFullStateStr;
         
         try {
-          localStorage.setItem('ktk_cloud_offline_snapshot_last_good', newFullStateStr);
-          localStorage.setItem('ktk_cloud_offline_snapshot', newFullStateStr);
+          setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', newFullStateStr);
+          setProtectedStorageItem('ktk_cloud_offline_snapshot', newFullStateStr);
         } catch (err) {
           console.warn("localStorage sync skipped during cloud import:", err);
         }
@@ -1708,10 +1721,7 @@ const MainApp: React.FC = () => {
               setAppMode('cloud');
               localStorage.setItem('appMode', 'cloud');
               // Maintain isolated cloud caches when logging in; never touch local database
-              try {
-                localStorage.removeItem('ktk_cloud_offline_snapshot');
-                localStorage.removeItem('ktk_cloud_offline_snapshot_last_good');
-              } catch (e) {}
+              // Keep the last healthy cloud snapshot available for recovery.
             }
 
             setUser(currentUser);
@@ -1752,13 +1762,13 @@ const MainApp: React.FC = () => {
     const startDataSync = async () => {
       // If mode is 'local', load from Local Storage 
       if (appMode === 'local') {
-          let savedDataStr = localStorage.getItem('ktk_local_accounting_data');
+          let savedDataStr = getProtectedStorageItem('ktk_local_accounting_data');
           if (!savedDataStr) {
               // Legacy migration
-              savedDataStr = localStorage.getItem('ktk_accounting_data');
+              savedDataStr = getProtectedStorageItem('ktk_accounting_data');
               if (savedDataStr) {
                   try {
-                      localStorage.setItem('ktk_local_accounting_data', savedDataStr);
+                      setProtectedStorageItem('ktk_local_accounting_data', savedDataStr);
                   } catch (e) {}
               }
           }
@@ -1855,6 +1865,7 @@ const MainApp: React.FC = () => {
         const dataRef = getSmartDoc('appData', user.uid, user.email);
         const rootSnap = await getDocFromServer(dataRef).catch(() => getDoc(dataRef));
         let loadedState: any = { ...INITIAL_DATA };
+        const localCloudSnapshot = parseStoredState(getProtectedStorageItem('ktk_cloud_offline_snapshot'));
 
         if (rootSnap.exists()) {
           cloudRootExistsRef.current = true;
@@ -1882,16 +1893,19 @@ const MainApp: React.FC = () => {
           const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
           try {
             const shardSnap = await getDocFromServer(shardRef).catch(() => getDoc(shardRef));
-            if (!shardSnap.exists()) return { key, exists: false, value: undefined };
-            const shardData = shardSnap.data() as any;
-            let parsedData: any = undefined;
-            if (shardData?.isCompressed && shardData.compressedData) {
-              const decompressed = LZString.decompressFromBase64(shardData.compressedData);
-              if (decompressed) parsedData = JSON.parse(decompressed);
-            } else if (shardData && shardData[key] !== undefined) {
-              parsedData = shardData[key];
-            }
-            return { key, exists: true, value: parsedData };
+	            if (!shardSnap.exists()) return { key, exists: false, value: undefined };
+	            const shardData = shardSnap.data() as any;
+	            let parsedData: any = undefined;
+	            if (shardData?.isCompressed && shardData.compressedData) {
+	              const decompressed = LZString.decompressFromBase64(shardData.compressedData);
+	              if (decompressed) parsedData = JSON.parse(decompressed);
+	            } else if (shardData && shardData[key] !== undefined) {
+	              parsedData = shardData[key];
+	            }
+	            if (!hasMeaningfulData(parsedData) && hasMeaningfulData((localCloudSnapshot as any)?.[key])) {
+	              parsedData = (localCloudSnapshot as any)[key];
+	            }
+	            return { key, exists: true, value: parsedData };
           } catch (err) {
             console.error(`Shard load error for ${key}:`, err);
             return { key, exists: false, value: undefined };
@@ -1921,14 +1935,14 @@ const MainApp: React.FC = () => {
               // إدارة الدواوين في برنامج العميل محفوظة داخل appData/shared_company_data
               // وأحياناً تظهر فقط من خلال orders المرتبطة بالديوانية.
               // لذلك لا نستبدل البيانات بقائمة فارغة، ونحتفظ بطلبات الديوانية منفصلة حتى لا نمس صفحة الطلبات أو الدفع.
-              if (dashboardData.squads.length > 0) {
-                loadedState.squads = dashboardData.squads;
-                lastRemoteKeysRef.current['squads'] = stableStringify(dashboardData.squads);
-                loadedCloudShardKeysRef.current.add('squads');
-              }
-              if (Array.isArray(dashboardData?.orders)) {
-                loadedState.diwaniyaOrders = dashboardData.orders;
-              }
+	              if (dashboardData.squads.length > 0) {
+	                loadedState.squads = safeMergeData(loadedState.squads, dashboardData.squads);
+	                lastRemoteKeysRef.current['squads'] = stableStringify(dashboardData.squads);
+	                loadedCloudShardKeysRef.current.add('squads');
+	              }
+	              if (Array.isArray(dashboardData?.orders) && dashboardData.orders.length > 0) {
+	                loadedState.diwaniyaOrders = safeMergeData(loadedState.diwaniyaOrders, dashboardData.orders);
+	              }
               apiSuccess = true;
             }
           }
@@ -1937,29 +1951,32 @@ const MainApp: React.FC = () => {
             console.warn('[DASHBOARD_API] API failed or lacks permissions. Falling back to direct client-side Firestore fetch for squads...');
             const squadsSnap = await getDocs(collection(db, 'squads'));
             const cloudSquads = squadsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            loadedState.squads = cloudSquads;
-            lastRemoteKeysRef.current['squads'] = stableStringify(cloudSquads);
-            loadedCloudShardKeysRef.current.add('squads');
+	            if (cloudSquads.length > 0) loadedState.squads = safeMergeData(loadedState.squads, cloudSquads);
+	            lastRemoteKeysRef.current['squads'] = stableStringify(cloudSquads);
+	            loadedCloudShardKeysRef.current.add('squads');
           }
         } catch (apiErr) {
           console.warn('Unable to load squads from /api/admin-dashboard-data. Falling back to direct Firestore fetch.', apiErr);
           try {
             const squadsSnap = await getDocs(collection(db, 'squads'));
             const cloudSquads = squadsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            loadedState.squads = cloudSquads;
-            lastRemoteKeysRef.current['squads'] = stableStringify(cloudSquads);
-            loadedCloudShardKeysRef.current.add('squads');
+	            if (cloudSquads.length > 0) loadedState.squads = safeMergeData(loadedState.squads, cloudSquads);
+	            lastRemoteKeysRef.current['squads'] = stableStringify(cloudSquads);
+	            loadedCloudShardKeysRef.current.add('squads');
           } catch (fallbackErr) {
             console.error('Direct Firestore fetch for squads also failed:', fallbackErr);
           }
         }
 
-        setData(loadedState);
-        lastRemoteSnapshotRef.current = JSON.stringify(loadedState);
-        try {
-          localStorage.setItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
-          localStorage.setItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
-        } catch {}
+	        if (cloudRootExistsRef.current && localCloudSnapshot) {
+	          loadedState = safeMergeData(localCloudSnapshot, loadedState);
+	        }
+	        setData(loadedState);
+	        lastRemoteSnapshotRef.current = JSON.stringify(loadedState);
+	        try {
+	          setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
+	          setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
+	        } catch {}
       } catch (err) {
         if (String(err).includes("Missing or insufficient permissions") || String(err).includes("permission-denied")) {
           console.warn("Cloud read permission denied for this account/role:", err);
@@ -2000,22 +2017,22 @@ const MainApp: React.FC = () => {
     const timeoutId = setTimeout(async () => {
       // Save to Local Storage if explicitly in local mode
       if (appMode === 'local') {
-          const localDataStr = JSON.stringify(data);
-          if (localDataStr && localDataStr !== '{}') {
-            localStorage.setItem('ktk_local_accounting_data_last_good', localDataStr);
-            localStorage.setItem('ktk_local_accounting_data', localDataStr);
-          }
-      }
+	          const localDataStr = JSON.stringify(data);
+	          if (localDataStr && localDataStr !== '{}' && hasMeaningfulData(data)) {
+	            setProtectedStorageItem('ktk_local_accounting_data_last_good', localDataStr);
+	            setProtectedStorageItem('ktk_local_accounting_data', localDataStr);
+	          }
+	      }
       
       // Auto-save to Cloud if in cloud mode and authenticated
       if (user && appMode === 'cloud') {
         try {
-          const sanitizedDataStr = JSON.stringify(data);
-          if (!sanitizedDataStr || sanitizedDataStr === '{}') return;
-          try { 
-            localStorage.setItem('ktk_cloud_offline_snapshot_last_good', sanitizedDataStr); 
-            localStorage.setItem('ktk_cloud_offline_snapshot', sanitizedDataStr); 
-          } catch {}
+	          const sanitizedDataStr = JSON.stringify(data);
+	          if (!sanitizedDataStr || sanitizedDataStr === '{}' || !hasMeaningfulData(data)) return;
+	          try { 
+	            setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', sanitizedDataStr); 
+	            setProtectedStorageItem('ktk_cloud_offline_snapshot', sanitizedDataStr); 
+	          } catch {}
           
           // Deduplication: prevent writing back what we just read
           if (sanitizedDataStr === lastRemoteSnapshotRef.current) {
@@ -2214,7 +2231,7 @@ const MainApp: React.FC = () => {
       setDataLoading(true);
 
       try {
-        const savedDataStr = localStorage.getItem('ktk_local_accounting_data') || localStorage.getItem('ktk_accounting_data');
+	        const savedDataStr = getProtectedStorageItem('ktk_local_accounting_data') || getProtectedStorageItem('ktk_accounting_data');
         if (savedDataStr) {
           const parsed = JSON.parse(savedDataStr);
           const joined = joinProductsFromDatabase(parsed);
@@ -3282,12 +3299,12 @@ const App: React.FC = () => {
 
    useEffect(() => {
      try {
-       const currentMode = localStorage.getItem('appMode') || 'local';
-       const key = currentMode === 'cloud' ? 'ktk_cloud_offline_snapshot' : 'ktk_local_accounting_data';
-       let raw = localStorage.getItem(key);
-       if (!raw && currentMode === 'local') {
-         raw = localStorage.getItem('ktk_accounting_data');
-       }
+	       const currentMode = localStorage.getItem('appMode') || 'local';
+	       const key = currentMode === 'cloud' ? 'ktk_cloud_offline_snapshot' : 'ktk_local_accounting_data';
+	       let raw = getProtectedStorageItem(key);
+	       if (!raw && currentMode === 'local') {
+	         raw = getProtectedStorageItem('ktk_accounting_data');
+	       }
        if (raw) {
          const parsed = JSON.parse(raw);
          if (parsed?.settings?.companyLogo) setLogo(parsed.settings.companyLogo);
