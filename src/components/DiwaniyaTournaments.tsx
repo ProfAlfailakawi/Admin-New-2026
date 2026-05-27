@@ -540,9 +540,27 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       case 'Star': return <Star />;
       case 'Crown': return <Crown />;
       case 'Trophy': return <Trophy />;
+      case 'Target': return <Target />;
+      case 'Flame': return <span className="text-xl">🔥</span>;
+      case 'Swords': return <span className="text-xl">⚔️</span>;
+      case 'Diamond': return <span className="text-xl">💎</span>;
+      case 'Rocket': return <span className="text-xl">🚀</span>;
+      case 'Shield': return <span className="text-xl">🛡️</span>;
       default: return <Target />;
     }
   };
+
+  const tierColorOptions = [
+    { value: 'from-orange-400 to-orange-600', label: 'برتقالي', preview: '#f97316', bgClass: 'border-orange-200 bg-orange-50/50' },
+    { value: 'from-slate-300 to-slate-500', label: 'فضي', preview: '#64748b', bgClass: 'border-slate-300 bg-slate-50/50' },
+    { value: 'from-yellow-400 to-amber-600', label: 'ذهبي', preview: '#f59e0b', bgClass: 'border-amber-300 bg-amber-50' },
+    { value: 'from-purple-500 to-fuchsia-700', label: 'بنفسجي', preview: '#9333ea', bgClass: 'border-purple-300 bg-purple-50 shadow-lg' },
+    { value: 'from-emerald-400 to-teal-600', label: 'زمردي', preview: '#10b981', bgClass: 'border-emerald-200 bg-emerald-50' },
+    { value: 'from-blue-400 to-indigo-600', label: 'أزرق', preview: '#3b82f6', bgClass: 'border-blue-200 bg-blue-50' },
+    { value: 'from-rose-400 to-pink-600', label: 'وردي', preview: '#f43f5e', bgClass: 'border-rose-200 bg-rose-50' },
+    { value: 'from-red-500 to-orange-500', label: 'ناري', preview: '#ef4444', bgClass: 'border-red-200 bg-red-50' },
+    { value: 'from-cyan-400 to-sky-600', label: 'سماوي', preview: '#06b6d4', bgClass: 'border-cyan-200 bg-cyan-50' },
+  ];
 
   const handleCopyLink = () => {
     const textToCopy = "https://alturathkw.shop/?showSquads=true";
@@ -1254,44 +1272,45 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
                        {editingTierId === t.id ? (
                          <div className="space-y-3 mt-2 font-sans">
-                           <div className="flex gap-2">
-                             <select 
-                               className="w-1/2 text-xs font-bold bg-white border border-slate-200 p-2 rounded-lg"
-                               value={editedTier.iconType}
-                               onChange={e => setEditedTier({...editedTier, iconType: e.target.value})}
-                             >
-                               <option value="Medal">ميدالية</option>
-                               <option value="Star">نجمة</option>
-                               <option value="Crown">تاج</option>
-                               <option value="Trophy">كأس</option>
-                               <option value="Target">هدف</option>
-                               <option value="Flame">شعلة</option>
-                               <option value="Swords">سيوف</option>
-                             </select>
-                             <select 
-                               className="w-1/2 text-xs font-bold bg-white border border-slate-200 p-2 rounded-lg"
-                               value={editedTier.color}
-                               onChange={e => {
-                                 const color = e.target.value;
-                                 let bgClass = editedTier.bgClass;
-                                 if (color.includes('orange')) bgClass = 'border-orange-200 bg-orange-50/50';
-                                 else if (color.includes('slate')) bgClass = 'border-slate-300 bg-slate-50/50';
-                                 else if (color.includes('yellow')) bgClass = 'border-amber-300 bg-amber-50';
-                                 else if (color.includes('purple')) bgClass = 'border-purple-300 bg-purple-50 shadow-lg';
-                                 else if (color.includes('emerald')) bgClass = 'border-emerald-200 bg-emerald-50';
-                                 else if (color.includes('blue')) bgClass = 'border-blue-200 bg-blue-50';
-                                 else if (color.includes('rose')) bgClass = 'border-rose-200 bg-rose-50';
-                                 setEditedTier({...editedTier, color, bgClass});
-                               }}
-                             >
-                               <option value="from-orange-400 to-orange-600">برتقالي</option>
-                               <option value="from-slate-300 to-slate-500">فضي</option>
-                               <option value="from-yellow-400 to-amber-600">ذهبي</option>
-                               <option value="from-purple-500 to-fuchsia-700">بنفسجي</option>
-                               <option value="from-emerald-400 to-teal-600">زمردي</option>
-                               <option value="from-blue-400 to-indigo-600">أزرق</option>
-                               <option value="from-rose-400 to-pink-600">وردي</option>
-                             </select>
+                           <div className="space-y-3">
+                             <div className="grid grid-cols-4 gap-2">
+                               {[
+                                 { value: 'Medal', label: 'ميدالية' },
+                                 { value: 'Star', label: 'نجمة' },
+                                 { value: 'Crown', label: 'تاج' },
+                                 { value: 'Trophy', label: 'كأس' },
+                                 { value: 'Target', label: 'هدف' },
+                                 { value: 'Flame', label: 'شعلة' },
+                                 { value: 'Swords', label: 'سيوف' },
+                                 { value: 'Diamond', label: 'ألماس' },
+                                 { value: 'Rocket', label: 'صاروخ' },
+                                 { value: 'Shield', label: 'درع' },
+                               ].map((icon) => (
+                                 <button
+                                   key={icon.value}
+                                   type="button"
+                                   onClick={() => setEditedTier({...editedTier, iconType: icon.value})}
+                                   className={`border rounded-xl p-2 flex flex-col items-center gap-1 text-[10px] font-bold transition-all ${editedTier.iconType === icon.value ? 'border-blue-500 bg-blue-50 scale-105' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                                 >
+                                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color}`}>
+                                     {getIcon(icon.value)}
+                                   </div>
+                                   <span>{icon.label}</span>
+                                 </button>
+                               ))}
+                             </div>
+                             <div className="flex flex-wrap gap-2">
+                               {tierColorOptions.map((option) => (
+                                 <button
+                                   key={option.value}
+                                   type="button"
+                                   title={option.label}
+                                   onClick={() => setEditedTier({...editedTier, color: option.value, bgClass: option.bgClass})}
+                                   className={`w-8 h-8 rounded-full border-4 transition-all ${editedTier.color === option.value ? 'border-slate-900 scale-110' : 'border-white'}`}
+                                   style={{ background: option.preview, boxShadow: '0 2px 10px rgba(0,0,0,0.15)' }}
+                                 />
+                               ))}
+                             </div>
                            </div>
                            <input 
                              type="text" 

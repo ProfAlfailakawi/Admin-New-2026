@@ -170,70 +170,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'تنظيف', label: 'تحسين فقط', desc: 'تحسين الألوان والإضاءة الأصلية دون تغيير المشهد', icon: '✨', color: 'bg-indigo-100 text-indigo-700' }
   ];
 
-  const studioLaunchPads = [
-    {
-      title: 'لقطة ديوانية',
-      desc: 'طلب جماعي مرتب بخلفية هادئة للربع.',
-      icon: '🛋️',
-      action: () => {
-        closeOpenPanels();
-        resetGeneratedOutput();
-        setSelectedOrderPlace('diwaniya');
-        setSelectedPulseId('diwaniya-night');
-        setBackgroundPreset('diwaniya-table');
-        setRealityMode('human');
-        setCustomThemeQuery('');
-        setCreateStep(3);
-        setMaxCreateStepReached(5);
-        setStudioTab('create');
-      },
-    },
-    {
-      title: 'واتساب اليوم',
-      desc: 'صورة وكابشن قصير للبيع السريع.',
-      icon: '☏',
-      action: () => {
-        closeOpenPanels();
-        resetGeneratedOutput();
-        setSelectedContentGoal('whatsapp');
-        setSelectedPulseId('quick-kuwait');
-        setSelectedOrderPlace('delivery');
-        setSelectedFormat('1:1');
-        setCreateStep(2);
-        setMaxCreateStepReached(5);
-        setStudioTab('create');
-      },
-    },
-    {
-      title: 'ريل من صورة',
-      desc: 'حوّل صورة الطبق إلى حركة قصيرة نظيفة.',
-      icon: '🎥',
-      action: () => {
-        closeOpenPanels();
-        resetGeneratedOutput();
-        setSelectedFormat('9:16');
-        setReelSource('image');
-        setReelStep(1);
-        setGeneratedReel(null);
-        setShowReelSettings(false);
-        setStudioTab('reel');
-      },
-    },
-    {
-      title: 'صورة أصدق',
-      desc: 'مسار تحسين المنتج بواقعية أعلى.',
-      icon: '📷',
-      action: () => {
-        closeOpenPanels();
-        resetGeneratedOutput();
-        setRealityBoost(true);
-        setStrictPlateLock(true);
-        setProductStep(1);
-        setMaxProductStepReached(1);
-        setStudioTab('product');
-      },
-    },
-  ];
+  const studioLaunchPads: Array<{ title: string; desc: string; icon: string; action: () => void }> = [];
+
 
   const moods = [
     { id: 'دافئ', label: 'شمس دافئة', icon: '☀️' },
@@ -1367,15 +1305,17 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <h2 className="text-2xl font-black text-slate-950">ابدأ بفكرة أو بصورة</h2>
             </div>
           </div>
-          <div className="grid sm:grid-cols-4 gap-2 mb-4">
-            {studioLaunchPads.map((item) => (
-              <button key={item.title} type="button" onClick={item.action} className="rounded-2xl border border-indigo-100 bg-indigo-50/50 hover:bg-white p-3 text-right transition-all">
-                <span className="text-2xl block mb-2">{item.icon}</span>
-                <strong className="block text-sm font-black text-slate-900">{item.title}</strong>
-                <small className="block text-[10px] font-bold text-slate-500 mt-1 leading-5">{item.desc}</small>
-              </button>
-            ))}
-          </div>
+          {studioLaunchPads.length > 0 && (
+            <div className="grid sm:grid-cols-4 gap-2 mb-4">
+              {studioLaunchPads.map((item) => (
+                <button key={item.title} type="button" onClick={item.action} className="rounded-2xl border border-indigo-100 bg-indigo-50/50 hover:bg-white p-3 text-right transition-all">
+                  <span className="text-2xl block mb-2">{item.icon}</span>
+                  <strong className="block text-sm font-black text-slate-900">{item.title}</strong>
+                  <small className="block text-[10px] font-bold text-slate-500 mt-1 leading-5">{item.desc}</small>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="grid sm:grid-cols-3 gap-3">
             <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Sparkles className="text-indigo-500 mb-3" size={26} />
