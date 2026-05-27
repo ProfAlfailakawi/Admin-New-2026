@@ -29,8 +29,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     };
   };
 
-  // مصدر الدواوين الصحيح هو data.squads القادم من /api/admin-dashboard-data / Firestore collection: squads.
-  // لا نقرأ العملاء ولا نحولهم إلى دواوين حتى لا تختلط بيانات العملاء مع إدارة الدواوين.
+  // مصدر الدواوين الصحيح يأتي من برنامج العميل: appData/shared_company_data.squads
+  // ومعه الدواوين المستنتجة من orders المرتبطة بالديوانية. لا نقرأ العملاء كدواوين حتى لا تختلط البيانات.
   const squads = React.useMemo(() => {
     return Array.isArray(data?.squads)
       ? data.squads.map((sq: any, index: number) => normalizeSquadRecord(sq, index)).filter((sq: any) => String(sq?.name || '').trim())
@@ -254,7 +254,18 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
   const geofenceDistance = clampGeofenceDistance(data?.settings?.squadGeofenceDistance ?? data?.squadGeofenceDistance ?? data?.geofenceDistance, 100);
 
-  const allOrders = Array.isArray(data?.orders) ? data.orders : Array.isArray(data?.invoices) ? data.invoices : [];
+  const allOrders = React.useMemo(() => {
+    const map = new Map<string, any>();
+    const push = (order: any, index: number) => {
+      if (!order || typeof order !== 'object') return;
+      const id = String(order.id || order.orderId || order.orderNumber || `${order.createdAt || order.date || 'order'}-${index}`);
+      map.set(id, { ...(map.get(id) || {}), ...order });
+    };
+    (Array.isArray(data?.orders) ? data.orders : []).forEach(push);
+    (Array.isArray(data?.invoices) ? data.invoices : []).forEach(push);
+    (Array.isArray(data?.diwaniyaOrders) ? data.diwaniyaOrders : []).forEach(push);
+    return Array.from(map.values());
+  }, [data?.orders, data?.invoices, data?.diwaniyaOrders]);
 
   const getOrderSquadId = (order: any) => order?.squadId ?? order?.diwaniyaId ?? order?.squad?.id ?? order?.diwaniya?.id ?? order?.customer?.squadId ?? order?.customer?.diwaniyaId;
 

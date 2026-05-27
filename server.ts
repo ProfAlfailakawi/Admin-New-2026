@@ -347,33 +347,122 @@ app.get("/api/admin-dashboard-data", async (_req, res) => {
   try {
     if (!db || !firebaseInitialized) {
       console.warn("[admin-dashboard-data] Firebase Admin not ready.");
-      return res.status(503).json({ success: false, squads: [], message: "Firestore Admin is not initialized or connectivity check failed." });
+      return res.status(503).json({ success: false, squads: [], orders: [], message: "Firestore Admin is not initialized or connectivity check failed." });
     }
 
-    console.log("[admin-dashboard-data] Fetching squads...");
-    let squadsSnap;
+    const cleanPhone = (value: any) => String(value || "").replace(/\D/g, "").slice(-8);
+    const asArray = (value: any) => Array.isArray(value) ? value : [];
+    const normalizeSquad = (sq: any, fallbackIndex = 0) => {
+      const location = sq?.location || sq?.geo || sq?.diwaniyaLocation || sq?.radarLocation || sq?.coordinates || sq?.mapLocation || {};
+      const lat = sq?.lat ?? sq?.latitude ?? location?.lat ?? location?.latitude ?? location?._lat;
+      const lng = sq?.lng ?? sq?.longitude ?? sq?.lon ?? location?.lng ?? location?.longitude ?? location?.lon ?? location?._long;
+      const membersList = asArray(sq?.membersList || sq?.membersData || (Array.isArray(sq?.members) ? sq.members : undefined) || sq?.participants).filter(Boolean);
+      return {
+        ...sq,
+        id: String(sq?.id ?? sq?.diwaniyaId ?? sq?.squadId ?? sq?.docId ?? `diwaniya-${fallbackIndex + 1}`),
+        name: sq?.name ?? sq?.diwaniyaName ?? sq?.squadName ?? sq?.title ?? "ديوانية بدون اسم",
+        founder: sq?.founder ?? sq?.ownerName ?? sq?.hostName ?? sq?.king ?? membersList?.[0]?.name ?? "",
+        phone: sq?.phone ?? sq?.founderPhone ?? sq?.ownerPhone ?? sq?.hostPhone ?? membersList?.[0]?.phone ?? "",
+        points: Number(sq?.points ?? sq?.diwaniyaPoints ?? sq?.totalPoints ?? 0) || 0,
+        members: Number(sq?.members ?? sq?.membersCount ?? membersList.length ?? 0) || 0,
+        membersList,
+        ...(lat !== undefined && lng !== undefined ? { lat, lng, location: { ...location, lat, lng } } : {}),
+      };
+    };
+
+    const mergeSquads = (base: any[], incoming: any[]) => {
+      const byId = new Map<string, any>();
+      [...base, ...incoming].forEach((raw: any, index: number) => {
+        if (!raw || typeof raw !== "object") return;
+        const sq = normalizeSquad(raw, index);
+        if (!String(sq.name || "").trim()) return;
+        const key = String(sq.id || sq.name || index);
+        const prev = byId.get(key) || {};
+        const prevMembers = asArray(prev.membersList);
+        const nextMembers = asArray(sq.membersList);
+        const memberMap = new Map<string, any>();
+        [...prevMembers, ...nextMembers].forEach((m: any) => {
+          const phone = cleanPhone(m?.phone || m?.customerPhone || m?.mobile);
+          const mKey = phone || String(m?.id || m?.name || Math.random());
+          memberMap.set(mKey, { ...(memberMap.get(mKey) || {}), ...m });
+        });
+        byId.set(key, {
+          ...prev,
+          ...sq,
+          points: Math.max(Number(prev.points || 0), Number(sq.points || 0)),
+          membersList: Array.from(memberMap.values()),
+          members: Math.max(Number(prev.members || 0), Number(sq.members || 0), memberMap.size),
+        });
+      });
+      return Array.from(byId.values());
+    };
+
+    const squadsFromOrders = (orders: any[]) => {
+      const byId = new Map<string, any>();
+      orders.forEach((order: any, index: number) => {
+        const rawId = order?.squadId ?? order?.diwaniyaId ?? order?.squadID;
+        const rawName = order?.squadName ?? order?.diwaniyaName ?? order?.diwaniya ?? order?.groupName;
+        const splitOrigin = String(order?.splitOrigin || order?.qatiaType || order?.source || "").toLowerCase();
+        const looksDiwaniya = Boolean(rawId || rawName || splitOrigin.includes("diwaniya") || splitOrigin.includes("squad"));
+        if (!looksDiwaniya) return;
+        const id = String(rawId || `order-diwaniya-${rawName || index}`);
+        const current = byId.get(id) || { id, name: rawName || "ديوانية من الطلبات", membersList: [], ordersCount: 0, points: 0, totalSpent: 0, source: "customer_orders" };
+        const memberMap = new Map<string, any>();
+        asArray(current.membersList).forEach((m: any) => memberMap.set(cleanPhone(m?.phone) || String(m?.name || memberMap.size), m));
+        const addMember = (m: any) => {
+          const phone = cleanPhone(m?.phone || m?.customerPhone || m?.mobile);
+          const name = m?.name || m?.customerName || m?.displayName || "عضو";
+          const key = phone || String(name || memberMap.size);
+          if (!key) return;
+          memberMap.set(key, { ...(memberMap.get(key) || {}), name, phone: phone || m?.phone || "", source: m?.source || "order" });
+        };
+        addMember({ name: order?.customerName, phone: order?.customerPhone, source: "order_owner" });
+        asArray(order?.splitParticipants).forEach(addMember);
+        asArray(order?.splitPayments).forEach(addMember);
+        const total = Number(order?.total || order?.amount || 0) || 0;
+        byId.set(id, {
+          ...current,
+          name: current.name || rawName || "ديوانية من الطلبات",
+          squadName: rawName || current.squadName || current.name,
+          ordersCount: Number(current.ordersCount || 0) + 1,
+          totalSpent: Number(current.totalSpent || 0) + total,
+          points: Math.max(Number(current.points || 0), Number(order?.squadPoints || order?.points || 0), Math.floor((Number(current.totalSpent || 0) + total) * 10)),
+          lastOrderAt: order?.createdAt || order?.date || order?.updatedAt || current.lastOrderAt,
+          membersList: Array.from(memberMap.values()),
+          members: memberMap.size,
+        });
+      });
+      return Array.from(byId.values());
+    };
+
+    let rootSquads: any[] = [];
     try {
-      squadsSnap = await db.collection("squads").get();
+      console.log("[admin-dashboard-data] Fetching root-level squads collection...");
+      const squadsSnap = await db.collection("squads").get();
+      rootSquads = squadsSnap.docs.map((doc: any) => ({ id: doc.id, ...(doc.data() || {}) }));
     } catch (e: any) {
-      if (e.message?.includes("PERMISSION_DENIED")) {
-        console.warn("[admin-dashboard-data] Primary DB Access Denied. Trying default DB...");
-        try {
-          squadsSnap = await admin.firestore().collection("squads").get();
-        } catch (fE: any) {
-          throw e; // Rethrow original if fallback also fails
-        }
-      } else {
-        throw e;
-      }
+      console.warn("[admin-dashboard-data] Could not read root squads collection:", e?.message || e);
     }
 
-    const squads = squadsSnap.docs.map((doc: any) => ({ id: doc.id, ...(doc.data() || {}) }));
-    console.log(`[admin-dashboard-data] Found ${squads.length} squads.`);
+    let sharedData: any = {};
+    try {
+      const sharedSnap = await db.collection("appData").doc("shared_company_data").get();
+      if (sharedSnap.exists) sharedData = sharedSnap.data() || {};
+    } catch (e: any) {
+      console.warn("[admin-dashboard-data] Could not read appData/shared_company_data:", e?.message || e);
+    }
 
-    return res.json({ success: true, squads });
+    const sharedSquads = asArray(sharedData.squads);
+    const sharedOrders = asArray(sharedData.orders);
+    const inferredSquads = squadsFromOrders(sharedOrders);
+    const squads = mergeSquads(mergeSquads(rootSquads, sharedSquads), inferredSquads);
+
+    console.log(`[admin-dashboard-data] Found ${squads.length} diwaniyas. root=${rootSquads.length}, shared=${sharedSquads.length}, fromOrders=${inferredSquads.length}, orders=${sharedOrders.length}`);
+
+    return res.json({ success: true, squads, orders: sharedOrders });
   } catch (err: any) {
-    console.error("[admin-dashboard-data] Total failure loading squads:", err?.message || err);
-    return res.status(500).json({ success: false, squads: [], message: String(err?.message || "Internal server error") });
+    console.error("[admin-dashboard-data] Total failure loading diwaniyas:", err?.message || err);
+    return res.status(500).json({ success: false, squads: [], orders: [], message: String(err?.message || "Internal server error") });
   }
 });
 

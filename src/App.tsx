@@ -1882,9 +1882,17 @@ const MainApp: React.FC = () => {
           if (dashboardRes.ok) {
             const dashboardData = await dashboardRes.json();
             if (dashboardData.success && Array.isArray(dashboardData?.squads)) {
-              loadedState.squads = dashboardData.squads;
-              lastRemoteKeysRef.current['squads'] = stableStringify(dashboardData.squads);
-              loadedCloudShardKeysRef.current.add('squads');
+              // إدارة الدواوين في برنامج العميل محفوظة داخل appData/shared_company_data
+              // وأحياناً تظهر فقط من خلال orders المرتبطة بالديوانية.
+              // لذلك لا نستبدل البيانات بقائمة فارغة، ونحتفظ بطلبات الديوانية منفصلة حتى لا نمس صفحة الطلبات أو الدفع.
+              if (dashboardData.squads.length > 0) {
+                loadedState.squads = dashboardData.squads;
+                lastRemoteKeysRef.current['squads'] = stableStringify(dashboardData.squads);
+                loadedCloudShardKeysRef.current.add('squads');
+              }
+              if (Array.isArray(dashboardData?.orders)) {
+                loadedState.diwaniyaOrders = dashboardData.orders;
+              }
               apiSuccess = true;
             }
           }
