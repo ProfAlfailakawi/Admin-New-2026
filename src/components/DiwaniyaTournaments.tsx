@@ -550,6 +550,19 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     }
   };
 
+  const tierIconOptions = [
+    { value: 'Medal', label: 'ميدالية', emoji: '🏅' },
+    { value: 'Star', label: 'نجمة', emoji: '⭐' },
+    { value: 'Crown', label: 'تاج', emoji: '👑' },
+    { value: 'Trophy', label: 'كأس', emoji: '🏆' },
+    { value: 'Diamond', label: 'ألماس', emoji: '💎' },
+    { value: 'Swords', label: 'سيوف', emoji: '⚔️' },
+    { value: 'Flame', label: 'شعلة', emoji: '🔥' },
+    { value: 'Target', label: 'هدف', emoji: '🎯' },
+    { value: 'Shield', label: 'درع', emoji: '🛡️' },
+    { value: 'Rocket', label: 'صاروخ', emoji: '🚀' },
+  ];
+
   const tierColorOptions = [
     { value: 'from-orange-400 to-orange-600', label: 'برتقالي', preview: '#f97316', bgClass: 'border-orange-200 bg-orange-50/50' },
     { value: 'from-slate-300 to-slate-500', label: 'فضي', preview: '#64748b', bgClass: 'border-slate-300 bg-slate-50/50' },
@@ -1273,43 +1286,66 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                        {editingTierId === t.id ? (
                          <div className="space-y-3 mt-2 font-sans">
                            <div className="space-y-3">
-                             <div className="grid grid-cols-4 gap-2">
-                               {[
-                                 { value: 'Medal', label: 'ميدالية' },
-                                 { value: 'Star', label: 'نجمة' },
-                                 { value: 'Crown', label: 'تاج' },
-                                 { value: 'Trophy', label: 'كأس' },
-                                 { value: 'Target', label: 'هدف' },
-                                 { value: 'Flame', label: 'شعلة' },
-                                 { value: 'Swords', label: 'سيوف' },
-                                 { value: 'Diamond', label: 'ألماس' },
-                                 { value: 'Rocket', label: 'صاروخ' },
-                                 { value: 'Shield', label: 'درع' },
-                               ].map((icon) => (
-                                 <button
-                                   key={icon.value}
-                                   type="button"
-                                   onClick={() => setEditedTier({...editedTier, iconType: icon.value})}
-                                   className={`border rounded-xl p-2 flex flex-col items-center gap-1 text-[10px] font-bold transition-all ${editedTier.iconType === icon.value ? 'border-blue-500 bg-blue-50 scale-105' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
-                                 >
-                                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color}`}>
-                                     {getIcon(icon.value)}
+                             <div className="space-y-1.5">
+                               <label className="text-[10px] font-black text-slate-500 block">الشعار</label>
+                               <div className="flex items-start gap-2">
+                                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color} shrink-0 shadow-sm mt-0.5`}>
+                                   {getIcon(editedTier.iconType)}
+                                 </div>
+                                 <details className="relative flex-1 group">
+                                   <summary className="list-none cursor-pointer w-full text-xs font-black bg-white border border-slate-200 p-2.5 rounded-xl outline-none hover:border-blue-400 flex items-center justify-between gap-2">
+                                     <span className="flex items-center gap-2">
+                                       <span className={`w-6 h-6 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color} text-[13px]`}>{getIcon(editedTier.iconType)}</span>
+                                       {tierIconOptions.find((icon) => icon.value === editedTier.iconType)?.label || 'اختر الشعار'}
+                                     </span>
+                                     <ChevronDown size={14} className="text-slate-400 group-open:rotate-180 transition-transform" />
+                                   </summary>
+                                   <div className="absolute z-30 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl p-2 grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                                     {tierIconOptions.map((icon) => (
+                                       <button
+                                         key={icon.value}
+                                         type="button"
+                                         onClick={() => setEditedTier({...editedTier, iconType: icon.value})}
+                                         className={`flex items-center gap-2 rounded-xl border p-2 text-xs font-black transition-all ${editedTier.iconType === icon.value ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
+                                       >
+                                         <span className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color} text-[14px] shrink-0`}>{getIcon(icon.value)}</span>
+                                         <span>{icon.label}</span>
+                                       </button>
+                                     ))}
                                    </div>
-                                   <span>{icon.label}</span>
-                                 </button>
-                               ))}
+                                 </details>
+                               </div>
                              </div>
-                             <div className="flex flex-wrap gap-2">
-                               {tierColorOptions.map((option) => (
-                                 <button
-                                   key={option.value}
-                                   type="button"
-                                   title={option.label}
-                                   onClick={() => setEditedTier({...editedTier, color: option.value, bgClass: option.bgClass})}
-                                   className={`w-8 h-8 rounded-full border-4 transition-all ${editedTier.color === option.value ? 'border-slate-900 scale-110' : 'border-white'}`}
-                                   style={{ background: option.preview, boxShadow: '0 2px 10px rgba(0,0,0,0.15)' }}
+                             <div className="space-y-1.5">
+                               <label className="text-[10px] font-black text-slate-500 block">اللون</label>
+                               <div className="flex items-start gap-2">
+                                 <span
+                                   className="w-9 h-9 rounded-full border-4 border-white shrink-0 shadow-sm mt-0.5"
+                                   style={{ background: tierColorOptions.find((option) => option.value === editedTier.color)?.preview || '#f97316' }}
                                  />
-                               ))}
+                                 <details className="relative flex-1 group">
+                                   <summary className="list-none cursor-pointer w-full text-xs font-black bg-white border border-slate-200 p-2.5 rounded-xl outline-none hover:border-blue-400 flex items-center justify-between gap-2">
+                                     <span className="flex items-center gap-2">
+                                       <span className="w-5 h-5 rounded-full border border-white shadow-sm" style={{ background: tierColorOptions.find((option) => option.value === editedTier.color)?.preview || '#f97316' }} />
+                                       {tierColorOptions.find((option) => option.value === editedTier.color)?.label || 'اختر اللون'}
+                                     </span>
+                                     <ChevronDown size={14} className="text-slate-400 group-open:rotate-180 transition-transform" />
+                                   </summary>
+                                   <div className="absolute z-40 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl p-2 grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                                     {tierColorOptions.map((option) => (
+                                       <button
+                                         key={option.value}
+                                         type="button"
+                                         onClick={() => setEditedTier({...editedTier, color: option.value, bgClass: option.bgClass})}
+                                         className={`flex items-center gap-2 rounded-xl border p-2 text-xs font-black transition-all ${editedTier.color === option.value ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
+                                       >
+                                         <span className="w-7 h-7 rounded-full border-2 border-white shadow-sm shrink-0" style={{ background: option.preview }} />
+                                         <span>{option.label}</span>
+                                       </button>
+                                     ))}
+                                   </div>
+                                 </details>
+                               </div>
                              </div>
                            </div>
                            <input 
