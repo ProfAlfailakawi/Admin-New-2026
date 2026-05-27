@@ -660,7 +660,7 @@ const getItemName = (item: any, fallback = 'بدون اسم') => item?.name || i
 const getAdminPageMeta = (page: string) => {
   const map: Record<string, {title: string; subtitle: string; tag: string}> = {
     dashboard: { title: 'مركز القيادة', subtitle: 'ملخص اليوم، الحالات المهمة، والإجراءات السريعة في واجهة واحدة.', tag: 'Daily Command Brief' },
-    'dashboard-ai': { title: 'مختبر الذكاء', subtitle: 'معرض أدوات للقرارات الذكية بواجهة تنفيذية موحدة.', tag: 'Smart Lab Gallery' },
+    'dashboard-ai': { title: 'مختبر الذكاء', subtitle: 'معرض أدوات للقرارات الذكية بدون لمس منطق التراث الذكي.', tag: 'Smart Lab Gallery' },
     'new-invoice': { title: 'فاتورة جديدة', subtitle: 'العميل، المنتجات، الملخص، ثم الإنشاء في مسار واحد واضح.', tag: 'Receipt Builder' },
     'invoices-list': { title: 'سجل الفواتير', subtitle: 'سجل فخم للبحث والمراجعة والطباعة والمتابعة.', tag: 'Invoice Ledger' },
     orders: { title: 'طلبات الموقع', subtitle: 'لوحة تشغيل للطلبات الحالية وحالات الدفع الفعلية.', tag: 'Operations Board' },
@@ -1517,15 +1517,6 @@ const MainApp: React.FC = () => {
     return value !== undefined && value !== null && value !== '';
   };
 
-  const isSameAsInitialShard = (key: string, value: any) => {
-    const initialValue = (INITIAL_DATA as any)?.[key];
-    try {
-      return JSON.stringify(value ?? null) === JSON.stringify(initialValue ?? null);
-    } catch {
-      return false;
-    }
-  };
-
   // Auth Listener - Optimized session management
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -1829,7 +1820,7 @@ const MainApp: React.FC = () => {
           
           SHARDED_KEYS.forEach(key => {
             if (rootDocData[key] !== undefined) {
-              const shouldPersistShard = loadedCloudShardKeysRef.current.has(key) || (hasMeaningfulValue(rootDocData[key]) && !isSameAsInitialShard(key, rootDocData[key]));
+              const shouldPersistShard = loadedCloudShardKeysRef.current.has(key) || hasMeaningfulValue(rootDocData[key]);
               if (shouldPersistShard) {
                 shardedPayloads[key] = rootDocData[key];
                 loadedCloudShardKeysRef.current.add(key);
@@ -2321,12 +2312,6 @@ const MainApp: React.FC = () => {
                         onClick={() => { setCurrentPage('invoices-list'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
-                        label="طلبات التطبيق"
-                        icon={<ClipboardCheck size={16} />}
-                        active={currentPage === 'orders'} 
-                        onClick={() => { setCurrentPage('orders'); setSidebarOpen(false); }}
-                      />
-                      <SubNavItem 
                         label="قائمة العملاء"
                         icon={<Users size={16} />}
                         active={currentPage === 'customers'} 
@@ -2756,7 +2741,7 @@ const MainApp: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Floating Global ذكي Pulse Overlay */}
+      {/* Floating Global AI Pulse Overlay */}
       <AnimatePresence>
         {isAIThinking && (
           <motion.div 

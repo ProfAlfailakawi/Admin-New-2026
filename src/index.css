@@ -3635,20 +3635,74 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
 
 .supplier-radar-guide{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}.supplier-radar-guide span{display:inline-flex;align-items:center;gap:4px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569;border-radius:14px;padding:8px 10px;font-size:11px;font-weight:800;line-height:1.7}.supplier-radar-guide b{color:#0f172a;font-weight:950}@media(max-width:760px){.supplier-radar-guide{flex-direction:column}.supplier-radar-guide span{width:100%;justify-content:flex-start;text-align:right}}
 
-
-/* Mobile polish requested by owner */
-@media (max-width: 640px) {
-  .mobile-soft-card { padding: 1rem !important; border-radius: 1.5rem !important; }
-  .mobile-compact-text { font-size: .875rem !important; line-height: 1.75 !important; }
-  .mobile-money { font-variant-numeric: tabular-nums; white-space: nowrap; direction: ltr; display: inline-flex; gap: .25rem; align-items: baseline; }
-  .mobile-actions-compact button { min-height: 36px !important; width: 36px !important; height: 36px !important; padding: 0 !important; border-radius: 9999px !important; }
-  .mobile-collapse-panel { overflow: hidden; transition: max-height .25s ease, opacity .25s ease; }
-  .hide-scrollbar::-webkit-scrollbar { display: none; }
-  .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+/* Admin 2026 review pass: mobile density, readable money values, calmer panels */
+@media (max-width: 767px) {
+  .admin-smart-panel {
+    border-radius: 18px !important;
+    padding: 12px !important;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06) !important;
+  }
+  .admin-smart-panel .panel-head {
+    gap: 10px !important;
+    margin-bottom: 10px !important;
+  }
+  .admin-smart-panel .panel-head h2 {
+    font-size: 15px !important;
+    line-height: 1.35 !important;
+  }
+  .admin-smart-panel .panel-head p,
+  .admin-smart-panel .panel-head span,
+  .admin-smart-panel p {
+    font-size: 11px !important;
+    line-height: 1.55 !important;
+  }
+  .customer-intel-grid,
+  .supplier-radar-grid,
+  .coupon-theater-grid,
+  .smart-mini-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .product-score-card,
+  .customer-intel-card,
+  .supplier-radar-card,
+  .coupon-ticket {
+    padding: 12px !important;
+    border-radius: 16px !important;
+  }
+  .invoice-new-page {
+    padding: 10px !important;
+    gap: 12px !important;
+  }
+  .invoice-new-page input[type="date"] {
+    min-height: 44px !important;
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+  }
+  .invoice-products-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .customer-actions button,
+  .customer-actions a {
+    min-height: 34px !important;
+    padding: 7px 9px !important;
+    font-size: 11px !important;
+  }
+  .loyalty-customers-panel table th,
+  .loyalty-customers-panel table td {
+    padding: 10px 8px !important;
+    font-size: 11px !important;
+  }
 }
 
-@media(max-width:640px){
- .command-premium-footer{display:none!important;}
- .command-search-header{padding:10px!important;gap:8px!important;}
- .command-row{padding:10px!important;border-radius:16px!important;}
+.money-clean, .kwd-amount {
+  direction: ltr;
+  unicode-bidi: plaintext;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Modal/backdrop readability */
+.fixed.inset-0[role="dialog"], .modal-backdrop {
+  overscroll-behavior: contain;
 }

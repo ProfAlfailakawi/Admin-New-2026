@@ -212,29 +212,6 @@ export async function generateQuickInstagramMessages(data: AppState, category: '
 /**
  * Based on historical data and elasticities to project outcomes.
  */
-
-const normalizeCustomerName = (name?: string) => {
-  const clean = String(name || 'عميلنا العزيز').replace(/\s+/g, ' ').trim();
-  if (!clean) return 'عميلنا العزيز';
-  const parts = clean.split(' ');
-  const prefix = ['بو','أبو','ابو','أم','ام'].includes(parts[0]) && parts[1] ? `${parts[0]} ${parts[1]}` : parts[0];
-  return prefix;
-};
-
-const pickActualProductName = (products: any[], fallback = 'أحد أصنافك المفضلة') => {
-  const actual = (products || []).filter((p:any) => p && p.name && p.isActive !== false);
-  if (!actual.length) return fallback;
-  return actual[Math.floor(Math.random() * actual.length)].name;
-};
-
-const invoiceTime = (value: any) => {
-  const v = value || {};
-  const source = v.date || v.invoiceDate || v.orderDate || v.createdAt || v.updatedAt;
-  if (source && typeof source === 'object' && source.seconds) return source.seconds * 1000;
-  const t = new Date(source || 0).getTime();
-  return Number.isFinite(t) ? t : 0;
-};
-
 export function simulateWhatIfScenario(
   data: AppState, 
   decision: {
@@ -905,7 +882,7 @@ export function generateAIBusinessRecommendation(data: AppState): {
   } else {
     finalResult = {
       title: 'الحلال حلالك والعميل رأس مالك',
-      recommendation: 'الأداء مستقر. ركّز على العملاء الدائمين بعرض قصير ومحدد يحافظ على الزخم دون خصومات عامة.',
+      recommendation: 'الأمور طيبة ولله الحمد، اهتم بزباينك الدائمين وضبطهم بعرض استثنائي وراح يرجعون لك دبل.',
       type: 'growth',
       iconType: 'target'
     };
@@ -1278,7 +1255,7 @@ export function calculateCustomerSentiment(customer: Customer, invoices: Invoice
  */
 export function generateCustomerSmartMessage(customer: Customer, invoices: Invoice[], products: any[] = []): string {
   const sentiment = calculateCustomerSentiment(customer, invoices);
-  const firstName = normalizeCustomerName(customer.name);
+  const firstName = customer.name.split(' ')[0];
   
   // Find favorite product if any
   const custInvoices = (invoices || []).filter(inv => inv.customerId === customer.id && !inv.isDeleted);
@@ -1292,7 +1269,7 @@ export function generateCustomerSmartMessage(customer: Customer, invoices: Invoi
 
   const favProductId = Object.entries(productCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
   const favProduct = products.find(p => p.id === favProductId);
-  const favProductName = favProduct ? favProduct.name : pickActualProductName(products, 'أحد أصنافك المفضلة');
+  const favProductName = favProduct ? favProduct.name : "أطباقنا اليديدة";
 
   // Scenarios
   if (sentiment.score >= 85) {
@@ -1303,42 +1280,15 @@ export function generateCustomerSmartMessage(customer: Customer, invoices: Invoi
     ];
     return variants[Math.floor(Math.random() * variants.length)];
   } else if (sentiment.score < 30) {
-    const variants = [
-      `هلا ${firstName}.. مكانك محفوظ عندنا.
-
-طلبك المفضل ${favProductName} جاهز، وحبينا نرجعك بعرض خاص اليوم.
-
-استخدم كود: WE_MISS_YOU
-مطبخ التراث الكويتي 🏠`,
-      `${firstName} الغالي.. لاحظنا غيبتك وقلنا لازم نسأل.
-
-جهزنا لك فرصة رجعة خفيفة على ${favProductName} مع توصيل مجاني اليوم.
-
-Alturath.kw`
-    ];
-    return variants[Math.floor(Math.random() * variants.length)];
+    // Churn Risk
+    return `هلا والله ${firstName}.. مكانك مبين وولهنا عليك! 💔\n\nعشان نرد الحبايب، سوينا لك عرض خاص: اطلب ${favProductName} أو أي طبق ثاني واليوم (التوصيل مجاني) بالكامل.\n\nاستخدم كود: WE_MISS_YOU\nمطبخ التراث الكويتي 🏠`;
   } else if (sentiment.score >= 30 && sentiment.score < 50) {
-    const variants = [
-      `غالينا ${firstName}.. عساك بخير؟
-
-${favProductName} من الأصناف اللي تناسب ذوقك. اليوم خلّيناها فرصة رجعة بسيطة والتوصيل علينا.`,
-      `يا هلا ${firstName}.. مرورك له قيمة عندنا.
-
-اقترحنا لك ${favProductName} لأن طلباتك السابقة قريبة منه. نجهزه لك اليوم؟`
-    ];
-    return variants[Math.floor(Math.random() * variants.length)];
+    // Inactive / Neutral
+    return `غالينا ${firstName}.. عساك بخير؟ 😊\n\nحبينا نذكرك بنطاعة ${favProductName} اللي تحبها. شرايك تجدد الذكريات اليوم؟ التوصيل علينا تقديراً لك.\n\nمطبخ التراث الكويتي - طعم يجمعنا 🏠`;
   } else {
-    const variants = [
-      `يا هلا ${firstName}.. نورتنا بطلباتك الدائمة.
-
-اليوم ${favProductName} يستاهل يكون في سلتك، ومعاه لمسة تقدير خاصة لك.`,
-      `${firstName} العزيز.. اختيارك دايمًا واضح.
-
-رشحنا لك ${favProductName} لأنه من أقرب الأصناف لذوقك، ونقدر نجهزه لك فورًا.`
-    ];
-    return variants[Math.floor(Math.random() * variants.length)];
+    // Active / Regular
+    return `يا هلا بـ ${firstName}.. عساك مستانس مع الربع؟ 🔥\n\nمشكور على طلباتك المتكررة. حبينا نهديك اليوم تجربة لطبق يديد مع طلبك لـ ${favProductName}، والتوصيل اليوم مجاني عشانك.\n\nمطبخ التراث الكويتي - دائماً بخدمتك 🏠`;
   }
-
 }
 
 export function generateBusinessInsights(data: AppState): {
@@ -1390,6 +1340,7 @@ export function generateBusinessInsights(data: AppState): {
             confidence: Math.round(90 + (dependencyRatio * 5)),
             source: `تحليل بيانات ${data.products.length} صنف و ${data.suppliers.length} مورد`,
             metric: `${Math.round(dependencyRatio * 100)}% نسبة الاعتماد`,
+            actionPayload: { actionType: 'redirect_to_suppliers', sectionId: 'supplier-intel-duplicate-card' },
             detailedPoints: [
                 `عدد الأصناف المعتمدة عليه: ${maxCount} صنف بالمخزون`,
                 `نسبة الخطر في سلسلة التوريد: ${Math.round(dependencyRatio * 100)}%`,
@@ -1422,6 +1373,7 @@ export function generateBusinessInsights(data: AppState): {
               confidence: 85 + (inactiveVIPs.length > 5 ? 10 : 0),
               source: `تحليل نشاط ${data.customers.length} عميل خلال 30 يوم`,
               metric: `${inactiveVIPs.length} عميل متوقف`,
+              actionPayload: { actionType: 'redirect_to_customers', sectionId: 'client-sniper-radar-section' },
               detailedPoints: [
                   `إجمالي المبالغ السابقة لهؤلاء العملاء: ${lostRevenue.toFixed(3)} د.ك`,
                   `متوسط قيمة العميل الواحد منهم: ${(lostRevenue / inactiveVIPs.length).toFixed(3)} د.ك`,
@@ -1504,6 +1456,7 @@ export function generateBusinessInsights(data: AppState): {
               confidence: 96,
               source: `تحليل مبيعات ${invoices.length} فاتورة مسجلة`,
               metric: `ربح بقيمة ${margin}%`,
+              actionPayload: { actionType: 'redirect_to_products', productIds: [highestMarginProduct.id], productNames: [highestMarginProduct.name] },
               detailedPoints: [
                   `الكمية المباعة من الصنف: ${highestMarginProduct.soldCount} وحدة`,
                   `سعر البيع: ${highestMarginProduct.price} د.ك | التكلفة: ${highestMarginProduct.cost} د.ك`,
@@ -2105,7 +2058,7 @@ const kMoney = (value: any) => {
   return Number.isFinite(n) ? n.toFixed(3) : '0.000';
 };
 
-const kDateTime = (value: any) => invoiceTime(value);
+const kDateTime = (value: any) => new Date(value?.date || value?.createdAt || value?.updatedAt || value || 0).getTime() || 0;
 const kIsDeleted = (value: any) => Boolean(value?.isDeleted || value?.deletedAt);
 const kIsPaid = (value: any) => {
   const s = String(value || '').toLowerCase();

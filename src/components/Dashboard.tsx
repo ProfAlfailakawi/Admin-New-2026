@@ -535,7 +535,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
 
           <div className="text-center sm:text-right flex-1 min-w-0 order-1 sm:order-2">
             <h3 className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase mb-2 sm:mb-3 flex items-center justify-center sm:justify-end gap-2">
-              تحليل التراث الفوري
+              تحليل الذكاء الفوري
               <Sparkles size={14} className="text-amber-400" />
             </h3>
             <p className="text-white text-sm sm:text-lg lg:text-xl font-bold leading-relaxed sm:leading-tight">
@@ -550,7 +550,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
 
           <div className="flex flex-row sm:flex-col justify-center sm:justify-start gap-3 w-full shrink-0 order-2 sm:order-1">
             <div className="px-4 py-2 sm:px-5 sm:py-2 bg-emerald-500/20 text-emerald-400 rounded-xl sm:rounded-2xl border border-emerald-500/20 text-[10px] sm:text-[10px] font-bold text-center whitespace-nowrap flex-1 sm:flex-none">
-              محرك التراث الذكي: جاهز
+              محرك التراث: جاهز
             </div>
             <div className="px-4 py-2 sm:px-5 sm:py-2 bg-blue-500/20 text-blue-400 rounded-xl sm:rounded-2xl border border-blue-500/20 text-[10px] sm:text-[10px] font-bold text-center whitespace-nowrap flex-1 sm:flex-none">
               اتصال البيانات: مستقر
@@ -1202,6 +1202,40 @@ const [isPending, startTransition] = useTransition();
     const [focusedInsight, setFocusedInsight] = useState<AIInsight | null>(
       null,
     );
+
+    const revealFocusedInsight = (insight: AIInsight) => {
+      setFocusedInsight(insight);
+      setTimeout(() => {
+        const el = document.getElementById('focused-insight-result');
+        const mainContainer = document.querySelector('main');
+        if (el && mainContainer) {
+          const mainRect = mainContainer.getBoundingClientRect();
+          const elRect = el.getBoundingClientRect();
+          mainContainer.scrollTo({ top: mainContainer.scrollTop + elRect.top - mainRect.top - 16, behavior: 'smooth' });
+        } else if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 80);
+    };
+
+    const navigateInsightAction = (insight: AIInsight) => {
+      const payload: any = insight.actionPayload || {};
+      const sectionId = payload.sectionId || (payload.actionType === 'redirect_to_products' ? 'products-matrix-section' : payload.actionType === 'redirect_to_suppliers' ? 'supplier-intel-duplicate-card' : payload.actionType === 'redirect_to_customers' ? 'client-sniper-radar-section' : 'strategic-manager-section');
+      if (payload.actionType === 'redirect_to_products') {
+        setActiveTab('pulse');
+      } else if (payload.actionType === 'redirect_to_suppliers') {
+        setActiveTab('suppliers');
+      } else if (payload.actionType === 'redirect_to_customers') {
+        setActiveTab('customers');
+      } else {
+        setActiveTab('growth');
+      }
+      setFocusedInsight(null);
+      setTimeout(() => {
+        const el = document.getElementById(sectionId);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 250);
+    };
     const [reviews, setReviews] = useState<any[]>(data?.pulseReviews || []);
     const [pulseArchiveAnalysis, setPulseArchiveAnalysis] = useState<any>(
       data?.pulseArchiveAnalysis || null,
@@ -1610,10 +1644,8 @@ const [isPending, startTransition] = useTransition();
       
       if (threshold) {
          const getTimestamp = (obj: any) => {
-           if (obj.date) return new Date(obj.date).getTime();
-           if (obj.invoiceDate) return new Date(obj.invoiceDate).getTime();
-           if (obj.orderDate) return new Date(obj.orderDate).getTime();
            if (obj.createdAt && typeof obj.createdAt === 'object' && obj.createdAt.seconds) return obj.createdAt.seconds * 1000;
+           if (obj.date) return new Date(obj.date).getTime();
            if (obj.createdAt) return new Date(obj.createdAt).getTime();
            return 0;
          };
@@ -1653,18 +1685,27 @@ const [isPending, startTransition] = useTransition();
 
     const vipDisengaged = useMemo(() => {
       const fourteenDaysAgo = new Date().getTime() - 14 * 86400000;
-      const invoices = (data?.invoices || []).filter((i:any) => !i.isDeleted);
-      const lastInvoiceTime = (customerId: string) => invoices
-        .filter((inv:any) => inv.customerId === customerId)
-        .reduce((max:number, inv:any) => Math.max(max, new Date(inv.date || inv.invoiceDate || 0).getTime() || 0), 0);
 
       return (data?.customers || [])
-        .map((c:any) => ({ ...c, _lastInvoiceAt: lastInvoiceTime(c.id) || (c.lastActive ? new Date(c.lastActive).getTime() : 0) }))
-        .filter((c:any) => c._lastInvoiceAt < fourteenDaysAgo && c.totalSpent > 30)
-        .sort((a:any, b:any) => (b.totalSpent || 0) - (a.totalSpent || 0))
+        .filter((c) => {
+          const lastActive = c.lastActive
+            ? new Date(c.lastActive).getTime()
+            : 0;
+          return lastActive < fourteenDaysAgo && c.totalSpent > 30;
+        })
+        .sort((a, b) => (b.totalSpent || 0) - (a.totalSpent || 0))
         .slice(0, 3)
-        .map((c:any) => ({ ...c, daysInactive: Math.floor((new Date().getTime() - (c._lastInvoiceAt || new Date().getTime())) / 86400000) }));
-    }, [data.customers, data.invoices]);
+        .map((c) => ({
+          ...c,
+          daysInactive: Math.floor(
+            (new Date().getTime() -
+              (c.lastActive
+                ? new Date(c.lastActive).getTime()
+                : new Date().getTime())) /
+              86400000,
+          ),
+        }));
+    }, [data.customers]);
 
     const topCustomers = useMemo(() => {
       return [...(data?.customers || [])]
@@ -1681,11 +1722,28 @@ const [isPending, startTransition] = useTransition();
         .map(i => ({ ...i, _type: i.id?.startsWith('ORD-') ? 'order' : 'invoice' }));
       
       const getTimestamp = (obj: any) => {
-        const preferred = [obj.date, obj.invoiceDate, obj.orderDate, obj.updatedAt, obj.createdAt, obj.timestamp];
-        for (const value of preferred) {
-          if (value && typeof value === 'object' && value.seconds) return value.seconds * 1000;
-          const t = new Date(value || 0).getTime();
-          if (!isNaN(t) && t > 0) return t;
+        if (obj.createdAt && typeof obj.createdAt === 'object' && obj.createdAt.seconds) return obj.createdAt.seconds * 1000;
+        if (obj.updatedAt && typeof obj.updatedAt === 'object' && obj.updatedAt.seconds) return obj.updatedAt.seconds * 1000;
+        if (obj.timestamp && typeof obj.timestamp === 'object' && obj.timestamp.seconds) return obj.timestamp.seconds * 1000;
+        if (obj.createdAt) {
+          const t = new Date(obj.createdAt).getTime();
+          if (!isNaN(t)) return t;
+        }
+        if (obj.updatedAt) {
+          const t = new Date(obj.updatedAt).getTime();
+          if (!isNaN(t)) return t;
+        }
+        if (obj.invoiceDate) {
+          const t = new Date(obj.invoiceDate).getTime();
+          if (!isNaN(t)) return t;
+        }
+        if (obj.orderDate) {
+          const t = new Date(obj.orderDate).getTime();
+          if (!isNaN(t)) return t;
+        }
+        if (obj.date) {
+          const t = new Date(obj.date).getTime();
+          if (!isNaN(t)) return t;
         }
         return 0;
       };
@@ -1925,6 +1983,26 @@ const [isPending, startTransition] = useTransition();
         </MagneticButton>
 
         <MagneticButton
+          onClick={() => onNavigate!("orders")}
+          className="flex flex-col items-center justify-center p-6 bg-slate-800 text-white rounded-2xl shadow-xl shadow-slate-800/20 interactive-hover active:scale-95 group relative"
+        >
+          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-3 group-hover:-rotate-12 transition-transform relative">
+            <ShoppingCart size={24} strokeWidth={2} />
+            <div className="absolute -top-1.5 -right-1.5 bg-white text-slate-900 text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-800">
+              {totalOrdersCount}
+            </div>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="font-bold text-sm">طلبات التطبيق</span>
+            {pendingOrdersCount > 0 && (
+              <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-full mt-1 animate-pulse">
+                {pendingOrdersCount} معلق
+              </span>
+            )}
+          </div>
+        </MagneticButton>
+
+        <MagneticButton
           onClick={() => onNavigate!("diwaniya")}
           className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-purple-800 to-indigo-900 text-white rounded-2xl shadow-xl shadow-purple-900/20 interactive-hover active:scale-95 group"
         >
@@ -2030,7 +2108,7 @@ const [isPending, startTransition] = useTransition();
         });
       };
 
-      // Defer the heavy smart logic so UI renders instantly
+      // Defer the heavy AI logic so UI renders instantly
       const timer = setTimeout(runWorker, 100);
       return () => {
         isMounted = false;
@@ -3055,7 +3133,7 @@ const [isPending, startTransition] = useTransition();
             {isIntelligenceGroup && (
                 <div className="space-y-6 md:space-y-8 max-w-[1600px] mx-auto px-3 sm:px-5 md:px-6 xl:px-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full pb-20 overflow-x-hidden" dir="rtl">
                   
-                  {/* Dashboard - Smart Lab Intro - Re-styled for premium feel */}
+                  {/* Dashboard - AI Lab Intro - Re-styled for premium feel */}
                   <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-4 md:gap-6 pt-4 md:pt-6 border-b border-slate-200 pb-5 md:pb-7 min-w-0">
                     <div className="space-y-2">
                       <div className="flex items-center gap-3 mb-2">
@@ -3127,7 +3205,7 @@ const [isPending, startTransition] = useTransition();
                                <div className="w-8 h-8 rounded-full border-2 border-white bg-rose-100" />
                                <div className="w-8 h-8 rounded-full border-2 border-white bg-emerald-100" />
                              </div>
-                             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">Alturath Powered Analytics</div>
+                             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">Alturath Smart Analytics</div>
                           </div>
                         </div>
                         <div className="p-4 h-full">
@@ -3353,9 +3431,9 @@ const [isPending, startTransition] = useTransition();
                              
                              <button 
                                onClick={() => {
-                                 setDeepLinkData?.({ scrollTarget: 'strategic-manager-section', _t: Date.now() });
-                                 const element = document.getElementById('strategic-manager-section');
-                                 if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                 const element = document.getElementById('strategic-manager-section') || document.getElementById('smart-campaigns');
+                                 if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                 else toast.info('خطوات التنفيذ تظهر بعد توفر بيانات كافية.');
                                }}
                                className="w-full max-w-xl mx-auto py-4 md:py-5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm md:text-base font-black uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-2xl shadow-indigo-600/40"
                              >
@@ -3374,7 +3452,7 @@ const [isPending, startTransition] = useTransition();
                               </div>
                               <div>
                                 <h3 className="font-black text-2xl lg:text-3xl text-slate-900 tracking-tight">سجل التطور الذاتي</h3>
-                                <p className="text-slate-500 text-xs md:text-sm font-bold mt-1">سجل مختصر لتطور قراءة النظام</p>
+                                <p className="text-slate-500 text-xs md:text-sm font-bold mt-1">توثيق رحلة نضج الخوارزميات من البيانات الخام إلى الذكاء التشغيلي</p>
                               </div>
                             </div>
                             <div className="bg-white text-indigo-600 px-4 py-2 rounded-2xl text-xs md:text-sm font-black border border-indigo-100 shadow-xl shadow-indigo-100/50 whitespace-nowrap">
@@ -3464,7 +3542,7 @@ const [isPending, startTransition] = useTransition();
                               </div>
                               <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 mb-2 lg:mb-4 tracking-tight">جاري البناء المعرفي العميق</h3>
                               <p className="text-slate-500 font-bold text-xs sm:text-sm lg:text-lg max-w-lg mx-auto leading-relaxed">
-                                بمجرد إصدار القرارات وتتبع نتائجها، سيقوم النظام بعرض رحلة تطوره وتحسن دقته هنا بشكل آلي عبر معالجة البيانات التاريخية.
+                                بمجرد إصدار القرارات وتتبع نتائجها، يعرض النظام بعرض رحلة تطوره وتحسن دقته هنا بشكل آلي عبر معالجة البيانات التاريخية.
                               </p>
                             </div>
                           )}
@@ -3851,7 +3929,7 @@ const [isPending, startTransition] = useTransition();
                         </h3>
                         <p className="text-sm font-bold text-slate-500">
                           لا توجد ثغرات أو فرص استراتيجية حرجة تتطلب تدخلك
-                          حالياً. سيقوم النظام بتوليد خطط تلقائية بمجرد رصد أي
+                          حالياً. يعرض النظام بتوليد خطط تلقائية بمجرد رصد أي
                           تغيير في مسار المبيعات أو نمط العملاء.
                         </p>
                       </div>
@@ -4385,7 +4463,7 @@ const [isPending, startTransition] = useTransition();
                                   ? "ring-4 ring-indigo-500/20 z-10 shadow-md"
                                   : "",
                               )}
-                              onClick={() => setFocusedInsight(insight)}
+                              onClick={() => revealFocusedInsight(insight)}
                             >
                               <div className="absolute top-4 left-4 opacity-5 pointer-events-none">
                                 {isRisk ? (
@@ -4455,13 +4533,10 @@ const [isPending, startTransition] = useTransition();
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (
-                                      insight.actionPayload?.actionType ===
-                                      "redirect_to_products"
-                                    ) {
-                                      onNavigate("products");
+                                    if (insight.actionPayload?.actionType) {
+                                      navigateInsightAction(insight);
                                     } else {
-                                      setFocusedInsight(insight);
+                                      revealFocusedInsight(insight);
                                     }
                                   }}
                                   className={cn(
@@ -4486,7 +4561,7 @@ const [isPending, startTransition] = useTransition();
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="bg-white rounded-2xl md:rounded-2xl border-4 border-indigo-500/20 shadow-[0_30px_100px_-20px_rgba(79,70,229,0.3)] p-3 md:p-4 lg:p-3 md:p-4 relative overflow-hidden mt-8 z-[500]"
+                        id="focused-insight-result" className="bg-white rounded-2xl md:rounded-2xl border-4 border-indigo-500/20 shadow-[0_30px_100px_-20px_rgba(79,70,229,0.3)] p-3 md:p-4 lg:p-3 md:p-4 relative overflow-hidden mt-8 z-[500]"
                         dir="rtl"
                       >
                         <button
@@ -4593,17 +4668,11 @@ const [isPending, startTransition] = useTransition();
 
                               <button
                                 onClick={() => {
-                                  if (
-                                    focusedInsight.actionPayload?.actionType ===
-                                    "redirect_to_products"
-                                  ) {
-                                    onNavigate("products", { productIds: focusedInsight.actionPayload?.productIds, scrollTarget: "products-list", _t: Date.now() });
-                                    setFocusedInsight(null);
+                                  if (focusedInsight.actionPayload?.actionType) {
+                                    navigateInsightAction(focusedInsight);
                                     return;
                                   }
                                   setActiveTab("growth");
-                                  setDeepLinkData?.({ scrollTarget: "smart-campaigns", _t: Date.now() });
-                                  setTimeout(() => document.getElementById("smart-campaigns")?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
                                   setCampaignTopic("زيادة المبيعات");
                                   setGeneratedCampaign({
                                     id: `camp-insight-${Date.now()}`,
@@ -4634,7 +4703,7 @@ const [isPending, startTransition] = useTransition();
                     )}
                   </AnimatePresence>
 
-                  {/* MASTER SMART CONTROL CENTER */}
+                  {/* MASTER AI CONTROL CENTER */}
                   <div
                     className={cn(
                       glassCardStyle,
@@ -4666,7 +4735,7 @@ const [isPending, startTransition] = useTransition();
                               المستشار الشامل
                             </h3>
                             <p className="text-[10px] text-indigo-300/60 font-bold uppercase mt-0.5">
-                              محرك الأرشيف الذكي v4.0
+                              Deep Archive Smart v4.0
                             </p>
                           </div>
                         </div>
@@ -5246,7 +5315,7 @@ const [isPending, startTransition] = useTransition();
                   }
                 >
                   <div id="retention-section">
-                    <ClientSniperRadar data={data} />
+                    <div id="client-sniper-radar-section"><ClientSniperRadar data={data} /></div>
                   </div>
                 </React.Suspense>
                 <div
@@ -5523,7 +5592,7 @@ const [isPending, startTransition] = useTransition();
                             ماكو بيانات كافية للتحليل الاستراتيجي.
                           </p>
                           <p className="text-[10px] text-white/50 mt-2 font-bold">
-                            سجل حركة مبيعات وملاحظات عشان تقدر القراءة الذكية
+                            سجل حركة مبيعات وملاحظات عشان يقدر الذكاء
                             الاصطناعي قراءة الأنماط.
                           </p>
                         </div>

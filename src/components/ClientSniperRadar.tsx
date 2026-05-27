@@ -13,12 +13,6 @@ interface ClientSniperRadarProps {
 const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  const [scanning, setScanning] = useState(true);
  const [selectedTarget, setSelectedTarget] = useState<any>(null);
- const displayName = (name: string) => {
-   const parts = String(name || 'عميلنا العزيز').trim().split(/\s+/).filter(Boolean);
-   if (['بو','أبو','ابو','أم','ام'].includes(parts[0]) && parts[1]) return `${parts[0]} ${parts[1]}`;
-   return parts[0] || 'عميلنا العزيز';
- };
- const pickMessage = (items: string[], seed: string) => items[Math.abs([...String(seed)].reduce((a,c)=>a+c.charCodeAt(0),0)) % items.length];
 
  // Analyze customers to find"Sleeping VIPs"
  // A VIP is someone with high total spend, but hasn't had an invoice in 30+ days.
@@ -99,20 +93,47 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  return () => clearInterval(interval);
  }, []);
 
+ const getFriendlyName = (name: string) => {
+ const clean = String(name || '').trim().replace(/\s+/g, ' ');
+ if (!clean) return 'عميلنا العزيز';
+ const parts = clean.split(' ');
+ if (['بو', 'أبو', 'ابو', 'أم', 'ام'].includes(parts[0]) && parts[1]) return `${parts[0]} ${parts[1]}`;
+ return parts[0] || 'عميلنا العزيز';
+ };
+
+ const pickMessage = (templates: string[], seed: string) => {
+ const base = String(seed || '0').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+ return templates[base % templates.length];
+ };
+
  const handleLaunchMessage = (target: any) => {
- let text = '';
- if (target.riskLevel === 'preemptive') {
- const dayText = target.preemptiveMatch.isTomorrow ? 'باجر' : `يوم ${target.preemptiveMatch.dayOfWeekStr}`;
- text = encodeURIComponent(`\u2728 هلا ${target.name.split(' ')[0]}، زوارتكم ${dayText} العصر؟ ${target.preemptiveMatch.productName} زاهب، وفيه عرض خاص لكم. نزهبه لك؟\n\nhttps://alturathkw.shop`);
- toast.success(`تم قنص ${target.name} استباقياً`);
- } else {
- text = encodeURIComponent(`\u2728 أهلاً ${target.name}، اشتقنا لك في مطبخ التراث الكويتي.\n\nجهزنا لك عرض خاص بانتظارك، ويسعدنا نستقبل طلبك بأي وقت.\n\nAlturath.kw\nhttps://alturathkw.shop`);
- toast.success(`تم تشغيل بروتوكول الاستعادة للعميل ${target.name}`);
- }
+ const name = getFriendlyName(target.name);
+ const productName = target.preemptiveMatch?.productName;
+ const dayText = target.preemptiveMatch?.isTomorrow ? 'باجر' : `يوم ${target.preemptiveMatch?.dayOfWeekStr || 'قريب'}`;
+ const productLine = productName ? `طلبك المعتاد (${productName}) حاضر.` : 'اختيارك المعتاد حاضر عندنا.';
+ const templates = target.riskLevel === 'preemptive'
+ ? [
+   `هلا ${name}، واضح إن ${dayText} له ذوق خاص عندك. ${productLine} تحب نجهزه لك؟`,
+   `${name}، جهزنا لك تذكير ذكي قبل وقت طلبك المعتاد. ${productLine} نرتب لك الطلب؟`,
+   `مساء الخير ${name}، قبل زحمة ${dayText}: ${productLine} إذا يناسبك نحجزه لك من الحين.`
+ ]
+ : target.riskLevel === 'critical'
+ ? [
+   `${name}، لك مكان محفوظ عند التراث. رجعتك تهمنا، وحابين نجهز لك طلب يليق بذوقك.`,
+   `هلا ${name}، طولت الغيبة. اخترنا لك عرض عودة خاص يناسب طلباتك السابقة.`,
+   `${name}، اشتقنا لطلباتك. نبي نرجع لك بتجربة مرتبة وهدية بسيطة مع الطلب القادم.`
+ ]
+ : [
+   `هلا ${name}، لاحظنا إنك غايب من فترة. نحب نذكرك إن طلبك عندنا دايم له اهتمام خاص.`,
+   `${name}، عندنا فرصة حلوة نرتب لك طلب سريع اليوم. حاب نجهزه؟`,
+   `مساء الخير ${name}، جهزنا لك ترشيح مناسب من التراث حسب طلباتك السابقة.`
+ ];
+ const rawMessage = `${pickMessage(templates, target.id || target.phone || target.name)}\n\nhttps://alturathkw.shop`;
  const sanitizeWhatsAppText = (t: string) =>
    String(t || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
- const waUrl = `https://api.whatsapp.com/send?phone=${target.phone.replace(/\D/g, '')}&text=${encodeURIComponent(sanitizeWhatsAppText(decodeURIComponent(text)))}`;
+ const waUrl = `https://api.whatsapp.com/send?phone=${String(target.phone || '').replace(/\D/g, '')}&text=${encodeURIComponent(sanitizeWhatsAppText(rawMessage))}`;
  window.open(waUrl, '_blank');
+ toast.success(`تم تجهيز رسالة مخصصة لـ ${target.name}`);
  setSelectedTarget(null);
  };
 
@@ -195,8 +216,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  <Target className="text-emerald-500" />
  </h3>
  <p className="text-slate-500 text-sm italic font-bold">
- النظام يرصد عملاء "VIP" نائمين وفرص مبيعات استباقية مبنية على قراءة التراث الذكي.. 
- الفرصة مهيأة لزيادة المبيعات.
+ يرصد العملاء الغائبين والفرص الاستباقية اعتمادًا على سجل الفواتير الفعلي. رسائل مختصرة، مخصصة، وجاهزة للتنفيذ.
  </p>
  </div>
 
@@ -259,7 +279,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
 ) : (
  <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-5 md:py-10 bg-slate-900/50 rounded-3xl border border-slate-800 border-dashed">
  <Target size={48} className="mb-4 opacity-20" />
- <p className="font-bold">اختر هدفاً من الرادار لاختراق نظامه</p>
+ <p className="font-bold">اختر عميلاً من الرادار لعرض التوصية</p>
  <p className="text-xs mt-2 opacity-60">تم رصد {radarTargets.length} أهداف (نائمة + استباقية)</p>
  </div>
 )}
