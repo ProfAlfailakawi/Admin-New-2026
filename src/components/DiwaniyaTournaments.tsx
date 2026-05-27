@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { DEFAULT_SQUADS } from '../data';
 import { normalizeArabicNumerals } from '../lib/utils';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate?: (page: string) => void }> = ({ data, setData, onNavigate }) => {
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'squads' | 'settings' | 'radar'>('leaderboard');
@@ -48,6 +50,118 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       return updated;
     });
   };
+
+
+  const isLoadingDiwaniyaRef = React.useRef(false);
+
+  const buildSquadsFromOrders = React.useCallback((ordersSource: any[]) => {
+    const cleanPhone = (value: any) => String(value || '').replace(/\D/g, '').slice(-8);
+    const byId = new Map<string, any>();
+    (Array.isArray(ordersSource) ? ordersSource : []).forEach((order: any, index: number) => {
+      const rawId = order?.squadId ?? order?.squadID ?? order?.diwaniyaId;
+      const rawName = order?.squadName ?? order?.diwaniyaName ?? order?.diwaniya ?? order?.groupName;
+      const splitOrigin = String(order?.splitOrigin || order?.qatiaType || order?.source || '').toLowerCase();
+      const looksDiwaniya = Boolean(rawId || rawName || splitOrigin.includes('diwaniya') || splitOrigin.includes('squad'));
+      if (!looksDiwaniya) return;
+      const id = String(rawId || `order-diwaniya-${rawName || index}`);
+      const current = byId.get(id) || { id, name: rawName || 'ديوانية من الطلبات', membersList: [], ordersCount: 0, points: 0, totalSpent: 0, source: 'customer_orders' };
+      const members = new Map<string, any>();
+      (Array.isArray(current.membersList) ? current.membersList : []).forEach((m: any) => {
+        const key = cleanPhone(m?.phone) || String(m?.name || members.size);
+        members.set(key, m);
+      });
+      const addMember = (m: any) => {
+        const phone = cleanPhone(m?.phone || m?.customerPhone || m?.mobile);
+        const name = String(m?.name || m?.customerName || m?.displayName || '').trim();
+        if (!phone && !name) return;
+        const key = phone || name;
+        members.set(key, { ...(members.get(key) || {}), name: name || 'عضو', phone, source: m?.source || 'order' });
+      };
+      addMember({ name: order?.customerName, phone: order?.customerPhone, source: 'order_owner' });
+      (Array.isArray(order?.splitParticipants) ? order.splitParticipants : []).forEach(addMember);
+      (Array.isArray(order?.splitPayments) ? order.splitPayments : []).forEach(addMember);
+      const total = Number(order?.total || order?.amount || order?.totalAmount || 0) || 0;
+      byId.set(id, {
+        ...current,
+        name: current.name || rawName || 'ديوانية من الطلبات',
+        squadName: rawName || current.squadName || current.name,
+        ordersCount: Number(current.ordersCount || 0) + 1,
+        totalSpent: Number(current.totalSpent || 0) + total,
+        points: Math.max(Number(current.points || 0), Number(order?.squadPoints || order?.points || 0), Math.floor((Number(current.totalSpent || 0) + total) * 10)),
+        lastOrderAt: order?.createdAt || order?.date || order?.updatedAt || current.lastOrderAt,
+        membersList: Array.from(members.values()),
+        members: members.size,
+      });
+    });
+    return Array.from(byId.values());
+  }, []);
+
+  const mergeSquadsSafe = React.useCallback((first: any[], second: any[]) => {
+    const map = new Map<string, any>();
+    [...(Array.isArray(first) ? first : []), ...(Array.isArray(second) ? second : [])].forEach((raw: any, index: number) => {
+      if (!raw || typeof raw !== 'object') return;
+      const sq = normalizeSquadRecord(raw, index);
+      if (!String(sq?.name || '').trim()) return;
+      const key = String(sq.id || sq.name || index);
+      const prev = map.get(key) || {};
+      const prevMembers = Array.isArray(prev.membersList) ? prev.membersList : [];
+      const nextMembers = Array.isArray(sq.membersList) ? sq.membersList : [];
+      const memberMap = new Map<string, any>();
+      [...prevMembers, ...nextMembers].forEach((m: any, i: number) => {
+        const phone = String(m?.phone || m?.customerPhone || '').replace(/\D/g, '').slice(-8);
+        memberMap.set(phone || String(m?.id || m?.name || i), { ...(memberMap.get(phone || String(m?.id || m?.name || i)) || {}), ...m });
+      });
+      map.set(key, {
+        ...prev,
+        ...sq,
+        points: Math.max(Number(prev.points || 0), Number(sq.points || 0)),
+        membersList: Array.from(memberMap.values()),
+        members: Math.max(Number(prev.members || 0), Number(sq.members || 0), memberMap.size),
+      });
+    });
+    return Array.from(map.values());
+  }, []);
+
+  useEffect(() => {
+    const hasSquads = Array.isArray(data?.squads) && data.squads.length > 0;
+    if (hasSquads || isLoadingDiwaniyaRef.current) return;
+    isLoadingDiwaniyaRef.current = true;
+
+    const applyLoadedDiwaniyas = (payload: any) => {
+      const sharedSquads = Array.isArray(payload?.squads) ? payload.squads : [];
+      const sharedOrders = Array.isArray(payload?.orders) ? payload.orders : [];
+      const fromOrders = buildSquadsFromOrders(sharedOrders);
+      const merged = mergeSquadsSafe(sharedSquads, fromOrders);
+      if (merged.length === 0) return false;
+      setData((prev: any) => ({
+        ...prev,
+        squads: merged,
+        diwaniyaOrders: sharedOrders.length > 0 ? sharedOrders : prev?.diwaniyaOrders,
+      }));
+      return true;
+    };
+
+    (async () => {
+      try {
+        const response = await fetch('/api/admin-dashboard-data', { cache: 'no-store' });
+        if (response.ok) {
+          const apiData = await response.json();
+          if (apiData?.success && applyLoadedDiwaniyas(apiData)) return;
+        }
+      } catch (err) {
+        console.warn('[Diwaniya] API load failed, trying shared_company_data directly.', err);
+      }
+
+      try {
+        const sharedSnap = await getDoc(doc(db, 'appData', 'shared_company_data'));
+        if (sharedSnap.exists()) applyLoadedDiwaniyas(sharedSnap.data() || {});
+      } catch (err) {
+        console.error('[Diwaniya] Could not load appData/shared_company_data.', err);
+      } finally {
+        isLoadingDiwaniyaRef.current = false;
+      }
+    })();
+  }, [data?.squads, setData, buildSquadsFromOrders, mergeSquadsSafe]);
 
   const DEFAULT_TIERS = [
     { id: 1, name: 'شلة ديوانية', points: '0', label: 'بداية التجمع', color: 'from-orange-400 to-orange-600', bgClass: 'border-orange-200 bg-orange-50/50', iconType: 'Medal' },
