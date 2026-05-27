@@ -52,6 +52,7 @@ import {
   AlertTriangle,
   ClipboardList,
   Puzzle,
+  ShoppingBag,
 } from "lucide-react";
 import { AppState, Invoice } from "../types";
 import { DEFAULT_GLOBAL_LOGO } from "../constants";
@@ -131,7 +132,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
   }) => {
     const [activeTab, setActiveTab] = useState<
       "invoices" | "tax" | "pnl" | "orders"
-    >(defaultTab === "orders" ? "invoices" : (defaultTab as any));
+    >(defaultTab as any);
     const [search, setSearch] = useState("");
 
     const today = new Date();
@@ -757,7 +758,18 @@ Alturath.kw`;
             <FileText size={16} />
             <span>الفواتير</span>
           </button>
-          {/* طلبات التطبيق مخفية من سجل المبيعات لأنها موجودة في صفحة الطلبات. */}
+          <button
+            onClick={() => setActiveTab("orders")}
+            className={cn(
+              "px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2",
+              activeTab === "orders"
+                ? "bg-white text-slate-900 shadow-md scale-105"
+                : "text-slate-500 hover:text-slate-700",
+            )}
+          >
+            <ShoppingBag size={16} />
+            <span>طلبات التطبيق</span>
+          </button>
 
         </div>
 

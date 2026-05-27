@@ -68,6 +68,12 @@ service cloud.firestore {
         allow write: if isAuthorized();
       }
     }
+
+    match /squads/{squadId} {
+      allow read: if true;
+      allow write: if isAuthorized();
+    }
+
     match /orders/{orderId} {
       allow create: if true;
       allow read: if true; // In a production app, we would restrict this by token or phone, but for simplicity here we allow reading by ID/Query

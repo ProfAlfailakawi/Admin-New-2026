@@ -94,7 +94,7 @@ import { AppState } from './types';
 import { playSuccessAction } from './lib/sonic';
 import { auth, db, logout } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { onSnapshot, setDoc, updateDoc, getDoc, getDocs, getDocFromServer, query, collection, where, doc, limit, orderBy } from 'firebase/firestore';
+import { onSnapshot, setDoc, updateDoc, getDoc, getDocs, getDocFromServer, query, collection, where, doc, limit, orderBy, deleteDoc } from 'firebase/firestore';
 import { getSmartDoc } from './firebase';
 import { Toaster, toast } from 'sonner';
 import { playNewOrderAlert } from './lib/sounds';
@@ -399,7 +399,7 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     },
     {
       id: 'coupons',
-      label: 'مسرح العروض الذكية',
+      label: 'مسرح عروض التراث',
       subtitle: 'إدارة الكوبونات وحساب الأثر الربحي لها',
       icon: <CircleDollarSign size={18} />,
       tone: 'amber',
@@ -408,11 +408,11 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     },
     {
       id: 'smart-studio',
-      label: 'استوديو الصورة الذكية',
+      label: 'استوديو التراث الذكي',
       subtitle: 'تجهيز رسائل الدعاية والتسويق التلقائي',
       icon: <Send size={18} />,
       tone: 'sky',
-      value: `استوديو الصورة الذكية`,
+      value: `استوديو التراث الذكي`,
       hint: 'دعاية وتواصل ذكي'
     },
     {
@@ -426,12 +426,12 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     },
     {
       id: 'ai',
-      label: 'المساعد الذكي',
+      label: 'مساعد التراث الذكي',
       subtitle: 'مستشار مالي مدعوم بالتوصيات الذكية',
       icon: <Bot size={18} />,
       tone: 'rose',
       value: `المستشار التنفيذي`,
-      hint: 'تحليلات تحليل ذكي'
+      hint: 'خلاصات مختصرة'
     },
     {
       id: 'diwaniya',
@@ -523,14 +523,14 @@ const getOnboardingProfile = (role: 'admin' | 'partner' | 'demo') => {
         { icon: <Gauge size={19} />, title: 'مركز القيادة', text: 'ابدأ من الملخص التنفيذي لتفهم نبض النظام خلال ثواني.', page: 'dashboard' },
         { icon: <Receipt size={19} />, title: 'الفواتير', text: 'جرّب إنشاء فاتورة ومراجعة سجل الفواتير.', page: 'new-invoice' },
         { icon: <ShoppingBag size={19} />, title: 'طلبات الموقع', text: 'شاهد كيف تظهر حالات الطلبات والدفعات للمتابعة.', page: 'orders' },
-        { icon: <Sparkles size={19} />, title: 'استوديو الصورة الذكية', text: 'استعرض أدوات المحتوى والأرشيف من غير لمس منطق التراث الذكي.', page: 'smart-studio' },
+        { icon: <Sparkles size={19} />, title: 'استوديو التراث الذكي', text: 'استعرض أدوات المحتوى والأرشيف من غير لمس منطق التراث الذكي.', page: 'smart-studio' },
       ]
     };
   }
   return {
     eyebrow: 'مرشد الأدمن التنفيذي',
     title: 'أهلاً بك في مركز قيادة شركة مطبخ التراث',
-    subtitle: 'جولة سريعة لأول دخول: مبيعات، طلبات، منتجات، تنبيهات، واستوديو الصورة الذكية في مسار واضح.',
+    subtitle: 'جولة سريعة لأول دخول: مبيعات، طلبات، منتجات، تنبيهات، واستوديو التراث الذكي في مسار واضح.',
     accent: 'gold',
     steps: [
       { icon: <Gauge size={19} />, title: 'مركز القيادة', text: 'نبض اليوم، بانتظار الدفع، فشل الدفع، والمنتجات التي تحتاج مراجعة.', page: 'dashboard' },
@@ -672,9 +672,9 @@ const getAdminPageMeta = (page: string) => {
     'suppliers-audit': { title: 'الموردين والمخاطر', subtitle: 'ربط أثر المورد بالمنتجات والطلبات والربح.', tag: 'Supplier Intelligence' },
     reports: { title: 'التقارير', subtitle: 'قراءة تنفيذية للفواتير والمبيعات والأداء.', tag: 'Executive Reports' },
     ai: { title: 'مستشار التراث الذكي', subtitle: 'مستشار تنفيذي يعرض الملخص والأسباب والإجراء المقترح.', tag: 'Executive Assistant' },
-    'smart-studio': { title: 'استوديو الصورة الذكية', subtitle: 'اختيار المحتوى، التوليد، المعاينة، والأرشيف في تجربة واحدة.', tag: 'Creative Suite' },
+    'smart-studio': { title: 'استوديو التراث الذكي', subtitle: 'اختيار المحتوى، التوليد، المعاينة، والأرشيف في تجربة واحدة.', tag: 'Creative Suite' },
     loyalty: { title: 'مملكة الولاء', subtitle: 'مستويات عادي، فضي، ذهبي، وVIP مع شارات وترقيات.', tag: 'Loyalty Kingdom' },
-    coupons: { title: 'مسرح العروض الذكية', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'Smart Offers Theater' },
+    coupons: { title: 'مسرح عروض التراث', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'Smart Offers Theater' },
     'growth-simulator': { title: 'محاكي النمو والتسويق', subtitle: 'سيناريوهات ماذا لو للمبيعات والربح والمخاطر.', tag: 'Growth Simulator Pro' },
     'profit-guard': { title: 'المالية وحماية الأرباح', subtitle: 'درع الربح: المبيعات، المصروفات، الهامش، النزيف، والفرص.', tag: 'Profit Shield' },
     diwaniya: { title: 'بطولات الديوانية', subtitle: 'لوحة بطولات ناعمة للترتيب والنقاط والجوائز.', tag: 'Tournament Board' },
@@ -751,8 +751,8 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
       {showProduct && <section className={cn("admin-smart-panel product-score-panel smart-collapsible-panel", openSmartPanel==='product' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('product')}><div><span>Product Score</span><h2>مؤشر قوة المنتج</h2><p>أفضل الأصناف حسب المبيعات والربحية.</p></div><span className="toggle-pill">{openSmartPanel==='product' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='product' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></div>}</section>}
       {showCustomers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='customers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('customers')}><div><span>Customer Board</span><h2>لوحة العملاء</h2><p>مختصر الولاء والقيمة الشرائية.</p></div><span className="toggle-pill">{openSmartPanel==='customers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='customers' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{c.spend.toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></div>}</section>}
       {showSuppliers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='suppliers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('suppliers')}><div><span>Supplier Radar</span><h2>رادار الموردين</h2><p>أولوية السداد وتأثير التوريد.</p></div><span className="toggle-pill">{openSmartPanel==='suppliers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='suppliers' && <div className="smart-panel-body"><div className="supplier-radar-guide"><span><b>سداد عالي:</b> مستحق كبير.</span><span><b>مورد مؤثر:</b> مرتبط بعدة منتجات.</span><span><b>مستقر:</b> لا إجراء عاجل.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>سداد</span><b>→</b><span>توفر</span><b>→</b><span>ربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات · {sup.debt.toFixed(3)} د.ك</p><strong title="الحالة محسوبة من المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk} · {sup.priorityScore}/100</strong><p className="mt-2 text-[11px] font-bold text-slate-500">{sup.recommendation}</p></div>)}</div></div>}</section>}
-      {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح العروض الذكية</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span>تأثير الربح: {tone}</span></div>})}</div></section>}
-      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>Smart Lab Gallery</span><h2>معرض التراث الذكي</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو الصورة الذكية</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
+      {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح عروض التراث</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span>تأثير الربح: {tone}</span></div>})}</div></section>}
+      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>Smart Lab Gallery</span><h2>معرض التراث الذكي</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو التراث الذكي</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
         { label: 'تحليل العملاء', page: 'customers' },
         { label: 'تحليل المنتجات', page: 'products' },
         { label: 'تحليل الموردين', page: 'suppliers-audit' },
@@ -1038,17 +1038,19 @@ const MainApp: React.FC = () => {
   const [data, setData] = useState<AppState>(INITIAL_DATA);
   const [hasRunMigration, setHasRunMigration] = useState(false);
 
-  // MIGRATION: Ensure old orders have the correct customer names matching the DB
+  // MIGRATION: Ensure old orders have the correct customer names matching the DB.
+  // Important: do not synthesize or overwrite squads from customer records.
+  // Diwaniya data must come only from the shared Firestore `squads` collection via /api/admin-dashboard-data.
   useEffect(() => {
      if (data?.orders && data?.customers && hasLoadedDataRef.current && !hasRunMigration) {
         let migrationNeeded = false;
-        const normalizedOrders = data.orders.map((o: any) => {
+        const normalizedOrders = data.orders.map(o => {
             let correctName = o.customerName;
             if (o.customerId) {
-                const c = (data?.customers || []).find((c: any) => c.id === o.customerId);
+                const c = (data?.customers || []).find(c => c.id === o.customerId);
                 if (c && c.name && c.name !== o.customerName) { correctName = c.name; }
             } else if (o.customerPhone) {
-                const c = (data?.customers || []).find((c: any) => c.phone === o.customerPhone);
+                const c = (data?.customers || []).find(c => c.phone === o.customerPhone);
                 if (c && c.name && c.name !== o.customerName) { correctName = c.name; }
             }
             if (correctName && correctName !== o.customerName) {
@@ -1057,13 +1059,9 @@ const MainApp: React.FC = () => {
             }
             return o;
         });
-
         if (migrationNeeded) {
-            setData(prev => ({ 
-                ...prev, 
-                orders: normalizedOrders
-            }));
-            console.log("Migration executed: updated old data structure.");
+            setData(prev => ({ ...prev, orders: normalizedOrders }));
+            console.log("Migration executed: updated old order customer names.");
         }
         setHasRunMigration(true);
      }
@@ -1875,6 +1873,43 @@ const MainApp: React.FC = () => {
         });
 
         loadedState = joinProductsFromDatabase(loadedState);
+
+        // Load diwaniyas from the shared Firebase `squads` collection through the admin dashboard API.
+        // This keeps إدارة الدواوين separate from customers and prevents accidental customer-to-diwaniya mixing.
+        try {
+          const dashboardRes = await fetch('/api/admin-dashboard-data');
+          let apiSuccess = false;
+          if (dashboardRes.ok) {
+            const dashboardData = await dashboardRes.json();
+            if (dashboardData.success && Array.isArray(dashboardData?.squads)) {
+              loadedState.squads = dashboardData.squads;
+              lastRemoteKeysRef.current['squads'] = stableStringify(dashboardData.squads);
+              loadedCloudShardKeysRef.current.add('squads');
+              apiSuccess = true;
+            }
+          }
+
+          if (!apiSuccess) {
+            console.warn('[DASHBOARD_API] API failed or lacks permissions. Falling back to direct client-side Firestore fetch for squads...');
+            const squadsSnap = await getDocs(collection(db, 'squads'));
+            const cloudSquads = squadsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            loadedState.squads = cloudSquads;
+            lastRemoteKeysRef.current['squads'] = stableStringify(cloudSquads);
+            loadedCloudShardKeysRef.current.add('squads');
+          }
+        } catch (apiErr) {
+          console.warn('Unable to load squads from /api/admin-dashboard-data. Falling back to direct Firestore fetch.', apiErr);
+          try {
+            const squadsSnap = await getDocs(collection(db, 'squads'));
+            const cloudSquads = squadsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            loadedState.squads = cloudSquads;
+            lastRemoteKeysRef.current['squads'] = stableStringify(cloudSquads);
+            loadedCloudShardKeysRef.current.add('squads');
+          } catch (fallbackErr) {
+            console.error('Direct Firestore fetch for squads also failed:', fallbackErr);
+          }
+        }
+
         setData(loadedState);
         lastRemoteSnapshotRef.current = JSON.stringify(loadedState);
         try {
@@ -2020,6 +2055,41 @@ const MainApp: React.FC = () => {
              console.log(`Saving modified shard '${key}' to Firestore...`);
              // merge: false so old uncompressed arrays don't linger if transitioning
              savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
+
+             // Realtime Mirror: Synchronize 'squads' (diwaniyas) changes directly to the shared, root-level 'squads' collection in Firestore.
+             // This ensures `/api/admin-dashboard-data` queries always match the actual admin actions instantly.
+             if (key === 'squads' && Array.isArray(shardedPayloadsToSave['squads'])) {
+               const currentSquads = shardedPayloadsToSave['squads'];
+               console.log(`[MIRROR] Mirroring ${currentSquads.length} diwaniyas/squads to root-level Firestore collection 'squads'...`);
+               
+               currentSquads.forEach((sq: any) => {
+                 if (sq && sq.id !== undefined) {
+                   const squadDocRef = doc(db, 'squads', String(sq.id));
+                   const sanitizedsq = JSON.parse(JSON.stringify(sq));
+                   savePromises.push(setDoc(squadDocRef, sanitizedsq, { merge: true }));
+                 }
+               });
+
+               // Detect deletions
+               try {
+                 const prevSquadsVal = lastRemoteKeysRef.current['squads'];
+                 if (prevSquadsVal) {
+                   const prevSquadsList = JSON.parse(prevSquadsVal);
+                   if (Array.isArray(prevSquadsList)) {
+                     const currentIds = new Set(currentSquads.map((sq: any) => String(sq.id)));
+                     prevSquadsList.forEach((oldSq: any) => {
+                       const oldId = String(oldSq?.id || '');
+                       if (oldId && !currentIds.has(oldId)) {
+                         console.log(`[MIRROR] Detected deletion of squad ${oldId}. Deleting document from Firestore 'squads' collection...`);
+                         savePromises.push(deleteDoc(doc(db, 'squads', oldId)));
+                       }
+                     });
+                   }
+                 }
+               } catch (parseErr) {
+                 console.warn('[MIRROR] Error parsing previous squads for deletion check:', parseErr);
+               }
+             }
           });
 
           await Promise.all(savePromises);
@@ -2665,7 +2735,7 @@ const MainApp: React.FC = () => {
 
               <button 
                 onClick={() => { try { localStorage.setItem('ai_context_page', currentPage); } catch {} setCurrentPage('ai'); setSidebarOpen(false); }}
-                title="المساعد الذكي"
+                title="مساعد التراث الذكي"
                 className={cn(
                   "flex w-12 h-12 rounded-[1rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden",
                   currentPage === 'ai' ? "bg-slate-900 text-white shadow-xl scale-105" : "bg-slate-100/50 text-slate-500 hover:bg-white hover:shadow-lg border border-transparent hover:border-amber-200/40"

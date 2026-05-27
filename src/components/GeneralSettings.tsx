@@ -1395,9 +1395,9 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  >
  <Trash2 size={18} className="transition-transform group-hover:rotate-12 text-rose-600" />
  <div className="text-right">
- <div className="text-xs font-bold font-sans">تصفير السحابي للغسيل 🧹</div>
+ <div className="text-xs font-bold font-sans">إعادة تهيئة البيانات</div>
  <div className="text-[10px] opacity-70">
- مسح كافة البيانات ومزامنة تنظيف السحابة للبدء مجدداً
+ مسح البيانات التجريبية وتنظيف السجلات للبدء من جديد
  </div>
  </div>
  </button>

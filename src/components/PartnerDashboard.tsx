@@ -676,7 +676,7 @@ const {
        <button onClick={() => onNavigate('smart-studio')} className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 border border-indigo-500/20 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-xl relative overflow-hidden outline-none">
        <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-indigo-600 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
        <Camera size={32} className="text-indigo-400 mb-4 group-hover:-translate-y-1 transition-transform" />
-       <h3 className="text-lg font-bold text-white mb-2 tracking-tight">استوديو الصورة الذكية</h3>
+       <h3 className="text-lg font-bold text-white mb-2 tracking-tight">استوديو التراث الذكي</h3>
        <p className="text-[10px] font-bold text-slate-500 leading-relaxed">حوّل صورك لمحتوى احترافى ذكى</p>
        </button>
        <button onClick={() => setActiveWidget('campaign')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-xl relative overflow-hidden outline-none">

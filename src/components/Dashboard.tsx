@@ -1882,7 +1882,7 @@ const [isPending, startTransition] = useTransition();
       { id: "rewards", label: "المكافآت والخصومات", icon: <Award size={14} /> },
       { id: "diwaniya", label: "بطولات الديوانية", icon: <Users size={14} /> },
       { id: "growth", label: "النمو", icon: <Target size={14} /> },
-      { id: "contentStudio", label: "استوديو الصورة الذكية", icon: <Sparkles size={14} /> },
+      { id: "contentStudio", label: "استوديو التراث الذكي", icon: <Sparkles size={14} /> },
     ];
 
     const dashboardTabGroups = [
@@ -1924,7 +1924,7 @@ const [isPending, startTransition] = useTransition();
       {
         id: "growth-marketing",
         label: "النمو والمحتوى",
-        description: "النمو، الحملات، واستوديو الصورة الذكية",
+        description: "النمو، الحملات، واستوديو التراث الذكي",
         icon: <Target size={14} />,
         tabs: ["growth", "contentStudio"],
       },
@@ -3267,7 +3267,7 @@ const [isPending, startTransition] = useTransition();
                              <div className="p-2.5 bg-indigo-50 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500">
                               <Calculator size={20} className="text-indigo-600 group-hover:text-white" />
                              </div>
-                             <span className="font-black text-slate-900 text-lg tracking-tight">حاسبة العروض الذكية</span>
+                             <span className="font-black text-slate-900 text-lg tracking-tight">حاسبة عروض التراث</span>
                           </div>
                         </div>
                         <div className="p-2">
@@ -3475,7 +3475,7 @@ const [isPending, startTransition] = useTransition();
                               </div>
                               <div>
                                 <h3 className="font-black text-2xl lg:text-3xl text-slate-900 tracking-tight">سجل التحسن التشغيلي</h3>
-                                <p className="text-slate-500 text-xs md:text-sm font-bold mt-1">توثيق مختصر لتحسن قراءة البيانات والقرارات التشغيلية</p>
+                                <p className="text-slate-500 text-xs md:text-sm font-bold mt-1">توثيق مختصر لقراءة البيانات والقرارات</p>
                               </div>
                             </div>
                             <div className="bg-white text-indigo-600 px-4 py-2 rounded-2xl text-xs md:text-sm font-black border border-indigo-100 shadow-xl shadow-indigo-100/50 whitespace-nowrap">
@@ -3565,7 +3565,7 @@ const [isPending, startTransition] = useTransition();
                               </div>
                               <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 mb-2 lg:mb-4 tracking-tight">جاري بناء سجل تشغيلي أوضح</h3>
                               <p className="text-slate-500 font-bold text-xs sm:text-sm lg:text-lg max-w-lg mx-auto leading-relaxed">
-                                بمجرد إصدار القرارات وتتبع نتائجها، يعرض النظام بعرض رحلة تطوره وتحسن دقته هنا بشكل آلي عبر معالجة البيانات التاريخية.
+                                سيعرض النظام تطور النتائج والتحسينات تلقائيًا عند توفر البيانات.
                               </p>
                             </div>
                           )}
@@ -5825,7 +5825,7 @@ const [isPending, startTransition] = useTransition();
                                   } catch (error) {
                                     toast.error("التحليل ما ضبط", {
                                       description:
-                                        "تعطل تحليل البيانات. تأكد من إعدادات التراث الذكي.",
+                                        "تعطل قراءة البيانات. تأكد من إعدادات التراث الذكي.",
                                     });
                                   } finally {
                                     setIsPulseAnalyzing(false);

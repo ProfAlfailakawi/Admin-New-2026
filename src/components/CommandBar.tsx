@@ -84,14 +84,14 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       { id: 'dashboard-profit', label: 'المالية وحماية الأرباح', hint: 'الربحية، الهامش، النزيف، وحماية الربح', icon: <DollarSign />, category: 'خريطة التحكم الذكية', tags: ['فلوس','أرباح','ربح','خسارة','هامش','تكاليف'], action: () => onNavigate('dashboard', { exactId: 'financials' }), roles: ['admin'] },
       { id: 'dashboard-suppliers', label: 'الموردين والتشغيل', hint: 'ذكاء الموردين ومراجعة المخاطر', icon: <Truck />, category: 'خريطة التحكم الذكية', tags: ['مورد','موردين','تفاوض','تشغيل','منتجات'], action: () => onNavigate('dashboard', { exactId: 'suppliers' }), roles: ['admin'] },
       { id: 'dashboard-customers', label: 'العملاء والولاء', hint: 'العملاء، نظام المكافآت والخصومات، والبطولات', icon: <Award />, category: 'خريطة التحكم الذكية', tags: ['عميل','عملاء','ولاء','كوبون','كوبونات','ديوانية'], action: () => onNavigate('dashboard', { exactId: 'customers' }), roles: ['admin'] },
-      { id: 'dashboard-growth', label: 'النمو والمحتوى', hint: 'النمو، الحملات، والتوقع الموسمي واستوديو الصورة الذكية', icon: <Target />, category: 'خريطة التحكم الذكية', tags: ['نمو','تسويق','حملات','محتوى','استوديو','موسم','مناخ'], action: () => onNavigate('dashboard', { exactId: 'growth' }), roles: ['admin'] },
+      { id: 'dashboard-growth', label: 'النمو والمحتوى', hint: 'النمو، الحملات، والتوقع الموسمي واستوديو التراث الذكي', icon: <Target />, category: 'خريطة التحكم الذكية', tags: ['نمو','تسويق','حملات','محتوى','استوديو','موسم','مناخ'], action: () => onNavigate('dashboard', { exactId: 'growth' }), roles: ['admin'] },
 
       { id: 'invoices-list', label: 'سجل الفواتير', hint: 'فواتير وتقارير', icon: <FileText />, category: 'التشغيل اليومي', tags: ['فاتورة','فواتير','سجل','مبيعات'], action: () => onNavigate('invoices-list', {}), roles: ['partner', 'admin'] },
       { id: 'new-invoice', label: 'فاتورة جديدة', hint: 'إنشاء سريع', icon: <PlusCircle />, category: 'التشغيل اليومي', tags: ['فاتورة','جديدة','بيع','نقطة البيع'], action: () => onNavigate('new-invoice', {}), roles: ['admin', 'partner'] },
       { id: 'orders', label: 'طلبات الموقع', hint: 'حالات الدفع', icon: <ShoppingBag />, category: 'التشغيل اليومي', tags: ['طلب','طلبات','موقع','دفع'], action: () => onNavigate('orders', {}), roles: ['partner', 'admin'] },
       { id: 'reports', label: 'التقارير التنفيذية', hint: 'تفصيل مالي للأداء والمبيعات', icon: <PieChart />, category: 'التشغيل اليومي', action: () => onNavigate('reports', {}), roles: ['admin'] },
 
-      { id: 'smart-studio', label: 'استوديو الصورة الذكية', hint: 'رسائل الدعاية والتسويق', icon: <Zap />, category: 'النمو والمحتوى', action: () => onNavigate('smart-studio', {}), roles: ['admin', 'partner'] },
+      { id: 'smart-studio', label: 'استوديو التراث الذكي', hint: 'رسائل الدعاية والتسويق', icon: <Zap />, category: 'النمو والمحتوى', action: () => onNavigate('smart-studio', {}), roles: ['admin', 'partner'] },
       { id: 'dashboard-rewards', label: 'نظام المكافآت والخصومات', hint: 'إدارة الولاء، الكوبونات، وقياس الربح', icon: <Sparkles />, category: 'العملاء والولاء', action: () => onNavigate('dashboard', { exactId: 'rewards' }), roles: ['admin'] },
       { id: 'dashboard-diwaniya', label: 'بطولات الديوانية', hint: 'النقاط والجوائز للبطولات', icon: <Users />, category: 'العملاء والولاء', action: () => onNavigate('dashboard', { exactId: 'diwaniya' }), roles: ['admin'] },
 
@@ -100,7 +100,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       { id: 'suppliers-audit', label: 'الموردين والمراجعة', hint: 'تدقيق الموردين والمخاطر', icon: <Truck />, category: 'الإدارة الأساسية', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
       { id: 'expenses', label: 'المصروفات', hint: 'تسجيل ومراجعة', icon: <PieChart />, category: 'الإدارة الأساسية', action: () => onNavigate('expenses', {}), roles: ['admin'] },
       { id: 'settings', label: 'الإعدادات العامة', hint: 'هوية وتنبيهات وضبط', icon: <ShieldCheck />, category: 'الإدارة الأساسية', action: () => onNavigate('settings', {}), roles: ['admin'] },
-      { id: 'ai', label: 'المساعد الذكي', hint: 'مستشار مالي وتوصيات', icon: <Sparkles />, category: 'التراث الذكي', action: () => onNavigate('ai', {}), roles: ['admin', 'partner'] },
+      { id: 'ai', label: 'مساعد التراث الذكي', hint: 'مستشار مالي وتوصيات', icon: <Sparkles />, category: 'التراث الذكي', action: () => onNavigate('ai', {}), roles: ['admin', 'partner'] },
     ];
     const effectiveRole = userRole || 'admin';
     const mainTabs = allTabs.filter(tab => tab.roles?.includes(effectiveRole));

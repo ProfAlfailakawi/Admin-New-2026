@@ -200,6 +200,6 @@ export function getSeasonalInsight(now: Date = new Date()): { title: string; det
   return {
     title: 'تخطيط الموسم القادم',
     detail: 'ابق على اطلاع دائم بتقلبات السوق الموسمية في الكويت.',
-    products: ['تحليل البيانات', 'تجهيز المخزون']
+    products: ['قراءة البيانات', 'تجهيز المخزون']
   };
 }

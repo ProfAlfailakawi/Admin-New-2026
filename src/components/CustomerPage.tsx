@@ -310,12 +310,18 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
    {/* Header removed: page frame already shows العملاء والولاء */}
 
    {/* Stats Cards */}
-   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-    <StatCard label="إجمالي المسجلين" value={totalCustomers} icon={<Users className="w-5 h-5 lg:w-6 lg:h-6" />} color="blue" description="كامل قاعدة البيانات" />
-    <StatCard label="كبار الشخصيات (VIP)" value={vipCustomers} icon={<Crown className="w-5 h-5 lg:w-6 lg:h-6" />} color="accent" description="أكثر من 800 د.ك" />
-    <StatCard label="عملاء راكدون (30+ يوم)" value={slowCustomers} icon={<Clock className="w-5 h-5 lg:w-6 lg:h-6" />} color="amber" description="راكد" />
-    <StatCard label="عملاء مفقودون (90+ يوم)" value={inactiveCustomers} icon={<UserMinus className="w-5 h-5 lg:w-6 lg:h-6" />} color="red" description="مفقود" />
-   </div>
+   <details className="bg-white rounded-3xl border border-slate-200/60 shadow-sm p-4">
+    <summary className="cursor-pointer list-none font-black text-slate-800 flex items-center justify-between">
+      <span>مؤشرات العملاء</span>
+      <span className="text-xs text-slate-500">اضغط للعرض</span>
+    </summary>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-4">
+      <StatCard label="إجمالي المسجلين" value={totalCustomers} icon={<Users className="w-5 h-5 lg:w-6 lg:h-6" />} color="blue" description="كامل قاعدة البيانات" />
+      <StatCard label="كبار الشخصيات (VIP)" value={vipCustomers} icon={<Crown className="w-5 h-5 lg:w-6 lg:h-6" />} color="accent" description="أكثر من 800 د.ك" />
+      <StatCard label="عملاء راكدون (30+ يوم)" value={slowCustomers} icon={<Clock className="w-5 h-5 lg:w-6 lg:h-6" />} color="amber" description="راكد" />
+      <StatCard label="عملاء مفقودون (90+ يوم)" value={inactiveCustomers} icon={<UserMinus className="w-5 h-5 lg:w-6 lg:h-6" />} color="red" description="مفقود" />
+    </div>
+   </details>
 
    <AnimatePresence>
     {deleteError && (

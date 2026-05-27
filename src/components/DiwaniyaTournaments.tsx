@@ -14,7 +14,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   const [radarMapSize, setRadarMapSize] = useState({ width: 0, height: 0 });
 
   const normalizeSquadRecord = (sq: any, fallbackIndex = 0) => {
-    const location = sq?.location || sq?.geo || sq?.diwaniyaLocation || sq?.radarLocation || sq?.coordinates || sq?.mapLocation || sq?.clientLocation || {};
+    const location = sq?.location || sq?.geo || sq?.diwaniyaLocation || sq?.radarLocation || sq?.coordinates || sq?.mapLocation || {};
     const lat = sq?.lat ?? sq?.latitude ?? location?.lat ?? location?.latitude ?? location?._lat;
     const lng = sq?.lng ?? sq?.longitude ?? sq?.lon ?? location?.lng ?? location?.longitude ?? location?.lon ?? location?._long;
     return {
@@ -29,21 +29,13 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     };
   };
 
-  const squadIdentity = (sq: any) => String(sq?.id ?? sq?.diwaniyaId ?? sq?.squadId ?? sq?.name ?? sq?.diwaniyaName ?? sq?.phone ?? '').trim().toLowerCase();
-
-  // Merge all client/admin diwaniya collections so hosted diwaniyas do not disappear when leaving the screen or reopening the app.
+  // مصدر الدواوين الصحيح هو data.squads القادم من /api/admin-dashboard-data / Firestore collection: squads.
+  // لا نقرأ العملاء ولا نحولهم إلى دواوين حتى لا تختلط بيانات العملاء مع إدارة الدواوين.
   const squads = React.useMemo(() => {
-    // Reverse the order so data.squads (the source of truth) overwrites the others during merge
-    const sources = [data?.clientDiwaniyas, data?.hostedSquads, data?.hostedDiwaniyas, data?.diwaniyaSquads, data?.diwaniyas, data?.squads].filter(Array.isArray) as any[][];
-    if (!sources.length) return DEFAULT_SQUADS.map(normalizeSquadRecord);
-    const merged = new Map<string, any>();
-    sources.flat().filter(Boolean).forEach((sq: any, index: number) => {
-      const normalized = normalizeSquadRecord(sq, index);
-      const key = squadIdentity(normalized) || String(index);
-      merged.set(key, { ...(merged.get(key) || {}), ...normalized });
-    });
-    return Array.from(merged.values());
-  }, [data?.squads, data?.diwaniyas, data?.diwaniyaSquads, data?.hostedDiwaniyas, data?.hostedSquads, data?.clientDiwaniyas]);
+    return Array.isArray(data?.squads)
+      ? data.squads.map((sq: any, index: number) => normalizeSquadRecord(sq, index)).filter((sq: any) => String(sq?.name || '').trim())
+      : [];
+  }, [data?.squads]);
 
   const setSquads = (newSquads: any[]) => {
     const normalizedSquads = newSquads.map(normalizeSquadRecord);
@@ -51,27 +43,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       const updated = {
         ...prev,
         squads: normalizedSquads,
-        diwaniyas: normalizedSquads,
-        diwaniyaSquads: normalizedSquads,
-        hostedDiwaniyas: normalizedSquads,
-        hostedSquads: normalizedSquads,
       };
-      // Keep clientDiwaniyas untouched unless specifically requested, to avoid blasting client state unnecessarily, but normally they use the same DB.
       localStorage.setItem('ktk_accounting_data', JSON.stringify(updated));
       return updated;
     });
   };
-
-  React.useEffect(() => {
-    if (!Array.isArray(data?.squads) && squads.length) {
-      setData((prev: any) => {
-        const updated = { ...prev, squads, diwaniyas: Array.isArray(prev?.diwaniyas) ? prev.diwaniyas : squads, diwaniyaSquads: Array.isArray(prev?.diwaniyaSquads) ? prev.diwaniyaSquads : squads };
-        localStorage.setItem('ktk_accounting_data', JSON.stringify(updated));
-        return updated;
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const DEFAULT_TIERS = [
     { id: 1, name: 'شلة ديوانية', points: '0', label: 'بداية التجمع', color: 'from-orange-400 to-orange-600', bgClass: 'border-orange-200 bg-orange-50/50', iconType: 'Medal' },

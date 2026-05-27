@@ -62,6 +62,17 @@ const isPending = (value: any) => {
  return !s || s.includes('pending') || s.includes('بانتظار') || s.includes('انتظار') || s.includes('جديد');
 };
 
+const compactAssistantReply = (value: string) => {
+ const clean = String(value || '')
+   .replace(/^\s*(تحليل|التشخيص)\s*[:：-]\s*/gim, '')
+   .replace(/\n{3,}/g, '\n\n')
+   .trim();
+ if (clean.length <= 850) return clean;
+ const lines = clean.split('\n').map((line) => line.trim()).filter(Boolean);
+ if (lines.length >= 4) return lines.slice(0, 7).join('\n');
+ return `${clean.slice(0, 820).replace(/\s+\S*$/, '')}\n\nالخلاصة: هذا أهم شيء حالياً، واذا تبي أفصلها أفصلها لك برسالة ثانية.`;
+};
+
 const buildAssistantIntel = (data: AppState) => {
  const invoices = (data?.invoices || []).filter((i: any) => !i.isDeleted);
  const paidInvoices = invoices.filter((i: any) => isPaid(i.paymentStatus || i.status) || i.paymentStatus === undefined);
@@ -363,10 +374,12 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 - لا تطلب خطوات تقنية من المستخدم.
 - لا تنفذ ولا تدعي أنك نفذت.
 - اكتب بلهجة كويتية بيضاء راقية، مختصرة وواضحة.
-- الرد المثالي دائماً: الحكم، الدليل من البيانات، القرار العملي، ثم نص جاهز إذا يناسب.
+- الرد المثالي دائماً قصير: الحكم، الدليل من البيانات، القرار العملي، ثم نص جاهز إذا يناسب.
+- ممنوع الإطالة: لا تتجاوز 5 أسطر قصيرة إلا إذا طلب المستخدم تفصيل.
+- لا تكتب مقدمات طويلة ولا تشخيص معقد؛ خل الرد قابل للقراءة خلال 10 ثواني.
 - قبل أي رد، افحص: هل عندي رقم/منتج/عميل/مورد يثبت كلامي؟ إذا لا، اطلب الناقص بوضوح.
 - استخدم ذاكرة التاجر المحلية المرسلة لك عشان ما تكرر نفس النصائح وتفهم أسلوبه.
-- ممنوع تذكر أنك نموذج أو تحليل ذكي أو تعتذر بكثرة.
+- ممنوع تذكر أنك نموذج أو نظام عام أو تعتذر بكثرة.
 - إذا كتب التاجر كلمة "ضبطها" فقط، افهمها حسب الصفحة الحالية والقرار المرسل لك، ولا تسأله شنو يقصد إلا إذا البيانات ناقصة.
 - إذا في مخاطرة، قلها بصراحة وبهدوء. إذا في فرصة، عطه خطوة قابلة للتنفيذ اليوم.`,
 	 statsSummary,
@@ -381,7 +394,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
  throw new Error(serverError);
  }
 
- const aiText = assistantPayload?.text || 'المعذرة يا طويل العمر، التحليل تعطل شوي. جرّب مرة ثانية.';
+ const aiText = compactAssistantReply(assistantPayload?.text || 'تعطل الرد شوي. جرّب مرة ثانية.');
  rememberTurn(cleanMessage, aiText);
  setMessages(prev => [...prev, { 
  role: 'assistant', 
@@ -401,7 +414,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
  }
 
  attempts++;
- console.error(`المساعد الذكي attempt ${attempts} failed:`, error);
+ console.error(`مساعد التراث الذكي attempt ${attempts} failed:`, error);
  
  if (attempts >= maxAttempts) {
  setMessages(prev => [...prev, { 
@@ -424,9 +437,24 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 	  { label: 'طلع فرصة بيع', prompt: 'من منتجاتي وفواتيري الحالية، اختر منتج واحد يستاهل حملة اليوم، واشرح لي ليش، واكتب نص حملة قصير.' },
 	  { label: 'فسّر الربح', prompt: 'حلل ربح مطعمي وهامشه من البيانات الحالية، وقل لي قرار واحد يحسن الربح اليوم بدون تخفيض عشوائي.' },
 	 ];
+   const decisionCards = [
+    { title: 'قرار الآن', text: pageDecision.decision || 'افتح أهم رقم في الصفحة الحالية.', prompt: 'اعطني قرار الآن في سطرين: الدليل والإجراء.' },
+    { title: 'الدليل', text: pageDecision.proof || intel.dataFreshness, prompt: 'اختصر لي الدليل من البيانات بدون شرح طويل.' },
+    { title: 'فرصة سريعة', text: intel.hiddenGem !== 'لا يوجد' ? intel.hiddenGem : `متوسط الطلب ${money(intel.avgOrderValue)} د.ك`, prompt: 'طلع لي فرصة بيع واحدة اليوم مع نص واتساب قصير.' },
+    { title: 'تنبيه هادئ', text: intel.failedOrders > 0 ? `${intel.failedOrders} فشل دفع` : intel.pendingOrders > 0 ? `${intel.pendingOrders} بانتظار الدفع` : 'لا يوجد خطر واضح الآن', prompt: 'رتب لي أهم تنبيه تشغيلي في سطرين فقط.' },
+   ];
 
  return (
 	 <div className="ai-executive-assistant-shell animate-in fade-in slide-in-from-bottom-4 duration-700" dir="rtl">
+
+    <section className="ai-decision-deck" aria-label="لوحة قرار مختصرة">
+      {decisionCards.map((card) => (
+        <button key={card.title} type="button" onClick={() => handleSend(card.prompt)} disabled={isLoading}>
+          <span>{card.title}</span>
+          <strong>{card.text}</strong>
+        </button>
+      ))}
+    </section>
 
 	  {(!messages || messages.length === 0) && (
 	  <section className="ai-mission-strip">

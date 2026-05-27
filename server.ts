@@ -33,6 +33,7 @@ try {
   } catch(e) {}
 
   const projectId = cfg.projectId || process.env.GOOGLE_CLOUD_PROJECT || "gen-lang-client-0200723670";
+  console.log(`[ADMIN020] Initializing Firebase Admin for project: ${projectId}`);
 
   const appInstance = admin.apps.length
     ? admin.app()
@@ -40,32 +41,33 @@ try {
         projectId: projectId,
       });
 
-
+  let dbId = cfg.firestoreDatabaseId || process.env.FIRESTORE_DATABASE_ID;
+  if (!dbId) {
+    try {
+      const cfgFile = JSON.parse(fsSync.readFileSync('firebase-applet-config.json', 'utf8'));
+      dbId = cfgFile.firestoreDatabaseId;
+    } catch(e) {}
+  }
   
-  let dbId;
-  try {
-    const cfg = JSON.parse(fsSync.readFileSync('firebase-applet-config.json', 'utf8'));
-    dbId = cfg.firestoreDatabaseId;
-  } catch(e) {}
+  console.log(`[ADMIN020] Target Firestore Database ID: ${dbId || "(default)"}`);
   db = getFirestore(appInstance, dbId || "(default)");
 
-  // Verify database connectivity early to avoid log spam if permissions are missing
+  // Verify database connectivity early
   try {
-    await db.collection('pushTokens').limit(1).get();
+    const testSnap = await db.collection('pushTokens').limit(1).get();
     firebaseInitialized = true;
-    console.log("[ADMIN020] Firebase Admin initialized and verified.");
+    console.log(`[ADMIN020] Firebase Admin verified. Access to database '${dbId || "(default)"}' confirmed.`);
   } catch (err: any) {
+    console.error(`[ADMIN020] Firebase Admin connectivity check FAILED for database '${dbId || "(default)"}':`, err.message);
     if (err.message && err.message.includes("PERMISSION_DENIED")) {
-      console.warn("[ADMIN020] Firebase Admin initialized but ACCESS DENIED. Server-side workers will be disabled. (Expected if Service Account is not configured)");
-    } else {
-      console.error("[ADMIN020] Firebase Admin connectivity check failed:", err.message);
+      console.warn("[ADMIN020] ACCESS DENIED. Server-side Firestore operations will fail. Check Service Account roles (Cloud Datastore User).");
     }
     firebaseInitialized = false;
   }
 } catch (error) {
   firebaseInitialized = false;
   db = null;
-  console.error("[ADMIN020] Firebase Admin initialization failed:", error);
+  console.error("[ADMIN020] Firebase Admin initialization CRASHED:", error);
 }
 
 
@@ -340,6 +342,41 @@ app.use((req, res, next) => {
   app.use(express.json({ limit: "30mb" }));
 
 app.use(express.urlencoded({ extended: true }));
+
+app.get("/api/admin-dashboard-data", async (_req, res) => {
+  try {
+    if (!db || !firebaseInitialized) {
+      console.warn("[admin-dashboard-data] Firebase Admin not ready.");
+      return res.status(503).json({ success: false, squads: [], message: "Firestore Admin is not initialized or connectivity check failed." });
+    }
+
+    console.log("[admin-dashboard-data] Fetching squads...");
+    let squadsSnap;
+    try {
+      squadsSnap = await db.collection("squads").get();
+    } catch (e: any) {
+      if (e.message?.includes("PERMISSION_DENIED")) {
+        console.warn("[admin-dashboard-data] Primary DB Access Denied. Trying default DB...");
+        try {
+          squadsSnap = await admin.firestore().collection("squads").get();
+        } catch (fE: any) {
+          throw e; // Rethrow original if fallback also fails
+        }
+      } else {
+        throw e;
+      }
+    }
+
+    const squads = squadsSnap.docs.map((doc: any) => ({ id: doc.id, ...(doc.data() || {}) }));
+    console.log(`[admin-dashboard-data] Found ${squads.length} squads.`);
+
+    return res.json({ success: true, squads });
+  } catch (err: any) {
+    console.error("[admin-dashboard-data] Total failure loading squads:", err?.message || err);
+    return res.status(500).json({ success: false, squads: [], message: String(err?.message || "Internal server error") });
+  }
+});
+
 
   // Webhook for payment gateway
   // It synchronizes payment results to the database even if the user doesn't return to the app.
