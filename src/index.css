@@ -856,7 +856,7 @@ body::before {
 }
 
 
-/* QA FINAL POLISH — removes duplicated command board/metrics remnants and compacts AI lab */
+/* QA FINAL POLISH — removes duplicated command board/metrics remnants and compacts smart lab */
 .admin-page-hero{align-items:center!important;min-height:auto!important;padding:18px 22px!important;margin-bottom:18px!important}
 .admin-page-hero-main{max-width:920px!important}.admin-page-hero-main h1{font-size:clamp(1.65rem,3vw,2.75rem)!important;line-height:1.15!important}.admin-page-hero-main p{font-size:clamp(.9rem,1.2vw,1.05rem)!important;color:#64748b!important}.admin-page-metrics,.profit-shield-panel,.heritage-command-brief{display:none!important}
 .executive-morning-brief{background:linear-gradient(135deg,#0f172a,#111827)!important;color:#fff!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:24px!important;padding:18px!important;box-shadow:0 18px 45px rgba(15,23,42,.18)!important}.executive-morning-brief span{color:#fbbf24!important}.executive-morning-brief strong{color:#fff!important}.executive-morning-brief li{color:#dbeafe!important}
@@ -867,7 +867,7 @@ body::before {
 .admin-login-premium{background:radial-gradient(circle at 20% 10%,rgba(99,102,241,.20),transparent 30%),radial-gradient(circle at 80% 15%,rgba(245,158,11,.18),transparent 28%),linear-gradient(135deg,#f8fafc,#fff7ed 48%,#eef2ff)!important}.admin-login-card-wrap{perspective:1200px}.admin-login-card{backdrop-filter:blur(20px);transform-style:preserve-3d}.admin-login-card:before{content:'';position:absolute;inset:0;border-radius:2rem;padding:1px;background:linear-gradient(135deg,rgba(245,158,11,.35),rgba(99,102,241,.32),rgba(255,255,255,.65));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}.admin-login-hero:after{content:'';position:absolute;left:50%;top:0;width:140%;height:3px;transform:translateX(-50%);background:linear-gradient(90deg,#6366f1,#f59e0b,#ec4899)}.admin-login-hero h1{font-weight:950!important;letter-spacing:-.04em}.admin-login-hero p{color:rgba(255,255,255,.66)!important;letter-spacing:.16em}.admin-login-card input{border-radius:18px!important;min-height:50px!important;background:#f8fafc!important}.admin-login-card label{font-weight:950!important}
 
 
-/* FINAL USER NOTES — premium login redesign + compact AI lab desktop sizing */
+/* FINAL USER NOTES — premium login redesign + compact smart lab desktop sizing */
 .admin-login-showcase{min-height:100vh;position:relative;display:flex;align-items:center;justify-content:center;padding:28px;overflow:hidden;background:radial-gradient(circle at 80% 12%,rgba(212,175,55,.22),transparent 28%),radial-gradient(circle at 12% 20%,rgba(227,24,55,.16),transparent 30%),linear-gradient(135deg,#07130d 0%,#0f172a 52%,#020617 100%);isolation:isolate}.admin-login-showcase:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(circle at center,black,transparent 78%);z-index:-2}.login-orb{position:absolute;border-radius:999px;filter:blur(44px);opacity:.55;z-index:-1}.login-orb-one{width:320px;height:320px;background:#d4af37;top:-80px;right:-70px}.login-orb-two{width:280px;height:280px;background:#e31837;bottom:8%;left:-70px}.login-orb-three{width:190px;height:190px;background:#22c55e;bottom:18%;right:18%;opacity:.18}.login-showcase-shell{width:min(1040px,100%);display:grid;grid-template-columns:1.05fr .95fr;border:1px solid rgba(255,255,255,.18);border-radius:42px;overflow:hidden;background:rgba(255,255,255,.08);backdrop-filter:blur(26px);box-shadow:0 34px 110px rgba(0,0,0,.42)}.login-brand-stage{position:relative;min-height:620px;padding:42px;color:white;background:linear-gradient(145deg,rgba(15,61,31,.92),rgba(15,23,42,.94));overflow:hidden}.login-brand-stage:after{content:"";position:absolute;inset:auto -18% -26% -18%;height:45%;background:radial-gradient(circle,rgba(212,175,55,.34),transparent 62%)}.login-stage-grid{position:absolute;inset:0;background:radial-gradient(circle at 20% 20%,rgba(255,255,255,.13),transparent 32%),linear-gradient(135deg,rgba(255,255,255,.07),transparent);opacity:.9}.login-stage-content{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;text-align:right}.login-live-pill{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);font-size:12px;font-weight:900;color:#fde68a;margin-bottom:28px}.login-live-pill span{width:8px;height:8px;border-radius:99px;background:#22c55e;box-shadow:0 0 18px #22c55e}.login-hero-logo{margin:0 0 32px!important;filter:drop-shadow(0 22px 40px rgba(0,0,0,.32))}.login-brand-stage h1{font-size:clamp(2.6rem,5vw,5.2rem);line-height:.95;font-weight:950;letter-spacing:-.07em;margin:0 0 18px;background:linear-gradient(180deg,#fff,#fde68a);-webkit-background-clip:text;background-clip:text;color:transparent}.login-brand-stage p{max-width:450px;color:rgba(255,255,255,.72);font-weight:800;line-height:1.9;font-size:16px}.login-metrics-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;width:100%;margin-top:42px}.login-metrics-row div{padding:16px 14px;border-radius:24px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.13);box-shadow:inset 0 1px 0 rgba(255,255,255,.13)}.login-metrics-row strong{display:block;font-size:18px;font-weight:950;color:#fff}.login-metrics-row span{display:block;margin-top:3px;font-size:11px;font-weight:900;color:rgba(255,255,255,.55)}.login-form-stage{background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(255,251,244,.96));padding:42px;display:flex;flex-direction:column;justify-content:center}.login-form-head span{display:inline-block;font-size:11px;font-weight:950;color:#b45309;background:#fff4d6;border:1px solid rgba(212,175,55,.26);padding:7px 11px;border-radius:999px;margin-bottom:14px}.login-form-head h2{font-size:36px;font-weight:950;color:#0f172a;margin:0;letter-spacing:-.05em}.login-form-head p{color:#64748b;font-size:13px;font-weight:800;line-height:1.8;margin:8px 0 22px}.login-cloud-note{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:20px;padding:13px 14px;font-size:13px;font-weight:900;margin-bottom:14px}.login-google-btn,.login-local-btn{width:100%;min-height:58px;border-radius:22px;font-weight:950;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 18px 40px rgba(15,23,42,.12)}.login-google-btn{background:linear-gradient(135deg,#111827,#3730a3);color:#fff;border:1px solid rgba(255,255,255,.2)}.login-divider{display:flex;align-items:center;gap:12px;color:#94a3b8;font-size:11px;font-weight:950;margin:20px 0}.login-divider:before,.login-divider:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,#e2e8f0,transparent)}.login-premium-form{display:flex;flex-direction:column;gap:14px}.login-field>span{display:block;font-size:12px;font-weight:950;color:#475569;margin:0 4px 7px}.login-field>div{position:relative}.login-field svg{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#b45309}.login-field input{width:100%;height:56px;border-radius:20px;border:1px solid rgba(15,23,42,.08);background:#fff;padding:0 48px 0 16px;outline:none;font-weight:850;color:#0f172a;box-shadow:0 10px 28px rgba(15,23,42,.045);transition:.2s}.login-field input:focus{border-color:rgba(180,83,9,.45);box-shadow:0 0 0 5px rgba(212,175,55,.13),0 14px 34px rgba(15,23,42,.08)}.login-error-box{display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:18px;background:#fff1f2;border:1px solid #fecdd3;color:#be123c;font-weight:900;font-size:13px}.login-error-box span{width:8px;height:8px;border-radius:50%;background:#e11d48}.login-local-btn{background:linear-gradient(135deg,#0f3d1f,#020617);color:#fff;border:0;margin-top:4px}.login-install-btn{align-self:center;width:46px;height:46px;border-radius:999px;border:1px solid rgba(212,175,55,.28);background:#fff7ed;color:#b45309;display:flex;align-items:center;justify-content:center;margin-top:4px}.login-footnote{font-size:11px;color:#64748b;line-height:1.8;text-align:center;font-weight:750;margin-top:18px}.login-copyright{position:absolute;bottom:18px;color:rgba(255,255,255,.55);font-size:12px;font-weight:800}.ai-lab-gallery{max-width:1040px!important;margin-inline:auto!important;padding:18px!important;border-radius:28px!important}.ai-lab-gallery .panel-head h2{font-size:clamp(1.25rem,1.7vw,1.8rem)!important}.ai-lab-compact-grid,.smart-mini-grid.ai-lab-compact-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(155px,1fr))!important;gap:12px!important}.lab-tool-card{min-height:118px!important;padding:14px!important;border-radius:22px!important}.lab-tool-card svg{width:18px!important;height:18px!important}.lab-tool-card strong{font-size:14px!important;line-height:1.35!important}.lab-tool-card small{font-size:10.5px!important;line-height:1.6!important}.admin-content-polish [data-ai-lab],.admin-content-polish .ai-lab,.admin-content-polish .intelligence-lab{max-width:1120px!important;margin-inline:auto!important}.admin-content-polish .text-5xl{font-size:clamp(2rem,3vw,3.3rem)!important}.admin-content-polish .text-7xl{font-size:clamp(2.4rem,4vw,4.8rem)!important}@media(max-width:860px){.admin-login-showcase{padding:16px;align-items:flex-start}.login-showcase-shell{grid-template-columns:1fr;border-radius:32px}.login-brand-stage{min-height:auto;padding:28px}.login-brand-stage h1{font-size:2.7rem}.login-metrics-row{margin-top:24px}.login-form-stage{padding:26px}.login-copyright{position:relative;bottom:auto;margin-top:16px}.login-brand-stage p{font-size:14px}}
 
 
@@ -933,7 +933,7 @@ button:active,a:active,.interactive-hover:active,.ui-card:active{transform:scale
 }
 
 
-/* AdminFix3 focused polish: command mapping clarity, AI Lab responsive sizing, invoice hint touch behavior */
+/* AdminFix3 focused polish: command mapping clarity, Smart Lab responsive sizing, invoice hint touch behavior */
 .invoice-new-attention{
   position:absolute; top:8px; left:8px; z-index:50; width:32px; height:32px;
   display:flex; align-items:center; justify-content:center; border:0; background:transparent; padding:0;
@@ -959,7 +959,7 @@ button:active,a:active,.interactive-hover:active,.ui-card:active{transform:scale
 .invoice-new-attention-copy{font-size:10px; font-weight:850; color:#475569; line-height:1.6;}
 @keyframes invoiceAttentionPulse{0%,100%{transform:scale(1); box-shadow:0 8px 22px rgba(251,113,133,.14)}50%{transform:scale(1.06); box-shadow:0 12px 30px rgba(251,113,133,.24)}}
 
-/* Keep AI Lab elegant on desktop and readable on mobile/tablet without giant cards */
+/* Keep Smart Lab elegant on desktop and readable on mobile/tablet without giant cards */
 .dashboard [id="bi-engine-core-section"],
 .dashboard [id="what-if-section"],
 .dashboard [id="geo-heatmap-section"],
@@ -1023,7 +1023,7 @@ button:active,a:active,.interactive-hover:active,.ui-card:active{transform:scale
 .command-feature-card.is-active .command-feature-icon,
 .command-feature-card:hover .command-feature-icon{background:#fffbeb!important;color:#b45309!important;}
 
-/* Adminfix5 final: invoice hint, Diwaniya readability, AI Lab responsive discipline */
+/* Adminfix5 final: invoice hint, Diwaniya readability, Smart Lab responsive discipline */
 .invoice-new-attention{
   position:absolute!important;
   top:10px!important;
@@ -1116,7 +1116,7 @@ button:active,a:active,.interactive-hover:active,.ui-card:active{transform:scale
   text-shadow:none!important;
 }
 
-/* AI Lab gallery: desktop becomes a clean gallery, mobile becomes compact cards. */
+/* Smart Lab gallery: desktop becomes a clean gallery, mobile becomes compact cards. */
 .admin-smart-panel.ai-lab-gallery,
 .ai-lab-gallery{
   width:min(100%,1080px)!important;
@@ -3094,7 +3094,7 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
   }
 }
 
-/* Final admin PWA refinements: no business logic, no notification/payment/AI/location changes. */
+/* Final admin PWA refinements: no business logic, no notification/payment/smart/location changes. */
 @media(max-width:900px){
   .login-form-stage-cloud-first:not(:has(.login-install-btn)){
     min-height:auto!important;
@@ -3581,7 +3581,7 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
 }
 
 
-/* Ahmad admin mobile fix: new invoice cart spacing only; no logic, payment, AI, or notification changes. */
+/* Ahmad admin mobile fix: new invoice cart spacing only; no logic, payment, smart features, or notification changes. */
 @media(max-width:640px){
   .invoice-new-page{
     padding:10px!important;
@@ -3705,4 +3705,54 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
 /* Modal/backdrop readability */
 .fixed.inset-0[role="dialog"], .modal-backdrop {
   overscroll-behavior: contain;
+}
+
+/* Admin11 targeted mobile polish: compact analytical cards, invoice date fields, popovers. */
+@media (max-width: 640px) {
+  input[type="date"] {
+    min-height: 42px;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.875rem;
+    font-size: 0.875rem;
+  }
+
+  [data-radix-popper-content-wrapper],
+  .custom-scrollbar,
+  .recharts-wrapper {
+    max-width: 100vw;
+  }
+
+  .recharts-surface {
+    overflow: visible;
+  }
+
+  .recharts-cartesian-axis-tick text {
+    font-size: 10px;
+  }
+
+  .mobile-compact-card p,
+  .mobile-compact-card .text-sm {
+    line-height: 1.45;
+  }
+
+  .invoice-mobile-flow {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .invoice-mobile-products {
+    order: 1;
+  }
+
+  .invoice-mobile-cart {
+    order: 2;
+  }
+
+  .invoice-mobile-total {
+    order: 3;
+  }
+
+  .invoice-mobile-submit {
+    order: 4;
+  }
 }

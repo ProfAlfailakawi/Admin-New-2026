@@ -197,7 +197,7 @@ export async function generateQuickInstagramMessages(data: AppState, category: '
     const errString = String(error?.message || error);
     if (errString.includes('429') || errString.includes('RESOURCE_EXHAUSTED') || errString.includes('credits are depleted')) {
       // Import toast on the fly to avoid changing file imports, or if we need to we can just log a more user friendly error
-      console.warn("AI Quota Exceeded (429): Continuing with static fallback messages.");
+      console.warn("Smart quota exceeded (429): Continuing with local fallback messages.");
     } else {
       console.error("Error generating quick messages:", error);
     }
@@ -800,14 +800,14 @@ export async function generateMarketingCampaign(data: AppState, customPrompt?: s
     } catch (error: any) {
       const errStr = String(error?.message || error);
       if (errStr.includes("429") || errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("depleted")) {
-        console.warn("AI Quota Exceeded (429): Falling back to local campaign engine.");
+        console.warn("Smart quota exceeded (429): Falling back to local campaign engine.");
       } else {
-        console.error("AI Campaign Generation failed, falling back to local engine:", error);
+        console.error("Campaign generation failed, falling back to local engine:", error);
       }
     }
   }
 
-  // Fallback to local structured engine if AI fails or no key
+  // Fallback to local structured engine if remote generation fails or no key
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       const topics = ['زيادة الطلب', 'الفترة المسائية', 'استغلال الطقس'];

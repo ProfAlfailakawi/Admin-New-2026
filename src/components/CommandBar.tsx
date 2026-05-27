@@ -75,7 +75,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     const failedOrders = orders.filter((o: any) => isFailedText(o?.paymentStatus || o?.status)).length;
     const paidOrders = orders.filter((o: any) => isPaidText(o?.paymentStatus || o?.status)).length;
     const todayKey = new Date().toISOString().slice(0, 10);
-    const todayInvoices = invoices.filter((inv: any) => String(inv?.date || inv?.createdAt || '').startsWith(todayKey));
+    const todayInvoices = invoices.filter((inv: any) => String(inv?.date || '').startsWith(todayKey));
     const todaySales = todayInvoices.reduce((sum: number, inv: any) => sum + Number(inv?.totalAmount || inv?.total || 0), 0);
 
     const allTabs: CommandItem[] = [

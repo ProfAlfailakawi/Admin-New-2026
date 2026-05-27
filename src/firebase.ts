@@ -14,8 +14,7 @@ import {
   getDocFromServer,
   deleteDoc,
   setLogLevel,
-  persistentLocalCache,
-  persistentMultipleTabManager
+  memoryLocalCache
 } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { toast } from 'sonner';
@@ -34,12 +33,11 @@ export const storage = getStorage(app);
 
 console.log("Firebase App Initialized with project:", activeConfig.projectId);
 
-// Using initializeFirestore with multi-tab offline local cache and auto-detect long polling which is highly resilient in this environment.
+// ENFORCE LIVE SERVER FETCHING ONLY: Disabling IndexedDB persistentLocalCache by using memoryLocalCache()
+// This ensures the client application never pulls stale, old, or deleted data from disk storage.
 export const db = initializeFirestore(app, { 
   experimentalAutoDetectLongPolling: true,
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
+  localCache: memoryLocalCache()
 }, (firebaseConfig as any).firestoreDatabaseId);
 console.log("Firestore initialized with DB ID:", (firebaseConfig as any).firestoreDatabaseId);
 

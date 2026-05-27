@@ -97,8 +97,8 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  const futureDate = new Date(now.getFullYear(), now.getMonth() + i, 1);
  const monthName = futureDate.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
  
- // Add some slight seasonality / randomness so it's not a perfectly straight line
- const randomFactor = 1 + (Math.random() * 0.04 - 0.02); // +/- 2%
+ // Deterministic light seasonality so the forecast is stable between renders
+ const randomFactor = 1 + (Math.sin(i * 1.7) * 0.015);
  
  currentMonthlyRev = currentMonthlyRev * (1 + calculatedMonthlyGrowthRate) * randomFactor;
  currentMonthlyProfit = currentMonthlyProfit * (1 + calculatedMonthlyGrowthRate) * randomFactor;
@@ -119,12 +119,12 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  let aiExplanation ="";
  if (isGrowing) {
  if (calculatedMonthlyGrowthRate > 0.05) {
- aiExplanation = `بناءً على بيانات المبيعات الحالية وسلوك العملاء، من المتوقع نمو سريع ومستمر خلال الـ ${monthsToProject} شهراً القادمة. هناك فرصة كبيرة للتوسع.`;
+ aiExplanation = `بناءً على بيانات المبيعات الحالية وسلوك العملاء، من المتوقع نمو سريع ومستمر خلال الـ ${monthsToProject} شهراً القادمة. فرصة التوسع عالية.`;
  } else {
- aiExplanation = `بناءً على المعطيات التاريخية والمبيعات، من المتوقع نمو تدريجي ومستقر. ينصح بالاستمرار في تحسين تجربة العميل لضمان استدامة النمو.`;
+ aiExplanation = `بناءً على المعطيات التاريخية والمبيعات، من المتوقع نمو تدريجي ومستقر. استمر بتحسين تجربة العميل.`;
  }
  } else {
- aiExplanation = `تُظهر البيانات الحالية تباطؤاً أو انخفاضاً متوقعاً في وتيرة المبيعات المستقبلية. يُنصح بمراجعة التسعير وتكثيف الحملات التسويقية لتجنب تراجع الأرباح.`;
+ aiExplanation = `تُظهر البيانات الحالية تباطؤاً أو انخفاضاً متوقعاً في وتيرة المبيعات المستقبلية. راجع التسعير والحملات بسرعة.`;
  }
 
  return {
@@ -149,9 +149,9 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  }
 
  return (
- <div className="bg-white rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 border border-slate-200/60 shadow-sm flex flex-col gap-3 md:p-4" dir="rtl">
+ <div className="bg-white rounded-2xl md:rounded-2xl p-2.5 md:p-4 border border-slate-200/60 shadow-sm flex flex-col gap-2 md:gap-3" dir="rtl">
  {/* Header */}
- <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-6">
+ <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-4 border-b border-slate-100 pb-3 md:pb-6">
  <div>
  <h3 className="font-bold text-xl md:text-2xl text-slate-800 flex items-center gap-3">
  التنبؤ المستقبلي الخوارزمي <TrendingUp className="text-indigo-500" size={24} />
@@ -181,7 +181,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  </div>
  </div>
 
- {/* AI Insight Box */}
+ {/* Smart Insight Box */}
  <div className={cn(
 "p-3 md:p-4 md:p-3 rounded-2xl flex items-start gap-4 border",
  trend === 'up' ?"bg-emerald-50 border-emerald-100" :"bg-rose-50 border-rose-100"
@@ -202,9 +202,9 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  </div>
 
  {/* Chart */}
- <div className="h-[300px] md:h-[400px] w-full mt-4">
+ <div className="h-[230px] sm:h-[300px] md:h-[400px] w-full mt-2 md:mt-4">
  <ResponsiveContainer width="100%" height="100%">
- <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 30, bottom: 40 }}>
+ <AreaChart data={chartData} margin={{ top: 12, right: 8, left: 8, bottom: 18 }}>
  
           <defs>
             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">

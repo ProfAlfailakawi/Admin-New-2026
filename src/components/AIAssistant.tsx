@@ -70,7 +70,7 @@ const buildAssistantIntel = (data: AppState) => {
  const products = data?.products || [];
  const suppliers = data?.suppliers || [];
  const todayKey = new Date().toISOString().slice(0, 10);
- const todayInvoices = paidInvoices.filter((i: any) => String(i.date || i.createdAt || '').startsWith(todayKey));
+ const todayInvoices = paidInvoices.filter((i: any) => String(i.date || '').startsWith(todayKey));
  const totalSales = paidInvoices.reduce((sum: number, inv: any) => sum + Number(inv.totalAmount || inv.total || 0), 0);
  const todaySales = todayInvoices.reduce((sum: number, inv: any) => sum + Number(inv.totalAmount || inv.total || 0), 0);
  const totalProfit = paidInvoices.reduce((sum: number, inv: any) => sum + Number(inv.profit || 0), 0);
@@ -84,7 +84,7 @@ const buildAssistantIntel = (data: AppState) => {
    d.setDate(d.getDate() + offsetDays);
    return d.getTime();
  };
- const invoiceTime = (inv: any) => new Date(inv.date || inv.createdAt || inv.updatedAt || 0).getTime();
+ const invoiceTime = (inv: any) => new Date(inv.date || 0).getTime();
  const sumInvoicesBetween = (fromOffset: number, toOffset: number) => {
    const from = startOfDay(fromOffset);
    const to = startOfDay(toOffset);
@@ -150,10 +150,10 @@ const buildAssistantIntel = (data: AppState) => {
  const supplierDebt = suppliers.reduce((sum: number, s: any) => sum + Math.max(0, Number(s.balance || 0)), 0);
  const topSupplierDebt = [...suppliers].sort((a: any, b: any) => Number(b.balance || 0) - Number(a.balance || 0))[0];
  const recentInvoices = [...paidInvoices]
-   .sort((a: any, b: any) => new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime())
+   .sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
    .slice(0, 8)
    .map((inv: any) => ({
-     date: String(inv.date || inv.createdAt || '').slice(0, 10) || 'بدون تاريخ',
+     date: String(inv.date || '').slice(0, 10) || 'بدون تاريخ',
      total: Number(inv.totalAmount || inv.total || 0),
      profit: Number(inv.profit || 0),
      items: (inv.items || []).slice(0, 4).map((it: any) => `${it.name || it.productName || 'منتج'} x${it.quantity || 1}`).join(', ')
@@ -366,7 +366,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 - الرد المثالي دائماً: الحكم، الدليل من البيانات، القرار العملي، ثم نص جاهز إذا يناسب.
 - قبل أي رد، افحص: هل عندي رقم/منتج/عميل/مورد يثبت كلامي؟ إذا لا، اطلب الناقص بوضوح.
 - استخدم ذاكرة التاجر المحلية المرسلة لك عشان ما تكرر نفس النصائح وتفهم أسلوبه.
-- ممنوع تذكر أنك نموذج أو ذكاء اصطناعي أو تعتذر بكثرة.
+- ممنوع تذكر أنك نموذج أو تحليل ذكي أو تعتذر بكثرة.
 - إذا كتب التاجر كلمة "ضبطها" فقط، افهمها حسب الصفحة الحالية والقرار المرسل لك، ولا تسأله شنو يقصد إلا إذا البيانات ناقصة.
 - إذا في مخاطرة، قلها بصراحة وبهدوء. إذا في فرصة، عطه خطوة قابلة للتنفيذ اليوم.`,
 	 statsSummary,
@@ -377,7 +377,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 
  const assistantPayload = await assistantResponse.json().catch(() => null);
  if (!assistantResponse.ok) {
- const serverError = assistantPayload?.error || `AI server error: ${assistantResponse.status}`;
+ const serverError = assistantPayload?.error || `Smart server error: ${assistantResponse.status}`;
  throw new Error(serverError);
  }
 
@@ -401,7 +401,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
  }
 
  attempts++;
- console.error(`AI Assistant attempt ${attempts} failed:`, error);
+ console.error(`المساعد الذكي attempt ${attempts} failed:`, error);
  
  if (attempts >= maxAttempts) {
  setMessages(prev => [...prev, { 

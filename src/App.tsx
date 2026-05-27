@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
+import LZString from 'lz-string';
 import { 
   ArrowUp,
   BarChart3, 
@@ -430,7 +431,7 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
       icon: <Bot size={18} />,
       tone: 'rose',
       value: `المستشار التنفيذي`,
-      hint: 'تحليلات ذكاء اصطناعي'
+      hint: 'تحليلات تحليل ذكي'
     },
     {
       id: 'diwaniya',
@@ -1486,8 +1487,15 @@ const MainApp: React.FC = () => {
       SHARDED_KEYS.forEach(key => {
          if (shardedPayloads[key]) {
             const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-            const shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloads[key] }));
-            savePromises.push(setDoc(shardRef, shardContent, { merge: true }));
+            const payloadStr = JSON.stringify(shardedPayloads[key]);
+            let shardContent;
+            if (payloadStr.length > 500000) {
+                const compressed = LZString.compressToBase64(payloadStr);
+                shardContent = { compressedData: compressed, isCompressed: true };
+            } else {
+                shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloads[key], isCompressed: false }));
+            }
+            savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
          }
       });
       
@@ -1509,8 +1517,22 @@ const MainApp: React.FC = () => {
   const cloudRootExistsRef = useRef(false);
   const loadedCloudShardKeysRef = useRef<Set<string>>(new Set());
   const isCloudSyncApplyingRef = useRef(false);
+  const lastRemoteKeysRef = useRef<Record<string, string>>({});
 
-  const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
+  const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
+  
+  const stableStringify = (obj: any): string => {
+    if (obj === null || typeof obj !== 'object') {
+      return JSON.stringify(obj);
+    }
+    if (Array.isArray(obj)) {
+      return `[${obj.map(item => stableStringify(item)).join(',')}]`;
+    }
+    const keys = Object.keys(obj).sort();
+    const res = keys.map(k => `${JSON.stringify(k)}:${stableStringify(obj[k])}`);
+    return `{${res.join(',')}}`;
+  };
+
   const hasMeaningfulValue = (value: any) => {
     if (Array.isArray(value)) return value.length > 0;
     if (value && typeof value === 'object') return Object.keys(value).length > 0;
@@ -1557,6 +1579,11 @@ const MainApp: React.FC = () => {
             if (isAuthorized || isPartner) {
               setAppMode('cloud');
               localStorage.setItem('appMode', 'cloud');
+              // Clear local browser database caches when logged in sychronized cloud mode
+              try {
+                localStorage.removeItem('ktk_accounting_data');
+                localStorage.removeItem('ktk_accounting_data_last_good');
+              } catch (e) {}
             }
 
             setUser(currentUser);
@@ -1641,6 +1668,7 @@ const MainApp: React.FC = () => {
       hasLoadedDataRef.current = false;
       cloudRootExistsRef.current = false;
       loadedCloudShardKeysRef.current = new Set();
+      lastRemoteKeysRef.current = {};
 
       // 1. Sync orders independently (Legacy/Customer App)
       try {
@@ -1699,16 +1727,26 @@ const MainApp: React.FC = () => {
         if (docSnap.exists()) {
           cloudRootExistsRef.current = true;
           const rawRootData = docSnap.data() as any;
+          
+          // Save a serialized tracking of the root raw data so we don't save back unchanged root fields.
+          const rootDataOnly = { ...rawRootData };
+          SHARDED_KEYS.forEach(k => {
+             if (k !== 'products') {
+                 delete rootDataOnly[k];
+             }
+          });
+          lastRemoteKeysRef.current['__root__'] = stableStringify(rootDataOnly);
+
           setData(prev => {
             const sanitizedRoot = { ...rawRootData };
             // Root documents may contain empty array placeholders for sharded keys.
             // Remove only those placeholders; keep any legacy non-empty values as a
             // safe fallback until their shard has been created.
             SHARDED_KEYS.forEach(key => {
-              if (Array.isArray(sanitizedRoot[key]) && sanitizedRoot[key].length === 0) {
-                delete sanitizedRoot[key];
-              }
-            });
+               if (key !== 'products' && Array.isArray(sanitizedRoot[key]) && sanitizedRoot[key].length === 0) {
+                 delete sanitizedRoot[key];
+               }
+             });
             
             const merged = { ...prev, ...sanitizedRoot };
             // Ensure products are joined if supplierCopies were in root or prev
@@ -1738,10 +1776,25 @@ const MainApp: React.FC = () => {
             isCloudSyncApplyingRef.current = true;
             if (shardSnap.exists()) {
                const shardData = shardSnap.data();
-               if (shardData && shardData[key] !== undefined) {
+               let parsedData;
+               if (shardData?.isCompressed && shardData.compressedData) {
+                   try { 
+                     const decompressed = LZString.decompressFromBase64(shardData.compressedData);
+                     if (decompressed) parsedData = JSON.parse(decompressed);
+                   } catch(e) { console.error("Decompress failed for", key, e); }
+               } else if (shardData && shardData[key] !== undefined) {
+                   parsedData = shardData[key];
+               }
+               
+               if (parsedData !== undefined) {
+                  // We map shardData[key] to parsedData in the lines below:
                   loadedCloudShardKeysRef.current.add(key);
+                  
+                  // Save serialized tracking of this shard
+                  lastRemoteKeysRef.current[key] = stableStringify(parsedData);
+
                   setData(prev => {
-                     const updated = { ...prev, [key]: shardData[key] };
+                     const updated = { ...prev, [key]: parsedData };
                      // If everything is joined, keep sync logic happy
                      if (key === 'products') {
                         return joinProductsFromDatabase(updated);
@@ -1795,72 +1848,127 @@ const MainApp: React.FC = () => {
     const timeoutId = setTimeout(async () => {
       // Save to Local Storage if explicitely in local mode
       if (appMode === 'local') {
-          localStorage.setItem('ktk_accounting_data', JSON.stringify(data));
+          const localDataStr = JSON.stringify(data);
+          if (localDataStr && localDataStr !== '{}') {
+            localStorage.setItem('ktk_accounting_data_last_good', localDataStr);
+            localStorage.setItem('ktk_accounting_data', localDataStr);
+          }
       }
       
       // Auto-save to Cloud if in cloud mode and authenticated
       if (user && appMode === 'cloud') {
         try {
           const sanitizedDataStr = JSON.stringify(data);
+          if (!sanitizedDataStr || sanitizedDataStr === '{}') return;
+          try { localStorage.setItem('ktk_accounting_data_last_good', sanitizedDataStr); } catch {}
           
           // Deduplication: prevent writing back what we just read
           if (sanitizedDataStr === lastRemoteSnapshotRef.current) {
              return;
           }
 
-          lastRemoteSnapshotRef.current = sanitizedDataStr;
+          // لا نحدّث آخر لقطة إلا بعد نجاح الحفظ، حتى لا نخسر محاولة لاحقة.
           
           // --- SHARDED AUTO-SAVE LOGIC ---
           const rootDataRef = getSmartDoc('appData', user.uid, user.email);
           const splitData = splitProductsForDatabase(data);
-          
-          // Prepare the root document (everything EXCEPT sharded keys)
-          const rootDocData: any = { ...splitData };
-          const shardedPayloads: Record<string, any> = {};
-          
+          // 1. Detect if the Root document fields (non-sharded keys) have changed
+          const rootDocData = { ...splitData };
           SHARDED_KEYS.forEach(key => {
-            if (rootDocData[key] !== undefined) {
-              const shouldPersistShard = loadedCloudShardKeysRef.current.has(key) || hasMeaningfulValue(rootDocData[key]);
-              if (shouldPersistShard) {
-                shardedPayloads[key] = rootDocData[key];
-                loadedCloudShardKeysRef.current.add(key);
-                // Clear from root to save space, but keep a placeholder only for shards we actually save.
-                rootDocData[key] = [];
-              } else {
-                // Never create an empty cloud shard from INITIAL_DATA. This was the data-wipe trigger.
-                delete rootDocData[key];
+             if (key !== 'products') {
+                 delete rootDocData[key];
+             }
+          });
+          const serializedRootCurrent = stableStringify(rootDocData);
+          const serializedRootLast = lastRemoteKeysRef.current['__root__'];
+          const hasRootChanged = serializedRootCurrent !== serializedRootLast;
+
+          // 2. Detect exactly which sharded collections have changed
+          const shardedPayloadsToSave: any = {};
+          SHARDED_KEYS.forEach(key => {
+            const currentVal = splitData[key];
+            if (currentVal !== undefined) {
+              const serializedCurrent = stableStringify(currentVal);
+              const serializedLast = lastRemoteKeysRef.current[key];
+              
+              if (serializedCurrent !== serializedLast) {
+                const shouldPersistShard = loadedCloudShardKeysRef.current.has(key) || hasMeaningfulValue(currentVal);
+                if (shouldPersistShard) {
+                  shardedPayloadsToSave[key] = currentVal;
+                }
               }
             }
           });
 
-          if (!cloudRootExistsRef.current && Object.keys(shardedPayloads).length === 0) {
-            console.warn('Cloud auto-save skipped: no existing cloud document or meaningful data to persist.');
-            return;
+          // Check if there is absolutely any work to do
+          const needsAnyWrite = hasRootChanged || !cloudRootExistsRef.current || Object.keys(shardedPayloadsToSave).length > 0;
+          if (!needsAnyWrite) {
+             return;
           }
+
+          const savePromises = [];
           
-          const sanitizedRoot = JSON.parse(JSON.stringify(rootDocData));
-          console.log("Auto-saving sharded data to Firestore...");
-          
-          // 1. Save Root
-          const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
-          
-          // 2. Save Shards (one per collection)
-          SHARDED_KEYS.forEach(key => {
-             if (shardedPayloads[key]) {
-                const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-                const shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloads[key] }));
-                savePromises.push(setDoc(shardRef, shardContent, { merge: true }));
+          // 3. Save Root (only if modified or doesn't exist yet)
+          if (hasRootChanged || !cloudRootExistsRef.current) {
+             // Retain placeholders for SHARDED_KEYS
+             const rootDocDataWithPlaceholders = { ...splitData };
+             SHARDED_KEYS.forEach(key => {
+               if (rootDocDataWithPlaceholders[key] !== undefined) {
+                 if (key === 'products') {
+                     // Keep products in the root document because the Client App needs it!
+                     // It is small enough to fit within 1MB.
+                 } else {
+                     rootDocDataWithPlaceholders[key] = [];
+                 }
+               }
+             });
+             const sanitizedRoot = JSON.parse(JSON.stringify(rootDocDataWithPlaceholders));
+             console.log("Saving root modifications to Firestore...");
+             savePromises.push(setDoc(rootDataRef, sanitizedRoot, { merge: true }));
+          }
+
+          // 4. Save Shards (only for changed parts)
+          Object.keys(shardedPayloadsToSave).forEach(key => {
+             const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+             
+             const payloadStr = JSON.stringify(shardedPayloadsToSave[key]);
+             let shardContent;
+             if (payloadStr.length > 500000) {
+                 const compressed = LZString.compressToBase64(payloadStr);
+                 shardContent = { compressedData: compressed, isCompressed: true };
+                 console.log(`Compressed shard '${key}' from ${payloadStr.length} chars to ${compressed.length} chars...`);
+             } else {
+                 shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloadsToSave[key], isCompressed: false }));
              }
+             
+             console.log(`Saving modified shard '${key}' to Firestore...`);
+             // merge: false so old uncompressed arrays don't linger if transitioning
+             savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
           });
-          
+
           await Promise.all(savePromises);
-          console.log("Sharded auto-save successful");
+
+          // Update sync refs upon successful writes to avoid self-save loops
+          if (hasRootChanged || !cloudRootExistsRef.current) {
+             lastRemoteKeysRef.current['__root__'] = serializedRootCurrent;
+             cloudRootExistsRef.current = true;
+          }
+          Object.keys(shardedPayloadsToSave).forEach(key => {
+             lastRemoteKeysRef.current[key] = stableStringify(shardedPayloadsToSave[key]);
+             loadedCloudShardKeysRef.current.add(key);
+          });
+
+          lastRemoteSnapshotRef.current = sanitizedDataStr;
+          console.log(`Sharded auto-save successful. Saved blocks: ${hasRootChanged ? 'Root ' : ''}[${Object.keys(shardedPayloadsToSave).join(', ')}]`);
           
         } catch (e) {
-          if (!String(e).includes("Missing or insufficient permissions") && !String(e).includes("PERMISSION_DENIED")) console.error("Firestore auto-save error", e);
+          const isPermissionError = String(e).includes("Missing or insufficient permissions") || String(e).includes("PERMISSION_DENIED");
+          if (!isPermissionError) console.error("Firestore auto-save error", e);
+          
           // Only show error if it's NOT a permission issue (common during sign-out)
-          if (user) {
-             toast.error("تعثر الحفظ التلقائي. جارٍ المحاولة مرة أخرى...");
+          if (user && !isPermissionError) {
+             const errorMsg = e instanceof Error ? e.message : String(e);
+             toast.error(`تعذر الحفظ السحابي. الخطأ: ${errorMsg}. تم الاحتفاظ بآخر نسخة سليمة محلياً.`);
           }
         }
       }
@@ -2741,7 +2849,7 @@ const MainApp: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Floating Global AI Pulse Overlay */}
+      {/* Floating Global Smart Pulse Overlay */}
       <AnimatePresence>
         {isAIThinking && (
           <motion.div 

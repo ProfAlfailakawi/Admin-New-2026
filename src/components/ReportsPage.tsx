@@ -275,7 +275,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         .map((o) => o.linkedInvoiceId as string),
     );
     const activeInvoices = getUnifiedInvoices(data).filter(
-      (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
+      (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id) && !String(inv.id || '').startsWith('ORD-'),
     );
 
     const filteredInvoices = activeInvoices

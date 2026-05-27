@@ -151,7 +151,17 @@ export function joinProductsFromDatabase(data: any): any {
   if (!data) return data;
   const result = { ...data };
   if (result.supplierCopies && Array.isArray(result.supplierCopies)) {
-      result.products = [...(result.products || []), ...result.supplierCopies];
+      const combined = [...(result.products || []), ...result.supplierCopies];
+      const unique = [];
+      const seen = new Set();
+      for (const p of combined) {
+          if (!p || !p.id) { unique.push(p); continue; }
+          if (!seen.has(p.id)) {
+              seen.add(p.id);
+              unique.push(p);
+          }
+      }
+      result.products = unique;
       delete result.supplierCopies;
   }
   return result;

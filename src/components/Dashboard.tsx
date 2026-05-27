@@ -290,6 +290,7 @@ export type DashboardTab =
   | "growth"
   | "diwaniya"
   | "loyalty"
+  | "rewards"
   | "promocodes"
   | "contentStudio"
   | "orders";
@@ -553,7 +554,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
               محرك التراث: جاهز
             </div>
             <div className="px-4 py-2 sm:px-5 sm:py-2 bg-blue-500/20 text-blue-400 rounded-xl sm:rounded-2xl border border-blue-500/20 text-[10px] sm:text-[10px] font-bold text-center whitespace-nowrap flex-1 sm:flex-none">
-              اتصال البيانات: مستقر
+              المزامنة مستقرة
             </div>
           </div>
         </motion.div>
@@ -1221,6 +1222,7 @@ const [isPending, startTransition] = useTransition();
     const navigateInsightAction = (insight: AIInsight) => {
       const payload: any = insight.actionPayload || {};
       const sectionId = payload.sectionId || (payload.actionType === 'redirect_to_products' ? 'products-matrix-section' : payload.actionType === 'redirect_to_suppliers' ? 'supplier-intel-duplicate-card' : payload.actionType === 'redirect_to_customers' ? 'client-sniper-radar-section' : 'strategic-manager-section');
+      const actionSectionId = payload.actionSectionId || (payload.actionType === 'redirect_to_products' ? 'products-matrix-section' : payload.actionType === 'redirect_to_suppliers' ? 'supplier-transfer-section' : payload.actionType === 'redirect_to_customers' ? 'client-sniper-radar-section' : sectionId);
       if (payload.actionType === 'redirect_to_products') {
         setActiveTab('pulse');
       } else if (payload.actionType === 'redirect_to_suppliers') {
@@ -1232,7 +1234,7 @@ const [isPending, startTransition] = useTransition();
       }
       setFocusedInsight(null);
       setTimeout(() => {
-        const el = document.getElementById(sectionId);
+        const el = document.getElementById(actionSectionId) || document.getElementById(sectionId);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 250);
     };
@@ -2108,7 +2110,7 @@ const [isPending, startTransition] = useTransition();
         });
       };
 
-      // Defer the heavy AI logic so UI renders instantly
+      // Defer the heavy smart logic so UI renders instantly
       const timer = setTimeout(runWorker, 100);
       return () => {
         isMounted = false;
@@ -3133,7 +3135,7 @@ const [isPending, startTransition] = useTransition();
             {isIntelligenceGroup && (
                 <div className="space-y-6 md:space-y-8 max-w-[1600px] mx-auto px-3 sm:px-5 md:px-6 xl:px-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full pb-20 overflow-x-hidden" dir="rtl">
                   
-                  {/* Dashboard - AI Lab Intro - Re-styled for premium feel */}
+                  {/* Dashboard - المختبر الذكي Intro - Re-styled for premium feel */}
                   <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-4 md:gap-6 pt-4 md:pt-6 border-b border-slate-200 pb-5 md:pb-7 min-w-0">
                     <div className="space-y-2">
                       <div className="flex items-center gap-3 mb-2">
@@ -4694,7 +4696,7 @@ const [isPending, startTransition] = useTransition();
                                 }}
                                 className="relative z-10 w-full w-full text-center justify-center bg-white text-indigo-700 px-6 py-4 rounded-2xl font-bold text-sm shadow-xl hover:scale-105 transition-all flex items-center gap-3 active:scale-95 group"
                               >
-                                {focusedInsight.actionText}
+                                {focusedInsight.actionText || 'اذهب للإجراء'}
                               </button>
                             </div>
                           </div>
@@ -4703,7 +4705,7 @@ const [isPending, startTransition] = useTransition();
                     )}
                   </AnimatePresence>
 
-                  {/* MASTER AI CONTROL CENTER */}
+                  {/* MASTER SMART CONTROL CENTER */}
                   <div
                     className={cn(
                       glassCardStyle,
@@ -4735,7 +4737,7 @@ const [isPending, startTransition] = useTransition();
                               المستشار الشامل
                             </h3>
                             <p className="text-[10px] text-indigo-300/60 font-bold uppercase mt-0.5">
-                              Deep Archive Smart v4.0
+                              Smart Archive v4.0
                             </p>
                           </div>
                         </div>
@@ -5172,15 +5174,12 @@ const [isPending, startTransition] = useTransition();
                                                 if ((inv as any).time)
                                                   return (inv as any).time;
                                                 let dateObj = new Date();
-                                                const ca = (inv as any).createdAt;
-                                                if (ca) {
-                                                  if (ca.seconds)
-                                                    dateObj = new Date(
-                                                      ca.seconds * 1000,
-                                                    );
-                                                  else dateObj = new Date(ca);
-                                                } else if (inv.date) {
+                                                if (inv.date) {
                                                   dateObj = new Date(inv.date);
+                                                } else {
+                                                  const ca = (inv as any).createdAt;
+                                                  if (ca?.seconds) dateObj = new Date(ca.seconds * 1000);
+                                                  else if (ca) dateObj = new Date(ca);
                                                 }
                                                 if (isNaN(dateObj.getTime()))
                                                   return "---";
