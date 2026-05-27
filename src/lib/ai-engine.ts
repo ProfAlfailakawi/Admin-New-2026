@@ -662,8 +662,35 @@ export function generateRealProfitAnalysis(data: AppState): RealProfitInsight[] 
       explanation = `المنتج يحقق مبيعات عالية لكن بهامش ربح حقيقي متوضع. المخاطرة تكمن في حجم التشغيل مقابل العائد.`;
       recommendation = `رفع كفاءة التحضير لتقليل الهدر وزيادة الهامش.`;
     } else {
-      explanation = `المنتج يحافظ على أداء صحي وتوازن جيد بين التكاليف الظاهرة والخفية.`;
-      recommendation = `الاستمرار في الترويج لهذا الصنف لتعزيز الأرباح الكلية.`;
+      const marginPercent = (marginReal * 100).toFixed(1);
+      const hiddenPercent = (hiddenCostsRatio * 100).toFixed(1);
+      const priceSafe = Number(product.price || 0);
+      const costSafe = Number(product.cost || 0);
+      const unitProfit = priceSafe - costSafe;
+      const soldUnits = productInvoices.reduce((sum, inv) => {
+        const item = inv.items.find(i => i.productId === product.id);
+        return sum + Number(item?.quantity || 0);
+      }, 0);
+
+      if (marginReal >= 0.35 && totalRevenue >= 300 && hiddenCostsRatio <= 0.08) {
+        explanation = `هذا المنتج من أقوى المنتجات ربحية؛ يحقق هامشاً حقيقياً يقارب ${marginPercent}% مع تسربات خفية منخفضة (${hiddenPercent}%).`;
+        recommendation = `اجعله منتجاً قائداً في العروض والباقات، واربطه بإضافات اختيارية لرفع متوسط قيمة الطلب دون خصم مباشر.`;
+      } else if (marginReal >= 0.28 && soldUnits <= 10) {
+        explanation = `المنتج مربح لكن انتشاره محدود؛ هامشه الحقيقي ${marginPercent}% وعدد مرات بيعه لا يزال منخفضاً مقارنة بإمكاناته.`;
+        recommendation = `ارفع ظهوره في المنيو والمنشورات، وجرّب تصويره أو وضعه ضمن قسم المنتجات المقترحة قبل التفكير بأي خصم.`;
+      } else if (marginReal >= 0.25 && hiddenCostsRatio > 0.08) {
+        explanation = `المنتج مربح، لكن جزءاً من هامشه يتأثر بالتكاليف الخفية التي بلغت ${hiddenPercent}% من الإيراد.`;
+        recommendation = `حافظ على الترويج له، لكن اربطه بخيارات تقلل رسوم التوصيل أو الدفع حتى لا يتحول الربح الجيد إلى ربح عادي.`;
+      } else if (unitProfit > 0 && priceSafe > 0 && unitProfit / priceSafe < 0.25) {
+        explanation = `الأداء مستقر، لكن ربح الوحدة ليس واسعاً بما يكفي لحماية المنتج من أي زيادة مفاجئة في التكلفة.`;
+        recommendation = `راجع السعر أو حجم الحصة بهدوء، وأضف قيمة جانبية بسيطة بدل الخصومات حتى يتحسن هامش الوحدة.`;
+      } else if (totalRevenue < 150 && marginReal >= 0.2) {
+        explanation = `المنتج صحي مالياً لكنه لم يحصل على حجم مبيعات كافٍ؛ الربحية موجودة لكن الطلب لم يصل لمستوى مؤثر.`;
+        recommendation = `اختبره في حملة قصيرة أو كاقتراح عند الدفع، فإن ارتفع الطلب أبقه في الواجهة، وإن بقي ضعيفاً قلل مساحة عرضه.`;
+      } else {
+        explanation = `المنتج يحافظ على أداء صحي؛ هامشه الحقيقي ${marginPercent}% بعد احتساب الرسوم والتوصيل والتكاليف الخفية.`;
+        recommendation = `استمر بمتابعته أسبوعياً، ولا تمنحه خصومات عامة إلا إذا كانت مرتبطة بزيادة السلة أو تصريف مخزون محدد.`;
+      }
     }
 
     analysis.push({
