@@ -94,8 +94,8 @@ import { AppState } from './types';
 import { playSuccessAction } from './lib/sonic';
 import { auth, db, logout } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { onSnapshot, setDoc, updateDoc, getDoc, getDocs, query, collection, where, doc, limit, orderBy } from 'firebase/firestore';
-import { getSmartDoc, deleteDoc } from './firebase';
+import { onSnapshot, setDoc, updateDoc, getDoc, getDocs, getDocFromServer, query, collection, where, doc, limit, orderBy } from 'firebase/firestore';
+import { getSmartDoc } from './firebase';
 import { Toaster, toast } from 'sonner';
 import { playNewOrderAlert } from './lib/sounds';
 import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils';
@@ -771,6 +771,7 @@ const MainApp: React.FC = () => {
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
+  const [triggerSyncReload, setTriggerSyncReload] = useState(0);
   const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
 
   useEffect(() => {
@@ -1542,6 +1543,96 @@ const MainApp: React.FC = () => {
     return value !== undefined && value !== null && value !== '';
   };
 
+  const onCloudImport = async (importedState: AppState): Promise<boolean> => {
+    if (!user) return false;
+    isCloudSyncApplyingRef.current = true;
+    
+    const performSave = async (isRetry = false): Promise<boolean> => {
+      try {
+        const rootDataRef = getSmartDoc('appData', user.uid, user.email);
+        const splitData = splitProductsForDatabase(importedState);
+        
+        const rootDocData: any = { ...splitData };
+        const shardedPayloads: Record<string, any> = {};
+        
+        SHARDED_KEYS.forEach(key => {
+          if (rootDocData[key] !== undefined) {
+            shardedPayloads[key] = rootDocData[key];
+            if (key !== 'products') {
+              rootDocData[key] = [];
+            }
+          }
+        });
+        
+        const serializedRootCurrent = stableStringify(rootDocData);
+        const sanitizedRoot = JSON.parse(JSON.stringify(rootDocData));
+        const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
+        
+        SHARDED_KEYS.forEach(key => {
+           if (shardedPayloads[key] !== undefined) {
+              const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+              const payloadStr = JSON.stringify(shardedPayloads[key]);
+              let shardContent;
+              
+              if (payloadStr.length > 500000) {
+                  const compressed = LZString.compressToBase64(payloadStr);
+                  shardContent = { compressedData: compressed, isCompressed: true };
+                  console.log(`Cloud Import: Compressed shard '${key}' from ${payloadStr.length} to ${compressed.length} chars.`);
+              } else {
+                  shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloads[key], isCompressed: false }));
+              }
+              savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
+           }
+        });
+        
+        await Promise.all(savePromises);
+        
+        lastRemoteKeysRef.current['__root__'] = serializedRootCurrent;
+        cloudRootExistsRef.current = true;
+        
+        SHARDED_KEYS.forEach(key => {
+           if (shardedPayloads[key] !== undefined) {
+              lastRemoteKeysRef.current[key] = stableStringify(shardedPayloads[key]);
+              loadedCloudShardKeysRef.current.add(key);
+           }
+        });
+        
+        const newFullStateStr = JSON.stringify(importedState);
+        lastRemoteSnapshotRef.current = newFullStateStr;
+        
+        try {
+          localStorage.setItem('ktk_cloud_offline_snapshot_last_good', newFullStateStr);
+          localStorage.setItem('ktk_cloud_offline_snapshot', newFullStateStr);
+        } catch (err) {
+          console.warn("localStorage sync skipped during cloud import:", err);
+        }
+        
+        setData(importedState);
+        console.log("Cloud Import completed successfully and all sync tracking references aligned.");
+        return true;
+      } catch (err) {
+        const errStr = String(err);
+        const isPermission = errStr.includes("permission-denied") || errStr.includes("permissions") || errStr.includes("PERMISSION_DENIED");
+        
+        if (isPermission) {
+          console.warn("Permission denied during cloud import for the current account role. No fallback write was attempted to avoid mixing accounts.");
+        }
+        throw err;
+      }
+    };
+
+    try {
+      return await performSave(false);
+    } catch (err) {
+      console.error("Cloud import saving failed:", err);
+      throw err;
+    } finally {
+      setTimeout(() => {
+        isCloudSyncApplyingRef.current = false;
+      }, 300);
+    }
+  };
+
   // Auth Listener - Optimized session management
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -1582,10 +1673,10 @@ const MainApp: React.FC = () => {
             if (isAuthorized || isPartner) {
               setAppMode('cloud');
               localStorage.setItem('appMode', 'cloud');
-              // Clear local browser database caches when logged in sychronized cloud mode
+              // Maintain isolated cloud caches when logging in; never touch local database
               try {
-                localStorage.removeItem('ktk_accounting_data');
-                localStorage.removeItem('ktk_accounting_data_last_good');
+                localStorage.removeItem('ktk_cloud_offline_snapshot');
+                localStorage.removeItem('ktk_cloud_offline_snapshot_last_good');
               } catch (e) {}
             }
 
@@ -1627,7 +1718,16 @@ const MainApp: React.FC = () => {
     const startDataSync = async () => {
       // If mode is 'local', load from Local Storage 
       if (appMode === 'local') {
-          const savedDataStr = localStorage.getItem('ktk_accounting_data');
+          let savedDataStr = localStorage.getItem('ktk_local_accounting_data');
+          if (!savedDataStr) {
+              // Legacy migration
+              savedDataStr = localStorage.getItem('ktk_accounting_data');
+              if (savedDataStr) {
+                  try {
+                      localStorage.setItem('ktk_local_accounting_data', savedDataStr);
+                  } catch (e) {}
+              }
+          }
           if (savedDataStr) {
               try {
                   const parsed = JSON.parse(savedDataStr);
@@ -1711,128 +1811,98 @@ const MainApp: React.FC = () => {
           }
       }
       
-      // 2. Sync ROOT Data (Metadata, config, small stats)
-      // Do not enable auto-save until the root document and all shard listeners
-      // have returned once. This prevents a partial cloud load from overwriting
-      // real invoices/customers/products with empty INITIAL_DATA arrays.
-      const shardInitialLoadState: Record<string, boolean> = Object.fromEntries(SHARDED_KEYS.map(key => [key, false]));
-      let rootInitialLoaded = false;
-      const markInitialCloudLoad = () => {
-        if (rootInitialLoaded && SHARDED_KEYS.every(key => shardInitialLoadState[key])) {
-          hasLoadedDataRef.current = true;
-          setDataLoading(false);
-        }
-      };
-
-      const dataRef = getSmartDoc('appData', user.uid, user.email);
-      syncUnsubscribe = onSnapshot(dataRef, (docSnap) => {
+      // 2. Load ROOT + SHARDS once from the server.
+      // Firestore 12.12 can throw INTERNAL ASSERTION FAILED when many realtime
+      // listeners are opened/closed quickly. The admin data is still saved live
+      // by the auto-save block below; loading it with server reads prevents the
+      // b815/ca9 listener crash and avoids partial shard loads overwriting cloud data.
+      try {
         isCloudSyncApplyingRef.current = true;
-        if (docSnap.exists()) {
+        const dataRef = getSmartDoc('appData', user.uid, user.email);
+        const rootSnap = await getDocFromServer(dataRef).catch(() => getDoc(dataRef));
+        let loadedState: any = { ...INITIAL_DATA };
+
+        if (rootSnap.exists()) {
           cloudRootExistsRef.current = true;
-          const rawRootData = docSnap.data() as any;
-          
-          // Save a serialized tracking of the root raw data so we don't save back unchanged root fields.
+          const rawRootData = rootSnap.data() as any;
           const rootDataOnly = { ...rawRootData };
           SHARDED_KEYS.forEach(k => {
-             if (k !== 'products') {
-                 delete rootDataOnly[k];
-             }
+            if (k !== 'products') delete rootDataOnly[k];
           });
           lastRemoteKeysRef.current['__root__'] = stableStringify(rootDataOnly);
 
-          setData(prev => {
-            const sanitizedRoot = { ...rawRootData };
-            // Root documents may contain empty array placeholders for sharded keys.
-            // Remove only those placeholders; keep any legacy non-empty values as a
-            // safe fallback until their shard has been created.
-            SHARDED_KEYS.forEach(key => {
-               if (key !== 'products' && Array.isArray(sanitizedRoot[key]) && sanitizedRoot[key].length === 0) {
-                 delete sanitizedRoot[key];
-               }
-             });
-            
-            const merged = { ...prev, ...sanitizedRoot };
-            // Ensure products are joined if supplierCopies were in root or prev
-            return joinProductsFromDatabase(merged);
+          const sanitizedRoot = { ...rawRootData };
+          SHARDED_KEYS.forEach(key => {
+            if (key !== 'products' && Array.isArray(sanitizedRoot[key]) && sanitizedRoot[key].length === 0) {
+              delete sanitizedRoot[key];
+            }
           });
+          loadedState = { ...loadedState, ...sanitizedRoot };
+        } else {
+          // Important: never restore local/demo data into an empty cloud account.
+          cloudRootExistsRef.current = false;
+          lastRemoteKeysRef.current['__root__'] = stableStringify(splitProductsForDatabase(INITIAL_DATA));
         }
-        rootInitialLoaded = true;
-        markInitialCloudLoad();
-        setTimeout(() => { isCloudSyncApplyingRef.current = false; }, 0);
-      }, (err) => {
-        setTimeout(() => { isCloudSyncApplyingRef.current = false; }, 0);
-         rootInitialLoaded = true;
-         markInitialCloudLoad();
-         if (!String(err).includes("Missing or insufficient permissions")) {
-            console.error("Root sync error:", err);
-         }
-      });
 
-      // 3. Sync SHARDS Data (Invoices, Customers, etc.)
-      const shardUnsubs: any[] = [];
-      
-      const registerShard = async (key: string, index: number) => {
-         // Register immediately. Waiting for every shard with artificial delays made
-         // cloud startup feel very slow on mobile. Firestore can handle these listeners.
-         const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-         const unmanagedUnsub = onSnapshot(shardRef, (shardSnap) => {
-            isCloudSyncApplyingRef.current = true;
-            if (shardSnap.exists()) {
-               const shardData = shardSnap.data();
-               let parsedData;
-               if (shardData?.isCompressed && shardData.compressedData) {
-                   try { 
-                     const decompressed = LZString.decompressFromBase64(shardData.compressedData);
-                     if (decompressed) parsedData = JSON.parse(decompressed);
-                   } catch(e) { console.error("Decompress failed for", key, e); }
-               } else if (shardData && shardData[key] !== undefined) {
-                   parsedData = shardData[key];
-               }
-               
-               if (parsedData !== undefined) {
-                  // We map shardData[key] to parsedData in the lines below:
-                  loadedCloudShardKeysRef.current.add(key);
-                  
-                  // Save serialized tracking of this shard
-                  lastRemoteKeysRef.current[key] = stableStringify(parsedData);
-
-                  setData(prev => {
-                     const updated = { ...prev, [key]: parsedData };
-                     // If everything is joined, keep sync logic happy
-                     if (key === 'products') {
-                        return joinProductsFromDatabase(updated);
-                     }
-                     return updated;
-                  });
-               }
+        const shardResults = await Promise.all(SHARDED_KEYS.map(async (key) => {
+          const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+          try {
+            const shardSnap = await getDocFromServer(shardRef).catch(() => getDoc(shardRef));
+            if (!shardSnap.exists()) return { key, exists: false, value: undefined };
+            const shardData = shardSnap.data() as any;
+            let parsedData: any = undefined;
+            if (shardData?.isCompressed && shardData.compressedData) {
+              const decompressed = LZString.decompressFromBase64(shardData.compressedData);
+              if (decompressed) parsedData = JSON.parse(decompressed);
+            } else if (shardData && shardData[key] !== undefined) {
+              parsedData = shardData[key];
             }
-            shardInitialLoadState[key] = true;
-            markInitialCloudLoad();
-            setTimeout(() => { isCloudSyncApplyingRef.current = false; }, 0);
-         }, (err) => {
-            setTimeout(() => { isCloudSyncApplyingRef.current = false; }, 0);
-            shardInitialLoadState[key] = true;
-            markInitialCloudLoad();
-            // Handle permission denied or other errors gracefully
-            if (String(err).includes("permission-denied") || String(err).includes("Missing or insufficient permissions")) {
-               console.warn(`Shard sync skipped for ${key}: permission denied. Safe to ignore for customer apps.`);
-            } else {
-               console.error(`Shard sync error for ${key}:`, err);
-            }
-         });
-         shardUnsubs.push(unmanagedUnsub);
-      };
+            return { key, exists: true, value: parsedData };
+          } catch (err) {
+            console.error(`Shard load error for ${key}:`, err);
+            return { key, exists: false, value: undefined };
+          }
+        }));
 
-      SHARDED_KEYS.forEach((key, index) => {
-         registerShard(key, index);
-      });
+        shardResults.forEach(({ key, exists, value }) => {
+          if (exists) loadedCloudShardKeysRef.current.add(key);
+          if (value !== undefined) {
+            loadedState[key] = value;
+            lastRemoteKeysRef.current[key] = stableStringify(value);
+          } else {
+            lastRemoteKeysRef.current[key] = stableStringify((loadedState as any)[key] ?? []);
+          }
+        });
 
-      // Combined cleanup
-      const legacyUnsub = syncUnsubscribe;
-      syncUnsubscribe = () => {
-         if (legacyUnsub) legacyUnsub();
-         shardUnsubs.forEach(unsub => unsub());
-      };
+        loadedState = joinProductsFromDatabase(loadedState);
+        setData(loadedState);
+        lastRemoteSnapshotRef.current = JSON.stringify(loadedState);
+        try {
+          localStorage.setItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
+          localStorage.setItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
+        } catch {}
+      } catch (err) {
+        if (String(err).includes("Missing or insufficient permissions") || String(err).includes("permission-denied")) {
+          console.warn("Cloud read permission denied for this account/role:", err);
+          const email = (user.email || '').toLowerCase().trim();
+          const authorizedByApp = AUTHORIZED_EMAILS.some(e => e.toLowerCase().trim() === email) ||
+            AUTHORIZED_PARTNERS.some(e => e.toLowerCase().trim() === email) ||
+            AUTHORIZED_UIDS.includes(user.uid) ||
+            AUTHORIZED_PARTNER_UIDS.includes(user.uid);
+          setAuthError(authorizedByApp
+            ? `الحساب مصرح داخل التطبيق (${user.email})، لكن قواعد Firestore الحالية ترفض الوصول. تم اعتماد مستند الحساب الآمن بالـ UID لمنع تداخل الحسابات؛ ارفع ملف firestore.rules المرفق ثم أعد المحاولة.`
+            : `عذراً، ليس لديك صلاحية الوصول إلى بيانات هذا الحساب. البريد: ${user.email}`
+          );
+        } else {
+          console.error("Cloud load error:", err);
+          toast.error("تعذر تحميل البيانات السحابية. لم يتم استبدالها بالبيانات المحلية.");
+        }
+      } finally {
+        isCloudSyncApplyingRef.current = false;
+        hasLoadedDataRef.current = true;
+        setDataLoading(false);
+      }
+
     };
 
     startDataSync();
@@ -1841,7 +1911,7 @@ const MainApp: React.FC = () => {
       if (syncUnsubscribe) syncUnsubscribe();
       if (ordersUnsubscribe) ordersUnsubscribe();
     };
-  }, [user, appMode]);
+  }, [user, appMode, triggerSyncReload]);
 
   // Auto-save: Handle Local and Cloud separately with debounce for performance
   useEffect(() => {
@@ -1849,12 +1919,12 @@ const MainApp: React.FC = () => {
     if (!hasLoadedDataRef.current || isCloudSyncApplyingRef.current) return;
 
     const timeoutId = setTimeout(async () => {
-      // Save to Local Storage if explicitely in local mode
+      // Save to Local Storage if explicitly in local mode
       if (appMode === 'local') {
           const localDataStr = JSON.stringify(data);
           if (localDataStr && localDataStr !== '{}') {
-            localStorage.setItem('ktk_accounting_data_last_good', localDataStr);
-            localStorage.setItem('ktk_accounting_data', localDataStr);
+            localStorage.setItem('ktk_local_accounting_data_last_good', localDataStr);
+            localStorage.setItem('ktk_local_accounting_data', localDataStr);
           }
       }
       
@@ -1863,7 +1933,10 @@ const MainApp: React.FC = () => {
         try {
           const sanitizedDataStr = JSON.stringify(data);
           if (!sanitizedDataStr || sanitizedDataStr === '{}') return;
-          try { localStorage.setItem('ktk_accounting_data_last_good', sanitizedDataStr); } catch {}
+          try { 
+            localStorage.setItem('ktk_cloud_offline_snapshot_last_good', sanitizedDataStr); 
+            localStorage.setItem('ktk_cloud_offline_snapshot', sanitizedDataStr); 
+          } catch {}
           
           // Deduplication: prevent writing back what we just read
           if (sanitizedDataStr === lastRemoteSnapshotRef.current) {
@@ -2003,30 +2076,40 @@ const MainApp: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    // Implement user's request: Keep local mode data preserved across sessions
-    if (appMode === 'local') {
-      try {
-        // 1. (REMOVED: do not clear local storage on logout to preserve demo data)
-        // localStorage.removeItem('ktk_accounting_data');
-        
-        // 2. Clear Cloud Dev Data (if it exists)
-        if (user) {
-          const dataRef = getSmartDoc('appData', user.uid, user.email);
-          await deleteDoc(dataRef).catch(e => console.warn("Cloud cleanup skipped:", e));
-        }
-        
-        // 3. Keep internal state intact so it saves to local storage properly upon exit
-        // setData(INITIAL_DATA);
-      } catch (e) {
-        console.error("Logout cleanup failed", e);
-      }
-    }
+    const prevMode = appMode;
 
     sessionStorage.removeItem('hideSampleDataPrompt');
     await logout();
     setIsAuthenticated(false);
     localStorage.removeItem('isAuthenticated');
     setCurrentPage('dashboard');
+
+    // Never delete cloud data during logout or local/cloud mode transitions.
+
+    // If logging out of cloud mode, switch appMode to 'local' and immediately load local mode storage
+    if (prevMode === 'cloud') {
+      localStorage.setItem('appMode', 'local');
+      setAppMode('local');
+      
+      // Stop cloud sync from auto-saving the loading/empty state
+      hasLoadedDataRef.current = false;
+      setDataLoading(true);
+
+      try {
+        const savedDataStr = localStorage.getItem('ktk_local_accounting_data') || localStorage.getItem('ktk_accounting_data');
+        if (savedDataStr) {
+          const parsed = JSON.parse(savedDataStr);
+          const joined = joinProductsFromDatabase(parsed);
+          setData(joined);
+        } else {
+          setData(INITIAL_DATA);
+        }
+      } catch (e) {
+        setData(INITIAL_DATA);
+      }
+      hasLoadedDataRef.current = true;
+      setDataLoading(false);
+    }
   };
 
   const path = window.location.pathname;
@@ -2270,7 +2353,7 @@ const MainApp: React.FC = () => {
       case 'ai': return <AIAssistant data={data} currentPage={currentPage} />;
       case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
       case 'diwaniya': return <DiwaniyaTournaments data={data} setData={setData} onNavigate={setCurrentPage} />;
-      case 'settings': return <GeneralSettings data={data} setData={setData} appMode={appMode} switchMode={switchMode} addToast={addToast} />;
+      case 'settings': return <GeneralSettings data={data} setData={setData} appMode={appMode} switchMode={switchMode} addToast={addToast} onCloudImport={onCloudImport} />;
       case 'suppliers-audit': return (
         <SupplierAudit 
           data={data} 
@@ -3081,7 +3164,12 @@ const App: React.FC = () => {
 
    useEffect(() => {
      try {
-       const raw = localStorage.getItem('ktk_accounting_data');
+       const currentMode = localStorage.getItem('appMode') || 'local';
+       const key = currentMode === 'cloud' ? 'ktk_cloud_offline_snapshot' : 'ktk_local_accounting_data';
+       let raw = localStorage.getItem(key);
+       if (!raw && currentMode === 'local') {
+         raw = localStorage.getItem('ktk_accounting_data');
+       }
        if (raw) {
          const parsed = JSON.parse(raw);
          if (parsed?.settings?.companyLogo) setLogo(parsed.settings.companyLogo);

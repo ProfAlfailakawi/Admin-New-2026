@@ -102,7 +102,8 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       { id: 'settings', label: 'الإعدادات العامة', hint: 'هوية وتنبيهات وضبط', icon: <ShieldCheck />, category: 'الإدارة الأساسية', action: () => onNavigate('settings', {}), roles: ['admin'] },
       { id: 'ai', label: 'المساعد الذكي', hint: 'مستشار مالي وتوصيات', icon: <Sparkles />, category: 'التراث الذكي', action: () => onNavigate('ai', {}), roles: ['admin', 'partner'] },
     ];
-    const mainTabs = allTabs.filter(tab => tab.roles?.includes(userRole));
+    const effectiveRole = userRole || 'admin';
+    const mainTabs = allTabs.filter(tab => tab.roles?.includes(effectiveRole));
 
     const deepLinks: CommandItem[] = [
       { id: 'growth-campaigns', label: 'مختبر الحملات التسويقية', hint: 'خطط مبيعات', icon: <TrendingUp />, category: 'اختصارات ذكية', tags: ['حملات', 'تسويقية', 'مبيعات'], action: () => onNavigate('growth-simulator', { scrollTarget: 'smart-campaigns' }) },
@@ -144,7 +145,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       },
     ].filter(Boolean) as CommandItem[];
 
-    const base = [...liveSuggestions.filter(item => item.roles?.includes(userRole)), ...mainTabs, ...deepLinks];
+    const base = [...liveSuggestions.filter(item => item.roles?.includes(effectiveRole)), ...mainTabs, ...deepLinks];
     const q = clean(deferredQuery);
     if (!q) return base;
     const qDigits = cleanDigits(deferredQuery);

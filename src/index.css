@@ -3741,11 +3741,11 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
   }
 
   .invoice-mobile-products {
-    order: 1;
+    order: 2;
   }
 
   .invoice-mobile-cart {
-    order: 2;
+    order: 1;
   }
 
   .invoice-mobile-total {
@@ -3786,10 +3786,10 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
   .smart-panel-toggle h2{font-size:16px!important}
   .smart-panel-toggle p{font-size:11px!important}
 
-  /* New invoice mobile: products first, cart/summary second */
+  /* New invoice mobile: cart/summary first, products second */
   .invoice-mobile-flow{display:flex!important;flex-direction:column!important}
-  .invoice-mobile-products{order:1!important}
-  .invoice-mobile-cart{order:2!important}
+  .invoice-mobile-products{order:2!important}
+  .invoice-mobile-cart{order:1!important}
   .invoice-mobile-cart>.bg-white{padding:14px!important;border-radius:24px!important}
   .invoice-mobile-cart h2{font-size:20px!important;margin-bottom:12px!important;justify-content:flex-end!important}
   .invoice-mobile-total{border-top:1px solid #e2e8f0!important;background:#fff7f7!important;border-radius:18px!important;padding:12px!important;margin-top:10px!important}
