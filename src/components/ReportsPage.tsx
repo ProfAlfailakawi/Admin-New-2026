@@ -1371,9 +1371,9 @@ Alturath.kw`;
                                                                 a: any,
                                                                 i: number,
                                                               ) => {
-                                                                const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
-              if (userQty === 0) return;
-              if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
+                                                                const userQty = a.quantity !== undefined ? Number(a.quantity) : (a.qty !== undefined ? Number(a.qty) : 1);
+                                                                if (userQty === 0) return null;
+                                                                if (a.selected === false || a.isSelected === false || a.enabled === false) return null;
               let addonQty = 0;
                                                                 if (
                                                                   a.calculationType ===

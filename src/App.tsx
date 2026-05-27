@@ -68,7 +68,7 @@ import ReportsPage from './components/ReportsPage';
 import OrderPage from './components/OrderPage';
 import { isPendingStatus, isFailedStatus, isPaidStatus } from './lib/status-utils';
 const TrackPage = React.lazy(() => import('./components/TrackPage'));
-const ذكيAssistant = React.lazy(() => import('./components/ذكيAssistant'));
+const AIAssistant = React.lazy(() => import('./components/AIAssistant'));
 import { SmartContentStudio } from './components/SmartContentStudio';
 import { DiwaniyaTournaments } from './components/DiwaniyaTournaments';
 import PartnerDashboard from './components/PartnerDashboard';
@@ -88,7 +88,7 @@ import CloudStatus from './components/CloudStatus';
 import { InstagramMagicWand } from './components/InstagramMagicWand';
 import { recalculateStateBalances } from './lib/business-logic';
 import { INITIAL_DATA, GET_DEMO_DATA, DEFAULT_SQUADS } from './data';
-import { AUTHORIZED_EMذكيLS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from './constants';
+import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from './constants';
 import { AppState } from './types';
 import { playSuccessAction } from './lib/sonic';
 import { auth, db, logout } from './firebase';
@@ -173,7 +173,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
   const resultParam = (searchParams.get('result') || searchParams.get('Result') || searchParams.get('status') || searchParams.get('Status') || '')?.toUpperCase();
   const paymentIdParam = searchParams.get('track_id') || searchParams.get('TrackID') || searchParams.get('charge_id') || searchParams.get('id') || searchParams.get('payment_id') || searchParams.get('paymentId') || searchParams.get('PaymentID');
   
-  const isExplicitFail = path === '/cancel' || path === '/failed' || path === '/error' || resultParam === 'CANCELED' || resultParam === 'FذكيLED' || resultParam === 'DECLINED' || resultParam === 'VOIDED' || resultParam === 'NOT CAPTURED' || resultParam === 'NOT_CAPTURED';
+  const isExplicitFail = path === '/cancel' || path === '/failed' || path === '/error' || resultParam === 'CANCELED' || resultParam === 'FAILED' || resultParam === 'DECLINED' || resultParam === 'VOIDED' || resultParam === 'NOT CAPTURED' || resultParam === 'NOT_CAPTURED';
   const urlIndicatesSuccess = !isExplicitFail && (path === '/success' || resultParam === 'CAPTURED' || resultParam === 'SUCCESS' || resultParam === 'SUCCESSFUL' || isUpaymentsCallback);
 
   useEffect(() => {
@@ -886,7 +886,7 @@ const MainApp: React.FC = () => {
     if (appMode === 'local') return;
     if (user && appMode === 'cloud') {
       const email = user.email?.toLowerCase() || '';
-      if (AUTHORIZED_EMذكيLS.includes(email) || AUTHORIZED_PARTNERS.includes(email)) {
+      if (AUTHORIZED_EMAILS.includes(email) || AUTHORIZED_PARTNERS.includes(email)) {
         localStorage.setItem('appMode', 'cloud');
       }
     }
@@ -900,7 +900,7 @@ const MainApp: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [currentPage]);
 
-  const [isذكيThinking, setIsذكيThinking] = useState(false);
+  const [isAIThinking, setIsAIThinking] = useState(false);
   const [deepLinkData, setDeepLinkData] = useState<any>(getInitialPushDeepLink() || {});
 
   // Removed ADMIN_PUSH_DEEPLINK_FORCE_REPORTS_EFFECT causing navigation lock
@@ -1535,7 +1535,7 @@ const MainApp: React.FC = () => {
           const rawEmail = (currentUser.email || currentUser.providerData?.[0]?.email || '');
           const email = rawEmail.toLowerCase().trim();
           
-          const isAuthorized = AUTHORIZED_EMذكيLS.some(e => e.toLowerCase().trim() === email) || 
+          const isAuthorized = AUTHORIZED_EMAILS.some(e => e.toLowerCase().trim() === email) || 
             AUTHORIZED_UIDS.includes(currentUser.uid);
           
           const isPartner = AUTHORIZED_PARTNERS.some(e => e.toLowerCase().trim() === email) ||
@@ -2165,7 +2165,7 @@ const MainApp: React.FC = () => {
           onClearDeepLink={() => {}}
         />
       );
-      case 'ai': return <ذكيAssistant data={data} currentPage={currentPage} />;
+      case 'ai': return <AIAssistant data={data} currentPage={currentPage} />;
       case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
       case 'diwaniya': return <DiwaniyaTournaments data={data} setData={setData} onNavigate={setCurrentPage} />;
       case 'settings': return <GeneralSettings data={data} setData={setData} appMode={appMode} switchMode={switchMode} addToast={addToast} />;
@@ -2758,7 +2758,7 @@ const MainApp: React.FC = () => {
 
       {/* Floating Global ذكي Pulse Overlay */}
       <AnimatePresence>
-        {isذكيThinking && (
+        {isAIThinking && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
