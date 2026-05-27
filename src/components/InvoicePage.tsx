@@ -689,7 +689,7 @@ Alturath.kw`;
     };
 
     const cartItems = Object.entries(cart)
-      .map(([id, dataItem]) => {
+      .map(([id, dataItem]: [string, any]) => {
         const product = (data.products || []).find((p) => p.id === id);
         return {
           product,

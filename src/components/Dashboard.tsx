@@ -568,7 +568,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
       </div>
       <div className="absolute bottom-10 right-10 flex items-center gap-4">
         <div className="text-[10px] font-mono text-slate-600">
-          KUWذكيT_REGION_01
+          KUWAIT_REGION_01
         </div>
         <div className="w-1.5 h-1.5 rounded-full bg-slate-800" />
       </div>
@@ -3127,7 +3127,7 @@ const [isPending, startTransition] = useTransition();
                                <div className="w-8 h-8 rounded-full border-2 border-white bg-rose-100" />
                                <div className="w-8 h-8 rounded-full border-2 border-white bg-emerald-100" />
                              </div>
-                             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">ذكي Powered Analytics</div>
+                             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">Alturath Powered Analytics</div>
                           </div>
                         </div>
                         <div className="p-4 h-full">
