@@ -100,7 +100,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       { id: 'suppliers-audit', label: 'الموردين والمراجعة', hint: 'تدقيق الموردين والمخاطر', icon: <Truck />, category: 'الإدارة الأساسية', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
       { id: 'expenses', label: 'المصروفات', hint: 'تسجيل ومراجعة', icon: <PieChart />, category: 'الإدارة الأساسية', action: () => onNavigate('expenses', {}), roles: ['admin'] },
       { id: 'settings', label: 'الإعدادات العامة', hint: 'هوية وتنبيهات وضبط', icon: <ShieldCheck />, category: 'الإدارة الأساسية', action: () => onNavigate('settings', {}), roles: ['admin'] },
-      { id: 'ai', label: 'المساعد الذكي', hint: 'مستشار مالي وتوصيات', icon: <Sparkles />, category: 'الذكاء الاصطناعي', action: () => onNavigate('ai', {}), roles: ['admin', 'partner'] },
+      { id: 'ai', label: 'المساعد الذكي', hint: 'مستشار مالي وتوصيات', icon: <Sparkles />, category: 'التراث الذكي', action: () => onNavigate('ai', {}), roles: ['admin', 'partner'] },
     ];
     const mainTabs = allTabs.filter(tab => tab.roles?.includes(userRole));
 
@@ -248,8 +248,8 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
 
 
   const categoryOrder = deferredQuery
-    ? ['نتائج مباشرة', 'اقتراحات الآن', 'خريطة التحكم الذكية', 'التشغيل اليومي', 'النمو والمحتوى', 'العملاء والولاء', 'الإدارة الأساسية', 'الذكاء الاصطناعي', 'اختصارات ذكية', 'تحليلات داخلية']
-    : ['اقتراحات الآن', 'خريطة التحكم الذكية', 'التشغيل اليومي', 'العملاء والولاء', 'النمو والمحتوى', 'الإدارة الأساسية', 'الذكاء الاصطناعي', 'اختصارات ذكية', 'تحليلات داخلية'];
+    ? ['نتائج مباشرة', 'اقتراحات الآن', 'خريطة التحكم الذكية', 'التشغيل اليومي', 'النمو والمحتوى', 'العملاء والولاء', 'الإدارة الأساسية', 'التراث الذكي', 'اختصارات ذكية', 'تحليلات داخلية']
+    : ['اقتراحات الآن', 'خريطة التحكم الذكية', 'التشغيل اليومي', 'العملاء والولاء', 'النمو والمحتوى', 'الإدارة الأساسية', 'التراث الذكي', 'اختصارات ذكية', 'تحليلات داخلية'];
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

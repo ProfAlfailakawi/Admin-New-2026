@@ -968,9 +968,9 @@ Alturath.kw`;
     };
 
     return (
-      <div className="invoice-new-page p-4 grid grid-cols-1 lg:grid-cols-3 gap-6 bg-slate-50 min-h-screen overflow-x-hidden">
+      <div className="invoice-new-page p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 bg-slate-50 min-h-screen overflow-x-hidden">
         {/* Product Selection */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 lg:space-y-6 order-1">
           <div className="bg-white rounded-3xl p-4 md:p-6 shadow-sm border border-slate-200 overflow-hidden">
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <div className="relative flex-1">
@@ -1174,8 +1174,8 @@ Alturath.kw`;
         </div>
 
         {/* Cart Sidebar */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-200 sticky top-6">
+        <div className="lg:col-span-1 space-y-4 lg:space-y-6 order-2">
+          <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-xl border border-slate-200 lg:sticky lg:top-6">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
               السلة <ShoppingCart size={20} className="text-primary" />
             </h2>
@@ -1185,7 +1185,7 @@ Alturath.kw`;
                 type="date"
                 value={invoiceDate}
                 onChange={(e) => setInvoiceDate(e.target.value)}
-                className="w-full bg-slate-50 border rounded-2xl p-4 text-right font-bold"
+                className="w-full bg-slate-50 border rounded-2xl p-3 sm:p-4 text-right font-bold text-sm sm:text-base"
               />
 
               <div className="relative">
@@ -1657,15 +1657,15 @@ Alturath.kw`;
                   <span>خصم</span> <span>-{discountAmount.toFixed(3)} د.ك</span>
                 </div>
               )}
-              <div className="flex justify-between text-lg font-bold text-rose-600 bg-rose-50 p-3 rounded-xl mt-2 border border-rose-100">
-                <span>الإجمالي</span> <span>{totalValue.toFixed(3)} د.ك</span>
+              <div className="flex justify-between items-center gap-3 text-base sm:text-lg font-bold text-rose-600 bg-rose-50 p-3 rounded-xl mt-2 border border-rose-100">
+                <span>الإجمالي</span> <span className="mobile-money">{totalValue.toFixed(3)} د.ك</span>
               </div>
             </div>
 
             <button
               disabled={loading}
               onClick={handleCreateInvoice}
-              className="w-full mt-6 bg-rose-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-rose-200 hover:bg-rose-700 transition-all hover:-translate-y-1 active:scale-95"
+              className="w-full mt-4 sm:mt-6 bg-rose-600 text-white py-3.5 sm:py-4 rounded-2xl font-bold shadow-lg shadow-rose-200 hover:bg-rose-700 transition-all hover:-translate-y-1 active:scale-95"
             >
               إصدار الفاتورة
             </button>

@@ -156,7 +156,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  <h3 className="font-bold text-xl md:text-2xl text-slate-800 flex items-center gap-3">
  التنبؤ المستقبلي الخوارزمي <TrendingUp className="text-indigo-500" size={24} />
  </h3>
- <p className="text-xs font-bold text-slate-500 mt-2">توقعات الذكاء الاصطناعي للأداء المالي مبنية على البيانات الفعلية</p>
+ <p className="text-xs font-bold text-slate-500 mt-2">توقعات التراث الذكي للأداء المالي مبنية على البيانات الفعلية</p>
  </div>
  
  {/* Range Selector */}
@@ -181,7 +181,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  </div>
  </div>
 
- {/* AI Insight Box */}
+ {/* Smart Insight Box */}
  <div className={cn(
 "p-3 md:p-4 md:p-3 rounded-2xl flex items-start gap-4 border",
  trend === 'up' ?"bg-emerald-50 border-emerald-100" :"bg-rose-50 border-rose-100"

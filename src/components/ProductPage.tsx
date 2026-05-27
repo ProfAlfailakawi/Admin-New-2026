@@ -116,6 +116,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
   const [editingCategoryValue, setEditingCategoryValue] = useState("");
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   const [openProductListCategory, setOpenProductListCategory] = useState<string | null>(null);
+  const [openSmartPanel, setOpenSmartPanel] = useState<string | null>(null);
 
   const productCategories = useMemo(() => getProductCategories(data), [data]);
   // Management list keeps the saved order; only the product list view uses RTL visual reversal.
@@ -737,7 +738,21 @@ const ProductPage: React.FC<ProductPageProps> = ({
         </div>
       </div>
 
-      {bestProducts.length > 0 && (
+      <div className="bg-white border border-slate-200/70 rounded-3xl p-3 md:p-4 shadow-sm text-right">
+        <button
+          type="button"
+          onClick={() => setOpenSmartPanel(openSmartPanel === 'productPulse' ? null : 'productPulse')}
+          className="w-full flex items-center justify-between gap-3 text-right"
+        >
+          <ChevronDown size={20} className={cn("text-slate-500 transition-transform", openSmartPanel === 'productPulse' && "rotate-180")} />
+          <div>
+            <h3 className="font-black text-slate-900 text-lg">قراءة المنتجات المختصرة</h3>
+            <p className="text-xs font-bold text-slate-500 mt-1">افتحها عند الحاجة لعرض المؤشرات والمنتجات الأقوى</p>
+          </div>
+        </button>
+        {openSmartPanel === 'productPulse' && (
+          <div className="mt-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+          {bestProducts.length > 0 && (
         <div className="bg-gradient-to-br from-amber-50 to-white border border-amber-100 rounded-2xl p-3 md:p-3 shadow-sm">
           <div className="flex items-center justify-between mb-4 flex-row-reverse">
             <h3 className="font-bold text-lg text-amber-800 flex items-center gap-2">
@@ -779,8 +794,13 @@ const ProductPage: React.FC<ProductPageProps> = ({
         </div>
       )}
 
+
+          </div>
+        )}
+      </div>
+
       {/* Analytics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 md:p-3 mb-2 md:mb-0">
+      {openSmartPanel === 'productPulse' && <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 md:p-3 mb-2 md:mb-0">
         <StatCardComponent
           label="إجمالي المنتجات"
           value={(data?.products || []).length}
@@ -816,7 +836,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
           color="blue"
           description="كفاءة التسعير"
         />
-      </div>
+      </div>}
 
       <AnimatePresence>
         {deleteError && (
@@ -1458,7 +1478,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                             </div>
                             <div className="text-right">
                               <p className="text-[10px] font-bold text-indigo-400 uppercase">
-                                توجيه الذكاء: هل تقصد هذا المنتج؟
+                                توجيه التراث الذكي: هل تقصد هذا المنتج؟
                               </p>
                               <p className="text-sm font-bold text-indigo-900">
                                 {suggestion}

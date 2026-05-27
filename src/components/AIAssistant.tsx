@@ -394,7 +394,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
  if (errStr.includes("429") || errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("depleted")) {
  setMessages(prev => [...prev, { 
  role: 'assistant', 
- content: 'نقاط الذكاء الاصطناعي خلصت. جدّد الباقة عشان المساعد يكمل معاك.' 
+ content: 'نقاط التراث الذكي خلصت. جدّد الباقة عشان المساعد يكمل معاك.' 
  }]);
  setIsLoading(false);
  return;

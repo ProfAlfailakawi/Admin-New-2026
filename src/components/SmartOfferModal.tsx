@@ -135,7 +135,7 @@ export const SmartOfferModal: React.FC<SmartOfferModalProps> = ({ product, isOpe
  </div>
  </div>
 
- {/* AI Advisory */}
+ {/* Smart Advisory */}
  {isLosingMoney ? (
  <div className="bg-rose-50 border border-rose-200 p-3 md:p-3 rounded-2xl flex gap-3 items-start shrink-0">
  <div className="p-3 bg-rose-100 rounded-xl text-rose-600 shrink-0"><AlertTriangle size={24} /></div>

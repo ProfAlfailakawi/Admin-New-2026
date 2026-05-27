@@ -468,7 +468,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
 
  <div className="flex-1 overflow-y-auto custom-scrollbar p-3 md:p-3 pt-4 min-h-0">
- <div className="space-y-4">
+ <div className="space-y-4 supplier-mobile-page">
  {productsToShow.map(p => (
  <div key={p.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-2xl border border-slate-100 font-bold text-slate-800">
  <span>{p.name}</span>

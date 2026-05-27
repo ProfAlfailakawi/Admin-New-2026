@@ -36,7 +36,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <div className="flex flex-col items-center justify-center p-3 md:p-4 bg-slate-950 rounded-3xl border border-slate-800 text-center">
  <AlertCircle className="text-slate-600 mb-4" size={48} />
  <h3 className="text-xl font-bold text-white mb-2">ماكو أصناف متاحة</h3>
- <p className="text-slate-500 font-bold mb-6 text-sm max-w-sm">عشان نسوي محاكاة "ماذا لو" أو حملة بالذكاء الاصطناعي، أضف كم صنف للمتجر أول.</p>
+ <p className="text-slate-500 font-bold mb-6 text-sm max-w-sm">عشان نسوي محاكاة "ماذا لو" أو حملة بالتراث الذكي، أضف كم صنف للمتجر أول.</p>
  </div>
 );
  }
@@ -99,13 +99,13 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  } catch (error: any) {
  const errStr = String(error?.message || error);
  if (errStr.includes("429") || errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("depleted")) {
- toast.error("نفدت نقاط الذكاء الاصطناعي", {
- description:"جدّد الباقة عشان تكمل تستخدم ميزات الذكاء الاصطناعي."
+ toast.error("نفدت نقاط التراث الذكي", {
+ description:"جدّد الباقة عشان تكمل تستخدم ميزات التراث الذكي."
  });
  } else {
  console.error("Campaign generation failed:", error);
  toast.error("ما قدرنا ننشئ الحملة", { 
- description:"خدمة الذكاء الاصطناعي مشغولة الحين. جرّب بعد شوي." 
+ description:"خدمة التراث الذكي مشغولة الحين. جرّب بعد شوي." 
  });
  }
  } finally {
@@ -330,7 +330,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  className="w-full bg-slate-900 text-white p-3 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50 min-h-[44px]"
  >
  {isGenerating ? <RefreshCw size={20} className="animate-spin" /> : <Megaphone size={20} />}
- {isGenerating ? 'نحلل البيانات...' : 'إنشاء خطة الحملة بالذكاء الاصطناعي'}
+ {isGenerating ? 'نحلل البيانات...' : 'إنشاء خطة الحملة بالتراث الذكي'}
  </button>
 )}
  </div>
@@ -348,7 +348,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  </div>
  <h3 className="text-xl md:text-2xl font-bold text-white mb-4 relative z-10 text-center">الخطة التسويقية الذكية للمنتج المختار</h3>
  <p className="text-slate-500 text-center max-w-md text-sm md:text-base font-bold leading-relaxed mb-8 relative z-10">
- سيقوم الذكاء الاصطناعي بتحليل تاريخ مبيعات هذا الصنف، وسلوك عملاءك لبناء أفضل حملة تسويقية له مع رسائل واتساب جاهزة واستهداف دقيق.
+ سيقوم التراث الذكي بتحليل تاريخ مبيعات هذا الصنف، وسلوك عملاءك لبناء أفضل حملة تسويقية له مع رسائل واتساب جاهزة واستهداف دقيق.
  </p>
  <button 
  onClick={generateCampaign}
@@ -465,7 +465,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <Info size={24} />
  </div>
  <div>
- <h4 className="font-bold text-sm md:text-base text-white mb-1">تعليق الذكاء الاصطناعي على قرارك</h4>
+ <h4 className="font-bold text-sm md:text-base text-white mb-1">تعليق التراث الذكي على قرارك</h4>
  <p className="text-slate-500 text-xs md:text-sm leading-relaxed font-bold">
  {simulation.explanation}
  </p>
