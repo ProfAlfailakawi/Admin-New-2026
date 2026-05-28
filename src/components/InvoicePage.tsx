@@ -818,10 +818,23 @@ Alturath.kw`;
             createdPaymentId =
               paymentData.paymentId ||
               paymentData.payment_id ||
+              paymentData.track_id ||
+              paymentData.trackId ||
+              paymentData.transaction_id ||
+              paymentData.transactionId ||
+              paymentData.id ||
               paymentData.session_id ||
               paymentData.data?.paymentId ||
               paymentData.data?.payment_id ||
+              paymentData.data?.track_id ||
+              paymentData.data?.trackId ||
+              paymentData.data?.transaction_id ||
+              paymentData.data?.transactionId ||
+              paymentData.data?.id ||
               paymentData.data?.session_id ||
+              paymentData.data?.transaction?.payment_id ||
+              paymentData.data?.transaction?.track_id ||
+              paymentData.data?.transaction?.id ||
               "";
           } else {
             const detailMsg = paymentData.message || paymentData.error || "خطأ غير معروف";

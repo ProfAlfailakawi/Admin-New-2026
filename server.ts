@@ -6,6 +6,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import fsSync from 'fs';
 import os from 'os';
 import 'dotenv/config';
+import LZString from 'lz-string';
 import { GoogleGenAI } from "@google/genai";
 
 let firebaseInitialized = false;
@@ -144,6 +145,737 @@ function bestCreatedDateForPaymentItem(item: any, fallbackId?: any) {
     item?.paymentCreatedAt ||
     item?.created
   );
+}
+
+
+type PaymentOutcome = "paid" | "failed";
+
+type PaymentUpdateInfo = {
+  rawPayload: any;
+  primaryData: any;
+  orderId: string;
+  paymentId: string;
+  rawResult: string;
+  normalizedResult: string;
+  isPaid: boolean;
+  isFailed: boolean;
+  amount?: number;
+  customerPhone?: string;
+  transactionDate?: string;
+};
+
+const PAYMENT_SUCCESS_RESULTS = new Set([
+  "CAPTURED",
+  "SUCCESS",
+  "SUCCESSFUL",
+  "PAID",
+  "AUTHORIZED",
+  "COMPLETED",
+  "APPROVED",
+  "SUCCESSFULLY",
+  "DONE",
+]);
+
+const PAYMENT_FAILED_RESULTS = new Set([
+  "NOT CAPTURED",
+  "NOT_CAPTURED",
+  "FAILED",
+  "FAIL",
+  "CANCELLED",
+  "CANCELED",
+  "DECLINED",
+  "VOIDED",
+  "ERROR",
+  "REJECTED",
+  "EXPIRED",
+]);
+
+function parseMaybeJson(value: any): any {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!trimmed) return value;
+  if (!((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]")))) {
+    return value;
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+}
+
+function stringifySafe(value: any): string {
+  try {
+    return JSON.stringify(value || {});
+  } catch {
+    return String(value || "");
+  }
+}
+
+function cleanPaymentString(value: any): string {
+  if (value === undefined || value === null) return "";
+  if (typeof value === "boolean") return "";
+  if (typeof value === "object") return "";
+  return String(value).replace(/\+/g, " ").trim();
+}
+function extractGatewayIdFromUrl(value: any): string {
+  const raw = cleanPaymentString(value);
+  if (!raw) return "";
+  const decodeValue = (item: string) => {
+    try { return decodeURIComponent(item); } catch { return item; }
+  };
+
+  try {
+    const parsed = new URL(raw);
+    for (const key of ["track_id", "trackid", "payment_id", "paymentId", "charge_id", "chargeId", "id", "session_id"]) {
+      const found = parsed.searchParams.get(key);
+      if (found) return cleanPaymentString(decodeValue(found));
+    }
+  } catch {}
+
+  const queryMatch = raw.match(/[?&](?:track_id|trackid|payment_id|paymentId|charge_id|chargeId|session_id|id)=([^&#]+)/i);
+  if (queryMatch?.[1]) return cleanPaymentString(decodeValue(queryMatch[1]));
+
+  const pathMatch = raw.match(/\/(?:track|payment|charge|checkout|pay)\/([A-Za-z0-9_-]{12,})/i);
+  if (pathMatch?.[1]) return cleanPaymentString(pathMatch[1]);
+
+  return "";
+}
+
+
+function normalizeGatewayOrderId(value: any): string {
+  const raw = cleanPaymentString(value);
+  if (!raw) return "";
+  const decoded = (() => {
+    try { return decodeURIComponent(raw); } catch { return raw; }
+  })();
+  const trimmed = decoded.trim();
+  const suffixedBusinessId = trimmed.match(/^((?:INV|ORD)-[^_\s]+)_\d{8,}$/i);
+  if (suffixedBusinessId?.[1]) return suffixedBusinessId[1];
+  const genericSuffixed = trimmed.match(/^([^_\s]+)_\d{8,}$/);
+  if (genericSuffixed?.[1] && /^(INV|ORD)-/i.test(genericSuffixed[1])) return genericSuffixed[1];
+  return trimmed;
+}
+
+function looksLikeBusinessPaymentId(value: any): boolean {
+  const raw = cleanPaymentString(value);
+  return /^(INV|ORD)-/i.test(raw);
+}
+
+function cleanPhoneLast8(value: any): string {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length >= 8 ? digits.slice(-8) : digits;
+}
+
+function normalizePaymentResult(value: any): string {
+  const raw = cleanPaymentString(value);
+  if (!raw) return "";
+  return raw.replace(/[_-]/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
+}
+
+function getByPath(obj: any, pathValue: string): any {
+  if (!obj || typeof obj !== "object") return undefined;
+  const parts = pathValue.split(".").filter(Boolean);
+  let current = obj;
+  for (const part of parts) {
+    if (!current || typeof current !== "object") return undefined;
+    current = current[part];
+  }
+  return current;
+}
+
+function pushCandidate(target: any[], seen: Set<any>, value: any) {
+  const parsed = parseMaybeJson(value);
+  if (!parsed || typeof parsed !== "object" || seen.has(parsed)) return;
+  seen.add(parsed);
+  target.push(parsed);
+}
+
+function buildPaymentCandidates(payload: any): any[] {
+  const root = parseMaybeJson(payload);
+  const candidates: any[] = [];
+  const seen = new Set<any>();
+  pushCandidate(candidates, seen, root);
+
+  for (let index = 0; index < candidates.length; index++) {
+    const item = candidates[index];
+    for (const key of ["body", "data", "transaction", "payment", "charge", "response", "result", "payload", "callback", "event", "order", "reference", "customer"]) {
+      pushCandidate(candidates, seen, (item as any)?.[key]);
+    }
+  }
+
+  return candidates;
+}
+
+function firstStringByPaths(candidates: any[], paths: string[], options: { allowBooleanStatus?: boolean; requireBusinessId?: boolean } = {}) {
+  for (const candidate of candidates) {
+    for (const pathValue of paths) {
+      const value = getByPath(candidate, pathValue);
+      if (typeof value === "boolean" && !options.allowBooleanStatus) continue;
+      const cleaned = cleanPaymentString(value);
+      if (!cleaned) continue;
+      if (options.requireBusinessId && !looksLikeBusinessPaymentId(cleaned)) continue;
+      return cleaned;
+    }
+  }
+  return "";
+}
+
+function firstNumberByPaths(candidates: any[], paths: string[]) {
+  for (const candidate of candidates) {
+    for (const pathValue of paths) {
+      const value = getByPath(candidate, pathValue);
+      const num = typeof value === "number" ? value : Number(String(value ?? "").replace(/[^0-9.\-]/g, ""));
+      if (Number.isFinite(num) && num > 0) return num;
+    }
+  }
+  return undefined;
+}
+
+function extractBusinessIdFromPayload(payload: any): string {
+  const text = stringifySafe(payload);
+  const match = text.match(/\b(?:INV|ORD)-[A-Za-z0-9-]+(?:_\d{8,})?/);
+  return match ? normalizeGatewayOrderId(match[0]) : "";
+}
+
+function extractPaymentUpdate(params: any): PaymentUpdateInfo {
+  const rawPayload = parseMaybeJson(params);
+  const candidates = buildPaymentCandidates(rawPayload);
+  const primaryData = candidates.find((c) => c?.transaction || c?.order_id || c?.result || c?.payment_id || c?.track_id) || candidates[0] || rawPayload || {};
+
+  const resultFromExplicitField = firstStringByPaths(candidates, [
+    "result",
+    "paymentResult",
+    "payment_result",
+    "transactionResult",
+    "transaction_result",
+    "payment_status",
+    "paymentStatus",
+    "transaction_status",
+    "transactionStatus",
+    "state",
+    "status_text",
+    "statusText",
+  ]);
+  const resultFromStatus = firstStringByPaths(candidates, ["status"]);
+  const rawResult = resultFromExplicitField || (/^(success|successful|paid|captured|approved|authorized|completed|failed|declined|cancelled|canceled|not captured|not_captured|rejected|voided|expired)$/i.test(resultFromStatus) ? resultFromStatus : "");
+  const normalizedResult = normalizePaymentResult(rawResult);
+  const isFailed = PAYMENT_FAILED_RESULTS.has(normalizedResult) || normalizedResult.includes("NOT CAPTURED") || normalizedResult.includes("DECLIN") || normalizedResult.includes("FAILED") || normalizedResult.includes("REJECTED") || normalizedResult.includes("VOIDED") || normalizedResult.includes("CANCEL");
+  const isPaid = !isFailed && (PAYMENT_SUCCESS_RESULTS.has(normalizedResult) || normalizedResult.includes("CAPTURED") || normalizedResult.includes("SUCCESS") || normalizedResult.includes("APPROVED") || normalizedResult.includes("AUTHORIZED") || normalizedResult.includes("COMPLETED") || normalizedResult.includes("PAID"));
+
+  const explicitOrderId = firstStringByPaths(candidates, [
+    "invoiceNo",
+    "invoice_no",
+    "invoiceId",
+    "invoice_id",
+    "invoice",
+    "orderId",
+    "order_id",
+    "orderID",
+    "order.id",
+    "order.reference",
+    "requested_order_id",
+    "merchant_order_id",
+    "reference.id",
+    "reference_id",
+    "metadata.orderId",
+    "metadata.order_id",
+    "metadata.invoiceId",
+    "metadata.invoice_id",
+    "udf1",
+    "udf2",
+  ]);
+
+  const businessTrackId = firstStringByPaths(candidates, ["track_id", "trackid", "payment_id", "paymentId", "id"], { requireBusinessId: true });
+  const orderId = normalizeGatewayOrderId(explicitOrderId || businessTrackId || extractBusinessIdFromPayload(rawPayload));
+
+  const paymentId = firstStringByPaths(candidates, [
+    "track_id",
+    "trackid",
+    "payment_id",
+    "paymentId",
+    "PaymentID",
+    "charge_id",
+    "chargeId",
+    "tran_id",
+    "transaction_id",
+    "transactionId",
+    "session_id",
+    "sessionId",
+    "id",
+  ]);
+
+  const amount = firstNumberByPaths(candidates, [
+    "amount",
+    "total",
+    "totalAmount",
+    "finalTotal",
+    "order.amount",
+    "transaction.amount",
+    "payment.amount",
+    "invoice.amount",
+  ]);
+
+  const customerPhone = cleanPhoneLast8(firstStringByPaths(candidates, [
+    "customer.mobile",
+    "customer.phone",
+    "customer.customerMobile",
+    "customerMobile",
+    "customer_phone",
+    "customerPhone",
+    "mobile",
+    "phone",
+  ]));
+
+  const transactionDate = firstStringByPaths(candidates, ["transaction_date", "transactionDate", "paidAt", "created_at", "createdAt", "date"]);
+
+  return {
+    rawPayload,
+    primaryData,
+    orderId,
+    paymentId,
+    rawResult,
+    normalizedResult,
+    isPaid,
+    isFailed,
+    amount,
+    customerPhone,
+    transactionDate,
+  };
+}
+
+function paymentFieldValues(update: PaymentUpdateInfo): string[] {
+  const values = new Set<string>();
+  const add = (value: any) => {
+    const cleaned = cleanPaymentString(value);
+    if (cleaned && !looksLikeBusinessPaymentId(cleaned)) values.add(cleaned);
+  };
+
+  add(update.paymentId);
+  const candidates = buildPaymentCandidates(update.rawPayload);
+  for (const candidate of candidates) {
+    for (const pathValue of [
+      "track_id",
+      "trackid",
+      "payment_id",
+      "paymentId",
+      "PaymentID",
+      "charge_id",
+      "chargeId",
+      "tran_id",
+      "transaction_id",
+      "transactionId",
+      "session_id",
+      "sessionId",
+      "id",
+      "transaction.track_id",
+      "transaction.payment_id",
+      "transaction.id",
+      "data.track_id",
+      "data.payment_id",
+      "data.transaction.track_id",
+      "data.transaction.payment_id",
+      "data.transaction.id",
+    ]) {
+      add(getByPath(candidate, pathValue));
+    }
+  }
+
+  return Array.from(values);
+}
+
+function paymentFieldValue(update: PaymentUpdateInfo) {
+  return paymentFieldValues(update)[0] || "";
+}
+
+function isRecordPaid(item: any) {
+  const s = normalizePaymentResult(item?.paymentStatus || item?.payment_status || item?.status);
+  return PAYMENT_SUCCESS_RESULTS.has(s) || s.includes("PAID") || s.includes("SUCCESS") || s.includes("CAPTURED") || String(item?.status || "").includes("تم الدفع") || String(item?.status || "").includes("مدفوعة");
+}
+
+function isRecordFailed(item: any) {
+  const s = normalizePaymentResult(item?.paymentStatus || item?.payment_status || item?.status);
+  return PAYMENT_FAILED_RESULTS.has(s) || s.includes("FAILED") || s.includes("DECLIN") || String(item?.status || "").includes("فشل");
+}
+
+function isPaymentPendingRecord(item: any) {
+  return !isRecordPaid(item) && !isRecordFailed(item) && !String(item?.status || "").includes("ملغي") && String(item?.paymentStatus || "").toLowerCase() !== "cancelled";
+}
+
+function approxAmountMatches(item: any, amount?: number) {
+  if (!amount || !Number.isFinite(amount)) return false;
+  const candidates = [item?.totalAmount, item?.total, item?.finalTotal, item?.amount, item?.subtotal]
+    .map((v) => Number(v))
+    .filter((v) => Number.isFinite(v));
+  return candidates.some((v) => Math.abs(v - amount) <= 0.005);
+}
+
+function phoneMatches(item: any, phone?: string) {
+  const clean = cleanPhoneLast8(phone);
+  if (!clean || clean.length < 8) return false;
+  return [item?.customerPhone, item?.phone, item?.mobile, item?.customer?.phone, item?.customer?.mobile]
+    .map(cleanPhoneLast8)
+    .some((value) => value === clean);
+}
+
+function recordMatchesPaymentUpdate(item: any, update: PaymentUpdateInfo) {
+  if (!item || typeof item !== "object") return false;
+  const targetIds = new Set(
+    [update.orderId, normalizeGatewayOrderId(update.orderId), extractBusinessIdFromPayload(update.rawPayload)]
+      .map(normalizeGatewayOrderId)
+      .filter(Boolean)
+  );
+  const itemIds = [
+    item.id,
+    item.invoiceId,
+    item.invoiceNo,
+    item.invoiceNumber,
+    item.orderId,
+    item.orderNo,
+    item.orderNumber,
+    item.linkedInvoiceId,
+    item.requested_order_id,
+    item.merchant_order_id,
+    item.paymentGatewayOrderId,
+    item.gatewayOrderId,
+  ].map(normalizeGatewayOrderId).filter(Boolean);
+
+  if (itemIds.some((id) => targetIds.has(id))) return true;
+
+  const updatePaymentIds = paymentFieldValues(update);
+  if (updatePaymentIds.length > 0) {
+    const itemPaymentIds = [item.paymentId, item.payment_id, item.track_id, item.trackId, item.transactionId, item.transaction_id, item.chargeId, item.charge_id]
+      .map(cleanPaymentString)
+      .filter(Boolean);
+    if (itemPaymentIds.some((id) => updatePaymentIds.includes(id))) return true;
+  }
+
+  return false;
+}
+
+function applyPaymentOutcomeToRecord(item: any, outcome: PaymentOutcome, update: PaymentUpdateInfo, kind: "invoice" | "order") {
+  const nowIso = new Date().toISOString();
+  const paymentId = paymentFieldValue(update);
+  if (outcome === "paid") {
+    return removeUndefinedFields({
+      ...item,
+      paymentStatus: "paid",
+      payment_status: "paid",
+      status: kind === "invoice" ? "مدفوعة" : "تم الدفع وجاري التوصيل",
+      paid: true,
+      failed: false,
+      canPay: false,
+      paymentMethod: item?.paymentMethod || "KNet",
+      paymentId: item?.paymentId || paymentId || undefined,
+      trackId: item?.trackId || paymentId || undefined,
+      linkedInvoiceId: kind === "order" && update.orderId && looksLikeBusinessPaymentId(update.orderId) ? (item?.linkedInvoiceId || update.orderId) : item?.linkedInvoiceId,
+      verifiedByBackend: true,
+      paymentSettlementSource: item?.paymentSettlementSource || "upayments",
+      paymentResult: update.rawResult || item?.paymentResult || undefined,
+      paidAt: item?.paidAt || update.transactionDate || nowIso,
+      paymentUpdatedAt: nowIso,
+      updatedAt: nowIso,
+    });
+  }
+
+  if (isRecordPaid(item)) return item;
+
+  return removeUndefinedFields({
+    ...item,
+    paymentStatus: "failed",
+    payment_status: "failed",
+    status: kind === "invoice" ? "فشل في عملية الدفع" : "فشلت عملية الدفع",
+    paid: false,
+    failed: true,
+    canPay: true,
+    paymentId: item?.paymentId || paymentId || undefined,
+    trackId: item?.trackId || paymentId || undefined,
+    paymentResult: update.rawResult || item?.paymentResult || undefined,
+    failedAt: item?.failedAt || update.transactionDate || nowIso,
+    paymentUpdatedAt: nowIso,
+    updatedAt: nowIso,
+  });
+}
+
+function updatePaymentArrayRecords(records: any[], update: PaymentUpdateInfo, outcome: PaymentOutcome, kind: "invoice" | "order") {
+  let changed = false;
+  const matchedIds: string[] = [];
+  const next = records.map((item) => {
+    if (!recordMatchesPaymentUpdate(item, update)) return item;
+    if (outcome === "failed" && isRecordPaid(item)) return item;
+    const patched = applyPaymentOutcomeToRecord(item, outcome, update, kind);
+    if (patched !== item) {
+      changed = true;
+      matchedIds.push(String(item?.id || item?.invoiceId || item?.orderId || update.orderId || "unknown"));
+    }
+    return patched;
+  });
+
+  if (!changed && outcome === "paid" && update.amount && update.customerPhone) {
+    const fuzzyMatches = records
+      .map((item, index) => ({ item, index }))
+      .filter(({ item }) => isPaymentPendingRecord(item) && approxAmountMatches(item, update.amount) && phoneMatches(item, update.customerPhone));
+
+    if (fuzzyMatches.length === 1) {
+      const { item, index } = fuzzyMatches[0];
+      next[index] = applyPaymentOutcomeToRecord(item, outcome, update, kind);
+      changed = true;
+      matchedIds.push(String(item?.id || item?.invoiceId || item?.orderId || update.orderId || "fuzzy-match"));
+    }
+  }
+
+  return { records: next, changed, matchedIds };
+}
+
+function readShardArrayFromData(key: string, shardData: any): any[] | undefined {
+  if (!shardData || typeof shardData !== "object") return undefined;
+  if (shardData.isCompressed && shardData.compressedData) {
+    try {
+      const decompressed = LZString.decompressFromBase64(String(shardData.compressedData));
+      const parsed = decompressed ? JSON.parse(decompressed) : undefined;
+      return Array.isArray(parsed) ? parsed : undefined;
+    } catch (e: any) {
+      console.warn(`[PAYMENT_SETTLEMENT] Could not decompress appData shard '${key}':`, e?.message || e);
+      return undefined;
+    }
+  }
+  return Array.isArray(shardData[key]) ? shardData[key] : undefined;
+}
+
+function buildShardPayload(key: string, records: any[]) {
+  const payloadStr = JSON.stringify(records);
+  if (payloadStr.length > 500000) {
+    return {
+      compressedData: LZString.compressToBase64(payloadStr),
+      isCompressed: true,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+  return {
+    [key]: JSON.parse(payloadStr),
+    isCompressed: false,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+async function updateAppDataPaymentShards(update: PaymentUpdateInfo, outcome: PaymentOutcome) {
+  const result = { docsChecked: 0, shardsUpdated: 0, matchedIds: [] as string[] };
+  if (!db) return result;
+
+  let appDataRefs: any[] = [];
+  try {
+    const sharedRef = db.collection("appData").doc("shared_company_data");
+    const listed = await db.collection("appData").listDocuments();
+    const byPath = new Map<string, any>();
+    byPath.set(sharedRef.path, sharedRef);
+    for (const ref of listed.slice(0, Number(process.env.PAYMENT_SETTLEMENT_MAX_APPDATA_DOCS || 25))) {
+      byPath.set(ref.path, ref);
+    }
+    appDataRefs = Array.from(byPath.values());
+  } catch (e: any) {
+    console.warn("[PAYMENT_SETTLEMENT] Could not list appData docs; falling back to shared_company_data only:", e?.message || e);
+    appDataRefs = [db.collection("appData").doc("shared_company_data")];
+  }
+
+  for (const appDataRef of appDataRefs) {
+    result.docsChecked += 1;
+
+    try {
+      const rootSnap = await appDataRef.get();
+      if (rootSnap.exists) {
+        const rootData = rootSnap.data() || {};
+        const rootUpdates: any = {};
+        for (const key of ["invoices", "orders"] as const) {
+          if (!Array.isArray(rootData[key]) || rootData[key].length === 0) continue;
+          const kind = key === "invoices" ? "invoice" : "order";
+          const patched = updatePaymentArrayRecords(rootData[key], update, outcome, kind);
+          if (patched.changed) {
+            rootUpdates[key] = patched.records;
+            result.matchedIds.push(...patched.matchedIds.map((id) => `${appDataRef.id}/${key}/${id}`));
+          }
+        }
+        if (Object.keys(rootUpdates).length > 0) {
+          await appDataRef.set(rootUpdates, { merge: true });
+          result.shardsUpdated += Object.keys(rootUpdates).length;
+        }
+      }
+    } catch (e: any) {
+      console.warn(`[PAYMENT_SETTLEMENT] Root appData check failed for ${appDataRef.path}:`, e?.message || e);
+    }
+
+    for (const key of ["invoices", "orders"] as const) {
+      try {
+        const shardRef = appDataRef.collection("shards").doc(key);
+        const shardSnap = await shardRef.get();
+        if (!shardSnap.exists) continue;
+        const records = readShardArrayFromData(key, shardSnap.data() || {});
+        if (!Array.isArray(records) || records.length === 0) continue;
+        const kind = key === "invoices" ? "invoice" : "order";
+        const patched = updatePaymentArrayRecords(records, update, outcome, kind);
+        if (patched.changed) {
+          await shardRef.set(buildShardPayload(key, patched.records), { merge: false });
+          result.shardsUpdated += 1;
+          result.matchedIds.push(...patched.matchedIds.map((id) => `${appDataRef.id}/shards/${key}/${id}`));
+        }
+      } catch (e: any) {
+        console.warn(`[PAYMENT_SETTLEMENT] Shard update failed for ${appDataRef.path}/shards/${key}:`, e?.message || e);
+      }
+    }
+  }
+
+  return result;
+}
+
+function rootPaymentFields(update: PaymentUpdateInfo, outcome: PaymentOutcome, kind: "invoice" | "order") {
+  const paymentId = paymentFieldValue(update);
+  if (outcome === "paid") {
+    return removeUndefinedFields({
+      paymentStatus: "paid",
+      payment_status: "paid",
+      status: kind === "invoice" ? "مدفوعة" : "تم الدفع وجاري التوصيل",
+      paid: true,
+      failed: false,
+      canPay: false,
+      paymentMethod: "KNet",
+      paymentId: paymentId || undefined,
+      trackId: paymentId || undefined,
+      verifiedByBackend: true,
+      paymentResult: update.rawResult || undefined,
+      paidAt: admin.firestore.FieldValue.serverTimestamp(),
+      paymentUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+
+  return removeUndefinedFields({
+    paymentStatus: "failed",
+    payment_status: "failed",
+    status: kind === "invoice" ? "فشل في عملية الدفع" : "فشلت عملية الدفع",
+    paid: false,
+    failed: true,
+    canPay: true,
+    paymentId: paymentId || undefined,
+    trackId: paymentId || undefined,
+    paymentResult: update.rawResult || undefined,
+    failedAt: admin.firestore.FieldValue.serverTimestamp(),
+    paymentUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
+async function updateRootPaymentRecords(update: PaymentUpdateInfo, outcome: PaymentOutcome) {
+  const result = { updated: 0, matchedIds: [] as string[] };
+  if (!db) return result;
+  const targetId = normalizeGatewayOrderId(update.orderId);
+  const paymentIds = paymentFieldValues(update);
+  const touched = new Set<string>();
+
+  const updateRef = async (ref: any, kind: "invoice" | "order") => {
+    const key = `${kind}:${ref.path}`;
+    if (touched.has(key)) return;
+    touched.add(key);
+    try {
+      const snap = await ref.get();
+      if (!snap.exists) return;
+      const current = snap.data() || {};
+      if (outcome === "failed" && isRecordPaid(current)) return;
+      await ref.update(rootPaymentFields(update, outcome, kind));
+      result.updated += 1;
+      result.matchedIds.push(ref.path);
+    } catch (e: any) {
+      console.warn(`[PAYMENT_SETTLEMENT] Root ${kind} update failed for ${ref.path}:`, e?.message || e);
+    }
+  };
+
+  if (targetId) {
+    await updateRef(db.collection("invoices").doc(targetId), "invoice");
+    await updateRef(db.collection("orders").doc(targetId), "order");
+
+    try {
+      const linkedOrders = await db.collection("orders").where("linkedInvoiceId", "==", targetId).get();
+      for (const orderDoc of linkedOrders.docs) await updateRef(orderDoc.ref, "order");
+    } catch (e: any) {
+      console.warn("[PAYMENT_SETTLEMENT] linkedInvoiceId query failed:", e?.message || e);
+    }
+  }
+
+  if (paymentIds.length > 0) {
+    for (const paymentId of paymentIds) {
+      for (const [collectionName, kind] of [["invoices", "invoice"], ["orders", "order"]] as const) {
+        for (const fieldName of ["paymentId", "trackId", "transactionId", "transaction_id", "payment_id"]) {
+          try {
+            const byPayment = await db.collection(collectionName).where(fieldName, "==", paymentId).limit(5).get();
+            for (const docSnap of byPayment.docs) await updateRef(docSnap.ref, kind as any);
+          } catch (e: any) {
+            console.warn(`[PAYMENT_SETTLEMENT] ${fieldName} query failed for ${collectionName}:`, e?.message || e);
+          }
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+async function settlePaymentEverywhere(update: PaymentUpdateInfo, outcome: PaymentOutcome) {
+  const [root, appData] = await Promise.all([
+    updateRootPaymentRecords(update, outcome),
+    updateAppDataPaymentShards(update, outcome),
+  ]);
+  return { root, appData };
+}
+
+async function findExistingSettledPayment(targetId: string, paymentId?: string) {
+  const normalizedTargetId = normalizeGatewayOrderId(targetId);
+  const normalizedPaymentId = cleanPaymentString(paymentId);
+  const matches = (item: any) => recordMatchesPaymentUpdate(item, {
+    rawPayload: { targetId: normalizedTargetId, paymentId: normalizedPaymentId },
+    primaryData: {},
+    orderId: normalizedTargetId,
+    paymentId: normalizedPaymentId,
+    rawResult: "",
+    normalizedResult: "",
+    isPaid: false,
+    isFailed: false,
+  });
+
+  const inspectRecord = (item: any, source: string) => {
+    if (!item || !matches(item)) return null;
+    if (isRecordPaid(item)) return { verified: true, status: "paid", source, record: item };
+    if (isRecordFailed(item)) return { verified: false, status: "failed", source, record: item };
+    return { verified: false, status: item?.paymentStatus || item?.status || "pending", source, record: item };
+  };
+
+  if (!db || !normalizedTargetId) return null;
+
+  for (const [collectionName, kind] of [["invoices", "invoice"], ["orders", "order"]] as const) {
+    try {
+      const snap = await db.collection(collectionName).doc(normalizedTargetId).get();
+      if (snap.exists) {
+        const found = inspectRecord({ id: snap.id, ...(snap.data() || {}) }, `${collectionName}/${normalizedTargetId}`);
+        if (found?.verified || found?.status === "failed") return found;
+      }
+    } catch {}
+  }
+
+  try {
+    const appDataRefs = [db.collection("appData").doc("shared_company_data")];
+    for (const appDataRef of appDataRefs) {
+      for (const key of ["invoices", "orders"] as const) {
+        const shardSnap = await appDataRef.collection("shards").doc(key).get();
+        if (!shardSnap.exists) continue;
+        const records = readShardArrayFromData(key, shardSnap.data() || {}) || [];
+        for (const item of records) {
+          const found = inspectRecord(item, `${appDataRef.id}/shards/${key}`);
+          if (found?.verified || found?.status === "failed") return found;
+        }
+      }
+    }
+  } catch (e: any) {
+    console.warn("[PAYMENT_SETTLEMENT] Existing settlement lookup failed:", e?.message || e);
+  }
+
+  return null;
 }
 
 function escapeXml(value: any) {
@@ -485,45 +1217,35 @@ app.get("/api/admin-dashboard-data", async (_req, res) => {
   // It synchronizes payment results to the database even if the user doesn't return to the app.
   const handlePaymentUpdate = async (params: any) => {
     if (!db) return;
+    console.log("handlePaymentUpdate called with:", JSON.stringify(params));
 
-    const rawResult = String(params.result || params.status || params.payment || "").replace(/\+/g, " ").trim();
-    const normalizedResult = rawResult.toUpperCase();
+    const paymentUpdate = extractPaymentUpdate(params);
+    const data = paymentUpdate.primaryData || params?.data || params || {};
+    const rawResult = paymentUpdate.rawResult;
+    const normalizedResult = paymentUpdate.normalizedResult;
+    const paymentId = paymentFieldValue(paymentUpdate) || paymentUpdate.paymentId || "";
+    const orderId = paymentUpdate.orderId;
+    const isPaid = paymentUpdate.isPaid;
+    const isFailed = paymentUpdate.isFailed;
 
-    const paymentId = params.payment_id || params.track_id || params.tran_id || "";
-
-    let orderId =
-      params.invoiceNo ||
-      params.invoice_no ||
-      params.invoice ||
-      params.orderId ||
-      params.order_id ||
-      params.requested_order_id ||
-      params.merchant_order_id ||
-      params.reference?.id ||
-      params.reference_id ||
-      params.track_id;
-
-    if (orderId && typeof orderId === "string" && orderId.includes("_")) {
-      orderId = orderId.split("_")[0];
-    }
-
-    if (!orderId) {
-      console.warn("Payment update ignored: missing orderId/invoiceNo", params);
+    if (!isPaid && !isFailed) {
+      console.warn("Payment update ignored: unrecognized payment result", { rawResult, normalizedResult, orderId, paymentId });
       return;
     }
 
-    const isPaid =
-      normalizedResult === "CAPTURED" ||
-      normalizedResult === "SUCCESS" ||
-      normalizedResult === "PAID";
+    try {
+      const appDataResult = await updateAppDataPaymentShards(paymentUpdate, isPaid ? "paid" : "failed");
+      if (appDataResult.shardsUpdated > 0) {
+        console.log("[PAYMENT_SETTLEMENT] AppData synchronized from webhook:", JSON.stringify(appDataResult));
+      }
+    } catch (syncError) {
+      console.error("[PAYMENT_SETTLEMENT] AppData webhook synchronization failed:", syncError);
+    }
 
-    const isFailed =
-      normalizedResult === "NOT CAPTURED" ||
-      normalizedResult === "FAILED" ||
-      normalizedResult === "CANCELLED" ||
-      normalizedResult === "CANCELED" ||
-      normalizedResult === "DECLINED" ||
-      normalizedResult === "ERROR";
+    if (!orderId) {
+      console.warn("Payment update had no orderId/invoiceNo for root collections; AppData fuzzy sync already attempted.", { paymentId, rawResult });
+      return;
+    }
     
     try {
         if (isPaid) {
@@ -532,25 +1254,54 @@ app.get("/api/admin-dashboard-data", async (_req, res) => {
             if (invSnap.exists) {
                 const data = invSnap.data();
                 if (data?.paymentStatus !== 'paid') {
-                    await invoiceRef.update({ paymentStatus: 'paid', status: 'تم الدفع وجاري التوصيل', paymentId: paymentId || '', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-                    const orderQ = await db.collection('orders').where('linkedInvoiceId', '==', orderId).get();
-                    for (const doc of orderQ.docs) {
-                        await doc.ref.update({ status: 'تم الدفع وجاري التوصيل', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                    try {
+                        await invoiceRef.update({ paymentStatus: 'paid', status: 'تم الدفع وجاري التوصيل', paymentId: paymentId || '', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                        const orderQ = await db.collection('orders').where('linkedInvoiceId', '==', orderId).get();
+                        for (const doc of orderQ.docs) {
+                            await doc.ref.update({ status: 'تم الدفع وجاري التوصيل', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                        }
+                        const eventId = `safe-worker-invoice-paid-${orderId}`;
+                        sendSmartAlertPushNotification({
+                            title: "✅ تم الدفع",
+                            body: `تم دفع الفاتورة ${orderId}${data?.totalAmount ? ` — ${data.totalAmount} د.ك` : ""}`,
+                            alertType: "payment_paid",
+                            eventId,
+                            url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(orderId)}`,
+                        }).then((result) => rememberPushEvent(eventId, {
+                            source: "payment-webhook",
+                            type: "invoice_paid",
+                            invoiceId: orderId,
+                        }, result)).catch(console.error);
+                    } catch (e) {
+                        console.error("Error updating invoice/order in handlePaymentUpdate:", e);
                     }
-                    const eventId = `safe-worker-invoice-paid-${orderId}`;
-                    sendSmartAlertPushNotification({
-                    title: "✅ تم الدفع",
-                    body: `تم دفع الفاتورة ${orderId}${data?.totalAmount ? ` — ${data.totalAmount} د.ك` : ""}`,
-                    alertType: "payment_paid",
-                    eventId,
-                    url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(orderId)}`,
-                  }).then((result) => rememberPushEvent(eventId, {
-                    source: "payment-webhook",
-                    type: "invoice_paid",
-                    invoiceId: orderId,
-                  }, result)).catch(console.error);
                 }
             } else {
+                // Try searching by paymentId as fallback
+                if (paymentId) {
+                    const invByPayId = await db.collection('invoices').where('paymentId', '==', paymentId).limit(1).get();
+                    if (!invByPayId.empty) {
+                        const invDoc = invByPayId.docs[0];
+                        const data = invDoc.data();
+                        if (data?.paymentStatus !== 'paid') {
+                            await invDoc.ref.update({ paymentStatus: 'paid', status: 'تم الدفع وجاري التوصيل', paymentId: paymentId || '', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                            const orderQ = await db.collection('orders').where('linkedInvoiceId', '==', invDoc.id).get();
+                            for (const doc of orderQ.docs) {
+                                await doc.ref.update({ status: 'تم الدفع وجاري التوصيل', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                            }
+                            const eventId = `safe-worker-invoice-paid-pid-${invDoc.id}`;
+                            sendSmartAlertPushNotification({
+                                title: "✅ تم الدفع (بمعرف الدفع)",
+                                body: `تم دفع الفاتورة ${invDoc.id}${data?.totalAmount ? ` — ${data.totalAmount} د.ك` : ""}`,
+                                alertType: "payment_paid",
+                                eventId,
+                                url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invDoc.id)}`,
+                            }).catch(console.error);
+                        }
+                        return;
+                    }
+                }
+
                 const orderRef = db.collection('orders').doc(orderId);
                 const ordSnap = await orderRef.get();
                 if (ordSnap.exists) {
@@ -2031,10 +2782,14 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     
     console.log(`Using API key: ${apiKey.substring(0, 4)}... (Total length: ${apiKey.length})`);
     
+    const protocol = req.get('x-forwarded-proto') || req.protocol;
+    const host = req.get('host');
+    const fullBaseUrl = `${protocol}://${host}`;
+
     const validNotificationUrl =
       typeof notificationUrl === "string" && /^https?:\/\//i.test(notificationUrl)
         ? notificationUrl
-        : "https://admin.alturathkw.shop/api/payment/notification";
+        : `${fullBaseUrl}/api/webhook/upayments`;
 
     if (!amount || !customerName || !orderId || !returnUrl || !cancelUrl) {
       const missing = [];
@@ -2166,9 +2921,38 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       const pendingGrace = pendingPaymentGraceInfo({ id: orderId, totalAmount: amount, total: amount }, orderId);
       console.log(`[PUSH] Pending-payment alert queued for worker: ${orderId}; grace remaining ${pendingGrace.remainingSeconds}s`);
 
+      const extractedPaymentId = cleanPaymentString(
+        data?.paymentId ||
+        data?.payment_id ||
+        data?.track_id ||
+        data?.trackId ||
+        data?.transaction_id ||
+        data?.transactionId ||
+        data?.id ||
+        data?.session_id ||
+        data?.data?.paymentId ||
+        data?.data?.payment_id ||
+        data?.data?.track_id ||
+        data?.data?.trackId ||
+        data?.data?.transaction_id ||
+        data?.data?.transactionId ||
+        data?.data?.id ||
+        data?.data?.session_id ||
+        data?.data?.transaction?.payment_id ||
+        data?.data?.transaction?.track_id ||
+        data?.data?.transaction?.id ||
+        extractGatewayIdFromUrl(extractedPaymentLink) ||
+        ""
+      );
+
       res.json({
         ...data,
         paymentLink: extractedPaymentLink || data?.paymentLink || data?.link || data?.url || "",
+        paymentId: extractedPaymentId || data?.paymentId || data?.payment_id || "",
+        trackId: extractedPaymentId || data?.trackId || data?.track_id || "",
+        gatewayOrderId: orderIdForGateway,
+        merchantOrderId: orderIdForGateway,
+        originalOrderId: orderId,
       });
     } catch (error: any) {
       console.error("Error creating payment:", error);
@@ -2185,29 +2969,63 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   });
 
   app.post("/api/invoice/confirm", async (req, res) => {
-    const { paymentId, invoiceId } = req.body;
-    if (!paymentId || paymentId === 'check_by_invoice' || !invoiceId) {
-        return res.status(400).json({ error: "Missing or invalid parameters" });
+    const rawPaymentId = cleanPaymentString(req.body?.paymentId);
+    const rawInvoiceId = cleanPaymentString(req.body?.invoiceId || req.body?.orderId || req.body?.invoiceNo);
+    const invoiceId = normalizeGatewayOrderId(rawInvoiceId);
+    const hasRealGatewayPaymentId = Boolean(rawPaymentId && rawPaymentId !== "check_by_invoice" && !looksLikeBusinessPaymentId(rawPaymentId));
+
+    if (!invoiceId && !hasRealGatewayPaymentId) {
+        return res.status(400).json({ error: "Missing invoiceId or paymentId" });
     }
 
-    const apiKey = getUPaymentsApiKey();
-    if (!apiKey) return res.status(500).json({ error: "Missing config" });
-
     try {
+        const existing = await findExistingSettledPayment(invoiceId || rawPaymentId, hasRealGatewayPaymentId ? rawPaymentId : undefined);
+        if (existing?.verified) {
+            return res.json({
+                success: true,
+                verified: true,
+                invoiceId: invoiceId || existing.record?.id || existing.record?.invoiceId || existing.record?.linkedInvoiceId,
+                source: existing.source,
+                status: existing.status,
+            });
+        }
+        if (existing?.status === "failed") {
+            return res.json({
+                success: true,
+                verified: false,
+                invoiceId: invoiceId || existing.record?.id || existing.record?.invoiceId || existing.record?.linkedInvoiceId,
+                source: existing.source,
+                status: "failed",
+            });
+        }
+
+        if (!hasRealGatewayPaymentId) {
+            return res.json({
+                success: true,
+                verified: false,
+                invoiceId,
+                status: existing?.status || "pending",
+                source: existing?.source || "local_lookup",
+                reason: "missing_gateway_track_id",
+            });
+        }
+
+        const apiKey = getUPaymentsApiKey();
+        if (!apiKey) return res.status(500).json({ error: "Missing config" });
+
         const baseUrl = "https://apiv2api.upayments.com/api/v1";
-        
-        console.log(`Verifying payment ID: ${paymentId}`);
-        let response = await fetch(`${baseUrl}/get-payment-status/${paymentId}`, {
+        console.log(`Verifying payment ID: ${rawPaymentId} for invoice/order: ${invoiceId || "unknown"}`);
+
+        let response = await fetch(`${baseUrl}/get-payment-status/${encodeURIComponent(rawPaymentId)}`, {
             method: 'GET',
             headers: {
                 "Accept": "application/json",
                 "Authorization": `Bearer ${apiKey}`
             }
         });
-        
-        // If the first endpoint doesn't find it, try the other endpoint
+
         if (response.status === 404 || response.status === 400) {
-            response = await fetch(`${baseUrl}/charge/${paymentId}`, {
+            response = await fetch(`${baseUrl}/charge/${encodeURIComponent(rawPaymentId)}`, {
                 method: 'GET',
                 headers: {
                     "Accept": "application/json",
@@ -2215,29 +3033,72 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
                 }
             });
         }
-        
+
         const contentType = response.headers.get("content-type");
-        let data;
+        let gatewayData: any;
         if (contentType && contentType.includes("application/json")) {
-            data = await response.json();
+            gatewayData = await response.json();
         } else {
             const text = await response.text();
             console.error("Non-JSON UPayments API error:", text);
             return res.status(response.status).json({ error: "Verification request failed", details: text });
         }
-        
-        if (data && (data.status === true || data.status === 'success' || data.status === 1 || !data.error) && data.data && (data.data.result === 'CAPTURED' || data.data.result === 'SUCCESS' || data.data.status === 'success' || data.data.status === 'CAPTURED')) {
-            const returnedInvoiceId = data.data.order_id || data.data.reference?.id || data.data.orderId || invoiceId;
-            return res.json({ success: true, verified: true, invoiceId: returnedInvoiceId });
-        } else {
-            console.log("Upayments charge-verify failed. Data:", JSON.stringify(data));
-            return res.json({ success: true, verified: false, debugData: data });
+
+        const extracted = extractPaymentUpdate({
+            data: gatewayData,
+            invoiceId,
+            orderId: invoiceId,
+            paymentId: rawPaymentId,
+            track_id: rawPaymentId,
+        });
+        const paymentUpdate: PaymentUpdateInfo = {
+            ...extracted,
+            orderId: normalizeGatewayOrderId(extracted.orderId || invoiceId || rawInvoiceId),
+            paymentId: paymentFieldValue(extracted) || rawPaymentId || extracted.paymentId,
+        };
+
+        if (paymentUpdate.isPaid) {
+            const settlement = await settlePaymentEverywhere(paymentUpdate, "paid");
+            return res.json({
+                success: true,
+                verified: true,
+                invoiceId: paymentUpdate.orderId || invoiceId,
+                paymentId: paymentFieldValue(paymentUpdate) || rawPaymentId,
+                source: "upayments_api",
+                settlement,
+            });
         }
+
+        if (paymentUpdate.isFailed) {
+            const settlement = await settlePaymentEverywhere(paymentUpdate, "failed");
+            return res.json({
+                success: true,
+                verified: false,
+                invoiceId: paymentUpdate.orderId || invoiceId,
+                paymentId: paymentFieldValue(paymentUpdate) || rawPaymentId,
+                source: "upayments_api",
+                status: "failed",
+                settlement,
+                debugData: gatewayData,
+            });
+        }
+
+        console.log("UPayments charge-verify returned pending/unknown result. Data:", JSON.stringify(gatewayData));
+        return res.json({
+            success: true,
+            verified: false,
+            invoiceId: paymentUpdate.orderId || invoiceId,
+            paymentId: paymentFieldValue(paymentUpdate) || rawPaymentId,
+            source: "upayments_api",
+            status: paymentUpdate.normalizedResult || "pending",
+            debugData: gatewayData,
+        });
     } catch (e) {
         console.error("Error verifying payment:", e);
         return res.status(500).json({ error: "Verification failed" });
     }
   });
+
   app.get("/api/invoice/:id", async (req, res) => {
     // Disabled server-side DB fetch due to missing Google Cloud IAM credentials (admin SDK Service Account).
     // The frontend should fetch data from Firebase Client SDK, or the user needs to provide a private key JSON.

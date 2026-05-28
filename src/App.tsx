@@ -175,8 +175,8 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
   const resultParam = (searchParams.get('result') || searchParams.get('Result') || searchParams.get('status') || searchParams.get('Status') || '')?.toUpperCase();
   const paymentIdParam = searchParams.get('track_id') || searchParams.get('TrackID') || searchParams.get('charge_id') || searchParams.get('id') || searchParams.get('payment_id') || searchParams.get('paymentId') || searchParams.get('PaymentID');
   
-  const isExplicitFail = path === '/cancel' || path === '/failed' || path === '/error' || resultParam === 'CANCELED' || resultParam === 'FAILED' || resultParam === 'DECLINED' || resultParam === 'VOIDED' || resultParam === 'NOT CAPTURED' || resultParam === 'NOT_CAPTURED';
-  const urlIndicatesSuccess = !isExplicitFail && (path === '/success' || resultParam === 'CAPTURED' || resultParam === 'SUCCESS' || resultParam === 'SUCCESSFUL' || isUpaymentsCallback);
+  const isExplicitFail = path === '/cancel' || path === '/failed' || path === '/error' || resultParam === 'CANCELED' || resultParam === 'CANCELLED' || resultParam === 'FAILED' || resultParam === 'DECLINED' || resultParam === 'VOIDED' || resultParam === 'NOT CAPTURED' || resultParam === 'NOT_CAPTURED' || resultParam === 'REJECTED';
+  const urlIndicatesSuccess = !isExplicitFail && (path === '/success' || resultParam === 'CAPTURED' || resultParam === 'SUCCESS' || resultParam === 'SUCCESSFUL' || resultParam === 'PAID' || resultParam === 'AUTHORIZED' || resultParam === 'COMPLETED' || resultParam === 'APPROVED' || isUpaymentsCallback);
 
   useEffect(() => {
     const showMessageAndRedirect = (status: 'success' | 'failed', invoiceIdToSearch: string) => {
@@ -1100,37 +1100,60 @@ const MainApp: React.FC = () => {
     if (!isAuthenticated || dataLoading) return;
     
     const checkPendingPayments = async () => {
+      const paymentIdFromLink = (link: any) => {
+        const raw = String(link || '');
+        if (!raw) return '';
+        try {
+          const parsed = new URL(raw);
+          for (const key of ['track_id', 'trackid', 'payment_id', 'paymentId', 'charge_id', 'chargeId', 'id', 'session_id']) {
+            const found = parsed.searchParams.get(key);
+            if (found) return found;
+          }
+        } catch(e) {}
+        const queryMatch = raw.match(/[?&](?:track_id|trackid|payment_id|paymentId|charge_id|chargeId|session_id|id)=([^&#]+)/i);
+        if (queryMatch?.[1]) {
+          try { return decodeURIComponent(queryMatch[1]); } catch(e) { return queryMatch[1]; }
+        }
+        const pathMatch = raw.match(/\/(?:track|payment|charge|checkout|pay)\/([A-Za-z0-9_-]{12,})/i);
+        return pathMatch?.[1] || '';
+      };
+
       const currentData = dataRef.current;
       const pendingInvoices = currentData.invoices?.filter(i => !i.isDeleted && (i.paymentStatus !== 'paid' && i.paymentStatus !== 'cancelled')) || [];
-      if (pendingInvoices.length === 0) return;
+      const pendingOrders = currentData.orders?.filter(o => {
+        const anyOrder = o as any;
+        const isUnpaid = anyOrder.paymentStatus !== 'paid' && anyOrder.paymentStatus !== 'cancelled' && !String(anyOrder.status || '').includes('تم الدفع');
+        return !anyOrder.isDeleted && isUnpaid && Boolean(anyOrder.paymentLink || anyOrder.paymentId || anyOrder.trackId || anyOrder.transactionId || anyOrder.linkedInvoiceId || anyOrder.invoiceId || anyOrder.invoiceNo);
+      }) || [];
+      if (pendingInvoices.length === 0 && pendingOrders.length === 0) return;
       
       let updatedCount = 0;
       const updatedInvoices = [...currentData.invoices];
-      // Note: we can't be sure order changes are completely disjoint, but if we do this functionally it's safer.
       const updatedOrders = currentData.orders ? [...currentData.orders] : [];
+      const paidInvoiceIds = new Set<string>();
+      const paidOrderIds = new Set<string>();
 
       for (const inv of pendingInvoices) {
         try {
-          const paymentId = inv.paymentId || 'check_by_invoice';
+          const paymentId = (inv as any).paymentId || (inv as any).trackId || (inv as any).transactionId || paymentIdFromLink((inv as any).paymentLink) || 'check_by_invoice';
           let verified = false;
-
-          if (paymentId !== 'check_by_invoice') {
-             const res = await fetch('/api/invoice/confirm', {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ paymentId, invoiceId: inv.id })
-             });
-             
-             if (res.ok) {
-               const vData = await res.json();
-               if (vData.success && vData.verified) {
-                   verified = true;
-               }
-             }
+          let verifiedInvoiceId = inv.id;
+          const res = await fetch('/api/invoice/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId, invoiceId: inv.id })
+          });
+          
+          if (res.ok) {
+            const vData = await res.json();
+            if (vData.success && vData.verified) {
+              verified = true;
+              verifiedInvoiceId = vData.invoiceId || inv.id;
+            }
           }
 
           if (!verified) {
-             // Fallback: Check if the global firestore document was updated by the success link 
+             // Fallback: Check if the global firestore document was updated by the success link/webhook.
              try {
                  const docSnap = await getDoc(doc(db, 'invoices', inv.id));
                  if (docSnap.exists() && docSnap.data().paymentStatus === 'paid') {
@@ -1140,17 +1163,78 @@ const MainApp: React.FC = () => {
           }
 
           if (verified) {
-            const iIdx = updatedInvoices.findIndex(i => i.id === inv.id);
-            if (iIdx !== -1) {
-              updatedInvoices[iIdx] = { ...updatedInvoices[iIdx], paymentStatus: 'paid', status: 'مدفوعة' } as any;
-              updatedCount++;
-              
-              const oIdx = updatedOrders.findIndex(o => o.linkedInvoiceId === inv.id);
-              if (oIdx !== -1) {
-                // Ensure BOTH status and paymentStatus are updated to stay in sync
-                updatedOrders[oIdx] = { ...updatedOrders[oIdx], status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' } as any;
+            const invoiceIdsToMark = new Set<string>([inv.id, verifiedInvoiceId].filter(Boolean));
+            updatedInvoices.forEach((candidate, idx) => {
+              if (invoiceIdsToMark.has(candidate.id)) {
+                updatedInvoices[idx] = { ...candidate, paymentStatus: 'paid', status: 'مدفوعة' } as any;
+                paidInvoiceIds.add(candidate.id);
               }
+            });
+
+            updatedOrders.forEach((order, idx) => {
+              const matchesLinkedInvoice = invoiceIdsToMark.has((order as any).linkedInvoiceId || '') || invoiceIdsToMark.has((order as any).invoiceId || '') || invoiceIdsToMark.has((order as any).invoiceNo || '');
+              const matchesOrderId = invoiceIdsToMark.has(order.id);
+              if (matchesLinkedInvoice || matchesOrderId) {
+                updatedOrders[idx] = { ...order, status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' } as any;
+                paidOrderIds.add(order.id);
+              }
+            });
+
+            if (paidInvoiceIds.has(inv.id) || paidInvoiceIds.has(verifiedInvoiceId)) {
+              updatedCount++;
             }
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      for (const order of pendingOrders) {
+        if (paidOrderIds.has(order.id)) continue;
+        try {
+          const orderAny = order as any;
+          const linkedInvoiceId = String(orderAny.linkedInvoiceId || orderAny.invoiceId || orderAny.invoiceNo || order.id || '');
+          const paymentId = orderAny.paymentId || orderAny.trackId || orderAny.transactionId || paymentIdFromLink(orderAny.paymentLink) || 'check_by_invoice';
+          let verified = false;
+          let verifiedInvoiceId = linkedInvoiceId;
+
+          const res = await fetch('/api/invoice/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId, invoiceId: linkedInvoiceId })
+          });
+          if (res.ok) {
+            const vData = await res.json();
+            if (vData.success && vData.verified) {
+              verified = true;
+              verifiedInvoiceId = vData.invoiceId || linkedInvoiceId;
+            }
+          }
+
+          if (!verified && linkedInvoiceId) {
+            try {
+              const docSnap = await getDoc(doc(db, 'orders', order.id));
+              if (docSnap.exists() && docSnap.data().paymentStatus === 'paid') {
+                verified = true;
+              }
+            } catch(e) {}
+          }
+
+          if (verified) {
+            paidOrderIds.add(order.id);
+            updatedOrders.forEach((candidate, idx) => {
+              if (candidate.id === order.id) {
+                updatedOrders[idx] = { ...candidate, status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' } as any;
+              }
+            });
+            const invoiceIdsToMark = new Set<string>([linkedInvoiceId, verifiedInvoiceId].filter(Boolean));
+            updatedInvoices.forEach((candidate, idx) => {
+              if (invoiceIdsToMark.has(candidate.id)) {
+                updatedInvoices[idx] = { ...candidate, paymentStatus: 'paid', status: 'مدفوعة' } as any;
+                paidInvoiceIds.add(candidate.id);
+              }
+            });
+            updatedCount++;
           }
         } catch (e) {
           // ignore
@@ -1159,14 +1243,11 @@ const MainApp: React.FC = () => {
 
       if (updatedCount > 0) {
         setData(prev => {
-          // Functionally apply updates to avoid race conditions with other state changes
           const nextInvoices = prev.invoices.map(inv => {
-             const u = updatedInvoices.find(ui => ui.id === inv.id);
-             return u?.paymentStatus === 'paid' ? { ...inv, paymentStatus: 'paid', status: 'مدفوعة' } : inv;
+             return paidInvoiceIds.has(inv.id) ? { ...inv, paymentStatus: 'paid', status: 'مدفوعة' } : inv;
           }) as any;
           const nextOrders = (prev.orders || []).map(o => {
-             const u = updatedOrders.find(uo => uo.id === o.id);
-             return u?.paymentStatus === 'paid' ? { ...o, status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' } : o;
+             return paidOrderIds.has(o.id) ? { ...o, status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' } : o;
           }) as any;
           return { ...prev, invoices: nextInvoices, orders: nextOrders };
         });
