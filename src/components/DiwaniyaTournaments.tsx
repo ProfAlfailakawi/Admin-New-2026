@@ -283,6 +283,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
   const [editingTierId, setEditingTierId] = useState<number | null>(null);
   const [editedTier, setEditedTier] = useState<any>(null);
+  const [openTierPicker, setOpenTierPicker] = useState<'icon' | 'color' | null>(null);
   const [expandedSquadId, setExpandedSquadId] = useState<number | string | null>(null); // To expand squad details
   const [editingSquadId, setEditingSquadId] = useState<number | string | null>(null);
   const [editedSquadName, setEditedSquadName] = useState('');
@@ -648,12 +649,13 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     setTiers(tiers.map(t => t.id === editedTier.id ? editedTier : t));
     setEditingTierId(null);
     setEditedTier(null);
+    setOpenTierPicker(null);
     toast.success("تم تحديث المستوى بنجاح!");
   };
 
   const deleteTier = (id: number) => {
     setTiers(tiers.filter(t => t.id !== id));
-    if (editingTierId === id) { setEditingTierId(null); setEditedTier(null); }
+    if (editingTierId === id) { setEditingTierId(null); setEditedTier(null); setOpenTierPicker(null); }
     toast.success("تم حذف المستوى");
   };
 
@@ -1292,21 +1294,21 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color} shrink-0 shadow-sm mt-0.5`}>
                                    {getIcon(editedTier.iconType)}
                                  </div>
-                                 <details className="relative flex-1 group">
-                                   <summary className="list-none cursor-pointer w-full text-xs font-black bg-white border border-slate-200 p-2.5 rounded-xl outline-none hover:border-blue-400 flex items-center justify-between gap-2">
+                                 <details open={openTierPicker === 'icon'} className="relative flex-1 group">
+                                   <summary onClick={(e) => { e.preventDefault(); setOpenTierPicker(openTierPicker === 'icon' ? null : 'icon'); }} className="list-none cursor-pointer w-full min-h-[44px] text-sm font-black bg-white border border-slate-200 p-2.5 rounded-xl outline-none hover:border-blue-400 flex items-center justify-between gap-2">
                                      <span className="flex items-center gap-2">
                                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color} text-[13px]`}>{getIcon(editedTier.iconType)}</span>
                                        {tierIconOptions.find((icon) => icon.value === editedTier.iconType)?.label || 'اختر الشعار'}
                                      </span>
                                      <ChevronDown size={14} className="text-slate-400 group-open:rotate-180 transition-transform" />
                                    </summary>
-                                   <div className="absolute z-30 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl p-2 grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                                   <div className="absolute z-50 mt-2 w-full min-w-[290px] rounded-3xl border border-slate-200 bg-white/95 backdrop-blur shadow-2xl p-3 grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
                                      {tierIconOptions.map((icon) => (
                                        <button
                                          key={icon.value}
                                          type="button"
-                                         onClick={() => setEditedTier({...editedTier, iconType: icon.value})}
-                                         className={`flex items-center gap-2 rounded-xl border p-2 text-xs font-black transition-all ${editedTier.iconType === icon.value ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
+                                         onClick={() => { setEditedTier({...editedTier, iconType: icon.value}); setOpenTierPicker(null); }}
+                                         className={`min-h-[48px] flex items-center justify-between gap-2 rounded-2xl border p-2.5 text-sm font-black transition-all ${editedTier.iconType === icon.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
                                        >
                                          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color} text-[14px] shrink-0`}>{getIcon(icon.value)}</span>
                                          <span>{icon.label}</span>
@@ -1323,21 +1325,21 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                    className="w-9 h-9 rounded-full border-4 border-white shrink-0 shadow-sm mt-0.5"
                                    style={{ background: tierColorOptions.find((option) => option.value === editedTier.color)?.preview || '#f97316' }}
                                  />
-                                 <details className="relative flex-1 group">
-                                   <summary className="list-none cursor-pointer w-full text-xs font-black bg-white border border-slate-200 p-2.5 rounded-xl outline-none hover:border-blue-400 flex items-center justify-between gap-2">
+                                 <details open={openTierPicker === 'color'} className="relative flex-1 group">
+                                   <summary onClick={(e) => { e.preventDefault(); setOpenTierPicker(openTierPicker === 'color' ? null : 'color'); }} className="list-none cursor-pointer w-full min-h-[44px] text-sm font-black bg-white border border-slate-200 p-2.5 rounded-xl outline-none hover:border-blue-400 flex items-center justify-between gap-2">
                                      <span className="flex items-center gap-2">
                                        <span className="w-5 h-5 rounded-full border border-white shadow-sm" style={{ background: tierColorOptions.find((option) => option.value === editedTier.color)?.preview || '#f97316' }} />
                                        {tierColorOptions.find((option) => option.value === editedTier.color)?.label || 'اختر اللون'}
                                      </span>
                                      <ChevronDown size={14} className="text-slate-400 group-open:rotate-180 transition-transform" />
                                    </summary>
-                                   <div className="absolute z-40 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl p-2 grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                                   <div className="absolute z-50 mt-2 w-full min-w-[290px] rounded-3xl border border-slate-200 bg-white/95 backdrop-blur shadow-2xl p-3 grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
                                      {tierColorOptions.map((option) => (
                                        <button
                                          key={option.value}
                                          type="button"
-                                         onClick={() => setEditedTier({...editedTier, color: option.value, bgClass: option.bgClass})}
-                                         className={`flex items-center gap-2 rounded-xl border p-2 text-xs font-black transition-all ${editedTier.color === option.value ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
+                                         onClick={() => { setEditedTier({...editedTier, color: option.value, bgClass: option.bgClass}); setOpenTierPicker(null); }}
+                                         className={`min-h-[48px] flex items-center justify-between gap-2 rounded-2xl border p-2.5 text-sm font-black transition-all ${editedTier.color === option.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
                                        >
                                          <span className="w-7 h-7 rounded-full border-2 border-white shadow-sm shrink-0" style={{ background: option.preview }} />
                                          <span>{option.label}</span>
