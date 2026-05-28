@@ -224,28 +224,48 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
     }, 10000); // 10 seconds max wait for backend verification
 
     getDoc(doc(db, 'invoices', invoiceId)).then(snapshot => {
-       let actualPaymentId = paymentIdParam;
+       let actualPaymentId = paymentIdParam || '';
+       let actualTrackId = paymentIdParam || '';
+       let actualGatewayOrderId = '';
+       let actualPaymentLink = '';
        
        if (snapshot.exists()) {
-         const data = snapshot.data();
-         if (data.paymentId && data.paymentId.trim() !== '') {
-             actualPaymentId = data.paymentId;
-         }
+         const data: any = snapshot.data();
+         actualPaymentId = data.paymentTrackId || data.trackId || data.track_id || data.paymentId || actualPaymentId || '';
+         actualTrackId = data.paymentTrackId || data.trackId || data.track_id || paymentIdParam || '';
+         actualGatewayOrderId = data.gatewayOrderId || data.gateway_order_id || '';
+         actualPaymentLink = data.paymentLink || data.paymentUrl || data.payment_url || '';
        }
 
-       if (actualPaymentId && !isExplicitFail) {
+       if (!isExplicitFail) {
          fetch('/api/invoice/confirm', {
              method: 'POST',
-             signal: AbortSignal.timeout(8000), // 8s timeout
+             signal: AbortSignal.timeout(10000), // 10s timeout
              headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ paymentId: actualPaymentId, invoiceId })
+             body: JSON.stringify({
+               paymentId: actualPaymentId || actualTrackId || actualGatewayOrderId || 'check_by_invoice',
+               invoiceId,
+               trackId: actualTrackId,
+               paymentTrackId: actualTrackId,
+               gatewayOrderId: actualGatewayOrderId,
+               paymentLink: actualPaymentLink,
+             })
          }).then(res => res.json()).then(async (verifyObj) => {
              clearTimeout(verificationTimeout);
              let finalStatus: 'success' | 'failed' = 'failed';
              if (verifyObj.verified) {
                  finalStatus = 'success';
                  try {
-                    await updateDoc(doc(db, 'invoices', invoiceId), { paymentStatus: 'paid', status: 'مدفوعة', paymentId: actualPaymentId, verifiedByBackend: true });
+                    await updateDoc(doc(db, 'invoices', invoiceId), {
+                      paymentStatus: 'paid',
+                      status: 'تم الدفع وجاري التوصيل',
+                      paymentId: actualPaymentId || actualTrackId,
+                      payment_id: actualPaymentId || actualTrackId,
+                      paymentTrackId: actualTrackId || actualPaymentId,
+                      trackId: actualTrackId || actualPaymentId,
+                      gatewayOrderId: actualGatewayOrderId || verifyObj?.syncResult?.identifiers?.gatewayOrderIds?.[0] || '',
+                      verifiedByBackend: true
+                    });
                     const ordersSnap = await getDocs(query(collection(db, 'orders'), where('linkedInvoiceId', '==', invoiceId)));
                     const updatePromises: Promise<any>[] = [];
                     ordersSnap.forEach((orderDoc) => {
@@ -257,7 +277,17 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
                 if (urlIndicatesSuccess) {
                     finalStatus = 'success';
                     try {
-                       await updateDoc(doc(db, 'invoices', invoiceId), { paymentStatus: 'paid', status: 'مدفوعة', paymentId: actualPaymentId, verifiedByBackend: false, verificationError: verifyObj.debugData || 'not_found' });
+                       await updateDoc(doc(db, 'invoices', invoiceId), {
+                         paymentStatus: 'paid',
+                         status: 'تم الدفع وجاري التوصيل',
+                         paymentId: actualPaymentId || actualTrackId,
+                         payment_id: actualPaymentId || actualTrackId,
+                         paymentTrackId: actualTrackId || actualPaymentId,
+                         trackId: actualTrackId || actualPaymentId,
+                         gatewayOrderId: actualGatewayOrderId || verifyObj?.syncResult?.identifiers?.gatewayOrderIds?.[0] || '',
+                         verifiedByBackend: false,
+                         verificationError: verifyObj.debugData || 'not_found'
+                       });
                         const ordersSnap = await getDocs(query(collection(db, 'orders'), where('linkedInvoiceId', '==', invoiceId)));
                         const updatePromises: Promise<any>[] = [];
                         ordersSnap.forEach((orderDoc) => {
@@ -1094,170 +1124,185 @@ const MainApp: React.FC = () => {
   
   // AUTO SYNC BACKGROUND EFFECT FOR PAYMENTS
   const dataRef = useRef<AppState>(data);
+  const pendingPaymentCheckRef = useRef<Record<string, number>>({});
   useEffect(() => { dataRef.current = data; }, [data]);
 
   useEffect(() => {
     if (!isAuthenticated || dataLoading) return;
     
     const checkPendingPayments = async () => {
-      const paymentIdFromLink = (link: any) => {
-        const raw = String(link || '');
-        if (!raw) return '';
-        try {
-          const parsed = new URL(raw);
-          for (const key of ['track_id', 'trackid', 'payment_id', 'paymentId', 'charge_id', 'chargeId', 'id', 'session_id']) {
-            const found = parsed.searchParams.get(key);
-            if (found) return found;
-          }
-        } catch(e) {}
-        const queryMatch = raw.match(/[?&](?:track_id|trackid|payment_id|paymentId|charge_id|chargeId|session_id|id)=([^&#]+)/i);
-        if (queryMatch?.[1]) {
-          try { return decodeURIComponent(queryMatch[1]); } catch(e) { return queryMatch[1]; }
-        }
-        const pathMatch = raw.match(/\/(?:track|payment|charge|checkout|pay)\/([A-Za-z0-9_-]{12,})/i);
-        return pathMatch?.[1] || '';
-      };
-
       const currentData = dataRef.current;
-      const pendingInvoices = currentData.invoices?.filter(i => !i.isDeleted && (i.paymentStatus !== 'paid' && i.paymentStatus !== 'cancelled')) || [];
-      const pendingOrders = currentData.orders?.filter(o => {
-        const anyOrder = o as any;
-        const isUnpaid = anyOrder.paymentStatus !== 'paid' && anyOrder.paymentStatus !== 'cancelled' && !String(anyOrder.status || '').includes('تم الدفع');
-        return !anyOrder.isDeleted && isUnpaid && Boolean(anyOrder.paymentLink || anyOrder.paymentId || anyOrder.trackId || anyOrder.transactionId || anyOrder.linkedInvoiceId || anyOrder.invoiceId || anyOrder.invoiceNo);
-      }) || [];
-      if (pendingInvoices.length === 0 && pendingOrders.length === 0) return;
-      
-      let updatedCount = 0;
-      const updatedInvoices = [...currentData.invoices];
-      const updatedOrders = currentData.orders ? [...currentData.orders] : [];
-      const paidInvoiceIds = new Set<string>();
-      const paidOrderIds = new Set<string>();
+      const allPendingInvoices = (currentData.invoices || []).filter((i: any) => {
+        if (!i || i.isDeleted) return false;
+        const paymentStatus = String(i.paymentStatus || i.payment_status || '').toLowerCase();
+        if (paymentStatus.includes('cancel')) return false;
+        return !isPaidStatus(i.paymentStatus) && !isPaidStatus(i.status);
+      });
+      if (allPendingInvoices.length === 0) return;
 
-      for (const inv of pendingInvoices) {
+      const nowMs = Date.now();
+      const pendingInvoices = allPendingInvoices.filter((inv: any) => {
+        const id = String(inv.id || inv.invoiceId || inv.invoiceNo || '');
+        if (!id) return false;
+        const lastCheckedAt = pendingPaymentCheckRef.current[id] || 0;
+        return nowMs - lastCheckedAt > 60000;
+      }).slice(0, 12);
+      if (pendingInvoices.length === 0) return;
+      
+      let paidCount = 0;
+      let failedCount = 0;
+      const updatedInvoices = [...(currentData.invoices || [])];
+      const updatedOrders = currentData.orders ? [...currentData.orders] : [];
+
+      for (const inv of pendingInvoices as any[]) {
+        const invoiceId = String(inv.id || inv.invoiceId || inv.invoiceNo || '').trim();
+        if (!invoiceId) continue;
+        pendingPaymentCheckRef.current[invoiceId] = Date.now();
+
         try {
-          const paymentId = (inv as any).paymentId || (inv as any).trackId || (inv as any).transactionId || paymentIdFromLink((inv as any).paymentLink) || 'check_by_invoice';
+          const payload = {
+            invoiceId,
+            paymentId: inv.paymentId || inv.payment_id || '',
+            payment_id: inv.payment_id || inv.paymentId || '',
+            trackId: inv.trackId || inv.track_id || inv.paymentTrackId || '',
+            track_id: inv.track_id || inv.trackId || inv.paymentTrackId || '',
+            gatewayOrderId: inv.gatewayOrderId || inv.gateway_order_id || inv.merchantOrderId || '',
+            gateway_order_id: inv.gateway_order_id || inv.gatewayOrderId || inv.merchantOrderId || '',
+            paymentLink: inv.paymentLink || inv.paymentUrl || inv.paymentURL || inv.payment_url || '',
+          };
+
           let verified = false;
-          let verifiedInvoiceId = inv.id;
+          let failed = false;
+          let verificationData: any = null;
+
           const res = await fetch('/api/invoice/confirm', {
             method: 'POST',
+            signal: AbortSignal.timeout(10000),
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId, invoiceId: inv.id })
+            body: JSON.stringify(payload)
           });
           
           if (res.ok) {
-            const vData = await res.json();
-            if (vData.success && vData.verified) {
+            verificationData = await res.json();
+            if (verificationData.success && verificationData.verified) {
               verified = true;
-              verifiedInvoiceId = vData.invoiceId || inv.id;
+            } else if (verificationData.success && verificationData.state === 'failed') {
+              failed = true;
             }
           }
 
-          if (!verified) {
-             // Fallback: Check if the global firestore document was updated by the success link/webhook.
+          if (!verified && !failed) {
+             // Fallback: Check if the global Firestore document was updated by return/webhook sync.
              try {
-                 const docSnap = await getDoc(doc(db, 'invoices', inv.id));
-                 if (docSnap.exists() && docSnap.data().paymentStatus === 'paid') {
-                    verified = true;
+                 const docSnap = await getDoc(doc(db, 'invoices', invoiceId));
+                 if (docSnap.exists()) {
+                   const remoteData: any = docSnap.data();
+                   if (isPaidStatus(remoteData.paymentStatus) || isPaidStatus(remoteData.status)) {
+                      verified = true;
+                      verificationData = { ...(verificationData || {}), paymentId: remoteData.paymentId || remoteData.payment_id };
+                   }
                  }
              } catch(e) {}
           }
 
           if (verified) {
-            const invoiceIdsToMark = new Set<string>([inv.id, verifiedInvoiceId].filter(Boolean));
-            updatedInvoices.forEach((candidate, idx) => {
-              if (invoiceIdsToMark.has(candidate.id)) {
-                updatedInvoices[idx] = { ...candidate, paymentStatus: 'paid', status: 'مدفوعة' } as any;
-                paidInvoiceIds.add(candidate.id);
+            const paidAt = new Date().toISOString();
+            const paymentIdFromGateway =
+              verificationData?.paymentId ||
+              verificationData?.transaction?.payment_id ||
+              verificationData?.transaction?.track_id ||
+              inv.paymentId ||
+              inv.payment_id ||
+              '';
+            const iIdx = updatedInvoices.findIndex((i: any) => String(i.id || i.invoiceId || i.invoiceNo) === invoiceId);
+            if (iIdx !== -1 && !isPaidStatus((updatedInvoices[iIdx] as any).paymentStatus)) {
+              updatedInvoices[iIdx] = {
+                ...updatedInvoices[iIdx],
+                paymentStatus: 'paid',
+                payment_status: 'paid',
+                status: 'تم الدفع وجاري التوصيل',
+                paymentMethod: (updatedInvoices[iIdx] as any).paymentMethod || 'KNet',
+                paymentId: paymentIdFromGateway || (updatedInvoices[iIdx] as any).paymentId,
+                payment_id: paymentIdFromGateway || (updatedInvoices[iIdx] as any).payment_id,
+                paid: true,
+                failed: false,
+                canPay: false,
+                paidAt: (updatedInvoices[iIdx] as any).paidAt || paidAt,
+                paymentUpdatedAt: paidAt,
+                lastGatewaySyncSource: 'admin-auto-reconcile',
+              } as any;
+              paidCount++;
+            }
+
+            updatedOrders.forEach((order: any, idx: number) => {
+              const linkedId = String(order.linkedInvoiceId || order.invoiceId || order.invoiceNo || '');
+              if (linkedId === invoiceId && !isPaidStatus(order.paymentStatus) && !isPaidStatus(order.status)) {
+                updatedOrders[idx] = {
+                  ...order,
+                  status: 'تم الدفع وجاري التوصيل',
+                  paymentStatus: 'paid',
+                  payment_status: 'paid',
+                  paymentMethod: order.paymentMethod || 'KNet',
+                  paymentId: paymentIdFromGateway || order.paymentId,
+                  payment_id: paymentIdFromGateway || order.payment_id,
+                  paid: true,
+                  failed: false,
+                  canPay: false,
+                  paymentUpdatedAt: paidAt,
+                  lastGatewaySyncSource: 'admin-auto-reconcile',
+                } as any;
               }
             });
-
-            updatedOrders.forEach((order, idx) => {
-              const matchesLinkedInvoice = invoiceIdsToMark.has((order as any).linkedInvoiceId || '') || invoiceIdsToMark.has((order as any).invoiceId || '') || invoiceIdsToMark.has((order as any).invoiceNo || '');
-              const matchesOrderId = invoiceIdsToMark.has(order.id);
-              if (matchesLinkedInvoice || matchesOrderId) {
-                updatedOrders[idx] = { ...order, status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' } as any;
-                paidOrderIds.add(order.id);
-              }
-            });
-
-            if (paidInvoiceIds.has(inv.id) || paidInvoiceIds.has(verifiedInvoiceId)) {
-              updatedCount++;
+          } else if (failed) {
+            const failedAt = new Date().toISOString();
+            const iIdx = updatedInvoices.findIndex((i: any) => String(i.id || i.invoiceId || i.invoiceNo) === invoiceId);
+            if (iIdx !== -1 && !isPaidStatus((updatedInvoices[iIdx] as any).paymentStatus)) {
+              updatedInvoices[iIdx] = {
+                ...updatedInvoices[iIdx],
+                paymentStatus: 'failed',
+                payment_status: 'failed',
+                status: 'فشلت عملية الدفع',
+                failed: true,
+                paid: false,
+                canPay: true,
+                failedAt,
+                paymentUpdatedAt: failedAt,
+                lastGatewaySyncSource: 'admin-auto-reconcile',
+              } as any;
+              failedCount++;
             }
           }
         } catch (e) {
-          // ignore
+          // Keep the interface responsive; the next scheduled pass will retry safely.
         }
       }
 
-      for (const order of pendingOrders) {
-        if (paidOrderIds.has(order.id)) continue;
-        try {
-          const orderAny = order as any;
-          const linkedInvoiceId = String(orderAny.linkedInvoiceId || orderAny.invoiceId || orderAny.invoiceNo || order.id || '');
-          const paymentId = orderAny.paymentId || orderAny.trackId || orderAny.transactionId || paymentIdFromLink(orderAny.paymentLink) || 'check_by_invoice';
-          let verified = false;
-          let verifiedInvoiceId = linkedInvoiceId;
-
-          const res = await fetch('/api/invoice/confirm', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId, invoiceId: linkedInvoiceId })
-          });
-          if (res.ok) {
-            const vData = await res.json();
-            if (vData.success && vData.verified) {
-              verified = true;
-              verifiedInvoiceId = vData.invoiceId || linkedInvoiceId;
-            }
-          }
-
-          if (!verified && linkedInvoiceId) {
-            try {
-              const docSnap = await getDoc(doc(db, 'orders', order.id));
-              if (docSnap.exists() && docSnap.data().paymentStatus === 'paid') {
-                verified = true;
-              }
-            } catch(e) {}
-          }
-
-          if (verified) {
-            paidOrderIds.add(order.id);
-            updatedOrders.forEach((candidate, idx) => {
-              if (candidate.id === order.id) {
-                updatedOrders[idx] = { ...candidate, status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' } as any;
-              }
-            });
-            const invoiceIdsToMark = new Set<string>([linkedInvoiceId, verifiedInvoiceId].filter(Boolean));
-            updatedInvoices.forEach((candidate, idx) => {
-              if (invoiceIdsToMark.has(candidate.id)) {
-                updatedInvoices[idx] = { ...candidate, paymentStatus: 'paid', status: 'مدفوعة' } as any;
-                paidInvoiceIds.add(candidate.id);
-              }
-            });
-            updatedCount++;
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
-
-      if (updatedCount > 0) {
+      if (paidCount > 0 || failedCount > 0) {
         setData(prev => {
-          const nextInvoices = prev.invoices.map(inv => {
-             return paidInvoiceIds.has(inv.id) ? { ...inv, paymentStatus: 'paid', status: 'مدفوعة' } : inv;
+          const paidInvoiceIds = new Set(updatedInvoices.filter((inv: any) => isPaidStatus(inv.paymentStatus) || isPaidStatus(inv.status)).map((inv: any) => String(inv.id || inv.invoiceId || inv.invoiceNo)));
+          const failedInvoiceIds = new Set(updatedInvoices.filter((inv: any) => String(inv.paymentStatus || inv.payment_status || '').toLowerCase() === 'failed').map((inv: any) => String(inv.id || inv.invoiceId || inv.invoiceNo)));
+
+          const nextInvoices = prev.invoices.map((inv: any) => {
+             const u = updatedInvoices.find((ui: any) => String(ui.id || ui.invoiceId || ui.invoiceNo) === String(inv.id || inv.invoiceId || inv.invoiceNo));
+             if (!u) return inv;
+             if (paidInvoiceIds.has(String(inv.id || inv.invoiceId || inv.invoiceNo))) return { ...inv, ...u };
+             if (failedInvoiceIds.has(String(inv.id || inv.invoiceId || inv.invoiceNo))) return { ...inv, ...u };
+             return inv;
           }) as any;
-          const nextOrders = (prev.orders || []).map(o => {
-             return paidOrderIds.has(o.id) ? { ...o, status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' } : o;
+          const nextOrders = (prev.orders || []).map((o: any) => {
+             const u = updatedOrders.find((uo: any) => String(uo.id) === String(o.id));
+             if (u && (isPaidStatus(u.paymentStatus) || isPaidStatus(u.status) || String(u.paymentStatus || u.payment_status || '').toLowerCase() === 'failed')) return { ...o, ...u };
+             return o;
           }) as any;
           return { ...prev, invoices: nextInvoices, orders: nextOrders };
         });
-        toast.success(`تم التحديث التلقائي: ${updatedCount} معاملة كـ "مدفوع" ✅`);
+        if (paidCount > 0) toast.success(`تمت مطابقة ${paidCount} فاتورة مدفوعة تلقائياً ✅`);
       }
     };
 
-    const intervalId = setInterval(checkPendingPayments, 15000);
-    // Also run once shortly after mount/auth
-    const timeoutId = setTimeout(checkPendingPayments, 3000);
+    const intervalId = setInterval(checkPendingPayments, 20000);
+    // Also run once shortly after mount/auth.
+    const timeoutId = setTimeout(checkPendingPayments, 2500);
     
     return () => {
       clearInterval(intervalId);
@@ -2457,7 +2502,27 @@ const MainApp: React.FC = () => {
   }
 
   if (normalizedPath === '/success' || normalizedPath === '/cancel' || normalizedPath === '/failed' || normalizedPath === '/error' || isUpaymentsCallback || normalizedPath.startsWith('/invoice/')) {
-    const invoiceId = searchParams.get('requested_order_id') || searchParams.get('order_id') || path.split('/invoice/')[1];
+    const rawInvoiceId =
+      searchParams.get('requested_order_id') ||
+      searchParams.get('order_id') ||
+      searchParams.get('orderId') ||
+      searchParams.get('invoice') ||
+      searchParams.get('invoiceNo') ||
+      searchParams.get('invoice_no') ||
+      searchParams.get('invoice_id') ||
+      searchParams.get('reference_id') ||
+      searchParams.get('track_id') ||
+      path.split('/invoice/')[1] ||
+      '';
+    const decodedInvoiceId = (() => {
+      try {
+        return decodeURIComponent(String(rawInvoiceId).replace(/\+/g, ' ')).trim();
+      } catch {
+        return String(rawInvoiceId || '').trim();
+      }
+    })();
+    const embeddedInvoiceId = decodedInvoiceId.match(/(?:INV|ORD)-[A-Za-z0-9-]+(?:_\d+)?/i)?.[0] || decodedInvoiceId;
+    const invoiceId = embeddedInvoiceId.includes('_') ? embeddedInvoiceId.split('_')[0] : embeddedInvoiceId;
     return <PaymentFeedbackView invoiceId={invoiceId} path={normalizedPath} searchParams={searchParams} isUpaymentsCallback={isUpaymentsCallback} />;
   }
 
