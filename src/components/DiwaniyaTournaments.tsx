@@ -1299,13 +1299,13 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                          <div className="space-y-3 mt-2 font-sans">
                            <div className="space-y-3">
                              <div className="space-y-1.5">
-                               <label className="text-[10px] font-black text-slate-500 block">الشعار</label>
+                               <label className="text-xs font-bold text-slate-400 block px-1">الشعار والرمز</label>
                                <div className="flex items-start gap-2">
                                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color} shrink-0 shadow-sm mt-0.5`}>
                                    {getIcon(editedTier.iconType)}
                                  </div>
                                  <details open={openTierPicker === 'icon'} className="relative flex-1 group">
-                                   <summary onClick={(e) => { e.preventDefault(); setOpenTierPicker(openTierPicker === 'icon' ? null : 'icon'); }} className="list-none cursor-pointer w-full min-h-[44px] text-sm font-black bg-white border border-slate-200 p-2.5 rounded-xl outline-none hover:border-blue-400 flex items-center justify-between gap-2">
+                                   <summary onClick={(e) => { e.preventDefault(); setOpenTierPicker(openTierPicker === 'icon' ? null : 'icon'); }} className="list-none cursor-pointer w-full min-h-[44px] text-xs font-bold bg-white border border-slate-200 p-2.5 rounded-xl outline-none hover:border-blue-400 flex items-center justify-between gap-2 shadow-sm">
                                      <span className="flex items-center gap-2 whitespace-nowrap">
                                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color} text-[13px] shrink-0`}>{getIcon(editedTier.iconType)}</span>
                                        <span className="truncate">{tierIconOptions.find((icon) => icon.value === editedTier.iconType)?.label || 'اختر الشعار'}</span>
@@ -1318,7 +1318,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                          key={icon.value}
                                          type="button"
                                          onClick={() => { setEditedTier({...editedTier, iconType: icon.value}); setOpenTierPicker(null); }}
-                                         className={`min-h-[56px] flex items-center justify-between gap-2 rounded-2xl border px-3 py-2.5 text-sm font-black transition-all overflow-hidden ${editedTier.iconType === icon.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
+                                         className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2 text-[11px] font-bold transition-all ${editedTier.iconType === icon.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
                                        >
                                          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color} text-[14px] shrink-0`}>{getIcon(icon.value)}</span>
                                          <span className="whitespace-nowrap text-sm leading-none">{icon.label}</span>
@@ -1329,14 +1329,14 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                </div>
                              </div>
                              <div className="space-y-1.5">
-                               <label className="text-[10px] font-black text-slate-500 block">اللون</label>
+                               <label className="text-xs font-bold text-slate-400 block px-1">تنسيق اللون</label>
                                <div className="flex items-start gap-2">
                                  <span
                                    className="w-9 h-9 rounded-full border-4 border-white shrink-0 shadow-sm mt-0.5"
                                    style={{ background: tierColorOptions.find((option) => option.value === editedTier.color)?.preview || '#f97316' }}
                                  />
                                  <details open={openTierPicker === 'color'} className="relative flex-1 group">
-                                   <summary onClick={(e) => { e.preventDefault(); setOpenTierPicker(openTierPicker === 'color' ? null : 'color'); }} className="list-none cursor-pointer w-full min-h-[44px] text-sm font-black bg-white border border-slate-200 p-2.5 rounded-xl outline-none hover:border-blue-400 flex items-center justify-between gap-2">
+                                   <summary onClick={(e) => { e.preventDefault(); setOpenTierPicker(openTierPicker === 'color' ? null : 'color'); }} className="list-none cursor-pointer w-full min-h-[44px] text-xs font-bold bg-white border border-slate-200 p-2.5 rounded-xl outline-none hover:border-blue-400 flex items-center justify-between gap-2 shadow-sm">
                                      <span className="flex items-center gap-2 whitespace-nowrap">
                                        <span className="w-5 h-5 rounded-full border border-white shadow-sm shrink-0" style={{ background: tierColorOptions.find((option) => option.value === editedTier.color)?.preview || '#f97316' }} />
                                        <span className="truncate">{tierColorOptions.find((option) => option.value === editedTier.color)?.label || 'اختر اللون'}</span>
@@ -1349,7 +1349,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                          key={option.value}
                                          type="button"
                                          onClick={() => { setEditedTier({...editedTier, color: option.value, bgClass: option.bgClass}); setOpenTierPicker(null); }}
-                                         className={`min-h-[56px] flex items-center justify-between gap-2 rounded-2xl border px-3 py-2.5 text-sm font-black transition-all overflow-hidden ${editedTier.color === option.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
+                                         className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2 text-[11px] font-bold transition-all ${editedTier.color === option.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
                                        >
                                          <span className="w-7 h-7 rounded-full border-2 border-white shadow-sm shrink-0" style={{ background: option.preview }} />
                                          <span className="whitespace-nowrap text-sm leading-none">{option.label}</span>
@@ -1364,7 +1364,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                              type="text" 
                              value={editedTier.name} 
                              onChange={e => setEditedTier({...editedTier, name: e.target.value})}
-                             className="w-full text-sm font-bold bg-white border border-slate-200 p-2 rounded-lg"
+                             className="w-full text-xs font-bold bg-white border border-slate-200 p-2.5 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500/20"
                              placeholder="اسم المستوى"
                              autoFocus
                            />
@@ -1375,14 +1375,14 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                const engVal = e.target.value.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
                                setEditedTier({...editedTier, points: engVal});
                              }}
-                             className="w-full text-xs font-bold bg-white border border-slate-200 p-2 rounded-lg dir-ltr text-left"
+                             className="w-full text-xs font-bold bg-white border border-slate-200 p-2.5 rounded-xl dir-ltr text-left shadow-sm font-sans"
                              placeholder="النقاط المطلوبة"
                              dir="ltr"
                            />
                            <textarea 
                              value={editedTier.label} 
                              onChange={e => setEditedTier({...editedTier, label: e.target.value})}
-                             className="w-full text-xs font-bold bg-white border border-slate-200 p-2 rounded-lg resize-none h-16"
+                             className="w-full text-xs font-semibold bg-white border border-slate-200 p-2.5 rounded-xl resize-none h-20 leading-tight shadow-sm"
                              placeholder="وصف المكافأة"
                            />
                          </div>
