@@ -1,3 +1,5 @@
+import LZString from 'lz-string';
+
 type AnyRecord = Record<string, any>;
 
 const PROTECTED_EXACT_KEYS = new Set(['shared_company_data']);
@@ -44,6 +46,77 @@ const parseMaybeJson = (value: string | null) => {
     return JSON.parse(value);
   } catch {
     return value;
+  }
+};
+
+const compressValueIfNeeded = (value: string): string => {
+  if (value.length < 500) return value;
+  try {
+    const compressed = LZString.compressToBase64(value);
+    if (compressed && compressed.length < value.length) {
+      return `lz64:${compressed}`;
+    }
+  } catch (err) {
+    console.warn('[DATA_GUARD] Compression failed:', err);
+  }
+  return value;
+};
+
+const decompressValueIfNeeded = (value: string | null): string | null => {
+  if (!value) return value;
+  if (value.startsWith('lz64:')) {
+    try {
+      const decompressed = LZString.decompressFromBase64(value.slice(5));
+      if (decompressed !== null) return decompressed;
+    } catch (err) {
+      console.error('[DATA_GUARD] Decompression failed:', err);
+    }
+  }
+  return value;
+};
+
+export const optimizeAndShrinkStorage = () => {
+  if (!rawStorage) return;
+  try {
+    console.log('[DATA_GUARD] Initiating localStorage quota recovery and optimization...');
+    
+    // 1. Collect all keys
+    const allKeys: string[] = [];
+    for (let i = 0; i < rawStorage.length; i++) {
+      const k = rawStorage.key(i);
+      if (k) allKeys.push(k);
+    }
+
+    // 2. Remove redundant recovery and double-underscored fallback backups
+    allKeys.forEach(k => {
+      if (k.endsWith('__recovery') || k.endsWith('__last_good')) {
+        console.log(`[DATA_GUARD] Cleaning up redundant large backup key: ${k}`);
+        try { rawStorage.removeItem(k); } catch (e) {}
+      }
+    });
+
+    // 3. For all remaining protected keys, compress them if they are not already compressed
+    allKeys.forEach(k => {
+      if (isProtectedStorageKey(k) && !k.endsWith('__recovery') && !k.endsWith('__last_good')) {
+        try {
+          const rawVal = rawStorage.getItem(k);
+          if (rawVal && !rawVal.startsWith('lz64:')) {
+            const decompressed = decompressValueIfNeeded(rawVal);
+            if (decompressed && decompressed.length > 500) {
+              const compressed = LZString.compressToBase64(decompressed);
+              if (compressed && compressed.length < rawVal.length) {
+                console.log(`[DATA_GUARD] Optimizing and compressing key in-place: ${k} (size reduced from ${rawVal.length} to ${compressed.length})`);
+                rawStorage.setItem(k, `lz64:${compressed}`);
+              }
+            }
+          }
+        } catch (e) {
+          console.error(`[DATA_GUARD] Error compressing key ${k} in-place:`, e);
+        }
+      }
+    });
+  } catch (err) {
+    console.error('[DATA_GUARD] Storage shrink failed:', err);
   }
 };
 
@@ -125,21 +198,18 @@ export const safeMergeData = <T = any>(oldValue: any, newValue: T): T => {
 };
 
 const writeRaw = (key: string, value: string) => {
+  const finalValue = isProtectedStorageKey(key) ? compressValueIfNeeded(value) : value;
   try {
-    rawStorage?.setItem(key, value);
+    rawStorage?.setItem(key, finalValue);
   } catch (err: any) {
     if (err.name === 'QuotaExceededError' || err.message?.includes('quota')) {
-      console.error(`[DATA_GUARD] LocalStorage quota exceeded while writing '${key}'.`);
-      // Optional: try to clear oldest backups if quota is hit
+      console.error(`[DATA_GUARD] LocalStorage quota exceeded while writing '${key}'. Initiating compression recovery...`);
+      optimizeAndShrinkStorage();
       try {
-        const backupKeys = [];
-        for (let i = 0; i < (rawStorage?.length || 0); i++) {
-          const k = rawStorage?.key(i);
-          if (k && isBackupKey(k)) backupKeys.push(k);
-        }
-        // Remove oldest 2 backups to try making space
-        backupKeys.slice(0, 2).forEach(bk => rawStorage?.removeItem(bk));
-      } catch (e) {}
+        rawStorage?.setItem(key, finalValue);
+      } catch (retryErr) {
+        console.error('[DATA_GUARD] Retry failed after quota optimization:', retryErr);
+      }
     } else {
       console.error(`[DATA_GUARD] LocalStorage write error for '${key}':`, err);
     }
@@ -151,19 +221,17 @@ const rememberGoodCopy = (key: string, serializedValue: string) => {
   const parsed = parseMaybeJson(serializedValue);
   if (!hasMeaningfulData(parsed)) return;
 
-  // Avoid redundant backups for large files to save quota
-  // If the data is > 500KB, we only keep one backup
-  const isLarge = serializedValue.length > 500000;
-  
-  writeRaw(`${key}__last_good`, serializedValue);
+  const isLarge = serializedValue.length > 100000;
   
   if (!isLarge) {
+    writeRaw(`${key}__last_good`, serializedValue);
     writeRaw(`${key}__recovery`, JSON.stringify({
       savedAt: new Date().toISOString(),
       value: serializedValue,
     }));
   } else {
-    // For large files, cleanup the recovery key to save space
+    // For large files, cleanup old duplicates to save space
+    try { rawStorage.removeItem(`${key}__last_good`); } catch(e) {}
     try { rawStorage.removeItem(`${key}__recovery`); } catch(e) {}
   }
 };
@@ -171,14 +239,14 @@ const rememberGoodCopy = (key: string, serializedValue: string) => {
 export const readLastGoodStorageValue = (key: string): string | null => {
   if (!rawStorage) return null;
   const direct = rawStorage.getItem(`${key}__last_good`) || rawStorage.getItem(`${key}_last_good`) || rawStorage.getItem(`${key}_backup`);
-  if (direct) return direct;
-  const recovery = parseMaybeJson(rawStorage.getItem(`${key}__recovery`));
+  if (direct) return decompressValueIfNeeded(direct);
+  const recovery = parseMaybeJson(decompressValueIfNeeded(rawStorage.getItem(`${key}__recovery`)));
   return typeof recovery?.value === 'string' ? recovery.value : null;
 };
 
 export const getProtectedStorageItem = (key: string): string | null => {
   if (!rawStorage) return null;
-  const current = rawStorage.getItem(key);
+  const current = decompressValueIfNeeded(rawStorage.getItem(key));
   if (hasMeaningfulData(parseMaybeJson(current))) return current;
   const fallback = readLastGoodStorageValue(key);
   return hasMeaningfulData(parseMaybeJson(fallback)) ? fallback : current;
@@ -191,7 +259,7 @@ export const setProtectedStorageItem = (key: string, value: string): boolean => 
     return true;
   }
 
-  const current = rawStorage.getItem(key);
+  const current = decompressValueIfNeeded(rawStorage.getItem(key));
   // Optimization: If current value is exactly the same as incoming, skip everything
   if (current === value && value !== null) return true;
 
@@ -219,16 +287,21 @@ export const setProtectedStorageItem = (key: string, value: string): boolean => 
 
 export const removeProtectedStorageItemIntentionally = (key: string) => {
   if (!rawStorage) return;
-  const current = rawStorage.getItem(key);
+  const current = decompressValueIfNeeded(rawStorage.getItem(key));
   if (isProtectedStorageKey(key) && hasMeaningfulData(parseMaybeJson(current))) {
     rememberGoodCopy(key, current || '');
   }
   rawStorage.removeItem(key);
+  try { rawStorage.removeItem(`${key}__last_good`); } catch(e) {}
+  try { rawStorage.removeItem(`${key}__recovery`); } catch(e) {}
 };
 
 export const installLocalStorageDataGuard = () => {
   if (!rawStorage || (window as any).__ktkDataGuardInstalled) return;
   (window as any).__ktkDataGuardInstalled = true;
+
+  // Proactive run optimization at start to free up any clogged space
+  optimizeAndShrinkStorage();
 
   const guardedSetItem = function (key: string, value: string) {
     const storageKey = String(key);
@@ -240,10 +313,19 @@ export const installLocalStorageDataGuard = () => {
     rawStorage.setItem(storageKey, storageValue);
   };
 
+  const guardedGetItem = function (key: string) {
+    const storageKey = String(key);
+    const val = rawStorage.getItem(storageKey);
+    if (isProtectedStorageKey(storageKey)) {
+      return decompressValueIfNeeded(val);
+    }
+    return val;
+  };
+
   const guardedRemoveItem = function (key: string) {
     const storageKey = String(key);
     if (isProtectedStorageKey(storageKey) && !isBackupKey(storageKey)) {
-      const current = rawStorage.getItem(storageKey);
+      const current = decompressValueIfNeeded(rawStorage.getItem(storageKey));
       if (hasMeaningfulData(parseMaybeJson(current))) rememberGoodCopy(storageKey, current || '');
       console.warn(`[DATA_GUARD] Blocked removeItem for protected localStorage key '${storageKey}'.`);
       return;
@@ -266,6 +348,7 @@ export const installLocalStorageDataGuard = () => {
 
   const proto = Object.getPrototypeOf(window.localStorage);
   proto.setItem = guardedSetItem;
+  proto.getItem = guardedGetItem;
   proto.removeItem = guardedRemoveItem;
   proto.clear = guardedClear;
 };
