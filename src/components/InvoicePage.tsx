@@ -42,6 +42,7 @@ import {
   Customer,
   DeliveryType,
   PromoCode,
+  PaymentMethod,
 } from "../types";
 import {
   cn,
@@ -201,6 +202,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
     const [addressModified, setAddressModified] = useState(false);
     const [notesText, setNotesText] = useState("");
     const [isZenMode, setIsZenMode] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("KNet");
 
     const getWhatsAppLink = (invoice: Invoice) => {
       const customer = (data?.customers || []).find(
@@ -409,6 +411,7 @@ Alturath.kw`;
           setCart(newCart);
           setInvoiceDate(inv.date.slice(0, 10));
           setDiscountValue(inv.discount || 0);
+          setPaymentMethod(inv.paymentMethod || "KNet");
           
           const customer = (data.customers || []).find((c) => c.id === inv.customerId);
           if (customer) {
@@ -747,8 +750,12 @@ Alturath.kw`;
         }));
       }
 
-      if (!targetId || cartItems.length === 0)
-        return toast.error("بيانات ناقصة (اختر عميل ومنتجات)");
+      if (cartItems.length === 0) {
+        return toast.error("يجب اختيار منتجات أولاً قبل إصدار الفاتورة أو الدفع والاجمالي!");
+      }
+      if (!targetId) {
+        return toast.error("يرجى اختيار عميل أولاً!");
+      }
       if (
         !addressDetails.block ||
         !addressDetails.street ||
@@ -907,9 +914,9 @@ Alturath.kw`;
         totalCost: computeInvoiceCost(mockInv, data.products),
         profit: computeInvoiceProfit(mockInv, data.products),
         discount: discountAmount,
-        status: existingInvoice?.status || "بانتظار الدفع",
-        paymentStatus: existingInvoice?.paymentStatus || "pending",
-        paymentMethod: existingInvoice?.paymentMethod || "KNet",
+        status: existingInvoice?.status || (paymentMethod === "Cash" || paymentMethod === "BankTransfer" ? "تم الدفع" : "بانتظار الدفع"),
+        paymentStatus: existingInvoice?.paymentStatus || (paymentMethod === "Cash" || paymentMethod === "BankTransfer" ? "paid" : "pending"),
+        paymentMethod: paymentMethod,
         paymentLink: createdLink,
         paymentId: createdPaymentId,
         gatewayFee: data.settings.gatewayFeeAmount || 0,
@@ -1181,12 +1188,14 @@ Alturath.kw`;
             </h2>
 
             <div className="space-y-4 mb-6">
-              <input
-                type="date"
-                value={invoiceDate}
-                onChange={(e) => setInvoiceDate(e.target.value)}
-                className="w-full bg-slate-50 border rounded-xl sm:rounded-2xl p-2.5 sm:p-4 text-right font-bold text-xs sm:text-base"
-              />
+              <div className="w-full max-w-full overflow-hidden block box-border">
+                <input
+                  type="date"
+                  value={invoiceDate}
+                  onChange={(e) => setInvoiceDate(e.target.value)}
+                  className="w-full max-w-full bg-slate-50/80 border border-slate-200/80 rounded-xl sm:rounded-2xl px-3 py-2.5 sm:p-4 text-right font-black text-xs sm:text-base outline-none transition-all focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 [color-scheme:light] box-border block"
+                />
+              </div>
 
               <div className="relative">
                 <input
@@ -1299,18 +1308,18 @@ Alturath.kw`;
                 </motion.div>
               )}
 
-              <select
-                value={selectedZoneId}
-                onChange={handleZoneChange}
-                className="w-full bg-slate-50 border rounded-2xl p-4 text-right font-bold appearance-none"
-              >
-                <option value="">-- اختر المنطقة --</option>
-                {data.zones.map((z) => (
-                  <option key={z.id} value={z.id}>
-                    {z.name}
-                  </option>
-                ))}
-              </select>
+            <select
+              value={selectedZoneId}
+              onChange={handleZoneChange}
+              className="w-full bg-slate-50 border rounded-2xl p-4 text-right font-bold appearance-none outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+            >
+              <option value="">-- اختر المنطقة --</option>
+              {data.zones.map((z) => (
+                <option key={z.id} value={z.id}>
+                  {z.name}
+                </option>
+              ))}
+            </select>
 
               {/* فاتورة جديدة: خيارات طريقة التوصيل */}
               {!isPartner && (
@@ -1372,12 +1381,6 @@ Alturath.kw`;
               </div>
               )}
 
-              {isPartner && (
-                <div className="partner-delivery-note" dir="rtl">
-                  <strong>التوصيل شركة افتراضيًا</strong>
-                  <span>تم تبسيط الفاتورة للشريك بدون خيارات إضافية.</span>
-                </div>
-              )}
 
               {/* خيارات الخصم (رقم ونسبة) */}
               <div className="space-y-1.5 border-t border-b py-4 my-2" dir="rtl">
@@ -1472,164 +1475,181 @@ Alturath.kw`;
                   />
                 </label>
               </div>
-            </div>
 
-            <div className="max-h-60 overflow-y-auto space-y-3 mb-6">
-              {cartItems.map((it) => (
-                <div
-                  key={it.product!.id}
-                  className="p-3 border rounded-2xl bg-white space-y-2"
-                >
-                  <div className="flex justify-between items-start">
-                    <button
-                      onClick={() => deleteFromCart(it.product!.id)}
-                      className="text-slate-300 hover:text-rose-500"
-                    >
-                      <X size={14} />
-                    </button>
-                    <div className="text-right font-bold text-sm w-40">
-                      <div>{it.product!.name}</div>
-                      <div className="text-[9px] font-extralight text-slate-400 opacity-60 mt-0.5 tracking-tighter">
-                        {(data.suppliers || []).find(s => s.id === it.product!.supplierId)?.name}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2 bg-slate-50 rounded-lg p-1">
-                      <button
-                        onClick={() => removeFromCart(it.product!.id)}
-                        className="p-1 hover:bg-white text-slate-500"
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <span className="font-bold text-xs">{it.qty}</span>
-                      <button
-                        onClick={() => addToCart(it.product!.id)}
-                        className="p-1 hover:bg-white text-slate-500"
-                      >
-                        <Plus size={12} />
-                      </button>
-                    </div>
-                    <div className="text-left leading-4">
-                      <div className="font-bold text-slate-500 text-[10px]">
-                        {Number(
-                          it.priceAtTime || it.product!.price || 0,
-                        ).toFixed(3)}{" "}
-                        د.ك للحبة
-                      </div>
-                      <div className="font-bold text-primary text-xs">
-                        الإجمالي:{" "}
-                        {(
-                          Number(it.priceAtTime || it.product!.price || 0) *
-                          Number(it.qty || 1)
-                        ).toFixed(3)}{" "}
-                        د.ك
-                      </div>
-                    </div>
-                  </div>
-
-                  {Array.isArray(it.product!.addons) &&
-                    it.product!.addons.length > 0 && (
-                      <div className="space-y-2 pt-2 border-t border-slate-50">
-                        <div className="text-[10px] font-bold text-slate-400 mb-1">
-                          إضافات الوجبة:
-                        </div>
-                        <div className="grid grid-cols-1 gap-1.5">
-                          {normalizeAddonArray(it.product!.addons).map((a: any) => {
-                            const cartAddon = (
-                              Array.isArray(it.addons) ? it.addons : []
-                            ).find((ca) => getAddonKey(ca) === getAddonKey(a));
-                            const effectiveAddon = { ...a, ...(cartAddon || {}) };
-                            const limits = getAddonRuleLimits(effectiveAddon, it.qty || 1);
-                            const currentQty = cartAddon
-                              ? cartAddon.quantity
-                              : 0;
-                            const isFreePricing =
-                              Number(a.freeQuantity || 0) > 0;
-                            return (
-                              <div
-                                key={getAddonKey(a)}
-                                className={cn(
-                                  "flex justify-between items-center p-1.5 rounded-lg",
-                                  limits.available ? "bg-slate-100/50" : "bg-slate-50 opacity-60",
-                                )}
-                              >
-                                <div className="flex items-center gap-1.5 bg-white rounded-md p-0.5 border border-slate-200">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      updateAddonQuantity(
-                                        it.product!.id,
-                                        getAddonKey(a),
-                                        -1,
-                                      )
-                                    }
-                                    className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 rounded text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed"
-                                    disabled={
-                                      !limits.available || currentQty <= limits.min
-                                    }
-                                  >
-                                    <Minus size={11} />
-                                  </button>
-                                  <span className="text-[10px] font-black min-w-5 text-center">
-                                    {currentQty}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      updateAddonQuantity(
-                                        it.product!.id,
-                                        getAddonKey(a),
-                                        1,
-                                      )
-                                    }
-                                    className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 rounded text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed"
-                                    disabled={
-                                      !limits.available || currentQty >= limits.max
-                                    }
-                                  >
-                                    <Plus size={11} />
-                                  </button>
-                                </div>
-                                <div className="flex flex-col items-end">
-                                  <span className="text-[10px] font-bold text-slate-700">
-                                    {a.name}
-                                  </span>
-                                  {a.isHiddenPrice ? null : (
-                                    <span className="text-[8px] text-slate-400">
-                                      {Number(a.price || 0).toFixed(3)} د.ك
-                                    </span>
-                                  )}
-                                  {Number(a.freeQuantity || 0) > 0 && (
-                                    <span className="text-[8px] text-emerald-600 font-bold">
-                                      أول {a.freeQuantity} مجاناً
-                                    </span>
-                                  )}
-                                  {(a.isRequired || Number(a.minQuantity || 0) > 0 || a.quantityRule?.mode === "required") && (
-                                    <span className="text-[8px] text-indigo-500 font-bold">
-                                      إلزامي
-                                    </span>
-                                  )}
-                                  {!limits.available && (
-                                    <span className="text-[8px] text-amber-600 font-bold">
-                                      متاحة من كمية {limits.minProductQty}+
-                                    </span>
-                                  )}
-                                  {limits.available && a.quantityRule?.enabled && (
-                                    <span className="text-[8px] text-slate-400 font-bold">
-                                      المقترح {limits.suggested}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+              {/* Products List (المنتجات) list inside the sidebar - Moved here under the address */}
+              <div className="border-t border-b border-indigo-50/50 py-4 my-4">
+                <div className="text-sm font-black text-slate-800 text-right mb-3 flex items-center justify-between">
+                  <span>المنتجات في السلة</span>
+                  <span className="text-xs bg-rose-50 text-rose-600 px-2.5 py-1 rounded-full">{cartItems.length} أصناف</span>
                 </div>
-              ))}
+                
+                {cartItems.length === 0 ? (
+                  <div className="p-6 text-center text-slate-400 font-bold border border-dashed rounded-2xl text-xs bg-slate-50/50">
+                    السلة فارغة. يرجى اختيار منتجات لإضافتها.
+                  </div>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto space-y-3 pr-1">
+                    {cartItems.map((it) => (
+                      <div
+                        key={it.product!.id}
+                        className="p-3 border rounded-2xl bg-white space-y-2 hover:shadow-sm transition-all shadow-sm"
+                      >
+                        <div className="flex justify-between items-start">
+                          <button
+                            type="button"
+                            onClick={() => deleteFromCart(it.product!.id)}
+                            className="text-slate-300 hover:text-rose-500 p-1 rounded-lg hover:bg-slate-50 transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                          <div className="text-right font-bold text-sm w-40">
+                            <div className="truncate">{it.product!.name}</div>
+                            <div className="text-[9px] font-extralight text-slate-400 opacity-60 mt-0.5 tracking-tighter">
+                              {(data.suppliers || []).find(s => s.id === it.product!.supplierId)?.name}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2 bg-slate-50 rounded-lg p-1">
+                            <button
+                              type="button"
+                              onClick={() => removeFromCart(it.product!.id)}
+                              className="p-1.5 hover:bg-white text-slate-600 rounded"
+                            >
+                              <Minus size={12} />
+                            </button>
+                            <span className="font-bold text-xs px-1 min-w-[14px] text-center">{it.qty}</span>
+                            <button
+                              type="button"
+                              onClick={() => addToCart(it.product!.id)}
+                              className="p-1.5 hover:bg-white text-slate-600 rounded"
+                            >
+                              <Plus size={12} />
+                            </button>
+                          </div>
+                          <div className="text-left leading-4">
+                            <div className="font-bold text-slate-500 text-[10px]">
+                              {Number(
+                                it.priceAtTime || it.product!.price || 0,
+                              ).toFixed(3)}{" "}
+                              د.ك للحبة
+                            </div>
+                            <div className="font-bold text-primary text-xs">
+                              الإجمالي:{" "}
+                              {(
+                                Number(it.priceAtTime || it.product!.price || 0) *
+                                Number(it.qty || 1)
+                              ).toFixed(3)}{" "}
+                              د.ك
+                            </div>
+                          </div>
+                        </div>
+
+                        {Array.isArray(it.product!.addons) &&
+                          it.product!.addons.length > 0 && (
+                            <div className="space-y-2 pt-2 border-t border-slate-50">
+                              <div className="text-[10px] font-bold text-slate-400 mb-1">
+                                إضافات الوجبة:
+                              </div>
+                              <div className="grid grid-cols-1 gap-1.5">
+                                {normalizeAddonArray(it.product!.addons).map((a: any) => {
+                                  const cartAddon = (
+                                    Array.isArray(it.addons) ? it.addons : []
+                                  ).find((ca) => getAddonKey(ca) === getAddonKey(a));
+                                  const effectiveAddon = { ...a, ...(cartAddon || {}) };
+                                  const limits = getAddonRuleLimits(effectiveAddon, it.qty || 1);
+                                  const currentQty = cartAddon
+                                    ? cartAddon.quantity
+                                    : 0;
+                                  return (
+                                    <div
+                                      key={getAddonKey(a)}
+                                      className={cn(
+                                        "flex justify-between items-center p-1.5 rounded-lg",
+                                        limits.available ? "bg-slate-100/50" : "bg-slate-50 opacity-60",
+                                      )}
+                                    >
+                                      <div className="flex items-center gap-1.5 bg-white rounded-md p-0.5 border border-slate-200">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            updateAddonQuantity(
+                                              it.product!.id,
+                                              getAddonKey(a),
+                                              -1,
+                                            )
+                                          }
+                                          className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 rounded text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                          disabled={
+                                            !limits.available || currentQty <= limits.min
+                                          }
+                                        >
+                                          <Minus size={11} />
+                                        </button>
+                                        <span className="text-[10px] font-black min-w-5 text-center">
+                                          {currentQty}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            updateAddonQuantity(
+                                              it.product!.id,
+                                              getAddonKey(a),
+                                              1,
+                                            )
+                                          }
+                                          className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 rounded text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                          disabled={
+                                            !limits.available || currentQty >= limits.max
+                                          }
+                                        >
+                                          <Plus size={11} />
+                                        </button>
+                                      </div>
+                                      <div className="flex flex-col items-end">
+                                        <span className="text-[10px] font-bold text-slate-700">
+                                          {a.name}
+                                        </span>
+                                        {a.isHiddenPrice ? null : (
+                                          <span className="text-[8px] text-slate-400">
+                                            {Number(a.price || 0).toFixed(3)} د.ك
+                                          </span>
+                                        )}
+                                        {Number(a.freeQuantity || 0) > 0 && (
+                                          <span className="text-[8px] text-emerald-600 font-bold">
+                                            أول {a.freeQuantity} مجاناً
+                                          </span>
+                                        )}
+                                        {(a.isRequired || Number(a.minQuantity || 0) > 0 || a.quantityRule?.mode === "required") && (
+                                          <span className="text-[8px] text-indigo-500 font-bold">
+                                            إلزامي
+                                          </span>
+                                        )}
+                                        {!limits.available && (
+                                          <span className="text-[8px] text-amber-600 font-bold">
+                                            متاحة من كمية {limits.minProductQty}+
+                                          </span>
+                                        )}
+                                        {limits.available && a.quantityRule?.enabled && (
+                                          <span className="text-[8px] text-slate-400 font-bold">
+                                            المقترح {limits.suggested}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
+
+
 
             <div className="space-y-2 border-t pt-4 invoice-mobile-total">
               <div className="flex justify-between text-xs text-slate-500 font-bold">

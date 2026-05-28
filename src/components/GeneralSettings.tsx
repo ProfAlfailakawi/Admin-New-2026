@@ -857,7 +857,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  </div>
 
  <div className="space-y-4">
- <label className="text-sm font-medium text-slate-700 block">شعار الشركة (خلفية شفافة)</label>
+ <label className="text-sm font-medium text-slate-700 block">شعار الشركة <span className="hidden sm:inline text-slate-400 font-normal hover:text-slate-500">(خلفية شفافة)</span></label>
  <div className="flex items-center gap-3 md:p-4">
  <LogoEngine 
  src={settings.companyLogo || DEFAULT_GLOBAL_LOGO} 

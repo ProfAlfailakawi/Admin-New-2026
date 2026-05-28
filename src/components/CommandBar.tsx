@@ -374,11 +374,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
               )}
             </div>
 
-            <div className="command-premium-footer">
-              <span>Enter للتنفيذ</span>
-              <span>↑ ↓ للتنقل</span>
-              <span>Esc للإغلاق</span>
-            </div>
+
 
           </motion.div>
         </div>
