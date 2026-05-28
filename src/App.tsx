@@ -1973,15 +1973,12 @@ const MainApp: React.FC = () => {
 	            const shardData = shardSnap.data() as any;
 	            let parsedData: any = undefined;
 	            if (shardData?.isCompressed && shardData.compressedData) {
-	              const decompressed = LZString.decompressFromBase64(shardData.compressedData);
-	              if (decompressed) parsedData = JSON.parse(decompressed);
-	            } else if (shardData && shardData[key] !== undefined) {
-	              parsedData = shardData[key];
-	            }
-	            if (canUseLocalCloudSnapshot && !hasMeaningfulData(parsedData) && hasMeaningfulData((localCloudSnapshot as any)?.[key])) {
-	              parsedData = (localCloudSnapshot as any)[key];
-	            }
-	            return { key, exists: true, value: parsedData };
+              const decompressed = LZString.decompressFromBase64(shardData.compressedData);
+              if (decompressed) parsedData = JSON.parse(decompressed);
+            } else if (shardData && shardData[key] !== undefined) {
+              parsedData = shardData[key];
+            }
+            return { key, exists: true, value: parsedData };
           } catch (err) {
             console.error(`Shard load error for ${key}:`, err);
             return { key, exists: false, value: undefined };
@@ -2044,9 +2041,6 @@ const MainApp: React.FC = () => {
           }
         }
 
-	        if (cloudRootExistsRef.current && canUseLocalCloudSnapshot) {
-	          loadedState = safeMergeData(localCloudSnapshot, loadedState);
-	        }
 	        setData(loadedState);
 	        lastRemoteSnapshotRef.current = JSON.stringify(loadedState);
 	        try {
