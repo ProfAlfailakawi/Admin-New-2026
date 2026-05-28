@@ -2108,15 +2108,15 @@ const [isPending, startTransition] = useTransition();
           nextSupplierNegotiationInsights,
           nextHealthIndex;
         try {
-          if (isPulse || isCustomers)
+          if (isPulse || isCustomers || isFinancials) {
             nextInsights = generateBusinessInsights(data);
+            nextProfitInsights = generateRealProfitAnalysis(data);
+          }
           if (isGrowth) nextAutoStrategies = generateAutoStrategies(data);
           if (isIntelligenceGroup) {
             nextHiddenRisks = generateHiddenRisks(data);
             nextAiLearningLogs = generateAILearningInsights(data);
           }
-          if (isFinancials)
-            nextProfitInsights = generateRealProfitAnalysis(data);
           if (isSuppliers)
             nextSupplierNegotiationInsights =
               generateSupplierNegotiationAnalysis(data);
@@ -3992,6 +3992,35 @@ const [isPending, startTransition] = useTransition();
 
             {activeTab === "pulse" && (
               <React.Fragment>
+                {/* Real Profit Alert Hero - High Visibility */}
+                {profitInsights.some(insight => insight.riskLevel === 'high') && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-slate-950 border border-rose-500/30 rounded-3xl p-5 md:p-6 shadow-2xl relative overflow-hidden group cursor-pointer mb-6"
+                    onClick={() => setActiveTab('financials')}
+                  >
+                    <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-rose-500/10 to-transparent pointer-events-none" />
+                    <div className="flex flex-col md:flex-row-reverse items-center justify-between gap-6 relative z-10">
+                      <div className="flex items-center gap-6 flex-row-reverse">
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30 group-hover:scale-110 transition-transform">
+                          <ShieldAlert size={32} strokeWidth={2.5} />
+                        </div>
+                        <div className="text-right">
+                          <h3 className="text-xl md:text-2xl font-black text-white mb-1">رادار حماية الأرباح نشط 🛡️</h3>
+                          <p className="text-slate-400 text-sm font-bold">
+                            رصدنا {profitInsights.filter(i => i.riskLevel === 'high').length} منتجات تعاني من "نزيف مالي" صامت. اضغط للمراجعة الفورية.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <button className="px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl font-black text-sm shadow-xl shadow-rose-900/20 transition-all active:scale-95 whitespace-nowrap">
+                          مراجعة التآكل المالي
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
                 {/* Quick Access Tasks Hidden as requested */}
                 {/* 
                 <div className="mb-4" dir="rtl">

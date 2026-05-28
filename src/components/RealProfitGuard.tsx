@@ -245,21 +245,38 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
 
  return (
  <div className="space-y-6">
- <div className="flex flex-col md:flex-row justify-between items-center bg-slate-950 p-3 md:p-4 rounded-2xl border border-amber-500/20 shadow-xl flex-row-reverse gap-4 relative overflow-hidden">
- <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(245,158,11,0.1)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
+ <div className="flex flex-col md:flex-row justify-between items-center bg-slate-950 p-5 rounded-3xl border border-rose-500/30 shadow-[0_20px_50px_rgba(225,29,72,0.15)] flex-row-reverse gap-4 relative overflow-hidden">
+ <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(225,29,72,0.1)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
  <div className="text-right relative z-10">
- <h3 className="font-bold text-xl text-white">حارس الربحية الذكي</h3>
- <p className="text-amber-400 text-[10px] font-bold mt-1">يراقب الإيراد والتكلفة والهامش والمخاطر</p>
+ <div className="flex items-center gap-2 justify-end mb-1">
+ <span className="bg-rose-500/20 text-rose-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-500/30 uppercase tracking-[0.2em]">Active Protection</span>
+ <h3 className="font-black text-2xl text-white">رادار الدرع المالي</h3>
  </div>
- <div className="flex items-center gap-3 bg-emerald-500/10 px-4 py-2 rounded-full border border-emerald-500/30 relative z-10">
- <CheckCircle2 className="text-emerald-400" size={14} />
- <span className="text-[10px] font-bold text-emerald-300 uppercase">تحديث لحظي</span>
+ <p className="text-slate-400 text-[10px] font-bold mt-1">نظام حماية يراقب هوامش الربح بدقة ويكشف تآكل الأرباح فورا</p>
+ </div>
+ <div className="flex items-center gap-3 bg-rose-500/10 px-4 py-2 rounded-full border border-rose-500/30 relative z-10">
+ <ShieldAlert className="text-rose-400 animate-pulse" size={14} />
+ <span className="text-[10px] font-bold text-rose-300 uppercase">الدرع نشط</span>
  </div>
  </div>
 
- <div className="flex justify-between items-center px-1 text-[10px] font-bold text-slate-500 uppercase">
- <span>{filteredInsights.length} منتج متاح للتحليل</span>
- <span>قائمة المنتجات</span>
+ {validInsights.some(i => i.riskLevel === 'high') && (
+   <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex items-start gap-4 flex-row-reverse animate-in fade-in slide-in-from-top-4">
+     <div className="w-10 h-10 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center shrink-0 shadow-sm">
+       <AlertTriangle size={20} />
+     </div>
+     <div className="text-right flex-1">
+       <h4 className="font-black text-rose-900 text-sm mb-1">تنبيهات الدرع الحيوية</h4>
+       <p className="text-xs font-bold text-rose-700 leading-relaxed">
+         تم رصد {validInsights.filter(i => i.riskLevel === 'high').length} أصناف تعاني من تآكل حاد في الهامش. أي زيادة في التكلفة قد تعني خسارة صامتة لهذا المنتج.
+       </p>
+     </div>
+   </div>
+ )}
+
+ <div className="flex justify-between items-center px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+ <span>{filteredInsights.length} منتج تحت المراقبة</span>
+ <span>تحليل الهوامش والنزيف</span>
  </div>
 
  <div className="overflow-y-auto grid grid-cols-1 gap-3 pl-2 custom-scrollbar" style={{ maxHeight: '332px' }}>

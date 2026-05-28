@@ -591,53 +591,63 @@ export function generateRealProfitAnalysis(data: AppState): RealProfitInsight[] 
     (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined)
   );
   
-  if (products.length === 0 || invoices.length === 0) return [];
+  if (products.length === 0) return [];
 
   const analysis: RealProfitInsight[] = [];
 
+  // if (invoices.length === 0) { ... fallback to products ... }
+  // Actually, we can just unify the logic: for each product, if no invoices, use current price/cost as estimate.
+  
   products.forEach(product => {
     const productInvoices = invoices.filter(inv => 
       inv.items.some(item => item.productId === product.id)
     );
 
-    if (productInvoices.length === 0) return;
-
     let totalRevenue = 0;
     let totalRawCost = 0;
     let totalGatewayFeesAllocated = 0;
     let totalDeliveryLossAllocated = 0;
+    let quantity = 0;
 
-    productInvoices.forEach(inv => {
-      // Find the item in this invoice
-      const item = inv.items.find(i => i.productId === product.id);
-      if (!item) return;
+    if (productInvoices.length > 0) {
+      productInvoices.forEach(inv => {
+        const item = inv.items.find(i => i.productId === product.id);
+        if (!item) return;
 
-      const quantitySafe = item.quantity || 0;
-      const priceSafe = item.priceAtTime !== undefined ? item.priceAtTime : (product.price || 0);
-      const costSafe = item.costAtTime !== undefined ? item.costAtTime : (product.cost || 0);
+        const quantitySafe = item.quantity || 0;
+        const priceSafe = item.priceAtTime !== undefined ? item.priceAtTime : (product.price || 0);
+        const costSafe = item.costAtTime !== undefined ? item.costAtTime : (product.cost || 0);
 
-      const itemRevenue = quantitySafe * priceSafe;
-      const itemCost = quantitySafe * costSafe;
-      
-      totalRevenue += itemRevenue;
-      totalRawCost += itemCost;
+        const itemRevenue = quantitySafe * priceSafe;
+        const itemCost = quantitySafe * costSafe;
+        
+        totalRevenue += itemRevenue;
+        totalRawCost += itemCost;
+        quantity += quantitySafe;
 
-      // Allocate gateway fees based on revenue share in the invoice
-      const invTotal = inv.totalAmount || 0;
-      const revenueRatio = invTotal > 0 ? (itemRevenue / invTotal) : 0;
-      totalGatewayFeesAllocated += (inv.gatewayFee || 0) * revenueRatio;
+        const invTotal = inv.totalAmount || 0;
+        const revenueRatio = invTotal > 0 ? (itemRevenue / invTotal) : 0;
+        totalGatewayFeesAllocated += (inv.gatewayFee || 0) * revenueRatio;
 
-      // Allocate delivery loss if any
-      const deliveryLoss = Math.max(0, (inv.deliveryInfo?.cost || 0) - (inv.deliveryFee || 0));
-      totalDeliveryLossAllocated += deliveryLoss * revenueRatio;
-    });
+        const deliveryLoss = Math.max(0, (inv.deliveryInfo?.cost || 0) - (inv.deliveryFee || 0));
+        totalDeliveryLossAllocated += deliveryLoss * revenueRatio;
+      });
+    } else {
+      // ESTIMATE for products with no sales yet
+      const price = product.price || 0;
+      const cost = product.cost || 0;
+      totalRevenue = price; // represent 1 unit for analysis
+      totalRawCost = cost;
+      quantity = 0; // mark as no real sales
+      // estimate standard hidden costs (approx 12% in Kuwait for online)
+      totalGatewayFeesAllocated = price * 0.03; // ~3% gateway
+      totalDeliveryLossAllocated = price * 0.08; // ~8% typical delivery subsidization
+    }
 
     const rawProfit = totalRevenue - totalRawCost;
-    // Real Profit factors in gateway fees and delivery losses
     const realProfitValue = rawProfit - totalGatewayFeesAllocated - totalDeliveryLossAllocated;
     const hiddenCostsRatio = totalRevenue > 0 ? (totalGatewayFeesAllocated + totalDeliveryLossAllocated) / totalRevenue : 0;
     
-    // Logic to detect "Misleading" products
     let explanation = '';
     let recommendation = '';
     let riskLevel: 'high' | 'medium' | 'low' = 'low';
@@ -645,7 +655,15 @@ export function generateRealProfitAnalysis(data: AppState): RealProfitInsight[] 
     const marginRaw = totalRevenue > 0 ? (rawProfit / totalRevenue) : 0;
     const marginReal = totalRevenue > 0 ? (realProfitValue / totalRevenue) : 0;
 
-    if (marginReal < 0.1 && marginRaw > 0.25) {
+    if (quantity === 0) {
+       explanation = `هذا المنتج لم يتم بيعه بعد، ولكن بناءً على التكلفة والسعر، سيكون الهامش المتوقع ${(marginReal * 100).toFixed(1)}% بعد التكاليف المخفية.`;
+       if (marginReal < 0.15) {
+         riskLevel = 'medium';
+         recommendation = 'الهامش المتوقع منخفض نوعاً ما؛ ابحث عن تقليل التكلفة قبل البدء بالبيع المكثف.';
+       } else {
+         recommendation = 'الهامش المتوقع صحي؛ يمكنك البدء بالترويج للمنتج بثقة.';
+       }
+    } else if (marginReal < 0.1 && marginRaw > 0.25) {
       riskLevel = 'high';
       explanation = `هذا المنتج يبدو مربحاً ظاهرياً (هامش ${ (marginRaw * 100).toFixed(0) }%)، لكن بعد احتساب رسوم بوابة الدفع وخسائر التوصيل الموزعة، ينخفض الربح الحقيقي إلى ${(marginReal * 100).toFixed(1)}%.`;
       recommendation = `يُنصح برفع السعر بنسبة 10% أو تقليل تكلفة المواد الأولية، كما يجب مراجعة عقود التوصيل لهذه الفئة.`;

@@ -255,16 +255,20 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  };
 
  return (
- <div className="space-y-6">
- <div className="flex justify-end gap-4 text-right">
- <button 
- onClick={() => setShowAddModal(true)}
- className="bg-slate-900 border border-slate-800 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95"
- >
- <CreditCard size={20} />
- <span>إضافة تحويل مالي</span>
- </button>
- </div>
+ <div className="space-y-8 pt-12 md:pt-16 pb-20">
+   <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6" dir="rtl">
+     <div className="text-right">
+       <h1 className="text-3xl font-black text-slate-900 tracking-tight">كشف الحساب المالي التفصيلي</h1>
+       <p className="text-slate-500 font-bold mt-1">سجل التوريد والسداد والتدقيق المالي الشامل</p>
+     </div>
+     <button 
+     onClick={() => setShowAddModal(true)}
+     className="w-full md:w-auto bg-slate-900 border border-slate-800 text-white px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95"
+     >
+     <CreditCard size={22} />
+     <span>تسجيل تحويل مالي جديد</span>
+     </button>
+   </div>
 
  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-right">
  <div className="bg-emerald-600 p-3 md:p-4 rounded-[20px] md:rounded-3xl text-white shadow-xl shadow-emerald-600/20">

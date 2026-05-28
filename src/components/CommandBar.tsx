@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
-import { Search, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, ShoppingBag, FileText, ShieldCheck, BrainCircuit, Award, Clock3, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Search, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, ShoppingBag, FileText, ShieldCheck, BrainCircuit, Award, Clock3, AlertTriangle, CheckCircle2, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, normalizeArabic, normalizeArabicNumerals } from '../lib/utils';
 
 interface CommandBarProps {
   isOpen: boolean;
   onClose: () => void;
-  onNavigate: (page: string, payload?: { search?: string, exactId?: string, scrollTarget?: string }) => void;
+  onNavigate: (page: string, payload?: { search?: string, exactId?: string, scrollTarget?: string, openModal?: boolean, supplierId?: string }) => void;
   data: any;
   userRole: 'admin' | 'partner';
 }
@@ -22,7 +22,11 @@ type CommandItem = {
   roles?: string[];
 };
 
-const clean = (value?: string) => normalizeArabic(String(value || '')).toLowerCase().trim();
+const clean = (value?: string) => {
+  const normalized = normalizeArabic(String(value || '')).toLowerCase().trim();
+  // Robustly remove punctuation to allow matches like "سداد المورد محمد!"
+  return normalized.replace(/[.,،؛!؟]/g, '');
+};
 const cleanDigits = (value?: string) => String(value || '').replace(/\D/g, '');
 const splitWords = (value?: string) => clean(value).split(/\s+/).filter(Boolean);
 const commandSearchText = (cmd: CommandItem) => clean([cmd.label, cmd.hint, cmd.category, ...(cmd.tags || [])].join(' '));
@@ -32,13 +36,20 @@ const commandScore = (cmd: CommandItem, query: string) => {
   const qDigits = cleanDigits(query);
   const haystack = commandSearchText(cmd);
   const haystackDigits = cleanDigits([cmd.label, cmd.hint, ...(cmd.tags || [])].join(' '));
-  if (clean(cmd.label) === q) return 100;
-  if (clean(cmd.label).startsWith(q)) return 80;
-  if (qDigits && haystackDigits.includes(qDigits)) return 78;
-  if (haystack.includes(q)) return 60;
+  
+  // BOOST for Smart Actions (Dynamic categories often start with الإجراءات)
+  let scoreAdjust = 0;
+  if (cmd.category === 'إجراءات مالية ذكية') {
+    scoreAdjust = 200; // Force them to the top if they match even a bit
+  }
+
+  if (clean(cmd.label) === q) return 100 + scoreAdjust;
+  if (clean(cmd.label).startsWith(q)) return 80 + scoreAdjust;
+  if (qDigits && haystackDigits.includes(qDigits)) return 78 + scoreAdjust;
+  if (haystack.includes(q)) return 60 + scoreAdjust;
   const words = splitWords(q);
   const matches = words.filter(w => haystack.includes(w)).length;
-  return matches ? 20 + matches * 8 : 0;
+  return matches ? (20 + matches * 8 + scoreAdjust) : 0;
 };
 
 const money = (value: any) => {
@@ -108,7 +119,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     const deepLinks: CommandItem[] = [
       { id: 'growth-campaigns', label: 'مختبر الحملات التسويقية', hint: 'خطط مبيعات', icon: <TrendingUp />, category: 'اختصارات ذكية', tags: ['حملات', 'تسويقية', 'مبيعات'], action: () => onNavigate('growth-simulator', { scrollTarget: 'smart-campaigns' }) },
       { id: 'customers-retention', label: 'رادار استرجاع العملاء', hint: 'الغائبين والاحتفاظ', icon: <Users />, category: 'اختصارات ذكية', tags: ['استرجاع', 'غائبين', 'احتفاظ'], action: () => onNavigate('dashboard', { exactId: 'customers', scrollTarget: 'retention-section' }) },
-      { id: 'financial-guard', label: 'حارس الأرباح الحقيقية', hint: 'هدر وصافي ربح', icon: <DollarSign />, category: 'اختصارات ذكية', tags: ['ارباح', 'هدر', 'صافي'], action: () => onNavigate('dashboard', { exactId: 'financials', scrollTarget: 'profit-guard-section' }) },
+      { id: 'financial-guard', label: 'حارس الأرباح الحقيقية - رادار الدرع المالي', hint: 'تحليل الهوامش، الربح الحقيقي، النزيف، وحماية الربح', icon: <DollarSign />, category: 'اختصارات ذكية', tags: ['ارباح', 'هدر', 'صافي', 'ربح', 'درع', 'رادار', 'حارس', 'حمايه'], action: () => onNavigate('dashboard', { exactId: 'financials', scrollTarget: 'profit-guard-section' }) },
       { id: 'pulse-matrix', label: 'مصفوفة نبض المنتجات', hint: 'الأصناف المربحة', icon: <Package />, category: 'اختصارات ذكية', tags: ['مصفوفة', 'نبض', 'منتجات'], action: () => onNavigate('dashboard', { exactId: 'pulse', scrollTarget: 'products-matrix-section' }) },
     ];
 
@@ -147,8 +158,53 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
 
     const base = [...liveSuggestions.filter(item => item.roles?.includes(effectiveRole)), ...mainTabs, ...deepLinks];
     const q = clean(deferredQuery);
-    if (!q) return base;
     const qDigits = cleanDigits(deferredQuery);
+
+    // --- SMART ACTIONS ---
+    const smartActions: CommandItem[] = [];
+
+    // 1. Pay Supplier SMART ACTION
+    if (q.includes('سداد') || q.includes('دفع') || q.includes('حواله') || q.includes('تحويل')) {
+      const parts = q.split(/\s+/);
+      const supplierPart = parts.filter(p => !['سداد', 'دفع', 'حواله', 'تحويل', 'المورد'].includes(p)).join(' ');
+      
+      const matchedSuppliers = (data?.suppliers || [])
+        .filter((s: any) => clean(s.name).includes(supplierPart) || !supplierPart)
+        .slice(0, 3);
+
+      matchedSuppliers.forEach((s: any) => {
+        smartActions.push({
+          id: `smart-pay-${s.id}`,
+          label: `سداد المورد: ${s.name}`,
+          hint: `رصيد المستحق: ${money(s.balance)} د.ك`,
+          icon: <Wallet className="text-emerald-500" />,
+          category: 'إجراءات مالية ذكية',
+          action: () => onNavigate('suppliers-audit', { supplierId: s.id, openModal: true }),
+          tags: ['سداد','دفع','حواله','تحويل','مورد','ماليه']
+        });
+      });
+    }
+
+    // 2. Most Expensive Invoice SMART ACTION
+    if (q.includes('اغلى') || q.includes('اكبر') || q.includes('اعلى') || q.includes('اكبر فاتوره')) {
+      const topInvoice = [...(data?.invoices || [])]
+        .filter(inv => !inv.isDeleted)
+        .sort((a, b) => (b.totalAmount || 0) - (a.totalAmount || 0))[0];
+      
+      if (topInvoice) {
+        smartActions.push({
+          id: 'smart-top-invoice',
+          label: 'أغلى فاتورة في النظام',
+          hint: `فاتورة #${topInvoice.id} بمبلغ ${money(topInvoice.totalAmount)} د.ك`,
+          icon: <TrendingUp className="text-amber-500" />,
+          category: 'إجراءات مالية ذكية',
+          action: () => onNavigate('invoices-list', { exactId: topInvoice.id, search: topInvoice.id }),
+          tags: ['اغلى','اكبر','اعلى','فاتوره','مبيعات','قيمه']
+        });
+      }
+    }
+
+    if (!q) return base;
 
     const customerMatches = (data?.customers || [])
       .filter((c: any) => clean([c.name, c.phone, c.email, c.area].join(' ')).includes(q) || (qDigits && cleanDigits(c.phone).includes(qDigits)))
@@ -187,7 +243,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       .slice(0, 3)
       .map((e: any) => ({ id: `exp-${e.id}`, label: `مصروف: ${e.description}`, hint: `${Number(e.amount || 0).toFixed(3)} د.ك`, icon: <PieChart />, category: 'نتائج مباشرة', action: () => onNavigate('expenses', { exactId: e.id, search: e.description }) }));
 
-    return [...base, ...orderMatches, ...customerMatches, ...productMatches, ...invoiceMatches, ...supplierMatches, ...expenseMatches];
+    return [...base, ...smartActions, ...orderMatches, ...customerMatches, ...productMatches, ...invoiceMatches, ...supplierMatches, ...expenseMatches];
   }, [deferredQuery, data, onNavigate, userRole]);
 
   const filteredCommands = useMemo(() => {
@@ -249,7 +305,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
 
 
   const categoryOrder = deferredQuery
-    ? ['نتائج مباشرة', 'اقتراحات الآن', 'خريطة التحكم الذكية', 'التشغيل اليومي', 'النمو والمحتوى', 'العملاء والولاء', 'الإدارة الأساسية', 'التراث الذكي', 'اختصارات ذكية', 'تحليلات داخلية']
+    ? ['إجراءات مالية ذكية', 'نتائج مباشرة', 'اقتراحات الآن', 'خريطة التحكم الذكية', 'التشغيل اليومي', 'النمو والمحتوى', 'العملاء والولاء', 'الإدارة الأساسية', 'التراث الذكي', 'اختصارات ذكية', 'تحليلات داخلية']
     : ['اقتراحات الآن', 'خريطة التحكم الذكية', 'التشغيل اليومي', 'العملاء والولاء', 'النمو والمحتوى', 'الإدارة الأساسية', 'التراث الذكي', 'اختصارات ذكية', 'تحليلات داخلية'];
 
   useEffect(() => {
