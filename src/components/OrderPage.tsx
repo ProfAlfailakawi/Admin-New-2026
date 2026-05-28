@@ -932,13 +932,27 @@ const OrderPage: React.FC<OrderPageProps> = ({
                 (typeof paymentData.data === "string"
                   ? paymentData.data
                   : undefined);
-              if (paymentData.data) {
-                createdPaymentId =
-                  paymentData.data.payment_id ||
-                  paymentData.data.id ||
-                  paymentData.data.transaction_id ||
-                  paymentData.data.transactionId;
-              }
+              createdPaymentId =
+                paymentData.paymentId ||
+                paymentData.payment_id ||
+                paymentData.track_id ||
+                paymentData.trackId ||
+                paymentData.transaction_id ||
+                paymentData.transactionId ||
+                paymentData.id ||
+                paymentData.session_id ||
+                paymentData.data?.paymentId ||
+                paymentData.data?.payment_id ||
+                paymentData.data?.track_id ||
+                paymentData.data?.trackId ||
+                paymentData.data?.transaction_id ||
+                paymentData.data?.transactionId ||
+                paymentData.data?.id ||
+                paymentData.data?.session_id ||
+                paymentData.data?.transaction?.payment_id ||
+                paymentData.data?.transaction?.track_id ||
+                paymentData.data?.transaction?.id ||
+                undefined;
             } else {
               console.error("Failed to generate payment link:", paymentData);
               toast.error(
@@ -1155,6 +1169,10 @@ const OrderPage: React.FC<OrderPageProps> = ({
 
       await updateOrderStatus(order.id, finalStatus, {
         isConvertedToInvoice: true,
+        linkedInvoiceId: newInvoiceId,
+        invoiceId: newInvoiceId,
+        invoiceNo: newInvoiceId,
+        paymentGatewayOrderId: newInvoiceId,
         customerId: targetCustomerId,
         customerPhone:
           orderPhoneStr || (matchedCustomer ? matchedCustomer.phone : ""),
@@ -1202,6 +1220,10 @@ const OrderPage: React.FC<OrderPageProps> = ({
 
           paymentLink: createdLink,
           paymentId: createdPaymentId,
+          linkedInvoiceId: newInvoiceId,
+          invoiceId: newInvoiceId,
+          invoiceNo: newInvoiceId,
+          paymentGatewayOrderId: newInvoiceId,
           total: updatedOrderTotal,
           totalAmount: subtotal,
           deliveryFee: invoiceDeliveryFee,
