@@ -1148,11 +1148,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
         </div>
       </div>
 
-      <div className="w-full max-w-full flex gap-2 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-thin snap-x" dir="rtl">
+      <div className="w-full max-w-full flex gap-2 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-thin snap-x select-none" dir="rtl">
         <button onClick={() => setActiveTab('leaderboard')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'leaderboard' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>لوحة الصدارة 🔥</button>
-        <button onClick={() => setActiveTab('squads')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'squads' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>إدارة الدواوين 👥</button>
-        <button onClick={() => setActiveTab('radar')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'radar' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>رادار الانضمام الجغرافي 📍</button>
-        <button onClick={() => setActiveTab('settings')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>إعدادات التحديات ⚙️</button>
+        <button onClick={() => setActiveTab('squads')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'squads' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}><span className="hidden sm:inline">إدارة </span>الدواوين 👥</button>
+        <button onClick={() => setActiveTab('radar')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'radar' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}><span className="hidden sm:inline">رادار الانضمام الجغرافي</span><span className="inline sm:hidden">رادار الانضمام</span> 📍</button>
+        <button onClick={() => setActiveTab('settings')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}><span className="hidden sm:inline">إعدادات </span>التحديات ⚙️</button>
       </div>
 
       <div className="bg-white border border-slate-200/70 rounded-3xl p-4 shadow-sm overflow-hidden">
@@ -1249,9 +1249,9 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
              <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm overflow-hidden">
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2 mb-2">
-                       مستويات الدواوين (Tiers & Rewards)
-                    </h3>
+                     <h3 className="font-semibold text-lg sm:text-xl text-slate-800 flex flex-wrap items-center gap-1.5 mb-1.5 leading-tight">
+                        مستويات الدواوين <span className="hidden sm:inline text-slate-400 text-sm font-normal">(Tiers & Rewards)</span>
+                     </h3>
                     <p className="text-slate-500 text-sm font-medium max-w-2xl">
                        كلما طلبت مجموعة الديوانية أكثر، ارتقوا للمستوى التالي وفتحوا ميزات دائمة. هذا يضمن ولائهم التام وصعوبة انتقالهم لمنافس لأنهم سيفقدون امتيازاتهم التراكمية.
                     </p>
@@ -1308,10 +1308,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                          key={icon.value}
                                          type="button"
                                          onClick={() => { setEditedTier({...editedTier, iconType: icon.value}); setOpenTierPicker(null); }}
-                                         className={`min-h-[48px] flex items-center justify-between gap-2 rounded-2xl border p-2.5 text-sm font-black transition-all ${editedTier.iconType === icon.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
+                                         className={`min-h-[56px] flex items-center justify-between gap-2 rounded-2xl border px-3 py-2.5 text-sm font-black transition-all overflow-hidden ${editedTier.iconType === icon.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
                                        >
                                          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color} text-[14px] shrink-0`}>{getIcon(icon.value)}</span>
-                                         <span>{icon.label}</span>
+                                         <span className="whitespace-nowrap text-sm leading-none">{icon.label}</span>
                                        </button>
                                      ))}
                                    </div>
@@ -1339,10 +1339,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                          key={option.value}
                                          type="button"
                                          onClick={() => { setEditedTier({...editedTier, color: option.value, bgClass: option.bgClass}); setOpenTierPicker(null); }}
-                                         className={`min-h-[48px] flex items-center justify-between gap-2 rounded-2xl border p-2.5 text-sm font-black transition-all ${editedTier.color === option.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
+                                         className={`min-h-[56px] flex items-center justify-between gap-2 rounded-2xl border px-3 py-2.5 text-sm font-black transition-all overflow-hidden ${editedTier.color === option.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
                                        >
                                          <span className="w-7 h-7 rounded-full border-2 border-white shadow-sm shrink-0" style={{ background: option.preview }} />
-                                         <span>{option.label}</span>
+                                         <span className="whitespace-nowrap text-sm leading-none">{option.label}</span>
                                        </button>
                                      ))}
                                    </div>
@@ -1402,7 +1402,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                 <div className="flex flex-col gap-4 mb-6">
                   <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                     <div>
-                      <h3 className="font-bold text-xl text-slate-800">إدارة الدواوين (Squads CRM)</h3>
+                      <h3 className="font-semibold text-lg sm:text-xl text-slate-800 leading-tight">إدارة الدواوين <span className="hidden sm:inline text-slate-400 text-sm font-normal">(Squads CRM)</span></h3>
                       <p className="text-xs text-slate-500 mt-1">يتم احتساب النقاط بناءً على المبيعات: <strong>كل ١ دينار = ١ نقطة</strong> لجميع أعضاء الديوانية بناءً على أرقام هواتفهم.</p>
                     </div>
                     <button 
@@ -1686,7 +1686,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/20 text-amber-200 text-xs font-black">
                       <Radio className="w-4 h-4" /> مركز مراقبة الدواوين
                     </div>
-                    <h3 className="text-2xl md:text-3xl font-black text-white">رادار الدواوين في الأدمن</h3>
+                    <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-white">رادار الدواوين في الأدمن</h3>
                     <p className="text-sm text-slate-300 leading-7 max-w-3xl">
                       متابعة مواقع الدواوين، طلبات الانضمام، الأكواد المؤقتة، الطلبات الجماعية، والحضور الحالي من غير لمس الدفع أو إشعارات الدفع.
                     </p>
