@@ -2527,7 +2527,7 @@ const [isPending, startTransition] = useTransition();
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">المجموعة النشطة</p>
                     <p className="text-xs font-black text-slate-700">{activeGroupConfig.description}</p>
                   </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-slate-500 border border-slate-100">
+                  <span className="inline-flex min-w-[74px] items-center justify-center rounded-full bg-white px-3 py-1 text-[10px] font-black text-slate-500 border border-slate-100 whitespace-nowrap">
                     {activeGroupConfig.tabs.length} أقسام
                   </span>
                 </div>
@@ -2852,66 +2852,54 @@ const [isPending, startTransition] = useTransition();
                   );
                 })()}
 
-                <div className={bentoCardStyle}>
-                  <h3 className="font-bold text-xl text-[#4a3f35] mb-6 flex items-center gap-2 justify-end">
+                <div className={cn(bentoCardStyle, "overflow-hidden")}>
+                  <h3 className="font-bold text-xl text-[#4a3f35] mb-5 flex items-center gap-2 justify-end">
                     ربحية الأصناف (الأكثر طلباً){" "}
                     <PieChart size={24} className="text-emerald-500" />
                   </h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-right min-w-[500px]" dir="rtl">
-                      <thead>
-                        <tr className="text-[#8c7b68] text-sm border-b border-[#f0e6d2]">
-                          <th className="pb-4">المنتج</th>
-                          <th className="pb-4 text-center">السعر</th>
-                          <th className="pb-4 text-center">التكلفة</th>
-                          <th className="pb-4 text-left">الهامش %</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#fdfbf7]">
-                        {(profitableProducts || []).slice(0, 10).map((p) => (
-                          <tr
-                            key={p.id}
-                            className="group hover:bg-[#f7f2e8] transition-colors"
-                          ><td className="py-4 pr-2">
-                              <div className="flex flex-col">
-                                <span className="font-bold text-slate-800">
-                                  {p.name}
-                                </span>
-                                <span
-                                  className={cn(
-                                    "text-[10px] font-bold px-2 py-0.5 rounded-full inline-block w-fit mt-1",
-                                    p.price > p.cost * 2
-                                      ? "bg-emerald-50 text-emerald-600"
-                                      : "bg-slate-100 text-slate-500",
-                                  )}
-                                >
-                                  {p.price > p.cost * 2
-                                    ? "هامش مرتفع جداً"
-                                    : "هامش اعتيادي"}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="py-4 text-center font-bold text-slate-600 font-mono tracking-tight">
-                              {p.price.toFixed(3)}
-                            </td>
-                            <td className="py-4 text-center font-bold text-slate-500 font-mono tracking-tight">
-                              {p.cost.toFixed(3)}
-                            </td>
-                            <td className="py-4 text-left">
-                              <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg text-xs">
-                                {p.price > 0
-                                  ? (
-                                      ((p.price - p.cost) / p.price) *
-                                      100
-                                    ).toFixed(0)
-                                  : 0}
-                                %
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="space-y-3" dir="rtl">
+                    {(profitableProducts || []).slice(0, 10).map((p, index) => {
+                      const margin = p.price > 0 ? ((p.price - p.cost) / p.price) * 100 : 0;
+                      const fmt = (value: number) => Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+                      return (
+                        <div
+                          key={p.id}
+                          className={cn(
+                            "grid grid-cols-12 items-center gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                            index === 0 && "bg-emerald-50/30 border-emerald-100"
+                          )}
+                        >
+                          <div className="col-span-12 md:col-span-5 text-right min-w-0">
+                            <span className="block font-black text-slate-800 text-base leading-7 truncate">{p.name}</span>
+                            <span
+                              className={cn(
+                                "mt-1 inline-flex w-fit rounded-full px-2.5 py-1 text-[11px] font-black",
+                                p.price > p.cost * 2 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                              )}
+                            >
+                              {p.price > p.cost * 2 ? "هامش مرتفع جداً" : "هامش اعتيادي"}
+                            </span>
+                          </div>
+                          <div className="col-span-4 md:col-span-2 text-center">
+                            <span className="block text-[10px] font-black text-slate-400 mb-1 md:hidden">السعر</span>
+                            <span className="inline-flex items-center justify-center rounded-xl bg-slate-50 px-3 py-2 font-mono text-sm font-black text-slate-700 tracking-normal whitespace-nowrap">
+                              {fmt(p.price)} <span className="mr-1 font-sans text-[11px] text-slate-400">د.ك</span>
+                            </span>
+                          </div>
+                          <div className="col-span-4 md:col-span-2 text-center">
+                            <span className="block text-[10px] font-black text-slate-400 mb-1 md:hidden">التكلفة</span>
+                            <span className="inline-flex items-center justify-center rounded-xl bg-slate-50 px-3 py-2 font-mono text-sm font-black text-slate-600 tracking-normal whitespace-nowrap">
+                              {fmt(p.cost)} <span className="mr-1 font-sans text-[11px] text-slate-400">د.ك</span>
+                            </span>
+                          </div>
+                          <div className="col-span-4 md:col-span-3 flex justify-end">
+                            <span className="inline-flex min-w-[76px] justify-center rounded-xl bg-emerald-100 px-3 py-2 font-black text-emerald-700 shadow-inner">
+                              {margin.toFixed(0)}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
