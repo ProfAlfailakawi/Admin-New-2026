@@ -1256,7 +1256,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       {activeTab === 'settings' && (
         <AnimatePresence mode="wait">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-             <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm overflow-hidden">
+             <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm">
                 <div className="flex justify-between items-start mb-6">
                   <div>
                      <h3 className="font-semibold text-lg sm:text-xl text-slate-800 flex flex-wrap items-center gap-1.5 mb-1.5 leading-tight">
@@ -1308,11 +1308,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                    <summary onClick={(e) => { e.preventDefault(); setOpenTierPicker(openTierPicker === 'icon' ? null : 'icon'); }} className="list-none cursor-pointer w-full min-h-[44px] text-xs font-bold bg-white border border-slate-200 p-2.5 rounded-xl outline-none hover:border-blue-400 flex items-center justify-between gap-2 shadow-sm">
                                      <span className="flex items-center gap-2 whitespace-nowrap">
                                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color} text-[13px] shrink-0`}>{getIcon(editedTier.iconType)}</span>
-                                       <span className="truncate">{tierIconOptions.find((icon) => icon.value === editedTier.iconType)?.label || 'اختر الشعار'}</span>
+                                       <span className="truncate">{tierIconOptions.find((icon) => icon.value === editedTier.iconType)?.label || 'شعار'}</span>
                                      </span>
                                      <ChevronDown size={14} className="text-slate-400 group-open:rotate-180 transition-transform shrink-0" />
                                    </summary>
-                                   <div className="absolute z-50 mt-2 w-full min-w-[290px] rounded-3xl border border-slate-200 bg-white/95 backdrop-blur shadow-2xl p-3 grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
+                                   <div className="absolute z-[100] mt-1.5 right-0 w-[calc(100vw-60px)] xs:w-[240px] sm:w-[280px] rounded-2xl border border-slate-200 bg-white shadow-2xl p-2 grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto">
                                      {tierIconOptions.map((icon) => (
                                        <button
                                          key={icon.value}
@@ -1339,11 +1339,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                    <summary onClick={(e) => { e.preventDefault(); setOpenTierPicker(openTierPicker === 'color' ? null : 'color'); }} className="list-none cursor-pointer w-full min-h-[44px] text-xs font-bold bg-white border border-slate-200 p-2.5 rounded-xl outline-none hover:border-blue-400 flex items-center justify-between gap-2 shadow-sm">
                                      <span className="flex items-center gap-2 whitespace-nowrap">
                                        <span className="w-5 h-5 rounded-full border border-white shadow-sm shrink-0" style={{ background: tierColorOptions.find((option) => option.value === editedTier.color)?.preview || '#f97316' }} />
-                                       <span className="truncate">{tierColorOptions.find((option) => option.value === editedTier.color)?.label || 'اختر اللون'}</span>
+                                       <span className="truncate">{tierColorOptions.find((option) => option.value === editedTier.color)?.label || 'لون'}</span>
                                      </span>
                                      <ChevronDown size={14} className="text-slate-400 group-open:rotate-180 transition-transform shrink-0" />
                                    </summary>
-                                   <div className="absolute z-50 mt-2 w-full min-w-[290px] rounded-3xl border border-slate-200 bg-white/95 backdrop-blur shadow-2xl p-3 grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
+                                   <div className="absolute z-[100] mt-1.5 right-0 w-[calc(100vw-60px)] xs:w-[240px] sm:w-[280px] rounded-2xl border border-slate-200 bg-white shadow-2xl p-2 grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto">
                                      {tierColorOptions.map((option) => (
                                        <button
                                          key={option.value}
