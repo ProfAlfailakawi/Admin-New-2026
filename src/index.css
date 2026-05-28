@@ -3845,3 +3845,19 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
 /* A calmer command palette visual footer */
 .command-premium-footer{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;background:#0f172a;padding:14px;border-top:1px solid rgba(255,255,255,.08)}
 .command-premium-footer span{display:inline-flex;align-items:center;justify-content:center;padding:8px 14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);border-radius:999px;color:#f8fafc;font-weight:900;font-size:12px;line-height:1.2}
+
+/* Fix for cut off word "التراث" in login */
+html body .login-brand-stage h1 {
+  white-space: normal !important;
+  text-wrap: balance !important;
+  overflow: visible !important;
+  font-size: clamp(2.5rem, 11vw, 4.5rem) !important;
+  word-break: break-word !important;
+  line-height: 1.25 !important;
+}
+@media (max-width: 640px) {
+  html body .login-brand-stage h1 {
+    font-size: clamp(2.2rem, 14vw, 3.8rem) !important;
+    text-wrap: wrap !important;
+  }
+}
