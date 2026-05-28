@@ -669,8 +669,8 @@ const getAdminPageMeta = (page: string) => {
     customers: { title: 'لوحة العملاء', subtitle: 'VIP، جدد، غائبون، عالي القيمة، وعملاء يحتاجون عرض.', tag: 'Customer Intelligence Board' },
     products: { title: 'قائمة المنتجات', subtitle: 'استوديو منتجات مع مؤشر قوة المنتج من المبيعات والربحية والتوفر.', tag: 'Product Score' },
     expenses: { title: 'المصروفات العامة', subtitle: 'صفحة مالية هادئة توضّح المصروفات والنزيف بدون صراخ بصري.', tag: 'Expense Control' },
-    suppliers: { title: 'الموردين والمراجعة', subtitle: 'رادار الموردين: انتظام، مديونية، اعتماد، منتجات مرتبطة، ومخاطر.', tag: 'Supplier Risk Radar' },
-    'suppliers-audit': { title: 'الموردين والمخاطر', subtitle: 'ربط أثر المورد بالمنتجات والطلبات والربح.', tag: 'Supplier Intelligence' },
+    suppliers: { title: 'سجل الموردين المعتمدين', subtitle: 'إدارة المديونيات، الاعتمادات، والمخاطر التشغيلية للموردين.', tag: 'Supplier Radar' },
+    'suppliers-audit': { title: 'كشف الحساب المالي التفصيلي', subtitle: 'سجل مراجعة شامل للتوريد، السداد، والتدقيق المالي.', tag: 'Supplier Audit Ledger' },
     reports: { title: 'التقارير', subtitle: 'قراءة تنفيذية للفواتير والمبيعات والأداء.', tag: 'Executive Reports' },
     ai: { title: 'مستشار التراث الذكي', subtitle: 'مستشار تنفيذي يعرض الملخص والأسباب والإجراء المقترح.', tag: 'Executive Assistant' },
     'smart-studio': { title: 'استوديو التراث الذكي', subtitle: 'اختيار المحتوى، التوليد، المعاينة، والأرشيف في تجربة واحدة.', tag: 'Creative Suite' },
@@ -1387,7 +1387,28 @@ const MainApp: React.FC = () => {
     // Actually skipping the mock random weather logic as requested not to have fake alerts. 
     // We already restored all the REAL data-driven logic from the old file.
 
-    // Add unique notifications
+    // 9. Profit Guard: High Supply Cost Detection (Security Radar)
+    (data.products || []).forEach(prod => {
+      const margin = prod.price > 0 ? (prod.price - prod.cost) / prod.price : 0;
+      if (margin < 0.2) { // Less than 20% margin is risky
+          const supplier = (data.suppliers || []).find(s => s.id === prod.supplierId);
+          newNotifications.push({
+              id: `profit-guard-alert-${prod.id}-${todayStr}`,
+              title: `درع الربح: تكلفة ${prod.name} مرتفعة 🛡️`,
+              message: `هامش الربح تقلص إلى ${(margin * 100).toFixed(0)}%.`,
+              type: 'warning',
+              insightType: 'خطر',
+              explanation: `رصد نظام (Profit Guard) أن تكلفة توريد "${prod.name}" من المورد (${supplier?.name || 'غير معروف'}) مرتفعة جداً مقارنة بسعر البيع، مما يهدد استدامة هذا الصنف.`,
+              dataReference: `سعر البيع: ${prod.price.toFixed(3)} د.ك | التكلفة: ${prod.cost.toFixed(3)} د.ك.`,
+              recommendedAction: 'نقترح مراجعة المورد للتفاوض أو رفع سعر البيع بـ 200 فلس على الأقل لاستعادة التوازن المالي.',
+              date: new Date().toISOString(),
+              read: false,
+              isPopupShown: false
+          });
+      }
+    });
+
+    // 11. Final update
     if (newNotifications.length > 0) {
         setData(prev => {
            let hasAdded = false;
@@ -1397,6 +1418,14 @@ const MainApp: React.FC = () => {
                if (!updatedNotifs.some(n => n.id === newNotif.id)) {
                    updatedNotifs.push(newNotif);
                    hasAdded = true;
+                   
+                   // Real-time toast for high-priority Profit Guard alert
+                   if (newNotif.id.startsWith('profit-guard-alert')) {
+                      toast.warning(newNotif.title, {
+                        description: newNotif.message,
+                        position: 'top-center'
+                      });
+                   }
                }
            });
            
@@ -1407,7 +1436,7 @@ const MainApp: React.FC = () => {
     }, 2000);
 
     return () => clearTimeout(debounceTimer);
-  }, [dataLoading, data.invoices, data.suppliers, data.customers, data.testimonials]);
+  }, [dataLoading, data.invoices, data.suppliers, data.customers, data.products, data.testimonials]);
 
   const addToast = (title: string, message: string, type: 'info' | 'success' | 'warning' = 'info') => {
     if (type === 'success') {

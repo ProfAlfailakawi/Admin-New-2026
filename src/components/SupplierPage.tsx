@@ -656,14 +656,14 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   initial={{ opacity: 0 }} 
   animate={{ opacity: 1 }} 
   exit={{ opacity: 0 }} 
-  className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
+   className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 pb-20 sm:pb-6"
   onClick={() => setShowLedgerSupplierId(null)}
   >
   <motion.div 
   initial={{ opacity: 0, scale: 0.95, y: 20 }}
   animate={{ opacity: 1, scale: 1, y: 0 }}
   exit={{ opacity: 0, scale: 0.95, y: 20 }}
-  className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+  className="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-2xl p-0 border border-slate-100 text-right flex flex-col max-h-[85dvh] overflow-hidden translate-y-6 sm:translate-y-12 shadow-black/20"
   onClick={e => e.stopPropagation()}
   >
   {(() => {
