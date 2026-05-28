@@ -2091,6 +2091,9 @@ const MainApp: React.FC = () => {
     if (!hasLoadedDataRef.current || isCloudSyncApplyingRef.current) return;
 
     const timeoutId = setTimeout(async () => {
+      // Re-check refs inside timeout to prevent saving right after mode transition
+      if (!hasLoadedDataRef.current || isCloudSyncApplyingRef.current) return;
+
       // Save to Local Storage if explicitly in local mode
       if (appMode === 'local') {
 	          const localDataStr = JSON.stringify(data);
@@ -2324,6 +2327,8 @@ const MainApp: React.FC = () => {
       }
       hasLoadedDataRef.current = true;
       setDataLoading(false);
+    } else {
+      setData(INITIAL_DATA);
     }
   };
 
@@ -2463,6 +2468,11 @@ const MainApp: React.FC = () => {
         <Login 
           logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
           onLogin={(mode) => {
+            // Strictly reset to INITIAL_DATA before entering the app
+            hasLoadedDataRef.current = false;
+            setDataLoading(true);
+            setData(INITIAL_DATA);
+            
             setAppMode(mode);
             localStorage.setItem('appMode', mode);
             if (mode === 'local') {

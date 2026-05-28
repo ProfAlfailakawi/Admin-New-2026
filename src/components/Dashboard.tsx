@@ -1015,12 +1015,12 @@ const [isPending, startTransition] = useTransition();
 
     const handleLoadDemoData = React.useCallback(() => {
       try {
-        const backupKey = appMode === 'local' ? 'ktk_local_accounting_data_backup' : 'ktk_cloud_offline_snapshot_backup';
+        const backupKey = appMode === 'local' ? 'ktk_local_accounting_data_safety_restore' : 'ktk_cloud_offline_snapshot_safety_restore';
         let backupStr = localStorage.getItem(backupKey);
         
         // Only fallback to legacy key if in local mode, per user's "no connection" rule
         if (!backupStr && appMode === 'local') {
-          backupStr = localStorage.getItem('ktk_accounting_data_backup');
+          backupStr = localStorage.getItem('ktk_local_accounting_data_backup') || localStorage.getItem('ktk_accounting_data_backup');
         }
 
         if (backupStr) {
@@ -2330,9 +2330,11 @@ const [isPending, startTransition] = useTransition();
     const systemMoodClass = getSystemMoodStyles();
     
     // Unified backup check based on appMode
-    const backupKey = appMode === 'local' ? 'ktk_local_accounting_data_backup' : 'ktk_cloud_offline_snapshot_backup';
+    const backupKey = appMode === 'local' ? 'ktk_local_accounting_data_safety_restore' : 'ktk_cloud_offline_snapshot_safety_restore';
     const hasActiveBackup = typeof window !== 'undefined' && (
-      !!localStorage.getItem(backupKey) || (appMode === 'local' && !!localStorage.getItem('ktk_accounting_data_backup'))
+      !!localStorage.getItem(backupKey) || 
+      (appMode === 'local' && (!!localStorage.getItem('ktk_local_accounting_data_backup') || !!localStorage.getItem('ktk_accounting_data_backup'))) ||
+      (appMode === 'cloud' && !!localStorage.getItem('ktk_cloud_offline_snapshot_backup'))
     );
 
     return (
