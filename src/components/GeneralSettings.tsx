@@ -83,11 +83,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   try {
     const hasRealData = (data.invoices && data.invoices.length > 0) || (data.products && data.products.length > 0) || (data.customers && data.customers.length > 0);
     if (hasRealData) {
-      if (appMode === 'local') {
-        setProtectedStorageItem('ktk_local_accounting_data_backup', JSON.stringify(data));
-        setProtectedStorageItem('ktk_local_accounting_data_last_good', JSON.stringify(data));
-      } else {
-        setProtectedStorageItem('ktk_cloud_offline_snapshot_backup', JSON.stringify(data));
+      if (appMode === 'cloud') {
+        setProtectedStorageItem('ktk_cloud_offline_snapshot_safety_restore', JSON.stringify(data));
         setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', JSON.stringify(data));
       }
     }
@@ -141,15 +138,18 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     setData(INITIAL_DATA);
     removeProtectedStorageItemIntentionally('ktk_local_accounting_data');
     removeProtectedStorageItemIntentionally('ktk_local_accounting_data_last_good');
+    removeProtectedStorageItemIntentionally('ktk_local_accounting_data_backup');
+    removeProtectedStorageItemIntentionally('ktk_local_accounting_data_safety_restore');
     removeProtectedStorageItemIntentionally('ktk_accounting_data');
     removeProtectedStorageItemIntentionally('ktk_accounting_data_last_good');
+    removeProtectedStorageItemIntentionally('ktk_accounting_data_backup');
     removeProtectedStorageItemIntentionally('ktk_cloud_offline_snapshot');
     removeProtectedStorageItemIntentionally('ktk_cloud_offline_snapshot_last_good');
     sessionStorage.removeItem('hideSampleDataPrompt');
     localStorage.removeItem('active_firestore_db_id');
     localStorage.removeItem('active_firestore_project_id');
 
-    addToast("تم التصفير","تمت العملية بنجاح وحُفظت نسخة أمان محلية.","warning");
+    addToast("تم التصفير", appMode === 'cloud' ? "تمت العملية بنجاح وحُفظت نسخة أمان." : "تم مسح كافة البيانات من النظام المحلي بلا رجعة.", "warning");
     setShowResetConfirm(false);
     setTimeout(() => { window.location.reload(); }, 700);
   } catch (e) {
@@ -166,12 +166,12 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  const handleRestoreBackup = () => {
   try {
-   const backupKey = appMode === 'local' ? 'ktk_local_accounting_data_backup' : 'ktk_cloud_offline_snapshot_backup';
+   const backupKey = appMode === 'local' ? 'ktk_local_accounting_data_safety_restore' : 'ktk_cloud_offline_snapshot_safety_restore';
    let backupStr = getProtectedStorageItem(backupKey);
    
    // Strict separation: Cloud mode never falls back to legacy/local backup keys
    if (!backupStr && appMode === 'local') {
-    backupStr = getProtectedStorageItem('ktk_accounting_data_backup');
+    backupStr = getProtectedStorageItem('ktk_local_accounting_data_backup') || getProtectedStorageItem('ktk_accounting_data_backup');
    }
 
    if (backupStr) {

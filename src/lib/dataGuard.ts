@@ -3,7 +3,7 @@ import LZString from 'lz-string';
 type AnyRecord = Record<string, any>;
 
 const PROTECTED_EXACT_KEYS = new Set(['shared_company_data']);
-const BACKUP_SUFFIXES = ['_last_good', '_backup', '__last_good', '__recovery'];
+const BACKUP_SUFFIXES = ['_last_good', '_backup', '__last_good', '__recovery', '_safety_restore'];
 const IMPORTANT_COLLECTION_KEYS = [
   'invoices',
   'orders',
@@ -238,7 +238,7 @@ const rememberGoodCopy = (key: string, serializedValue: string) => {
 
 export const readLastGoodStorageValue = (key: string): string | null => {
   if (!rawStorage) return null;
-  const direct = rawStorage.getItem(`${key}__last_good`) || rawStorage.getItem(`${key}_last_good`) || rawStorage.getItem(`${key}_backup`);
+  const direct = rawStorage.getItem(`${key}__last_good`) || rawStorage.getItem(`${key}_last_good`);
   if (direct) return decompressValueIfNeeded(direct);
   const recovery = parseMaybeJson(decompressValueIfNeeded(rawStorage.getItem(`${key}__recovery`)));
   return typeof recovery?.value === 'string' ? recovery.value : null;

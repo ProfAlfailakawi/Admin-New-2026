@@ -86,6 +86,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
     setError('');
     try {
       localStorage.setItem('appMode', 'cloud');
+      onLogin('cloud');
       await loginWithGoogle();
     } catch (err: any) {
       const errString = String(err).toLowerCase();
