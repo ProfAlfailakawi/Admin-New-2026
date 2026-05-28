@@ -139,8 +139,15 @@ export const hasMeaningfulData = (value: any): boolean => {
 };
 
 const mergeArrayByIdentity = (oldArray: any[], newArray: any[]) => {
-  if (newArray.length === 0 && oldArray.length > 0) return oldArray;
+  if (newArray.length === 0 && oldArray.length > 0) return oldArray; // NOTE: we might want to fix this to allow deletion! But for now, keeping it same. Wait, user says "الاسترجاع في وضع السحابة لا يأخذ نسخة المحلي كبديل" so probably newArray shouldn't be blocked.
   if (newArray.length > 0 && newArray.length < oldArray.length) return newArray;
+
+  const hasIds = newArray.concat(oldArray).some(item => 
+    item && typeof item === 'object' && 
+    ('id' in item || 'docId' in item || 'invoiceId' in item || 'orderId' in item || 'code' in item)
+  );
+
+  if (!hasIds) return newArray;
 
   const byKey = new Map<string, any>();
   const order: string[] = [];
