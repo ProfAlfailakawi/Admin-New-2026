@@ -869,6 +869,8 @@ const OrderPage: React.FC<OrderPageProps> = ({
 
       let createdLink = undefined;
       let createdPaymentId: string | undefined = undefined;
+      let createdTrackId: string | undefined = undefined;
+      let createdGatewayOrderId: string | undefined = undefined;
       const newInvoiceId = generateNextInvoiceId(data.invoices);
 
       // Only attempt to generate payment link if not paid
@@ -893,6 +895,8 @@ const OrderPage: React.FC<OrderPageProps> = ({
                 customerEmail: customer?.email || "no-email@example.com",
                 customerMobile: customer?.phone || "+96500000000",
                 orderId: newInvoiceId,
+                sourceOrderId: order.id,
+                linkedOrderId: order.id,
                 description: `Invoice from Order ${order.id.slice(-6)}`,
                 returnUrl: `https://alturathkw.shop/api/payment-return/${newInvoiceId}`,
                 cancelUrl: `https://alturathkw.shop/api/payment-return/${newInvoiceId}`,
@@ -935,24 +939,38 @@ const OrderPage: React.FC<OrderPageProps> = ({
               createdPaymentId =
                 paymentData.paymentId ||
                 paymentData.payment_id ||
-                paymentData.track_id ||
-                paymentData.trackId ||
+                paymentData.session_id ||
+                paymentData.id ||
                 paymentData.transaction_id ||
                 paymentData.transactionId ||
-                paymentData.id ||
-                paymentData.session_id ||
                 paymentData.data?.paymentId ||
                 paymentData.data?.payment_id ||
-                paymentData.data?.track_id ||
-                paymentData.data?.trackId ||
+                paymentData.data?.session_id ||
+                paymentData.data?.id ||
                 paymentData.data?.transaction_id ||
                 paymentData.data?.transactionId ||
-                paymentData.data?.id ||
-                paymentData.data?.session_id ||
                 paymentData.data?.transaction?.payment_id ||
+                createdPaymentId ||
+                "";
+              createdTrackId =
+                paymentData.paymentTrackId ||
+                paymentData.trackId ||
+                paymentData.track_id ||
+                paymentData.data?.paymentTrackId ||
+                paymentData.data?.trackId ||
+                paymentData.data?.track_id ||
                 paymentData.data?.transaction?.track_id ||
-                paymentData.data?.transaction?.id ||
-                undefined;
+                createdTrackId ||
+                "";
+              createdGatewayOrderId =
+                paymentData.gatewayOrderId ||
+                paymentData.gateway_order_id ||
+                paymentData.data?.gatewayOrderId ||
+                paymentData.data?.gateway_order_id ||
+                paymentData.data?.order_id ||
+                paymentData.data?.transaction?.order_id ||
+                createdGatewayOrderId ||
+                "";
             } else {
               console.error("Failed to generate payment link:", paymentData);
               toast.error(
@@ -1169,10 +1187,6 @@ const OrderPage: React.FC<OrderPageProps> = ({
 
       await updateOrderStatus(order.id, finalStatus, {
         isConvertedToInvoice: true,
-        linkedInvoiceId: newInvoiceId,
-        invoiceId: newInvoiceId,
-        invoiceNo: newInvoiceId,
-        paymentGatewayOrderId: newInvoiceId,
         customerId: targetCustomerId,
         customerPhone:
           orderPhoneStr || (matchedCustomer ? matchedCustomer.phone : ""),
@@ -1210,7 +1224,13 @@ const OrderPage: React.FC<OrderPageProps> = ({
         totalAmount: subtotal,
         finalPrice: updatedOrderTotal,
         paymentLink: createdLink,
-        paymentId: createdPaymentId,
+        paymentId: createdPaymentId || createdTrackId,
+        payment_id: createdPaymentId || createdTrackId,
+        paymentTrackId: createdTrackId || createdPaymentId,
+        trackId: createdTrackId || createdPaymentId,
+        track_id: createdTrackId || createdPaymentId,
+        gatewayOrderId: createdGatewayOrderId,
+        gateway_order_id: createdGatewayOrderId,
       });
 
       // Auto-open WhatsApp after converting app order to invoice
@@ -1219,11 +1239,13 @@ const OrderPage: React.FC<OrderPageProps> = ({
           ...order,
 
           paymentLink: createdLink,
-          paymentId: createdPaymentId,
-          linkedInvoiceId: newInvoiceId,
-          invoiceId: newInvoiceId,
-          invoiceNo: newInvoiceId,
-          paymentGatewayOrderId: newInvoiceId,
+          paymentId: createdPaymentId || createdTrackId,
+          payment_id: createdPaymentId || createdTrackId,
+          paymentTrackId: createdTrackId || createdPaymentId,
+          trackId: createdTrackId || createdPaymentId,
+          track_id: createdTrackId || createdPaymentId,
+          gatewayOrderId: createdGatewayOrderId,
+          gateway_order_id: createdGatewayOrderId,
           total: updatedOrderTotal,
           totalAmount: subtotal,
           deliveryFee: invoiceDeliveryFee,

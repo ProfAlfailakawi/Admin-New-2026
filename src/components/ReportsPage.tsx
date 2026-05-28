@@ -514,23 +514,34 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           const createdPaymentId =
             paymentData.paymentId ||
             paymentData.payment_id ||
-            paymentData.track_id ||
-            paymentData.trackId ||
+            paymentData.session_id ||
+            paymentData.id ||
             paymentData.transaction_id ||
             paymentData.transactionId ||
-            paymentData.id ||
-            paymentData.session_id ||
             paymentData.data?.paymentId ||
             paymentData.data?.payment_id ||
-            paymentData.data?.track_id ||
-            paymentData.data?.trackId ||
+            paymentData.data?.session_id ||
+            paymentData.data?.id ||
             paymentData.data?.transaction_id ||
             paymentData.data?.transactionId ||
-            paymentData.data?.id ||
-            paymentData.data?.session_id ||
             paymentData.data?.transaction?.payment_id ||
+            "";
+          const createdTrackId =
+            paymentData.paymentTrackId ||
+            paymentData.trackId ||
+            paymentData.track_id ||
+            paymentData.data?.paymentTrackId ||
+            paymentData.data?.trackId ||
+            paymentData.data?.track_id ||
             paymentData.data?.transaction?.track_id ||
-            paymentData.data?.transaction?.id ||
+            "";
+          const createdGatewayOrderId =
+            paymentData.gatewayOrderId ||
+            paymentData.gateway_order_id ||
+            paymentData.data?.gatewayOrderId ||
+            paymentData.data?.gateway_order_id ||
+            paymentData.data?.order_id ||
+            paymentData.data?.transaction?.order_id ||
             "";
           if (createdLink) {
             setData((prev) => {
@@ -539,7 +550,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
                   ? {
                       ...inv,
                       paymentLink: createdLink,
-                      paymentId: createdPaymentId,
+                      paymentId: createdPaymentId || createdTrackId,
+                      payment_id: createdPaymentId || createdTrackId,
+                      paymentTrackId: createdTrackId || createdPaymentId,
+                      trackId: createdTrackId || createdPaymentId,
+                      track_id: createdTrackId || createdPaymentId,
+                      gatewayOrderId: createdGatewayOrderId,
+                      gateway_order_id: createdGatewayOrderId,
                       paymentStatus: "pending",
                       status: "بانتظار الدفع",
                     }
@@ -550,7 +567,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
                   ? {
                       ...o,
                       paymentLink: createdLink,
-                      paymentId: createdPaymentId,
+                      paymentId: createdPaymentId || createdTrackId,
+                      payment_id: createdPaymentId || createdTrackId,
+                      paymentTrackId: createdTrackId || createdPaymentId,
+                      trackId: createdTrackId || createdPaymentId,
+                      track_id: createdTrackId || createdPaymentId,
+                      gatewayOrderId: createdGatewayOrderId,
+                      gateway_order_id: createdGatewayOrderId,
                       paymentStatus: "pending",
                       status: "بانتظار الدفع",
                     }
@@ -564,6 +587,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
               const waLink = getWhatsAppLink({
                 ...invoice,
                 paymentLink: createdLink,
+                paymentId: createdPaymentId || createdTrackId,
+                payment_id: createdPaymentId || createdTrackId,
+                paymentTrackId: createdTrackId || createdPaymentId,
+                trackId: createdTrackId || createdPaymentId,
+                track_id: createdTrackId || createdPaymentId,
+                gatewayOrderId: createdGatewayOrderId,
+                gateway_order_id: createdGatewayOrderId,
               });
               if (waLink && waLink !== "#")
                 window.open(waLink, "_blank", "noopener,noreferrer");

@@ -118,6 +118,13 @@ export interface Order {
   isConvertedToInvoice?: boolean;
   linkedInvoiceId?: string;
   paymentStatus?: any;
+  paymentId?: string;
+  payment_id?: string;
+  paymentTrackId?: string;
+  trackId?: string;
+  track_id?: string;
+  gatewayOrderId?: string;
+  gateway_order_id?: string;
   area?: string;
   block?: string;
   street?: string;
@@ -195,6 +202,12 @@ export interface Invoice {
   area?: string; // Snapshot of customer area at time of order
   paymentLink?: string; // Upayments payment link
   paymentId?: string; // Upayments internal payment ID
+  payment_id?: string;
+  paymentTrackId?: string;
+  trackId?: string;
+  track_id?: string;
+  gatewayOrderId?: string;
+  gateway_order_id?: string;
   paymentStatus?: any; // Payment status
   appliedPromoCodeName?: string;
   status?: any;

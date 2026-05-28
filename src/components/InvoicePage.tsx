@@ -776,6 +776,8 @@ Alturath.kw`;
       // PRE-CREATE PAYMENT LINK ONLY IF NEW OR PRICE CHANGED OR EMPTY
       let createdLink = existingInvoice?.paymentLink || "";
       let createdPaymentId = existingInvoice?.paymentId || "";
+      let createdTrackId = (existingInvoice as any)?.paymentTrackId || (existingInvoice as any)?.trackId || (existingInvoice as any)?.track_id || "";
+      let createdGatewayOrderId = (existingInvoice as any)?.gatewayOrderId || (existingInvoice as any)?.gateway_order_id || "";
 
       const priceChanged = existingInvoice ? Math.abs(existingInvoice.totalAmount - totalValue) > 0.005 : true;
       const needsNewPayment = !createdLink || priceChanged;
@@ -818,23 +820,28 @@ Alturath.kw`;
             createdPaymentId =
               paymentData.paymentId ||
               paymentData.payment_id ||
-              paymentData.track_id ||
-              paymentData.trackId ||
-              paymentData.transaction_id ||
-              paymentData.transactionId ||
-              paymentData.id ||
               paymentData.session_id ||
               paymentData.data?.paymentId ||
               paymentData.data?.payment_id ||
-              paymentData.data?.track_id ||
-              paymentData.data?.trackId ||
-              paymentData.data?.transaction_id ||
-              paymentData.data?.transactionId ||
-              paymentData.data?.id ||
               paymentData.data?.session_id ||
               paymentData.data?.transaction?.payment_id ||
+              "";
+            createdTrackId =
+              paymentData.paymentTrackId ||
+              paymentData.trackId ||
+              paymentData.track_id ||
+              paymentData.data?.paymentTrackId ||
+              paymentData.data?.trackId ||
+              paymentData.data?.track_id ||
               paymentData.data?.transaction?.track_id ||
-              paymentData.data?.transaction?.id ||
+              "";
+            createdGatewayOrderId =
+              paymentData.gatewayOrderId ||
+              paymentData.gateway_order_id ||
+              paymentData.data?.gatewayOrderId ||
+              paymentData.data?.gateway_order_id ||
+              paymentData.data?.order_id ||
+              paymentData.data?.transaction?.order_id ||
               "";
           } else {
             const detailMsg = paymentData.message || paymentData.error || "خطأ غير معروف";
@@ -931,7 +938,13 @@ Alturath.kw`;
         paymentStatus: existingInvoice?.paymentStatus || (paymentMethod === "Cash" || paymentMethod === "BankTransfer" ? "paid" : "pending"),
         paymentMethod: paymentMethod,
         paymentLink: createdLink,
-        paymentId: createdPaymentId,
+        paymentId: createdPaymentId || createdTrackId,
+        payment_id: createdPaymentId || createdTrackId,
+        paymentTrackId: createdTrackId || createdPaymentId,
+        trackId: createdTrackId || createdPaymentId,
+        track_id: createdTrackId || createdPaymentId,
+        gatewayOrderId: createdGatewayOrderId,
+        gateway_order_id: createdGatewayOrderId,
         gatewayFee: data.settings.gatewayFeeAmount || 0,
         notes: notesText || "---",
       };
