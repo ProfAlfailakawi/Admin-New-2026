@@ -448,6 +448,15 @@ app.get("/api/admin-dashboard-data", async (_req, res) => {
     try {
       const sharedSnap = await db.collection("appData").doc("shared_company_data").get();
       if (sharedSnap.exists) sharedData = sharedSnap.data() || {};
+      if (!Array.isArray(sharedData.squads) || sharedData.squads.length === 0) {
+        const squadsShardSnap = await db.collection("appData").doc("shared_company_data").collection("shards").doc("squads").get();
+        if (squadsShardSnap.exists) {
+          const shardSquads = squadsShardSnap.data()?.squads;
+          if (Array.isArray(shardSquads) && shardSquads.length > 0) {
+            sharedData = { ...sharedData, squads: shardSquads };
+          }
+        }
+      }
     } catch (e: any) {
       console.warn("[admin-dashboard-data] Could not read appData/shared_company_data:", e?.message || e);
     }
