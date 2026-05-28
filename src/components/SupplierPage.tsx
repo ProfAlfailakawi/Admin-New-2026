@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Truck, Search, Plus, Trash2, Edit2, Phone, AlertCircle, Wallet, History, CreditCard, ArrowUpRight, PlusCircle, Package, Users, X, CheckCircle2, Clock3 } from 'lucide-react';
+import { Truck, Search, Plus, Trash2, Edit2, Phone, AlertCircle, Wallet, History, CreditCard, ArrowUpRight, PlusCircle, Package, Users, X, CheckCircle2, Clock3, ArrowLeftRight, Receipt } from 'lucide-react';
 import { AppState, Supplier, PaymentMethod, Product } from '../types';
 import { cn, normalizeArabic, normalizeArabicNumerals } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -55,8 +55,71 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  });
  const [deleteError, setDeleteError] = useState<string | null>(null);
  const [shakingId, setShakingId] = useState<string | null>(null);
+ const [showLedgerSupplierId, setShowLedgerSupplierId] = useState<string | null>(null);
+ const [expandedLedgerId, setExpandedLedgerId] = useState<string | null>(null);
 
  const getSupplierProducts = (supId: string) => (data?.products || []).filter(p => p.supplierId === supId);
+
+ const getSupplierLedger = (supId: string) => {
+   const transactions: any[] = [];
+   const supplierProductIds = new Set(
+     (data?.products || [])
+       .filter(p => p.supplierId === supId)
+       .map(p => p.id)
+   );
+
+   // 1. Invoices
+   (data?.invoices || []).filter(inv => !inv.isDeleted).forEach(inv => {
+     const itemsForThisSupplier = (inv.items || []).filter(item => {
+       const product = (data?.products || []).find(p => p.id === item.productId);
+       return product && product.supplierId === supId && supplierProductIds.has(item.productId);
+     }).map(item => {
+       const product = (data?.products || []).find(p => p.id === item.productId);
+       const cost = item.costAtTime || product?.cost || 0;
+       const price = item.priceAtTime || product?.price || 0;
+       return {
+         productId: item.productId,
+         name: product?.name || 'منتج غير معروف',
+         quantity: item.quantity || 1,
+         cost,
+         price,
+         totalCost: cost * (item.quantity || 1),
+         totalPrice: price * (item.quantity || 1)
+       };
+     });
+
+     const supplierCost = itemsForThisSupplier.reduce((acc, item) => acc + item.totalCost, 0);
+     const supplierRevenue = itemsForThisSupplier.reduce((acc, item) => acc + item.totalPrice, 0);
+
+     if (supplierCost > 0) {
+       transactions.push({
+         id: `inv-${inv.id}`,
+         date: inv.date,
+         type: 'invoice',
+         amount: supplierCost,
+         revenue: supplierRevenue,
+         refId: inv.id,
+         label: `فاتورة توريد #${inv.id}`,
+         items: itemsForThisSupplier
+       });
+     }
+   });
+
+   // 2. Transfers
+   (data?.supplierTransfers || []).filter(t => t.supplierId === supId).forEach(t => {
+     transactions.push({
+       id: `tr-${t.id}`,
+       date: t.date,
+       type: 'transfer',
+       amount: -t.amount,
+       refId: t.id,
+       label: t.notes || 'تحويل مالي (سداد)',
+       method: t.method
+     });
+   });
+
+   return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+ };
 
  const getSupplierInvoiceStats = (supId: string) => {
  const supplierProductIds = new Set(
@@ -360,6 +423,14 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
  </div>
  <div 
+ onClick={() => setShowLedgerSupplierId(supplier.id)}
+ className="flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2 bg-blue-50 border-blue-100 hover:border-blue-300 hover:bg-blue-100 text-blue-600"
+ >
+ <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">كشف حساب</div>
+ <ArrowLeftRight size={18} className="mb-1 mt-1" />
+ <div className="text-[10px] font-bold">عرض الفواتير</div>
+ </div>
+ <div 
  onClick={() => setProductsToShow(supplierProducts)}
  className="flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2 bg-slate-50 border-slate-100 hover:border-slate-300 hover:bg-slate-100"
  >
@@ -579,6 +650,211 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </motion.div>
  </motion.div>
 )}
+ <AnimatePresence>
+  {showLedgerSupplierId && (
+  <motion.div 
+  initial={{ opacity: 0 }} 
+  animate={{ opacity: 1 }} 
+  exit={{ opacity: 0 }} 
+  className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
+  onClick={() => setShowLedgerSupplierId(null)}
+  >
+  <motion.div 
+  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+  animate={{ opacity: 1, scale: 1, y: 0 }}
+  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+  className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+  onClick={e => e.stopPropagation()}
+  >
+  {(() => {
+  const supplier = (data?.suppliers || []).find(s => s.id === showLedgerSupplierId);
+  const ledger = getSupplierLedger(showLedgerSupplierId);
+  const totalInvoiced = ledger.filter(l => l.type === 'invoice').reduce((acc, l) => acc + l.amount, 0);
+  const totalPaid = Math.abs(ledger.filter(l => l.type === 'transfer').reduce((acc, l) => acc + l.amount, 0));
+  const currentBalance = Number(supplier?.balance || 0);
+
+  return (
+  <>
+  <div className="p-6 border-b border-slate-100 shrink-0 bg-slate-50/50 flex flex-col gap-4">
+  <div className="flex justify-between items-start">
+  <button onClick={() => setShowLedgerSupplierId(null)} className="p-2.5 hover:bg-white rounded-2xl transition-all text-slate-400 hover:text-slate-600 hover:shadow-md">
+  <X size={20} />
+  </button>
+  <div className="flex items-center gap-4">
+  <div className="text-right">
+  <h3 className="text-xl font-black text-slate-900 leading-tight">{supplier?.name}</h3>
+  <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1 block">كشف الحساب المالي التفصيلي</span>
+  </div>
+  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
+  <ArrowLeftRight size={24} />
+  </div>
+  </div>
+  </div>
+
+  <div className="grid grid-cols-3 gap-3">
+  <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+  <div className="absolute top-0 right-0 w-16 h-16 bg-slate-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
+  <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي التوريد</div>
+  <div className="text-base font-black text-slate-900 text-center relative z-10">{totalInvoiced.toFixed(3)}</div>
+  </div>
+  <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+  <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
+  <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي السداد</div>
+  <div className="text-base font-black text-emerald-600 text-center relative z-10">{totalPaid.toFixed(3)}</div>
+  </div>
+  <div className="bg-slate-900 p-3 rounded-2xl text-white shadow-xl relative overflow-hidden">
+  <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-8 -mt-8 blur-xl" />
+  <div className="text-[10px] font-bold opacity-60 uppercase mb-1 text-center relative z-10">المتبقي حالياً</div>
+  <div className="text-base font-black text-center relative z-10">{currentBalance.toFixed(3)}</div>
+  </div>
+  </div>
+  </div>
+
+  <div className="flex-1 overflow-y-auto custom-scrollbar p-6 min-h-0 bg-slate-50/20">
+  <div className="space-y-4">
+  {ledger.map((item, idx) => (
+  <motion.div 
+  key={item.id}
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: idx * 0.05 }}
+  className={cn(
+    "bg-white border border-slate-100 rounded-3xl overflow-hidden transition-all shadow-sm hover:shadow-xl",
+    item.type === 'invoice' && "cursor-pointer active:scale-[0.99]",
+    expandedLedgerId === item.id ? "ring-2 ring-blue-500 border-transparent shadow-2xl" : "hover:border-blue-200"
+  )}
+  onClick={() => {
+    if (item.type === 'invoice') {
+      setExpandedLedgerId(expandedLedgerId === item.id ? null : item.id);
+    }
+  }}
+  >
+  <div className="p-5 flex justify-between items-center group">
+  <div className="flex items-center gap-4 order-1">
+  <div className={cn(
+ "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner",
+  item.type === 'invoice' ? "bg-rose-50 text-rose-500" : "bg-emerald-50 text-emerald-500"
+ )}>
+  {item.type === 'invoice' ? <Receipt size={22} /> : <CheckCircle2 size={22} />}
+  </div>
+  <div className="text-right">
+  <div className="font-black text-slate-800 text-base flex items-center gap-2">
+    {item.label}
+    {item.type === 'invoice' && (
+      <span className={cn(
+        "text-[10px] px-2 py-0.5 rounded-full font-black border transition-all",
+        expandedLedgerId === item.id ? "bg-blue-500 text-white border-blue-500" : "bg-slate-50 text-slate-400 border-slate-200 group-hover:border-blue-200 group-hover:text-blue-500"
+      )}>
+        {expandedLedgerId === item.id ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}
+      </span>
+    )}
+  </div>
+  <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">{new Date(item.date).toLocaleDateString('en-GB')}</div>
+  </div>
+  </div>
+  <div className="order-2 text-left">
+  <div className={cn(
+ "text-lg font-black tracking-tighter",
+  item.type === 'invoice' ? "text-slate-900" : "text-emerald-600"
+ )}>
+  {item.type === 'invoice' ? '' : '-'}{Math.abs(item.amount).toFixed(3)} <span className="text-[10px]">د.ك</span>
+  </div>
+  {item.type === 'transfer' && (
+  <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">
+  بواسطة {item.method === 'BankTransfer' ? 'تحويل بنكي' : item.method}
+  </div>
+  )}
+  </div>
+  </div>
+
+  <AnimatePresence>
+    {expandedLedgerId === item.id && item.type === 'invoice' && (
+      <motion.div 
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: 'auto', opacity: 1 }}
+        exit={{ height: 0, opacity: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-slate-50/50 border-t border-slate-100"
+      >
+        <div className="p-5 space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm grid grid-cols-2 gap-4">
+            <div className="text-right">
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي البيع (Revenue)</div>
+              <div className="text-lg font-black text-slate-900">{(item.revenue || 0).toFixed(3)} <span className="text-xs">د.ك</span></div>
+            </div>
+            <div className="text-right border-r border-slate-100 px-4">
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">تكلفة التوريد (Supply Cost)</div>
+              <div className="text-lg font-black text-rose-500">{item.amount.toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right pr-2">الأصناف المشمولة</div>
+            <div className="space-y-1">
+              {(item.items || []).map((prod: any, pIdx: number) => (
+                <div key={`${item.id}-${pIdx}`} className="bg-white/80 border border-slate-100/50 rounded-2xl p-3 flex justify-between items-center text-right group/item hover:bg-white transition-all">
+                  <div className="flex-1">
+                    <div className="font-bold text-slate-800 text-sm">{prod.name}</div>
+                    <div className="text-[10px] font-black text-slate-400 flex items-center gap-2 mt-0.5">
+                      <span>الكمية: {prod.quantity}</span>
+                      <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                      <span>السعر: {prod.price.toFixed(3)}</span>
+                      <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                      <span className="bg-blue-50 text-blue-500 px-1.5 rounded-md">التوريد: {prod.cost.toFixed(3)}</span>
+                    </div>
+                  </div>
+                  <div className="text-left shrink-0">
+                    <div className="text-sm font-black text-slate-900">{prod.totalCost.toFixed(3)} <span className="text-[10px]">د.ك</span></div>
+                    <div className="text-[9px] font-bold text-emerald-500">حصة المورد</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+  </motion.div>
+  ))}
+  {ledger.length === 0 && (
+  <div className="py-24 text-center">
+  <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 grayscale opacity-40">
+  <Receipt size={48} />
+  </div>
+  <p className="text-slate-400 font-bold italic text-lg">لا توجد حركات مالية مسجلة لهذا المورد بعد.</p>
+  </div>
+  )}
+  </div>
+  </div>
+
+  <div className="p-4 border-t border-slate-100 shrink-0 bg-white flex gap-4">
+  <button 
+  onClick={() => {
+    setShowLedgerSupplierId(null);
+    setDeepLinkData({ supplierId: showLedgerSupplierId, openModal: true });
+    setCurrentPage('suppliers-audit');
+  }}
+  className="flex-1 py-5 bg-slate-900 text-white font-black rounded-[24px] transition-all shadow-2xl active:scale-[0.98] text-xs flex items-center justify-center gap-2"
+  >
+  <CreditCard size={18} />
+  تسجيل سداد مالي جديد
+  </button>
+  <button 
+  onClick={() => setShowLedgerSupplierId(null)}
+  className="flex-1 py-5 bg-slate-100 text-slate-500 font-black rounded-[24px] transition-all text-xs"
+  >
+  إغلاق النافذة
+  </button>
+  </div>
+  </>
+  );
+  })()}
+  </motion.div>
+  </motion.div>
+  )}
+ </AnimatePresence>
+
  </AnimatePresence>
  </div>
 );
