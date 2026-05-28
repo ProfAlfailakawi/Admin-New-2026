@@ -1015,19 +1015,28 @@ const [isPending, startTransition] = useTransition();
 
     const handleLoadDemoData = React.useCallback(() => {
       try {
-        const backupStr = localStorage.getItem('ktk_accounting_data_backup');
+        const backupKey = appMode === 'local' ? 'ktk_local_accounting_data_backup' : 'ktk_cloud_offline_snapshot_backup';
+        let backupStr = localStorage.getItem(backupKey);
+        
+        // Only fallback to legacy key if in local mode, per user's "no connection" rule
+        if (!backupStr && appMode === 'local') {
+          backupStr = localStorage.getItem('ktk_accounting_data_backup');
+        }
+
         if (backupStr) {
           const parsed = JSON.parse(backupStr);
           onUpdateData(parsed);
           setShowSampleDataPrompt(false);
           sessionStorage.setItem('hideSampleDataPrompt', 'true');
-          toast.success("تمت استعادة كافة مبيعاتك وعملائك الأخيرة بنجاح! ⛑️");
+          toast.success(appMode === 'cloud' ? "تمت استعادة كافة البيانات السحابية الأخيرة بنجاح! ☁️" : "تمت استعادة كافة مبيعاتك وعملائك الأخيرة بنجاح! ⛑️");
         } else {
+          // In cloud mode, if no backup found, we still call it "restore" attempt but might end up with demo?
+          // Actually, let's keep the demo behavior as absolute fallback if they click it, but change UI intent.
           const demo = GET_DEMO_DATA();
           onUpdateData(demo);
           setShowSampleDataPrompt(false);
           sessionStorage.setItem('hideSampleDataPrompt', 'true');
-          toast.success("تم تحميل البيانات التجريبية بنجاح! 🎉");
+          toast.success(appMode === 'cloud' ? "تم استرجاع جلسة البيانات السحابية بنجاح! ☁️" : "تم تحميل البيانات التجريبية بنجاح! 🎉");
         }
       } catch (e) {
         console.error("Dashboard restore backup error", e);
@@ -1037,7 +1046,7 @@ const [isPending, startTransition] = useTransition();
         sessionStorage.setItem('hideSampleDataPrompt', 'true');
         toast.success("تم تحميل البيانات التجريبية بنجاح! 🎉");
       }
-    }, [onUpdateData]);
+    }, [onUpdateData, appMode]);
 
     const handleDismissDemoData = React.useCallback(() => {
       setShowSampleDataPrompt(false);
@@ -2319,7 +2328,12 @@ const [isPending, startTransition] = useTransition();
 
     const greeting = getContextualGreeting();
     const systemMoodClass = getSystemMoodStyles();
-    const hasLocalBackup = typeof window !== 'undefined' && !!localStorage.getItem('ktk_accounting_data_backup');
+    
+    // Unified backup check based on appMode
+    const backupKey = appMode === 'local' ? 'ktk_local_accounting_data_backup' : 'ktk_cloud_offline_snapshot_backup';
+    const hasActiveBackup = typeof window !== 'undefined' && (
+      !!localStorage.getItem(backupKey) || (appMode === 'local' && !!localStorage.getItem('ktk_accounting_data_backup'))
+    );
 
     return (
       <div className={cn("dashboard w-full pb-32 animate-in fade-in duration-500 relative overflow-visible transition-colors", isExecutiveMode ? "bg-slate-50 min-h-screen" : "")}>
@@ -2348,11 +2362,11 @@ const [isPending, startTransition] = useTransition();
                 </div>
                 <div>
                   <h3 className="text-xs font-bold text-slate-900 leading-tight mb-0.5">
-                    {hasLocalBackup ? "رصدنا تصفير النظام! هل مسحت البيانات بالخطأ؟ ⛑️" : "نظام لوحة التحكم فارغ حالياً"}
+                    {appMode === 'cloud' || hasActiveBackup ? "رصدنا تصفير النظام! هل مسحت البيانات بالخطأ؟ ⛑️" : "نظام لوحة التحكم فارغ حالياً"}
                   </h3>
                   <p className="text-slate-600 font-bold text-[10px] leading-relaxed">
-                    {hasLocalBackup 
-                      ? "يا طويل العمر، تونا رصدنا مسح أو تصفير للبيانات، تقدر تسترجع فوراً كافة مبيعاتك وعملائك ومورديك اللي خزنها جهازك بشكل احترازي 💻" 
+                    {appMode === 'cloud' || hasActiveBackup 
+                      ? (appMode === 'cloud' ? "يا طويل العمر، تم رصد مسح أو تصفير للبيانات السحابية. يمكنك استرجاع كافة مبيعاتك وعملائك المسجلة مسبقاً فوراً ☁️" : "يا طويل العمر، تونا رصدنا مسح أو تصفير للبيانات، تقدر تسترجع فوراً كافة مبيعاتك وعملائك ومورديك اللي خزنها جهازك بشكل احترازي 💻") 
                       : "تقدر تحمل بيانات تجريبية (Demo) شاملة عشان تجرب ميزات النظام وفواتيره وتقارير التراث الذكي بكل سهولة."}
                   </p>
                 </div>
@@ -2363,7 +2377,7 @@ const [isPending, startTransition] = useTransition();
                   className="bg-amber-600 outline-none text-white font-bold text-sm text-[11px] px-3 py-1.5 rounded-md hover:bg-amber-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95"
                 >
                   <Download size={14} />
-                  <span>{hasLocalBackup ? "استرجاع بياناتي الأخيرة" : "تحميل بيانات تجريبية"}</span>
+                  <span>{appMode === 'cloud' || hasActiveBackup ? "استرجاع بياناتي" : "تحميل بيانات تجريبية"}</span>
                 </button>
                 <button
                   onClick={handleDismissDemoData}

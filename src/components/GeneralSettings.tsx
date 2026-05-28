@@ -165,29 +165,43 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  };
 
  const handleRestoreBackup = () => {
-   try {
-     const backupKey = appMode === 'local' ? 'ktk_local_accounting_data_backup' : 'ktk_cloud_offline_snapshot_backup';
-     let backupStr = getProtectedStorageItem(backupKey);
-     if (!backupStr && appMode === 'local') {
-       backupStr = getProtectedStorageItem('ktk_accounting_data_backup');
-     }
-     if (backupStr) {
-       const parsed = JSON.parse(backupStr);
-       setData(parsed);
-       sessionStorage.setItem('hideSampleDataPrompt', 'true');
-       setShowRestoreConfirm(false);
-       addToast("تمت استعادة البيانات الأخيرة", "تم استرجاع كافة مبيعاتك وعملائك وعملياتك من النسخة الاحتياطية بنجاح ⛑️", "success");
-     } else {
-       const demo = GET_DEMO_DATA();
-       setData(demo);
-       sessionStorage.setItem('hideSampleDataPrompt', 'true');
-       setShowRestoreConfirm(false);
-       addToast("تم ملء البيانات التجريبية", "ما لقينا نسخة احتياطية سابقة بالمتصفح، فملأنا لك النظام ببيانات ترويجية جاهزة للاستكشاف والتحليل.", "info");
-     }
-   } catch (e) {
-     console.error("Restore error", e);
-     addToast("فشلت الاستعادة", "حدث خطأ غير متوقع أثناء تفكيك بيانات النسخة الاحتياطية.", "warning");
+  try {
+   const backupKey = appMode === 'local' ? 'ktk_local_accounting_data_backup' : 'ktk_cloud_offline_snapshot_backup';
+   let backupStr = getProtectedStorageItem(backupKey);
+   
+   // Strict separation: Cloud mode never falls back to legacy/local backup keys
+   if (!backupStr && appMode === 'local') {
+    backupStr = getProtectedStorageItem('ktk_accounting_data_backup');
    }
+
+   if (backupStr) {
+    const parsed = JSON.parse(backupStr);
+    setData(parsed);
+    sessionStorage.setItem('hideSampleDataPrompt', 'true');
+    setShowRestoreConfirm(false);
+    addToast(
+     appMode === 'cloud' ? "تمت استعادة البيانات السحابية" : "تمت استعادة البيانات الأخيرة", 
+     appMode === 'cloud' 
+      ? "تم استرجاع نسخة البيانات السحابية الاحتياطية بنجاح ☁️"
+      : "تم استرجاع كافة مبيعاتك وعملائك وعملياتك من النسخة الاحتياطية بنجاح ⛑️", 
+     "success"
+    );
+   } else {
+    if (appMode === 'cloud') {
+     setShowRestoreConfirm(false);
+     addToast("لا توجد نسخة سحابية", "عفواً، لم نجد نسخة احتياطية سحابية محفوظة سابقاً في هذا الموقع.", "warning");
+    } else {
+     const demo = GET_DEMO_DATA();
+     setData(demo);
+     sessionStorage.setItem('hideSampleDataPrompt', 'true');
+     setShowRestoreConfirm(false);
+     addToast("تم ملء البيانات التجريبية", "ما لقينا نسخة احتياطية سابقة بالمتصفح، فملأنا لك النظام ببيانات ترويجية جاهزة للاستكشاف والتحليل.", "info");
+    }
+   }
+  } catch (e) {
+   console.error("Restore error", e);
+   addToast("فشلت الاستعادة", "حدث خطأ غير متوقع أثناء تفكيك بيانات النسخة الاحتياطية.", "warning");
+  }
  };
 
  // removed handleSave
