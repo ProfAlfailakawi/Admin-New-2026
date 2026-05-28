@@ -184,7 +184,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       color: tier?.gradient ?? tier?.colorGradient ?? (String(tier?.color || '').startsWith('from-') ? tier.color : fallback.color),
       bgClass: tier?.bgClass ?? tier?.bg ?? fallback.bgClass,
       iconType,
-      imageUrl: tier?.imageUrl || tier?.image || '',
+      imageUrl: tier?.imageUrl || tier?.image || tier?.logo || '',
+      logo: tier?.logo || tier?.imageUrl || tier?.image || '',
+      challenge: tier?.challenge ?? tier?.challengeText ?? tier?.mission ?? '',
+      challengeText: tier?.challengeText ?? tier?.challenge ?? tier?.mission ?? '',
     };
   };
 
@@ -208,6 +211,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
         color: theme.color,
         bg: theme.bg,
         border: theme.border,
+        adminColor: tier.color,
+        iconColor: tier.color,
         gradient: tier.color,
         colorGradient: tier.color,
         bgClass: tier.bgClass,
@@ -215,7 +220,12 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
         icon: tier.iconType === 'Trophy' ? '🏆' : tier.iconType === 'Crown' ? '👑' : tier.iconType === 'Star' ? '⭐' : tier.iconType === 'Medal' ? '🏅' : '🎯',
         benefit: tier.label,
         label: tier.label,
+        description: tier.label,
+        challenge: tier.challenge || tier.challengeText || tier.label,
+        challengeText: tier.challengeText || tier.challenge || tier.label,
         imageUrl: tier.imageUrl || undefined,
+        image: tier.imageUrl || undefined,
+        logo: tier.logo || tier.imageUrl || undefined,
       };
     });
   };

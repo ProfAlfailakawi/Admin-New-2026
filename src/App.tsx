@@ -2126,7 +2126,7 @@ const MainApp: React.FC = () => {
 	          // 1. Detect if the Root document fields (non-sharded keys) have changed
 	          const rootDocData = withAuthoritativeSharedMeta({ ...splitData });
 	          SHARDED_KEYS.forEach(key => {
-	             if (key !== 'products') {
+	             if (key !== 'products' && key !== 'squads') {
 	                 delete rootDocData[key];
              }
           });
@@ -2169,8 +2169,8 @@ const MainApp: React.FC = () => {
 	             const rootDocDataWithPlaceholders = withAuthoritativeSharedMeta({ ...splitData });
 	             SHARDED_KEYS.forEach(key => {
                if (rootDocDataWithPlaceholders[key] !== undefined) {
-                 if (key === 'products') {
-                     // Keep products in the root document because the Client App needs it!
+                 if (key === 'products' || key === 'squads') {
+                     // Keep products and diwaniyas in the root document because the Client App reads them directly.
                      // It is small enough to fit within 1MB.
                  } else {
                      rootDocDataWithPlaceholders[key] = [];
@@ -2205,6 +2205,12 @@ const MainApp: React.FC = () => {
              if (key === 'squads' && Array.isArray(shardedPayloadsToSave['squads'])) {
                const currentSquads = shardedPayloadsToSave['squads'];
                console.log(`[MIRROR] Mirroring ${currentSquads.length} diwaniyas/squads to root-level Firestore collection 'squads'...`);
+               const sharedDataRef = doc(db, 'appData', 'shared_company_data');
+               const sharedSquadsPayload = JSON.parse(JSON.stringify({
+                 squads: currentSquads,
+                 __adminSyncedSquadsAt: new Date().toISOString(),
+               }));
+               savePromises.push(setDoc(sharedDataRef, sharedSquadsPayload, { merge: true }));
                
                currentSquads.forEach((sq: any) => {
                  if (sq && sq.id !== undefined) {
