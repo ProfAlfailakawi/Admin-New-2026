@@ -3851,13 +3851,19 @@ html body .login-brand-stage h1 {
   white-space: normal !important;
   text-wrap: balance !important;
   overflow: visible !important;
-  font-size: clamp(2.5rem, 11vw, 4.5rem) !important;
-  word-break: break-word !important;
+  font-size: clamp(2rem, 11vw, 4rem) !important;
+  word-break: normal !important;
   line-height: 1.25 !important;
 }
 @media (max-width: 640px) {
   html body .login-brand-stage h1 {
-    font-size: clamp(2.2rem, 14vw, 3.8rem) !important;
-    text-wrap: wrap !important;
+    font-size: clamp(1.85rem, 11vw, 3.2rem) !important;
+    text-wrap: balance !important;
+    white-space: normal !important;
+  }
+}
+@media (max-width: 430px) {
+  html body .login-brand-stage h1 {
+    font-size: clamp(1.7rem, 10vw, 2.6rem) !important;
   }
 }
