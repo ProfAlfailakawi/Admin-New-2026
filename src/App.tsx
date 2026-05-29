@@ -2080,7 +2080,47 @@ const MainApp: React.FC = () => {
           }
       }
       
-      // 2. Load ROOT + SHARDS once from the server.
+      // 2. Fast path: load the full shared database through the Admin server.
+      // This avoids slow browser Firestore shard reads on first entry and keeps Admin/Order on the same source.
+      try {
+        isCloudSyncApplyingRef.current = true;
+        const fastRes = await fetch('/api/appdata/full', { cache: 'no-store' });
+        if (fastRes.ok) {
+          const fastPayload = await fastRes.json();
+          if (fastPayload?.success && fastPayload?.data) {
+            let loadedState: any = joinProductsFromDatabase({ ...INITIAL_DATA, ...fastPayload.data });
+            const rootWrittenAt = new Date(loadedState.__adminLastAuthoritativeWriteAt || '').getTime();
+            authoritativeDataWrittenAtRef.current = Number.isFinite(rootWrittenAt) ? rootWrittenAt : 0;
+            cloudRootExistsRef.current = true;
+            loadedCloudShardKeysRef.current = new Set();
+            SHARDED_KEYS.forEach(key => {
+              if ((loadedState as any)[key] !== undefined) {
+                loadedCloudShardKeysRef.current.add(key);
+                lastRemoteKeysRef.current[key] = stableStringify((loadedState as any)[key]);
+              }
+            });
+            const rootDataOnly = { ...loadedState };
+            SHARDED_KEYS.forEach(k => {
+              if (k !== 'products') delete rootDataOnly[k];
+            });
+            lastRemoteKeysRef.current['__root__'] = stableStringify(rootDataOnly);
+            setData(loadedState);
+            lastRemoteSnapshotRef.current = JSON.stringify(loadedState);
+            try {
+              setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
+              setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
+            } catch {}
+            isCloudSyncApplyingRef.current = false;
+            hasLoadedDataRef.current = true;
+            setDataLoading(false);
+            return;
+          }
+        }
+      } catch (fastLoadErr) {
+        console.warn('[FAST_APPDATA] Admin API fast load failed; falling back to browser Firestore shard reads.', fastLoadErr);
+      }
+
+      // 3. Fallback: Load ROOT + SHARDS once from the browser Firestore client.
       // Firestore 12.12 can throw INTERNAL ASSERTION FAILED when many realtime
       // listeners are opened/closed quickly. The admin data is still saved live
       // by the auto-save block below; loading it with server reads prevents the

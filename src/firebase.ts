@@ -36,7 +36,6 @@ console.log("Firebase App Initialized with project:", activeConfig.projectId);
 // ENFORCE LIVE SERVER FETCHING ONLY: Disabling IndexedDB persistentLocalCache by using memoryLocalCache()
 // This ensures the client application never pulls stale, old, or deleted data from disk storage.
 export const db = initializeFirestore(app, { 
-  experimentalAutoDetectLongPolling: true,
   localCache: memoryLocalCache()
 }, (firebaseConfig as any).firestoreDatabaseId);
 console.log("Firestore initialized with DB ID:", (firebaseConfig as any).firestoreDatabaseId);
