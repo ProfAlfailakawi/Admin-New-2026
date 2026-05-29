@@ -1,14 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { AppState } from '../types';
 import { getKitchenNowDecision, getKuwaitiSeasonalMove } from '../lib/ai-engine';
-import { AlertCircle, Target, Users, TrendingUp, Zap, ShieldAlert, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { getProductQualityReport } from '../lib/command-quality';
+import { AlertCircle, Target, Users, TrendingUp, Zap, ShieldAlert, ChevronDown, ChevronUp, Sparkles, Gauge, Eye, Gem } from 'lucide-react';
 
 interface Props {
   data: AppState;
   dateFilter?: 'day' | 'week' | 'month' | 'year' | 'all';
+  onNavigate?: (page: string, payload?: any) => void;
 }
 
-export function CommandBrief({ data, dateFilter = 'day' }: Props) {
+export function CommandBrief({ data, dateFilter = 'day', onNavigate }: Props) {
   const hour = new Date().getHours();
   const greeting = hour >= 17 && hour < 22
     ? { title: 'تحية مسائية هادئة ☕', sub: 'النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.' }
@@ -20,6 +22,7 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
   const nowDecision = useMemo(() => getKitchenNowDecision(data, 'dashboard'), [data]);
   const seasonalMove = useMemo(() => getKuwaitiSeasonalMove(data), [data]);
+  const qualityReport = useMemo(() => getProductQualityReport(data), [data]);
 
    const brief = useMemo(() => {
     const lines = [];
@@ -231,11 +234,35 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
             <p className="text-xs md:text-sm font-medium leading-7 text-slate-500 break-words">
               {greeting.sub}
             </p>
-            <div className="mt-2 max-w-2xl rounded-2xl border border-amber-200/70 bg-white/80 px-3 py-2 shadow-sm">
-              <div className="flex items-center gap-2 text-[11px] font-black text-amber-700">
-                <Target size={13} /> شنو أسوي الحين؟
+            <div className="mt-3 grid max-w-4xl grid-cols-1 gap-2 lg:grid-cols-[1.4fr_1fr]">
+              <div className="rounded-2xl border border-amber-200/70 bg-white/85 px-3 py-2.5 shadow-sm">
+                <div className="flex items-center gap-2 text-[11px] font-black text-amber-700">
+                  <Target size={13} /> قرار الآن
+                </div>
+                <p className="mt-1 text-xs md:text-sm font-extrabold leading-6 text-slate-800">{qualityReport.decision || nowDecision.decision}</p>
               </div>
-              <p className="mt-1 text-xs md:text-sm font-extrabold leading-6 text-slate-800">{nowDecision.decision}</p>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigate?.('products', { scrollTarget: 'product-quality-board' });
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onNavigate?.('products', { scrollTarget: 'product-quality-board' });
+                  }
+                }}
+                className="rounded-2xl border border-slate-200 bg-white/85 px-3 py-2.5 text-right shadow-sm hover:bg-white transition-colors cursor-pointer"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 text-[11px] font-black text-slate-500"><Gauge size={13} /> جودة المنيو</span>
+                  <span className="text-lg font-black text-slate-950">{qualityReport.score}<span className="text-xs text-slate-400">%</span></span>
+                </div>
+                <p className="mt-1 line-clamp-1 text-[11px] md:text-xs font-bold text-slate-500">{qualityReport.proof}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -248,12 +275,32 @@ export function CommandBrief({ data, dateFilter = 'day' }: Props) {
 
       {isExpanded && (
         <div className="w-full max-w-full overflow-hidden border-t border-slate-100 bg-slate-50/70 p-3 md:p-4">
-          <div className="mb-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-3 grid grid-cols-1 gap-3 xl:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:col-span-1">
               <div className="flex items-center gap-2 text-xs font-black text-slate-500"><Target size={15} /> زر القرار الواحد</div>
-              <h3 className="mt-2 text-base font-black text-slate-900">{nowDecision.title}</h3>
-              <p className="mt-2 text-sm font-bold leading-7 text-slate-700">{nowDecision.proof}</p>
-              <p className="mt-2 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-black leading-7 text-amber-800">{nowDecision.action}</p>
+              <h3 className="mt-2 text-base font-black text-slate-900">{qualityReport.title}</h3>
+              <p className="mt-2 text-sm font-bold leading-7 text-slate-700">{qualityReport.proof}</p>
+              <p className="mt-2 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-black leading-7 text-amber-800">{qualityReport.action}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-xs font-black text-slate-500"><Eye size={15} /> انعكاس على الشاشة</div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                  <div className="text-[10px] font-black text-slate-400">فرصة واحدة</div>
+                  <div className="mt-1 text-sm font-black text-slate-800 line-clamp-2">{qualityReport.opportunity?.title || 'لا توجد فرصة عاجلة'}</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                  <div className="text-[10px] font-black text-slate-400">خطر واحد</div>
+                  <div className="mt-1 text-sm font-black text-slate-800 line-clamp-2">{qualityReport.risk?.title || 'لا يوجد خطر واضح'}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate?.('products', { scrollTarget: 'product-quality-board' })}
+                className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-950 px-3 py-2 text-[11px] font-black text-white hover:bg-slate-800 transition-colors"
+              >
+                <Gem size={13} /> افتح جودة المنيو
+              </button>
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-white to-emerald-50 p-4 shadow-sm">
               <div className="flex items-center gap-2 text-xs font-black text-emerald-700"><Sparkles size={15} /> محرك المناسبات الكويتي</div>
