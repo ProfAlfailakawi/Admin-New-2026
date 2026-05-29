@@ -5,6 +5,7 @@ import { heritageMotion } from '../lib/heritageMotion';
 import { hasProductImage } from '../lib/sharedBusinessContract';
 import { appendLocalLedgerEvent, createLedgerEvent } from '../lib/alturathLedger';
 import { cn, normalizeArabic, normalizeArabicNumerals } from '../lib/utils';
+import { getProductQualityReport } from '../lib/command-quality';
 
 interface CommandBarProps {
   isOpen: boolean;
@@ -119,6 +120,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     const todayKey = new Date().toISOString().slice(0, 10);
     const todayInvoices = invoices.filter((inv: any) => String(inv?.date || '').startsWith(todayKey));
     const todaySales = todayInvoices.reduce((sum: number, inv: any) => sum + Number(inv?.totalAmount || inv?.total || 0), 0);
+    const productQuality = getProductQualityReport(data);
 
     const allTabs: CommandItem[] = [
       { id: 'dashboard-pulse', label: 'النبض التنفيذي', hint: 'مركز القيادة، ملخص اليوم، مؤشرات الإدارة', icon: <Activity />, category: 'خريطة التحكم الذكية', tags: ['مركز القيادة','داشبورد','الرئيسية','ملخص'], action: () => onNavigate('dashboard', { exactId: 'pulse' }), roles: ['admin'] },
@@ -139,6 +141,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
 
       { id: 'customers-page', label: 'بيانات العملاء', hint: 'بحث وتفاصيل', icon: <Users />, category: 'الإدارة الأساسية', action: () => onNavigate('customers', {}), roles: ['admin'] },
       { id: 'products-page', label: 'إدارة المنتجات', hint: 'الأسعار والتصنيفات', icon: <Package />, category: 'الإدارة الأساسية', action: () => onNavigate('products', {}), roles: ['admin'] },
+      { id: 'product-quality-board', label: 'جودة المنيو', hint: `${productQuality.score}% · ${productQuality.proof}`, icon: <Target />, category: 'اقتراحات الآن', tags: ['جودة المنيو','Product Quality Board','منتجات ناقصة','ذهب مدفون','بدون صور'], action: () => onNavigate('products', { scrollTarget: 'product-quality-board' }), roles: ['admin'] },
       { id: 'suppliers-audit', label: 'الموردين والمراجعة', hint: 'تدقيق الموردين والمخاطر', icon: <Truck />, category: 'الإدارة الأساسية', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
       { id: 'expenses', label: 'المصروفات', hint: 'تسجيل ومراجعة', icon: <PieChart />, category: 'الإدارة الأساسية', action: () => onNavigate('expenses', {}), roles: ['admin'] },
       { id: 'settings', label: 'الإعدادات العامة', hint: 'هوية وتنبيهات وضبط', icon: <ShieldCheck />, category: 'الإدارة الأساسية', action: () => onNavigate('settings', {}), roles: ['admin'] },
@@ -244,6 +247,31 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
         category: 'إجراءات مالية ذكية',
         action: () => onNavigate('orders', { search: 'فشل' }),
         tags: ['طلبات فاشله','طلبات فاشلة','فشل الدفع','دفع فاشل','failed orders']
+      });
+    }
+
+    if (q.includes('جودة') || q.includes('منيو') || q.includes('quality') || q.includes('كوالتي')) {
+      smartActions.push({
+        id: 'smart-product-quality-open',
+        label: `افتح جودة المنيو (${productQuality.score}%)`,
+        hint: productQuality.decision,
+        icon: <Target className="text-slate-700" />,
+        category: 'إجراءات مالية ذكية',
+        action: () => onNavigate('products', { scrollTarget: 'product-quality-board' }),
+        tags: ['جودة المنيو','Product Quality Board','كوماند','منتجات']
+      });
+    }
+
+    if (q.includes('مدفون') || q.includes('ذهب') || q.includes('ربحه قوي') || q.includes('هامش قوي')) {
+      const gem = productQuality.opportunity?.products?.[0];
+      smartActions.push({
+        id: 'smart-product-hidden-gem',
+        label: gem ? `ذهب مدفون: ${gem.name}` : 'المنتجات الذهبية المدفونة',
+        hint: productQuality.opportunity?.text || productQuality.decision,
+        icon: <Sparkles className="text-amber-500" />,
+        category: 'إجراءات مالية ذكية',
+        action: () => onNavigate('products', { scrollTarget: 'product-quality-board', search: gem?.name || '' }),
+        tags: ['ذهب مدفون','منتجات','ربح','هامش']
       });
     }
 

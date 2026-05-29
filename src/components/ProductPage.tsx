@@ -43,6 +43,7 @@ import ConfirmModal from "./ui/ConfirmModal";
 import { SmartOfferModal } from "./SmartOfferModal";
 import { findBestProductMatch } from "../lib/name-matching";
 import { getProfitCamera } from "../lib/ai-engine";
+import { ProductQualityBoard } from "./ProductQualityBoard";
 import { storage, auth } from "../firebase";
 import {
   ref,
@@ -88,6 +89,11 @@ const ProductPage: React.FC<ProductPageProps> = ({
     if (deepLinkData?.search) {
       setSearch(deepLinkData.search);
       if (onClearDeepLink) onClearDeepLink();
+    }
+    if (deepLinkData?.scrollTarget === "product-quality-board") {
+      window.setTimeout(() => {
+        document.getElementById("product-quality-board")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 180);
     }
   }, [deepLinkData, onClearDeepLink]);
 
@@ -730,6 +736,17 @@ const ProductPage: React.FC<ProductPageProps> = ({
         </div>
       </div>
 
+      <ProductQualityBoard
+        data={data}
+        onFocusProduct={(product) => {
+          setSearch(product.name || "");
+          setOpenProductListCategory(normalizeCategoryName(product.category));
+          window.setTimeout(() => {
+            document.getElementById("products-list-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 120);
+        }}
+      />
+
       <div className="bg-white border border-slate-200/70 rounded-3xl p-3 md:p-4 shadow-sm text-right">
         <button
           type="button"
@@ -987,7 +1004,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
         </AnimatePresence>
       </div>
 
-      <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
+      <div id="products-list-section" className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
         <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
           <div className="relative flex-1">
             <Search

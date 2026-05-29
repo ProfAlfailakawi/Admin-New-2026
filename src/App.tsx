@@ -3405,7 +3405,7 @@ const MainApp: React.FC = () => {
             />
           )}
           {userRole !== 'partner' && currentPage === 'dashboard' && (
-            <CommandBrief data={data} dateFilter="day" />
+            <CommandBrief data={data} dateFilter="day" onNavigate={navigateAdminPage} />
           )}
           <AnimatePresence>
             <motion.div
