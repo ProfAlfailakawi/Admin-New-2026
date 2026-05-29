@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AppState } from '../types';
 import { getKitchenNowDecision, getKuwaitiSeasonalMove } from '../lib/ai-engine';
 import { getProductQualityReport } from '../lib/command-quality';
-import { AlertCircle, Target, Users, TrendingUp, Zap, ShieldAlert, ChevronDown, ChevronUp, Sparkles, Gauge, Eye, Gem } from 'lucide-react';
+import { AlertCircle, Target, Users, TrendingUp, Zap, ShieldAlert, ChevronDown, ChevronUp, Sparkles, Gauge } from 'lucide-react';
 
 interface Props {
   data: AppState;
@@ -234,36 +234,27 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate }: Props) {
             <p className="text-xs md:text-sm font-medium leading-7 text-slate-500 break-words">
               {greeting.sub}
             </p>
-            <div className="mt-3 grid max-w-4xl grid-cols-1 gap-2 lg:grid-cols-[1.4fr_1fr]">
-              <div className="rounded-2xl border border-amber-200/70 bg-white/85 px-3 py-2.5 shadow-sm">
-                <div className="flex items-center gap-2 text-[11px] font-black text-amber-700">
-                  <Target size={13} /> قرار الآن
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigate?.('products', { scrollTarget: 'product-quality-board' });
+              }}
+              className="mt-3 max-w-4xl rounded-2xl border border-slate-200 bg-white/85 px-3 py-2.5 text-right shadow-sm hover:bg-white transition-colors"
+            >
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-[11px] font-black text-amber-700">
+                    <Target size={13} /> أولوية الآن
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-xs md:text-sm font-extrabold leading-6 text-slate-800">{qualityReport.decision || nowDecision.decision}</p>
                 </div>
-                <p className="mt-1 text-xs md:text-sm font-extrabold leading-6 text-slate-800">{qualityReport.decision || nowDecision.decision}</p>
-              </div>
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNavigate?.('products', { scrollTarget: 'product-quality-board' });
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onNavigate?.('products', { scrollTarget: 'product-quality-board' });
-                  }
-                }}
-                className="rounded-2xl border border-slate-200 bg-white/85 px-3 py-2.5 text-right shadow-sm hover:bg-white transition-colors cursor-pointer"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2 text-[11px] font-black text-slate-500"><Gauge size={13} /> جودة المنيو</span>
-                  <span className="text-lg font-black text-slate-950">{qualityReport.score}<span className="text-xs text-slate-400">%</span></span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600"><Gauge size={13} /> {qualityReport.score}%</span>
+                  <span className="rounded-full bg-slate-950 px-3 py-1 text-[11px] font-black text-white">تفاصيل</span>
                 </div>
-                <p className="mt-1 line-clamp-1 text-[11px] md:text-xs font-bold text-slate-500">{qualityReport.proof}</p>
               </div>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -275,38 +266,30 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate }: Props) {
 
       {isExpanded && (
         <div className="w-full max-w-full overflow-hidden border-t border-slate-100 bg-slate-50/70 p-3 md:p-4">
-          <div className="mb-3 grid grid-cols-1 gap-3 xl:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:col-span-1">
-              <div className="flex items-center gap-2 text-xs font-black text-slate-500"><Target size={15} /> زر القرار الواحد</div>
-              <h3 className="mt-2 text-base font-black text-slate-900">{qualityReport.title}</h3>
-              <p className="mt-2 text-sm font-bold leading-7 text-slate-700">{qualityReport.proof}</p>
-              <p className="mt-2 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-black leading-7 text-amber-800">{qualityReport.action}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2 text-xs font-black text-slate-500"><Eye size={15} /> انعكاس على الشاشة</div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="mb-3 rounded-2xl border border-slate-200 bg-white p-3 md:p-4 shadow-sm">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="min-w-0 xl:max-w-xl">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-500"><Target size={15} /> الأهم الآن</div>
+                <h3 className="mt-1 text-base font-black text-slate-900 line-clamp-1">{qualityReport.title}</h3>
+                <p className="mt-1 text-sm font-bold leading-7 text-slate-700 line-clamp-2">{qualityReport.action}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:min-w-[300px]">
                 <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
-                  <div className="text-[10px] font-black text-slate-400">فرصة واحدة</div>
-                  <div className="mt-1 text-sm font-black text-slate-800 line-clamp-2">{qualityReport.opportunity?.title || 'لا توجد فرصة عاجلة'}</div>
+                  <div className="text-[10px] font-black text-slate-400">فرصة</div>
+                  <div className="mt-1 text-sm font-black text-slate-800 line-clamp-1">{qualityReport.opportunity?.title || 'لا توجد فرصة عاجلة'}</div>
                 </div>
                 <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
-                  <div className="text-[10px] font-black text-slate-400">خطر واحد</div>
-                  <div className="mt-1 text-sm font-black text-slate-800 line-clamp-2">{qualityReport.risk?.title || 'لا يوجد خطر واضح'}</div>
+                  <div className="text-[10px] font-black text-slate-400">تنبيه</div>
+                  <div className="mt-1 text-sm font-black text-slate-800 line-clamp-1">{qualityReport.risk?.title || 'لا يوجد تنبيه مهم'}</div>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => onNavigate?.('products', { scrollTarget: 'product-quality-board' })}
-                className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-950 px-3 py-2 text-[11px] font-black text-white hover:bg-slate-800 transition-colors"
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-[11px] font-black text-white hover:bg-slate-800 transition-colors"
               >
-                <Gem size={13} /> افتح جودة المنيو
+                <Gauge size={13} /> جودة المنيو
               </button>
-            </div>
-            <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-white to-emerald-50 p-4 shadow-sm">
-              <div className="flex items-center gap-2 text-xs font-black text-emerald-700"><Sparkles size={15} /> محرك المناسبات الكويتي</div>
-              <h3 className="mt-2 text-base font-black text-slate-900">{seasonalMove.title}</h3>
-              <p className="mt-2 text-sm font-bold leading-7 text-slate-700">{seasonalMove.text}</p>
-              <span className="mt-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black text-emerald-700">{seasonalMove.tag}</span>
             </div>
           </div>
           <div className="grid w-full max-w-full grid-cols-1 gap-3 lg:grid-cols-2">
