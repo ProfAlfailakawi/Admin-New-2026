@@ -207,10 +207,17 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate }: Props) {
       dir="rtl"
       aria-label="مركز القيادة"
     >
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full max-w-full p-4 md:p-5 text-right flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-gradient-to-l from-white via-slate-50 to-amber-50/45 hover:from-slate-50 transition-colors"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsExpanded(!isExpanded);
+          }
+        }}
+        className="w-full max-w-full p-4 md:p-5 text-right flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-gradient-to-l from-white via-slate-50 to-amber-50/45 hover:from-slate-50 transition-colors cursor-pointer select-none"
       >
         <div className="min-w-0 flex items-start gap-3 md:gap-4">
           <div className="shrink-0 w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shadow-sm">
@@ -250,7 +257,7 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate }: Props) {
                   <p className="mt-1 line-clamp-2 text-xs md:text-sm font-extrabold leading-6 text-slate-800">{qualityReport.decision || nowDecision.decision}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600"><Gauge size={13} /> {qualityReport.score}%</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600"><Gauge size={13} /> جودة المنيو {qualityReport.score}%</span>
                   <span className="rounded-full bg-slate-950 px-3 py-1 text-[11px] font-black text-white">تفاصيل</span>
                 </div>
               </div>
@@ -262,7 +269,7 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate }: Props) {
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           {isExpanded ? 'إغلاق' : 'فتح'}
         </span>
-      </button>
+      </div>
 
       {isExpanded && (
         <div className="w-full max-w-full overflow-hidden border-t border-slate-100 bg-slate-50/70 p-3 md:p-4">
@@ -288,7 +295,7 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate }: Props) {
                 onClick={() => onNavigate?.('products', { scrollTarget: 'product-quality-board' })}
                 className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-[11px] font-black text-white hover:bg-slate-800 transition-colors"
               >
-                <Gauge size={13} /> جودة المنيو
+                <Gauge size={13} /> جودة المنيو {qualityReport.score}%
               </button>
             </div>
           </div>

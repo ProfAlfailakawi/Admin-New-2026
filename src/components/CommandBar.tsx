@@ -26,6 +26,16 @@ type CommandItem = {
   roles?: string[];
 };
 
+type CommandAnswer = {
+  title: string;
+  value: string;
+  subtitle?: string;
+  details?: string[];
+  actionLabel?: string;
+  action?: () => void;
+  tone?: 'slate' | 'emerald' | 'amber' | 'rose' | 'blue';
+};
+
 const clean = (value?: string) => {
   const normalized = normalizeArabic(String(value || '')).toLowerCase().trim();
   // Robustly remove punctuation to allow matches like "سداد المورد محمد!"
@@ -104,12 +114,238 @@ const isPendingText = (value: any) => {
   return !text || text.includes('pending') || text.includes('بانتظار') || text.includes('انتظار') || text.includes('جديد');
 };
 
+
+const num = (value: any) => {
+  const n = Number(value || 0);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const itemName = (item: any) => String(item?.name || item?.productName || item?.title || '').trim();
+const itemQty = (item: any) => num(item?.quantity || item?.qty || 1) || 1;
+const itemTotal = (item: any) => num(item?.total || item?.lineTotal || item?.price) * itemQty(item);
+
+const buildCustomerStats = (data: any) => {
+  const byKey = new Map<string, any>();
+  const aliasToKey = new Map<string, string>();
+  const totalsLocked = new Set<string>();
+
+  const aliasesFor = (...values: any[]) => values
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+
+  const resolveKey = (...values: any[]) => {
+    const aliases = aliasesFor(...values);
+    const existing = aliases.map((alias) => aliasToKey.get(alias)).find(Boolean);
+    return existing || aliases[0] || '';
+  };
+
+  const rememberAliases = (key: string, ...values: any[]) => {
+    aliasesFor(key, ...values).forEach((alias) => aliasToKey.set(alias, key));
+  };
+
+  const setLastOrderDate = (current: any, date: any) => {
+    if (!date) return;
+    const currentTime = current.lastOrderDate ? new Date(current.lastOrderDate).getTime() : 0;
+    const nextTime = new Date(date).getTime();
+    if (!current.lastOrderDate || (Number.isFinite(nextTime) && nextTime > currentTime)) current.lastOrderDate = date;
+  };
+
+  safeArray(data?.customers).forEach((customer: any) => {
+    const key = resolveKey(customer?.id, customer?.phone, customer?.name);
+    if (!key) return;
+    rememberAliases(key, customer?.id, customer?.phone, customer?.name);
+    const hasStoredTotals = customer?.totalSpent !== undefined || customer?.totalOrders !== undefined;
+    byKey.set(key, {
+      id: customer?.id || key,
+      name: customer?.name || customer?.phone || 'عميل',
+      phone: customer?.phone || '',
+      totalSpent: num(customer?.totalSpent),
+      totalOrders: num(customer?.totalOrders),
+      lastOrderDate: customer?.lastOrderDate || customer?.lastActive || '',
+    });
+    if (hasStoredTotals) totalsLocked.add(key);
+  });
+
+  const invoiceStats = new Map<string, any>();
+  const orderStats = new Map<string, any>();
+
+  const addTxn = (map: Map<string, any>, source: any, amount: any, date: any) => {
+    const key = resolveKey(source?.customerId, source?.customerPhone, source?.phone, source?.customerName);
+    if (!key) return;
+    const current = map.get(key) || {
+      id: source?.customerId || key,
+      name: source?.customerName || source?.customerPhone || source?.phone || 'عميل',
+      phone: source?.customerPhone || source?.phone || '',
+      totalSpent: 0,
+      totalOrders: 0,
+      lastOrderDate: '',
+    };
+    current.totalSpent += num(amount);
+    current.totalOrders += 1;
+    setLastOrderDate(current, date);
+    map.set(key, current);
+    rememberAliases(key, source?.customerId, source?.customerPhone, source?.phone, source?.customerName);
+  };
+
+  safeArray(data?.invoices)
+    .filter((inv: any) => !inv?.isDeleted)
+    .forEach((inv: any) => addTxn(invoiceStats, inv, inv?.totalAmount || inv?.total, inv?.date || inv?.createdAt));
+
+  safeArray(data?.orders)
+    .forEach((order: any) => addTxn(orderStats, order, order?.total || order?.totalAmount, order?.createdAt || order?.date || order?.updatedAt));
+
+  const mergeComputed = (key: string, stats: any) => {
+    if (!key || !stats || totalsLocked.has(key)) return;
+    const current = byKey.get(key) || { id: stats.id || key, name: stats.name || 'عميل', phone: stats.phone || '', totalSpent: 0, totalOrders: 0, lastOrderDate: '' };
+    current.id = current.id || stats.id || key;
+    current.name = current.name && current.name !== 'عميل' ? current.name : stats.name;
+    current.phone = current.phone || stats.phone || '';
+    current.totalSpent = num(stats.totalSpent);
+    current.totalOrders = num(stats.totalOrders);
+    setLastOrderDate(current, stats.lastOrderDate);
+    byKey.set(key, current);
+  };
+
+  // تجنب الدبل: إذا كانت بيانات العميل فيها إجمالي محفوظ نستخدمه كما هو.
+  // وإذا ما عنده إجمالي، نفضل الفواتير كمصدر مالي، ونستخدم الطلبات فقط عند عدم وجود فواتير لنفس العميل.
+  invoiceStats.forEach((stats, key) => mergeComputed(key, stats));
+  orderStats.forEach((stats, key) => {
+    if (!invoiceStats.has(key)) mergeComputed(key, stats);
+  });
+
+  return Array.from(byKey.values()).sort((a, b) => num(b.totalSpent) - num(a.totalSpent));
+};
+
+const buildProductStats = (data: any) => {
+  const byName = new Map<string, any>();
+  safeArray(data?.products).forEach((product: any) => {
+    const key = String(product?.id || product?.name || '').trim();
+    if (!key) return;
+    byName.set(key, { id: product?.id, name: product?.name || 'منتج', quantity: 0, sales: 0, category: product?.category || '' });
+  });
+  const addItem = (item: any) => {
+    const key = String(item?.productId || itemName(item) || '').trim();
+    if (!key) return;
+    const current = byName.get(key) || { id: item?.productId || key, name: itemName(item) || 'منتج', quantity: 0, sales: 0, category: '' };
+    current.quantity += itemQty(item);
+    current.sales += itemTotal(item);
+    byName.set(key, current);
+  };
+  safeArray(data?.invoices).filter((inv: any) => !inv?.isDeleted).forEach((inv: any) => safeArray(inv?.items).forEach(addItem));
+  safeArray(data?.orders).forEach((order: any) => safeArray(order?.items || order?.products).forEach(addItem));
+  return Array.from(byName.values()).filter((x) => x.quantity || x.sales).sort((a, b) => num(b.quantity) - num(a.quantity));
+};
+
 const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, data, userRole }) => {
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [recentCommandIds, setRecentCommandIds] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const instantAnswer = useMemo<CommandAnswer | null>(() => {
+    const q = clean(deferredQuery);
+    if (!q) return null;
+    const quality = getProductQualityReport(data);
+    const customers = buildCustomerStats(data);
+    const products = buildProductStats(data);
+    const hasTop = q.includes('اعلى') || q.includes('اكبر') || q.includes('افضل') || q.includes('أعلى') || q.includes('أكبر') || q.includes('أفضل');
+
+    if ((hasTop && (q.includes('عميل') || q.includes('زبون'))) || q.includes('اكثر عميل') || q.includes('أكثر عميل')) {
+      const top = customers[0];
+      if (!top) return { title: 'أعلى عميل', value: 'لا توجد بيانات كافية', subtitle: 'لم أجد عملاء أو فواتير كافية للحساب.', tone: 'slate' };
+      return {
+        title: 'أعلى عميل حاليًا',
+        value: top.name,
+        subtitle: `${money(top.totalSpent)} د.ك · ${top.totalOrders || 0} طلب`,
+        details: [top.phone ? `الهاتف: ${top.phone}` : '', top.lastOrderDate ? `آخر طلب: ${new Date(top.lastOrderDate).toLocaleDateString('en-GB')}` : ''].filter(Boolean),
+        actionLabel: 'افتح العميل',
+        action: () => onNavigate('customers', { exactId: top.id, search: top.name || top.phone }),
+        tone: 'emerald',
+      };
+    }
+
+    if ((hasTop && (q.includes('منتج') || q.includes('صنف'))) || q.includes('اكثر منتج') || q.includes('أكثر منتج')) {
+      const top = products[0];
+      if (!top) return { title: 'أعلى منتج', value: 'لا توجد مبيعات كافية', subtitle: 'لم أجد عناصر مباعة تكفي للحساب.', tone: 'slate' };
+      return {
+        title: 'أعلى منتج بالحركة',
+        value: top.name,
+        subtitle: `${Math.round(top.quantity)} قطعة · ${money(top.sales)} د.ك`,
+        details: [top.category ? `التصنيف: ${top.category}` : 'الترتيب مبني على الكمية المباعة.'].filter(Boolean),
+        actionLabel: 'افتح المنتج',
+        action: () => onNavigate('products', { exactId: top.id, search: top.name }),
+        tone: 'blue',
+      };
+    }
+
+    if (q.includes('جودة') || q.includes('منيو') || q.includes('واجهه') || q.includes('واجهة') || q.includes('بصري') || q.includes('بصرية')) {
+      const visual = quality.signals.find((item) => item.id === 'missing-visual');
+      return {
+        title: 'جودة عرض المنيو',
+        value: `${quality.score}%`,
+        subtitle: quality.decision,
+        details: [`درجة عامة لكل المنيو`, `الواجهة البصرية: ${visual?.count || 0} منتج`],
+        actionLabel: 'افتح الأولويات',
+        action: () => onNavigate('products', { scrollTarget: 'product-quality-board' }),
+        tone: quality.score >= 72 ? 'emerald' : 'amber',
+      };
+    }
+
+    if (q.includes('ذهب') || q.includes('مدفون') || q.includes('فرصه') || q.includes('فرصة')) {
+      const gem = quality.signals.find((item) => item.id === 'hidden-gems');
+      const first = gem?.products?.[0];
+      return {
+        title: 'ذهب مدفون',
+        value: `${gem?.count || 0} منتج`,
+        subtitle: first ? `أول منتج للتركيز: ${first.name}` : 'لا توجد فرصة مدفونة واضحة الآن.',
+        details: ['الرقم هنا عدد منتجات، وليس نسبة.', quality.proof],
+        actionLabel: first ? 'افتح المنتج' : 'افتح جودة المنيو',
+        action: () => onNavigate('products', first ? { exactId: first.id, search: first.name } : { scrollTarget: 'product-quality-board' }),
+        tone: 'emerald',
+      };
+    }
+
+    if (q.includes('بدون صور') || q.includes('بلا صور') || q.includes('صور ناقص') || q.includes('ناقصه صور') || q.includes('ناقصة صور')) {
+      const visual = quality.signals.find((item) => item.id === 'missing-visual');
+      const first = visual?.products?.[0];
+      return {
+        title: 'منتجات تحتاج صورة',
+        value: `${visual?.count || 0} منتج`,
+        subtitle: first ? `ابدأ بـ: ${first.name}` : 'لا توجد مشكلة صور واضحة الآن.',
+        details: ['الرقم عدد منتجات تحتاج انتباهًا بصريًا.'],
+        actionLabel: first ? 'افتح المنتج' : 'افتح المنتجات',
+        action: () => onNavigate('products', first ? { exactId: first.id, search: first.name } : {}),
+        tone: 'amber',
+      };
+    }
+
+    if (q.includes('شنو اسوي') || q.includes('ماذا افعل') || q.includes('ماذا أفعل') || q.includes('قرار') || q.includes('ركز') || q.includes('أركز')) {
+      return {
+        title: 'قرار الآن',
+        value: quality.title,
+        subtitle: quality.decision,
+        details: [quality.proof, quality.action],
+        actionLabel: 'افتح نقطة التركيز',
+        action: () => onNavigate('products', { scrollTarget: 'product-quality-board' }),
+        tone: quality.status === 'critical' ? 'rose' : quality.status === 'watch' ? 'amber' : 'emerald',
+      };
+    }
+
+    if (q.includes('فاشل') || q.includes('فشل') || q.includes('فاشلة')) {
+      const failed = safeArray(data?.orders).filter((order: any) => isFailedText(order?.paymentStatus || order?.status)).length;
+      return {
+        title: 'طلبات الدفع الفاشلة',
+        value: `${failed} طلب`,
+        subtitle: failed ? 'هذه قراءة فورية من الطلبات الحالية.' : 'لا توجد طلبات فاشلة واضحة الآن.',
+        actionLabel: 'افتح الطلبات',
+        action: () => onNavigate('orders', { search: 'فشل' }),
+        tone: failed ? 'rose' : 'emerald',
+      };
+    }
+
+    return null;
+  }, [deferredQuery, data, onNavigate]);
 
   const commands = useMemo<CommandItem[]>(() => {
     const orders = Array.isArray(data?.orders) ? data.orders : [];
@@ -429,6 +665,8 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       .map(item => item.cmd);
   }, [commands, deferredQuery]);
 
+  const visibleCommands = useMemo(() => instantAnswer ? filteredCommands.slice(0, 4) : filteredCommands, [filteredCommands, instantAnswer]);
+
   const priority = ['live-failed-orders','live-pending-orders','live-paid-orders','dashboard-pulse','dashboard-profit','orders','invoices-list','new-invoice','products-page','customers-page','smart-studio'];
   const featured = useMemo(() => {
     const sorted = [...filteredCommands].sort((a, b) => {
@@ -487,13 +725,13 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       if (!isOpen) return;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex(prev => filteredCommands.length > 0 ? (prev + 1) % filteredCommands.length : 0);
+        setSelectedIndex(prev => visibleCommands.length > 0 ? (prev + 1) % visibleCommands.length : 0);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex(prev => filteredCommands.length > 0 ? (prev - 1 + filteredCommands.length) % filteredCommands.length : 0);
+        setSelectedIndex(prev => visibleCommands.length > 0 ? (prev - 1 + visibleCommands.length) % visibleCommands.length : 0);
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        const selected = filteredCommands[selectedIndex];
+        const selected = visibleCommands[selectedIndex];
         if (selected) runCommand(selected);
       } else if (e.key === 'Escape') {
         onClose();
@@ -501,7 +739,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, filteredCommands, selectedIndex, onClose]);
+  }, [isOpen, visibleCommands, selectedIndex, onClose]);
 
   return (
     <AnimatePresence>
@@ -542,6 +780,47 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
               <button type="button" onClick={onClose} className="command-premium-close"><X size={18} /></button>
             </div>
 
+            {instantAnswer && (
+              <div className="px-3 md:px-4 pt-3">
+                <div className={cn(
+                  'rounded-[24px] border p-3 md:p-4 text-right shadow-sm',
+                  instantAnswer.tone === 'emerald' && 'border-emerald-200 bg-emerald-50 text-emerald-900',
+                  instantAnswer.tone === 'amber' && 'border-amber-200 bg-amber-50 text-amber-900',
+                  instantAnswer.tone === 'rose' && 'border-rose-200 bg-rose-50 text-rose-900',
+                  instantAnswer.tone === 'blue' && 'border-blue-200 bg-blue-50 text-blue-900',
+                  (!instantAnswer.tone || instantAnswer.tone === 'slate') && 'border-slate-200 bg-slate-50 text-slate-900'
+                )}>
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 shrink-0 rounded-2xl bg-white/80 flex items-center justify-center">
+                      <Sparkles size={17} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-black opacity-65">إجابة فورية</div>
+                      <div className="mt-0.5 text-sm md:text-base font-black truncate">{instantAnswer.title}</div>
+                      <div className="mt-1 text-2xl md:text-3xl font-black leading-none truncate">{instantAnswer.value}</div>
+                      {instantAnswer.subtitle && <div className="mt-2 text-xs md:text-sm font-bold leading-6 opacity-80">{instantAnswer.subtitle}</div>}
+                      {instantAnswer.details?.length ? (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {instantAnswer.details.slice(0, 2).map((line) => (
+                            <span key={line} className="rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black opacity-80">{line}</span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                    {instantAnswer.action && instantAnswer.actionLabel && (
+                      <button
+                        type="button"
+                        onClick={() => { instantAnswer.action?.(); onClose(); }}
+                        className="shrink-0 rounded-2xl bg-white px-3 py-2 text-[11px] font-black shadow-sm border border-white/80 hover:bg-white/80 transition-colors"
+                      >
+                        {instantAnswer.actionLabel}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {!deferredQuery && (
               <div className="command-smart-strip">
                 <div className="command-strip-title">
@@ -559,17 +838,17 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
               </div>
             )}
 
-            <div className="max-h-[46vh] md:max-h-[390px] overflow-y-auto p-3 md:p-4 custom-scrollbar">
-              {filteredCommands.length > 0 ? (
+            <div className={cn('overflow-y-auto p-3 md:p-4 custom-scrollbar', instantAnswer ? 'max-h-[34vh] md:max-h-[300px]' : 'max-h-[46vh] md:max-h-[390px]')}>
+              {visibleCommands.length > 0 ? (
                 <div className="space-y-4">
                   {categoryOrder.map(category => {
-                    const catCommands = filteredCommands.filter(c => c.category === category);
+                    const catCommands = visibleCommands.filter(c => c.category === category);
                     if (catCommands.length === 0) return null;
                     return (
                       <div key={category} className="space-y-1.5">
                         <div className="px-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 text-right">{category}</div>
                         {catCommands.map((cmd) => {
-                          const globalIndex = filteredCommands.indexOf(cmd);
+                          const globalIndex = visibleCommands.indexOf(cmd);
                           const isActive = globalIndex === selectedIndex;
                           return (
                             <button
