@@ -56,6 +56,7 @@ import {
   Command
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { heritageMotion } from './lib/heritageMotion';
 import { cn, normalizeArabic } from './lib/utils';
 import Dashboard from './components/Dashboard';
 import SystemPulseOrb from './components/SystemPulseOrb';
@@ -660,8 +661,8 @@ const DataRefreshNotice: React.FC<{ show: boolean; mode: 'cloud' | 'local' }> = 
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: -10, scale: 0.96 }}
       >
-        <Loader2 size={15} className="animate-spin" />
-        <span>{mode === 'cloud' ? 'جارٍ تحديث بيانات السحابة...' : 'جارٍ تجهيز بيانات التجربة...'}</span>
+        <motion.span {...heritageMotion.breathe} className="admin-sync-breath" />
+        <span>{mode === 'cloud' ? 'جارٍ جلب آخر نسخة من السحابة...' : 'جارٍ تجهيز بيانات التجربة...'}</span>
       </motion.div>
     )}
   </AnimatePresence>
@@ -2120,6 +2121,17 @@ const MainApp: React.FC = () => {
 	      loadedCloudShardKeysRef.current = new Set();
 	      lastRemoteKeysRef.current = {};
       authoritativeDataWrittenAtRef.current = 0;
+      // عرض آخر نسخة موثوقة فوراً حتى لا يجلس المستخدم ينتظر شاشة "جارٍ تحديث بيانات السحابة".
+      // لا نفعّل auto-save هنا لأن dataLoading ما زال true و isCloudSyncApplyingRef سيمنع أي كتابة عكسية.
+      try {
+        const instantSnapshot = parseStoredState(
+          getProtectedStorageItem('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItem('ktk_cloud_offline_snapshot')
+        );
+        if (instantSnapshot) {
+          setData(instantSnapshot);
+          lastRemoteSnapshotRef.current = JSON.stringify(instantSnapshot);
+        }
+      } catch {}
 
       // 1. Sync orders independently (Legacy/Customer App)
       try {
