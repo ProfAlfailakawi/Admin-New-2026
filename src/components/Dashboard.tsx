@@ -6259,39 +6259,7 @@ const [isPending, startTransition] = useTransition();
           )}
         </AnimatePresence>
 
-        {/* Anticipatory Intelligence: EOM Report */}
-        <AnimatePresence>
-          {isMonthEnd() && !isExecutiveMode && (
-            <motion.div
-              initial={{ opacity: 0, y: 50, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 50, scale: 0.9 }}
-              transition={{ type: "spring", damping: 25, stiffness: 200, delay: 1 }}
-              className="fixed bottom-24 left-8 z-50 flex items-center gap-4 bg-slate-900/90 backdrop-blur-xl border border-white/10 p-4 pl-6 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)]"
-              dir="rtl"
-            >
-              <div className="relative">
-                <Sparkles size={24} className="text-amber-400 absolute inset-0 animate-ping opacity-50" />
-                <Sparkles size={24} className="text-amber-400 relative z-10" />
-              </div>
-              <div className="flex flex-col">
-                <p className="text-white font-bold text-sm text-sm">شارف الشهر على الانتهاء</p>
-                <p className="text-slate-300 text-xs font-medium">هل نُعدّ تقرير الإقفال المالي الذكي؟</p>
-              </div>
-              <button 
-                onClick={() => {
-                  toast.success("نجهز تقرير الإقفال المالي الشامل...", {
-                    icon: <CheckCircle className="text-emerald-500" />
-                  });
-                  setTimeout(() => window.print(), 1000);
-                }}
-                className="ml-2 mr-6 bg-white text-slate-900 px-5 py-2.5 rounded-full font-bold text-sm shadow-xl hover:scale-105 active:scale-95 transition-all"
-              >
-                إعداد التقرير
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Removed: month-end smart financial report prompt per client request. */}
 
 
          {/* Soft-Laser Micro-Thread Filter (Ultra-slim, luxury minimalist design, perfect for mobile layout) */}

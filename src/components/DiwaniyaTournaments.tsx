@@ -1312,16 +1312,16 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                      </span>
                                      <ChevronDown size={14} className="text-slate-400 group-open:rotate-180 transition-transform shrink-0" />
                                    </summary>
-                                   <div className="absolute z-[100] mt-1.5 right-0 w-[calc(100vw-60px)] xs:w-[240px] sm:w-[280px] rounded-2xl border border-slate-200 bg-white shadow-2xl p-2 grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto">
+                                   <div className="relative z-[100] mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl p-2 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
                                      {tierIconOptions.map((icon) => (
                                        <button
                                          key={icon.value}
                                          type="button"
                                          onClick={() => { setEditedTier({...editedTier, iconType: icon.value}); setOpenTierPicker(null); }}
-                                         className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2 text-[11px] font-bold transition-all ${editedTier.iconType === icon.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
+                                         className={`min-w-0 flex items-center justify-start gap-2.5 rounded-xl border px-3 py-2.5 text-[12px] font-bold transition-all ${editedTier.iconType === icon.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
                                        >
                                          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gradient-to-br ${editedTier.color} text-[14px] shrink-0`}>{getIcon(icon.value)}</span>
-                                         <span className="whitespace-nowrap text-sm leading-none">{icon.label}</span>
+                                         <span className="min-w-0 flex-1 whitespace-nowrap text-right text-sm leading-none">{icon.label}</span>
                                        </button>
                                      ))}
                                    </div>
@@ -1343,16 +1343,16 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                      </span>
                                      <ChevronDown size={14} className="text-slate-400 group-open:rotate-180 transition-transform shrink-0" />
                                    </summary>
-                                   <div className="absolute z-[100] mt-1.5 right-0 w-[calc(100vw-60px)] xs:w-[240px] sm:w-[280px] rounded-2xl border border-slate-200 bg-white shadow-2xl p-2 grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto">
+                                   <div className="relative z-[100] mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl p-2 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
                                      {tierColorOptions.map((option) => (
                                        <button
                                          key={option.value}
                                          type="button"
                                          onClick={() => { setEditedTier({...editedTier, color: option.value, bgClass: option.bgClass}); setOpenTierPicker(null); }}
-                                         className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2 text-[11px] font-bold transition-all ${editedTier.color === option.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
+                                         className={`min-w-0 flex items-center justify-start gap-2.5 rounded-xl border px-3 py-2.5 text-[12px] font-bold transition-all ${editedTier.color === option.value ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
                                        >
                                          <span className="w-7 h-7 rounded-full border-2 border-white shadow-sm shrink-0" style={{ background: option.preview }} />
-                                         <span className="whitespace-nowrap text-sm leading-none">{option.label}</span>
+                                         <span className="min-w-0 flex-1 whitespace-nowrap text-right text-sm leading-none">{option.label}</span>
                                        </button>
                                      ))}
                                    </div>

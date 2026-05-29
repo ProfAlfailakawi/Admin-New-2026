@@ -283,13 +283,27 @@ const browserAlreadyGranted =
      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
       localStorage.setItem("push_notifications_enabled", "true");
       setPushEnabled?.(true);
-      toast?.success?.("الإشعارات مفعّلة بالفعل");
+      const welcomeKey = "alturath_admin_push_welcome_seen";
+      if (localStorage.getItem(welcomeKey) !== "true") {
+        localStorage.setItem(welcomeKey, "true");
+        toast?.success?.("ياهلا فيك بتنبيهات التراث", {
+          description: "بنوصلك المهم أول بأول، بهدوء وبدون إزعاج.",
+        });
+      } else {
+        toast?.success?.("الإشعارات مفعّلة بالفعل");
+      }
       return;
     }
 
-    await registerPushNotifications({ userId: data.settings?.companyName || 'partner', restaurantId: 'default' });
+    const result = await registerPushNotifications({ userId: data.settings?.companyName || 'partner', restaurantId: 'default' });
+     if (!result?.success) {
+       throw new Error(result?.error || 'ما قدرنا نفعّل الإشعارات');
+     }
      setPushEnabled(true);
-     toast.success("تم تفعيل إشعارات الطلبات بنجاح! 🔔");
+     localStorage.setItem("alturath_admin_push_welcome_seen", "true");
+     toast.success("ياهلا فيك بتنبيهات التراث", {
+       description: "تم تفعيل الإشعارات بنجاح. بنوصلك المهم أول بأول، بهدوء وبدون إزعاج.",
+     });
      setShowPushModal(false);
    } catch (err: any) {
      toast.error(err.message || 'ما قدرنا نفعّل الإشعارات');
