@@ -72,7 +72,7 @@ const getProductCategories = (data: any) => {
 interface ProductPageProps {
   data: AppState;
   setData: React.Dispatch<React.SetStateAction<AppState>>;
-  deepLinkData?: { search?: string; exactId?: string };
+  deepLinkData?: { search?: string; exactId?: string; scrollTarget?: string };
   onClearDeepLink?: () => void;
 }
 
