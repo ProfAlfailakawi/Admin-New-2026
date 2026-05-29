@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
-import { Search, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, ShoppingBag, FileText, ShieldCheck, BrainCircuit, Award, Clock3, AlertTriangle, CheckCircle2, Wallet } from 'lucide-react';
+import { Search, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, ShoppingBag, FileText, ShieldCheck, BrainCircuit, Award, Clock3, AlertTriangle, CheckCircle2, Wallet, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { heritageMotion } from '../lib/heritageMotion';
+import { hasProductImage } from '../lib/sharedBusinessContract';
+import { appendLocalLedgerEvent, createLedgerEvent } from '../lib/alturathLedger';
 import { cn, normalizeArabic, normalizeArabicNumerals } from '../lib/utils';
 
 interface CommandBarProps {
@@ -29,6 +32,34 @@ const clean = (value?: string) => {
 };
 const cleanDigits = (value?: string) => String(value || '').replace(/\D/g, '');
 const splitWords = (value?: string) => clean(value).split(/\s+/).filter(Boolean);
+const spotlightKeywordGroups = {
+  invoices: ['فاتورة', 'فواتير', 'الفواتير', 'سجل'],
+  orders: ['طلب', 'طلبات', 'الطلبات'],
+  failed: ['فاشل', 'فاشله', 'فاشلة', 'فشل', 'فاشلين'],
+  supplierPay: ['سداد', 'دفع', 'حواله', 'حوالة', 'تحويل'],
+  products: ['منتج', 'منتجات', 'صنف', 'اصناف', 'أصناف'],
+  customers: ['عميل', 'عملاء', 'زبون', 'زباين'],
+  missingImages: ['بدون صور', 'صور ناقصه', 'صور ناقصة', 'ما عندها صور'],
+  area: ['منطقة', 'منطقه', 'السالمية', 'سالمية', 'حولي', 'الجابرية', 'مشرف', 'بيان', 'الرميثية', 'الفروانية', 'الأحمدي', 'احمدي'],
+};
+
+const removeWords = (value: string, words: string[]) => {
+  let next = clean(value);
+  words.forEach((word) => {
+    next = next.replace(new RegExp(`(^|\\s)${clean(word)}(?=\\s|$)`, 'g'), ' ');
+  });
+  return next.replace(/\\s+/g, ' ').trim();
+};
+
+const getKuwaitiSearchTerm = (query: string, words: string[]) => removeWords(query, words) || clean(query);
+const includesAny = (value: string, words: string[]) => words.some((word) => clean(value).includes(clean(word)));
+const safeArray = (value: any) => Array.isArray(value) ? value : [];
+const getAreaText = (item: any) => clean([
+  item?.area, item?.region, item?.regionName, item?.zone,
+  item?.address?.area, item?.address?.region, item?.address?.regionName,
+  item?.deliveryAddress?.area, item?.deliveryAddress?.region,
+].join(' '));
+const getItemsText = (item: any) => clean(safeArray(item?.items || item?.products).map((x: any) => [x?.name, x?.productName, x?.title].join(' ')).join(' '));
 const commandSearchText = (cmd: CommandItem) => clean([cmd.label, cmd.hint, cmd.category, ...(cmd.tags || [])].join(' '));
 const commandScore = (cmd: CommandItem, query: string) => {
   const q = clean(query);
@@ -218,8 +249,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
 
     if (q.includes('بدون صور') || q.includes('ما عندها صور') || q.includes('ناقصه صور') || q.includes('ناقصة صور')) {
       const missingImages = (data?.products || []).filter((p: any) => {
-        const images = [p?.image, p?.imageUrl, p?.photo, ...(Array.isArray(p?.images) ? p.images : [])].filter(Boolean);
-        return images.length === 0;
+        return !hasProductImage(p);
       }).length;
       smartActions.push({
         id: 'smart-products-without-images',
@@ -244,25 +274,100 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       });
     }
 
+    // Alturath Spotlight: أوامر كويتية مباشرة بدل بحث شكلي فقط.
+    const invoiceIntent = includesAny(q, spotlightKeywordGroups.invoices);
+    if (invoiceIntent) {
+      const term = getKuwaitiSearchTerm(q, spotlightKeywordGroups.invoices);
+      const matchedInvoices = safeArray(data?.invoices)
+        .filter((inv: any) => {
+          const text = clean([inv?.id, inv?.customerName, inv?.customerPhone, inv?.phone, inv?.notes].join(' '));
+          return !term || text.includes(term) || (qDigits && cleanDigits(text).includes(qDigits));
+        })
+        .slice(0, 3);
+      if (matchedInvoices.length) {
+        matchedInvoices.forEach((inv: any) => smartActions.push({
+          id: `spotlight-invoice-${inv.id}`,
+          label: `فاتورة ${inv.customerName || inv.customerPhone || inv.id}`,
+          hint: `${money(inv.totalAmount || inv.total)} د.ك · اضغط للفتح المباشر`,
+          icon: <FileText className="text-amber-600" />,
+          category: 'إجراءات مالية ذكية',
+          action: () => onNavigate('invoices-list', { exactId: inv.id, search: inv.id || term }),
+          tags: ['فواتير', 'فاتورة', term]
+        }));
+      } else if (term) {
+        smartActions.push({
+          id: `spotlight-invoice-search-${term}`,
+          label: `ابحث في الفواتير عن: ${term}`,
+          hint: 'يفتح سجل الفواتير ويحط البحث مباشرة',
+          icon: <FileText className="text-amber-600" />,
+          category: 'إجراءات مالية ذكية',
+          action: () => onNavigate('invoices-list', { search: term }),
+          tags: ['فواتير', term]
+        });
+      }
+    }
+
+    const areaIntent = includesAny(q, spotlightKeywordGroups.area) || q.startsWith('منطقة') || q.startsWith('منطقه');
+    if (areaIntent) {
+      const areaTerm = getKuwaitiSearchTerm(q, ['منطقة', 'منطقه']);
+      const customerCount = safeArray(data?.customers).filter((c: any) => getAreaText(c).includes(areaTerm)).length;
+      const orderCount = safeArray(data?.orders).filter((o: any) => getAreaText(o).includes(areaTerm)).length;
+      smartActions.push({
+        id: `spotlight-area-${areaTerm}`,
+        label: `منطقة ${areaTerm || 'مختارة'}`,
+        hint: `${customerCount} عميل · ${orderCount} طلب — افتح العملاء بالفلتر`,
+        icon: <MapPin className="text-emerald-600" />,
+        category: 'إجراءات مالية ذكية',
+        action: () => onNavigate('customers', { search: areaTerm }),
+        tags: ['منطقة', 'سالمية', 'السالمية', areaTerm]
+      });
+      if (orderCount) {
+        smartActions.push({
+          id: `spotlight-area-orders-${areaTerm}`,
+          label: `طلبات ${areaTerm}`,
+          hint: 'يفتح طلبات الموقع للمنطقة المطلوبة',
+          icon: <ShoppingBag className="text-blue-600" />,
+          category: 'إجراءات مالية ذكية',
+          action: () => onNavigate('orders', { search: areaTerm }),
+          tags: ['طلبات', 'منطقة', areaTerm]
+        });
+      }
+    }
+
+    const dishTerm = q;
+    const matchingProductCount = safeArray(data?.products).filter((p: any) => clean([p?.name, p?.category, p?.description].join(' ')).includes(dishTerm)).length;
+    const matchingDishOrders = safeArray(data?.orders).filter((o: any) => getItemsText(o).includes(dishTerm)).length;
+    if (!invoiceIntent && !areaIntent && dishTerm.length >= 3 && (matchingProductCount || matchingDishOrders)) {
+      smartActions.push({
+        id: `spotlight-dish-${dishTerm}`,
+        label: `بحث الطبق: ${dishTerm}`,
+        hint: `${matchingProductCount} منتج · ${matchingDishOrders} طلب مرتبط`,
+        icon: <Package className="text-orange-600" />,
+        category: 'إجراءات مالية ذكية',
+        action: () => onNavigate(matchingProductCount ? 'products' : 'orders', { search: dishTerm }),
+        tags: ['مجبوس', 'مطبق', 'مرقوق', dishTerm]
+      });
+    }
+
     if (!q) return base;
 
-    const customerMatches = (data?.customers || [])
+    const customerMatches = safeArray(data?.customers)
       .filter((c: any) => clean([c.name, c.phone, c.email, c.area].join(' ')).includes(q) || (qDigits && cleanDigits(c.phone).includes(qDigits)))
       .slice(0, 4)
       .map((c: any) => ({ id: `cust-${c.id}`, label: `عميل: ${c.name || c.phone}`, hint: c.phone, icon: <Users />, category: 'نتائج مباشرة', action: () => onNavigate('customers', { exactId: c.id, search: c.name || c.phone }) }));
 
-    const productMatches = (data?.products || [])
+    const productMatches = safeArray(data?.products)
       .filter((p: any) => clean([p.name, p.category, p.description].join(' ')).includes(q))
       .slice(0, 4)
       .map((p: any) => ({ id: `prod-${p.id}`, label: `منتج: ${p.name}`, hint: p.category || 'منتج', icon: <Package />, category: 'نتائج مباشرة', action: () => onNavigate('products', { exactId: p.id, search: p.name }) }));
 
-    const invoiceMatches = (data?.invoices || [])
+    const invoiceMatches = safeArray(data?.invoices)
       .filter((inv: any) => clean([inv.id, inv.customerName, inv.customerPhone, inv.phone].join(' ')).includes(q) || (qDigits && cleanDigits([inv.id, inv.customerPhone, inv.phone].join(' ')).includes(qDigits)))
       .slice(0, 4)
       .map((inv: any) => ({ id: `inv-${inv.id}`, label: `فاتورة: ${inv.id}`, hint: `${money(inv.totalAmount || inv.total)} د.ك`, icon: <FileText />, category: 'نتائج مباشرة', action: () => onNavigate('invoices-list', { exactId: inv.id, search: inv.id }) }));
 
-    const orderMatches = (data?.orders || [])
-      .filter((order: any) => clean([order.id, order.orderNumber, order.customerName, order.customerPhone, order.phone, order.status, order.paymentStatus].join(' ')).includes(q) || (qDigits && cleanDigits([order.id, order.orderNumber, order.customerPhone, order.phone].join(' ')).includes(qDigits)))
+    const orderMatches = safeArray(data?.orders)
+      .filter((order: any) => clean([order.id, order.orderNumber, order.customerName, order.customerPhone, order.phone, order.status, order.paymentStatus].join(' ')).includes(q) || getAreaText(order).includes(q) || getItemsText(order).includes(q) || (qDigits && cleanDigits([order.id, order.orderNumber, order.customerPhone, order.phone].join(' ')).includes(qDigits)))
       .slice(0, 4)
       .map((order: any) => ({
         id: `order-${order.id}`,
@@ -273,12 +378,12 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
         action: () => onNavigate('orders', { exactId: order.id, search: order.id }),
       }));
 
-    const supplierMatches = (data?.suppliers || [])
+    const supplierMatches = safeArray(data?.suppliers)
       .filter((s: any) => clean([s.name, s.phone, s.category, s.notes].join(' ')).includes(q))
       .slice(0, 3)
       .map((s: any) => ({ id: `supp-${s.id}`, label: `مورد: ${s.name}`, hint: 'مورد', icon: <Truck />, category: 'نتائج مباشرة', action: () => onNavigate('suppliers', { exactId: s.id, search: s.name }) }));
 
-    const expenseMatches = (data?.expenses || [])
+    const expenseMatches = safeArray(data?.expenses)
       .filter((e: any) => clean([e.description, e.category, e.vendor].join(' ')).includes(q))
       .slice(0, 3)
       .map((e: any) => ({ id: `exp-${e.id}`, label: `مصروف: ${e.description}`, hint: `${Number(e.amount || 0).toFixed(3)} د.ك`, icon: <PieChart />, category: 'نتائج مباشرة', action: () => onNavigate('expenses', { exactId: e.id, search: e.description }) }));
@@ -321,6 +426,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
         try { localStorage.setItem('alturath_command_recent', JSON.stringify(next)); } catch {}
         return next;
       });
+      appendLocalLedgerEvent(createLedgerEvent('UI_ACTION', { entityType: 'ui', actorRole: userRole, meta: { commandId: cmd.id, label: cmd.label, category: cmd.category } }));
       cmd.action();
     } catch (error) {
       console.error('CommandBar navigation failed:', error);
@@ -384,10 +490,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
           />
 
           <motion.div
-            initial={{ opacity: 0, y: -18, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+            {...heritageMotion.adminModal}
             className="relative w-full max-w-3xl overflow-hidden rounded-[2rem] border border-white/70 bg-white/95 shadow-[0_30px_90px_rgba(15,23,42,0.35)]"
             dir="rtl"
           >

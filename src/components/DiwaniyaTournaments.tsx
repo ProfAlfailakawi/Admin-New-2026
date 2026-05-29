@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Users, Trophy, Crown, Medal, Swords, Target, Settings, Flame, Star, ExternalLink, MessageCircle, X, Plus, Trash2, Edit2, Check, Copy, MapPin, Radio, Navigation, BellRing, Compass, Smartphone, Laptop, Sparkles, ChevronDown, ChevronUp, Download, AlertTriangle, Activity, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -294,6 +294,22 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   const [editingTierId, setEditingTierId] = useState<number | null>(null);
   const [editedTier, setEditedTier] = useState<any>(null);
   const [openTierPicker, setOpenTierPicker] = useState<'icon' | 'color' | null>(null);
+  const tierPickerShellRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!openTierPicker) return;
+    const closePickerOnOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (target && tierPickerShellRef.current?.contains(target)) return;
+      setOpenTierPicker(null);
+    };
+    document.addEventListener('mousedown', closePickerOnOutside);
+    document.addEventListener('touchstart', closePickerOnOutside, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', closePickerOnOutside);
+      document.removeEventListener('touchstart', closePickerOnOutside);
+    };
+  }, [openTierPicker]);
   const [expandedSquadId, setExpandedSquadId] = useState<number | string | null>(null); // To expand squad details
   const [editingSquadId, setEditingSquadId] = useState<number | string | null>(null);
   const [editedSquadName, setEditedSquadName] = useState('');
@@ -1297,7 +1313,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
                        {editingTierId === t.id ? (
                          <div className="space-y-3 mt-2 font-sans">
-                           <div className="space-y-3">
+                           <div className="space-y-3" ref={tierPickerShellRef}>
                              <div className="space-y-1.5">
                                <label className="text-xs font-bold text-slate-400 block px-1">الشعار والرمز</label>
                                <div className="flex items-start gap-2">
