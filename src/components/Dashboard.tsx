@@ -1503,10 +1503,15 @@ const [isPending, startTransition] = useTransition();
       allTimeSupplierPayments,
       allTimeGatewayFees,
     } = useMemo(() => {
-      const invoices = activeInvoices.filter(
-        (inv) =>
-          (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending',
-      );
+      const invoices = activeInvoices.filter((inv) => {
+        const isPaid = isPaidStatus(inv.paymentStatus);
+        const isLegacyPaid = (inv.paymentStatus === undefined || inv.paymentStatus === null || inv.paymentStatus === '') && (inv.status === 'completed' || inv.status === 'delivered');
+        
+        return (isPaid || isLegacyPaid) && 
+          !String(inv.status).includes('تجميع القطية') && 
+          inv.paymentStatus !== 'split_pending' && 
+          inv.status !== 'split_pending';
+      });
 
 
       const getInvoiceAddonsRevenue = (inv: any) => {
@@ -1622,11 +1627,14 @@ const [isPending, startTransition] = useTransition();
         0,
       );
 
-      // Period bank balance/cash change (including discounts!)
+      // Period bank balance/cash change
+      const periodNetRevenue = invoices.reduce(
+        (acc, inv) => acc + computeInvoiceTotal(inv, data?.products || []),
+        0,
+      );
+
       const expectedBankBalance =
-        foodSales +
-        collectedDeliveryFees -
-        totalDiscountsVal -
+        periodNetRevenue -
         expenses -
         allSupplierPayments -
         gatewayFees;
@@ -1647,13 +1655,16 @@ const [isPending, startTransition] = useTransition();
         (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
       );
 
-      const allTimePaidInvoices = allTimeActiveInvs.filter(
-        (inv) =>
-          (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && 
+      const allTimePaidInvoices = allTimeActiveInvs.filter((inv) => {
+        const isPaid = isPaidStatus(inv.paymentStatus);
+        // Only count as paid if explicitly paid status, or if legacy order without paymentStatus field that is marked as completed
+        const isLegacyPaid = (inv.paymentStatus === undefined || inv.paymentStatus === null || inv.paymentStatus === '') && (inv.status === 'completed' || inv.status === 'delivered');
+        
+        return (isPaid || isLegacyPaid) && 
           !String(inv.status).includes('تجميع القطية') && 
           inv.paymentStatus !== 'split_pending' && 
-          inv.status !== 'split_pending',
-      );
+          inv.status !== 'split_pending';
+      });
 
       const allTimeFoodSales = allTimePaidInvoices.reduce(
         (acc, inv) => acc + Math.max(0, computeInvoiceSubtotal(inv, data?.products || [])),
@@ -1671,6 +1682,13 @@ const [isPending, startTransition] = useTransition();
         return acc + Math.max(0, fee);
       }, 0);
 
+      const allTimeDiscounts = allTimePaidInvoices.reduce(
+        (acc, inv) => acc + Number(inv.discount || 0),
+        0,
+      );
+
+      const allTimeNetRevenue = allTimeFoodSales + allTimeCollectedDeliveryFees - allTimeDiscounts;
+
       const allTimeExpenses = (data?.expenses || []).reduce(
         (acc, exp) => acc + Math.abs(exp.amount || 0),
         0,
@@ -1686,15 +1704,8 @@ const [isPending, startTransition] = useTransition();
         0,
       );
 
-      const allTimeDiscounts = allTimePaidInvoices.reduce(
-        (acc, inv) => acc + Number(inv.discount || 0),
-        0,
-      );
-
       const cumulativeBankBalance =
-        allTimeFoodSales +
-        allTimeCollectedDeliveryFees -
-        allTimeDiscounts -
+        allTimeNetRevenue -
         allTimeExpenses -
         allTimeSupplierPayments -
         allTimeGatewayFees;
@@ -6200,36 +6211,36 @@ const [isPending, startTransition] = useTransition();
                               <div
                                 className="bg-emerald-500"
                                 style={{
-                                  width: `${pulseArchiveAnalysis.sentiment?.positive || 0}%`,
+                                  width: `${parseInt(String(pulseArchiveAnalysis.sentiment?.positive || 0).replace('%', ''), 10) || 0}%`,
                                 }}
                                 title={`إيجابي ${pulseArchiveAnalysis.sentiment?.positive || 0}%`}
                               />
                               <div
                                 className="bg-amber-400"
                                 style={{
-                                  width: `${pulseArchiveAnalysis.sentiment?.neutral || 0}%`,
+                                  width: `${parseInt(String(pulseArchiveAnalysis.sentiment?.neutral || 0).replace('%', ''), 10) || 0}%`,
                                 }}
                                 title={`محايد ${pulseArchiveAnalysis.sentiment?.neutral || 0}%`}
                               />
                               <div
                                 className="bg-rose-500"
                                 style={{
-                                  width: `${pulseArchiveAnalysis.sentiment?.negative || 0}%`,
+                                  width: `${parseInt(String(pulseArchiveAnalysis.sentiment?.negative || 0).replace('%', ''), 10) || 0}%`,
                                 }}
                                 title={`سلبي ${pulseArchiveAnalysis.sentiment?.negative || 0}%`}
                               />
                             </div>
                             <div className="flex justify-between text-[10px] font-bold text-slate-500 px-1">
                               <span className="text-rose-500">
-                                {pulseArchiveAnalysis.sentiment?.negative || 0}%
+                                {parseInt(String(pulseArchiveAnalysis.sentiment?.negative || 0).replace('%', ''), 10) || 0}%
                                 سلبي
                               </span>
                               <span className="text-amber-500">
-                                {pulseArchiveAnalysis.sentiment?.neutral || 0}%
+                                {parseInt(String(pulseArchiveAnalysis.sentiment?.neutral || 0).replace('%', ''), 10) || 0}%
                                 محايد
                               </span>
                               <span className="text-emerald-500">
-                                {pulseArchiveAnalysis.sentiment?.positive || 0}%
+                                {parseInt(String(pulseArchiveAnalysis.sentiment?.positive || 0).replace('%', ''), 10) || 0}%
                                 إيجابي
                               </span>
                             </div>

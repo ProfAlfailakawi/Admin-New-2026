@@ -204,13 +204,16 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   const [customThemeQuery, setCustomThemeQuery] = useState('');
   const [selectedPulseId, setSelectedPulseId] = useState<string>('quick-kuwait');
+  const [selectedSceneId, setSelectedSceneId] = useState<string>('delivery-ready');
+  
+  // Use a lazy initializer or just assume initial info since getKuwaitPulsePack exists
   const [selectedOrderPlace, setSelectedOrderPlace] = useState<KuwaitOrderPlace>('delivery');
   const [selectedContentGoal, setSelectedContentGoal] = useState<KuwaitContentGoal>('whatsapp');
   const [showAdvancedStudio, setShowAdvancedStudio] = useState(false);
   const [productStudioFlow, setProductStudioFlow] = useState<ProductStudioFlow>('quick');
   const [selectedMood, setSelectedMood] = useState('دافئ');
-  const [realityMode, setRealityMode] = useState<StudioRealityMode>('restaurant');
-  const [backgroundPreset, setBackgroundPreset] = useState<StudioBackgroundPresetId>('wood-table');
+  const [realityMode, setRealityMode] = useState<StudioRealityMode>('finalBoss');
+  const [backgroundPreset, setBackgroundPreset] = useState<StudioBackgroundPresetId>('delivery-packaging');
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
   const [realityVariants, setRealityVariants] = useState<{ label: string; url: string; mode: StudioRealityMode; background: StudioBackgroundPresetId }[]>([]);
   const [isSuggestingScene, setIsSuggestingScene] = useState(false);
@@ -301,6 +304,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setStrictPlateLock(true);
     setProductStudioFlow('kuwait');
     setShowAdvancedStudio(false);
+
+    // Synchronize selectedSceneId so the UI reflects the suggested scene
+    const matchingScene = mergedScenes.find(s => 
+      s.place === place && 
+      s.background === (suggestion.background || KUWAIT_PLACES[place].background)
+    ) || mergedScenes.find(s => s.place === place) || mergedScenes[0];
+    
+    setSelectedSceneId(matchingScene.id);
   };
 
   const recommendSceneFromImage = async (imageDataUrl: string) => {
@@ -343,14 +354,6 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       setIsSuggestingScene(false);
     }
   };
-
-  useEffect(() => {
-    const pack = getKuwaitPulsePack(selectedPulseId);
-    setRealityMode(pack.mode);
-    setBackgroundPreset(pack.background);
-    setSelectedOrderPlace(pack.defaultPlace);
-    setSceneSuggestion(null);
-  }, [selectedPulseId]);
 
   useEffect(() => {
     loadStudioArchive<StudioHistoryItem>('smart_studio_history', ['url']).then((items) => {
@@ -1507,16 +1510,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             )}
 
             {createStep === 3 && (() => {
-              const activeScene = mergedScenes.find(scene => {
-                const isNationalDay = selectedPulseId === 'national-day';
-                if (scene.id === 'national-day') {
-                  return isNationalDay;
-                }
-                if (scene.id === 'home-delivery') {
-                  return !isNationalDay && selectedOrderPlace === 'home';
-                }
-                return selectedOrderPlace === scene.place;
-              }) || mergedScenes[0];
+              const activeScene = mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0];
 
               return (
                 <div className="space-y-4 text-right">
@@ -1556,13 +1550,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                       >
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-slate-50 border border-slate-100/80 p-3 rounded-2xl mt-1">
                           {mergedScenes.map((scene) => {
-                            const isSelected = selectedOrderPlace === scene.place && (scene.id === 'national-day' ? selectedPulseId === 'national-day' : selectedPulseId !== 'national-day');
+                            const isSelected = selectedSceneId === scene.id;
                             return (
                               <button
                                 key={scene.id}
                                 type="button"
                                 onClick={() => {
-                                  setSelectedPulseId(scene.id === 'farm-gathering' || scene.id === 'jakhour-setup' || scene.id === 'home-delivery' ? 'quick-kuwait' : scene.id);
+                                  setSelectedSceneId(scene.id);
+                                  setSelectedPulseId(scene.id === 'national-day' ? 'national-day' : 'quick-kuwait');
                                   setSelectedOrderPlace(scene.place as any);
                                   setBackgroundPreset(scene.background as any);
                                   setRealityMode(scene.mode as any);
@@ -1734,16 +1729,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 )}
 
                 {productStep === 3 && (() => {
-                  const activeScene = mergedScenes.find(scene => {
-                    const isNationalDay = selectedPulseId === 'national-day';
-                    if (scene.id === 'national-day') {
-                      return isNationalDay;
-                    }
-                    if (scene.id === 'home-delivery') {
-                      return !isNationalDay && selectedOrderPlace === 'home';
-                    }
-                    return selectedOrderPlace === scene.place;
-                  }) || mergedScenes[0];
+                  const activeScene = mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0];
 
                   return (
                     <div className="space-y-4 text-right">
@@ -1783,13 +1769,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                           >
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-slate-50 border border-slate-100/80 p-3 rounded-2xl mt-1">
                               {mergedScenes.map((scene) => {
-                                const isSelected = selectedOrderPlace === scene.place && (scene.id === 'national-day' ? selectedPulseId === 'national-day' : selectedPulseId !== 'national-day');
+                                const isSelected = selectedSceneId === scene.id;
                                 return (
                                   <button
                                     key={scene.id}
                                     type="button"
                                     onClick={() => {
-                                      setSelectedPulseId(scene.id === 'farm-gathering' || scene.id === 'jakhour-setup' || scene.id === 'home-delivery' ? 'quick-kuwait' : scene.id);
+                                      setSelectedSceneId(scene.id);
+                                      setSelectedPulseId(scene.id === 'national-day' ? 'national-day' : 'quick-kuwait');
                                       setSelectedOrderPlace(scene.place as any);
                                       setBackgroundPreset(scene.background as any);
                                       setRealityMode(scene.mode as any);
