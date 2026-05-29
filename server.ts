@@ -1453,6 +1453,96 @@ app.use((req, res, next) => {
 
 app.use(express.urlencoded({ extended: true }));
 
+const FULL_APPDATA_SHARD_KEYS = [
+  "orders",
+  "invoices",
+  "customers",
+  "expenses",
+  "testimonials",
+  "products",
+  "supplierCopies",
+  "pulseAnalysisHistory",
+  "pulseReviews",
+  "campaigns",
+  "squads",
+  "promocodes",
+  "aiLearningMemory",
+  "pulseArchiveAnalysis",
+  "deepArchiveAnalysis",
+  "nameMatchMemory",
+];
+
+function decodeFullAppDataShard(key: string, shardData: any) {
+  if (!shardData) return [];
+  if (shardData?.isCompressed && shardData?.compressedData) {
+    const raw = String(shardData.compressedData || "");
+    const decompressed =
+      LZString.decompressFromBase64(raw) ||
+      LZString.decompressFromUTF16(raw) ||
+      "";
+    if (!decompressed) return [];
+    try {
+      const parsed = JSON.parse(decompressed);
+      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed?.[key])) return parsed[key];
+    } catch (error) {
+      console.warn(`[api/appdata/full] Failed to decode shard ${key}:`, error);
+    }
+    return [];
+  }
+  if (Array.isArray(shardData?.[key])) return shardData[key];
+  if (Array.isArray(shardData?.items)) return shardData.items;
+  return [];
+}
+
+app.get("/api/appdata/full", async (_req, res) => {
+  const startedAt = Date.now();
+  try {
+    if (!db || !firebaseInitialized) {
+      return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+    }
+
+    const rootRef = db.collection("appData").doc("shared_company_data");
+    const rootSnap = await rootRef.get();
+    const rootData = rootSnap.exists ? (rootSnap.data() || {}) : {};
+
+    const shardSnaps = await Promise.all(
+      FULL_APPDATA_SHARD_KEYS.map(async (key) => {
+        try {
+          const snap = await rootRef.collection("shards").doc(key).get();
+          return { key, snap };
+        } catch (error: any) {
+          console.warn(`[api/appdata/full] shard read failed for ${key}:`, error?.message || error);
+          return { key, snap: null };
+        }
+      })
+    );
+
+    const data: any = { ...rootData };
+    const shardCounts: Record<string, number> = {};
+    for (const { key, snap } of shardSnaps) {
+      if (!snap || !snap.exists) continue;
+      const value = decodeFullAppDataShard(key, snap.data() || {});
+      if (Array.isArray(value) && value.length > 0) {
+        data[key] = value;
+        shardCounts[key] = value.length;
+      }
+    }
+
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    return res.json({
+      success: true,
+      source: "admin-server-firestore-full-appdata",
+      durationMs: Date.now() - startedAt,
+      shardCounts,
+      data,
+    });
+  } catch (error: any) {
+    console.error("[api/appdata/full] failed:", error?.message || error);
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
 app.get("/api/admin-dashboard-data", async (_req, res) => {
   try {
     if (!db || !firebaseInitialized) {
