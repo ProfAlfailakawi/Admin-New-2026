@@ -199,9 +199,49 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
           icon: <TrendingUp className="text-amber-500" />,
           category: 'إجراءات مالية ذكية',
           action: () => onNavigate('invoices-list', { exactId: topInvoice.id, search: topInvoice.id }),
-          tags: ['اغلى','اكبر','اعلى','فاتوره','مبيعات','قيمه']
+          tags: ['اغلى','اكبر','اعلى','فاتوره','فواتير','مبيعات','قيمه']
         });
       }
+    }
+
+    if (q.includes('فاشل') || q.includes('فاشله') || q.includes('فاشلة') || q.includes('فشل')) {
+      smartActions.push({
+        id: 'smart-failed-orders',
+        label: `طلبات فاشلة${failedOrders ? ` (${failedOrders})` : ''}`,
+        hint: 'يفتح طلبات الموقع مع فلتر الفشل مباشرة',
+        icon: <AlertTriangle className="text-rose-500" />,
+        category: 'إجراءات مالية ذكية',
+        action: () => onNavigate('orders', { search: 'فشل' }),
+        tags: ['طلبات فاشله','طلبات فاشلة','فشل الدفع','دفع فاشل','failed orders']
+      });
+    }
+
+    if (q.includes('بدون صور') || q.includes('ما عندها صور') || q.includes('ناقصه صور') || q.includes('ناقصة صور')) {
+      const missingImages = (data?.products || []).filter((p: any) => {
+        const images = [p?.image, p?.imageUrl, p?.photo, ...(Array.isArray(p?.images) ? p.images : [])].filter(Boolean);
+        return images.length === 0;
+      }).length;
+      smartActions.push({
+        id: 'smart-products-without-images',
+        label: `منتجات بدون صور${missingImages ? ` (${missingImages})` : ''}`,
+        hint: 'يفتح إدارة المنتجات لمراجعة الصور الناقصة',
+        icon: <Package className="text-orange-500" />,
+        category: 'إجراءات مالية ذكية',
+        action: () => onNavigate('products', { search: 'بدون صور' }),
+        tags: ['منتجات بدون صور','صور ناقصه','صور ناقصة','منتجات']
+      });
+    }
+
+    if (q.includes('غايب') || q.includes('غايبين') || q.includes('غائب') || q.includes('غائبين')) {
+      smartActions.push({
+        id: 'smart-absent-customers',
+        label: 'عملاء غايبين',
+        hint: 'يفتح رادار استرجاع العملاء في قسم الولاء',
+        icon: <Users className="text-blue-500" />,
+        category: 'إجراءات مالية ذكية',
+        action: () => onNavigate('dashboard', { exactId: 'customers', scrollTarget: 'retention-section' }),
+        tags: ['عملاء غايبين','عملاء غائبين','استرجاع العملاء','ولاء']
+      });
     }
 
     if (!q) return base;
@@ -353,8 +393,8 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
           >
             <div className="command-search-header">
               <div className="hidden md:flex flex-col text-right min-w-[150px]">
-                <span className="text-[10px] font-black tracking-[0.18em] text-amber-600">كوماند ذكي</span>
-                <span className="text-xs font-black text-slate-700">ابحث أو انتقل فوراً</span>
+                <span className="text-[10px] font-black tracking-[0.18em] text-amber-600">Alturath Spotlight</span>
+                <span className="text-xs font-black text-slate-700">مساعد تنقل خارق للمطبخ</span>
               </div>
               <div className="command-search-field">
                 <Search size={18} />
@@ -362,7 +402,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                   ref={inputRef}
                   type="text"
                   aria-label="بحث الأوامر"
-                  placeholder="اكتب: عميل، منتج، فاتورة، مورد، كوبون، أرباح، محتوى..."
+                  placeholder="اكتب: فواتير أحمد، أغلى فاتورة، طلبات فاشلة، مجبوس، السالمية..."
                   className="command-premium-search-input"
                   value={query}
                   onChange={(e) => setQuery(normalizeArabicNumerals(e.target.value))}
