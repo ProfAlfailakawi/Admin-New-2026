@@ -743,53 +743,28 @@ export async function generateMarketingCampaign(data: AppState, customPrompt?: s
   const cacheKey = `marketing-camp-v4-${customPrompt || 'default'}-${generateStateHash(data)}`;
   const cached = getCached<AICampaign>(cacheKey);
   if (cached) return cached;
-  const apiKey = process.env.GEMINI_API_KEY;
   
-  if (apiKey && apiKey !== 'undefined' && apiKey !== 'MISSING_API_KEY') {
-    try {
-      // const { GoogleGenAI } = await import('@google/genai'); // Redundant dynamic import
-       const ai = new GoogleGenAI({ apiKey });
-
+  try {
       const products = (data?.products || []).filter(p => p.isActive !== false && p.price > 0);
       const invoices = (data?.invoices || []).filter(i => !i.isDeleted);
       const bestProduct = products[0] || { name: 'منتجاتنا السبيشل', price: 0 };
 
-      const prompt = customPrompt || `
-        بصفتك خبير تسويق استراتيجي لمحلات الحلويات والمطاعم في الكويت. قم بإنشاء خطة حملة ترويجية لمتجر لديه ${invoices.length} فاتورة مسجلة.
-        المنتج المقترح للترقية: ${bestProduct.name} (سعره: ${Number(bestProduct.price || 0).toFixed(3)} د.ك).
-        
-        قاعدة السحب والجاذبية في "التراث": يجب أن تكون الأسعار المقترحة للعروض أو الباقات "بمتناول الجميع"، ويفضل أن تكون أقل من 15 دينار كويتي لضمان أعلى معدل تحويل.
-        
-        المطلوب إنشاء خطة حملة ترويجية شاملة تتضمن:
-        1. نوع الحملة (campaignType)
-        2. فكرة العرض (Idea)
-        3. رسالة إعلانية قصيرة (Message)
-        4. الجمهور المستهدف بدقة (Target Audience)
-        5. التوقيت المناسب (Timing)
-        6. الهدف (Goal)
-        7. النتيجة المتوقعة (Expected Outcome)
-        8. رسالة واتساب جاهزة (WhatsApp Message) - هذا الحقل إلزامي.
-        
-        يجب أن يكون الإخراج باللغة العربية.
-        رد بصيغة JSON فقط بالتنسيق التالي:
-        {
-          "campaignType": "(نوع الحملة)",
-          "idea": "(فكرة العرض)",
-          "message": "(رسالة إعلانية قصيرة)",
-          "targetAudience": "(الجمهور المستهدف)",
-          "timing": "(التوقيت المناسب)",
-          "goal": "(الهدف)",
-          "expectedOutcome": "(النتيجة المتوقعة)",
-          "whatsappMessage": "(رسالة واتساب مخصصة جاهزة)"
-        }
-      `;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt
+      const res = await fetch("/api/ai/marketing-campaign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+              invoicesCount: invoices.length,
+              bestProduct,
+              customPrompt
+          })
       });
-      
-      const text = response.text || '';
+
+      if (!res.ok) {
+          throw new Error(`Server returned ${res.status}`);
+      }
+
+      const responseBody = await res.json();
+      const text = responseBody.text || '';
       
       let jsonPayload = text;
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -815,13 +790,12 @@ export async function generateMarketingCampaign(data: AppState, customPrompt?: s
       };
       setCache(cacheKey, finalResult);
       return finalResult;
-    } catch (error: any) {
-      const errStr = String(error?.message || error);
-      if (errStr.includes("429") || errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("depleted")) {
-        console.warn("Smart quota exceeded (429): Falling back to local campaign engine.");
-      } else {
-        console.error("Campaign generation failed, falling back to local engine:", error);
-      }
+  } catch (error: any) {
+    const errStr = String(error?.message || error);
+    if (errStr.includes("429") || errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("depleted")) {
+      console.warn("Smart quota exceeded (429): Falling back to local campaign engine.");
+    } else {
+      console.error("Campaign generation failed, falling back to local engine:", error);
     }
   }
 
@@ -1789,66 +1763,20 @@ export async function generatePulseArchiveAnalysis(allComments: string[]): Promi
     }
     
     try {
-        const apiKey = process.env.GEMINI_API_KEY;
-        
-        if (!apiKey || apiKey === 'undefined') throw new Error("No API key");
-        
-        const ai = new GoogleGenAI({ apiKey });
-
-        const prompt = `
-You are an expert customer experience analyst specializing in the Kuwaiti food and beverage market.
-Analyze these ${allComments.length} customer feedback comments. 
-
-CRITICAL - LEARN KUWAITI DIALECT (Urban/Hadari & Rural/Badu):
-- 'ناطع' (Natea): Extremely positive, means deep/perfect flavor.
-- 'خنين' (Khaneen): Extremely positive, means wonderful aroma.
-- 'ولا غلطة' (Wala Ghalta): Means "Flawless" or "Perfect", even though 'غلطة' means mistake.
-- 'بصراحة ولا غلطة': "Honestly, it's perfect."
-- 'قوي' (Gawi): Slang for "Impressive/Amazing".
-- 'بيضتوا الوجه': "You made us proud/Excellent job."
-- 'يبرد الجبد': "Satisfying/Cooling the heart."
-- 'من الآخر': "Top notch/Premium quality."
-- 'مو ذاك الزود': Negative, means "Not that great/Mediocre".
-- 'مو شي': Negative, "Not good".
-- 'دعاية': Negative context, "Overhyped/Fake".
-
-CONTEXT SENSITIVITY: 
-Phrases like "ولا [كلمة سلبية]" (e.g., "ولا غلطة", "ولا نقص") are HIGHLY POSITIVE.
-Phrases like "الله يعطيكم العافية" or "قواكم الله" followed by positive comments are very positive.
-"راح نطلب مرة ثانية" or "اكيد راح نكرر الطلب" are strong indicators of satisfaction.
-
-Analyze for:
-1. Overall sentiment: strictly one of (إيجابي, سلبي, محايد, ملاحظة عامة).
-2. Domain/Topic classification: strictly one or more of (جودة الطعام, الطعم, التوصيل, التغليف, السعر, الكمية, النظافة, سرعة الخدمة, تعامل الموظفين, رضا عام, تجربة ممتازة, شكوى تشغيلية, اقتراح تحسين).
-3. Top keywords (in Arabic).
-4. Specific strengths and weaknesses.
-5. Actionable business recommendations.
-
-Produce a JSON analysis strictly matching this schema:
-{
-  "summary": "String, 1-2 sentences in Arabic summarizing the overall pulse and Kuwaiti dialect sentiment.",
-  "sentiment": {
-    "positive": number (percentage 0-100),
-    "neutral": number (percentage 0-100),
-    "negative": number (percentage 0-100)
-  },
-  "topKeywords": ["string", "string", "string", "string"],
-  "strengths": ["string", "string"],
-  "weaknesses": ["string", "string"],
-  "recommendations": ["string", "string"]
-}
-
-IMPORTANT: The JSON must be valid, parseable, and use double quotes. Your sentiment percentages must total exactly 100. Write ENTIRELY in Arabic except for JSON keys.
-Feedback Data:
-${JSON.stringify(allComments)}
-`;
-
-        const response = await ai.models.generateContent({
-             model: "gemini-3-flash-preview",
-             contents: [{ role: 'user', parts: [{ text: prompt }] }]
+        const res = await fetch("/api/ai/pulse-archive", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ allComments })
         });
-        const responseText = response.text || '';
-        let cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        
+        if (!res.ok) {
+            throw new Error(`Server returned ${res.status}`);
+        }
+
+        const responseBody = await res.json();
+        const responseText = responseBody.text || '';
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        const cleaned = jsonMatch ? jsonMatch[0] : responseText.replace(/```json/g, '').replace(/```/g, '').trim();
         const parsed = JSON.parse(cleaned);
         setCache(cacheKey, parsed);
         return parsed;

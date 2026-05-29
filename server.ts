@@ -4587,6 +4587,125 @@ ${ownerMemory}
     }
   });
 
+  app.post("/api/ai/pulse-archive", express.json({ limit: "50mb" }), async (req, res) => {
+    try {
+      const { allComments } = req.body || {};
+      if (!allComments || !Array.isArray(allComments) || allComments.length === 0) {
+        return res.status(400).json({ error: "لا توجد مراجعات كافية لتحليلها." });
+      }
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: "GEMINI_API_KEY is not configured", needsKey: true });
+      }
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const prompt = `
+You are an expert customer experience analyst specializing in the Kuwaiti food and beverage market.
+Analyze these ${allComments.length} customer feedback comments. 
+
+CRITICAL - LEARN KUWAITI DIALECT (Urban/Hadari & Rural/Badu):
+- 'ناطع' (Natea): Extremely positive, means deep/perfect flavor.
+- 'خنين' (Khaneen): Extremely positive, means wonderful aroma.
+- 'ولا غلطة' (Wala Ghalta): Means "Flawless" or "Perfect", even though 'غلطة' means mistake.
+- 'بصراحة ولا غلطة': "Honestly, it's perfect."
+- 'قوي' (Gawi): Slang for "Impressive/Amazing".
+- 'بيضتوا الوجه': "You made us proud/Excellent job."
+- 'يبرد الجبد': "Satisfying/Cooling the heart."
+- 'من الآخر': "Top notch/Premium quality."
+- 'مو ذاك الزود': Negative, means "Not that great/Mediocre".
+- 'مو شي': Negative, "Not good".
+- 'دعاية': Negative context, "Overhyped/Fake".
+
+CONTEXT SENSITIVITY: 
+Phrases like "ولا [كلمة سلبية]" (e.g., "ولا غلطة", "ولا نقص") are HIGHLY POSITIVE.
+Phrases like "الله يعطيكم العافية" or "قواكم الله" followed by positive comments are very positive.
+"راح نطلب مرة ثانية" or "اكيد راح نكرر الطلب" are strong indicators of satisfaction.
+
+Analyze for:
+1. Overall sentiment: strictly one of (إيجابي, سلبي, محايد, ملاحظة عامة).
+2. Domain/Topic classification: strictly one or more of (جودة الطعام, الطعم, التوصيل, التغليف, السعر, الكمية, النظافة, سرعة الخدمة, تعامل الموظفين, رضا عام, تجربة ممتازة, شكوى تشغيلية, اقتراح تحسين).
+3. Top keywords (in Arabic).
+4. Specific strengths and weaknesses.
+5. Actionable business recommendations.
+
+Produce a JSON analysis strictly matching this schema:
+{
+  "summary": "String, 1-2 sentences in Arabic summarizing the overall pulse and Kuwaiti dialect sentiment.",
+  "sentiment": {
+    "positive": number (percentage 0-100),
+    "neutral": number (percentage 0-100),
+    "negative": number (percentage 0-100)
+  },
+  "topKeywords": ["string", "string", "string", "string"],
+  "strengths": ["string", "string"],
+  "weaknesses": ["string", "string"],
+  "recommendations": ["string", "string"]
+}
+
+IMPORTANT: The JSON must be valid, parseable, and use double quotes. Your sentiment percentages must total exactly 100. Write ENTIRELY in Arabic except for JSON keys.
+Feedback Data:
+${JSON.stringify(allComments)}
+`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+      });
+      res.json({ text: response.text || "" });
+    } catch (e: any) {
+      console.error("/api/ai/pulse-archive error:", e);
+      res.status(500).json({ error: e?.message || String(e) });
+    }
+  });
+
+  app.post("/api/ai/marketing-campaign", express.json({ limit: "5mb" }), async (req, res) => {
+    try {
+      const { invoicesCount, bestProduct, customPrompt } = req.body || {};
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: "GEMINI_API_KEY is not configured", needsKey: true });
+      }
+      
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const prompt = customPrompt || `
+        بصفتك خبير تسويق استراتيجي لمحلات الحلويات والمطاعم في الكويت. قم بإنشاء خطة حملة ترويجية لمتجر لديه ${invoicesCount || 0} فاتورة مسجلة.
+        المنتج المقترح للترقية: ${bestProduct?.name || 'منتجاتنا السبيشل'} (سعره: ${Number(bestProduct?.price || 0).toFixed(3)} د.ك).
+        
+        قاعدة السحب والجاذبية في "التراث": يجب أن تكون الأسعار المقترحة للعروض أو الباقات "بمتناول الجميع"، ويفضل أن تكون أقل من 15 دينار كويتي لضمان أعلى معدل تحويل.
+        
+        المطلوب إنشاء خطة حملة ترويجية شاملة تتضمن:
+        1. نوع الحملة (campaignType)
+        2. فكرة العرض (Idea)
+        3. رسالة إعلانية قصيرة (Message)
+        4. الجمهور المستهدف بدقة (Target Audience)
+        5. التوقيت المناسب (Timing)
+        6. الهدف (Goal)
+        7. النتيجة المتوقعة (Expected Outcome)
+        8. رسالة واتساب جاهزة (WhatsApp Message) - هذا الحقل إلزامي.
+        
+        يجب أن يكون الإخراج باللغة العربية.
+        رد بصيغة JSON فقط بالتنسيق التالي:
+        {
+          "campaignType": "(نوع الحملة)",
+          "idea": "(فكرة العرض)",
+          "message": "(رسالة إعلانية قصيرة)",
+          "targetAudience": "(الجمهور المستهدف)",
+          "timing": "(التوقيت المناسب)",
+          "goal": "(الهدف)",
+          "expectedOutcome": "(النتيجة المتوقعة)",
+          "whatsappMessage": "(رسالة واتساب مخصصة جاهزة)"
+        }
+      `;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt
+      });
+      res.json({ text: response.text || "" });
+    } catch (e: any) {
+      console.error("/api/ai/marketing-campaign error:", e);
+      res.status(500).json({ error: e?.message || String(e) });
+    }
+  });
+
   app.post("/api/smart-studio/generate", express.json({ limit: '50mb' }), async (req, res) => {
     try {
       const { imageContent, mimeType, format, theme, mood, realityMode, backgroundPreset, strictPlateLock, realityBoost, correctionHint, tasteProfile } = req.body;
