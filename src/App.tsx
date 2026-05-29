@@ -1665,7 +1665,8 @@ const MainApp: React.FC = () => {
         }
       });
       
-      const sanitizedRoot = JSON.parse(JSON.stringify(rootDocDataWithMeta));
+      const rootForStudioAndApp = withGoogleStudioRootMirror(rootDocDataWithMeta, splitData);
+      const sanitizedRoot = JSON.parse(JSON.stringify(rootForStudioAndApp));
       const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
       
       SHARDED_KEYS.forEach(key => {
@@ -1706,6 +1707,56 @@ const MainApp: React.FC = () => {
   const authoritativeDataWrittenAtRef = useRef<number>(0);
 
   const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
+
+  // Google/Looker Studio was originally reading the root appData/shared_company_data document.
+  // The app now uses shards for speed and to avoid Firestore document-size limits, but Studio
+  // still needs recent business rows in the root document. Keep a safe, uncompressed mirror
+  // there while the authoritative full data stays in shards.
+  const GOOGLE_STUDIO_ROOT_MIRROR_LIMITS: Record<string, number> = {
+    orders: 1200,
+    invoices: 1200,
+    customers: 1500,
+    expenses: 1500,
+    testimonials: 800,
+    supplierCopies: 1200,
+    campaigns: 800,
+    promocodes: 800,
+  };
+
+  const sortForStudioMirror = (key: string, rows: any[]) => {
+    if (!Array.isArray(rows)) return [];
+    return [...rows].sort((a: any, b: any) => {
+      const bt = getRecordTime(b);
+      const at = getRecordTime(a);
+      if (bt !== at) return bt - at;
+      const bid = String(b?.id || b?.orderId || b?.invoiceNo || '');
+      const aid = String(a?.id || a?.orderId || a?.invoiceNo || '');
+      return bid.localeCompare(aid);
+    });
+  };
+
+  const makeGoogleStudioMirrorValue = (key: string, value: any) => {
+    if (!Array.isArray(value)) return value;
+    const limit = GOOGLE_STUDIO_ROOT_MIRROR_LIMITS[key];
+    if (!limit) return [];
+    return sortForStudioMirror(key, value).slice(0, limit);
+  };
+
+  const withGoogleStudioRootMirror = (rootValue: any, fullValue: any) => {
+    const mirrored = { ...rootValue };
+    SHARDED_KEYS.forEach(key => {
+      if (fullValue[key] !== undefined) {
+        if (key === 'products' || key === 'squads') {
+          mirrored[key] = fullValue[key];
+        } else {
+          mirrored[key] = makeGoogleStudioMirrorValue(key, fullValue[key]);
+        }
+      }
+    });
+    mirrored.__googleStudioMirrorAt = new Date().toISOString();
+    mirrored.__googleStudioMirrorNote = 'Recent business rows are mirrored here for Google/Looker Studio. Full authoritative data remains in shards.';
+    return mirrored;
+  };
   
   const stableStringify = (obj: any): string => {
     if (obj === null || typeof obj !== 'object') {
@@ -1803,8 +1854,9 @@ const MainApp: React.FC = () => {
 	          __adminDataGenerationId: generationId,
 	          __adminLastAuthoritativeWriteAt: new Date(authoritativeWriteAt).toISOString(),
 	        };
-	        const serializedRootCurrent = stableStringify(authoritativeRoot);
-	        const sanitizedRoot = JSON.parse(JSON.stringify(authoritativeRoot));
+	        const rootForStudioAndApp = withGoogleStudioRootMirror(authoritativeRoot, splitData);
+	        const serializedRootCurrent = stableStringify(rootForStudioAndApp);
+	        const sanitizedRoot = JSON.parse(JSON.stringify(rootForStudioAndApp));
 	        const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: false })];
         
 	        SHARDED_KEYS.forEach(key => {
@@ -2312,13 +2364,12 @@ const MainApp: React.FC = () => {
           // --- SHARDED AUTO-SAVE LOGIC ---
 	        const rootDataRef = getSmartDoc('appData', user.uid, user.email);
 	        const splitData = splitProductsForDatabase(data);
-	          // 1. Detect if the Root document fields (non-sharded keys) have changed
-	          const rootDocData = withAuthoritativeSharedMeta({ ...splitData });
-	          SHARDED_KEYS.forEach(key => {
-	             if (key !== 'products' && key !== 'squads') {
-	                 delete rootDocData[key];
-             }
-          });
+	          // 1. Detect if the root document visible to Google/Looker Studio has changed.
+	          // Keep a recent-row mirror in root, while full data stays in shards.
+	          const rootDocData = withGoogleStudioRootMirror(
+	            withAuthoritativeSharedMeta({ ...splitData }),
+	            splitData
+	          );
           const serializedRootCurrent = stableStringify(rootDocData);
           const serializedRootLast = lastRemoteKeysRef.current['__root__'];
           const hasRootChanged = serializedRootCurrent !== serializedRootLast;
@@ -2354,20 +2405,8 @@ const MainApp: React.FC = () => {
           
           // 3. Save Root (only if modified or doesn't exist yet)
           if (hasRootChanged || !cloudRootExistsRef.current) {
-             // Retain placeholders for SHARDED_KEYS
-	             const rootDocDataWithPlaceholders = withAuthoritativeSharedMeta({ ...splitData });
-	             SHARDED_KEYS.forEach(key => {
-               if (rootDocDataWithPlaceholders[key] !== undefined) {
-                 if (key === 'products' || key === 'squads') {
-                     // Keep products and diwaniyas in the root document because the Client App reads them directly.
-                     // It is small enough to fit within 1MB.
-                 } else {
-                     rootDocDataWithPlaceholders[key] = [];
-                 }
-               }
-             });
-             const sanitizedRoot = JSON.parse(JSON.stringify(rootDocDataWithPlaceholders));
-             console.log("Saving root modifications to Firestore...");
+             const sanitizedRoot = JSON.parse(JSON.stringify(rootDocData));
+             console.log("Saving root modifications to Firestore with Google Studio mirror...");
 	            savePromises.push(setDoc(rootDataRef, sanitizedRoot, { merge: false }));
           }
 
