@@ -974,11 +974,11 @@ const MainApp: React.FC = () => {
   }, [currentPage]);
 
   // Safe cache refresh for major updates.
-  // مهم: لا نحذف بيانات البرنامج من localStorage عند تحديث النسخة.
-  // الحذف السابق كان يمسح ktk_local_accounting_data ولقطات السحابة الاحتياطية،
-  // وهذا يفسر اختفاء البيانات بعد التحديث أو إعادة فتح التطبيق.
+  // Auto cloud freshness: never let an old browser snapshot override the real cloud database.
+  // This clears ONLY browser-side cloud/offline snapshots and app caches; it does not touch Firestore,
+  // payments, notifications, AI, invoices, orders, suppliers, or the local accounting backup.
   useEffect(() => {
-    const CURRENT_VERSION = '4.0.1';
+    const CURRENT_VERSION = '4.0.2-cloud-fresh';
     const previousVersion = localStorage.getItem('app_version');
     if (previousVersion !== CURRENT_VERSION) {
       if ('caches' in window) {
@@ -987,31 +987,34 @@ const MainApp: React.FC = () => {
         }).catch(() => {});
       }
 
-      const SAFE_PRESERVE_PREFIXES = [
-        'ktk_',
-        'alturath_',
-        'push_',
-        'last_push_token',
-        'ai_',
-        'firebase:',
-        'firestore_'
+      const CLOUD_STALE_KEYS = [
+        'ktk_cloud_offline_snapshot',
+        'ktk_cloud_offline_snapshot_last_good',
+        'ktk_last_cloud_snapshot',
+        'ktk_cloud_import_snapshot',
+        'ktk_cloud_cache',
+        'ktk_cloud_data_cache'
       ];
-      const SAFE_PRESERVE_KEYS = new Set([
-        'isAuthenticated',
-        'appMode',
-        'isSoundEnabled',
-        'payment_return_status',
-        'order_tracking_id',
-        'app_version'
-      ]);
+
+      CLOUD_STALE_KEYS.forEach(key => {
+        try { localStorage.removeItem(key); } catch {}
+        try { sessionStorage.removeItem(key); } catch {}
+      });
 
       Object.keys(localStorage).forEach(key => {
-        const shouldPreserve = SAFE_PRESERVE_KEYS.has(key) || SAFE_PRESERVE_PREFIXES.some(prefix => key.startsWith(prefix));
-        if (!shouldPreserve) {
+        const shouldRemove =
+          key.includes('cloud_offline_snapshot') ||
+          key.includes('cloud_snapshot') ||
+          key.includes('cloud_cache') ||
+          key.includes('last_good_cloud');
+
+        // Do not delete local/demo data or auth/session preferences.
+        if (shouldRemove && key !== 'ktk_local_accounting_data' && key !== 'ktk_accounting_data') {
           try { localStorage.removeItem(key); } catch {}
         }
       });
 
+      try { sessionStorage.setItem('alturath_force_fresh_cloud_reload', String(Date.now())); } catch {}
       localStorage.setItem('app_version', CURRENT_VERSION);
     }
   }, []);
