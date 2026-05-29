@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, ChevronDown, Eye, Gem, ImagePlus, PackageSearch, Sparkles, Target } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, Gem, ImagePlus, PackageSearch, Target } from 'lucide-react';
 import { AppState, Product } from '../types';
 import { getProductQualityReport, ProductQualitySignal } from '../lib/command-quality';
 import { cn } from '../lib/utils';
@@ -10,98 +10,91 @@ interface Props {
 }
 
 const toneClass: Record<ProductQualitySignal['tone'], string> = {
-  emerald: 'border-emerald-200 bg-emerald-50/65 text-emerald-700',
-  amber: 'border-amber-200 bg-amber-50/70 text-amber-700',
-  rose: 'border-rose-200 bg-rose-50/70 text-rose-700',
+  emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  amber: 'border-amber-200 bg-amber-50 text-amber-700',
+  rose: 'border-rose-200 bg-rose-50 text-rose-700',
   slate: 'border-slate-200 bg-slate-50 text-slate-600',
 };
 
 const iconFor = (id: string) => {
-  if (id === 'hidden-gems') return <Gem size={16} />;
-  if (id === 'missing-visual') return <ImagePlus size={16} />;
-  if (id === 'pricing-risk') return <AlertTriangle size={16} />;
-  if (id === 'dormant') return <PackageSearch size={16} />;
-  return <Sparkles size={16} />;
+  if (id === 'hidden-gems') return <Gem size={14} />;
+  if (id === 'missing-visual') return <ImagePlus size={14} />;
+  if (id === 'pricing-risk') return <AlertTriangle size={14} />;
+  if (id === 'dormant') return <PackageSearch size={14} />;
+  return <Target size={14} />;
 };
 
 export const ProductQualityBoard: React.FC<Props> = ({ data, onFocusProduct }) => {
   const [isOpen, setIsOpen] = useState(false);
   const report = useMemo(() => getProductQualityReport(data), [data]);
-  const visibleSignals = report.signals.slice(0, 4);
+  const primarySignals = report.signals.slice(0, 3);
+  const firstProduct = report.risk?.products?.[0] || report.opportunity?.products?.[0];
 
   return (
-    <section id="product-quality-board" className="rounded-[28px] border border-slate-200/80 bg-white shadow-sm overflow-hidden text-right" dir="rtl">
-      <button
-        type="button"
-        onClick={() => setIsOpen((v) => !v)}
-        className="w-full p-4 md:p-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between hover:bg-slate-50/70 transition-colors"
-      >
-        <div className="flex items-start gap-3 min-w-0">
-          <div className="w-12 h-12 rounded-2xl bg-slate-950 text-white flex items-center justify-center shadow-sm shrink-0">
-            <Target size={20} />
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-600">
-                <Sparkles size={12} /> Product Quality Board
-              </span>
-              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-700 border border-amber-100">قراءة فقط</span>
+    <section id="product-quality-board" className="rounded-[24px] border border-slate-200 bg-white shadow-sm text-right" dir="rtl">
+      <div className="p-3 md:p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0 flex items-start gap-3">
+            <div className="h-10 w-10 shrink-0 rounded-2xl bg-slate-950 text-white flex items-center justify-center">
+              {report.score >= 72 ? <CheckCircle2 size={18} /> : <Target size={18} />}
             </div>
-            <h3 className="text-lg md:text-xl font-black text-slate-950 leading-snug">{report.title}</h3>
-            <p className="mt-1 text-xs md:text-sm font-bold text-slate-500 leading-6">{report.summary}</p>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm md:text-base font-black text-slate-950">جودة المنيو</h3>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">{report.score}%</span>
+              </div>
+              <p className="mt-1 text-xs md:text-sm font-bold text-slate-500 leading-6 line-clamp-2">{report.decision}</p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center justify-between lg:justify-end gap-3">
-          <div className="text-left lg:text-right">
-            <div className="text-[11px] font-black text-slate-400">جودة المنيو</div>
-            <div className="text-3xl font-black text-slate-950 leading-none">{report.score}<span className="text-sm text-slate-400">%</span></div>
-          </div>
-          <div className="w-16 h-16 rounded-3xl border border-slate-200 bg-slate-50 flex items-center justify-center">
-            {report.score >= 72 ? <CheckCircle2 className="text-emerald-600" size={28} /> : <AlertTriangle className="text-amber-600" size={28} />}
-          </div>
-          <ChevronDown size={20} className={cn('text-slate-400 transition-transform', isOpen && 'rotate-180')} />
-        </div>
-      </button>
-
-      <div className="px-4 md:px-5 pb-4 md:pb-5">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          <div className="lg:col-span-2 rounded-2xl border border-amber-100 bg-amber-50/45 p-4">
-            <div className="text-[11px] font-black text-amber-700 flex items-center gap-2"><Target size={14} /> القرار العملي الآن</div>
-            <p className="mt-2 text-sm md:text-base font-black text-slate-900 leading-7">{report.decision}</p>
-            <p className="mt-1 text-xs font-bold text-slate-500 leading-6">{report.proof}</p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="text-[11px] font-black text-slate-500 flex items-center gap-2"><Eye size={14} /> بدون زحمة</div>
-            <p className="mt-2 text-sm font-black text-slate-800 leading-7">{report.action}</p>
+          <div className="flex items-center gap-2 lg:justify-end">
+            {primarySignals.slice(0, 2).map((item) => (
+              <span key={item.id} className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-black whitespace-nowrap', toneClass[item.tone])}>
+                {iconFor(item.id)} {item.count}
+              </span>
+            ))}
+            {firstProduct && (
+              <button
+                type="button"
+                onClick={() => onFocusProduct?.(firstProduct)}
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-black text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                ركّز على المنتج
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsOpen((v) => !v)}
+              className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-slate-500 hover:bg-white transition-colors"
+              aria-label={isOpen ? 'إغلاق تفاصيل جودة المنيو' : 'فتح تفاصيل جودة المنيو'}
+            >
+              <ChevronDown size={16} className={cn('transition-transform', isOpen && 'rotate-180')} />
+            </button>
           </div>
         </div>
 
         {isOpen && (
-          <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {visibleSignals.length ? visibleSignals.map((item) => (
-              <div key={item.id} className={cn('rounded-2xl border p-3', toneClass[item.tone])}>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 font-black text-sm">{iconFor(item.id)} {item.title}</div>
-                  <span className="rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-black">{item.count}</span>
-                </div>
-                <p className="mt-2 text-xs font-bold leading-6 opacity-80">{item.text}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {item.products.slice(0, 3).map((product) => (
-                    <button
-                      key={product.id}
-                      type="button"
-                      onClick={() => onFocusProduct?.(product)}
-                      className="rounded-full bg-white/80 border border-white px-3 py-1.5 text-[11px] font-black text-slate-700 hover:bg-white transition-colors"
-                    >
-                      {product.name}
-                    </button>
-                  ))}
-                </div>
+          <div className="mt-3 border-t border-slate-100 pt-3">
+            {primarySignals.length ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                {primarySignals.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => item.products[0] && onFocusProduct?.(item.products[0])}
+                    className={cn('rounded-2xl border p-3 text-right transition-colors hover:bg-white', toneClass[item.tone])}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-2 text-xs font-black">{iconFor(item.id)} {item.title}</span>
+                      <span className="rounded-full bg-white/75 px-2 py-0.5 text-[10px] font-black">{item.count}</span>
+                    </div>
+                    <p className="mt-1 text-[11px] font-bold leading-5 opacity-80 line-clamp-2">{item.text}</p>
+                  </button>
+                ))}
               </div>
-            )) : (
-              <div className="lg:col-span-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 font-black flex items-center gap-2">
-                <CheckCircle2 size={18} /> المنيو نظيف حاليًا، لا يحتاج ضجيجًا أو تدخلًا زائدًا.
+            ) : (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-black text-emerald-800 flex items-center gap-2">
+                <CheckCircle2 size={16} /> لا توجد ملاحظات مهمة حاليًا.
               </div>
             )}
           </div>
