@@ -75,6 +75,8 @@ import {
   computeInvoiceItemBasePrice,
   computeInvoiceItemTotal,
   computeInvoiceSubtotal,
+  computeAddonQuantity,
+  computeAddonRevenue,
 } from "../lib/invoice-calculations";
 import OrderPage from "./OrderPage";
 
@@ -653,28 +655,14 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           let addonsLines: string[] = [];
           if (Array.isArray(item.addons) && item.addons.length > 0) {
             item.addons.forEach((addon: any) => {
-              const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
-              if (userQty === 0) return;
               if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
-              let addonQty = 0;
-              if (addon.calculationType === "fixed") addonQty = 1;
-              else if (addon.calculationType === "per_x_items")
-                addonQty = Math.ceil(
-                  (item.quantity || 1) / (addon.xItemsThreshold || 1),
-                );
-              else addonQty = item.quantity || 1;
-              addonQty = Math.max(
-                addon.minQuantity || 0,
-                Math.min(addonQty, addon.maxQuantity || addonQty),
-              );
-
+              const addonQty = computeAddonQuantity(addon, item);
               if (addonQty > 0) {
-                const aTotal =
-                  Number(addon.price || 0) *
-                  Math.max(0, addonQty - (addon.freeQuantity || 0));
+                const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
+                const aTotal = computeAddonRevenue(addon, item, data?.products || []);
                 addonsSubtotal += aTotal;
                 addonsLines.push(
-                  `   - ${addon.name}${addonQty > 1 ? ` x ${addonQty}` : ""}: ${aTotal.toFixed(3)} د.ك`,
+                  `   - ${addon.name}${userQty > 1 ? ` x ${userQty}` : ""}: ${aTotal > 0 ? `${aTotal.toFixed(3)} د.ك` : "مجاناً"}`,
                 );
               }
             });
@@ -1405,56 +1393,11 @@ Alturath.kw`;
                                                                 a: any,
                                                                 i: number,
                                                               ) => {
-                                                                const userQty = a.quantity !== undefined ? Number(a.quantity) : (a.qty !== undefined ? Number(a.qty) : 1);
-                                                                if (userQty === 0) return null;
                                                                 if (a.selected === false || a.isSelected === false || a.enabled === false) return null;
-                                                                let addonQty = 0;
-                                                                if (
-                                                                  a.calculationType ===
-                                                                  "fixed"
-                                                                )
-                                                                  addonQty = 1;
-                                                                else if (
-                                                                  a.calculationType ===
-                                                                  "per_x_items"
-                                                                )
-                                                                  addonQty =
-                                                                    Math.ceil(
-                                                                      (item.quantity ||
-                                                                        1) /
-                                                                        (a.xItemsThreshold ||
-                                                                          1),
-                                                                    );
-                                                                else
-                                                                  addonQty =
-                                                                    item.quantity ||
-                                                                    1;
-                                                                addonQty =
-                                                                  Math.max(
-                                                                    a.minQuantity ||
-                                                                      0,
-                                                                    Math.min(
-                                                                      addonQty,
-                                                                      a.maxQuantity ||
-                                                                        addonQty,
-                                                                    ),
-                                                                  );
-                                                                if (
-                                                                  addonQty === 0
-                                                                )
-                                                                  return null;
-
-                                                                let aTotal =
-                                                                  Number(
-                                                                    a.price ||
-                                                                      0,
-                                                                  ) *
-                                                                  Math.max(
-                                                                    0,
-                                                                    addonQty -
-                                                                      (a.freeQuantity ||
-                                                                        0),
-                                                                  );
+                                                                const addonQty = computeAddonQuantity(a, item);
+                                                                if (addonQty === 0) return null;
+                                                                const userQty = a.quantity !== undefined ? Number(a.quantity) : (a.qty !== undefined ? Number(a.qty) : 1);
+                                                                const aTotal = computeAddonRevenue(a, item, data?.products || []);
                                                                 return (
                                                                   <div
                                                                     key={i}
@@ -1468,12 +1411,12 @@ Alturath.kw`;
                                                                         className="text-amber-500"
                                                                       />{" "}
                                                                       {a.name}{" "}
-                                                                      {addonQty >
+                                                                      {userQty >
                                                                         1 && (
                                                                         <span className="text-[10px] text-slate-400">
                                                                           (
                                                                           {
-                                                                            addonQty
+                                                                            userQty
                                                                           }
                                                                           x)
                                                                         </span>
@@ -1566,7 +1509,7 @@ Alturath.kw`;
                                                         ? item.addons
                                                         : []
                                                       ).forEach((a: any) => {
-                                                        let aQty = 0;
+                                                        if (a.selected === false || a.isSelected === false || a.enabled === false) return; aTotalSum += computeAddonRevenue(a, item, data?.products || []); return; let aQty = 0;
                                                         if (
                                                           a.calculationType ===
                                                           "fixed"

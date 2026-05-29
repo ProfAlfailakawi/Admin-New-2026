@@ -549,11 +549,11 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
             </p>
           </div>
 
-          <div className="flex flex-row sm:flex-col justify-center sm:justify-start gap-3 w-full shrink-0 order-2 sm:order-1">
-            <div className="px-4 py-2 sm:px-5 sm:py-2 bg-emerald-500/20 text-emerald-400 rounded-xl sm:rounded-2xl border border-emerald-500/20 text-[10px] sm:text-[10px] font-bold text-center whitespace-nowrap flex-1 sm:flex-none">
+          <div className="flex flex-col sm:flex-col justify-center sm:justify-start gap-3 w-full shrink-0 order-2 sm:order-1">
+            <div className="px-4 py-2 sm:px-5 sm:py-2 bg-emerald-500/20 text-emerald-400 rounded-xl sm:rounded-2xl border border-emerald-500/20 text-[11px] sm:text-[10px] leading-5 font-bold text-center whitespace-normal flex-1 sm:flex-none">
               التراث الذكي: جاهز
             </div>
-            <div className="px-4 py-2 sm:px-5 sm:py-2 bg-blue-500/20 text-blue-400 rounded-xl sm:rounded-2xl border border-blue-500/20 text-[10px] sm:text-[10px] font-bold text-center whitespace-nowrap flex-1 sm:flex-none">
+            <div className="px-4 py-2 sm:px-5 sm:py-2 bg-blue-500/20 text-blue-400 rounded-xl sm:rounded-2xl border border-blue-500/20 text-[11px] sm:text-[10px] leading-5 font-bold text-center whitespace-normal flex-1 sm:flex-none">
               المزامنة مستقرة
             </div>
           </div>
@@ -871,19 +871,19 @@ const AdminSeasonalWeatherEngine: React.FC<{ data: AppState }> = ({ data }) => {
             </div>
           </div>
         </div>
-        <div className="rounded-[1.5rem] border border-white/10 bg-white/[.07] p-3 md:p-4 backdrop-blur-xl">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <span className="text-[11px] font-black text-slate-300">اقتراحات تلقائية مرتبطة بالمنيو</span>
-            <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black text-emerald-200">جاهزة للقنص</span>
+        <div className="rounded-[1.5rem] border border-white/10 bg-white/[.07] p-3 md:p-4 backdrop-blur-xl min-w-0">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[11px] font-black leading-5 text-slate-300">اقتراحات تلقائية مرتبطة بالمنيو</span>
+            <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black text-emerald-200 whitespace-nowrap">جاهزة للقنص</span>
           </div>
           <div className="space-y-2">
             {suggestions.length > 0 ? suggestions.map((p: any) => (
-              <div key={p.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3">
+              <div key={p.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-3 rounded-2xl border border-white/10 bg-white/10 p-3">
                 <div className="min-w-0 text-right">
-                  <div className="truncate text-sm font-black text-white">{p.name}</div>
-                  <div className="text-[10px] font-bold text-slate-400">{p.category || "منتج"} · {Number(p.price || 0).toFixed(3)} د.ك</div>
+                  <div className="line-clamp-2 sm:truncate text-sm font-black leading-6 text-white">{p.name}</div>
+                  <div className="text-[10px] font-bold leading-5 text-slate-400">{p.category || "منتج"} · {Number(p.price || 0).toFixed(3)} د.ك</div>
                 </div>
-                <div className="shrink-0 rounded-xl bg-white/10 px-3 py-2 text-[10px] font-black text-amber-200">اقترح قبلها بيومين</div>
+                <div className="shrink-0 rounded-xl bg-white/10 px-2.5 sm:px-3 py-2 text-[9px] sm:text-[10px] leading-4 font-black text-amber-200 text-center whitespace-nowrap">اقترح قبلها بيومين</div>
               </div>
             )) : (
               <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-center text-xs font-bold text-slate-300">أضف منتجات فعالة ليبدأ الرادار بربط التوقعات بالمنيو.</div>
@@ -1494,6 +1494,14 @@ const [isPending, startTransition] = useTransition();
       cashFlowForecast,
       expectedBankBalance,
       allSupplierPayments,
+      cumulativeBankBalance,
+      totalDiscountsVal,
+      allTimeFoodSales,
+      allTimeCollectedDeliveryFees,
+      allTimeDiscounts,
+      allTimeExpenses,
+      allTimeSupplierPayments,
+      allTimeGatewayFees,
     } = useMemo(() => {
       const invoices = activeInvoices.filter(
         (inv) =>
@@ -1541,8 +1549,33 @@ const [isPending, startTransition] = useTransition();
       const sales = foodSales + collectedDeliveryFees;
 
       const cost = invoices.reduce((acc, inv) => acc + computeInvoiceCost(inv, data?.products || []), 0);
+      const isWithinActiveDateFilter = (dateValue?: string) => {
+        if (dateFilter === "all") return true;
+        if (!dateValue) return true;
+
+        const thresholds: Record<string, number> = {
+          day: 86400000,
+          week: 7 * 86400000,
+          month: 30 * 86400000,
+          year: 365 * 86400000,
+        };
+        const threshold = thresholds[dateFilter];
+        if (!threshold) return true;
+
+        const itemTime = new Date(dateValue).getTime();
+        if (Number.isNaN(itemTime)) return true;
+        return Date.now() - itemTime <= threshold;
+      };
+
+      const filteredExpenses = (data?.expenses || []).filter((exp) =>
+        isWithinActiveDateFilter(exp.date),
+      );
+      const filteredSupplierTransfers = (data?.supplierTransfers || []).filter((transfer) =>
+        isWithinActiveDateFilter(transfer.date),
+      );
+
       const expenses =
-        (data?.expenses || []).reduce(
+        filteredExpenses.reduce(
           (acc, exp) => acc + Math.abs(exp.amount || 0),
           0,
         ) || 0;
@@ -1578,17 +1611,93 @@ const [isPending, startTransition] = useTransition();
         0,
       );
 
-      const allSupplierPayments = (data?.supplierTransfers || []).reduce(
+      const allSupplierPayments = filteredSupplierTransfers.reduce(
         (acc, t) => acc + Math.abs(t.amount || 0),
         0,
       );
 
+      // Period discount calculation
+      const totalDiscountsVal = invoices.reduce(
+        (acc, inv) => acc + Number(inv.discount || 0),
+        0,
+      );
+
+      // Period bank balance/cash change (including discounts!)
       const expectedBankBalance =
         foodSales +
         collectedDeliveryFees -
+        totalDiscountsVal -
         expenses -
         allSupplierPayments -
         gatewayFees;
+
+      // Cumulative (All-Time) calculations
+      const cancelledOrderInvoiceIds = new Set(
+        (data?.orders || [])
+          .filter(
+            (o) =>
+              o.status === "cancelled" &&
+              o.isConvertedToInvoice &&
+              o.linkedInvoiceId,
+          )
+          .map((o) => o.linkedInvoiceId),
+      );
+      
+      const allTimeActiveInvs = getUnifiedInvoices(data).filter(
+        (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
+      );
+
+      const allTimePaidInvoices = allTimeActiveInvs.filter(
+        (inv) =>
+          (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && 
+          !String(inv.status).includes('تجميع القطية') && 
+          inv.paymentStatus !== 'split_pending' && 
+          inv.status !== 'split_pending',
+      );
+
+      const allTimeFoodSales = allTimePaidInvoices.reduce(
+        (acc, inv) => acc + Math.max(0, computeInvoiceSubtotal(inv, data?.products || [])),
+        0,
+      );
+
+      const allTimeCollectedDeliveryFees = allTimePaidInvoices.reduce((acc, inv) => {
+        const fee = Number(
+          (inv as any)?.deliveryFee ??
+          (inv as any)?.deliveryPrice ??
+          (inv as any)?.deliveryInfo?.finalPrice ??
+          (inv as any)?.deliveryInfo?.price ??
+          0,
+        ) || 0;
+        return acc + Math.max(0, fee);
+      }, 0);
+
+      const allTimeExpenses = (data?.expenses || []).reduce(
+        (acc, exp) => acc + Math.abs(exp.amount || 0),
+        0,
+      ) || 0;
+
+      const allTimeSupplierPayments = (data?.supplierTransfers || []).reduce(
+        (acc, t) => acc + Math.abs(t.amount || 0),
+        0,
+      ) || 0;
+
+      const allTimeGatewayFees = allTimePaidInvoices.reduce(
+        (acc, inv) => acc + (inv.gatewayFee || 0),
+        0,
+      );
+
+      const allTimeDiscounts = allTimePaidInvoices.reduce(
+        (acc, inv) => acc + Number(inv.discount || 0),
+        0,
+      );
+
+      const cumulativeBankBalance =
+        allTimeFoodSales +
+        allTimeCollectedDeliveryFees -
+        allTimeDiscounts -
+        allTimeExpenses -
+        allTimeSupplierPayments -
+        allTimeGatewayFees;
 
       return {
         totalSalesVal: sales,
@@ -1611,6 +1720,14 @@ const [isPending, startTransition] = useTransition();
         cashFlowForecast: expectedBankBalance,
         expectedBankBalance,
         allSupplierPayments,
+        cumulativeBankBalance,
+        totalDiscountsVal,
+        allTimeFoodSales,
+        allTimeCollectedDeliveryFees,
+        allTimeDiscounts,
+        allTimeExpenses,
+        allTimeSupplierPayments,
+        allTimeGatewayFees,
       };
     }, [
       activeInvoices,
@@ -1618,6 +1735,7 @@ const [isPending, startTransition] = useTransition();
       data?.customers,
       data?.suppliers,
       data?.supplierTransfers,
+      dateFilter,
     ]);
 
     // All Active Invoices
@@ -3123,12 +3241,12 @@ const [isPending, startTransition] = useTransition();
                       </tbody>
                     </table>
                   </div>
-                  <div className="mt-8 bg-indigo-50 border border-indigo-100 p-3 md:p-4 rounded-2xl flex items-center justify-between flex-row-reverse">
-                    <div className="flex items-center gap-4 flex-row-reverse">
-                      <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white">
+                  <div className="mt-8 bg-indigo-50 border border-indigo-100 p-3 md:p-4 rounded-2xl flex items-center justify-between flex-row-reverse gap-3">
+                    <div className="flex items-center gap-3 md:gap-4 flex-row-reverse min-w-0 flex-1">
+                      <div className="w-10 h-10 shrink-0 rounded-2xl bg-indigo-600 flex items-center justify-center text-white">
                         <Cpu size={20} />
                       </div>
-                      <div className="text-right">
+                      <div className="text-right min-w-0">
                         <p className="text-xs font-bold text-indigo-900">
                           نصيحة المشتريات الذكية
                         </p>
@@ -3148,9 +3266,11 @@ const [isPending, startTransition] = useTransition();
                     </div>
                     <button
                       onClick={() => onNavigate("suppliers-audit")}
-                      className="text-xs font-bold text-indigo-600 border-b-2 border-indigo-200 hover:text-indigo-800 transition-colors"
+                      aria-label="فتح مراجعة وسداد الموردين"
+                      title="فتح مراجعة وسداد الموردين"
+                      className="w-11 h-11 shrink-0 rounded-2xl bg-white text-indigo-700 border border-indigo-100 shadow-sm hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center"
                     >
-                      فتح مراجعة وسداد الموردين
+                      <FileText size={20} />
                     </button>
                   </div>
                 </div>
@@ -4140,13 +4260,13 @@ const [isPending, startTransition] = useTransition();
                             رصيد السيولة بالبنك والخزينة
                           </h4>
                           <p className="text-[10px] text-slate-500 font-bold">
-                            بناءً على عمليات (كي-نت، روابط، تحويلات)
+                            الرصيد الفعلي الإجمالي المتوفر في حسابك الآن
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="text-lg font-bold text-slate-900">
-                          {expectedBankBalance.toFixed(3)}{" "}
+                        <div className="text-lg font-bold text-slate-900 whitespace-nowrap" dir="ltr">
+                          <span>{cumulativeBankBalance.toFixed(3)}</span>{" "}
                           <span className="text-sm">د.ك</span>
                         </div>
                         <ChevronDown
@@ -4167,39 +4287,62 @@ const [isPending, startTransition] = useTransition();
                           exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.3 }}
                         >
-                          <div className="px-4 md:px-6 pb-6 pt-2">
-                            <div className="space-y-3">
-                              <div className="flex justify-between items-center text-xs font-bold text-slate-600">
-                                <span>+ إجمالي إيرادات المنتجات</span>
-                                <span className="text-blue-600">
-                                  {foodSalesVal?.toFixed(3)} د.ك
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center text-xs font-bold text-slate-600 border-t border-blue-100/50 pt-2">
-                                <span>+ إجمالي رسوم التوصيل المحصلة</span>
-                                <span className="text-blue-600">
-                                  {totalDeliveryRevenue?.toFixed(3)} د.ك
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center text-xs font-bold text-slate-600 border-t border-blue-100/50 pt-2">
-                                <span>- المصروفات العامة</span>
-                                <span className="text-red-500">
-                                  {totalExpensesVal.toFixed(3)} د.ك
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center text-xs font-bold text-slate-600 border-t border-blue-100/50 pt-2">
-                                <span>- تحويلات الموردين الفعلية</span>
-                                <span className="text-red-500">
-                                  {allSupplierPayments.toFixed(3)} د.ك
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center text-xs font-bold text-slate-600 border-t border-blue-100/50 pt-2">
-                                <span>- إجمالي رسوم بوابات الدفع المسجلة</span>
-                                <span className="text-red-500">
-                                  {totalGatewayFees.toFixed(3)} د.ك
-                                </span>
-                              </div>
+                          <div className="px-4 md:px-6 pb-6 pt-2" dir="rtl">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-right border-collapse text-xs">
+                                <thead>
+                                  <tr className="border-b border-slate-200 text-slate-400 font-extrabold text-[10px]">
+                                    <th className="pb-2 text-right">البند التفصيلي للسيولة</th>
+                                    <th className="pb-2 text-center">أثر الفترة الحالية</th>
+                                    <th className="pb-2 text-left">التراكمي الإجمالي</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 font-bold text-slate-600">
+                                  <tr className="hover:bg-slate-100/30">
+                                    <td className="py-2.5 text-right text-slate-800">+ مبيعات المنتجات (الصافية)</td>
+                                    <td className="py-2.5 text-center text-indigo-600" dir="ltr">{foodSalesVal?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 text-left text-indigo-700" dir="ltr">{allTimeFoodSales?.toFixed(3)} د.ك</td>
+                                  </tr>
+                                  <tr className="hover:bg-slate-100/30">
+                                    <td className="py-2.5 text-right text-slate-800">+ رسوم التوصيل المحصلة</td>
+                                    <td className="py-2.5 text-center text-indigo-600" dir="ltr">{totalDeliveryRevenue?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 text-left text-indigo-700" dir="ltr">{allTimeCollectedDeliveryFees?.toFixed(3)} د.ك</td>
+                                  </tr>
+                                  <tr className="hover:bg-slate-100/30">
+                                    <td className="py-2.5 text-right text-slate-800">- الخصومات والكوبونات الممنوحة</td>
+                                    <td className="py-2.5 text-center text-rose-500" dir="ltr">{totalDiscountsVal?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 text-left text-rose-600" dir="ltr">{allTimeDiscounts?.toFixed(3)} د.ك</td>
+                                  </tr>
+                                  <tr className="hover:bg-slate-100/30">
+                                    <td className="py-2.5 text-right text-slate-800">- المصروفات العامة والتشغيلية</td>
+                                    <td className="py-2.5 text-center text-rose-500" dir="ltr">{totalExpensesVal?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 text-left text-rose-600" dir="ltr">{allTimeExpenses?.toFixed(3)} د.ك</td>
+                                  </tr>
+                                  <tr className="hover:bg-slate-100/30">
+                                    <td className="py-2.5 text-right text-slate-800">- دفعات وسداد الموردين</td>
+                                    <td className="py-2.5 text-center text-rose-500" dir="ltr">{allSupplierPayments?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 text-left text-rose-600" dir="ltr">{allTimeSupplierPayments?.toFixed(3)} د.ك</td>
+                                  </tr>
+                                  <tr className="hover:bg-slate-100/30">
+                                    <td className="py-2.5 text-right text-slate-800">- عمولات رسوم بوابات الدفع</td>
+                                    <td className="py-2.5 text-center text-rose-500" dir="ltr">{totalGatewayFees?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 text-left text-rose-600" dir="ltr">{allTimeGatewayFees?.toFixed(3)} د.ك</td>
+                                  </tr>
+                                  <tr className="border-t-2 border-slate-200 font-extrabold bg-slate-100/50">
+                                    <td className="py-3 text-right text-slate-900 font-extrabold">الصافي الجاهز / التغير</td>
+                                    <td className="py-3 text-center text-emerald-600 font-extrabold" dir="ltr">
+                                      {expectedBankBalance >= 0 ? "+" : ""}{expectedBankBalance.toFixed(3)} د.ك
+                                    </td>
+                                    <td className="py-3 text-left text-emerald-700 font-black text-xs" dir="ltr">
+                                      {cumulativeBankBalance.toFixed(3)} د.ك
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
                             </div>
+                            <p className="mt-4 text-[10px] text-slate-400 font-bold leading-5 text-right">
+                              💡 الرصيد التراكمي الإجمالي يعبر عن السيولة الفعلية المستمرة للشركة بجميع الأوقات، بينما تُظهر أرقام الفترة أثر الفلتر الزمني المختار فحسب. تساهم خصومات الكوبونات والعمولات في تقديم حساب دقيق للرصيد الفعلي.
+                            </p>
                           </div>
                         </motion.div>
                       )}

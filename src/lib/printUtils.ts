@@ -92,9 +92,10 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
       const addonQty = getAddonQty(addon, qty);
       const addonTotal = getAddonTotal(addon, qty);
       addonsSubtotal += addonTotal;
+      const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
       return `
         <div class="addon-line">
-          <span><b>•</b> ${addonName}${addonQty > 1 ? ` × ${addonQty}` : ''}</span>
+          <span><b>•</b> ${addonName}${userQty > 1 ? ` × ${userQty}` : ''}</span>
           <span class="addon-price">${fmt(addonTotal)}</span>
         </div>`;
     }).join('');

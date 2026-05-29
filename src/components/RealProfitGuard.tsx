@@ -245,18 +245,18 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
 
  return (
  <div className="space-y-6">
- <div className="flex flex-col md:flex-row justify-between items-center bg-slate-950 p-5 rounded-3xl border border-rose-500/30 shadow-[0_20px_50px_rgba(225,29,72,0.15)] flex-row-reverse gap-4 relative overflow-hidden">
+ <div className="flex flex-col md:flex-row md:flex-row-reverse justify-between items-stretch md:items-center bg-slate-950 p-4 sm:p-5 rounded-3xl border border-rose-500/30 shadow-[0_20px_50px_rgba(225,29,72,0.15)] gap-4 relative overflow-hidden">
  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(225,29,72,0.1)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
- <div className="text-right relative z-10">
- <div className="flex items-center gap-2 justify-end mb-1">
- <span className="bg-rose-500/20 text-rose-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-500/30 uppercase tracking-[0.2em]">Active Protection</span>
- <h3 className="font-black text-2xl text-white">رادار الدرع المالي</h3>
+ <div className="text-right relative z-10 w-full min-w-0">
+ <div className="flex flex-col sm:flex-row sm:flex-row-reverse sm:items-center gap-2 sm:justify-start mb-2">
+ <h3 className="font-black text-xl sm:text-2xl text-white leading-snug break-words">رادار الدرع المالي</h3>
+ <span className="w-fit bg-rose-500/20 text-rose-400 text-[10px] font-black px-3 py-1 rounded-full border border-rose-500/30 uppercase tracking-[0.12em] whitespace-normal sm:whitespace-nowrap leading-relaxed">Active Protection</span>
  </div>
- <p className="text-slate-400 text-[10px] font-bold mt-1">نظام حماية يراقب هوامش الربح بدقة ويكشف تآكل الأرباح فورا</p>
+ <p className="text-slate-400 text-[11px] sm:text-[10px] font-bold leading-6 sm:leading-relaxed">نظام حماية يراقب هوامش الربح بدقة ويكشف تآكل الأرباح فورا</p>
  </div>
- <div className="flex items-center gap-3 bg-rose-500/10 px-4 py-2 rounded-full border border-rose-500/30 relative z-10">
+ <div className="flex items-center justify-center gap-3 bg-rose-500/10 px-4 py-2 rounded-2xl sm:rounded-full border border-rose-500/30 relative z-10 shrink-0">
  <ShieldAlert className="text-rose-400 animate-pulse" size={14} />
- <span className="text-[10px] font-bold text-rose-300 uppercase">الدرع نشط</span>
+ <span className="text-[10px] font-bold text-rose-300 uppercase whitespace-nowrap">الدرع نشط</span>
  </div>
  </div>
 

@@ -1295,7 +1295,7 @@ const MainApp: React.FC = () => {
           }) as any;
           const nextOrders = (prev.orders || []).map((o: any) => {
              const u = updatedOrders.find((uo: any) => String(uo.id) === String(o.id));
-             if (u && (isPaidStatus(u.paymentStatus) || isPaidStatus(u.status) || String(u.paymentStatus || u.payment_status || '').toLowerCase() === 'failed')) return { ...o, ...u };
+             if (u && (isPaidStatus(u.paymentStatus) || isPaidStatus(u.status) || String(u.paymentStatus || (u as any).payment_status || '').toLowerCase() === 'failed')) return { ...o, ...u };
              return o;
           }) as any;
           return { ...prev, invoices: nextInvoices, orders: nextOrders };
@@ -2864,8 +2864,9 @@ const MainApp: React.FC = () => {
       case 'suppliers': return <SupplierPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
       case 'expenses': return <ExpensePage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
       case 'orders': return <OrderPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} isPartner={false} />;
-      case 'coupons': return <PromoCodePage data={data} onUpdateData={setData} />;
-      case 'loyalty': return <LoyaltyProgramPage data={data} onUpdateData={setData} />;
+      case 'coupons':
+      case 'loyalty':
+        return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="rewards" scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} onActiveTabChange={setDashboardTab} />;
       case 'growth-simulator': return <WhatIfSimulator data={data} onUpdateData={setData} />;
       case 'profit-guard': return <RealProfitGuard data={data} />;
       case 'reports': return (

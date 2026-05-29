@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Play, TrendingUp, TrendingDown, RefreshCw, BarChart3, Tag, Truck, Sparkles, AlertCircle, Info, Calculator, Zap, ArrowRight, CheckCircle2, Rocket, Megaphone, Target, Users, Layout, MessageCircle, Clock, Copy } from 'lucide-react';
 import { cn, safeFormatCurrency } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -14,6 +14,21 @@ interface WhatIfSimulatorProps {
 }
 
 export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdateData }) => {
+ const [chartKey, setChartKey] = useState(0);
+
+ useEffect(() => {
+  const timer1 = setTimeout(() => {
+   setChartKey(prev => prev + 1);
+  }, 100);
+  const timer2 = setTimeout(() => {
+   setChartKey(prev => prev + 2);
+  }, 300);
+  return () => {
+   clearTimeout(timer1);
+   clearTimeout(timer2);
+  };
+ }, []);
+
  const [scenarioType, setScenarioType] = useState<'price_change' | 'cost_change' | 'promotion'>('price_change');
  const [selectedProductId, setSelectedProductId] = useState<string>(data.products?.[0]?.id || '');
  const [percentChange, setPercentChange] = useState<number>(0); // 0% change default
@@ -446,7 +461,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
 
  <div className="w-full h-48 md:h-64 mb-6 md:mb-8 bg-slate-900/50 backdrop-blur-sm rounded-3xl p-3 overflow-hidden border border-slate-800 relative z-10" dir="ltr">
  {/* Recharts chart */}
- <ResponsiveContainer width="100%" height="100%">
+ <ResponsiveContainer key={chartKey} width="100%" height="100%">
  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
  <XAxis dataKey="name" tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 'bold'}} axisLine={false} tickLine={false} />
  <Tooltip 
@@ -454,8 +469,8 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  contentStyle={{ borderRadius: '1rem', border: 'none', backgroundColor: '#0f172a', color: '#fff', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)', fontWeight: 'bold', fontSize: '12px' }}
  itemStyle={{ color: '#818cf8', fontWeight: '900' }}
  />
- <Bar dataKey="current" fill="#475569" radius={[8, 8, 8, 8]} name="الحالي" />
- <Bar dataKey="projected" fill={isPositive ? '#10b981' : '#f43f5e'} radius={[8, 8, 8, 8]} name="المتوقع" />
+ <Bar dataKey="current" fill="#475569" radius={[8, 8, 8, 8]} name="الحالي" isAnimationActive={false} />
+ <Bar dataKey="projected" fill={isPositive ? '#10b981' : '#f43f5e'} radius={[8, 8, 8, 8]} name="المتوقع" isAnimationActive={false} />
  </BarChart>
  </ResponsiveContainer>
  </div>
