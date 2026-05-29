@@ -1241,7 +1241,9 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                 <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">أقوى 5 دواوين هذا الأسبوع <Flame className="text-rose-500" /></h3>
                 
                 <div className="bg-white border text-right border-slate-200/60 rounded-3xl p-2 shadow-sm overflow-hidden">
-                  {[...squads].sort((a,b) => (b.points || 0) - (a.points || 0)).slice(0,5).map((squad, i) => (
+                   {[...squads].sort((a,b) => (b.points || 0) - (a.points || 0)).slice(0,5).map((squad, i) => {
+                     const squadDynamicTier = getTierForPoints(squad.points || 0)?.name || squad.tier;
+                     return (
                     <div key={squad.id} className="flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 rounded-2xl">
                       <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center font-bold text-xl shadow-inner border ${i === 0 ? 'bg-amber-100 border-amber-300 text-amber-600' : i === 1 ? 'bg-slate-100 border-slate-300 text-slate-600' : i === 2 ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
                         #{i + 1}
@@ -1249,8 +1251,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-slate-800 text-lg flex items-center gap-2 truncate">
                           {squad.name} 
-                          {squad.tier === 'شيوخ' && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-md text-[10px] uppercase font-black tracking-wider shrink-0">شيوخ</span>}
-                          {squad.tier === 'نواخذة' && <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md text-[10px] uppercase font-black shrink-0">نواخذة</span>}
+                          {squadDynamicTier === 'شيوخ' && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-md text-[10px] uppercase font-black tracking-wider shrink-0">شيوخ</span>}
+                          {squadDynamicTier === 'نواخذة' && <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md text-[10px] uppercase font-black shrink-0">نواخذة</span>}
                         </h4>
                         <div className="flex items-center gap-4 text-xs font-bold text-slate-500 mt-1">
                           <span className="flex items-center gap-1"><Users size={14} /> {squad.members} أعضاء</span>
@@ -1262,7 +1264,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         <span className="text-sm font-bold text-slate-800 truncate max-w-[100px]">{squad.king}</span>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
              </div>
           </motion.div>
@@ -1552,13 +1554,13 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                             const sortedArr = [...squads].sort((a,b) => (b.points || 0) - (a.points || 0));
                             const rank = sortedArr.findIndex(x => x.id === s.id) + 1;
                             const points = s.points || 0;
-                            const displayTier = s.tier || getTierForPoints(points)?.name || 'شلة ديوانية';
+                            const displayTier = getTierForPoints(points)?.name || s.tier || 'شلة ديوانية';
                             const founderName = s.founder || s.king || s.membersList?.[0]?.name || 'غير محدد';
                             const founderPhone = s.phone || s.membersList?.[0]?.phone || '';
                             
-                            let waMsg = `\u2728 مرحباً يا ${s.name}!\nرصيدكم الحالي ${points} نقطة، وتصنيفكم ${s.tier}.\nكل طلب يقربكم من الصدارة.`;
+                            let waMsg = `\u2728 مرحباً يا ${s.name}!\nرصيدكم الحالي ${points} نقطة، وتصنيفكم ${displayTier}.\nكل طلب يقربكم من الصدارة.`;
                             if (rank === 1 && points > 0) {
-                              waMsg = `\u2728 مرحباً يا ${s.name}!\nنبارك لكم تصدركم المركز الأول في بطولات الديوانية برصيد ${points} نقطة.\nاستمروا وفالكم البيرق يا ${s.tier}.`;
+                              waMsg = `\u2728 مرحباً يا ${s.name}!\nنبارك لكم تصدركم المركز الأول في بطولات الديوانية برصيد ${points} نقطة.\nاستمروا وفالكم البيرق يا ${displayTier}.`;
                             } else if (rank <= 3 && points > 0) {
                               waMsg = `\u2728 مرحباً يا ${s.name}!\nأنتم في المركز ${rank} برصيد ${points} نقطة.\nالمركز الأول قريب، شدوا حيلكم.`;
                             } else if (points === 0) {

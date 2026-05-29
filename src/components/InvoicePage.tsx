@@ -252,7 +252,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
                   }
                 }
 
-                const mult = Number(addon.quantity || 1);
+                const mult = userQty;
 
                 if (!isDuplicateFixed) {
                   if (addon.isHiddenPrice) {

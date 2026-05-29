@@ -40,4 +40,4 @@ export const heritageMotion = {
     whileTap: { scale: 0.965, rotate: -0.8 },
     transition: heritageSpring.tap,
   },
-} as const;
+} as any;

@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { TrendingUp, TrendingDown, LineChart as LineChartIcon } from 'lucide-react';
 import { AppState } from '../types';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { cn, safeFormatCurrency } from '../lib/utils';
 
 interface FutureForecastProps {
@@ -12,6 +12,46 @@ type ForecastPeriod = '6_months' | '1_year' | '2_years' | '3_years';
 
 export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
  const [period, setPeriod] = useState<ForecastPeriod>('1_year');
+ const containerRef = useRef<HTMLDivElement>(null);
+ const [dimensions, setDimensions] = useState({ width: 0, height: 330 });
+
+ useEffect(() => {
+  if (!containerRef.current) return;
+  
+  const updateSize = () => {
+   if (containerRef.current) {
+    const rect = containerRef.current.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height || containerRef.current.clientHeight || 330;
+    if (w > 0) {
+     setDimensions({ width: w, height: h });
+    }
+   }
+  };
+
+  updateSize();
+
+  // Setup Observer for perfect responsive changes
+  const observer = new ResizeObserver(() => {
+   updateSize();
+  });
+  observer.observe(containerRef.current);
+
+  // Backup timers to guarantee layout settles
+  const t1 = setTimeout(updateSize, 50);
+  const t2 = setTimeout(updateSize, 150);
+  const t3 = setTimeout(updateSize, 400);
+
+  window.addEventListener('resize', updateSize);
+
+  return () => {
+   observer.disconnect();
+   clearTimeout(t1);
+   clearTimeout(t2);
+   clearTimeout(t3);
+   window.removeEventListener('resize', updateSize);
+  };
+ }, []);
 
  const { isSufficientData, chartData, trend, explanation, growthRate } = useMemo(() => {
   const invoices = data.invoices || [];
@@ -139,9 +179,9 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
       <div className="rounded-2xl bg-slate-50 px-3 py-2 text-xs font-black text-slate-500">نمو شهري تقريبي: {Number(growthRate || 0).toFixed(1)}%</div>
      </div>
 
-     <div className="h-[260px] sm:h-[330px] md:h-[390px] w-full" dir="ltr">
-      <ResponsiveContainer width="100%" height="100%">
-       <AreaChart data={chartData} margin={{ top: 14, right: 10, left: 0, bottom: 18 }}>
+     <div ref={containerRef} className="h-[260px] sm:h-[330px] md:h-[390px] w-full" dir="ltr">
+      {dimensions.width > 0 && (
+       <AreaChart width={dimensions.width} height={dimensions.height} data={chartData} margin={{ top: 14, right: 10, left: 0, bottom: 18 }}>
         <defs>
          <linearGradient id="forecastSales" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#6366f1" stopOpacity={0.35}/>
@@ -156,10 +196,10 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
         <XAxis dataKey="name" axisLine={false} tickLine={false} dy={12} interval={period === '3_years' ? 3 : period === '2_years' ? 2 : period === '1_year' ? 1 : 0} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 800, fontFamily: 'Cairo, sans-serif' }} />
         <YAxis axisLine={false} tickLine={false} width={66} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 800, fontFamily: 'Cairo, sans-serif' }} tickFormatter={(value) => Number(value || 0).toLocaleString('en-US')} />
         <Tooltip contentStyle={{ borderRadius: '18px', border: '1px solid #e2e8f0', boxShadow: '0 18px 40px rgba(15,23,42,.12)', fontFamily: 'Cairo, Tahoma, sans-serif', direction: 'rtl' }} itemStyle={{ fontWeight: 900 }} labelStyle={{ color: '#334155', fontWeight: 900, marginBottom: '8px' }} formatter={(value: number, name: string) => [`${safeFormatCurrency(value)} د.ك`, name]} />
-        <Area type="monotone" dataKey="المبيعات" stroke="#4f46e5" strokeWidth={4} fill="url(#forecastSales)" activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#4f46e5' }} />
-        <Area type="monotone" dataKey="الأرباح" stroke="#10b981" strokeWidth={4} fill="url(#forecastProfit)" activeDot={{ r: 5, strokeWidth: 3, stroke: '#fff', fill: '#10b981' }} />
+        <Area type="monotone" dataKey="المبيعات" stroke="#4f46e5" strokeWidth={4} fill="url(#forecastSales)" activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#4f46e5' }} isAnimationActive={false} />
+        <Area type="monotone" dataKey="الأرباح" stroke="#10b981" strokeWidth={4} fill="url(#forecastProfit)" activeDot={{ r: 5, strokeWidth: 3, stroke: '#fff', fill: '#10b981' }} isAnimationActive={false} />
        </AreaChart>
-      </ResponsiveContainer>
+      )}
      </div>
 
      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">

@@ -29,6 +29,12 @@ import {
   generateNextInvoiceId,
 } from "../lib/business-logic";
 import { AppState, Order, Invoice, Product, DeliveryType } from "../types";
+import {
+  computeAddonQuantity,
+  computeAddonRevenue,
+  computeInvoiceItemBasePrice,
+  computeInvoiceSubtotal,
+} from "../lib/invoice-calculations";
 // import { getDeduplicatedProducts } from '../lib/deduplication';
 import { db, auth } from "../firebase";
 import { getPublicUrl, getWebhookUrl } from "../lib/urlUtils";
@@ -503,7 +509,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
                     : p?.price || 0,
             ) || 0;
 
-          let itemTotal = itemPrice * Number(item.quantity || 0);
+          let itemTotal = itemPrice * Number(item.quantity || 0); if (Array.isArray((item as any).addons)) { ((item as any).addons as any[]).forEach((a) => { if (a.selected === false || a.isSelected === false || a.enabled === false) return; itemTotal += computeAddonRevenue(a, item, data?.products || []); }); } return sum + itemTotal; if (false) {
           if (Array.isArray((item as any).addons) && (item as any).addons.length > 0) {
             ((item as any).addons as any[]).forEach(
                                            (addon: any) => {
@@ -527,7 +533,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
                 Math.max(0, addonQty - (addon.freeQuantity || 0));
             });
           }
-          return sum + itemTotal;
+          }
         }, 0) || 0;
     } catch (e) {
       console.warn("Subtotal item calculation error:", e);
@@ -1102,7 +1108,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
               if (userQty === 0) return addon;
               if (selectedAddon.selected === false || selectedAddon.isSelected === false || selectedAddon.enabled === false) return addon;
 
-              let addonQty = 0;
+              let addonQty = computeAddonQuantity(selectedAddon, item); if (false) {
               if (addon.calculationType === "fixed") addonQty = 1;
               else if (addon.calculationType === "per_x_items")
                 addonQty = Math.ceil(
@@ -1114,7 +1120,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
                 Math.min(addonQty, addon.maxQuantity || addonQty),
               );
 
-              return {
+              } return {
                 ...addon,
                 stock: Math.max(0, (addon.stock || 0) - addonQty),
               };
@@ -1280,7 +1286,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
             : (item as any).price !== undefined
               ? (item as any).price
               : p?.price || 0;
-        let displayPrice = Number(price);
+        let displayPrice = Number(price); let addonsLines: string[] = []; if (Array.isArray((item as any).addons)) { ((item as any).addons as any[]).forEach((addon: any) => { if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return; const addonQty = computeAddonQuantity(addon, item); if (addonQty > 0) { const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1); const aTotal = computeAddonRevenue(addon, item, data?.products || []); if (addon.isHiddenPrice) { displayPrice += aTotal / (item.quantity || 1); addonsLines.push(`   - ${addon.name}${userQty > 1 ? ` x ${userQty}` : ""}`); } else { addonsLines.push(`   - ${addon.name}${userQty > 1 ? ` x ${userQty}` : ""}: ${aTotal > 0 ? `${aTotal.toFixed(3)} د.ك` : "مجاناً"}`); } } }); } if (false) {
         let addonsLines: string[] = [];
 
         if (Array.isArray((item as any).addons) && (item as any).addons.length > 0) {
@@ -1317,7 +1323,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
             }
           });
         }
-        return `${p?.name || "منتج غير معروف"}\n   الكمية: ${item.quantity || 1}\n   السعر الفردي: ${Number(displayPrice).toFixed(3)} د.ك\n   إجمالي المنتج: ${(Number(displayPrice) * Number(item.quantity || 1)).toFixed(3)} د.ك${addonsLines.length > 0 ? "\n\n   الإضافات:\n" + addonsLines.join("\n") : ""}`;
+        } return `${p?.name || "منتج غير معروف"}\n   الكمية: ${item.quantity || 1}\n   السعر الفردي: ${Number(displayPrice).toFixed(3)} د.ك\n   إجمالي المنتج: ${(Number(displayPrice) * Number(item.quantity || 1)).toFixed(3)} د.ك${addonsLines.length > 0 ? "\n\n   الإضافات:\n" + addonsLines.join("\n") : ""}`;
       })
       .join("\n");
 
@@ -2149,7 +2155,7 @@ Alturath.kw`;
                                                                   p.id ===
                                                                   it.productId,
                                                               )?.price || 0;
-                                                        let itT =
+                                                        let itT = baseP * (it.quantity || 0); if (Array.isArray((it as any).addons)) { ((it as any).addons as any[]).forEach((a: any) => { if (a.selected === false || a.isSelected === false || a.enabled === false) return; itT += computeAddonRevenue(a, it, data?.products || []); }); } if (false) { let dummyItT =
                                                           baseP *
                                                           (it.quantity || 0);
                                                         if (
@@ -2213,7 +2219,7 @@ Alturath.kw`;
                                                             },
                                                           );
                                                         }
-                                                        return sum + itT;
+                                                        } return sum + itT;
                                                       },
                                                       0,
                                                     );
@@ -2382,7 +2388,7 @@ Alturath.kw`;
                                                 ).map((addon: any, aIdx: number) => {
                                                      const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
                                                                if (userQty === 0) return null;
-                                                               if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return null;
+                                                               if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return null; let addonQty = computeAddonQuantity(addon, item); if (false) { let dummyAddonQty = 0;
                                                      let addonQty = 0;
                                                     if (
                                                       addon.calculationType ===
@@ -2409,7 +2415,7 @@ Alturath.kw`;
                                                       ),
                                                     );
 
-                                                    if (addonQty === 0)
+                                                    } if (addonQty === 0)
                                                       return null;
                                                     return (
                                                       <div
@@ -2417,11 +2423,12 @@ Alturath.kw`;
                                                         className="text-[10px] md:text-[11px] text-slate-500 font-bold"
                                                       >
                                                         + {addon.name}{" "}
-                                                        {addonQty > 1
-                                                          ? `(${addonQty})`
-                                                          : ""}{" "}
+                                                        {(() => {
+                                                          const uQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
+                                                          return uQty > 1 ? `(${uQty})` : "";
+                                                        })()}{" "}
                                                         {!addon.isHiddenPrice &&
-                                                          `- (${(Number(addon.price || 0) * Math.max(0, addonQty - (addon.freeQuantity || 0))).toFixed(3)} د.ك)`}
+                                                          `- (${computeAddonRevenue(addon, item, data?.products || []).toFixed(3)} د.ك)`}
                                                       </div>
                                                     );
                                                   },
@@ -2439,7 +2446,7 @@ Alturath.kw`;
                                           ? item.priceAtTime
                                           : product?.price || 0,
                                       );
-                                      let displayPrice = basePrice;
+                                      let displayPrice = basePrice; let totalRowPrice = basePrice * item.quantity; if (Array.isArray((item as any).addons)) { ((item as any).addons as any[]).forEach((addon: any) => { if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return; const addonQty = computeAddonQuantity(addon, item); const addonTotal = computeAddonRevenue(addon, item, data?.products || []); totalRowPrice += addonTotal; if (addon.isHiddenPrice && addonQty > 0) { displayPrice += addonTotal / (item.quantity || 1); } }); } if (false) {
                                       let totalRowPrice =
                                         basePrice * item.quantity;
                                       if (
@@ -2491,7 +2498,7 @@ Alturath.kw`;
                                         );
                                       }
 
-                                      return (
+                                      } return (
                                         <>
                                           <td className="p-3 md:p-4 text-center font-bold text-slate-800">
                                             x{item.quantity}
