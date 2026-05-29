@@ -1372,7 +1372,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 {items.map((item, idx) => (
                   <button key={idx} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); setAiCaption(item.caption); if (item.format) setSelectedFormat(item.format); if (item.mode) setRealityMode(item.mode); if (item.background) setBackgroundPreset(item.background); if (item.packId) setSelectedPulseId(item.packId); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); if (item.customIdea) { setCustomThemeQuery(item.customIdea); setSelectedTheme('مخصص'); } setShowImageSettings(true); setStudioTab(archiveTab === 'image' ? 'product' : 'create'); }} className="group rounded-3xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm hover:shadow-md transition-all text-right">
                     <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
-                    <div className="p-3 text-[11px] font-bold text-slate-500 line-clamp-2">{item.caption || (archiveTab === 'image' ? 'صورة منتج' : 'صورة من فكرة')}</div>
+                    <div className="p-3 text-[11px] font-bold text-slate-500 line-clamp-2">{archiveTab === 'image' ? 'صورة منتج' : 'صورة من فكرة'}</div>
                   </button>
                 ))}
               </div>
@@ -1652,9 +1652,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     <pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans">{buildSettingsText()}</pre>
                   </div>
                 )}
-                {aiCaption && selectedContentGoal === 'whatsapp' && <div className="rounded-3xl bg-white/10 text-white p-4 shadow-lg border border-white/10"><p className="text-sm font-extrabold leading-7 whitespace-pre-wrap">{aiCaption}</p></div>}
                 <div className="flex items-center justify-center gap-2">
-                  {selectedContentGoal === 'whatsapp' && <button onClick={copyCaption} disabled={!aiCaption} title="نسخ" aria-label="نسخ" className="h-12 w-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center disabled:opacity-40"><MessageCircle size={18} /></button>}
                   <button onClick={handleDownload} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-indigo-500 text-white flex items-center justify-center"><Download size={18} /></button>
                   <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !generatedImage} title="اجعلها أصدق" aria-label="اجعلها أصدق" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center disabled:opacity-40"><Sparkles size={18} /></button>
                 </div>
