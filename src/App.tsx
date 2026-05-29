@@ -1666,7 +1666,7 @@ const MainApp: React.FC = () => {
       });
       
       const rootForStudioAndApp = withGoogleStudioRootMirror(rootDocDataWithMeta, splitData);
-      const sanitizedRoot = JSON.parse(JSON.stringify(rootForStudioAndApp));
+      const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
       const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
       
       SHARDED_KEYS.forEach(key => {
@@ -1713,14 +1713,16 @@ const MainApp: React.FC = () => {
   // still needs recent business rows in the root document. Keep a safe, uncompressed mirror
   // there while the authoritative full data stays in shards.
   const GOOGLE_STUDIO_ROOT_MIRROR_LIMITS: Record<string, number> = {
-    orders: 1200,
-    invoices: 1200,
-    customers: 1500,
-    expenses: 1500,
-    testimonials: 800,
-    supplierCopies: 1200,
-    campaigns: 800,
-    promocodes: 800,
+    orders: 300,
+    invoices: 300,
+    customers: 500,
+    expenses: 400,
+    testimonials: 200,
+    supplierCopies: 300,
+    campaigns: 200,
+    promocodes: 200,
+    products: 200,
+    squads: 200,
   };
 
   const sortForStudioMirror = (key: string, rows: any[]) => {
@@ -1746,16 +1748,47 @@ const MainApp: React.FC = () => {
     const mirrored = { ...rootValue };
     SHARDED_KEYS.forEach(key => {
       if (fullValue[key] !== undefined) {
-        if (key === 'products' || key === 'squads') {
-          mirrored[key] = fullValue[key];
-        } else {
-          mirrored[key] = makeGoogleStudioMirrorValue(key, fullValue[key]);
-        }
+        mirrored[key] = makeGoogleStudioMirrorValue(key, fullValue[key]);
       }
     });
     mirrored.__googleStudioMirrorAt = new Date().toISOString();
     mirrored.__googleStudioMirrorNote = 'Recent business rows are mirrored here for Google/Looker Studio. Full authoritative data remains in shards.';
     return mirrored;
+  };
+
+  const getFirestoreDocumentByteSize = (value: any): number => {
+    try {
+      return new TextEncoder().encode(JSON.stringify(value)).length;
+    } catch {
+      return JSON.stringify(value || {}).length;
+    }
+  };
+
+  // Firestore has a strict 1 MiB limit per document. The root document is only a
+  // lightweight mirror for Firebase/Google viewing; full authoritative data is in shards.
+  const makeFirestoreSafeRootDocument = (rootValue: any) => {
+    const safe = JSON.parse(JSON.stringify(rootValue || {}));
+    const maxBytes = 900000;
+    const shrinkableKeys = ['orders', 'invoices', 'customers', 'expenses', 'supplierCopies', 'testimonials', 'campaigns', 'promocodes', 'products', 'squads'];
+
+    let guard = 0;
+    while (getFirestoreDocumentByteSize(safe) > maxBytes && guard < 80) {
+      const largestKey = shrinkableKeys
+        .filter(key => Array.isArray(safe[key]) && safe[key].length > 0)
+        .sort((a, b) => JSON.stringify(safe[b] || []).length - JSON.stringify(safe[a] || []).length)[0];
+
+      if (!largestKey) break;
+
+      const current = safe[largestKey];
+      const nextLength = current.length > 20 ? Math.ceil(current.length * 0.65) : Math.max(0, current.length - 5);
+      safe[largestKey] = current.slice(0, nextLength);
+      guard += 1;
+    }
+
+    safe.__rootMirrorByteSize = getFirestoreDocumentByteSize(safe);
+    safe.__rootMirrorLimited = getFirestoreDocumentByteSize(safe) > maxBytes ? 'true' : 'false';
+    safe.__rootMirrorSafetyNote = 'Root document is capped under Firestore 1MiB. Full authoritative imported data is stored in shards.';
+    return safe;
   };
   
   const stableStringify = (obj: any): string => {
@@ -1843,9 +1876,7 @@ const MainApp: React.FC = () => {
 	        SHARDED_KEYS.forEach(key => {
 	          if (rootDocData[key] !== undefined) {
 	            shardedPayloads[key] = rootDocData[key];
-	            if (key !== 'products') {
-	              rootDocData[key] = [];
-            }
+              rootDocData[key] = [];
           }
         });
         
@@ -1855,8 +1886,8 @@ const MainApp: React.FC = () => {
 	          __adminLastAuthoritativeWriteAt: new Date(authoritativeWriteAt).toISOString(),
 	        };
 	        const rootForStudioAndApp = withGoogleStudioRootMirror(authoritativeRoot, splitData);
-	        const serializedRootCurrent = stableStringify(rootForStudioAndApp);
-	        const sanitizedRoot = JSON.parse(JSON.stringify(rootForStudioAndApp));
+	        const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
+	        const serializedRootCurrent = stableStringify(sanitizedRoot);
 	        const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: false })];
         
 	        SHARDED_KEYS.forEach(key => {
@@ -2370,7 +2401,8 @@ const MainApp: React.FC = () => {
 	            withAuthoritativeSharedMeta({ ...splitData }),
 	            splitData
 	          );
-          const serializedRootCurrent = stableStringify(rootDocData);
+          const sanitizedRootPreview = makeFirestoreSafeRootDocument(rootDocData);
+          const serializedRootCurrent = stableStringify(sanitizedRootPreview);
           const serializedRootLast = lastRemoteKeysRef.current['__root__'];
           const hasRootChanged = serializedRootCurrent !== serializedRootLast;
 
@@ -2405,7 +2437,7 @@ const MainApp: React.FC = () => {
           
           // 3. Save Root (only if modified or doesn't exist yet)
           if (hasRootChanged || !cloudRootExistsRef.current) {
-             const sanitizedRoot = JSON.parse(JSON.stringify(rootDocData));
+             const sanitizedRoot = sanitizedRootPreview;
              console.log("Saving root modifications to Firestore with Google Studio mirror...");
 	            savePromises.push(setDoc(rootDataRef, sanitizedRoot, { merge: false }));
           }
