@@ -1,13 +1,10 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getMessaging, getToken, isSupported, onMessage, type Messaging } from "firebase/messaging";
+import rawConfig from "../../firebase-applet-config.json";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBBVG0C-xjkuT3WeqiNAmJjw6lI8M6Gt6k",
-  authDomain: "gen-lang-client-0200723670.firebaseapp.com",
-  projectId: "gen-lang-client-0200723670",
-  storageBucket: "gen-lang-client-0200723670.firebasestorage.app",
-  messagingSenderId: "119610604304",
-  appId: "1:119610604304:web:55eba98b72a9a7f98d4395",
+  ...rawConfig,
+  apiKey: (import.meta.env.VITE_FIREBASE_API_KEY as string) || rawConfig.apiKey || ""
 };
 
 export const FALLBACK_VAPID_KEY =
