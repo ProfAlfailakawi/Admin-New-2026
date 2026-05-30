@@ -1,13 +1,16 @@
 /*
  * alturathStudioBrain.ts
  *
- * هذا الملف يحتوي على منطق ذكي لتصنيف أطباق المطبخ الكويتي والشعبي والبحري. الهدف من
- * هذا الملف هو فهم اسم المنتج وإرجاع فئة الطعام الملائمة، مما يسمح للنظام
- * بتقديم اقتراحات مناسبة للمشهد واللقطة والحفاظ على هوية الطبق الأصلية.
+ * هذا الملف في مجلد الأدمن هو نسخة طبق الأصل من الملف الموجود في جذر المشروع
+ * (src/lib/alturathStudioBrain.ts). الغرض منه توفير منطق تصنيف الأطباق
+ * الكويتي والشعبي والبحري داخل مشروع الأدمن حتى يمكن استيراده بسهولة
+ * دون الخلط بين مشروع العميل ومشروع الأدمن. تمت إضافة وظائف إضافية
+ * لتوليد "بصمة الطبق" وتلخيص تصنيفات قائمة المنتجات، مع الحفاظ على
+ * القواعد الصارمة بعدم اختراع أطباق غير موجودة أو تغيير البروتينات.
  *
- * لا يحتوي هذا الملف على أي منطق يتعلق بالدفع أو قاعدة البيانات أو الإشعارات،
- * وهو مستقل تمامًا عن واجهة المستخدم. يمكن استدعاء هذه الدوال من أماكن أخرى
- * لبناء تعزيزات للمطالبة (prompt) أو لإصدار ملخصات بسيطة للتصنيف.
+ * لا يحتوي هذا الملف على أي منطق يتعلق بالدفع أو قاعدة البيانات أو
+ * الإشعارات أو التوليد نفسه؛ هو مجرد أداة مساعدة لبناء التعزيزات
+ * النصية (prompts) والتعامل مع الأطباق.
  */
 
 export type DishCategory =
@@ -45,6 +48,40 @@ export interface DishSignature {
    * ملاحظة إضافية اختيارية تشرح سبب اختيار هذه اللقطة أو المشهد.
    */
   note?: string;
+}
+
+/**
+ * قوائم بالكلمات المفتاحية التي تساعد في تحديد نوع الطبق.
+ */
+const FISH_KEYWORDS = ['زبيدي', 'هامور', 'شعري', 'كنعد', 'صبور', 'ميد', 'نقرور', 'الشعم', 'السبيطي', 'سمك'];
+const MEAT_KEYWORDS = ['لحم', 'معلاق', 'برية اللحم', 'برية لحم', 'حنيذ', 'مفطح'];
+const CHICKEN_KEYWORDS = ['دجاج', 'جكن', 'تشكن', 'chicken'];
+const PRAWN_KEYWORDS = ['ربيان', 'روبيان', 'مربيان', 'shrimp', 'prawn'];
+const RICE_KEYWORDS = ['مجبوس', 'مكبوس', 'مچبوس', 'برياني', 'عيش', 'صينية عيوش', 'صينية', 'بوكس', 'بوكسات', 'بوكسات السفر'];
+const STEW_KEYWORDS = ['مرق', 'صالونة', 'صالونه', 'إيدام', 'قبوط', 'مرقوق'];
+const MAHSHI_KEYWORDS = ['محشي', 'محاشي', 'ورق عنب', 'ورق العنب', 'ورق العنب'];
+const GRILL_KEYWORDS = ['مشوي', 'مشويات', 'كباب', 'تكا', 'أوصال', 'عرايس', 'شيش طاووق', 'grill'];
+const DESSERT_KEYWORDS = ['حلو', 'حلويات', 'لقيمات', 'درابيل', 'خنفروش', 'رهش', 'بثيث', 'خنفروش'];
+
+/**
+ * تصنيف الطبق بحسب الكلمات المفتاحية. إذا لم تنطبق أي فئة معروفة، يرجع
+ * 'unknown'. يعتمد هذا التصنيف على وجود كلمة مفتاحية داخل اسم المنتج
+ * بالصيغة الأصلية ولا يغير منطق الواجهة أو قاعدة البيانات.
+ */
+export function getDishCategory(name: string): DishCategory {
+  const term = String(name || '').toLowerCase();
+  const contains = (arr: string[]) => arr.some((kw) => term.includes(kw.toLowerCase()));
+  if (contains(FISH_KEYWORDS)) return 'fish';
+  if (contains(PRAWN_KEYWORDS)) return 'prawn';
+  if (contains(CHICKEN_KEYWORDS)) return 'chicken';
+  // لحم يجب أن لا يسبق دجاج لأن كلمة "لحم" قد تظهر ضمن وصف "دجاج باللحم" وغيرها
+  if (contains(MEAT_KEYWORDS)) return 'meat';
+  if (contains(MAHSHI_KEYWORDS)) return 'mahshi';
+  if (contains(STEW_KEYWORDS)) return 'stew';
+  if (contains(RICE_KEYWORDS)) return 'rice';
+  if (contains(GRILL_KEYWORDS)) return 'grill';
+  if (contains(DESSERT_KEYWORDS)) return 'dessert';
+  return 'unknown';
 }
 
 /**
@@ -127,38 +164,6 @@ export function buildDishSignaturePrompt(name: string): string {
   return parts.join(' ');
 }
 
-// قوائم بالكلمات المفتاحية التي تساعد في تحديد نوع الطبق.
-const FISH_KEYWORDS = ['زبيدي', 'هامور', 'شعري', 'كنعد', 'صبور', 'ميد', 'نقرور', 'الشعم', 'السبيطي', 'سمك'];
-const MEAT_KEYWORDS = ['لحم', 'معلاق', 'برية اللحم', 'برية لحم', 'حنيذ', 'مفطح'];
-const CHICKEN_KEYWORDS = ['دجاج', 'جكن', 'تشكن', 'chicken'];
-const PRAWN_KEYWORDS = ['ربيان', 'روبيان', 'مربيان', 'shrimp', 'prawn'];
-const RICE_KEYWORDS = ['مجبوس', 'مكبوس', 'مچبوس', 'برياني', 'عيش', 'صينية عيوش', 'صينية', 'بوكس', 'بوكسات', 'بوكسات السفر'];
-const STEW_KEYWORDS = ['مرق', 'صالونة', 'صالونه', 'إيدام', 'قبوط', 'مرقوق'];
-const MAHSHI_KEYWORDS = ['محشي', 'محاشي', 'ورق عنب', 'ورق العنب', 'ورق العنب'];
-const GRILL_KEYWORDS = ['مشوي', 'مشويات', 'كباب', 'تكا', 'أوصال', 'عرايس', 'شيش طاووق', 'grill'];
-const DESSERT_KEYWORDS = ['حلو', 'حلويات', 'لقيمات', 'درابيل', 'خنفروش', 'رهش', 'بثيث', 'خنفروش'];
-
-/**
- * تصنيف الطبق بحسب الكلمات المفتاحية. إذا لم تنطبق أي فئة معروفة، يرجع
- * 'unknown'. يعتمد هذا التصنيف على وجود كلمة مفتاحية داخل اسم المنتج
- * بالصيغة الأصلية ولا يغير منطق الواجهة أو قاعدة البيانات.
- */
-export function getDishCategory(name: string): DishCategory {
-  const term = String(name || '').toLowerCase();
-  const contains = (arr: string[]) => arr.some((kw) => term.includes(kw.toLowerCase()));
-  if (contains(FISH_KEYWORDS)) return 'fish';
-  if (contains(PRAWN_KEYWORDS)) return 'prawn';
-  if (contains(CHICKEN_KEYWORDS)) return 'chicken';
-  // لحم يجب أن لا يسبق دجاج لأن كلمة "لحم" قد تظهر ضمن وصف "دجاج باللحم" وغيرها
-  if (contains(MEAT_KEYWORDS)) return 'meat';
-  if (contains(MAHSHI_KEYWORDS)) return 'mahshi';
-  if (contains(STEW_KEYWORDS)) return 'stew';
-  if (contains(RICE_KEYWORDS)) return 'rice';
-  if (contains(GRILL_KEYWORDS)) return 'grill';
-  if (contains(DESSERT_KEYWORDS)) return 'dessert';
-  return 'unknown';
-}
-
 /**
  * إنشاء ملخص نصي لفئات الأطباق الموجودة في قائمة المنتجات. يعيد نصًا بالعربية
  * يوضح للمولد كيف يتعامل مع كل فئة دون إعادة اختراع أطباق غير موجودة.
@@ -195,7 +200,6 @@ export function summarizeMenuCategories(names: string[]): string {
   if (categories.has('dessert')) {
     parts.push('هناك حلويات كويتية مثل اللقيمات والدرابيل؛ يجب إبرازها بلقطات قريبة بدون إضافة أطباق رئيسية معها، مع إضاءة ناعمة تبرز القوام.');
   }
-  // إذا كانت الفئة غير معروفة، يمكن تركها بدون إرشاد خاص لكنها لا تؤثر على الفئات الأخرى
   if (parts.length === 0) return '';
   return parts.join(' ');
 }
