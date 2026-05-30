@@ -38,9 +38,9 @@ export const KUWAIT_CONTENT_GOALS: Record<KuwaitContentGoal, { label: string; ic
 
 export const KUWAIT_PULSE_PACKS: KuwaitPulsePack[] = [
   {
-    id: 'quick-kuwait', label: 'طلب كويتي سريع', badge: 'افتراضي', icon: '⚡', category: 'daily', tone: 'كويتي خفيف وواضح', defaultPlace: 'delivery', mode: 'finalBoss', background: 'delivery-packaging',
-    prompt: 'طلب كويتي منزلي جاهز للتوصيل، واقعي جداً، مرتب، مناسب للبيت والديوانية والشاليه، بدون أي إحساس مطعم جلوس.',
-    captionSeed: 'طلب مرتب وسريع يوصل وين ما تكون.', whatsappSeed: 'طلبك جاهز لليوم؟ نوصل للبيت والديوانية والشاليه بكل ترتيب.'
+    id: 'quick-kuwait', label: 'طلب توصيل جاهز', badge: 'افتراضي', icon: '📦', category: 'daily', tone: 'كويتي واضح ومرتب', defaultPlace: 'delivery', mode: 'finalBoss', background: 'delivery-packaging',
+    prompt: 'طلب كويتي منزلي جاهز للتوصيل، واقعي جداً، علب مرتبة وكيس plain على كاونتر نظيف، مناسب للبيت والديوانية والشاليه، بدون أي إحساس مطعم جلوس.',
+    captionSeed: 'طلب مرتب يوصل وين ما تكون.', whatsappSeed: 'طلبك جاهز لليوم؟ نوصل للبيت والديوانية والشاليه بكل ترتيب.'
   },
   {
     id: 'national-day', label: 'العيد الوطني', badge: 'وطني', icon: '🇰🇼', category: 'national', tone: 'فرح كويتي راقٍ', defaultPlace: 'home', mode: 'finalBoss', background: 'home-table',
