@@ -1754,7 +1754,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
             {!generatedReel && !isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-5xl shadow-2xl"><Film size={46} /></div><h3 className="text-3xl font-black mb-3">معاينة الريل تظهر هنا</h3><p className="text-sm font-bold text-white/55 leading-7">ريل عمودي واقعي · {reelDuration} ثواني</p></div>}
             {isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نولّد ريل واقعي...</p><p className="mt-3 text-xs font-bold text-white/45">نثبت الطعام ونحرك الكاميرا فقط</p></div>}
-            {generatedReel && !isGeneratingReel && <div className="relative z-10 w-full max-w-[380px] space-y-4"><button type="button" onClick={() => setShowReelSettings((v) => !v)} className="w-full aspect-[9/16] rounded-[1.8rem] overflow-hidden bg-black border border-white/10 shadow-2xl relative group">{generatedReel.startsWith('data:image') ? <img src={generatedReel} className="w-full h-full object-contain bg-black" alt="ريل موشن" /> : <video src={generatedReel} className="w-full h-full object-contain bg-black" controls playsInline />}</button>{showReelSettings && <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white"><div className="flex items-center justify-between gap-3 mb-3"><div><p className="text-xs font-black text-white/75">إعدادات هذا الريل</p><p className="text-[11px] font-bold text-white/45 mt-1">انسخها وكرر نفس الحركة لاحقاً.</p></div><button type="button" onClick={() => copyReelSettings()} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-xs font-black flex items-center gap-1"><Copy size={14} /> نسخ</button></div><pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans">{buildReelSettingsText()}</pre></div>}<div className="flex items-center justify-center gap-2"><button onClick={downloadReel} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-violet-500 text-white flex items-center justify-center"><Download size={18} /></button><button type="button" onClick={() => copyReelSettings()} title="نسخ الإعدادات" aria-label="نسخ الإعدادات" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Copy size={18} /></button><button type="button" onClick={() => { setGeneratedReel(null); setReelStep(4); }} title="إعادة بنفس الأسلوب" aria-label="إعادة بنفس الأسلوب" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><RotateCcw size={18} /></button></div></div>}
+            {generatedReel && !isGeneratingReel && <div className="relative z-10 w-full max-w-[380px] space-y-4"><button type="button" onClick={() => setShowReelSettings((v) => !v)} className="w-full aspect-[9/16] rounded-[1.8rem] overflow-hidden bg-black border border-white/10 shadow-2xl relative group">{generatedReel.startsWith('data:image') ? <img src={generatedReel} className="w-full h-full object-contain bg-black" alt="ريل موشن" /> : <video src={generatedReel} className="w-full h-full object-contain bg-black" controls playsInline />}</button>{showReelSettings && <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white"><div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3"><div><p className="text-xs font-black text-white/75">إعدادات هذا الريل</p><p className="text-[11px] font-bold text-white/45 mt-1">انسخها وكرر نفس الحركة لاحقاً.</p></div><button type="button" onClick={() => copyReelSettings()} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-xs font-black flex items-center gap-1"><Copy size={14} /> نسخ</button></div><pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans max-h-48 overflow-y-auto break-words">{buildReelSettingsText()}</pre></div>}<div className="flex items-center justify-center gap-2"><button onClick={downloadReel} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-violet-500 text-white flex items-center justify-center"><Download size={18} /></button><button type="button" onClick={() => copyReelSettings()} title="نسخ الإعدادات" aria-label="نسخ الإعدادات" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Copy size={18} /></button><button type="button" onClick={() => { setGeneratedReel(null); setReelStep(4); }} title="إعادة بنفس الأسلوب" aria-label="إعادة بنفس الأسلوب" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><RotateCcw size={18} /></button></div></div>}
           </div>
         </div>
       )}
@@ -1925,7 +1925,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             )}
           </div>
 
-          <div className="rounded-[2.2rem] bg-slate-950 p-3 shadow-2xl border border-slate-900 min-h-[560px] flex items-center justify-center relative overflow-hidden">
+          <div className="rounded-[2.2rem] bg-slate-950 p-3 sm:p-4 shadow-2xl border border-slate-900 min-h-[420px] sm:min-h-[560px] flex items-center justify-center relative overflow-hidden">
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
             {!generatedImage && !isGenerating && (
               <div className="relative z-10 text-center text-white p-8">
@@ -1936,7 +1936,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             )}
             {isGenerating && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نجهز صورة واقعية...</p></div>}
             {generatedImage && !isGenerating && (
-              <div className="relative z-10 w-full space-y-4">
+              <div className="relative z-10 w-full max-w-full space-y-4">
                 <button type="button" onClick={() => setShowImageSettings((v) => !v)} className={cn("w-full rounded-[1.6rem] overflow-hidden bg-white/5 border border-white/10 relative group", previewAspectClass)}>
                   {generatedImage ? (
                     <img src={generatedImage} alt="Generated" className="w-full h-full object-contain" />
@@ -1945,14 +1945,14 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 </button>
                 {showImageSettings && (
                   <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white shadow-sm">
-                    <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                       <div>
                         <p className="text-xs font-black text-white/75">إعدادات هذه الصورة</p>
                         <p className="text-[11px] font-bold text-white/45 mt-1">انسخها لتكرار نفس النتيجة لاحقاً.</p>
                       </div>
-                      <div className="flex gap-2"><button type="button" onClick={startFreshImageUpload} className="rounded-2xl bg-white/10 border border-white/15 text-white px-4 py-2 text-xs font-black">رفع صورة جديدة</button><button type="button" onClick={copyCurrentSettings} className="rounded-2xl bg-white text-slate-950 px-4 py-2 text-xs font-black">نسخ الإعدادات</button></div>
+                      <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-2"><button type="button" onClick={startFreshImageUpload} className="w-full sm:w-auto rounded-2xl bg-white/10 border border-white/15 text-white px-4 py-2 text-xs font-black">رفع صورة جديدة</button><button type="button" onClick={copyCurrentSettings} className="w-full sm:w-auto rounded-2xl bg-white text-slate-950 px-4 py-2 text-xs font-black">نسخ الإعدادات</button></div>
                     </div>
-                    <pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans">{buildSettingsText()}</pre>
+                    <pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans max-h-48 overflow-y-auto break-words">{buildSettingsText()}</pre>
                   </div>
                 )}
                 <div className="flex items-center justify-center gap-2">
@@ -2228,8 +2228,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               )}
 
               {generatedImage && !isGenerating && (
-                <div className="w-full h-full flex flex-col gap-5 p-4">
-                  <div className="flex items-center justify-between mb-1 text-right">
+                <div className="w-full h-full flex flex-col gap-4 sm:gap-5 p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1 text-right">
                     <button type="button" onClick={startFreshImageUpload} className="rounded-2xl bg-slate-900 text-white px-4 py-2 text-xs font-black shadow-sm">صورة ثانية</button>
                     <p className="text-sm font-bold text-indigo-600">الصورة الجاهزة</p>
                   </div>
@@ -2244,14 +2244,14 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
                   {showImageSettings && (
                     <div className="rounded-3xl border border-slate-100 bg-white p-4 text-right shadow-sm">
-                      <div className="flex items-center justify-between gap-3 mb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                         <div>
                           <p className="text-xs font-black text-slate-500">إعدادات هذه الصورة</p>
                           <p className="text-[11px] font-bold text-slate-400 mt-1">انسخها لتكرار نفس النتيجة لاحقاً.</p>
                         </div>
-                        <div className="flex gap-2"><button type="button" onClick={startFreshImageUpload} className="rounded-2xl bg-slate-100 text-slate-700 px-4 py-2 text-xs font-black">رفع صورة جديدة</button><button type="button" onClick={copyCurrentSettings} className="rounded-2xl bg-slate-950 text-white px-4 py-2 text-xs font-black">نسخ الإعدادات</button></div>
+                        <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-2"><button type="button" onClick={startFreshImageUpload} className="w-full sm:w-auto rounded-2xl bg-slate-100 text-slate-700 px-4 py-2 text-xs font-black">رفع صورة جديدة</button><button type="button" onClick={copyCurrentSettings} className="w-full sm:w-auto rounded-2xl bg-slate-950 text-white px-4 py-2 text-xs font-black">نسخ الإعدادات</button></div>
                       </div>
-                      <pre className="whitespace-pre-wrap rounded-2xl bg-slate-50 border border-slate-100 p-3 text-[11px] leading-6 font-bold text-slate-600 text-right font-sans">{buildSettingsText()}</pre>
+                      <pre className="whitespace-pre-wrap rounded-2xl bg-slate-50 border border-slate-100 p-3 text-[11px] leading-6 font-bold text-slate-600 text-right font-sans max-h-48 overflow-y-auto break-words">{buildSettingsText()}</pre>
                     </div>
                   )}
 
@@ -2285,23 +2285,23 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     </div>
                   )}
 
-                  <div className="flex flex-wrap gap-2 justify-center">
+                  <div className="flex flex-wrap gap-2 justify-center px-1">
                     <button onClick={handleDownload} title="تحميل" aria-label="تحميل" className="h-12 w-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center"><Download size={18} /></button>
                     <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !selectedImage} title="اجعلها أصدق" aria-label="اجعلها أصدق" className="h-12 w-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center disabled:opacity-50"><Sparkles size={18} /></button>
                     <button type="button" onClick={markCurrentStyleAsAvoided} title="لا تكرر الأسلوب" aria-label="لا تكرر الأسلوب" className="h-12 w-12 bg-white border border-slate-200 text-slate-700 rounded-2xl flex items-center justify-center"><X size={18} /></button>
                     {generatedImage && (
-                      <button type="button" onClick={() => { setReelSource('image'); setSelectedImage(generatedImage); setGeneratedReel(null); setShowReelSettings(false); setStudioTab('reel'); setReelStep(1); }} className="h-12 px-5 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl flex items-center justify-center gap-2 font-black text-xs shadow-md transition-all animate-in fade-in"><Film size={16} /> حولها لريل</button>
+                      <button type="button" onClick={() => { setReelSource('image'); setSelectedImage(generatedImage); setGeneratedReel(null); setShowReelSettings(false); setStudioTab('reel'); setReelStep(1); }} className="h-12 px-5 min-w-[150px] bg-violet-600 hover:bg-violet-700 text-white rounded-2xl flex items-center justify-center gap-2 font-black text-xs shadow-md transition-all animate-in fade-in"><Film size={16} /> حولها لريل</button>
                     )}
                   </div>
 
                   <div className="pt-4 border-t border-slate-100 w-full flex flex-col items-center gap-3">
                     <p className="text-xs font-bold text-slate-500">حفظها داخل المنتج</p>
-                    <div className="flex gap-2 w-full max-w-sm">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full max-w-sm">
                       <select className="flex-1 p-3 border rounded-xl bg-slate-50 text-slate-800 text-sm focus:border-indigo-500 outline-none text-right" value={selectedProductId} onChange={(e) => setSelectedProductId(e.target.value)}>
                         <option value="">اختر المنتج</option>
                         {data?.products?.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
-                      <button onClick={handleSaveToProduct} disabled={!selectedProductId || isSaving} className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold disabled:opacity-50 flex items-center gap-2">
+                      <button onClick={handleSaveToProduct} disabled={!selectedProductId || isSaving} className="px-4 py-3 sm:py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2">
                         {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} حفظ
                       </button>
                     </div>
