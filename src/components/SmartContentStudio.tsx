@@ -184,7 +184,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   ];
 
   const mergedScenes = [
-    { id: 'delivery-ready', label: 'طلب توصيل جاهز', desc: 'علب مرتبة وكيس plain على كاونتر نظيف؛ أقوى خيار افتراضي', icon: '⚡', place: 'delivery', mode: 'finalBoss', background: 'delivery-packaging' },
+    { id: 'delivery-ready', label: 'طلب توصيل جاهز', desc: 'علب مرتبة وكيس plain على كاونتر نظيف؛ أقوى خيار افتراضي', icon: '📦', place: 'delivery', mode: 'finalBoss', background: 'delivery-packaging' },
     { id: 'box-reveal', label: 'فتح علبة الطلب', desc: 'كشف بسيط للطبق داخل التغليف بدون يد معقدة أو فوضى', icon: '📦', place: 'delivery', mode: 'finalBoss', background: 'delivery-packaging' },
     { id: 'home-rice-tray', label: 'صينية عيوش للبيت', desc: 'مجبوس/مربين/عيش وسمك على سفرة بيتية مرتبة', icon: '🏠', place: 'home', mode: 'finalBoss', background: 'home-table' },
     { id: 'diwaniya-order', label: 'طلب ديوانية للربع', desc: 'طلب جماعي مرتب بخلفية ديوانية blur بدون وجوه أو ديكور مصطنع', icon: '🛋️', place: 'diwaniya', mode: 'human', background: 'diwaniya-table' },
@@ -241,21 +241,22 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       .replace(/\s+([،.])/g, '$1')
       .trim();
   const STUDIO_NEGATIVE_PROMPT = STUDIO_REALITY_NEGATIVE_PROMPT;
-  const ensureAlturathProductOnly = () => {
+  const ensureAlturathProductOnly = (options?: { imageOnly?: boolean }) => {
     const products = data?.products || [];
-    const selectedManualProduct = products.find((p: Product) => String(p.id) === String(selectedStudioProductId));
-    if (studioProductPickMode === 'manual' && !selectedManualProduct) {
+    const imageOnly = Boolean(options?.imageOnly);
+    const selectedManualProduct = imageOnly ? undefined : products.find((p: Product) => String(p.id) === String(selectedStudioProductId));
+    if (!imageOnly && studioProductPickMode === 'manual' && !selectedManualProduct) {
       toast.error('اختر منتجًا من قائمتك أولًا، أو ارجع إلى الاختيار الذكي.');
       return null;
     }
     const selectedProductName = selectedManualProduct ? getAlturathProductName(selectedManualProduct) : '';
-    const brainInput = selectedProductName ? `${customThemeQuery} ${selectedProductName}`.trim() : customThemeQuery;
+    const brainInput = imageOnly ? customThemeQuery : (selectedProductName ? `${customThemeQuery} ${selectedProductName}`.trim() : customThemeQuery);
     const brain = analyzeAlturathStudioIdea(brainInput, products);
     if (!brain.canGenerate) {
       toast.error(brain.productGuardMessage);
       return null;
     }
-    if (brain.strictProductOnlyMode && brain.hasInput && !brain.isKnownProduct && brain.productSuggestions.length > 0) {
+    if (!imageOnly && brain.strictProductOnlyMode && brain.hasInput && !brain.isKnownProduct && brain.productSuggestions.length > 0) {
       toast.info('تم اختيار المنتج بذكاء من قائمة مطبخك بما يناسب الفكرة.');
     }
     return brain;
@@ -354,6 +355,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   };
 
   const activePulsePack = getKuwaitPulsePack(selectedPulseId);
+  const activeStudioScene = mergedScenes.find((scene) => scene.id === selectedSceneId) || mergedScenes[0];
+  const activeSceneSummary = `${activeStudioScene.icon} ${activeStudioScene.label}`;
 
   const applySceneSuggestion = (suggestion: StudioSceneSuggestion) => {
     const pack = getKuwaitPulsePack(suggestion.pulseId);
@@ -584,7 +587,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const generateContent = async (variantOverride?: { mode?: StudioRealityMode; background?: StudioBackgroundPresetId; label?: string; sourceImage?: string }) => {
     const sourceImage = variantOverride?.sourceImage || selectedImage;
     if (!sourceImage) return;
-    const productBrain = ensureAlturathProductOnly();
+    const productBrain = ensureAlturathProductOnly({ imageOnly: true });
     if (!productBrain) return;
     const themeText = sanitizeStudioPrompt(buildKuwaitStudioTheme({
       packId: selectedPulseId,
@@ -676,7 +679,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       packId: selectedPulseId,
       place: selectedOrderPlace || activePulsePack.defaultPlace,
       goal: selectedContentGoal,
-      customText: customThemeQuery || activePulsePack.label,
+      customText: customThemeQuery || activeStudioScene.label,
       products: data?.products
     }));
     setIsGenerating(true);
@@ -985,7 +988,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     const shot = reelShots.find((s) => s.id === reelShot);
     const brain = analyzeAlturathStudioIdea(customThemeQuery, data?.products || []);
     const place = KUWAIT_PLACES[selectedOrderPlace] || KUWAIT_PLACES.delivery;
-    const idea = customThemeQuery.trim() || `${activePulsePack.label} لطلب كويتي واقعي من مطبخ التراث الكويتي`;
+    const idea = customThemeQuery.trim() || `${activeStudioScene.label} لطلب كويتي واقعي من مطبخ التراث الكويتي`;
     const shotGuide: Record<string, string> = {
       'hero-push': 'حركة push-in بطيئة على الطبق، لا تغيّر ترتيب الطعام ولا تضف عناصر جديدة.',
       'box-open': 'علبة توصيل plain تُفتح أو تُكشف بشكل بسيط؛ اليد إن ظهرت تكون جزئية وطبيعية جداً، بدون أصابع غريبة.',
@@ -1031,7 +1034,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   };
 
   const generateReel = async () => {
-    const productBrain = ensureAlturathProductOnly();
+    const productBrain = ensureAlturathProductOnly({ imageOnly: reelSource === 'image' });
     if (!productBrain) return;
     if (!customThemeQuery.trim() && reelSource === 'idea') {
       toast.error('اكتب فكرة قصيرة للريل أو اختر من صورة');
@@ -1131,7 +1134,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   const calculateStudioMatch = (brain: AlturathStudioBrainResult, hasImageSource = false) => {
     const hasWrittenIdea = customThemeQuery.trim().length >= 3;
-    const hasSelectedProduct = Boolean(selectedStudioProductName);
+    const hasSelectedProduct = !hasImageSource && Boolean(selectedStudioProductName);
     const hasImageAnalysis = Boolean(sceneSuggestion?.productType || sceneSuggestion?.reason);
 
     if (!hasWrittenIdea && !hasSelectedProduct && !hasImageAnalysis) return null;
@@ -1160,24 +1163,35 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   };
 
   const renderAlturathBrainCard = (context: 'image' | 'reel' = 'image') => {
-    const brain: AlturathStudioBrainResult = currentStudioBrain;
+    const hasImageSource = Boolean(selectedImage) && (context === 'image' || context === 'reel');
+    const brain: AlturathStudioBrainResult = hasImageSource ? analyzeAlturathStudioIdea(customThemeQuery, studioProducts) : currentStudioBrain;
     const activeScene = mergedScenes.find(scene => scene.id === selectedSceneId) || mergedScenes[0];
     const activeShot = reelShots.find(shot => shot.id === reelShot) || reelShots[0];
-    const hasImageSource = Boolean(selectedImage) && (context === 'image' || context === 'reel');
     const imageIdeaLabel = sceneSuggestion?.productType || (isSuggestingScene ? 'نقرأ الصورة الآن' : 'صورة مرفوعة');
-    const smartSelectionLine = selectedStudioProductName
+    const smartSelectionLine = (!hasImageSource && selectedStudioProductName)
       ? `${selectedStudioProductName} · ${activeScene.label} · ${activeShot.label}`
       : brain.hasInput
         ? `${brain.categoryLabel} · ${activeScene.label} · ${activeShot.label}`
         : hasImageSource
           ? `${imageIdeaLabel} · ${activeScene.label} · ${activeShot.label}`
           : `${activeScene.label} · ${activeShot.label}`;
-    const compactHint = selectedStudioProductName
+    const compactHint = (!hasImageSource && selectedStudioProductName)
       ? 'تم تثبيت المنتج الذي اخترته.'
-      : studioProductPickMode === 'smart'
+      : hasImageSource
         ? ''
-        : 'اختر المنتج عند الحاجة.';
+        : studioProductPickMode === 'smart'
+          ? ''
+          : 'اختر المنتج عند الحاجة.';
+    const primaryBrainLabel = (!hasImageSource && selectedStudioProductName)
+      ? selectedStudioProductName
+      : hasImageSource
+        ? smartSelectionLine
+        : studioProductPickMode === 'smart'
+          ? 'من كل أصناف مطبخك'
+          : smartSelectionLine;
     const matchBadge = calculateStudioMatch(brain, hasImageSource);
+    const shouldShowImageProductLink = false;
+    const shouldShowProductPicker = studioProductGroups.length > 0 && !hasImageSource;
 
     if (!brain.hasInput && !hasImageSource && productSuggestions.length === 0) return null;
 
@@ -1186,7 +1200,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[11px] font-black text-emerald-600 flex items-center gap-1"><Brain size={14} /> {hasImageSource ? 'تحليل الصورة' : 'اختيار ذكي'}</div>
-            <div className="mt-1 text-sm font-black text-slate-950 truncate">{selectedStudioProductName || (studioProductPickMode === 'smart' ? 'من كل أصناف مطبخك' : smartSelectionLine)}</div>
+            <div className="mt-1 text-sm font-black text-slate-950 truncate">{primaryBrainLabel}</div>
             {compactHint && <div className="mt-1 text-[11px] font-bold text-slate-500 leading-6">{compactHint}</div>}
           </div>
           {matchBadge && (
@@ -1202,7 +1216,18 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           </div>
         )}
 
-        {studioProductGroups.length > 0 && (
+        {shouldShowImageProductLink && (
+          <button
+            type="button"
+            onClick={() => { setStudioProductPickMode('manual'); setShowStudioProductPicker(true); }}
+            className="w-full rounded-2xl border border-slate-100 bg-white px-4 py-3 text-right text-xs font-black text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-3"
+          >
+            <span>ربط بمنتج</span>
+            <ChevronLeft className="w-4 h-4 text-slate-400" />
+          </button>
+        )}
+
+        {shouldShowProductPicker && (
           <div className="rounded-[1.6rem] border border-slate-100 bg-white shadow-sm overflow-hidden">
             <button
               type="button"
@@ -1463,7 +1488,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   const buildSettingsText = (item?: Partial<StudioHistoryItem>) => {
     const formatLabel = item?.format || selectedFormat;
-    const pack = item?.packId ? getKuwaitPulsePack(item.packId) : activePulsePack;
+    const sceneLabel = activeStudioScene.label;
     const placeId = item?.place || selectedOrderPlace;
     const modeId = item?.mode || realityMode;
     const moodLabel = item?.mood || selectedMood;
@@ -1471,7 +1496,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     return [
       `المسار: ${(item?.source || (studioTab === 'product' ? 'image' : 'idea')) === 'image' ? 'من صورة' : 'من فكرة'}`,
       `المقاس: ${formatLabel}`,
-      `المشهد الذكي: ${pack?.label || activePulsePack.label} / ${KUWAIT_PLACES[placeId]?.label || KUWAIT_PLACES[selectedOrderPlace]?.label}`,
+      `المشهد: ${sceneLabel} / ${KUWAIT_PLACES[placeId]?.label || KUWAIT_PLACES[selectedOrderPlace]?.label}`,
       `الإضاءة: ${moods.find((m) => m.id === moodLabel)?.label || moodLabel}`,
       `الواقعية: ${cleanRealityLabel(STUDIO_REALITY_MODES[modeId]?.label || '')}`,
       ideaText ? `الفكرة: ${ideaText}` : ''
@@ -1835,7 +1860,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                                 type="button"
                                 onClick={() => {
                                   setSelectedSceneId(scene.id);
-                                  setSelectedPulseId(scene.id === 'national-day' ? 'national-day' : 'quick-kuwait');
+                                  if (scene.id === 'national-day') setSelectedPulseId('national-day');
                                   setSelectedOrderPlace(scene.place as any);
                                   setBackgroundPreset(scene.background as any);
                                   setRealityMode(scene.mode as any);
@@ -1887,7 +1912,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <div className="space-y-4">
                 <div className="rounded-3xl bg-slate-950 text-white p-5">
                   <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
-                  <div className="text-lg font-black">{customThemeQuery.trim() || `${activePulsePack.icon} ${activePulsePack.label}`}</div>
+                  <div className="text-lg font-black">{customThemeQuery.trim() || activeSceneSummary}</div>
                   <div className="mt-2 text-sm font-bold text-white/60">{(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label} · {KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
                   <div className="mt-3 grid gap-2 text-xs font-black text-white/80">
                     <div className="rounded-2xl bg-white/10 border border-white/10 p-3">المنتج: {selectedStudioProductName || 'تلقائي'}</div>
@@ -1913,9 +1938,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
             {!generatedImage && !isGenerating && (
               <div className="relative z-10 text-center text-white p-8">
-                <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-6xl shadow-2xl">{activePulsePack.icon}</div>
+                <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-6xl shadow-2xl">{activeStudioScene.icon}</div>
                 <h3 className="text-3xl font-black mb-3">المعاينة تظهر هنا</h3>
-                <p className="text-sm font-bold text-white/55 leading-7">{activePulsePack.label} · {KUWAIT_PLACES[selectedOrderPlace]?.label}</p>
+                <p className="text-sm font-bold text-white/55 leading-7">{activeStudioScene.label} · {KUWAIT_PLACES[selectedOrderPlace]?.label}</p>
               </div>
             )}
             {isGenerating && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نجهز صورة واقعية...</p></div>}
@@ -2062,7 +2087,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                                     type="button"
                                     onClick={() => {
                                       setSelectedSceneId(scene.id);
-                                      setSelectedPulseId(scene.id === 'national-day' ? 'national-day' : 'quick-kuwait');
+                                      if (scene.id === 'national-day') setSelectedPulseId('national-day');
                                       setSelectedOrderPlace(scene.place as any);
                                       setBackgroundPreset(scene.background as any);
                                       setRealityMode(scene.mode as any);
@@ -2114,7 +2139,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="space-y-4">
                     <div className="rounded-3xl bg-slate-950 text-white p-5">
                       <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
-                      <div className="text-lg font-black">{customThemeQuery.trim() || `${activePulsePack.icon} ${activePulsePack.label}`}</div>
+                      <div className="text-lg font-black">{customThemeQuery.trim() || activeSceneSummary}</div>
                       <div className="mt-2 text-sm font-bold text-white/60">{(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label} · {KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
                       <div className="mt-3 grid gap-2 text-xs font-black text-white/80">
                         <div className="rounded-2xl bg-white/10 border border-white/10 p-3">المنتج: {selectedStudioProductName || 'تلقائي'}</div>
