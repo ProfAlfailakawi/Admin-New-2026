@@ -286,6 +286,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [textPosition, setTextPosition] = useState<'bottom' | 'top' | 'center' | 'hidden'>('bottom');
   const [aiImage, setAiImage] = useState<string | null>(null);
   const [history, setHistory] = useState<StudioHistoryItem[]>([]);
+  const [studioGenerationMemory, setStudioGenerationMemory] = useState<string[]>([]);
+  const [studioAvoidedSignatures, setStudioAvoidedSignatures] = useState<string[]>([]);
 
 
   const refreshStudioLearning = async () => {
@@ -296,6 +298,15 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   useEffect(() => {
     refreshStudioLearning();
+    try {
+      const memory = JSON.parse(localStorage.getItem('alturath_studio_generation_memory') || '[]');
+      const avoided = JSON.parse(localStorage.getItem('alturath_studio_avoid_signatures') || '[]');
+      setStudioGenerationMemory(Array.isArray(memory) ? memory.slice(0, 10) : []);
+      setStudioAvoidedSignatures(Array.isArray(avoided) ? avoided.slice(0, 20) : []);
+    } catch {
+      setStudioGenerationMemory([]);
+      setStudioAvoidedSignatures([]);
+    }
   }, []);
 
 
@@ -343,6 +354,54 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const activePulsePack = getKuwaitPulsePack(selectedPulseId);
   const activeStudioScene = mergedScenes.find((scene) => scene.id === selectedSceneId) || mergedScenes[0];
   const activeSceneSummary = `${activeStudioScene.icon} ${activeStudioScene.label}`;
+
+  const studioSignatureLabel = (signature: string) => signature.split('|').filter(Boolean).join(' · ');
+
+  const pushStudioMemory = (signature: string, kind: 'generated' | 'avoid' = 'generated') => {
+    const clean = String(signature || '').trim();
+    if (!clean) return;
+    if (kind === 'avoid') {
+      setStudioAvoidedSignatures(prev => {
+        const next = [clean, ...prev.filter(item => item !== clean)].slice(0, 20);
+        try { localStorage.setItem('alturath_studio_avoid_signatures', JSON.stringify(next)); } catch {}
+        return next;
+      });
+      return;
+    }
+    setStudioGenerationMemory(prev => {
+      const next = [clean, ...prev.filter(item => item !== clean)].slice(0, 10);
+      try { localStorage.setItem('alturath_studio_generation_memory', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  const buildStudioSignature = (productName?: string) => {
+    const shotLabel = reelShots.find(s => s.id === reelShot)?.label || reelShot;
+    const product = productName || customThemeQuery.trim() || activeStudioScene.label;
+    return [product, activeStudioScene.label, shotLabel, KUWAIT_PLACES[selectedOrderPlace]?.label || selectedOrderPlace].filter(Boolean).join('|');
+  };
+
+  const buildNoRepeatDirection = () => {
+    const combined = [...studioAvoidedSignatures, ...studioGenerationMemory].filter(Boolean).slice(0, 8);
+    if (!combined.length) return '';
+    return `تنويع إلزامي: لا تكرر التكوينات أو زوايا التصوير أو الخلفيات القريبة من آخر اختيارات الاستوديو: ${combined.map(studioSignatureLabel).join(' / ')}. حافظ على المنتج المختار نفسه إن وجد، لكن غيّر زاوية الإخراج أو ترتيب الخلفية أو عمق اللقطة بواقعية.`;
+  };
+
+  const buildDirectorDirection = (brain?: AlturathStudioBrainResult) => {
+    const activeShot = reelShots.find(s => s.id === reelShot);
+    const productName = selectedStudioProductName || brain?.primaryProductName || brain?.categoryLabel || customThemeQuery.trim();
+    return [
+      `مخرج التراث: المنتج/الفكرة=${productName || 'اختيار ذكي'}، المشهد=${activeStudioScene.label}، اللقطة=${activeShot?.label || reelShot}، المكان=${KUWAIT_PLACES[selectedOrderPlace]?.label || selectedOrderPlace}.`,
+      `اختبار الواقعية الكويتية: الصورة يجب أن تبدو كطلب مطبخ كويتي حقيقي للتوصيل أو البيت، لا إعلان فندقي ولا مطعم جلوس ولا ديكور تراثي مصطنع.`,
+      `اختبار البيع: المنتج واضح أولاً، الكمية مقنعة، التغليف/السفرة نظيف، ولا توجد عناصر تسرق الانتباه من الطبق.`
+    ].join(' ');
+  };
+
+  const markCurrentStyleAsAvoided = () => {
+    const signature = buildStudioSignature(selectedStudioProductName || currentStudioBrain.primaryProductName);
+    pushStudioMemory(signature, 'avoid');
+    toast.success('تم. لن نكرر هذا الأسلوب.');
+  };
 
   const applySceneSuggestion = (suggestion: StudioSceneSuggestion) => {
     const pack = getKuwaitPulsePack(suggestion.pulseId);
@@ -575,6 +634,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     if (!sourceImage) return;
     const productBrain = ensureAlturathProductOnly({ imageOnly: true });
     if (!productBrain) return;
+    const imageBrain = analyzeAlturathStudioIdea(customThemeQuery, data?.products || []);
     const themeText = sanitizeStudioPrompt(buildKuwaitStudioTheme({
       packId: selectedPulseId,
       place: selectedOrderPlace || activePulsePack.defaultPlace,
@@ -582,6 +642,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       customText: selectedTheme === 'مخصص' ? customThemeQuery : `${selectedTheme}. ${customThemeQuery}`,
       products: data?.products
     }));
+    const studioDirection = sanitizeStudioPrompt(`${buildDirectorDirection(imageBrain)} ${buildNoRepeatDirection()}`);
 
     setIsGenerating(true);
     setGeneratedImage(null);
@@ -598,7 +659,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           imageContent: sourceImage.split(',')[1],
           mimeType: sourceImage.split(';')[0].split(':')[1],
           format: selectedFormat,
-          theme: `${themeText}. ${productBrain.promptGuard}. ${STUDIO_NEGATIVE_PROMPT}`,
+          theme: `${themeText}. ${studioDirection}. ${productBrain.promptGuard}. ${STUDIO_NEGATIVE_PROMPT}`,
           mood: selectedMood,
           realityMode: variantOverride?.mode || realityMode,
           backgroundPreset: variantOverride?.background || backgroundPreset,
@@ -631,6 +692,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         const usedBackground = variantOverride?.background || backgroundPreset;
         const themeUsed = themeText;
         addToHistory(branded, null, { mode: usedMode, background: usedBackground, theme: themeUsed, format: selectedFormat, source: 'image' });
+        pushStudioMemory(buildStudioSignature(imageBrain.primaryProductName || selectedStudioProductName));
         recordStudioTasteChoice({ mode: usedMode, background: usedBackground, theme: themeUsed, format: selectedFormat, label: variantOverride?.label || STUDIO_REALITY_MODES[usedMode].label, source: 'generated-image' });
         refreshStudioLearning();
         if (variantOverride?.label) {
@@ -661,6 +723,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const generateKuwaitNoProduct = async () => {
     const productBrain = ensureAlturathProductOnly();
     if (!productBrain) return;
+    const ideaBrain = analyzeAlturathStudioIdea(customThemeQuery, data?.products || []);
     const themeText = sanitizeStudioPrompt(buildKuwaitStudioTheme({
       packId: selectedPulseId,
       place: selectedOrderPlace || activePulsePack.defaultPlace,
@@ -668,13 +731,17 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       customText: customThemeQuery || activeStudioScene.label,
       products: data?.products
     }));
+    const studioDirection = sanitizeStudioPrompt(`${buildDirectorDirection(ideaBrain)} ${buildNoRepeatDirection()}`);
     setIsGenerating(true);
     setGeneratedImage(null);
     setShowImageSettings(false);
     setShowBrandingPanel(false);
     setRealityAudit(null);
     try {
-      const prompt = `${themeText}\n${analyzeAlturathStudioIdea(customThemeQuery, data?.products || []).promptGuard}\nGenerate a believable Kuwaiti occasion / delivery / gathering image without requiring a product upload. Make it look like a real photographed Kuwaiti order moment, suitable for WhatsApp first. No readable text inside the image. ${STUDIO_NEGATIVE_PROMPT}`;
+      const prompt = `${themeText}
+${studioDirection}
+${ideaBrain.promptGuard}
+Generate a believable Kuwaiti occasion / delivery / gathering image without requiring a product upload. Make it look like a real photographed Kuwaiti order moment, suitable for menu/social/product use. No readable text inside the image. ${STUDIO_NEGATIVE_PROMPT}`;
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -688,13 +755,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       setAiImage(imageResult);
       const branded = await applyBranding(imageResult).catch(() => imageResult);
       setGeneratedImage(branded);
-      const caption = buildKuwaitCaptionFallback({ packId: selectedPulseId, place: selectedOrderPlace || activePulsePack.defaultPlace, goal: selectedContentGoal });
       setPreviousAiCaption(aiCaption);
-      setAiCaption(caption);
-      addToHistory(branded, caption, { mode: realityMode, background: backgroundPreset, theme: themeText, format: selectedFormat, source: 'idea' });
+      setAiCaption(null);
+      addToHistory(branded, null, { mode: realityMode, background: backgroundPreset, theme: themeText, format: selectedFormat, source: 'idea' });
+      pushStudioMemory(buildStudioSignature(ideaBrain.primaryProductName || selectedStudioProductName));
       recordStudioTasteChoice({ mode: realityMode, background: backgroundPreset, theme: themeText, format: selectedFormat, label: 'kuwait-no-product', source: 'quick-no-product' });
       refreshStudioLearning();
-      toast.success('تم تجهيز صورة ورسالة كويتية بدون رفع منتج');
+      toast.success('تم تجهيز الصورة');
     } catch (err: any) {
       console.error(err);
       toast.error(err?.message || 'ما قدرنا نولّد المشهد');
@@ -992,7 +1059,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       jakhour: 'جاخور مرتب وحذر: طاولة عملية نظيفة وخلفية blur، بدون حيوانات أو تراب أو مخلفات أو فوضى.',
       zowara: 'زوارة عائلية داخل بيت: سفرة مرتبة ومحاشي/ورق عنب/أطباق عائلية، بدون وجوه أو عرس أو قهوة.'
     };
-    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي، نشاط مطبخ وتوصيل أكل كويتي وليس مطعم جلوس. فكرة مختصرة: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب على الطلب'} — ${shotGuide[reelShot] || shotGuide['hero-push']}. المكان: ${place.label} — ${placeGuide[selectedOrderPlace] || placeGuide.delivery}. مدة ${Math.min(8, Math.max(4, reelDuration))} ثواني. المطلوب لقطة واحدة واقعية جداً، حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، لا يتغير شكل الطبق أو الكمية أو المكونات عبر الفيديو. حافظ على الطبق والتغليف كما هما إذا كان المصدر صورة. تكوين بصري نظيف وإضاءة شهية واقعية. ممنوع وجوه واضحة، شخص يتكلم، شفاه، نصوص، شعارات، دلة، قهوة، بخور، سدو، فوانيس، سيارة توصيل، مطعم جلوس، كافيه، كلينكس مستخدم، فوضى، صحون تظهر فجأة، صوص يطير، أو أي حركة غير منطقية. إضاءة ${selectedMood}. وصفة الريل الذكية حسب الطبق: ${brain.reelRecipe.join('، ')}. ${brain.promptGuard}`;
+    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي، نشاط مطبخ وتوصيل أكل كويتي وليس مطعم جلوس. فكرة مختصرة: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب على الطلب'} — ${shotGuide[reelShot] || shotGuide['hero-push']}. المكان: ${place.label} — ${placeGuide[selectedOrderPlace] || placeGuide.delivery}. ${buildDirectorDirection(brain)} ${buildNoRepeatDirection()} مدة ${Math.min(8, Math.max(4, reelDuration))} ثواني. المطلوب لقطة واحدة واقعية جداً، حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، لا يتغير شكل الطبق أو الكمية أو المكونات عبر الفيديو. حافظ على الطبق والتغليف كما هما إذا كان المصدر صورة. تكوين بصري نظيف وإضاءة شهية واقعية. ممنوع وجوه واضحة، شخص يتكلم، شفاه، نصوص، شعارات، دلة، قهوة، بخور، سدو، فوانيس، سيارة توصيل، مطعم جلوس، كافيه، كلينكس مستخدم، فوضى، صحون تظهر فجأة، صوص يطير، أو أي حركة غير منطقية. إضاءة ${selectedMood}. وصفة الريل الذكية حسب الطبق: ${brain.reelRecipe.join('، ')}. ${brain.promptGuard}`;
   };
 
   const buildReelSettingsText = (item?: Partial<StudioReelHistoryItem>) => {
@@ -1090,6 +1157,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         mood: selectedMood
       };
       setReelHistory(prev => [item, ...prev.filter(r => r.url !== item.url)].slice(0, 18));
+      pushStudioMemory(buildStudioSignature(productBrain.primaryProductName || selectedStudioProductName));
       toast.success('الريل جاهز وخفيف ومحفوظ في أرشيف الريلز');
     } catch (e: any) {
       toast.error(e?.message || 'ما قدرنا نولّد الريل الحين');
@@ -1148,6 +1216,15 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     };
   };
 
+  const calculateSalesReadiness = (brain: AlturathStudioBrainResult, matchValue?: number | null) => {
+    let score = typeof matchValue === 'number' ? matchValue : 68;
+    if (selectedSceneId.includes('delivery') || selectedOrderPlace === 'delivery') score += 4;
+    if (['steam-close', 'texture-close', 'box-open', 'top-spread'].includes(reelShot)) score += 4;
+    if (brain.category !== 'generic') score += 5;
+    if (studioGenerationMemory.includes(buildStudioSignature(brain.primaryProductName || selectedStudioProductName))) score -= 6;
+    return Math.max(50, Math.min(96, Math.round(score)));
+  };
+
   const renderAlturathBrainCard = (context: 'image' | 'reel' = 'image') => {
     const hasImageSource = Boolean(selectedImage) && (context === 'image' || context === 'reel');
     const brain: AlturathStudioBrainResult = hasImageSource ? analyzeAlturathStudioIdea(customThemeQuery, studioProducts) : currentStudioBrain;
@@ -1176,6 +1253,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           ? 'من كل أصناف مطبخك'
           : smartSelectionLine;
     const matchBadge = calculateStudioMatch(brain, hasImageSource);
+    const salesReadiness = matchBadge?.value ? calculateSalesReadiness(brain, matchBadge.value) : null;
     const shouldShowImageProductLink = false;
     const shouldShowProductPicker = studioProductGroups.length > 0 && !hasImageSource;
 
@@ -1189,9 +1267,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             <div className="mt-1 text-sm font-black text-slate-950 leading-6 whitespace-normal [word-break:keep-all]">{primaryBrainLabel}</div>
             {compactHint && <div className="mt-1 text-[11px] font-bold text-slate-500 leading-6">{compactHint}</div>}
           </div>
-          {matchBadge && (
-            <div className="rounded-2xl bg-white border border-emerald-100 px-3 py-2 text-center shrink-0 text-[10px] font-black text-emerald-700">
-              {matchBadge.label}
+          {(matchBadge || salesReadiness) && (
+            <div className="flex flex-col gap-1 shrink-0">
+              {matchBadge && <div className="rounded-2xl bg-white border border-emerald-100 px-3 py-2 text-center text-[10px] font-black text-emerald-700">{matchBadge.label}</div>}
+              {salesReadiness && <div className="rounded-2xl bg-white/70 border border-slate-100 px-3 py-2 text-center text-[10px] font-black text-slate-600">بيع {salesReadiness}%</div>}
             </div>
           )}
         </div>
@@ -1199,6 +1278,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         {!brain.canGenerate && (
           <div className="rounded-2xl border p-3 text-[11px] font-black leading-6 bg-red-50 border-red-200 text-red-700">
             {brain.productGuardMessage}
+            <div className="mt-1 text-[10px] text-red-500">طبق جديد؟ أضفه للمنيو أولاً.</div>
           </div>
         )}
 
@@ -1873,6 +1953,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
                   <div className="text-lg font-black leading-8 whitespace-normal [word-break:keep-all]">{customThemeQuery.trim() || activeStudioScene.label}</div>
                   <div className="mt-3 grid grid-cols-1 gap-2 text-xs font-black text-white/85">
+                    {(() => { const badge = calculateStudioMatch(currentStudioBrain, false); const sale = calculateSalesReadiness(currentStudioBrain, badge?.value); return <div className="rounded-2xl bg-emerald-400/15 border border-emerald-300/20 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">جاهزية: {sale}%</div>; })()}
                     <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المشهد: {(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label}</div>
                     <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">اللقطة: {(reelShots.find(s => s.id === reelShot) || reelShots[0]).label}</div>
                     <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
@@ -1923,6 +2004,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 <div className="flex items-center justify-center gap-2">
                   <button onClick={handleDownload} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-indigo-500 text-white flex items-center justify-center"><Download size={18} /></button>
                   <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !generatedImage} title="اجعلها أصدق" aria-label="اجعلها أصدق" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center disabled:opacity-40"><Sparkles size={18} /></button>
+                  <button type="button" onClick={markCurrentStyleAsAvoided} title="لا تكرر الأسلوب" aria-label="لا تكرر الأسلوب" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><X size={18} /></button>
                 </div>
               </div>
             )}
@@ -2251,6 +2333,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="flex flex-wrap gap-2 justify-center">
                     <button onClick={handleDownload} title="تحميل" aria-label="تحميل" className="h-12 w-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center"><Download size={18} /></button>
                     <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !selectedImage} title="اجعلها أصدق" aria-label="اجعلها أصدق" className="h-12 w-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center disabled:opacity-50"><Sparkles size={18} /></button>
+                    <button type="button" onClick={markCurrentStyleAsAvoided} title="لا تكرر الأسلوب" aria-label="لا تكرر الأسلوب" className="h-12 w-12 bg-white border border-slate-200 text-slate-700 rounded-2xl flex items-center justify-center"><X size={18} /></button>
                     {generatedImage && (
                       <button type="button" onClick={() => { setReelSource('image'); setSelectedImage(generatedImage); setGeneratedReel(null); setShowReelSettings(false); setStudioTab('reel'); setReelStep(1); }} className="h-12 px-5 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl flex items-center justify-center gap-2 font-black text-xs shadow-md transition-all animate-in fade-in"><Film size={16} /> حولها لريل</button>
                     )}
