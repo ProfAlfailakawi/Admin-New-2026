@@ -376,21 +376,21 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
      <div className="flex flex-row w-full gap-2 font-bold text-xs font-sans">
        <button
          onClick={() => handleInstantPublish(index)}
-         className="flex-1 py-3 px-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl flex items-center justify-center gap-1.5 shadow-md shadow-pink-500/20 active:scale-95 transition-all text-[11px]"
+         className="hidden flex-1 py-3 px-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl flex items-center justify-center gap-1.5 shadow-md shadow-pink-500/20 active:scale-95 transition-all text-[11px]"
        >
          <Instagram size={14} /> نشر فوري 🚀
        </button>
        <button
          onClick={() => runSocialSimulation(text, index)}
          disabled={isSimulating}
-         className="flex-1 py-3 px-3 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200/30 rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition-all text-[11px]"
+         className="w-full py-3 px-3 bg-indigo-600 text-white hover:bg-indigo-700 border border-indigo-700/30 rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition-all text-[11px]"
        >
          {isSimulating && simulatedIndex === index ? (
            <Loader2 size={14} className="animate-spin text-slate-500" />
          ) : (
-           <BarChart2 size={14} className="text-indigo-600" />
+           <BarChart2 size={14} className="text-white" />
          )}
-         محاكاة التفاعل 📊
+         محاكاة رأي الجمهور وتفاعل الزباين 📊
        </button>
      </div>
    )}
