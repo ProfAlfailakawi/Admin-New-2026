@@ -16,7 +16,7 @@ import { REAL_RESTAURANT_BACKGROUNDS, STUDIO_REALITY_MODES, STUDIO_REALITY_NEGAT
 import { buildStudioTastePrompt, loadStudioBackgroundLibrary, markStudioBackgroundUsed, recordStudioTasteChoice, saveStudioBackgroundToLibrary, type StudioBackgroundLibraryItem } from '../lib/studioLearning';
 import { KUWAIT_CONTENT_GOALS, KUWAIT_PLACES, KUWAIT_PULSE_PACKS, buildKuwaitCaptionFallback, buildKuwaitStudioTheme, getKuwaitPulsePack, type KuwaitContentGoal, type KuwaitOrderPlace } from '../lib/kuwaitContentPulse';
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
-import { analyzeAlturathStudioIdea, getAlturathProductSuggestions, type AlturathStudioBrainResult, type AlturathStudioVariant } from '../lib/alturathStudioBrain';
+import { analyzeAlturathStudioIdea, getAlturathProductGroups, getAlturathProductName, getAlturathProductSuggestions, type AlturathStudioBrainResult, type AlturathStudioVariant } from '../lib/alturathStudioBrain';
 
 interface SmartContentStudioProps {
   data: any;
@@ -32,6 +32,7 @@ type RealityAuditResult = {
 };
 
 type ProductStudioFlow = 'quick' | 'kuwait' | 'pro';
+type StudioProductPickMode = 'smart' | 'manual';
 
 type StudioSceneSuggestion = {
   productType?: string;
@@ -238,8 +239,31 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       .replace(/\s+([،.])/g, '$1')
       .trim();
   const STUDIO_NEGATIVE_PROMPT = STUDIO_REALITY_NEGATIVE_PROMPT;
+  const ensureAlturathProductOnly = () => {
+    const products = data?.products || [];
+    const selectedManualProduct = products.find((p: Product) => String(p.id) === String(selectedStudioProductId));
+    if (studioProductPickMode === 'manual' && !selectedManualProduct) {
+      toast.error('اختر منتجًا من قائمتك أولًا، أو ارجع إلى الاختيار الذكي.');
+      return null;
+    }
+    const selectedProductName = selectedManualProduct ? getAlturathProductName(selectedManualProduct) : '';
+    const brainInput = selectedProductName ? `${customThemeQuery} ${selectedProductName}`.trim() : customThemeQuery;
+    const brain = analyzeAlturathStudioIdea(brainInput, products);
+    if (!brain.canGenerate) {
+      toast.error(brain.productGuardMessage);
+      return null;
+    }
+    if (brain.strictProductOnlyMode && brain.hasInput && !brain.isKnownProduct && brain.productSuggestions.length > 0) {
+      toast.info('وضع منتجاتك فقط مفعّل: سيتم استخدام منتجات فعلية من قائمتك بدون اختراع أطباق.');
+    }
+    return brain;
+  };
+
 
   const [customThemeQuery, setCustomThemeQuery] = useState('');
+  const [studioProductPickMode, setStudioProductPickMode] = useState<StudioProductPickMode>('smart');
+  const [selectedStudioCategoryId, setSelectedStudioCategoryId] = useState<string>('');
+  const [selectedStudioProductId, setSelectedStudioProductId] = useState<string>('');
   const [selectedPulseId, setSelectedPulseId] = useState<string>('quick-kuwait');
   const [selectedSceneId, setSelectedSceneId] = useState<string>('delivery-ready');
   
@@ -556,6 +580,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const generateContent = async (variantOverride?: { mode?: StudioRealityMode; background?: StudioBackgroundPresetId; label?: string; sourceImage?: string }) => {
     const sourceImage = variantOverride?.sourceImage || selectedImage;
     if (!sourceImage) return;
+    const productBrain = ensureAlturathProductOnly();
+    if (!productBrain) return;
     const themeText = sanitizeStudioPrompt(buildKuwaitStudioTheme({
       packId: selectedPulseId,
       place: selectedOrderPlace || activePulsePack.defaultPlace,
@@ -579,7 +605,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           imageContent: sourceImage.split(',')[1],
           mimeType: sourceImage.split(';')[0].split(':')[1],
           format: selectedFormat,
-          theme: `${themeText}. ${analyzeAlturathStudioIdea(customThemeQuery, data?.products || []).promptGuard}. ${STUDIO_NEGATIVE_PROMPT}`,
+          theme: `${themeText}. ${productBrain.promptGuard}. ${STUDIO_NEGATIVE_PROMPT}`,
           mood: selectedMood,
           realityMode: variantOverride?.mode || realityMode,
           backgroundPreset: variantOverride?.background || backgroundPreset,
@@ -640,6 +666,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
 
   const generateKuwaitNoProduct = async () => {
+    const productBrain = ensureAlturathProductOnly();
+    if (!productBrain) return;
     const themeText = sanitizeStudioPrompt(buildKuwaitStudioTheme({
       packId: selectedPulseId,
       place: selectedOrderPlace || activePulsePack.defaultPlace,
@@ -999,6 +1027,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   };
 
   const generateReel = async () => {
+    const productBrain = ensureAlturathProductOnly();
+    if (!productBrain) return;
     if (!customThemeQuery.trim() && reelSource === 'idea') {
       toast.error('اكتب فكرة قصيرة للريل أو اختر من صورة');
       return;
@@ -1030,6 +1060,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         place: selectedOrderPlace,
         mood: selectedMood,
         tasteProfile: buildStudioTastePrompt(),
+        productOnlyGuard: productBrain.promptGuard,
       };
       if (reelSource === 'image' && selectedImage) {
         const img = getDataImagePayload(selectedImage);
@@ -1084,8 +1115,15 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     document.body.removeChild(a);
   };
 
-  const currentStudioBrain = analyzeAlturathStudioIdea(customThemeQuery, data?.products || []);
-  const productSuggestions = getAlturathProductSuggestions(data?.products || [], customThemeQuery, 6);
+  const studioProducts: Product[] = data?.products || [];
+  const studioProductGroups = getAlturathProductGroups(studioProducts);
+  const activeStudioCategoryId = selectedStudioCategoryId || studioProductGroups[0]?.id || '';
+  const activeStudioCategoryProducts = studioProductGroups.find(group => group.id === activeStudioCategoryId)?.products || [];
+  const selectedStudioProduct = studioProducts.find((p: Product) => String(p.id) === String(selectedStudioProductId));
+  const selectedStudioProductName = selectedStudioProduct ? getAlturathProductName(selectedStudioProduct) : '';
+  const effectiveStudioBrainText = selectedStudioProductName ? `${customThemeQuery} ${selectedStudioProductName}`.trim() : customThemeQuery;
+  const currentStudioBrain = analyzeAlturathStudioIdea(effectiveStudioBrainText, studioProducts);
+  const productSuggestions = getAlturathProductSuggestions(studioProducts, customThemeQuery, 8);
 
   const renderAlturathBrainCard = (context: 'image' | 'reel' = 'image') => {
     const brain: AlturathStudioBrainResult = currentStudioBrain;
@@ -1108,6 +1146,58 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           </div>
         </div>
 
+        <div className={`rounded-2xl border p-3 text-[11px] font-black leading-6 ${brain.canGenerate ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+          {brain.canGenerate ? 'قفل المنتجات الفعلية مفعّل: لن يتم استخدام أي طبق خارج قائمتك.' : brain.productGuardMessage}
+        </div>
+
+        {studioProductGroups.length > 0 && (
+          <div className="rounded-[1.6rem] border border-slate-100 bg-white p-3 shadow-sm space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[10px] font-black text-slate-400">اختيار المنتج من قائمتك فقط</div>
+                <div className="text-xs font-black text-slate-950 mt-0.5">{studioProductPickMode === 'smart' ? 'الاستوديو يختار بذكاء' : 'أنت تختار التصنيف والمنتج'}</div>
+              </div>
+              {selectedStudioProductName && <div className="rounded-2xl bg-slate-950 text-white px-3 py-2 text-[10px] font-black max-w-[160px] truncate">{selectedStudioProductName}</div>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-1 border border-slate-100">
+              <button type="button" onClick={() => { setStudioProductPickMode('smart'); setSelectedStudioProductId(''); }} className={cn("rounded-xl px-3 py-2 text-[11px] font-black transition-all", studioProductPickMode === 'smart' ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>ذكي تلقائي</button>
+              <button type="button" onClick={() => setStudioProductPickMode('manual')} className={cn("rounded-xl px-3 py-2 text-[11px] font-black transition-all", studioProductPickMode === 'manual' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>أختار بنفسي</button>
+            </div>
+
+            {studioProductPickMode === 'smart' ? (
+              <div className="space-y-2">
+                <div className="text-[10px] font-black text-slate-400">سيتم الاختيار من هذه المنتجات الفعلية فقط، بدون اختراع</div>
+                <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {productSuggestions.map((name) => (
+                    <button key={name} type="button" onClick={() => { const product = studioProducts.find((p: Product) => getAlturathProductName(p) === name); if (product?.id) { setSelectedStudioProductId(String(product.id)); setStudioProductPickMode('manual'); const group = studioProductGroups.find(g => g.products.some((item: any) => String(item.id) === String(product.id))); if (group) setSelectedStudioCategoryId(group.id); } }} className="shrink-0 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700 hover:bg-emerald-100 transition-colors">{name}</button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {studioProductGroups.map((group) => (
+                    <button key={group.id} type="button" onClick={() => { setSelectedStudioCategoryId(group.id); setSelectedStudioProductId(''); }} className={cn("shrink-0 rounded-2xl border px-3 py-2 text-[11px] font-black transition-all", activeStudioCategoryId === group.id ? "bg-slate-950 text-white border-slate-950 shadow-sm" : "bg-white text-slate-600 border-slate-100 hover:border-slate-300")}>{group.label}</button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                  {activeStudioCategoryProducts.map((product: any) => {
+                    const name = getAlturathProductName(product);
+                    const isSelected = String(selectedStudioProductId) === String(product.id);
+                    return (
+                      <button key={product.id || name} type="button" onClick={() => setSelectedStudioProductId(String(product.id || ''))} className={cn("rounded-2xl border p-3 text-right transition-all", isSelected ? "bg-emerald-50 border-emerald-400 ring-4 ring-emerald-500/10" : "bg-slate-50 border-slate-100 hover:bg-white hover:border-emerald-200")}>
+                        <div className="text-xs font-black text-slate-950 truncate">{name}</div>
+                        <div className="text-[10px] font-bold text-slate-400 mt-1">منتج فعلي من قائمتك</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {brain.hasInput && (
           <div className="rounded-2xl bg-white border border-slate-100 p-3 text-[11px] font-bold text-slate-600 leading-6">
             <span className="font-black text-slate-950">اخترنا لك:</span> {activeScene.label} · {activeShot.label} · إضاءة {selectedMood}، لأنك كتبت: <span className="font-black text-emerald-700">{customThemeQuery}</span>
@@ -1123,16 +1213,6 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
         {brain.warning && <div className="rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 p-3 text-[11px] font-black leading-6">{brain.warning}</div>}
 
-        {productSuggestions.length > 0 && (
-          <div className="space-y-2">
-            <div className="text-[10px] font-black text-slate-400">اقتراحات من منتجاتك الفعلية</div>
-            <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {productSuggestions.map((name) => (
-                <button key={name} type="button" onClick={() => handleStudioIdeaChange(name)} className="shrink-0 rounded-2xl border border-slate-100 bg-white px-3 py-2 text-[11px] font-black text-slate-700 hover:border-emerald-300 hover:text-emerald-700 transition-colors">{name}</button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {context === 'reel' && brain.hasInput && (
           <div className="rounded-2xl bg-violet-50 border border-violet-100 p-3">
@@ -1959,6 +2039,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                       <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
                       <div className="text-lg font-black">{customThemeQuery.trim() || `${activePulsePack.icon} ${activePulsePack.label}`}</div>
                       <div className="mt-2 text-sm font-bold text-white/60">{(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label} · {KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
+                      <div className="mt-3 rounded-2xl bg-white/10 border border-white/10 p-3 text-xs font-black text-white/80">
+                        المنتج: {selectedStudioProductName || 'اختيار ذكي من منتجاتك الفعلية فقط'}
+                      </div>
                     </div>
                     {renderAlturathBrainCard('image')}
                     <div className="grid grid-cols-2 gap-2">
