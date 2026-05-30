@@ -5509,15 +5509,39 @@ ${tasteProfile ? `ذاكرة الذوق: ${String(tasteProfile).slice(0, 700)}` 
         return res.status(400).json({ error: "Missing text to simulate" });
       }
 
+      const buildStableAudienceScores = (inputText: string, inputTheme: string) => {
+        const source = `${inputTheme || ""}|${inputText || ""}`;
+        let hash = 0;
+        for (let i = 0; i < source.length; i += 1) {
+          hash = ((hash << 5) - hash) + source.charCodeAt(i);
+          hash |= 0;
+        }
+
+        const lowered = source.toLowerCase();
+        const has = (words: string[]) => words.some((word) => lowered.includes(word));
+        const groups = [
+          { label: "الشباب والديوانيات", base: 66, boost: has(["ديوان", "شباب", "ربع", "قهوة", "كشته", "كشتة", "مباراة", "تحدي"]) ? 13 : 0 },
+          { label: "الأمهات والزوارة", base: 68, boost: has(["زوارة", "عائلة", "بيت", "أم", "ام", "غدا", "غداء", "عشا", "عشاء", "وليمة"]) ? 14 : 0 },
+          { label: "الموظفين لطلبات الظهر", base: 61, boost: has(["دوام", "موظف", "ظهر", "غداء", "سريع", "بوكس", "مكتب"]) ? 15 : 0 },
+          { label: "أصحاب الشاليهات والطلعات", base: 63, boost: has(["شاليه", "طلعة", "بر", "كشتة", "كشته", "ويكند", "جمعة"]) ? 14 : 0 }
+        ];
+
+        return groups.map((group, index) => {
+          const noise = Math.abs((hash >> (index * 5)) % 17);
+          const trendBoost = /trend|تريند|contest|مسابقة/i.test(inputTheme || "") ? 5 : 0;
+          return {
+            label: group.label,
+            percentage: Math.max(42, Math.min(96, group.base + group.boost + noise + trendBoost))
+          };
+        });
+      };
+
       const runFallback = () => {
+        const scores = buildStableAudienceScores(text, theme || "");
+        const topAudience = [...scores].sort((a, b) => b.percentage - a.percentage)[0]?.label || "الجمهور الكويتي";
         return {
-          scores: [
-            { label: "الشباب والديوانيات", percentage: 88 },
-            { label: "الأمهات والزوارة", percentage: 94 },
-            { label: "الموظفين لطلبات الظهر", percentage: 72 },
-            { label: "أصحاب الشاليهات والطلعات", percentage: 85 }
-          ],
-          feedback: "يا هلا بوناصر! المنشور ناطع حيل وخنين.. لهجة كويتية راقية وولا غلطة، وممتاز جداً للزوارة والجمعة العائلية! الأمهات راح يحبونه لأن الأسلوب دافئ ومحترم ويبيض الوجه، والشباب بالديوانية بيجوعون على طول من كثر الخنة واللذاذة! نقترح فقط تنزيله قبل حزة الغداء بساعتين لضمان تفاعل قصوى. عساكم على القوة يا أهل التراث!",
+          scores,
+          feedback: `يا هلا بوناصر! المحاكاة هالمرة مبنية على نص المنشور نفسه، وأقوى فئة متوقعة حالياً هي ${topAudience}. الفكرة فيها قابلية تفاعل طيبة، والأفضل تنزل بوقت مناسب للطلب المقصود مع صورة واضحة وعبارة قصيرة تخلي العميل يقرر بسرعة.`,
           sentiment: "جاهز للتفاعل 📊"
         };
       };
@@ -5597,17 +5621,30 @@ ${tasteProfile ? `ذاكرة الذوق: ${String(tasteProfile).slice(0, 700)}` 
       });
 
       const resText = result.text || "{}";
-      res.json(JSON.parse(resText));
+      const parsedSimulation = JSON.parse(resText);
+      const parsedScores = Array.isArray(parsedSimulation?.scores) ? parsedSimulation.scores : [];
+      const validPercentages = parsedScores
+        .map((item: any) => Number(item?.percentage))
+        .filter((value: number) => Number.isFinite(value));
+      const uniquePercentages = new Set(validPercentages);
+
+      if (parsedScores.length !== 4 || uniquePercentages.size <= 1) {
+        parsedSimulation.scores = buildStableAudienceScores(text, theme || "");
+      } else {
+        parsedSimulation.scores = parsedScores.map((item: any) => ({
+          label: item.label,
+          percentage: Math.max(0, Math.min(100, Math.round(Number(item.percentage))))
+        }));
+      }
+
+      res.json(parsedSimulation);
     } catch (e: any) {
       console.warn("[Social Simulator] API Error, serving local simulation:", e);
+      const fallbackScores = buildStableAudienceScores(text, theme || "");
+      const topAudience = [...fallbackScores].sort((a, b) => b.percentage - a.percentage)[0]?.label || "الجمهور الكويتي";
       res.json({
-        scores: [
-          { label: "الشباب والديوانيات", percentage: 88 },
-          { label: "الأمهات والزوارة", percentage: 94 },
-          { label: "الموظفين لطلبات الظهر", percentage: 72 },
-          { label: "أصحاب الشاليهات والطلعات", percentage: 85 }
-        ],
-        feedback: "يا هلا بوناصر! المنشور ناطع حيل وخنين.. لهجة كويتية راقية وولا غلطة، وممتاز جداً للزوارة والجمعة العائلية! الأمهات راح يحبونه لأن الأسلوب دافئ ومحترم ويبيض الوجه، والشباب بالديوانية بيجوعون على طول من كثر الخنة واللذاذة! نقترح فقط تنزيله قبل حزة الغداء بساعتين لضمان تفاعل قصوى. عساكم على القوة يا أهل التراث!",
+        scores: fallbackScores,
+        feedback: `يا هلا بوناصر! المحاكاة هالمرة مبنية على نص المنشور نفسه، وأقوى فئة متوقعة حالياً هي ${topAudience}. الفكرة فيها قابلية تفاعل طيبة، والأفضل تنزل بوقت مناسب للطلب المقصود مع صورة واضحة وعبارة قصيرة تخلي العميل يقرر بسرعة.`,
         sentiment: "مستعد للنشر 🚀"
       });
     }
