@@ -347,3 +347,108 @@ export const analyzeAlturathStudioIdea = (rawText = '', products: ProductLike[] 
   const confidence = hasInput ? Math.min(96, 70 + (isKnownProduct ? 12 : 0) + (dish.category !== 'generic' ? 10 : 0) + (national ? 4 : 0)) : 62;
   return { hasInput, normalizedText: text, productNames, matchedProducts, isKnownProduct, category: dish.category, categoryLabel: dish.label, heatLabel: dish.heat, sceneId, pulseId, place, mode, background, shotId, mood, reason, confidence, warning, strictProductOnlyMode, canGenerate, requiresProductSelection, primaryProductName, productGuardMessage, productSuggestions, reelRecipe, variants, promptGuard };
 };
+
+
+export type AlturathDishProfile = {
+  identity: string;
+  shortLabel: string;
+  fingerprint: string;
+  fingerprintMini: string;
+  identityLock: string;
+  portionRule: string;
+  deliverySuitability: {
+    value: number;
+    label: string;
+    note: string;
+    prompt: string;
+  };
+  clutterRisk: {
+    value: number;
+    label: string;
+    prompt: string;
+  };
+  menuModeHint: string;
+  truthBiasHint: string;
+  brandStyleHint: string;
+};
+
+export const getAlturathDishProfile = (rawText = '', products: ProductLike[] = []): AlturathDishProfile => {
+  const brain = analyzeAlturathStudioIdea(rawText, products);
+  const knowledge = findKuwaitiDishKnowledge(rawText) || (brain.primaryProductName ? findKuwaitiDishKnowledge(brain.primaryProductName) : undefined);
+  const identity = brain.primaryProductName || knowledge?.label || brain.categoryLabel || 'طبق مطبخ كويتي';
+  const proteinText = brain.category === 'seafood'
+    ? 'نفس نوع السمك أو المأكولات البحرية المذكور'
+    : brain.category === 'rice'
+      ? 'نفس البروتين المذكور مع العيش'
+      : brain.category === 'mahshi'
+        ? 'نفس الحشوة والشكل'
+        : brain.category === 'dessert'
+          ? 'نفس نوع الحلى'
+          : 'نفس الطبق نفسه';
+
+  const fingerprintMini = (() => {
+    if (knowledge?.label.includes('ورق عنب') || brain.category === 'mahshi') return 'لفّات/قطع متناسقة، صف واضح، صحن أو علبة مرتبة، بدون بخار أو صوص زائد';
+    if (brain.category === 'seafood') return 'نوع السمك أو البحري نفسه، حجم واقعي، عيش/جوانب منطقية، تزيين خفيف فقط';
+    if (brain.category === 'rice') return 'حجم صينية/طبق عيش واقعي، تمركز البروتين، زينة قليلة، لا تضخيم';
+    if (brain.category === 'dessert') return 'ملمس واضح، حواف نظيفة، كمية معتدلة، لا بخار ولا لمعان مبالغ';
+    if (brain.category === 'grill') return 'ترتيب مشويات واقعي، تحمير خفيف، لا دخان كثيف، لا تضخيم حجم';
+    return 'شكل الطبق، نوع الصحن/العلبة، ارتفاع الكمية، الزينة الأساسية، وتمركز العناصر الرئيسية';
+  })();
+
+  const fingerprint = `Dish fingerprint lock: preserve the original visual architecture of ${identity}. Keep ${fingerprintMini}. Keep the same serving vessel style, food silhouette, garnish count range, sauce placement, and believable serving logic.`;
+  const identityLock = `Transformation guard: keep ${identity} locked as ${proteinText}. Never convert it into another protein, another stuffing, another dessert, or another menu item.`;
+
+  const portionRule = (() => {
+    if (brain.category === 'mahshi') return 'Portion balance: keep a believable family-serving or box-serving count; no giant oversized rolls and no tiny scattered pieces.';
+    if (brain.category === 'dessert') return 'Portion balance: keep dessert quantity elegant but honest; no luxury over-stacking and no miniature under-serving.';
+    if (brain.category === 'seafood') return 'Portion balance: keep fish/seafood portions proportional to rice or plate; avoid huge unrealistic fish and avoid starving-small servings.';
+    if (brain.category === 'rice') return 'Portion balance: keep the rice/protein ratio natural and appetizing; satisfying but not inflated.';
+    return 'Portion balance: keep the serving size realistic, commercially believable, and balanced for delivery/menu presentation.';
+  })();
+
+  const deliveryBase = (() => {
+    if (brain.category === 'rice' || brain.category === 'seafood' || brain.category === 'mahshi' || brain.category === 'box') return 90;
+    if (brain.category === 'dessert') return 84;
+    if (brain.category === 'grill') return 82;
+    return 76;
+  })();
+  const deliveryValue = Math.max(58, Math.min(96, deliveryBase + (brain.sceneId.includes('delivery') ? 2 : 0) - (brain.sceneId.includes('food-detail') ? 4 : 0)));
+  const deliveryLabel = deliveryValue >= 88 ? 'قوي للتوصيل' : deliveryValue >= 78 ? 'مناسب للتوصيل' : 'يحتاج عناية';
+  const deliveryNote = deliveryValue >= 88
+    ? 'الطبق يظهر بشكل قوي في طلبات التوصيل والمنيو.'
+    : deliveryValue >= 78
+      ? 'الطبق جيد للتوصيل، لكن يحتاج ثبات ترتيب ونظافة مشهد.'
+      : 'يفضل تقليل الزحمة وتثبيت شكل الطبق أكثر قبل اعتماده.';
+  const deliveryPrompt = `Delivery suitability check: score ${deliveryValue}%. Keep the dish commercially believable for delivery. Packaging or table context must support appetite and trust, and the composition must still read clearly on a phone screen.`;
+
+  const clutterBase = brain.sceneId.includes('diwaniya') || brain.sceneId.includes('zowara') ? 72 : brain.sceneId.includes('delivery') ? 88 : 84;
+  const clutterLabel = clutterBase >= 86 ? 'زحمة منخفضة' : clutterBase >= 78 ? 'زحمة مضبوطة' : 'خفّف الخلفية';
+  const clutterPrompt = clutterBase >= 86
+    ? 'Clutter detector: keep the frame clean and focused. Very few supporting props only.'
+    : clutterBase >= 78
+      ? 'Clutter detector: allow a few believable support items only if they do not steal attention from the dish.'
+      : 'Clutter detector: reduce props, remove decorative noise, simplify the scene, and keep the food as the obvious hero.';
+
+  return {
+    identity,
+    shortLabel: knowledge?.label || brain.categoryLabel || identity,
+    fingerprint,
+    fingerprintMini,
+    identityLock,
+    portionRule,
+    deliverySuitability: {
+      value: deliveryValue,
+      label: deliveryLabel,
+      note: deliveryNote,
+      prompt: deliveryPrompt
+    },
+    clutterRisk: {
+      value: clutterBase,
+      label: clutterLabel,
+      prompt: clutterPrompt
+    },
+    menuModeHint: 'Menu photo mode: when enabled, prefer a clean neutral background, straight readable styling, and maximum dish clarity with minimal props.',
+    truthBiasHint: 'Truth-first mode: if beauty conflicts with realism, choose realism. Preserve honest texture, honest shadows, and honest portion size over visual exaggeration.',
+    brandStyleHint: 'Brand memory anchor: keep a repeatable house style for this brand/category so the output feels consistently from the same kitchen.'
+  };
+};

@@ -16,7 +16,7 @@ import { REAL_RESTAURANT_BACKGROUNDS, STUDIO_REALITY_MODES, STUDIO_REALITY_NEGAT
 import { buildStudioTastePrompt, loadStudioBackgroundLibrary, markStudioBackgroundUsed, recordStudioTasteChoice, saveStudioBackgroundToLibrary, type StudioBackgroundLibraryItem } from '../lib/studioLearning';
 import { KUWAIT_CONTENT_GOALS, KUWAIT_PLACES, KUWAIT_PULSE_PACKS, buildKuwaitCaptionFallback, buildKuwaitStudioTheme, getKuwaitPulsePack, type KuwaitContentGoal, type KuwaitOrderPlace } from '../lib/kuwaitContentPulse';
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
-import { analyzeAlturathStudioIdea, getAlturathProductGroups, getAlturathProductName, getAlturathProductSuggestions, type AlturathStudioBrainResult } from '../lib/alturathStudioBrain';
+import { analyzeAlturathStudioIdea, getAlturathDishProfile, getAlturathProductGroups, getAlturathProductName, getAlturathProductSuggestions, type AlturathStudioBrainResult } from '../lib/alturathStudioBrain';
 
 interface SmartContentStudioProps {
   data: any;
@@ -260,7 +260,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   
   // Use a lazy initializer or just assume initial info since getKuwaitPulsePack exists
   const [selectedOrderPlace, setSelectedOrderPlace] = useState<KuwaitOrderPlace>('delivery');
-  const [selectedContentGoal, setSelectedContentGoal] = useState<KuwaitContentGoal>('whatsapp');
+  const [selectedContentGoal, setSelectedContentGoal] = useState<KuwaitContentGoal>('product');
   const [showAdvancedStudio, setShowAdvancedStudio] = useState(false);
   const [productStudioFlow, setProductStudioFlow] = useState<ProductStudioFlow>('quick');
   const [selectedMood, setSelectedMood] = useState('دافئ');
@@ -395,6 +395,27 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       `اختبار الواقعية الكويتية: الصورة يجب أن تبدو كطلب مطبخ كويتي حقيقي للتوصيل أو البيت، لا إعلان فندقي ولا مطعم جلوس ولا ديكور تراثي مصطنع.`,
       `اختبار البيع: المنتج واضح أولاً، الكمية مقنعة، التغليف/السفرة نظيف، ولا توجد عناصر تسرق الانتباه من الطبق.`
     ].join(' ');
+  };
+
+  const buildAdvancedStudioDirection = (brain?: AlturathStudioBrainResult, options?: { source?: 'idea' | 'image' | 'reel' }) => {
+    const productName = selectedStudioProductName || brain?.primaryProductName || customThemeQuery.trim();
+    const profile = getAlturathDishProfile(productName || customThemeQuery || activeStudioScene.label, data?.products || []);
+    const isMenuPhoto = selectedContentGoal === 'product' || realityMode === 'menu' || backgroundPreset === 'neutral-menu';
+    const source = options?.source || (selectedImage ? 'image' : 'idea');
+    return [
+      profile.fingerprint,
+      profile.identityLock,
+      profile.portionRule,
+      profile.deliverySuitability.prompt,
+      profile.clutterRisk.prompt,
+      profile.truthBiasHint,
+      profile.brandStyleHint,
+      isMenuPhoto ? profile.menuModeHint : '',
+      source === 'image'
+        ? 'Original image match mode: preserve the uploaded image identity strongly. Do not turn a delivery box into a luxury spread, do not turn a simple plate into a feast, and do not replace the visible food.'
+        : 'Text-to-image truth order: food identity first, realism second, delivery/menu clarity third, beauty fourth, creativity last.',
+      'Dish-transform blocker: never let the scene, lighting, or aesthetic override the actual product identity. No protein swap, no recipe swap, no side-item invention, no decorative clutter.'
+    ].filter(Boolean).join(' ');
   };
 
   const markCurrentStyleAsAvoided = () => {
@@ -642,7 +663,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       customText: selectedTheme === 'مخصص' ? customThemeQuery : `${selectedTheme}. ${customThemeQuery}`,
       products: data?.products
     }));
-    const studioDirection = sanitizeStudioPrompt(`${buildDirectorDirection(imageBrain)} ${buildNoRepeatDirection()}`);
+    const studioDirection = sanitizeStudioPrompt(`${buildDirectorDirection(imageBrain)} ${buildAdvancedStudioDirection(imageBrain, { source: 'image' })} ${buildNoRepeatDirection()}`);
 
     setIsGenerating(true);
     setGeneratedImage(null);
@@ -731,7 +752,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       customText: customThemeQuery || activeStudioScene.label,
       products: data?.products
     }));
-    const studioDirection = sanitizeStudioPrompt(`${buildDirectorDirection(ideaBrain)} ${buildNoRepeatDirection()}`);
+    const studioDirection = sanitizeStudioPrompt(`${buildDirectorDirection(ideaBrain)} ${buildAdvancedStudioDirection(ideaBrain, { source: 'idea' })} ${buildNoRepeatDirection()}`);
     setIsGenerating(true);
     setGeneratedImage(null);
     setShowImageSettings(false);
@@ -827,7 +848,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     const sourceImage = selectedImage || aiImage || generatedImage;
     if (!sourceImage || isGenerating || isGeneratingVariants) return;
     setRealityMode('finalBoss');
-    const hint = realityAudit?.fixHint || 'خل الخلفية أبسط وأكثر بشرية وكويتية: طلب بيت/ديوانية/شاليه عادي، ظلال صحيحة، إضاءة أقل مثالية، لا لمعان زائد، لا عمق مبالغ، لا ديكور وهمي.';
+    const hint = realityAudit?.fixHint || 'أصدق من أجمل: حافظ على هوية الطبق والكمية والملمس أولاً، خفف الزخرفة، اجعل الخلفية أبسط وأكثر بشرية وكويتية، ظلال صحيحة، إضاءة أقل مثالية، لا لمعان زائد، لا عمق مبالغ، لا ديكور وهمي.';
     await generateContent({ mode: 'finalBoss', background: backgroundPreset || 'wood-table', label: `أصدق بصرياً: ${hint}`, sourceImage });
   };
 
@@ -1059,7 +1080,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       jakhour: 'جاخور مرتب وحذر: طاولة عملية نظيفة وخلفية blur، بدون حيوانات أو تراب أو مخلفات أو فوضى.',
       zowara: 'زوارة عائلية داخل بيت: سفرة مرتبة ومحاشي/ورق عنب/أطباق عائلية، بدون وجوه أو عرس أو قهوة.'
     };
-    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي، نشاط مطبخ وتوصيل أكل كويتي وليس مطعم جلوس. فكرة مختصرة: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب على الطلب'} — ${shotGuide[reelShot] || shotGuide['hero-push']}. المكان: ${place.label} — ${placeGuide[selectedOrderPlace] || placeGuide.delivery}. ${buildDirectorDirection(brain)} ${buildNoRepeatDirection()} مدة ${Math.min(8, Math.max(4, reelDuration))} ثواني. المطلوب لقطة واحدة واقعية جداً، حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، لا يتغير شكل الطبق أو الكمية أو المكونات عبر الفيديو. حافظ على الطبق والتغليف كما هما إذا كان المصدر صورة. تكوين بصري نظيف وإضاءة شهية واقعية. ممنوع وجوه واضحة، شخص يتكلم، شفاه، نصوص، شعارات، دلة، قهوة، بخور، سدو، فوانيس، سيارة توصيل، مطعم جلوس، كافيه، كلينكس مستخدم، فوضى، صحون تظهر فجأة، صوص يطير، أو أي حركة غير منطقية. إضاءة ${selectedMood}. وصفة الريل الذكية حسب الطبق: ${brain.reelRecipe.join('، ')}. ${brain.promptGuard}`;
+    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي، نشاط مطبخ وتوصيل أكل كويتي وليس مطعم جلوس. فكرة مختصرة: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب على الطلب'} — ${shotGuide[reelShot] || shotGuide['hero-push']}. المكان: ${place.label} — ${placeGuide[selectedOrderPlace] || placeGuide.delivery}. ${buildDirectorDirection(brain)} ${buildAdvancedStudioDirection(brain, { source: 'reel' })} ${buildNoRepeatDirection()} مدة ${Math.min(8, Math.max(4, reelDuration))} ثواني. المطلوب لقطة واحدة واقعية جداً، حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، لا يتغير شكل الطبق أو الكمية أو المكونات عبر الفيديو. حافظ على الطبق والتغليف كما هما إذا كان المصدر صورة. تكوين بصري نظيف وإضاءة شهية واقعية. ممنوع وجوه واضحة، شخص يتكلم، شفاه، نصوص، شعارات، دلة، قهوة، بخور، سدو، فوانيس، سيارة توصيل، مطعم جلوس، كافيه، كلينكس مستخدم، فوضى، صحون تظهر فجأة، صوص يطير، أو أي حركة غير منطقية. إضاءة ${selectedMood}. وصفة الريل الذكية حسب الطبق: ${brain.reelRecipe.join('، ')}. ${brain.promptGuard}`;
   };
 
   const buildReelSettingsText = (item?: Partial<StudioReelHistoryItem>) => {
@@ -1217,10 +1238,13 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   };
 
   const calculateSalesReadiness = (brain: AlturathStudioBrainResult, matchValue?: number | null) => {
+    const profile = getAlturathDishProfile(selectedStudioProductName || brain.primaryProductName || customThemeQuery, studioProducts);
     let score = typeof matchValue === 'number' ? matchValue : 68;
     if (selectedSceneId.includes('delivery') || selectedOrderPlace === 'delivery') score += 4;
     if (['steam-close', 'texture-close', 'box-open', 'top-spread'].includes(reelShot)) score += 4;
     if (brain.category !== 'generic') score += 5;
+    score += Math.round((profile.deliverySuitability.value - 80) / 4);
+    score += Math.round((profile.clutterRisk.value - 80) / 6);
     if (studioGenerationMemory.includes(buildStudioSignature(brain.primaryProductName || selectedStudioProductName))) score -= 6;
     return Math.max(50, Math.min(96, Math.round(score)));
   };
@@ -1254,6 +1278,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
           : smartSelectionLine;
     const matchBadge = calculateStudioMatch(brain, hasImageSource);
     const salesReadiness = matchBadge?.value ? calculateSalesReadiness(brain, matchBadge.value) : null;
+    const dishProfile = getAlturathDishProfile(selectedStudioProductName || brain.primaryProductName || customThemeQuery, studioProducts);
     const shouldShowImageProductLink = false;
     const shouldShowProductPicker = studioProductGroups.length > 0 && !hasImageSource;
 
@@ -1352,6 +1377,12 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {(brain.hasInput || selectedStudioProductName) && (
+          <div className="rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2 text-[10px] font-black text-slate-500 leading-5">
+            {dishProfile.shortLabel} · {dishProfile.deliverySuitability.label} · {dishProfile.clutterRisk.label}
           </div>
         )}
 
@@ -1539,7 +1570,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       `المشهد: ${sceneLabel} / ${KUWAIT_PLACES[placeId]?.label || KUWAIT_PLACES[selectedOrderPlace]?.label}`,
       `الإضاءة: ${moods.find((m) => m.id === moodLabel)?.label || moodLabel}`,
       `الواقعية: ${cleanRealityLabel(STUDIO_REALITY_MODES[modeId]?.label || '')}`,
-      ideaText ? `الفكرة: ${ideaText}` : ''
+      ideaText ? `الفكرة: ${ideaText}` : '',
+      `بصمة الطبق: ${getAlturathDishProfile(ideaText || customThemeQuery || activeStudioScene.label, data?.products || []).fingerprintMini}`
     ].filter(Boolean).join('\n');
   };
 
@@ -1953,7 +1985,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
                   <div className="text-lg font-black leading-8 whitespace-normal [word-break:keep-all]">{customThemeQuery.trim() || activeStudioScene.label}</div>
                   <div className="mt-3 grid grid-cols-1 gap-2 text-xs font-black text-white/85">
-                    {(() => { const badge = calculateStudioMatch(currentStudioBrain, false); const sale = calculateSalesReadiness(currentStudioBrain, badge?.value); return <div className="rounded-2xl bg-emerald-400/15 border border-emerald-300/20 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">جاهزية: {sale}%</div>; })()}
+                    {(() => { const badge = calculateStudioMatch(currentStudioBrain, false); const sale = calculateSalesReadiness(currentStudioBrain, badge?.value); const profile = getAlturathDishProfile(selectedStudioProductName || currentStudioBrain.primaryProductName || customThemeQuery, studioProducts); return <div className="rounded-2xl bg-emerald-400/15 border border-emerald-300/20 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">جاهزية: {sale}% · {profile.deliverySuitability.label}</div>; })()}
                     <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المشهد: {(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label}</div>
                     <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">اللقطة: {(reelShots.find(s => s.id === reelShot) || reelShots[0]).label}</div>
                     <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
@@ -2178,6 +2210,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
                       <div className="text-lg font-black leading-8 whitespace-normal [word-break:keep-all]">{customThemeQuery.trim() || activeStudioScene.label}</div>
                       <div className="mt-3 grid grid-cols-1 gap-2 text-xs font-black text-white/85">
+                        {(() => { const imageBrain = analyzeAlturathStudioIdea(customThemeQuery, studioProducts); const badge = calculateStudioMatch(imageBrain, true); const sale = calculateSalesReadiness(imageBrain, badge?.value); const profile = getAlturathDishProfile(customThemeQuery || sceneSuggestion?.productType || activeStudioScene.label, studioProducts); return <div className="rounded-2xl bg-emerald-400/15 border border-emerald-300/20 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">جاهزية: {sale}% · {profile.clutterRisk.label}</div>; })()}
                         <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المشهد: {(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label}</div>
                         <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">اللقطة: {(reelShots.find(s => s.id === reelShot) || reelShots[0]).label}</div>
                         <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
