@@ -254,7 +254,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       return null;
     }
     if (brain.strictProductOnlyMode && brain.hasInput && !brain.isKnownProduct && brain.productSuggestions.length > 0) {
-      toast.info('وضع منتجاتك فقط مفعّل: سيتم استخدام منتجات فعلية من قائمتك بدون اختراع أطباق.');
+      toast.info('تم اختيار المنتج بذكاء من قائمة مطبخك بما يناسب الفكرة.');
     }
     return brain;
   };
@@ -264,6 +264,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [studioProductPickMode, setStudioProductPickMode] = useState<StudioProductPickMode>('smart');
   const [selectedStudioCategoryId, setSelectedStudioCategoryId] = useState<string>('');
   const [selectedStudioProductId, setSelectedStudioProductId] = useState<string>('');
+  const [showStudioProductPicker, setShowStudioProductPicker] = useState(false);
   const [selectedPulseId, setSelectedPulseId] = useState<string>('quick-kuwait');
   const [selectedSceneId, setSelectedSceneId] = useState<string>('delivery-ready');
   
@@ -1147,52 +1148,66 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         </div>
 
         <div className={`rounded-2xl border p-3 text-[11px] font-black leading-6 ${brain.canGenerate ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
-          {brain.canGenerate ? 'قفل المنتجات الفعلية مفعّل: لن يتم استخدام أي طبق خارج قائمتك.' : brain.productGuardMessage}
+          {brain.canGenerate ? 'جاهز للاختيار الذكي من قائمة مطبخك، مع الحفاظ على الواقعية وهوية الطبق.' : brain.productGuardMessage}
         </div>
 
         {studioProductGroups.length > 0 && (
-          <div className="rounded-[1.6rem] border border-slate-100 bg-white p-3 shadow-sm space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-[10px] font-black text-slate-400">اختيار المنتج من قائمتك فقط</div>
-                <div className="text-xs font-black text-slate-950 mt-0.5">{studioProductPickMode === 'smart' ? 'الاستوديو يختار بذكاء' : 'أنت تختار التصنيف والمنتج'}</div>
-              </div>
-              {selectedStudioProductName && <div className="rounded-2xl bg-slate-950 text-white px-3 py-2 text-[10px] font-black max-w-[160px] truncate">{selectedStudioProductName}</div>}
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-1 border border-slate-100">
-              <button type="button" onClick={() => { setStudioProductPickMode('smart'); setSelectedStudioProductId(''); }} className={cn("rounded-xl px-3 py-2 text-[11px] font-black transition-all", studioProductPickMode === 'smart' ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>ذكي تلقائي</button>
-              <button type="button" onClick={() => setStudioProductPickMode('manual')} className={cn("rounded-xl px-3 py-2 text-[11px] font-black transition-all", studioProductPickMode === 'manual' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>أختار بنفسي</button>
-            </div>
-
-            {studioProductPickMode === 'smart' ? (
-              <div className="space-y-2">
-                <div className="text-[10px] font-black text-slate-400">سيتم الاختيار من هذه المنتجات الفعلية فقط، بدون اختراع</div>
-                <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {productSuggestions.map((name) => (
-                    <button key={name} type="button" onClick={() => { const product = studioProducts.find((p: Product) => getAlturathProductName(p) === name); if (product?.id) { setSelectedStudioProductId(String(product.id)); setStudioProductPickMode('manual'); const group = studioProductGroups.find(g => g.products.some((item: any) => String(item.id) === String(product.id))); if (group) setSelectedStudioCategoryId(group.id); } }} className="shrink-0 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700 hover:bg-emerald-100 transition-colors">{name}</button>
-                  ))}
+          <div className="rounded-[1.6rem] border border-slate-100 bg-white shadow-sm overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowStudioProductPicker(!showStudioProductPicker)}
+              className="w-full flex items-center justify-between gap-3 p-3 text-right hover:bg-slate-50 transition-colors"
+            >
+              <div className="min-w-0">
+                <div className="text-[10px] font-black text-slate-400">اختيار المنتج</div>
+                <div className="text-xs font-black text-slate-950 mt-0.5 truncate">
+                  {studioProductPickMode === 'smart'
+                    ? 'اختيار ذكي من كل أصناف مطبخك'
+                    : selectedStudioProductName
+                      ? selectedStudioProductName
+                      : 'اختر التصنيف ثم المنتج'}
                 </div>
               </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {studioProductGroups.map((group) => (
-                    <button key={group.id} type="button" onClick={() => { setSelectedStudioCategoryId(group.id); setSelectedStudioProductId(''); }} className={cn("shrink-0 rounded-2xl border px-3 py-2 text-[11px] font-black transition-all", activeStudioCategoryId === group.id ? "bg-slate-950 text-white border-slate-950 shadow-sm" : "bg-white text-slate-600 border-slate-100 hover:border-slate-300")}>{group.label}</button>
-                  ))}
+              <div className="flex items-center gap-2 shrink-0">
+                {selectedStudioProductName && <div className="rounded-2xl bg-slate-950 text-white px-3 py-2 text-[10px] font-black max-w-[150px] truncate">{selectedStudioProductName}</div>}
+                <div className="rounded-full bg-slate-100 p-2">
+                  <ChevronLeft className={cn("w-4 h-4 text-slate-500 transition-transform", showStudioProductPicker ? "-rotate-90" : "rotate-0")} />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                  {activeStudioCategoryProducts.map((product: any) => {
-                    const name = getAlturathProductName(product);
-                    const isSelected = String(selectedStudioProductId) === String(product.id);
-                    return (
-                      <button key={product.id || name} type="button" onClick={() => setSelectedStudioProductId(String(product.id || ''))} className={cn("rounded-2xl border p-3 text-right transition-all", isSelected ? "bg-emerald-50 border-emerald-400 ring-4 ring-emerald-500/10" : "bg-slate-50 border-slate-100 hover:bg-white hover:border-emerald-200")}>
-                        <div className="text-xs font-black text-slate-950 truncate">{name}</div>
-                        <div className="text-[10px] font-bold text-slate-400 mt-1">منتج فعلي من قائمتك</div>
-                      </button>
-                    );
-                  })}
+              </div>
+            </button>
+
+            {showStudioProductPicker && (
+              <div className="border-t border-slate-100 p-3 space-y-3">
+                <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-1 border border-slate-100">
+                  <button type="button" onClick={() => { setStudioProductPickMode('smart'); setSelectedStudioProductId(''); }} className={cn("rounded-xl px-3 py-2 text-[11px] font-black transition-all", studioProductPickMode === 'smart' ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>ذكي تلقائي</button>
+                  <button type="button" onClick={() => setStudioProductPickMode('manual')} className={cn("rounded-xl px-3 py-2 text-[11px] font-black transition-all", studioProductPickMode === 'manual' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>أختار بنفسي</button>
                 </div>
+
+                {studioProductPickMode === 'smart' ? (
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-[11px] font-bold text-emerald-800 leading-6">
+                    سأختار لك الأنسب من كل أصناف مطبخك حسب الفكرة، المناسبة، والمشهد المطلوب.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      {studioProductGroups.map((group) => (
+                        <button key={group.id} type="button" onClick={() => { setSelectedStudioCategoryId(group.id); setSelectedStudioProductId(''); }} className={cn("shrink-0 rounded-2xl border px-3 py-2 text-[11px] font-black transition-all", activeStudioCategoryId === group.id ? "bg-slate-950 text-white border-slate-950 shadow-sm" : "bg-white text-slate-600 border-slate-100 hover:border-slate-300")}>{group.label}</button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                      {activeStudioCategoryProducts.map((product: any) => {
+                        const name = getAlturathProductName(product);
+                        const isSelected = String(selectedStudioProductId) === String(product.id);
+                        return (
+                          <button key={product.id || name} type="button" onClick={() => { setSelectedStudioProductId(String(product.id || '')); setShowStudioProductPicker(false); }} className={cn("rounded-2xl border p-3 text-right transition-all", isSelected ? "bg-emerald-50 border-emerald-400 ring-4 ring-emerald-500/10" : "bg-slate-50 border-slate-100 hover:bg-white hover:border-emerald-200")}>
+                            <div className="text-xs font-black text-slate-950 truncate">{name}</div>
+                            <div className="text-[10px] font-bold text-slate-400 mt-1">ضمن {studioProductGroups.find(g => g.id === activeStudioCategoryId)?.label || 'قائمة مطبخك'}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
