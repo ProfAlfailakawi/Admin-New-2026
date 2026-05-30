@@ -31,6 +31,7 @@ import {
   PackageX,
   PackageCheck,
   ChevronDown,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppState, Product } from "../types";
@@ -592,6 +593,8 @@ const ProductPage: React.FC<ProductPageProps> = ({
           ...productForm,
           price: parsedPrice,
           cost: parsedCost,
+          isMenuFeatured: !!(productForm as any).isMenuFeatured,
+          featuredRank: (productForm as any).isMenuFeatured ? Math.max(1, Number((productForm as any).featuredRank || 99)) : undefined,
         };
 
         // record this mapping so we can suggest it faster/better next time.
@@ -672,6 +675,8 @@ const ProductPage: React.FC<ProductPageProps> = ({
       isActive: true,
       isOutOfStock: false,
       preparationInstructions: "",
+      isMenuFeatured: false,
+      featuredRank: undefined,
     addons: [],
     });
     setShowModal(true);
@@ -690,6 +695,8 @@ const ProductPage: React.FC<ProductPageProps> = ({
       isActive: product.isActive !== false,
       isOutOfStock: !!product.isOutOfStock,
       preparationInstructions: product.preparationInstructions || "",
+      isMenuFeatured: !!(product as any).isMenuFeatured,
+      featuredRank: (product as any).featuredRank || undefined,
       addons: Array.isArray(product.addons) ? product.addons : [],
     });
     setShowModal(true);
@@ -1268,6 +1275,29 @@ const ProductPage: React.FC<ProductPageProps> = ({
                        >
                          {product.isActive !== false ? <EyeOff size={16} /> : <Eye size={16} />}
                        </button>
+
+                       <button
+                         title={(product as any).isMenuFeatured ? 'إزالة المنتج من اختياراتنا لكم' : 'إظهار المنتج ضمن اختياراتنا لكم'}
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           const nextFeatured = !(product as any).isMenuFeatured;
+                           setData((prev) => ({
+                             ...prev,
+                             products: (prev.products || []).map((p: any) =>
+                               p.id === product.id
+                                 ? { ...p, isMenuFeatured: nextFeatured, featuredRank: nextFeatured ? (p.featuredRank || 99) : undefined }
+                                 : p
+                             ),
+                           }));
+                           toast.success(nextFeatured ? '✨ ظهر المنتج ضمن اختياراتنا لكم' : 'تمت إزالة المنتج من اختياراتنا لكم');
+                         }}
+                         className={cn(
+                           "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[10px] font-bold w-8 h-8",
+                           (product as any).isMenuFeatured ? "bg-amber-400 hover:bg-amber-500 border-amber-300 text-slate-950 ring-2 ring-amber-200/80" : "bg-white/85 hover:bg-white border-white/70 text-slate-700"
+                         )}
+                       >
+                         <Star size={16} className={(product as any).isMenuFeatured ? "fill-current" : ""} />
+                       </button>
                     </div>
 
                     {/* Price Tag Overlay - Upgraded gold visual style */}
@@ -1655,6 +1685,64 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         </option>
                       ))}
                     </select>
+                  </div>
+                </div>
+
+                <div className="px-3 md:px-3">
+                  <div className={cn(
+                    "rounded-2xl border p-3 md:p-4 transition-all text-right",
+                    (productForm as any).isMenuFeatured
+                      ? "bg-amber-50/70 border-amber-200 shadow-sm"
+                      : "bg-slate-50/70 border-slate-200/70"
+                  )}>
+                    <button
+                      type="button"
+                      onClick={() => setProductForm((prev: any) => ({
+                        ...prev,
+                        isMenuFeatured: !prev.isMenuFeatured,
+                        featuredRank: !prev.isMenuFeatured ? (prev.featuredRank || 99) : undefined,
+                      }))}
+                      className="w-full flex items-center justify-between gap-3 text-right"
+                    >
+                      <div className="flex items-center gap-3 flex-row-reverse min-w-0">
+                        <div className={cn(
+                          "w-10 h-10 rounded-2xl flex items-center justify-center border shrink-0",
+                          (productForm as any).isMenuFeatured ? "bg-amber-400 text-slate-950 border-amber-300" : "bg-white text-slate-400 border-slate-200"
+                        )}>
+                          <Star size={18} className={(productForm as any).isMenuFeatured ? "fill-current" : ""} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-black text-slate-900">إظهار ضمن من اختياراتنا لكم</div>
+                          <div className="text-[11px] font-bold text-slate-500 leading-relaxed">النص التسويقي يظهر تلقائياً في موقع العميل حسب الوقت والسلة بدون إدخال يدوي.</div>
+                        </div>
+                      </div>
+                      <div className={cn(
+                        "w-11 h-6 rounded-full p-0.5 transition-all shrink-0",
+                        (productForm as any).isMenuFeatured ? "bg-amber-400" : "bg-slate-200"
+                      )}>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full bg-white shadow-sm transition-transform",
+                          (productForm as any).isMenuFeatured ? "translate-x-[-20px]" : "translate-x-0"
+                        )} />
+                      </div>
+                    </button>
+
+                    {(productForm as any).isMenuFeatured && (
+                      <div className="mt-3 grid grid-cols-1 md:grid-cols-[160px_1fr] gap-3 items-center border-t border-amber-200/70 pt-3">
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-black text-amber-800 block">أولوية الظهور</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={99}
+                            value={(productForm as any).featuredRank || 99}
+                            onChange={(e) => setProductForm((prev: any) => ({ ...prev, featuredRank: Math.max(1, Number(e.target.value || 99)) }))}
+                            className="w-full bg-white border border-amber-200 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-amber-200 text-sm font-black text-right text-amber-900"
+                          />
+                        </div>
+                        <p className="text-[11px] font-bold text-slate-500 leading-relaxed">الأولوية الأقل تظهر أولاً. إذا ما كفت الاختيارات، يكمل النظام تلقائياً بذكاء من المنتجات المناسبة.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 

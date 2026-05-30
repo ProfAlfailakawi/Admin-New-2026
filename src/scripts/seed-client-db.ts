@@ -78,6 +78,11 @@ export const seedClientDatabase = async (data: any) => {
     const safeKey = encodeURIComponent(key.replace(/\s+/g, '-')).replace(/%/g, '_');
     const productId = `app-prod-${safeKey}`.slice(0, 500); // Firestore id limit is 1500 bytes
     
+    const featuredProducts = products.filter((p: any) => !!p.isMenuFeatured);
+    const bestFeaturedRank = featuredProducts.length
+      ? Math.min(...featuredProducts.map((p: any) => Number(p.featuredRank || 99)).filter((n: number) => Number.isFinite(n)))
+      : undefined;
+
     const unifiedProduct = {
       id: productId,
       name: principal.name.trim(),
@@ -92,7 +97,9 @@ export const seedClientDatabase = async (data: any) => {
       isUnified: products.length > 1,
       supplierId: products.length === 1 ? principal.supplierId : 'multiple',
       supplierNames: products.map((p: any) => suppliersMap.get(p.supplierId) || 'مورد مجهول'),
-      originalProductIds: products.map((p: any) => p.id)
+      originalProductIds: products.map((p: any) => p.id),
+      isMenuFeatured: featuredProducts.length > 0,
+      featuredRank: featuredProducts.length > 0 ? bestFeaturedRank : undefined
     };
 
     const productRef = doc(db, 'app_products', productId);
