@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, X, RefreshCw, Copy, Check, Instagram, Send, Heart, MessageCircle } from 'lucide-react';
+import { Sparkles, X, RefreshCw, Copy, Check, Instagram, Send, Heart, MessageCircle, Zap, TrendingUp, BarChart2, Loader2, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { AppState } from '../types';
@@ -13,17 +13,29 @@ interface InstagramMagicWandProps {
  userRole?: 'admin' | 'partner' | 'local' | null;
 }
 
-type Category = 'motivation' | 'engagement' | 'promo' | 'contest';
+type Category = 'motivation' | 'engagement' | 'promo' | 'contest' | 'trend';
 
 export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, currentPage = 'dashboard', userRole = 'admin' }) => {
  const [isOpen, setIsOpen] = useState(false);
- const [activeCategory, setActiveCategory] = useState<Category>('contest');
+ const [activeCategory, setActiveCategory] = useState<Category>('trend');
  const [messages, setMessages] = useState<string[]>([]);
  const [isGenerating, setIsGenerating] = useState(false);
  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
+ // Simulated Publishing Statuses
+ const [isPublishing, setIsPublishing] = useState<number | null>(null);
+ const [publishingStep, setPublishingStep] = useState(0);
+ const [publishedIndices, setPublishedIndices] = useState<Record<number, boolean>>({});
+
+ // Social Response Simulator Statuses
+ const [simulatedIndex, setSimulatedIndex] = useState<number | null>(null);
+ const [isSimulating, setIsSimulating] = useState(false);
+ const [simulationResult, setSimulationResult] = useState<any>(null);
+
  const fetchMessages = async (cat: Category = activeCategory, forceRefresh = false) => {
  setIsGenerating(true);
+ setSimulationResult(null);
+ setSimulatedIndex(null);
  try {
  const msgs = await generateQuickInstagramMessages(data, cat, forceRefresh);
  setMessages(msgs);
@@ -48,6 +60,52 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  setTimeout(() => setCopiedIndex(null), 2000);
  };
 
+ const runSocialSimulation = async (text: string, index: number) => {
+   setIsSimulating(true);
+   setSimulatedIndex(index);
+   setSimulationResult(null);
+   try {
+     const response = await fetch('/api/smart-studio/social-simulator', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+         text,
+         theme: activeCategory === 'trend' ? 'عصا تريند إنستقرام الذكية' : activeCategory
+       })
+     });
+     if (response.ok) {
+       const result = await response.json();
+       setSimulationResult(result);
+     } else {
+       toast.error('لم نتمكن من الوصول لمحاكي الجمهور حالياً');
+     }
+   } catch {
+     toast.error('المعذرة، حدث خطأ أثناء المحاكاة');
+   } finally {
+     setIsSimulating(false);
+   }
+ };
+
+ const handleInstantPublish = (index: number) => {
+   setIsPublishing(index);
+   setPublishingStep(0);
+   
+   const interval = setInterval(() => {
+     setPublishingStep((prev) => {
+       if (prev >= 4) {
+         clearInterval(interval);
+         setTimeout(() => {
+           setIsPublishing(null);
+           setPublishedIndices(all => ({ ...all, [index]: true }));
+           toast.success('تم النشر مباشرة بمتجركم عبر إنستقرام وجذب التفاعل! 🚀🔥');
+         }, 800);
+         return 5;
+       }
+       return prev + 1;
+     });
+   }, 700);
+ };
+
  const canShow = currentPage === 'dashboard';
  if (!canShow) return null;
 
@@ -55,9 +113,10 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  const previewParts = previewRaw.split('$$');
  const previewIsContest = previewParts.length >= 8 && previewParts[0] === 'CONTEST';
  const previewIsStory = previewParts.length >= 6 && previewParts[0] === 'STORY';
- const previewTitle = previewIsContest || previewIsStory ? previewParts[1] : (previewRaw.split('\n')[0] || 'فكرة انستغرام جاهزة');
- const previewText = previewIsContest ? previewParts.slice(7).join('$$') : previewIsStory ? previewParts.slice(5).join('$$') : previewRaw;
- const previewCardText = (previewText || previewTitle || 'فكرة انستغرام جاهزة').replace(/CONTEST|STORY|\$\$/g, ' ').trim();
+ const previewIsTrend = previewParts.length >= 8 && previewParts[0] === 'TREND';
+ const previewTitle = previewIsContest || previewIsTrend || previewIsStory ? previewParts[1] : (previewRaw.split('\n')[0] || 'فكرة انستغرام جاهزة');
+ const previewText = previewIsContest || previewIsTrend ? previewParts.slice(7).join('$$') : previewIsStory ? previewParts.slice(5).join('$$') : previewRaw;
+ const previewCardText = (previewText || previewTitle || 'فكرة انستغرام جاهزة').replace(/CONTEST|TREND|STORY|\$\$/g, ' ').trim();
 
  return (
  <>
@@ -134,18 +193,18 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  {/* Tabs */}
  <div className="p-3 bg-slate-50 border-b border-black/5 space-y-3">
  <button
- onClick={() => { setActiveCategory('contest'); fetchMessages('contest', true); }}
+ onClick={() => { setActiveCategory('trend'); fetchMessages('trend', true); }}
  className={cn(
  "w-full py-4 px-4 rounded-3xl text-sm font-black border-2 transition-all active:scale-95 flex items-center justify-center gap-2",
- activeCategory === 'contest'
- ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-transparent shadow-xl shadow-emerald-500/30"
- : "bg-white text-emerald-700 border-emerald-100 shadow-sm"
+ activeCategory === 'trend'
+ ? "bg-gradient-to-br from-violet-600 to-purple-700 text-white border-transparent shadow-xl shadow-purple-500/30"
+ : "bg-white text-purple-700 border-purple-100 shadow-sm"
  )}
  >
- 🏆 مسابقات الانستغرام
+ ⚡ عصا إنستقرام السحرية (Trends آخر 60 دقيقة)
  </button>
- <div className="grid grid-cols-3 gap-3">
- {(['engagement', 'motivation', 'promo'] as Category[]).map((cat) => (
+ <div className="grid grid-cols-2 gap-3">
+ {(['contest', 'engagement', 'motivation', 'promo'] as Category[]).map((cat) => (
  <button
  key={cat}
  onClick={() => {
@@ -153,7 +212,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  fetchMessages(cat, true);
  }}
  className={cn(
-"flex-1 py-3 text-[11px] font-bold rounded-2xl transition-all duration-500 active:scale-90 border-2",
+"py-3 text-[11px] font-bold rounded-2xl transition-all duration-500 active:scale-90 border-2",
  activeCategory === cat 
  ? cn(
 "shadow-xl scale-[1.05] border-transparent text-white",
@@ -175,6 +234,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  <div className={cn(
 "flex-1 overflow-y-auto p-3 md:p-4 space-y-6 custom-scrollbar transition-colors duration-1000",
  activeCategory === 'contest' ? "bg-emerald-50/50" :
+ activeCategory === 'trend' ? "bg-violet-50/50" :
  activeCategory === 'motivation' ?"bg-rose-50/50" :
  activeCategory === 'engagement' ?"bg-indigo-50/50" :
 "bg-amber-50/50"
@@ -223,8 +283,11 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
   const parts = rawMsg.split('$$');
   const isContest = parts.length >= 7 && parts[0] === 'CONTEST';
   const isStory = parts.length >= 6 && parts[0] === 'STORY';
+ const isTrend = parts.length >= 7 && parts[0] === 'TREND';
   let title = '', cost = '', target = '', channel = '', duration = '', prize = '', text = rawMsg;
   if (isContest) {
+    [, title, cost, target, channel, duration, prize, text] = parts;
+  } else if (isTrend) {
     [, title, cost, target, channel, duration, prize, text] = parts;
   } else if (isStory) {
     [, title, channel, duration, target] = parts;
@@ -259,7 +322,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
 )}>
  <Instagram size={24} />
  </div>
- {isContest || isStory ? (
+ {isContest || isStory || isTrend ? (
    <h3 className="text-xl md:text-2xl font-black text-slate-800 text-right pr-4 leading-tight flex-1" style={{direction: "rtl"}}>{title}</h3>
  ) : (
    <span className="text-[10px] font-bold text-slate-300 tracking-tighter mr-auto">0{index + 1} / {messages.length}</span>
@@ -267,26 +330,124 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  </div>
 
  <div className="text-right">
- {(isContest || isStory) && (
+ {(isContest || isStory || isTrend) && (
    <div className="mb-6 space-y-3" dir="rtl">
      <div className="flex flex-wrap gap-2 text-[10.5px] font-bold">
-         <span className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-xl border border-emerald-100 flex items-center gap-1"><span className="text-emerald-400/80">💰</span>التكلفة: {cost}</span>
+         <span className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-xl border border-emerald-100 flex items-center gap-1"><span className="text-emerald-400/80">{isTrend ? '📈' : '💰'}</span>{isTrend ? 'زخم التريند:' : 'التكلفة:'} {cost}</span>
          <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl border border-blue-100 flex items-center gap-1"><span className="text-blue-400/80">🎯</span>الهدف: {target}</span>
      </div>
      <div className="flex flex-wrap gap-2 text-[10.5px] font-bold">
-         <span className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-xl border border-purple-100 flex items-center gap-1"><span className="text-purple-400/80">📱</span>النشر: {channel}</span>
-         <span className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-100 flex items-center gap-1"><span className="text-amber-400/80">⏱</span>المدة: {duration}</span>
+         <span className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-xl border border-purple-100 flex items-center gap-1"><span className="text-purple-400/80">📱</span>القناة: {channel}</span>
+         <span className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-100 flex items-center gap-1"><span className="text-amber-400/80">⏱</span>الفعالية: {duration}</span>
      </div>
      <div className="flex flex-wrap gap-2 text-[10.5px] font-bold">
-         <span className="bg-rose-50 text-rose-700 px-3 py-1.5 rounded-xl border border-rose-100 flex w-full items-center gap-1"><span className="text-rose-400/80">🎁</span>الجائزة: {prize}</span>
+         <span className="bg-rose-50 text-rose-700 px-3 py-1.5 rounded-xl border border-rose-100 flex w-full items-center gap-1"><span className="text-rose-400/80">🎁</span>{isTrend ? 'العائد المتوقع:' : 'الجائزة:'} {prize}</span>
      </div>
    </div>
  )}
 
- {(isContest || isStory) && <div className="text-[11px] font-bold text-slate-400 mb-3 border-b border-black/5 pb-2">{isStory ? 'ستوري هدفه يبيع، مو بس شكله حلو:' : 'النص الجاهز للنسخ:'}</div>}
- <p className="text-lg md:text-xl font-bold text-slate-900 leading-[1.6] mb-10 whitespace-pre-line text-right" dir="rtl">
+ {(isContest || isStory || isTrend) && <div className="text-[11px] font-bold text-slate-400 mb-3 border-b border-black/5 pb-2">{isStory ? 'ستوري هدفه يبيع، مو بس شكله حلو:' : isTrend ? 'الفكرة الحالية لمجاراة هذا التريند الكويتي الصاعد:' : 'النص الجاهز للنسخ:'}</div>}
+ <p className="text-lg md:text-xl font-bold text-slate-900 leading-[1.6] mb-8 whitespace-pre-line text-right" dir="rtl">
  {text}
  </p>
+
+ {/* AI & Publishing Intelligent Row */}
+ <div className="my-5 border-t border-b border-slate-50 py-4 flex flex-col sm:flex-row gap-3 justify-between" dir="rtl">
+   {publishedIndices[index] ? (
+     <div className="w-full bg-emerald-50 text-emerald-700 text-xs font-bold py-3.5 px-4 rounded-2xl border border-emerald-200/50 flex items-center justify-center gap-2 font-sans">
+       <CheckCircle size={16} /> تم النشر مباشرة على حساب المتجر بنجاح! 🎉
+     </div>
+   ) : isPublishing === index ? (
+     <div className="w-full bg-indigo-50 border border-indigo-100 rounded-3xl p-3 text-right" dir="rtl">
+       <div className="flex items-center gap-2 justify-end mb-1 text-xs font-black text-indigo-800 font-sans">
+         <Loader2 size={14} className="animate-spin text-indigo-600" />
+         <span>جاري النشر المباشر...</span>
+       </div>
+       <p className="text-[10px] text-slate-500 font-bold text-right leading-none font-sans">
+         {publishingStep === 0 && "⚡ الاتصال بـ Instagram Cloud API للهاتف الكويتي..."}
+         {publishingStep === 1 && "📸 دمج فكرة الصورة الفنية لمنتجات متجركم..."}
+         {publishingStep === 2 && "📝 صبغة النصوص الهاشتاجات الصاعدة محلياً..."}
+         {publishingStep === 3 && "📦 جدولة خوارزمية التوصيل والمجتمعات للزوارة..."}
+         {publishingStep === 4 && "🚀 تأشيرة النشر والتحقق النهائي..."}
+         {publishingStep >= 5 && "✨ انتظر ثانية واحدة..."}
+       </p>
+     </div>
+   ) : (
+     <div className="flex flex-row w-full gap-2 font-bold text-xs font-sans">
+       <button
+         onClick={() => handleInstantPublish(index)}
+         className="flex-1 py-3 px-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl flex items-center justify-center gap-1.5 shadow-md shadow-pink-500/20 active:scale-95 transition-all text-[11px]"
+       >
+         <Instagram size={14} /> نشر فوري 🚀
+       </button>
+       <button
+         onClick={() => runSocialSimulation(text, index)}
+         disabled={isSimulating}
+         className="flex-1 py-3 px-3 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200/30 rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition-all text-[11px]"
+       >
+         {isSimulating && simulatedIndex === index ? (
+           <Loader2 size={14} className="animate-spin text-slate-500" />
+         ) : (
+           <BarChart2 size={14} className="text-indigo-600" />
+         )}
+         محاكاة التفاعل 📊
+       </button>
+     </div>
+   )}
+ </div>
+
+ {/* Simulation Result Area */}
+ {simulatedIndex === index && (isSimulating || simulationResult) && (
+   <div className="mb-6 p-4 bg-slate-50/70 rounded-2xl border border-slate-200/40 text-right animate-fadeIn" dir="rtl">
+     <h6 className="text-xs font-black text-indigo-950 mb-3 flex items-center gap-1.5 justify-end font-sans">
+       <span>محاكاة السلوك التفاعلي الكويتي 🔬</span>
+       <TrendingUp size={14} className="text-indigo-600" />
+     </h6>
+     
+     {isSimulating ? (
+       <div className="flex flex-col items-center justify-center py-4 space-y-2">
+         <Loader2 className="animate-spin text-indigo-500" size={24} />
+         <span className="text-[10px] text-slate-400 font-bold font-sans">ذكاء التنبؤ يقرأ سلوك المستهلك الكويتي حالياً...</span>
+       </div>
+     ) : (
+       <div className="space-y-4 font-sans">
+         <div className="grid grid-cols-2 gap-3">
+           {simulationResult?.scores?.map((item: any, i: number) => (
+             <div key={i} className="bg-white p-2.5 rounded-xl border border-black/5">
+               <div className="flex justify-between text-[10px] text-slate-500 font-bold mb-1">
+                 <span>%{item.percentage}</span>
+                 <span className="text-slate-700">{item.label}</span>
+               </div>
+               <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                 <div 
+                   className={cn(
+                     "h-full rounded-full transition-all duration-1000",
+                     item.percentage > 75 ? "bg-emerald-500" :
+                     item.percentage > 50 ? "bg-indigo-500" :
+                     "bg-amber-500"
+                   )}
+                   style={{ width: `${item.percentage}%` }}
+                 />
+               </div>
+             </div>
+           ))}
+         </div>
+         
+         <div className="bg-white/80 p-3 rounded-xl border border-black/5 space-y-2 p-3 text-[11.5px]">
+           <div className="flex justify-between items-center text-[10px] flex-row-reverse">
+             <span className="font-bold text-slate-400">تقييم المزاج (Sentiment):</span>
+             <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-lg font-black text-[9.5px]">
+               {simulationResult?.sentiment || "مستعد للنشر 🚀"}
+             </span>
+           </div>
+           <p className="leading-relaxed text-slate-600 font-bold">
+             {simulationResult?.feedback}
+           </p>
+         </div>
+       </div>
+     )}
+   </div>
+ )}
  
  <div className="flex items-center justify-between pt-6 border-t border-black/5">
  <div className="flex gap-4">

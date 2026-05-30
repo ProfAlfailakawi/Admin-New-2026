@@ -58,7 +58,7 @@ function generateStateHash(data: AppState): string {
  * Generate Quick Instagram Engagement Messages
  */
 
-export async function generateQuickInstagramMessages(data: AppState, category: 'motivation' | 'engagement' | 'promo' | 'contest', forceRefresh = false) {
+export async function generateQuickInstagramMessages(data: AppState, category: 'motivation' | 'engagement' | 'promo' | 'contest' | 'trend', forceRefresh = false) {
   if (category === 'contest') {
     const products = (data?.products || []).filter((p: any) => !p.isDeleted);
     const invoices = (data?.invoices || []).filter((i: any) => !i.isDeleted);

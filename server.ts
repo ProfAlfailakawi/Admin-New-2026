@@ -4460,7 +4460,21 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
         return res.status(500).json({ error: "GEMINI_API_KEY is not configured on server", needsKey: true });
       }
 
-      const prompt = `
+      let prompt = "";
+      if (category === "trend") {
+        prompt = `بصفتك خبير تسويق كويتي ذكي ومستشار ابتكار بروح Apple وسرعة استجابة فائقة. 
+تخيل وصمم 3 تريندات ريلز وموجات تواصل اجتماعي فيروسية شائعة جداً في الكويت والمنطقة خلال الـ 60 دقيقة الأخيرة (يمكنك ابتكار تريندات مرتبطة بالمزاج الحالي، الويكند، الزوارة، هوس التوصيل، أو أسلوب حياة كويتي مضحك ومألوف). 
+لكل تريند، صغ منشوراً أو ريلاً إبداعياً لمتجر مطبخ التراث الكويتي (العيوش، الأسماك، المحاشي، ورق العنب) يركب تلك الموجة فوراً بشكل ذكي جداً وبدون مبالغة تضر بسمعة البراند.
+
+أخرج النتيجة بصيغة JSON فقط بهذا الشكل:
+{
+  "messages": [
+    "TREND$$عنوان التريند (مثال: تريند تحدي الـ 60 ثانية ⏱️)$$ميزانية التريند (مثال: صفر تمويل)$$هدف المنشور (مثال: تفاعل فيروسي وجذب متابعين)$$قناة النشر المتوقعة (مثال: فيديوهات ريلز صاعدة)$$مدة فعالية التريند (مثال: آخر 60 دقيقة وإلى الغد)$$فائدة ورواج التريند لو طبق$$نص البوست الإبداعي القصير الجاهز للنسخ والنشر فوراً بلهجة كويتية بيضاء راقية ومرحة تلمس القلب!"
+  ]
+}
+يرجى التأكد من أن كل عنصر في المصفوفة مسبوق بكلمة TREND$$ ويتبع نفس نظام علامات الدولار المزدوجة لتسهيل التحليل.`;
+      } else {
+        prompt = `
       بصفتك خبير تسويق كويتي ذكي ومبدع. قم بتوليد 3 رسائل قصيرة جداً للانستغرام (Caption or Story) تتناسب مع طبيعة العمل (حلويات ومطاعم) في الكويت.
       
       التصنيف المطلوب: ${category === 'motivation' ? 'تحفيزي وإيجابي' : category === 'engagement' ? 'تفاعلي مع المتابعين (سؤال أو نقاش)' : 'ترويجي سريع لمنتج'}.
@@ -4477,6 +4491,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
         "messages": ["رسالة 1", "رسالة 2", "رسالة 3"]
       }
     `;
+      }
 
       const ai = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
@@ -4734,6 +4749,9 @@ ${JSON.stringify(allComments)}
         "farm-gathering": "خلفية مزرعة كويتية بسيطة وواقعية، سفرة خارجية نظيفة، ظل طبيعي، طلب جماعي بدون زخارف تراثية مصطنعة.",
         "jakhour-setup": "خلفية جاخور كويتي عملي وراقي، طلبات للربع على طاولة بسيطة، إضاءة واقعية، بدون فوضى أو ديكور مبالغ.",
         "zowara-spread": "خلفية زوارة أو عزيمة كويتية داخل بيت، سفرة عائلية مرتبة، دفء وواقعية بدون مطعم.",
+        "kuwait-towers": "خلفية أبراج الكويت الشهيرة بالعمق بضبابية لطيفة ناعمة وقت الغروب الساحر، مع طاولة أو جلسة خارجية راقية يقدم عليها الطلب وظل واقعي.",
+        "mubarakiya": "خلفية طراز سوق المباركية الكويتي التراثي العريق مبني بشكل مدمج ضبابي ناعم بالخلفية كأجواء شعبية دافئة مع إضاءة دقيقة للطلب.",
+        "bidaa": "خلفية رمال ساحل شاطئ البدع المعتدلة وقت العصر والغروب الذهبي، مع طاولة خشبية هادئة ممتدة وظل واقعي صحيح ينعكس عليها.",
       };
       const chosenMode = realityModeMap[realityMode || "restaurant"] || realityModeMap.restaurant;
       const chosenBackground = backgroundMap[backgroundPreset || "wood-table"] || backgroundMap["wood-table"];
@@ -5277,6 +5295,92 @@ ${tasteProfile ? `ذاكرة الذوق: ${String(tasteProfile).slice(0, 700)}` 
         return res.status(429).json({ error: "تم استنفاد حصة الاستخدام (Quota Exceeded). يرجى المحاولة لاحقاً.", needsKey: true });
       }
       res.status(500).json({ error: errMsg });
+    }
+  });
+
+  app.post("/api/smart-studio/social-simulator", express.json({ limit: "50mb" }), async (req, res) => {
+    try {
+      const { text, theme, image } = req.body;
+      if (!text) {
+        return res.status(400).json({ error: "Missing text to simulate" });
+      }
+
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: "GEMINI_API_KEY is not configured" });
+      }
+
+      const ai = new GoogleGenAI({ 
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build-simulator',
+          }
+        }
+      });
+
+      let base64Data = '';
+      let mimeType = 'image/png';
+      if (image && typeof image === 'string' && image.includes('data:')) {
+        const firstCommaIndex = image.indexOf(',');
+        const header = image.substring(0, firstCommaIndex);
+        mimeType = header.split(':')[1].split(';')[0];
+        base64Data = image.substring(firstCommaIndex + 1);
+      } else if (image && typeof image === 'string') {
+        base64Data = image;
+      }
+
+      const prompt = `أنت محاكي ذكي وخبير سلوك المستهلك الكويتي (Kuwaiti Consumer Behavior AI Simulator). 
+مهمتك هي تحليل فكرة هذا المنشور أو الصورة المرفقة والنص المكتوب التالي للتنبؤ بمدى استجابة الجمهور الكويتي وتفاعلهم معها.
+
+تفاصيل المنشور المراد تحليله:
+الثيم/الفكرة: ${theme || "غير محدد"}
+النص التسويقي: "${text}"
+
+المطلوب منك:
+1. توقع نسب التفاعل (0 إلى 100) لأربع فئات رئيسية في المجتمع الكويتي:
+   - "الشباب والديوانيات"
+   - "الأمهات والزوارة"
+   - "الموظفين لطلبات الظهر"
+   - "أصحاب الشاليهات والطلعات"
+2. اكتب تقريراً تحليلياً ونقداً تسويقياً طريفاً، فكاهياً، وذكياً باللغة العربية (لهجة كويتية بيضاء قريبة ومحببة جداً) يشرح كيف سيتفاعل الجمهور الكويتي مع هذا البوست، وما هي عيوبه أو اقتراحاتك السريعة لتحسينه لجذب فئة معينة (مثال: "هذا المنشور ناطع للشباب بس الأمهات راح يحسونه...").
+3. حدد حالة الرضا النفسي والتفاعل العام للمنشور بكلمة أو إيموجي كحالة (sentiment).
+
+أخرج النتيجة بصيغة JSON فقط بهذا الشكل الصارم:
+{
+  "scores": [
+    { "label": "الشباب والديوانيات", "percentage": 85 },
+    { "label": "الأمهات والزوارة", "percentage": 43 },
+    { "label": "الموظفين لطلبات الظهر", "percentage": 68 },
+    { "label": "أصحاب الشاليهات والطلعات", "percentage": 92 }
+  ],
+  "feedback": "التقرير هنا بلهجة كويتية طريفة وذكية...",
+  "sentiment": "مستعد للنشر 🚀"
+}`;
+
+      const contentsParts: any[] = [];
+      if (base64Data) {
+        contentsParts.push({ inlineData: { data: base64Data, mimeType: mimeType } });
+      }
+      contentsParts.push({ text: prompt });
+
+      const result = await ai.models.generateContent({
+        model: "gemini-2.5-flash-lite",
+        contents: [
+          {
+            role: "user",
+            parts: contentsParts
+          }
+        ],
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      const resText = result.text || "{}";
+      res.json(JSON.parse(resText));
+    } catch (e: any) {
+      console.error("/api/smart-studio/social-simulator error:", e);
+      res.status(500).json({ error: e.message || String(e) });
     }
   });
 

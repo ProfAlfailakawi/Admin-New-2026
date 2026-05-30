@@ -477,3 +477,244 @@ export function buildAdvancedMenuContext(names: string[] = [], customText = '', 
     buildSensitiveDishGuardPrompt(focusName)
   ].filter(Boolean).join(' ');
 }
+
+export interface AlturathStudioBrainResult {
+  hasInput: boolean;
+  sceneId: string;
+  pulseId: string;
+  mood: string;
+  shotId: string;
+  canGenerate: boolean;
+  productGuardMessage: string;
+  strictProductOnlyMode: boolean;
+  isKnownProduct: boolean;
+  productSuggestions: any[];
+  category: string;
+  categoryLabel: string;
+  primaryProductName: string;
+  warning?: string;
+  promptGuard: string;
+  reelRecipe: string[];
+  requiresProductSelection: boolean;
+}
+
+export function getAlturathProductName(product: any): string {
+  return product?.name || '';
+}
+
+export function getAlturathProductGroups(products: any[]): { id: string; label: string; products: any[] }[] {
+  const map: Record<string, any[]> = {};
+  if (!Array.isArray(products)) return [];
+  
+  products.forEach((p) => {
+    const cat = p.category || 'العام';
+    if (!map[cat]) map[cat] = [];
+    map[cat].push(p);
+  });
+
+  const categoriesOrder = [
+    { key: 'مكبوس ومجبوس دجاج', label: 'دجاج 🍗' },
+    { key: 'أطباق لحوم محلية', label: 'لحوم 🥩' },
+    { key: 'أطباق بحرية كويتية', label: 'بحري 🐟' },
+    { key: 'إيدامات ومرقيات شعبية', label: 'مرق 🍲' },
+    { key: 'محاشي وورق عنب', label: 'محاشي 🍃' },
+    { key: 'حلويات كويتية ولقيمات', label: 'حلويات 🍯' }
+  ];
+
+  const groups: { id: string; label: string; products: any[] }[] = [];
+  
+  // First add defined key orders
+  categoriesOrder.forEach((order) => {
+    const matchedProducts = products.filter(p => p.category === order.key);
+    if (matchedProducts.length > 0) {
+      groups.push({
+        id: order.key,
+        label: order.label,
+        products: matchedProducts
+      });
+    }
+  });
+
+  // Then add any remaining
+  Object.keys(map).forEach((catName) => {
+    if (!categoriesOrder.some(o => o.key === catName)) {
+      groups.push({
+        id: catName,
+        label: catName,
+        products: map[catName]
+      });
+    }
+  });
+
+  // Fallback if no products yet
+  if (groups.length === 0) {
+    groups.push({ id: 'العام', label: 'كل المنتجات 📋', products: products });
+  }
+
+  return groups;
+}
+
+export function getAlturathProductSuggestions(products: any[], query: string, limit = 8): any[] {
+  if (!Array.isArray(products)) return [];
+  const lowercaseQuery = String(query || '').toLowerCase().trim();
+  if (!lowercaseQuery) return products.slice(0, limit);
+  
+  const matches = products.filter((p) => {
+    const name = String(p.name || '').toLowerCase();
+    const cat = String(p.category || '').toLowerCase();
+    return name.includes(lowercaseQuery) || cat.includes(lowercaseQuery);
+  });
+  
+  return matches.slice(0, limit);
+}
+
+export function getAlturathDishProfile(name: string, products: any[]): {
+  clutterRisk: { label: string; value: number; prompt: string };
+  deliverySuitability: { label: string; value: number; prompt: string };
+  fingerprintMini: string;
+  fingerprint: string;
+  identityLock: string;
+  portionRule: string;
+  truthBiasHint: string;
+  brandStyleHint: string;
+  menuModeHint: string;
+  shortLabel: string;
+} {
+  const category = getDishCategory(name);
+  let clutterRiskVal = 15;
+  let clutterRiskLabel = 'مخاطر منخفضة للتشتيت البصري';
+  let deliveryVal = 95;
+  let deliveryLabel = 'سهلة التجهيز والتوصيل كأكلة شعبية مرتبة';
+  
+  if (category === 'fish' || category === 'prawn') {
+    clutterRiskVal = 30;
+    clutterRiskLabel = 'مخاطر متوسطة (تزيين بحري مفرط)';
+    deliveryVal = 90;
+    deliveryLabel = 'جاهزية عالية للتوصيل بكرتون مخصص وحافظ للحرارة';
+  } else if (category === 'meat' || category === 'chicken') {
+    clutterRiskVal = 25;
+    clutterRiskLabel = 'مخاطر منخفضة (وفرة الأرز حول الصواني)';
+    deliveryVal = 92;
+    deliveryLabel = 'مثالية كوجبة عيش رئيسية على السفرة الكويتية';
+  } else if (category === 'stew' || category === 'mahshi') {
+    clutterRiskVal = 40;
+    clutterRiskLabel = 'مخاطر مرتفعة قليلاً (انزلاق محتويات أو بروز الصلصات)';
+    deliveryVal = 85;
+    deliveryLabel = 'تحتاج أواني عميقة مانعة للتسرب عند التوزيع';
+  } else if (category === 'dessert') {
+    clutterRiskVal = 10;
+    clutterRiskLabel = 'هادئة وواضحة جداً بصرياً';
+    deliveryVal = 98;
+    deliveryLabel = 'سريعة ومضمونة التوصيل لجمعة التحلية والزواره';
+  }
+
+  const categoryAr = category === 'fish' ? 'أكل بحري' :
+                     category === 'prawn' ? 'روبيان' :
+                     category === 'meat' ? 'لحم' :
+                     category === 'chicken' ? 'دجاج' :
+                     category === 'stew' ? 'مرق وإيدام' :
+                     category === 'mahshi' ? 'محاشي' :
+                     category === 'dessert' ? 'حلو شعبى' : 'عام';
+
+  const fingerprint = `Dish Brand ID: ${category} - Premium Local Heritage Focus.`;
+  const identityLock = `Dish Identity Lock: do not mix rice dish with stew structures or substitute the core protein.`;
+  const portionRule = `Portion Guard: keep serving quantity realistic and suitable for home delivery standards.`;
+  const truthBiasHint = `Truth Bias: generate a clean photographed rendering of a real meal, avoiding CGI, high-gloss reflection or over-saturated artificial textures.`;
+  const brandStyleHint = `Brand Style Hint: natural light, elegant beige/warm undertones, clean slate or fine wooden tables.`;
+  const menuModeHint = `Menu Mode Hint: centered composition, neat framing, maximum dish clarity.`;
+  const shortLabel = `${categoryAr}`;
+
+  return {
+    clutterRisk: { label: clutterRiskLabel, value: clutterRiskVal, prompt: `Clutter risk is ${clutterRiskLabel}. Maintain minimal decoration.` },
+    deliverySuitability: { label: deliveryLabel, value: deliveryVal, prompt: `Delivery suitability rating: ${deliveryLabel}. Use robust plain packaging aesthetics.` },
+    fingerprintMini: `تصنيف: ${category} · مخاطر: ${clutterRiskVal}% · جاهزية: ${deliveryVal}%`,
+    fingerprint,
+    identityLock,
+    portionRule,
+    truthBiasHint,
+    brandStyleHint,
+    menuModeHint,
+    shortLabel
+  };
+}
+
+export function analyzeAlturathStudioIdea(ideaText: string, products: any[] = []): AlturathStudioBrainResult {
+  const hasInput = !!String(ideaText || '').trim();
+  const lowerText = String(ideaText || '').toLowerCase();
+  
+  const category = getDishCategory(ideaText);
+  let categoryLabel = 'صنف عام';
+  if (category === 'fish') categoryLabel = 'أطباق بحرية كويتية';
+  else if (category === 'meat') categoryLabel = 'أطباق لحوم محلية';
+  else if (category === 'chicken') categoryLabel = 'مكبوس ومجبوس دجاج';
+  else if (category === 'prawn') categoryLabel = 'مربيان وروبيان بحري';
+  else if (category === 'rice') categoryLabel = 'عيش وصواني ممتدة';
+  else if (category === 'stew') categoryLabel = 'إيدامات ومرقيات شعبية';
+  else if (category === 'mahshi') categoryLabel = 'محاشي وورق عنب';
+  else if (category === 'grill') categoryLabel = 'مشويات وتجهيزات ديوانية';
+  else if (category === 'dessert') categoryLabel = 'حلويات كويتية ولقيمات';
+
+  const isKnownProduct = Array.isArray(products) && products.some((p) => {
+    const name = String(p.name || '').toLowerCase();
+    return lowerText.includes(name) || name.includes(lowerText);
+  });
+  
+  const matchedProduct = Array.isArray(products) && products.find((p) => {
+    const name = String(p.name || '').toLowerCase();
+    return lowerText.includes(name) || name.includes(lowerText);
+  });
+  const primaryProductName = matchedProduct ? matchedProduct.name : '';
+
+  const productSuggestions = getAlturathProductSuggestions(products, ideaText, 4);
+  const requiresProductSelection = hasInput && !isKnownProduct && productSuggestions.length > 0;
+  
+  let sceneId = 'delivery-packaging';
+  if (category === 'meat' || category === 'chicken' || category === 'rice') {
+    sceneId = 'home-table';
+  } else if (category === 'grill') {
+    sceneId = 'diwaniya-table';
+  } else if (category === 'dessert') {
+    sceneId = 'zowara-spread';
+  }
+
+  let shotId = 'hero-push';
+  if (category === 'fish' || category === 'mahshi') {
+    shotId = 'elevated-flat';
+  } else if (category === 'stew' || category === 'dessert') {
+    shotId = 'macro-reveal';
+  }
+
+  const canGenerate = true;
+  const productGuardMessage = '';
+  const strictProductOnlyMode = false;
+  const pulseId = 'kuwait-pulse-1';
+  const mood = 'warm-cozy';
+  const warning = '';
+
+  const promptGuard = `قم بحظر توليد أي عناصر غريبة عن المجتمع الكويتي أو المطبخ الشعبي؛ لا صور فوضوية، لا كلينكس مستخدم، ولا وجوه كرتونية.`;
+  const reelRecipe = [
+    `تقديم المقادير الكويتية الأصلية والمكونات المرتبة بلون شهي`,
+    `التقاط المنتج من زاوية بؤرية نظيفة تعكس جودة التوصيل العائلي`,
+    `الحفاظ على حركة بطيئة هادئة للكاميرا لترسيخ الوعي بالوفرة والطراوة`
+  ];
+
+  return {
+    hasInput,
+    sceneId,
+    pulseId,
+    mood,
+    shotId,
+    canGenerate,
+    productGuardMessage,
+    strictProductOnlyMode,
+    isKnownProduct,
+    productSuggestions,
+    category,
+    categoryLabel,
+    primaryProductName,
+    warning,
+    promptGuard,
+    reelRecipe,
+    requiresProductSelection
+  };
+}
