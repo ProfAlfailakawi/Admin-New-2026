@@ -1,7 +1,7 @@
 import type { StudioBackgroundPresetId, StudioRealityMode } from './studioReality';
 
 export type KuwaitContentGoal = 'post' | 'story' | 'whatsapp' | 'campaign' | 'product';
-export type KuwaitOrderPlace = 'home' | 'diwaniya' | 'chalet' | 'farm' | 'jakhour' | 'zowara' | 'delivery';
+export type KuwaitOrderPlace = 'home' | 'diwaniya' | 'chalet' | 'farm' | 'jakhour' | 'zowara' | 'delivery' | 'towers' | 'mubarakiya' | 'bidaa';
 
 export type KuwaitPulsePack = {
   id: string;
@@ -25,7 +25,10 @@ export const KUWAIT_PLACES: Record<KuwaitOrderPlace, { label: string; icon: stri
   farm: { label: 'مزرعة', icon: '🌴', background: 'farm-gathering', prompt: 'مزرعة كويتية نظيفة وهادئة: طاولة خارجية تحت ظل طبيعي، طلب جماعي مرتب، بدون خيام تراثية أو زخارف مصطنعة أو فوضى.' },
   jakhour: { label: 'جاخور', icon: '🐪', background: 'jakhour-setup', prompt: 'جاخور كويتي مرتب وحذر: طاولة عملية نظيفة، طلب للربع، خلفية بسيطة blur، بدون حيوانات أو تراب أو مخلفات أو فوضى أو ديكور مبالغ.' },
   zowara: { label: 'زوارة', icon: '👨‍👩‍👧‍👦', background: 'zowara-spread', prompt: 'زوارة كويتية داخل بيت: سفرة عائلية مرتبة، محاشي/ورق عنب/عيوش أو أطباق جاهزة للتقديم، بدون وجوه واضحة أو عرس أو قهوة أو دلة.' },
-  delivery: { label: 'توصيل', icon: '🚗', background: 'delivery-packaging', prompt: 'مشهد طلب جاهز للتوصيل وهو الافتراضي: علب plain مرتبة وكيس plain على كاونتر أو طاولة نظيفة، إحساس مطبخ وطلبات بيتية، بدون سيارة أو سائق أو شعارات أو مطعم جلوس.' }
+  delivery: { label: 'توصيل', icon: '🚗', background: 'delivery-packaging', prompt: 'مشهد طلب جاهز للتوصيل وهو الافتراضي: علب plain مرتبة وكيس plain على كاونتر أو طاولة نظيفة، إحساس مطبخ وطلبات بيتية، بدون سيارة أو سائق أو شعارات أو مطعم جلوس.' },
+  towers: { label: 'أبراج الكويت 🇰🇼', icon: '🗼', background: 'kuwait-towers', prompt: 'جلسة خارجية راقية مع خلفية أبراج الكويت الشهيرة مدمجة بضبابية لطيفة (blur) وقت السحر أو الغروب، لقطة مشمسة هادئة وظلال مدمجة بامتياز دقيق.' },
+  mubarakiya: { label: 'سوق المباركية 🏛️', icon: '🛍️', background: 'mubarakiya', prompt: 'جلسة شعبية تراثية مدمجة بالخلفية مستوحاة من طراز سوق المباركية الكويتي التراثي العريق مبيّنة بضبابية هادئة ونسب إضاءة مقنعة للأطعمة والطلبات.' },
+  bidaa: { label: 'شاطئ البدع 🌊', icon: '🏖️', background: 'bidaa', prompt: 'طاولة خشبية دافئة على رمل شاطئ البدع الجميل وقت العصر، أضواء الشمس الدافئة مدمجة مع ظلال الطبق بامتياز دقيق ومنظر الساحل بلور ناعم بالخلفية.' }
 };
 
 export const KUWAIT_CONTENT_GOALS: Record<KuwaitContentGoal, { label: string; icon: string; prompt: string }> = {

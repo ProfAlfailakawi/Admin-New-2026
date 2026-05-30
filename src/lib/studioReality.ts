@@ -13,7 +13,10 @@ export type StudioBackgroundPresetId =
   | 'chalet-spread'
   | 'farm-gathering'
   | 'jakhour-setup'
-  | 'zowara-spread';
+  | 'zowara-spread'
+  | 'kuwait-towers'
+  | 'mubarakiya'
+  | 'bidaa';
 
 export const STUDIO_FORBIDDEN_REALITY_OBJECTS = [
   'دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود', 'سدو', 'فانوس', 'فوانيس', 'قهوة', 'قهوت', 'بن', 'فنجان', 'فناجين',
@@ -128,6 +131,18 @@ export const REAL_RESTAURANT_BACKGROUNDS: Record<StudioBackgroundPresetId, { lab
   'zowara-spread': {
     label: 'زوارة / عزيمة',
     prompt: 'Background: real Kuwaiti family zowara spread at home, generous but tidy serving, warm family atmosphere, premium but believable, no restaurant context.'
+  },
+  'kuwait-towers': {
+    label: 'أبراج الكويت',
+    prompt: 'Background: the famous Kuwait Towers in the soft sunset background with warm light bokeh blur, on a clean outdoor table with realistic shadow casting.'
+  },
+  'mubarakiya': {
+    label: 'سوق المباركية',
+    prompt: 'Background: authentic Kuwait Mubarakiya traditional souk atmosphere beautifully out of focus with warm lighting, cozy heritage mood.'
+  },
+  'bidaa': {
+    label: 'شاطئ البدع',
+    prompt: 'Background: soft sandy beach of Al-Bidaa coastal shoreline in Kuwait at golden hour sunset, gentle sea depth, placing the food on a beautiful clean seaside wooden table.'
   },
 };
 

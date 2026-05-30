@@ -915,87 +915,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   };
 
   const generateCaption = async () => {
-    if (!generatedImage) return;
-    setIsCapturing(true);
-    try {
-      // Resize image for text generation to reduce payload size safely
-      const safeBase64 = await new Promise<string>((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const maxDim = 800; // max dimension 800px is very safe and enough for captioning
-          let width = img.width;
-          let height = img.height;
-          
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-             ctx.drawImage(img, 0, 0, width, height);
-             // Generate low quality jpeg for quick and small API payload
-             resolve(canvas.toDataURL('image/jpeg', 0.6));
-          } else {
-             resolve(generatedImage || aiImage || "");
-          }
-        };
-        img.onerror = () => resolve(generatedImage || aiImage || "");
-        img.src = generatedImage || aiImage || "";
-      });
-
-      const response = await fetch('/api/smart-studio/caption', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image: safeBase64,
-          theme: `${buildKuwaitStudioTheme({ 
-            packId: selectedPulseId, 
-            place: selectedOrderPlace || activePulsePack.defaultPlace, 
-            goal: selectedContentGoal, 
-            customText: customThemeQuery || selectedTheme,
-            products: data?.products
-          })}. ${STUDIO_NEGATIVE_PROMPT}`
-        })
-      });
-      let res: any = null;
-      let isHtml = false;
-      try {
-        res = await response.json();
-      } catch (e) {
-        isHtml = true;
-      }
-      
-      if (!response.ok) {
-        throw new Error(isHtml ? 'المعذرة، حجم الصورة كبير جداً للمعالجة' : (res?.error || 'Failed to generate caption'));
-      }
-
-      const caption = res?.caption || `صورة تسويقية جاهزة بأسلوب ${selectedTheme}.`;
-      setPreviousAiCaption(aiCaption);
-      setAiCaption(caption);
-      toast.success('تم توليد التعليق الذكي على الصورة');
-      if (generatedImage) {
-        setHistory(prev => prev.map(item => item.url === generatedImage ? {...item, caption} : item));
-      }
-    } catch (e: any) {
-      console.error(e);
-      const fallbackCaption = `صورة تسويقية جاهزة بأسلوب ${selectedTheme}.`;
-      setPreviousAiCaption(aiCaption);
-      setAiCaption(fallbackCaption);
-      if (generatedImage) {
-        setHistory(prev => prev.map(item => item.url === generatedImage ? {...item, caption: fallbackCaption} : item));
-      }
-      toast.info('جهزنا نص مبدئي، بس خدمة النص الذكي ما ردت الحين');
-    } finally {
-      setIsCapturing(false);
-    }
+    // Disabled captioning as explicitly requested: الغي اي كابتشن
+    setAiCaption(null);
+    return;
   };
 
   const [isSaving, setIsSaving] = useState(false);
@@ -1599,11 +1521,11 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   ];
   const ideaFastSteps = [
     { n: 1, t: 'مقاس' },
-    { n: 2, t: 'فكرة' },
+    { n: 2, t: 'المشهد والفكرة' },
     { n: 5, t: 'أدوات' },
     { n: 6, t: 'توليد' },
   ];
-  const visibleStudioSteps = fullStudioSteps;
+  const visibleStudioSteps = studioTab === 'product' ? fullStudioSteps : ideaFastSteps;
   const renderStageProgress = (currentStep: number, setStep: (step: number) => void) => {
     const steps = visibleStudioSteps;
     const maxAllowedStep = studioTab === 'product' ? maxProductStepReached : maxCreateStepReached;
@@ -1973,7 +1895,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <div className="space-y-4">
                 {renderFineTools()}
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => goCreateStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                  <button type="button" onClick={() => goCreateStep(2)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
                   <button type="button" onClick={() => advanceCreateStep(6)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                 </div>
               </div>
