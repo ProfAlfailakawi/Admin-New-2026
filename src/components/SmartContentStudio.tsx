@@ -1126,30 +1126,78 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const currentStudioBrain = analyzeAlturathStudioIdea(effectiveStudioBrainText, studioProducts);
   const productSuggestions = getAlturathProductSuggestions(studioProducts, customThemeQuery, 8);
 
+  const calculateStudioMatch = (brain: AlturathStudioBrainResult, hasImageSource = false) => {
+    const hasWrittenIdea = customThemeQuery.trim().length >= 3;
+    const hasSelectedProduct = Boolean(selectedStudioProductName);
+    const hasImageAnalysis = Boolean(sceneSuggestion?.productType || sceneSuggestion?.reason);
+
+    if (!hasWrittenIdea && !hasSelectedProduct && !hasImageAnalysis) return null;
+
+    let score = 54;
+    if (hasSelectedProduct) score += 22;
+    else if (brain.isKnownProduct) score += 18;
+    else if (brain.productSuggestions.length > 0) score += 8;
+
+    if (brain.category !== 'generic') score += 10;
+    if (hasWrittenIdea) score += Math.min(8, Math.floor(customThemeQuery.trim().length / 10));
+    if (hasImageSource && hasImageAnalysis) score += 12;
+    if (selectedSceneId === brain.sceneId) score += 5;
+    if (reelShot === brain.shotId) score += 4;
+    if (brain.canGenerate) score += 4;
+    if (brain.requiresProductSelection) score -= 18;
+
+    const maxScore = hasSelectedProduct || brain.isKnownProduct ? 94 : hasImageAnalysis ? 86 : brain.category === 'generic' ? 74 : 84;
+    const minScore = brain.requiresProductSelection ? 48 : 62;
+    const value = Math.max(minScore, Math.min(maxScore, score));
+
+    return {
+      value,
+      label: brain.requiresProductSelection ? 'مطابقة منخفضة' : `مطابقة ${value}%`
+    };
+  };
+
   const renderAlturathBrainCard = (context: 'image' | 'reel' = 'image') => {
     const brain: AlturathStudioBrainResult = currentStudioBrain;
     const activeScene = mergedScenes.find(scene => scene.id === selectedSceneId) || mergedScenes[0];
     const activeShot = reelShots.find(shot => shot.id === reelShot) || reelShots[0];
+    const hasImageSource = Boolean(selectedImage) && (context === 'image' || context === 'reel');
+    const imageIdeaLabel = sceneSuggestion?.productType || (isSuggestingScene ? 'نقرأ الصورة الآن' : 'صورة مرفوعة');
+    const smartSelectionLine = selectedStudioProductName
+      ? `${selectedStudioProductName} · ${activeScene.label} · ${activeShot.label}`
+      : brain.hasInput
+        ? `${brain.categoryLabel} · ${activeScene.label} · ${activeShot.label}`
+        : hasImageSource
+          ? `${imageIdeaLabel} · ${activeScene.label} · ${activeShot.label}`
+          : `${activeScene.label} · ${activeShot.label}`;
+    const compactHint = selectedStudioProductName
+      ? 'تم تثبيت المنتج الذي اخترته.'
+      : studioProductPickMode === 'smart'
+        ? ''
+        : 'اختر المنتج عند الحاجة.';
+    const matchBadge = calculateStudioMatch(brain, hasImageSource);
 
-    if (!brain.hasInput && productSuggestions.length === 0) return null;
+    if (!brain.hasInput && !hasImageSource && productSuggestions.length === 0) return null;
 
     return (
       <div className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 text-right shadow-sm space-y-3">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="text-[11px] font-black text-emerald-600 flex items-center gap-1"><Brain size={14} /> فهمت فكرتك</div>
-            <div className="mt-1 text-sm font-black text-slate-950">{brain.hasInput ? brain.categoryLabel : 'منتجات مطبخ التراث'}</div>
-            <div className="mt-1 text-[11px] font-bold text-slate-500 leading-6">{brain.hasInput ? brain.reason : 'اختر منتجًا فعليًا أو اكتب فكرة، وسأربطها بمشهد ولقطة واقعية.'}</div>
+          <div className="min-w-0">
+            <div className="text-[11px] font-black text-emerald-600 flex items-center gap-1"><Brain size={14} /> اختيار ذكي</div>
+            <div className="mt-1 text-sm font-black text-slate-950 truncate">{selectedStudioProductName || (studioProductPickMode === 'smart' ? 'من كل أصناف مطبخك' : smartSelectionLine)}</div>
+            {compactHint && <div className="mt-1 text-[11px] font-bold text-slate-500 leading-6">{compactHint}</div>}
           </div>
-          <div className="rounded-2xl bg-white border border-emerald-100 px-3 py-2 text-center shrink-0">
-            <div className="text-lg font-black text-emerald-700">{brain.confidence}%</div>
-            <div className="text-[9px] font-black text-slate-400">ثقة</div>
-          </div>
+          {matchBadge && (
+            <div className="rounded-2xl bg-white border border-emerald-100 px-3 py-2 text-center shrink-0 text-[10px] font-black text-emerald-700">
+              {matchBadge.label}
+            </div>
+          )}
         </div>
 
-        <div className={`rounded-2xl border p-3 text-[11px] font-black leading-6 ${brain.canGenerate ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
-          {brain.canGenerate ? 'جاهز للاختيار الذكي من قائمة مطبخك، مع الحفاظ على الواقعية وهوية الطبق.' : brain.productGuardMessage}
-        </div>
+        {!brain.canGenerate && (
+          <div className="rounded-2xl border p-3 text-[11px] font-black leading-6 bg-red-50 border-red-200 text-red-700">
+            {brain.productGuardMessage}
+          </div>
+        )}
 
         {studioProductGroups.length > 0 && (
           <div className="rounded-[1.6rem] border border-slate-100 bg-white shadow-sm overflow-hidden">
@@ -1162,10 +1210,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 <div className="text-[10px] font-black text-slate-400">اختيار المنتج</div>
                 <div className="text-xs font-black text-slate-950 mt-0.5 truncate">
                   {studioProductPickMode === 'smart'
-                    ? 'اختيار ذكي من كل أصناف مطبخك'
+                    ? 'ذكي تلقائي'
                     : selectedStudioProductName
                       ? selectedStudioProductName
-                      : 'اختر التصنيف ثم المنتج'}
+                      : 'اختر المنتج'}
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -1184,8 +1232,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 </div>
 
                 {studioProductPickMode === 'smart' ? (
-                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-[11px] font-bold text-emerald-800 leading-6">
-                    سأختار لك الأنسب من كل أصناف مطبخك حسب الفكرة، المناسبة، والمشهد المطلوب.
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-[11px] font-black text-emerald-800">
+                    سأختار الأنسب تلقائيًا.
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1213,21 +1261,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           </div>
         )}
 
-        {brain.hasInput && (
-          <div className="rounded-2xl bg-white border border-slate-100 p-3 text-[11px] font-bold text-slate-600 leading-6">
-            <span className="font-black text-slate-950">اخترنا لك:</span> {activeScene.label} · {activeShot.label} · إضاءة {selectedMood}، لأنك كتبت: <span className="font-black text-emerald-700">{customThemeQuery}</span>
-            <div className="mt-1 text-slate-400">نوع الطبق: {brain.categoryLabel} · منطق الحرارة: {brain.heatLabel}</div>
-          </div>
-        )}
-
-        {brain.matchedProducts.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {brain.matchedProducts.map((name) => <span key={name} className="rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-[10px] font-black">منتج معروف: {name}</span>)}
-          </div>
-        )}
-
         {brain.warning && <div className="rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 p-3 text-[11px] font-black leading-6">{brain.warning}</div>}
-
 
         {context === 'reel' && brain.hasInput && (
           <div className="rounded-2xl bg-violet-50 border border-violet-100 p-3">
@@ -2055,7 +2089,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                       <div className="text-lg font-black">{customThemeQuery.trim() || `${activePulsePack.icon} ${activePulsePack.label}`}</div>
                       <div className="mt-2 text-sm font-bold text-white/60">{(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label} · {KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
                       <div className="mt-3 rounded-2xl bg-white/10 border border-white/10 p-3 text-xs font-black text-white/80">
-                        المنتج: {selectedStudioProductName || 'اختيار ذكي من منتجاتك الفعلية فقط'}
+                        المنتج: {selectedStudioProductName || 'اختيار ذكي من مطبخك'}
                       </div>
                     </div>
                     {renderAlturathBrainCard('image')}
