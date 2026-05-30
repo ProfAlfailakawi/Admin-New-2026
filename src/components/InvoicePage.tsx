@@ -1656,11 +1656,6 @@ Alturath.kw`;
                                             متاحة من كمية {limits.minProductQty}+
                                           </span>
                                         )}
-                                        {limits.available && a.quantityRule?.enabled && (
-                                          <span className="text-[8px] text-slate-400 font-bold">
-                                            المقترح {limits.suggested}
-                                          </span>
-                                        )}
                                       </div>
                                     </div>
                                   );

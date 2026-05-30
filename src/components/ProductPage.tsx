@@ -57,6 +57,13 @@ import {
 
 const DEFAULT_PRODUCT_CATEGORIES = ["الولائم", "اللحوم", "الدجاج", "البحري", "المقبلات"];
 const normalizeCategoryName = (value?: string) => String(value || "عام").trim() || "عام";
+
+const MAX_MENU_FEATURED_PRODUCTS = 3;
+const countMenuFeaturedProducts = (products: any[] = [], excludeId?: any) =>
+  (Array.isArray(products) ? products : []).filter((p: any) =>
+    p?.isMenuFeatured === true && String(p?.id || "") !== String(excludeId || "")
+  ).length;
+
 const getProductCategories = (data: any) => {
   const configuredSource = Array.isArray(data?.productCategories)
     ? data.productCategories
@@ -1281,11 +1288,17 @@ const ProductPage: React.FC<ProductPageProps> = ({
                          onClick={(e) => {
                            e.stopPropagation();
                            const nextFeatured = !(product as any).isMenuFeatured;
+                           const featuredCount = countMenuFeaturedProducts(data?.products || [], product.id);
+                           if (nextFeatured && featuredCount >= MAX_MENU_FEATURED_PRODUCTS) {
+                             toast.error('وصلت الحد الأقصى: يمكن اختيار 3 منتجات فقط ضمن من اختياراتنا لكم');
+                             return;
+                           }
+                           const nextRank = Math.min(MAX_MENU_FEATURED_PRODUCTS, featuredCount + 1);
                            setData((prev) => ({
                              ...prev,
                              products: (prev.products || []).map((p: any) =>
                                p.id === product.id
-                                 ? { ...p, isMenuFeatured: nextFeatured, featuredRank: nextFeatured ? (p.featuredRank || 99) : undefined }
+                                 ? { ...p, isMenuFeatured: nextFeatured, featuredRank: nextFeatured ? (p.featuredRank || nextRank) : undefined }
                                  : p
                              ),
                            }));
@@ -1697,11 +1710,20 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   )}>
                     <button
                       type="button"
-                      onClick={() => setProductForm((prev: any) => ({
-                        ...prev,
-                        isMenuFeatured: !prev.isMenuFeatured,
-                        featuredRank: !prev.isMenuFeatured ? (prev.featuredRank || 99) : undefined,
-                      }))}
+                      onClick={() => setProductForm((prev: any) => {
+                        const nextFeatured = !prev.isMenuFeatured;
+                        const featuredCount = countMenuFeaturedProducts(data?.products || [], prev.id);
+                        if (nextFeatured && featuredCount >= MAX_MENU_FEATURED_PRODUCTS) {
+                          toast.error('وصلت الحد الأقصى: يمكن اختيار 3 منتجات فقط ضمن من اختياراتنا لكم');
+                          return prev;
+                        }
+                        const nextRank = Math.min(MAX_MENU_FEATURED_PRODUCTS, featuredCount + 1);
+                        return {
+                          ...prev,
+                          isMenuFeatured: nextFeatured,
+                          featuredRank: nextFeatured ? (prev.featuredRank || nextRank) : undefined,
+                        };
+                      })}
                       className="w-full flex items-center justify-between gap-3 text-right"
                     >
                       <div className="flex items-center gap-3 flex-row-reverse min-w-0">
