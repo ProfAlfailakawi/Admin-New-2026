@@ -210,6 +210,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setSelectedMood(brain.mood);
     setRealityBoost(true);
     setStrictPlateLock(true);
+    setSelectedAlturathVariantId('');
     setReelShot(brain.shotId);
   };
 
@@ -220,6 +221,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setBackgroundPreset(scene.background as StudioBackgroundPresetId);
     setRealityMode(scene.mode as StudioRealityMode);
     setReelShot(variant.shotId);
+    setSelectedAlturathVariantId(variant.id);
     setSelectedTheme('نبض الكويت');
     setRealityBoost(true);
     setStrictPlateLock(true);
@@ -264,6 +266,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [studioProductPickMode, setStudioProductPickMode] = useState<StudioProductPickMode>('smart');
   const [selectedStudioCategoryId, setSelectedStudioCategoryId] = useState<string>('');
   const [selectedStudioProductId, setSelectedStudioProductId] = useState<string>('');
+  const [selectedAlturathVariantId, setSelectedAlturathVariantId] = useState<string>('');
   const [showStudioProductPicker, setShowStudioProductPicker] = useState(false);
   const [selectedPulseId, setSelectedPulseId] = useState<string>('quick-kuwait');
   const [selectedSceneId, setSelectedSceneId] = useState<string>('delivery-ready');
@@ -1182,7 +1185,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       <div className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 text-right shadow-sm space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[11px] font-black text-emerald-600 flex items-center gap-1"><Brain size={14} /> اختيار ذكي</div>
+            <div className="text-[11px] font-black text-emerald-600 flex items-center gap-1"><Brain size={14} /> {hasImageSource ? 'تحليل الصورة' : 'اختيار ذكي'}</div>
             <div className="mt-1 text-sm font-black text-slate-950 truncate">{selectedStudioProductName || (studioProductPickMode === 'smart' ? 'من كل أصناف مطبخك' : smartSelectionLine)}</div>
             {compactHint && <div className="mt-1 text-[11px] font-bold text-slate-500 leading-6">{compactHint}</div>}
           </div>
@@ -1227,7 +1230,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             {showStudioProductPicker && (
               <div className="border-t border-slate-100 p-3 space-y-3">
                 <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-1 border border-slate-100">
-                  <button type="button" onClick={() => { setStudioProductPickMode('smart'); setSelectedStudioProductId(''); }} className={cn("rounded-xl px-3 py-2 text-[11px] font-black transition-all", studioProductPickMode === 'smart' ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>ذكي تلقائي</button>
+                  <button type="button" onClick={() => { setStudioProductPickMode('smart'); setSelectedStudioProductId(''); setSelectedAlturathVariantId(''); }} className={cn("rounded-xl px-3 py-2 text-[11px] font-black transition-all", studioProductPickMode === 'smart' ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>ذكي تلقائي</button>
                   <button type="button" onClick={() => setStudioProductPickMode('manual')} className={cn("rounded-xl px-3 py-2 text-[11px] font-black transition-all", studioProductPickMode === 'manual' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>أختار بنفسي</button>
                 </div>
 
@@ -1239,7 +1242,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="space-y-3">
                     <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                       {studioProductGroups.map((group) => (
-                        <button key={group.id} type="button" onClick={() => { setSelectedStudioCategoryId(group.id); setSelectedStudioProductId(''); }} className={cn("shrink-0 rounded-2xl border px-3 py-2 text-[11px] font-black transition-all", activeStudioCategoryId === group.id ? "bg-slate-950 text-white border-slate-950 shadow-sm" : "bg-white text-slate-600 border-slate-100 hover:border-slate-300")}>{group.label}</button>
+                        <button key={group.id} type="button" onClick={() => { setSelectedStudioCategoryId(group.id); setSelectedStudioProductId(''); setSelectedAlturathVariantId(''); }} className={cn("shrink-0 rounded-2xl border px-3 py-2 text-[11px] font-black transition-all", activeStudioCategoryId === group.id ? "bg-slate-950 text-white border-slate-950 shadow-sm" : "bg-white text-slate-600 border-slate-100 hover:border-slate-300")}>{group.label}</button>
                       ))}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
@@ -1247,7 +1250,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                         const name = getAlturathProductName(product);
                         const isSelected = String(selectedStudioProductId) === String(product.id);
                         return (
-                          <button key={product.id || name} type="button" onClick={() => { setSelectedStudioProductId(String(product.id || '')); setShowStudioProductPicker(false); }} className={cn("rounded-2xl border p-3 text-right transition-all", isSelected ? "bg-emerald-50 border-emerald-400 ring-4 ring-emerald-500/10" : "bg-slate-50 border-slate-100 hover:bg-white hover:border-emerald-200")}>
+                          <button key={product.id || name} type="button" onClick={() => { setSelectedStudioProductId(String(product.id || '')); setSelectedAlturathVariantId(''); setShowStudioProductPicker(false); }} className={cn("rounded-2xl border p-3 text-right transition-all", isSelected ? "bg-emerald-50 border-emerald-400 ring-4 ring-emerald-500/10" : "bg-slate-50 border-slate-100 hover:bg-white hover:border-emerald-200")}>
                             <div className="text-xs font-black text-slate-950 truncate">{name}</div>
                             <div className="text-[10px] font-bold text-slate-400 mt-1">ضمن {studioProductGroups.find(g => g.id === activeStudioCategoryId)?.label || 'قائمة مطبخك'}</div>
                           </button>
@@ -1274,12 +1277,28 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
         {brain.hasInput && context === 'image' && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {brain.variants.map((variant) => (
-              <button key={variant.id} type="button" onClick={() => applyAlturathVariant(variant)} className="rounded-2xl border border-slate-100 bg-white p-3 text-right hover:border-emerald-300 hover:bg-emerald-50 transition-all">
-                <div className="text-xs font-black text-slate-950">{variant.title}</div>
-                <div className="mt-1 text-[10px] font-bold text-slate-500 leading-5">{variant.desc}</div>
-              </button>
-            ))}
+            {brain.variants.map((variant) => {
+              const isSelected = selectedAlturathVariantId === variant.id;
+              return (
+                <button
+                  key={variant.id}
+                  type="button"
+                  onClick={() => applyAlturathVariant(variant)}
+                  className={cn(
+                    "relative rounded-2xl border p-3 text-right transition-all",
+                    isSelected
+                      ? "bg-emerald-50 border-emerald-400 ring-4 ring-emerald-500/10 shadow-sm"
+                      : "bg-white border-slate-100 hover:border-emerald-300 hover:bg-emerald-50"
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className={cn("text-xs font-black", isSelected ? "text-emerald-900" : "text-slate-950")}>{variant.title}</div>
+                    {isSelected && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-1 text-[9px] font-black text-white"><Check size={11} /> مختارة</span>}
+                  </div>
+                  <div className="mt-1 text-[10px] font-bold text-slate-500 leading-5">{variant.desc}</div>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -1820,6 +1839,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                                   setSelectedOrderPlace(scene.place as any);
                                   setBackgroundPreset(scene.background as any);
                                   setRealityMode(scene.mode as any);
+                                  setSelectedAlturathVariantId('');
                                   setSelectedTheme('نبض الكويت');
                                   setShowCreateOccasion(false); // Close list after selection
                                 }}
@@ -1869,8 +1889,15 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
                   <div className="text-lg font-black">{customThemeQuery.trim() || `${activePulsePack.icon} ${activePulsePack.label}`}</div>
                   <div className="mt-2 text-sm font-bold text-white/60">{(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label} · {KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
+                  <div className="mt-3 grid gap-2 text-xs font-black text-white/80">
+                    <div className="rounded-2xl bg-white/10 border border-white/10 p-3">المنتج: {selectedStudioProductName || 'تلقائي'}</div>
+                    {selectedAlturathVariantId && (
+                      <div className="rounded-2xl bg-emerald-400/15 border border-emerald-300/20 p-3">
+                        النسخة: {currentStudioBrain.variants.find(v => v.id === selectedAlturathVariantId)?.title || 'مختارة'}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {renderAlturathBrainCard('image')}
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => goCreateStep(5)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
                   <button onClick={generateKuwaitNoProduct} disabled={isGenerating} className="p-4 bg-slate-950 hover:bg-slate-800 text-white rounded-2xl font-black flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
@@ -2039,6 +2066,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                                       setSelectedOrderPlace(scene.place as any);
                                       setBackgroundPreset(scene.background as any);
                                       setRealityMode(scene.mode as any);
+                                      setSelectedAlturathVariantId('');
                                       setSelectedTheme('نبض الكويت');
                                       setShowProductOccasion(false); // Close list after selection
                                     }}
@@ -2088,11 +2116,15 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                       <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
                       <div className="text-lg font-black">{customThemeQuery.trim() || `${activePulsePack.icon} ${activePulsePack.label}`}</div>
                       <div className="mt-2 text-sm font-bold text-white/60">{(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label} · {KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
-                      <div className="mt-3 rounded-2xl bg-white/10 border border-white/10 p-3 text-xs font-black text-white/80">
-                        المنتج: {selectedStudioProductName || 'اختيار ذكي من مطبخك'}
+                      <div className="mt-3 grid gap-2 text-xs font-black text-white/80">
+                        <div className="rounded-2xl bg-white/10 border border-white/10 p-3">المنتج: {selectedStudioProductName || 'تلقائي'}</div>
+                        {selectedAlturathVariantId && (
+                          <div className="rounded-2xl bg-emerald-400/15 border border-emerald-300/20 p-3">
+                            النسخة: {currentStudioBrain.variants.find(v => v.id === selectedAlturathVariantId)?.title || 'مختارة'}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    {renderAlturathBrainCard('image')}
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(5)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
                       <button onClick={() => generateContent()} disabled={isGenerating || isGeneratingVariants} className="p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 transition-all disabled:opacity-50">
