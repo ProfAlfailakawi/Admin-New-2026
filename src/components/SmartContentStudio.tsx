@@ -126,6 +126,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [generatedReel, setGeneratedReel] = useState<string | null>(null);
   const [isGeneratingReel, setIsGeneratingReel] = useState(false);
   const [showReelSettings, setShowReelSettings] = useState(false);
+  const [showReelShotList, setShowReelShotList] = useState(false);
   const [reelHistory, setReelHistory] = useState<StudioReelHistoryItem[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -193,6 +194,62 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   ];
 
 
+
+  const inferStudioChoicesFromText = (rawValue: string) => {
+    const value = String(rawValue || '').trim().toLowerCase();
+    if (!value) return;
+
+    let nextSceneId = 'delivery-ready';
+    let nextPulseId = 'quick-kuwait';
+    let nextShot = 'hero-push';
+    let nextMood = 'دافئ';
+
+    if (/العيد الوطني|وطني|الكويت|فبراير/.test(value)) {
+      nextSceneId = 'home-rice-tray';
+      nextPulseId = 'national-day';
+      nextShot = 'top-spread';
+      nextMood = 'ناعم';
+    } else if (/مجبوس|كبسة|مكبوس|عيش|رز|مربين|برياني|دجاج/.test(value)) {
+      nextSceneId = 'home-rice-tray';
+      nextShot = /تفاصيل|قريب|قريبة/.test(value) ? 'texture-close' : 'steam-close';
+    } else if (/ورق عنب|محاشي|محشي|زوارة|عزيمة|لمة|يمعة/.test(value)) {
+      nextSceneId = 'zowara-spread';
+      nextShot = 'top-spread';
+    } else if (/ديوانية|ربع|شباب|مباراة/.test(value)) {
+      nextSceneId = 'diwaniya-order';
+      nextShot = 'table-pass';
+    } else if (/شاليه|بحر|ويكند/.test(value)) {
+      nextSceneId = 'chalet-weekend-order';
+      nextShot = 'table-pass';
+      nextMood = 'غروب';
+    } else if (/مزرعة|جاخور/.test(value)) {
+      nextSceneId = value.includes('جاخور') ? 'jakhour-clean-order' : 'farm-clean-table';
+      nextShot = 'table-pass';
+    } else if (/علبة|بوكس|توصيل|طلب|دليفري/.test(value)) {
+      nextSceneId = 'box-reveal';
+      nextShot = 'box-open';
+    } else if (/تفاصيل|قوام|قريب|قريبة/.test(value)) {
+      nextSceneId = 'food-detail';
+      nextShot = 'texture-close';
+    }
+
+    const scene = mergedScenes.find((item) => item.id === nextSceneId) || mergedScenes[0];
+    setSelectedSceneId(scene.id);
+    setSelectedPulseId(nextPulseId);
+    setSelectedOrderPlace(scene.place as KuwaitOrderPlace);
+    setBackgroundPreset(scene.background as StudioBackgroundPresetId);
+    setRealityMode(scene.mode as StudioRealityMode);
+    setSelectedMood(nextMood);
+    setRealityBoost(true);
+    setStrictPlateLock(true);
+    setReelShot(nextShot);
+  };
+
+  const handleStudioIdeaChange = (value: string) => {
+    setCustomThemeQuery(value);
+    setSelectedTheme(value.trim() ? 'مخصص' : 'نبض الكويت');
+    inferStudioChoicesFromText(value);
+  };
 
   const FORBIDDEN_STUDIO_WORDS = ['دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود', 'سدو', 'فانوس', 'فوانيس', 'قهوة', 'قهوت', 'بن', 'فنجان', 'فناجين', 'كلينكس', 'منديل مستخدم', 'مناديل مستخدمة', 'منديل وصخ', 'مناديل وصخة', 'مخلفات'];
   const sanitizeStudioPrompt = (value: string) =>
@@ -509,13 +566,16 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       setReelSource('image');
       setGeneratedReel(null);
       setShowReelSettings(false);
+      setShowReelShotList(false);
+      recommendSceneFromImage(result.base64);
       toast.success('تم تجهيز الصورة كمصدر للريل');
     };
     reader.readAsDataURL(file);
   };
 
-  const generateContent = async (variantOverride?: { mode?: StudioRealityMode; background?: StudioBackgroundPresetId; label?: string }) => {
-    if (!selectedImage) return;
+  const generateContent = async (variantOverride?: { mode?: StudioRealityMode; background?: StudioBackgroundPresetId; label?: string; sourceImage?: string }) => {
+    const sourceImage = variantOverride?.sourceImage || selectedImage;
+    if (!sourceImage) return;
     const themeText = sanitizeStudioPrompt(buildKuwaitStudioTheme({
       packId: selectedPulseId,
       place: selectedOrderPlace || activePulsePack.defaultPlace,
@@ -536,8 +596,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageContent: selectedImage.split(',')[1],
-          mimeType: selectedImage.split(';')[0].split(':')[1],
+          imageContent: sourceImage.split(',')[1],
+          mimeType: sourceImage.split(';')[0].split(':')[1],
           format: selectedFormat,
           theme: `${themeText}. ${STUDIO_NEGATIVE_PROMPT}`,
           mood: selectedMood,
@@ -696,10 +756,11 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   };
 
   const makeMoreHuman = async () => {
-    if (!selectedImage || isGenerating || isGeneratingVariants) return;
+    const sourceImage = selectedImage || aiImage || generatedImage;
+    if (!sourceImage || isGenerating || isGeneratingVariants) return;
     setRealityMode('finalBoss');
     const hint = realityAudit?.fixHint || 'خل الخلفية أبسط وأكثر بشرية وكويتية: طلب بيت/ديوانية/شاليه عادي، ظلال صحيحة، إضاءة أقل مثالية، لا لمعان زائد، لا عمق مبالغ، لا ديكور وهمي.';
-    await generateContent({ mode: 'finalBoss', background: backgroundPreset || 'wood-table', label: `أصدق بصرياً: ${hint}` });
+    await generateContent({ mode: 'finalBoss', background: backgroundPreset || 'wood-table', label: `أصدق بصرياً: ${hint}`, sourceImage });
   };
 
 
@@ -1243,7 +1304,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { n: 5, t: 'أدوات' },
     { n: 6, t: 'توليد' },
   ];
-  const visibleStudioSteps = hasWrittenIdea ? ideaFastSteps : fullStudioSteps;
+  const visibleStudioSteps = fullStudioSteps;
   const renderStageProgress = (currentStep: number, setStep: (step: number) => void) => {
     const steps = visibleStudioSteps;
     const maxAllowedStep = studioTab === 'product' ? maxProductStepReached : maxCreateStepReached;
@@ -1407,13 +1468,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <button type="button" onClick={() => setReelSource('image')} className={cn("rounded-2xl border p-4 text-right transition-all", reelSource === 'image' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}><Camera size={18} className="mb-2" /><span className="block text-sm font-black">من صورة</span></button>
                 </div>
                 {reelSource === 'idea' && (
-                  <input type="text" placeholder="مثال: لقطة مجبوس حار يفتح الشهية لريلز إنستغرام..." value={customThemeQuery} onChange={(e) => setCustomThemeQuery(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-violet-500 transition-all duration-300 animate-in fade-in" />
+                  <input type="text" placeholder="مثال: لقطة مجبوس حار يفتح الشهية لريلز إنستغرام..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-violet-500 transition-all duration-300 animate-in fade-in" />
                 )}
                 {reelSource === 'image' && (
                   <div onClick={() => reelImageInputRef.current?.click()} className="rounded-3xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-5 cursor-pointer text-center">
                     <input type="file" ref={reelImageInputRef} className="hidden" accept="image/*" onChange={handleReelImageUpload} />
-                    <Camera className="mx-auto mb-2 text-violet-600" size={26} />
-                    <p className="text-sm font-black text-slate-800">{selectedImage ? 'الصورة جاهزة للريل' : 'ارفع صورة طبق للريل'}</p>{selectedImage && <p className="mt-1 text-[10px] font-bold text-violet-500">اضغط هنا لتغيير الصورة</p>}
+                    {selectedImage ? <img src={selectedImage} alt="صورة الريل المختارة" className="mx-auto mb-3 h-40 w-full rounded-2xl object-cover border border-violet-100 bg-white" /> : <Camera className="mx-auto mb-2 text-violet-600" size={26} />}
+                    <p className="text-sm font-black text-slate-800">{selectedImage ? 'الصورة ظاهرة وجاهزة للريل' : 'ارفع صورة طبق للريل'}</p>{selectedImage && <p className="mt-1 text-[10px] font-bold text-violet-500">اضغط هنا لتغيير الصورة</p>}
                   </div>
                 )}
                 <button type="button" onClick={() => setReelStep(2)} className="w-full p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
@@ -1423,13 +1484,26 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             {reelStep === 2 && (
               <div className="space-y-4">
                 <p className="text-xs font-black text-slate-500">اختر نوع اللقطة</p>
-                <div className="grid grid-cols-1 gap-2">
-                  {reelShots.map((shot) => (
-                    <button key={shot.id} type="button" onClick={() => setReelShot(shot.id)} className={cn("rounded-2xl border p-4 text-right transition-all flex items-center gap-3", reelShot === shot.id ? "bg-violet-50 border-violet-400 shadow-sm" : "bg-white border-slate-100 hover:bg-slate-50")}>
-                      <span className="text-2xl">{shot.icon}</span><span><span className="block text-sm font-black text-slate-900">{shot.label}</span><span className="block text-[11px] font-bold text-slate-400 mt-1">{shot.desc}</span></span>
-                    </button>
-                  ))}
-                </div>
+                {(() => {
+                  const activeShot = reelShots.find((shot) => shot.id === reelShot) || reelShots[0];
+                  return (
+                    <div className="rounded-[1.7rem] border border-slate-100 bg-slate-50 p-3 space-y-3">
+                      <button type="button" onClick={() => setShowReelShotList((v) => !v)} className="w-full rounded-3xl bg-white border border-slate-100 p-4 text-right flex items-center justify-between gap-3">
+                        <span className="flex items-center gap-3"><span className="text-2xl">{activeShot.icon}</span><span><span className="block text-xs font-black text-slate-500">اللقطة المختارة</span><span className="block text-sm font-black text-slate-950 mt-1">{activeShot.label}</span></span></span>
+                        <ChevronLeft className={cn("transition-transform text-slate-400", showReelShotList ? "-rotate-90" : "")} size={20} />
+                      </button>
+                      {showReelShotList && (
+                        <div className="grid grid-cols-1 gap-2">
+                          {reelShots.map((shot) => (
+                            <button key={shot.id} type="button" onClick={() => { setReelShot(shot.id); setShowReelShotList(false); }} className={cn("rounded-2xl border p-4 text-right transition-all flex items-center gap-3", reelShot === shot.id ? "bg-violet-50 border-violet-400 shadow-sm" : "bg-white border-slate-100 hover:bg-slate-50")}>
+                              <span className="text-2xl">{shot.icon}</span><span><span className="block text-sm font-black text-slate-900">{shot.label}</span><span className="block text-[11px] font-bold text-slate-400 mt-1">{shot.desc}</span></span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => setReelStep(1)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button><button type="button" onClick={() => setReelStep(3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button></div>
               </div>
             )}
@@ -1448,7 +1522,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             {reelStep === 4 && (
               <div className="space-y-4">
                 {renderFineTools()}
-                <div className="rounded-3xl bg-slate-950 text-white p-5"><div className="text-[11px] font-black text-white/45 mb-2">جاهز للتوليد</div><div className="text-lg font-black">{reelShots.find(s => s.id === reelShot)?.icon} {reelShots.find(s => s.id === reelShot)?.label}</div><div className="mt-2 text-sm font-bold text-white/60">9:16 · {reelDuration} ثواني · {KUWAIT_PLACES[selectedOrderPlace]?.label}</div></div>
+                <div className="rounded-3xl bg-slate-950 text-white p-5"><div className="text-[11px] font-black text-white/45 mb-2">جاهز للتوليد</div><div className="text-lg font-black">{customThemeQuery.trim() || `${reelShots.find(s => s.id === reelShot)?.icon} ${reelShots.find(s => s.id === reelShot)?.label}`}</div><div className="mt-2 text-sm font-bold text-white/60">{reelShots.find(s => s.id === reelShot)?.label} · 9:16 · {reelDuration} ثواني · {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>{reelSource === 'image' && selectedImage && <img src={selectedImage} alt="مصدر الريل" className="mt-4 h-28 w-full rounded-2xl object-cover border border-white/10" />}</div>
                 <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => setReelStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button><button type="button" onClick={generateReel} disabled={isGeneratingReel} className="p-4 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white font-black shadow-lg flex items-center justify-center gap-2 disabled:opacity-50">{isGeneratingReel ? <Loader2 className="animate-spin" size={18} /> : <PlayCircle size={18} />} ولّد الريل</button></div>
               </div>
             )}
@@ -1498,13 +1572,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                     <button type="button" className={cn("rounded-2xl border p-3 text-xs font-black transition-all", customThemeQuery.trim() ? "bg-slate-950 text-white border-slate-950" : "bg-white text-slate-500 border-slate-100")}>اكتب فكرة</button>
                     <button type="button" onClick={() => { setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); }} className={cn("rounded-2xl border p-3 text-xs font-black transition-all", !customThemeQuery.trim() ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-slate-500 border-slate-100")}>اختيارات جاهزة</button>
                   </div>
-                  <input type="text" placeholder="اكتب وصف الصورة المطلوبة..." value={customThemeQuery} onChange={(e) => { setCustomThemeQuery(e.target.value); setSelectedTheme(e.target.value ? 'مخصص' : 'نبض الكويت'); }} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-indigo-500" />
+                  <input type="text" placeholder="اكتب وصف الصورة المطلوبة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-indigo-500" />
                   <p className="text-[11px] font-bold text-slate-400">اكتب وصفك ونختصر لك الطريق، أو اتركها فارغة للاقتراحات الجاهزة.</p>
                 </div>
-                {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">اعتمدنا الفكرة. بعدها لمسات نهائية ثم التوليد.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تبي اختيارات جاهزة؟ التالي يفتح لك المشهد والبيئة.</div>}
+                {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">اعتمدنا الفكرة. التالي يفتح لك المشهد والبيئة.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تبي اختيارات جاهزة؟ التالي يفتح لك المشهد والبيئة.</div>}
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => goCreateStep(1)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                  <button type="button" onClick={() => advanceCreateStep(customThemeQuery.trim() ? 5 : 3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">{customThemeQuery.trim() ? 'أدوات دقيقة' : 'المشهد'}</button>
+                  <button type="button" onClick={() => advanceCreateStep(3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">المشهد</button>
                 </div>
               </div>
             )}
@@ -1598,7 +1672,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <div className="space-y-4">
                 {renderFineTools()}
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => goCreateStep(customThemeQuery.trim() ? 2 : 3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                  <button type="button" onClick={() => goCreateStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
                   <button type="button" onClick={() => advanceCreateStep(6)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                 </div>
               </div>
@@ -1608,8 +1682,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <div className="space-y-4">
                 <div className="rounded-3xl bg-slate-950 text-white p-5">
                   <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
-                  <div className="text-lg font-black">{activePulsePack.icon} {activePulsePack.label}</div>
-                  <div className="mt-2 text-sm font-bold text-white/60">{KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
+                  <div className="text-lg font-black">{customThemeQuery.trim() || `${activePulsePack.icon} ${activePulsePack.label}`}</div>
+                  <div className="mt-2 text-sm font-bold text-white/60">{(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label} · {KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => goCreateStep(5)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
@@ -1715,13 +1789,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                         <button type="button" className={cn("rounded-2xl border p-3 text-xs font-black transition-all", customThemeQuery.trim() ? "bg-slate-950 text-white border-slate-950" : "bg-white text-slate-500 border-slate-100")}>اكتب فكرة</button>
                         <button type="button" onClick={() => { setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); }} className={cn("rounded-2xl border p-3 text-xs font-black transition-all", !customThemeQuery.trim() ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-slate-500 border-slate-100")}>اختيارات جاهزة</button>
                       </div>
-                      <input type="text" placeholder="اكتب الجو أو المطلوب للصورة..." value={customThemeQuery} onChange={(e) => { setCustomThemeQuery(e.target.value); setSelectedTheme(e.target.value ? 'مخصص' : 'نبض الكويت'); }} className="w-full p-4 rounded-2xl border-2 text-sm text-right focus:outline-none border-slate-200 bg-white focus:border-indigo-500" />
+                      <input type="text" placeholder="اكتب الجو أو المطلوب للصورة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 text-sm text-right focus:outline-none border-slate-200 bg-white focus:border-indigo-500" />
                       <p className="text-[11px] font-bold text-slate-400">اكتب فكرتك وننتقل مباشرة للمسات النهائية، أو اتركها فارغة للاختيارات الجاهزة.</p>
                     </div>
                     {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">اعتمدنا الفكرة. بعدها لمسات نهائية ثم التوليد.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تبي اختيارات جاهزة؟ التالي يفتح لك المشهد والبيئة.</div>}
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(1)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                      <button type="button" onClick={() => advanceProductStep(customThemeQuery.trim() ? 5 : 3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">{customThemeQuery.trim() ? 'أدوات دقيقة' : 'المشهد'}</button>
+                      <button type="button" onClick={() => advanceProductStep(3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">المشهد</button>
                     </div>
                   </div>
                 )}
@@ -1815,7 +1889,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="space-y-4">
                     {renderFineTools()}
                     <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => goProductStep(customThemeQuery.trim() ? 2 : 3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
+                      <button type="button" onClick={() => goProductStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
                       <button type="button" onClick={() => advanceProductStep(6)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
                     </div>
                   </div>
@@ -1825,8 +1899,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="space-y-4">
                     <div className="rounded-3xl bg-slate-950 text-white p-5">
                       <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
-                      <div className="text-lg font-black">{activePulsePack.icon} {activePulsePack.label}</div>
-                      <div className="mt-2 text-sm font-bold text-white/60">{KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
+                      <div className="text-lg font-black">{customThemeQuery.trim() || `${activePulsePack.icon} ${activePulsePack.label}`}</div>
+                      <div className="mt-2 text-sm font-bold text-white/60">{(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label} · {KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(5)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
