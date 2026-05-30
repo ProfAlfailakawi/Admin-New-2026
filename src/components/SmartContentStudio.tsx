@@ -1200,7 +1200,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[11px] font-black text-emerald-600 flex items-center gap-1"><Brain size={14} /> {hasImageSource ? 'تحليل الصورة' : 'اختيار ذكي'}</div>
-            <div className="mt-1 text-sm font-black text-slate-950 truncate">{primaryBrainLabel}</div>
+            <div className="mt-1 text-sm font-black text-slate-950 leading-6 whitespace-normal [word-break:keep-all]">{primaryBrainLabel}</div>
             {compactHint && <div className="mt-1 text-[11px] font-bold text-slate-500 leading-6">{compactHint}</div>}
           </div>
           {matchBadge && (
@@ -1301,7 +1301,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         )}
 
         {brain.hasInput && context === 'image' && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             {brain.variants.map((variant) => {
               const isSelected = selectedAlturathVariantId === variant.id;
               return (
@@ -1310,17 +1310,17 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   type="button"
                   onClick={() => applyAlturathVariant(variant)}
                   className={cn(
-                    "relative rounded-2xl border p-3 text-right transition-all",
+                    "relative rounded-2xl border p-3 text-right transition-all w-full overflow-hidden",
                     isSelected
                       ? "bg-emerald-50 border-emerald-400 ring-4 ring-emerald-500/10 shadow-sm"
                       : "bg-white border-slate-100 hover:border-emerald-300 hover:bg-emerald-50"
                   )}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className={cn("text-xs font-black", isSelected ? "text-emerald-900" : "text-slate-950")}>{variant.title}</div>
-                    {isSelected && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-1 text-[9px] font-black text-white"><Check size={11} /> مختارة</span>}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className={cn("text-sm font-black leading-6 whitespace-normal [word-break:keep-all] min-w-0", isSelected ? "text-emerald-900" : "text-slate-950")}>{variant.title}</div>
+                    {isSelected && <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-black text-white"><Check size={11} /> مختارة</span>}
                   </div>
-                  <div className="mt-1 text-[10px] font-bold text-slate-500 leading-5">{variant.desc}</div>
+                  <div className="mt-1 text-[11px] font-bold text-slate-500 leading-6 whitespace-normal [word-break:keep-all]">{variant.desc}</div>
                 </button>
               );
             })}
@@ -1912,12 +1912,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               <div className="space-y-4">
                 <div className="rounded-3xl bg-slate-950 text-white p-5">
                   <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
-                  <div className="text-lg font-black">{customThemeQuery.trim() || activeSceneSummary}</div>
-                  <div className="mt-2 text-sm font-bold text-white/60">{(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label} · {KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
-                  <div className="mt-3 grid gap-2 text-xs font-black text-white/80">
-                    <div className="rounded-2xl bg-white/10 border border-white/10 p-3">المنتج: {selectedStudioProductName || 'تلقائي'}</div>
+                  <div className="text-lg font-black leading-8 whitespace-normal [word-break:keep-all]">{customThemeQuery.trim() || activeStudioScene.label}</div>
+                  <div className="mt-3 grid grid-cols-1 gap-2 text-xs font-black text-white/85">
+                    <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المشهد: {(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label}</div>
+                    <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">اللقطة: {(reelShots.find(s => s.id === reelShot) || reelShots[0]).label}</div>
+                    <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
+                    <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المنتج: {selectedStudioProductName || 'تلقائي'}</div>
                     {selectedAlturathVariantId && (
-                      <div className="rounded-2xl bg-emerald-400/15 border border-emerald-300/20 p-3">
+                      <div className="rounded-2xl bg-emerald-400/15 border border-emerald-300/20 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">
                         النسخة: {currentStudioBrain.variants.find(v => v.id === selectedAlturathVariantId)?.title || 'مختارة'}
                       </div>
                     )}
@@ -2139,12 +2141,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="space-y-4">
                     <div className="rounded-3xl bg-slate-950 text-white p-5">
                       <div className="text-[11px] font-black text-white/45 mb-2">آخر مرحلة</div>
-                      <div className="text-lg font-black">{customThemeQuery.trim() || activeSceneSummary}</div>
-                      <div className="mt-2 text-sm font-bold text-white/60">{(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label} · {KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
-                      <div className="mt-3 grid gap-2 text-xs font-black text-white/80">
-                        <div className="rounded-2xl bg-white/10 border border-white/10 p-3">المنتج: {selectedStudioProductName || 'تلقائي'}</div>
+                      <div className="text-lg font-black leading-8 whitespace-normal [word-break:keep-all]">{customThemeQuery.trim() || activeStudioScene.label}</div>
+                      <div className="mt-3 grid grid-cols-1 gap-2 text-xs font-black text-white/85">
+                        <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المشهد: {(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label}</div>
+                        <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">اللقطة: {(reelShots.find(s => s.id === reelShot) || reelShots[0]).label}</div>
+                        <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
+                        <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المنتج: {selectedStudioProductName || 'تلقائي'}</div>
                         {selectedAlturathVariantId && (
-                          <div className="rounded-2xl bg-emerald-400/15 border border-emerald-300/20 p-3">
+                          <div className="rounded-2xl bg-emerald-400/15 border border-emerald-300/20 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">
                             النسخة: {currentStudioBrain.variants.find(v => v.id === selectedAlturathVariantId)?.title || 'مختارة'}
                           </div>
                         )}
