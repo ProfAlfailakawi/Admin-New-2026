@@ -4,7 +4,7 @@ import rawConfig from "../../firebase-applet-config.json";
 
 const firebaseConfig = {
   ...rawConfig,
-  apiKey: (import.meta.env.VITE_FIREBASE_API_KEY as string) || rawConfig.apiKey || ""
+  apiKey: (import.meta.env.VITE_FIREBASE_API_KEY as string) || rawConfig.apiKey || "AIzaSyBBVG0C-xjkuT3WeqiNAmJjw6lI8M6Gt6k"
 };
 
 export const FALLBACK_VAPID_KEY =

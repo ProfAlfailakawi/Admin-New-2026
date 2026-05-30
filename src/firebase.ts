@@ -27,7 +27,7 @@ setLogLevel('error');
 // Prevent duplicate initialization
 const activeConfig = {
   ...firebaseConfig,
-  apiKey: (import.meta.env.VITE_FIREBASE_API_KEY as string) || firebaseConfig.apiKey || ""
+  apiKey: (import.meta.env.VITE_FIREBASE_API_KEY as string) || firebaseConfig.apiKey || "AIzaSyBBVG0C-xjkuT3WeqiNAmJjw6lI8M6Gt6k"
 };
 export const app = getApps().length === 0 ? initializeApp(activeConfig) : getApp();
 export const auth = getAuth(app);
