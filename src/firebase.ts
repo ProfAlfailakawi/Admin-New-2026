@@ -25,7 +25,10 @@ import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PAR
 setLogLevel('error');
 
 // Prevent duplicate initialization
-const activeConfig = firebaseConfig;
+const activeConfig = {
+  ...firebaseConfig,
+  apiKey: (import.meta.env.VITE_FIREBASE_API_KEY as string) || firebaseConfig.apiKey || ""
+};
 export const app = getApps().length === 0 ? initializeApp(activeConfig) : getApp();
 export const auth = getAuth(app);
 setPersistence(auth, browserLocalPersistence).catch(console.error);
