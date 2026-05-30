@@ -1,67 +1,297 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from '../types';
 
 interface GeoHeatmapProps {
  data: AppState;
 }
 
+type MapMarker = {
+ name: string;
+ lat: number;
+ lng: number;
+ revenue: number;
+ count: number;
+ hasLocation: boolean;
+};
+
+type Tile = { key: string; url: string; left: number; top: number };
+
+const MAP_TILE_SIZE = 256;
+const MAP_ZOOM = 9;
+const MAP_CENTER = { lat: 29.18, lng: 47.72 };
+
+const toNumber = (value: any) => {
+ if (value === undefined || value === null || value === '') return null;
+ if (typeof value === 'object' && typeof value.toJSON === 'function') return toNumber(value.toJSON());
+ const n = Number(String(value).replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/[٫,]/g, '.'));
+ return Number.isFinite(n) ? n : null;
+};
+
+const isValidKuwaitLocation = (lat: number | null, lng: number | null) => (
+ lat !== null && lng !== null && lat >= 28.45 && lat <= 30.12 && lng >= 46.52 && lng <= 48.45
+);
+
+const getLatLng = (item: any) => {
+ const candidates = [
+  item,
+  item?.location,
+  item?.geo,
+  item?.coordinates,
+  item?.mapLocation,
+  item?.clientLocation,
+  item?.deliveryLocation,
+  item?.deliveryInfo,
+  item?.deliveryAddress,
+  item?.deliveryAddressSnapshot,
+  item?.address,
+  item?.addressLocation,
+  item?.pinLocation,
+  item?.geofenceCenter,
+  item?.customerLocation,
+ ].filter(Boolean);
+
+ for (const loc of candidates) {
+  const lat = toNumber(loc?.lat ?? loc?.latitude ?? loc?._lat);
+  const lng = toNumber(loc?.lng ?? loc?.longitude ?? loc?.lon ?? loc?._long);
+  if (isValidKuwaitLocation(lat, lng)) return { lat: lat as number, lng: lng as number };
+ }
+ return null;
+};
+
+const normalizeArabicText = (value: any) => String(value || '')
+ .trim()
+ .replace(/[إأآا]/g, 'ا')
+ .replace(/[ى]/g, 'ي')
+ .replace(/[ة]/g, 'ه')
+ .replace(/\s+/g, ' ');
+
+const areaFallbackLocations: Record<string, { lat: number; lng: number }> = {
+ 'الكويت': { lat: 29.3759, lng: 47.9774 },
+ 'العاصمه': { lat: 29.3759, lng: 47.9774 },
+ 'مدينه الكويت': { lat: 29.3759, lng: 47.9774 },
+ 'شرق': { lat: 29.3797, lng: 47.9900 },
+ 'المرقاب': { lat: 29.3694, lng: 47.9697 },
+ 'القبله': { lat: 29.3729, lng: 47.9662 },
+ 'بنيد القار': { lat: 29.3658, lng: 48.0027 },
+ 'الدسمه': { lat: 29.3568, lng: 47.9977 },
+ 'الدعيه': { lat: 29.3556, lng: 48.0157 },
+ 'المنصوريه': { lat: 29.3562, lng: 47.9858 },
+ 'النزهه': { lat: 29.3433, lng: 47.9845 },
+ 'كيفان': { lat: 29.3374, lng: 47.9631 },
+ 'العديلية': { lat: 29.3329, lng: 47.9822 },
+ 'العديله': { lat: 29.3329, lng: 47.9822 },
+ 'الخالدية': { lat: 29.3234, lng: 47.9726 },
+ 'الخالديه': { lat: 29.3234, lng: 47.9726 },
+ 'القادسية': { lat: 29.3482, lng: 47.9884 },
+ 'القادسيه': { lat: 29.3482, lng: 47.9884 },
+ 'قرطبة': { lat: 29.3136, lng: 47.9853 },
+ 'قرطبه': { lat: 29.3136, lng: 47.9853 },
+ 'اليرموك': { lat: 29.3149, lng: 47.9703 },
+ 'الشامية': { lat: 29.3470, lng: 47.9686 },
+ 'الشاميه': { lat: 29.3470, lng: 47.9686 },
+ 'الروضة': { lat: 29.3279, lng: 47.9942 },
+ 'الروضه': { lat: 29.3279, lng: 47.9942 },
+ 'ضاحية عبدالله السالم': { lat: 29.3513, lng: 47.9742 },
+ 'ضاحيه عبدالله السالم': { lat: 29.3513, lng: 47.9742 },
+ 'حولي': { lat: 29.3375, lng: 48.0286 },
+ 'السالميه': { lat: 29.3339, lng: 48.0761 },
+ 'سالميه': { lat: 29.3339, lng: 48.0761 },
+ 'الجابريه': { lat: 29.3166, lng: 48.0182 },
+ 'الرميثيه': { lat: 29.3141, lng: 48.0760 },
+ 'سلوى': { lat: 29.2958, lng: 48.0780 },
+ 'بيان': { lat: 29.3038, lng: 48.0484 },
+ 'مشرف': { lat: 29.2921, lng: 48.0379 },
+ 'السلام': { lat: 29.2952, lng: 48.0064 },
+ 'حطين': { lat: 29.2890, lng: 48.0177 },
+ 'الزهراء': { lat: 29.2808, lng: 48.0081 },
+ 'الشهداء': { lat: 29.2790, lng: 48.0320 },
+ 'الصديق': { lat: 29.2830, lng: 48.0455 },
+ 'الفروانيه': { lat: 29.2775, lng: 47.9586 },
+ 'خيطان': { lat: 29.2866, lng: 47.9682 },
+ 'العمرية': { lat: 29.2998, lng: 47.9290 },
+ 'العمريه': { lat: 29.2998, lng: 47.9290 },
+ 'الرابية': { lat: 29.2927, lng: 47.9333 },
+ 'الرابيه': { lat: 29.2927, lng: 47.9333 },
+ 'العارضيه': { lat: 29.2942, lng: 47.8944 },
+ 'الفردوس': { lat: 29.3026, lng: 47.8685 },
+ 'جليب الشيوخ': { lat: 29.2705, lng: 47.9440 },
+ 'اشبيليه': { lat: 29.2980, lng: 47.9035 },
+ 'الرحاب': { lat: 29.3256, lng: 47.8821 },
+ 'الاندلس': { lat: 29.3145, lng: 47.8742 },
+ 'صباح الناصر': { lat: 29.3074, lng: 47.8409 },
+ 'مبارك الكبير': { lat: 29.1893, lng: 48.0878 },
+ 'صباح السالم': { lat: 29.2574, lng: 48.0579 },
+ 'القرين': { lat: 29.1921, lng: 48.0817 },
+ 'القصور': { lat: 29.2166, lng: 48.0673 },
+ 'العدان': { lat: 29.2082, lng: 48.0691 },
+ 'المسايل': { lat: 29.2254, lng: 48.1037 },
+ 'ابو فطيره': { lat: 29.2034, lng: 48.1065 },
+ 'ابو الحصاني': { lat: 29.1938, lng: 48.1130 },
+ 'الفنيطيس': { lat: 29.2224, lng: 48.1017 },
+ 'صبحان': { lat: 29.2320, lng: 47.9650 },
+ 'الاحمدي': { lat: 29.0769, lng: 48.0839 },
+ 'احمدي': { lat: 29.0769, lng: 48.0839 },
+ 'الفحيحيل': { lat: 29.0825, lng: 48.1304 },
+ 'المنقف': { lat: 29.0961, lng: 48.1324 },
+ 'العقيله': { lat: 29.1450, lng: 48.1164 },
+ 'الرقة': { lat: 29.1464, lng: 48.0944 },
+ 'الرقة': { lat: 29.1464, lng: 48.0944 },
+ 'الرقي': { lat: 29.1464, lng: 48.0944 },
+ 'هدية': { lat: 29.1244, lng: 48.0877 },
+ 'هديه': { lat: 29.1244, lng: 48.0877 },
+ 'ابو حليفه': { lat: 29.1294, lng: 48.1307 },
+ 'المهبوله': { lat: 29.1462, lng: 48.1265 },
+ 'الفنطاس': { lat: 29.1722, lng: 48.1226 },
+ 'الصباحية': { lat: 29.1144, lng: 48.1087 },
+ 'الصباحيه': { lat: 29.1144, lng: 48.1087 },
+ 'الظهر': { lat: 29.1578, lng: 48.0611 },
+ 'جابر العلي': { lat: 29.1260, lng: 48.0700 },
+ 'علي صباح السالم': { lat: 28.9280, lng: 48.1630 },
+ 'ام الهيمان': { lat: 28.9190, lng: 48.1660 },
+ 'الخيران': { lat: 28.6538, lng: 48.3633 },
+ 'الوفرة': { lat: 28.6338, lng: 47.9300 },
+ 'الوفرة الزراعية': { lat: 28.6467, lng: 47.9483 },
+ 'الوفرة الزراعيه': { lat: 28.6467, lng: 47.9483 },
+ 'الجهراء': { lat: 29.3375, lng: 47.6581 },
+ 'الجهره': { lat: 29.3375, lng: 47.6581 },
+ 'النسيم': { lat: 29.3442, lng: 47.6900 },
+ 'العيون': { lat: 29.3560, lng: 47.6817 },
+ 'الواحه': { lat: 29.3474, lng: 47.6685 },
+ 'تيماء': { lat: 29.3300, lng: 47.6970 },
+ 'تيما': { lat: 29.3300, lng: 47.6970 },
+ 'الصليبيه': { lat: 29.2741, lng: 47.8325 },
+ 'سعد العبدالله': { lat: 29.3005, lng: 47.7162 },
+ 'القصر': { lat: 29.3467, lng: 47.6462 },
+ 'النعيم': { lat: 29.3700, lng: 47.6600 },
+ 'كبد': { lat: 29.1262, lng: 47.6080 },
+ 'السالمي': { lat: 29.1000, lng: 46.6750 },
+ };
+
+const getAreaFallbackLocation = (area: string) => {
+ const normalized = normalizeArabicText(area);
+ if (areaFallbackLocations[normalized]) return areaFallbackLocations[normalized];
+ const withoutPrefix = normalized.replace(/^ال/, '');
+ return areaFallbackLocations[withoutPrefix] || null;
+};
+
+const getAreaName = (item: any, customer: any) => normalizeArabicText(
+ item?.area || item?.region || item?.regionName || item?.zoneName || item?.zone ||
+ item?.deliveryAddressSnapshot?.area || item?.deliveryAddressSnapshot?.region ||
+ item?.address?.area || item?.address?.region || item?.deliveryAddress?.area || item?.deliveryAddress?.region ||
+ item?.deliveryInfo?.area || item?.deliveryInfo?.region || customer?.area || customer?.region || customer?.address?.area || customer?.address?.region ||
+ 'غير محدد'
+);
+
+const lonLatToWorldPixel = (lat: number, lng: number, zoom = MAP_ZOOM) => {
+ const sinLat = Math.sin((Math.max(-85.05112878, Math.min(85.05112878, lat)) * Math.PI) / 180);
+ const scale = MAP_TILE_SIZE * 2 ** zoom;
+ return {
+  x: ((lng + 180) / 360) * scale,
+  y: (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale,
+ };
+};
+
 const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
- const governorates = [
- { name: 'العاصمة', x: 74, y: 38 },
- { name: 'حولي', x: 78, y: 44 },
- { name: 'الفروانية', x: 67, y: 50 },
- { name: 'مبارك الكبير', x: 78, y: 51 },
- { name: 'الأحمدي', x: 73, y: 68 },
- { name: 'الجهراء', x: 35, y: 35 }
- ];
+ const mapRef = useRef<HTMLDivElement | null>(null);
+ const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
+ const [activeRegion, setActiveRegion] = useState<string | null>(null);
+
+ useEffect(() => {
+  const el = mapRef.current;
+  if (!el) return;
+  const updateSize = () => {
+   const rect = el.getBoundingClientRect();
+   setMapSize({ width: rect.width, height: rect.height });
+  };
+  updateSize();
+  const observer = new ResizeObserver(updateSize);
+  observer.observe(el);
+  window.addEventListener('resize', updateSize);
+  return () => {
+   observer.disconnect();
+   window.removeEventListener('resize', updateSize);
+  };
+ }, []);
+
+ const mapTiles = useMemo<Tile[]>(() => {
+  if (!mapSize.width || !mapSize.height) return [];
+  const center = lonLatToWorldPixel(MAP_CENTER.lat, MAP_CENTER.lng);
+  const topLeft = {
+   x: center.x - mapSize.width / 2,
+   y: center.y - mapSize.height / 2,
+  };
+  const startX = Math.floor(topLeft.x / MAP_TILE_SIZE);
+  const endX = Math.floor((topLeft.x + mapSize.width) / MAP_TILE_SIZE);
+  const startY = Math.floor(topLeft.y / MAP_TILE_SIZE);
+  const endY = Math.floor((topLeft.y + mapSize.height) / MAP_TILE_SIZE);
+  const maxTile = 2 ** MAP_ZOOM;
+  const tiles: Tile[] = [];
+  for (let x = startX; x <= endX; x += 1) {
+   for (let y = startY; y <= endY; y += 1) {
+    if (y < 0 || y >= maxTile) continue;
+    const wrappedX = ((x % maxTile) + maxTile) % maxTile;
+    tiles.push({
+     key: `${MAP_ZOOM}-${wrappedX}-${y}`,
+     url: `https://a.basemaps.cartocdn.com/light_all/${MAP_ZOOM}/${wrappedX}/${y}.png`,
+     left: x * MAP_TILE_SIZE - topLeft.x,
+     top: y * MAP_TILE_SIZE - topLeft.y,
+    });
+   }
+  }
+  return tiles;
+ }, [mapSize.width, mapSize.height]);
 
  const areaData = useMemo(() => {
- if (!data.invoices) return {};
- 
- const stats: Record<string, { revenue: number, count: number }> = {};
- 
- // Simulate Kuwait areas distributions if data is small or areas missing
- governorates.forEach(g => {
- stats[g.name] = { revenue: 0, count: 0 };
- });
+  const invoices = Array.isArray(data.invoices) ? data.invoices : [];
+  const customers = Array.isArray((data as any).customers) ? (data as any).customers : [];
+  const customerById = new Map(customers.map((customer: any) => [String(customer?.id || ''), customer]));
+  const grouped: Record<string, MapMarker> = {};
 
- data.invoices.forEach(inv => {
- let area = inv.area;
- if (!area || !stats[area]) {
- // Fallback random distribution for visual effect if real area is missing
- const randomGov = governorates[Math.floor(Math.random() * governorates.length)].name;
- area = randomGov;
- }
- if (!stats[area]) stats[area] = { revenue: 0, count: 0 };
- stats[area].revenue += inv.totalAmount || 0;
- stats[area].count += 1;
- });
- 
- let maxRev = 1;
- Object.values(stats).forEach(v => {
- if (v.revenue > maxRev) maxRev = v.revenue;
- });
+  invoices.forEach((inv: any) => {
+   const customer = customerById.get(String(inv?.customerId || '')) || null;
+   const area = getAreaName(inv, customer) || 'غير محدد';
+   const exactLocation = getLatLng(inv) || getLatLng(customer);
+   const fallbackLocation = getAreaFallbackLocation(area);
+   const location = exactLocation || fallbackLocation;
+   if (!location) return;
 
- return { stats, maxRev };
- }, [data.invoices]);
+   const key = area || 'غير محدد';
+   if (!grouped[key]) {
+    grouped[key] = {
+     name: key,
+     lat: location.lat,
+     lng: location.lng,
+     revenue: 0,
+     count: 0,
+     hasLocation: Boolean(exactLocation),
+    };
+   } else if (!grouped[key].hasLocation && exactLocation) {
+    grouped[key].lat = exactLocation.lat;
+    grouped[key].lng = exactLocation.lng;
+    grouped[key].hasLocation = true;
+   }
 
- const [activeRegion, setActiveRegion] = useState<string | null>(null);
+   grouped[key].revenue += Number(inv?.totalAmount || inv?.total || inv?.amount || 0);
+   grouped[key].count += 1;
+  });
+
+  const markers = Object.values(grouped).sort((a, b) => b.revenue - a.revenue || b.count - a.count);
+  const maxRev = markers.reduce((max, marker) => Math.max(max, marker.revenue), 1);
+  return { markers, maxRev };
+ }, [data.invoices, (data as any).customers]);
+
+ const getMarkerPoint = (marker: MapMarker) => {
+  if (!mapSize.width || !mapSize.height) return null;
+  const center = lonLatToWorldPixel(MAP_CENTER.lat, MAP_CENTER.lng);
+  const point = lonLatToWorldPixel(marker.lat, marker.lng);
+  return {
+   x: mapSize.width / 2 + (point.x - center.x),
+   y: mapSize.height / 2 + (point.y - center.y),
+  };
+ };
 
  return (
  <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-3xl md:rounded-2xl p-4 shadow-2xl shadow-indigo-900/50 border border-white/10 glass-dark text-white relative overflow-hidden border border-[#f0e6d2]/10">
- <style>{`
- .kuwait-map-wrapper {
- position: relative;
- width: 100%;
- max-width: 520px;
- margin: auto;
- }
- .kuwait-map-bg {
- width: 100%;
- opacity: 0.15;
- filter: drop-shadow(0 0 20px rgba(99,102,241,0.2));
- }
- `}</style>
  <h3 className="text-2xl md:text-3xl font-bold mb-8 text-white flex items-center justify-end gap-3 relative z-10 text-right w-full">
  خريطة الذهب الاستراتيجية 🇰🇼
  </h3>
@@ -69,43 +299,53 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  توزيع القوة الشرائية وربحية المناطق في الكويت
  </p>
 
- <div className="w-full relative flex items-center justify-center p-3 overflow-visible">
- <div className="kuwait-map-wrapper !max-w-[750px]">
- {/* Glowing Map grid background effect behind the image */}
- <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.1)_0%,transparent_70%)] pointer-events-none" />
+ <div className="w-full relative flex items-center justify-center p-1 sm:p-3 overflow-visible">
+ <div ref={mapRef} className="relative w-full max-w-[860px] h-[440px] sm:h-[560px] rounded-[2rem] overflow-hidden border border-white/10 bg-slate-950 shadow-inner shadow-black/40">
+ <div className="absolute inset-0 bg-slate-900">
+ {mapTiles.map((tile) => (
+ <img
+ key={tile.key}
+ src={tile.url}
+ alt=""
+ className="absolute select-none pointer-events-none"
+ style={{ width: MAP_TILE_SIZE, height: MAP_TILE_SIZE, left: tile.left, top: tile.top }}
+ draggable={false}
+ />
+ ))}
+ </div>
+ <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(234,179,8,0.10)_0%,rgba(15,23,42,0.16)_55%,rgba(15,23,42,0.38)_100%)] pointer-events-none" />
 
- <img src="https://simplemaps.com/static/svg/country/kw/all/kw.svg" className="kuwait-map-bg" alt="Kuwait Map" />
-
- {/* Heatmap Markers */}
- {areaData.stats && governorates.map((gov) => {
- const stat = areaData.stats[gov.name];
- const intensity = stat.revenue / areaData.maxRev;
- const size = 15 + (intensity * 40); // 15px to 55px
- const glow = intensity > 0.5 ? 'shadow-[0_0_30px_rgba(234,179,8,0.6)]' : 'shadow-none';
- const isActive = activeRegion === gov.name;
- const zIndex = isActive ? 50 : 10;
+ {areaData.markers.map((marker, index) => {
+ const point = getMarkerPoint(marker);
+ if (!point) return null;
+ const isOutside = point.x < -20 || point.x > mapSize.width + 20 || point.y < -20 || point.y > mapSize.height + 20;
+ if (isOutside) return null;
+ const intensity = marker.revenue / areaData.maxRev;
+ const size = 18 + (intensity * 42);
+ const glow = intensity > 0.5 ? 'shadow-[0_0_30px_rgba(234,179,8,0.65)]' : 'shadow-[0_0_18px_rgba(99,102,241,0.38)]';
+ const isActive = activeRegion === marker.name;
+ const zIndex = isActive ? 50 : 10 + Math.min(index, 20);
  
  return (
  <div 
- key={gov.name}
- className={`absolute flex flex-col items-center justify-center transform -translate-x-1/2 -translate-y-1/2 group`}
- style={{ left: `${gov.x}%`, top: `${gov.y}%`, zIndex }}
- onMouseEnter={() => setActiveRegion(gov.name)}
+ key={marker.name}
+ className="absolute flex flex-col items-center justify-center transform -translate-x-1/2 -translate-y-1/2 group"
+ style={{ left: point.x, top: point.y, zIndex }}
+ onMouseEnter={() => setActiveRegion(marker.name)}
  onMouseLeave={() => setActiveRegion(null)}
- onClick={() => setActiveRegion(gov.name)}
+ onClick={() => setActiveRegion(marker.name)}
  >
  <div 
- className={`rounded-full bg-gradient-to-br ${intensity > 0.5 ? 'from-amber-400 to-amber-600' : 'from-indigo-400 to-indigo-600'} flex items-center justify-center ${glow} text-white font-bold transition-all duration-300 cursor-pointer border-2 border-white/10 hover:scale-110 ${isActive ? 'scale-110 shadow-[0_0_15px_rgba(255,255,255,0.4)]' : ''}`}
- style={{ width: `${size}px`, height: `${size}px`, opacity: 0.8 + (intensity * 0.2) }}
+ className={`rounded-full bg-gradient-to-br ${intensity > 0.5 ? 'from-amber-400 to-amber-600' : marker.hasLocation ? 'from-indigo-400 to-indigo-600' : 'from-slate-400 to-slate-600'} flex items-center justify-center ${glow} text-white font-bold transition-all duration-300 cursor-pointer border-2 border-white/20 hover:scale-110 ${isActive ? 'scale-110 shadow-[0_0_18px_rgba(255,255,255,0.55)]' : ''}`}
+ style={{ width: `${size}px`, height: `${size}px`, opacity: 0.86 + (intensity * 0.14) }}
  >
- <span className="text-[10px] scale-75 select-none">{stat.count}</span>
+ <span className="text-[10px] scale-75 select-none">{marker.count}</span>
  </div>
 
- {/* Tooltip */}
  <div className={`absolute bottom-full mb-3 left-1/2 transform -translate-x-1/2 flex flex-col items-center transition-all duration-300 pointer-events-none ${isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
- <div className="text-xs font-bold text-white bg-slate-900 border border-slate-700 shadow-2xl shadow-indigo-900/50 border border-white/10 glass-dark text-white px-3 py-2 rounded-xl whitespace-nowrap">
- <div className="text-center mb-1 text-slate-300">{gov.name}</div>
- <div className="text-amber-400">{Number(stat.revenue || 0).toFixed(2)} د.ك</div>
+ <div className="text-xs font-bold text-white bg-slate-900/95 border border-slate-700 shadow-2xl shadow-indigo-900/50 px-3 py-2 rounded-xl whitespace-nowrap">
+ <div className="text-center mb-1 text-slate-300">{marker.name}</div>
+ <div className="text-amber-400">{Number(marker.revenue || 0).toFixed(2)} د.ك</div>
  </div>
  <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-slate-700 mt-[-1px]"></div>
  </div>
