@@ -98,6 +98,8 @@ export interface Product {
   calories?: number;
   stock?: number;
   preparationInstructions?: string;
+  isMenuFeatured?: boolean;
+  featuredRank?: number;
   addons?: ProductAddon[];
 }
 
