@@ -127,22 +127,22 @@ export const analyzeAlturathStudioIdea = (rawText = '', products: ProductLike[] 
   const canGenerate = !requiresProductSelection;
   const primaryProductName = matchedProducts[0] || productSuggestions[0];
   const productGuardMessage = requiresProductSelection
-    ? 'هذا الطبق غير موجود ضمن منتجاتك الحالية. اختر منتجًا من القائمة أو أضفه أولًا. لن يتم التوليد حتى لا يخترع الاستوديو طبقًا غير موجود.'
+    ? 'هذا الطبق غير موجود ضمن منتجاتك الحالية. اختر منتجًا من قائمتك أو أضفه أولًا.'
     : isKnownProduct
-      ? `تم قفل التوليد على منتج فعلي من قائمتك: ${matchedProducts[0]}. لن نضيف طبقًا أو مكونًا خارج المنتج.`
+      ? `تم اختيار منتج من قائمتك: ${matchedProducts[0]}.`
       : hasInput && hasProductCatalog
-        ? 'الفكرة عامة وليست طبقًا محددًا؛ سيتم استخدام منتجاتك الفعلية فقط من القائمة، بدون اختراع أصناف جديدة.'
-        : 'اكتب فكرة أو اختر منتجًا من القائمة؛ وضع المنتجات الفعلية فقط مفعّل دائمًا.';
-  const warning = requiresProductSelection ? productGuardMessage : hasInput && hasProductCatalog && !isKnownProduct && dish.category === 'generic' ? 'الفكرة عامة. سيختار الاستوديو من منتجاتك الفعلية فقط ولن يخترع طبقًا جديدًا.' : undefined;
+        ? 'الفكرة عامة؛ سأختار الأنسب من كل أصناف مطبخك حسب المناسبة والمشهد.'
+        : 'اكتب فكرة أو اختر منتجًا من قائمتك.';
+  const warning = requiresProductSelection ? productGuardMessage : hasInput && hasProductCatalog && !isKnownProduct && dish.category === 'generic' ? 'الفكرة عامة. سيختار الاستوديو المنتج الأنسب من أصناف مطبخك.' : undefined;
   const reelRecipe = (() => { if (dish.category === 'rice' || dish.category === 'seafood') return ['فتح علبة أو كشف الطبق بهدوء', 'بخار خفيف جدًا إذا الطبق حار', 'اقتراب على العيش والبروتين بدون تغيير المكونات']; if (dish.category === 'mahshi') return ['لقطة علوية مرتبة', 'اقتراب على القوام والصفّ', 'بدون بخار وبدون صوص متحرك']; if (dish.category === 'dessert') return ['اقتراب ناعم على التفاصيل', 'إضاءة نظيفة', 'بدون بخار أو مؤثرات حرارة']; if (dish.category === 'box') return ['فتح علبة التوصيل', 'إظهار الترتيب والنظافة', 'لقطة قصيرة للشعار أو التغليف إن وجد بدون نصوص داخل الصورة']; return ['حركة كاميرا هادئة', 'طبق ثابت في المنتصف', 'واقعية توصيل بدون مطعم جلوس']; })();
   const variants: AlturathStudioVariant[] = [{ id: 'delivery', title: 'نسخة توصيل', sceneId: dish.category === 'rice' ? 'box-reveal' : 'delivery-ready', shotId: dish.category === 'rice' ? 'box-open' : 'hero-push', desc: 'الأصدق لمطبخ توصيل: علبة/كيس مرتب وكاونتر نظيف.' }, { id: 'home', title: 'نسخة بيتية', sceneId: dish.category === 'mahshi' ? 'zowara-spread' : 'home-rice-tray', shotId: dish.category === 'mahshi' ? 'top-spread' : 'steam-close', desc: 'سفرة بيتية بسيطة للطلب بعد وصوله.' }, { id: 'diwaniya', title: 'نسخة ديوانية', sceneId: 'diwaniya-order', shotId: 'table-pass', desc: 'طلب جماعي للربع بخلفية هادئة وبدون وجوه.' }];
-  const lockedProducts = matchedProducts.length ? matchedProducts : productSuggestions;
+  const lockedProducts = matchedProducts.length ? matchedProducts : productNames.slice(0, 80);
   const promptGuard = [
     'STRICT PRODUCT-ONLY MODE IS ENABLED.',
     `Alturath kitchen brain: understood category = ${dish.label}.`,
     `Use only believable Kuwaiti delivery-kitchen food presentation. Keep the exact requested idea visible in planning: ${rawText || 'no custom text'}.`,
     lockedProducts.length
-      ? `Allowed real menu items only: ${lockedProducts.join('، ')}. The generated food must match one of these actual products only.`
+      ? `Allowed real menu items from the full current catalog only: ${lockedProducts.join('، ')}. The generated food must match one of these actual products only.`
       : 'No verified menu item is available in the current product list; do not invent any named dish or visible extra menu item.',
     isKnownProduct
       ? `Primary locked product: ${matchedProducts[0]}. Do not add side dishes, proteins, desserts, sauces, or menu items that are not already part of this product.`
