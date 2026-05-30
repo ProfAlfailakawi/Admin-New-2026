@@ -162,3 +162,14 @@ export const buildProductRealityPrompt = ({ theme, mood, mode, background }: { t
 };
 
 export const buildTextRealityPrompt = (purpose: string, subject: string, formatHint = '') => `${RESTAURANT_MENU_IDENTITY}\n${RESTAURANT_REALITY_POLICY}\n${REALITY_FINAL_BOSS_POLICY}\nPurpose: ${purpose}.\nSubject: ${subject}.\n${formatHint}\nChoose one believable Kuwaiti order/gathering location from the internal library: home table, diwaniya, chalet, farm, jakhour, zowara, delivery packaging, prep counter, or clean menu setup. Build the image as a plausible human photo in Kuwait for home orders and delivery: ordinary surfaces, natural scale, practical lighting, no fake event props, no dine-in restaurant implication. The final image must make viewers ask who photographed it, not which engine made it.\n${STUDIO_REALITY_NEGATIVE_PROMPT}`;
+
+
+export const ALTURATH_ADVANCED_REALISM_POLICY = `
+ALTURATH ADVANCED REALISM POLICY:
+- Dish fingerprint comes before styling. Preserve the dish identity, protein, portion, vessel, texture, and serving logic.
+- Never let a prettier composition transform the dish into another food.
+- Delivery suitability matters: the food must look credible for a delivery-only kitchen, not a dine-in restaurant.
+- Menu photos must be clearer and calmer than social ad photos: clean background, obvious product, minimal props.
+- Clutter must be actively reduced: no visual noise, no decorative overload, no accidental religious symbols, no statues, no idols.
+- Truth-first: if beauty conflicts with realism, choose realism.
+`;
