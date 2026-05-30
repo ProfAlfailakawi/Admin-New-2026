@@ -16,6 +16,7 @@ import { REAL_RESTAURANT_BACKGROUNDS, STUDIO_REALITY_MODES, STUDIO_REALITY_NEGAT
 import { buildStudioTastePrompt, loadStudioBackgroundLibrary, markStudioBackgroundUsed, recordStudioTasteChoice, saveStudioBackgroundToLibrary, type StudioBackgroundLibraryItem } from '../lib/studioLearning';
 import { KUWAIT_CONTENT_GOALS, KUWAIT_PLACES, KUWAIT_PULSE_PACKS, buildKuwaitCaptionFallback, buildKuwaitStudioTheme, getKuwaitPulsePack, type KuwaitContentGoal, type KuwaitOrderPlace } from '../lib/kuwaitContentPulse';
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
+import { analyzeAlturathStudioIdea, getAlturathProductSuggestions, type AlturathStudioBrainResult, type AlturathStudioVariant } from '../lib/alturathStudioBrain';
 
 interface SmartContentStudioProps {
   data: any;
@@ -196,53 +197,32 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
 
   const inferStudioChoicesFromText = (rawValue: string) => {
-    const value = String(rawValue || '').trim().toLowerCase();
-    if (!value) return;
+    const brain = analyzeAlturathStudioIdea(rawValue, data?.products || []);
+    if (!brain.hasInput) return;
 
-    let nextSceneId = 'delivery-ready';
-    let nextPulseId = 'quick-kuwait';
-    let nextShot = 'hero-push';
-    let nextMood = 'دافئ';
-
-    if (/العيد الوطني|وطني|الكويت|فبراير/.test(value)) {
-      nextSceneId = 'home-rice-tray';
-      nextPulseId = 'national-day';
-      nextShot = 'top-spread';
-      nextMood = 'ناعم';
-    } else if (/مجبوس|كبسة|مكبوس|عيش|رز|مربين|برياني|دجاج/.test(value)) {
-      nextSceneId = 'home-rice-tray';
-      nextShot = /تفاصيل|قريب|قريبة/.test(value) ? 'texture-close' : 'steam-close';
-    } else if (/ورق عنب|محاشي|محشي|زوارة|عزيمة|لمة|يمعة/.test(value)) {
-      nextSceneId = 'zowara-spread';
-      nextShot = 'top-spread';
-    } else if (/ديوانية|ربع|شباب|مباراة/.test(value)) {
-      nextSceneId = 'diwaniya-order';
-      nextShot = 'table-pass';
-    } else if (/شاليه|بحر|ويكند/.test(value)) {
-      nextSceneId = 'chalet-weekend-order';
-      nextShot = 'table-pass';
-      nextMood = 'غروب';
-    } else if (/مزرعة|جاخور/.test(value)) {
-      nextSceneId = value.includes('جاخور') ? 'jakhour-clean-order' : 'farm-clean-table';
-      nextShot = 'table-pass';
-    } else if (/علبة|بوكس|توصيل|طلب|دليفري/.test(value)) {
-      nextSceneId = 'box-reveal';
-      nextShot = 'box-open';
-    } else if (/تفاصيل|قوام|قريب|قريبة/.test(value)) {
-      nextSceneId = 'food-detail';
-      nextShot = 'texture-close';
-    }
-
-    const scene = mergedScenes.find((item) => item.id === nextSceneId) || mergedScenes[0];
+    const scene = mergedScenes.find((item) => item.id === brain.sceneId) || mergedScenes[0];
     setSelectedSceneId(scene.id);
-    setSelectedPulseId(nextPulseId);
+    setSelectedPulseId(brain.pulseId);
     setSelectedOrderPlace(scene.place as KuwaitOrderPlace);
     setBackgroundPreset(scene.background as StudioBackgroundPresetId);
     setRealityMode(scene.mode as StudioRealityMode);
-    setSelectedMood(nextMood);
+    setSelectedMood(brain.mood);
     setRealityBoost(true);
     setStrictPlateLock(true);
-    setReelShot(nextShot);
+    setReelShot(brain.shotId);
+  };
+
+  const applyAlturathVariant = (variant: AlturathStudioVariant) => {
+    const scene = mergedScenes.find((item) => item.id === variant.sceneId) || mergedScenes[0];
+    setSelectedSceneId(scene.id);
+    setSelectedOrderPlace(scene.place as KuwaitOrderPlace);
+    setBackgroundPreset(scene.background as StudioBackgroundPresetId);
+    setRealityMode(scene.mode as StudioRealityMode);
+    setReelShot(variant.shotId);
+    setSelectedTheme('نبض الكويت');
+    setRealityBoost(true);
+    setStrictPlateLock(true);
+    toast.success(`تم اختيار ${variant.title} بواقعية عالية`);
   };
 
   const handleStudioIdeaChange = (value: string) => {
@@ -599,7 +579,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           imageContent: sourceImage.split(',')[1],
           mimeType: sourceImage.split(';')[0].split(':')[1],
           format: selectedFormat,
-          theme: `${themeText}. ${STUDIO_NEGATIVE_PROMPT}`,
+          theme: `${themeText}. ${analyzeAlturathStudioIdea(customThemeQuery, data?.products || []).promptGuard}. ${STUDIO_NEGATIVE_PROMPT}`,
           mood: selectedMood,
           realityMode: variantOverride?.mode || realityMode,
           backgroundPreset: variantOverride?.background || backgroundPreset,
@@ -673,7 +653,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setShowBrandingPanel(false);
     setRealityAudit(null);
     try {
-      const prompt = `${themeText}\nGenerate a believable Kuwaiti occasion / delivery / gathering image without requiring a product upload. Make it look like a real photographed Kuwaiti order moment, suitable for WhatsApp first. No readable text inside the image. ${STUDIO_NEGATIVE_PROMPT}`;
+      const prompt = `${themeText}\n${analyzeAlturathStudioIdea(customThemeQuery, data?.products || []).promptGuard}\nGenerate a believable Kuwaiti occasion / delivery / gathering image without requiring a product upload. Make it look like a real photographed Kuwaiti order moment, suitable for WhatsApp first. No readable text inside the image. ${STUDIO_NEGATIVE_PROMPT}`;
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -971,6 +951,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   const buildReelPrompt = () => {
     const shot = reelShots.find((s) => s.id === reelShot);
+    const brain = analyzeAlturathStudioIdea(customThemeQuery, data?.products || []);
     const place = KUWAIT_PLACES[selectedOrderPlace] || KUWAIT_PLACES.delivery;
     const idea = customThemeQuery.trim() || `${activePulsePack.label} لطلب كويتي واقعي من مطبخ التراث الكويتي`;
     const shotGuide: Record<string, string> = {
@@ -990,7 +971,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       jakhour: 'جاخور مرتب وحذر: طاولة عملية نظيفة وخلفية blur، بدون حيوانات أو تراب أو مخلفات أو فوضى.',
       zowara: 'زوارة عائلية داخل بيت: سفرة مرتبة ومحاشي/ورق عنب/أطباق عائلية، بدون وجوه أو عرس أو قهوة.'
     };
-    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي، نشاط مطبخ وتوصيل أكل كويتي وليس مطعم جلوس. فكرة مختصرة: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب على الطلب'} — ${shotGuide[reelShot] || shotGuide['hero-push']}. المكان: ${place.label} — ${placeGuide[selectedOrderPlace] || placeGuide.delivery}. مدة ${Math.min(8, Math.max(4, reelDuration))} ثواني. المطلوب لقطة واحدة واقعية جداً، حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، لا يتغير شكل الطبق أو الكمية أو المكونات عبر الفيديو. حافظ على الطبق والتغليف كما هما إذا كان المصدر صورة. تكوين بصري نظيف وإضاءة شهية واقعية. ممنوع وجوه واضحة، شخص يتكلم، شفاه، نصوص، شعارات، دلة، قهوة، بخور، سدو، فوانيس، سيارة توصيل، مطعم جلوس، كافيه، كلينكس مستخدم، فوضى، صحون تظهر فجأة، صوص يطير، أو أي حركة غير منطقية. إضاءة ${selectedMood}.`;
+    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي، نشاط مطبخ وتوصيل أكل كويتي وليس مطعم جلوس. فكرة مختصرة: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب على الطلب'} — ${shotGuide[reelShot] || shotGuide['hero-push']}. المكان: ${place.label} — ${placeGuide[selectedOrderPlace] || placeGuide.delivery}. مدة ${Math.min(8, Math.max(4, reelDuration))} ثواني. المطلوب لقطة واحدة واقعية جداً، حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، لا يتغير شكل الطبق أو الكمية أو المكونات عبر الفيديو. حافظ على الطبق والتغليف كما هما إذا كان المصدر صورة. تكوين بصري نظيف وإضاءة شهية واقعية. ممنوع وجوه واضحة، شخص يتكلم، شفاه، نصوص، شعارات، دلة، قهوة، بخور، سدو، فوانيس، سيارة توصيل، مطعم جلوس، كافيه، كلينكس مستخدم، فوضى، صحون تظهر فجأة، صوص يطير، أو أي حركة غير منطقية. إضاءة ${selectedMood}. وصفة الريل الذكية حسب الطبق: ${brain.reelRecipe.join('، ')}. ${brain.promptGuard}`;
   };
 
   const buildReelSettingsText = (item?: Partial<StudioReelHistoryItem>) => {
@@ -1101,6 +1082,79 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+
+  const currentStudioBrain = analyzeAlturathStudioIdea(customThemeQuery, data?.products || []);
+  const productSuggestions = getAlturathProductSuggestions(data?.products || [], customThemeQuery, 6);
+
+  const renderAlturathBrainCard = (context: 'image' | 'reel' = 'image') => {
+    const brain: AlturathStudioBrainResult = currentStudioBrain;
+    const activeScene = mergedScenes.find(scene => scene.id === selectedSceneId) || mergedScenes[0];
+    const activeShot = reelShots.find(shot => shot.id === reelShot) || reelShots[0];
+
+    if (!brain.hasInput && productSuggestions.length === 0) return null;
+
+    return (
+      <div className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 text-right shadow-sm space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-black text-emerald-600 flex items-center gap-1"><Brain size={14} /> فهمت فكرتك</div>
+            <div className="mt-1 text-sm font-black text-slate-950">{brain.hasInput ? brain.categoryLabel : 'منتجات مطبخ التراث'}</div>
+            <div className="mt-1 text-[11px] font-bold text-slate-500 leading-6">{brain.hasInput ? brain.reason : 'اختر منتجًا فعليًا أو اكتب فكرة، وسأربطها بمشهد ولقطة واقعية.'}</div>
+          </div>
+          <div className="rounded-2xl bg-white border border-emerald-100 px-3 py-2 text-center shrink-0">
+            <div className="text-lg font-black text-emerald-700">{brain.confidence}%</div>
+            <div className="text-[9px] font-black text-slate-400">ثقة</div>
+          </div>
+        </div>
+
+        {brain.hasInput && (
+          <div className="rounded-2xl bg-white border border-slate-100 p-3 text-[11px] font-bold text-slate-600 leading-6">
+            <span className="font-black text-slate-950">اخترنا لك:</span> {activeScene.label} · {activeShot.label} · إضاءة {selectedMood}، لأنك كتبت: <span className="font-black text-emerald-700">{customThemeQuery}</span>
+            <div className="mt-1 text-slate-400">نوع الطبق: {brain.categoryLabel} · منطق الحرارة: {brain.heatLabel}</div>
+          </div>
+        )}
+
+        {brain.matchedProducts.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {brain.matchedProducts.map((name) => <span key={name} className="rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-[10px] font-black">منتج معروف: {name}</span>)}
+          </div>
+        )}
+
+        {brain.warning && <div className="rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 p-3 text-[11px] font-black leading-6">{brain.warning}</div>}
+
+        {productSuggestions.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-[10px] font-black text-slate-400">اقتراحات من منتجاتك الفعلية</div>
+            <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {productSuggestions.map((name) => (
+                <button key={name} type="button" onClick={() => handleStudioIdeaChange(name)} className="shrink-0 rounded-2xl border border-slate-100 bg-white px-3 py-2 text-[11px] font-black text-slate-700 hover:border-emerald-300 hover:text-emerald-700 transition-colors">{name}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {context === 'reel' && brain.hasInput && (
+          <div className="rounded-2xl bg-violet-50 border border-violet-100 p-3">
+            <div className="text-[10px] font-black text-violet-600 mb-2">وصفة الريل حسب الطبق</div>
+            <div className="grid gap-1">
+              {brain.reelRecipe.map((item, index) => <div key={item} className="text-[11px] font-bold text-violet-900">{index + 1}. {item}</div>)}
+            </div>
+          </div>
+        )}
+
+        {brain.hasInput && context === 'image' && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {brain.variants.map((variant) => (
+              <button key={variant.id} type="button" onClick={() => applyAlturathVariant(variant)} className="rounded-2xl border border-slate-100 bg-white p-3 text-right hover:border-emerald-300 hover:bg-emerald-50 transition-all">
+                <div className="text-xs font-black text-slate-950">{variant.title}</div>
+                <div className="mt-1 text-[10px] font-bold text-slate-500 leading-5">{variant.desc}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const renderFineTools = () => {
@@ -1470,6 +1524,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                 {reelSource === 'idea' && (
                   <input type="text" placeholder="مثال: لقطة مجبوس حار يفتح الشهية لريلز إنستغرام..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-violet-500 transition-all duration-300 animate-in fade-in" />
                 )}
+                {renderAlturathBrainCard('reel')}
                 {reelSource === 'image' && (
                   <div onClick={() => reelImageInputRef.current?.click()} className="rounded-3xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-5 cursor-pointer text-center">
                     <input type="file" ref={reelImageInputRef} className="hidden" accept="image/*" onChange={handleReelImageUpload} />
@@ -1576,6 +1631,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <p className="text-[11px] font-bold text-slate-400">اكتب وصفك ونختصر لك الطريق، أو اتركها فارغة للاقتراحات الجاهزة.</p>
                 </div>
                 {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">اعتمدنا الفكرة. التالي يفتح لك المشهد والبيئة.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تبي اختيارات جاهزة؟ التالي يفتح لك المشهد والبيئة.</div>}
+                {renderAlturathBrainCard('image')}
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => goCreateStep(1)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
                   <button type="button" onClick={() => advanceCreateStep(3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">المشهد</button>
@@ -1685,6 +1741,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                   <div className="text-lg font-black">{customThemeQuery.trim() || `${activePulsePack.icon} ${activePulsePack.label}`}</div>
                   <div className="mt-2 text-sm font-bold text-white/60">{(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label} · {KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
                 </div>
+                {renderAlturathBrainCard('image')}
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => goCreateStep(5)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
                   <button onClick={generateKuwaitNoProduct} disabled={isGenerating} className="p-4 bg-slate-950 hover:bg-slate-800 text-white rounded-2xl font-black flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
@@ -1793,6 +1850,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                       <p className="text-[11px] font-bold text-slate-400">اكتب فكرتك وننتقل مباشرة للمسات النهائية، أو اتركها فارغة للاختيارات الجاهزة.</p>
                     </div>
                     {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">اعتمدنا الفكرة. بعدها لمسات نهائية ثم التوليد.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تبي اختيارات جاهزة؟ التالي يفتح لك المشهد والبيئة.</div>}
+                    {renderAlturathBrainCard('image')}
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(1)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
                       <button type="button" onClick={() => advanceProductStep(3)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">المشهد</button>
@@ -1902,6 +1960,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
                       <div className="text-lg font-black">{customThemeQuery.trim() || `${activePulsePack.icon} ${activePulsePack.label}`}</div>
                       <div className="mt-2 text-sm font-bold text-white/60">{(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label} · {KUWAIT_PLACES[selectedOrderPlace]?.label} · {selectedFormat}</div>
                     </div>
+                    {renderAlturathBrainCard('image')}
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(5)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
                       <button onClick={() => generateContent()} disabled={isGenerating || isGeneratingVariants} className="p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 transition-all disabled:opacity-50">
