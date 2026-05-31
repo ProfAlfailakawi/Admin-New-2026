@@ -1348,18 +1348,34 @@ const MainApp: React.FC = () => {
 
     const handleScroll = () => {
       const scrolled = mainElement.scrollTop;
-      const maxScroll = Math.max(1, mainElement.scrollHeight - mainElement.clientHeight);
-      const progress = Math.min(100, Math.max(0, (scrolled / maxScroll) * 100));
+      const maxScroll = Math.max(0, mainElement.scrollHeight - mainElement.clientHeight);
+      const progress = maxScroll > 0
+        ? Math.min(100, Math.max(0, (scrolled / maxScroll) * 100))
+        : 0;
+      const longPageThreshold = Math.max(520, mainElement.clientHeight * 0.75);
+      const isLongPage = maxScroll >= longPageThreshold;
 
       setScrollProgress(progress);
-      setShowTopButton(scrolled > 200);
+      setShowTopButton(isLongPage && scrolled > 200);
     };
 
     handleScroll();
 
-    mainElement.addEventListener('scroll', handleScroll);
-    return () => mainElement.removeEventListener('scroll', handleScroll);
-  }, [mainRef.current]);
+    mainElement.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(handleScroll);
+      resizeObserver.observe(mainElement);
+    }
+
+    return () => {
+      mainElement.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+      resizeObserver?.disconnect();
+    };
+  }, [currentPage, dashboardTab]);
 
   const scrollProgressCircle = 138.23;
   const scrollProgressOffset = scrollProgressCircle - (scrollProgress / 100) * scrollProgressCircle;

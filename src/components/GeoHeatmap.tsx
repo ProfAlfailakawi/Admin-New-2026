@@ -14,11 +14,10 @@ type MapMarker = {
  hasLocation: boolean;
 };
 
-type Tile = { key: string; url: string; left: number; top: number };
+type Tile = { key: string; url: string; fallbackUrl: string; left: number; top: number };
 
 const MAP_TILE_SIZE = 256;
-const MAP_ZOOM = 9;
-const MAP_CENTER = { lat: 29.18, lng: 47.72 };
+const MAP_CENTER = { lat: 29.25, lng: 47.65 };
 
 const toNumber = (value: any) => {
  if (value === undefined || value === null || value === '') return null;
@@ -135,7 +134,6 @@ const areaFallbackLocations: Record<string, { lat: number; lng: number }> = {
  'المنقف': { lat: 29.0961, lng: 48.1324 },
  'العقيله': { lat: 29.1450, lng: 48.1164 },
  'الرقة': { lat: 29.1464, lng: 48.0944 },
- 'الرقة': { lat: 29.1464, lng: 48.0944 },
  'الرقي': { lat: 29.1464, lng: 48.0944 },
  'هدية': { lat: 29.1244, lng: 48.0877 },
  'هديه': { lat: 29.1244, lng: 48.0877 },
@@ -165,7 +163,7 @@ const areaFallbackLocations: Record<string, { lat: number; lng: number }> = {
  'النعيم': { lat: 29.3700, lng: 47.6600 },
  'كبد': { lat: 29.1262, lng: 47.6080 },
  'السالمي': { lat: 29.1000, lng: 46.6750 },
- };
+};
 
 const getAreaFallbackLocation = (area: string) => {
  const normalized = normalizeArabicText(area);
@@ -182,7 +180,7 @@ const getAreaName = (item: any, customer: any) => normalizeArabicText(
  'غير محدد'
 );
 
-const lonLatToWorldPixel = (lat: number, lng: number, zoom = MAP_ZOOM) => {
+const lonLatToWorldPixel = (lat: number, lng: number, zoom: number) => {
  const sinLat = Math.sin((Math.max(-85.05112878, Math.min(85.05112878, lat)) * Math.PI) / 180);
  const scale = MAP_TILE_SIZE * 2 ** zoom;
  return {
@@ -195,6 +193,14 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  const mapRef = useRef<HTMLDivElement | null>(null);
  const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
  const [activeRegion, setActiveRegion] = useState<string | null>(null);
+
+ // Responsive zoom calculation
+ const mapZoom = useMemo(() => {
+   if (!mapSize.width) return 8; // Default
+   if (mapSize.width < 500) return 8; // Mobile
+   if (mapSize.width < 800) return 9; // Tablet
+   return 9.5; // Desktop
+ }, [mapSize.width]);
 
  useEffect(() => {
   const el = mapRef.current;
@@ -215,7 +221,13 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
 
  const mapTiles = useMemo<Tile[]>(() => {
   if (!mapSize.width || !mapSize.height) return [];
-  const center = lonLatToWorldPixel(MAP_CENTER.lat, MAP_CENTER.lng);
+  
+  // Use a whole number zoom for fetching tiles, but scale them for fractional zooms visually if we want.
+  // Actually, standard tile servers only support integer zooms. 
+  // Let's stick to an integer zoom level for tiles.
+  const tileZoom = Math.floor(mapZoom);
+  
+  const center = lonLatToWorldPixel(MAP_CENTER.lat, MAP_CENTER.lng, tileZoom);
   const topLeft = {
    x: center.x - mapSize.width / 2,
    y: center.y - mapSize.height / 2,
@@ -224,22 +236,24 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
   const endX = Math.floor((topLeft.x + mapSize.width) / MAP_TILE_SIZE);
   const startY = Math.floor(topLeft.y / MAP_TILE_SIZE);
   const endY = Math.floor((topLeft.y + mapSize.height) / MAP_TILE_SIZE);
-  const maxTile = 2 ** MAP_ZOOM;
+  const maxTile = 2 ** tileZoom;
   const tiles: Tile[] = [];
-  for (let x = startX; x <= endX; x += 1) {
-   for (let y = startY; y <= endY; y += 1) {
+  
+  for (let x = startX - 1; x <= endX + 1; x += 1) {
+   for (let y = startY - 1; y <= endY + 1; y += 1) {
     if (y < 0 || y >= maxTile) continue;
     const wrappedX = ((x % maxTile) + maxTile) % maxTile;
     tiles.push({
-     key: `${MAP_ZOOM}-${wrappedX}-${y}`,
-     url: `https://a.basemaps.cartocdn.com/light_all/${MAP_ZOOM}/${wrappedX}/${y}.png`,
+     key: `${tileZoom}-${wrappedX}-${y}`,
+     url: `https://tile.openstreetmap.org/${tileZoom}/${wrappedX}/${y}.png`,
+     fallbackUrl: `https://a.basemaps.cartocdn.com/light_all/${tileZoom}/${wrappedX}/${y}.png`,
      left: x * MAP_TILE_SIZE - topLeft.x,
      top: y * MAP_TILE_SIZE - topLeft.y,
     });
    }
   }
   return tiles;
- }, [mapSize.width, mapSize.height]);
+ }, [mapSize.width, mapSize.height, mapZoom]);
 
  const areaData = useMemo(() => {
   const invoices = Array.isArray(data.invoices) ? data.invoices : [];
@@ -282,8 +296,9 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
 
  const getMarkerPoint = (marker: MapMarker) => {
   if (!mapSize.width || !mapSize.height) return null;
-  const center = lonLatToWorldPixel(MAP_CENTER.lat, MAP_CENTER.lng);
-  const point = lonLatToWorldPixel(marker.lat, marker.lng);
+  const tileZoom = Math.floor(mapZoom);
+  const center = lonLatToWorldPixel(MAP_CENTER.lat, MAP_CENTER.lng, tileZoom);
+  const point = lonLatToWorldPixel(marker.lat, marker.lng, tileZoom);
   return {
    x: mapSize.width / 2 + (point.x - center.x),
    y: mapSize.height / 2 + (point.y - center.y),
@@ -292,16 +307,16 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
 
  return (
  <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-3xl md:rounded-2xl p-4 shadow-2xl shadow-indigo-900/50 border border-white/10 glass-dark text-white relative overflow-hidden border border-[#f0e6d2]/10">
- <h3 className="text-2xl md:text-3xl font-bold mb-8 text-white flex items-center justify-end gap-3 relative z-10 text-right w-full">
+ <h3 className="text-2xl md:text-3xl font-bold mb-6 sm:mb-8 text-white flex items-center justify-end gap-3 relative z-10 text-right w-full">
  خريطة الذهب الاستراتيجية 🇰🇼
  </h3>
- <p className="text-sm font-bold text-slate-300 text-right mb-6 relative z-10">
+ <p className="text-sm font-bold text-slate-300 text-right mb-4 sm:mb-6 relative z-10">
  توزيع القوة الشرائية وربحية المناطق في الكويت
  </p>
 
- <div className="w-full relative flex items-center justify-center p-1 sm:p-3 overflow-visible">
- <div ref={mapRef} className="relative w-full max-w-[860px] h-[440px] sm:h-[560px] rounded-[2rem] overflow-hidden border border-white/10 bg-slate-950 shadow-inner shadow-black/40">
- <div className="absolute inset-0 bg-slate-900">
+ <div className="w-full relative flex items-center justify-center p-0 sm:p-2 overflow-visible">
+ <div ref={mapRef} className="relative w-full max-w-[980px] h-[520px] sm:h-[620px] rounded-[1.75rem] sm:rounded-[2rem] overflow-hidden border border-white/10 bg-[#eef2f1] shadow-inner shadow-black/40">
+ <div className="absolute inset-0 bg-[#eef2f1]">
  {mapTiles.map((tile) => (
  <img
  key={tile.key}
@@ -309,16 +324,22 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  alt=""
  className="absolute select-none pointer-events-none"
  style={{ width: MAP_TILE_SIZE, height: MAP_TILE_SIZE, left: tile.left, top: tile.top }}
+ onError={(event) => {
+  const img = event.currentTarget;
+  if (img.dataset.fallbackApplied === '1') return;
+  img.dataset.fallbackApplied = '1';
+  img.src = tile.fallbackUrl;
+ }}
  draggable={false}
  />
  ))}
  </div>
- <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(234,179,8,0.10)_0%,rgba(15,23,42,0.16)_55%,rgba(15,23,42,0.38)_100%)] pointer-events-none" />
+ <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(234,179,8,0.10)_0%,rgba(15,23,42,0.05)_58%,rgba(15,23,42,0.16)_100%)] pointer-events-none" />
 
  {areaData.markers.map((marker, index) => {
  const point = getMarkerPoint(marker);
  if (!point) return null;
- const isOutside = point.x < -20 || point.x > mapSize.width + 20 || point.y < -20 || point.y > mapSize.height + 20;
+ const isOutside = point.x < -36 || point.x > mapSize.width + 36 || point.y < -36 || point.y > mapSize.height + 36;
  if (isOutside) return null;
  const intensity = marker.revenue / areaData.maxRev;
  const size = 18 + (intensity * 42);
