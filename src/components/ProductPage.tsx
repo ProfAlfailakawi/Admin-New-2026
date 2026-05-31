@@ -109,7 +109,20 @@ const ProductPage: React.FC<ProductPageProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [productForm, setProductForm] = useState({
+  const [productForm, setProductForm] = useState<{
+    name: string;
+    price: number;
+    cost: number;
+    category: string;
+    supplierId: string;
+    imageUrl: string;
+    isActive: boolean;
+    isOutOfStock: boolean;
+    preparationInstructions: string;
+    isMenuFeatured?: boolean;
+    featuredRank?: number;
+    addons: any[];
+  }>({
     name: "",
     price: 0,
     cost: 0,
@@ -119,6 +132,8 @@ const ProductPage: React.FC<ProductPageProps> = ({
     isActive: true,
     isOutOfStock: false,
     preparationInstructions: "",
+    isMenuFeatured: false,
+    featuredRank: undefined,
     addons: [],
   });
   const [suggestion, setSuggestion] = useState<string | null>(null);

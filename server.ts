@@ -64,6 +64,7 @@ try {
       console.warn("[ADMIN020] ACCESS DENIED. Server-side Firestore operations will fail. Check Service Account roles (Cloud Datastore User).");
     }
     firebaseInitialized = false;
+    db = null;
   }
 } catch (error) {
   firebaseInitialized = false;
@@ -5503,13 +5504,21 @@ ${tasteProfile ? `ذاكرة الذوق: ${String(tasteProfile).slice(0, 700)}` 
   });
 
   app.post("/api/smart-studio/social-simulator", express.json({ limit: "50mb" }), async (req, res) => {
+    let text = "";
+    let theme = "";
+    let image: any = null;
+    let buildStableAudienceScores = (inputText: string, inputTheme: string): any[] => [];
+
     try {
-      const { text, theme, image } = req.body;
+      const body = req.body || {};
+      text = body.text;
+      theme = body.theme;
+      image = body.image;
       if (!text) {
         return res.status(400).json({ error: "Missing text to simulate" });
       }
 
-      const buildStableAudienceScores = (inputText: string, inputTheme: string) => {
+      buildStableAudienceScores = (inputText: string, inputTheme: string) => {
         const source = `${inputTheme || ""}|${inputText || ""}`;
         let hash = 0;
         for (let i = 0; i < source.length; i += 1) {
