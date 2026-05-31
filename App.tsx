@@ -1340,20 +1340,29 @@ const MainApp: React.FC = () => {
   };
 
   const [showTopButton, setShowTopButton] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   useEffect(() => {
     const mainElement = mainRef.current;
     if (!mainElement) return;
 
     const handleScroll = () => {
-      // Smart threshold: Show after 200px or 10% of height
       const scrolled = mainElement.scrollTop;
+      const maxScroll = Math.max(1, mainElement.scrollHeight - mainElement.clientHeight);
+      const progress = Math.min(100, Math.max(0, (scrolled / maxScroll) * 100));
+
+      setScrollProgress(progress);
       setShowTopButton(scrolled > 200);
     };
+
+    handleScroll();
 
     mainElement.addEventListener('scroll', handleScroll);
     return () => mainElement.removeEventListener('scroll', handleScroll);
   }, [mainRef.current]);
+
+  const scrollProgressCircle = 138.23;
+  const scrollProgressOffset = scrollProgressCircle - (scrollProgress / 100) * scrollProgressCircle;
 
   const handleManualSync = async () => {
     if (!user) return;
@@ -2452,23 +2461,60 @@ const MainApp: React.FC = () => {
         userRole={effectiveUserRole}
       />
 
-      {/* Global Scroll to Top */}
+      {/* Global Scroll Progress + Back to Top */}
       <AnimatePresence>
         {showTopButton && effectiveUserRole !== 'partner' && (
           <motion.button
-            initial={{ opacity: 0, scale: 0.5, y: 50 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.5, y: 50 }}
+            initial={{ opacity: 0, scale: 0.86, x: 10 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.86, x: 10 }}
             onClick={() => mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="fixed bottom-24 sm:bottom-12 right-6 z-[9999] w-14 h-14 bg-indigo-600 text-white rounded-full shadow-[0_8px_30px_rgb(79,70,229,0.4)] flex items-center justify-center hover:bg-indigo-700 hover:scale-110 transition-all active:scale-95 group overflow-visible"
-            title="الرجوع للأعلى"
+            className="fixed right-2.5 bottom-24 sm:right-6 sm:bottom-12 z-[9999] h-20 w-8 sm:h-14 sm:w-14 rounded-full bg-white/72 sm:bg-white/90 text-slate-900 shadow-[0_10px_28px_rgba(15,23,42,0.14)] sm:shadow-[0_14px_40px_rgba(15,23,42,0.16)] border border-white/70 backdrop-blur-xl flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-[0_18px_48px_rgba(15,23,42,0.22)] active:scale-95 group overflow-hidden sm:overflow-visible"
+            title={`الرجوع للأعلى - تم تصفح ${Math.round(scrollProgress)}٪`}
+            aria-label={`الرجوع للأعلى - تم تصفح ${Math.round(scrollProgress)}٪`}
           >
-            <ArrowUp className="group-hover:-translate-y-1 transition-transform" size={28} />
-            <motion.div 
-              animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
-              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-              className="absolute -inset-2 rounded-full border-2 border-indigo-500/30"
-            />
+            {/* Mobile: one soft edge capsule with a liquid progress fill */}
+            <span className="sm:hidden absolute inset-[3px] rounded-full bg-slate-950/[0.035] overflow-hidden" aria-hidden="true">
+              <motion.span
+                className="absolute bottom-0 left-0 right-0 rounded-full bg-gradient-to-t from-teal-500/55 via-sky-400/38 to-white/10"
+                animate={{ height: `${Math.max(10, Math.min(100, scrollProgress))}%` }}
+                transition={{ type: 'spring', stiffness: 170, damping: 26 }}
+              />
+              <span className="absolute inset-x-1 top-1 h-3 rounded-full bg-white/50 blur-[1px]" />
+            </span>
+
+            {/* Desktop: refined circular progress, same original behavior */}
+            <svg className="hidden sm:block absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 56 56" aria-hidden="true">
+              <circle
+                cx="28"
+                cy="28"
+                r="22"
+                fill="none"
+                stroke="rgba(15, 23, 42, 0.08)"
+                strokeWidth="4"
+              />
+              <motion.circle
+                cx="28"
+                cy="28"
+                r="22"
+                fill="none"
+                stroke="url(#scrollProgressGradientRoot)"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={scrollProgressCircle}
+                animate={{ strokeDashoffset: scrollProgressOffset }}
+                transition={{ type: 'spring', stiffness: 170, damping: 24 }}
+              />
+              <defs>
+                <linearGradient id="scrollProgressGradientRoot" x1="0" x2="1" y1="0" y2="1">
+                  <stop offset="0%" stopColor="#0f766e" />
+                  <stop offset="100%" stopColor="#0284c7" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <span className="hidden sm:block absolute inset-2 rounded-full bg-slate-50/80 shadow-inner" aria-hidden="true" />
+            <span className="sm:hidden absolute inset-[7px] rounded-full border border-white/45" aria-hidden="true" />
+            <ArrowUp className="relative z-10 transition-transform group-hover:-translate-y-0.5 drop-shadow-[0_1px_2px_rgba(255,255,255,0.65)]" size={18} strokeWidth={2.8} />
           </motion.button>
         )}
       </AnimatePresence>
