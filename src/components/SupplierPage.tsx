@@ -134,7 +134,9 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  const supplierCost = (inv.items || []).reduce((total, item) => {
  const product = (data?.products || []).find(p => p.id === item.productId);
  if (!product || product.supplierId !== supId || !supplierProductIds.has(item.productId)) return total;
- return total + ((item.costAtTime || product.cost || 0) * (item.quantity || 1));
+ const itemCost = item.costAtTime !== undefined ? item.costAtTime : (product.cost || 0);
+ const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
+ return total + (itemCost * qty);
  }, 0);
 
  return {

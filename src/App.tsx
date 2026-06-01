@@ -1967,11 +1967,14 @@ const MainApp: React.FC = () => {
            }
         });
         
-	        const authoritativeImportedState = {
+	        let authoritativeImportedState = {
 	          ...importedState,
 	          __adminDataGenerationId: generationId,
 	          __adminLastAuthoritativeWriteAt: new Date(authoritativeWriteAt).toISOString(),
 	        } as AppState;
+            
+            authoritativeImportedState = recalculateStateBalances(authoritativeImportedState);
+            
 	        const newFullStateStr = JSON.stringify(authoritativeImportedState);
 	        lastRemoteSnapshotRef.current = newFullStateStr;
         authoritativeDataWrittenAtRef.current = authoritativeWriteAt;
@@ -2121,7 +2124,10 @@ const MainApp: React.FC = () => {
                   } else {
                      joined.zones = INITIAL_DATA.zones;
                   }
-                  setData(joined);
+                  
+                  // Recalculate derived state (like supplier balances) upon load
+                  const finalProcessedState = recalculateStateBalances(joined);
+                  setData(finalProcessedState);
               } catch (e) {
                   console.error('Failed to parse local data', e);
                   setData(INITIAL_DATA);
@@ -2227,8 +2233,12 @@ const MainApp: React.FC = () => {
               if (k !== 'products') delete rootDataOnly[k];
             });
             lastRemoteKeysRef.current['__root__'] = stableStringify(rootDataOnly);
-            setData(loadedState);
-            lastRemoteSnapshotRef.current = JSON.stringify(loadedState);
+            
+            // Recalculate derived state (like supplier balances) upon load
+            const finalProcessedState = recalculateStateBalances(loadedState);
+
+            setData(finalProcessedState);
+            lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
             try {
               setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
               setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
@@ -2359,11 +2369,14 @@ const MainApp: React.FC = () => {
           }
         }
 
-	        setData(loadedState);
-	        lastRemoteSnapshotRef.current = JSON.stringify(loadedState);
-	        try {
-	          setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
-	          setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
+        // Recalculate derived state (like supplier balances) upon load
+        const finalProcessedState = recalculateStateBalances(loadedState);
+
+        setData(finalProcessedState);
+        lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
+        try {
+          setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
+          setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
 	        } catch {}
       } catch (err) {
         if (String(err).includes("Missing or insufficient permissions") || String(err).includes("permission-denied")) {
@@ -2624,7 +2637,10 @@ const MainApp: React.FC = () => {
         if (savedDataStr) {
           const parsed = JSON.parse(savedDataStr);
           const joined = joinProductsFromDatabase(parsed);
-          setData(joined);
+          
+          // Recalculate derived state (like supplier balances) upon load
+          const finalProcessedState = recalculateStateBalances(joined);
+          setData(finalProcessedState);
         } else {
           setData(INITIAL_DATA);
         }

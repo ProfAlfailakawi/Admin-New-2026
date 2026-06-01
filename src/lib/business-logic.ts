@@ -18,17 +18,14 @@ export function recalculateStateBalances(state: AppState): AppState {
   // Calculate costs from active invoices
   (newState.invoices || []).forEach(inv => {
     if (inv.isDeleted) return;
-    
-    // Only include paid invoices for financial consistency
-    const isPaid = isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined;
-    if (!isPaid) return;
 
     (inv.items || []).forEach(item => {
       const product = (newState.products || []).find(p => p.id === item.productId);
       if (product?.supplierId) {
         // Use cost from items (costAtTime) * quantity, as designed for accurate historical costs
-        const itemCost = (item.costAtTime || product.cost || 0);
-        const cost = itemCost * (item.quantity || 0);
+        const itemCost = item.costAtTime !== undefined ? item.costAtTime : (product.cost || 0);
+        const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
+        const cost = itemCost * qty;
         const currentTotal = supplierBalances[product.supplierId] || 0;
         supplierBalances[product.supplierId] = Math.round((currentTotal + cost) * 1000) / 1000;
       } else {
