@@ -314,8 +314,15 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  توزيع القوة الشرائية وربحية المناطق في الكويت
  </p>
 
+ <style>{`
+  @media (max-width: 640px) and (orientation: portrait) {
+   .geo-heatmap-frame {
+    height: min(440px, 58vh) !important;
+   }
+  }
+ `}</style>
  <div className="w-full relative flex items-center justify-center p-0 sm:p-2 overflow-visible">
- <div ref={mapRef} className="relative w-full max-w-[980px] h-[520px] sm:h-[620px] rounded-[1.75rem] sm:rounded-[2rem] overflow-hidden border border-white/10 bg-[#eef2f1] shadow-inner shadow-black/40">
+ <div ref={mapRef} className="geo-heatmap-frame relative w-full max-w-[980px] h-[520px] sm:h-[620px] rounded-[1.75rem] sm:rounded-[2rem] overflow-hidden border border-white/10 bg-[#eef2f1] shadow-inner shadow-black/40">
  <div className="absolute inset-0 bg-[#eef2f1]">
  {mapTiles.map((tile) => (
  <img
