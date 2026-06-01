@@ -313,7 +313,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
  <div className="flex-1">
  <div className="text-[10px] md:text-sm font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي المديونية</div>
- <div className="text-lg md:text-3xl font-bold text-slate-900 tracking-tighter leading-none">{Number(totalOutstanding || 0).toFixed(3)} <span className="text-sm md:text-xl font-bold">د.ك</span></div>
+ <div className="text-lg md:text-3xl font-bold text-slate-900 tracking-tighter leading-none whitespace-nowrap" dir="ltr">{Number(totalOutstanding || 0).toFixed(3)} <span className="text-sm md:text-xl font-bold">د.ك</span></div>
  <p className="hidden md:block text-xs text-slate-500 font-medium mt-2 leading-tight">إجمالي المبالغ المستحقة لجميع الموردين المسجلين</p>
  </div>
  </div>
@@ -539,7 +539,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  {productsToShow.map(p => (
  <div key={p.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-2xl border border-slate-100 font-bold text-slate-800">
  <span>{p.name}</span>
- <span className="text-primary">{Number(p.price || 0).toFixed(3)} د.ك</span>
+ <span className="text-primary whitespace-nowrap" dir="ltr">{Number(p.price || 0).toFixed(3)} د.ك</span>
  </div>
 ))}
  {productsToShow.length === 0 && <p className="text-center text-slate-500 font-bold italic py-4 md:py-8">ماكو منتجات مرتبطة بهذا المورد حالياً.</p>}
@@ -756,9 +756,9 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   </div>
   <div className="order-2 text-left">
   <div className={cn(
- "text-lg font-black tracking-tighter",
+ "text-lg font-black tracking-tighter whitespace-nowrap",
   item.type === 'invoice' ? "text-slate-900" : "text-emerald-600"
- )}>
+ )} dir="ltr">
   {item.type === 'invoice' ? '' : '-'}{Math.abs(item.amount).toFixed(3)} <span className="text-[10px]">د.ك</span>
   </div>
   {item.type === 'transfer' && (
@@ -782,11 +782,11 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
           <div className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm grid grid-cols-2 gap-4">
             <div className="text-right">
               <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي البيع (Revenue)</div>
-              <div className="text-lg font-black text-slate-900">{(item.revenue || 0).toFixed(3)} <span className="text-xs">د.ك</span></div>
+              <div className="text-lg font-black text-slate-900 whitespace-nowrap" dir="ltr">{(item.revenue || 0).toFixed(3)} <span className="text-xs text-slate-500">د.ك</span></div>
             </div>
             <div className="text-right border-r border-slate-100 px-4">
               <div className="text-[10px] font-black text-slate-400 uppercase mb-1">تكلفة التوريد (Supply Cost)</div>
-              <div className="text-lg font-black text-rose-500">{item.amount.toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
+              <div className="text-lg font-black text-rose-500 whitespace-nowrap" dir="ltr">{item.amount.toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
             </div>
           </div>
 
@@ -801,12 +801,10 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
                       <span>الكمية: {prod.quantity}</span>
                       <span className="w-1 h-1 bg-slate-200 rounded-full" />
                       <span>السعر: {prod.price.toFixed(3)}</span>
-                      <span className="w-1 h-1 bg-slate-200 rounded-full" />
-                      <span className="bg-blue-50 text-blue-500 px-1.5 rounded-md">التوريد: {prod.cost.toFixed(3)}</span>
                     </div>
                   </div>
                   <div className="text-left shrink-0">
-                    <div className="text-sm font-black text-slate-900">{prod.totalCost.toFixed(3)} <span className="text-[10px]">د.ك</span></div>
+                    <div className="text-sm font-black text-slate-900 whitespace-nowrap" dir="ltr">{prod.cost.toFixed(3)} <span className="text-[10px]">د.ك</span></div>
                     <div className="text-[9px] font-bold text-emerald-500">حصة المورد</div>
                   </div>
                 </div>

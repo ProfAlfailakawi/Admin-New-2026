@@ -1257,7 +1257,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     )}
                     
                     {/* Modern Status Badge (Top-Left) */}
-                    <div className="admin-product-quick-actions absolute top-2.5 left-2.5 z-30 flex flex-row gap-2">
+                    <div className="admin-product-quick-actions absolute top-2.5 left-2.5 z-30 flex flex-col gap-2">
                        <button 
                          title={product.isOutOfStock ? 'إتاحة المنتج للبيع' : 'إيقاف البيع (نفدت الكمية)'}
                          onClick={(e) => {
