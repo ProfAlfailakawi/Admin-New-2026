@@ -7,11 +7,12 @@ import { cn } from '../lib/utils';
 interface ProactiveAlertsProps {
  notifications: Notification[];
  onMarkAsRead: (id: string) => void;
+ onMarkAllAsRead?: () => void;
  userRole?: string | null;
  currentPage?: string;
 }
 
-const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMarkAsRead, userRole, currentPage = 'dashboard' }) => {
+const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMarkAsRead, onMarkAllAsRead, userRole, currentPage = 'dashboard' }) => {
  const activeAlerts = notifications.filter(n => !n.read && n.insightType).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
  const [selectedAlert, setSelectedAlert] = useState<Notification | null>(null);
  const [showHub, setShowHub] = useState(false);
@@ -101,9 +102,22 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  </h3>
  <p className="text-[10px] text-slate-500 font-bold uppercase mt-0.5">نبض العمليات الفوري</p>
  </div>
+ <div className="flex items-center gap-2">
+ {activeAlerts.length > 0 && onMarkAllAsRead && (
+ <button 
+ onClick={(e) => {
+ e.stopPropagation();
+ onMarkAllAsRead();
+ }}
+ className="text-xs text-indigo-600 font-bold bg-white hover:bg-slate-100/80 active:scale-95 border border-slate-200/80 px-3 py-1.5 rounded-xl shadow-sm transition-all"
+ >
+ قراءة الكل
+ </button>
+ )}
  <button onClick={() => setShowHub(false)} className="p-2 hover:bg-white rounded-full text-slate-500 border border-transparent hover:border-slate-200/60 transition-all">
  <X size={20} />
  </button>
+ </div>
  </div>
 
  <div className="flex-1 overflow-y-auto p-3 md:p-3 space-y-4 custom-scrollbar">

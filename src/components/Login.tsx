@@ -82,12 +82,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
   };
 
   const handleGoogleLogin = async () => {
+    if (loading) return;
     setLoading(true);
     setError('');
     try {
       localStorage.setItem('appMode', 'cloud');
-      onLogin('cloud');
       await loginWithGoogle();
+      onLogin('cloud');
     } catch (err: any) {
       const errString = String(err).toLowerCase();
       if (errString.includes('popup-closed-by-user') || errString.includes('cancelled by the user')) {

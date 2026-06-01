@@ -3427,6 +3427,12 @@ const MainApp: React.FC = () => {
                      notifications: (prev?.notifications || []).map(n => n.id === id ? { ...n, read: true } : n)
                  }));
               }} 
+              onMarkAllAsRead={() => {
+                 setData(prev => ({
+                     ...prev,
+                     notifications: (prev?.notifications || []).map(n => n.insightType ? { ...n, read: true } : n)
+                 }));
+              }}
             />
           )}
           {userRole !== 'partner' && currentPage === 'dashboard' && (
@@ -3567,10 +3573,12 @@ const MainApp: React.FC = () => {
               <div className="relative z-10 flex items-center justify-center bg-white/5 rounded-full w-7 h-7 backdrop-blur-md border border-white/5">
                 <Command className="text-amber-400 group-hover:scale-110 transition-transform duration-300" size={15} />
               </div>
-              <div className="absolute top-2.5 right-2.5 flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-[120%] w-[120%] rounded-full bg-amber-400 opacity-60"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
-              </div>
+              {(data?.notifications || []).some(n => !n.read) && (
+                <div className="absolute top-2.5 right-2.5 flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-[120%] w-[120%] rounded-full bg-amber-400 opacity-60"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                </div>
+              )}
             </button>
           </motion.div>
         )}
