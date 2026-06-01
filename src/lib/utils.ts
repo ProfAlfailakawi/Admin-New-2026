@@ -205,7 +205,11 @@ export function getUnifiedInvoices(data: any): any[] {
       pStatus = 'failed';
     }
     
-    const itemsCost = (o.items || []).reduce((acc: number, item: any) => acc + ((item.costAtTime || 0) * (item.quantity || 1)), 0);
+    const itemsCost = (o.items || []).reduce((acc: number, item: any) => {
+      const itemCost = item.costAtTime !== undefined ? item.costAtTime : 0;
+      const qty = item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1);
+      return acc + (itemCost * qty);
+    }, 0);
     const amount = Number(o.totalAmount || 0);
 
     let finalCustomerName = o.customerName || o.customerInfo?.name || o.customer?.name || '';
