@@ -562,6 +562,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">تاريخ التحويل</label>
  <input 
  type="date"
+ lang="en-GB" dir="ltr"
  className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-5 mb-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right text-lg"
  value={transferForm.date.split('T')[0]}
  onChange={(e) => setTransferForm({ ...transferForm, date: e.target.value ? new Date(e.target.value).toISOString() : new Date().toISOString() })}

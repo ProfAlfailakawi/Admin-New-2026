@@ -1337,22 +1337,22 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     </div>
 
                     {/* Marketing Badges (Top Right) */}
-                    <div className="admin-product-badges absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end z-10">
+                    <div className="admin-product-badges absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end z-10 max-w-[50%]">
                       {isSlow && (
                         <span 
                           title="هذا المنتج حركته بطيئة مقارنة بباقي المنتجات"
-                          className="bg-rose-500/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase cursor-help pointer-events-auto title-premium">
+                          className="bg-rose-500/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase cursor-help pointer-events-auto title-premium max-w-full truncate block">
                           بطيء الحركة
                         </span>
                       )}
                       {sales > 10 && (
-                        <span className="bg-emerald-500/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase pointer-events-auto title-premium font-black">
+                        <span className="bg-emerald-500/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase pointer-events-auto title-premium font-black max-w-full truncate block">
                           رائج 🔥
                         </span>
                       )}
                       <span
                         title={profitCamera.hint}
-                        className={cn("backdrop-blur-sm text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase pointer-events-auto title-premium", profitCameraClass)}
+                        className={cn("backdrop-blur-sm text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase pointer-events-auto title-premium max-w-full truncate block", profitCameraClass)}
                       >
                         كاميرا الربح · {profitCamera.label}
                       </span>
