@@ -18,6 +18,7 @@ type Tile = { key: string; url: string; fallbackUrl: string; left: number; top: 
 
 const MAP_TILE_SIZE = 256;
 const MAP_CENTER = { lat: 29.25, lng: 47.65 };
+const MAP_CENTER_MOBILE_PORTRAIT = { lat: 29.16, lng: 47.92 };
 
 const toNumber = (value: any) => {
  if (value === undefined || value === null || value === '') return null;
@@ -194,13 +195,16 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
  const [activeRegion, setActiveRegion] = useState<string | null>(null);
 
- // Responsive zoom calculation
+ // Responsive viewport calculation. Display-only: no Geo data, coordinates, or markers are changed.
+ const isMobilePortraitMap = Boolean(mapSize.width && mapSize.width < 520 && mapSize.height > mapSize.width * 1.18);
  const mapZoom = useMemo(() => {
-   if (!mapSize.width) return 8; // Default
-   if (mapSize.width < 500) return 8; // Mobile
-   if (mapSize.width < 800) return 9; // Tablet
-   return 9.5; // Desktop
- }, [mapSize.width]);
+   if (!mapSize.width) return 8;
+   if (isMobilePortraitMap) return 8;
+   if (mapSize.width < 500) return 8;
+   if (mapSize.width < 800) return 9;
+   return 9.5;
+ }, [mapSize.width, isMobilePortraitMap]);
+ const displayMapCenter = useMemo(() => (isMobilePortraitMap ? MAP_CENTER_MOBILE_PORTRAIT : MAP_CENTER), [isMobilePortraitMap]);
 
  useEffect(() => {
   const el = mapRef.current;
@@ -227,7 +231,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
   // Let's stick to an integer zoom level for tiles.
   const tileZoom = Math.floor(mapZoom);
   
-  const center = lonLatToWorldPixel(MAP_CENTER.lat, MAP_CENTER.lng, tileZoom);
+  const center = lonLatToWorldPixel(displayMapCenter.lat, displayMapCenter.lng, tileZoom);
   const topLeft = {
    x: center.x - mapSize.width / 2,
    y: center.y - mapSize.height / 2,
@@ -239,13 +243,13 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
   const maxTile = 2 ** tileZoom;
   const tiles: Tile[] = [];
   
-  for (let x = startX - 1; x <= endX + 1; x += 1) {
-   for (let y = startY - 1; y <= endY + 1; y += 1) {
+  for (let x = startX - 2; x <= endX + 2; x += 1) {
+   for (let y = startY - 2; y <= endY + 2; y += 1) {
     if (y < 0 || y >= maxTile) continue;
     const wrappedX = ((x % maxTile) + maxTile) % maxTile;
     tiles.push({
      key: `${tileZoom}-${wrappedX}-${y}`,
-     url: `https://tile.openstreetmap.org/${tileZoom}/${wrappedX}/${y}.png`,
+     url: `https://a.basemaps.cartocdn.com/rastertiles/voyager/${tileZoom}/${wrappedX}/${y}.png`,
      fallbackUrl: `https://a.basemaps.cartocdn.com/light_all/${tileZoom}/${wrappedX}/${y}.png`,
      left: x * MAP_TILE_SIZE - topLeft.x,
      top: y * MAP_TILE_SIZE - topLeft.y,
@@ -253,7 +257,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
    }
   }
   return tiles;
- }, [mapSize.width, mapSize.height, mapZoom]);
+ }, [mapSize.width, mapSize.height, mapZoom, displayMapCenter]);
 
  const areaData = useMemo(() => {
   const invoices = Array.isArray(data.invoices) ? data.invoices : [];
@@ -297,7 +301,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  const getMarkerPoint = (marker: MapMarker) => {
   if (!mapSize.width || !mapSize.height) return null;
   const tileZoom = Math.floor(mapZoom);
-  const center = lonLatToWorldPixel(MAP_CENTER.lat, MAP_CENTER.lng, tileZoom);
+  const center = lonLatToWorldPixel(displayMapCenter.lat, displayMapCenter.lng, tileZoom);
   const point = lonLatToWorldPixel(marker.lat, marker.lng, tileZoom);
   return {
    x: mapSize.width / 2 + (point.x - center.x),
@@ -314,23 +318,16 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  توزيع القوة الشرائية وربحية المناطق في الكويت
  </p>
 
- <style>{`
-  @media (max-width: 640px) and (orientation: portrait) {
-   .geo-heatmap-frame {
-    height: min(440px, 58vh) !important;
-   }
-  }
- `}</style>
- <div className="w-full relative flex items-center justify-center p-0 sm:p-2 overflow-visible">
- <div ref={mapRef} className="geo-heatmap-frame relative w-full max-w-[980px] h-[520px] sm:h-[620px] rounded-[1.75rem] sm:rounded-[2rem] overflow-hidden border border-white/10 bg-[#eef2f1] shadow-inner shadow-black/40">
- <div className="absolute inset-0 bg-[#eef2f1]">
+ <div className="w-full relative flex items-center justify-center p-0 sm:p-2 overflow-visible" dir="ltr">
+ <div ref={mapRef} className="relative w-full max-w-[980px] h-[590px] max-h-[72vh] min-h-[520px] sm:h-[620px] sm:max-h-none rounded-[1.75rem] sm:rounded-[2rem] overflow-hidden border border-white/10 bg-[#eef2f1] shadow-inner shadow-black/40" dir="ltr">
+ <div className="absolute inset-0 bg-[#eef2f1]" dir="ltr">
  {mapTiles.map((tile) => (
  <img
  key={tile.key}
  src={tile.url}
  alt=""
- className="absolute select-none pointer-events-none"
- style={{ width: MAP_TILE_SIZE, height: MAP_TILE_SIZE, left: tile.left, top: tile.top }}
+ className="absolute select-none pointer-events-none max-w-none max-h-none" referrerPolicy="no-referrer"
+ style={{ width: MAP_TILE_SIZE, height: MAP_TILE_SIZE, left: tile.left, top: tile.top, right: 'auto' }}
  onError={(event) => {
   const img = event.currentTarget;
   if (img.dataset.fallbackApplied === '1') return;
@@ -358,7 +355,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  <div 
  key={marker.name}
  className="absolute flex flex-col items-center justify-center transform -translate-x-1/2 -translate-y-1/2 group"
- style={{ left: point.x, top: point.y, zIndex }}
+ style={{ left: point.x, top: point.y, zIndex, right: 'auto' }}
  onMouseEnter={() => setActiveRegion(marker.name)}
  onMouseLeave={() => setActiveRegion(null)}
  onClick={() => setActiveRegion(marker.name)}
