@@ -4189,7 +4189,7 @@ const [isPending, startTransition] = useTransition();
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="text-lg font-bold text-slate-900">
+                        <div className="text-lg font-bold text-slate-900 whitespace-nowrap" dir="ltr">
                           {totalSalesVal.toFixed(3)}{" "}
                           <span className="text-sm">د.ك</span>
                         </div>
@@ -4310,41 +4310,41 @@ const [isPending, startTransition] = useTransition();
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 font-bold text-slate-600">
                                   <tr className="hover:bg-slate-100/30">
-                                    <td className="py-2.5 text-right text-slate-800">+ مبيعات المنتجات (الصافية)</td>
-                                    <td className="py-2.5 text-center text-indigo-600" dir="ltr">{foodSalesVal?.toFixed(3)} د.ك</td>
-                                    <td className="py-2.5 text-left text-indigo-700" dir="ltr">{allTimeFoodSales?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 pr-2 text-right text-slate-800 min-w-[120px]">+ مبيعات المنتجات (الصافية)</td>
+                                    <td className="py-2.5 px-2 text-center text-indigo-600 whitespace-nowrap" dir="ltr">{foodSalesVal?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 pl-2 text-left text-indigo-700 whitespace-nowrap" dir="ltr">{allTimeFoodSales?.toFixed(3)} د.ك</td>
                                   </tr>
                                   <tr className="hover:bg-slate-100/30">
-                                    <td className="py-2.5 text-right text-slate-800">+ رسوم التوصيل المحصلة</td>
-                                    <td className="py-2.5 text-center text-indigo-600" dir="ltr">{totalDeliveryRevenue?.toFixed(3)} د.ك</td>
-                                    <td className="py-2.5 text-left text-indigo-700" dir="ltr">{allTimeCollectedDeliveryFees?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 pr-2 text-right text-slate-800 min-w-[120px]">+ رسوم التوصيل المحصلة</td>
+                                    <td className="py-2.5 px-2 text-center text-indigo-600 whitespace-nowrap" dir="ltr">{totalDeliveryRevenue?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 pl-2 text-left text-indigo-700 whitespace-nowrap" dir="ltr">{allTimeCollectedDeliveryFees?.toFixed(3)} د.ك</td>
                                   </tr>
                                   <tr className="hover:bg-slate-100/30">
-                                    <td className="py-2.5 text-right text-slate-800">- الخصومات والكوبونات الممنوحة</td>
-                                    <td className="py-2.5 text-center text-rose-500" dir="ltr">{totalDiscountsVal?.toFixed(3)} د.ك</td>
-                                    <td className="py-2.5 text-left text-rose-600" dir="ltr">{allTimeDiscounts?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 pr-2 text-right text-slate-800 min-w-[120px]">- الخصومات والكوبونات الممنوحة</td>
+                                    <td className="py-2.5 px-2 text-center text-rose-500 whitespace-nowrap" dir="ltr">{totalDiscountsVal?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 pl-2 text-left text-rose-600 whitespace-nowrap" dir="ltr">{allTimeDiscounts?.toFixed(3)} د.ك</td>
                                   </tr>
                                   <tr className="hover:bg-slate-100/30">
-                                    <td className="py-2.5 text-right text-slate-800">- المصروفات العامة والتشغيلية</td>
-                                    <td className="py-2.5 text-center text-rose-500" dir="ltr">{totalExpensesVal?.toFixed(3)} د.ك</td>
-                                    <td className="py-2.5 text-left text-rose-600" dir="ltr">{allTimeExpenses?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 pr-2 text-right text-slate-800 min-w-[120px]">- المصروفات العامة والتشغيلية</td>
+                                    <td className="py-2.5 px-2 text-center text-rose-500 whitespace-nowrap" dir="ltr">{totalExpensesVal?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 pl-2 text-left text-rose-600 whitespace-nowrap" dir="ltr">{allTimeExpenses?.toFixed(3)} د.ك</td>
                                   </tr>
                                   <tr className="hover:bg-slate-100/30">
-                                    <td className="py-2.5 text-right text-slate-800">- دفعات وسداد الموردين</td>
-                                    <td className="py-2.5 text-center text-rose-500" dir="ltr">{allSupplierPayments?.toFixed(3)} د.ك</td>
-                                    <td className="py-2.5 text-left text-rose-600" dir="ltr">{allTimeSupplierPayments?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 pr-2 text-right text-slate-800 min-w-[120px]">- دفعات وسداد الموردين</td>
+                                    <td className="py-2.5 px-2 text-center text-rose-500 whitespace-nowrap" dir="ltr">{allSupplierPayments?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 pl-2 text-left text-rose-600 whitespace-nowrap" dir="ltr">{allTimeSupplierPayments?.toFixed(3)} د.ك</td>
                                   </tr>
                                   <tr className="hover:bg-slate-100/30">
-                                    <td className="py-2.5 text-right text-slate-800">- عمولات رسوم بوابات الدفع</td>
-                                    <td className="py-2.5 text-center text-rose-500" dir="ltr">{totalGatewayFees?.toFixed(3)} د.ك</td>
-                                    <td className="py-2.5 text-left text-rose-600" dir="ltr">{allTimeGatewayFees?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 pr-2 text-right text-slate-800 min-w-[120px]">- عمولات رسوم بوابات الدفع</td>
+                                    <td className="py-2.5 px-2 text-center text-rose-500 whitespace-nowrap" dir="ltr">{totalGatewayFees?.toFixed(3)} د.ك</td>
+                                    <td className="py-2.5 pl-2 text-left text-rose-600 whitespace-nowrap" dir="ltr">{allTimeGatewayFees?.toFixed(3)} د.ك</td>
                                   </tr>
                                   <tr className="border-t-2 border-slate-200 font-extrabold bg-slate-100/50">
-                                    <td className="py-3 text-right text-slate-900 font-extrabold">الصافي الجاهز / التغير</td>
-                                    <td className="py-3 text-center text-emerald-600 font-extrabold" dir="ltr">
+                                    <td className="py-3 pr-2 text-right text-slate-900 font-extrabold min-w-[120px]">الصافي الجاهز / التغير</td>
+                                    <td className="py-3 px-2 text-center text-emerald-600 font-extrabold whitespace-nowrap" dir="ltr">
                                       {expectedBankBalance >= 0 ? "+" : ""}{expectedBankBalance.toFixed(3)} د.ك
                                     </td>
-                                    <td className="py-3 text-left text-emerald-700 font-black text-xs" dir="ltr">
+                                    <td className="py-3 pl-2 text-left text-emerald-700 font-black text-xs whitespace-nowrap" dir="ltr">
                                       {cumulativeBankBalance.toFixed(3)} د.ك
                                     </td>
                                   </tr>
