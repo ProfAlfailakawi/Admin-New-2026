@@ -954,9 +954,10 @@ Alturath.kw`;
                       </label>
                       <input
                         type="date"
+                        lang="en-GB" dir="ltr"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full p-2 rounded-lg border border-slate-200/60 outline-none"
+                        className="w-full p-2 rounded-lg border border-slate-200/60 outline-none text-right"
                       />
                     </div>
                     <div className="flex-1 text-right">
@@ -965,9 +966,10 @@ Alturath.kw`;
                       </label>
                       <input
                         type="date"
+                        lang="en-GB" dir="ltr"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full p-2 rounded-lg border border-slate-200/60 outline-none"
+                        className="w-full p-2 rounded-lg border border-slate-200/60 outline-none text-right"
                       />
                     </div>
                   </div>

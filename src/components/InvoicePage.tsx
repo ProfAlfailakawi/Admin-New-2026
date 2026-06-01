@@ -1247,6 +1247,7 @@ Alturath.kw`;
               <div className="w-full max-w-full overflow-hidden block box-border">
                 <input
                   type="date"
+                  lang="en-GB" dir="ltr"
                   value={invoiceDate}
                   onChange={(e) => setInvoiceDate(e.target.value)}
                   className="w-full max-w-full bg-slate-50/80 border border-slate-200/80 rounded-xl sm:rounded-2xl px-3 py-2.5 sm:p-4 text-right font-black text-xs sm:text-base outline-none transition-all focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 [color-scheme:light] box-border block"
