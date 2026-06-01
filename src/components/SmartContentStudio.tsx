@@ -108,7 +108,9 @@ class StudioErrorBoundary extends React.Component<{ title: string; children: Rea
 }
 
 export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, setData, onNavigate }) => {
-  const [studioTab, setStudioTab] = useState<'home' | 'create' | 'quick' | 'whatsapp' | 'occasions' | 'product' | 'reel' | 'library' | 'advanced'>('home');
+  const [studioTab, setStudioTab] = useState<'home' | 'create' | 'quick' | 'whatsapp' | 'occasions' | 'product' | 'reel' | 'library' | 'advanced' | 'campaigner' | 'storyboard'>('home');
+  const [createSubTab, setCreateSubTab] = useState<'custom' | 'campaigner'>('custom');
+  const [reelSubTab, setReelSubTab] = useState<'generate' | 'storyboard'>('generate');
   const [createStep, setCreateStep] = useState<number>(1);
   const [productStep, setProductStep] = useState<number>(1);
   const [maxCreateStepReached, setMaxCreateStepReached] = useState<number>(1);
@@ -173,15 +175,143 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'تنظيف', label: 'تحسين فقط', desc: 'تحسين الألوان والإضاءة الأصلية دون تغيير المشهد', icon: '✨', color: 'bg-indigo-100 text-indigo-700' }
   ];
 
-  const studioLaunchPads: Array<{ title: string; desc: string; icon: string; action: () => void }> = [];
-
-
   const moods = [
     { id: 'دافئ', label: 'شمس دافئة', icon: '☀️' },
     { id: 'بارد', label: 'إضاءة باردة', icon: '❄️' },
     { id: 'غروب', label: 'وقت الغروب', icon: '🌇' },
     { id: 'ناعم', label: 'إضاءة استوديو', icon: '☁️' }
   ];
+
+  interface SeasonCampaign {
+    id: string;
+    title: string;
+    icon: string;
+    seasonLabel: string;
+    desc: string;
+    place: KuwaitOrderPlace;
+    background: StudioBackgroundPresetId;
+    mood: string;
+    pulseId: string;
+    realityMode: StudioRealityMode;
+    visualPromptAddition: string;
+    soundscapeSuggestion: string;
+  }
+
+  interface StoryboardStep {
+    step: string;
+    title: string;
+    shotName: string;
+    camera: string;
+    vibe: string;
+    audio: string;
+    duration: string;
+  }
+
+  const KUWAIT_SEASON_CAMPAIGNS: SeasonCampaign[] = [
+    {
+      id: 'winter-camp',
+      title: 'موسم البر والكشتات والشتاء',
+      icon: '⛺❄️',
+      seasonLabel: 'شتاء الكويت (نوفمبر - فبراير)',
+      desc: 'خلفية مخيمات شتوية برية هادئة أو شاليهات باردة مع بخار متصاعد دافئ وطعام ساخن يفتح الشهية.',
+      place: 'chalet',
+      background: 'jakhour-setup',
+      mood: 'دافئ',
+      pulseId: 'quick-kuwait',
+      realityMode: 'finalBoss',
+      visualPromptAddition: 'outdoor cozy Kuwaiti winter camping ground, soft warm glowing twilight bonfire bokeh in distant background, extreme high quality food photography of traditional steaming hot Kuwaiti food, gentle rising wisps of hot steam, authentic winter outdoor vibe.',
+      soundscapeSuggestion: 'أصوات مفرقعات الحطب الهادئة في الخلفية مع نغمات عود برية'
+    },
+    {
+      id: 'rainy-chill',
+      title: 'أجواء المطر والغيم الكويتي',
+      icon: '🌧️🍲',
+      seasonLabel: 'أيام الغيم والمطر والمربعانية',
+      desc: 'جلسة خارجية محمية عصرية، قطرات مطر على زجاج مبهر، بخار يتصاعد من أطباق المرق والقبوط الحارة.',
+      place: 'farm',
+      background: 'farm-gathering',
+      mood: 'غروب',
+      pulseId: 'quick-kuwait',
+      realityMode: 'human',
+      visualPromptAddition: 'outdoor sheltered Kuwaiti modern lounge during rain, soft moody rain overcast lighting, water droplets on table edge, steaming hot plate of delicious traditional Kuwaiti gravy food, rising hot evaporation mist, cozy afternoon weather.',
+      soundscapeSuggestion: 'صوت هطول المطر اللطيف على النوافذ مع أداء مزمار هادئ'
+    },
+    {
+      id: 'ramadan-nights',
+      title: 'غبقات وجمعات ليالي رمضان',
+      icon: '🌙✨',
+      seasonLabel: 'شهر العبادة والخير والمناسبات السعيدة',
+      desc: 'هوية بصرية ونقوش شعبية هادئة، فوانيس blur خفيفة بالخلفية، سفرة فطور ممتدة أو لقيمات وحلويات غبقة.',
+      place: 'zowara',
+      background: 'zowara-spread',
+      mood: 'ناعم',
+      pulseId: 'national-day',
+      realityMode: 'menu',
+      visualPromptAddition: 'luxurious traditional indoor Ramadan gathering table, soft defocused golden hanging lanterns in clean deep background, pristine heritage dish presentation, delicate warm interior illumination, premium Kuwaiti gather vibe.',
+      soundscapeSuggestion: 'موسيقى شرقية روحية على أوتار القانون والناي البطيئة'
+    },
+    {
+      id: 'national-spirit',
+      title: 'الأعياد الوطنية ومناسبات الفرح',
+      icon: '🇰🇼🎈',
+      seasonLabel: 'فبراير الوطني والاحتفالات الشعبية',
+      desc: 'زخارف راقية جداً غير مبالغ فيها، ألوان العلم بلمسات دقيقة (أشرطة أو تغليف فاخر)، إضاءة نهارية ساطعة وفرحة.',
+      place: 'delivery',
+      background: 'delivery-packaging',
+      mood: 'دافئ',
+      pulseId: 'national-day',
+      realityMode: 'finalBoss',
+      visualPromptAddition: 'festive clean Kuwaiti national celebration vibe, subtle beautiful modern decorations with minimal green, red, and white ribbons on premium gift bag, bright sunny morning light, cheerful and premium marketing photography.',
+      soundscapeSuggestion: 'أغانٍ وطنية كلاسيكية ذات إيقاع حيوي مبهج ومحبب للجميع'
+    },
+    {
+      id: 'summer-chalet',
+      title: 'حر الصيف والمسابح والشاليه',
+      icon: '🏖️☀️',
+      seasonLabel: 'موسم الشاليهات المشرق والمنعش',
+      desc: 'طاولة خشبية تحت مظلة بيضاء ناصعة، سماء زرقاء صافية بالخلفية، لقطة منعشة للمثلجات أو مشروبات الصيف والورق عنب.',
+      place: 'chalet',
+      background: 'chalet-spread',
+      mood: 'دافئ',
+      pulseId: 'quick-kuwait',
+      realityMode: 'finalBoss',
+      visualPromptAddition: 'bright summery pool-side setting at a modern Kuwaiti sea-side chalet, pure blue skies defocused, cool shade under white umbrella, fresh appetising dishes on a clean table.',
+      soundscapeSuggestion: 'أصوات أمواج بحر هادئة ونغمات صيفية منعشة مبهجة'
+    }
+  ];
+
+  const getStoryboardStepsForProduct = (name: string): StoryboardStep[] => {
+    const productName = name.trim() || 'طبقك الكويتي الفاخر';
+    return [
+      {
+        step: '01',
+        title: 'اللقطة الافتتاحية (The Hook)',
+        shotName: `سحب وقريب جداً (Macro Zoom-In) على تفاصيل مظهر ${productName}`,
+        camera: 'حركة كاميرا بطيئة ومنزلقة تدخل لعمق الصحن بزاوية ٤٥ درجة مع تركيز بؤري حاد.',
+        vibe: 'بخار ساخن يتصاعد بشكل طبيعي يبين حرارة الطعام الطازج، اللمعان يسحر العين.',
+        audio: 'أصوات دافئة لأوتار عود كويتية عريقة مع صوت دلة هادئ في الخلفية كخافت باهت.',
+        duration: '٢.٥ ثانية'
+      },
+      {
+        step: '02',
+        title: 'لقطة التفاصيل والشهية (The Sensory Climax)',
+        shotName: 'حركة دائرية هادئة (Smooth Orbital Rotation) حول قطع اللحم/الدجاج/الأرز',
+        camera: 'دوران بطيء بزاوية منخفضة يبرز النضارة والنكهة والزعفران وحبات الرز المكتملة.',
+        vibe: 'عناصر الطبق واضحة وجاذبة، إضاءة شمس كويتية دافئة تبرز الألوان المبهجة.',
+        audio: 'إيقاع تصفيق كويتي خفيف ومنظم يبني متعة وترقّب للطبق بانسجام تام.',
+        duration: '٣ ثواني'
+      },
+      {
+        step: '03',
+        title: 'لقطة وصول العلة والعلامة (The Brand Outro)',
+        shotName: 'تكبير تراجعي (Dolly Zoom Out) يظهر التغليف وصناديق التوصيل الفخمة',
+        camera: 'لقطة تسحب للخلف بثبات على كاونتر أبيض فاخر بجنب كيس plain أنيق للشعار.',
+        vibe: 'توصيل يبيض الوجه، دقة تنظيف عالية تضمن أمان وثقة الجودة للمستلم.',
+        audio: 'خفوت تدريجي للنغمات مع شعار العلامة في آخر لقطة لترسيخ الذاكرة.',
+        duration: '٢ ثواني'
+      }
+    ];
+  };
 
   const mergedScenes = [
     { id: 'delivery-ready', label: 'طلب توصيل جاهز', desc: 'علب مرتبة وكيس plain على كاونتر نظيف؛ أقوى خيار افتراضي', icon: '📦', place: 'delivery', mode: 'finalBoss', background: 'delivery-packaging' },
@@ -1590,19 +1720,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <h2 className="text-2xl font-black text-slate-950">ابدأ بفكرة أو بصورة</h2>
             </div>
           </div>
-          {studioLaunchPads.length > 0 && (
-            <div className="grid sm:grid-cols-4 gap-2 mb-4">
-              {studioLaunchPads.map((item) => (
-                <button key={item.title} type="button" onClick={item.action} className="rounded-2xl border border-indigo-100 bg-indigo-50/50 hover:bg-white p-3 text-right transition-all">
-                  <span className="text-2xl block mb-2">{item.icon}</span>
-                  <strong className="block text-sm font-black text-slate-900">{item.title}</strong>
-                  <small className="block text-[10px] font-bold text-slate-500 mt-1 leading-5">{item.desc}</small>
-                </button>
-              ))}
-            </div>
-          )}
           <div className="grid sm:grid-cols-3 gap-3">
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setCreateSubTab('custom'); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Sparkles className="text-indigo-500 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من فكرة</div>
               <div className="text-xs font-bold text-slate-400 mt-1">اكتب وصفك، أو اختر بداية جاهزة.</div>
@@ -1612,7 +1731,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <div className="font-black text-slate-900 text-lg">من صورة</div>
               <div className="text-xs font-bold text-slate-400 mt-1">ارفع صورة المنتج ونرتّبها بواقعية أعلى.</div>
             </button>
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setSelectedFormat('9:16'); setReelStep(1); setReelSource('idea'); setGeneratedReel(null); setShowReelSettings(false); setStudioTab('reel'); }} className="rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setSelectedFormat('9:16'); setReelStep(1); setReelSource('idea'); setGeneratedReel(null); setShowReelSettings(false); setReelSubTab('generate'); setStudioTab('reel'); }} className="rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
               <Film className="text-violet-600 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">ريل قصير</div>
               <div className="text-xs font-bold text-slate-400 mt-1">فيديو واقعي 4–8 ثواني جاهز لريلز.</div>
@@ -1677,12 +1796,162 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <p className="text-sm font-bold text-slate-500 mt-2 leading-7">4–8 ثواني، عمودي، حركة بسيطة، وواقعية نظيفة لمشروعك.</p>
             </div>
 
-            <div className="mb-5 md:hidden rounded-[22px] border border-slate-100 bg-slate-50 p-3 flex items-center justify-between gap-3">
-              <span className="h-10 px-4 rounded-2xl bg-slate-950 text-white flex items-center justify-center text-xs font-black">{reelStep} من 4</span>
-              <div className="text-right"><div className="text-sm font-black text-slate-900">{reelStep === 1 ? 'البداية' : reelStep === 2 ? 'اللقطة' : reelStep === 3 ? 'المدة' : 'التوليد'}</div><div className="text-[10px] font-bold text-slate-400">ريل واقعي</div></div>
+            {/* Sub Tab Switching Inside the Left Configuration Column for Reel */}
+            <div className="flex gap-1 bg-slate-50 border border-slate-100 p-1 rounded-2xl mb-5">
+              <button
+                type="button"
+                onClick={() => setReelSubTab('generate')}
+                className={cn(
+                  "flex-1 py-2 text-xs font-black rounded-xl transition-all",
+                  reelSubTab === 'generate'
+                    ? "bg-slate-950 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-855"
+                )}
+              >
+                🎬 توليد ريل
+              </button>
+              <button
+                type="button"
+                onClick={() => setReelSubTab('storyboard')}
+                className={cn(
+                  "flex-1 py-2 text-xs font-black rounded-xl transition-all",
+                  reelSubTab === 'storyboard'
+                    ? "bg-slate-950 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-855"
+                )}
+              >
+                🧠 عقل صانع الريلز
+              </button>
             </div>
 
-            {reelStep === 1 && (
+            {reelSubTab === 'storyboard' ? (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-black text-slate-500">سيناريوهات ولقطات مخرجة مسبقاً</span>
+                  <select
+                    id="storyboard-product-select-left"
+                    value={selectedStudioProductId}
+                    onChange={(e) => {
+                      setSelectedStudioProductId(e.target.value);
+                      const prod = data?.products?.find((p: any) => String(p.id) === String(e.target.value));
+                      if (prod) {
+                        setCustomThemeQuery(getAlturathProductName(prod));
+                        setSelectedStudioProductId(String(prod.id));
+                      }
+                    }}
+                    className="rounded-xl border border-slate-150 bg-slate-50 p-2 text-[10px] font-black text-slate-700 focus:outline-none focus:border-violet-400 text-right"
+                  >
+                    <option value="">اختر من المطبخ</option>
+                    {data?.products?.map((p: any) => (
+                      <option key={p.id} value={p.id}>{getAlturathProductName(p)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <input
+                  id="storyboard-theme-input-left"
+                  type="text"
+                  placeholder="اكتب اسم طبق كويتي لتفصيل سيناريو..."
+                  value={customThemeQuery}
+                  onChange={(e) => setCustomThemeQuery(e.target.value)}
+                  className="w-full p-3.5 rounded-2xl border bg-white text-xs text-right focus:outline-none focus:border-violet-500 font-sans"
+                />
+
+                {(() => {
+                  const currentName = selectedStudioProduct ? getAlturathProductName(selectedStudioProduct) : (customThemeQuery || 'طبق التراث المميز');
+                  const steps = getStoryboardStepsForProduct(currentName);
+                  return (
+                    <div className="space-y-4">
+                      <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                        {steps.map((st) => (
+                          <div key={st.step} className="p-4 rounded-3xl border border-slate-100 bg-slate-50/50 flex flex-col justify-between space-y-3 relative text-right">
+                            <span className="absolute left-3 top-3 font-mono text-xl font-black text-violet-200/40 select-none">
+                              {st.step}
+                            </span>
+                            <div>
+                              <span className="text-[9px] font-black text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">{st.title}</span>
+                              <h4 className="text-xs font-black text-slate-900 mt-2.5 leading-normal">{st.shotName}</h4>
+                              
+                              <div className="mt-2.5 space-y-2 border-t border-dashed border-slate-200/60 pt-2.5 text-[10px] leading-relaxed">
+                                <div>
+                                  <span className="text-[9px] font-black text-slate-400 block">حركة الكاميرا</span>
+                                  <p className="font-bold text-slate-600 mt-0.5">{st.camera}</p>
+                                </div>
+                                <div>
+                                  <span className="text-[9px] font-black text-slate-400 block">الإحساس البصري</span>
+                                  <p className="font-bold text-slate-505 mt-0.5">{st.vibe}</p>
+                                </div>
+                                <div>
+                                  <span className="text-[9px] font-black text-slate-400 block">الترشيح الصوتي</span>
+                                  <p className="font-bold text-slate-505 mt-0.5">{st.audio}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between border-t border-slate-200/40 pt-2 mt-1">
+                              <span className="text-[9px] font-black text-slate-400">الزاوية: 4K ستيديكام</span>
+                              <span className="text-[10px] font-black text-violet-700">{st.duration}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="p-3 rounded-2xl border border-violet-100 bg-violet-50/10 flex flex-col gap-2">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const formattedText = [
+                              `🎬 سيناريو مخرج الريلز القصير لصنف: ${currentName}`,
+                              `===========================================`,
+                              ...steps.flatMap(s => [
+                                `[اللقطة ${s.step}]: ${s.title}`,
+                                `- اللقطة: ${s.shotName}`,
+                                `- الكاميرا: ${s.camera}`,
+                                `- الإيقاع والحس: ${s.vibe}`,
+                                `- الإيقاع الصوتي والسمعي: ${s.audio}`,
+                                `- المدة: ${s.duration}`,
+                                `-------------------------------------------`
+                              ])
+                            ].join('\n');
+                            await writeClipboardText(formattedText);
+                            toast.success('تم نسخ سيناريو المخرج');
+                          }}
+                          className="w-full p-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-white font-black text-xs transition-all shadow flex items-center justify-center gap-1.5"
+                        >
+                          <Copy size={12} />
+                          نسخ سيناريو المخرج بالكامل
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomThemeQuery(`${currentName} في مشهد تصوير سينمائي ناعم وراق`);
+                            setSelectedSceneId('food-detail');
+                            setSelectedOrderPlace('delivery');
+                            setBackgroundPreset('neutral-menu');
+                            setRealityMode('finalBoss');
+                            setSelectedFormat('9:16');
+                            setReelStep(4);
+                            setReelSubTab('generate');
+                            toast.success('تم نقل معلومات اللقطات لاستوديو الريلز');
+                          }}
+                          className="w-full p-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-250 text-slate-700 font-bold text-xs transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <Film size={12} />
+                          تجهيز المشهد والتوليد فوراً بمقاس ريلز
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <>
+                <div className="mb-5 md:hidden rounded-[22px] border border-slate-100 bg-slate-50 p-3 flex items-center justify-between gap-3">
+                  <span className="h-10 px-4 rounded-2xl bg-slate-950 text-white flex items-center justify-center text-xs font-black">{reelStep} من 4</span>
+                  <div className="text-right"><div className="text-sm font-black text-slate-900">{reelStep === 1 ? 'البداية' : reelStep === 2 ? 'اللقطة' : reelStep === 3 ? 'المدة' : 'التوليد'}</div><div className="text-[10px] font-bold text-slate-400">ريل واقعي</div></div>
+                </div>
+
+                {reelStep === 1 && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => setReelSource('idea')} className={cn("rounded-2xl border p-4 text-right transition-all", reelSource === 'idea' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}><Sparkles size={18} className="mb-2" /><span className="block text-sm font-black">من فكرة</span></button>
@@ -1748,6 +2017,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => setReelStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button><button type="button" onClick={generateReel} disabled={isGeneratingReel} className="p-4 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white font-black shadow-lg flex items-center justify-center gap-2 disabled:opacity-50">{isGeneratingReel ? <Loader2 className="animate-spin" size={18} /> : <PlayCircle size={18} />} ولّد الريل</button></div>
               </div>
             )}
+            </>)}
           </div>
 
           <div className="rounded-[2.2rem] bg-slate-950 p-3 shadow-2xl border border-slate-900 min-h-[620px] flex items-center justify-center relative overflow-hidden">
@@ -1770,7 +2040,144 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               </div>
             </div>
 
-            {renderStageProgress(createStep, goCreateStep)}
+            {/* Sub Tab Switching Inside the Left Configuration Column */}
+            <div className="flex gap-1 bg-slate-50 border border-slate-100 p-1 rounded-2xl mb-5">
+              <button
+                type="button"
+                onClick={() => setCreateSubTab('custom')}
+                className={cn(
+                  "flex-1 py-2 text-xs font-black rounded-xl transition-all",
+                  createSubTab === 'custom'
+                    ? "bg-slate-950 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-850"
+                )}
+              >
+                💡 فكرة حرة
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreateSubTab('campaigner')}
+                className={cn(
+                  "flex-1 py-2 text-xs font-black rounded-xl transition-all",
+                  createSubTab === 'campaigner'
+                    ? "bg-slate-950 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-850"
+                )}
+              >
+                📅 رادار المواسم والطقس
+              </button>
+            </div>
+
+            {createSubTab === 'campaigner' ? (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <p className="text-xs font-black text-slate-500">حملات فورية تلقائية متزامنة مع الطقس الكويتي</p>
+                <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                  {KUWAIT_SEASON_CAMPAIGNS.map((campaign) => {
+                    const isSelected = selectedSceneId === campaign.id;
+                    return (
+                      <button
+                        key={campaign.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedSceneId(campaign.id);
+                          setSelectedPulseId(campaign.pulseId);
+                          setSelectedOrderPlace(campaign.place);
+                          setBackgroundPreset(campaign.background);
+                          setRealityMode(campaign.realityMode);
+                          setSelectedMood(campaign.mood);
+                        }}
+                        className={cn(
+                          "w-full p-4 rounded-2xl border text-right transition-all flex flex-col justify-between hover:bg-slate-50 relative overflow-hidden text-slate-700 select-none outline-none",
+                          isSelected
+                            ? "bg-rose-50/50 border-rose-300 ring-4 ring-rose-500/5 shadow-sm"
+                            : "bg-white border-slate-100/80"
+                        )}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-2xl">{campaign.icon}</span>
+                          <span className="text-[9px] font-black text-slate-400 bg-slate-50 border px-2 py-0.5 rounded-full">{campaign.seasonLabel}</span>
+                        </div>
+                        <h3 className="text-xs font-black text-slate-900 mt-2.5">{campaign.title}</h3>
+                        <p className="text-[10px] font-bold text-slate-400 mt-1 line-clamp-2 leading-relaxed">{campaign.desc}</p>
+                        
+                        <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100/55 w-full">
+                          <span className="text-[9px] font-black text-slate-400">{KUWAIT_PLACES[campaign.place]?.label || campaign.place} · {campaign.mood}</span>
+                          <span className={cn("text-[10px] font-black", isSelected ? "text-rose-600" : "text-slate-400")}>
+                            {isSelected ? 'تفعيل تلقائي ✓' : 'تفعيل'}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {(() => {
+                  const activeCampaign = KUWAIT_SEASON_CAMPAIGNS.find(c => c.id === selectedSceneId) || KUWAIT_SEASON_CAMPAIGNS[0];
+                  return (
+                    <div className="p-4 rounded-2xl border border-rose-100 bg-rose-50/20 text-right space-y-3">
+                      <div>
+                        <h4 className="text-xs font-black text-slate-900 flex items-center gap-1">
+                          <Sparkles size={14} className="text-rose-500 animate-pulse shrink-0" />
+                          حملة: {activeCampaign.title}
+                        </h4>
+                        <div className="text-[10px] font-bold text-slate-500 mt-1.5 leading-relaxed bg-white border border-rose-100/50 rounded-xl p-2.5">
+                          <span className="text-rose-600 font-black block text-[9px] mb-1">الخلفية والجو الذكي</span>
+                          {activeCampaign.desc}
+                        </div>
+                      </div>
+
+                      <div className="bg-white border border-rose-100/50 rounded-xl p-2.5">
+                        <span className="text-rose-600 font-black block text-[9px] mb-1">الإيقاع الصوتي والسمعي</span>
+                        <div className="text-[10px] font-bold text-slate-700 leading-relaxed">{activeCampaign.soundscapeSuggestion}</div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomThemeQuery(activeCampaign.visualPromptAddition);
+                            setSelectedSceneId(activeCampaign.id);
+                            setSelectedPulseId(activeCampaign.pulseId);
+                            setSelectedOrderPlace(activeCampaign.place);
+                            setBackgroundPreset(activeCampaign.background);
+                            setRealityMode(activeCampaign.realityMode);
+                            setSelectedMood(activeCampaign.mood);
+                            setCreateSubTab('custom');
+                            setCreateStep(6);
+                            setMaxCreateStepReached(6);
+                            toast.success('تمت تهيئة محددات رادار المواسم');
+                          }}
+                          className="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-white font-black text-[10px] shadow transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <Sparkles size={12} />
+                          تطبيق وتعديل
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const settingsText = [
+                              `الحملة: ${activeCampaign.title}`,
+                              `الوصف البصري: ${activeCampaign.visualPromptAddition}`,
+                              `المكان الافتراضي: ${KUWAIT_PLACES[activeCampaign.place]?.label || activeCampaign.place}`,
+                              `الإضاءة: ${activeCampaign.mood}`,
+                              `الترشيح الصوتي: ${activeCampaign.soundscapeSuggestion}`
+                            ].join('\n');
+                            await writeClipboardText(settingsText);
+                            toast.success('تم نسخ محددات الحملة');
+                          }}
+                          className="p-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-250 text-slate-700 font-bold text-[10px] transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <Copy size={12} />
+                          نسخ الإعدادات
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <>
+                {renderStageProgress(createStep, goCreateStep)}
 
             {createStep === 1 && (
               <div className="space-y-4">
@@ -1923,6 +2330,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 </div>
               </div>
             )}
+            </>)}
           </div>
 
           <div className="rounded-[2.2rem] bg-slate-950 p-3 sm:p-4 shadow-2xl border border-slate-900 min-h-[420px] sm:min-h-[560px] flex items-center justify-center relative overflow-hidden">
@@ -2203,74 +2611,6 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       </div>
                     </div>
                   )}
-                  <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
-                    <p className="text-sm text-indigo-900 font-bold">الصورة مرفوعة. كمّل الخطوات ثم اضغط توليد.</p>
-                  </div>
-                </div>
-              )}
-
-              {isGenerating && (
-                <div className="text-center px-6 py-12">
-                  <div className="w-24 h-24 rounded-3xl bg-indigo-600 flex items-center justify-center mx-auto mb-8 shadow-indigo-500/30 shadow-2xl relative">
-                    <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }} transition={{ duration: 2, repeat: Infinity }} className="relative z-10"><Sparkles className="w-12 h-12 text-white" /></motion.div>
-                    <motion.div animate={{ scale: [1, 2], opacity: [0.5, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute inset-0 bg-indigo-500 rounded-3xl" />
-                  </div>
-                  <h3 className="text-2xl font-black text-slate-800 mb-6">نجهز صورة واقعية...</h3>
-                  <div className="max-w-xs mx-auto space-y-4">
-                    {["فهم تفاصيل الصورة الأصلية...", "بناء المشهد المناسب...", "ضبط الظلال والإضاءة...", "تنظيف التفاصيل المزعجة..."].map((step, idx) => (
-                      <motion.div key={idx} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 1.5 }} className="flex items-center gap-3 text-right">
-                        <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center"><Check size={12} className="text-emerald-600" /></div>
-                        <span className="text-sm font-bold text-slate-600">{step}</span>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {generatedImage && !isGenerating && (
-                <div className="w-full h-full flex flex-col gap-4 sm:gap-5 p-3 sm:p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1 text-right">
-                    <button type="button" onClick={startFreshImageUpload} className="rounded-2xl bg-slate-900 text-white px-4 py-2 text-xs font-black shadow-sm">صورة ثانية</button>
-                    <p className="text-sm font-bold text-indigo-600">الصورة الجاهزة</p>
-                  </div>
-                  <button type="button" onClick={() => setShowImageSettings((v) => !v)} className={cn("w-full bg-slate-50 rounded-3xl border shadow-2xl p-2 relative flex items-stretch overflow-hidden group mx-auto", previewAspectClass)}>
-                    <div className="relative flex-1 w-full h-full rounded-2xl overflow-hidden">
-                      {generatedImage ? (
-                        <img src={generatedImage} alt="Generated" className="absolute inset-0 w-full h-full object-contain bg-slate-50" />
-                      ) : null}
-                    </div>
-                    <span className="absolute bottom-4 right-4 rounded-2xl bg-white/90 px-3 py-2 text-[10px] font-black text-slate-600 shadow-sm border border-white/80 opacity-0 group-hover:opacity-100 transition-opacity">الإعدادات</span>
-                  </button>
-
-                  {showImageSettings && (
-                    <div className="rounded-3xl border border-slate-100 bg-white p-4 text-right shadow-sm">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-                        <div>
-                          <p className="text-xs font-black text-slate-500">إعدادات هذه الصورة</p>
-                          <p className="text-[11px] font-bold text-slate-400 mt-1">انسخها لتكرار نفس النتيجة لاحقاً.</p>
-                        </div>
-                        <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-2"><button type="button" onClick={startFreshImageUpload} className="w-full sm:w-auto rounded-2xl bg-slate-100 text-slate-700 px-4 py-2 text-xs font-black">رفع صورة جديدة</button><button type="button" onClick={copyCurrentSettings} className="w-full sm:w-auto rounded-2xl bg-slate-950 text-white px-4 py-2 text-xs font-black">نسخ الإعدادات</button></div>
-                      </div>
-                      <pre className="whitespace-pre-wrap rounded-2xl bg-slate-50 border border-slate-100 p-3 text-[11px] leading-6 font-bold text-slate-600 text-right font-sans max-h-48 overflow-y-auto break-words">{buildSettingsText()}</pre>
-                    </div>
-                  )}
-
-                  <div className="rounded-3xl border border-indigo-100 bg-indigo-50/40 p-3">
-                    <button type="button" onClick={() => setShowBrandingPanel((v) => !v)} className="w-full rounded-2xl bg-white/70 border border-indigo-100 px-4 py-3 text-right flex items-center justify-between gap-3">
-                      <span>
-                        <span className="block text-xs font-black text-indigo-700">هوية العلامة</span>
-                        <span className="block text-[10px] font-bold text-indigo-400 mt-1">اختيارية بعد التوليد</span>
-                      </span>
-                      <ChevronLeft className={cn("transition-transform text-indigo-400", showBrandingPanel ? "-rotate-90" : "")} size={18} />
-                    </button>
-                    {showBrandingPanel && (
-                      <div className="mt-3">
-                        <BrandingControls useBranding={useBranding} setUseBranding={setUseBranding} brandingStyle={brandingStyle} setBrandingStyle={setBrandingStyle} logoPosition={logoPosition} setLogoPosition={setLogoPosition} logoOpacity={logoOpacity} setLogoOpacity={setLogoOpacity} customText={customText} setCustomText={setCustomText} textPosition={textPosition} setTextPosition={setTextPosition} colorClass="indigo" title="هوية العلامة" />
-                      </div>
-                    )}
-                  </div>
-
-
                   {realityVariants.length > 0 && (
                     <div className="w-full rounded-3xl border border-emerald-100 bg-emerald-50/50 p-4">
                       <div className="flex items-center justify-between mb-3"><span className="text-[10px] font-black text-emerald-600">4 نسخ واقعية</span></div>
@@ -2309,6 +2649,138 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {studioTab === 'storyboard' && (
+        <div className="max-w-4xl mx-auto space-y-6 text-right animate-in fade-in duration-300">
+          <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <span className="text-xs font-black text-violet-500 block mb-1">المخرج الذكي</span>
+                <h2 className="text-2xl font-black text-slate-955">عقل صانع الريلز والمقاطع الطولية</h2>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <select
+                  id="storyboard-product-select"
+                  value={selectedStudioProductId}
+                  onChange={(e) => {
+                    setSelectedStudioProductId(e.target.value);
+                    const prod = data?.products?.find((p: any) => String(p.id) === String(e.target.value));
+                    if (prod) {
+                      setCustomThemeQuery(getAlturathProductName(prod));
+                      setSelectedStudioProductId(String(prod.id));
+                    }
+                  }}
+                  className="rounded-2xl border border-slate-100 bg-slate-50 p-2.5 text-xs font-black text-slate-700 focus:outline-none focus:border-violet-400 text-right"
+                >
+                  <option value="">اختر طبق من مطبخك</option>
+                  {data?.products?.map((p: any) => (
+                    <option key={p.id} value={p.id}>{getAlturathProductName(p)}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <input
+                id="storyboard-theme-input"
+                type="text"
+                placeholder="اكتب اسم طبق كويتي هنا لتفصيل لقطاته..."
+                value={customThemeQuery}
+                onChange={(e) => setCustomThemeQuery(e.target.value)}
+                className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-violet-500 font-sans"
+              />
+            </div>
+
+            {(() => {
+              const currentName = selectedStudioProduct ? getAlturathProductName(selectedStudioProduct) : (customThemeQuery || 'طبق التراث المميز');
+              const steps = getStoryboardStepsForProduct(currentName);
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {steps.map((st) => (
+                      <div key={st.step} className="p-5 rounded-3xl border border-slate-100 bg-slate-50/50 flex flex-col justify-between space-y-4 relative">
+                        <span className="absolute left-4 top-4 font-mono text-3xl font-black text-violet-200/40 select-none">
+                          {st.step}
+                        </span>
+                        <div>
+                          <span className="text-[10px] font-black text-violet-600 bg-violet-50 px-2.5 py-1 rounded-full">{st.title}</span>
+                          <h4 className="text-xs font-black text-slate-900 mt-4 leading-normal">{st.shotName}</h4>
+                          
+                          <div className="mt-3 space-y-2 border-t border-dashed border-slate-200/60 pt-3">
+                            <div>
+                              <span className="text-[9px] font-black text-slate-400 block">حركة الكاميرا</span>
+                              <p className="text-[10px] font-bold text-slate-600 mt-0.5 leading-relaxed">{st.camera}</p>
+                            </div>
+                            <div>
+                              <span className="text-[9px] font-black text-slate-400 block">العنصر البصري والمشاعر</span>
+                              <p className="text-[10px] font-bold text-slate-500 mt-0.5 leading-relaxed">{st.vibe}</p>
+                            </div>
+                            <div>
+                              <span className="text-[9px] font-black text-slate-400 block">الترشيح الصوتي</span>
+                              <p className="text-[10px] font-bold text-slate-500 mt-0.5 leading-relaxed">{st.audio}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-slate-200/40 pt-2.5 mt-2">
+                          <span className="text-[9px] font-black text-slate-400">الزاوية: 4K ستيديكام</span>
+                          <span className="text-[10px] font-black text-violet-700">{st.duration}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-4 rounded-2xl border border-violet-100 bg-violet-50/10 flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const formattedText = [
+                          `🎬 سيناريو مخرج الريلز القصير لصنف: ${currentName}`,
+                          `===========================================`,
+                          ...steps.flatMap(s => [
+                            `[اللقطة ${s.step}]: ${s.title}`,
+                            `- اللقطة: ${s.shotName}`,
+                            `- الكاميرا: ${s.camera}`,
+                            `- الإيقاع والحس: ${s.vibe}`,
+                            `- الإيقاع الصوتي والسمعي: ${s.audio}`,
+                            `- المدة: ${s.duration}`,
+                            `-------------------------------------------`
+                          ])
+                        ].join('\n');
+                        await writeClipboardText(formattedText);
+                        toast.success('تم نسخ السيناريو كامل وجاهز للمخرج');
+                      }}
+                      className="flex-1 p-3.5 rounded-2xl bg-violet-600 hover:bg-violet-750 text-white font-black text-xs transition-all shadow-md flex items-center justify-center gap-2"
+                    >
+                      <Copy size={16} />
+                      نسخ سيناريو المخرج بالكامل
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomThemeQuery(`${currentName} في مشهد تصوير سينمائي ناعم وراق`);
+                        setSelectedSceneId('food-detail');
+                        setSelectedOrderPlace('delivery');
+                        setBackgroundPreset('neutral-menu');
+                        setRealityMode('finalBoss');
+                        setSelectedFormat('9:16');
+                        setReelStep(4);
+                        setStudioTab('reel');
+                        toast.success('تم نقل معلومات اللقطات لاستوديو الريلز');
+                      }}
+                      className="flex-1 p-3.5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs transition-all flex items-center justify-center gap-2"
+                    >
+                      <Film size={16} />
+                      تجهيز المشهد والتوليد فوراً بمقاس ريلز
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
