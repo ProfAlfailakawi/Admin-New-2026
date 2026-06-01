@@ -1780,15 +1780,15 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                     </div>
                   </div>
 
-                  <div ref={radarMapRef} className="relative border border-slate-200 bg-[#eef2f0] rounded-3xl overflow-hidden aspect-[4/3] min-h-[360px] sm:min-h-[460px] md:min-h-[620px] w-full">
-                    <div className="absolute inset-0">
+                  <div ref={radarMapRef} className="relative border border-slate-200 bg-[#eef2f0] rounded-3xl overflow-hidden aspect-[4/3] min-h-[360px] sm:min-h-[460px] md:min-h-[620px] w-full" dir="ltr">
+                    <div className="absolute inset-0" dir="ltr">
                       {radarTiles.map((tile) => (
                         <img
                           key={tile.key}
                           src={tile.url}
                           alt=""
                           className="absolute w-[256px] h-[256px] max-w-none select-none pointer-events-none"
-                          style={{ left: tile.left, top: tile.top }}
+                          style={{ left: tile.left, top: tile.top, right: 'auto' }}
                           draggable={false}
                         />
                       ))}
