@@ -222,7 +222,7 @@ export function getUnifiedInvoices(data: any): any[] {
     const sTxt = String(o.status || '').toLowerCase();
     const pTxt = String(o.paymentStatus || '').toLowerCase();
     
-    if (sTxt.includes('مدفوع') || sTxt.includes('paid') || sTxt === 'تم الدفع بنجاح' || pTxt === 'paid') {
+    if (sTxt.includes('مدفوع') || sTxt.includes('تم الدفع') || sTxt.includes('جاري التوصيل') || sTxt.includes('paid') || sTxt === 'تم الدفع بنجاح' || pTxt === 'paid') {
       pStatus = 'paid';
     } else if (sTxt.includes('ملغي') || sTxt.includes('انتهى وقت') || sTxt.includes('cancel') || pTxt.includes('cancel')) {
       pStatus = 'cancelled';
