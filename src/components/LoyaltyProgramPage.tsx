@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Award, Users, Star, Gift, MessageCircle, Clock, Settings, TrendingUp, Zap, Search, ChevronRight, ChevronLeft, Tag, X, History } from 'lucide-react';
-import { cn, normalizeArabicNumerals, normalizeArabic } from '../lib/utils';
+import { cn, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly } from '../lib/utils';
 import { AppState } from '../types';
 import { toast } from 'sonner';
 import { PromoCodePage } from './PromoCodePage';
@@ -1001,7 +1001,7 @@ setSearchTerm(val);
  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
  <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">آخر طلب</span>
  <div className="text-lg font-bold text-slate-500">
- {selectedCustomer.lastOrderDate ? new Date(selectedCustomer.lastOrderDate).toLocaleDateString('en-GB') : 'لا يوجد'}
+ {selectedCustomer.lastOrderDate ? formatKuwaitiDateOnly(selectedCustomer.lastOrderDate) : 'لا يوجد'}
  </div>
  </div>
  </div>
@@ -1019,7 +1019,7 @@ setSearchTerm(val);
  </div>
  <div>
  <div className="font-bold text-slate-800 text-sm">{h.type}</div>
- <div className="text-[10px] text-slate-500 font-bold">{new Date(h.date).toLocaleDateString('en-GB')}</div>
+ <div className="text-[10px] text-slate-500 font-bold">{formatKuwaitiDateOnly(h.date)}</div>
  </div>
  </div>
  <div className="text-rose-600 font-bold text-sm">-{h.amount.toFixed(3)} د.ك</div>

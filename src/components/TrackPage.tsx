@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, formatKuwaitiDate } from '../lib/utils';
 import { Toaster, toast } from 'sonner';
 import { db } from '../firebase';
 import { collection, query, where, getDocs, orderBy, doc, getDoc, limit } from 'firebase/firestore';
@@ -273,7 +273,7 @@ export default function TrackPage() {
  </button>
  )}
  <span className={cn("text-xs font-bold px-3 py-1 rounded-full", isPaidOrCompleted ?"bg-emerald-100 text-emerald-800" : isFailed ?"bg-red-100 text-red-800" : isCancelled ?"bg-rose-100 text-rose-800" :"bg-violet-100 text-violet-800 animate-pulse")}>
- {isTrulyFree ? 'طلب مجاني - جاري التجهيز' : (isPaidOrCompleted ? 'تم الدفع وجاري التوصيل' : isCancelled ? ((order.status === 'انتهى وقت القطية' || order.status === 'ملغي - انتهى وقت القطية') ? 'ملغي - انتهى وقت القطية' : 'طلب ملغي') : isFailed ? 'فشلت عملية الدفع' : 'بانتظار الدفع')}
+ {isTrulyFree ? 'طلب مجاني - جاري التجهيز' : (isPaidOrCompleted ? 'تم الدفع بنجاح' : isCancelled ? ((order.status === 'انتهى وقت القطية' || order.status === 'ملغي - انتهى وقت القطية') ? 'ملغي - انتهى وقت القطية' : 'طلب ملغي') : isFailed ? 'فشلت عملية الدفع' : 'بانتظار الدفع')}
  </span>
  </div>
  </div>
@@ -330,7 +330,7 @@ export default function TrackPage() {
  <div className="text-xs font-bold text-slate-500 flex flex-col gap-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
  <div className="flex justify-between">
  <span>التاريخ:</span>
- <span dir="ltr">{new Date(order.date || order.createdAt).toLocaleString('en-GB')}</span>
+ <span dir="ltr">{formatKuwaitiDate(order.date || order.createdAt).full}</span>
  </div>
  {order.customerPhone && (
  <div className="flex justify-between">

@@ -27,7 +27,7 @@ function applyFixDashboard(filePath: string) {
       if (o.isConvertedToInvoice) return false;
       const st1 = String((o as any).paymentStatus || '').toLowerCase();
       const st2 = String(o.status || '').toLowerCase();
-      const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع وجاري التوصيل', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
+      const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع بنجاح', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
       if (!isPaid) return false;
       
       if (threshold) {

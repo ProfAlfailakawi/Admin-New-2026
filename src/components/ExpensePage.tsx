@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Wallet, Search, Plus, Trash2, Edit2, Calendar, CreditCard, TrendingUp, ArrowDownRight, Target, PlusCircle, X } from 'lucide-react';
 import { AppState, Expense, PaymentMethod } from '../types';
-import { cn, normalizeArabicNumerals, normalizeArabic } from '../lib/utils';
+import { cn, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import { NumericInput } from './ui/NumericInput';
@@ -182,7 +182,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  ><td className="p-3 md:p-3">
  <div className="flex items-center gap-2 font-bold text-slate-600">
  <Calendar size={14} className="text-slate-500" />
- {new Date(expense.date).toLocaleDateString('en-GB')}
+ {formatKuwaitiDateOnly(expense.date)}
  </div>
  </td>
  <td className="p-3 md:p-3">

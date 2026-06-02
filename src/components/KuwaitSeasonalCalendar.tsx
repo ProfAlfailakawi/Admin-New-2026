@@ -1,11 +1,9 @@
 import React from 'react';
 import { Calendar, CloudSun, Sparkles } from 'lucide-react';
-import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
 import { AppState } from '../types';
 import { getCurrentAndUpcomingEvents } from '../lib/kuwait-calendar';
-import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { cn, formatKuwaitiDateOnly } from '../lib/utils';
 
 export const KuwaitSeasonalCalendar: React.FC<{ data: AppState }> = ({ data }) => {
  const now = new Date();
@@ -17,7 +15,7 @@ export const KuwaitSeasonalCalendar: React.FC<{ data: AppState }> = ({ data }) =
  <div className="text-right">
  <h3 className="font-bold text-xl md:text-2xl text-slate-800">التقويم الموسمي والتجاري الذكي</h3>
  <p className="text-slate-500 text-[10px] md:text-xs font-bold mt-1">
- التاريخ الحالي: {format(now, 'PPP', { locale: ar })}
+ التاريخ الحالي: {formatKuwaitiDateOnly(now)}
  </p>
  </div>
  <div className="flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100">
@@ -49,7 +47,7 @@ export const KuwaitSeasonalCalendar: React.FC<{ data: AppState }> = ({ data }) =
  <div className="flex items-center gap-2 mb-4 justify-end flex-row-reverse">
  <CloudSun size={14} className="text-indigo-200" />
  <span className="text-[10px] md:text-xs font-bold text-indigo-200">
- {format(event.startDate, 'd MMM')} - {format(event.endDate, 'd MMM')}
+ {formatKuwaitiDateOnly(event.startDate)} - {formatKuwaitiDateOnly(event.endDate)}
  </span>
  </div>
 
@@ -94,7 +92,7 @@ export const KuwaitSeasonalCalendar: React.FC<{ data: AppState }> = ({ data }) =
  <div className="flex items-center gap-2 mb-4 justify-end flex-row-reverse text-slate-500">
  <CloudSun size={14} />
  <span className="text-[10px] md:text-xs font-bold">
- يبدأ في {format(event.startDate, 'd MMM', { locale: ar })}
+ يبدأ في {formatKuwaitiDateOnly(event.startDate)}
  </span>
  </div>
 

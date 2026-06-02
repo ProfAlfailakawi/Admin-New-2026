@@ -57,7 +57,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { heritageMotion } from './lib/heritageMotion';
-import { cn, normalizeArabic } from './lib/utils';
+import { cn, normalizeArabic, formatKuwaitiDateOnly } from './lib/utils';
 import Dashboard from './components/Dashboard';
 import SystemPulseOrb from './components/SystemPulseOrb';
 import LogoEngine from './components/ui/LogoEngine';
@@ -259,7 +259,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
                  try {
                     await updateDoc(doc(db, 'invoices', invoiceId), {
                       paymentStatus: 'paid',
-                      status: 'تم الدفع وجاري التوصيل',
+                      status: 'تم الدفع بنجاح',
                       paymentId: actualPaymentId || actualTrackId,
                       payment_id: actualPaymentId || actualTrackId,
                       paymentTrackId: actualTrackId || actualPaymentId,
@@ -280,7 +280,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
                     try {
                        await updateDoc(doc(db, 'invoices', invoiceId), {
                          paymentStatus: 'paid',
-                         status: 'تم الدفع وجاري التوصيل',
+                         status: 'تم الدفع بنجاح',
                          paymentId: actualPaymentId || actualTrackId,
                          payment_id: actualPaymentId || actualTrackId,
                          paymentTrackId: actualTrackId || actualPaymentId,
@@ -1224,7 +1224,7 @@ const MainApp: React.FC = () => {
                 ...updatedInvoices[iIdx],
                 paymentStatus: 'paid',
                 payment_status: 'paid',
-                status: 'تم الدفع وجاري التوصيل',
+                status: 'تم الدفع بنجاح',
                 paymentMethod: (updatedInvoices[iIdx] as any).paymentMethod || 'KNet',
                 paymentId: paymentIdFromGateway || (updatedInvoices[iIdx] as any).paymentId,
                 payment_id: paymentIdFromGateway || (updatedInvoices[iIdx] as any).payment_id,
@@ -1243,7 +1243,7 @@ const MainApp: React.FC = () => {
               if (linkedId === invoiceId && !isPaidStatus(order.paymentStatus) && !isPaidStatus(order.status)) {
                 updatedOrders[idx] = {
                   ...order,
-                  status: 'تم الدفع وجاري التوصيل',
+                  status: 'تم الدفع بنجاح',
                   paymentStatus: 'paid',
                   payment_status: 'paid',
                   paymentMethod: order.paymentMethod || 'KNet',
@@ -1438,7 +1438,7 @@ const MainApp: React.FC = () => {
                     type: 'warning',
                     insightType: 'خطر',
                     explanation: `هذا العميل (إجمالي مشترياته ${cust.totalSpent.toFixed(3)} د.ك) اختفى ولم يجرِ أي عملية تسوق رغم أنه كان معتاداً على الطلب المتكرر.`,
-                    dataReference: `قاعدة بيانات العملاء توضح أن آخر طلب لهذا الـVIP كان بتاريخ ${new Date(cust.lastActive!).toLocaleDateString('en-GB')}.`,
+                    dataReference: `قاعدة بيانات العملاء توضح أن آخر طلب لهذا الـVIP كان بتاريخ ${formatKuwaitiDateOnly(cust.lastActive!)}.`,
                     recommendedAction: 'توليد رسالة استعادة فورية عبر الواتساب وتقديم خصم شخصي له باستخدام لوحة (نخبة VIP الغائبين).',
                     date: new Date().toISOString(),
                     read: false,
@@ -3360,7 +3360,7 @@ const MainApp: React.FC = () => {
                                 <div className="text-[11px] text-slate-500 leading-relaxed break-words whitespace-normal">{notif.message}</div>
                                 <div className="text-[10px] text-slate-500 mt-1.5 font-medium flex items-center gap-1">
                                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                                  {new Date(notif.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
+                                  {formatKuwaitiDateOnly(notif.date)}
                                 </div>
                               </div>
                               {!notif.read && (

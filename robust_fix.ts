@@ -13,7 +13,7 @@ function applyFix(filePath: string) {
       // Use status-utils compatible checks or fallback for demo data
       const st1 = String(inv.paymentStatus || '').toLowerCase();
       const st2 = String((inv as any).status || '').toLowerCase();
-      const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع وجاري التوصيل', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
+      const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع بنجاح', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
       
       if (isPaid) return true;
       if (!inv.paymentStatus && !(inv as any).status) return true; // demo data
@@ -24,7 +24,7 @@ function applyFix(filePath: string) {
       if (o.isConvertedToInvoice) return false;
       const st1 = String((o as any).paymentStatus || '').toLowerCase();
       const st2 = String(o.status || '').toLowerCase();
-      const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع وجاري التوصيل', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
+      const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع بنجاح', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
       return isPaid;
     });
     

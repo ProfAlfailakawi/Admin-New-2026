@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { AppState, Customer } from '../types';
 import { DEFAULT_SQUADS } from '../data';
-import { cn, formatCustomerAddress, normalizeArabic, normalizeAddressObject, formatFullAddress, normalizeArabicNumerals } from '../lib/utils';
+import { cn, formatCustomerAddress, normalizeArabic, normalizeAddressObject, formatFullAddress, normalizeArabicNumerals, formatKuwaitiDateOnly } from '../lib/utils';
 import { isPaidStatus } from '../lib/status-utils';
 import { calculateCustomerSentiment, generateCustomerSmartMessage } from '../lib/ai-engine';
 import { motion, AnimatePresence } from 'motion/react';
@@ -432,7 +432,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
            </div>
            <div>
              <div className="font-black text-slate-800 text-base lg:text-lg tracking-tight">{customer.name}</div>
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{customer.lastOrderDate ? `آخر طلب: ${new Date(customer.lastOrderDate).toLocaleDateString('en-GB')}` : 'عميل جديد'}</div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{customer.lastOrderDate ? `آخر طلب: ${formatKuwaitiDateOnly(customer.lastOrderDate)}` : 'عميل جديد'}</div>
             {(() => {
               const addrStr = formatFullAddress(customer.address);
               const displayAddr = [

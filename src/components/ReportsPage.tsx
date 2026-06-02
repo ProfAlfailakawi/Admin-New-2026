@@ -25,7 +25,7 @@ const isSuccessfulPayerForDisplay = (payer: any) => {
   );
 };
 
-import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic } from "../lib/utils";
+import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly, formatKuwaitiTimeOnly } from '../lib/utils';
 import React, { useState, useEffect } from "react";
 import {
   FileText,
@@ -457,7 +457,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
                 ...order,
                 status:
                   newStatus === "paid"
-                    ? "تم الدفع وجاري التوصيل"
+                    ? "تم الدفع بنجاح"
                     : "بانتظار الدفع",
                 paymentStatus: newStatus as any,
               }
@@ -1091,22 +1091,13 @@ Alturath.kw`;
                                 <td className="p-3 md:p-3 text-slate-500 text-xs font-bold">
                                   <div className="flex flex-col gap-1 items-start">
                                     <span>
-                                      {new Date(inv.date).toLocaleDateString(
-                                        "en-GB",
-                                      )}
+                                      {formatKuwaitiDateOnly(inv.date)}
                                     </span>
                                     <span
                                       dir="ltr"
                                       className="text-[10px] font-medium text-slate-500 m-0 p-0 leading-none inline-block text-left"
                                     >
-                                      {new Date(inv.date).toLocaleTimeString(
-                                        "en-GB",
-                                        {
-                                          hour: "2-digit",
-                                          minute: "2-digit",
-                                          hour12: true,
-                                        },
-                                      )}
+                                      {formatKuwaitiTimeOnly(inv.date)}
                                     </span>
                                     <span
                                       className={cn(

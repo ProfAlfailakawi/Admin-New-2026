@@ -299,7 +299,7 @@ type PaymentSyncIdentifiers = {
   gatewayOrderIds: string[];
 };
 
-const PAYMENT_PAID_STATUS_TEXT = "تم الدفع وجاري التوصيل";
+const PAYMENT_PAID_STATUS_TEXT = "تم الدفع بنجاح";
 const PAYMENT_FAILED_STATUS_TEXT = "فشلت عملية الدفع";
 
 function safeDecodeText(value: any) {
@@ -1830,10 +1830,10 @@ app.get("/api/admin-dashboard-data", async (_req, res) => {
                 const data = invSnap.data();
                 if (data?.paymentStatus !== 'paid') {
                     try {
-                        await invoiceRef.update({ paymentStatus: 'paid', status: 'تم الدفع وجاري التوصيل', paymentId: paymentId || '', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                        await invoiceRef.update({ paymentStatus: 'paid', status: 'تم الدفع بنجاح', paymentId: paymentId || '', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                         const orderQ = await db.collection('orders').where('linkedInvoiceId', '==', orderId).get();
                         for (const doc of orderQ.docs) {
-                            await doc.ref.update({ status: 'تم الدفع وجاري التوصيل', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                            await doc.ref.update({ status: 'تم الدفع بنجاح', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                         }
                         const eventId = `safe-worker-invoice-paid-${orderId}`;
                         sendSmartAlertPushNotification({
@@ -1859,10 +1859,10 @@ app.get("/api/admin-dashboard-data", async (_req, res) => {
                         const invDoc = invByPayId.docs[0];
                         const data = invDoc.data();
                         if (data?.paymentStatus !== 'paid') {
-                            await invDoc.ref.update({ paymentStatus: 'paid', status: 'تم الدفع وجاري التوصيل', paymentId: paymentId || '', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                            await invDoc.ref.update({ paymentStatus: 'paid', status: 'تم الدفع بنجاح', paymentId: paymentId || '', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                             const orderQ = await db.collection('orders').where('linkedInvoiceId', '==', invDoc.id).get();
                             for (const doc of orderQ.docs) {
-                                await doc.ref.update({ status: 'تم الدفع وجاري التوصيل', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                                await doc.ref.update({ status: 'تم الدفع بنجاح', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                             }
                             const eventId = `safe-worker-invoice-paid-pid-${invDoc.id}`;
                             sendSmartAlertPushNotification({
@@ -1881,8 +1881,8 @@ app.get("/api/admin-dashboard-data", async (_req, res) => {
                 const ordSnap = await orderRef.get();
                 if (ordSnap.exists) {
                     const data = ordSnap.data();
-                    if (data?.status !== 'paid' && data?.status !== 'تم الدفع وجاري التوصيل') {
-                        await orderRef.update({ status: 'تم الدفع وجاري التوصيل', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+                    if (data?.status !== 'paid' && data?.status !== 'تم الدفع بنجاح') {
+                        await orderRef.update({ status: 'تم الدفع بنجاح', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                         const eventId = `safe-worker-payment-paid-${orderId}`;
                         sendSmartAlertPushNotification({
                         title: "✅ تم الدفع",
@@ -1908,7 +1908,7 @@ app.get("/api/admin-dashboard-data", async (_req, res) => {
                     const orderQ = await db.collection('orders').where('linkedInvoiceId', '==', orderId).get();
                     for (const doc of orderQ.docs) {
                         const oData = doc.data();
-                        if (oData.status !== 'تم الدفع وجاري التوصيل' && oData.status !== 'paid') {
+                        if (oData.status !== 'تم الدفع بنجاح' && oData.status !== 'paid') {
                             await doc.ref.update({ status: 'فشلت عملية الدفع', paymentStatus: 'failed', failedAt: admin.firestore.FieldValue.serverTimestamp(), paymentUpdatedAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                         }
                     }
@@ -1918,7 +1918,7 @@ app.get("/api/admin-dashboard-data", async (_req, res) => {
                 const ordSnap = await orderRef.get();
                 if (ordSnap.exists) {
                     const data = ordSnap.data();
-                    if (data?.status !== 'تم الدفع وجاري التوصيل' && data?.status !== 'paid') {
+                    if (data?.status !== 'تم الدفع بنجاح' && data?.status !== 'paid') {
                         await orderRef.update({ status: 'فشلت عملية الدفع', paymentStatus: 'failed', failedAt: admin.firestore.FieldValue.serverTimestamp(), paymentUpdatedAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                     }
                 }
@@ -4353,7 +4353,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       if (!orderId || !alertsInWindow(order, now)) continue;
       const st = alertsStatusFor(order);
       const qatia = alertsIsQatiaLike(order, st);
-      if (qatia && alertsIsPaid(st) && !alertsIsQatiaExpired(st)) { await alertsSendOnce(results, `safe-worker-qatia-completed-${orderId}`, { title: "✅ اكتملت القطية", body: `اكتملت القطية للطلب ${orderId} — تم الدفع وجاري التوصيل${alertsAmountText(order)}`, alertType: "qatia_completed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
+      if (qatia && alertsIsPaid(st) && !alertsIsQatiaExpired(st)) { await alertsSendOnce(results, `safe-worker-qatia-completed-${orderId}`, { title: "✅ اكتملت القطية", body: `اكتملت القطية للطلب ${orderId} — تم الدفع بنجاح${alertsAmountText(order)}`, alertType: "qatia_completed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
       if (qatia && alertsIsQatiaExpired(st)) { results.push({ eventId: `safe-worker-qatia-expired-${orderId}`, skipped: true, reason: "cancelled-order-alert-disabled" }); continue; }
       if (qatia) continue;
       if (alertsIsFailed(st)) {
