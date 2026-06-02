@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { heritageMotion } from '../lib/heritageMotion';
 import { hasProductImage } from '../lib/sharedBusinessContract';
 import { appendLocalLedgerEvent, createLedgerEvent } from '../lib/alturathLedger';
-import { cn, normalizeArabic, normalizeArabicNumerals } from '../lib/utils';
+import { cn, normalizeArabic, normalizeArabicNumerals, formatKuwaitiDateOnly } from '../lib/utils';
 import { getProductQualityReport } from '../lib/command-quality';
 
 interface CommandBarProps {
@@ -258,7 +258,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
         title: 'أعلى عميل حاليًا',
         value: top.name,
         subtitle: `${money(top.totalSpent)} د.ك · ${top.totalOrders || 0} طلب`,
-        details: [top.phone ? `الهاتف: ${top.phone}` : '', top.lastOrderDate ? `آخر طلب: ${new Date(top.lastOrderDate).toLocaleDateString('en-GB')}` : ''].filter(Boolean),
+        details: [top.phone ? `الهاتف: ${top.phone}` : '', top.lastOrderDate ? `آخر طلب: ${formatKuwaitiDateOnly(top.lastOrderDate)}` : ''].filter(Boolean),
         actionLabel: 'افتح العميل',
         action: () => onNavigate('customers', { exactId: top.id, search: top.name || top.phone }),
         tone: 'emerald',

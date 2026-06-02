@@ -5,6 +5,31 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const formatKuwaitiDate = (dateVal: any): { date: string; time: string; full: string } => {
+  if (!dateVal) return { date: '', time: '', full: '' };
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return { date: '', time: '', full: '' };
+
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kuwait',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }).formatToParts(d);
+
+  const getPart = (type: string) => parts.find((part) => part.type === type)?.value || '';
+  const date = `${getPart('day')}/${getPart('month')}/${getPart('year')}`;
+  const time = `${getPart('hour')}.${getPart('minute')}${getPart('dayPeriod').toUpperCase()}`;
+
+  return { date, time, full: `${date} ${time}` };
+};
+
+export const formatKuwaitiDateOnly = (dateVal: any): string => formatKuwaitiDate(dateVal).date;
+export const formatKuwaitiTimeOnly = (dateVal: any): string => formatKuwaitiDate(dateVal).time;
+
 /**
  * Format a string or DetailedAddress object into a single human-readable full address string.
  */
@@ -197,7 +222,7 @@ export function getUnifiedInvoices(data: any): any[] {
     const sTxt = String(o.status || '').toLowerCase();
     const pTxt = String(o.paymentStatus || '').toLowerCase();
     
-    if (sTxt.includes('مدفوع') || sTxt.includes('paid') || sTxt === 'تم الدفع وجاري التوصيل' || pTxt === 'paid') {
+    if (sTxt.includes('مدفوع') || sTxt.includes('paid') || sTxt === 'تم الدفع بنجاح' || pTxt === 'paid') {
       pStatus = 'paid';
     } else if (sTxt.includes('ملغي') || sTxt.includes('انتهى وقت') || sTxt.includes('cancel') || pTxt.includes('cancel')) {
       pStatus = 'cancelled';

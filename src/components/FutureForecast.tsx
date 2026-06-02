@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { TrendingUp, TrendingDown, LineChart as LineChartIcon } from 'lucide-react';
 import { AppState } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { cn, safeFormatCurrency } from '../lib/utils';
+import { cn, safeFormatCurrency, formatKuwaitiDateOnly } from '../lib/utils';
 
 interface FutureForecastProps {
  data: AppState;
@@ -90,7 +90,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
 
   for (let i = 1; i <= monthsToProject; i++) {
    const futureDate = new Date(now.getFullYear(), now.getMonth() + i, 1);
-   const monthName = futureDate.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+   const monthName = formatKuwaitiDateOnly(futureDate);
    const seasonality = 1 + (Math.sin(i * 1.7) * 0.015);
    currentMonthlyRev = currentMonthlyRev * (1 + calculatedMonthlyGrowthRate) * seasonality;
    currentMonthlyProfit = currentMonthlyProfit * (1 + calculatedMonthlyGrowthRate) * seasonality;

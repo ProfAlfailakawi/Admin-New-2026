@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, History, DollarSign, Calendar, TrendingUp, CreditCard, FileText, CheckCircle2, Clock, Edit2, Trash2, ArrowUpRight, X } from 'lucide-react';
 import { AppState, SupplierTransfer, PaymentMethod } from '../types';
-import { cn, normalizeArabic, normalizeArabicNumerals } from '../lib/utils';
+import { cn, normalizeArabic, normalizeArabicNumerals, formatKuwaitiDateOnly } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import { MagneticButton } from './ui/MagneticButton';
@@ -144,7 +144,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  const supTransfers = (data?.supplierTransfers || []).filter(t => t.supplierId === supId);
  if (supTransfers.length === 0) return '—';
  const last = supTransfers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
- return new Date(last.date).toLocaleDateString('en-GB');
+ return formatKuwaitiDateOnly(last.date);
  };
 
  const handleAddTransfer = () => {
@@ -380,7 +380,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <td className="p-3 md:p-3">
  <div className="flex items-center gap-2 font-bold text-slate-600">
  <Calendar size={14} className="text-slate-500" />
- {new Date(transaction.date).toLocaleDateString('en-GB')}
+ {formatKuwaitiDateOnly(transaction.date)}
  </div>
  </td>
  <td className="p-3 md:p-3">
@@ -632,7 +632,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="flex items-center gap-4">
  <div className="text-right">
  <h3 className="text-xl font-black text-slate-900 leading-tight">تفاصيل الفاتورة المسددة</h3>
- <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mt-0.5">#{inv.id} • {new Date(inv.date).toLocaleDateString('en-GB')}</p>
+ <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mt-0.5">#{inv.id} • {formatKuwaitiDateOnly(inv.date)}</p>
  </div>
  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
  <FileText size={24} />

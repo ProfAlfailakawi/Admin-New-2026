@@ -1,5 +1,5 @@
 // invalidated cache 2026-05-07 14:18
-import { getUnifiedInvoices } from '../lib/utils';
+import { getUnifiedInvoices, formatKuwaitiDate, formatKuwaitiTimeOnly } from '../lib/utils';
 import { 
     computeInvoiceTotal, computeInvoiceSubtotal, 
     computeInvoiceCost, 
@@ -1376,11 +1376,7 @@ const [isPending, startTransition] = useTransition();
         sentimentLabel: analysis.label,
         sentimentAlert: analysis.alert,
         createdAt: new Date().toISOString(),
-        date: new Date().toLocaleString("en-GB", {
-          timeZone: "Asia/Kuwait",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        date: formatKuwaitiTimeOnly(new Date()),
       };
 
       const updated = [newReview, ...(reviews || [])];
@@ -1800,7 +1796,7 @@ const [isPending, startTransition] = useTransition();
       if (o.isConvertedToInvoice) return false;
       const st1 = String((o as any).paymentStatus || '').toLowerCase();
       const st2 = String(o.status || '').toLowerCase();
-      const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع وجاري التوصيل', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
+      const isPaid = ['paid', 'processed', 'shipped', 'delivered', 'completed', 'success', 'مكتمل', 'تم الدفع', 'تم الدفع بنجاح', 'مدفوعة', 'مدفوع'].some(s => st1.includes(s) || st2.includes(s));
       if (!isPaid) return false;
       
       if (threshold) {
@@ -4070,9 +4066,7 @@ const [isPending, startTransition] = useTransition();
                             <span className="flex items-center gap-1">
                               توليد تلقائي:{" "}
                               <span dir="ltr" className="inline-block text-left">
-                                {new Date(strat.createdAt).toLocaleTimeString(
-                                  "en-GB", { timeZone: 'Asia/Kuwait' }
-                                )}
+                                {formatKuwaitiTimeOnly(strat.createdAt)}
                               </span>
                             </span>
                             <span>{strat.dataReference}</span>
@@ -5391,12 +5385,7 @@ const [isPending, startTransition] = useTransition();
                                                 }
                                                 if (isNaN(dateObj.getTime()))
                                                   return "---";
-                                                return dateObj.toLocaleTimeString("en-GB", {
-                                                  hour: "2-digit",
-                                                  minute: "2-digit",
-                                                  hour12: true,
-                                                  timeZone: "Asia/Kuwait"
-                                                });
+                                                return formatKuwaitiTimeOnly(dateObj);
                                               })()}
                                             </span>
                                           </span>
@@ -5466,7 +5455,7 @@ const [isPending, startTransition] = useTransition();
                                         (inv as any).status ||
                                           inv.paymentStatus,
                                       ) ? (
-                                        "تم الدفع وجاري التوصيل"
+                                        "تم الدفع بنجاح"
                                       ) : isPendingStatus(
                                           (inv as any).status ||
                                             inv.paymentStatus,
@@ -5975,9 +5964,7 @@ const [isPending, startTransition] = useTransition();
                                     const newRecord: PulseAnalysisRecord = {
                                       ...analysis,
                                       id: Date.now().toString(),
-                                      date: new Date().toLocaleString("en-GB", {
-                                        timeZone: "Asia/Kuwait"
-                                      }),
+                                      date: formatKuwaitiDate(new Date()).full,
                                       commentsSnapshot: allComments,
                                     };
 

@@ -4,8 +4,6 @@ import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PAR
 import { toast } from 'sonner';
 import { Product } from '../types';
 import { cn } from '../lib/utils';
-import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
 import { RealtimeRadar } from './RealtimeRadar';
 import { ReviewToPoster } from './ReviewToPoster';

@@ -23,7 +23,7 @@ import {
   Dices,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { cn, normalizeArabic, robustNormalize, normalizeArabicNumerals } from "../lib/utils";
+import { cn, normalizeArabic, robustNormalize, normalizeArabicNumerals, formatKuwaitiDate, formatKuwaitiDateOnly } from '../lib/utils';
 import {
   recalculateStateBalances,
   generateNextInvoiceId,
@@ -467,7 +467,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
         );
         return "مدفوع – يحتاج اختيار المورد";
       }
-      return "تم الدفع وجاري التوصيل";
+      return "تم الدفع بنجاح";
     }
     if (isFailedStatus(status)) return "فشل في عملية الدفع";
     if (String(status).includes("تجميع القطية") || status === "split_pending")
@@ -677,7 +677,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
                 ...o,
                 status:
                   newStatus === "paid" || newStatus === "تم الدفع"
-                    ? "تم الدفع وجاري التوصيل"
+                    ? "تم الدفع بنجاح"
                     : (newStatus as any),
                 paymentStatus:
                   newStatus === "paid" || newStatus === "تم الدفع"
@@ -1729,14 +1729,7 @@ Alturath.kw`;
                               d = new Date(order.date);
                             }
                             if (!d || isNaN(d.getTime())) return "---";
-                            return d.toLocaleDateString("en-GB", {
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              hour12: true,
-                              timeZone: "Asia/Kuwait",
-                            });
+                            return formatKuwaitiDate(d).full;
                           })()}
                         </span>
                       </div>
@@ -2881,18 +2874,7 @@ Alturath.kw`;
                                     dateObj = new Date(selectedOrder.date);
                                   }
                                   if (dateObj && !isNaN(dateObj.getTime())) {
-                                    timeStr = dateObj.toLocaleDateString(
-                                      "en-GB",
-                                      {
-                                        year: "numeric",
-                                        month: "short",
-                                        day: "numeric",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                        hour12: true,
-                                        timeZone: "Asia/Kuwait",
-                                      },
-                                    );
+                                    timeStr = formatKuwaitiDate(dateObj).full;
                                   }
                                 } else {
                                   // If timeStr came from addr.time, append the date if possible
@@ -2906,15 +2888,7 @@ Alturath.kw`;
                                     dateObj = new Date(selectedOrder.date);
                                   }
                                   if (dateObj && !isNaN(dateObj.getTime())) {
-                                    const dateOnly = dateObj.toLocaleDateString(
-                                      "en-GB",
-                                      {
-                                        year: "numeric",
-                                        month: "short",
-                                        day: "numeric",
-                                        timeZone: "Asia/Kuwait",
-                                      },
-                                    );
+                                    const dateOnly = formatKuwaitiDateOnly(dateObj);
                                     timeStr = `${dateOnly} - ${timeStr}`;
                                   }
                                 }

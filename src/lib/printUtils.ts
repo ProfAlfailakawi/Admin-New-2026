@@ -1,3 +1,4 @@
+import { formatKuwaitiDate } from './utils';
 import { computeAddonQuantity, computeAddonRevenue } from "./invoice-calculations";
 import { AppState, Invoice } from '../types';
 
@@ -161,7 +162,7 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
       <div class="card">
         <h2><span class="icon">☰</span> تفاصيل الفاتورة</h2>
         <div class="row"><span class="label">رقم الفاتورة</span><span class="value">${toEnglishDigits((invoice as any).id || '-')}</span></div>
-        <div class="row"><span class="label">التاريخ والوقت</span><span class="value">${toEnglishDigits(new Date(invoiceDate).toLocaleString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kuwait' }))}</span></div>
+        <div class="row"><span class="label">التاريخ والوقت</span><span class="value">${toEnglishDigits(formatKuwaitiDate(invoiceDate).full)}</span></div>
         <div class="row"><span class="label">الحالة</span><span class="value status ${statusClass}">${toEnglishDigits(status)}</span></div>
       </div>
       <div class="card">

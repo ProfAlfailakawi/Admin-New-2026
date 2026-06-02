@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Truck, Search, Plus, Trash2, Edit2, Phone, AlertCircle, Wallet, History, CreditCard, ArrowUpRight, PlusCircle, Package, Users, X, CheckCircle2, Clock3, ArrowLeftRight, Receipt } from 'lucide-react';
 import { AppState, Supplier, PaymentMethod, Product } from '../types';
-import { cn, normalizeArabic, normalizeArabicNumerals } from '../lib/utils';
+import { cn, normalizeArabic, normalizeArabicNumerals, formatKuwaitiDateOnly } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import { toast } from 'sonner';
@@ -751,7 +751,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
       </span>
     )}
   </div>
-  <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">{new Date(item.date).toLocaleDateString('en-GB')}</div>
+  <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">{formatKuwaitiDateOnly(item.date)}</div>
   </div>
   </div>
   <div className="order-2 text-left">

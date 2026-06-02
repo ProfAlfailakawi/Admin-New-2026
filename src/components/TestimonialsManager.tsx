@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Testimonial } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, normalizeArabicNumerals, normalizeArabic } from '../lib/utils';
+import { cn, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly } from '../lib/utils';
 import { analyzeKuwaitiSentiment } from '../lib/ai-engine';
 
 interface Props {
@@ -168,7 +168,7 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 border-t border-slate-50 pt-4 flex-row-reverse">
  <div className="flex items-center gap-1">
  <Calendar size={12} />
- <span>{new Date(t.date).toLocaleDateString('en-GB')}</span>
+ <span>{formatKuwaitiDateOnly(t.date)}</span>
  </div>
  <div className="flex items-center gap-1 px-2 py-0.5 bg-slate-100 rounded-full">
  {t.source === 'WhatsApp' ? <MessageCircle size={10} className="text-emerald-500" /> : 
