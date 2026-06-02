@@ -1,7 +1,7 @@
 export const isPaidStatus = (s: string | undefined | null) => {
   if (!s) return false;
   const str = String(s).toLowerCase().replace(/_/g, ' ').trim();
-  return ['paid', 'processed', 'shipped', 'delivered', 'out for delivery', 'completed', 'done', 'success', 'successful', 'captured', 'approved', 'authorized', 'مكتمل', 'تم الدفع', 'تم الدفع بنجاح', 'مدفوعة', 'مدفوع'].includes(str);
+  return ['paid', 'processed', 'shipped', 'delivered', 'out for delivery', 'completed', 'done', 'success', 'successful', 'captured', 'approved', 'authorized', 'مكتمل', 'تم الدفع', 'تم الدفع بنجاح', 'مدفوعة', 'مدفوع'].includes(str) || str.includes('تم الدفع') || str.includes('جاري التوصيل');
 };
 
 export const isPendingStatus = (s: string | undefined | null) => {
