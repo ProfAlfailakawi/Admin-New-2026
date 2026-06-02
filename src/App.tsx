@@ -1517,7 +1517,8 @@ const MainApp: React.FC = () => {
     // Actually skipping the mock random weather logic as requested not to have fake alerts. 
     // We already restored all the REAL data-driven logic from the old file.
 
-    // 9. Profit Guard: High Supply Cost Detection (Security Radar)
+    // 9. Profit Guard: High Supply Cost Detection (Security Radar) - DISABLED as requested
+    /*
     (data.products || []).forEach(prod => {
       const margin = prod.price > 0 ? (prod.price - prod.cost) / prod.price : 0;
       if (margin < 0.2) { // Less than 20% margin is risky
@@ -1537,6 +1538,7 @@ const MainApp: React.FC = () => {
           });
       }
     });
+    */
 
     // 11. Final update
     if (newNotifications.length > 0) {
@@ -3304,8 +3306,8 @@ const MainApp: React.FC = () => {
                         </div>
                     </div>
                     <div className="max-h-[70vh] overflow-y-auto p-2 scrollbar-hide">
-                      {data.notifications && data.notifications.length > 0 ? (
-                        (data?.notifications || []).map(notif => (
+                      {data.notifications && data.notifications.filter(n => !n.title.includes('درع الربح')).length > 0 ? (
+                        (data?.notifications || []).filter(n => !n.title.includes('درع الربح')).map(notif => (
                           <div 
                             key={notif.id} 
                             onClick={(e) => {

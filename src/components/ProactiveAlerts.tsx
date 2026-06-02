@@ -13,7 +13,7 @@ interface ProactiveAlertsProps {
 }
 
 const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMarkAsRead, onMarkAllAsRead, userRole, currentPage = 'dashboard' }) => {
- const activeAlerts = notifications.filter(n => !n.read && n.insightType).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+ const activeAlerts = notifications.filter(n => !n.read && n.insightType && !n.title.includes('درع الربح')).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
  const [selectedAlert, setSelectedAlert] = useState<Notification | null>(null);
  const [showHub, setShowHub] = useState(false);
 
