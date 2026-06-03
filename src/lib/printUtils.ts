@@ -47,14 +47,14 @@ const formatAddress = (address: any, fallback?: string) => {
 
 const getAddonQty = (addon: any, itemQty: number) => {
   const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
-  if (userQty === 0) return 0;
+  if (userQty <= 0) return 0;
   if (addon?.selected === false || addon?.isSelected === false || addon?.enabled === false) return 0;
   return computeAddonQuantity(addon, { quantity: itemQty });
 };
 
 const getAddonTotal = (addon: any, itemQty: number) => {
   const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
-  if (userQty === 0) return 0;
+  if (userQty <= 0) return 0;
   if (addon?.selected === false || addon?.isSelected === false || addon?.enabled === false) return 0;
   return computeAddonRevenue(addon, { quantity: itemQty });
 };
@@ -89,17 +89,18 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
       : [];
 
     const addonsHtml = addons.map((addon: any) => {
-      const addonName = clean(addon?.name || addon?.title || addon?.label) || 'إضافة';
+      const addonName = clean(addon?.name || addon?.title || addon?.label);
       const addonQty = getAddonQty(addon, qty);
       const addonTotal = getAddonTotal(addon, qty);
+      if (!addonName || addonQty <= 0 || addonTotal <= 0) return '';
       addonsSubtotal += addonTotal;
-      const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : 1);
+      const userQty = addon.quantity !== undefined ? Number(addon.quantity) : (addon.qty !== undefined ? Number(addon.qty) : addonQty);
       return `
         <div class="addon-line">
           <span><b>•</b> ${addonName}${userQty > 1 ? ` × ${userQty}` : ''}</span>
           <span class="addon-price">${fmt(addonTotal)}</span>
         </div>`;
-    }).join('');
+    }).filter(Boolean).join('');
 
     return `
       <tr class="item-row">

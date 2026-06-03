@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import LeafletKuwaitMap from './LeafletKuwaitMap';
 import { AppState } from '../types';
 
 interface GeoHeatmapProps {
@@ -309,6 +310,23 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
   };
  };
 
+
+ const leafletMarkers = useMemo(() => areaData.markers.map((marker) => {
+  const intensity = marker.revenue / areaData.maxRev;
+  return {
+   id: marker.name,
+   name: marker.name,
+   lat: marker.lat,
+   lng: marker.lng,
+   count: marker.count,
+   value: marker.revenue,
+   subtitle: marker.hasLocation ? 'موقع دقيق من الطلب/العميل' : 'موقع تقريبي حسب المنطقة',
+   color: intensity > 0.5 ? '#d97706' : marker.hasLocation ? '#4f46e5' : '#64748b',
+   size: 24 + Math.round(intensity * 28),
+   active: activeRegion === marker.name,
+  };
+ }), [areaData.markers, areaData.maxRev, activeRegion]);
+
  return (
  <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-3xl md:rounded-2xl p-4 shadow-2xl shadow-indigo-900/50 border border-white/10 glass-dark text-white relative overflow-hidden border border-[#f0e6d2]/10">
  <h3 className="text-2xl md:text-3xl font-bold mb-6 sm:mb-8 text-white flex items-center justify-end gap-3 relative z-10 text-right w-full">
@@ -318,66 +336,15 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  توزيع القوة الشرائية وربحية المناطق في الكويت
  </p>
 
- <div className="w-full relative flex items-center justify-center p-0 sm:p-2 overflow-visible" dir="ltr">
- <div ref={mapRef} className="relative w-full max-w-[980px] h-[590px] max-h-[72vh] min-h-[520px] sm:h-[620px] sm:max-h-none rounded-[1.75rem] sm:rounded-[2rem] overflow-hidden border border-white/10 bg-[#eef2f1] shadow-inner shadow-black/40" dir="ltr">
- <div className="absolute inset-0 bg-[#eef2f1]" dir="ltr">
- {mapTiles.map((tile) => (
- <img
- key={tile.key}
- src={tile.url}
- alt=""
- className="absolute select-none pointer-events-none max-w-none max-h-none" referrerPolicy="no-referrer"
- style={{ width: MAP_TILE_SIZE, height: MAP_TILE_SIZE, left: tile.left, top: tile.top, right: 'auto' }}
- onError={(event) => {
-  const img = event.currentTarget;
-  if (img.dataset.fallbackApplied === '1') return;
-  img.dataset.fallbackApplied = '1';
-  img.src = tile.fallbackUrl;
- }}
- draggable={false}
+ <div className="w-full relative p-0 sm:p-2" dir="ltr">
+ <LeafletKuwaitMap
+  markers={leafletMarkers}
+  center={displayMapCenter}
+  zoom={9}
+  dark
+  heightClassName="h-[590px] max-h-[72vh] min-h-[520px] sm:h-[620px] sm:max-h-none"
+  onMarkerClick={(marker) => setActiveRegion(marker.name)}
  />
- ))}
- </div>
- <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(234,179,8,0.10)_0%,rgba(15,23,42,0.05)_58%,rgba(15,23,42,0.16)_100%)] pointer-events-none" />
-
- {areaData.markers.map((marker, index) => {
- const point = getMarkerPoint(marker);
- if (!point) return null;
- const isOutside = point.x < -36 || point.x > mapSize.width + 36 || point.y < -36 || point.y > mapSize.height + 36;
- if (isOutside) return null;
- const intensity = marker.revenue / areaData.maxRev;
- const size = 18 + (intensity * 42);
- const glow = intensity > 0.5 ? 'shadow-[0_0_30px_rgba(234,179,8,0.65)]' : 'shadow-[0_0_18px_rgba(99,102,241,0.38)]';
- const isActive = activeRegion === marker.name;
- const zIndex = isActive ? 50 : 10 + Math.min(index, 20);
- 
- return (
- <div 
- key={marker.name}
- className="absolute flex flex-col items-center justify-center transform -translate-x-1/2 -translate-y-1/2 group"
- style={{ left: point.x, top: point.y, zIndex, right: 'auto' }}
- onMouseEnter={() => setActiveRegion(marker.name)}
- onMouseLeave={() => setActiveRegion(null)}
- onClick={() => setActiveRegion(marker.name)}
- >
- <div 
- className={`rounded-full bg-gradient-to-br ${intensity > 0.5 ? 'from-amber-400 to-amber-600' : marker.hasLocation ? 'from-indigo-400 to-indigo-600' : 'from-slate-400 to-slate-600'} flex items-center justify-center ${glow} text-white font-bold transition-all duration-300 cursor-pointer border-2 border-white/20 hover:scale-110 ${isActive ? 'scale-110 shadow-[0_0_18px_rgba(255,255,255,0.55)]' : ''}`}
- style={{ width: `${size}px`, height: `${size}px`, opacity: 0.86 + (intensity * 0.14) }}
- >
- <span className="text-[10px] scale-75 select-none">{marker.count}</span>
- </div>
-
- <div className={`absolute bottom-full mb-3 left-1/2 transform -translate-x-1/2 flex flex-col items-center transition-all duration-300 pointer-events-none ${isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
- <div className="text-xs font-bold text-white bg-slate-900/95 border border-slate-700 shadow-2xl shadow-indigo-900/50 px-3 py-2 rounded-xl whitespace-nowrap">
- <div className="text-center mb-1 text-slate-300">{marker.name}</div>
- <div className="text-amber-400">{Number(marker.revenue || 0).toFixed(2)} د.ك</div>
- </div>
- <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-slate-700 mt-[-1px]"></div>
- </div>
- </div>
- );
- })}
- </div>
  </div>
  <p className="text-[10px] text-slate-500 mt-6 font-bold text-center relative z-10 w-full">الدوائر الذهبية الكبيرة تعني تركيزاً وربحية أعلى للمناطق</p>
  </div>
