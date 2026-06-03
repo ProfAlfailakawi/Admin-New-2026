@@ -1797,29 +1797,49 @@ function waOrderReply(result: WhatsAppLookupResult) {
 function waNewOrderReply() {
   return [
     "ياهلا فيك في التراث 🇰🇼",
-    "لطلب جديد اختر من المنيو مباشرة من موقع العميل:",
+    "لطلب جديد تفضل من موقعنا:",
     waNewOrderUrl(),
     "",
-    "ولمتابعة طلب سابق، أرسل رقم الطلب أو الفاتورة مثل:",
-    "ORD-... أو INV-...",
-    "أو رقم الهاتف بصيغة 8 أرقام مثل: 97424400",
+    "تقدر تختار المنتجات وتحدد موقع التوصيل وتكمل الطلب مباشرة.",
+    "",
+    "ولمتابعة طلب سابق، أرسل:",
+    "• رقم الطلب ORD-...",
+    "• رقم الفاتورة INV-...",
+    "• أو رقم الهاتف 8 أرقام مثل: 97424400",
   ].join("\n");
 }
 
 function waHelpReply() {
   return [
     "ياهلا فيك في التراث 🇰🇼",
-    "أقدر أساعدك في:",
-    "• طلب جديد",
-    "• متابعة طلب أو فاتورة برقم ORD أو INV",
-    "• البحث برقم الهاتف بصيغة 8 أرقام مثل: 97424400",
-    "• معرفة توفر منتج من المنيو",
+    "اختر الخدمة المناسبة:",
     "",
-    "للطلب الجديد:",
+    "1) طلب جديد",
     waNewOrderUrl(),
     "",
-    "للتتبع أرسل رقم الطلب أو الفاتورة أو رقم الهاتف 8 أرقام، أو ادخل:",
+    "2) تتبع طلب أو فاتورة",
+    "أرسل رقم الطلب ORD-... أو رقم الفاتورة INV-...",
+    "",
+    "3) البحث برقم الهاتف",
+    "أرسل رقم الهاتف الكويتي 8 أرقام مثل: 97424400",
+    "",
+    "4) سؤال عن منتج",
+    "اكتب اسم المنتج وسأبحث لك في المنيو المتاح.",
+    "",
+    "رابط التتبع:",
     `${ALTURATH_CUSTOMER_BASE_URL}/track`,
+  ].join("\n");
+}
+
+function waGreetingReply() {
+  return [
+    "ياهلا ومرحبا في التراث 🇰🇼",
+    "شلون أقدر أخدمك؟",
+    "",
+    "• للطلب الجديد اكتب: طلب جديد",
+    "• للتتبع أرسل: ORD-... أو INV-...",
+    "• أو أرسل رقم هاتفك 8 أرقام مثل: 97424400",
+    "• وللاستفسار عن منتج اكتب اسم المنتج",
   ].join("\n");
 }
 
@@ -1827,7 +1847,7 @@ async function waProductReply(messageText: string) {
   const shared = await waLoadSharedData(["products"]);
   const terms = waNormalizeArabic(messageText)
     .split(" ")
-    .filter((word) => word.length >= 3 && !["عندكم", "ابي", "ابغي", "اطلب", "طلب", "منتج", "سعر", "جم", "كم", "هل", "في", "فيه", "شنو", "وش"].includes(word));
+    .filter((word) => word.length >= 3 && !["عندكم", "ابي", "ابغي", "ابغى", "ابا", "اريد", "اطلب", "طلب", "منتج", "سعر", "جم", "كم", "هل", "في", "فيه", "شنو", "وش", "what", "price", "product", "menu", "order", "new", "hello", "hi"].includes(word));
 
   if (!terms.length) return "";
   const products = waAsArray(shared.products)
@@ -1860,15 +1880,39 @@ async function waProductReply(messageText: string) {
 
 function waLooksLikeNewOrderIntent(text: string) {
   const s = waNormalizeArabic(text);
-  return ["طلب جديد", "ابي اطلب", "ابغى اطلب", "ابغي اطلب", "اطلب", "اطلب منكم", "منيو", "المنيو", "قائمه", "قائمة", "menu", "new order", "order now"].some((phrase) => s.includes(waNormalizeArabic(phrase)));
+  return [
+    "طلب جديد", "ابي اطلب", "ابغى اطلب", "ابغي اطلب", "ابا اطلب", "اريد اطلب", "اطلب", "اطلب منكم", "اطلب الحين",
+    "منيو", "المنيو", "قائمه", "قائمة", "القائمة", "المنيوهات", "المنتجات", "منتجات", "اشتري", "شراء",
+    "menu", "new order", "order now", "order", "make order", "place order", "buy", "shop", "catalog", "products",
+  ].some((phrase) => s.includes(waNormalizeArabic(phrase)));
 }
 
 function waLooksLikeTrackIntent(text: string) {
   const s = waNormalizeArabic(text);
-  return ["تتبع", "طلبي", "طلبى", "وين", "حاله", "حالة", "فاتوره", "فاتورة", "invoice", "track", "status"].some((phrase) => s.includes(waNormalizeArabic(phrase)));
+  return [
+    "تتبع", "تتبع الطلب", "تتبع طلبي", "طلبي", "طلبى", "وين طلبي", "وين الطلب", "حاله", "حالة", "حالة الطلب",
+    "فاتوره", "فاتورة", "فواتير", "رقم الفاتوره", "رقم الفاتورة", "دفعت", "الدفع", "وصل", "التوصيل",
+    "invoice", "track", "tracking", "status", "my order", "where is my order", "delivery", "payment",
+  ].some((phrase) => s.includes(waNormalizeArabic(phrase)));
+}
+
+function waLooksLikeGreeting(text: string) {
+  const s = waNormalizeArabic(text);
+  return [
+    "هلا", "ياهلا", "مرحبا", "السلام", "السلام عليكم", "صباح الخير", "مساء الخير", "هاي", "الو", "اهلا", "اهلين",
+    "hi", "hello", "hey", "salam", "good morning", "good evening",
+  ].some((phrase) => s === waNormalizeArabic(phrase) || s.includes(waNormalizeArabic(phrase)));
+}
+
+function waLooksLikeHelpIntent(text: string) {
+  const s = waNormalizeArabic(text);
+  return ["مساعده", "مساعدة", "ساعدني", "خدمه", "خدمة", "اختيارات", "الخيارات", "help", "support", "options", "commands"].some((phrase) => s.includes(waNormalizeArabic(phrase)));
 }
 
 async function waBuildAutoReply(messageText: string, fromPhone: string) {
+  if (waLooksLikeHelpIntent(messageText)) return waHelpReply();
+  if (waLooksLikeGreeting(messageText)) return waGreetingReply();
+
   const businessId = waExtractBusinessId(messageText);
   if (businessId) {
     const found = await waFindByBusinessId(businessId);
@@ -1974,26 +2018,48 @@ app.get("/api/whatsapp/webhook", (req, res) => {
 });
 
 app.post("/api/whatsapp/webhook", async (req, res) => {
-  // Acknowledge Meta quickly; process messages safely afterward.
-  res.sendStatus(200);
+  // Meta expects a fast 200 response. We still wait for the reply attempt here because
+  // some serverless environments throttle CPU immediately after the response is sent.
+  let handledMessages = 0;
+  const sendResults: any[] = [];
 
   try {
     const entries = waAsArray(req.body?.entry);
     for (const entry of entries) {
       for (const change of waAsArray(entry?.changes)) {
         const value = change?.value || {};
+        if (waAsArray(value?.statuses).length) {
+          console.log(`[WHATSAPP] Status event received: ${waAsArray(value.statuses).length}`);
+        }
         for (const message of waAsArray(value?.messages)) {
           const from = waDigits(message?.from);
           const text = waExtractMessageText(message);
-          if (!from || !text) continue;
-          console.log(`[WHATSAPP] Incoming from ${from}: ${waEscapeForLog(text)}`);
-          const reply = await waBuildAutoReply(text, from);
-          await waSendText(from, reply);
+          const type = waString(message?.type || "unknown");
+          if (!from) continue;
+
+          handledMessages += 1;
+          console.log(`[WHATSAPP] Incoming type=${type} from ${from}: ${waEscapeForLog(text)}`);
+
+          const reply = text
+            ? await waBuildAutoReply(text, from)
+            : [
+                "وصلت رسالتك، لكن أقدر أتعامل حاليًا مع الرسائل النصية فقط.",
+                "اكتب: طلب جديد",
+                "أو أرسل رقم الطلب ORD-... / INV-...",
+                "أو رقم الهاتف 8 أرقام مثل: 97424400",
+              ].join("\n");
+
+          const result = await waSendText(from, reply);
+          sendResults.push({ to: from, ok: result.ok, status: result.status, reason: result.reason || result.payload?.error?.message || null });
+          console.log(`[WHATSAPP] Reply result to ${from}: ${JSON.stringify(sendResults[sendResults.length - 1]).slice(0, 700)}`);
         }
       }
     }
+
+    return res.status(200).json({ success: true, handledMessages, sendResults });
   } catch (error: any) {
     console.error("[WHATSAPP] Webhook processing failed:", error?.message || error);
+    return res.status(200).json({ success: false, error: error?.message || String(error), handledMessages, sendResults });
   }
 });
 
