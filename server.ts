@@ -1423,6 +1423,8 @@ app.use((req, res, next) => {
 
   const allowedOrigins = new Set([
     "https://alturath-admin-0200723670.web.app",
+    "https://admin.alturathkw.shop",
+    "https://alturathkw.shop",
     "https://gen-lang-client-0200723670.web.app",
     "https://service-119610604304.europe-west3.run.app",
     "http://localhost:5173",
@@ -1495,6 +1497,536 @@ function decodeFullAppDataShard(key: string, shardData: any) {
   if (Array.isArray(shardData?.items)) return shardData.items;
   return [];
 }
+
+
+// ALTURATH_WHATSAPP_CLOUD_API_START
+// Independent WhatsApp Cloud API layer. It only reads shared data and sends WhatsApp replies.
+// It does not change payment, notification, AI, auth, or database write logic.
+const ALTURATH_CUSTOMER_BASE_URL = String(process.env.ALTURATH_CUSTOMER_BASE_URL || "https://alturathkw.shop").replace(/\/$/, "");
+const ALTURATH_ADMIN_BASE_URL = String(process.env.ALTURATH_ADMIN_BASE_URL || "https://admin.alturathkw.shop").replace(/\/$/, "");
+const WHATSAPP_VERIFY_TOKEN = String(process.env.WHATSAPP_VERIFY_TOKEN || "alturath_whatsapp_verify_2026");
+const WHATSAPP_GRAPH_VERSION = String(process.env.WHATSAPP_GRAPH_VERSION || "v24.0");
+const WHATSAPP_ACCESS_TOKEN = () => String(process.env.WHATSAPP_ACCESS_TOKEN || "").trim();
+const WHATSAPP_PHONE_NUMBER_ID = () => String(process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim();
+const WHATSAPP_TEST_SECRET = () => String(process.env.WHATSAPP_TEST_SECRET || process.env.ADMIN_TEST_SECRET || "").trim();
+
+type WhatsAppLookupResult = {
+  kind: "order" | "invoice";
+  id: string;
+  data: any;
+  source: string;
+};
+
+function waString(value: any) {
+  return String(value ?? "").trim();
+}
+
+function waDigits(value: any) {
+  return waString(value).replace(/\D/g, "");
+}
+
+function waNormalizeArabic(value: any) {
+  return waString(value)
+    .toLowerCase()
+    .replace(/[إأآا]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[ًٌٍَُِّْـ]/g, "")
+    .replace(/[^\p{L}\p{N}\s\-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function waEscapeForLog(value: any) {
+  return waString(value).slice(0, 500);
+}
+
+function waAsArray(value: any): any[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function waUnique<T>(items: T[]) {
+  return Array.from(new Set(items.filter(Boolean) as T[]));
+}
+
+function waBusinessIdsFor(item: any): string[] {
+  return waUnique([
+    item?.id,
+    item?.orderId,
+    item?.orderNo,
+    item?.orderNumber,
+    item?.invoiceId,
+    item?.invoiceNo,
+    item?.invoiceNumber,
+    item?.number,
+    item?.tracked_order,
+    item?.requested_order_id,
+    item?.linkedInvoiceId,
+    item?.linkedOrderId,
+  ].map((v) => waString(v)).filter(Boolean));
+}
+
+function waPrimaryBusinessId(item: any, fallbackPrefix = "ORD") {
+  const ids = waBusinessIdsFor(item);
+  return ids.find((id) => /^(ORD|INV)-/i.test(id)) || ids[0] || `${fallbackPrefix}-غير-متوفر`;
+}
+
+function waExtractBusinessId(text: string) {
+  const normalized = waString(text).toUpperCase().replace(/\s+/g, " ");
+  const direct = normalized.match(/\b(ORD|INV)\s*-\s*([A-Z0-9]+(?:\s*-\s*[A-Z0-9]+)*)\b/i);
+  if (!direct) return "";
+  const prefix = direct[1].toUpperCase();
+  const rest = direct[2].replace(/\s+/g, "").replace(/--+/g, "-");
+  return `${prefix}-${rest}`;
+}
+
+function waIsPaidStatus(status: any) {
+  const s = waNormalizeArabic(status);
+  return ["paid", "success", "successful", "تم الدفع", "تم الدفع بنجاح", "مدفوع"].some((x) => s.includes(waNormalizeArabic(x)));
+}
+
+function waIsFailedStatus(status: any) {
+  const s = waNormalizeArabic(status);
+  return ["failed", "fail", "فشل", "فشلت", "مرفوض", "ملغي", "الغاء"].some((x) => s.includes(waNormalizeArabic(x)));
+}
+
+function waIsPendingStatus(status: any) {
+  const s = waNormalizeArabic(status);
+  return ["pending", "انتظار", "بانتظار", "لم يدفع", "غير مدفوع", "قيد"].some((x) => s.includes(waNormalizeArabic(x)));
+}
+
+function waStatusText(item: any) {
+  const raw = item?.status || item?.paymentStatus || item?.payment_status || item?.state || item?.orderStatus || item?.invoiceStatus || "";
+  if (waIsPaidStatus(raw) || item?.paid === true) return "تم الدفع بنجاح";
+  if (waIsFailedStatus(raw) || item?.failed === true) return "فشلت عملية الدفع";
+  if (waIsPendingStatus(raw) || item?.paid === false) return "بانتظار الدفع";
+  return waString(raw) || "قيد المتابعة";
+}
+
+function waAmountText(item: any) {
+  const raw = item?.totalAmount ?? item?.total ?? item?.amount ?? item?.grandTotal ?? item?.subtotal ?? item?.finalTotal;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  return `${n.toFixed(n % 1 ? 3 : 0)} د.ك`;
+}
+
+function waCustomerPhone(item: any) {
+  return waDigits(item?.customerPhone || item?.phone || item?.customer?.phone || item?.delivery?.phone || item?.clientPhone || item?.mobile);
+}
+
+function waNormalizeKuwaitPhone8(value: any) {
+  const digits = waDigits(value);
+  if (digits.length === 8) return digits;
+  if (digits.length === 11 && digits.startsWith("965")) return digits.slice(-8);
+  return "";
+}
+
+function waExtractKuwaitPhone8(text: string) {
+  const normalized = waString(text).replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+  const candidates = normalized.match(/(?:\+?965[\s-]*)?[569]\d(?:[\s-]*\d){6}/g) || [];
+  for (const candidate of candidates) {
+    const phone8 = waNormalizeKuwaitPhone8(candidate);
+    if (phone8) return phone8;
+  }
+  return "";
+}
+
+function waTrackUrl(id: string) {
+  return `${ALTURATH_CUSTOMER_BASE_URL}/track?order_id=${encodeURIComponent(id)}`;
+}
+
+function waNewOrderUrl() {
+  return ALTURATH_CUSTOMER_BASE_URL;
+}
+
+async function waReadSharedShard(key: string) {
+  if (!db || !firebaseInitialized) return [];
+  try {
+    const snap = await db.collection("appData").doc("shared_company_data").collection("shards").doc(key).get();
+    if (!snap.exists) return [];
+    return decodeFullAppDataShard(key, snap.data() || {});
+  } catch (error: any) {
+    console.warn(`[WHATSAPP] Could not read shared shard ${key}:`, error?.message || error);
+    return [];
+  }
+}
+
+async function waLoadSharedData(keys: string[] = ["orders", "invoices", "products"]) {
+  const data: any = { orders: [], invoices: [], products: [] };
+  if (!db || !firebaseInitialized) return data;
+
+  try {
+    const rootSnap = await db.collection("appData").doc("shared_company_data").get();
+    const root = rootSnap.exists ? (rootSnap.data() || {}) : {};
+    for (const key of keys) {
+      data[key] = waAsArray(root?.[key]);
+    }
+  } catch (error: any) {
+    console.warn("[WHATSAPP] Could not read shared_company_data root:", error?.message || error);
+  }
+
+  for (const key of keys) {
+    const shardItems = await waReadSharedShard(key);
+    if (Array.isArray(shardItems) && shardItems.length) {
+      const existingIds = new Set(waAsArray(data[key]).map((item: any) => waPrimaryBusinessId(item, key === "invoices" ? "INV" : "ORD")));
+      const merged = [...waAsArray(data[key])];
+      for (const item of shardItems) {
+        const id = waPrimaryBusinessId(item, key === "invoices" ? "INV" : "ORD");
+        if (!existingIds.has(id)) merged.push(item);
+      }
+      data[key] = merged;
+    }
+  }
+
+  return data;
+}
+
+async function waFindRootDocByBusinessId(id: string): Promise<WhatsAppLookupResult | null> {
+  if (!db || !firebaseInitialized || !id) return null;
+  const upper = id.toUpperCase();
+  const preferred = upper.startsWith("INV-") ? ["invoices", "orders"] : ["orders", "invoices"];
+
+  for (const collectionName of preferred) {
+    try {
+      const snap = await db.collection(collectionName).doc(id).get();
+      if (snap.exists) {
+        return { kind: collectionName === "invoices" ? "invoice" : "order", id, data: { id: snap.id, ...(snap.data() || {}) }, source: `${collectionName}/${id}` };
+      }
+    } catch (error: any) {
+      console.warn(`[WHATSAPP] Root doc lookup failed ${collectionName}/${id}:`, error?.message || error);
+    }
+  }
+
+  const fields = ["id", "orderId", "orderNo", "invoiceId", "invoiceNo", "number", "tracked_order", "requested_order_id", "linkedInvoiceId", "linkedOrderId"];
+  for (const collectionName of preferred) {
+    for (const field of fields) {
+      try {
+        const q = await db.collection(collectionName).where(field, "==", id).limit(1).get();
+        if (!q.empty) {
+          const doc = q.docs[0];
+          return { kind: collectionName === "invoices" ? "invoice" : "order", id: waPrimaryBusinessId(doc.data(), id.startsWith("INV-") ? "INV" : "ORD"), data: { id: doc.id, ...(doc.data() || {}) }, source: `${collectionName}.${field}` };
+        }
+      } catch (error: any) {
+        // Some fields may not be indexed or present. Continue safely.
+      }
+    }
+  }
+
+  return null;
+}
+
+async function waFindByBusinessId(id: string): Promise<WhatsAppLookupResult | null> {
+  const cleanId = waString(id).toUpperCase();
+  if (!cleanId) return null;
+
+  const root = await waFindRootDocByBusinessId(cleanId);
+  if (root) return root;
+
+  const shared = await waLoadSharedData(["orders", "invoices"]);
+  const preferredKey = cleanId.startsWith("INV-") ? "invoices" : "orders";
+  const keys = preferredKey === "invoices" ? ["invoices", "orders"] : ["orders", "invoices"];
+  for (const key of keys) {
+    const found = waAsArray(shared[key]).find((item: any) => waBusinessIdsFor(item).map((x) => x.toUpperCase()).includes(cleanId));
+    if (found) {
+      return { kind: key === "invoices" ? "invoice" : "order", id: waPrimaryBusinessId(found, cleanId.startsWith("INV-") ? "INV" : "ORD"), data: found, source: `appData.${key}` };
+    }
+  }
+
+  return null;
+}
+
+async function waFindLatestByPhone(phone: string): Promise<WhatsAppLookupResult | null> {
+  const last8 = waNormalizeKuwaitPhone8(phone);
+  if (!last8) return null;
+  const digits = last8;
+
+  const shared = await waLoadSharedData(["orders", "invoices"]);
+  const candidates: WhatsAppLookupResult[] = [];
+  for (const key of ["orders", "invoices"] as const) {
+    for (const item of waAsArray(shared[key])) {
+      const p = waCustomerPhone(item);
+      if (p && p.slice(-8) === last8) {
+        candidates.push({ kind: key === "invoices" ? "invoice" : "order", id: waPrimaryBusinessId(item, key === "invoices" ? "INV" : "ORD"), data: item, source: `appData.${key}.phone` });
+      }
+    }
+  }
+
+  candidates.sort((a, b) => {
+    const ad = dateValue(a.data?.createdAt || a.data?.created_at || a.data?.date || a.data?.updatedAt || dateFromBusinessId(a.id) || "")?.getTime() || 0;
+    const bd = dateValue(b.data?.createdAt || b.data?.created_at || b.data?.date || b.data?.updatedAt || dateFromBusinessId(b.id) || "")?.getTime() || 0;
+    return bd - ad;
+  });
+
+  if (candidates[0]) return candidates[0];
+
+  if (!db || !firebaseInitialized) return null;
+  for (const collectionName of ["orders", "invoices"] as const) {
+    for (const field of ["customerPhone", "phone", "mobile", "clientPhone"] as const) {
+      try {
+        const q = await db.collection(collectionName).where(field, "==", digits).limit(5).get();
+        if (!q.empty) {
+          const doc = q.docs[0];
+          return { kind: collectionName === "invoices" ? "invoice" : "order", id: waPrimaryBusinessId(doc.data(), collectionName === "invoices" ? "INV" : "ORD"), data: { id: doc.id, ...(doc.data() || {}) }, source: `${collectionName}.${field}` };
+        }
+      } catch (_error: any) {}
+    }
+  }
+
+  return null;
+}
+
+function waOrderReply(result: WhatsAppLookupResult) {
+  const id = result.id || waPrimaryBusinessId(result.data, result.kind === "invoice" ? "INV" : "ORD");
+  const label = result.kind === "invoice" ? "الفاتورة" : "الطلب";
+  const amount = waAmountText(result.data);
+  const status = waStatusText(result.data);
+  const lines = [
+    `ياهلا فيك من التراث 🇰🇼`,
+    `${label}: ${id}`,
+    `الحالة: ${status}`,
+  ];
+  if (amount) lines.push(`المبلغ: ${amount}`);
+  lines.push(`تقدر تتابع التفاصيل من هنا:`);
+  lines.push(waTrackUrl(id));
+  lines.push(``);
+  lines.push(`ولطلب جديد:`);
+  lines.push(waNewOrderUrl());
+  return lines.join("\n");
+}
+
+function waNewOrderReply() {
+  return [
+    "ياهلا فيك في التراث 🇰🇼",
+    "لطلب جديد اختر من المنيو مباشرة من موقع العميل:",
+    waNewOrderUrl(),
+    "",
+    "ولمتابعة طلب سابق، أرسل رقم الطلب أو الفاتورة مثل:",
+    "ORD-... أو INV-...",
+    "أو رقم الهاتف بصيغة 8 أرقام مثل: 97424400",
+  ].join("\n");
+}
+
+function waHelpReply() {
+  return [
+    "ياهلا فيك في التراث 🇰🇼",
+    "أقدر أساعدك في:",
+    "• طلب جديد",
+    "• متابعة طلب أو فاتورة برقم ORD أو INV",
+    "• البحث برقم الهاتف بصيغة 8 أرقام مثل: 97424400",
+    "• معرفة توفر منتج من المنيو",
+    "",
+    "للطلب الجديد:",
+    waNewOrderUrl(),
+    "",
+    "للتتبع أرسل رقم الطلب أو الفاتورة أو رقم الهاتف 8 أرقام، أو ادخل:",
+    `${ALTURATH_CUSTOMER_BASE_URL}/track`,
+  ].join("\n");
+}
+
+async function waProductReply(messageText: string) {
+  const shared = await waLoadSharedData(["products"]);
+  const terms = waNormalizeArabic(messageText)
+    .split(" ")
+    .filter((word) => word.length >= 3 && !["عندكم", "ابي", "ابغي", "اطلب", "طلب", "منتج", "سعر", "جم", "كم", "هل", "في", "فيه", "شنو", "وش"].includes(word));
+
+  if (!terms.length) return "";
+  const products = waAsArray(shared.products)
+    .filter((p: any) => p?.isActive !== false && p?.active !== false && p?.isOutOfStock !== true && p?.outOfStock !== true)
+    .map((p: any) => ({
+      raw: p,
+      name: waString(p?.name || p?.productName || p?.title),
+      haystack: waNormalizeArabic([p?.name, p?.productName, p?.title, p?.category, p?.description].filter(Boolean).join(" ")),
+    }))
+    .filter((p: any) => p.name);
+
+  const matches = products
+    .map((p: any) => ({ ...p, score: terms.reduce((acc, term) => acc + (p.haystack.includes(term) ? 1 : 0), 0) }))
+    .filter((p: any) => p.score > 0)
+    .sort((a: any, b: any) => b.score - a.score)
+    .slice(0, 5);
+
+  if (!matches.length) return "";
+
+  const lines = ["هذه أقرب المنتجات الموجودة عندنا حالياً:"];
+  matches.forEach((p: any, index: number) => {
+    const price = Number(p.raw?.price ?? p.raw?.salePrice ?? p.raw?.amount);
+    lines.push(`${index + 1}. ${p.name}${Number.isFinite(price) && price > 0 ? ` — ${price.toFixed(price % 1 ? 3 : 0)} د.ك` : ""}`);
+  });
+  lines.push("");
+  lines.push("للطلب من الموقع:");
+  lines.push(waNewOrderUrl());
+  return lines.join("\n");
+}
+
+function waLooksLikeNewOrderIntent(text: string) {
+  const s = waNormalizeArabic(text);
+  return ["طلب جديد", "ابي اطلب", "ابغى اطلب", "ابغي اطلب", "اطلب", "اطلب منكم", "منيو", "المنيو", "قائمه", "قائمة", "menu", "new order", "order now"].some((phrase) => s.includes(waNormalizeArabic(phrase)));
+}
+
+function waLooksLikeTrackIntent(text: string) {
+  const s = waNormalizeArabic(text);
+  return ["تتبع", "طلبي", "طلبى", "وين", "حاله", "حالة", "فاتوره", "فاتورة", "invoice", "track", "status"].some((phrase) => s.includes(waNormalizeArabic(phrase)));
+}
+
+async function waBuildAutoReply(messageText: string, fromPhone: string) {
+  const businessId = waExtractBusinessId(messageText);
+  if (businessId) {
+    const found = await waFindByBusinessId(businessId);
+    if (found) return waOrderReply(found);
+    return [
+      `ما حصلت رقم ${businessId} حالياً.`,
+      "تأكد من الرقم أو جرّب رابط التتبع:",
+      `${ALTURATH_CUSTOMER_BASE_URL}/track`,
+      "",
+      "ولطلب جديد:",
+      waNewOrderUrl(),
+    ].join("\n");
+  }
+
+  const phone8 = waExtractKuwaitPhone8(messageText);
+  if (phone8) {
+    const byPhone = await waFindLatestByPhone(phone8);
+    if (byPhone) return waOrderReply(byPhone);
+    return [
+      `ما حصلت طلب مرتبط بالرقم ${phone8} حالياً.`,
+      "تأكد من رقم الهاتف بصيغة 8 أرقام مثل: 97424400",
+      "أو أرسل رقم الطلب أو الفاتورة مثل ORD-... أو INV-...",
+      "",
+      "ولطلب جديد:",
+      waNewOrderUrl(),
+    ].join("\n");
+  }
+
+  if (waLooksLikeNewOrderIntent(messageText)) return waNewOrderReply();
+
+  if (waLooksLikeTrackIntent(messageText)) {
+    const byPhone = await waFindLatestByPhone(fromPhone);
+    if (byPhone) return waOrderReply(byPhone);
+    return [
+      "للمتابعة أرسل رقم الطلب أو الفاتورة مثل ORD-... أو INV-...",
+      "أو رقم الهاتف بصيغة 8 أرقام مثل: 97424400",
+      "أو افتح صفحة التتبع:",
+      `${ALTURATH_CUSTOMER_BASE_URL}/track`,
+      "",
+      "ولطلب جديد:",
+      waNewOrderUrl(),
+    ].join("\n");
+  }
+
+  const productReply = await waProductReply(messageText);
+  if (productReply) return productReply;
+
+  return waHelpReply();
+}
+
+function waExtractMessageText(message: any) {
+  if (!message) return "";
+  if (message.type === "text") return waString(message?.text?.body);
+  if (message.type === "button") return waString(message?.button?.text || message?.button?.payload);
+  if (message.type === "interactive") {
+    return waString(message?.interactive?.button_reply?.title || message?.interactive?.button_reply?.id || message?.interactive?.list_reply?.title || message?.interactive?.list_reply?.id);
+  }
+  return "";
+}
+
+async function waSendText(to: string, body: string) {
+  const token = WHATSAPP_ACCESS_TOKEN();
+  const phoneNumberId = WHATSAPP_PHONE_NUMBER_ID();
+  if (!token || !phoneNumberId) {
+    console.warn("[WHATSAPP] Missing WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID. Reply not sent.");
+    return { ok: false, skipped: true, reason: "missing_whatsapp_env" };
+  }
+
+  const response = await fetch(`https://graph.facebook.com/${WHATSAPP_GRAPH_VERSION}/${encodeURIComponent(phoneNumberId)}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: waDigits(to),
+      type: "text",
+      text: { preview_url: true, body: body.slice(0, 3500) },
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    console.warn("[WHATSAPP] Send failed:", response.status, JSON.stringify(payload).slice(0, 1000));
+  }
+  return { ok: response.ok, status: response.status, payload };
+}
+
+app.get("/api/whatsapp/webhook", (req, res) => {
+  const mode = waString(req.query["hub.mode"]);
+  const token = waString(req.query["hub.verify_token"]);
+  const challenge = waString(req.query["hub.challenge"]);
+
+  if (mode === "subscribe" && token === WHATSAPP_VERIFY_TOKEN) {
+    console.log("[WHATSAPP] Webhook verified successfully.");
+    return res.status(200).send(challenge);
+  }
+
+  console.warn("[WHATSAPP] Webhook verification failed.");
+  return res.sendStatus(403);
+});
+
+app.post("/api/whatsapp/webhook", async (req, res) => {
+  // Acknowledge Meta quickly; process messages safely afterward.
+  res.sendStatus(200);
+
+  try {
+    const entries = waAsArray(req.body?.entry);
+    for (const entry of entries) {
+      for (const change of waAsArray(entry?.changes)) {
+        const value = change?.value || {};
+        for (const message of waAsArray(value?.messages)) {
+          const from = waDigits(message?.from);
+          const text = waExtractMessageText(message);
+          if (!from || !text) continue;
+          console.log(`[WHATSAPP] Incoming from ${from}: ${waEscapeForLog(text)}`);
+          const reply = await waBuildAutoReply(text, from);
+          await waSendText(from, reply);
+        }
+      }
+    }
+  } catch (error: any) {
+    console.error("[WHATSAPP] Webhook processing failed:", error?.message || error);
+  }
+});
+
+app.post("/api/whatsapp/send-test", async (req, res) => {
+  const expected = WHATSAPP_TEST_SECRET();
+  const received = waString(req.headers["x-admin-secret"] || req.query.secret || req.body?.secret);
+  if (expected && received !== expected) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+  const to = waDigits(req.body?.to || req.query.to);
+  const text = waString(req.body?.text || req.query.text || "تجربة واتساب من نظام التراث ✅");
+  if (!to) return res.status(400).json({ success: false, error: "Missing recipient phone number" });
+
+  try {
+    const result = await waSendText(to, text);
+    return res.status(result.ok ? 200 : 502).json({ success: result.ok, result });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+app.get("/api/whatsapp/health", (_req, res) => {
+  res.json({
+    success: true,
+    service: "alturath-whatsapp-cloud-api",
+    customerBaseUrl: ALTURATH_CUSTOMER_BASE_URL,
+    adminBaseUrl: ALTURATH_ADMIN_BASE_URL,
+    hasAccessToken: Boolean(WHATSAPP_ACCESS_TOKEN()),
+    hasPhoneNumberId: Boolean(WHATSAPP_PHONE_NUMBER_ID()),
+    hasVerifyToken: Boolean(WHATSAPP_VERIFY_TOKEN),
+    firebaseReady: Boolean(firebaseInitialized && db),
+  });
+});
+// ALTURATH_WHATSAPP_CLOUD_API_END
 
 app.get("/api/appdata/full", async (_req, res) => {
   const startedAt = Date.now();
