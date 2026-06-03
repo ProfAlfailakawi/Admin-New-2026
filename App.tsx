@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
+import LZString from 'lz-string';
 import { 
   ArrowUp,
   BarChart3, 
@@ -51,10 +52,12 @@ import {
   HandCoins,
   BadgeCheck,
   Gauge,
-  Clock
+  Clock,
+  Command
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, normalizeArabic } from './lib/utils';
+import { heritageMotion } from './lib/heritageMotion';
+import { cn, normalizeArabic, formatKuwaitiDateOnly } from './lib/utils';
 import Dashboard from './components/Dashboard';
 import SystemPulseOrb from './components/SystemPulseOrb';
 import LogoEngine from './components/ui/LogoEngine';
@@ -71,6 +74,7 @@ const AIAssistant = React.lazy(() => import('./components/AIAssistant'));
 import { SmartContentStudio } from './components/SmartContentStudio';
 import { DiwaniyaTournaments } from './components/DiwaniyaTournaments';
 import PartnerDashboard from './components/PartnerDashboard';
+import { CommandBrief } from './components/CommandBrief';
 import Login from './components/Login';
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
 const SupplierAudit = React.lazy(() => import('./components/SupplierAudit'));
@@ -78,6 +82,7 @@ const LoyaltyProgramPage = React.lazy(() => import('./components/LoyaltyProgramP
 const PromoCodePage = React.lazy(() => import('./components/PromoCodePage').then(m => ({ default: m.PromoCodePage })));
 const WhatIfSimulator = React.lazy(() => import('./components/WhatIfSimulator').then(m => ({ default: m.WhatIfSimulator })));
 const RealProfitGuard = React.lazy(() => import('./components/RealProfitGuard'));
+const WhatsAppSupportInbox = React.lazy(() => import('./components/WhatsAppSupportInbox'));
 
 import CommandBar from './components/CommandBar';
 import ProactiveAlerts from './components/ProactiveAlerts';
@@ -91,12 +96,13 @@ import { AppState } from './types';
 import { playSuccessAction } from './lib/sonic';
 import { auth, db, logout } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { onSnapshot, setDoc, updateDoc, getDoc, getDocs, query, collection, where, doc, limit, orderBy } from 'firebase/firestore';
-import { getSmartDoc, deleteDoc } from './firebase';
+import { onSnapshot, setDoc, updateDoc, getDoc, getDocs, getDocFromServer, query, collection, where, doc, limit, orderBy, deleteDoc } from 'firebase/firestore';
+import { getSmartDoc } from './firebase';
 import { Toaster, toast } from 'sonner';
 import { playNewOrderAlert } from './lib/sounds';
 import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils';
 import { refreshPushRegistrationIfAlreadyAllowed } from './lib/pushNotifications';
+import { getProtectedStorageItem, hasMeaningfulData, safeMergeData, setProtectedStorageItem } from './lib/dataGuard';
 
 type AdminNotification = AppState['notifications'][number];
 
@@ -171,13 +177,13 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
   const resultParam = (searchParams.get('result') || searchParams.get('Result') || searchParams.get('status') || searchParams.get('Status') || '')?.toUpperCase();
   const paymentIdParam = searchParams.get('track_id') || searchParams.get('TrackID') || searchParams.get('charge_id') || searchParams.get('id') || searchParams.get('payment_id') || searchParams.get('paymentId') || searchParams.get('PaymentID');
   
-  const isExplicitFail = path === '/cancel' || path === '/failed' || path === '/error' || resultParam === 'CANCELED' || resultParam === 'FAILED' || resultParam === 'DECLINED' || resultParam === 'VOIDED' || resultParam === 'NOT CAPTURED' || resultParam === 'NOT_CAPTURED';
-  const urlIndicatesSuccess = !isExplicitFail && (path === '/success' || resultParam === 'CAPTURED' || resultParam === 'SUCCESS' || resultParam === 'SUCCESSFUL' || isUpaymentsCallback);
+  const isExplicitFail = path === '/cancel' || path === '/failed' || path === '/error' || resultParam === 'CANCELED' || resultParam === 'CANCELLED' || resultParam === 'FAILED' || resultParam === 'DECLINED' || resultParam === 'VOIDED' || resultParam === 'NOT CAPTURED' || resultParam === 'NOT_CAPTURED' || resultParam === 'REJECTED';
+  const urlIndicatesSuccess = !isExplicitFail && (path === '/success' || resultParam === 'CAPTURED' || resultParam === 'SUCCESS' || resultParam === 'SUCCESSFUL' || resultParam === 'PAID' || resultParam === 'AUTHORIZED' || resultParam === 'COMPLETED' || resultParam === 'APPROVED' || isUpaymentsCallback);
 
   useEffect(() => {
     const showMessageAndRedirect = (status: 'success' | 'failed', invoiceIdToSearch: string) => {
         if (status === 'success') {
-            setStatusMsg({ title: "اكتملت العملية", sub: "Payment completed successfully", isError: false });
+            setStatusMsg({ title: "تمت العملية", sub: "الدفع تم بنجاح", isError: false });
         } else {
             setStatusMsg({ title: "لم تكتمل العملية", sub: "Payment was not completed, you can try again", isError: true });
         }
@@ -220,28 +226,48 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
     }, 10000); // 10 seconds max wait for backend verification
 
     getDoc(doc(db, 'invoices', invoiceId)).then(snapshot => {
-       let actualPaymentId = paymentIdParam;
+       let actualPaymentId = paymentIdParam || '';
+       let actualTrackId = paymentIdParam || '';
+       let actualGatewayOrderId = '';
+       let actualPaymentLink = '';
        
        if (snapshot.exists()) {
-         const data = snapshot.data();
-         if (data.paymentId && data.paymentId.trim() !== '') {
-             actualPaymentId = data.paymentId;
-         }
+         const data: any = snapshot.data();
+         actualPaymentId = data.paymentTrackId || data.trackId || data.track_id || data.paymentId || actualPaymentId || '';
+         actualTrackId = data.paymentTrackId || data.trackId || data.track_id || paymentIdParam || '';
+         actualGatewayOrderId = data.gatewayOrderId || data.gateway_order_id || '';
+         actualPaymentLink = data.paymentLink || data.paymentUrl || data.payment_url || '';
        }
 
-       if (actualPaymentId && !isExplicitFail) {
+       if (!isExplicitFail) {
          fetch('/api/invoice/confirm', {
              method: 'POST',
-             signal: AbortSignal.timeout(8000), // 8s timeout
+             signal: AbortSignal.timeout(10000), // 10s timeout
              headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ paymentId: actualPaymentId, invoiceId })
+             body: JSON.stringify({
+               paymentId: actualPaymentId || actualTrackId || actualGatewayOrderId || 'check_by_invoice',
+               invoiceId,
+               trackId: actualTrackId,
+               paymentTrackId: actualTrackId,
+               gatewayOrderId: actualGatewayOrderId,
+               paymentLink: actualPaymentLink,
+             })
          }).then(res => res.json()).then(async (verifyObj) => {
              clearTimeout(verificationTimeout);
              let finalStatus: 'success' | 'failed' = 'failed';
              if (verifyObj.verified) {
                  finalStatus = 'success';
                  try {
-                    await updateDoc(doc(db, 'invoices', invoiceId), { paymentStatus: 'paid', status: 'مدفوعة', paymentId: actualPaymentId, verifiedByBackend: true });
+                    await updateDoc(doc(db, 'invoices', invoiceId), {
+                      paymentStatus: 'paid',
+                      status: 'تم الدفع بنجاح',
+                      paymentId: actualPaymentId || actualTrackId,
+                      payment_id: actualPaymentId || actualTrackId,
+                      paymentTrackId: actualTrackId || actualPaymentId,
+                      trackId: actualTrackId || actualPaymentId,
+                      gatewayOrderId: actualGatewayOrderId || verifyObj?.syncResult?.identifiers?.gatewayOrderIds?.[0] || '',
+                      verifiedByBackend: true
+                    });
                     const ordersSnap = await getDocs(query(collection(db, 'orders'), where('linkedInvoiceId', '==', invoiceId)));
                     const updatePromises: Promise<any>[] = [];
                     ordersSnap.forEach((orderDoc) => {
@@ -253,7 +279,17 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
                 if (urlIndicatesSuccess) {
                     finalStatus = 'success';
                     try {
-                       await updateDoc(doc(db, 'invoices', invoiceId), { paymentStatus: 'paid', status: 'مدفوعة', paymentId: actualPaymentId, verifiedByBackend: false, verificationError: verifyObj.debugData || 'not_found' });
+                       await updateDoc(doc(db, 'invoices', invoiceId), {
+                         paymentStatus: 'paid',
+                         status: 'تم الدفع بنجاح',
+                         paymentId: actualPaymentId || actualTrackId,
+                         payment_id: actualPaymentId || actualTrackId,
+                         paymentTrackId: actualTrackId || actualPaymentId,
+                         trackId: actualTrackId || actualPaymentId,
+                         gatewayOrderId: actualGatewayOrderId || verifyObj?.syncResult?.identifiers?.gatewayOrderIds?.[0] || '',
+                         verifiedByBackend: false,
+                         verificationError: verifyObj.debugData || 'not_found'
+                       });
                         const ordersSnap = await getDocs(query(collection(db, 'orders'), where('linkedInvoiceId', '==', invoiceId)));
                         const updatePromises: Promise<any>[] = [];
                         ordersSnap.forEach((orderDoc) => {
@@ -295,13 +331,13 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
                    
                    <div className="flex items-center justify-center gap-3 text-sm text-slate-500 font-bold">
                        <Loader2 size={16} className="animate-spin text-blue-500" />
-                       جاري تحويلك لصفحة التتبع...
+                       بنحوّلك لصفحة التتبع...
                    </div>
                </div>
            ) : (
                <div className="py-6 md:py-12 flex flex-col items-center justify-center">
                   <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-emerald-500 border-t-transparent flex items-center justify-center rounded-full animate-spin mb-4" />
-                  <p className="font-bold text-slate-500">جاري تأكيد عملية الدفع...</p>
+                  <p className="font-bold text-slate-500">نتأكد من عملية الدفع...</p>
                </div>
            )}
        </div>
@@ -337,6 +373,8 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
   const invoices = Array.isArray(data?.invoices) ? data.invoices : [];
   const orders = Array.isArray(data?.orders) ? data.orders : [];
   const products = Array.isArray(data?.products) ? data.products : [];
+  const customers = Array.isArray(data?.customers) ? data.customers : [];
+  const coupons = Array.isArray(data?.promocodes) ? data.promocodes : [];
   const suppliers = Array.isArray(data?.suppliers) ? data.suppliers : [];
   const allSales = [...invoices, ...orders];
   const pending = allSales.filter((item: any) => isPendingStatus(item?.status || item?.paymentStatus)).length;
@@ -346,17 +384,119 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
   const outOfStock = products.filter((p: any) => p?.isOutOfStock || p?.stock === 0 || p?.quantity === 0).length;
   const signal = failed > 0 ? 'يحتاج انتباه' : pending > 0 ? 'قيد المتابعة' : 'الوضع مستقر';
   const tone = failed > 0 ? 'danger' : pending > 0 ? 'watch' : 'calm';
+  const hour = new Date().getHours();
+  const greeting = hour >= 17 && hour < 22
+    ? { title: 'تحية مسائية هادئة ☕', sub: 'النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.' }
+    : hour >= 5 && hour < 12
+      ? { title: 'صباح الخير، يوم جديد وفرص جديدة ☀️', sub: 'مركز القيادة جاهز لقراءة نبض اليوم ومتابعة أهم المؤشرات.' }
+      : hour >= 12 && hour < 17
+        ? { title: 'مرحباً، وقت الغداء والتركيز! 🍽️', sub: 'تتبع حركة المبيعات في فترة الذروة، والقرارات المهمة أمامك.' }
+        : { title: 'نظرة هادية على الأرقام.. عساك على القوة! ☕', sub: 'هدوء الليل أفضل وقت للتخطيط ومراجعة الأداء.' };
   const [isOpen, setIsOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
 
-  const items = [
-    { label: 'نبض اليوم', value: `${allSales.length}`, hint: `${total.toFixed(3)} د.ك`, page: 'dashboard', tone: 'gold', icon: <Gauge size={18} /> },
-    { label: 'بانتظار الدفع', value: `${pending}`, hint: 'طلبات تحتاج متابعة', page: 'orders', tone: 'amber', icon: <Clock size={18} /> },
-    { label: 'فشل الدفع', value: `${failed}`, hint: 'راجعها بهدوء', page: 'orders', tone: 'rose', icon: <AlertTriangle size={18} /> },
-    { label: 'تم الدفع', value: `${paid}`, hint: 'جاهز للمتابعة', page: 'invoices-list', tone: 'emerald', icon: <BadgeCheck size={18} /> },
-    { label: 'المنتجات', value: `${products.length}`, hint: outOfStock ? `${outOfStock} يحتاج مراجعة` : 'جاهزة', page: 'products', tone: 'slate', icon: <Boxes size={18} /> },
-    { label: 'العملاء', value: `${Array.isArray(data?.customers) ? data.customers.length : 0}`, hint: 'ذكاء العملاء والولاء', page: 'customers', tone: 'emerald', icon: <Users size={18} /> },
-    { label: 'العروض', value: `${Array.isArray(data?.promocodes) ? data.promocodes.length : 0}`, hint: 'مسرح الكوبونات', page: 'coupons', tone: 'gold', icon: <Receipt size={18} /> },
-    { label: 'الموردين', value: `${suppliers.length}`, hint: 'المراجعة والمخاطر', page: 'suppliers-audit', tone: 'indigo', icon: <Truck size={18} /> },
+  const paidSalesValue = allSales.filter((item: any) => isPaidStatus(item?.status || item?.paymentStatus)).reduce((sum: number, item: any) => sum + getMoneyValue(item), 0);
+  const briefLines = [
+    failed > 0 ? `عندك ${failed} عملية فشل دفع تحتاج مراجعة قبل الزحمة.` : 'ماكو فشل دفع ظاهر حالياً، الوضع أهدأ للتشغيل.',
+    pending > 0 ? `${pending} طلب بانتظار الدفع؛ خلها أول متابعة اليوم.` : 'طلبات الدفع المعلقة تحت السيطرة.',
+    paid > 0 ? `${paid} عملية مدفوعة بقيمة ${paidSalesValue.toFixed(3)} د.ك جاهزة للمتابعة.` : 'أول عملية مدفوعة اليوم راح تظهر هنا فوراً.',
+  ];
+
+  const coreModules = [
+    {
+      id: 'dashboard',
+      label: 'مركز القيادة',
+      subtitle: 'النبض والمعلق وفشل الدفع لليوم',
+      icon: <Gauge size={18} />,
+      tone: 'gold',
+      value: `${allSales.length} عملية`,
+      hint: `معلق: ${pending} · فشل: ${failed}`
+    },
+    {
+      id: 'reports',
+      label: 'التقارير التنفيذية',
+      subtitle: 'تحليل الأداء المالي والمبيعات بالتفصيل',
+      icon: <TrendingUp size={18} />,
+      tone: 'emerald',
+      value: `${total.toFixed(3)} د.ك`,
+      hint: `الفواتير: ${invoices.length}`
+    },
+    {
+      id: 'loyalty',
+      label: 'مملكة الولاء',
+      subtitle: 'مستويات العملاء ونقاط الذهبي والـ VIP',
+      icon: <Sparkles size={18} />,
+      tone: 'purple',
+      value: `مملكة الولاء`,
+      hint: `العملاء: ${customers.length}`
+    },
+    {
+      id: 'coupons',
+      label: 'مسرح عروض التراث',
+      subtitle: 'إدارة الكوبونات وحساب الأثر الربحي لها',
+      icon: <CircleDollarSign size={18} />,
+      tone: 'amber',
+      value: `الكوبونات`,
+      hint: `${coupons.length} عروض نشطة`
+    },
+    {
+      id: 'smart-studio',
+      label: 'استوديو التراث الذكي',
+      subtitle: 'تجهيز رسائل الدعاية والتسويق التلقائي',
+      icon: <Send size={18} />,
+      tone: 'sky',
+      value: `استوديو التراث الذكي`,
+      hint: 'دعاية وتواصل ذكي'
+    },
+    {
+      id: 'growth-simulator',
+      label: 'محاكي النمو والتسويق',
+      subtitle: 'سيناريوهات ماذا لو للأرباح والنمو',
+      icon: <Zap size={18} />,
+      tone: 'indigo',
+      value: `محاكي الأرباح`,
+      hint: 'توقع الإيرادات'
+    },
+    {
+      id: 'ai',
+      label: 'مساعد التراث الذكي',
+      subtitle: 'مستشار مالي مدعوم بالتوصيات الذكية',
+      icon: <Bot size={18} />,
+      tone: 'rose',
+      value: `المستشار التنفيذي`,
+      hint: 'خلاصات مختصرة'
+    },
+    {
+      id: 'diwaniya',
+      label: 'بطولات الديوانية',
+      subtitle: 'لوحة تنظيم النقاط وترتيب جوائز البطولات',
+      icon: <ClipboardCheck size={18} />,
+      tone: 'slate',
+      value: `الديوانية والجوائز`,
+      hint: 'إدارة الترتيب'
+    },
+    {
+      id: 'profit-guard',
+      label: 'المالية وحماية الأرباح',
+      subtitle: 'كشف مالي متقدم وفحص هوامش الأرباح والنزيف',
+      icon: <ShieldAlert size={18} />,
+      tone: 'rose',
+      value: `حماية الأرباح`,
+      hint: 'كشف النزيف والفرص'
+    }
+  ];
+
+  const searchableTools = [
+    ...coreModules,
+    { id: 'products', label: 'إدارة المنتجات والمخزون', subtitle: 'سجل المنتجات، الأسعار والتوافر بالمخزن', icon: <Boxes size={18} />, tone: 'slate', value: 'المخزون والمنتجات', hint: `${products.length} صنف` },
+    { id: 'expenses', label: 'المصروفات العامة والنزيف', subtitle: 'إدخال المصاريف والمدفوعات والمتابعة المالية', icon: <DollarSign size={18} />, tone: 'rose', value: 'المصروفات العامة', hint: 'تفاصيل المصروفات' },
+    { id: 'suppliers', label: 'حسابات الموردين ورادار المخاطر', subtitle: 'المديونية وصرف التوريد والانتظام', icon: <Truck size={18} />, tone: 'indigo', value: 'الموردين والمستحقات', hint: `${suppliers.length} مورد` },
+    { id: 'suppliers-audit', label: 'مراجعة الموردين والتأثير المالي', subtitle: 'تفصيل أثر المورد على الربحية والمخاطر', icon: <AlertTriangle size={18} />, tone: 'slate', value: 'رادار المخاطر', hint: 'أثر التوريد' },
+    { id: 'new-invoice', label: 'إنشاء فاتورة جديدة', subtitle: 'مسار سريع لإدخال المبيعات الفورية للعملاء', icon: <PlusCircle size={18} />, tone: 'sky', value: 'فاتورة جديدة', hint: 'مسار إنشاء سريع' },
+    { id: 'invoices-list', label: 'سجل الفواتير ونقاط البيع', subtitle: 'البحث والطباعة والمراجعة لجميع الفواتير السابقة', icon: <Receipt size={18} />, tone: 'emerald', value: 'أرشيف الفواتير', hint: `${invoices.length} فاتورة` },
+    { id: 'orders', label: 'طلبات الموقع الإلكتروني', subtitle: 'متابعة تشغيل وتوصيل الطلبات والدفع الإلكتروني', icon: <ShoppingBag size={18} />, tone: 'slate', value: 'الطلبات والتشغيل', hint: `${orders.length} طلب ويب` },
+    { id: 'customers', label: 'إدارة العملاء وقراءة البيانات', subtitle: 'قائمة العملاء وبيانات الاتصال والترتيب', icon: <Users size={18} />, tone: 'emerald', value: 'قاعدة العملاء', hint: `${customers.length} عميل` },
+    { id: 'settings', label: 'الإعدادات العامة لمطبخ التراث', subtitle: 'إعدادات التشغيل، التوصيل، الشركاء، والهوية', icon: <Settings size={18} />, tone: 'slate', value: 'الإعدادات والتهيئة', hint: 'تخصيص النظام' }
   ];
 
   const go = (target: string) => {
@@ -364,52 +504,29 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     setIsOpen(false);
   };
 
+  const filterQuery = searchQuery.trim();
+  const filteredTools = filterQuery
+    ? searchableTools.filter(t => 
+        normalizeArabic(t.label).toLowerCase().includes(normalizeArabic(filterQuery).toLowerCase()) ||
+        normalizeArabic(t.subtitle).toLowerCase().includes(normalizeArabic(filterQuery).toLowerCase())
+      )
+    : coreModules;
+
   return (
-    <section dir="rtl" className={`heritage-command-brief heritage-command-brief-${tone} ${isOpen ? 'is-open' : 'is-collapsed'}`} aria-label="مركز القيادة">
-      <div className="heritage-command-hero">
-        <span className="heritage-command-orb" />
-        <div className="min-w-0 text-right">
-          <div className="text-[10px] md:text-[11px] font-black tracking-[0.18em] text-amber-600 uppercase mb-1">شركة مطبخ التراث</div>
-          <h2 className="text-lg md:text-2xl font-black text-slate-950 leading-tight">مرحباً، وقت الغداء والتركيز!</h2>
-          <p className="text-[12px] md:text-sm text-slate-500 font-bold mt-1">مركز القيادة · {signal} · ملخص سريع بدون تكرار.</p>
+    <section dir="rtl" className={`heritage-command-brief heritage-command-brief-${tone} is-open`} aria-label="مركز القيادة">
+      <div className="executive-morning-brief pb-2 mb-2">
+        <div>
+          <span>Executive Morning Brief</span>
+          <strong>مركز القيادة</strong>
         </div>
+        <ul>
+          {briefLines.map((line) => <li key={line}>{line}</li>)}
+        </ul>
       </div>
-
-      <div className="heritage-command-actions">
-        <button
-          type="button"
-          className="heritage-command-toggle"
-          onClick={() => setIsOpen((value) => !value)}
-          aria-expanded={isOpen}
-        >
-          {isOpen ? 'إخفاء الملخص' : 'عرض الملخص'}
-          <ChevronDown size={16} className={isOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
-        </button>
-      </div>
-
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            className="heritage-command-grid"
-            initial={{ opacity: 0, y: -8, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: 'auto' }}
-            exit={{ opacity: 0, y: -8, height: 0 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
-          >
-            {items.map((item) => (
-              <button key={item.label} onClick={() => go(item.page)} className={`heritage-command-tile heritage-tone-${item.tone} ${page === item.page ? 'is-active' : ''}`}>
-                <span className="heritage-tile-icon">{item.icon}</span>
-                <span className="heritage-tile-label">{item.label}</span>
-                <strong>{item.value}</strong>
-                <small>{item.hint}</small>
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </section>
   );
 };
+
 
 
 
@@ -439,14 +556,14 @@ const getOnboardingProfile = (role: 'admin' | 'partner' | 'demo') => {
         { icon: <Gauge size={19} />, title: 'مركز القيادة', text: 'ابدأ من الملخص التنفيذي لتفهم نبض النظام خلال ثواني.', page: 'dashboard' },
         { icon: <Receipt size={19} />, title: 'الفواتير', text: 'جرّب إنشاء فاتورة ومراجعة سجل الفواتير.', page: 'new-invoice' },
         { icon: <ShoppingBag size={19} />, title: 'طلبات الموقع', text: 'شاهد كيف تظهر حالات الطلبات والدفعات للمتابعة.', page: 'orders' },
-        { icon: <Sparkles size={19} />, title: 'استوديو الصورة الذكية', text: 'استعرض أدوات المحتوى والأرشيف من غير لمس منطق الذكاء.', page: 'smart-studio' },
+        { icon: <Sparkles size={19} />, title: 'استوديو التراث الذكي', text: 'استعرض أدوات المحتوى والأرشيف من غير لمس منطق التراث الذكي.', page: 'smart-studio' },
       ]
     };
   }
   return {
     eyebrow: 'مرشد الأدمن التنفيذي',
     title: 'أهلاً بك في مركز قيادة شركة مطبخ التراث',
-    subtitle: 'جولة سريعة لأول دخول: مبيعات، طلبات، منتجات، تنبيهات، واستوديو الصورة الذكية في مسار واضح.',
+    subtitle: 'جولة سريعة لأول دخول: مبيعات، طلبات، منتجات، تنبيهات، واستوديو التراث الذكي في مسار واضح.',
     accent: 'gold',
     steps: [
       { icon: <Gauge size={19} />, title: 'مركز القيادة', text: 'نبض اليوم، بانتظار الدفع، فشل الدفع، والمنتجات التي تحتاج مراجعة.', page: 'dashboard' },
@@ -545,8 +662,28 @@ const DataRefreshNotice: React.FC<{ show: boolean; mode: 'cloud' | 'local' }> = 
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: -10, scale: 0.96 }}
       >
-        <Loader2 size={15} className="animate-spin" />
-        <span>{mode === 'cloud' ? 'جارٍ تحديث بيانات السحابة...' : 'جارٍ تجهيز بيانات التجربة...'}</span>
+        <motion.span {...heritageMotion.breathe} className="admin-sync-breath" />
+        <span>{mode === 'cloud' ? 'جارٍ جلب آخر نسخة من السحابة...' : 'جارٍ تجهيز بيانات التجربة...'}</span>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
+const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => (
+  <AnimatePresence>
+    {!online && (
+      <motion.div
+        className="admin-offline-toast"
+        dir="rtl"
+        initial={{ opacity: 0, y: -12, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -12, scale: 0.96 }}
+      >
+        <span className="offline-dot" />
+        <div>
+          <strong>انقطع الاتصال…</strong>
+          <span>نحاول نرجع بيانات مركز القيادة بهدوء.</span>
+        </div>
       </motion.div>
     )}
   </AnimatePresence>
@@ -556,21 +693,21 @@ const getMoneyValue = (item: any) => Number(item?.total || item?.totalAmount || 
 const getItemName = (item: any, fallback = 'بدون اسم') => item?.name || item?.customerName || item?.title || item?.code || item?.id || fallback;
 const getAdminPageMeta = (page: string) => {
   const map: Record<string, {title: string; subtitle: string; tag: string}> = {
-    dashboard: { title: 'اللوحة الرئيسية', subtitle: 'ملخص تنفيذي يرى المبيعات والعملاء والربح والمخاطر بدون زحمة.', tag: 'Executive Command Header' },
-    'dashboard-ai': { title: 'مختبر الذكاء', subtitle: 'معرض أدوات للقرارات الذكية بواجهة تنفيذية موحدة.', tag: 'Smart Lab Gallery' },
+    dashboard: { title: 'مركز القيادة', subtitle: 'ملخص اليوم، الحالات المهمة، والإجراءات السريعة في واجهة واحدة.', tag: 'Daily Command Brief' },
+    'dashboard-ai': { title: 'مختبر التراث الذكي', subtitle: 'معرض أدوات للقرارات التنفيذية بدون لمس منطق التراث الذكي.', tag: 'Smart Lab Gallery' },
     'new-invoice': { title: 'فاتورة جديدة', subtitle: 'العميل، المنتجات، الملخص، ثم الإنشاء في مسار واحد واضح.', tag: 'Receipt Builder' },
     'invoices-list': { title: 'سجل الفواتير', subtitle: 'سجل فخم للبحث والمراجعة والطباعة والمتابعة.', tag: 'Invoice Ledger' },
     orders: { title: 'طلبات الموقع', subtitle: 'لوحة تشغيل للطلبات الحالية وحالات الدفع الفعلية.', tag: 'Operations Board' },
-    customers: { title: 'لوحة ذكاء العملاء', subtitle: 'VIP، جدد، غائبون، عالي القيمة، وعملاء يحتاجون عرض.', tag: 'Customer Intelligence Board' },
+    customers: { title: 'لوحة العملاء', subtitle: 'VIP، جدد، غائبون، عالي القيمة، وعملاء يحتاجون عرض.', tag: 'Customer Intelligence Board' },
     products: { title: 'قائمة المنتجات', subtitle: 'استوديو منتجات مع مؤشر قوة المنتج من المبيعات والربحية والتوفر.', tag: 'Product Score' },
     expenses: { title: 'المصروفات العامة', subtitle: 'صفحة مالية هادئة توضّح المصروفات والنزيف بدون صراخ بصري.', tag: 'Expense Control' },
-    suppliers: { title: 'الموردين والمراجعة', subtitle: 'رادار الموردين: انتظام، مديونية، اعتماد، منتجات مرتبطة، ومخاطر.', tag: 'Supplier Risk Radar' },
-    'suppliers-audit': { title: 'الموردين والمخاطر', subtitle: 'ربط أثر المورد بالمنتجات والطلبات والربح.', tag: 'Supplier Intelligence' },
+    suppliers: { title: 'سجل الموردين المعتمدين', subtitle: 'إدارة المديونيات، الاعتمادات، والمخاطر التشغيلية للموردين.', tag: 'Supplier Radar' },
+    'suppliers-audit': { title: 'كشف الحساب المالي التفصيلي', subtitle: 'سجل مراجعة شامل للتوريد، السداد، والتدقيق المالي.', tag: 'Supplier Audit Ledger' },
     reports: { title: 'التقارير', subtitle: 'قراءة تنفيذية للفواتير والمبيعات والأداء.', tag: 'Executive Reports' },
-    ai: { title: 'المساعد الذكي', subtitle: 'مساعد تنفيذي يعرض الملخص والأسباب والإجراء المقترح.', tag: 'Executive Assistant' },
-    'smart-studio': { title: 'استوديو الصورة الذكية', subtitle: 'اختيار المحتوى، التوليد، المعاينة، والأرشيف في تجربة واحدة.', tag: 'Creative Suite' },
+    ai: { title: 'مستشار التراث الذكي', subtitle: 'مستشار تنفيذي يعرض الملخص والأسباب والإجراء المقترح.', tag: 'Executive Assistant' },
+    'smart-studio': { title: 'استوديو التراث الذكي', subtitle: 'اختيار المحتوى، التوليد، المعاينة، والأرشيف في تجربة واحدة.', tag: 'Creative Suite' },
     loyalty: { title: 'مملكة الولاء', subtitle: 'مستويات عادي، فضي، ذهبي، وVIP مع شارات وترقيات.', tag: 'Loyalty Kingdom' },
-    coupons: { title: 'مسرح العروض الذكية', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'Smart Offers Theater' },
+    coupons: { title: 'مسرح عروض التراث', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'Smart Offers Theater' },
     'growth-simulator': { title: 'محاكي النمو والتسويق', subtitle: 'سيناريوهات ماذا لو للمبيعات والربح والمخاطر.', tag: 'Growth Simulator Pro' },
     'profit-guard': { title: 'المالية وحماية الأرباح', subtitle: 'درع الربح: المبيعات، المصروفات، الهامش، النزيف، والفرص.', tag: 'Profit Shield' },
     diwaniya: { title: 'بطولات الديوانية', subtitle: 'لوحة بطولات ناعمة للترتيب والنقاط والجوائز.', tag: 'Tournament Board' },
@@ -581,6 +718,9 @@ const getAdminPageMeta = (page: string) => {
 
 const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page: string) => void; children: React.ReactNode}> = ({ page, data, onNavigate, children }) => {
   const meta = getAdminPageMeta(page);
+  const [openSmartPanel, setOpenSmartPanel] = React.useState<string | null>(null);
+  React.useEffect(() => { setOpenSmartPanel(null); }, [page]);
+  const toggleSmartPanel = (panel: string) => setOpenSmartPanel(prev => prev === panel ? null : panel);
   const invoices = Array.isArray(data?.invoices) ? data.invoices : [];
   const orders = Array.isArray(data?.orders) ? data.orders : [];
   const products = Array.isArray(data?.products) ? data.products : [];
@@ -612,32 +752,48 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
     const label = spend > 150 || ordersCount >= 5 ? 'VIP' : ordersCount === 1 ? 'اشترى مرة واحدة' : ordersCount === 0 ? 'غائب' : 'نشط';
     return { ...c, spend, ordersCount, label };
   });
-  const supplierRows = suppliers.slice(0, 3).map((sup: any) => {
+  const supplierRows = suppliers.map((sup: any) => {
     const debt = Number(sup?.balance || sup?.debt || sup?.amountDue || 0) || 0;
     const linkedProducts = products.filter((p: any) => String(p?.supplierId || p?.supplier || '') === String(sup?.id || sup?.name || '')).length;
-    const risk = debt > 100 ? 'يحتاج مراجعة' : linkedProducts > 4 ? 'تحت المراقبة' : 'مستقر';
-    return { ...sup, debt, linkedProducts, risk };
-  });
+    const priorityScore = Math.round(Math.min(100, (debt > 0 ? Math.min(70, debt / 2) : 0) + Math.min(30, linkedProducts * 6)));
+    const risk = debt > 100 ? 'أولوية سداد عالية' : linkedProducts > 4 ? 'مورد مؤثر على التشغيل' : debt > 0 ? 'مستحقات عادية' : 'مستقر';
+    const recommendation = debt > 100
+      ? 'ابدأ بتسوية المستحق لأنه مؤثر مالياً.'
+      : linkedProducts > 4
+        ? 'راجع الأسعار والتوفر لأنه مرتبط بعدة منتجات.'
+        : debt > 0
+          ? 'تابع المستحق ضمن دورة السداد القادمة.'
+          : 'لا يوجد إجراء عاجل حالياً.';
+    return { ...sup, debt, linkedProducts, priorityScore, risk, recommendation };
+  }).sort((a: any, b: any) => b.priorityScore - a.priorityScore).slice(0, 3);
   const showProduct = page === 'products';
   const showCustomers = page === 'customers' || page === 'loyalty';
   const showSuppliers = page === 'suppliers' || page === 'suppliers-audit';
   const showCoupons = page === 'coupons';
-  const showAi = page === 'dashboard-ai' || page === 'ai';
+  const showAi = false; // تم إخفاء معرض التراث الذكي المكرر فقط
   const showGrowth = page === 'growth-simulator';
   const showProfit = page === 'profit-guard' || page === 'expenses' || page === 'reports';
+  const showPageHero = page !== 'dashboard';
   return (
-    <div className="admin-experience-stack">
-      <section className="admin-page-hero" dir="rtl">
-        <div className="admin-page-hero-main"><span className="admin-page-kicker">{meta.tag}</span><h1>{meta.title}</h1><p>{meta.subtitle}</p></div>
-        <div className="admin-page-metrics" aria-label="ملخص الصفحة"><div><strong>{allSales.length}</strong><span>حركة</span></div><div><strong>{totalSales.toFixed(3)}</strong><span>د.ك</span></div><div><strong>{pendingCount}</strong><span>بانتظار</span></div><div><strong>{failedCount}</strong><span>فشل</span></div></div>
-      </section>
-      {showProduct && <section className="admin-smart-panel product-score-panel" dir="rtl"><div className="panel-head"><div><span>Product Score</span><h2>مؤشر قوة المنتج</h2></div><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></section>}
-      {showCustomers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Customer Intelligence Board</span><h2>لوحة ذكاء العملاء</h2></div><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{c.spend.toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></section>}
-      {showSuppliers && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Supplier Risk Radar</span><h2>رادار الموردين</h2></div><button type="button" onClick={() => onNavigate('suppliers-audit')}>فتح المراجعة</button></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>المورد</span><b>→</b><span>المنتجات</span><b>→</b><span>الطلبات</span><b>→</b><span>الربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات مرتبطة · {sup.debt.toFixed(3)} د.ك</p><strong>{sup.risk}</strong></div>)}</div></section>}
-      {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح العروض الذكية</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span>تأثير الربح: {tone}</span></div>})}</div></section>}
-      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>Smart Lab Gallery</span><h2>معرض مختبر الذكاء</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو الصورة الذكية</button></div><div className="smart-mini-grid">{['تحليل العملاء','تحليل المنتجات','تحليل الموردين','تحليل الربح','تحليل العروض','تحليل المخاطر'].map((t,i)=><button key={t} type="button" onClick={() => onNavigate(i<2?'dashboard-ai':i===4?'coupons':i===2?'suppliers-audit':'profit-guard')} className="lab-tool-card"><Bot size={18}/><strong>{t}</strong><small>آخر نتيجة جاهزة عند فتح الأداة</small></button>)}</div></section>}
+    <div className={`admin-experience-stack ${!showPageHero ? 'dashboard-merged-with-command' : ''}`}>
+      {showPageHero && (
+        <section className="admin-page-hero" dir="rtl">
+          <div className="admin-page-hero-main"><span className="admin-page-kicker">{meta.tag}</span><h1>{meta.title}</h1><p>{meta.subtitle}</p></div>
+        </section>
+      )}
+      {showProduct && <section className={cn("admin-smart-panel product-score-panel smart-collapsible-panel", openSmartPanel==='product' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('product')}><div><span>Product Score</span><h2>مؤشر قوة المنتج</h2><p>أفضل الأصناف حسب المبيعات والربحية.</p></div><span className="toggle-pill">{openSmartPanel==='product' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='product' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></div>}</section>}
+      {showCustomers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='customers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('customers')}><div><span>Customer Board</span><h2>لوحة العملاء</h2><p>مختصر الولاء والقيمة الشرائية.</p></div><span className="toggle-pill">{openSmartPanel==='customers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='customers' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{c.spend.toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></div>}</section>}
+      {showSuppliers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='suppliers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('suppliers')}><div><span>Supplier Radar</span><h2>رادار الموردين</h2><p>أولوية السداد وتأثير التوريد.</p></div><span className="toggle-pill">{openSmartPanel==='suppliers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='suppliers' && <div className="smart-panel-body"><div className="supplier-radar-guide"><span><b>سداد عالي:</b> مستحق كبير.</span><span><b>مورد مؤثر:</b> مرتبط بعدة منتجات.</span><span><b>مستقر:</b> لا إجراء عاجل.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>سداد</span><b>→</b><span>توفر</span><b>→</b><span>ربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات · {sup.debt.toFixed(3)} د.ك</p><strong title="الحالة محسوبة من المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk} · {sup.priorityScore}/100</strong><p className="mt-2 text-[11px] font-bold text-slate-500">{sup.recommendation}</p></div>)}</div></div>}</section>}
+      {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح عروض التراث</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span>تأثير الربح: {tone}</span></div>})}</div></section>}
+      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>Smart Lab Gallery</span><h2>معرض التراث الذكي</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو التراث الذكي</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
+        { label: 'تحليل العملاء', page: 'customers' },
+        { label: 'تحليل المنتجات', page: 'products' },
+        { label: 'تحليل الموردين', page: 'suppliers-audit' },
+        { label: 'تحليل الربح', page: 'reports' },
+        { label: 'تحليل العروض', page: 'coupons' },
+        { label: 'تحليل المخاطر', page: 'expenses' },
+      ].map((item)=><button key={item.label} type="button" onClick={() => onNavigate(item.page)} className="lab-tool-card"><Bot size={18}/><strong>{item.label}</strong><small>يفتح الأداة مباشرة بدون شاشة بيضاء</small></button>)}</div></section>}
       {showGrowth && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Growth Simulator Pro</span><h2>محاكي سيناريوهات النمو</h2></div><button type="button" onClick={() => onNavigate('coupons')}>الكوبونات</button></div><div className="scenario-strip">{['ماذا لو زادت الطلبات 10%؟','ماذا لو أضفنا كوبون؟','ماذا لو رفعنا سعر منتج؟','ماذا لو ركزنا على VIP؟','ماذا لو قللنا مصروفًا؟'].map(t=><span key={t}>{t}</span>)}</div></section>}
-      {showProfit && <section className="admin-smart-panel profit-shield-panel" dir="rtl"><div className="profit-shield"><ShieldAlert size={22}/><strong>درع الربح</strong><span>{totalSales.toFixed(3)} د.ك</span></div><div className="profit-bullets"><span>المبيعات</span><span>المصروفات</span><span>الهامش</span><span>النزيف</span><span>الفرص</span></div></section>}
       <div className="admin-content-polish" dir="rtl">{children}</div>
     </div>
   );
@@ -648,6 +804,18 @@ const MainApp: React.FC = () => {
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
+  const [triggerSyncReload, setTriggerSyncReload] = useState(0);
+  const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
+
+  useEffect(() => {
+    const updateOnline = () => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine);
+    window.addEventListener('online', updateOnline);
+    window.addEventListener('offline', updateOnline);
+    return () => {
+      window.removeEventListener('online', updateOnline);
+      window.removeEventListener('offline', updateOnline);
+    };
+  }, []);
 
   
   // Persist authentication state
@@ -669,7 +837,6 @@ const MainApp: React.FC = () => {
   });
 
   const onboardingRole: 'admin' | 'partner' | 'demo' = appMode === 'local' ? 'demo' : (userRole === 'partner' ? 'partner' : 'admin');
-  const effectiveUserRole: 'admin' | 'partner' = appMode === 'local' ? 'admin' : (userRole || 'admin');
   const [onboardingOpen, setOnboardingOpen] = useState(false);
 
   useEffect(() => {
@@ -700,20 +867,41 @@ const MainApp: React.FC = () => {
     if (!isAuthenticated || !user) return;
     if (typeof Notification === 'undefined' || window.Notification.permission !== 'granted') return;
 
-    const lastRefresh = localStorage.getItem('push_last_silent_refresh');
-    const lastTime = lastRefresh ? new Date(lastRefresh).getTime() : 0;
-    const twelveHours = 12 * 60 * 60 * 1000;
+    const refreshIfNeeded = () => {
+      const lastRefresh = localStorage.getItem('push_last_silent_refresh');
+      const lastTime = lastRefresh ? new Date(lastRefresh).getTime() : 0;
+      const ninetyMinutes = 90 * 60 * 1000;
 
-    if (lastTime && Date.now() - lastTime < twelveHours) return;
+      if (lastTime && Date.now() - lastTime < ninetyMinutes) return;
 
-    refreshPushRegistrationIfAlreadyAllowed({
-      userId: user.uid || 'admin',
-      restaurantId: effectiveUserRole === 'partner' ? 'partner' : 'kitchen_default',
-    });
+      refreshPushRegistrationIfAlreadyAllowed({
+        userId: user.uid || 'admin',
+        restaurantId: userRole === 'partner' ? 'partner' : 'kitchen_default',
+      });
+    };
+
+    refreshIfNeeded();
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshIfNeeded();
+    };
+    window.addEventListener('focus', refreshIfNeeded);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', refreshIfNeeded);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [isAuthenticated, user, userRole]);
 
 
   const [currentPage, setCurrentPage] = useState(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+  const [dashboardTab, setDashboardTab] = useState<string>('pulse');
+
+  const navigateAdminPage = (page: string, payload?: any) => {
+    setCurrentPage(page);
+    setSidebarOpen(false);
+    setDeepLinkData(payload ? { ...payload, _t: Date.now() } : {});
+  };
 
   // Removed buggy ADMINFIX_FORCE_INVOICES_FROM_URL effects causing navigation lock
 
@@ -731,13 +919,12 @@ const MainApp: React.FC = () => {
     localStorage.removeItem('currentPage');
   }, [isAuthenticated]);
 
-  // Force cloud mode when user is authenticated for authorized emails
+  // Demo/local mode must remain fully local. Do not auto-switch it to cloud.
   useEffect(() => {
-    if (user && appMode === 'local') {
+    if (appMode === 'local') return;
+    if (user && appMode === 'cloud') {
       const email = user.email?.toLowerCase() || '';
       if (AUTHORIZED_EMAILS.includes(email) || AUTHORIZED_PARTNERS.includes(email)) {
-        console.log("Auto-switching to cloud mode for authenticated authorized user.");
-        setAppMode('cloud');
         localStorage.setItem('appMode', 'cloud');
       }
     }
@@ -788,22 +975,49 @@ const MainApp: React.FC = () => {
     closeAllMenus();
   }, [currentPage]);
 
-  // Extreme Cache clearing for major updates
+  // Safe cache refresh for major updates.
+  // Auto cloud freshness: never let an old browser snapshot override the real cloud database.
+  // This clears ONLY browser-side cloud/offline snapshots and app caches; it does not touch Firestore,
+  // payments, notifications, AI, invoices, orders, suppliers, or the local accounting backup.
   useEffect(() => {
-    const CURRENT_VERSION = '4.0.0';
-    if (localStorage.getItem('app_version') !== CURRENT_VERSION) {
+    const CURRENT_VERSION = '4.0.2-cloud-fresh';
+    const previousVersion = localStorage.getItem('app_version');
+    if (previousVersion !== CURRENT_VERSION) {
       if ('caches' in window) {
         caches.keys().then(names => {
           for (const name of names) caches.delete(name);
-        });
+        }).catch(() => {});
       }
-      Object.keys(localStorage).forEach(key => {
-        if (key !== 'app_version') localStorage.removeItem(key);
+
+      const CLOUD_STALE_KEYS = [
+        'ktk_cloud_offline_snapshot',
+        'ktk_cloud_offline_snapshot_last_good',
+        'ktk_last_cloud_snapshot',
+        'ktk_cloud_import_snapshot',
+        'ktk_cloud_cache',
+        'ktk_cloud_data_cache'
+      ];
+
+      CLOUD_STALE_KEYS.forEach(key => {
+        try { localStorage.removeItem(key); } catch {}
+        try { sessionStorage.removeItem(key); } catch {}
       });
+
+      Object.keys(localStorage).forEach(key => {
+        const shouldRemove =
+          key.includes('cloud_offline_snapshot') ||
+          key.includes('cloud_snapshot') ||
+          key.includes('cloud_cache') ||
+          key.includes('last_good_cloud');
+
+        // Do not delete local/demo data or auth/session preferences.
+        if (shouldRemove && key !== 'ktk_local_accounting_data' && key !== 'ktk_accounting_data') {
+          try { localStorage.removeItem(key); } catch {}
+        }
+      });
+
+      try { sessionStorage.setItem('alturath_force_fresh_cloud_reload', String(Date.now())); } catch {}
       localStorage.setItem('app_version', CURRENT_VERSION);
-      setTimeout(() => {
-        window.location.replace(window.location.href); // Full location replace
-      }, 500);
     }
   }, []);
 
@@ -884,7 +1098,9 @@ const MainApp: React.FC = () => {
   const [data, setData] = useState<AppState>(INITIAL_DATA);
   const [hasRunMigration, setHasRunMigration] = useState(false);
 
-  // MIGRATION: Ensure old orders have the correct customer names matching the DB, and squads are updated
+  // MIGRATION: Ensure old orders have the correct customer names matching the DB.
+  // Important: do not synthesize or overwrite squads from customer records.
+  // Diwaniya data must come only from the shared Firestore `squads` collection via /api/admin-dashboard-data.
   useEffect(() => {
      if (data?.orders && data?.customers && hasLoadedDataRef.current && !hasRunMigration) {
         let migrationNeeded = false;
@@ -903,62 +1119,17 @@ const MainApp: React.FC = () => {
             }
             return o;
         });
-
-        const normalizePhoneForMatch = (p: string) => p ? p.replace(/\D/g, '').slice(-8) : '';
-        let newSquads = data.squads || [];
-        let squadMigrationNeeded = false;
-        
-        if (newSquads.length > 1) { // They have the fake squads
-            const customer568 = (data.customers || []).find(c => {
-                const cPhone = c.phone ? c.phone.replace(/\D/g, '').slice(-8) : '';
-                return cPhone === '56855555';
-            });
-            const correctName = customer568?.name || 'أبو أحمد';
-
-            newSquads = [{
-                id: 1, 
-                name: 'ديوانية الفيلكاوي', 
-                points: 0, 
-                tier: 'عزوة', 
-                members: 1, 
-                king: correctName, 
-                kingOrders: 0, 
-                phone: '90000000', 
-                membersList: [{name: correctName, phone: '56855555', points: 0}] 
-            }];
-            squadMigrationNeeded = true;
-        } else if (newSquads.length === 1) {
-            const customer568 = (data.customers || []).find(c => {
-                const cPhone = c.phone ? c.phone.replace(/\D/g, '').slice(-8) : '';
-                return cPhone === '56855555';
-            });
-            if (customer568 && customer568.name) {
-                if (newSquads[0].king !== customer568.name) {
-                    newSquads[0] = { ...newSquads[0], king: customer568.name };
-                    squadMigrationNeeded = true;
-                }
-                const memberIndex = (newSquads[0].membersList || []).findIndex(m => m.phone === '56855555');
-                if (memberIndex !== -1 && newSquads[0].membersList![memberIndex].name !== customer568.name) {
-                    newSquads[0].membersList![memberIndex] = { ...newSquads[0].membersList![memberIndex], name: customer568.name };
-                    squadMigrationNeeded = true;
-                }
-            }
-        }
-        
-        if (migrationNeeded || squadMigrationNeeded) {
-            setData(prev => ({ 
-                ...prev, 
-                orders: migrationNeeded ? normalizedOrders : prev.orders,
-                squads: squadMigrationNeeded ? newSquads : prev.squads
-            }));
-            console.log("Migration executed: updated old data structure.");
+        if (migrationNeeded) {
+            setData(prev => ({ ...prev, orders: normalizedOrders }));
+            console.log("Migration executed: updated old order customer names.");
         }
         setHasRunMigration(true);
      }
-  }, [data?.orders, data?.customers, data?.squads, hasRunMigration]);
+  }, [data?.orders, data?.customers, hasRunMigration]);
   
   // AUTO SYNC BACKGROUND EFFECT FOR PAYMENTS
   const dataRef = useRef<AppState>(data);
+  const pendingPaymentCheckRef = useRef<Record<string, number>>({});
   useEffect(() => { dataRef.current = data; }, [data]);
 
   useEffect(() => {
@@ -966,82 +1137,177 @@ const MainApp: React.FC = () => {
     
     const checkPendingPayments = async () => {
       const currentData = dataRef.current;
-      const pendingInvoices = currentData.invoices?.filter(i => !i.isDeleted && (i.paymentStatus !== 'paid' && i.paymentStatus !== 'cancelled')) || [];
+      const allPendingInvoices = (currentData.invoices || []).filter((i: any) => {
+        if (!i || i.isDeleted) return false;
+        const paymentStatus = String(i.paymentStatus || i.payment_status || '').toLowerCase();
+        if (paymentStatus.includes('cancel')) return false;
+        return !isPaidStatus(i.paymentStatus) && !isPaidStatus(i.status);
+      });
+      if (allPendingInvoices.length === 0) return;
+
+      const nowMs = Date.now();
+      const pendingInvoices = allPendingInvoices.filter((inv: any) => {
+        const id = String(inv.id || inv.invoiceId || inv.invoiceNo || '');
+        if (!id) return false;
+        const lastCheckedAt = pendingPaymentCheckRef.current[id] || 0;
+        return nowMs - lastCheckedAt > 60000;
+      }).slice(0, 12);
       if (pendingInvoices.length === 0) return;
       
-      let updatedCount = 0;
-      const updatedInvoices = [...currentData.invoices];
-      // Note: we can't be sure order changes are completely disjoint, but if we do this functionally it's safer.
+      let paidCount = 0;
+      let failedCount = 0;
+      const updatedInvoices = [...(currentData.invoices || [])];
       const updatedOrders = currentData.orders ? [...currentData.orders] : [];
 
-      for (const inv of pendingInvoices) {
-        try {
-          const paymentId = inv.paymentId || 'check_by_invoice';
-          let verified = false;
+      for (const inv of pendingInvoices as any[]) {
+        const invoiceId = String(inv.id || inv.invoiceId || inv.invoiceNo || '').trim();
+        if (!invoiceId) continue;
+        pendingPaymentCheckRef.current[invoiceId] = Date.now();
 
-          if (paymentId !== 'check_by_invoice') {
-             const res = await fetch('/api/invoice/confirm', {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ paymentId, invoiceId: inv.id })
-             });
-             
-             if (res.ok) {
-               const vData = await res.json();
-               if (vData.success && vData.verified) {
-                   verified = true;
-               }
-             }
+        try {
+          const payload = {
+            invoiceId,
+            paymentId: inv.paymentId || inv.payment_id || '',
+            payment_id: inv.payment_id || inv.paymentId || '',
+            trackId: inv.trackId || inv.track_id || inv.paymentTrackId || '',
+            track_id: inv.track_id || inv.trackId || inv.paymentTrackId || '',
+            gatewayOrderId: inv.gatewayOrderId || inv.gateway_order_id || inv.merchantOrderId || '',
+            gateway_order_id: inv.gateway_order_id || inv.gatewayOrderId || inv.merchantOrderId || '',
+            paymentLink: inv.paymentLink || inv.paymentUrl || inv.paymentURL || inv.payment_url || '',
+          };
+
+          let verified = false;
+          let failed = false;
+          let verificationData: any = null;
+
+          const res = await fetch('/api/invoice/confirm', {
+            method: 'POST',
+            signal: AbortSignal.timeout(10000),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          if (res.ok) {
+            verificationData = await res.json();
+            if (verificationData.success && verificationData.verified) {
+              verified = true;
+            } else if (verificationData.success && verificationData.state === 'failed') {
+              failed = true;
+            }
           }
 
-          if (!verified) {
-             // Fallback: Check if the global firestore document was updated by the success link 
+          if (!verified && !failed) {
+             // Fallback: Check if the global Firestore document was updated by return/webhook sync.
              try {
-                 const docSnap = await getDoc(doc(db, 'invoices', inv.id));
-                 if (docSnap.exists() && docSnap.data().paymentStatus === 'paid') {
-                    verified = true;
+                 const docSnap = await getDoc(doc(db, 'invoices', invoiceId));
+                 if (docSnap.exists()) {
+                   const remoteData: any = docSnap.data();
+                   if (isPaidStatus(remoteData.paymentStatus) || isPaidStatus(remoteData.status)) {
+                      verified = true;
+                      verificationData = { ...(verificationData || {}), paymentId: remoteData.paymentId || remoteData.payment_id };
+                   }
                  }
              } catch(e) {}
           }
 
           if (verified) {
-            const iIdx = updatedInvoices.findIndex(i => i.id === inv.id);
-            if (iIdx !== -1) {
-              updatedInvoices[iIdx] = { ...updatedInvoices[iIdx], paymentStatus: 'paid', status: 'مدفوعة' } as any;
-              updatedCount++;
-              
-              const oIdx = updatedOrders.findIndex(o => o.linkedInvoiceId === inv.id);
-              if (oIdx !== -1) {
-                // Ensure BOTH status and paymentStatus are updated to stay in sync
-                updatedOrders[oIdx] = { ...updatedOrders[oIdx], status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' } as any;
+            const paidAt = new Date().toISOString();
+            const paymentIdFromGateway =
+              verificationData?.paymentId ||
+              verificationData?.transaction?.payment_id ||
+              verificationData?.transaction?.track_id ||
+              inv.paymentId ||
+              inv.payment_id ||
+              '';
+            const iIdx = updatedInvoices.findIndex((i: any) => String(i.id || i.invoiceId || i.invoiceNo) === invoiceId);
+            if (iIdx !== -1 && !isPaidStatus((updatedInvoices[iIdx] as any).paymentStatus)) {
+              updatedInvoices[iIdx] = {
+                ...updatedInvoices[iIdx],
+                paymentStatus: 'paid',
+                payment_status: 'paid',
+                status: 'تم الدفع بنجاح',
+                paymentMethod: (updatedInvoices[iIdx] as any).paymentMethod || 'KNet',
+                paymentId: paymentIdFromGateway || (updatedInvoices[iIdx] as any).paymentId,
+                payment_id: paymentIdFromGateway || (updatedInvoices[iIdx] as any).payment_id,
+                paid: true,
+                failed: false,
+                canPay: false,
+                paidAt: (updatedInvoices[iIdx] as any).paidAt || paidAt,
+                paymentUpdatedAt: paidAt,
+                lastGatewaySyncSource: 'admin-auto-reconcile',
+              } as any;
+              paidCount++;
+            }
+
+            updatedOrders.forEach((order: any, idx: number) => {
+              const linkedId = String(order.linkedInvoiceId || order.invoiceId || order.invoiceNo || '');
+              if (linkedId === invoiceId && !isPaidStatus(order.paymentStatus) && !isPaidStatus(order.status)) {
+                updatedOrders[idx] = {
+                  ...order,
+                  status: 'تم الدفع بنجاح',
+                  paymentStatus: 'paid',
+                  payment_status: 'paid',
+                  paymentMethod: order.paymentMethod || 'KNet',
+                  paymentId: paymentIdFromGateway || order.paymentId,
+                  payment_id: paymentIdFromGateway || order.payment_id,
+                  paid: true,
+                  failed: false,
+                  canPay: false,
+                  paymentUpdatedAt: paidAt,
+                  lastGatewaySyncSource: 'admin-auto-reconcile',
+                } as any;
               }
+            });
+          } else if (failed) {
+            const failedAt = new Date().toISOString();
+            const iIdx = updatedInvoices.findIndex((i: any) => String(i.id || i.invoiceId || i.invoiceNo) === invoiceId);
+            if (iIdx !== -1 && !isPaidStatus((updatedInvoices[iIdx] as any).paymentStatus)) {
+              updatedInvoices[iIdx] = {
+                ...updatedInvoices[iIdx],
+                paymentStatus: 'failed',
+                payment_status: 'failed',
+                status: 'فشلت عملية الدفع',
+                failed: true,
+                paid: false,
+                canPay: true,
+                failedAt,
+                paymentUpdatedAt: failedAt,
+                lastGatewaySyncSource: 'admin-auto-reconcile',
+              } as any;
+              failedCount++;
             }
           }
         } catch (e) {
-          // ignore
+          // Keep the interface responsive; the next scheduled pass will retry safely.
         }
       }
 
-      if (updatedCount > 0) {
+      if (paidCount > 0 || failedCount > 0) {
         setData(prev => {
-          // Functionally apply updates to avoid race conditions with other state changes
-          const nextInvoices = prev.invoices.map(inv => {
-             const u = updatedInvoices.find(ui => ui.id === inv.id);
-             return u?.paymentStatus === 'paid' ? { ...inv, paymentStatus: 'paid', status: 'مدفوعة' } : inv;
+          const paidInvoiceIds = new Set(updatedInvoices.filter((inv: any) => isPaidStatus(inv.paymentStatus) || isPaidStatus(inv.status)).map((inv: any) => String(inv.id || inv.invoiceId || inv.invoiceNo)));
+          const failedInvoiceIds = new Set(updatedInvoices.filter((inv: any) => String(inv.paymentStatus || inv.payment_status || '').toLowerCase() === 'failed').map((inv: any) => String(inv.id || inv.invoiceId || inv.invoiceNo)));
+
+          const nextInvoices = prev.invoices.map((inv: any) => {
+             const u = updatedInvoices.find((ui: any) => String(ui.id || ui.invoiceId || ui.invoiceNo) === String(inv.id || inv.invoiceId || inv.invoiceNo));
+             if (!u) return inv;
+             if (paidInvoiceIds.has(String(inv.id || inv.invoiceId || inv.invoiceNo))) return { ...inv, ...u };
+             if (failedInvoiceIds.has(String(inv.id || inv.invoiceId || inv.invoiceNo))) return { ...inv, ...u };
+             return inv;
           }) as any;
-          const nextOrders = (prev.orders || []).map(o => {
-             const u = updatedOrders.find(uo => uo.id === o.id);
-             return u?.paymentStatus === 'paid' ? { ...o, status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' } : o;
+          const nextOrders = (prev.orders || []).map((o: any) => {
+             const u = updatedOrders.find((uo: any) => String(uo.id) === String(o.id));
+             if (u && (isPaidStatus(u.paymentStatus) || isPaidStatus(u.status) || String(u.paymentStatus || (u as any).payment_status || '').toLowerCase() === 'failed')) return { ...o, ...u };
+             return o;
           }) as any;
           return { ...prev, invoices: nextInvoices, orders: nextOrders };
         });
-        toast.success(`تم التحديث التلقائي: ${updatedCount} معاملة كـ "مدفوع" ✅`);
+        if (paidCount > 0) toast.success(`تمت مطابقة ${paidCount} فاتورة مدفوعة تلقائياً ✅`);
       }
     };
 
-    const intervalId = setInterval(checkPendingPayments, 15000);
-    // Also run once shortly after mount/auth
-    const timeoutId = setTimeout(checkPendingPayments, 3000);
+    const intervalId = setInterval(checkPendingPayments, 20000);
+    // Also run once shortly after mount/auth.
+    const timeoutId = setTimeout(checkPendingPayments, 2500);
     
     return () => {
       clearInterval(intervalId);
@@ -1173,7 +1439,7 @@ const MainApp: React.FC = () => {
                     type: 'warning',
                     insightType: 'خطر',
                     explanation: `هذا العميل (إجمالي مشترياته ${cust.totalSpent.toFixed(3)} د.ك) اختفى ولم يجرِ أي عملية تسوق رغم أنه كان معتاداً على الطلب المتكرر.`,
-                    dataReference: `قاعدة بيانات العملاء توضح أن آخر طلب لهذا الـVIP كان بتاريخ ${new Date(cust.lastActive!).toLocaleDateString('en-GB')}.`,
+                    dataReference: `قاعدة بيانات العملاء توضح أن آخر طلب لهذا الـVIP كان بتاريخ ${formatKuwaitiDateOnly(cust.lastActive!)}.`,
                     recommendedAction: 'توليد رسالة استعادة فورية عبر الواتساب وتقديم خصم شخصي له باستخدام لوحة (نخبة VIP الغائبين).',
                     date: new Date().toISOString(),
                     read: false,
@@ -1252,7 +1518,30 @@ const MainApp: React.FC = () => {
     // Actually skipping the mock random weather logic as requested not to have fake alerts. 
     // We already restored all the REAL data-driven logic from the old file.
 
-    // Add unique notifications
+    // 9. Profit Guard: High Supply Cost Detection (Security Radar) - DISABLED as requested
+    /*
+    (data.products || []).forEach(prod => {
+      const margin = prod.price > 0 ? (prod.price - prod.cost) / prod.price : 0;
+      if (margin < 0.2) { // Less than 20% margin is risky
+          const supplier = (data.suppliers || []).find(s => s.id === prod.supplierId);
+          newNotifications.push({
+              id: `profit-guard-alert-${prod.id}-${todayStr}`,
+              title: `درع الربح: تكلفة ${prod.name} مرتفعة 🛡️`,
+              message: `هامش الربح تقلص إلى ${(margin * 100).toFixed(0)}%.`,
+              type: 'warning',
+              insightType: 'خطر',
+              explanation: `رصد نظام (Profit Guard) أن تكلفة توريد "${prod.name}" من المورد (${supplier?.name || 'غير معروف'}) مرتفعة جداً مقارنة بسعر البيع، مما يهدد استدامة هذا الصنف.`,
+              dataReference: `سعر البيع: ${prod.price.toFixed(3)} د.ك | التكلفة: ${prod.cost.toFixed(3)} د.ك.`,
+              recommendedAction: 'نقترح مراجعة المورد للتفاوض أو رفع سعر البيع بـ 200 فلس على الأقل لاستعادة التوازن المالي.',
+              date: new Date().toISOString(),
+              read: false,
+              isPopupShown: false
+          });
+      }
+    });
+    */
+
+    // 11. Final update
     if (newNotifications.length > 0) {
         setData(prev => {
            let hasAdded = false;
@@ -1262,6 +1551,14 @@ const MainApp: React.FC = () => {
                if (!updatedNotifs.some(n => n.id === newNotif.id)) {
                    updatedNotifs.push(newNotif);
                    hasAdded = true;
+                   
+                   // Real-time toast for high-priority Profit Guard alert
+                   if (newNotif.id.startsWith('profit-guard-alert')) {
+                      toast.warning(newNotif.title, {
+                        description: newNotif.message,
+                        position: 'top-center'
+                      });
+                   }
                }
            });
            
@@ -1272,7 +1569,7 @@ const MainApp: React.FC = () => {
     }, 2000);
 
     return () => clearTimeout(debounceTimer);
-  }, [dataLoading, data.invoices, data.suppliers, data.customers, data.testimonials]);
+  }, [dataLoading, data.invoices, data.suppliers, data.customers, data.products, data.testimonials]);
 
   const addToast = (title: string, message: string, type: 'info' | 'success' | 'warning' = 'info') => {
     if (type === 'success') {
@@ -1324,6 +1621,7 @@ const MainApp: React.FC = () => {
   }, [pendingOrdersCount, isSoundEnabled]);
 
   const [authError, setAuthError] = useState<string | null>(null);
+  const [quotaError, setQuotaError] = useState<string | null>(null);
 
   const switchMode = (newMode: 'local' | 'cloud') => {
     // Reset data loading flags first to prevent premature auto-saving
@@ -1384,15 +1682,46 @@ const MainApp: React.FC = () => {
     if (!user) return;
     setDataLoading(true);
     try {
-      const dataRef = getSmartDoc('appData', user.uid, user.email);
+      const rootDataRef = getSmartDoc('appData', user.uid, user.email);
       const splitData = splitProductsForDatabase(data);
-      let sanitizedData = JSON.parse(JSON.stringify(splitData));
-
-      await setDoc(dataRef, sanitizedData, { merge: true });
+      
+      const rootDocData: any = { ...splitData };
+      const generationId = getAdminDataGenerationId();
+      const rootDocDataWithMeta = withAuthoritativeSharedMeta(rootDocData, generationId);
+      const shardedPayloads: Record<string, any> = {};
+      
+      SHARDED_KEYS.forEach(key => {
+        if (rootDocDataWithMeta[key]) {
+          shardedPayloads[key] = rootDocDataWithMeta[key];
+          rootDocDataWithMeta[key] = []; 
+        }
+      });
+      
+      const rootForStudioAndApp = withGoogleStudioRootMirror(rootDocDataWithMeta, splitData);
+      const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
+      const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
+      
+      SHARDED_KEYS.forEach(key => {
+	         if (shardedPayloads[key]) {
+            if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) return;
+	            const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+            const payloadStr = JSON.stringify(shardedPayloads[key]);
+            let shardContent;
+            if (payloadStr.length > 500000) {
+                const compressed = LZString.compressToBase64(payloadStr);
+                shardContent = { compressedData: compressed, isCompressed: true };
+            } else {
+                shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloads[key], isCompressed: false }));
+            }
+            savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
+         }
+      });
+      
+      await Promise.all(savePromises);
       addToast("تمت المزامنة ✨", "تم حفظ كافة البيانات في السحابة بنجاح.", "success");
     } catch (err) {
       console.error(err);
-      addToast("خطأ في المزامنة", "لم نتمكن من حفظ البيانات حالياً. قد يكون حجم البيانات كبير جداً.", "warning");
+      addToast("المزامنة تعثرت", "ما قدرنا نحفظ البيانات الحين. تأكد من جودة الاتصال.", "warning");
     } finally {
       setDataLoading(false);
     }
@@ -1400,9 +1729,291 @@ const MainApp: React.FC = () => {
 
 // Removed the problematic JSON.stringify call for the defunct isSyncEnabled state.
 
-  // Use a ref to strictly prevent saving before we have loaded data
+  // Strictly prevent saving before we have loaded data
   const hasLoadedDataRef = useRef(false);
   const lastRemoteSnapshotRef = useRef<string | null>(null);
+  const cloudRootExistsRef = useRef(false);
+  const loadedCloudShardKeysRef = useRef<Set<string>>(new Set());
+  const isCloudSyncApplyingRef = useRef(false);
+  const lastRemoteKeysRef = useRef<Record<string, string>>({});
+  const authoritativeDataWrittenAtRef = useRef<number>(0);
+
+  const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
+
+  // Google/Looker Studio was originally reading the root appData/shared_company_data document.
+  // The app now uses shards for speed and to avoid Firestore document-size limits, but Studio
+  // still needs recent business rows in the root document. Keep a safe, uncompressed mirror
+  // there while the authoritative full data stays in shards.
+  const GOOGLE_STUDIO_ROOT_MIRROR_LIMITS: Record<string, number> = {
+    orders: 300,
+    invoices: 300,
+    customers: 500,
+    expenses: 400,
+    testimonials: 200,
+    supplierCopies: 300,
+    campaigns: 200,
+    promocodes: 200,
+    products: 200,
+    squads: 200,
+  };
+
+  const sortForStudioMirror = (key: string, rows: any[]) => {
+    if (!Array.isArray(rows)) return [];
+    return [...rows].sort((a: any, b: any) => {
+      const bt = getRecordTime(b);
+      const at = getRecordTime(a);
+      if (bt !== at) return bt - at;
+      const bid = String(b?.id || b?.orderId || b?.invoiceNo || '');
+      const aid = String(a?.id || a?.orderId || a?.invoiceNo || '');
+      return bid.localeCompare(aid);
+    });
+  };
+
+  const makeGoogleStudioMirrorValue = (key: string, value: any) => {
+    if (!Array.isArray(value)) return value;
+    const limit = GOOGLE_STUDIO_ROOT_MIRROR_LIMITS[key];
+    if (!limit) return [];
+    return sortForStudioMirror(key, value).slice(0, limit);
+  };
+
+  const withGoogleStudioRootMirror = (rootValue: any, fullValue: any) => {
+    const mirrored = { ...rootValue };
+    SHARDED_KEYS.forEach(key => {
+      if (fullValue[key] !== undefined) {
+        mirrored[key] = makeGoogleStudioMirrorValue(key, fullValue[key]);
+      }
+    });
+    mirrored.__googleStudioMirrorAt = new Date().toISOString();
+    mirrored.__googleStudioMirrorNote = 'Recent business rows are mirrored here for Google/Looker Studio. Full authoritative data remains in shards.';
+    return mirrored;
+  };
+
+  const getFirestoreDocumentByteSize = (value: any): number => {
+    try {
+      return new TextEncoder().encode(JSON.stringify(value)).length;
+    } catch {
+      return JSON.stringify(value || {}).length;
+    }
+  };
+
+  // Firestore has a strict 1 MiB limit per document. The root document is only a
+  // lightweight mirror for Firebase/Google viewing; full authoritative data is in shards.
+  const makeFirestoreSafeRootDocument = (rootValue: any) => {
+    const safe = JSON.parse(JSON.stringify(rootValue || {}));
+    const maxBytes = 900000;
+    const shrinkableKeys = ['orders', 'invoices', 'customers', 'expenses', 'supplierCopies', 'testimonials', 'campaigns', 'promocodes', 'products', 'squads'];
+
+    let guard = 0;
+    while (getFirestoreDocumentByteSize(safe) > maxBytes && guard < 80) {
+      const largestKey = shrinkableKeys
+        .filter(key => Array.isArray(safe[key]) && safe[key].length > 0)
+        .sort((a, b) => JSON.stringify(safe[b] || []).length - JSON.stringify(safe[a] || []).length)[0];
+
+      if (!largestKey) break;
+
+      const current = safe[largestKey];
+      const nextLength = current.length > 20 ? Math.ceil(current.length * 0.65) : Math.max(0, current.length - 5);
+      safe[largestKey] = current.slice(0, nextLength);
+      guard += 1;
+    }
+
+    safe.__rootMirrorByteSize = getFirestoreDocumentByteSize(safe);
+    safe.__rootMirrorLimited = getFirestoreDocumentByteSize(safe) > maxBytes ? 'true' : 'false';
+    safe.__rootMirrorSafetyNote = 'Root document is capped under Firestore 1MiB. Full authoritative imported data is stored in shards.';
+    return safe;
+  };
+  
+  const stableStringify = (obj: any): string => {
+    if (obj === null || typeof obj !== 'object') {
+      return JSON.stringify(obj);
+    }
+    if (Array.isArray(obj)) {
+      return `[${obj.map(item => stableStringify(item)).join(',')}]`;
+    }
+    const keys = Object.keys(obj).sort();
+    const res = keys.map(k => `${JSON.stringify(k)}:${stableStringify(obj[k])}`);
+    return `{${res.join(',')}}`;
+  };
+
+  const hasMeaningfulValue = (value: any) => {
+    if (Array.isArray(value)) return value.length > 0;
+    if (value && typeof value === 'object') return Object.keys(value).length > 0;
+    return value !== undefined && value !== null && value !== '';
+  };
+
+  const getAdminDataGenerationId = (rotate = false) => {
+    const key = 'ktk_admin_data_generation_id';
+    try {
+      const current = localStorage.getItem(key);
+      if (!rotate && current) return current;
+      const next = `admin-data-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      localStorage.setItem(key, next);
+      return next;
+    } catch {
+      return `admin-data-${Date.now()}`;
+    }
+  };
+
+  const withAuthoritativeSharedMeta = (value: any, generationId = getAdminDataGenerationId()) => ({
+    ...value,
+    __adminDataGenerationId: generationId,
+    __adminLastAuthoritativeWriteAt: new Date().toISOString(),
+  });
+
+  const getRecordTime = (item: any) => {
+    const raw = item?.updatedAt || item?.createdAt || item?.date || item?.orderDate || item?.timestamp;
+    if (!raw) return 0;
+    if (typeof raw?.toDate === 'function') return raw.toDate().getTime();
+    if (typeof raw === 'number') return raw;
+    const parsed = new Date(raw).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const parseStoredState = (raw: string | null): AppState | null => {
+    if (!raw) return null;
+    try {
+      const parsed = joinProductsFromDatabase(JSON.parse(raw));
+      return hasMeaningfulData(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const isDangerousEmptyOverwrite = (key: string, currentVal: any) => {
+    if (!Array.isArray(currentVal) || currentVal.length > 0) return false;
+    const lastSerialized = lastRemoteKeysRef.current[key];
+    if (!lastSerialized) return false;
+    try {
+      const previousVal = JSON.parse(lastSerialized);
+      return Array.isArray(previousVal) && previousVal.length > 0;
+    } catch {
+      return false;
+    }
+  };
+
+  const onCloudImport = async (importedState: AppState): Promise<boolean> => {
+    if (!user) return false;
+    isCloudSyncApplyingRef.current = true;
+    
+    const performSave = async (isRetry = false): Promise<boolean> => {
+      try {
+	        const rootDataRef = getSmartDoc('appData', user.uid, user.email);
+	        const generationId = getAdminDataGenerationId(true);
+        const authoritativeWriteAt = Date.now();
+	        const splitData = splitProductsForDatabase(importedState);
+	        
+	        const rootDocData: any = { ...splitData };
+        const shardedPayloads: Record<string, any> = {};
+        
+	        SHARDED_KEYS.forEach(key => {
+	          if (rootDocData[key] !== undefined) {
+	            shardedPayloads[key] = rootDocData[key];
+              rootDocData[key] = [];
+          }
+        });
+        
+	        const authoritativeRoot = {
+	          ...rootDocData,
+	          __adminDataGenerationId: generationId,
+	          __adminLastAuthoritativeWriteAt: new Date(authoritativeWriteAt).toISOString(),
+	        };
+	        const rootForStudioAndApp = withGoogleStudioRootMirror(authoritativeRoot, splitData);
+	        const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
+	        const serializedRootCurrent = stableStringify(sanitizedRoot);
+	        const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: false })];
+        
+	        SHARDED_KEYS.forEach(key => {
+	           if (shardedPayloads[key] !== undefined) {
+              if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) return;
+	              const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+              const payloadStr = JSON.stringify(shardedPayloads[key]);
+              let shardContent;
+              
+              if (payloadStr.length > 500000) {
+                  const compressed = LZString.compressToBase64(payloadStr);
+                  shardContent = { compressedData: compressed, isCompressed: true };
+                  console.log(`Cloud Import: Compressed shard '${key}' from ${payloadStr.length} to ${compressed.length} chars.`);
+              } else {
+                  shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloads[key], isCompressed: false }));
+              }
+	              savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
+	           }
+	        });
+
+	        try {
+	          const squadsSnap = await getDocs(collection(db, 'squads'));
+	          squadsSnap.docs.forEach((squadDoc) => savePromises.push(deleteDoc(squadDoc.ref)));
+	          if (Array.isArray(shardedPayloads.squads)) {
+	            shardedPayloads.squads.forEach((sq: any) => {
+	              if (sq && sq.id !== undefined) {
+	                savePromises.push(setDoc(doc(db, 'squads', String(sq.id)), JSON.parse(JSON.stringify({
+	                  ...sq,
+	                  __adminDataGenerationId: generationId,
+	                  __adminSyncedFromSharedCompanyDataAt: new Date().toISOString(),
+	                })), { merge: false }));
+	              }
+	            });
+	          }
+	        } catch (mirrorErr) {
+	          console.warn('[DATA_GUARD] Could not fully refresh root squads mirror during import:', mirrorErr);
+	        }
+	        
+	        await Promise.all(savePromises);
+        
+        lastRemoteKeysRef.current['__root__'] = serializedRootCurrent;
+        cloudRootExistsRef.current = true;
+        
+        SHARDED_KEYS.forEach(key => {
+           if (shardedPayloads[key] !== undefined) {
+              lastRemoteKeysRef.current[key] = stableStringify(shardedPayloads[key]);
+              loadedCloudShardKeysRef.current.add(key);
+           }
+        });
+        
+	        let authoritativeImportedState = {
+	          ...importedState,
+	          __adminDataGenerationId: generationId,
+	          __adminLastAuthoritativeWriteAt: new Date(authoritativeWriteAt).toISOString(),
+	        } as AppState;
+            
+            authoritativeImportedState = recalculateStateBalances(authoritativeImportedState);
+            
+	        const newFullStateStr = JSON.stringify(authoritativeImportedState);
+	        lastRemoteSnapshotRef.current = newFullStateStr;
+        authoritativeDataWrittenAtRef.current = authoritativeWriteAt;
+        
+        try {
+          setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', newFullStateStr);
+          setProtectedStorageItem('ktk_cloud_offline_snapshot', newFullStateStr);
+        } catch (err) {
+          console.warn("localStorage sync skipped during cloud import:", err);
+        }
+        
+	        setData(authoritativeImportedState);
+        console.log("Cloud Import completed successfully and all sync tracking references aligned.");
+        return true;
+      } catch (err) {
+        const errStr = String(err);
+        const isPermission = errStr.includes("permission-denied") || errStr.includes("permissions") || errStr.includes("PERMISSION_DENIED");
+        
+        if (isPermission) {
+          console.warn("Permission denied during cloud import for the current account role. No fallback write was attempted to avoid mixing accounts.");
+        }
+        throw err;
+      }
+    };
+
+    try {
+      return await performSave(false);
+    } catch (err) {
+      console.error("Cloud import saving failed:", err);
+      throw err;
+    } finally {
+      setTimeout(() => {
+        isCloudSyncApplyingRef.current = false;
+      }, 300);
+    }
+  };
 
   // Auth Listener - Optimized session management
   useEffect(() => {
@@ -1439,17 +2050,26 @@ const MainApp: React.FC = () => {
 
         // Delay state updates to prevent "Cannot update a component while rendering"
         setTimeout(() => {
-          // Auto-switch to cloud mode on login if authorized
-          if (isAuthorized || isPartner) {
-            setAppMode('cloud');
-            localStorage.setItem('appMode', 'cloud');
+          // Cloud login only: never pull the demo/local mode into cloud.
+          if (currentMode === 'cloud') {
+            if (isAuthorized || isPartner) {
+              setAppMode('cloud');
+              localStorage.setItem('appMode', 'cloud');
+              // Maintain isolated cloud caches when logging in; never touch local database
+              // Keep the last healthy cloud snapshot available for recovery.
+            }
+
+            setUser(currentUser);
+            setUserRole(isAuthorized ? 'admin' : 'partner');
+            setIsAuthenticated(true);
+            localStorage.setItem('isAuthenticated', 'true');
+            setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+          } else {
+            // Demo/local mode is isolated: local data only, admin experience, no cloud role.
+            setUser(null);
+            setUserRole('admin');
           }
-            
-          setUser(currentUser);
-          setUserRole(isAuthorized ? 'admin' : 'partner');
-          setIsAuthenticated(true);
-          localStorage.setItem('isAuthenticated', 'true');
-          setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+
           setAuthError(null);
           setAuthLoading(false);
         }, 0);
@@ -1477,7 +2097,16 @@ const MainApp: React.FC = () => {
     const startDataSync = async () => {
       // If mode is 'local', load from Local Storage 
       if (appMode === 'local') {
-          const savedDataStr = localStorage.getItem('ktk_accounting_data');
+          let savedDataStr = getProtectedStorageItem('ktk_local_accounting_data');
+          if (!savedDataStr) {
+              // Legacy migration
+              savedDataStr = getProtectedStorageItem('ktk_accounting_data');
+              if (savedDataStr) {
+                  try {
+                      setProtectedStorageItem('ktk_local_accounting_data', savedDataStr);
+                  } catch (e) {}
+              }
+          }
           if (savedDataStr) {
               try {
                   const parsed = JSON.parse(savedDataStr);
@@ -1498,7 +2127,10 @@ const MainApp: React.FC = () => {
                   } else {
                      joined.zones = INITIAL_DATA.zones;
                   }
-                  setData(joined);
+                  
+                  // Recalculate derived state (like supplier balances) upon load
+                  const finalProcessedState = recalculateStateBalances(joined);
+                  setData(finalProcessedState);
               } catch (e) {
                   console.error('Failed to parse local data', e);
                   setData(INITIAL_DATA);
@@ -1517,20 +2149,36 @@ const MainApp: React.FC = () => {
         return;
       }
 
-      setDataLoading(true);
-      hasLoadedDataRef.current = false;
+	      setDataLoading(true);
+	      hasLoadedDataRef.current = false;
+	      cloudRootExistsRef.current = false;
+	      loadedCloudShardKeysRef.current = new Set();
+	      lastRemoteKeysRef.current = {};
+      authoritativeDataWrittenAtRef.current = 0;
+      // عرض آخر نسخة موثوقة فوراً حتى لا يجلس المستخدم ينتظر شاشة "جارٍ تحديث بيانات السحابة".
+      // لا نفعّل auto-save هنا لأن dataLoading ما زال true و isCloudSyncApplyingRef سيمنع أي كتابة عكسية.
+      try {
+        const instantSnapshot = parseStoredState(
+          getProtectedStorageItem('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItem('ktk_cloud_offline_snapshot')
+        );
+        if (instantSnapshot) {
+          setData(instantSnapshot);
+          lastRemoteSnapshotRef.current = JSON.stringify(instantSnapshot);
+        }
+      } catch {}
 
-      // Reference to the user's document in the 'appData' collection
-      const dataRef = getSmartDoc('appData', user.uid, user.email);
-      
-      // Run real-time listener if we are a shared user
-      const email = user.email?.toLowerCase() || '';
-
-      // Sync customer app orders independently
+      // 1. Sync orders independently (Legacy/Customer App)
       try {
          const qOrders = query(collection(db, 'orders'), orderBy('date', 'desc'), limit(50));
          ordersUnsubscribe = onSnapshot(qOrders, (snap) => {
-            const externalOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+	            const externalOrders = snap.docs
+	              .map(d => ({ id: d.id, ...d.data() }))
+	              .filter((order: any) => {
+	                const cutoff = authoritativeDataWrittenAtRef.current;
+	                if (!cutoff) return true;
+	                const orderTime = getRecordTime(order);
+	                return orderTime >= cutoff;
+	              });
             setData(prev => {
                 const prevOrders = prev.orders || [];
                 let changed = false;
@@ -1553,102 +2201,208 @@ const MainApp: React.FC = () => {
                 }
                 return prev;
             });
-         }, ((err) => { if (!String(err).includes("Missing or insufficient permissions")) console.error("orders sync error: ", err); }));
-      } catch (e) {
-          if (!String(e).includes("Missing or insufficient permissions")) console.error("Failed to sync orders collection:", e);
+         }, (err) => {
+            if (!String(err).includes("Missing or insufficient permissions")) {
+               console.error("orders sync error: ", err);
+            }
+         });
+      } catch (e: any) {
+          if (!String(e).includes("Missing or insufficient permissions")) {
+               console.error("Failed to sync orders collection:", e);
+          }
       }
       
-      // Listen for real-time updates
-      syncUnsubscribe = onSnapshot(dataRef, (docSnap) => {
-        console.log("Firestore update received for path:", dataRef.path);
-        if (docSnap.exists()) {
-          const rawData = docSnap.data() as any;
-          const remoteDataRaw = joinProductsFromDatabase(rawData);
-          console.log("Data received, product count:", remoteDataRaw.products?.length);
-          
-          setData(prev => {
-            // Check if remote data is actually different before setting to avoid loop
-            if (JSON.stringify(prev) === JSON.stringify(remoteDataRaw)) {
-                console.log("Data received is identical to current, skipping update.");
-                return prev;
-            }
+      // 2. Fast path: load the full shared database through the Admin server.
+      // This avoids slow browser Firestore shard reads on first entry and keeps Admin/Order on the same source.
+      try {
+        isCloudSyncApplyingRef.current = true;
+        const fastRes = await fetch('/api/appdata/full', { cache: 'no-store' });
+        if (fastRes.ok) {
+          const fastPayload = await fastRes.json();
+          if (fastPayload?.success && fastPayload?.data) {
+            let loadedState: any = joinProductsFromDatabase({ ...INITIAL_DATA, ...fastPayload.data });
+            const rootWrittenAt = new Date(loadedState.__adminLastAuthoritativeWriteAt || '').getTime();
+            authoritativeDataWrittenAtRef.current = Number.isFinite(rootWrittenAt) ? rootWrittenAt : 0;
+            cloudRootExistsRef.current = true;
+            loadedCloudShardKeysRef.current = new Set();
+            SHARDED_KEYS.forEach(key => {
+              if ((loadedState as any)[key] !== undefined) {
+                loadedCloudShardKeysRef.current.add(key);
+                lastRemoteKeysRef.current[key] = stableStringify((loadedState as any)[key]);
+              }
+            });
+            const rootDataOnly = { ...loadedState };
+            SHARDED_KEYS.forEach(k => {
+              if (k !== 'products') delete rootDataOnly[k];
+            });
+            lastRemoteKeysRef.current['__root__'] = stableStringify(rootDataOnly);
             
-            const prevOrders = prev.orders || [];
-            const newOrders = remoteDataRaw.orders || [];
-            
-            // Check for newly created orders
-            if (newOrders.length > 0) {
-               const newlyCreatedOrders = newOrders.filter((no: any) => !prevOrders.some((po: any) => po.id === no.id));
-               if (newlyCreatedOrders.length > 0) {
-                  if (hasLoadedDataRef.current) {
-                     newlyCreatedOrders.forEach((order: any) => {
-                        fetch('/api/push/order-created-alert', {
-                           method: 'POST',
-                           headers: { 'Content-Type': 'application/json' },
-                           body: JSON.stringify({ orderId: order.id }),
-                        }).catch((error) => {
-                           if (!String(error).includes("Missing or insufficient permissions") && !String(error).includes("PERMISSION_DENIED")) console.error('Failed to send order-created push alert:', error);
-                        });
-                     });
+            // Recalculate derived state (like supplier balances) upon load
+            const finalProcessedState = recalculateStateBalances(loadedState);
 
-                     if (isSoundEnabled) {
-                        playNewOrderAlert();
-                        setTimeout(playNewOrderAlert, 2000);
-                     }
-                  }
-               }
-            }
-
-            let processedZones = INITIAL_DATA.zones;
-            if (remoteDataRaw.zones) {
-               const hasOldZones = remoteDataRaw.zones.some((z: any) => ['الشويخ التجارية', 'المقبرة', 'أم العيش', 'الحزام الأخضر', 'الصليبية الزراعية', 'الصليبية الصناعية'].includes(z.name));
-               if (hasOldZones) {
-                  const zoneMap = new Map(remoteDataRaw.zones.map((z: any) => [z.name, z]));
-                  processedZones = INITIAL_DATA.zones.map(z => {
-                     const existing = zoneMap.get(z.name) as any;
-                     return existing ? { ...z, cost: existing.cost, profit: existing.profit, finalPrice: existing.finalPrice, isActive: existing.isActive } : z;
-                  });
-               } else {
-                  processedZones = [...remoteDataRaw.zones].sort((a: any, b: any) => a.name.localeCompare(b.name, 'ar'));
-               }
-            }
-
-            const nextData = {
-              ...INITIAL_DATA,
-              ...remoteDataRaw,
-              zones: processedZones,
-              notifications: (remoteDataRaw.notifications && remoteDataRaw.notifications.length > 0) 
-                ? remoteDataRaw.notifications 
-                : []
-            };
-            lastRemoteSnapshotRef.current = JSON.stringify(nextData);
-            return nextData;
-          });
-        } else {
-          console.log("No remote data found, trying to restore from local storage.");
-          // Restore from local storage if available to prevent perceived data loss when switching to cloud mode
-          const localData = localStorage.getItem('ktk_accounting_data');
-          if (localData) {
+            setData(finalProcessedState);
+            lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
             try {
-              const parsedLocal = JSON.parse(localData);
-              setData(parsedLocal);
-              console.log("Restored data from local storage.");
-            } catch (e) {
-              setData(INITIAL_DATA);
-            }
-          } else {
-            setData(INITIAL_DATA);
+              setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
+              setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
+            } catch {}
+            isCloudSyncApplyingRef.current = false;
+            hasLoadedDataRef.current = true;
+            setDataLoading(false);
+            return;
           }
         }
+      } catch (fastLoadErr) {
+        console.warn('[FAST_APPDATA] Admin API fast load failed; falling back to browser Firestore shard reads.', fastLoadErr);
+      }
+
+      // 3. Fallback: Load ROOT + SHARDS once from the browser Firestore client.
+      // Firestore 12.12 can throw INTERNAL ASSERTION FAILED when many realtime
+      // listeners are opened/closed quickly. The admin data is still saved live
+      // by the auto-save block below; loading it with server reads prevents the
+      // b815/ca9 listener crash and avoids partial shard loads overwriting cloud data.
+      try {
+        isCloudSyncApplyingRef.current = true;
+        const dataRef = getSmartDoc('appData', user.uid, user.email);
+        const rootSnap = await getDocFromServer(dataRef).catch(() => getDoc(dataRef));
+        let loadedState: any = { ...INITIAL_DATA };
+        const localCloudSnapshot = parseStoredState(getProtectedStorageItem('ktk_cloud_offline_snapshot'));
+
+        if (rootSnap.exists()) {
+          cloudRootExistsRef.current = true;
+	          const rawRootData = rootSnap.data() as any;
+          const rootWrittenAt = new Date(rawRootData.__adminLastAuthoritativeWriteAt || '').getTime();
+          authoritativeDataWrittenAtRef.current = Number.isFinite(rootWrittenAt) ? rootWrittenAt : 0;
+          const rootDataOnly = { ...rawRootData };
+          SHARDED_KEYS.forEach(k => {
+            if (k !== 'products') delete rootDataOnly[k];
+          });
+          lastRemoteKeysRef.current['__root__'] = stableStringify(rootDataOnly);
+
+          const sanitizedRoot = { ...rawRootData };
+          SHARDED_KEYS.forEach(key => {
+            if (key !== 'products' && Array.isArray(sanitizedRoot[key]) && sanitizedRoot[key].length === 0) {
+              delete sanitizedRoot[key];
+            }
+          });
+          loadedState = { ...loadedState, ...sanitizedRoot };
+	        } else {
+	          // Important: never restore local/demo data into an empty cloud account.
+	          cloudRootExistsRef.current = false;
+	          lastRemoteKeysRef.current['__root__'] = stableStringify(splitProductsForDatabase(INITIAL_DATA));
+	        }
+
+        const cloudGenerationId = String(loadedState?.__adminDataGenerationId || "");
+        const localSnapshotGenerationId = String((localCloudSnapshot as any)?.__adminDataGenerationId || "");
+        const canUseLocalCloudSnapshot = Boolean(localCloudSnapshot) && (!cloudGenerationId || localSnapshotGenerationId === cloudGenerationId);
+
+	        const shardResults = await Promise.all(SHARDED_KEYS.map(async (key) => {
+          const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+          try {
+            const shardSnap = await getDocFromServer(shardRef).catch(() => getDoc(shardRef));
+	            if (!shardSnap.exists()) return { key, exists: false, value: undefined };
+	            const shardData = shardSnap.data() as any;
+	            let parsedData: any = undefined;
+	            if (shardData?.isCompressed && shardData.compressedData) {
+              const decompressed = LZString.decompressFromBase64(shardData.compressedData);
+              if (decompressed) parsedData = JSON.parse(decompressed);
+            } else if (shardData && shardData[key] !== undefined) {
+              parsedData = shardData[key];
+            }
+            return { key, exists: true, value: parsedData };
+          } catch (err) {
+            console.error(`Shard load error for ${key}:`, err);
+            return { key, exists: false, value: undefined };
+          }
+        }));
+
+        shardResults.forEach(({ key, exists, value }) => {
+          if (exists) loadedCloudShardKeysRef.current.add(key);
+          if (value !== undefined) {
+            loadedState[key] = value;
+            lastRemoteKeysRef.current[key] = stableStringify(value);
+          } else {
+            lastRemoteKeysRef.current[key] = stableStringify((loadedState as any)[key] ?? []);
+          }
+        });
+
+        loadedState = joinProductsFromDatabase(loadedState);
+
+        // Load diwaniyas from the shared Firebase `squads` collection through the admin dashboard API.
+        // This keeps إدارة الدواوين separate from customers and prevents accidental customer-to-diwaniya mixing.
+        try {
+          const dashboardRes = await fetch('/api/admin-dashboard-data');
+          let apiSuccess = false;
+          if (dashboardRes.ok) {
+            const dashboardData = await dashboardRes.json();
+            if (dashboardData.success && Array.isArray(dashboardData?.squads)) {
+              // إدارة الدواوين في برنامج العميل محفوظة داخل appData/shared_company_data
+              // وأحياناً تظهر فقط من خلال orders المرتبطة بالديوانية.
+              // لذلك لا نستبدل البيانات بقائمة فارغة، ونحتفظ بطلبات الديوانية منفصلة حتى لا نمس صفحة الطلبات أو الدفع.
+	              if (dashboardData.squads.length > 0) {
+	                loadedState.squads = safeMergeData(loadedState.squads, dashboardData.squads);
+	                lastRemoteKeysRef.current['squads'] = stableStringify(dashboardData.squads);
+	                loadedCloudShardKeysRef.current.add('squads');
+	              }
+	              if (Array.isArray(dashboardData?.orders) && dashboardData.orders.length > 0) {
+	                loadedState.diwaniyaOrders = safeMergeData(loadedState.diwaniyaOrders, dashboardData.orders);
+	              }
+              apiSuccess = true;
+            }
+          }
+
+          if (!apiSuccess) {
+            console.warn('[DASHBOARD_API] API failed or lacks permissions. Falling back to direct client-side Firestore fetch for squads...');
+            const squadsSnap = await getDocs(collection(db, 'squads'));
+            const cloudSquads = squadsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+	            if (cloudSquads.length > 0) loadedState.squads = safeMergeData(loadedState.squads, cloudSquads);
+	            lastRemoteKeysRef.current['squads'] = stableStringify(cloudSquads);
+	            loadedCloudShardKeysRef.current.add('squads');
+          }
+        } catch (apiErr) {
+          console.warn('Unable to load squads from /api/admin-dashboard-data. Falling back to direct Firestore fetch.', apiErr);
+          try {
+            const squadsSnap = await getDocs(collection(db, 'squads'));
+            const cloudSquads = squadsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+	            if (cloudSquads.length > 0) loadedState.squads = safeMergeData(loadedState.squads, cloudSquads);
+	            lastRemoteKeysRef.current['squads'] = stableStringify(cloudSquads);
+	            loadedCloudShardKeysRef.current.add('squads');
+          } catch (fallbackErr) {
+            console.error('Direct Firestore fetch for squads also failed:', fallbackErr);
+          }
+        }
+
+        // Recalculate derived state (like supplier balances) upon load
+        const finalProcessedState = recalculateStateBalances(loadedState);
+
+        setData(finalProcessedState);
+        lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
+        try {
+          setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
+          setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
+	        } catch {}
+      } catch (err) {
+        if (String(err).includes("Missing or insufficient permissions") || String(err).includes("permission-denied")) {
+          console.warn("Cloud read permission denied for this account/role:", err);
+          const email = (user.email || '').toLowerCase().trim();
+          const authorizedByApp = AUTHORIZED_EMAILS.some(e => e.toLowerCase().trim() === email) ||
+            AUTHORIZED_PARTNERS.some(e => e.toLowerCase().trim() === email) ||
+            AUTHORIZED_UIDS.includes(user.uid) ||
+            AUTHORIZED_PARTNER_UIDS.includes(user.uid);
+          setAuthError(authorizedByApp
+            ? `الحساب مصرح داخل التطبيق (${user.email})، لكن قواعد Firestore الحالية ترفض الوصول. تم اعتماد مستند الحساب الآمن بالـ UID لمنع تداخل الحسابات؛ ارفع ملف firestore.rules المرفق ثم أعد المحاولة.`
+            : `عذراً، ليس لديك صلاحية الوصول إلى بيانات هذا الحساب. البريد: ${user.email}`
+          );
+        } else {
+          console.error("Cloud load error:", err);
+          toast.error("تعذر تحميل البيانات السحابية. لم يتم استبدالها بالبيانات المحلية.");
+        }
+      } finally {
+        isCloudSyncApplyingRef.current = false;
         hasLoadedDataRef.current = true;
         setDataLoading(false);
-      }, (error: any) => {
-        if (!String(error).includes("Missing or insufficient permissions") && !String(error).includes("PERMISSION_DENIED")) console.error("Firestore sync error", error);
-        if (error.code === 'permission-denied' && user) {
-          setAuthError(`عذراً، ليس لديك صلاحية الوصول إلى البيانات. يرجى التأكد من أن حسابك مصرح له.\nالبريد: ${user.email}`);
-        }
-        setDataLoading(false);
-      });
+      }
+
     };
 
     startDataSync();
@@ -1657,43 +2411,184 @@ const MainApp: React.FC = () => {
       if (syncUnsubscribe) syncUnsubscribe();
       if (ordersUnsubscribe) ordersUnsubscribe();
     };
-  }, [user, appMode]);
+  }, [user, appMode, triggerSyncReload]);
 
   // Auto-save: Handle Local and Cloud separately with debounce for performance
   useEffect(() => {
-    // Strictly prevent auto-saving INITIAL_DATA or overwritten data before loading completes
-    if (!hasLoadedDataRef.current) return;
+    // Strictly prevent auto-saving INITIAL_DATA or cloud snapshots while loading/applying remote data.
+    if (!hasLoadedDataRef.current || isCloudSyncApplyingRef.current) return;
 
     const timeoutId = setTimeout(async () => {
-      // Save to Local Storage if explicitely in local mode
+      // Re-check refs inside timeout to prevent saving right after mode transition
+      if (!hasLoadedDataRef.current || isCloudSyncApplyingRef.current) return;
+
+      // Save to Local Storage if explicitly in local mode
       if (appMode === 'local') {
-          localStorage.setItem('ktk_accounting_data', JSON.stringify(data));
-      }
+	          const localDataStr = JSON.stringify(data);
+	          if (localDataStr && localDataStr !== '{}' && hasMeaningfulData(data)) {
+	            setProtectedStorageItem('ktk_local_accounting_data_last_good', localDataStr);
+	            setProtectedStorageItem('ktk_local_accounting_data', localDataStr);
+	          }
+	      }
       
       // Auto-save to Cloud if in cloud mode and authenticated
       if (user && appMode === 'cloud') {
-        const dataRef = getSmartDoc('appData', user.uid, user.email);
         try {
-          const sanitizedDataStr = JSON.stringify(data);
+	          const sanitizedDataStr = JSON.stringify(data);
+	          if (!sanitizedDataStr || sanitizedDataStr === '{}' || !hasMeaningfulData(data)) return;
+	          try { 
+	            setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', sanitizedDataStr); 
+	            setProtectedStorageItem('ktk_cloud_offline_snapshot', sanitizedDataStr); 
+	          } catch {}
           
           // Deduplication: prevent writing back what we just read
           if (sanitizedDataStr === lastRemoteSnapshotRef.current) {
              return;
           }
 
+          // لا نحدّث آخر لقطة إلا بعد نجاح الحفظ، حتى لا نخسر محاولة لاحقة.
+          
+          // --- SHARDED AUTO-SAVE LOGIC ---
+	        const rootDataRef = getSmartDoc('appData', user.uid, user.email);
+	        const splitData = splitProductsForDatabase(data);
+	          // 1. Detect if the root document visible to Google/Looker Studio has changed.
+	          // Keep a recent-row mirror in root, while full data stays in shards.
+	          const rootDocData = withGoogleStudioRootMirror(
+	            withAuthoritativeSharedMeta({ ...splitData }),
+	            splitData
+	          );
+          const sanitizedRootPreview = makeFirestoreSafeRootDocument(rootDocData);
+          const serializedRootCurrent = stableStringify(sanitizedRootPreview);
+          const serializedRootLast = lastRemoteKeysRef.current['__root__'];
+          const hasRootChanged = serializedRootCurrent !== serializedRootLast;
+
+          // 2. Detect exactly which sharded collections have changed
+          const shardedPayloadsToSave: any = {};
+          SHARDED_KEYS.forEach(key => {
+            const currentVal = splitData[key];
+            if (currentVal !== undefined) {
+              const serializedCurrent = stableStringify(currentVal);
+              const serializedLast = lastRemoteKeysRef.current[key];
+              
+              if (serializedCurrent !== serializedLast) {
+                const shouldPersistShard = loadedCloudShardKeysRef.current.has(key) || hasMeaningfulValue(currentVal);
+                const dangerousEmptyOverwrite = isDangerousEmptyOverwrite(key, currentVal);
+                if (shouldPersistShard && !dangerousEmptyOverwrite) {
+                  shardedPayloadsToSave[key] = currentVal;
+                } else if (dangerousEmptyOverwrite) {
+                  console.warn(`[DATA_GUARD] Prevented empty overwrite for shard '${key}'. Keeping existing cloud data safe.`);
+                  toast.warning('تم منع حفظ قائمة فارغة حتى لا تُحذف البيانات بالخطأ.');
+                }
+              }
+            }
+          });
+
+          // Check if there is absolutely any work to do
+          const needsAnyWrite = hasRootChanged || !cloudRootExistsRef.current || Object.keys(shardedPayloadsToSave).length > 0;
+          if (!needsAnyWrite) {
+             return;
+          }
+
+          const savePromises = [];
+          
+          // 3. Save Root (only if modified or doesn't exist yet)
+          if (hasRootChanged || !cloudRootExistsRef.current) {
+             const sanitizedRoot = sanitizedRootPreview;
+             console.log("Saving root modifications to Firestore with Google Studio mirror...");
+	            savePromises.push(setDoc(rootDataRef, sanitizedRoot, { merge: false }));
+          }
+
+          // 4. Save Shards (only for changed parts)
+          Object.keys(shardedPayloadsToSave).forEach(key => {
+             const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+             
+             const payloadStr = JSON.stringify(shardedPayloadsToSave[key]);
+             let shardContent;
+             if (payloadStr.length > 500000) {
+                 const compressed = LZString.compressToBase64(payloadStr);
+                 shardContent = { compressedData: compressed, isCompressed: true };
+                 console.log(`Compressed shard '${key}' from ${payloadStr.length} chars to ${compressed.length} chars...`);
+             } else {
+                 shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloadsToSave[key], isCompressed: false }));
+             }
+             
+             console.log(`Saving modified shard '${key}' to Firestore...`);
+             // merge: false so old uncompressed arrays don't linger if transitioning
+             savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
+
+             // Realtime Mirror: Synchronize 'squads' (diwaniyas) changes directly to the shared, root-level 'squads' collection in Firestore.
+             // This ensures `/api/admin-dashboard-data` queries always match the actual admin actions instantly.
+             if (key === 'squads' && Array.isArray(shardedPayloadsToSave['squads'])) {
+               const currentSquads = shardedPayloadsToSave['squads'];
+               console.log(`[MIRROR] Mirroring ${currentSquads.length} diwaniyas/squads to root-level Firestore collection 'squads'...`);
+               const sharedDataRef = doc(db, 'appData', 'shared_company_data');
+               const sharedSquadsPayload = JSON.parse(JSON.stringify({
+                 squads: currentSquads,
+                 __adminSyncedSquadsAt: new Date().toISOString(),
+               }));
+               savePromises.push(setDoc(sharedDataRef, sharedSquadsPayload, { merge: true }));
+               
+               currentSquads.forEach((sq: any) => {
+                 if (sq && sq.id !== undefined) {
+	                   const squadDocRef = doc(db, 'squads', String(sq.id));
+	                   const sanitizedsq = JSON.parse(JSON.stringify({
+	                     ...sq,
+	                     __adminDataGenerationId: getAdminDataGenerationId(),
+	                     __adminSyncedFromSharedCompanyDataAt: new Date().toISOString(),
+	                   }));
+	                   savePromises.push(setDoc(squadDocRef, sanitizedsq, { merge: true }));
+                 }
+               });
+
+               // Detect deletions
+               try {
+                 const prevSquadsVal = lastRemoteKeysRef.current['squads'];
+                 if (prevSquadsVal) {
+                   const prevSquadsList = JSON.parse(prevSquadsVal);
+                   if (Array.isArray(prevSquadsList)) {
+                     const currentIds = new Set(currentSquads.map((sq: any) => String(sq.id)));
+                     prevSquadsList.forEach((oldSq: any) => {
+                       const oldId = String(oldSq?.id || '');
+                       if (oldId && !currentIds.has(oldId)) {
+                         console.log(`[MIRROR] Detected deletion of squad ${oldId}. Deleting document from Firestore 'squads' collection...`);
+                         savePromises.push(deleteDoc(doc(db, 'squads', oldId)));
+                       }
+                     });
+                   }
+                 }
+               } catch (parseErr) {
+                 console.warn('[MIRROR] Error parsing previous squads for deletion check:', parseErr);
+               }
+             }
+          });
+
+          await Promise.all(savePromises);
+
+          // Update sync refs upon successful writes to avoid self-save loops
+          if (hasRootChanged || !cloudRootExistsRef.current) {
+             lastRemoteKeysRef.current['__root__'] = serializedRootCurrent;
+             cloudRootExistsRef.current = true;
+          }
+          Object.keys(shardedPayloadsToSave).forEach(key => {
+             lastRemoteKeysRef.current[key] = stableStringify(shardedPayloadsToSave[key]);
+             loadedCloudShardKeysRef.current.add(key);
+          });
+
           lastRemoteSnapshotRef.current = sanitizedDataStr;
-          console.log("Auto-saving to Firestore:", dataRef.path);
-          const splitData = splitProductsForDatabase(data);
-          const sanitizedData = JSON.parse(JSON.stringify(splitData));
-          await setDoc(dataRef, sanitizedData, { merge: true });
-          console.log("Auto-save successful");
+          console.log(`Sharded auto-save successful. Saved blocks: ${hasRootChanged ? 'Root ' : ''}[${Object.keys(shardedPayloadsToSave).join(', ')}]`);
           
         } catch (e) {
-          if (!String(e).includes("Missing or insufficient permissions") && !String(e).includes("PERMISSION_DENIED")) console.error("Firestore auto-save error", e);
-          toast.error("حدث خطأ أثناء الحفظ التلقائي للسحابة. قد يكون حجم البيانات تجاوز 1 ميجابايت.");
+          const isPermissionError = String(e).includes("Missing or insufficient permissions") || String(e).includes("PERMISSION_DENIED");
+          if (!isPermissionError) console.error("Firestore auto-save error", e);
+          
+          // Only show error if it's NOT a permission issue (common during sign-out)
+          if (user && !isPermissionError) {
+             const errorMsg = e instanceof Error ? e.message : String(e);
+             toast.error(`تعذر الحفظ السحابي. الخطأ: ${errorMsg}. تم الاحتفاظ بآخر نسخة سليمة محلياً.`);
+          }
         }
       }
-    }, 1000); // 1 second debounce to prevent extreme UI lag on every keystroke
+    }, 2000); // 2 second debounce for sharded saving
 
     return () => clearTimeout(timeoutId);
   }, [data, user, appMode]);
@@ -1721,30 +2616,45 @@ const MainApp: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    // Implement user's request: Keep local mode data preserved across sessions
-    if (appMode === 'local') {
-      try {
-        // 1. (REMOVED: do not clear local storage on logout to preserve demo data)
-        // localStorage.removeItem('ktk_accounting_data');
-        
-        // 2. Clear Cloud Dev Data (if it exists)
-        if (user) {
-          const dataRef = getSmartDoc('appData', user.uid, user.email);
-          await deleteDoc(dataRef).catch(e => console.warn("Cloud cleanup skipped:", e));
-        }
-        
-        // 3. Keep internal state intact so it saves to local storage properly upon exit
-        // setData(INITIAL_DATA);
-      } catch (e) {
-        console.error("Logout cleanup failed", e);
-      }
-    }
+    const prevMode = appMode;
 
     sessionStorage.removeItem('hideSampleDataPrompt');
     await logout();
     setIsAuthenticated(false);
     localStorage.removeItem('isAuthenticated');
     setCurrentPage('dashboard');
+
+    // Never delete cloud data during logout or local/cloud mode transitions.
+
+    // If logging out of cloud mode, switch appMode to 'local' and immediately load local mode storage
+    if (prevMode === 'cloud') {
+      localStorage.setItem('appMode', 'local');
+      setAppMode('local');
+      
+      // Stop cloud sync from auto-saving the loading/empty state
+      hasLoadedDataRef.current = false;
+      setDataLoading(true);
+
+      try {
+	        const savedDataStr = getProtectedStorageItem('ktk_local_accounting_data') || getProtectedStorageItem('ktk_accounting_data');
+        if (savedDataStr) {
+          const parsed = JSON.parse(savedDataStr);
+          const joined = joinProductsFromDatabase(parsed);
+          
+          // Recalculate derived state (like supplier balances) upon load
+          const finalProcessedState = recalculateStateBalances(joined);
+          setData(finalProcessedState);
+        } else {
+          setData(INITIAL_DATA);
+        }
+      } catch (e) {
+        setData(INITIAL_DATA);
+      }
+      hasLoadedDataRef.current = true;
+      setDataLoading(false);
+    } else {
+      setData(INITIAL_DATA);
+    }
   };
 
   const path = window.location.pathname;
@@ -1762,7 +2672,27 @@ const MainApp: React.FC = () => {
   }
 
   if (normalizedPath === '/success' || normalizedPath === '/cancel' || normalizedPath === '/failed' || normalizedPath === '/error' || isUpaymentsCallback || normalizedPath.startsWith('/invoice/')) {
-    const invoiceId = searchParams.get('requested_order_id') || searchParams.get('order_id') || path.split('/invoice/')[1];
+    const rawInvoiceId =
+      searchParams.get('requested_order_id') ||
+      searchParams.get('order_id') ||
+      searchParams.get('orderId') ||
+      searchParams.get('invoice') ||
+      searchParams.get('invoiceNo') ||
+      searchParams.get('invoice_no') ||
+      searchParams.get('invoice_id') ||
+      searchParams.get('reference_id') ||
+      searchParams.get('track_id') ||
+      path.split('/invoice/')[1] ||
+      '';
+    const decodedInvoiceId = (() => {
+      try {
+        return decodeURIComponent(String(rawInvoiceId).replace(/\+/g, ' ')).trim();
+      } catch {
+        return String(rawInvoiceId || '').trim();
+      }
+    })();
+    const embeddedInvoiceId = decodedInvoiceId.match(/(?:INV|ORD)-[A-Za-z0-9-]+(?:_\d+)?/i)?.[0] || decodedInvoiceId;
+    const invoiceId = embeddedInvoiceId.includes('_') ? embeddedInvoiceId.split('_')[0] : embeddedInvoiceId;
     return <PaymentFeedbackView invoiceId={invoiceId} path={normalizedPath} searchParams={searchParams} isUpaymentsCallback={isUpaymentsCallback} />;
   }
 
@@ -1770,7 +2700,7 @@ const MainApp: React.FC = () => {
     return (
       <div className="h-[100dvh] w-full flex flex-col items-center justify-center bg-slate-50 gap-4 arabic-font">
         <Loader2 className="animate-spin text-primary" size={48} />
-        <p className="text-slate-500 font-bold">جاري التحميل طال عمرك...</p>
+        <p className="text-slate-500 font-bold">نحمّل طال عمرك...</p>
       </div>
     );
   }
@@ -1783,7 +2713,7 @@ const MainApp: React.FC = () => {
               <div className="w-12 h-12 md:w-16 md:h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
                   <ShieldAlert size={32} />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-3">عذراً!</h2>
+              <h2 className="text-2xl font-bold text-slate-800 mb-3">المعذرة!</h2>
               <p className="text-red-600 font-bold leading-relaxed mb-8 break-words">{authError}</p>
               <button 
                 onClick={() => setAuthError(null)}
@@ -1796,15 +2726,106 @@ const MainApp: React.FC = () => {
     );
   };
 
+  const renderQuotaError = () => {
+    // Ahmad fix: remove the large cloud quota message from mobile and desktop UI.
+    // The quota state is kept intact, but the intrusive banner/modal is no longer rendered.
+    return null;
+    if (!quotaError) return null;
+    return (
+      <div className="fixed inset-0 bg-slate-900/90 z-[201] flex items-center justify-center p-4 md:p-6 text-right arabic-font shadow-2xl" dir="rtl">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full border border-rose-100 flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
+              <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <span className="text-3xl">⚠️</span>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900 text-center">تجاوز حصة الاستخدام (Firestore Quota Exceeded)</h2>
+              
+              <div className="text-slate-600 leading-relaxed text-sm flex flex-col gap-3">
+                  <p className="font-semibold text-slate-800">
+                     تم تجاوز الحصة اليومية المجانية لقراءة البيانات في قاعدة بيانات Cloud Firestore المشغلة لهذا التطبيق تحت باقة Spark المجانية.
+                  </p>
+                  <p>
+                     تتم إعادة تعيين هذه الحصة المجانية تلقائياً كل 24 ساعة (عند منتصف الليل في توقيت المحيط الهادئ). حتى يحدث ذلك، قد يتعذر جلب أو تحديث معلومات الطلبات والبيانات السحابية.
+                  </p>
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs font-mono space-y-1 text-slate-500 break-words font-sans">
+                     <strong>تفاصيل الخطأ:</strong> <pre className="whitespace-pre-wrap">{quotaError}</pre>
+                  </div>
+                  <div className="mt-2 text-slate-700 font-medium">
+                     يمكنك القيام بما يلي طال عمرك:
+                  </div>
+                  <div className="space-y-2">
+                     <button
+                        onClick={() => {
+                           switchMode('local');
+                           setQuotaError(null);
+                        }}
+                        className="w-full flex items-center justify-between p-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold rounded-2xl transition-all"
+                     >
+                        <span className="flex items-center gap-2">
+                           <span>💾</span>
+                           <span>تفعيل وضع التخزين المحلي والعمل دون إنترنت</span>
+                        </span>
+                        <span>👈</span>
+                     </button>
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-4 text-xs font-bold">
+                  <a 
+                     href="https://firebase.google.com/pricing#cloud-firestore" 
+                     target="_blank" 
+                     referrerPolicy="no-referrer"
+                     rel="noopener noreferrer"
+                     className="p-3 bg-slate-100 text-slate-700 text-center rounded-xl hover:bg-slate-200 transition-all flex flex-col justify-center items-center gap-1 border border-slate-200"
+                  >
+                     <span>🔗 تفاصيل الأسعار</span>
+                     <span className="text-[10px] text-slate-500 font-normal">باقة Spark & Enterprise</span>
+                  </a>
+                  <a 
+                     href="https://console.firebase.google.com/project/gen-lang-client-0200723670/firestore/databases/ai-studio-7058254a-1b06-4783-89b7-2b95cb116681/data?openUpgradeDialog=true" 
+                     target="_blank" 
+                     referrerPolicy="no-referrer"
+                     rel="noopener noreferrer"
+                     className="p-3 bg-blue-50 text-blue-700 text-center rounded-xl hover:bg-blue-100 transition-all flex flex-col justify-center items-center gap-1 border border-blue-150"
+                  >
+                     <span>⚙️ وحدة تحكم Firebase</span>
+                     <span className="text-[10px] text-blue-500 font-normal">مراقبة وترقية الحساب</span>
+                  </a>
+              </div>
+
+              <div className="flex gap-3 mt-4">
+                  <button 
+                     onClick={() => setQuotaError(null)}
+                     className="flex-1 py-3 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all"
+                  >
+                     تجاهل التنبيه مؤقتاً
+                  </button>
+              </div>
+          </div>
+      </div>
+    );
+  };
+
   if (!isAuthenticated) {
     return (
       <>
         {renderAuthError()}
+        {renderQuotaError()}
         <Login 
           logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
           onLogin={(mode) => {
+            // Strictly reset to INITIAL_DATA before entering the app
+            hasLoadedDataRef.current = false;
+            setDataLoading(true);
+            setData(INITIAL_DATA);
+            
             setAppMode(mode);
             localStorage.setItem('appMode', mode);
+            if (mode === 'local') {
+              // Demo login is admin-style and local-only; no partner/cloud session leakage.
+              setUser(null);
+              setUserRole('admin');
+              setQuotaError(null);
+            }
             setIsAuthenticated(true);
             localStorage.setItem('isAuthenticated', 'true');
             setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
@@ -1816,7 +2837,8 @@ const MainApp: React.FC = () => {
   }
 
   const renderAppContent = () => {
-    if (effectiveUserRole === 'partner') {
+    // Demo/local mode must use the admin experience, even if a previous cloud user was a partner.
+    if (appMode !== 'local' && userRole === 'partner') {
       switch (currentPage) {
         case 'orders': return <OrderPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} isPartner={true} />;
         case 'invoices-list': return (
@@ -1841,16 +2863,17 @@ const MainApp: React.FC = () => {
             }}
           />
         );
-        case 'ai': return <AIAssistant data={data} />;
+        case 'ai':
+        case 'diwaniya':
+          return <div className="partner-clean-shell"><PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} /></div>;
         case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
-        case 'diwaniya': return <DiwaniyaTournaments data={data} setData={setData} onNavigate={setCurrentPage} />;
-        default: return <PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} />;
+        default: return <div className="partner-clean-shell"><PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} /></div>;
       }
     }
 
     switch (currentPage) {
-      case 'dashboard': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab={deepLinkData.exactId || 'pulse'} scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} />;
-      case 'dashboard-ai': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="intelligence" scrollTarget={deepLinkData.scrollTarget} />;
+      case 'dashboard': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab={deepLinkData.exactId || 'pulse'} scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} onActiveTabChange={setDashboardTab} />;
+      case 'dashboard-ai': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="intelligence" scrollTarget={deepLinkData.scrollTarget} onActiveTabChange={setDashboardTab} />;
       case 'new-invoice': return (
         <InvoicePage 
           data={data} 
@@ -1885,8 +2908,9 @@ const MainApp: React.FC = () => {
       case 'suppliers': return <SupplierPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
       case 'expenses': return <ExpensePage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
       case 'orders': return <OrderPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} isPartner={false} />;
-      case 'coupons': return <PromoCodePage data={data} onUpdateData={setData} />;
-      case 'loyalty': return <LoyaltyProgramPage data={data} onUpdateData={setData} />;
+      case 'coupons':
+      case 'loyalty':
+        return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="rewards" scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} onActiveTabChange={setDashboardTab} />;
       case 'growth-simulator': return <WhatIfSimulator data={data} onUpdateData={setData} />;
       case 'profit-guard': return <RealProfitGuard data={data} />;
       case 'reports': return (
@@ -1897,30 +2921,42 @@ const MainApp: React.FC = () => {
           onClearDeepLink={() => {}}
         />
       );
-      case 'ai': return <AIAssistant data={data} />;
+      case 'ai': return <AIAssistant data={data} currentPage={currentPage} />;
       case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
       case 'diwaniya': return <DiwaniyaTournaments data={data} setData={setData} onNavigate={setCurrentPage} />;
-      case 'settings': return <GeneralSettings data={data} setData={setData} appMode={appMode} switchMode={switchMode} addToast={addToast} />;
+      case 'whatsapp-support': return <WhatsAppSupportInbox />;
+      case 'settings': return <GeneralSettings data={data} setData={setData} appMode={appMode} switchMode={switchMode} addToast={addToast} onCloudImport={onCloudImport} />;
       case 'suppliers-audit': return (
         <SupplierAudit 
           data={data} 
           setData={setData} 
           initialSupplierId={deepLinkData.supplierId} 
           autoOpenModal={deepLinkData.openModal}
-          onClearDeepLink={() => {}}
+          onClearDeepLink={() => setDeepLinkData({})}
           deepLinkData={deepLinkData}
         />
       );
-      default: return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={setCurrentPage} />;
+      default: return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={setCurrentPage} onActiveTabChange={setDashboardTab} />;
     }
   };
+
+  const showExecutiveFloatingTools = currentPage === 'dashboard' && dashboardTab === 'pulse';
+  const floatingToolRole = appMode === 'local' ? 'local' : userRole;
+  
+  // Instagram Wand: For admin/local -> only on dashboard pulse. For partner -> only on dashboard pulse.
+  const showInstagramFloatingTool = showExecutiveFloatingTools;
+
+  // Second Tool (Radar/Search): Admin/local -> only on pulse. Partner -> hide completely.
+  const showSecondFloatingTools = (floatingToolRole === 'admin' || floatingToolRole === 'local') && showExecutiveFloatingTools;
 
   return (
     <div className="admin-heritage-shell flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font" dir="rtl">
       <AmbientBackground />
       
       {renderAuthError()}
+      {renderQuotaError()}
       <DataRefreshNotice show={Boolean(dataLoading && isAuthenticated)} mode={appMode} />
+      <NetworkStatusNotice online={isOnline} />
       <AdminOnboardingModal
         open={onboardingOpen}
         role={onboardingRole}
@@ -1990,7 +3026,7 @@ const MainApp: React.FC = () => {
           )}
         </div>
 
-        {effectiveUserRole !== 'partner' && (
+        {userRole !== 'partner' && (
           <nav className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar overflow-x-hidden relative z-10">
             <div className="pt-2">
                <div 
@@ -2042,16 +3078,16 @@ const MainApp: React.FC = () => {
                         onClick={() => { setCurrentPage('invoices-list'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
-                        label="طلبات التطبيق"
-                        icon={<ClipboardCheck size={16} />}
-                        active={currentPage === 'orders'} 
-                        onClick={() => { setCurrentPage('orders'); setSidebarOpen(false); }}
-                      />
-                      <SubNavItem 
                         label="قائمة العملاء"
                         icon={<Users size={16} />}
                         active={currentPage === 'customers'} 
                         onClick={() => { setCurrentPage('customers'); setSidebarOpen(false); }}
+                      />
+                      <SubNavItem 
+                        label="دعم واتساب"
+                        icon={<MessageSquare size={16} />}
+                        active={currentPage === 'whatsapp-support'} 
+                        onClick={() => { setCurrentPage('whatsapp-support'); setSidebarOpen(false); }}
                       />
                   </motion.div>
                 )}
@@ -2117,24 +3153,6 @@ const MainApp: React.FC = () => {
                 )}
                </AnimatePresence>
             </div>
-            <div className="pt-2">
-              <div className={cn("flex items-center justify-between text-white/40 px-3 mb-3 cursor-pointer hover:text-white transition-all group", (!sidebarOpen && !isMobile) && "justify-center px-0 opacity-50")} onClick={() => { if (!sidebarOpen && !isMobile) { setSidebarOpen(true); openMenu('intelligence'); } else { toggleMenu('intelligence'); } }}>
-                <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors"><Bot size={16}/></div>{(sidebarOpen || isMobile) && <span className="text-[11px] font-sans font-bold whitespace-nowrap uppercase tracking-[0.25em] opacity-80">الذكاء والتسويق</span>}</div>
-                {(sidebarOpen || isMobile) && <motion.div animate={{ rotate: expandedMenus.intelligence ? 0 : 180 }}><ChevronDown size={14} className="opacity-40" /></motion.div>}
-              </div>
-              <AnimatePresence>{expandedMenus.intelligence && (sidebarOpen || isMobile) && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="space-y-1 mr-4 border-r-2 border-emerald-500/20 pr-4 overflow-hidden">
-                <SubNavItem label="مختبر الذكاء" icon={<Bot size={16}/>} active={currentPage === 'dashboard-ai'} onClick={() => { setCurrentPage('dashboard-ai'); setSidebarOpen(false); }} />
-                <SubNavItem label="محاكي النمو والتسويق" icon={<TrendingUp size={16}/>} active={currentPage === 'growth-simulator'} onClick={() => { setCurrentPage('growth-simulator'); setSidebarOpen(false); }} />
-                <SubNavItem label="العملاء والولاء" icon={<Users size={16}/>} active={currentPage === 'loyalty'} onClick={() => { setCurrentPage('loyalty'); setSidebarOpen(false); }} />
-                <SubNavItem label="المالية وحماية الأرباح" icon={<ShieldAlert size={16}/>} active={currentPage === 'profit-guard'} onClick={() => { setCurrentPage('profit-guard'); setSidebarOpen(false); }} />
-                <SubNavItem label="المساعد الذكي" icon={<Bot size={16}/>} active={currentPage === 'ai'} onClick={() => { setCurrentPage('ai'); setSidebarOpen(false); }} />
-                <SubNavItem label="استوديو الصورة الذكية" icon={<Sparkles size={16}/>} active={currentPage === 'smart-studio'} onClick={() => { setCurrentPage('smart-studio'); setSidebarOpen(false); }} />
-                <SubNavItem label="الكوبونات" icon={<Receipt size={16}/>} active={currentPage === 'coupons'} onClick={() => { setCurrentPage('coupons'); setSidebarOpen(false); }} />
-                <SubNavItem label="بطولات الديوانية" icon={<BadgeCheck size={16}/>} active={currentPage === 'diwaniya'} onClick={() => { setCurrentPage('diwaniya'); setSidebarOpen(false); }} />
-                <SubNavItem label="التنبيهات الذكية" icon={<Bell size={16}/>} active={notifOpen} onClick={() => { setNotifOpen(true); setSidebarOpen(false); }} />
-                <SubNavItem label="الإعدادات العامة" icon={<Settings size={16}/>} active={currentPage === 'settings'} onClick={() => { setCurrentPage('settings'); setSidebarOpen(false); }} />
-              </motion.div>)}</AnimatePresence>
-            </div>
           </nav>
         )}
 
@@ -2152,7 +3170,7 @@ const MainApp: React.FC = () => {
           className="h-12 md:h-20 glass-surface border-b border-slate-200/60/50 flex items-center justify-between px-4 lg:px-10 z-[100] sticky top-0 shadow-sm"
         >
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-4 md:p-8 shrink min-w-0">
-            {effectiveUserRole !== 'partner' && (
+            {userRole !== 'partner' && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setSidebarOpen(!sidebarOpen); }}
                 className="p-2.5 sm:p-3 hover:bg-slate-900 group rounded-[1.2rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0"
@@ -2160,7 +3178,7 @@ const MainApp: React.FC = () => {
                 <Menu size={20} className="group-hover:rotate-180 transition-transform duration-500" />
               </button>
             )}
-            {effectiveUserRole !== 'partner' && <div className="hidden sm:block h-4 w-[1px] bg-slate-200" />}
+            {userRole !== 'partner' && <div className="hidden sm:block h-4 w-[1px] bg-slate-200" />}
             
             <button 
               onClick={() => {
@@ -2193,7 +3211,7 @@ const MainApp: React.FC = () => {
 
           <div className="flex items-center gap-3 lg:gap-4 md:p-6 shrink-0">
              {/* Magic Command Bar Trigger */}
-             {effectiveUserRole !== 'partner' && (
+             {userRole !== 'partner' && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setCommandBarOpen(true); }}
                 title="البحث السريع (Ctrl+K)"
@@ -2224,8 +3242,8 @@ const MainApp: React.FC = () => {
               </button>
 
               <button 
-                onClick={() => { setCurrentPage('ai'); setSidebarOpen(false); }}
-                title="المساعد الذكي"
+                onClick={() => { try { localStorage.setItem('ai_context_page', currentPage); } catch {} setCurrentPage('ai'); setSidebarOpen(false); }}
+                title="مساعد التراث الذكي"
                 className={cn(
                   "flex w-12 h-12 rounded-[1rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden",
                   currentPage === 'ai' ? "bg-slate-900 text-white shadow-xl scale-105" : "bg-slate-100/50 text-slate-500 hover:bg-white hover:shadow-lg border border-transparent hover:border-amber-200/40"
@@ -2296,8 +3314,8 @@ const MainApp: React.FC = () => {
                         </div>
                     </div>
                     <div className="max-h-[70vh] overflow-y-auto p-2 scrollbar-hide">
-                      {data.notifications && data.notifications.length > 0 ? (
-                        (data?.notifications || []).map(notif => (
+                      {data.notifications && data.notifications.filter(n => !n.title.includes('درع الربح')).length > 0 ? (
+                        (data?.notifications || []).filter(n => !n.title.includes('درع الربح')).map(notif => (
                           <div 
                             key={notif.id} 
                             onClick={(e) => {
@@ -2350,7 +3368,7 @@ const MainApp: React.FC = () => {
                                 <div className="text-[11px] text-slate-500 leading-relaxed break-words whitespace-normal">{notif.message}</div>
                                 <div className="text-[10px] text-slate-500 mt-1.5 font-medium flex items-center gap-1">
                                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                                  {new Date(notif.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
+                                  {formatKuwaitiDateOnly(notif.date)}
                                 </div>
                               </div>
                               {!notif.read && (
@@ -2364,7 +3382,7 @@ const MainApp: React.FC = () => {
                           <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
                             <Bell size={28} className="text-slate-200" />
                           </div>
-                          <div className="font-bold text-slate-500">لا توجد تنبيهات</div>
+                          <div className="font-bold text-slate-500">ماكو تنبيهات</div>
                           <div className="text-[11px] text-slate-300 mt-1">سيظهر هنا كل جديد يخص المطعم</div>
                         </div>
                       )}
@@ -2377,13 +3395,13 @@ const MainApp: React.FC = () => {
 
             <div 
               onClick={(e) => {
-                if (effectiveUserRole === 'partner') {
+                if (userRole === 'partner') {
                   e.preventDefault();
                   return;
                 }
                 setCurrentPage('settings');
               }}
-              className={cn("flex items-center gap-2 sm:gap-3 pl-2 p-1.5 rounded-2xl transition-colors max-w-[120px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent", effectiveUserRole === 'partner' ? "cursor-default opacity-80" : "cursor-pointer hover:bg-slate-100 hover:border-slate-200/60")}
+              className={cn("flex items-center gap-2 sm:gap-3 pl-2 p-1.5 rounded-2xl transition-colors max-w-[120px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent", userRole === 'partner' ? "cursor-default opacity-80" : "cursor-pointer hover:bg-slate-100 hover:border-slate-200/60")}
             >
               <div className="text-left hidden xs:block overflow-hidden">
                 <div className="text-sm font-bold truncate text-slate-800">{user?.displayName || 'أحمد الفيلكاوي'}</div>
@@ -2424,18 +3442,27 @@ const MainApp: React.FC = () => {
           <div className="fixed inset-0 pointer-events-none z-0">
           </div>
           <InstallPrompt />
-          <ProactiveAlerts 
-            userRole={effectiveUserRole}
-            notifications={data.notifications || []} 
-            onMarkAsRead={(id) => {
-               setData(prev => ({
-                   ...prev,
-                   notifications: (prev?.notifications || []).map(n => n.id === id ? { ...n, read: true } : n)
-               }));
-            }} 
-          />
-          {effectiveUserRole !== 'partner' && currentPage === 'dashboard' && (
-            <CompanyCommandCenter data={data} onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }} page={currentPage} />
+          {showSecondFloatingTools && (
+            <ProactiveAlerts 
+              userRole={userRole}
+              currentPage={currentPage}
+              notifications={data.notifications || []} 
+              onMarkAsRead={(id) => {
+                 setData(prev => ({
+                     ...prev,
+                     notifications: (prev?.notifications || []).map(n => n.id === id ? { ...n, read: true } : n)
+                 }));
+              }} 
+              onMarkAllAsRead={() => {
+                 setData(prev => ({
+                     ...prev,
+                     notifications: (prev?.notifications || []).map(n => n.insightType ? { ...n, read: true } : n)
+                 }));
+              }}
+            />
+          )}
+          {userRole !== 'partner' && currentPage === 'dashboard' && (
+            <CommandBrief data={data} dateFilter="day" onNavigate={navigateAdminPage} />
           )}
           <AnimatePresence>
             <motion.div
@@ -2449,8 +3476,8 @@ const MainApp: React.FC = () => {
               }}
               className="w-full min-h-full relative z-10 px-4 md:px-6"
             >
-              <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /><p className="text-slate-500 text-sm font-bold animate-pulse">جاري التحميل...</p></div>}>
-                 {effectiveUserRole === 'partner' ? renderAppContent() : (
+              <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /><p className="text-slate-500 text-sm font-bold animate-pulse">نحمّل...</p></div>}>
+                 {userRole === 'partner' ? renderAppContent() : (
                   <AdminExperienceFrame page={currentPage} data={data} onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }}>
                     {renderAppContent()}
                   </AdminExperienceFrame>
@@ -2465,21 +3492,15 @@ const MainApp: React.FC = () => {
         isOpen={commandBarOpen} 
         onClose={() => setCommandBarOpen(false)} 
         onNavigate={(page, payload) => {
-           setCurrentPage(page);
-           setSidebarOpen(false);
-           if (payload) {
-             setDeepLinkData({ ...payload, _t: Date.now() });
-           } else {
-             setDeepLinkData({});
-           }
+           navigateAdminPage(page, payload);
         }}
         data={data}
-        userRole={effectiveUserRole}
+        userRole={userRole}
       />
 
       {/* Global Scroll Progress + Back to Top */}
       <AnimatePresence>
-        {showTopButton && effectiveUserRole !== 'partner' && (
+        {showTopButton && userRole !== 'partner' && (
           <motion.button
             initial={{ opacity: 0, scale: 0.86, x: 10 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
@@ -2514,7 +3535,7 @@ const MainApp: React.FC = () => {
                 cy="28"
                 r="22"
                 fill="none"
-                stroke="url(#scrollProgressGradientRoot)"
+                stroke="url(#scrollProgressGradient)"
                 strokeWidth="4"
                 strokeLinecap="round"
                 strokeDasharray={scrollProgressCircle}
@@ -2522,7 +3543,7 @@ const MainApp: React.FC = () => {
                 transition={{ type: 'spring', stiffness: 170, damping: 24 }}
               />
               <defs>
-                <linearGradient id="scrollProgressGradientRoot" x1="0" x2="1" y1="0" y2="1">
+                <linearGradient id="scrollProgressGradient" x1="0" x2="1" y1="0" y2="1">
                   <stop offset="0%" stopColor="#0f766e" />
                   <stop offset="100%" stopColor="#0284c7" />
                 </linearGradient>
@@ -2535,7 +3556,7 @@ const MainApp: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Floating Global ذكي Pulse Overlay */}
+      {/* Floating Global Smart Pulse Overlay */}
       <AnimatePresence>
         {isAIThinking && (
           <motion.div 
@@ -2549,7 +3570,7 @@ const MainApp: React.FC = () => {
                 <Bot className="text-indigo-600" size={24} />
                 <Sparkles className="absolute -top-2 -right-2 text-amber-500 animate-pulse" size={12} />
               </div>
-              <span className="font-bold text-slate-800 text-sm">جاري تحليل البيانات...</span>
+              <span className="font-bold text-slate-800 text-sm">نحلل البيانات...</span>
             </div>
           </motion.div>
         )}
@@ -2557,36 +3578,39 @@ const MainApp: React.FC = () => {
 
       {/* --- MOBILE QUICK NAVIGATION TRIGGER --- */}
       <AnimatePresence>
-        {isMobile && effectiveUserRole !== 'partner' && currentPage === 'dashboard' && !commandBarOpen && (
+        {isMobile && !commandBarOpen && showSecondFloatingTools && (
           <motion.div
             initial={{ opacity: 0, y: 100, scale: 0.5 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.5 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className={`fixed transition-all duration-700 ease-in-out left-1/2 -translate-x-1/2 z-[100] md:hidden ${currentPage.startsWith('dashboard') ? "bottom-24" : "bottom-8"}`}
+            className={`fixed transition-all duration-700 ease-in-out left-1/2 -translate-x-1/2 z-[100] md:hidden bottom-[3.42rem]`}
           >
             <button
               onClick={() => setCommandBarOpen(true)}
-              className="flex items-center justify-center w-14 h-14 bg-slate-900/95 backdrop-blur-2xl rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.6)] border border-white/10 active:scale-95 transition-all relative group overflow-hidden"
+              className="flex items-center justify-center w-11 h-11 bg-slate-950/95 backdrop-blur-3xl rounded-full shadow-[0_16px_35px_rgba(0,0,0,0.7)] border border-white/10 active:scale-95 transition-all relative group overflow-hidden"
+              title="مركز الأوامر الذكي"
             >
               <motion.div 
                 className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/20 to-indigo-500/0 opacity-50"
                 animate={{ x: ['-100%', '100%'] }}
                 transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
               />
-              <div className="relative z-10 flex items-center justify-center bg-white/10 rounded-full w-8 h-8 backdrop-blur-sm border border-white/5">
-                <Search className="text-amber-400" size={16} />
+              <div className="relative z-10 flex items-center justify-center bg-white/5 rounded-full w-7 h-7 backdrop-blur-md border border-white/5">
+                <Command className="text-amber-400 group-hover:scale-110 transition-transform duration-300" size={15} />
               </div>
-              <div className="absolute top-3 right-3 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-              </div>
+              {(data?.notifications || []).some(n => !n.read) && (
+                <div className="absolute top-2.5 right-2.5 flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-[120%] w-[120%] rounded-full bg-amber-400 opacity-60"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                </div>
+              )}
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {(isAuthenticated || appMode === 'local') && <InstagramMagicWand data={data} />}
+      {(isAuthenticated || appMode === 'local') && showInstagramFloatingTool && <InstagramMagicWand data={data} currentPage={currentPage} userRole={floatingToolRole} />}
       <Toaster richColors position="bottom-right" closeButton />
       
 
@@ -2636,90 +3660,120 @@ const SubNavItem: React.FC<{ label: string; icon: React.ReactNode; active?: bool
 
 
 const ZEN_QUOTES = [
-  "إدارة هادئة… قرارات أوضح",
-  "التراث في الطبخ، والدقة في الإدارة",
-  "كل طلب له قصة، وكل رقم له قرار",
-  "من المطبخ إلى العميل… كل شيء تحت عينك",
-  "نبض المبيعات يبدأ من هنا",
-  "هدوء الواجهة… قوة التشغيل",
+  "نفتح مركز القيادة… ونترك الزحمة خارج الباب",
+  "الأرقام تتكلم بهدوء… والقرار يظهر بوضوح",
   "إدارة تليق باسم شركة مطبخ التراث",
-  "نختصر الزحمة، ونترك القرار واضحًا",
-  "تفاصيل صغيرة تصنع فرقًا كبيرًا"
+  "كل طلب له مسار… وكل رقم له معنى",
+  "من هنا يبدأ نبض التشغيل الحقيقي",
+  "هدوء الواجهة… قوة القرار",
+  "نرتّب اليوم قبل أن يبدأ الزحام",
+  "مطبخ التراث: تشغيل أذكى، وقرار أسرع"
 ];
 
 const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ show, logo, name }) => {
   const [quote, setQuote] = useState(ZEN_QUOTES[0]);
+
   useEffect(() => {
-    let index = Math.floor(Math.random() * ZEN_QUOTES.length);
+    const index = Math.floor(Math.random() * ZEN_QUOTES.length);
     setQuote(ZEN_QUOTES[index]);
-    const t = setInterval(() => {
-      index = (index + 1) % ZEN_QUOTES.length;
-      setQuote(ZEN_QUOTES[index]);
-    }, 900);
-    return () => clearInterval(t);
   }, []);
+
+  const pulseCards = [
+    { label: 'المبيعات', value: 'نبض', icon: <TrendingUp size={18} /> },
+    { label: 'الطلبات', value: 'مباشر', icon: <ShoppingBag size={18} /> },
+    { label: 'الأرباح', value: 'حماية', icon: <Gauge size={18} /> },
+  ];
 
   return (
     <AnimatePresence>
       {show && (
         <motion.div
-           initial={{ opacity: 1 }}
-           exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
-           className="fixed inset-0 z-[99999] flex flex-col items-center justify-center overflow-hidden bg-[#f8f4ea]"
-           dir="rtl"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0, scale: 1.01, transition: { duration: 0.7, ease: 'easeInOut' } }}
+          className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-[#080d12] px-5"
+          dir="rtl"
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,.86),rgba(248,244,234,.96)_52%,rgba(232,220,192,.82))] flex flex-col items-center justify-center">
-             <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] opacity-60 animate-pulse" />
-             <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] opacity-60 animate-pulse" style={{ animationDuration: '3s' }} />
-          </div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(245,184,74,.24),transparent_28%),radial-gradient(circle_at_16%_84%,rgba(16,185,129,.18),transparent_32%),linear-gradient(135deg,#070b10_0%,#111827_52%,#0b1115_100%)]" />
+          <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-amber-200/10 to-transparent" />
+          <div className="absolute -top-24 -right-20 h-72 w-72 rounded-full bg-amber-400/20 blur-[90px]" />
+          <div className="absolute -bottom-24 -left-20 h-80 w-80 rounded-full bg-emerald-400/16 blur-[100px]" />
+          <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,.55)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.55)_1px,transparent_1px)] [background-size:44px_44px]" />
 
-          <div className="relative z-10 flex flex-col items-center">
+          <motion.div
+            initial={{ y: 22, opacity: 0, scale: 0.98 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full max-w-[720px] overflow-hidden rounded-[2.2rem] border border-white/12 bg-white/[0.075] p-6 text-center shadow-[0_34px_100px_rgba(0,0,0,.42)] backdrop-blur-2xl md:p-8"
+          >
+            <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-l from-transparent via-amber-200/80 to-transparent" />
+            <div className="absolute -right-12 top-12 h-32 w-32 rounded-full bg-amber-300/10 blur-3xl" />
+            <div className="absolute -left-12 bottom-8 h-32 w-32 rounded-full bg-emerald-300/10 blur-3xl" />
+
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="mb-8 relative"
+              initial={{ scale: 0.86, opacity: 0, rotate: -3 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              transition={{ duration: 0.78, delay: 0.08, ease: 'easeOut' }}
+              className="relative mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-[2rem] border border-amber-100/25 bg-gradient-to-br from-[#f8f1df] via-[#efe1bd] to-[#cfb36e] shadow-[0_18px_55px_rgba(245,184,74,.22)] md:h-32 md:w-32"
             >
-              <div className="absolute inset-0 bg-emerald-400 rounded-full blur-[40px] opacity-20 animate-pulse" />
-              <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="w-32 h-32 md:w-40 md:h-40 relative z-10 drop-shadow-xl" />
+              <div className="absolute inset-[-10px] rounded-[2.4rem] border border-amber-200/10" />
+              <motion.span
+                className="absolute inset-[-16px] rounded-[2.6rem] border border-emerald-300/25"
+                animate={{ scale: [1, 1.08, 1], opacity: [0.35, 0.05, 0.35] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="relative z-10 h-20 w-20 drop-shadow-xl md:h-24 md:w-24" />
             </motion.div>
 
             <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-                className="text-center"
+              initial={{ y: 16, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.62, delay: 0.22, ease: 'easeOut' }}
+              className="space-y-3"
             >
-              <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-l from-slate-950 via-emerald-900 to-amber-700 bg-clip-text text-transparent mb-4 leading-relaxed tracking-tight">
+              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-amber-100/15 bg-amber-100/10 px-4 py-2 text-[11px] font-black text-amber-100 shadow-inner shadow-white/5">
+                <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.85)]" />
+                مركز القيادة يتجهز الآن
+              </div>
+              <h1 className="text-3xl font-black leading-tight text-white md:text-5xl">
                 {name || 'شركة مطبخ التراث الكويتي'}
               </h1>
-            </motion.div>
-
-            <motion.div 
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ duration: 0.5, delay: 0.8 }}
-               className="mt-8 w-56 md:w-72 h-1.5 bg-slate-200/50 rounded-full overflow-hidden relative"
-            >
-                <motion.div 
-                    initial={{ x: '100%' }}
-                    animate={{ x: '-10%' }}
-                    transition={{ duration: 2, ease: "easeInOut", repeat: Infinity }}
-                    className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-r from-emerald-400 via-emerald-500 to-indigo-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"
-                />
+              <p className="mx-auto max-w-[560px] text-sm font-bold leading-7 text-slate-300 md:text-base">
+                {quote}
+              </p>
             </motion.div>
 
             <motion.div
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ duration: 0.8, delay: 1 }}
-               className="text-center mt-6 px-6"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.46 }}
+              className="mt-7 grid grid-cols-3 gap-2 md:gap-3"
             >
-               <p className="text-slate-500 font-bold text-sm md:text-base italic animate-pulse">
-                 "{quote}"
-               </p>
+              {pulseCards.map((card, index) => (
+                <motion.div
+                  key={card.label}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: 0.54 + index * 0.08 }}
+                  className="rounded-2xl border border-white/10 bg-white/[0.075] px-2 py-3 text-center shadow-inner shadow-white/5"
+                >
+                  <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-amber-100">
+                    {card.icon}
+                  </span>
+                  <p className="text-[10px] font-bold text-slate-400 md:text-xs">{card.label}</p>
+                  <p className="mt-1 text-xs font-black text-white md:text-sm">{card.value}</p>
+                </motion.div>
+              ))}
             </motion.div>
-          </div>
+
+            <div className="mt-7 h-1.5 overflow-hidden rounded-full bg-white/10">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-l from-emerald-300 via-amber-300 to-white shadow-[0_0_24px_rgba(245,184,74,.42)]"
+                initial={{ width: '12%' }}
+                animate={{ width: ['12%', '58%', '92%'] }}
+                transition={{ duration: 1.85, ease: 'easeInOut' }}
+              />
+            </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
@@ -2727,15 +3781,18 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
 };
 
 const App: React.FC = () => {
-   const [showSplash, setShowSplash] = useState(() => {
-     try { return sessionStorage.getItem('alturath_admin_splash_seen_v6') !== 'true'; } catch { return true; }
-   });
+   const [showSplash, setShowSplash] = useState(true);
    const [logo, setLogo] = useState(DEFAULT_GLOBAL_LOGO);
    const [name, setName] = useState('شركة مطبخ التراث الكويتي');
 
    useEffect(() => {
      try {
-       const raw = localStorage.getItem('ktk_accounting_data');
+	       const currentMode = localStorage.getItem('appMode') || 'local';
+	       const key = currentMode === 'cloud' ? 'ktk_cloud_offline_snapshot' : 'ktk_local_accounting_data';
+	       let raw = getProtectedStorageItem(key);
+	       if (!raw && currentMode === 'local') {
+	         raw = getProtectedStorageItem('ktk_accounting_data');
+	       }
        if (raw) {
          const parsed = JSON.parse(raw);
          if (parsed?.settings?.companyLogo) setLogo(parsed.settings.companyLogo);
@@ -2743,9 +3800,8 @@ const App: React.FC = () => {
        }
      } catch(e) {}
      const timer = setTimeout(() => {
-       try { sessionStorage.setItem('alturath_admin_splash_seen_v6', 'true'); } catch {}
        setShowSplash(false);
-     }, 1750);
+     }, 2350);
      return () => clearTimeout(timer);
    }, []);
 
@@ -2758,4 +3814,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

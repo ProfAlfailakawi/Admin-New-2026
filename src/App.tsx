@@ -82,6 +82,7 @@ const LoyaltyProgramPage = React.lazy(() => import('./components/LoyaltyProgramP
 const PromoCodePage = React.lazy(() => import('./components/PromoCodePage').then(m => ({ default: m.PromoCodePage })));
 const WhatIfSimulator = React.lazy(() => import('./components/WhatIfSimulator').then(m => ({ default: m.WhatIfSimulator })));
 const RealProfitGuard = React.lazy(() => import('./components/RealProfitGuard'));
+const WhatsAppSupportInbox = React.lazy(() => import('./components/WhatsAppSupportInbox'));
 
 import CommandBar from './components/CommandBar';
 import ProactiveAlerts from './components/ProactiveAlerts';
@@ -2923,6 +2924,7 @@ const MainApp: React.FC = () => {
       case 'ai': return <AIAssistant data={data} currentPage={currentPage} />;
       case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
       case 'diwaniya': return <DiwaniyaTournaments data={data} setData={setData} onNavigate={setCurrentPage} />;
+      case 'whatsapp-support': return <WhatsAppSupportInbox />;
       case 'settings': return <GeneralSettings data={data} setData={setData} appMode={appMode} switchMode={switchMode} addToast={addToast} onCloudImport={onCloudImport} />;
       case 'suppliers-audit': return (
         <SupplierAudit 
@@ -3080,6 +3082,12 @@ const MainApp: React.FC = () => {
                         icon={<Users size={16} />}
                         active={currentPage === 'customers'} 
                         onClick={() => { setCurrentPage('customers'); setSidebarOpen(false); }}
+                      />
+                      <SubNavItem 
+                        label="دعم واتساب"
+                        icon={<MessageSquare size={16} />}
+                        active={currentPage === 'whatsapp-support'} 
+                        onClick={() => { setCurrentPage('whatsapp-support'); setSidebarOpen(false); }}
                       />
                   </motion.div>
                 )}
