@@ -1639,6 +1639,127 @@ function waNewOrderUrl() {
   return ALTURATH_CUSTOMER_BASE_URL;
 }
 
+
+function waNowIso() {
+  return new Date().toISOString();
+}
+
+function waConversationDoc(phone: string) {
+  if (!db || !firebaseInitialized) return null;
+  const clean = waDigits(phone);
+  if (!clean) return null;
+  return db.collection("whatsappConversations").doc(clean);
+}
+
+async function waGetConversation(phone: string) {
+  const ref = waConversationDoc(phone);
+  if (!ref) return null;
+  try {
+    const snap = await ref.get();
+    return snap.exists ? { id: snap.id, ...(snap.data() || {}) } : null;
+  } catch (error: any) {
+    console.warn("[WHATSAPP] Could not read conversation:", error?.message || error);
+    return null;
+  }
+}
+
+async function waUpsertConversation(phone: string, patch: any = {}) {
+  const ref = waConversationDoc(phone);
+  if (!ref) return;
+  const clean = waDigits(phone);
+  const base = removeUndefinedDeep({
+    phone: clean,
+    customerName: patch.customerName,
+    mode: patch.mode || undefined,
+    status: patch.status || undefined,
+    priority: patch.priority || undefined,
+    unreadCount: patch.unreadCount,
+    lastInboundText: patch.lastInboundText,
+    lastOutboundText: patch.lastOutboundText,
+    lastMessageText: patch.lastMessageText,
+    lastMessageDirection: patch.lastMessageDirection,
+    lastMessageAt: patch.lastMessageAt || waNowIso(),
+    updatedAt: waNowIso(),
+    createdAt: patch.createdAt,
+    tags: patch.tags,
+    assignedTo: patch.assignedTo,
+    supportRequestedAt: patch.supportRequestedAt,
+    botPausedAt: patch.botPausedAt,
+    botResumedAt: patch.botResumedAt,
+  });
+  try {
+    const snap = await ref.get();
+    if (!snap.exists) {
+      await ref.set({
+        phone: clean,
+        mode: patch.mode || "bot",
+        status: patch.status || "open",
+        priority: patch.priority || "normal",
+        unreadCount: typeof patch.unreadCount === "number" ? patch.unreadCount : 0,
+        createdAt: waNowIso(),
+        ...base,
+      }, { merge: true });
+    } else {
+      await ref.set(base, { merge: true });
+    }
+  } catch (error: any) {
+    console.warn("[WHATSAPP] Could not upsert conversation:", error?.message || error);
+  }
+}
+
+async function waIncrementUnread(phone: string) {
+  const ref = waConversationDoc(phone);
+  if (!ref) return;
+  try {
+    await ref.set({ unreadCount: admin.firestore.FieldValue.increment(1), updatedAt: waNowIso() }, { merge: true });
+  } catch (_error) {}
+}
+
+async function waAppendConversationMessage(phone: string, message: any) {
+  const ref = waConversationDoc(phone);
+  if (!ref) return;
+  try {
+    await ref.collection("messages").add(removeUndefinedDeep({
+      phone: waDigits(phone),
+      direction: message.direction,
+      type: message.type || "text",
+      text: waString(message.text).slice(0, 4000),
+      waMessageId: message.waMessageId,
+      status: message.status,
+      sentBy: message.sentBy || (message.direction === "outbound" ? "bot" : "customer"),
+      createdAt: waNowIso(),
+      raw: message.raw ? JSON.stringify(message.raw).slice(0, 3000) : undefined,
+    }));
+  } catch (error: any) {
+    console.warn("[WHATSAPP] Could not append conversation message:", error?.message || error);
+  }
+}
+
+function waLooksLikeSupportIntent(text: string) {
+  const s = waNormalizeArabic(text);
+  return [
+    "4", "دعم", "الدعم", "فريق الدعم", "موظف", "اكلم موظف", "ابي اكلم", "خدمه العملاء", "خدمة العملاء",
+    "مشكله", "مشكلة", "شكوى", "استفسار خاص", "تواصل", "support", "agent", "human", "help desk", "customer service"
+  ].some((phrase) => s === waNormalizeArabic(phrase) || s.includes(waNormalizeArabic(phrase)));
+}
+
+function waLooksLikeBackToBotIntent(text: string) {
+  const s = waNormalizeArabic(text);
+  return ["القائمه", "القائمة", "منيو", "menu", "bot", "رجوع", "ابدأ", "start"].some((phrase) => s === waNormalizeArabic(phrase) || s.includes(waNormalizeArabic(phrase)));
+}
+
+function waQuickReplies() {
+  return [
+    { id: "welcome", title: "ترحيب", text: "ياهلا ومرحبا في التراث 🇰🇼\nشلون نقدر نخدمك؟" },
+    { id: "tracking", title: "طلب رقم التتبع", text: "حياك الله 🤍\nأرسل رقم الطلب/الفاتورة أو رقم الهاتف الكويتي 8 أرقام، وبنشيك لك مباشرة." },
+    { id: "new_order", title: "رابط طلب جديد", text: `لطلب جديد تفضل من موقع التراث:\n${waNewOrderUrl()}` },
+    { id: "payment", title: "الدفع", text: "حياك الله، إذا عندك رابط دفع افتحه وتأكد من إتمام العملية. وإذا واجهتك مشكلة أرسل رقم الطلب/الفاتورة ونساعدك فورًا." },
+    { id: "delivery", title: "التوصيل", text: "طلباتكم تهمنا 🤍\nأرسل رقم الطلب/الفاتورة أو رقم الهاتف، وبنراجع حالة التوصيل لك." },
+    { id: "handoff", title: "استلام المحادثة", text: "معك فريق التراث الآن 🤍\nاكتب لنا التفاصيل وبنساعدك مباشرة." },
+    { id: "closing", title: "إغلاق راقٍ", text: "تشرفنا بخدمتك 🤍\nإذا احتجت أي شيء اكتب لنا بأي وقت." },
+  ];
+}
+
 async function waReadSharedShard(key: string) {
   if (!db || !firebaseInitialized) return [];
   try {
@@ -1802,32 +1923,39 @@ function waNewOrderReply() {
     "",
     "تقدر تختار المنتجات وتحدد موقع التوصيل وتكمل الطلب مباشرة.",
     "",
-    "ولمتابعة طلب سابق، أرسل:",
-    "• رقم الطلب ORD-...",
-    "• رقم الفاتورة INV-...",
-    "• أو رقم الهاتف 8 أرقام مثل: 97424400",
+    "ولمتابعة طلب سابق، أرسل رقم الطلب/الفاتورة أو رقم هاتفك الكويتي 8 أرقام.",
+  ].join("\n");
+}
+
+function waSupportReply() {
+  return [
+    "يسعدنا نخدمك 🤍",
+    "اكتب رسالتك الآن، وستظهر مباشرة لفريق الدعم داخل لوحة التراث.",
+    "",
+    "للرجوع للقائمة في أي وقت اكتب: القائمة",
+  ].join("\n");
+}
+
+function waHumanModeNoticeReply() {
+  return [
+    "وصلت رسالتك لفريق الدعم 🤍",
+    "بنرد عليك بأقرب وقت.",
+    "",
+    "للرجوع للبوت اكتب: القائمة",
   ].join("\n");
 }
 
 function waHelpReply() {
   return [
-    "ياهلا فيك في التراث 🇰🇼",
+    "مرحبًا بك في Alturath 👋",
     "اختر الخدمة المناسبة:",
     "",
     "1) طلب جديد",
-    waNewOrderUrl(),
-    "",
     "2) تتبع طلب أو فاتورة",
-    "أرسل رقم الطلب ORD-... أو رقم الفاتورة INV-...",
+    "3) الاستفسار عن المنتجات",
+    "4) الدعم",
     "",
-    "3) البحث برقم الهاتف",
-    "أرسل رقم الهاتف الكويتي 8 أرقام مثل: 97424400",
-    "",
-    "4) سؤال عن منتج",
-    "اكتب اسم المنتج وسأبحث لك في المنيو المتاح.",
-    "",
-    "رابط التتبع:",
-    `${ALTURATH_CUSTOMER_BASE_URL}/track`,
+    "اكتب رقم الخيار أو اكتب طلبك مباشرة.",
   ].join("\n");
 }
 
@@ -1836,10 +1964,10 @@ function waGreetingReply() {
     "ياهلا ومرحبا في التراث 🇰🇼",
     "شلون أقدر أخدمك؟",
     "",
-    "• للطلب الجديد اكتب: طلب جديد",
-    "• للتتبع أرسل: ORD-... أو INV-...",
-    "• أو أرسل رقم هاتفك 8 أرقام مثل: 97424400",
-    "• وللاستفسار عن منتج اكتب اسم المنتج",
+    "1) طلب جديد",
+    "2) تتبع طلب أو فاتورة",
+    "3) الاستفسار عن المنتجات",
+    "4) الدعم",
   ].join("\n");
 }
 
@@ -1910,6 +2038,19 @@ function waLooksLikeHelpIntent(text: string) {
 }
 
 async function waBuildAutoReply(messageText: string, fromPhone: string) {
+  const clean = waNormalizeArabic(messageText);
+  if (waLooksLikeSupportIntent(messageText)) return waSupportReply();
+  if (clean === "1") return waNewOrderReply();
+  if (clean === "2") {
+    const byPhone = await waFindLatestByPhone(fromPhone);
+    if (byPhone) return waOrderReply(byPhone);
+    return [
+      "أرسل رقم الطلب/الفاتورة أو رقم الهاتف الكويتي 8 أرقام، وبشيك لك مباشرة.",
+      "",
+      `رابط التتبع: ${ALTURATH_CUSTOMER_BASE_URL}/track`,
+    ].join("\n");
+  }
+  if (clean === "3") return "اكتب اسم المنتج الذي تبحث عنه، وسأبحث لك في المنيو المتاح.";
   if (waLooksLikeHelpIntent(messageText)) return waHelpReply();
   if (waLooksLikeGreeting(messageText)) return waGreetingReply();
 
@@ -1918,8 +2059,8 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
     const found = await waFindByBusinessId(businessId);
     if (found) return waOrderReply(found);
     return [
-      `ما حصلت رقم ${businessId} حالياً.`,
-      "تأكد من الرقم أو جرّب رابط التتبع:",
+      `ما حصلت هذا الرقم حالياً.`,
+      "تأكد من رقم الطلب/الفاتورة أو جرّب رابط التتبع:",
       `${ALTURATH_CUSTOMER_BASE_URL}/track`,
       "",
       "ولطلب جديد:",
@@ -1934,7 +2075,7 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
     return [
       `ما حصلت طلب مرتبط بالرقم ${phone8} حالياً.`,
       "تأكد من رقم الهاتف بصيغة 8 أرقام مثل: 97424400",
-      "أو أرسل رقم الطلب أو الفاتورة مثل ORD-... أو INV-...",
+      "أو أرسل رقم الطلب/الفاتورة كما هو ظاهر في الرسالة أو الفاتورة.",
       "",
       "ولطلب جديد:",
       waNewOrderUrl(),
@@ -1947,7 +2088,7 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
     const byPhone = await waFindLatestByPhone(fromPhone);
     if (byPhone) return waOrderReply(byPhone);
     return [
-      "للمتابعة أرسل رقم الطلب أو الفاتورة مثل ORD-... أو INV-...",
+      "للمتابعة أرسل رقم الطلب/الفاتورة كما هو ظاهر في الرسالة أو الفاتورة.",
       "أو رقم الهاتف بصيغة 8 أرقام مثل: 97424400",
       "أو افتح صفحة التتبع:",
       `${ALTURATH_CUSTOMER_BASE_URL}/track`,
@@ -2038,20 +2179,57 @@ app.post("/api/whatsapp/webhook", async (req, res) => {
           if (!from) continue;
 
           handledMessages += 1;
+          const contactName = waString(value?.contacts?.[0]?.profile?.name || "");
           console.log(`[WHATSAPP] Incoming type=${type} from ${from}: ${waEscapeForLog(text)}`);
 
-          const reply = text
-            ? await waBuildAutoReply(text, from)
-            : [
-                "وصلت رسالتك، لكن أقدر أتعامل حاليًا مع الرسائل النصية فقط.",
-                "اكتب: طلب جديد",
-                "أو أرسل رقم الطلب ORD-... / INV-...",
-                "أو رقم الهاتف 8 أرقام مثل: 97424400",
-              ].join("\n");
+          await waUpsertConversation(from, {
+            customerName: contactName || undefined,
+            status: "open",
+            lastInboundText: text || `[${type}]`,
+            lastMessageText: text || `[${type}]`,
+            lastMessageDirection: "inbound",
+          });
+          await waAppendConversationMessage(from, { direction: "inbound", type, text: text || `[${type}]`, waMessageId: message?.id, raw: message });
+          await waIncrementUnread(from);
 
-          const result = await waSendText(from, reply);
-          sendResults.push({ to: from, ok: result.ok, status: result.status, reason: result.reason || result.payload?.error?.message || null });
-          console.log(`[WHATSAPP] Reply result to ${from}: ${JSON.stringify(sendResults[sendResults.length - 1]).slice(0, 700)}`);
+          const conversation = await waGetConversation(from);
+          let reply = "";
+          let sender = "bot";
+
+          if (text && waLooksLikeBackToBotIntent(text)) {
+            await waUpsertConversation(from, { mode: "bot", status: "open", botResumedAt: waNowIso(), unreadCount: 0 });
+            reply = waHelpReply();
+          } else if (text && waLooksLikeSupportIntent(text)) {
+            await waUpsertConversation(from, {
+              mode: "human",
+              status: "needs_support",
+              priority: "high",
+              supportRequestedAt: waNowIso(),
+              botPausedAt: waNowIso(),
+              tags: waUnique([...(waAsArray(conversation?.tags)), "support"]),
+            });
+            reply = waSupportReply();
+          } else if (conversation?.mode === "human") {
+            // A human is expected to continue from the admin inbox. Avoid noisy repeated bot replies.
+            console.log(`[WHATSAPP] Conversation ${from} is in human support mode. Auto-reply skipped.`);
+          } else {
+            reply = text
+              ? await waBuildAutoReply(text, from)
+              : [
+                  "وصلت رسالتك، لكن أقدر أتعامل حاليًا مع الرسائل النصية فقط.",
+                  "اكتب: طلب جديد",
+                  "أو أرسل رقم الطلب/الفاتورة",
+                  "أو رقم الهاتف 8 أرقام مثل: 97424400",
+                ].join("\n");
+          }
+
+          if (reply) {
+            const result = await waSendText(from, reply);
+            sendResults.push({ to: from, ok: result.ok, status: result.status, reason: result.reason || result.payload?.error?.message || null });
+            await waAppendConversationMessage(from, { direction: "outbound", type: "text", text: reply, sentBy: sender, status: result.ok ? "sent" : "failed", raw: result.payload });
+            await waUpsertConversation(from, { lastOutboundText: reply, lastMessageText: reply, lastMessageDirection: "outbound" });
+            console.log(`[WHATSAPP] Reply result to ${from}: ${JSON.stringify(sendResults[sendResults.length - 1]).slice(0, 700)}`);
+          }
         }
       }
     }
@@ -2061,6 +2239,87 @@ app.post("/api/whatsapp/webhook", async (req, res) => {
     console.error("[WHATSAPP] Webhook processing failed:", error?.message || error);
     return res.status(200).json({ success: false, error: error?.message || String(error), handledMessages, sendResults });
   }
+});
+
+
+app.get("/api/whatsapp/conversations", async (req, res) => {
+  try {
+    if (!db || !firebaseInitialized) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+    const status = waString(req.query.status || "");
+    let ref: any = db.collection("whatsappConversations").orderBy("lastMessageAt", "desc").limit(Math.min(100, Math.max(10, Number(req.query.limit || 50))));
+    const snap = await ref.get();
+    let items = snap.docs.map((d: any) => ({ id: d.id, ...(d.data() || {}) }));
+    if (status && status !== "all") items = items.filter((x: any) => x.status === status || x.mode === status);
+    res.json({ success: true, conversations: items });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+app.get("/api/whatsapp/conversations/:phone/messages", async (req, res) => {
+  try {
+    if (!db || !firebaseInitialized) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+    const phone = waDigits(req.params.phone);
+    const conv = await waGetConversation(phone);
+    const snap = await db.collection("whatsappConversations").doc(phone).collection("messages").orderBy("createdAt", "asc").limit(200).get();
+    const messages = snap.docs.map((d: any) => ({ id: d.id, ...(d.data() || {}) }));
+    res.json({ success: true, conversation: conv, messages, quickReplies: waQuickReplies() });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+app.post("/api/whatsapp/conversations/:phone/reply", async (req, res) => {
+  try {
+    const phone = waDigits(req.params.phone);
+    const text = waString(req.body?.text || req.query.text);
+    const sentBy = waString(req.body?.sentBy || "admin") || "admin";
+    if (!phone || !text) return res.status(400).json({ success: false, error: "Missing phone or text" });
+    await waUpsertConversation(phone, { mode: "human", status: "open", unreadCount: 0, lastOutboundText: text, lastMessageText: text, lastMessageDirection: "outbound" });
+    const result = await waSendText(phone, text);
+    await waAppendConversationMessage(phone, { direction: "outbound", type: "text", text, sentBy, status: result.ok ? "sent" : "failed", raw: result.payload });
+    res.status(result.ok ? 200 : 502).json({ success: result.ok, result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+app.post("/api/whatsapp/conversations/:phone/mode", async (req, res) => {
+  try {
+    const phone = waDigits(req.params.phone);
+    const mode = waString(req.body?.mode || req.query.mode) === "bot" ? "bot" : "human";
+    const patch = mode === "bot"
+      ? { mode, status: "open", botResumedAt: waNowIso(), unreadCount: 0 }
+      : { mode, status: "needs_support", botPausedAt: waNowIso() };
+    await waUpsertConversation(phone, patch);
+    res.json({ success: true, mode });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+app.post("/api/whatsapp/conversations/:phone/read", async (req, res) => {
+  try {
+    const phone = waDigits(req.params.phone);
+    await waUpsertConversation(phone, { unreadCount: 0 });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+app.post("/api/whatsapp/conversations/:phone/close", async (req, res) => {
+  try {
+    const phone = waDigits(req.params.phone);
+    await waUpsertConversation(phone, { status: "closed", mode: "bot", unreadCount: 0, botResumedAt: waNowIso() });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+app.get("/api/whatsapp/quick-replies", (_req, res) => {
+  res.json({ success: true, quickReplies: waQuickReplies() });
 });
 
 app.post("/api/whatsapp/send-test", async (req, res) => {
