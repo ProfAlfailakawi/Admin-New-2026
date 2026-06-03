@@ -6,6 +6,7 @@ import { DEFAULT_SQUADS } from '../data';
 import { normalizeArabicNumerals } from '../lib/utils';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import LeafletKuwaitMap from './LeafletKuwaitMap';
 
 export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate?: (page: string) => void }> = ({ data, setData, onNavigate }) => {
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'squads' | 'settings' | 'radar'>('leaderboard');
@@ -1103,6 +1104,31 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     toast.success('تم تركيز الخريطة على الديوانية');
   };
 
+
+  const leafletRadarMarkers = React.useMemo(() => {
+    const list = radarMapMode === 'heatmap' ? visibleHeatMapSquads : visibleMapSquads;
+    return list.filter((sq: any) => sq?.actualLocation).map((sq: any) => {
+      const hasPending = Array.isArray(sq.pendingRequests) && sq.pendingRequests.length > 0;
+      const isActive = String(activeMapSquadId) === String(sq.id);
+      const heat = Number(sq.heatValue || 0);
+      const isBusy = (Array.isArray(sq.presence) && sq.presence.length > 0) || hasPending || sq.openOrder;
+      return {
+        id: String(sq.id),
+        name: String(sq.name || 'ديوانية'),
+        lat: Number(sq.actualLocation.lat),
+        lng: Number(sq.actualLocation.lng),
+        count: radarMapMode === 'heatmap' ? heat : undefined,
+        subtitle: radarMapMode === 'heatmap'
+          ? `نشاط: ${heat} | طلبات: ${sq.heatBreakdown?.orders || 0} | حضور: ${sq.heatBreakdown?.presence || 0}`
+          : `${hasPending ? `طلبات معلقة: ${sq.pendingRequests.length}` : 'موقع مثبت'}${isBusy ? ' · نشط الآن' : ''}`,
+        color: radarMapMode === 'heatmap' ? '#e11d48' : hasPending ? '#f59e0b' : isBusy ? '#10b981' : '#64748b',
+        radiusMeters: radarMapMode === 'map' ? getSquadGeofenceDistance(sq) : undefined,
+        size: radarMapMode === 'heatmap' ? Math.min(48, 22 + heat * 4) : isActive ? 34 : isBusy ? 28 : 24,
+        active: isActive,
+      };
+    });
+  }, [radarMapMode, visibleHeatMapSquads, visibleMapSquads, activeMapSquadId]);
+
   const scrollToSelectedSquadCard = () => {
     window.setTimeout(() => {
       selectedSquadCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1780,121 +1806,38 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                     </div>
                   </div>
 
-                  <div ref={radarMapRef} className="relative border border-slate-200 bg-[#eef2f0] rounded-3xl overflow-hidden aspect-[4/3] min-h-[360px] sm:min-h-[460px] md:min-h-[620px] w-full" dir="ltr">
-                    <div className="absolute inset-0" dir="ltr">
-                      {radarTiles.map((tile) => (
-                        <img
-                          key={tile.key}
-                          src={tile.url}
-                          alt=""
-                          className="absolute w-[256px] h-[256px] max-w-none select-none pointer-events-none"
-                          style={{ left: tile.left, top: tile.top, right: 'auto' }}
-                          draggable={false}
-                        />
-                      ))}
-                    </div>
-                    <div className="absolute inset-0 bg-white/10 pointer-events-none" />
-
+                  <div className="relative" dir="ltr">
+                    <LeafletKuwaitMap
+                      markers={leafletRadarMarkers}
+                      center={radarMapCenter}
+                      zoom={12}
+                      heightClassName="aspect-[4/3] min-h-[360px] sm:min-h-[460px] md:min-h-[620px] w-full"
+                      showRange={radarMapMode === 'map'}
+                      fitToMarkers={false}
+                      onMarkerClick={(marker) => {
+                        const source = (radarMapMode === 'heatmap' ? visibleHeatMapSquads : visibleMapSquads).find((sq: any) => String(sq.id) === String(marker.id));
+                        if (source) selectRadarSquad(source);
+                      }}
+                    />
                     {radarMapMode === 'map' && diwaniyaAdminRadar.missingLocation.length > 0 && (
-                      <div className="absolute right-3 top-3 z-30 w-[150px] sm:w-[180px] rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-md shadow-sm p-2 text-right" dir="rtl">
+                      <div className="absolute right-3 top-14 z-[700] w-[150px] sm:w-[180px] rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-md shadow-sm p-2 text-right" dir="rtl">
                         <div className="mb-1.5 flex items-center justify-between gap-1">
                           <span className="text-[10px] font-black text-slate-500">بدون لوكيشن</span>
                           <span className="rounded-full bg-slate-950 px-2 py-0.5 text-[9px] font-black text-white">{diwaniyaAdminRadar.missingLocation.length}</span>
                         </div>
                         <div className="max-h-[185px] overflow-auto space-y-1 pr-0.5">
                           {visibleMissingLocation.map((sq: any) => (
-                            <button
-                              key={`missing-name-${sq.id}`}
-                              type="button"
-                              onClick={() => selectRadarSquad(sq)}
-                              className={`block w-full truncate rounded-xl border px-2.5 py-1.5 text-right text-[11px] font-black transition ${String(activeMapSquadId) === String(sq.id) ? 'border-amber-300 bg-amber-50 text-slate-950' : 'border-slate-100 bg-white/75 text-slate-700 hover:border-amber-200 hover:bg-amber-50/50'}`}
-                              title={sq.name}
-                            >
-                              {sq.name}
-                            </button>
+                            <button key={`missing-name-${sq.id}`} type="button" onClick={() => selectRadarSquad(sq)} className={`block w-full truncate rounded-xl border px-2.5 py-1.5 text-right text-[11px] font-black transition ${String(activeMapSquadId) === String(sq.id) ? 'border-amber-300 bg-amber-50 text-slate-950' : 'border-slate-100 bg-white/75 text-slate-700 hover:border-amber-200 hover:bg-amber-50/50'}`} title={sq.name}>{sq.name}</button>
                           ))}
                         </div>
-                        {missingLocationTotalPages > 1 && (
-                          <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2 text-[10px] font-black text-slate-500">
-                            <button type="button" onClick={() => setMissingLocationPage((page) => Math.min(missingLocationTotalPages, page + 1))} disabled={missingLocationPage >= missingLocationTotalPages} className="rounded-lg border border-slate-200 bg-white px-2 py-1 disabled:opacity-40">التالي</button>
-                            <span>{Math.min(missingLocationPage, missingLocationTotalPages)} / {missingLocationTotalPages}</span>
-                            <button type="button" onClick={() => setMissingLocationPage((page) => Math.max(1, page - 1))} disabled={missingLocationPage <= 1} className="rounded-lg border border-slate-200 bg-white px-2 py-1 disabled:opacity-40">السابق</button>
-                          </div>
-                        )}
                       </div>
                     )}
-
                     {radarMapMode === 'heatmap' && (
-                      <div className="absolute inset-x-3 bottom-3 z-30 rounded-2xl border border-rose-100 bg-white/92 p-3 text-right shadow-sm backdrop-blur-md">
+                      <div className="absolute inset-x-3 bottom-3 z-[700] rounded-2xl border border-rose-100 bg-white/92 p-3 text-right shadow-sm backdrop-blur-md" dir="rtl">
                         <div className="flex items-center justify-end gap-2 font-black text-slate-800 text-xs"><span>حرارة النشاط</span><Activity className="w-4 h-4 text-rose-500" /></div>
-                        <p className="text-[10px] text-slate-500 leading-5 mt-1">الرقم هو عدد عناصر النشاط. حجم الدائرة فقط يوضح وزن النشاط.</p>
+                        <p className="text-[10px] text-slate-500 leading-5 mt-1">الرقم هو عدد عناصر النشاط. الخريطة الآن تفاعلية ويمكن تكبيرها وتحريكها.</p>
                       </div>
                     )}
-
-                    {radarMapMode === 'map' && visibleMapSquads.map((sq: any) => {
-                      const point = getClusterDisplayPoint(sq, visibleMapSquads);
-                      const range = getRadarRangePixels(sq);
-                      const isActive = String(activeMapSquadId) === String(sq.id);
-                      const isBusy = sq.presence.length > 0 || sq.pendingRequests.length > 0 || sq.openOrder;
-                      return (
-                        <span
-                          key={`range-${sq.id}`}
-                          className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border pointer-events-none transition-opacity ${isActive ? 'border-amber-400/70 bg-amber-300/12 opacity-100' : isBusy ? 'border-emerald-400/35 bg-emerald-300/10 opacity-70' : 'border-slate-400/25 bg-white/10 opacity-45'}`}
-                          style={{ left: point.x, top: point.y, width: range * 2, height: range * 2 }}
-                          title={`مدى الديوانية ${getSquadGeofenceDistance(sq)}م`}
-                        />
-                      );
-                    })}
-
-                    {radarMapMode === 'heatmap' && visibleHeatMapSquads.map((sq: any) => {
-                      const point = getClusterDisplayPoint(sq, visibleHeatMapSquads);
-                      return (
-                        <button
-                          type="button"
-                          key={`heat-${sq.id}`}
-                          className="absolute z-20 -translate-x-1/2 -translate-y-1/2 group"
-                          style={{ left: point.x, top: point.y }}
-                          onClick={() => selectRadarSquad(sq)}
-                          title={`${sq.name} - العدد: ${sq.heatValue || 0} | طلبات: ${sq.heatBreakdown?.orders || 0} | حضور: ${sq.heatBreakdown?.presence || 0} | انضمام: ${sq.heatBreakdown?.pending || 0} | أكواد: ${sq.heatBreakdown?.codes || 0}`}
-                        >
-                          <span
-                            className="absolute rounded-full bg-rose-400/35 border border-rose-300/50 blur-[1px] group-hover:bg-rose-500/45 transition-all"
-                            style={{ width: `${34 + (sq.heatLevel || 0.2) * 96}px`, height: `${34 + (sq.heatLevel || 0.2) * 96}px`, right: `${-17 - (sq.heatLevel || 0.2) * 48}px`, top: `${-17 - (sq.heatLevel || 0.2) * 48}px` }}
-                          />
-                          <span className="relative flex items-center justify-center w-6 h-6 rounded-full bg-rose-600 text-white border-2 border-white shadow-xl text-[9px] font-black">{sq.heatValue || 0}</span>
-                          {point.clusterCount > 1 && <span className="absolute -top-3 -right-3 flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-950 px-1.5 text-[9px] font-black text-white border border-white shadow-lg">{point.clusterCount}</span>}
-                          <span className={`pointer-events-none absolute bottom-full mb-2 max-w-[160px] truncate whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border bg-white text-slate-800 border-rose-200 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity ${point.x > radarMapSize.width * 0.62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'}`}>{sq.actualLocation ? sq.name : ''}</span>
-                        </button>
-                      );
-                    })}
-
-                    {radarMapMode === 'map' && visibleMapSquads.map((sq: any) => {
-                      const isActive = String(activeMapSquadId) === String(sq.id);
-                      const hasLocation = Boolean(sq.actualLocation);
-                      const hasPending = sq.pendingRequests.length > 0;
-                      const point = getClusterDisplayPoint(sq, visibleMapSquads);
-                      const isBusy = sq.presence.length > 0 || hasPending || sq.openOrder;
-                      return (
-                        <button
-                          type="button"
-                          key={sq.id}
-                          className={`absolute -translate-x-1/2 -translate-y-1/2 group text-right ${isActive ? 'z-40' : 'z-20'}`}
-                          style={{ left: point.x, top: point.y }}
-                          onClick={() => selectRadarSquad(sq)}
-                        >
-                          <span className={`absolute -inset-4 rounded-full blur-md transition-all ${hasPending ? 'bg-amber-400/30 animate-pulse' : hasLocation ? 'bg-emerald-400/20' : 'bg-rose-400/20'} ${isActive ? 'scale-125' : 'scale-100'}`} />
-                          <span className={`relative flex items-center justify-center rounded-full border-2 shadow-lg transition-all ${isBusy ? 'w-6 h-6 animate-pulse' : 'w-5 h-5'} ${isActive ? 'scale-125 bg-slate-950 border-amber-300' : hasLocation ? 'bg-emerald-500 border-white' : 'bg-slate-400 border-white'}`}>
-                            <span className="w-1.5 h-1.5 bg-white rounded-full" />
-                          </span>
-                          {point.clusterCount > 1 && <span className="absolute -top-4 -right-4 flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-950 px-1.5 text-[9px] font-black text-white border border-white shadow-lg">{point.clusterCount}</span>}
-                          <span className={`pointer-events-none absolute bottom-full mb-2 max-w-[160px] truncate whitespace-nowrap text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border transition-opacity ${point.x > radarMapSize.width * 0.62 ? 'right-0 translate-x-0' : 'left-1/2 -translate-x-1/2'} ${isActive ? 'opacity-100 bg-slate-950 text-white border-amber-300' : 'opacity-0 group-hover:opacity-100 group-focus:opacity-100 bg-white text-slate-800 border-slate-200 group-hover:border-amber-300'}`}>
-                            {hasLocation ? sq.name : ''}
-                            {hasPending && hasLocation ? <span className="mr-1 text-amber-500">• {sq.pendingRequests.length}</span> : null}
-                            {point.clusterCount > 1 ? <span className="mr-1 text-slate-400">مجموعة {point.clusterIndex + 1}/{point.clusterCount}</span> : null}
-                          </span>
-                        </button>
-                      );
-                    })}
                   </div>
                 </div>
 
