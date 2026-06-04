@@ -20,6 +20,7 @@ type Marker = {
 };
 
 const KUWAIT_CENTER = { lat: 29.32, lng: 47.55 };
+const KUWAIT_BOUNDS: [[number, number], [number, number]] = [[28.52, 46.48], [30.10, 48.65]];
 
 const loadLeaflet = () => {
   if (typeof window === 'undefined') return Promise.resolve(null);
@@ -74,6 +75,7 @@ const LeafletKuwaitMap: React.FC<{
   const layerRef = useRef<any>(null);
   const lastViewRef = useRef<string>('');
   const lastBoundsKeyRef = useRef<string>('');
+  const didSetInitialKuwaitViewRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,19 +95,18 @@ const LeafletKuwaitMap: React.FC<{
           zoomDelta: 0.5,
           attributionControl: true,
         });
-        lastViewRef.current = `${center.lat}:${center.lng}:${zoom}`;
+        lastViewRef.current = 'kuwait-full-initial';
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: attributionPrefix || '© OpenStreetMap contributors',
         }).addTo(mapRef.current);
         mapRef.current.createPane('alturath-glow');
         mapRef.current.getPane('alturath-glow').style.zIndex = 420;
+        mapRef.current.fitBounds(KUWAIT_BOUNDS, { padding: [18, 18], animate: false, maxZoom: 8 });
+        didSetInitialKuwaitViewRef.current = true;
       } else {
-        const viewKey = `${center.lat}:${center.lng}:${zoom}`;
-        if (lastViewRef.current !== viewKey) {
-          mapRef.current.setView([center.lat, center.lng], zoom, { animate: true });
-          lastViewRef.current = viewKey;
-        }
+        // Preserve the user's current zoom/pan after the initial full-Kuwait view.
+        // The parent may re-render while selecting markers; do not auto-recenter and confuse the map.
       }
       if (!layerRef.current) layerRef.current = L.layerGroup().addTo(mapRef.current);
       layerRef.current.clearLayers();
@@ -134,7 +135,7 @@ const LeafletKuwaitMap: React.FC<{
         });
       });
       const boundsKey = bounds.map((point) => `${Number(point[0]).toFixed(5)},${Number(point[1]).toFixed(5)}`).sort().join('|');
-      if (fitToMarkers && bounds.length > 1 && lastBoundsKeyRef.current !== boundsKey) {
+      if (fitToMarkers && bounds.length > 1 && !didSetInitialKuwaitViewRef.current && lastBoundsKeyRef.current !== boundsKey) {
         mapRef.current.fitBounds(bounds, { padding: [42, 42], maxZoom: zoom + 2, animate: false });
         lastBoundsKeyRef.current = boundsKey;
       }
