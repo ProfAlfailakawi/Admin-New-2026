@@ -70,6 +70,8 @@ const LeafletKuwaitMap: React.FC<{
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const layerRef = useRef<any>(null);
+  const lastViewRef = useRef<string>('');
+  const lastBoundsKeyRef = useRef<string>('');
 
   useEffect(() => {
     let cancelled = false;
@@ -81,8 +83,12 @@ const LeafletKuwaitMap: React.FC<{
           zoom,
           zoomControl: true,
           scrollWheelZoom: true,
+          touchZoom: true,
+          dragging: true,
+          tap: true,
           attributionControl: true,
         });
+        lastViewRef.current = `${center.lat}:${center.lng}:${zoom}`;
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: attributionPrefix || '© OpenStreetMap contributors',
@@ -90,7 +96,11 @@ const LeafletKuwaitMap: React.FC<{
         mapRef.current.createPane('alturath-glow');
         mapRef.current.getPane('alturath-glow').style.zIndex = 420;
       } else {
-        mapRef.current.setView([center.lat, center.lng], zoom, { animate: true });
+        const viewKey = `${center.lat}:${center.lng}:${zoom}`;
+        if (lastViewRef.current !== viewKey) {
+          mapRef.current.setView([center.lat, center.lng], zoom, { animate: true });
+          lastViewRef.current = viewKey;
+        }
       }
       if (!layerRef.current) layerRef.current = L.layerGroup().addTo(mapRef.current);
       layerRef.current.clearLayers();
@@ -112,10 +122,17 @@ const LeafletKuwaitMap: React.FC<{
         const m = L.marker(point, { icon: buildIcon(L, marker), title: marker.name }).addTo(layerRef.current);
         const valueLine = marker.value !== undefined ? `<div style="color:#d97706;font-weight:900;margin-top:2px">${Number(marker.value || 0).toFixed(2)} د.ك</div>` : '';
         m.bindTooltip(`<div dir="rtl" style="text-align:right;font-family:system-ui;font-weight:800">${marker.name}${marker.subtitle ? `<div style="color:#64748b;font-size:11px;margin-top:2px">${marker.subtitle}</div>` : ''}${valueLine}</div>`, { direction: 'top', offset: [0, -16], opacity: 0.96 });
-        if (onMarkerClick) m.on('click', () => onMarkerClick(marker));
+        if (onMarkerClick) m.on('click', (event: any) => {
+          if (event?.originalEvent?.stopPropagation) event.originalEvent.stopPropagation();
+          onMarkerClick(marker);
+        });
       });
-      if (fitToMarkers && bounds.length > 1) mapRef.current.fitBounds(bounds, { padding: [42, 42], maxZoom: zoom + 2 });
-      setTimeout(() => mapRef.current?.invalidateSize(), 80);
+      const boundsKey = bounds.map((point) => `${Number(point[0]).toFixed(5)},${Number(point[1]).toFixed(5)}`).sort().join('|');
+      if (fitToMarkers && bounds.length > 1 && lastBoundsKeyRef.current !== boundsKey) {
+        mapRef.current.fitBounds(bounds, { padding: [42, 42], maxZoom: zoom + 2, animate: false });
+        lastBoundsKeyRef.current = boundsKey;
+      }
+      setTimeout(() => mapRef.current?.invalidateSize({ pan: false }), 80);
     }).catch(() => {});
     return () => { cancelled = true; };
   }, [markers, center.lat, center.lng, zoom, showRange, onMarkerClick, attributionPrefix, fitToMarkers]);
