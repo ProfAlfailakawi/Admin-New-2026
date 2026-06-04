@@ -1229,7 +1229,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 >
                   {/* FULLY CLIPPED IMAGE CONTAINER WITH SPOTLIGHT LUXURY CONTRAST OVERLAYS */}
                   <div 
-                    className="admin-product-media w-full h-[140px] overflow-hidden relative bg-slate-950 border-b border-slate-800 group/img isolate"
+                    className="admin-product-media w-full h-[155px] overflow-hidden relative bg-slate-950 border-b border-slate-800 group/img isolate"
                     style={{ borderRadius: '24px 24px 0 0' }}
                   >
                     {/* Cinematic dark linear & radial gradient spotlight highlights */}
@@ -1257,7 +1257,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     )}
                     
                     {/* Modern Status Badge (Top-Left) */}
-                    <div className="admin-product-quick-actions absolute top-2.5 left-2.5 z-30 flex flex-col gap-2">
+                    <div className="admin-product-quick-actions absolute top-2 left-2 z-30 flex flex-col gap-1.5">
                        <button 
                          title={product.isOutOfStock ? 'إتاحة المنتج للبيع' : 'إيقاف البيع (نفدت الكمية)'}
                          onClick={(e) => {
@@ -1337,7 +1337,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     </div>
 
                     {/* Marketing Badges (Top Right) */}
-                    <div className="admin-product-badges absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end z-10 max-w-[50%]">
+                    <div className="admin-product-badges absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end z-10 max-w-[calc(100%-48px)]">
                       {isSlow && (
                         <span 
                           title="هذا المنتج حركته بطيئة مقارنة بباقي المنتجات"
