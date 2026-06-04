@@ -204,7 +204,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
             // Since we use window.location.pathname for routing, we need to force a re-render
             // or just trigger the URL sync logic.
             window.location.reload(); 
-        }, 2500);
+        }, 700);
     };
 
     if (isExplicitFail) {
@@ -240,9 +240,10 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
        }
 
        if (!isExplicitFail) {
-         fetch('/api/invoice/confirm', {
-             method: 'POST',
-             signal: AbortSignal.timeout(10000), // 10s timeout
+	         fetch('/api/invoice/confirm', {
+	             method: 'POST',
+	             cache: 'no-store',
+	             signal: AbortSignal.timeout(10000), // 10s timeout
              headers: { 'Content-Type': 'application/json' },
              body: JSON.stringify({
                paymentId: actualPaymentId || actualTrackId || actualGatewayOrderId || 'check_by_invoice',
@@ -1180,9 +1181,10 @@ const MainApp: React.FC = () => {
           let failed = false;
           let verificationData: any = null;
 
-          const res = await fetch('/api/invoice/confirm', {
-            method: 'POST',
-            signal: AbortSignal.timeout(10000),
+	          const res = await fetch('/api/invoice/confirm', {
+	            method: 'POST',
+	            cache: 'no-store',
+	            signal: AbortSignal.timeout(10000),
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
@@ -1739,6 +1741,7 @@ const MainApp: React.FC = () => {
   const authoritativeDataWrittenAtRef = useRef<number>(0);
 
   const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
+  const BOOT_DEFERRED_SHARDED_KEYS = ['pulseAnalysisHistory', 'pulseReviews', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
 
   // Google/Looker Studio was originally reading the root appData/shared_company_data document.
   // The app now uses shards for speed and to avoid Firestore document-size limits, but Studio
@@ -2216,7 +2219,7 @@ const MainApp: React.FC = () => {
       // This avoids slow browser Firestore shard reads on first entry and keeps Admin/Order on the same source.
       try {
         isCloudSyncApplyingRef.current = true;
-        const fastRes = await fetch('/api/appdata/full', { cache: 'no-store' });
+        const fastRes = await fetch('/api/appdata/full?profile=boot', { cache: 'no-store' });
         if (fastRes.ok) {
           const fastPayload = await fastRes.json();
           if (fastPayload?.success && fastPayload?.data) {
@@ -2246,6 +2249,45 @@ const MainApp: React.FC = () => {
               setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
               setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
             } catch {}
+
+            const deferredKeys = Array.isArray(fastPayload.deferredShardKeys)
+              ? fastPayload.deferredShardKeys.filter((key: string) => BOOT_DEFERRED_SHARDED_KEYS.includes(key))
+              : [];
+            if (deferredKeys.length > 0) {
+              window.setTimeout(async () => {
+                try {
+                  const fullRes = await fetch('/api/appdata/full?profile=full', { cache: 'no-store' });
+                  if (!fullRes.ok) return;
+                  const fullPayload = await fullRes.json();
+                  if (!fullPayload?.success || !fullPayload?.data) return;
+                  const fullState: any = joinProductsFromDatabase({ ...INITIAL_DATA, ...fullPayload.data });
+                  const deferredPatch: any = {};
+                  deferredKeys.forEach((key: string) => {
+                    if ((fullState as any)[key] !== undefined) {
+                      deferredPatch[key] = (fullState as any)[key];
+                      loadedCloudShardKeysRef.current.add(key);
+                      lastRemoteKeysRef.current[key] = stableStringify((fullState as any)[key]);
+                    }
+                  });
+                  if (Object.keys(deferredPatch).length === 0) return;
+                  setData(prev => {
+                    const metaPatch: any = {};
+                    if (fullState.__adminDataGenerationId) metaPatch.__adminDataGenerationId = fullState.__adminDataGenerationId;
+                    if (fullState.__adminLastAuthoritativeWriteAt) metaPatch.__adminLastAuthoritativeWriteAt = fullState.__adminLastAuthoritativeWriteAt;
+                    const merged = recalculateStateBalances({ ...prev, ...deferredPatch, ...metaPatch });
+                    const mergedSnapshot = JSON.stringify(merged);
+                    lastRemoteSnapshotRef.current = mergedSnapshot;
+                    try {
+                      setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', mergedSnapshot);
+                      setProtectedStorageItem('ktk_cloud_offline_snapshot', mergedSnapshot);
+                    } catch {}
+                    return merged;
+                  });
+                } catch (backgroundLoadErr) {
+                  console.warn('[FAST_APPDATA] Deferred shard background load failed:', backgroundLoadErr);
+                }
+              }, 80);
+            }
             isCloudSyncApplyingRef.current = false;
             hasLoadedDataRef.current = true;
             setDataLoading(false);

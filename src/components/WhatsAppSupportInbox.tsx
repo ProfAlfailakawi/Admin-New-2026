@@ -170,11 +170,9 @@ export default function WhatsAppSupportInbox() {
       const liveConversations = json.conversations || [];
       const nextConversations = liveConversations.length ? liveConversations : WHATSAPP_DEMO_CONVERSATIONS;
       setConversations(nextConversations);
-      if (!selectedPhone && nextConversations?.[0]?.phone) setSelectedPhone(nextConversations[0].phone);
       setError('');
     } catch (e: any) {
       setConversations(WHATSAPP_DEMO_CONVERSATIONS);
-      if (!selectedPhone) setSelectedPhone(WHATSAPP_DEMO_CONVERSATIONS[0].phone);
       setError(`${e?.message || 'تعذر الاتصال بخدمة واتساب'} — يتم عرض بيانات تجريبية فقط.`);
     } finally {
       setLoading(false);
@@ -292,7 +290,7 @@ export default function WhatsAppSupportInbox() {
 
   return (
     <div dir="rtl" className="min-h-[calc(100vh-120px)] text-slate-900">
-      <div className="mb-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+      <div className="mb-4 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-100 px-4 py-2 text-emerald-700 text-xs font-bold mb-3">
             <Sparkles size={14} /> مركز واتساب الذكي
@@ -314,8 +312,8 @@ export default function WhatsAppSupportInbox() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[390px_1fr_310px] gap-5 h-[calc(100vh-230px)] min-h-[650px]">
-        <section className="rounded-[2rem] bg-white border border-slate-100 shadow-xl overflow-hidden flex flex-col">
+      <div className="grid grid-cols-1 xl:grid-cols-[370px_1fr_290px] gap-4 h-[calc(100vh-210px)] min-h-[620px] whatsapp-support-workspace">
+        <section className="rounded-3xl bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col">
           <div className="p-4 border-b border-slate-100 space-y-3">
             <div className="flex items-center gap-2 rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2">
               <Search size={18} className="text-slate-400" />
@@ -332,7 +330,7 @@ export default function WhatsAppSupportInbox() {
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {loading ? <div className="h-full flex items-center justify-center text-slate-400"><Loader2 className="animate-spin" /></div> : filtered.length ? filtered.map((c) => (
-              <button key={c.phone || c.id} onClick={() => setSelectedPhone(c.phone || c.id)} className={cn('w-full text-right rounded-3xl p-4 border transition group', selectedPhone === (c.phone || c.id) ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white hover:bg-slate-50 border-slate-100')}>
+              <button key={c.phone || c.id} onClick={() => setSelectedPhone(c.phone || c.id)} className={cn('w-full text-right rounded-2xl p-4 border transition group', selectedPhone === (c.phone || c.id) ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white hover:bg-slate-50 border-slate-100')}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-black truncate flex items-center gap-2"><UserRound size={16} /> {c.customerName || c.phone}</div>
@@ -350,7 +348,7 @@ export default function WhatsAppSupportInbox() {
           </div>
         </section>
 
-        <section className="rounded-[2rem] bg-white border border-slate-100 shadow-xl overflow-hidden flex flex-col">
+        <section className="rounded-3xl bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col">
           {selected ? (
             <>
               <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-l from-white to-slate-50">
@@ -398,7 +396,7 @@ export default function WhatsAppSupportInbox() {
           )}
         </section>
 
-        <aside className="rounded-[2rem] bg-slate-950 text-white shadow-xl overflow-hidden p-5 flex flex-col gap-4">
+        <aside className="rounded-3xl bg-slate-950 text-white shadow-md overflow-hidden p-4 flex flex-col gap-4">
           <div className="rounded-3xl bg-white/10 border border-white/10 p-4">
             <div className="flex items-center gap-2 font-black"><ShieldCheck className="text-emerald-400" /> سياسة التشغيل</div>
             <p className="text-white/60 text-sm leading-7 mt-3">البوت يرد تلقائيًا على الطلبات والتتبع والمنتجات. عند اختيار الدعم تنتقل المحادثة للوضع اليدوي ولا يزعج العميل بردود متكررة.</p>

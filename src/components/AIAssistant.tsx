@@ -437,14 +437,19 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 	  { label: 'طلع فرصة بيع', prompt: 'من منتجاتي وفواتيري الحالية، اختر منتج واحد يستاهل حملة اليوم، واشرح لي ليش، واكتب نص حملة قصير.' },
 	  { label: 'فسّر الربح', prompt: 'حلل ربح مطعمي وهامشه من البيانات الحالية، وقل لي قرار واحد يحسن الربح اليوم بدون تخفيض عشوائي.' },
 	 ];
-   const decisionCards = [
-    { title: 'قرار الآن', text: pageDecision.decision || 'افتح أهم رقم في الصفحة الحالية.', prompt: 'اعطني قرار الآن في سطرين: الدليل والإجراء.' },
-    { title: 'الدليل', text: pageDecision.proof || intel.dataFreshness, prompt: 'اختصر لي الدليل من البيانات بدون شرح طويل.' },
-    { title: 'فرصة سريعة', text: intel.hiddenGem !== 'لا يوجد' ? intel.hiddenGem : `متوسط الطلب ${money(intel.avgOrderValue)} د.ك`, prompt: 'طلع لي فرصة بيع واحدة اليوم مع نص واتساب قصير.' },
-    { title: 'تنبيه هادئ', text: intel.failedOrders > 0 ? `${intel.failedOrders} فشل دفع` : intel.pendingOrders > 0 ? `${intel.pendingOrders} بانتظار الدفع` : 'لا يوجد خطر واضح الآن', prompt: 'رتب لي أهم تنبيه تشغيلي في سطرين فقط.' },
-   ];
+	   const decisionCards = [
+	    { title: 'قرار الآن', text: pageDecision.decision || 'افتح أهم رقم في الصفحة الحالية.', prompt: 'اعطني قرار الآن في سطرين: الدليل والإجراء.' },
+	    { title: 'الدليل', text: pageDecision.proof || intel.dataFreshness, prompt: 'اختصر لي الدليل من البيانات بدون شرح طويل.' },
+	    { title: 'فرصة سريعة', text: intel.hiddenGem !== 'لا يوجد' ? intel.hiddenGem : `متوسط الطلب ${money(intel.avgOrderValue)} د.ك`, prompt: 'طلع لي فرصة بيع واحدة اليوم مع نص واتساب قصير.' },
+	    { title: 'تنبيه هادئ', text: intel.failedOrders > 0 ? `${intel.failedOrders} فشل دفع` : intel.pendingOrders > 0 ? `${intel.pendingOrders} بانتظار الدفع` : 'لا يوجد خطر واضح الآن', prompt: 'رتب لي أهم تنبيه تشغيلي في سطرين فقط.' },
+	   ];
+	   const resultNotices = [
+	    { tone: 'success', icon: <CheckCircle2 size={16} />, title: 'حالة البيانات', text: intel.dataFreshness },
+	    { tone: intel.pendingOrders > 0 ? 'warning' : 'success', icon: <Clock3 size={16} />, title: 'الدفع', text: intel.pendingOrders > 0 ? `${intel.pendingOrders} طلب بانتظار الدفع` : 'لا توجد طلبات دفع معلقة واضحة' },
+	    { tone: intel.failedOrders > 0 ? 'risk' : 'success', icon: <AlertCircle size={16} />, title: 'الاستقرار', text: intel.failedOrders > 0 ? `${intel.failedOrders} عملية دفع تحتاج متابعة` : 'لا توجد عمليات دفع فاشلة واضحة' },
+	   ];
 
- return (
+	 return (
 	 <div className="ai-executive-assistant-shell animate-in fade-in slide-in-from-bottom-4 duration-700" dir="rtl">
 
     <section className="ai-decision-deck" aria-label="لوحة قرار مختصرة">
@@ -474,8 +479,19 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 	  </section>
 	  )}
 
-	  <section className="ai-executive-console">
-    <div className="ai-executive-messages custom-scrollbar">
+		  <section className="ai-executive-console">
+	    <div className="ai-result-notices" aria-live="polite">
+	      {resultNotices.map((notice) => (
+	        <div key={notice.title} className={cn('ai-result-notice', `is-${notice.tone}`)}>
+	          <span>{notice.icon}</span>
+	          <div>
+	            <strong>{notice.title}</strong>
+	            <small>{notice.text}</small>
+	          </div>
+	        </div>
+	      ))}
+	    </div>
+	    <div className="ai-executive-messages custom-scrollbar">
       <AnimatePresence initial={false}>
         {(messages || []).map((m, i) => (
           <motion.div
