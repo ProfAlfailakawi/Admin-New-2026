@@ -28,6 +28,46 @@ interface Props {
  onCloudImport?: (importedState: AppState) => Promise<boolean>;
 }
 
+const WHATSAPP_QUICK_REPLIES_STORAGE_KEY = 'alturath_whatsapp_quick_replies_v1';
+const WHATSAPP_QUICK_REPLIES_SHEET = 'WhatsAppQuickReplies';
+
+const readWhatsAppQuickRepliesForBackup = () => {
+  if (typeof window === 'undefined') return [] as any[];
+  try {
+    const raw = window.localStorage.getItem(WHATSAPP_QUICK_REPLIES_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item: any) => item && typeof item.title === 'string' && typeof item.text === 'string')
+      .map((item: any, index: number) => ({
+        id: String(item.id || `quick-reply-${index + 1}`),
+        title: item.title,
+        text: item.text,
+        order: index + 1,
+      }));
+  } catch {
+    return [] as any[];
+  }
+};
+
+const restoreWhatsAppQuickRepliesFromBackup = (rows: any[]) => {
+  if (typeof window === 'undefined' || !Array.isArray(rows)) return 0;
+  const cleaned = rows
+    .map((row: any, index: number) => ({
+      id: String(row.id || `qr-import-${Date.now()}-${index}`),
+      title: String(row.title || '').trim(),
+      text: String(row.text || '').trim(),
+    }))
+    .filter((item: any) => item.title && item.text);
+  if (!cleaned.length) return 0;
+  try {
+    window.localStorage.setItem(WHATSAPP_QUICK_REPLIES_STORAGE_KEY, JSON.stringify(cleaned));
+    return cleaned.length;
+  } catch {
+    return 0;
+  }
+};
+
 const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, addToast, onCloudImport }) => {
  const [settings, setSettingsState] = useState<AppSettings>(data?.settings || INITIAL_DATA.settings);
   
@@ -424,6 +464,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.diwaniyaTiers || []),"DiwaniyaTiers");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.aiLearningMemory || []),"SmartLearningMemory");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((data as any)?.notifications || []),"Notifications");
+ const whatsappQuickRepliesForBackup = readWhatsAppQuickRepliesForBackup();
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(whatsappQuickRepliesForBackup), WHATSAPP_QUICK_REPLIES_SHEET);
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([((data as any)?.loyaltySettings || {})]),"LoyaltySettings");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([((data as any)?.activeGoal || {})]),"ActiveGoal");
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([((data as any)?.settings || {})]),"Settings");
@@ -435,7 +477,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const fullStateChunks = fullStateJson.match(/[\s\S]{1,30000}/g) || ['{}'];
  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fullStateChunks.map((chunk, index) => ({ part: index + 1, chunk }))), "FullState");
 
- XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ exportedAt: new Date().toISOString(), invoices: invoiceRows.length, invoiceItems: invoiceItems.length, customers: customerRows.length, payers: payerRows.length, orders: orderRows.length, products: (data?.products || []).length, suppliers: (data?.suppliers || []).length, expenses: (data?.expenses || []).length, exportedSheets: (Array.isArray(wb.SheetNames) ? wb.SheetNames : []).join(', ') }]),"Summary");
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ exportedAt: new Date().toISOString(), invoices: invoiceRows.length, invoiceItems: invoiceItems.length, customers: customerRows.length, payers: payerRows.length, orders: orderRows.length, products: (data?.products || []).length, suppliers: (data?.suppliers || []).length, expenses: (data?.expenses || []).length, whatsappQuickReplies: whatsappQuickRepliesForBackup.length, exportedSheets: (Array.isArray(wb.SheetNames) ? wb.SheetNames : []).join(', ') }]),"Summary");
  XLSX.writeFile(wb, `KTK_Full_Backup_${new Date().toISOString().split('T')[0]}.xlsx`);
  };
 
@@ -502,7 +544,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   const workbook = XLSX.read(dataArray, { type: 'array' });
   
   // VALIDATE XLSX is actually a KT backup (must contain at least one known sheet)
-  const knownSheets = ["FullState", "Invoices", "Products", "Orders", "Customers", "Summary", "Expenses"];
+  const knownSheets = ["FullState", "Invoices", "Products", "Orders", "Customers", "Summary", "Expenses", WHATSAPP_QUICK_REPLIES_SHEET];
   const hasKnownSheet = workbook.SheetNames.some(s => knownSheets.includes(s));
   if (!hasKnownSheet) {
       addToast('فشل الاستيراد', 'ملف Excel غير متوافق. الرجاء رفع نسخة احتياطية صحيحة.', 'warning');
@@ -653,6 +695,10 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   settings: (workbook.SheetNames.includes("Settings") ? (safeSheetToObj("Settings") as any[])[0] as any : null) || baseState.settings || data.settings || INITIAL_DATA.settings,
   };
  
+ const restoredWhatsAppQuickRepliesCount = workbook.SheetNames.includes(WHATSAPP_QUICK_REPLIES_SHEET)
+   ? restoreWhatsAppQuickRepliesFromBackup(safeSheetToObj(WHATSAPP_QUICK_REPLIES_SHEET) as any[])
+   : 0;
+ 
  if (workbook.SheetNames.includes("Invoices")) {
  const invoiceItemsRows = safeSheetToObj("InvoiceItems") as any[];
  const invoiceItemsByInvoice = new Map<string, any[]>();
@@ -726,7 +772,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     addToast('جاري الرفع سحابياً', 'يتم رفع ومزامنة بيانات Excel سحابياً...', 'info');
     onCloudImport(finalizedState)
       .then(() => {
-        addToast('تمت العملية', 'تم استيراد بيانات Excel ومزامنتها سحابياً بنجاح ✨', 'success');
+        addToast('تمت العملية', `تم استيراد بيانات Excel ومزامنتها سحابياً بنجاح ✨${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ''}`, 'success');
       })
       .catch((err) => {
         console.error("Cloud Excel import failed:", err);
@@ -742,7 +788,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
       });
   } else {
     setData(finalizedState);
-    addToast('تمت العملية', 'تم استيراد بيانات Excel ومزامنة الأرصدة محلياً بنجاح', 'success');
+    addToast('تمت العملية', `تم استيراد بيانات Excel ومزامنة الأرصدة محلياً بنجاح${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ''}`, 'success');
   }
  } catch (renderError) {
   console.error("CRITICAL RENDER ERROR during import:", renderError);
