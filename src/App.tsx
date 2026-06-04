@@ -734,6 +734,7 @@ const getAdminPageMeta = (page: string) => {
     'growth-simulator': { title: 'محاكي النمو والتسويق', subtitle: 'سيناريوهات ماذا لو للمبيعات والربح والمخاطر.', tag: 'Growth Simulator Pro' },
     'profit-guard': { title: 'المالية وحماية الأرباح', subtitle: 'درع الربح: المبيعات، المصروفات، الهامش، النزيف، والفرص.', tag: 'Profit Shield' },
     diwaniya: { title: 'بطولات الديوانية', subtitle: 'لوحة بطولات ناعمة للترتيب والنقاط والجوائز.', tag: 'Tournament Board' },
+    'whatsapp-support': { title: 'مركز واتساب الذكي', subtitle: '', tag: 'WhatsApp Center' },
     settings: { title: 'الإعدادات العامة', subtitle: 'هوية المتجر، التشغيل، التوصيل، النظام، والحساب في بطاقات هادئة.', tag: 'General Settings' },
   };
   return map[page] || { title: 'مركز الإدارة', subtitle: 'واجهة موحدة وقرارات واضحة.', tag: 'Admin System' };
@@ -2550,7 +2551,6 @@ const MainApp: React.FC = () => {
                   shardedPayloadsToSave[key] = currentVal;
                 } else if (dangerousEmptyOverwrite) {
                   console.warn(`[DATA_GUARD] Prevented empty overwrite for shard '${key}'. Keeping existing cloud data safe.`);
-                  toast.warning('تم منع حفظ قائمة فارغة حتى لا تُحذف البيانات بالخطأ.');
                 }
               }
             }
@@ -3157,7 +3157,7 @@ const MainApp: React.FC = () => {
                         onClick={() => { setCurrentPage('customers'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
-                        label="دعم واتساب"
+                        label="مركز واتساب الذكي"
                         icon={<MessageSquare size={16} />}
                         active={currentPage === 'whatsapp-support'} 
                         onClick={() => { setCurrentPage('whatsapp-support'); setSidebarOpen(false); }}
