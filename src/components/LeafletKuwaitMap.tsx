@@ -19,7 +19,7 @@ type Marker = {
   html?: string;
 };
 
-const KUWAIT_CENTER = { lat: 29.25, lng: 47.9 };
+const KUWAIT_CENTER = { lat: 29.32, lng: 47.55 };
 
 const loadLeaflet = () => {
   if (typeof window === 'undefined') return Promise.resolve(null);
@@ -68,7 +68,7 @@ const LeafletKuwaitMap: React.FC<{
   showRange?: boolean;
   attributionPrefix?: string;
   fitToMarkers?: boolean;
-}> = ({ markers, center = KUWAIT_CENTER, zoom = 10, heightClassName = 'h-[560px]', dark = false, onMarkerClick, showRange = false, attributionPrefix, fitToMarkers = true }) => {
+}> = ({ markers, center = KUWAIT_CENTER, zoom = 8.35, heightClassName = 'h-[560px]', dark = false, onMarkerClick, showRange = false, attributionPrefix, fitToMarkers = false }) => {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const layerRef = useRef<any>(null);
