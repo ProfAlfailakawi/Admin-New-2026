@@ -1130,14 +1130,51 @@ const MainApp: React.FC = () => {
   
   const [data, setData] = useState<AppState>(INITIAL_DATA);
 
-  const isVisibleSmartNotification = (n: any) => !n?.title?.includes('درع') && !n?.title?.includes('مجبوس دجاج');
-  const isUnreadSmartNotification = (n: any) => isVisibleSmartNotification(n) && n?.read !== true;
-  const hasUnreadSmartNotifications = useMemo(() => (data?.notifications || []).some(isUnreadSmartNotification), [data?.notifications]);
+  const SMART_NOTIFICATION_SEEN_STORAGE_KEY = 'alturath_seen_smart_notification_keys_v2';
+  const getSmartNotificationKey = (n: any) => String(n?.id || `${n?.title || ''}|${n?.message || ''}|${n?.date || ''}`);
+  const loadSeenSmartNotificationKeys = () => {
+    if (typeof window === 'undefined') return new Set<string>();
+    try {
+      const raw = window.localStorage.getItem(SMART_NOTIFICATION_SEEN_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return new Set<string>(Array.isArray(parsed) ? parsed.map(String) : []);
+    } catch {
+      return new Set<string>();
+    }
+  };
+  const saveSeenSmartNotificationKeys = (keys: Set<string>) => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(SMART_NOTIFICATION_SEEN_STORAGE_KEY, JSON.stringify(Array.from(keys).slice(-500)));
+    } catch {}
+  };
+  const [seenSmartNotificationKeys, setSeenSmartNotificationKeys] = useState<Set<string>>(() => loadSeenSmartNotificationKeys());
 
-  // عند فتح لوحة التنبيهات يعتبر المستخدم أنه شاهد التنبيهات الظاهرة،
-  // لذلك نخفي النقطة الحمراء فورًا ونحفظ حالة القراءة عبر نظام الحفظ الحالي.
+  const isVisibleSmartNotification = (n: any) => !n?.title?.includes('درع') && !n?.title?.includes('مجبوس دجاج');
+  const isUnreadSmartNotification = (n: any) => {
+    if (!isVisibleSmartNotification(n)) return false;
+    if (n?.read === true) return false;
+    return !seenSmartNotificationKeys.has(getSmartNotificationKey(n));
+  };
+  const markSmartNotificationsSeenLocally = (notifications: any[]) => {
+    const visibleKeys = (notifications || []).filter(isVisibleSmartNotification).map(getSmartNotificationKey);
+    if (!visibleKeys.length) return;
+    setSeenSmartNotificationKeys(prev => {
+      const next = new Set(prev);
+      visibleKeys.forEach(key => next.add(key));
+      saveSeenSmartNotificationKeys(next);
+      return next;
+    });
+  };
+  const hasUnreadSmartNotifications = useMemo(() => (data?.notifications || []).some(isUnreadSmartNotification), [data?.notifications, seenSmartNotificationKeys]);
+
+  // عند فتح لوحة التنبيهات يعتبر المستخدم أنه شاهد التنبيهات الظاهرة.
+  // نحفظ المشاهدة محليًا أيضًا حتى لا ترجع النقطة الحمراء عند إعادة فتح الموقع
+  // إذا لم توجد تنبيهات جديدة فعلًا.
   useEffect(() => {
     if (!notifOpen) return;
+    const currentNotifications = data?.notifications || [];
+    markSmartNotificationsSeenLocally(currentNotifications);
     setData(prev => {
       const notifications = prev?.notifications || [];
       let changed = false;
@@ -3397,6 +3434,8 @@ const MainApp: React.FC = () => {
                            <button 
                              onClick={(e) => {
                                  e.stopPropagation();
+                                 const currentNotifications = data?.notifications || [];
+                                 markSmartNotificationsSeenLocally(currentNotifications);
                                  setData(prev => ({
                                      ...prev,
                                      notifications: (prev?.notifications || []).map(n => ({ ...n, read: true }))
@@ -3415,6 +3454,7 @@ const MainApp: React.FC = () => {
                             key={notif.id} 
                             onClick={(e) => {
                                 e.stopPropagation();
+                                markSmartNotificationsSeenLocally([notif]);
                                 setData(prev => ({
                                     ...prev,
                                     notifications: (prev?.notifications || []).map(n => n.id === notif.id ? { ...n, read: true } : n)
@@ -3446,7 +3486,7 @@ const MainApp: React.FC = () => {
                             }}
                             className={cn(
                                 "p-3 rounded-xl mb-1 transition-all cursor-pointer hover:bg-slate-50 border border-transparent",
-                                notif.read ? "opacity-60 bg-white" : "bg-primary/5 border-primary/10 shadow-sm"
+                                !isUnreadSmartNotification(notif) ? "opacity-60 bg-white" : "bg-primary/5 border-primary/10 shadow-sm"
                             )}
                           >
                             <div className="flex items-start gap-3">
@@ -3466,7 +3506,7 @@ const MainApp: React.FC = () => {
                                   {formatKuwaitiDateOnly(notif.date)}
                                 </div>
                               </div>
-                              {!notif.read && (
+                              {isUnreadSmartNotification(notif) && (
                                 <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0 mt-1 animate-pulse" />
                               )}
                             </div>
