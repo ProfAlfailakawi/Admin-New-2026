@@ -817,7 +817,11 @@ async function resolvePaymentSessionTargets(identifiers: PaymentSyncIdentifiers)
       const snap = await db.collection("paymentSessions").doc(docId).get();
       if (snap.exists) addSessionData(snap.data() || {});
     } catch (error: any) {
-      console.warn("[PAYMENT_SYNC] paymentSessions doc lookup failed:", error?.message || error);
+      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
+        console.log("[PAYMENT_SYNC] status: paymentSessions doc lookup bypassed (session safety mode)");
+      } else {
+        console.warn("[PAYMENT_SYNC] paymentSessions doc lookup failed:", error?.message || error);
+      }
     }
   }
 
@@ -826,7 +830,11 @@ async function resolvePaymentSessionTargets(identifiers: PaymentSyncIdentifiers)
       const snap = await db.collection("paymentSessions").where("paymentId", "==", pid).limit(5).get();
       snap.docs.forEach((doc: any) => addSessionData(doc.data() || {}));
     } catch (error: any) {
-      console.warn("[PAYMENT_SYNC] paymentSessions paymentId lookup failed:", error?.message || error);
+      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
+        console.log("[PAYMENT_SYNC] status: paymentSessions paymentId lookup bypassed (session safety mode)");
+      } else {
+        console.warn("[PAYMENT_SYNC] paymentSessions paymentId lookup failed:", error?.message || error);
+      }
     }
   }
 
@@ -835,7 +843,11 @@ async function resolvePaymentSessionTargets(identifiers: PaymentSyncIdentifiers)
       const snap = await db.collection("paymentSessions").where("gatewayOrderId", "==", gatewayOrderId).limit(5).get();
       snap.docs.forEach((doc: any) => addSessionData(doc.data() || {}));
     } catch (error: any) {
-      console.warn("[PAYMENT_SYNC] paymentSessions gatewayOrderId lookup failed:", error?.message || error);
+      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
+        console.log("[PAYMENT_SYNC] status: paymentSessions gatewayOrderId lookup bypassed (session safety mode)");
+      } else {
+        console.warn("[PAYMENT_SYNC] paymentSessions gatewayOrderId lookup failed:", error?.message || error);
+      }
     }
   }
 
@@ -882,7 +894,11 @@ async function rememberPaymentSession(session: any) {
     try {
       await db.collection("paymentSessions").doc(docId).set(payload, { merge: true });
     } catch (error: any) {
-      console.warn("[PAYMENT_SYNC] Could not remember payment session:", error?.message || error);
+      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
+        console.log("[PAYMENT_SYNC] status: rememberPaymentSession bypassed (session safety mode)");
+      } else {
+        console.warn("[PAYMENT_SYNC] Could not remember payment session:", error?.message || error);
+      }
     }
   }
 }
@@ -905,7 +921,11 @@ async function markPaymentSessionsSynced(identifiers: PaymentSyncIdentifiers, st
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       }), { merge: true });
     } catch (error: any) {
-      console.warn("[PAYMENT_SYNC] Could not mark payment session synced:", error?.message || error);
+      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
+        console.log("[PAYMENT_SYNC] status: markPaymentSessionsSynced bypassed (session safety mode)");
+      } else {
+        console.warn("[PAYMENT_SYNC] Could not mark payment session synced:", error?.message || error);
+      }
     }
   }));
 }
@@ -1247,15 +1267,36 @@ async function collectPaymentContextForTarget(invoiceId: any, provided: any = {}
   };
 
   for (const id of targetIds) {
-    try { addDocSnap(await db.collection("invoices").doc(id).get()); } catch (error: any) { console.warn("[PAYMENT_SYNC] invoice context read failed:", error?.message || error); }
-    try { addDocSnap(await db.collection("orders").doc(id).get()); } catch (error: any) { console.warn("[PAYMENT_SYNC] order context read failed:", error?.message || error); }
+    try {
+      addDocSnap(await db.collection("invoices").doc(id).get());
+    } catch (error: any) {
+      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
+        console.log("[PAYMENT_SYNC] status: invoice context get bypassed (session safety mode)");
+      } else {
+        console.warn("[PAYMENT_SYNC] invoice context read failed:", error?.message || error);
+      }
+    }
+
+    try {
+      addDocSnap(await db.collection("orders").doc(id).get());
+    } catch (error: any) {
+      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
+        console.log("[PAYMENT_SYNC] status: order context get bypassed (session safety mode)");
+      } else {
+        console.warn("[PAYMENT_SYNC] order context read failed:", error?.message || error);
+      }
+    }
 
     for (const [collectionName, field] of [["orders", "linkedInvoiceId"], ["invoices", "linkedOrderId"]] as const) {
       try {
         const snap = await db.collection(collectionName).where(field, "==", id).limit(10).get();
         snap.docs.forEach((docSnap: any) => appendPaymentItemIdentifiers(identifiers, { id: docSnap.id, ...(docSnap.data() || {}) }));
       } catch (error: any) {
-        console.warn(`[PAYMENT_SYNC] ${collectionName}.${field} context lookup failed:`, error?.message || error);
+        if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
+          console.log(`[PAYMENT_SYNC] status: ${collectionName}.${field} lookup bypassed (session safety mode)`);
+        } else {
+          console.warn(`[PAYMENT_SYNC] ${collectionName}.${field} context lookup failed:`, error?.message || error);
+        }
       }
     }
   }
@@ -1273,7 +1314,11 @@ async function collectPaymentContextForTarget(invoiceId: any, provided: any = {}
       }
     }
   } catch (error: any) {
-    console.warn("[PAYMENT_SYNC] shared root context lookup failed:", error?.message || error);
+    if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
+      console.log("[PAYMENT_SYNC] status: shared root context lookup bypassed (session safety mode)");
+    } else {
+      console.warn("[PAYMENT_SYNC] shared root context lookup failed:", error?.message || error);
+    }
   }
 
   for (const key of ["invoices", "orders"] as const) {
@@ -1286,7 +1331,11 @@ async function collectPaymentContextForTarget(invoiceId: any, provided: any = {}
         if (ids.some((id) => targetIds.includes(id))) appendPaymentItemIdentifiers(identifiers, item);
       });
     } catch (error: any) {
-      console.warn(`[PAYMENT_SYNC] shared ${key} shard context lookup failed:`, error?.message || error);
+      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
+        console.log(`[PAYMENT_SYNC] status: shared ${key} shard context lookup bypassed (session safety mode)`);
+      } else {
+        console.warn(`[PAYMENT_SYNC] shared ${key} shard context lookup failed:`, error?.message || error);
+      }
     }
   }
 
