@@ -1760,52 +1760,62 @@ Alturath.kw`;
                         );
                       })}
                       {order.items?.length > 2 && (
-                        <div className="text-[10px] text-slate-500 hover:text-indigo-500 font-bold text-center relative group cursor-pointer w-fit mx-auto transition-colors px-2 py-0.5 rounded-full hover:bg-indigo-50">
+                        <div className="text-[10px] text-slate-500 hover:text-indigo-600 font-bold text-center relative group cursor-pointer w-fit mx-auto transition-colors px-2 py-0.5 rounded-full hover:bg-indigo-50">
                           + {order.items.length - 2} أصناف
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-white rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.12)] border border-slate-100 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-[100] flex flex-col gap-1.5">
-                            {order.items
-                              .slice(2)
-                              .map((hiddenItem, hiddenIdx) => {
-                                const hiddenProduct = data.products?.find(
-                                  (p) => p.id === hiddenItem.productId,
-                                );
-                                const prepInstructions =
-                                  hiddenProduct?.preparationInstructions ||
-                                  (hiddenItem as any).preparationInstructions;
-                                return (
-                                  <div
-                                    key={hiddenIdx}
-                                    className="flex flex-col gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100"
-                                  >
-                                    <div className="flex justify-between items-center text-[10px]">
-                                      <span className="font-bold text-slate-700 truncate text-right max-w-[120px]">
-                                        {hiddenProduct?.name ||
-                                          "منتج غير معروف"}
-                                      </span>
-                                      <span
-                                        className="text-indigo-600 font-bold shrink-0"
-                                        dir="ltr"
-                                      >
-                                        x{hiddenItem.quantity}
-                                      </span>
-                                    </div>
-                                    {prepInstructions && (
-                                      <div className="text-[10px] text-amber-600 flex items-center gap-1">
-                                        <AlertCircle
-                                          size={8}
-                                          className="shrink-0"
-                                        />{" "}
-                                        <span className="truncate text-right">
-                                          {prepInstructions}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden bg-white rounded-2xl shadow-[0_18px_50px_rgba(15,23,42,0.16)] border border-slate-200/80 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-[100] text-right">
+                            <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50/80 text-[11px] font-black text-slate-600 flex items-center justify-between gap-2">
+                              <span>الأصناف الإضافية</span>
+                              <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[10px] font-black" dir="ltr">
+                                +{order.items.length - 2}
+                              </span>
+                            </div>
+                            <div className="p-2 space-y-1.5">
+                              {order.items
+                                .slice(2)
+                                .map((hiddenItem, hiddenIdx) => {
+                                  const hiddenProduct = data.products?.find(
+                                    (p) => p.id === hiddenItem.productId,
+                                  );
+                                  const prepInstructions =
+                                    hiddenProduct?.preparationInstructions ||
+                                    (hiddenItem as any).preparationInstructions;
+                                  return (
+                                    <div
+                                      key={hiddenIdx}
+                                      className="bg-emerald-50/70 border border-emerald-100 rounded-xl px-3 py-2"
+                                    >
+                                      <div className="flex items-start justify-between gap-3 text-[11px]">
+                                        <div className="min-w-0 flex-1">
+                                          <div className="font-black text-slate-800 truncate">
+                                            {hiddenProduct?.name ||
+                                              "منتج غير معروف"}
+                                          </div>
+                                          {prepInstructions && (
+                                            <div className="mt-1 text-[10px] text-amber-700 flex items-center gap-1 min-w-0">
+                                              <AlertCircle
+                                                size={9}
+                                                className="shrink-0"
+                                              />
+                                              <span className="truncate">
+                                                {prepInstructions}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                        <span
+                                          className="bg-white text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-full font-black shrink-0 shadow-sm"
+                                          dir="ltr"
+                                        >
+                                          x{hiddenItem.quantity}
                                         </span>
                                       </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                                    </div>
+                                  );
+                                })}
+                            </div>
                             {/* Tooltip Arrow */}
                             <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-[6px] border-transparent border-t-white"></div>
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[-1px] border-[6px] border-transparent border-t-slate-100 -z-10"></div>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[-1px] border-[6px] border-transparent border-t-slate-200 -z-10"></div>
                           </div>
                         </div>
                       )}
