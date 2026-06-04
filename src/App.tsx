@@ -132,6 +132,22 @@ const hasAdminNotificationDeepLink = () => Boolean(getAdminNotificationDeepLink(
 const getInitialPushDeepLink = () => {
   const params = new URLSearchParams(window.location.search);
   const path = window.location.pathname;
+  const page = params.get('page');
+
+  if (page === 'whatsapp-support') {
+    const payload = {
+      page: 'whatsapp-support',
+      phone: params.get('phone') || '',
+      source: 'push',
+      pushNotificationDeepLinkHandled: true
+    };
+
+    try {
+      sessionStorage.setItem('adminPushDeepLink', JSON.stringify(payload));
+    } catch {}
+
+    return payload;
+  }
 
   const targetId =
     params.get('invoice') ||
@@ -165,6 +181,12 @@ const getInitialPushDeepLink = () => {
 };
 
 const hasInitialPushDeepLink = () => Boolean(getInitialPushDeepLink());
+const getInitialPageFromDeepLink = () => {
+  const link = getInitialPushDeepLink();
+  if (link?.page === 'whatsapp-support') return 'whatsapp-support';
+  if (link?.search) return 'invoices-list';
+  return 'dashboard';
+};
 
 
 
@@ -895,7 +917,7 @@ const MainApp: React.FC = () => {
   }, [isAuthenticated, user, userRole]);
 
 
-  const [currentPage, setCurrentPage] = useState(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+  const [currentPage, setCurrentPage] = useState(getInitialPageFromDeepLink());
   const [dashboardTab, setDashboardTab] = useState<string>('pulse');
 
   const navigateAdminPage = (page: string, payload?: any) => {
@@ -911,7 +933,7 @@ const MainApp: React.FC = () => {
   // CRITICAL: Ensure app always returns to dashboard on logout and clear any stale navigation state
   useEffect(() => {
     if (!isAuthenticated) {
-      setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+      setCurrentPage(getInitialPageFromDeepLink());
       // Reset any other transient states if needed
       setEditingInvoiceId(null);
       setDeepLinkData({});
@@ -949,6 +971,15 @@ const MainApp: React.FC = () => {
   // Old /track?tracked_order=... links are also supported.
   useEffect(() => {
     const saved = getInitialPushDeepLink();
+    if (!saved) return;
+
+    if (saved?.page === 'whatsapp-support') {
+      setDeepLinkData(saved);
+      setCurrentPage('whatsapp-support');
+      window.history.replaceState({}, '', '/');
+      return;
+    }
+
     if (!saved?.search) return;
 
     setDeepLinkData(saved);
@@ -2066,7 +2097,7 @@ const MainApp: React.FC = () => {
             setUserRole(isAuthorized ? 'admin' : 'partner');
             setIsAuthenticated(true);
             localStorage.setItem('isAuthenticated', 'true');
-            setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+            setCurrentPage(getInitialPageFromDeepLink());
           } else {
             // Demo/local mode is isolated: local data only, admin experience, no cloud role.
             setUser(null);
@@ -2870,7 +2901,7 @@ const MainApp: React.FC = () => {
             }
             setIsAuthenticated(true);
             localStorage.setItem('isAuthenticated', 'true');
-            setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+            setCurrentPage(getInitialPageFromDeepLink());
           }} 
         />
         <Toaster richColors position="bottom-right" closeButton />

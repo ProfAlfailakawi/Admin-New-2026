@@ -1957,6 +1957,60 @@ function waHumanModeNoticeReply() {
   ].join("\n");
 }
 
+function waAdminSupportInboxUrl(phone?: string) {
+  const clean = waDigits(phone || "");
+  const params = new URLSearchParams();
+  params.set("page", "whatsapp-support");
+  if (clean) params.set("phone", clean);
+  return `${ALTURATH_ADMIN_BASE_URL}/?${params.toString()}`;
+}
+
+async function waSendHumanSupportPush({
+  phone,
+  text,
+  contactName,
+  messageId,
+  reason = "human_support",
+}: {
+  phone: string;
+  text?: string;
+  contactName?: string;
+  messageId?: string;
+  reason?: string;
+}) {
+  const cleanPhone = waDigits(phone);
+  if (!cleanPhone) return { success: false, skipped: true, reason: "missing_phone" };
+
+  const safeText = waString(text || "").replace(/\s+/g, " ").slice(0, 140);
+  const safeName = waString(contactName || "").slice(0, 60);
+  const title = reason === "already_human"
+    ? "رسالة واتساب تنتظر ردك"
+    : "عميل يطلب دعم واتساب";
+  const body = safeText
+    ? `${safeName ? `${safeName}: ` : ""}${safeText}`
+    : `${safeName || cleanPhone} يحتاج متابعة من الدعم.`;
+  const stableMessageId = waString(messageId || "").replace(/[^a-zA-Z0-9_:\-.]/g, "").slice(0, 120);
+  const eventId = stableMessageId
+    ? `whatsapp-support-${stableMessageId}`
+    : `whatsapp-support-${cleanPhone}-${Date.now()}`;
+
+  try {
+    return await sendSmartAlertPushNotification({
+      title,
+      body,
+      alertType: "whatsapp_support",
+      url: waAdminSupportInboxUrl(cleanPhone),
+      eventId,
+      ttlSeconds: 86400,
+      requireInteraction: true,
+      notificationTag: `whatsapp-support-${cleanPhone}`,
+    });
+  } catch (error: any) {
+    console.warn("[WHATSAPP] Human support push failed:", error?.message || error);
+    return { success: false, error: error?.message || String(error) };
+  }
+}
+
 function waHelpReply() {
   return [
     "مرحبًا بك في Alturath 👋",
@@ -2220,9 +2274,30 @@ app.post("/api/whatsapp/webhook", async (req, res) => {
               botPausedAt: waNowIso(),
               tags: waUnique([...(waAsArray(conversation?.tags)), "support"]),
             });
+            const pushResult = await waSendHumanSupportPush({
+              phone: from,
+              text: text || `[${type}]`,
+              contactName,
+              messageId: message?.id,
+              reason: "support_requested",
+            });
+            sendResults.push({ to: from, channel: "admin_push", reason: "support_requested", ...(pushResult || {}) });
             reply = waSupportReply();
           } else if (conversation?.mode === "human") {
             // A human is expected to continue from the admin inbox. Avoid noisy repeated bot replies.
+            await waUpsertConversation(from, {
+              status: "needs_support",
+              priority: conversation?.priority || "high",
+              supportRequestedAt: conversation?.supportRequestedAt || waNowIso(),
+            });
+            const pushResult = await waSendHumanSupportPush({
+              phone: from,
+              text: text || `[${type}]`,
+              contactName,
+              messageId: message?.id,
+              reason: "already_human",
+            });
+            sendResults.push({ to: from, channel: "admin_push", reason: "already_human", ...(pushResult || {}) });
             console.log(`[WHATSAPP] Conversation ${from} is in human support mode. Auto-reply skipped.`);
           } else {
             reply = text
