@@ -13,8 +13,8 @@ export const formatKuwaitiDate = (dateVal: any): { date: string; time: string; f
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Asia/Kuwait',
     year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     hour: 'numeric',
     minute: '2-digit',
     hour12: true

@@ -683,7 +683,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="font-bold text-slate-800 leading-tight">{p?.name || item.productId}</div>
  <div className="text-[10px] font-black text-emerald-600 mt-1 flex items-center gap-1 justify-end">
  <DollarSign size={10} />
- تكلفة التوريد: {(item.quantity * (item.costAtTime || 0)).toFixed(3)} د.ك
+ حصة المورد: {(item.costAtTime || p?.cost || 0).toFixed(3)} د.ك
  </div>
  </div>
  </div>
