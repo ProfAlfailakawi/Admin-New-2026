@@ -49,7 +49,7 @@ const buildIcon = (L: any, marker: Marker) => {
   const color = marker.color || '#10b981';
   const isTouchDevice = typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window);
   const baseSize = marker.size || (marker.active ? 34 : 26);
-  const size = isTouchDevice ? Math.max(baseSize, marker.active ? 40 : 34) : baseSize;
+  const size = isTouchDevice ? Math.max(baseSize, marker.active ? 42 : 36) : Math.max(baseSize, marker.active ? 36 : 30);
   const label = marker.count !== undefined ? marker.count : marker.value !== undefined ? marker.value : '';
   return L.divIcon({
     className: 'alturath-leaflet-marker',
@@ -125,7 +125,7 @@ const LeafletKuwaitMap: React.FC<{
             weight: marker.active ? 2 : 1,
           }).addTo(layerRef.current);
         }
-        const m = L.marker(point, { icon: buildIcon(L, marker), title: marker.name, keyboard: false, bubblingMouseEvents: false }).addTo(layerRef.current);
+        const m = L.marker(point, { icon: buildIcon(L, marker), title: marker.name, keyboard: false, bubblingMouseEvents: false, zIndexOffset: marker.active ? 1200 : 900 }).addTo(layerRef.current);
         const valueLine = marker.value !== undefined ? `<div style="color:#d97706;font-weight:900;margin-top:2px">${Number(marker.value || 0).toFixed(2)} د.ك</div>` : '';
         m.bindTooltip(`<div dir="rtl" style="text-align:right;font-family:system-ui;font-weight:800">${marker.name}${marker.subtitle ? `<div style="color:#64748b;font-size:11px;margin-top:2px">${marker.subtitle}</div>` : ''}${valueLine}</div>`, { direction: 'top', offset: [0, -16], opacity: 0.96 });
         if (onMarkerClick) m.on('click', (event: any) => {
