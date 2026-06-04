@@ -422,8 +422,8 @@ export default function WhatsAppSupportInbox() {
           <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-100 px-4 py-2 text-emerald-700 text-xs font-bold mb-3">
             <Sparkles size={14} /> مركز واتساب الذكي
           </div>
-          <h1 className="text-3xl md:text-5xl font-black tracking-tight">دعم واتساب</h1>
-          <p className="text-slate-500 mt-2 max-w-2xl">Inbox احترافي للرد اليدوي، تسليم المحادثة بين البوت والفريق، وردود سريعة جاهزة بدون لمس منطق الطلبات أو الدفع.</p>
+          <h1 className="text-3xl md:text-5xl font-black tracking-tight">مركز واتساب الذكي</h1>
+          
         </div>
         <div className="grid grid-cols-3 gap-3 min-w-[320px]">
           <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-4"><div className="text-xs text-slate-400">المحادثات</div><div className="text-2xl font-black">{counts.all}</div></div>

@@ -1341,7 +1341,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       {isSlow && (
                         <span 
                           title="هذا المنتج حركته بطيئة مقارنة بباقي المنتجات"
-                          className="bg-rose-500/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase cursor-help pointer-events-auto title-premium max-w-full truncate block">
+                          className="bg-rose-500/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase cursor-pointer pointer-events-auto title-premium max-w-full truncate block">
                           بطيء الحركة
                         </span>
                       )}
