@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { Bot, CheckCircle2, Clock, Headphones, Loader2, MessageCircle, RefreshCw, Search, Send, ShieldCheck, Sparkles, UserRound, Zap } from 'lucide-react';
+import { AlertCircle, Bot, CheckCircle2, Clock, Headphones, Loader2, MessageCircle, RefreshCw, Search, Send, ShieldCheck, Sparkles, UserRound, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 type Conversation = {
@@ -159,7 +159,14 @@ export default function WhatsAppSupportInbox() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState<{ type: 'info' | 'success' | 'error'; text: string } | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const deepLinkConsumedRef = useRef(false);
+
+  const showNotice = (type: 'info' | 'success' | 'error', text: string) => {
+    setNotice({ type, text });
+    window.setTimeout(() => setNotice((current) => current?.text === text ? null : current), 3200);
+  };
 
   const loadConversations = async (silent = false) => {
     try {
@@ -179,14 +186,14 @@ export default function WhatsAppSupportInbox() {
     }
   };
 
-  const loadMessages = async (phone: string) => {
+  const loadMessages = async (phone: string, scrollToEnd = false) => {
     if (!phone) return;
     if (isDemoPhone(phone)) {
       const clean = cleanPhone(phone);
       setSelected(WHATSAPP_DEMO_CONVERSATIONS.find(c => c.phone === clean) || null);
       setMessages(WHATSAPP_DEMO_MESSAGES[clean] || []);
       setQuickReplies(WHATSAPP_DEMO_QUICK_REPLIES);
-      setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 60);
+      if (scrollToEnd) setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' }), 60);
       return;
     }
     try {
@@ -197,7 +204,7 @@ export default function WhatsAppSupportInbox() {
       setMessages(json.messages || []);
       setQuickReplies(json.quickReplies || []);
       await fetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(phone))}/read`, { method: 'POST' }).catch(() => {});
-      setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 60);
+      if (scrollToEnd) setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' }), 60);
     } catch (e: any) {
       setError(e?.message || 'تعذر تحميل المحادثة');
     }
@@ -210,9 +217,22 @@ export default function WhatsAppSupportInbox() {
   }, []);
 
   useEffect(() => {
+    if (deepLinkConsumedRef.current || !conversations.length) return;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem('adminPushDeepLink') || 'null');
+      const phone = cleanPhone(saved?.page === 'whatsapp-support' ? saved?.phone : '');
+      if (!phone) return;
+      deepLinkConsumedRef.current = true;
+      setFilter('needs_support');
+      setSelectedPhone(phone);
+      showNotice('info', 'تم فتح محادثة واتساب التي تحتاج متابعة.');
+    } catch {}
+  }, [conversations]);
+
+  useEffect(() => {
     if (!selectedPhone) return;
-    loadMessages(selectedPhone);
-    const timer = window.setInterval(() => loadMessages(selectedPhone), 5500);
+    loadMessages(selectedPhone, true);
+    const timer = window.setInterval(() => loadMessages(selectedPhone, false), 5500);
     return () => window.clearInterval(timer);
   }, [selectedPhone]);
 
@@ -240,10 +260,12 @@ export default function WhatsAppSupportInbox() {
       const now = new Date().toISOString();
       setMessages(prev => [...prev, { id: `demo-local-${Date.now()}`, direction: 'outbound', text: body, sentBy: 'admin', createdAt: now }]);
       setReplyText('');
+      showNotice('success', 'تم تجهيز الرد في وضع العرض.');
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 60);
       return;
     }
     setSending(true);
+    showNotice('info', 'جارٍ إرسال الرد عبر واتساب...');
     try {
       const res = await fetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/reply`, {
         method: 'POST',
@@ -253,10 +275,13 @@ export default function WhatsAppSupportInbox() {
       const json = await res.json();
       if (!json.success) throw new Error(json?.result?.payload?.error?.message || json.error || 'فشل إرسال الرد');
       setReplyText('');
-      await loadMessages(selectedPhone);
+      await loadMessages(selectedPhone, true);
       await loadConversations(true);
+      showNotice('success', 'تم إرسال الرد وفتح مسار واتساب بنجاح.');
     } catch (e: any) {
-      setError(e?.message || 'فشل إرسال الرد');
+      const message = e?.message || 'فشل إرسال الرد';
+      setError(message);
+      showNotice('error', message);
     } finally {
       setSending(false);
     }
@@ -267,13 +292,15 @@ export default function WhatsAppSupportInbox() {
     if (isDemoPhone(selectedPhone)) {
       setSelected(prev => prev ? { ...prev, mode, status: mode === 'human' ? 'needs_support' : 'open' } : prev);
       setConversations(prev => prev.map(c => c.phone === cleanPhone(selectedPhone) ? { ...c, mode, status: mode === 'human' ? 'needs_support' : 'open' } : c));
+      showNotice('success', mode === 'human' ? 'تم تحويل المحادثة للدعم اليدوي.' : 'تم إرجاع المحادثة للبوت.');
       return;
     }
     await fetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/mode`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode })
     }).catch(() => {});
-    await loadMessages(selectedPhone);
+    await loadMessages(selectedPhone, false);
     await loadConversations(true);
+    showNotice('success', mode === 'human' ? 'تم تحويل المحادثة للدعم اليدوي.' : 'تم إرجاع المحادثة للبوت.');
   };
 
   const closeConversation = async () => {
@@ -281,11 +308,13 @@ export default function WhatsAppSupportInbox() {
     if (isDemoPhone(selectedPhone)) {
       setSelected(prev => prev ? { ...prev, status: 'closed', unreadCount: 0 } : prev);
       setConversations(prev => prev.map(c => c.phone === cleanPhone(selectedPhone) ? { ...c, status: 'closed', unreadCount: 0 } : c));
+      showNotice('success', 'تم إغلاق المحادثة.');
       return;
     }
     await fetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/close`, { method: 'POST' }).catch(() => {});
-    await loadMessages(selectedPhone);
+    await loadMessages(selectedPhone, false);
     await loadConversations(true);
+    showNotice('success', 'تم إغلاق المحادثة.');
   };
 
   return (
@@ -305,6 +334,7 @@ export default function WhatsAppSupportInbox() {
         </div>
       </div>
 
+      {notice && <div className={cn('mb-4 rounded-2xl border px-4 py-3 text-sm font-black flex items-center gap-2', notice.type === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : notice.type === 'error' ? 'border-rose-100 bg-rose-50 text-rose-700' : 'border-sky-100 bg-sky-50 text-sky-700')}><AlertCircle size={16} /> {notice.text}</div>}
       {error && <div className="mb-4 rounded-2xl border border-rose-100 bg-rose-50 text-rose-700 px-4 py-3 text-sm font-bold">{error}</div>}
       {conversations.some(isDemoConversation) && (
         <div className="mb-4 rounded-2xl border border-amber-100 bg-amber-50 text-amber-800 px-4 py-3 text-sm font-bold flex items-center gap-2">
@@ -312,8 +342,8 @@ export default function WhatsAppSupportInbox() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[370px_1fr_290px] gap-4 h-[calc(100vh-210px)] min-h-[620px] whatsapp-support-workspace">
-        <section className="rounded-3xl bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col">
+      <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)_250px] gap-4 h-[calc(100vh-170px)] min-h-[760px] whatsapp-support-workspace">
+        <section className="rounded-[2rem] bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[760px]">
           <div className="p-4 border-b border-slate-100 space-y-3">
             <div className="flex items-center gap-2 rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2">
               <Search size={18} className="text-slate-400" />
@@ -348,7 +378,7 @@ export default function WhatsAppSupportInbox() {
           </div>
         </section>
 
-        <section className="rounded-3xl bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col">
+        <section className="rounded-[2rem] bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[760px]">
           {selected ? (
             <>
               <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-l from-white to-slate-50">
@@ -364,13 +394,13 @@ export default function WhatsAppSupportInbox() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-5 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.08),transparent_30%),linear-gradient(180deg,#f8fafc,#ffffff)] space-y-3">
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.08),transparent_30%),linear-gradient(180deg,#f8fafc,#ffffff)] space-y-4 scroll-smooth">
                 {messages.map((m) => {
                   const inbound = m.direction === 'inbound';
                   return (
                     <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={cn('flex', inbound ? 'justify-start' : 'justify-end')}>
-                      <div className={cn('max-w-[78%] rounded-[1.5rem] px-4 py-3 shadow-sm border', inbound ? 'bg-white text-slate-800 border-slate-100 rounded-tl-md' : 'bg-slate-900 text-white border-slate-900 rounded-tr-md')}>
-                        <div className="whitespace-pre-wrap leading-7 text-sm">{m.text}</div>
+                      <div className={cn('max-w-[92%] md:max-w-[86%] rounded-[1.5rem] px-5 py-4 shadow-sm border', inbound ? 'bg-white text-slate-800 border-slate-100 rounded-tl-md' : 'bg-slate-900 text-white border-slate-900 rounded-tr-md')}>
+                        <div className="whitespace-pre-wrap leading-8 text-[15px]">{m.text}</div>
                         <div className={cn('text-[10px] mt-2 flex items-center gap-1', inbound ? 'text-slate-400' : 'text-white/50')}><Clock size={11} /> {formatTime(m.createdAt)} {m.sentBy && !inbound ? `• ${m.sentBy === 'bot' ? 'بوت' : 'أدمن'}` : ''}</div>
                       </div>
                     </motion.div>
@@ -386,8 +416,8 @@ export default function WhatsAppSupportInbox() {
                   ))}
                 </div>
                 <div className="flex items-end gap-3">
-                  <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply(); }} placeholder="اكتب ردك هنا... Ctrl/⌘ + Enter للإرسال" className="flex-1 min-h-[58px] max-h-32 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 text-sm leading-6" />
-                  <button onClick={() => sendReply()} disabled={sending || !replyText.trim()} className="h-[58px] px-6 rounded-3xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-black shadow-lg shadow-emerald-200 transition flex items-center gap-2"><Send size={18} /> إرسال</button>
+                  <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply(); }} placeholder="اكتب ردك هنا... Ctrl/⌘ + Enter للإرسال" className="flex-1 min-h-[86px] max-h-56 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 text-sm leading-6" />
+                  <button onClick={() => sendReply()} disabled={sending || !replyText.trim()} className="h-[86px] px-7 rounded-3xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-black shadow-lg shadow-emerald-200 transition flex items-center gap-2"><Send size={18} /> إرسال</button>
                 </div>
               </div>
             </>
