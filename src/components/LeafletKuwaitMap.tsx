@@ -76,6 +76,8 @@ const LeafletKuwaitMap: React.FC<{
   const lastViewRef = useRef<string>('');
   const lastBoundsKeyRef = useRef<string>('');
   const didSetInitialKuwaitViewRef = useRef(false);
+  const selectedMarkerIdRef = useRef<string>('');
+  const lockedViewRef = useRef<{ center: any; zoom: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,11 +129,29 @@ const LeafletKuwaitMap: React.FC<{
         }
         const m = L.marker(point, { icon: buildIcon(L, marker), title: marker.name, keyboard: false, bubblingMouseEvents: false, zIndexOffset: marker.active ? 1200 : 900 }).addTo(layerRef.current);
         const valueLine = marker.value !== undefined ? `<div style="color:#d97706;font-weight:900;margin-top:2px">${Number(marker.value || 0).toFixed(2)} د.ك</div>` : '';
-        m.bindTooltip(`<div dir="rtl" style="text-align:right;font-family:system-ui;font-weight:800">${marker.name}${marker.subtitle ? `<div style="color:#64748b;font-size:11px;margin-top:2px">${marker.subtitle}</div>` : ''}${valueLine}</div>`, { direction: 'top', offset: [0, -16], opacity: 0.96 });
+        const labelHtml = `<div dir="rtl" style="text-align:right;font-family:system-ui;font-weight:900;min-width:120px"><div style="color:#0f172a;font-size:13px">${marker.name}</div>${marker.subtitle ? `<div style="color:#64748b;font-size:11px;margin-top:4px;font-weight:800">${marker.subtitle}</div>` : ''}${valueLine}</div>`;
+        m.bindTooltip(labelHtml, { direction: 'top', offset: [0, -16], opacity: 0.96, sticky: false });
+        m.bindPopup(labelHtml, { closeButton: true, autoPan: false, keepInView: false, autoClose: false, closeOnClick: false, offset: [0, -10], className: 'alturath-leaflet-diwaniya-popup' });
+        if (marker.active || selectedMarkerIdRef.current === marker.id) {
+          setTimeout(() => {
+            if (!mapRef.current) return;
+            m.openPopup();
+            const locked = lockedViewRef.current;
+            if (locked) mapRef.current.setView(locked.center, locked.zoom, { animate: false });
+          }, 0);
+        }
         if (onMarkerClick) m.on('click', (event: any) => {
           if (event?.originalEvent?.preventDefault) event.originalEvent.preventDefault();
           if (event?.originalEvent?.stopPropagation) event.originalEvent.stopPropagation();
+          selectedMarkerIdRef.current = marker.id;
+          lockedViewRef.current = { center: mapRef.current.getCenter(), zoom: mapRef.current.getZoom() };
+          m.openPopup();
           onMarkerClick(marker);
+          setTimeout(() => {
+            if (!mapRef.current || !lockedViewRef.current) return;
+            mapRef.current.setView(lockedViewRef.current.center, lockedViewRef.current.zoom, { animate: false });
+            m.openPopup();
+          }, 0);
         });
       });
       const boundsKey = bounds.map((point) => `${Number(point[0]).toFixed(5)},${Number(point[1]).toFixed(5)}`).sort().join('|');
