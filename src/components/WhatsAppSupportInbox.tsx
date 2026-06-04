@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { AlertCircle, Bot, CheckCircle2, Clock, Headphones, Loader2, MessageCircle, RefreshCw, Search, Send, ShieldCheck, Sparkles, UserRound, Zap } from 'lucide-react';
+import { AlertCircle, Bot, CheckCircle2, Clock, Headphones, Loader2, MessageCircle, Pencil, Plus, RefreshCw, Save, Search, Send, Sparkles, Trash2, UserRound, X, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 type Conversation = {
@@ -31,6 +31,8 @@ type ChatMessage = {
 
 type QuickReply = { id: string; title: string; text: string };
 
+const QUICK_REPLIES_STORAGE_KEY = 'alturath_whatsapp_quick_replies_v1';
+
 const statusLabel = (c?: Conversation | null) => {
   if (!c) return '';
   if (c.status === 'closed') return 'مغلقة';
@@ -49,6 +51,41 @@ const formatTime = (value?: string) => {
 };
 
 const cleanPhone = (phone?: string) => String(phone || '').replace(/\D/g, '');
+
+
+type ConversationActionState = {
+  label: string;
+  tone: 'danger' | 'warning' | 'success' | 'info' | 'muted';
+  hint: string;
+};
+
+const getConversationActionState = (c?: Conversation | null): ConversationActionState => {
+  if (!c) return { label: '', tone: 'muted', hint: '' };
+  const unread = Number(c.unreadCount || 0);
+  const inboundLast = c.lastMessageDirection === 'inbound';
+  const needsHuman = c.status === 'needs_support' || c.mode === 'human';
+  if (c.status === 'closed') return { label: 'مغلقة', tone: 'muted', hint: 'تم إغلاق المحادثة.' };
+  if (needsHuman && (unread > 0 || inboundLast)) return { label: 'تحتاج رد', tone: 'danger', hint: 'آخر رسالة من العميل وتحتاج متابعة بشرية.' };
+  if (needsHuman) return { label: 'قيد المتابعة', tone: 'warning', hint: 'المحادثة في الوضع اليدوي وتحت متابعة الموظف.' };
+  if (c.lastMessageDirection === 'outbound') return { label: 'تم الرد تلقائيًا', tone: 'success', hint: 'آخر رد خرج من النظام/البوت ولا تحتاج تدخلًا الآن.' };
+  if (unread > 0 || inboundLast) return { label: 'البوت يتعامل معها', tone: 'info', hint: 'المحادثة في وضع البوت، ولا تحتاج تدخلًا إلا إذا تحولت للدعم.' };
+  return { label: 'طبيعية', tone: 'muted', hint: 'لا توجد متابعة مطلوبة حاليًا.' };
+};
+
+const actionStateClass = (tone: ConversationActionState['tone'], active = false) => {
+  if (active) {
+    if (tone === 'danger') return 'bg-rose-500 text-white';
+    if (tone === 'warning') return 'bg-amber-400 text-slate-950';
+    if (tone === 'success') return 'bg-emerald-400 text-slate-950';
+    if (tone === 'info') return 'bg-sky-400 text-slate-950';
+    return 'bg-white/10 text-white';
+  }
+  if (tone === 'danger') return 'bg-rose-50 text-rose-700 border border-rose-100';
+  if (tone === 'warning') return 'bg-amber-50 text-amber-700 border border-amber-100';
+  if (tone === 'success') return 'bg-emerald-50 text-emerald-700 border border-emerald-100';
+  if (tone === 'info') return 'bg-sky-50 text-sky-700 border border-sky-100';
+  return 'bg-slate-100 text-slate-500 border border-slate-100';
+};
 
 const WHATSAPP_DEMO_CONVERSATIONS: Conversation[] = [
   {
@@ -135,13 +172,55 @@ const WHATSAPP_DEMO_MESSAGES: Record<string, ChatMessage[]> = {
   ],
 };
 
-const WHATSAPP_DEMO_QUICK_REPLIES: QuickReply[] = [
-  { id: 'demo-hello', title: 'ترحيب راقٍ', text: 'حياك الله في Alturath 🤍\nأنا معك الآن، شنو أقدر أساعدك فيه؟' },
-  { id: 'demo-track-request', title: 'طلب رقم التتبع', text: 'أرسل رقم الطلب أو الفاتورة، أو رقم الهاتف المكوّن من 8 أرقام، وسأراجع لك الحالة مباشرة.' },
-  { id: 'demo-payment', title: 'الدفع', text: 'تقدر ترسل لي رقم الطلب أو الفاتورة، وأتأكد لك من حالة الدفع والتتبع.' },
-  { id: 'demo-new-order', title: 'طلب جديد', text: 'لطلب جديد تفضل من هنا:\nhttps://alturathkw.shop' },
-  { id: 'demo-close', title: 'إغلاق راقٍ', text: 'سعدنا بخدمتك 🤍\nإذا احتجت أي شيء لاحقًا، اكتب "القائمة" وسنكون معك مباشرة.' },
+const DEFAULT_QUICK_REPLIES: QuickReply[] = [
+  { id: 'welcome-elegant', title: 'ترحيب راقٍ', text: 'حياك الله في Alturath 🤍\nأنا معك الآن، شنو أقدر أساعدك فيه؟' },
+  { id: 'ask-order-number', title: 'طلب رقم الطلب', text: 'ممكن ترسل لنا رقم الطلب أو الفاتورة، أو رقم الهاتف المسجل بالطلب؟ وسأراجع لك التفاصيل مباشرة.' },
+  { id: 'ask-tracking-number', title: 'طلب رقم التتبع', text: 'أرسل رقم التتبع أو رقم الطلب، وسأتحقق لك من حالة الطلب والتوصيل.' },
+  { id: 'payment-check', title: 'فحص الدفع', text: 'أرسل رقم الطلب أو الفاتورة، وأتأكد لك من حالة الدفع وهل تم تسجيله بالنظام.' },
+  { id: 'payment-confirmed', title: 'تم الدفع', text: 'تم التأكد من حالة الدفع بنجاح ✅\nسنكمل متابعة طلبك ونبلغك بأي تحديث.' },
+  { id: 'need-more-details', title: 'تفاصيل أكثر', text: 'ممكن توضح لنا المشكلة أكثر؟ وإذا عندك صورة أو لقطة شاشة أرسلها لنا حتى نساعدك بدقة.' },
+  { id: 'order-followup', title: 'متابعة الطلب', text: 'تم استلام ملاحظتك، وجاري متابعة الطلب مع الفريق المختص. سنرجع لك بالتحديث بأقرب وقت.' },
+  { id: 'delivery-followup', title: 'متابعة التوصيل', text: 'جاري التحقق من حالة التوصيل الآن. إذا عندك موقع أو وقت مناسب للاستلام أرسله لنا فضلاً.' },
+  { id: 'product-inquiry', title: 'استفسار منتج', text: 'حياك الله، اكتب لنا اسم المنتج أو أرسل صورته، ونراجع لك توفره والتفاصيل.' },
+  { id: 'price-availability', title: 'السعر والتوفر', text: 'سأراجع لك السعر والتوفر الآن، وأرجع لك بالتفاصيل قبل تأكيد الطلب.' },
+  { id: 'apology-delay', title: 'اعتذار عن التأخير', text: 'نعتذر منك على التأخير، وحقك علينا. بنراجع الموضوع فورًا ونرجع لك بحل واضح.' },
+  { id: 'escalated', title: 'تحويل للمختص', text: 'تم تحويل طلبك للقسم المختص، وسيتم التواصل معك أو تحديثك بأقرب وقت ممكن.' },
+  { id: 'thanks-closing', title: 'إغلاق راقٍ', text: 'سعدنا بخدمتك 🤍\nإذا احتجت أي شيء لاحقًا، اكتب لنا في أي وقت وسنكون معك مباشرة.' },
+  { id: 'business-hours', title: 'خارج الدوام', text: 'وصلتنا رسالتك، وسيتم التعامل معها في أقرب وقت خلال ساعات العمل. شكرًا لتفهمك 🤍' },
 ];
+
+const WHATSAPP_DEMO_QUICK_REPLIES: QuickReply[] = DEFAULT_QUICK_REPLIES;
+
+const normalizeArabicSearch = (value: string) => String(value || '')
+  .toLowerCase()
+  .replace(/[أإآا]/g, 'ا')
+  .replace(/[ى]/g, 'ي')
+  .replace(/[ة]/g, 'ه')
+  .replace(/[ؤ]/g, 'و')
+  .replace(/[ئ]/g, 'ي')
+  .replace(/[ًٌٍَُِّْـ]/g, '')
+  .trim();
+
+const createQuickReplyId = () => `qr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const loadSavedQuickReplies = (): QuickReply[] => {
+  if (typeof window === 'undefined') return DEFAULT_QUICK_REPLIES;
+  try {
+    const raw = window.localStorage.getItem(QUICK_REPLIES_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (Array.isArray(parsed) && parsed.length) {
+      return parsed
+        .filter((q) => q && typeof q.title === 'string' && typeof q.text === 'string')
+        .map((q) => ({ id: String(q.id || createQuickReplyId()), title: q.title, text: q.text }));
+    }
+  } catch {}
+  return DEFAULT_QUICK_REPLIES;
+};
+
+const saveQuickReplies = (items: QuickReply[]) => {
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(QUICK_REPLIES_STORAGE_KEY, JSON.stringify(items)); } catch {}
+};
 
 const isDemoConversation = (c?: Conversation | null) => Boolean(c?.tags?.includes('demo') || c?.id?.startsWith('demo-'));
 const isDemoPhone = (phone?: string) => Boolean(WHATSAPP_DEMO_MESSAGES[cleanPhone(phone)]);
@@ -153,6 +232,11 @@ export default function WhatsAppSupportInbox() {
   const [selected, setSelected] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
+  const [managedQuickReplies, setManagedQuickReplies] = useState<QuickReply[]>(() => loadSavedQuickReplies());
+  const [quickReplySearch, setQuickReplySearch] = useState('');
+  const [quickReplyEditorOpen, setQuickReplyEditorOpen] = useState(false);
+  const [editingQuickReplyId, setEditingQuickReplyId] = useState<string | null>(null);
+  const [quickReplyForm, setQuickReplyForm] = useState({ title: '', text: '' });
   const [replyText, setReplyText] = useState('');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'needs_support' | 'human' | 'bot' | 'unread'>('all');
@@ -217,6 +301,10 @@ export default function WhatsAppSupportInbox() {
   }, []);
 
   useEffect(() => {
+    saveQuickReplies(managedQuickReplies);
+  }, [managedQuickReplies]);
+
+  useEffect(() => {
     if (deepLinkConsumedRef.current || !conversations.length) return;
     try {
       const saved = JSON.parse(sessionStorage.getItem('adminPushDeepLink') || 'null');
@@ -252,6 +340,74 @@ export default function WhatsAppSupportInbox() {
     support: conversations.filter(c => c.status === 'needs_support' || c.mode === 'human').length,
     unread: conversations.reduce((sum, c) => sum + (Number(c.unreadCount || 0) > 0 ? 1 : 0), 0),
   }), [conversations]);
+
+  const selectedActionState = useMemo(() => getConversationActionState(selected), [selected]);
+
+  const availableQuickReplies = useMemo(() => {
+    const merged = [...managedQuickReplies, ...quickReplies];
+    const seen = new Set<string>();
+    return merged.filter((q) => {
+      const key = `${q.title}::${q.text}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [managedQuickReplies, quickReplies]);
+
+  const filteredQuickReplies = useMemo(() => {
+    const q = normalizeArabicSearch(quickReplySearch);
+    if (!q) return availableQuickReplies;
+    return availableQuickReplies.filter((item) => normalizeArabicSearch(`${item.title} ${item.text}`).includes(q));
+  }, [availableQuickReplies, quickReplySearch]);
+
+  const startNewQuickReply = () => {
+    setEditingQuickReplyId(null);
+    setQuickReplyForm({ title: '', text: '' });
+    setQuickReplyEditorOpen(true);
+  };
+
+  const startEditQuickReply = (item: QuickReply) => {
+    setEditingQuickReplyId(item.id);
+    setQuickReplyForm({ title: item.title, text: item.text });
+    setQuickReplyEditorOpen(true);
+  };
+
+  const saveQuickReplyFromForm = () => {
+    const title = quickReplyForm.title.trim();
+    const text = quickReplyForm.text.trim();
+    if (!title || !text) {
+      showNotice('error', 'اكتب اسم الرد ونص الرد أولًا.');
+      return;
+    }
+    if (editingQuickReplyId) {
+      setManagedQuickReplies((prev) => {
+        const exists = prev.some((item) => item.id === editingQuickReplyId);
+        if (exists) return prev.map((item) => item.id === editingQuickReplyId ? { ...item, title, text } : item);
+        return [{ id: editingQuickReplyId, title, text }, ...prev];
+      });
+      showNotice('success', 'تم تعديل الرد السريع.');
+    } else {
+      setManagedQuickReplies((prev) => [{ id: createQuickReplyId(), title, text }, ...prev]);
+      showNotice('success', 'تم إضافة الرد السريع.');
+    }
+    setQuickReplyEditorOpen(false);
+    setEditingQuickReplyId(null);
+    setQuickReplyForm({ title: '', text: '' });
+  };
+
+  const deleteQuickReply = (item: QuickReply) => {
+    setManagedQuickReplies((prev) => {
+      const exists = prev.some((q) => q.id === item.id);
+      if (exists) return prev.filter((q) => q.id !== item.id);
+      return prev.filter((q) => `${q.title}::${q.text}` !== `${item.title}::${item.text}`);
+    });
+    showNotice('success', 'تم حذف الرد السريع من هذه الشاشة.');
+  };
+
+  const applyQuickReply = (text: string) => {
+    setReplyText(text);
+    showNotice('info', 'تم وضع الرد السريع في مربع الرد، راجعه ثم اضغط إرسال.');
+  };
 
   const sendReply = async (text = replyText) => {
     const body = text.trim();
@@ -342,8 +498,8 @@ export default function WhatsAppSupportInbox() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)_250px] gap-4 h-[calc(100vh-170px)] min-h-[760px] whatsapp-support-workspace">
-        <section className="rounded-[2rem] bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[760px]">
+      <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)] gap-4 h-auto xl:h-[calc(100vh-170px)] min-h-0 xl:min-h-[760px] whatsapp-support-workspace">
+        <section className="rounded-[2rem] bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[320px] max-h-[440px] xl:min-h-[760px] xl:max-h-none">
           <div className="p-4 border-b border-slate-100 space-y-3">
             <div className="flex items-center gap-2 rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2">
               <Search size={18} className="text-slate-400" />
@@ -359,7 +515,10 @@ export default function WhatsAppSupportInbox() {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
-            {loading ? <div className="h-full flex items-center justify-center text-slate-400"><Loader2 className="animate-spin" /></div> : filtered.length ? filtered.map((c) => (
+            {loading ? <div className="h-full flex items-center justify-center text-slate-400"><Loader2 className="animate-spin" /></div> : filtered.length ? filtered.map((c) => {
+              const actionState = getConversationActionState(c);
+              const active = selectedPhone === (c.phone || c.id);
+              return (
               <button key={c.phone || c.id} onClick={() => setSelectedPhone(c.phone || c.id)} className={cn('w-full text-right rounded-2xl p-4 border transition group', selectedPhone === (c.phone || c.id) ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white hover:bg-slate-50 border-slate-100')}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -368,24 +527,33 @@ export default function WhatsAppSupportInbox() {
                   </div>
                   {!!Number(c.unreadCount || 0) && <span className="bg-rose-500 text-white text-[10px] rounded-full min-w-6 h-6 flex items-center justify-center font-black">{c.unreadCount}</span>}
                 </div>
-                <div className={cn('text-sm mt-3 line-clamp-2 leading-6', selectedPhone === (c.phone || c.id) ? 'text-white/80' : 'text-slate-600')}>{c.lastMessageText || 'لا توجد رسائل بعد'}</div>
+                <div className={cn('text-sm mt-3 line-clamp-2 leading-6', active ? 'text-white/80' : 'text-slate-600')}>{c.lastMessageText || 'لا توجد رسائل بعد'}</div>
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  <span className={cn('px-2 py-1 rounded-full text-[10px] font-black', actionStateClass(actionState.tone, active))} title={actionState.hint}>{actionState.label}</span>
+                  {!!Number(c.unreadCount || 0) && <span className={cn('px-2 py-1 rounded-full text-[10px] font-black', active ? 'bg-rose-500 text-white' : 'bg-rose-50 text-rose-700 border border-rose-100')}>غير مقروء</span>}
+                </div>
                 <div className="mt-3 flex items-center justify-between text-[10px]">
                   <span className={cn('px-2 py-1 rounded-full', c.mode === 'human' || c.status === 'needs_support' ? 'bg-amber-100 text-amber-700' : selectedPhone === (c.phone || c.id) ? 'bg-white/10 text-white' : 'bg-emerald-50 text-emerald-700')}>{statusLabel(c)}</span>
                   <span className={selectedPhone === (c.phone || c.id) ? 'text-white/50' : 'text-slate-400'}>{formatTime(c.lastMessageAt)}</span>
                 </div>
               </button>
-            )) : <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3"><MessageCircle size={42} /><div className="font-bold">لا توجد محادثات مطابقة</div></div>}
+              );
+            }) : <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3"><MessageCircle size={42} /><div className="font-bold">لا توجد محادثات مطابقة</div></div>}
           </div>
         </section>
 
-        <section className="rounded-[2rem] bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[760px]">
+        <section className="rounded-[2rem] bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[72vh] xl:min-h-[760px]">
           {selected ? (
             <>
               <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-l from-white to-slate-50">
                 <div>
                   <div className="text-xl font-black flex items-center gap-2"><MessageCircle className="text-emerald-600" /> {selected.customerName || 'عميل واتساب'}</div>
                   <div className="text-sm text-slate-500 mt-1 direction-ltr text-left">+{selected.phone}</div>
-                  {isDemoConversation(selected) && <div className="mt-2 inline-flex rounded-full bg-amber-100 text-amber-700 px-3 py-1 text-xs font-black">بيانات عرض فقط</div>}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className={cn('inline-flex rounded-full px-3 py-1 text-xs font-black', actionStateClass(selectedActionState.tone))} title={selectedActionState.hint}>{selectedActionState.label}</span>
+                    <span className="inline-flex rounded-full bg-slate-100 text-slate-500 px-3 py-1 text-xs font-black">{selected.mode === 'human' ? 'الوضع اليدوي' : 'وضع البوت'}</span>
+                    {isDemoConversation(selected) && <span className="inline-flex rounded-full bg-amber-100 text-amber-700 px-3 py-1 text-xs font-black">بيانات عرض فقط</span>}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button onClick={() => setMode('human')} className={cn('px-4 py-2 rounded-2xl text-sm font-bold border transition', selected.mode === 'human' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white hover:bg-amber-50 border-slate-200 text-slate-600')}><Headphones size={16} className="inline ml-1" /> استلام يدوي</button>
@@ -401,7 +569,10 @@ export default function WhatsAppSupportInbox() {
                     <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={cn('flex', inbound ? 'justify-start' : 'justify-end')}>
                       <div className={cn('max-w-[92%] md:max-w-[86%] rounded-[1.5rem] px-5 py-4 shadow-sm border', inbound ? 'bg-white text-slate-800 border-slate-100 rounded-tl-md' : 'bg-slate-900 text-white border-slate-900 rounded-tr-md')}>
                         <div className="whitespace-pre-wrap leading-8 text-[15px]">{m.text}</div>
-                        <div className={cn('text-[10px] mt-2 flex items-center gap-1', inbound ? 'text-slate-400' : 'text-white/50')}><Clock size={11} /> {formatTime(m.createdAt)} {m.sentBy && !inbound ? `• ${m.sentBy === 'bot' ? 'بوت' : 'أدمن'}` : ''}</div>
+                        <div className={cn('mt-3 flex flex-wrap items-center gap-2 text-[10px]', inbound ? 'text-slate-400' : 'text-white/60')}>
+                          <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-1', inbound ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-white/70')}><Clock size={11} /> {formatTime(m.createdAt)}</span>
+                          {inbound ? <span className="inline-flex rounded-full bg-sky-50 text-sky-700 px-2 py-1 font-black">رسالة عميل</span> : <span className="inline-flex rounded-full bg-white/10 px-2 py-1 font-black">{m.sentBy === 'bot' ? 'رد تلقائي' : 'رد موظف'}</span>}
+                        </div>
                       </div>
                     </motion.div>
                   );
@@ -409,15 +580,45 @@ export default function WhatsAppSupportInbox() {
                 <div ref={endRef} />
               </div>
 
-              <div className="p-4 border-t border-slate-100 bg-white">
-                <div className="flex gap-2 overflow-x-auto pb-3 custom-scrollbar">
-                  {quickReplies.map((q) => (
-                    <button key={q.id} onClick={() => setReplyText(q.text)} className="shrink-0 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-100 px-3 py-2 text-xs font-bold text-slate-600">{q.title}</button>
-                  ))}
+              <div className="p-4 border-t border-slate-100 bg-white space-y-3">
+                <div className="rounded-3xl border border-slate-100 bg-slate-50/70 p-3 space-y-3">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div className="flex items-center gap-2 font-black text-slate-800"><Zap size={16} className="text-amber-500" /> الردود السريعة</div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 rounded-2xl bg-white border border-slate-100 px-3 py-2 flex-1 md:w-72">
+                        <Search size={16} className="text-slate-400" />
+                        <input value={quickReplySearch} onChange={(e) => setQuickReplySearch(e.target.value)} placeholder="بحث ذكي: دفع، تتبع، اعتذار..." className="bg-transparent outline-none flex-1 text-xs" />
+                      </div>
+                      <button onClick={startNewQuickReply} className="shrink-0 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 text-xs font-black flex items-center gap-1"><Plus size={14} /> إضافة</button>
+                    </div>
+                  </div>
+
+                  {quickReplyEditorOpen && (
+                    <div className="rounded-3xl bg-white border border-slate-100 p-3 space-y-2">
+                      <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-2">
+                        <input value={quickReplyForm.title} onChange={(e) => setQuickReplyForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="اسم الزر" className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm" />
+                        <textarea value={quickReplyForm.text} onChange={(e) => setQuickReplyForm((prev) => ({ ...prev, text: e.target.value }))} placeholder="نص الرد السريع" className="min-h-[74px] rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm leading-6" />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => { setQuickReplyEditorOpen(false); setEditingQuickReplyId(null); setQuickReplyForm({ title: '', text: '' }); }} className="rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 text-xs font-black flex items-center gap-1"><X size={14} /> إلغاء</button>
+                        <button onClick={saveQuickReplyFromForm} className="rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 text-xs font-black flex items-center gap-1"><Save size={14} /> حفظ</button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                    {filteredQuickReplies.length ? filteredQuickReplies.map((q) => (
+                      <div key={`${q.id}-${q.title}`} className="shrink-0 flex items-center gap-1 rounded-2xl bg-white border border-slate-100 px-2 py-1.5 shadow-sm">
+                        <button onClick={() => applyQuickReply(q.text)} className="px-2 py-1 text-xs font-bold text-slate-700 hover:text-emerald-700 max-w-[190px] truncate" title={q.text}>{q.title}</button>
+                        <button onClick={() => startEditQuickReply(q)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400" title="تعديل"><Pencil size={13} /></button>
+                        <button onClick={() => deleteQuickReply(q)} className="p-1 rounded-lg hover:bg-rose-50 text-rose-400" title="حذف"><Trash2 size={13} /></button>
+                      </div>
+                    )) : <div className="text-xs font-bold text-slate-400 px-2 py-2">لا توجد ردود مطابقة للبحث.</div>}
+                  </div>
                 </div>
-                <div className="flex items-end gap-3">
-                  <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply(); }} placeholder="اكتب ردك هنا... Ctrl/⌘ + Enter للإرسال" className="flex-1 min-h-[86px] max-h-56 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 text-sm leading-6" />
-                  <button onClick={() => sendReply()} disabled={sending || !replyText.trim()} className="h-[86px] px-7 rounded-3xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-black shadow-lg shadow-emerald-200 transition flex items-center gap-2"><Send size={18} /> إرسال</button>
+                <div className="flex flex-col md:flex-row items-stretch md:items-end gap-3">
+                  <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply(); }} placeholder="اكتب ردك هنا... Ctrl/⌘ + Enter للإرسال" className="flex-1 min-h-[96px] max-h-56 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 text-sm leading-6" />
+                  <button onClick={() => sendReply()} disabled={sending || !replyText.trim()} className="h-14 md:h-[96px] px-7 rounded-3xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-black shadow-lg shadow-emerald-200 transition flex items-center justify-center gap-2"><Send size={18} /> إرسال</button>
                 </div>
               </div>
             </>
@@ -426,22 +627,6 @@ export default function WhatsAppSupportInbox() {
           )}
         </section>
 
-        <aside className="rounded-3xl bg-slate-950 text-white shadow-md overflow-hidden p-4 flex flex-col gap-4">
-          <div className="rounded-3xl bg-white/10 border border-white/10 p-4">
-            <div className="flex items-center gap-2 font-black"><ShieldCheck className="text-emerald-400" /> سياسة التشغيل</div>
-            <p className="text-white/60 text-sm leading-7 mt-3">البوت يرد تلقائيًا على الطلبات والتتبع والمنتجات. عند اختيار الدعم تنتقل المحادثة للوضع اليدوي ولا يزعج العميل بردود متكررة.</p>
-          </div>
-          <div className="rounded-3xl bg-white/10 border border-white/10 p-4">
-            <div className="flex items-center gap-2 font-black"><Zap className="text-amber-300" /> الردود السريعة</div>
-            <div className="mt-3 space-y-2">
-              {quickReplies.slice(0, 6).map((q) => <button key={q.id} onClick={() => setReplyText(q.text)} className="w-full text-right rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-2 text-sm text-white/80">{q.title}</button>)}
-            </div>
-          </div>
-          <div className="mt-auto rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-5 shadow-xl">
-            <div className="text-lg font-black">جاهزية واتساب</div>
-            <p className="text-white/80 text-sm mt-2 leading-7">بعد اكتمال Register للرقم، ستظهر المحادثات هنا فور وصول أول رسالة للـ Webhook.</p>
-          </div>
-        </aside>
       </div>
     </div>
   );
