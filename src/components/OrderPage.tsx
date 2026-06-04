@@ -1239,31 +1239,6 @@ const OrderPage: React.FC<OrderPageProps> = ({
         gateway_order_id: createdGatewayOrderId,
       });
 
-      // Auto-open WhatsApp after converting app order to invoice
-      if (createdLink && createdLink.trim() !== "") {
-        const orderForWhatsApp = {
-          ...order,
-
-          paymentLink: createdLink,
-          paymentId: createdPaymentId || createdTrackId,
-          payment_id: createdPaymentId || createdTrackId,
-          paymentTrackId: createdTrackId || createdPaymentId,
-          trackId: createdTrackId || createdPaymentId,
-          track_id: createdTrackId || createdPaymentId,
-          gatewayOrderId: createdGatewayOrderId,
-          gateway_order_id: createdGatewayOrderId,
-          total: updatedOrderTotal,
-          totalAmount: subtotal,
-          deliveryFee: invoiceDeliveryFee,
-          isConvertedToInvoice: true,
-        } as Order;
-
-        const waLink = getWhatsAppLink(orderForWhatsApp);
-        if (waLink && waLink !== "#") {
-          window.open(waLink, "_blank", "noopener,noreferrer");
-        }
-      }
-
       toast.success("تم تحويل الطلب إلى فاتورة وتعديل المخزون بنجاح ✅");
       if (setDeepLinkData) {
         setDeepLinkData({ search: getOrderCustomerName(order) });

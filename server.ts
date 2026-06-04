@@ -1103,12 +1103,13 @@ async function syncSharedCompanyPaymentData(identifiers: PaymentSyncIdentifiers,
 }
 
 async function syncPaymentStatusEverywhere(rawIdentifiers: PaymentSyncIdentifiers, state: PaymentSyncState, meta: any = {}) {
-  const identifiers = await resolvePaymentSessionTargets(rawIdentifiers);
-  const paymentId = meta?.paymentId || firstPaymentId(identifiers.paymentIds);
-  const trackId = meta?.trackId || meta?.paymentTrackId || identifiers.paymentIds.find((id) => id && id !== paymentId) || "";
-  const gatewayOrderId = meta?.gatewayOrderId || identifiers.gatewayOrderIds[0] || "";
+  const { identifiersAlreadyResolved, ...metaForSync } = meta || {};
+  const identifiers = identifiersAlreadyResolved ? rawIdentifiers : await resolvePaymentSessionTargets(rawIdentifiers);
+  const paymentId = metaForSync?.paymentId || firstPaymentId(identifiers.paymentIds);
+  const trackId = metaForSync?.trackId || metaForSync?.paymentTrackId || identifiers.paymentIds.find((id) => id && id !== paymentId) || "";
+  const gatewayOrderId = metaForSync?.gatewayOrderId || identifiers.gatewayOrderIds[0] || "";
   const syncMeta = removeUndefinedDeep({
-    ...meta,
+    ...metaForSync,
     paymentId,
     trackId,
     paymentTrackId: trackId,
@@ -1349,6 +1350,7 @@ async function verifyAndSyncUPaymentsInvoice(invoiceId: any, provided: any, apiK
           paymentTrackId: meta.trackId || candidateId,
           gatewayOrderId: meta.gatewayOrderId || identifiers.gatewayOrderIds[0] || "",
           verificationEndpoint: attempt.endpoint,
+          identifiersAlreadyResolved: true,
         });
         await rememberPaymentSession({
           orderId: invoiceId,
@@ -1383,6 +1385,7 @@ async function verifyAndSyncUPaymentsInvoice(invoiceId: any, provided: any, apiK
       paymentTrackId: meta.trackId || firstFailed.candidateId,
       gatewayOrderId: meta.gatewayOrderId || identifiers.gatewayOrderIds[0] || "",
       verificationEndpoint: firstFailed.attempt.endpoint,
+      identifiersAlreadyResolved: true,
     });
     await rememberPaymentSession({
       orderId: invoiceId,
@@ -1474,6 +1477,15 @@ const FULL_APPDATA_SHARD_KEYS = [
   "deepArchiveAnalysis",
   "nameMatchMemory",
 ];
+
+const BOOT_DEFERRED_APPDATA_SHARD_KEYS = new Set([
+  "pulseAnalysisHistory",
+  "pulseReviews",
+  "aiLearningMemory",
+  "pulseArchiveAnalysis",
+  "deepArchiveAnalysis",
+  "nameMatchMemory",
+]);
 
 function decodeFullAppDataShard(key: string, shardData: any) {
   if (!shardData) return [];
@@ -2363,9 +2375,13 @@ app.get("/api/appdata/full", async (_req, res) => {
     const rootRef = db.collection("appData").doc("shared_company_data");
     const rootSnap = await rootRef.get();
     const rootData = rootSnap.exists ? (rootSnap.data() || {}) : {};
+    const profile = String((_req.query?.profile || _req.query?.mode || "") as string).toLowerCase();
+    const shardKeys = profile === "boot"
+      ? FULL_APPDATA_SHARD_KEYS.filter((key) => !BOOT_DEFERRED_APPDATA_SHARD_KEYS.has(key))
+      : FULL_APPDATA_SHARD_KEYS;
 
     const shardSnaps = await Promise.all(
-      FULL_APPDATA_SHARD_KEYS.map(async (key) => {
+      shardKeys.map(async (key) => {
         try {
           const snap = await rootRef.collection("shards").doc(key).get();
           return { key, snap };
@@ -2391,6 +2407,8 @@ app.get("/api/appdata/full", async (_req, res) => {
     return res.json({
       success: true,
       source: "admin-server-firestore-full-appdata",
+      profile: profile === "boot" ? "boot" : "full",
+      deferredShardKeys: profile === "boot" ? Array.from(BOOT_DEFERRED_APPDATA_SHARD_KEYS) : [],
       durationMs: Date.now() - startedAt,
       shardCounts,
       data,
@@ -2664,6 +2682,7 @@ app.get("/api/admin-dashboard-data", async (_req, res) => {
       const syncResult = await syncPaymentStatusEverywhere(identifiers, isPaid ? "paid" : "failed", {
         source: "payment-webhook",
         gatewayResult: rawResult || classifiedState,
+        identifiersAlreadyResolved: true,
       });
       identifiers = syncResult.identifiers;
       orderId = identifiers.targetIds[0] || orderId;
