@@ -1,4 +1,4 @@
-import { formatKuwaitiDate } from '../utils';
+import { formatKuwaitiDate } from '../lib/utils';
 // Keep icons as tokens until after encodeURIComponent. This prevents broken
 // environments from converting emojis into replacement characters (�) before
 // WhatsApp receives them.

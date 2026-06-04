@@ -18,8 +18,23 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { cn, normalizePhone, normalizeDigits, formatKuwaitiDate } from "../utils";
-import { redirectToPayment } from "../utils/redirect";
+import { cn, formatKuwaitiDate } from "../lib/utils";
+
+const normalizePhone = (value: any): string => {
+  return String(value || "").replace(/\D/g, "");
+};
+
+const normalizeDigits = (value: any): string => {
+  return String(value || "").replace(/\D/g, "");
+};
+
+const redirectToPayment = (url: string): string => {
+  if (url) {
+    window.location.href = url;
+    return "navigating_away";
+  }
+  return "failed";
+};
 
 interface TrackedOrder {
   id: string;
@@ -30,6 +45,12 @@ interface TrackedOrder {
   createdAt: string;
   items?: any[];
   address?: any;
+  paymentStatus?: string;
+  invoiceId?: string;
+  date?: string;
+  customerPhone?: string;
+  isFreeDelivery?: boolean;
+  [key: string]: any;
 }
 
 const TypewriterText = ({
@@ -67,7 +88,33 @@ const TypewriterText = ({
   );
 };
 
-import { calculateItemTotalWithAddons } from "../utils/priceCalculation";
+const calculateItemTotalWithAddons = (item: any): number => {
+  if (!item) return 0;
+  const basePrice = Number(item.priceAtTime ?? item.price ?? 0);
+  const qty = Number(item.quantity ?? item.qty ?? item.count ?? 1);
+  let addonsTotal = 0;
+  
+  const addons = item.addons || item.selectedAddons || item.addOns || item.extras || [];
+  if (Array.isArray(addons)) {
+    addons.forEach((addon: any) => {
+      if (addon && addon.selected !== false && addon.enabled !== false) {
+        const aPrice = Number(addon.price ?? addon.addonPrice ?? addon.amount ?? 0);
+        const aQty = Number(addon.quantity ?? addon.qty ?? addon.count ?? 1);
+        addonsTotal += aPrice * aQty;
+      }
+    });
+  } else if (typeof addons === 'object') {
+    Object.values(addons).forEach((addon: any) => {
+      if (addon && addon.selected !== false && addon.enabled !== false) {
+        const aPrice = Number(addon.price ?? addon.addonPrice ?? addon.amount ?? 0);
+        const aQty = Number(addon.quantity ?? addon.qty ?? addon.count ?? 1);
+        addonsTotal += aPrice * aQty;
+      }
+    });
+  }
+
+  return (basePrice * qty) + addonsTotal;
+};
 import { openPrintableInvoice, openWhatsAppInvoiceText, shareOrPrintInvoice } from "../utils/invoiceShare";
 
 const formatOrderWords = (count: number) => {
@@ -644,7 +691,7 @@ export default function OrderPage() {
       const qty = hasExplicitQty ? Number(explicitQty || 0) : 1;
       if (hasExplicitQty && qty <= 0) return null;
       if (addon?.selected === false || addon?.isSelected === false || addon?.enabled === false) return null;
-      const total = Number(addon?.total ?? addon?.amount ?? addon?.totalPrice ?? (Number(addon?.price || 0) * Math.max(1, qty)) || 0);
+      const total = Number((addon?.total ?? addon?.amount ?? addon?.totalPrice ?? (Number(addon?.price || 0) * Math.max(1, qty))) || 0);
       const key = `${name}__${qty}__${total}`;
       if (seen.has(key)) return null;
       seen.add(key);

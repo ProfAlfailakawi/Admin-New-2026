@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import LZString from 'lz-string';
 import { 
@@ -1129,6 +1129,28 @@ const MainApp: React.FC = () => {
   });
   
   const [data, setData] = useState<AppState>(INITIAL_DATA);
+
+  const isVisibleSmartNotification = (n: any) => !n?.title?.includes('درع') && !n?.title?.includes('مجبوس دجاج');
+  const isUnreadSmartNotification = (n: any) => isVisibleSmartNotification(n) && n?.read !== true;
+  const hasUnreadSmartNotifications = useMemo(() => (data?.notifications || []).some(isUnreadSmartNotification), [data?.notifications]);
+
+  // عند فتح لوحة التنبيهات يعتبر المستخدم أنه شاهد التنبيهات الظاهرة،
+  // لذلك نخفي النقطة الحمراء فورًا ونحفظ حالة القراءة عبر نظام الحفظ الحالي.
+  useEffect(() => {
+    if (!notifOpen) return;
+    setData(prev => {
+      const notifications = prev?.notifications || [];
+      let changed = false;
+      const nextNotifications = notifications.map((n: any) => {
+        if (isUnreadSmartNotification(n)) {
+          changed = true;
+          return { ...n, read: true };
+        }
+        return n;
+      });
+      return changed ? { ...prev, notifications: nextNotifications } : prev;
+    });
+  }, [notifOpen]);
   const [hasRunMigration, setHasRunMigration] = useState(false);
 
   // MIGRATION: Ensure old orders have the correct customer names matching the DB.
@@ -3344,7 +3366,7 @@ const MainApp: React.FC = () => {
                 aria-label="تنبيهات"
               >
                 <Bell size={20} className={cn("transition-colors", notifOpen ? "text-primary" : "text-slate-600")} />
-                {(data?.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج')).some(n => !n.read) && (
+                {hasUnreadSmartNotifications && (
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-white" />
                 )}
               </button>
@@ -3387,8 +3409,8 @@ const MainApp: React.FC = () => {
                         </div>
                     </div>
                     <div className="max-h-[70vh] overflow-y-auto p-2 scrollbar-hide">
-                      {data.notifications && data.notifications.filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج')).length > 0 ? (
-                        (data?.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج')).map(notif => (
+                      {data.notifications && data.notifications.filter(isVisibleSmartNotification).length > 0 ? (
+                        (data?.notifications || []).filter(isVisibleSmartNotification).map(notif => (
                           <div 
                             key={notif.id} 
                             onClick={(e) => {
@@ -3672,7 +3694,7 @@ const MainApp: React.FC = () => {
               <div className="relative z-10 flex items-center justify-center bg-white/5 rounded-full w-7 h-7 backdrop-blur-md border border-white/5">
                 <Command className="text-amber-400 group-hover:scale-110 transition-transform duration-300" size={15} />
               </div>
-              {(data?.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج')).some(n => !n.read) && (
+              {hasUnreadSmartNotifications && (
                 <div className="absolute top-2.5 right-2.5 flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-[120%] w-[120%] rounded-full bg-amber-400 opacity-60"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
