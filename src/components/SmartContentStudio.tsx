@@ -1779,16 +1779,16 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500 pb-32">
+    <div className="smart-studio-shell max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500 pb-32">
       
-      <div className="mb-8 rounded-[2.4rem] bg-[radial-gradient(circle_at_top_left,_#4338ca,_#0f172a_46%,_#020617)] p-6 md:p-7 shadow-2xl border border-white/10 text-white relative overflow-hidden">
+      <div className="smart-studio-hero mb-8 rounded-[2.4rem] bg-[radial-gradient(circle_at_top_left,_#4338ca,_#0f172a_46%,_#020617)] p-6 md:p-7 shadow-2xl border border-white/10 text-white relative overflow-hidden">
         <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl pointer-events-none" />
         <div className="absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-cyan-300/10 blur-3xl pointer-events-none" />
         <div className="absolute inset-x-8 bottom-0 h-px bg-gradient-to-l from-transparent via-white/25 to-transparent" />
 
         <div className="relative z-10 flex items-center justify-between gap-4">
           <div className="text-right">
-            <h1 className="text-3xl md:text-4xl font-black flex items-center gap-3">
+            <h1 className="smart-studio-title text-3xl md:text-4xl font-black flex items-center gap-3">
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 border border-white/10"><Camera className="w-7 h-7 text-indigo-200" /></span>
               استوديو التراث الذكي
             </h1>
@@ -1809,35 +1809,35 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       </div>
 
       {studioTab === 'home' && (
-        <div className="max-w-5xl mx-auto rounded-[2rem] bg-white border border-slate-100 shadow-sm p-5 text-right">
+        <div className="smart-studio-home-panel max-w-5xl mx-auto rounded-[2rem] bg-white border border-slate-100 shadow-sm p-5 text-right">
           <div className="flex items-center justify-between gap-3 mb-5">
             <div>
               <p className="text-xs font-black text-indigo-500 mb-1">اختَر البداية</p>
               <h2 className="text-2xl font-black text-slate-950">ابدأ بالصيغة المناسبة لمحتواك</h2>
             </div>
           </div>
-          <div className="grid sm:grid-cols-2 xl:grid-cols-5 gap-3">
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setCreateSubTab('custom'); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
+          <div className="smart-studio-home-grid grid sm:grid-cols-2 xl:grid-cols-5 gap-3">
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setCreateSubTab('custom'); setStudioTab('create'); }} className="smart-studio-home-card rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Sparkles className="text-indigo-500 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من فكرة</div>
               <div className="text-xs font-bold text-slate-400 mt-1">اكتب وصفك، أو اختر بداية جاهزة.</div>
             </button>
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setProductStep(1); setMaxProductStepReached(1); setStudioTab('product'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setProductStep(1); setMaxProductStepReached(1); setStudioTab('product'); }} className="smart-studio-home-card rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Camera className="text-indigo-500 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من صورة</div>
               <div className="text-xs font-bold text-slate-400 mt-1">ارفع صورة المنتج ونرتّبها بواقعية أعلى.</div>
             </button>
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setSelectedFormat('9:16'); setReelStep(1); setReelSource('idea'); setGeneratedReel(null); setShowReelSettings(false); setReelSubTab('generate'); setStudioTab('reel'); }} className="rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setSelectedFormat('9:16'); setReelStep(1); setReelSource('idea'); setGeneratedReel(null); setShowReelSettings(false); setReelSubTab('generate'); setStudioTab('reel'); }} className="smart-studio-home-card rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
               <Film className="text-violet-600 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">ريل مباشر</div>
               <div className="text-xs font-bold text-slate-400 mt-1">فيديو واقعي 4–8 ثواني جاهز لريلز.</div>
             </button>
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setMenuOutputType('image'); setStudioTab('storyboard'); }} className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setMenuOutputType('image'); setStudioTab('storyboard'); }} className="smart-studio-home-card rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
               <Layout className="text-emerald-600 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من المنيو</div>
               <div className="text-xs font-bold text-slate-400 mt-1">اختر وجبة جاهزة، ثم جهّزها لصورة أو ريل.</div>
             </button>
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateSubTab('campaigner'); setCreateStep(1); setMaxCreateStepReached(1); setStudioTab('create'); }} className="rounded-3xl border border-rose-100 bg-gradient-to-br from-rose-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateSubTab('campaigner'); setCreateStep(1); setMaxCreateStepReached(1); setStudioTab('create'); }} className="smart-studio-home-card rounded-3xl border border-rose-100 bg-gradient-to-br from-rose-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
               <Brain className="text-rose-600 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">حملة ذكية</div>
               <div className="text-xs font-bold text-slate-400 mt-1">ابدأ مباشرة من رادار المواسم والطقس.</div>
@@ -1894,8 +1894,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
 
       {studioTab === 'reel' && (
-        <div className="grid lg:grid-cols-[390px_minmax(0,1fr)] gap-6 items-start">
-          <div className="rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 text-right">
+        <div className="studio-workbench-grid grid lg:grid-cols-[390px_minmax(0,1fr)] gap-6 items-start">
+          <div className="studio-control-card rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 text-right">
             <div className="mb-5">
               <p className="text-xs font-black text-violet-500 mb-1">ريل قصير</p>
               <h2 className="text-2xl font-black text-slate-950">فيديو واقعي جاهز للنشر</h2>
@@ -2103,7 +2103,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             </>)}
           </div>
 
-          <div className="rounded-[2.2rem] bg-slate-950 p-3 shadow-2xl border border-slate-900 min-h-[620px] flex items-center justify-center relative overflow-hidden studio-preview-stage">
+          <div className="studio-preview-card rounded-[2.2rem] bg-slate-950 p-3 shadow-2xl border border-slate-900 min-h-[620px] flex items-center justify-center relative overflow-hidden studio-preview-stage">
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
             {renderProductionDesk('reel')}
             {!generatedReel && !isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-5xl shadow-2xl"><Film size={46} /></div><h3 className="text-3xl font-black mb-3">معاينة الريل تظهر هنا</h3><p className="text-sm font-bold text-white/55 leading-7">ريل عمودي واقعي · {reelDuration} ثواني</p></div>}
@@ -2114,8 +2114,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       )}
 
       {(studioTab === 'create' || studioTab === 'quick' || studioTab === 'whatsapp' || studioTab === 'occasions') && (
-        <div className="grid lg:grid-cols-[390px_minmax(0,1fr)] gap-6 items-start">
-          <div className="rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 text-right">
+        <div className="studio-workbench-grid grid lg:grid-cols-[390px_minmax(0,1fr)] gap-6 items-start">
+          <div className="studio-control-card rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 text-right">
             <div className="flex items-start justify-between gap-4 mb-5">
               <div>
                 <p className="text-xs font-black text-indigo-500 mb-1">من فكرة</p>
@@ -2417,7 +2417,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             </>)}
           </div>
 
-          <div className="rounded-[2.2rem] bg-slate-950 p-3 sm:p-4 shadow-2xl border border-slate-900 min-h-[420px] sm:min-h-[560px] flex items-center justify-center relative overflow-hidden studio-preview-stage">
+          <div className="studio-preview-card rounded-[2.2rem] bg-slate-950 p-3 sm:p-4 shadow-2xl border border-slate-900 min-h-[420px] sm:min-h-[560px] flex items-center justify-center relative overflow-hidden studio-preview-stage">
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
             {renderProductionDesk('image')}
             {!generatedImage && !isGenerating && (
@@ -2460,9 +2460,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       )}
 
       {studioTab === 'product' && (
-        <div className="grid lg:grid-cols-[390px_minmax(0,1fr)] gap-6 items-start">
+        <div className="studio-workbench-grid grid lg:grid-cols-[390px_minmax(0,1fr)] gap-6 items-start">
           <input type="file" ref={productImageInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-          <div className="rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 text-right">
+          <div className="studio-control-card rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 text-right">
             {!originalImage ? (
               <div className="space-y-5">
                 <div className="flex items-start justify-between gap-4">
@@ -2649,7 +2649,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             )}
           </div>
 
-          <div className="w-full space-y-6 sticky top-4 z-40">
+          <div className="studio-preview-column w-full space-y-6 sticky top-4 z-40">
             <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100 min-h-[250px] md:min-h-[500px] flex items-center justify-center bg-slate-50 relative overflow-hidden studio-preview-stage studio-preview-stage-light">
               {renderProductionDesk('image')}
               {!generatedImage && !isGenerating && (

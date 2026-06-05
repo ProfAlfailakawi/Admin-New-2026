@@ -3384,6 +3384,116 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
 .studio-preview-stage-light .studio-production-desk{background:rgba(255,255,255,.94);color:#0f172a;border-color:#e2e8f0;box-shadow:0 14px 34px rgba(15,23,42,.08)}
 .studio-production-desk span{display:block;font-size:9px;font-weight:950;letter-spacing:.14em;text-transform:uppercase;color:#a5b4fc}.studio-production-desk strong{display:block;font-size:21px;font-weight:950;margin:3px 0 8px}.studio-production-desk div{font-size:10px;font-weight:850;line-height:1.7;color:rgba(255,255,255,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.studio-preview-stage-light .studio-production-desk div{color:#64748b}
 
+/* Smart studio mobile layout: compact, readable, no overlap on phones */
+@media(max-width:767px){
+  .smart-studio-shell{
+    padding:12px 10px 110px!important;
+    max-width:100%!important;
+    overflow-x:hidden!important;
+  }
+  .smart-studio-hero{
+    margin-bottom:12px!important;
+    padding:16px!important;
+    border-radius:26px!important;
+  }
+  .smart-studio-title{
+    align-items:flex-start!important;
+    gap:10px!important;
+    font-size:clamp(1.45rem,7.2vw,2rem)!important;
+    line-height:1.28!important;
+    white-space:normal!important;
+    text-wrap:balance!important;
+  }
+  .smart-studio-title span{
+    width:42px!important;
+    height:42px!important;
+    border-radius:16px!important;
+  }
+  .smart-studio-home-panel{
+    padding:14px!important;
+    border-radius:24px!important;
+  }
+  .smart-studio-home-panel h2{
+    font-size:19px!important;
+    line-height:1.35!important;
+  }
+  .smart-studio-home-grid{
+    grid-template-columns:1fr!important;
+    gap:8px!important;
+  }
+  .smart-studio-home-card{
+    display:grid!important;
+    grid-template-columns:38px minmax(0,1fr)!important;
+    align-items:center!important;
+    gap:10px!important;
+    padding:13px!important;
+    border-radius:20px!important;
+    min-height:74px!important;
+  }
+  .smart-studio-home-card svg{
+    margin:0!important;
+    width:24px!important;
+    height:24px!important;
+  }
+  .smart-studio-home-card .font-black{
+    font-size:15px!important;
+    line-height:1.25!important;
+  }
+  .smart-studio-home-card .text-xs{
+    grid-column:2!important;
+    margin-top:2px!important;
+    line-height:1.45!important;
+    font-size:11px!important;
+  }
+  .studio-workbench-grid{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:12px!important;
+  }
+  .studio-control-card{
+    padding:14px!important;
+    border-radius:24px!important;
+  }
+  .studio-control-card h2{
+    font-size:20px!important;
+    line-height:1.3!important;
+  }
+  .studio-control-card p{
+    line-height:1.6!important;
+  }
+  .studio-control-card .grid.grid-cols-2{
+    gap:7px!important;
+  }
+  .studio-control-card button,
+  .studio-control-card input,
+  .studio-control-card textarea,
+  .studio-control-card select{
+    border-radius:18px!important;
+  }
+  .studio-preview-column{
+    position:static!important;
+    top:auto!important;
+    z-index:auto!important;
+  }
+  .studio-preview-card,
+  .studio-preview-stage{
+    min-height:310px!important;
+    border-radius:26px!important;
+    padding:10px!important;
+  }
+  .studio-preview-stage h3{
+    font-size:22px!important;
+    line-height:1.25!important;
+  }
+  .studio-preview-stage .h-24.w-24{
+    width:72px!important;
+    height:72px!important;
+    border-radius:24px!important;
+    font-size:42px!important;
+    margin-bottom:14px!important;
+  }
+}
+
 .diwaniya-pulse-live{position:relative;overflow:hidden;border-radius:30px;border:1px solid rgba(148,163,184,.22);background:linear-gradient(135deg,#07130d,#0f172a 58%,#1f2937);padding:16px;box-shadow:0 22px 58px rgba(15,23,42,.16);color:white}
 .pulse-live-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.pulse-live-head span{display:block;color:#f8d98d;font-size:10px;font-weight:950;letter-spacing:.15em;text-transform:uppercase}.pulse-live-head strong{display:block;font-size:22px;font-weight:950;margin-top:3px}.pulse-live-head button{display:inline-flex;align-items:center;gap:7px;border-radius:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);padding:9px 12px;color:#fff;font-size:12px;font-weight:950}
 .pulse-live-line{position:relative;height:74px;margin-bottom:14px;border-radius:22px;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(248,217,141,.12),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.08)}
