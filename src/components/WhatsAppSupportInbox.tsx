@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { AlertCircle, Bot, CheckCircle2, Clock, Headphones, Loader2, MessageCircle, Pencil, Plus, RefreshCw, Save, Search, Send, Sparkles, Trash2, UserRound, X, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
+import type { AppState, Customer, Product } from '../types';
+import { isPaidStatus } from '../lib/status-utils';
 
 type Conversation = {
   id: string;
@@ -30,6 +32,8 @@ type ChatMessage = {
 };
 
 type QuickReply = { id: string; title: string; text: string };
+type SmartReply = { id: string; title: string; meta: string; text: string; tone: 'vip' | 'retention' | 'loyalty' | 'support'; score?: number };
+type WhatsAppSupportInboxProps = { data?: Partial<AppState> | null };
 
 const QUICK_REPLIES_STORAGE_KEY = 'alturath_whatsapp_quick_replies_v1';
 
@@ -185,6 +189,271 @@ const DEFAULT_QUICK_REPLIES: QuickReply[] = [
 ];
 
 
+const pickBySeedLocal = (templates: string[], seed?: string) => {
+  if (!templates.length) return '';
+  const base = String(seed || '0').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+  return templates[base % templates.length];
+};
+
+const getFriendlyCustomerName = (name?: string) => {
+  const clean = String(name || '').trim().replace(/\s+/g, ' ');
+  if (!clean) return 'عميلنا العزيز';
+  const parts = clean.split(' ');
+  if (['بو', 'أبو', 'ابو', 'أم', 'ام'].includes(parts[0]) && parts[1]) return `${parts[0]} ${parts[1]}`;
+  return parts[0] || 'عميلنا العزيز';
+};
+
+const phoneLooksSame = (a?: string, b?: string) => {
+  const x = cleanPhone(a);
+  const y = cleanPhone(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  const xs = x.slice(-8);
+  const ys = y.slice(-8);
+  return xs.length >= 7 && xs === ys;
+};
+
+const invoiceBelongsToCustomer = (inv: any, customer?: Customer | null, phone?: string) => {
+  if (!inv || inv.isDeleted) return false;
+  if (customer?.id && String(inv.customerId || '') === String(customer.id)) return true;
+  if (customer?.name && String(inv.customerName || '').trim() && String(inv.customerName || '').trim() === String(customer.name || '').trim()) return true;
+  return phoneLooksSame(inv.customerPhone || inv.phone || inv.mobile || inv.whatsapp, phone || customer?.phone);
+};
+
+const orderBelongsToCustomer = (order: any, customer?: Customer | null, phone?: string) => {
+  if (!order) return false;
+  if (customer?.id && String(order.customerId || '') === String(customer.id)) return true;
+  if (customer?.name && String(order.customerName || '').trim() && String(order.customerName || '').trim() === String(customer.name || '').trim()) return true;
+  return phoneLooksSame(order.customerPhone || order.phone || order.mobile || order.whatsapp, phone || customer?.phone);
+};
+
+type CustomerInsight = {
+  customer?: Customer | null;
+  classification: string;
+  actionLabel: string;
+  smartAdvice: string;
+  whatsappMessage: string;
+  activePoints: number;
+  ordersCount: number;
+  totalSpent: number;
+  daysSinceLastOrder: number;
+  lastOrderDate?: Date | null;
+  preemptiveMatch?: { productName?: string; dayOfWeekStr?: string; isTomorrow?: boolean } | null;
+  riskLevel: 'preemptive' | 'critical' | 'warning' | 'safe';
+};
+
+const buildCustomerInsight = (data: Partial<AppState> | null | undefined, conversation?: Conversation | null): CustomerInsight | null => {
+  if (!conversation || !data) return null;
+  const phone = cleanPhone(conversation.phone || conversation.id);
+  const customers = Array.isArray(data.customers) ? data.customers : [];
+  const invoices = Array.isArray(data.invoices) ? data.invoices : [];
+  const orders = Array.isArray(data.orders) ? data.orders : [];
+  const products = Array.isArray(data.products) ? data.products : [];
+  const normalizedName = normalizeArabicSearch(conversation.customerName || '');
+
+  const customer = customers.find((c) => phoneLooksSame(c.phone, phone))
+    || customers.find((c) => normalizedName && normalizeArabicSearch(c.name || '') === normalizedName)
+    || null;
+
+  if (!customer) return null;
+
+  const customerInvoices = invoices.filter((inv: any) => invoiceBelongsToCustomer(inv, customer, phone));
+  const customerOrders = orders.filter((order: any) => orderBelongsToCustomer(order, customer, phone));
+  const paidInvoices = customerInvoices.filter((inv: any) => isPaidStatus(inv.paymentStatus) || isPaidStatus(inv.status) || inv.paymentStatus === undefined);
+  const effectiveInvoices = paidInvoices.length ? paidInvoices : customerInvoices;
+
+  const invoiceTotal = effectiveInvoices.reduce((acc: number, inv: any) => acc + Number(inv.totalAmount || 0), 0);
+  const ordersCount = Math.max(Number(customer.totalOrders || 0), effectiveInvoices.length, customerOrders.length);
+  const totalSpent = Math.max(Number(customer.totalSpent || 0), invoiceTotal);
+  const totalDiscountReceived = effectiveInvoices.reduce((acc: number, inv: any) => acc + Number(inv.discount || 0), 0);
+
+  const dates = [
+    ...effectiveInvoices.map((inv: any) => inv.date).filter(Boolean),
+    ...customerOrders.map((order: any) => order.date || order.createdAt).filter(Boolean),
+    customer.lastOrderDate,
+    customer.lastActive,
+  ].filter(Boolean).map((value) => new Date(String(value))).filter((date) => !Number.isNaN(date.getTime()));
+  const lastOrderDate = dates.length ? dates.sort((a, b) => b.getTime() - a.getTime())[0] : null;
+  const daysSinceLastOrder = lastOrderDate ? Math.floor((Date.now() - lastOrderDate.getTime()) / 86400000) : 999;
+
+  const isCouponHunter = totalDiscountReceived > (totalSpent * 0.15) && ordersCount > 2;
+  const isLoyalWithoutDiscounts = totalDiscountReceived === 0 && ordersCount >= 3;
+  let classification = 'عميل عابر';
+  if (ordersCount >= 10 && totalSpent >= 300) classification = 'شريك التراث';
+  else if (ordersCount >= 5 && totalSpent >= 150 && isLoyalWithoutDiscounts) classification = 'عاشق التراث';
+  else if (ordersCount >= 4 && totalSpent >= 200 && daysSinceLastOrder <= 60) classification = 'عميل ذهبي';
+  else if (isCouponHunter) classification = 'صياد العروض';
+  else if (ordersCount === 1 && daysSinceLastOrder <= 30) classification = 'ضيف جديد';
+  else if (daysSinceLastOrder <= 45 && ordersCount > 0) classification = 'عميل نشط';
+  else if (daysSinceLastOrder > 45 && daysSinceLastOrder <= 90) classification = 'متباطئ';
+  else if (daysSinceLastOrder > 90) classification = 'منقطع';
+
+  const activePoints = Number(customer.loyaltyPoints ?? Math.floor(totalSpent));
+  const namePart = getFriendlyCustomerName(customer.name || conversation.customerName);
+  const seed = customer.id || customer.phone || customer.name || phone;
+
+  const daysOfWeekAr = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  let preemptiveMatch: CustomerInsight['preemptiveMatch'] = null;
+  const dayItemCounts: Record<string, { count: number; dayOfWeek: number; productId: string }> = {};
+  effectiveInvoices.forEach((inv: any) => {
+    const date = new Date(inv.date || Date.now());
+    if (Number.isNaN(date.getTime())) return;
+    const docDay = date.getDay();
+    (inv.items || []).forEach((item: any) => {
+      const productId = String(item.productId || '');
+      if (!productId) return;
+      const key = `${docDay}-${productId}`;
+      if (!dayItemCounts[key]) dayItemCounts[key] = { count: 0, dayOfWeek: docDay, productId };
+      dayItemCounts[key].count += Number(item.quantity || 1);
+    });
+  });
+  Object.values(dayItemCounts).forEach((item) => {
+    if (preemptiveMatch || item.count < 2) return;
+    const product = (products as Product[]).find((p) => String(p.id) === String(item.productId));
+    preemptiveMatch = {
+      productName: product?.name,
+      dayOfWeekStr: daysOfWeekAr[item.dayOfWeek],
+      isTomorrow: (new Date().getDay() + 1) % 7 === item.dayOfWeek,
+    };
+  });
+
+  let riskLevel: CustomerInsight['riskLevel'] = 'safe';
+  if (preemptiveMatch) riskLevel = 'preemptive';
+  else if (totalSpent > 500 && daysSinceLastOrder > 30) riskLevel = 'critical';
+  else if (totalSpent > 200 && daysSinceLastOrder > 15) riskLevel = 'warning';
+
+  let smartAdvice = 'رد مختصر حسب المحادثة الحالية.';
+  let actionLabel = 'رد ذكي جاهز';
+  let whatsappMessage = `حياك الله ${namePart} 🤍\nأنا معك الآن، أراجع رسالتك وأرد عليك بالتفاصيل المناسبة.`;
+
+  if (preemptiveMatch) {
+    const dayText = preemptiveMatch.isTomorrow ? 'باجر' : `يوم ${preemptiveMatch.dayOfWeekStr || 'قريب'}`;
+    const productLine = preemptiveMatch.productName ? `طلبك المعتاد (${preemptiveMatch.productName}) حاضر.` : 'طلبك المعتاد واضح عندنا.';
+    smartAdvice = 'نمط طلب متكرر؛ رد جاهز وقت الاستفسار.';
+    actionLabel = 'موعد طلب معتاد';
+    whatsappMessage = pickBySeedLocal([
+      `يا هلا ${namePart}، تذكير بسيط قبل موعد طلبك المعتاد ${dayText}. ${productLine} إذا يناسبك نجهزه لك بكل سرور.`,
+      `${namePart}، حياك الله. لاحظنا إن هذا الوقت يناسب طلبك المعتاد، ${productLine} ودنا نخدمك إذا لك خاطر.`,
+      `يا هلا ${namePart}، طلبك المعتاد قريب من موعده. ${productLine} تحب نرتبه لك؟`,
+    ], seed);
+  } else if (classification === 'شريك التراث' || classification === 'عميل ذهبي') {
+    smartAdvice = 'عميل مميز؛ رسالة تقدير قصيرة أفضل من الكلام الطويل.';
+    actionLabel = classification === 'شريك التراث' ? 'شريك التراث' : 'عميل ذهبي';
+    whatsappMessage = pickBySeedLocal([
+      `هلا ${namePart}، لك مكانة خاصة عند التراث. رصيدك ${activePoints} نقطة، وجهزنا لك تقدير مناسب للطلب القادم.`,
+      `${namePart}، طلباتك لها قيمة عندنا. عندك ${activePoints} نقطة ونبي نخدمك بتجربة أرتب.`,
+      `يا هلا ${namePart}، رصيدك ${activePoints} نقطة. هذا تذكير تقدير لعميل نعتز فيه.`,
+    ], seed);
+  } else if (classification === 'عاشق التراث') {
+    smartAdvice = 'ولاء واضح؛ كافئه برسالة تقدير لا خصم عشوائي.';
+    actionLabel = 'تقدير الولاء';
+    whatsappMessage = pickBySeedLocal([
+      `${namePart}، ذوقك حاضر في سجل التراث. عندك ${activePoints} نقطة ونحب نكافئ استمرارك.`,
+      `هلا ${namePart}، ولاؤك محل تقدير. رصيدك ${activePoints} نقطة، والطلب القادم له عناية خاصة.`,
+      `${namePart}، حضورك المتكرر يسعدنا. جهزنا لك تقدير بسيط يليق فيك.`,
+    ], seed);
+  } else if (classification === 'صياد العروض') {
+    smartAdvice = 'يفضل القيمة الواضحة؛ اجعل الرسالة مباشرة ومختصرة.';
+    actionLabel = 'صياد العروض';
+    whatsappMessage = pickBySeedLocal([
+      `هلا ${namePart}، عندك فرصة ذكية للاستفادة من رصيدك ${activePoints} نقطة في الطلب القادم.`,
+      `${namePart}، اخترنا لك تنبيه توفير مختصر يناسب سجل طلباتك. رصيدك ${activePoints} نقطة.`,
+      `يا هلا ${namePart}، رصيدك ${activePoints} نقطة جاهز يساعدك في طلبك القادم.`,
+    ], seed);
+  } else if (classification === 'منقطع' || classification === 'متباطئ' || riskLevel === 'critical' || riskLevel === 'warning') {
+    smartAdvice = 'فرصة استرجاع؛ رسالة دافئة بدون إلحاح.';
+    actionLabel = classification === 'منقطع' ? 'فرصة استرجاع' : 'متباطئ';
+    whatsappMessage = pickBySeedLocal([
+      `هلا ${namePart}، لك فترة عن التراث. نحب نرجع نخدمك بطلب مرتب على ذوقك.`,
+      `${namePart}، اشتقنا لطلبك. إذا ودك نرتب لك شي مناسب اليوم، حاضرين.`,
+      `يا هلا ${namePart}، رجعتك تهمنا. عندك ${activePoints} نقطة ونقدر نجهز لك طلب سريع.`,
+    ], seed);
+  } else if (activePoints >= 250) {
+    smartAdvice = 'رصيد عالي؛ شجعه على الاستفادة الآن.';
+    actionLabel = 'استفادة الرصيد';
+    whatsappMessage = pickBySeedLocal([
+      `ما شاء الله ${namePart}، رصيدك ${activePoints} نقطة جاهز للاستفادة في الطلب القادم.`,
+      `${namePart}، عندك رصيد ممتاز: ${activePoints} نقطة. نقدر نفعّله لك مع الطلب القادم.`,
+      `هلا ${namePart}، نقاطك وصلت مستوى ممتاز. رصيدك ${activePoints} نقطة.`,
+    ], seed);
+  } else if (activePoints >= 150) {
+    smartAdvice = 'قريب من مكافأة؛ حفزه بجملة واحدة.';
+    actionLabel = 'تحفيز مختصر';
+    whatsappMessage = pickBySeedLocal([
+      `${namePart}، قربت من مكافأة أعلى. رصيدك الآن ${activePoints} نقطة.`,
+      `هلا ${namePart}، باقي لك خطوة بسيطة وتفتح قيمة أفضل. رصيدك ${activePoints} نقطة.`,
+      `${namePart}، نقاطك تتحرك بشكل ممتاز: ${activePoints} نقطة حالياً.`,
+    ], seed);
+  }
+
+  return { customer, classification, actionLabel, smartAdvice, whatsappMessage, activePoints, ordersCount, totalSpent, daysSinceLastOrder, lastOrderDate, preemptiveMatch, riskLevel };
+};
+
+const getSmartRepliesForConversation = (c?: Conversation | null, data?: Partial<AppState> | null): SmartReply[] => {
+  if (!c) return [];
+  const tags = Array.isArray(c.tags) ? c.tags : [];
+  const insight = buildCustomerInsight(data, c);
+  const name = getFriendlyCustomerName(insight?.customer?.name || c.customerName);
+  const textIndex = normalizeArabicSearch([c.customerName, c.lastMessageText, c.lastInboundText, c.priority, ...tags].filter(Boolean).join(' '));
+  const replies: SmartReply[] = [];
+  const hasAny = (words: string[]) => words.some((word) => textIndex.includes(normalizeArabicSearch(word)));
+
+  if (insight) {
+    const dayPart = insight.daysSinceLastOrder >= 900 ? 'لا يوجد طلب مؤكد' : `آخر طلب قبل ${insight.daysSinceLastOrder} يوم`;
+    const statsPart = `${insight.ordersCount} طلب · ${Number(insight.totalSpent || 0).toFixed(3)} د.ك`;
+    replies.push({
+      id: `smart-customer-${insight.actionLabel}`,
+      title: insight.actionLabel,
+      meta: `${insight.classification} · ${dayPart} · ${statsPart}`,
+      tone: insight.classification === 'شريك التراث' || insight.classification === 'عميل ذهبي' || insight.actionLabel === 'شريك التراث' ? 'vip' : insight.actionLabel.includes('استرجاع') || insight.classification === 'منقطع' || insight.classification === 'متباطئ' ? 'retention' : 'loyalty',
+      score: 500,
+      text: insight.whatsappMessage,
+    });
+  }
+
+  if (hasAny(['دفع', 'فاتورة', 'مدفوع', 'كي نت', 'knet', 'payment', 'paid', 'رابط'])) {
+    replies.push({ id: 'smart-payment-context', title: 'فحص الدفع', meta: 'استفسار دفع ظاهر في آخر رسالة', tone: 'support', score: 420, text: `حياك الله ${name}، أراجع حالة الدفع والفاتورة الآن. إذا الدفع تم، بنثبتها لك مباشرة ونحدث الطلب.` });
+  }
+  if (hasAny(['توصيل', 'وصل', 'مندوب', 'عنوان', 'delivery', 'driver', 'تأخر الطلب'])) {
+    replies.push({ id: 'smart-delivery-context', title: 'متابعة التوصيل', meta: 'استفسار توصيل ظاهر في آخر رسالة', tone: 'support', score: 410, text: `أبشر ${name}، أتابع حالة التوصيل الآن وأرجع لك بالتحديث الصحيح بأسرع وقت.` });
+  }
+  if (hasAny(['متوفر', 'توفر', 'منتج', 'نفس طلبي', 'الجديد', 'سعر', 'كم'])) {
+    replies.push({ id: 'smart-product-context', title: 'استفسار منتج', meta: 'رسالة العميل مرتبطة بتوفر أو منتج', tone: 'support', score: 390, text: `حياك الله ${name} 🤍\nأراجع لك التوفر والتفاصيل الآن، وإذا تحب أرتب لك الخيار الأنسب حسب طلباتك السابقة.` });
+  }
+
+  if (tags.includes('vip_absent') || textIndex.includes('vip') || textIndex.includes('عميل مميز')) {
+    replies.push({ id: 'smart-vip-absent-context', title: 'عميل VIP غائب', meta: 'رد تقديري جاهز عند عودة العميل', tone: 'vip', score: 300, text: `يا هلا ${name} 🌿\nنورتنا من جديد، وجودك عندنا له تقدير خاص. أراجع لك التوفر الآن، وإذا تحب أرتب لك الطلب بأفضل خيار مناسب لك.` });
+  }
+  if (tags.includes('gold_customer') || textIndex.includes('ذهبي')) {
+    replies.push({ id: 'smart-gold-context', title: 'عميل ذهبي', meta: 'رد ولاء مختصر وراقي', tone: 'loyalty', score: 290, text: `حياك الله ${name} 🤍\nأكيد، أراجع لك الطلب السابق والتوفر الحالي، وبما أنك من عملائنا المميزين بنرتب لك الاختيار الأنسب قبل التأكيد.` });
+  }
+  if (tags.includes('retention') || textIndex.includes('غائب')) {
+    replies.push({ id: 'smart-retention-context', title: 'فرصة استرجاع', meta: 'رد لطيف لفتح طلب جديد', tone: 'retention', score: 280, text: `يا هلا ${name} 🌿\nعندنا اختيارات جديدة ومميزة، وأقدر أرشح لك الأنسب حسب طلباتك السابقة. اكتب لي شنو تفضل وأنا أجهز لك الخيارات.` });
+  }
+
+  if (!replies.length) {
+    replies.push({
+      id: 'smart-support-default',
+      title: 'رد ذكي جاهز',
+      meta: 'مناسب للمحادثة الحالية',
+      tone: 'support',
+      score: 1,
+      text: `حياك الله ${name !== 'عميلنا العزيز' ? name : ''} 🤍\nأنا معك الآن، أراجع رسالتك وأرد عليك بالتفاصيل المناسبة بأقرب وقت.`.replace('  ', ' '),
+    });
+  }
+
+  const seen = new Set<string>();
+  return replies
+    .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+    .filter((item) => {
+      const key = `${item.title}::${item.text}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 4);
+};
+
 const normalizeArabicSearch = (value: string) => String(value || '')
   .toLowerCase()
   .replace(/[أإآا]/g, 'ا')
@@ -218,7 +487,7 @@ const saveQuickReplies = (items: QuickReply[]) => {
 
 
 
-export default function WhatsAppSupportInbox() {
+export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInboxProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedPhone, setSelectedPhone] = useState<string>('');
   const [selected, setSelected] = useState<Conversation | null>(null);
@@ -226,6 +495,8 @@ export default function WhatsAppSupportInbox() {
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [managedQuickReplies, setManagedQuickReplies] = useState<QuickReply[]>(() => loadSavedQuickReplies());
   const [quickReplySearch, setQuickReplySearch] = useState('');
+  const [activeSmartReplyId, setActiveSmartReplyId] = useState<string | null>(null);
+  const [activeSmartReplySnapshot, setActiveSmartReplySnapshot] = useState<SmartReply | null>(null);
   const [quickReplyEditorOpen, setQuickReplyEditorOpen] = useState(false);
   const [editingQuickReplyId, setEditingQuickReplyId] = useState<string | null>(null);
   const [quickReplyForm, setQuickReplyForm] = useState({ title: '', text: '' });
@@ -239,6 +510,8 @@ export default function WhatsAppSupportInbox() {
   const [notice, setNotice] = useState<{ type: 'info' | 'success' | 'error'; text: string } | null>(null);
   const [slaNowMs, setSlaNowMs] = useState(() => Date.now());
   const endRef = useRef<HTMLDivElement | null>(null);
+  const quickReplyEditorRef = useRef<HTMLDivElement | null>(null);
+  const quickReplyTitleInputRef = useRef<HTMLInputElement | null>(null);
   const deepLinkConsumedRef = useRef(false);
 
   const showNotice = (type: 'info' | 'success' | 'error', text: string) => {
@@ -252,8 +525,7 @@ export default function WhatsAppSupportInbox() {
       const res = await fetch('/api/whatsapp/conversations?limit=80', { cache: 'no-store' });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'تعذر تحميل المحادثات');
-      const liveConversations = json.conversations || [];
-      setConversations(liveConversations);
+      setConversations(json.conversations || []);
       setError('');
     } catch (e: any) {
       setConversations([]);
@@ -265,6 +537,7 @@ export default function WhatsAppSupportInbox() {
 
   const loadMessages = async (phone: string, scrollToEnd = false) => {
     if (!phone) return;
+    const cleanedPhone = cleanPhone(phone);
     try {
       const res = await fetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(phone))}/messages`, { cache: 'no-store' });
       const json = await res.json();
@@ -314,6 +587,11 @@ export default function WhatsAppSupportInbox() {
     return () => window.clearInterval(timer);
   }, [selectedPhone]);
 
+  useEffect(() => {
+    setActiveSmartReplyId(null);
+    setActiveSmartReplySnapshot(null);
+  }, [selectedPhone]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return conversations.filter((c) => {
@@ -334,6 +612,8 @@ export default function WhatsAppSupportInbox() {
 
   const selectedActionState = useMemo(() => getConversationActionState(selected), [selected]);
   const selectedSlaInfo = useMemo(() => getConversationSlaInfo(selected, slaNowMs), [selected, slaNowMs]);
+  const selectedSmartReplies = useMemo(() => getSmartRepliesForConversation(selected, data), [selected, data]);
+  const activeSmartReply = activeSmartReplySnapshot;
   const urgentReplies = useMemo(() => (
     conversations
       .map((c) => classifyUrgentReply(c, slaNowMs))
@@ -380,6 +660,10 @@ export default function WhatsAppSupportInbox() {
     setQuickReplyForm({ title: '', text: '' });
     setQuickReplyFormError('');
     setQuickReplyEditorOpen(true);
+    window.setTimeout(() => {
+      quickReplyEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      quickReplyTitleInputRef.current?.focus();
+    }, 60);
   };
 
   const startEditQuickReply = (item: QuickReply) => {
@@ -387,6 +671,10 @@ export default function WhatsAppSupportInbox() {
     setQuickReplyForm({ title: item.title, text: item.text });
     setQuickReplyFormError('');
     setQuickReplyEditorOpen(true);
+    window.setTimeout(() => {
+      quickReplyEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      quickReplyTitleInputRef.current?.focus();
+    }, 60);
   };
 
   const saveQuickReplyFromForm = () => {
@@ -440,9 +728,20 @@ export default function WhatsAppSupportInbox() {
     showNotice('success', 'تم حذف الرد السريع.');
   };
 
+  const toggleSmartReply = (item: SmartReply) => {
+    const same = activeSmartReplyId === item.id;
+    setActiveSmartReplyId(same ? null : item.id);
+    setActiveSmartReplySnapshot(same ? null : item);
+  };
+
   const applyQuickReply = (text: string) => {
     setReplyText(text);
     showNotice('info', 'تم وضع الرد السريع في مربع الرد، راجعه ثم اضغط إرسال.');
+  };
+
+  const applySmartReply = (item: SmartReply) => {
+    setReplyText(item.text);
+    showNotice('info', 'تم اعتماد الرد الذكي في مربع الرد، راجعه ثم اضغط إرسال.');
   };
 
   const applyUrgentReply = (item: any) => {
@@ -662,10 +961,36 @@ export default function WhatsAppSupportInbox() {
                     </div>
                   </div>
 
+                  {selectedSmartReplies.length > 0 && (
+                    <div className="rounded-3xl border border-emerald-100 bg-white p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-xs font-black text-emerald-700"><Sparkles size={14} /> ردود ذكية حسب العميل</div>
+                        <span className="text-[10px] font-black text-slate-400">اضغط على التصنيف لعرض الرسالة كاملة</span>
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                        {selectedSmartReplies.map((item) => (
+                          <button key={item.id} type="button" onClick={() => toggleSmartReply(item)} className={cn('shrink-0 rounded-2xl border px-3 py-2 text-right transition shadow-sm', activeSmartReplyId === item.id ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-slate-50 border-slate-100 text-slate-700 hover:bg-white')}>
+                            <div className="text-xs font-black">{item.title}</div>
+                            <div className="mt-0.5 max-w-[180px] truncate text-[10px] font-bold text-slate-400">{item.meta}</div>
+                          </button>
+                        ))}
+                      </div>
+                      {activeSmartReply && (
+                        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <div className="text-xs font-black text-slate-800">{activeSmartReply.title}</div>
+                            <button type="button" onClick={() => applySmartReply(activeSmartReply)} className="rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-black text-white hover:bg-slate-800">اعتماد الرد</button>
+                          </div>
+                          <div className="whitespace-pre-wrap text-xs font-bold leading-6 text-slate-600">{activeSmartReply.text}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {quickReplyEditorOpen && (
-                    <div className="rounded-3xl bg-white border border-slate-100 p-3 space-y-2">
+                    <div ref={quickReplyEditorRef} className="rounded-3xl bg-white border border-slate-100 p-3 space-y-2">
                       <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-2">
-                        <input value={quickReplyForm.title} onChange={(e) => { setQuickReplyForm((prev) => ({ ...prev, title: e.target.value })); if (quickReplyFormError) setQuickReplyFormError(''); }} placeholder="اسم الزر" className={cn('rounded-2xl border bg-slate-50 px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm', quickReplyFormError && !quickReplyForm.title.trim() ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200')} />
+                        <input ref={quickReplyTitleInputRef} value={quickReplyForm.title} onChange={(e) => { setQuickReplyForm((prev) => ({ ...prev, title: e.target.value })); if (quickReplyFormError) setQuickReplyFormError(''); }} placeholder="اسم الزر" className={cn('rounded-2xl border bg-slate-50 px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm', quickReplyFormError && !quickReplyForm.title.trim() ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200')} />
                         <textarea value={quickReplyForm.text} onChange={(e) => { setQuickReplyForm((prev) => ({ ...prev, text: e.target.value })); if (quickReplyFormError) setQuickReplyFormError(''); }} placeholder="نص الرد السريع" className={cn('min-h-[74px] rounded-2xl border bg-slate-50 px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm leading-6', quickReplyFormError && !quickReplyForm.text.trim() ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200')} />
                       </div>
                       {quickReplyFormError && (
