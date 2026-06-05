@@ -64,6 +64,27 @@ type ConversationActionState = {
   hint: string;
 };
 
+type CustomerTemperature = {
+  label: 'بارد' | 'مستعجل' | 'غاضب' | 'VIP';
+  className: string;
+  hint: string;
+};
+
+const getCustomerTemperature = (c?: Conversation | null): CustomerTemperature => {
+  if (!c) return { label: 'بارد', className: 'bg-slate-100 text-slate-500 border border-slate-100', hint: 'لا توجد حرارة واضحة.' };
+  const text = normalizeArabicSearch([c.lastMessageText, c.lastInboundText, c.priority, ...(Array.isArray(c.tags) ? c.tags : [])].filter(Boolean).join(' '));
+  const hasAny = (words: string[]) => words.some((word) => text.includes(normalizeArabicSearch(word)));
+  const unread = Number(c.unreadCount || 0);
+  const needsHuman = c.status === 'needs_support' || c.mode === 'human';
+  const vip = hasAny(['vip', 'مميز', 'ذهبي', 'كبار', 'دايم', 'دائم']) || String(c.priority || '').toLowerCase().includes('vip');
+  const angry = hasAny(['زعل', 'غضب', 'غاضب', 'شكوى', 'سيء', 'حرام', 'تأخير', 'ما يصير', 'غلط', 'تعبت']);
+  const urgent = needsHuman || unread > 0 || hasAny(['عاجل', 'ضروري', 'الحين', 'وين', 'توصيل', 'دفع', 'فاتورة']);
+  if (angry) return { label: 'غاضب', className: 'bg-rose-50 text-rose-700 border border-rose-100', hint: 'في الرسالة نبرة غضب أو شكوى؛ يحتاج رد هادئ وسريع.' };
+  if (vip) return { label: 'VIP', className: 'bg-amber-50 text-amber-700 border border-amber-100', hint: 'عميل مهم أو له إشارة VIP؛ يستاهل متابعة راقية.' };
+  if (urgent) return { label: 'مستعجل', className: 'bg-orange-50 text-orange-700 border border-orange-100', hint: 'محادثة فيها استعجال أو تحتاج تدخل.' };
+  return { label: 'بارد', className: 'bg-slate-100 text-slate-500 border border-slate-100', hint: 'محادثة هادئة ولا تحتاج تصعيد الآن.' };
+};
+
 const getConversationActionState = (c?: Conversation | null): ConversationActionState => {
   if (!c) return { label: '', tone: 'muted', hint: '' };
   const unread = Number(c.unreadCount || 0);
@@ -611,6 +632,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   }), [conversations, slaNowMs]);
 
   const selectedActionState = useMemo(() => getConversationActionState(selected), [selected]);
+  const selectedTemperature = useMemo(() => getCustomerTemperature(selected), [selected]);
   const selectedSlaInfo = useMemo(() => getConversationSlaInfo(selected, slaNowMs), [selected, slaNowMs]);
   const selectedSmartReplies = useMemo(() => getSmartRepliesForConversation(selected, data), [selected, data]);
   const activeSmartReply = activeSmartReplySnapshot;
@@ -637,6 +659,47 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     });
     return base;
   }, [conversations, slaNowMs]);
+  const topSmartDecision = useMemo(() => {
+    const item = urgentReplies[0] as any;
+    if (!item) return null;
+    const info = urgentReplyInfo[item.kind as UrgentReplyKind];
+    const conversation = item.conversation as Conversation;
+    const customer = conversation.customerName || conversation.phone || 'عميل واتساب';
+    const waitText = item.waitingMinutes > 0 ? `ينتظر ${item.waitingMinutes} دقيقة` : 'وصل الآن';
+    return {
+      item,
+      info,
+      customer,
+      waitText,
+      reason: `${info.label} · ${waitText} · ${Number(conversation.unreadCount || 0)} غير مقروء`,
+      reply: info.reply,
+    };
+  }, [urgentReplies]);
+
+  const whatsappCommandPulse = useMemo(() => {
+    const urgentTotal = Object.values(operationLane).reduce((sum, lane) => sum + lane.count, 0);
+    const maxWait = Math.max(...Object.values(operationLane).map((lane) => lane.maxWait || 0), 0);
+    const hottestLane = (Object.entries(operationLane) as Array<[UrgentReplyKind, { count: number; maxWait: number }]>)
+      .sort((a, b) => (b[1].count * 100 + b[1].maxWait) - (a[1].count * 100 + a[1].maxWait))[0];
+    const laneInfo = hottestLane ? urgentReplyInfo[hottestLane[0]] : null;
+    const health =
+      operationLane.anger.count > 0 || maxWait >= 15 ? 'خطر خدمة' :
+      urgentTotal > 0 ? 'نبض نشط' :
+      'هادئ ومرتب';
+    const move =
+      topSmartDecision ? `ابدأ بـ ${topSmartDecision.customer}: ${topSmartDecision.info.label}` :
+      counts.support > 0 ? 'راجع محادثات الدعم اليدوي' :
+      counts.unread > 0 ? 'صفّر غير المقروء' :
+      'النظام تحت السيطرة الآن';
+    return {
+      health,
+      urgentTotal,
+      maxWait,
+      laneLabel: laneInfo?.label || 'لا يوجد',
+      move,
+      tone: operationLane.anger.count > 0 || maxWait >= 15 ? 'danger' : urgentTotal > 0 ? 'active' : 'calm',
+    };
+  }, [operationLane, topSmartDecision, counts.support, counts.unread]);
 
   const availableQuickReplies = useMemo(() => {
     const merged = [...managedQuickReplies, ...quickReplies];
@@ -813,6 +876,56 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
 
       {notice && <div className={cn('mb-4 rounded-2xl border px-4 py-3 text-sm font-black flex items-center gap-2', notice.type === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : notice.type === 'error' ? 'border-rose-100 bg-rose-50 text-rose-700' : 'border-sky-100 bg-sky-50 text-sky-700')}><AlertCircle size={16} /> {notice.text}</div>}
       {error && <div className="mb-4 rounded-2xl border border-rose-100 bg-rose-50 text-rose-700 px-4 py-3 text-sm font-bold">{error}</div>}
+      {topSmartDecision && (
+        <section className="mb-4 rounded-[1.7rem] border border-slate-900 bg-slate-950 text-white p-4 shadow-xl overflow-hidden relative">
+          <div className="absolute -left-16 -top-16 h-36 w-36 rounded-full bg-emerald-400/20 blur-3xl" />
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="text-right">
+              <div className="text-[10px] font-black text-emerald-300 mb-1">قرار واتساب الآن</div>
+              <h2 className="text-xl font-black">{topSmartDecision.customer}</h2>
+              <p className="text-xs font-bold text-white/60 mt-1">{topSmartDecision.reason}</p>
+              <p className="mt-3 rounded-2xl bg-white/10 border border-white/10 px-3 py-2 text-sm font-bold leading-7 text-white/85">{topSmartDecision.reply}</p>
+            </div>
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
+              <button type="button" onClick={() => applyUrgentReply(topSmartDecision.item)} className="rounded-2xl bg-emerald-400 text-slate-950 px-4 py-3 text-xs font-black hover:bg-emerald-300 transition">
+                جهّز الرد
+              </button>
+              <button type="button" onClick={() => { setSelectedPhone(topSmartDecision.item.conversation.phone); setFilter('needs_support'); }} className="rounded-2xl bg-white/10 border border-white/10 px-4 py-3 text-xs font-black hover:bg-white/15 transition">
+                افتح المحادثة
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+      <section className={cn(
+        'mb-4 rounded-[1.7rem] border p-4 shadow-sm overflow-hidden relative',
+        whatsappCommandPulse.tone === 'danger' ? 'border-rose-100 bg-rose-50 text-rose-950' :
+        whatsappCommandPulse.tone === 'active' ? 'border-amber-100 bg-amber-50 text-amber-950' :
+        'border-emerald-100 bg-emerald-50 text-emerald-950'
+      )}>
+        <div className="absolute -left-10 -bottom-12 h-28 w-28 rounded-full bg-white/70 blur-2xl" />
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.2fr_2fr] gap-4 items-center">
+          <div>
+            <div className="text-[10px] font-black opacity-60">WhatsApp Command Pulse</div>
+            <h2 className="mt-1 text-2xl font-black">{whatsappCommandPulse.health}</h2>
+            <p className="mt-2 text-xs font-bold leading-6 opacity-75">{whatsappCommandPulse.move}</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-2xl bg-white/75 border border-white px-3 py-3">
+              <span className="block text-[10px] font-black opacity-55">عاجل</span>
+              <strong className="mt-1 block text-xl font-black">{whatsappCommandPulse.urgentTotal}</strong>
+            </div>
+            <div className="rounded-2xl bg-white/75 border border-white px-3 py-3">
+              <span className="block text-[10px] font-black opacity-55">أعلى انتظار</span>
+              <strong className="mt-1 block text-xl font-black">{whatsappCommandPulse.maxWait} د</strong>
+            </div>
+            <div className="rounded-2xl bg-white/75 border border-white px-3 py-3">
+              <span className="block text-[10px] font-black opacity-55">المسار الساخن</span>
+              <strong className="mt-1 block text-xl font-black">{whatsappCommandPulse.laneLabel}</strong>
+            </div>
+          </div>
+        </div>
+      </section>
       <section className="mb-4 rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm whatsapp-urgent-board whatsapp-ops-board">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="font-black text-slate-900 flex items-center gap-2"><Zap size={18} className="text-amber-500" /> غرفة عمليات واتساب</div>
@@ -883,6 +996,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {loading ? <div className="h-full flex items-center justify-center text-slate-400"><Loader2 className="animate-spin" /></div> : filtered.length ? filtered.map((c) => {
               const actionState = getConversationActionState(c);
+              const temperature = getCustomerTemperature(c);
               const active = selectedPhone === (c.phone || c.id);
               const slaInfo = getConversationSlaInfo(c, slaNowMs);
               return (
@@ -897,6 +1011,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                 <div className={cn('text-sm mt-3 line-clamp-2 leading-6', active ? 'text-white/80' : 'text-slate-600')}>{c.lastMessageText || 'لا توجد رسائل بعد'}</div>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
                   <span className={cn('px-2 py-1 rounded-full text-[10px] font-black', actionStateClass(actionState.tone, active))} title={actionState.hint}>{actionState.label}</span>
+                  <span className={cn('px-2 py-1 rounded-full text-[10px] font-black', active ? 'bg-white/10 text-white border border-white/10' : temperature.className)} title={temperature.hint}>{temperature.label}</span>
                   {slaInfo && <span className={cn('px-2 py-1 rounded-full text-[10px] font-black', slaClass(slaInfo.level, active))} title={slaInfo.hint}><Clock size={11} className="inline ml-1" /> {slaInfo.label}</span>}
                   {!!Number(c.unreadCount || 0) && <span className={cn('px-2 py-1 rounded-full text-[10px] font-black', active ? 'bg-rose-500 text-white' : 'bg-rose-50 text-rose-700 border border-rose-100')}>غير مقروء</span>}
                 </div>
@@ -919,6 +1034,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                   <div className="text-sm text-slate-500 mt-1 direction-ltr text-left">+{selected.phone}</div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className={cn('inline-flex rounded-full px-3 py-1 text-xs font-black', actionStateClass(selectedActionState.tone))} title={selectedActionState.hint}>{selectedActionState.label}</span>
+                    <span className={cn('inline-flex rounded-full px-3 py-1 text-xs font-black', selectedTemperature.className)} title={selectedTemperature.hint}>حرارة العميل: {selectedTemperature.label}</span>
                     {selectedSlaInfo && <span className={cn('inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-black', slaClass(selectedSlaInfo.level))} title={selectedSlaInfo.hint}><Clock size={12} /> {selectedSlaInfo.label}</span>}
                     <span className="inline-flex rounded-full bg-slate-100 text-slate-500 px-3 py-1 text-xs font-black">{selected.mode === 'human' ? 'الوضع اليدوي' : 'وضع البوت'}</span>
                   </div>
@@ -927,6 +1043,32 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                   <button onClick={() => setMode('human')} className={cn('px-4 py-2 rounded-2xl text-sm font-bold border transition', selected.mode === 'human' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white hover:bg-amber-50 border-slate-200 text-slate-600')}><Headphones size={16} className="inline ml-1" /> استلام يدوي</button>
                   <button onClick={() => setMode('bot')} className={cn('px-4 py-2 rounded-2xl text-sm font-bold border transition', selected.mode !== 'human' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white hover:bg-emerald-50 border-slate-200 text-slate-600')}><Bot size={16} className="inline ml-1" /> إرجاع للبوت</button>
                   <button onClick={closeConversation} className="px-4 py-2 rounded-2xl text-sm font-bold border border-slate-200 bg-white hover:bg-slate-50 text-slate-600"><CheckCircle2 size={16} className="inline ml-1" /> إغلاق</button>
+                </div>
+              </div>
+
+              <div className="border-b border-slate-100 bg-white px-5 py-3">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-center rounded-3xl border border-emerald-100 bg-gradient-to-l from-emerald-50 to-white p-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-[11px] font-black text-emerald-700">
+                      <Sparkles size={14} />
+                      <span>تشخيص المحادثة قبل الرد</span>
+                    </div>
+                    <div className="mt-1 text-sm font-black text-slate-900">
+                      {selectedTemperature.label} · {selectedActionState.label || 'محادثة طبيعية'} · {selectedSlaInfo?.label || 'لا يوجد انتظار حرج'}
+                    </div>
+                    <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                      {selectedSmartReplies[0]?.meta || selectedActionState.hint || 'اختر ردًا ذكيًا أو اكتب ردك بنفسك حسب سياق العميل.'}
+                    </p>
+                  </div>
+                  {selectedSmartReplies[0] && (
+                    <button
+                      type="button"
+                      onClick={() => applySmartReply(selectedSmartReplies[0])}
+                      className="rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white hover:bg-slate-800 transition"
+                    >
+                      اعتمد أقوى رد
+                    </button>
+                  )}
                 </div>
               </div>
 
