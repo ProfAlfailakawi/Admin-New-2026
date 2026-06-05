@@ -106,6 +106,37 @@ import { getProtectedStorageItem, hasMeaningfulData, safeMergeData, setProtected
 
 type AdminNotification = AppState['notifications'][number];
 
+const SMART_NOTIFICATION_READ_STORAGE_KEY = 'alturath_admin_smart_notification_read_ids_v1';
+
+const getStoredReadNotificationIds = (): Set<string> => {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(SMART_NOTIFICATION_READ_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : []);
+  } catch {
+    return new Set();
+  }
+};
+
+const storeReadNotificationIds = (ids: Array<string | undefined | null>) => {
+  if (typeof window === 'undefined') return;
+  const cleanIds = ids.map((id) => String(id || '').trim()).filter(Boolean);
+  if (!cleanIds.length) return;
+  try {
+    const current = getStoredReadNotificationIds();
+    cleanIds.forEach((id) => current.add(id));
+    window.localStorage.setItem(SMART_NOTIFICATION_READ_STORAGE_KEY, JSON.stringify(Array.from(current).slice(-500)));
+  } catch {}
+};
+
+const isNotificationReadForUi = (notification: any): boolean => {
+  if (notification?.read) return true;
+  const id = String(notification?.id || '').trim();
+  return Boolean(id && getStoredReadNotificationIds().has(id));
+};
+
+
 const getAdminNotificationDeepLink = () => {
   const params = new URLSearchParams(window.location.search);
 
@@ -1581,9 +1612,12 @@ const MainApp: React.FC = () => {
            let hasAdded = false;
            const updatedNotifs = [...(prev?.notifications || [])];
            
+           const locallyReadIds = getStoredReadNotificationIds();
            newNotifications.forEach(newNotif => {
+               const newId = String(newNotif.id || '').trim();
+               const notificationToStore = newId && locallyReadIds.has(newId) ? { ...newNotif, read: true } : newNotif;
                if (!updatedNotifs.some(n => n.id === newNotif.id)) {
-                   updatedNotifs.push(newNotif);
+                   updatedNotifs.push(notificationToStore);
                    hasAdded = true;
                    
                    // Real-time toast for high-priority Profit Guard alert
@@ -3344,7 +3378,7 @@ const MainApp: React.FC = () => {
                 aria-label="تنبيهات"
               >
                 <Bell size={20} className={cn("transition-colors", notifOpen ? "text-primary" : "text-slate-600")} />
-                {(data?.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج')).some(n => !n.read) && (
+                {(data?.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج')).some(n => !isNotificationReadForUi(n)) && (
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-white" />
                 )}
               </button>
@@ -3375,6 +3409,7 @@ const MainApp: React.FC = () => {
                            <button 
                              onClick={(e) => {
                                  e.stopPropagation();
+                                 storeReadNotificationIds((data?.notifications || []).map(n => n.id));
                                  setData(prev => ({
                                      ...prev,
                                      notifications: (prev?.notifications || []).map(n => ({ ...n, read: true }))
@@ -3393,6 +3428,7 @@ const MainApp: React.FC = () => {
                             key={notif.id} 
                             onClick={(e) => {
                                 e.stopPropagation();
+                                storeReadNotificationIds([notif.id]);
                                 setData(prev => ({
                                     ...prev,
                                     notifications: (prev?.notifications || []).map(n => n.id === notif.id ? { ...n, read: true } : n)
@@ -3521,12 +3557,14 @@ const MainApp: React.FC = () => {
               currentPage={currentPage}
               notifications={(data.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج'))} 
               onMarkAsRead={(id) => {
+                 storeReadNotificationIds([id]);
                  setData(prev => ({
                      ...prev,
                      notifications: (prev?.notifications || []).map(n => n.id === id ? { ...n, read: true } : n)
                  }));
               }} 
               onMarkAllAsRead={() => {
+                 storeReadNotificationIds((data?.notifications || []).filter(n => n.insightType).map(n => n.id));
                  setData(prev => ({
                      ...prev,
                      notifications: (prev?.notifications || []).map(n => n.insightType ? { ...n, read: true } : n)
@@ -3672,7 +3710,7 @@ const MainApp: React.FC = () => {
               <div className="relative z-10 flex items-center justify-center bg-white/5 rounded-full w-7 h-7 backdrop-blur-md border border-white/5">
                 <Command className="text-amber-400 group-hover:scale-110 transition-transform duration-300" size={15} />
               </div>
-              {(data?.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج')).some(n => !n.read) && (
+              {(data?.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج')).some(n => !isNotificationReadForUi(n)) && (
                 <div className="absolute top-2.5 right-2.5 flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-[120%] w-[120%] rounded-full bg-amber-400 opacity-60"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>

@@ -5858,6 +5858,28 @@ ${JSON.stringify(allComments)}
     }
   });
 
+  const smartStudioImageModels = (process.env.SMART_STUDIO_IMAGE_MODEL || "")
+    .split(",")
+    .map((model) => model.trim())
+    .filter(Boolean)
+    .concat(["gemini-2.5-flash-image-preview", "gemini-2.0-flash-preview-image-generation"]);
+
+  const generateSmartStudioImage = async (ai: any, args: any) => {
+    let lastError: any = null;
+    const tried = new Set<string>();
+    for (const model of smartStudioImageModels) {
+      if (!model || tried.has(model)) continue;
+      tried.add(model);
+      try {
+        return await ai.models.generateContent({ ...args, model });
+      } catch (error: any) {
+        lastError = error;
+        console.warn(`[Smart Studio] image model failed (${model}):`, error?.message || error);
+      }
+    }
+    throw lastError || new Error("No smart studio image model available");
+  };
+
   app.post("/api/smart-studio/generate", express.json({ limit: '50mb' }), async (req, res) => {
     try {
       const { imageContent, mimeType, format, theme, mood, realityMode, backgroundPreset, strictPlateLock, realityBoost, correctionHint, tasteProfile } = req.body;
@@ -5939,11 +5961,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
         }
       });
 
-      // Use the gemini-2.5-flash-image model for ultra-fast generation performance
-      const modelName = 'gemini-2.5-flash-image'; 
-      
-      const response = await ai.models.generateContent({
-        model: modelName,
+      const response = await generateSmartStudioImage(ai, {
         contents: {
           parts: [
             { inlineData: { data: imageContent, mimeType: mimeType || 'image/jpeg' } },
@@ -6045,8 +6063,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
         httpOptions: { headers: { "User-Agent": "aistudio-build" } }
       });
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-image",
+      const response = await generateSmartStudioImage(ai, {
         contents: {
           parts: [{ text: `${prompt || ""}\n\nSERVER REALITY ENFORCEMENT: Every smart-studio text image must look like a real human Kuwaiti home-order or gathering photograph for a kitchen focused on rice dishes, fish/seafood, mahshi, grape leaves, and occasional grills; never a dine-in restaurant, cafe, or coffee concept. Use a believable Kuwaiti order background from: home table, diwaniya table, chalet setup, farm gathering, jakhour setup, zowara spread, delivery packaging, prep counter, or neutral menu setup. Make it ordinary and physically plausible before making it beautiful: realistic scale, grounded shadows, natural lens softness, small human-camera imperfections. No dallah, no Arabic coffee, no coffee cups, no coffee beans, no incense, no sadu, no lanterns, no cafe props, no fantasy decor, no palace, no CGI, no text/logos/watermarks, no used tissue, no dirty napkin, no stained napkin, no crumpled kleenex, no table trash, no paper scraps, no dirty table, no leftover crumbs, no leftover mess. ${tasteProfile ? `USER TASTE MEMORY: ${String(tasteProfile).slice(0, 900)} ` : ""}${realityBoost ? "FINAL BOSS: remove any AI tells; make viewers believe this was photographed on location." : ""}` }]
         },

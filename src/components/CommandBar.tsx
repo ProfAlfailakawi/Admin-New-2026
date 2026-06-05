@@ -122,7 +122,13 @@ const num = (value: any) => {
 
 const itemName = (item: any) => String(item?.name || item?.productName || item?.title || '').trim();
 const itemQty = (item: any) => num(item?.quantity || item?.qty || 1) || 1;
-const itemTotal = (item: any) => num(item?.total || item?.lineTotal || item?.price) * itemQty(item);
+const itemUnitPrice = (item: any) => num(item?.unitPrice ?? item?.price ?? item?.salePrice ?? item?.productPrice ?? item?.amount);
+const itemTotal = (item: any, fallbackUnitPrice = 0) => {
+  const explicitTotal = num(item?.total ?? item?.lineTotal ?? item?.totalPrice ?? item?.subtotal);
+  if (explicitTotal > 0) return explicitTotal;
+  const unitPrice = itemUnitPrice(item) || num(fallbackUnitPrice);
+  return unitPrice * itemQty(item);
+};
 
 const buildCustomerStats = (data: any) => {
   const byKey = new Map<string, any>();
@@ -218,17 +224,22 @@ const buildCustomerStats = (data: any) => {
 
 const buildProductStats = (data: any) => {
   const byName = new Map<string, any>();
+  const productLookup = new Map<string, any>();
   safeArray(data?.products).forEach((product: any) => {
     const key = String(product?.id || product?.name || '').trim();
+    const nameKey = clean(product?.name);
+    if (key) productLookup.set(key, product);
+    if (nameKey) productLookup.set(nameKey, product);
     if (!key) return;
     byName.set(key, { id: product?.id, name: product?.name || 'منتج', quantity: 0, sales: 0, category: product?.category || '' });
   });
   const addItem = (item: any) => {
     const key = String(item?.productId || itemName(item) || '').trim();
     if (!key) return;
-    const current = byName.get(key) || { id: item?.productId || key, name: itemName(item) || 'منتج', quantity: 0, sales: 0, category: '' };
+    const matchedProduct = productLookup.get(key) || productLookup.get(clean(itemName(item))) || null;
+    const current = byName.get(key) || { id: item?.productId || matchedProduct?.id || key, name: matchedProduct?.name || itemName(item) || 'منتج', quantity: 0, sales: 0, category: matchedProduct?.category || '' };
     current.quantity += itemQty(item);
-    current.sales += itemTotal(item);
+    current.sales += itemTotal(item, matchedProduct?.price ?? matchedProduct?.salePrice ?? matchedProduct?.amount ?? 0);
     byName.set(key, current);
   };
   safeArray(data?.invoices).filter((inv: any) => !inv?.isDeleted).forEach((inv: any) => safeArray(inv?.items).forEach(addItem));
