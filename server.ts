@@ -5839,15 +5839,64 @@ ${JSON.stringify(allComments)}
   });
 
   const extractSmartStudioImageDataUrl = (response: any): string | null => {
-    const parts = response?.parts || response?.candidates?.[0]?.content?.parts || response?.response?.candidates?.[0]?.content?.parts || [];
-    for (const part of parts) {
-      const inlineData = part?.inlineData || part?.inline_data;
-      const data = inlineData?.data || inlineData?.bytesBase64Encoded || inlineData?.bytes_base64_encoded;
-      if (data) {
-        return `data:${inlineData?.mimeType || inlineData?.mime_type || "image/png"};base64,${data}`;
+    const seen = new Set<any>();
+
+    const asDataUrl = (value: any, mimeType?: string): string | null => {
+      if (!value || typeof value !== "string") return null;
+      if (value.startsWith("data:image/")) return value;
+      if (/^[A-Za-z0-9+/=\s]+$/.test(value) && value.replace(/\s/g, "").length > 120) {
+        return `data:${mimeType || "image/png"};base64,${value.replace(/\s/g, "")}`;
       }
-    }
-    return null;
+      return null;
+    };
+
+    const visit = (node: any): string | null => {
+      if (!node || seen.has(node)) return null;
+      if (typeof node === "string") return asDataUrl(node);
+      if (typeof node !== "object") return null;
+      seen.add(node);
+
+      const inlineData = node.inlineData || node.inline_data || node.inline_data_part;
+      if (inlineData) {
+        const data = inlineData.data || inlineData.bytesBase64Encoded || inlineData.bytes_base64_encoded || inlineData.base64;
+        const found = asDataUrl(data, inlineData.mimeType || inlineData.mime_type || "image/png");
+        if (found) return found;
+      }
+
+      const image = node.image || node.generatedImage || node.generated_image;
+      if (image) {
+        const data = image.data || image.bytesBase64Encoded || image.bytes_base64_encoded || image.base64;
+        const found = asDataUrl(data, image.mimeType || image.mime_type || "image/png");
+        if (found) return found;
+      }
+
+      for (const key of ["data", "base64", "imageBase64", "image_base64", "url", "imageUrl", "image_url"]) {
+        const found = asDataUrl(node[key], node.mimeType || node.mime_type || "image/png");
+        if (found) return found;
+      }
+
+      const priorityKeys = ["parts", "candidates", "content", "response", "generatedImages", "generated_images", "predictions", "output"];
+      for (const key of priorityKeys) {
+        const child = node[key];
+        if (Array.isArray(child)) {
+          for (const item of child) {
+            const found = visit(item);
+            if (found) return found;
+          }
+        } else {
+          const found = visit(child);
+          if (found) return found;
+        }
+      }
+
+      for (const value of Object.values(node)) {
+        const found = visit(value);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    return visit(response);
   };
 
   const buildSmartStudioImageConfig = (aspectRatio: string) => ({
