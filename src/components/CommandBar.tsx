@@ -94,6 +94,31 @@ const commandScore = (cmd: CommandItem, query: string) => {
   return matches ? (20 + matches * 8 + scoreAdjust) : 0;
 };
 
+
+const buildRescuePlanDetails = (data: any) => {
+  const orders = safeArray(data?.orders);
+  const invoices = safeArray(data?.invoices).filter((inv: any) => !inv?.isDeleted);
+  const customers = safeArray(data?.customers);
+  const products = safeArray(data?.products);
+  const failedOrders = orders.filter((order: any) => isFailedText(order?.paymentStatus || order?.status)).length;
+  const pendingOrders = orders.filter((order: any) => isPendingText(order?.paymentStatus || order?.status)).length;
+  const staleCustomers = customers.filter((c: any) => daysIdle(c?.lastOrderDate || c?.lastActive) >= 21 && num(c?.totalSpent) > 0).length;
+  const missingVisuals = products.filter((p: any) => !hasProductImage(p) && p?.isActive !== false).length;
+  const todaysSales = invoices.filter((inv: any) => {
+    const t = new Date(inv?.date || inv?.createdAt || 0).getTime();
+    if (!Number.isFinite(t)) return false;
+    return new Date(t).toDateString() === new Date().toDateString();
+  }).reduce((sum: number, inv: any) => sum + invoiceTotal(inv), 0);
+  const items = [
+    failedOrders > 0 ? `أوقف نزيف الطلبات الفاشلة: ${failedOrders} طلب يحتاج مراجعة.` : '',
+    pendingOrders > 0 ? `حسم الطلبات المعلقة: ${pendingOrders} طلب بانتظار قرار.` : '',
+    staleCustomers > 0 ? `استرجاع العملاء الباردين: ${staleCustomers} عميل غائب أكثر من 21 يوم.` : '',
+    missingVisuals > 0 ? `رفع جودة المنيو: ${missingVisuals} صنف نشط بدون صورة.` : '',
+    todaysSales <= 0 ? 'مبيعات اليوم غير واضحة: راجع مركز القيادة قبل أي حملة.' : '',
+  ].filter(Boolean);
+  return items.slice(0, 3);
+};
+
 const money = (value: any) => {
   const n = Number(value || 0);
   return Number.isFinite(n) ? n.toFixed(3) : '0.000';
@@ -290,6 +315,19 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       .filter((customer: any) => customer.idleDays >= 21 && num(customer.totalSpent) > 0)
       .sort((a: any, b: any) => (num(b.totalSpent) + b.idleDays) - (num(a.totalSpent) + a.idleDays))[0];
     const wantsStats = q.includes('احص') || q.includes('إحص') || q.includes('ملخص') || q.includes('تقرير') || q.includes('كم') || q.includes('عدد') || q.includes('عطني');
+
+    if (q.includes('انقاذ') || q.includes('إنقاذ') || q.includes('خطة انقاذ') || q.includes('خطة إنقاذ')) {
+      const details = buildRescuePlanDetails(data);
+      return {
+        title: 'خطة إنقاذ اليوم',
+        value: details.length ? 'أخطر 3 قرارات' : 'الوضع مستقر',
+        subtitle: 'تحليل مباشر من الداتا الموجودة فقط، بدون ذكاء اصطناعي وبدون تنفيذ تلقائي.',
+        details: details.length ? details : ['لا توجد أولوية خطرة واضحة الآن.', 'راجع مركز القيادة للمتابعة الهادئة.'],
+        actionLabel: 'افتح مركز القيادة',
+        action: () => onNavigate('dashboard'),
+        tone: details.length ? 'rose' : 'emerald',
+      };
+    }
 
     if (q.includes('تطوير') || q.includes('طور') || q.includes('نووي') || q.includes('زلزال') || q.includes('تسونامي') || q.includes('ابهار') || q.includes('إبهار')) {
       return {
@@ -661,6 +699,10 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     const effectiveRole = userRole || 'admin';
     const mainTabs = allTabs.filter(tab => tab.roles?.includes(effectiveRole));
 
+    const savedPresets: CommandItem[] = [
+      { id: 'preset-rescue-plan', label: 'افتح لي خطة إنقاذ اليوم', hint: 'يعرض أخطر 3 قرارات من الداتا الحالية فقط', icon: <ShieldCheck />, category: 'أوامر محفوظة', tags: ['خطة انقاذ', 'خطة إنقاذ', 'انقاذ اليوم', 'اخطر قرارات'], action: () => setQuery('افتح لي خطة إنقاذ اليوم'), roles: ['admin'] },
+    ];
+
     const deepLinks: CommandItem[] = [
       { id: 'growth-campaigns', label: 'مختبر الحملات التسويقية', hint: 'خطط مبيعات', icon: <TrendingUp />, category: 'اختصارات ذكية', tags: ['حملات', 'تسويقية', 'مبيعات'], action: () => onNavigate('growth-simulator', { scrollTarget: 'smart-campaigns' }) },
       { id: 'customers-retention', label: 'رادار استرجاع العملاء', hint: 'الغائبين والاحتفاظ', icon: <Users />, category: 'اختصارات ذكية', tags: ['استرجاع', 'غائبين', 'احتفاظ'], action: () => onNavigate('dashboard', { exactId: 'customers', scrollTarget: 'retention-section' }) },
@@ -701,7 +743,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       },
     ].filter(Boolean) as CommandItem[];
 
-    const base = [...liveSuggestions.filter(item => item.roles?.includes(effectiveRole)), ...mainTabs, ...deepLinks];
+    const base = [...liveSuggestions.filter(item => item.roles?.includes(effectiveRole)), ...savedPresets.filter(item => !item.roles || item.roles.includes(effectiveRole)), ...mainTabs, ...deepLinks];
     const q = clean(deferredQuery);
     const qDigits = cleanDigits(deferredQuery);
 
