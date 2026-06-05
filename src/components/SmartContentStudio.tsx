@@ -128,6 +128,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [generatedReel, setGeneratedReel] = useState<string | null>(null);
   const [isGeneratingReel, setIsGeneratingReel] = useState(false);
   const [showReelSettings, setShowReelSettings] = useState(false);
+  const [openProductionDesk, setOpenProductionDesk] = useState<'image' | 'reel' | null>(null);
   const [showReelShotList, setShowReelShotList] = useState(false);
   const [reelHistory, setReelHistory] = useState<StudioReelHistoryItem[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -1157,17 +1158,41 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     }
   };
 
-  const renderProductionDesk = (mode: 'image' | 'reel') => (
-    <aside className="studio-production-desk">
-      <span>{mode === 'reel' ? 'Reel Desk' : 'Production Desk'}</span>
-      <strong>{selectedFormat}</strong>
-      <div>المشهد: {activeStudioScene.label}</div>
-      <div>المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
-      <div>الواقعية: {STUDIO_REALITY_MODES[realityMode]?.label || 'واقعي'}</div>
-      <div>الخلفية: {backgroundPreset}</div>
-      {mode === 'reel' && <div>المدة: {reelDuration} ثواني</div>}
-    </aside>
-  );
+  const renderProductionDesk = (mode: 'image' | 'reel') => {
+    const isOpen = openProductionDesk === mode;
+    return (
+      <div className="absolute bottom-3 right-3 z-30 text-right" dir="rtl">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpenProductionDesk((current) => current === mode ? null : mode);
+          }}
+          className="h-9 w-9 rounded-2xl border border-white/15 bg-slate-950/80 text-white/90 shadow-xl backdrop-blur-xl flex items-center justify-center text-[13px] font-black hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-white/30"
+          aria-label={isOpen ? 'إخفاء تفاصيل الإنتاج' : 'إظهار تفاصيل الإنتاج'}
+          title={isOpen ? 'إخفاء تفاصيل الإنتاج' : 'إظهار تفاصيل الإنتاج'}
+        >
+          i
+        </button>
+
+        {isOpen && (
+          <aside className="absolute bottom-11 right-0 w-[min(17rem,calc(100vw-2rem))] rounded-3xl border border-white/15 bg-slate-950/90 p-3 text-white shadow-2xl backdrop-blur-2xl">
+            <div className="mb-2 flex items-center justify-between gap-3" dir="ltr">
+              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-200">{mode === 'reel' ? 'Reel Desk' : 'Production Desk'}</span>
+              <strong className="rounded-xl bg-white/10 px-2 py-1 text-xs font-black text-white">{mode === 'reel' ? '9:16' : selectedFormat}</strong>
+            </div>
+            <div className="space-y-1.5 text-[11px] font-bold leading-5 text-white/75">
+              <div className="truncate">المشهد: {activeStudioScene.label}</div>
+              <div className="truncate">المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
+              <div className="truncate">الواقعية: {STUDIO_REALITY_MODES[realityMode]?.label || 'واقعي'}</div>
+              <div className="truncate">الخلفية: {backgroundPreset}</div>
+              {mode === 'reel' && <div className="truncate">المدة: {reelDuration} ثواني</div>}
+            </div>
+          </aside>
+        )}
+      </div>
+    );
+  };
 
   const generateReel = async () => {
     const productBrain = ensureAlturathProductOnly({ imageOnly: reelSource === 'image' });
