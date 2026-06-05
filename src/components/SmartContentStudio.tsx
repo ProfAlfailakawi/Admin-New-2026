@@ -1755,20 +1755,6 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <h2 className="text-2xl font-black text-slate-950">ابدأ بفكرة أو بصورة</h2>
             </div>
           </div>
-          <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-3xl border border-indigo-100 bg-indigo-50/70 p-2">
-            <button type="button" onClick={startFastIdeaPath} className="rounded-2xl bg-white px-4 py-3 text-right shadow-sm hover:shadow-md transition">
-              <div className="text-xs font-black text-indigo-600">مسار خاطف</div>
-              <div className="mt-1 text-sm font-black text-slate-900">بوستر واتساب</div>
-            </button>
-            <button type="button" onClick={startFreshImageUpload} className="rounded-2xl bg-white px-4 py-3 text-right shadow-sm hover:shadow-md transition">
-              <div className="text-xs font-black text-indigo-600">أسرع رفع</div>
-              <div className="mt-1 text-sm font-black text-slate-900">صورة منتج</div>
-            </button>
-            <button type="button" onClick={startFastReelPath} className="rounded-2xl bg-white px-4 py-3 text-right shadow-sm hover:shadow-md transition">
-              <div className="text-xs font-black text-violet-600">ريل مباشر</div>
-              <div className="mt-1 text-sm font-black text-slate-900">جاهز للتوليد</div>
-            </button>
-          </div>
           <div className="grid sm:grid-cols-3 gap-3">
             <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setCreateSubTab('custom'); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Sparkles className="text-indigo-500 mb-3" size={26} />
