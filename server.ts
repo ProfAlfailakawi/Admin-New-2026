@@ -5838,6 +5838,26 @@ ${JSON.stringify(allComments)}
     }
   });
 
+  const extractSmartStudioImageDataUrl = (response: any): string | null => {
+    const parts = response?.parts || response?.candidates?.[0]?.content?.parts || response?.response?.candidates?.[0]?.content?.parts || [];
+    for (const part of parts) {
+      const inlineData = part?.inlineData || part?.inline_data;
+      const data = inlineData?.data || inlineData?.bytesBase64Encoded || inlineData?.bytes_base64_encoded;
+      if (data) {
+        return `data:${inlineData?.mimeType || inlineData?.mime_type || "image/png"};base64,${data}`;
+      }
+    }
+    return null;
+  };
+
+  const buildSmartStudioImageConfig = (aspectRatio: string) => ({
+    responseModalities: ["TEXT", "IMAGE"],
+    imageConfig: {
+      aspectRatio: aspectRatio as any,
+      imageSize: "1K"
+    }
+  });
+
   app.post("/api/smart-studio/generate", express.json({ limit: '50mb' }), async (req, res) => {
     try {
       const { imageContent, mimeType, format, theme, mood, realityMode, backgroundPreset, strictPlateLock, realityBoost, correctionHint, tasteProfile } = req.body;
@@ -5931,26 +5951,16 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
           ]
         },
         config: {
-          systemInstruction,
-          imageConfig: {
-            aspectRatio: ar as any,
-            imageSize: '1K'
-          }
+          ...buildSmartStudioImageConfig(ar),
+          systemInstruction
         }
       });
       
-      let finalImgBase64 = null;
-      if (response && response.candidates && response.candidates.length > 0) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            finalImgBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-            break;
-          }
-        }
-      }
+      const finalImgBase64 = extractSmartStudioImageDataUrl(response);
       
       if (!finalImgBase64) {
-        const textResp = response.candidates?.[0]?.content?.parts?.find(p => p.text)?.text;
+        const parts = response?.parts || response?.candidates?.[0]?.content?.parts || [];
+        const textResp = parts.find((p: any) => p?.text)?.text;
         return res.status(500).json({ error: textResp || "No image output generated" });
       }
 
@@ -6040,26 +6050,15 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
         contents: {
           parts: [{ text: `${prompt || ""}\n\nSERVER REALITY ENFORCEMENT: Every smart-studio text image must look like a real human Kuwaiti home-order or gathering photograph for a kitchen focused on rice dishes, fish/seafood, mahshi, grape leaves, and occasional grills; never a dine-in restaurant, cafe, or coffee concept. Use a believable Kuwaiti order background from: home table, diwaniya table, chalet setup, farm gathering, jakhour setup, zowara spread, delivery packaging, prep counter, or neutral menu setup. Make it ordinary and physically plausible before making it beautiful: realistic scale, grounded shadows, natural lens softness, small human-camera imperfections. No dallah, no Arabic coffee, no coffee cups, no coffee beans, no incense, no sadu, no lanterns, no cafe props, no fantasy decor, no palace, no CGI, no text/logos/watermarks, no used tissue, no dirty napkin, no stained napkin, no crumpled kleenex, no table trash, no paper scraps, no dirty table, no leftover crumbs, no leftover mess. ${tasteProfile ? `USER TASTE MEMORY: ${String(tasteProfile).slice(0, 900)} ` : ""}${realityBoost ? "FINAL BOSS: remove any AI tells; make viewers believe this was photographed on location." : ""}` }]
         },
-        config: {
-          imageConfig: {
-            aspectRatio: ar as any,
-            imageSize: "1K"
-          }
-        }
+        config: buildSmartStudioImageConfig(ar)
       });
 
-      let finalImgBase64 = null;
-      if (response && response.candidates && response.candidates.length > 0) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            finalImgBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-            break;
-          }
-        }
-      }
+      const finalImgBase64 = extractSmartStudioImageDataUrl(response);
 
       if (!finalImgBase64) {
-        return res.status(500).json({ error: "No image generated" });
+        const parts = response?.parts || response?.candidates?.[0]?.content?.parts || [];
+        const textResp = parts.find((p: any) => p?.text)?.text;
+        return res.status(500).json({ error: textResp || "No image generated" });
       }
       res.json({ imageUrl: finalImgBase64 });
     } catch (e: any) {
@@ -6193,7 +6192,7 @@ Make viewers believe it was shot quickly by a real videographer in Kuwait for an
       }
       if (videoBase64) return res.json({ videoUrl: `data:video/mp4;base64,${videoBase64}`, posterUrl: null, provider: "veo" });
 
-      return res.status(500).json({ error: "No video output generated" });
+      return localFallback("No video output generated; generated local motion reel instantly");
     } catch (e: any) {
       console.error("/api/smart-studio/generate-reel error:", e);
       const errMsg = e?.message || String(e);
