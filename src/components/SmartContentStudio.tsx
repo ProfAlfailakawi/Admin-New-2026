@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, MessageCircle, Film, PlayCircle, Copy, RotateCcw } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, MessageCircle, Film, PlayCircle, Copy, RotateCcw, Info } from 'lucide-react';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from '../constants';
 import { toast } from 'sonner';
 import { Product } from '../types';
@@ -128,6 +128,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [generatedReel, setGeneratedReel] = useState<string | null>(null);
   const [isGeneratingReel, setIsGeneratingReel] = useState(false);
   const [showReelSettings, setShowReelSettings] = useState(false);
+  const [showProductionDesk, setShowProductionDesk] = useState(false);
   const [showReelShotList, setShowReelShotList] = useState(false);
   const [reelHistory, setReelHistory] = useState<StudioReelHistoryItem[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -1158,15 +1159,28 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   };
 
   const renderProductionDesk = (mode: 'image' | 'reel') => (
-    <aside className="studio-production-desk">
-      <span>{mode === 'reel' ? 'Reel Desk' : 'Production Desk'}</span>
-      <strong>{selectedFormat}</strong>
-      <div>المشهد: {activeStudioScene.label}</div>
-      <div>المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
-      <div>الواقعية: {STUDIO_REALITY_MODES[realityMode]?.label || 'واقعي'}</div>
-      <div>الخلفية: {backgroundPreset}</div>
-      {mode === 'reel' && <div>المدة: {reelDuration} ثواني</div>}
-    </aside>
+    <div className="studio-production-desk-wrap">
+      <button
+        type="button"
+        onClick={() => setShowProductionDesk((v) => !v)}
+        className="studio-production-desk-trigger"
+        title="تفاصيل الإنتاج"
+        aria-label="تفاصيل الإنتاج"
+      >
+        <Info size={15} />
+      </button>
+      {showProductionDesk && (
+        <aside className="studio-production-desk">
+          <span>{mode === 'reel' ? 'Reel Desk' : 'Production Desk'}</span>
+          <strong>{mode === 'reel' ? '9:16' : selectedFormat}</strong>
+          <div>المشهد: {activeStudioScene.label}</div>
+          <div>المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
+          <div>الواقعية: {STUDIO_REALITY_MODES[realityMode]?.label || 'واقعي'}</div>
+          <div>الخلفية: {backgroundPreset}</div>
+          {mode === 'reel' && <div>المدة: {reelDuration} ثواني</div>}
+        </aside>
+      )}
+    </div>
   );
 
   const generateReel = async () => {
