@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
-import { Settings, Save, Upload, Trash2, Shield, Bell, CreditCard, DownloadCloud, Database, Sparkles, RefreshCw, Loader2, Map as MapIcon, Plus, CheckCircle2, ChevronDown, ChevronRight, Edit2, X, AlertTriangle, Code, Store, Search, Activity, Smartphone, WifiOff } from 'lucide-react';
+import { Settings, Save, Upload, Trash2, Shield, Bell, CreditCard, DownloadCloud, Database, Sparkles, RefreshCw, Loader2, Map as MapIcon, Plus, CheckCircle2, ChevronDown, ChevronRight, Edit2, X, AlertTriangle, Code, Store, Search, Activity, WifiOff, MonitorSmartphone } from 'lucide-react';
 import { motion } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { AppState, AppSettings, Zone, Product, Customer, Expense, Supplier, Testimonial, PulseAnalysisRecord, AICampaign, SupplierTransfer } from '../types';
@@ -37,10 +37,16 @@ type PushDeviceSnapshot = {
   id: string;
   label: string;
   token: string;
+  platform?: string;
+  deviceType?: string;
+  browser?: string;
+  userId?: string;
+  currentUrl?: string;
   lastConnection: string;
   lastRead: string;
   status: 'online' | 'late' | 'unknown';
   note: string;
+  recentNotifications: { id: string; title: string; message: string; date: string; read?: boolean; type?: string }[];
 };
 
 type PushHealthCheck = {
@@ -122,6 +128,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const [pushHealth, setPushHealth] = useState<PushHealthCheck | null>(null);
  const [checkingPushHealth, setCheckingPushHealth] = useState(false);
  const [pushDevices, setPushDevices] = useState<PushDeviceSnapshot[]>([]);
+ const [expandedPushDeviceId, setExpandedPushDeviceId] = useState<string | null>(null);
 
  const [activeSection, setActiveSection] = useState<string>('');
  const [searchZoneTerm, setSearchZoneTerm] = useState('');
@@ -141,63 +148,118 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  }, 800);
  };
 
- const formatPushHealthDate = (value: string | null) => {
-  if (!value) return 'غير مسجل';
-  const time = new Date(value).getTime();
-  if (!Number.isFinite(time)) return 'غير واضح';
-  return new Intl.DateTimeFormat('ar-KW', {
+ const normalizePushDateValue = (value: any): string => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value?.toDate === 'function') return value.toDate().toISOString();
+  if (typeof value?.seconds === 'number') return new Date(value.seconds * 1000).toISOString();
+  return '';
+ };
+
+ const formatPushHealthDate = (value: any) => {
+  const normalized = normalizePushDateValue(value);
+  if (!normalized) return 'Not registered';
+  const time = new Date(normalized).getTime();
+  if (!Number.isFinite(time)) return 'Unknown';
+  return new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Kuwait',
-    dateStyle: 'short',
-    timeStyle: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
   }).format(new Date(time));
  };
 
+ const getRecentPushNotifications = () => ((data as any)?.notifications || [])
+  .slice()
+  .sort((a: any, b: any) => new Date(b?.date || 0).getTime() - new Date(a?.date || 0).getTime())
+  .slice(0, 5)
+  .map((notification: any, index: number) => ({
+    id: String(notification?.id || `notification-${index}`),
+    title: String(notification?.title || 'Notification'),
+    message: String(notification?.message || ''),
+    date: formatPushHealthDate(notification?.date),
+    read: Boolean(notification?.read),
+    type: String(notification?.type || 'info'),
+  }));
 
- const readPushDeviceSnapshots = (): PushDeviceSnapshot[] => {
-  if (typeof window === 'undefined') return [];
+ const buildPushDeviceSnapshot = (item: any, index: number, source: 'server' | 'local' | 'current'): PushDeviceSnapshot => {
   const now = Date.now();
-  const toDate = (value: string | null) => {
-    if (!value) return 'غير مسجل';
-    const t = new Date(value).getTime();
-    return Number.isFinite(t) ? formatPushHealthDate(value) : 'غير واضح';
+  const token = String(item?.token || item?.id || '');
+  const lastConnectionRaw = item?.lastConnection || item?.connectedAt || item?.createdAt || item?.savedAtClient || '';
+  const lastReadRaw = item?.lastRead || item?.updatedAt || item?.savedAtClient || lastConnectionRaw || '';
+  const lastReadIso = normalizePushDateValue(lastReadRaw);
+  const seenTime = lastReadIso ? new Date(lastReadIso).getTime() : NaN;
+  const seenMinutes = Number.isFinite(seenTime) ? Math.floor((now - seenTime) / 60000) : 999999;
+  const label = source === 'current'
+    ? 'Current browser'
+    : String(item?.label || item?.name || item?.platform || item?.deviceType || `Phone ${index + 1}`);
+
+  return {
+    id: String(item?.id || item?.tokenHash || token || `${source}-device-${index}`),
+    label,
+    token: token || 'Not available',
+    platform: item?.platform ? String(item.platform) : undefined,
+    deviceType: item?.deviceType ? String(item.deviceType) : undefined,
+    browser: item?.vendor ? String(item.vendor) : undefined,
+    userId: item?.userId ? String(item.userId) : undefined,
+    currentUrl: item?.currentUrl ? String(item.currentUrl) : undefined,
+    lastConnection: formatPushHealthDate(lastConnectionRaw),
+    lastRead: formatPushHealthDate(lastReadRaw),
+    status: !token ? 'unknown' : seenMinutes > 1440 ? 'late' : 'online',
+    note: !token ? 'No Push token recorded for this phone.' : seenMinutes > 1440 ? 'Late device: no fresh reading in the last 24 hours.' : 'Fresh reading within the normal window.',
+    recentNotifications: getRecentPushNotifications(),
   };
+ };
+
+ const readLocalPushDeviceSnapshots = (): PushDeviceSnapshot[] => {
+  if (typeof window === 'undefined') return [];
   const token = localStorage.getItem('last_push_token') || '';
   const enabledAt = localStorage.getItem('push_enabled_at') || '';
   const refreshedAt = localStorage.getItem('push_last_silent_refresh') || '';
-  const last = refreshedAt || enabledAt;
-  const t = last ? new Date(last).getTime() : NaN;
-  const minutes = Number.isFinite(t) ? Math.floor((now - t) / 60000) : 999999;
-  const base: PushDeviceSnapshot = {
+  const base = buildPushDeviceSnapshot({
     id: 'current-browser',
-    label: 'هذا المتصفح',
-    token: token ? `${token.slice(0, 12)}...${token.slice(-6)}` : 'غير موجود',
-    lastConnection: toDate(enabledAt),
-    lastRead: toDate(refreshedAt || enabledAt),
-    status: !token ? 'unknown' : minutes > 1440 ? 'late' : 'online',
-    note: !token ? 'لم يتم تسجيل توكن Push على هذا الجهاز.' : minutes > 1440 ? 'الجهاز متأخر عن القراءة اليومية.' : 'الجهاز قراءته حديثة.',
-  };
+    label: 'Current browser',
+    token,
+    platform: /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'iPhone' : 'web',
+    userAgent: navigator.userAgent,
+    vendor: navigator.vendor,
+    lastConnection: enabledAt,
+    lastRead: refreshedAt || enabledAt,
+    currentUrl: window.location.href,
+  }, 0, 'current');
+
   let extra: PushDeviceSnapshot[] = [];
   try {
     const raw = localStorage.getItem('alturath_push_devices_readonly') || localStorage.getItem('push_devices_readonly') || '';
     const parsed = raw ? JSON.parse(raw) : [];
     if (Array.isArray(parsed)) {
-      extra = parsed.map((item: any, index: number) => {
-        const lastSeen = item?.lastRead || item?.lastConnection || item?.updatedAt || '';
-        const seenTime = lastSeen ? new Date(lastSeen).getTime() : NaN;
-        const seenMinutes = Number.isFinite(seenTime) ? Math.floor((now - seenTime) / 60000) : 999999;
-        return {
-          id: String(item?.id || `device-${index}`),
-          label: String(item?.label || item?.name || `جهاز ${index + 1}`),
-          token: item?.token ? `${String(item.token).slice(0, 12)}...${String(item.token).slice(-6)}` : 'غير موجود',
-          lastConnection: toDate(item?.lastConnection || item?.connectedAt || ''),
-          lastRead: toDate(lastSeen),
-          status: item?.token ? (seenMinutes > 1440 ? 'late' : 'online') : 'unknown',
-          note: seenMinutes > 1440 ? 'متأخر عن آخر قراءة مسجلة.' : 'ضمن القراءة الطبيعية.',
-        } as PushDeviceSnapshot;
-      });
+      extra = parsed.map((item: any, index: number) => buildPushDeviceSnapshot(item, index, 'local'));
     }
   } catch {}
-  return [base, ...extra].filter((item, index, arr) => arr.findIndex(x => x.id === item.id) === index);
+  return [base, ...extra].filter((item, index, arr) => arr.findIndex(x => x.token === item.token || x.id === item.id) === index);
+ };
+
+ const readAllPushDeviceSnapshots = async (): Promise<PushDeviceSnapshot[]> => {
+  const localDevices = readLocalPushDeviceSnapshots();
+  if (appMode !== 'cloud' || !db) return localDevices;
+  try {
+    const snapshot = await getDocs(collection(db, 'pushTokens'));
+    const serverDevices = snapshot.docs.map((pushDoc, index) => buildPushDeviceSnapshot({ id: pushDoc.id, ...pushDoc.data() }, index, 'server'));
+    return [...serverDevices, ...localDevices]
+      .filter((item, index, arr) => arr.findIndex(x => x.token === item.token || x.id === item.id) === index)
+      .sort((a, b) => {
+        const at = new Date(a.lastRead).getTime();
+        const bt = new Date(b.lastRead).getTime();
+        return (Number.isFinite(bt) ? bt : 0) - (Number.isFinite(at) ? at : 0);
+      });
+  } catch (error) {
+    console.warn('[Push] read all devices failed, showing local snapshot only:', error);
+    return localDevices;
+  }
  };
 
  const runPushHealthCheck = async () => {
@@ -228,11 +290,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
     const ready = status.supported && status.permission === 'granted' && Boolean(token) && serviceWorkerState !== 'غير مسجل';
     const blocked = status.permission === 'denied' || !status.supported;
-    setPushDevices(readPushDeviceSnapshots());
+    const allDevices = await readAllPushDeviceSnapshots();
+    setPushDevices(allDevices);
+    setExpandedPushDeviceId(prev => prev || allDevices[0]?.id || null);
     setPushHealth({
       support: status.supported ? 'مدعوم' : 'غير مدعوم',
       permission: status.permission === 'granted' ? 'مسموح' : status.permission === 'denied' ? 'محظور' : 'بانتظار السماح',
-      token: token ? `موجود · ${token.slice(0, 9)}...` : 'غير موجود',
+      token: token || 'Not available',
       lastRegistration: formatPushHealthDate(refreshedAt || enabledAt || ''),
       serviceWorker: serviceWorkerState,
       verdict: ready ? 'جاهز لاستقبال Push' : blocked ? 'يحتاج تفعيل من المتصفح' : 'يحتاج تفعيل/تجديد',
@@ -1152,7 +1216,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                     ].map(([label, value]) => (
                       <div key={label} className="rounded-2xl bg-white/10 border border-white/10 px-3 py-3 min-w-0">
                         <span className="block text-[10px] font-black text-white/45">{label}</span>
-                        <strong className="mt-1 block truncate text-xs font-black text-white">{value}</strong>
+                        <strong dir={label === 'التوكن' ? 'ltr' : undefined} className={cn("mt-1 block text-xs font-black text-white", label === 'التوكن' ? "whitespace-pre-wrap break-all" : "truncate")}>{value}</strong>
                       </div>
                     ))}
                     <div className={cn(
@@ -1167,25 +1231,86 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                 )}
                 {pushDevices.length > 0 && (
                   <div className="relative z-10 mt-4 rounded-[1.35rem] border border-white/10 bg-white/10 p-3">
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 text-xs font-black text-white"><Smartphone size={15} /> لوحة الأجهزة المستقبلة للـ Push</div>
-                      <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-white/60">قراءة فقط</span>
+                    <div className="mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2 text-xs font-black text-white"><MonitorSmartphone size={15} /> لوحة كل الأجهزة المستقبلة للـ Push</div>
+                        <p className="mt-1 text-[10px] font-bold text-white/45">قراءة فقط من توكنات كل الهواتف المسجلة، مع عرض التوكن كامل للأدمن.</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-white/60">{pushDevices.length} جهاز</span>
+                        <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-white/60">قراءة فقط</span>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {pushDevices.map((device) => (
-                        <div key={device.id} className="rounded-2xl border border-white/10 bg-slate-950/30 p-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <strong className="text-xs font-black text-white">{device.label}</strong>
-                            <span className={cn('rounded-full px-2 py-1 text-[10px] font-black', device.status === 'online' ? 'bg-emerald-400/15 text-emerald-100' : device.status === 'late' ? 'bg-rose-400/15 text-rose-100' : 'bg-amber-400/15 text-amber-100')}>{device.status === 'online' ? 'متصل' : device.status === 'late' ? 'متأخر' : 'غير مكتمل'}</span>
+                    <div className="space-y-2">
+                      {pushDevices.map((device, index) => {
+                        const isOpen = expandedPushDeviceId === device.id;
+                        return (
+                          <div key={device.id} className="rounded-2xl border border-white/10 bg-slate-950/30 overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedPushDeviceId(isOpen ? null : device.id)}
+                              className="w-full p-3 flex items-center justify-between gap-3 text-right hover:bg-white/5 transition"
+                            >
+                              <div className="flex min-w-0 items-center gap-3">
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-[11px] font-black text-white">{index + 1}</span>
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <strong className="text-xs font-black text-white">{device.label}</strong>
+                                    <span className={cn('rounded-full px-2 py-1 text-[10px] font-black', device.status === 'online' ? 'bg-emerald-400/15 text-emerald-100' : device.status === 'late' ? 'bg-rose-400/15 text-rose-100' : 'bg-amber-400/15 text-amber-100')}>{device.status === 'online' ? 'متصل' : device.status === 'late' ? 'متأخر' : 'غير مكتمل'}</span>
+                                  </div>
+                                  <p dir="ltr" className="mt-1 truncate text-[10px] font-bold text-white/45">{device.lastRead}</p>
+                                </div>
+                              </div>
+                              <ChevronDown size={16} className={cn('shrink-0 text-white/60 transition-transform', isOpen ? 'rotate-180' : '')} />
+                            </button>
+                            {isOpen && (
+                              <div className="border-t border-white/10 p-3 space-y-3">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+                                  <div className="rounded-2xl bg-white/10 border border-white/10 p-3 lg:col-span-3">
+                                    <span className="block text-[10px] font-black text-white/45">Full Push Token</span>
+                                    <code dir="ltr" className="mt-2 block whitespace-pre-wrap break-all rounded-xl bg-black/25 p-2 text-[10px] font-bold leading-5 text-emerald-100">{device.token}</code>
+                                  </div>
+                                  {[
+                                    ['Last Connection', device.lastConnection],
+                                    ['Last Read', device.lastRead],
+                                    ['Platform', device.platform || device.deviceType || 'Unknown'],
+                                    ['Browser', device.browser || 'Unknown'],
+                                    ['User ID', device.userId || 'Not linked'],
+                                    ['Current URL', device.currentUrl || 'Not available'],
+                                  ].map(([label, value]) => (
+                                    <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3 min-w-0">
+                                      <span className="block text-[10px] font-black text-white/45">{label}</span>
+                                      <b dir={label.includes('URL') ? 'ltr' : undefined} className="mt-1 block truncate text-[11px] font-black text-white/85">{value}</b>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="rounded-2xl bg-white/10 border border-white/10 p-3">
+                                  <div className="mb-2 flex items-center justify-between gap-2">
+                                    <span className="text-[11px] font-black text-white">آخر إشعارات النظام</span>
+                                    <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-white/50">{device.recentNotifications.length || 0}</span>
+                                  </div>
+                                  {device.recentNotifications.length ? (
+                                    <div className="space-y-2">
+                                      {device.recentNotifications.map(notification => (
+                                        <div key={notification.id} className="rounded-xl border border-white/10 bg-slate-950/30 p-2">
+                                          <div className="flex items-start justify-between gap-2">
+                                            <strong className="text-[11px] font-black text-white">{notification.title}</strong>
+                                            <span dir="ltr" className="shrink-0 text-[10px] font-bold text-white/45">{notification.date}</span>
+                                          </div>
+                                          {notification.message && <p className="mt-1 line-clamp-2 text-[10px] font-bold leading-5 text-white/55">{notification.message}</p>}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="rounded-xl border border-dashed border-white/10 p-3 text-[11px] font-bold text-white/45">لا توجد إشعارات محفوظة في بيانات النظام حاليًا.</p>
+                                  )}
+                                </div>
+                                <p className="flex items-center gap-1 text-[11px] font-bold text-white/50"><WifiOff size={12} /> {device.note}</p>
+                              </div>
+                            )}
                           </div>
-                          <div className="mt-2 grid grid-cols-1 gap-1 text-[11px] font-bold text-white/60">
-                            <span>آخر توكن: <b className="text-white/85">{device.token}</b></span>
-                            <span>آخر اتصال: <b className="text-white/85">{device.lastConnection}</b></span>
-                            <span>آخر قراءة: <b className="text-white/85">{device.lastRead}</b></span>
-                          </div>
-                          <p className="mt-2 flex items-center gap-1 text-[11px] font-bold text-white/50"><WifiOff size={12} /> {device.note}</p>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
