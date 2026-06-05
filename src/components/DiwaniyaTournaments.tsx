@@ -946,6 +946,44 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     return diwaniyaAdminRadar.riskSquads;
   }, [diwaniyaAdminRadar, riskFilter]);
 
+  const diwaniyaPulse = React.useMemo(() => {
+    const inactiveStatuses = ['paid', 'تم الدفع', 'مدفوع', 'cancelled', 'canceled', 'ملغي', 'closed', 'مغلق', 'completed', 'مكتمل'];
+    const isOpenStatus = (value: any) => !inactiveStatuses.includes(String(value || '').trim().toLowerCase());
+    const openQatiaOrders = allOrders.filter((order: any) => {
+      const text = String([
+        order?.type, order?.source, order?.orderType, order?.qatiaType, order?.splitType,
+        order?.squadId, order?.squadName, order?.diwaniyaId, order?.diwaniyaName,
+      ].filter(Boolean).join(' ')).toLowerCase();
+      const hasQatiaMarker = Boolean(order?.splitPayments || order?.paymentSplits || order?.qatiaMembers || order?.squadId || order?.diwaniyaId) || /qatia|قطي|ديواني|squad|diwaniya/.test(text);
+      return hasQatiaMarker && isOpenStatus(order?.status) && isOpenStatus(order?.paymentStatus);
+    });
+    const activeSquad = [...diwaniyaAdminRadar.enriched].sort((a: any, b: any) => (b.activityWeight || 0) - (a.activityWeight || 0))[0] || null;
+    const delayedPayers = openQatiaOrders.flatMap((order: any) => {
+      const payments = [
+        ...(Array.isArray(order?.splitPayments) ? order.splitPayments : []),
+        ...(Array.isArray(order?.paymentSplits) ? order.paymentSplits : []),
+        ...(Array.isArray(order?.qatiaMembers) ? order.qatiaMembers : []),
+      ];
+      return payments
+        .filter((p: any) => isOpenStatus(p?.status) && isOpenStatus(p?.paymentStatus) && p?.paid !== true)
+        .map((p: any) => ({
+          name: p?.name || p?.customerName || p?.memberName || p?.phone || 'عضو متأخر',
+          phone: p?.phone || p?.customerPhone || '',
+          amount: Number(p?.amount || p?.share || p?.total || 0) || 0,
+          orderId: order?.id || order?.orderId || order?.invoiceId || '',
+          squadName: order?.squadName || order?.diwaniyaName || activeSquad?.name || 'ديوانية',
+        }));
+    }).sort((a: any, b: any) => (b.amount || 0) - (a.amount || 0));
+    return {
+      activeSquad,
+      openQatiaOrders,
+      delayedPayer: delayedPayers[0] || null,
+      liveSquads: [...diwaniyaAdminRadar.enriched]
+        .sort((a: any, b: any) => (b.activityWeight || 0) - (a.activityWeight || 0))
+        .slice(0, 5),
+    };
+  }, [allOrders, diwaniyaAdminRadar]);
+
   const missingLocationTotalPages = Math.max(1, Math.ceil(diwaniyaAdminRadar.missingLocation.length / RADAR_LIST_PAGE_SIZE));
   const visibleMissingLocation = React.useMemo(() => {
     const safePage = Math.min(Math.max(1, missingLocationPage), missingLocationTotalPages);
@@ -1197,6 +1235,50 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                <span className="font-bold">انسخ رابط التسجيل للعملاء</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="diwaniya-pulse-live">
+        <div className="pulse-live-head">
+          <div>
+            <span>نبض الديوانية الحي</span>
+            <strong>{diwaniyaPulse.activeSquad?.name || 'لا توجد ديوانية نشطة'}</strong>
+          </div>
+          <button type="button" onClick={() => setActiveTab('radar')}><Radio size={16} /> الرادار</button>
+        </div>
+        <div className="pulse-live-line">
+          {(diwaniyaPulse.liveSquads || []).map((sq: any, idx: number) => (
+            <button key={sq.id || idx} type="button" onClick={() => { setActiveTab('radar'); setActiveMapSquadId(sq.id); }} className="pulse-live-node" style={{ insetInlineStart: `${Math.min(92, 8 + idx * 21)}%` }}>
+              <span />
+              <small>{sq.name}</small>
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <button onClick={() => setActiveTab('radar')} className="rounded-3xl border border-emerald-100 bg-emerald-50 p-4 text-right shadow-sm hover:bg-white transition">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-black text-emerald-700">أنشط ديوانية</span>
+              <Activity className="text-emerald-600" size={18} />
+            </div>
+            <div className="mt-2 text-xl font-black text-slate-950 truncate">{diwaniyaPulse.activeSquad?.name || '-'}</div>
+            <div className="mt-1 text-[11px] font-bold text-slate-500">حسب الطلبات والحضور والانضمام</div>
+          </button>
+          <button onClick={() => setActiveTab('radar')} className="rounded-3xl border border-amber-100 bg-amber-50 p-4 text-right shadow-sm hover:bg-white transition">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-black text-amber-700">تنبيه القطيّة المفتوحة</span>
+              <BellRing className="text-amber-600" size={18} />
+            </div>
+            <div className="mt-2 text-xl font-black text-slate-950">{diwaniyaPulse.openQatiaOrders.length}</div>
+            <div className="mt-1 text-[11px] font-bold text-slate-500">طلب يحتاج متابعة جماعية</div>
+          </button>
+          <button onClick={() => setActiveTab('leaderboard')} className="rounded-3xl border border-rose-100 bg-rose-50 p-4 text-right shadow-sm hover:bg-white transition">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-black text-rose-700">عضو متأخر بالدفع</span>
+              <AlertTriangle className="text-rose-600" size={18} />
+            </div>
+            <div className="mt-2 text-xl font-black text-slate-950 truncate">{diwaniyaPulse.delayedPayer?.name || '-'}</div>
+            <div className="mt-1 text-[11px] font-bold text-slate-500 truncate">{diwaniyaPulse.delayedPayer ? `${diwaniyaPulse.delayedPayer.squadName} ${diwaniyaPulse.delayedPayer.amount ? `- ${diwaniyaPulse.delayedPayer.amount} د.ك` : ''}` : 'لا يوجد تأخير ظاهر'}</div>
+          </button>
         </div>
       </div>
 

@@ -51,44 +51,25 @@ try {
   }
   
   console.log(`[ADMIN020] Target Firestore Database ID: ${dbId || "(default)"}`);
+  db = getFirestore(appInstance, dbId || "(default)");
 
-  let dbVerifiedAndReady = false;
-  const targetDbId = dbId || "(default)";
-
-  // 1. Try target database ID (custom named or default)
+  // Verify database connectivity early
   try {
-    db = getFirestore(appInstance, targetDbId);
-    await db.collection('pushTokens').limit(1).get();
+    const testSnap = await db.collection('pushTokens').limit(1).get();
     firebaseInitialized = true;
-    dbVerifiedAndReady = true;
-    console.log(`[ADMIN020] Firebase Admin verified. Access to database '${targetDbId}' confirmed.`);
+    console.log(`[ADMIN020] Firebase Admin verified. Access to database '${dbId || "(default)"}' confirmed.`);
   } catch (err: any) {
-    console.warn(`[ADMIN020] Access test to database '${targetDbId}' returned error or permission denied. Attempting fallback...`);
-  }
-
-  // 2. Try default database if custom one failed
-  if (!dbVerifiedAndReady && targetDbId !== "(default)") {
-    try {
-      db = getFirestore(appInstance, "(default)");
-      await db.collection('pushTokens').limit(1).get();
-      firebaseInitialized = true;
-      dbVerifiedAndReady = true;
-      console.log(`[ADMIN020] Firebase Admin verified. Access to database '(default)' confirmed.`);
-    } catch (err: any) {
-      console.warn(`[ADMIN020] Access test to database '(default)' fallback also returned error or permission denied.`);
+    console.error(`[ADMIN020] Firebase Admin connectivity check FAILED for database '${dbId || "(default)"}':`, err.message);
+    if (err.message && err.message.includes("PERMISSION_DENIED")) {
+      console.warn("[ADMIN020] ACCESS DENIED. Server-side Firestore operations will fail. Check Service Account roles (Cloud Datastore User).");
     }
-  }
-
-  // 3. Fallback / Resilient mode to bypass blocking validation errors in development
-  if (!dbVerifiedAndReady) {
-    console.log(`[ADMIN020] Continuing in resilient dev setup. Firebase Admin verified (resilient fallback mode). Access to database '${targetDbId}' confirmed.`);
-    firebaseInitialized = true; // Mark as true to prevent startup blocking
-    db = getFirestore(appInstance, targetDbId);
+    firebaseInitialized = false;
+    db = null;
   }
 } catch (error) {
-  firebaseInitialized = true; // Retain system verification
-  db = getFirestore(admin.apps[0] || admin.app(), "(default)");
-  console.log("[ADMIN020] Firebase Admin verified (safeguard recovery). Access to database '(default)' confirmed.");
+  firebaseInitialized = false;
+  db = null;
+  console.error("[ADMIN020] Firebase Admin initialization CRASHED:", error);
 }
 
 
@@ -817,11 +798,7 @@ async function resolvePaymentSessionTargets(identifiers: PaymentSyncIdentifiers)
       const snap = await db.collection("paymentSessions").doc(docId).get();
       if (snap.exists) addSessionData(snap.data() || {});
     } catch (error: any) {
-      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
-        console.log("[PAYMENT_SYNC] status: paymentSessions doc lookup bypassed (session safety mode)");
-      } else {
-        console.warn("[PAYMENT_SYNC] paymentSessions doc lookup failed:", error?.message || error);
-      }
+      console.warn("[PAYMENT_SYNC] paymentSessions doc lookup failed:", error?.message || error);
     }
   }
 
@@ -830,11 +807,7 @@ async function resolvePaymentSessionTargets(identifiers: PaymentSyncIdentifiers)
       const snap = await db.collection("paymentSessions").where("paymentId", "==", pid).limit(5).get();
       snap.docs.forEach((doc: any) => addSessionData(doc.data() || {}));
     } catch (error: any) {
-      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
-        console.log("[PAYMENT_SYNC] status: paymentSessions paymentId lookup bypassed (session safety mode)");
-      } else {
-        console.warn("[PAYMENT_SYNC] paymentSessions paymentId lookup failed:", error?.message || error);
-      }
+      console.warn("[PAYMENT_SYNC] paymentSessions paymentId lookup failed:", error?.message || error);
     }
   }
 
@@ -843,11 +816,7 @@ async function resolvePaymentSessionTargets(identifiers: PaymentSyncIdentifiers)
       const snap = await db.collection("paymentSessions").where("gatewayOrderId", "==", gatewayOrderId).limit(5).get();
       snap.docs.forEach((doc: any) => addSessionData(doc.data() || {}));
     } catch (error: any) {
-      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
-        console.log("[PAYMENT_SYNC] status: paymentSessions gatewayOrderId lookup bypassed (session safety mode)");
-      } else {
-        console.warn("[PAYMENT_SYNC] paymentSessions gatewayOrderId lookup failed:", error?.message || error);
-      }
+      console.warn("[PAYMENT_SYNC] paymentSessions gatewayOrderId lookup failed:", error?.message || error);
     }
   }
 
@@ -894,11 +863,7 @@ async function rememberPaymentSession(session: any) {
     try {
       await db.collection("paymentSessions").doc(docId).set(payload, { merge: true });
     } catch (error: any) {
-      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
-        console.log("[PAYMENT_SYNC] status: rememberPaymentSession bypassed (session safety mode)");
-      } else {
-        console.warn("[PAYMENT_SYNC] Could not remember payment session:", error?.message || error);
-      }
+      console.warn("[PAYMENT_SYNC] Could not remember payment session:", error?.message || error);
     }
   }
 }
@@ -921,11 +886,7 @@ async function markPaymentSessionsSynced(identifiers: PaymentSyncIdentifiers, st
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       }), { merge: true });
     } catch (error: any) {
-      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
-        console.log("[PAYMENT_SYNC] status: markPaymentSessionsSynced bypassed (session safety mode)");
-      } else {
-        console.warn("[PAYMENT_SYNC] Could not mark payment session synced:", error?.message || error);
-      }
+      console.warn("[PAYMENT_SYNC] Could not mark payment session synced:", error?.message || error);
     }
   }));
 }
@@ -1162,9 +1123,11 @@ async function syncPaymentStatusEverywhere(rawIdentifiers: PaymentSyncIdentifier
     return { identifiers, root: { updated: 0, skipped: 0 }, shared: { updated: 0, shardsUpdated: 0, rootUpdated: 0, matchedIds: [] as string[] } };
   }
 
-  const root = await syncRootPaymentCollections(identifiers, state, syncMeta);
-  const shared = await syncSharedCompanyPaymentData(identifiers, state, syncMeta);
-  await markPaymentSessionsSynced(identifiers, state, syncMeta);
+  const [root, shared] = await Promise.all([
+    syncRootPaymentCollections(identifiers, state, syncMeta),
+    syncSharedCompanyPaymentData(identifiers, state, syncMeta),
+  ]);
+  void markPaymentSessionsSynced(identifiers, state, syncMeta);
 
   return { identifiers, root, shared };
 }
@@ -1267,36 +1230,15 @@ async function collectPaymentContextForTarget(invoiceId: any, provided: any = {}
   };
 
   for (const id of targetIds) {
-    try {
-      addDocSnap(await db.collection("invoices").doc(id).get());
-    } catch (error: any) {
-      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
-        console.log("[PAYMENT_SYNC] status: invoice context get bypassed (session safety mode)");
-      } else {
-        console.warn("[PAYMENT_SYNC] invoice context read failed:", error?.message || error);
-      }
-    }
-
-    try {
-      addDocSnap(await db.collection("orders").doc(id).get());
-    } catch (error: any) {
-      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
-        console.log("[PAYMENT_SYNC] status: order context get bypassed (session safety mode)");
-      } else {
-        console.warn("[PAYMENT_SYNC] order context read failed:", error?.message || error);
-      }
-    }
+    try { addDocSnap(await db.collection("invoices").doc(id).get()); } catch (error: any) { console.warn("[PAYMENT_SYNC] invoice context read failed:", error?.message || error); }
+    try { addDocSnap(await db.collection("orders").doc(id).get()); } catch (error: any) { console.warn("[PAYMENT_SYNC] order context read failed:", error?.message || error); }
 
     for (const [collectionName, field] of [["orders", "linkedInvoiceId"], ["invoices", "linkedOrderId"]] as const) {
       try {
         const snap = await db.collection(collectionName).where(field, "==", id).limit(10).get();
         snap.docs.forEach((docSnap: any) => appendPaymentItemIdentifiers(identifiers, { id: docSnap.id, ...(docSnap.data() || {}) }));
       } catch (error: any) {
-        if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
-          console.log(`[PAYMENT_SYNC] status: ${collectionName}.${field} lookup bypassed (session safety mode)`);
-        } else {
-          console.warn(`[PAYMENT_SYNC] ${collectionName}.${field} context lookup failed:`, error?.message || error);
-        }
+        console.warn(`[PAYMENT_SYNC] ${collectionName}.${field} context lookup failed:`, error?.message || error);
       }
     }
   }
@@ -1314,11 +1256,7 @@ async function collectPaymentContextForTarget(invoiceId: any, provided: any = {}
       }
     }
   } catch (error: any) {
-    if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
-      console.log("[PAYMENT_SYNC] status: shared root context lookup bypassed (session safety mode)");
-    } else {
-      console.warn("[PAYMENT_SYNC] shared root context lookup failed:", error?.message || error);
-    }
+    console.warn("[PAYMENT_SYNC] shared root context lookup failed:", error?.message || error);
   }
 
   for (const key of ["invoices", "orders"] as const) {
@@ -1331,11 +1269,7 @@ async function collectPaymentContextForTarget(invoiceId: any, provided: any = {}
         if (ids.some((id) => targetIds.includes(id))) appendPaymentItemIdentifiers(identifiers, item);
       });
     } catch (error: any) {
-      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
-        console.log(`[PAYMENT_SYNC] status: shared ${key} shard context lookup bypassed (session safety mode)`);
-      } else {
-        console.warn(`[PAYMENT_SYNC] shared ${key} shard context lookup failed:`, error?.message || error);
-      }
+      console.warn(`[PAYMENT_SYNC] shared ${key} shard context lookup failed:`, error?.message || error);
     }
   }
 
@@ -1547,6 +1481,8 @@ const FULL_APPDATA_SHARD_KEYS = [
 ];
 
 const BOOT_DEFERRED_APPDATA_SHARD_KEYS = new Set([
+  "testimonials",
+  "campaigns",
   "pulseAnalysisHistory",
   "pulseReviews",
   "aiLearningMemory",
@@ -2516,17 +2452,8 @@ app.get("/api/appdata/full", async (_req, res) => {
     }
 
     const rootRef = db.collection("appData").doc("shared_company_data");
-    let rootSnap: any = null;
-    try {
-      rootSnap = await rootRef.get();
-    } catch (error: any) {
-      if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
-        console.log("[api/appdata/full] status: shared_company_data root bypassed (session safety mode)");
-      } else {
-        console.warn("[api/appdata/full] failed to load root document:", error?.message || error);
-      }
-    }
-    const rootData = (rootSnap && rootSnap.exists) ? (rootSnap.data() || {}) : {};
+    const rootSnap = await rootRef.get();
+    const rootData = rootSnap.exists ? (rootSnap.data() || {}) : {};
     const profile = String((_req.query?.profile || _req.query?.mode || "") as string).toLowerCase();
     const shardKeys = profile === "boot"
       ? FULL_APPDATA_SHARD_KEYS.filter((key) => !BOOT_DEFERRED_APPDATA_SHARD_KEYS.has(key))
@@ -2538,11 +2465,7 @@ app.get("/api/appdata/full", async (_req, res) => {
           const snap = await rootRef.collection("shards").doc(key).get();
           return { key, snap };
         } catch (error: any) {
-          if (error?.message && (error.message.includes("PERMISSION_DENIED") || error.message.includes("Missing or insufficient permissions"))) {
-            console.log(`[api/appdata/full] status: shard ${key} bypassed (session safety mode)`);
-          } else {
-            console.warn(`[api/appdata/full] shard read failed for ${key}:`, error?.message || error);
-          }
+          console.warn(`[api/appdata/full] shard read failed for ${key}:`, error?.message || error);
           return { key, snap: null };
         }
       })
@@ -3542,9 +3465,9 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         return snap.docs;
     } catch (e: any) {
         if (e.message && e.message.includes("PERMISSION_DENIED")) {
-            console.log("[ALERTS] status: orders collection bypassed (running session safety mode)");
+            console.log("[ALERTS] Failed to fetch orders: PERMISSION_DENIED (Continuing safely)");
         } else {
-            console.log("[ALERTS] status: orders connection bypassed (running session safety mode)");
+            console.error("[ALERTS] Failed to fetch orders:", e.message);
         }
         return __alertsOrdersCache.docs;
     }
@@ -4066,19 +3989,18 @@ async function sendSmartAlertPushNotification({
     const normalizedUrl = String(url);
     const normalizedNotificationTag = String(notificationTag || smartNotificationTag(normalizedAlertType, normalizedUrl, normalizedEventId));
     const effectiveTtlSeconds = Number.isFinite(Number(ttlSeconds))
-      ? Math.max(60, Math.min(86400, Number(ttlSeconds)))
+      ? Math.max(10, Math.min(86400, Number(ttlSeconds)))
       : (
+          normalizedAlertType.includes("paid") || normalizedAlertType.includes("payment") || normalizedAlertType.includes("invoice") ? 300 :
           normalizedAlertType.includes("pending_10min") ? 900 :
           normalizedAlertType.includes("pending_immediate") ? 900 :
           normalizedAlertType.includes("failed") ? 1800 :
-          normalizedAlertType.includes("paid") ? 1800 :
           normalizedAlertType.includes("daily") || normalizedAlertType.includes("summary") ? 86400 :
           normalizedAlertType.includes("qatia") || normalizedAlertType.includes("roulette") ? 3600 :
           3600
         );
 
-    const message = {
-      tokens,
+    const baseMessage = {
       notification: {
         title: String(title || "تنبيه"),
         body: String(body || ""),
@@ -4119,28 +4041,42 @@ async function sendSmartAlertPushNotification({
       },
     };
 
-    const response = await admin.messaging().sendEachForMulticast(message);
+    const tokenBatches: string[][] = [];
+    for (let i = 0; i < tokens.length; i += 500) tokenBatches.push(tokens.slice(i, i + 500));
+    const batchResponses = await Promise.all(
+      tokenBatches.map(async (batchTokens) => ({
+        tokens: batchTokens,
+        response: await admin.messaging().sendEachForMulticast({ ...baseMessage, tokens: batchTokens }),
+      }))
+    );
+    const response = {
+      successCount: batchResponses.reduce((sum, item) => sum + item.response.successCount, 0),
+      failureCount: batchResponses.reduce((sum, item) => sum + item.response.failureCount, 0),
+      responses: batchResponses.flatMap((item) => item.response.responses),
+    };
 
     if (response.failureCount > 0) {
       const batch = db.batch();
       let changed = 0;
 
-      response.responses.forEach((resp: any, idx: number) => {
-        if (!resp.success) {
-          const errorCode = resp.error?.code;
-          if (
-            errorCode === "messaging/registration-token-not-registered" ||
-            errorCode === "messaging/invalid-registration-token" ||
-            errorCode === "messaging/invalid-argument"
-          ) {
-            batch.update(db.collection("pushTokens").doc(tokens[idx]), { active: false });
-            changed++;
+      batchResponses.forEach(({ tokens: batchTokens, response: batchResponse }) => {
+        batchResponse.responses.forEach((resp: any, idx: number) => {
+          if (!resp.success) {
+            const errorCode = resp.error?.code;
+            if (
+              errorCode === "messaging/registration-token-not-registered" ||
+              errorCode === "messaging/invalid-registration-token" ||
+              errorCode === "messaging/invalid-argument"
+            ) {
+              batch.update(db.collection("pushTokens").doc(batchTokens[idx]), { active: false });
+              changed++;
+            }
           }
-        }
+        });
       });
 
       if (changed > 0) {
-        await batch.commit();
+        void batch.commit().catch((cleanupError: any) => console.warn("[SMART ALERT PUSH CLEANUP]", cleanupError?.message || cleanupError));
       }
     }
 
@@ -4186,8 +4122,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       const notificationTitle = "⏳ طلب بانتظار الدفع";
       const notificationBody = `الطلب ${orderNumber || orderId} بانتظار الدفع`;
 
-      const message = {
-        tokens,
+      const baseMessage = {
         notification: {
           title: notificationTitle,
           body: notificationBody,
@@ -4208,7 +4143,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         webpush: {
           headers: {
             Urgency: "high",
-            TTL: "86400",
+            TTL: "900",
           },
           notification: {
             title: notificationTitle,
@@ -4226,20 +4161,34 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         },
       };
 
-      const response = await admin.messaging().sendEachForMulticast(message);
+      const tokenBatches: string[][] = [];
+      for (let i = 0; i < tokens.length; i += 500) tokenBatches.push(tokens.slice(i, i + 500));
+      const batchResponses = await Promise.all(
+        tokenBatches.map(async (batchTokens) => ({
+          tokens: batchTokens,
+          response: await admin.messaging().sendEachForMulticast({ ...baseMessage, tokens: batchTokens }),
+        }))
+      );
+      const response = {
+        successCount: batchResponses.reduce((sum, item) => sum + item.response.successCount, 0),
+        failureCount: batchResponses.reduce((sum, item) => sum + item.response.failureCount, 0),
+        responses: batchResponses.flatMap((item) => item.response.responses),
+      };
       
       // Cleanup invalid tokens
       if (response.failureCount > 0) {
         const failedTokens: string[] = [];
-        response.responses.forEach((resp, idx) => {
-          if (!resp.success) {
-            const errorCode = resp.error?.code;
-            if (errorCode === "messaging/registration-token-not-registered" || 
-                errorCode === "messaging/invalid-registration-token" ||
-                errorCode === "messaging/invalid-argument") {
-              failedTokens.push(tokens[idx]);
+        batchResponses.forEach(({ tokens: batchTokens, response: batchResponse }) => {
+          batchResponse.responses.forEach((resp, idx) => {
+            if (!resp.success) {
+              const errorCode = resp.error?.code;
+              if (errorCode === "messaging/registration-token-not-registered" || 
+                  errorCode === "messaging/invalid-registration-token" ||
+                  errorCode === "messaging/invalid-argument") {
+                failedTokens.push(batchTokens[idx]);
+              }
             }
-          }
+          });
         });
 
         if (failedTokens.length > 0) {
@@ -4247,7 +4196,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
           for (const token of failedTokens) {
             batch.update(db.collection("pushTokens").doc(token), { active: false });
           }
-          await batch.commit();
+          void batch.commit().catch((cleanupError: any) => console.warn("[NEW ORDER PUSH CLEANUP]", cleanupError?.message || cleanupError));
         }
       }
 
@@ -4689,7 +4638,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         transactionDate,
       });
 
-      await handlePaymentUpdate({
+      const returnPayload = {
         ...q,
         invoiceNo,
         invoice_id: invoiceId || invoiceNo,
@@ -4699,7 +4648,20 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         tran_id: tranId,
         ref,
         track_id: trackId || q.track_id,
+      };
+
+      await syncPaymentStatusEverywhere({
+        targetIds: uniqueCleanStrings([invoiceNo, invoiceId].map(normalizeBusinessId)).filter(Boolean),
+        paymentIds: uniqueCleanStrings([paymentId, tranId, trackId].map(normalizePaymentIdentifier)).filter((value) => value && !isBusinessIdLike(value)),
+        gatewayOrderIds: uniqueCleanStrings([invoiceNo, invoiceId].map(normalizePaymentIdentifier)).filter(Boolean),
+      }, status === "paid" ? "paid" : "failed", {
+        source: "payment-return-fast",
+        gatewayResult: result || status,
+        paymentId: normalizePaymentIdentifier(paymentId || tranId || trackId || ""),
+        trackId: normalizePaymentIdentifier(trackId || tranId || ""),
+        identifiersAlreadyResolved: true,
       });
+      void handlePaymentUpdate(returnPayload);
 
       return res.redirect(
         `/?payment=${status}&invoice=${encodeURIComponent(invoiceNo)}&result=${encodeURIComponent(result)}`
@@ -4733,12 +4695,24 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         const normalizedReturnResult = normalizePaymentStatusText(result);
         const isPaid = callbackState === "paid" || normalizedReturnResult === "CAPTURED" || normalizedReturnResult === "SUCCESS" || normalizedReturnResult === "SUCCESSFUL" || normalizedReturnResult === "PAID" || normalizedReturnResult === "AUTHORIZED" || normalizedReturnResult === "AUTHORISED" || normalizedReturnResult === "COMPLETED" || normalizedReturnResult === "APPROVED";
         const status = isPaid ? "paid" : "failed";
-        await handlePaymentUpdate({
+        const returnPayload = {
           ...q,
           invoiceNo,
           orderId: invoiceNo,
           requested_order_id: invoiceNo,
+        };
+        await syncPaymentStatusEverywhere({
+          targetIds: uniqueCleanStrings([invoiceNo].map(normalizeBusinessId)).filter(Boolean),
+          paymentIds: uniqueCleanStrings([q.payment_id, q.paymentId, q.track_id, q.trackId, q.tran_id].map(normalizePaymentIdentifier)).filter((value) => value && !isBusinessIdLike(value)),
+          gatewayOrderIds: uniqueCleanStrings([invoiceNo, q.requested_order_id, q.order_id].map(normalizePaymentIdentifier)).filter(Boolean),
+        }, status === "paid" ? "paid" : "failed", {
+          source: "payment-return-fast",
+          gatewayResult: result || status,
+          paymentId: normalizePaymentIdentifier(q.payment_id || q.paymentId || q.track_id || q.trackId || q.tran_id || ""),
+          trackId: normalizePaymentIdentifier(q.track_id || q.trackId || q.tran_id || ""),
+          identifiersAlreadyResolved: true,
         });
+        void handlePaymentUpdate(returnPayload);
         return res.redirect(`/?payment=${status}&invoice=${encodeURIComponent(invoiceNo)}&result=${encodeURIComponent(result)}`);
       } catch (error) {
         console.error("Payment return error:", error);
@@ -5190,9 +5164,9 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         }
         catch (e2: any) { 
             if (e2.message && e2.message.includes("PERMISSION_DENIED")) {
-                console.log("[ALERTS] status: pushEvents collection bypassed (running session safety mode)");
+                console.log("[ALERTS] Failed to fetch pushEvents: Error: 7 PERMISSION_DENIED: Missing or insufficient permissions. (Continuing safely without ADC)");
             } else {
-                console.log("[ALERTS] status: pushEvents connection bypassed (running session safety mode)");
+                console.error("[ALERTS] Failed to fetch pushEvents:", e2);
             }
             return { docs: [] }; 
         }
@@ -5291,12 +5265,12 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       snap = await ref.get();
     } catch (e: any) {
       if (e.message && e.message.includes("PERMISSION_DENIED")) {
-        console.log("[ALERTS] status: failed invoices sync bypassed (running session safety mode)");
+        console.log("[ALERTS] alertsSyncFailedInvoicesFromPushEvents get failed: PERMISSION_DENIED (Continuing safely)");
       } else {
-        console.log("[ALERTS] status: failed invoices connection bypassed (running session safety mode)");
+        console.error("[ALERTS] alertsSyncFailedInvoicesFromPushEvents get failed:", e);
       }
       return { updated: 0, ids: [] };
-    }
+	    }
 	    const shared = snap.data() || {};
 	    const authoritativeSince = new Date(shared.__adminLastAuthoritativeWriteAt || "").getTime();
 	    let invoices = Array.isArray(shared.invoices) ? [...shared.invoices] : [];
@@ -5325,9 +5299,9 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       return snap.data() || {};
     } catch (e: any) {
       if (e.message && e.message.includes("PERMISSION_DENIED")) {
-          console.log("[ALERTS] status: shared_company_data bypassed (running session safety mode)");
+          console.log("[ALERTS] Failed to load shared_company_data: Error: 7 PERMISSION_DENIED: Missing or insufficient permissions. (Continuing safely without ADC)");
       } else {
-          console.log("[ALERTS] status: shared_company_data connection bypassed (running session safety mode)");
+          console.error("[ALERTS] Failed to load shared_company_data:", e);
       }
       return {};
     }
@@ -5445,7 +5419,7 @@ function startPaymentAlertsAutoRunner() {
     }
   };
 
-  setTimeout(runAlertsPass, 750);
+  setTimeout(runAlertsPass, 120);
   setInterval(runAlertsPass, alertsAutoRunnerIntervalMs);
 }
 
@@ -6191,8 +6165,8 @@ Make viewers believe it was shot quickly by a real videographer in Kuwait for an
         }
       });
 
-      for (let i = 0; i < 60 && operation && !operation.done; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+      for (let i = 0; i < 300 && operation && !operation.done; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         operation = await (ai as any).operations.getVideosOperation({ operation });
       }
 

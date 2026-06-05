@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import LZString from 'lz-string';
 import { 
@@ -226,7 +226,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
             // Since we use window.location.pathname for routing, we need to force a re-render
             // or just trigger the URL sync logic.
             window.location.reload(); 
-        }, 700);
+        }, 120);
     };
 
     if (isExplicitFail) {
@@ -1129,65 +1129,6 @@ const MainApp: React.FC = () => {
   });
   
   const [data, setData] = useState<AppState>(INITIAL_DATA);
-
-  const SMART_NOTIFICATION_SEEN_STORAGE_KEY = 'alturath_seen_smart_notification_keys_v2';
-  const getSmartNotificationKey = (n: any) => String(n?.id || `${n?.title || ''}|${n?.message || ''}|${n?.date || ''}`);
-  const loadSeenSmartNotificationKeys = () => {
-    if (typeof window === 'undefined') return new Set<string>();
-    try {
-      const raw = window.localStorage.getItem(SMART_NOTIFICATION_SEEN_STORAGE_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return new Set<string>(Array.isArray(parsed) ? parsed.map(String) : []);
-    } catch {
-      return new Set<string>();
-    }
-  };
-  const saveSeenSmartNotificationKeys = (keys: Set<string>) => {
-    if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.setItem(SMART_NOTIFICATION_SEEN_STORAGE_KEY, JSON.stringify(Array.from(keys).slice(-500)));
-    } catch {}
-  };
-  const [seenSmartNotificationKeys, setSeenSmartNotificationKeys] = useState<Set<string>>(() => loadSeenSmartNotificationKeys());
-
-  const isVisibleSmartNotification = (n: any) => !n?.title?.includes('درع') && !n?.title?.includes('مجبوس دجاج');
-  const isUnreadSmartNotification = (n: any) => {
-    if (!isVisibleSmartNotification(n)) return false;
-    if (n?.read === true) return false;
-    return !seenSmartNotificationKeys.has(getSmartNotificationKey(n));
-  };
-  const markSmartNotificationsSeenLocally = (notifications: any[]) => {
-    const visibleKeys = (notifications || []).filter(isVisibleSmartNotification).map(getSmartNotificationKey);
-    if (!visibleKeys.length) return;
-    setSeenSmartNotificationKeys(prev => {
-      const next = new Set(prev);
-      visibleKeys.forEach(key => next.add(key));
-      saveSeenSmartNotificationKeys(next);
-      return next;
-    });
-  };
-  const hasUnreadSmartNotifications = useMemo(() => (data?.notifications || []).some(isUnreadSmartNotification), [data?.notifications, seenSmartNotificationKeys]);
-
-  // عند فتح لوحة التنبيهات يعتبر المستخدم أنه شاهد التنبيهات الظاهرة.
-  // نحفظ المشاهدة محليًا أيضًا حتى لا ترجع النقطة الحمراء عند إعادة فتح الموقع
-  // إذا لم توجد تنبيهات جديدة فعلًا.
-  useEffect(() => {
-    if (!notifOpen) return;
-    const currentNotifications = data?.notifications || [];
-    markSmartNotificationsSeenLocally(currentNotifications);
-    setData(prev => {
-      const notifications = prev?.notifications || [];
-      let changed = false;
-      const nextNotifications = notifications.map((n: any) => {
-        if (isUnreadSmartNotification(n)) {
-          changed = true;
-          return { ...n, read: true };
-        }
-        return n;
-      });
-      return changed ? { ...prev, notifications: nextNotifications } : prev;
-    });
-  }, [notifOpen]);
   const [hasRunMigration, setHasRunMigration] = useState(false);
 
   // MIGRATION: Ensure old orders have the correct customer names matching the DB.
@@ -1242,7 +1183,7 @@ const MainApp: React.FC = () => {
         const id = String(inv.id || inv.invoiceId || inv.invoiceNo || '');
         if (!id) return false;
         const lastCheckedAt = pendingPaymentCheckRef.current[id] || 0;
-        return nowMs - lastCheckedAt > 60000;
+        return nowMs - lastCheckedAt > 10000;
       }).slice(0, 12);
       if (pendingInvoices.length === 0) return;
       
@@ -1398,9 +1339,9 @@ const MainApp: React.FC = () => {
       }
     };
 
-    const intervalId = setInterval(checkPendingPayments, 20000);
+    const intervalId = setInterval(checkPendingPayments, 8000);
     // Also run once shortly after mount/auth.
-    const timeoutId = setTimeout(checkPendingPayments, 2500);
+    const timeoutId = setTimeout(checkPendingPayments, 800);
     
     return () => {
       clearInterval(intervalId);
@@ -2377,7 +2318,7 @@ const MainApp: React.FC = () => {
                 } catch (backgroundLoadErr) {
                   console.warn('[FAST_APPDATA] Deferred shard background load failed:', backgroundLoadErr);
                 }
-              }, 80);
+              }, 0);
             }
             isCloudSyncApplyingRef.current = false;
             hasLoadedDataRef.current = true;
@@ -3403,7 +3344,7 @@ const MainApp: React.FC = () => {
                 aria-label="تنبيهات"
               >
                 <Bell size={20} className={cn("transition-colors", notifOpen ? "text-primary" : "text-slate-600")} />
-                {hasUnreadSmartNotifications && (
+                {(data?.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج')).some(n => !n.read) && (
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-white" />
                 )}
               </button>
@@ -3434,8 +3375,6 @@ const MainApp: React.FC = () => {
                            <button 
                              onClick={(e) => {
                                  e.stopPropagation();
-                                 const currentNotifications = data?.notifications || [];
-                                 markSmartNotificationsSeenLocally(currentNotifications);
                                  setData(prev => ({
                                      ...prev,
                                      notifications: (prev?.notifications || []).map(n => ({ ...n, read: true }))
@@ -3448,13 +3387,12 @@ const MainApp: React.FC = () => {
                         </div>
                     </div>
                     <div className="max-h-[70vh] overflow-y-auto p-2 scrollbar-hide">
-                      {data.notifications && data.notifications.filter(isVisibleSmartNotification).length > 0 ? (
-                        (data?.notifications || []).filter(isVisibleSmartNotification).map(notif => (
+                      {data.notifications && data.notifications.filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج')).length > 0 ? (
+                        (data?.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج')).map(notif => (
                           <div 
                             key={notif.id} 
                             onClick={(e) => {
                                 e.stopPropagation();
-                                markSmartNotificationsSeenLocally([notif]);
                                 setData(prev => ({
                                     ...prev,
                                     notifications: (prev?.notifications || []).map(n => n.id === notif.id ? { ...n, read: true } : n)
@@ -3486,7 +3424,7 @@ const MainApp: React.FC = () => {
                             }}
                             className={cn(
                                 "p-3 rounded-xl mb-1 transition-all cursor-pointer hover:bg-slate-50 border border-transparent",
-                                !isUnreadSmartNotification(notif) ? "opacity-60 bg-white" : "bg-primary/5 border-primary/10 shadow-sm"
+                                notif.read ? "opacity-60 bg-white" : "bg-primary/5 border-primary/10 shadow-sm"
                             )}
                           >
                             <div className="flex items-start gap-3">
@@ -3506,7 +3444,7 @@ const MainApp: React.FC = () => {
                                   {formatKuwaitiDateOnly(notif.date)}
                                 </div>
                               </div>
-                              {isUnreadSmartNotification(notif) && (
+                              {!notif.read && (
                                 <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0 mt-1 animate-pulse" />
                               )}
                             </div>
@@ -3734,7 +3672,7 @@ const MainApp: React.FC = () => {
               <div className="relative z-10 flex items-center justify-center bg-white/5 rounded-full w-7 h-7 backdrop-blur-md border border-white/5">
                 <Command className="text-amber-400 group-hover:scale-110 transition-transform duration-300" size={15} />
               </div>
-              {hasUnreadSmartNotifications && (
+              {(data?.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج')).some(n => !n.read) && (
                 <div className="absolute top-2.5 right-2.5 flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-[120%] w-[120%] rounded-full bg-amber-400 opacity-60"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
