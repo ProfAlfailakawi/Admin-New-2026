@@ -2,10 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
  Bot, 
  Send, 
- Sparkles, 
- TrendingUp, 
+	 Sparkles, 
 	 Lightbulb, 
-	 AlertCircle,
 	 BrainCircuit,
 	 User,
 	 Users,
@@ -15,7 +13,8 @@ import {
 	 CheckCircle2,
 	 ShieldAlert,
 	 Wand2,
-	 Clock3
+	 Clock3,
+	 Package as PackageIcon
 	} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppState } from '../types';
@@ -35,6 +34,7 @@ interface Message {
 }
 
 type MissionTone = 'risk' | 'opportunity' | 'action';
+type IntentKind = 'decision' | 'sales' | 'profit' | 'customer' | 'product' | 'supplier' | 'message' | 'risk' | 'general';
 
 const money = (value: any) => {
  const n = Number(value || 0);
@@ -71,6 +71,18 @@ const compactAssistantReply = (value: string) => {
  const lines = clean.split('\n').map((line) => line.trim()).filter(Boolean);
  if (lines.length >= 4) return lines.slice(0, 7).join('\n');
  return `${clean.slice(0, 820).replace(/\s+\S*$/, '')}\n\nالخلاصة: هذا أهم شيء حالياً، واذا تبي أفصلها أفصلها لك برسالة ثانية.`;
+};
+
+const classifyAssistantIntent = (value: string): IntentKind => {
+ const q = String(value || '').toLowerCase();
+ if (/(شنو اسوي|ماذا افعل|قرار|ضبط|ركز|الأهم|الاهم)/.test(q)) return 'decision';
+ if (/(مبيعات|بيع|حملة|عرض|تسويق|ستوري|اعلان|إعلان)/.test(q)) return 'sales';
+ if (/(ربح|هامش|تكلفة|خسارة|نزيف|فلوس|مالي)/.test(q)) return 'profit';
+ if (/(عميل|عملاء|زبون|واتساب|رسالة|كلم|استرجاع)/.test(q)) return q.includes('رسالة') || q.includes('واتساب') || q.includes('كلم') ? 'message' : 'customer';
+ if (/(منتج|صنف|منيو|طبق|مخزون|صورة)/.test(q)) return 'product';
+ if (/(مورد|موردين|سداد|توريد|مديونية)/.test(q)) return 'supplier';
+ if (/(خطر|فشل|مشكلة|تنبيه|متأخر|ضعيف)/.test(q)) return 'risk';
+ return 'general';
 };
 
 const buildAssistantIntel = (data: AppState) => {
@@ -186,6 +198,26 @@ const buildAssistantIntel = (data: AppState) => {
    .filter((p: any) => p.stock > 0 && p.stock <= 5)
    .slice(0, 6);
 
+ const topCategory = (() => {
+   const byCategory = new Map<string, { sales: number; qty: number }>();
+   productRank.forEach((p: any) => {
+     const key = p.category || 'غير مصنف';
+     const current = byCategory.get(key) || { sales: 0, qty: 0 };
+     current.sales += Number(p.revenue || 0);
+     current.qty += Number(p.soldQty || 0);
+     byCategory.set(key, current);
+   });
+   return [...byCategory.entries()].sort((a, b) => b[1].sales - a[1].sales)[0];
+ })();
+
+ const nextBestAction =
+   failedOrders.length > 0 ? `ابدأ بفشل الدفع: ${failedOrders.length} حالة تحتاج متابعة محترمة وسريعة.` :
+   pendingOrders.length > 0 ? `تابع المعلق: ${pendingOrders.length} طلب بانتظار إغلاق الدفع.` :
+   hiddenGem ? `ادفع منتج "${hiddenGem.name}" اليوم لأنه هامشه ${hiddenGem.margin}% ومبيعاته قليلة.` :
+   atRiskCustomer ? `استرجع ${atRiskCustomer.name || atRiskCustomer.phone} برسالة هادئة لأنه غائب ${atRiskCustomer.idleDays} يوم.` :
+   productRank[0] ? `ضاعف ظهور "${productRank[0].name}" لأنه الأعلى حركة حالياً.` :
+   'اطلب ملخص المدير، والقرار يطلع من البيانات المتاحة.';
+
  const missions = [
    failedOrders.length > 0 && {
      tone: 'risk' as MissionTone,
@@ -207,6 +239,13 @@ const buildAssistantIntel = (data: AppState) => {
      title: 'فرصة مخفية',
      text: `${hiddenGem.name} هامشه ${hiddenGem.margin}% ومبيعاته قليلة.`,
      prompt: `حوّل المنتج "${hiddenGem.name}" إلى فرصة تسويق عملية: سبب الاختيار، فكرة عرض، ونص واتساب قصير.`,
+   },
+   lowStockProducts[0] && {
+     tone: 'action' as MissionTone,
+     icon: <PackageIcon />,
+     title: 'مخزون قريب',
+     text: `${lowStockProducts[0].name} مخزونه ${lowStockProducts[0].stock}.`,
+     prompt: `رتب لي قرار سريع لمخزون ${lowStockProducts[0].name}: هل أطلب توريد أو أوقف تسويقه؟ اعتمد على البيانات ولا تغيّر شيء بالنظام.`,
    },
    atRiskCustomer && {
      tone: 'risk' as MissionTone,
@@ -240,6 +279,7 @@ const buildAssistantIntel = (data: AppState) => {
    salesTrend7: salesTrend7 === null ? 'لا توجد بيانات كافية للمقارنة' : `${salesTrend7}%`,
    avgOrderValue,
    topSupplierDebt: topSupplierDebt ? `${topSupplierDebt.name || 'مورد'} (${money(topSupplierDebt.balance)} د.ك)` : 'لا يوجد',
+   topCategory: topCategory ? `${topCategory[0]} / مبيعات ${money(topCategory[1].sales)} د.ك / كمية ${Math.round(topCategory[1].qty)}` : 'لا يوجد',
    topProducts: productRank.slice(0, 5).map((p) => `${p.name}: ${p.soldQty} مبيع / هامش ${p.margin}% / سعر ${money(p.price)} / تكلفة ${money(p.cost)}`).join(' | '),
    weakProducts: weakProducts.map((p) => `${p.name}: مبيعات ${p.soldQty} / هامش ${p.margin}% / مخزون ${p.stock}`).join(' | ') || 'لا يوجد',
    lowStockProducts: lowStockProducts.map((p) => `${p.name}: مخزون ${p.stock}`).join(' | ') || 'لا يوجد',
@@ -247,6 +287,7 @@ const buildAssistantIntel = (data: AppState) => {
    recentInvoices: recentInvoices.map((i) => `${i.date}: ${money(i.total)} د.ك / ربح ${money(i.profit)} / ${i.items}`).join(' | ') || 'لا توجد فواتير حديثة',
    hiddenGem: hiddenGem ? `${hiddenGem.name} / هامش ${hiddenGem.margin}% / مبيعات ${hiddenGem.soldQty} / سعر ${money(hiddenGem.price)} / تكلفة ${money(hiddenGem.cost)}` : 'لا يوجد',
    atRiskCustomer: atRiskCustomer ? `${atRiskCustomer.name || atRiskCustomer.phone} / غياب ${atRiskCustomer.idleDays} يوم / إنفاق ${money(atRiskCustomer.spent)}` : 'لا يوجد',
+   nextBestAction,
    dataFreshness: `${paidInvoices.length} فاتورة مدفوعة من أصل ${invoices.length} / ${orders.length} طلب / ${products.length} منتج / ${customers.length} عميل`,
    missions: missions.slice(0, 4),
  };
@@ -340,6 +381,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
  const cleanMessage = rawMessage === 'ضبطها' || rawMessage === 'ضبطه' || rawMessage === 'ضبط'
    ? `ضبطها حسب الصفحة الحالية (${effectivePage}). عطِني قرار واحد قابل للتنفيذ الآن. القرار المتوقع من النظام: ${pageDecision.decision}. الدليل: ${pageDecision.proof}. الإجراء: ${pageDecision.action}.`
    : rawMessage;
+ const intentKind = classifyAssistantIntent(cleanMessage);
 
  setMessages(prev => [...prev, { role: 'user', content: cleanMessage }]);
  setInput('');
@@ -354,6 +396,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 	   ...intel,
 	   currentPage: effectivePage,
 	   pageDecision,
+	   intentKind,
 	   missions: undefined,
 	 };
 	 const memorySnapshot = readMemory();
@@ -374,6 +417,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 - لا تطلب خطوات تقنية من المستخدم.
 - لا تنفذ ولا تدعي أنك نفذت.
 - اكتب بلهجة كويتية بيضاء راقية، مختصرة وواضحة.
+- قبل الرد صنّف نية السؤال من intentKind وتعامل معها كمدير عمليات: قرار، مبيعات، ربح، عميل، منتج، مورد، رسالة، خطر.
 - الرد المثالي دائماً قصير: الحكم، الدليل من البيانات، القرار العملي، ثم نص جاهز إذا يناسب.
 - ممنوع الإطالة: لا تتجاوز 5 أسطر قصيرة إلا إذا طلب المستخدم تفصيل.
 - لا تكتب مقدمات طويلة ولا تشخيص معقد؛ خل الرد قابل للقراءة خلال 10 ثواني.
@@ -381,7 +425,10 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 - استخدم ذاكرة التاجر المحلية المرسلة لك عشان ما تكرر نفس النصائح وتفهم أسلوبه.
 - ممنوع تذكر أنك نموذج أو نظام عام أو تعتذر بكثرة.
 - إذا كتب التاجر كلمة "ضبطها" فقط، افهمها حسب الصفحة الحالية والقرار المرسل لك، ولا تسأله شنو يقصد إلا إذا البيانات ناقصة.
-- إذا في مخاطرة، قلها بصراحة وبهدوء. إذا في فرصة، عطه خطوة قابلة للتنفيذ اليوم.`,
+- إذا في مخاطرة، قلها بصراحة وبهدوء. إذا في فرصة، عطه خطوة قابلة للتنفيذ اليوم.
+- لا تكرر بطاقات الواجهة ولا تستخدم عناوين الحالة الثلاثية القديمة.
+- استخدم nextBestAction كترتيب افتراضي إذا السؤال واسع.
+- عند طلب رسالة واتساب: اكتب النص فقط مع سبب اختيار العميل/الحالة بسطر واحد.`,
 	 statsSummary,
 	 memorySnapshot,
 	 conversationHistory: messages.slice(-6).map((m) => ({ role: m.role, content: m.content.slice(0, 900) }))
@@ -424,8 +471,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
  setIsLoading(false);
  return;
  }
- // Exponential backoff
- await new Promise(resolve => setTimeout(resolve, 5000 * attempts));
+ await new Promise(resolve => setTimeout(resolve, Math.min(1400 * attempts, 3200)));
  }
  }
  };
@@ -443,11 +489,6 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 	    { title: 'فرصة سريعة', text: intel.hiddenGem !== 'لا يوجد' ? intel.hiddenGem : `متوسط الطلب ${money(intel.avgOrderValue)} د.ك`, prompt: 'طلع لي فرصة بيع واحدة اليوم مع نص واتساب قصير.' },
 	    { title: 'تنبيه هادئ', text: intel.failedOrders > 0 ? `${intel.failedOrders} فشل دفع` : intel.pendingOrders > 0 ? `${intel.pendingOrders} بانتظار الدفع` : 'لا يوجد خطر واضح الآن', prompt: 'رتب لي أهم تنبيه تشغيلي في سطرين فقط.' },
 	   ];
-	   const resultNotices = [
-	    { tone: 'success', icon: <CheckCircle2 size={16} />, title: 'حالة البيانات', text: intel.dataFreshness },
-	    { tone: intel.pendingOrders > 0 ? 'warning' : 'success', icon: <Clock3 size={16} />, title: 'الدفع', text: intel.pendingOrders > 0 ? `${intel.pendingOrders} طلب بانتظار الدفع` : 'لا توجد طلبات دفع معلقة واضحة' },
-	    { tone: intel.failedOrders > 0 ? 'risk' : 'success', icon: <AlertCircle size={16} />, title: 'الاستقرار', text: intel.failedOrders > 0 ? `${intel.failedOrders} عملية دفع تحتاج متابعة` : 'لا توجد عمليات دفع فاشلة واضحة' },
-	   ];
 
 	 return (
 	 <div className="ai-executive-assistant-shell animate-in fade-in slide-in-from-bottom-4 duration-700" dir="rtl">
@@ -461,7 +502,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
       ))}
     </section>
 
-	  {(!messages || messages.length === 0) && (
+	  {(!messages || messages.length <= 1) && (
 	  <section className="ai-mission-strip">
 	    {(intel.missions.length ? intel.missions : [{
 	      tone: 'opportunity' as MissionTone,
@@ -480,17 +521,6 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 	  )}
 
 		  <section className="ai-executive-console">
-	    <div className="ai-result-notices" aria-live="polite">
-	      {resultNotices.map((notice) => (
-	        <div key={notice.title} className={cn('ai-result-notice', `is-${notice.tone}`)}>
-	          <span>{notice.icon}</span>
-	          <div>
-	            <strong>{notice.title}</strong>
-	            <small>{notice.text}</small>
-	          </div>
-	        </div>
-	      ))}
-	    </div>
 	    <div className="ai-executive-messages custom-scrollbar">
       <AnimatePresence initial={false}>
         {(messages || []).map((m, i) => (

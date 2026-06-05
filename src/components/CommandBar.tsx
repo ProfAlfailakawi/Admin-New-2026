@@ -236,6 +236,12 @@ const buildProductStats = (data: any) => {
   return Array.from(byName.values()).filter((x) => x.quantity || x.sales).sort((a, b) => num(b.quantity) - num(a.quantity));
 };
 
+const daysIdle = (value: any) => {
+  const time = new Date(value || 0).getTime();
+  if (!time || !Number.isFinite(time)) return 0;
+  return Math.max(0, Math.floor((Date.now() - time) / (1000 * 60 * 60 * 24)));
+};
+
 const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, data, userRole }) => {
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
@@ -249,7 +255,16 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     const quality = getProductQualityReport(data);
     const customers = buildCustomerStats(data);
     const products = buildProductStats(data);
+    const orders = safeArray(data?.orders);
+    const suppliers = safeArray(data?.suppliers);
     const hasTop = q.includes('اعلى') || q.includes('اكبر') || q.includes('افضل') || q.includes('أعلى') || q.includes('أكبر') || q.includes('أفضل');
+    const pendingOrders = orders.filter((order: any) => isPendingText(order?.paymentStatus || order?.status)).length;
+    const failedOrders = orders.filter((order: any) => isFailedText(order?.paymentStatus || order?.status)).length;
+    const topSupplierDebt = [...suppliers].sort((a: any, b: any) => num(b?.balance) - num(a?.balance))[0];
+    const absentCustomer = [...customers]
+      .map((customer: any) => ({ ...customer, idleDays: daysIdle(customer?.lastOrderDate || customer?.lastActive) }))
+      .filter((customer: any) => customer.idleDays >= 21 && num(customer.totalSpent) > 0)
+      .sort((a: any, b: any) => (num(b.totalSpent) + b.idleDays) - (num(a.totalSpent) + a.idleDays))[0];
 
     if ((hasTop && (q.includes('عميل') || q.includes('زبون'))) || q.includes('اكثر عميل') || q.includes('أكثر عميل')) {
       const top = customers[0];
@@ -321,14 +336,72 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     }
 
     if (q.includes('شنو اسوي') || q.includes('ماذا افعل') || q.includes('ماذا أفعل') || q.includes('قرار') || q.includes('ركز') || q.includes('أركز')) {
+      const liveDecision = failedOrders > 0
+        ? `ابدأ بفشل الدفع: ${failedOrders} طلب يحتاج متابعة`
+        : pendingOrders > 0
+          ? `أغلق المعلق: ${pendingOrders} طلب بانتظار الدفع`
+          : quality.title;
       return {
         title: 'قرار الآن',
-        value: quality.title,
+        value: liveDecision,
         subtitle: quality.decision,
         details: [quality.proof, quality.action],
         actionLabel: 'افتح نقطة التركيز',
-        action: () => onNavigate('products', { scrollTarget: 'product-quality-board' }),
-        tone: quality.status === 'critical' ? 'rose' : quality.status === 'watch' ? 'amber' : 'emerald',
+        action: () => failedOrders || pendingOrders ? onNavigate('orders', { search: failedOrders ? 'فشل' : 'بانتظار' }) : onNavigate('products', { scrollTarget: 'product-quality-board' }),
+        tone: failedOrders ? 'rose' : pendingOrders ? 'amber' : quality.status === 'critical' ? 'rose' : quality.status === 'watch' ? 'amber' : 'emerald',
+      };
+    }
+
+    if (q.includes('منو اتابع') || q.includes('منو أتابع') || q.includes('عميل غايب') || q.includes('غايب') || q.includes('استرجاع')) {
+      if (!absentCustomer) return { title: 'متابعة العملاء', value: 'لا يوجد عميل غائب واضح', subtitle: 'لم أجد عميلًا بقيمة واضحة وغائبًا مدة كافية.', tone: 'emerald' };
+      return {
+        title: 'أول عميل للمتابعة',
+        value: absentCustomer.name || absentCustomer.phone,
+        subtitle: `غائب ${absentCustomer.idleDays} يوم · إنفاق ${money(absentCustomer.totalSpent)} د.ك`,
+        details: [absentCustomer.phone ? `الهاتف: ${absentCustomer.phone}` : '', 'يفضل رسالة هادئة بدون ضغط.'].filter(Boolean),
+        actionLabel: 'افتح العميل',
+        action: () => onNavigate('customers', { exactId: absentCustomer.id, search: absentCustomer.name || absentCustomer.phone }),
+        tone: 'blue',
+      };
+    }
+
+    if (q.includes('رسالة') || q.includes('واتساب') || q.includes('اكتب له') || q.includes('كلم')) {
+      const target = absentCustomer || customers[0];
+      if (!target) return { title: 'رسالة جاهزة', value: 'لا يوجد عميل واضح', subtitle: 'اكتب اسم العميل أو رقمه في الكوماند.', tone: 'slate' };
+      return {
+        title: 'رسالة واتساب جاهزة',
+        value: target.name || target.phone || 'عميل',
+        subtitle: `حياك الله، مشتاقين لطلبك من التراث. إذا ودك نجهز لك شي مرتب اليوم، حاضر لك بكل سرور.`,
+        details: [`سبب الاختيار: ${target.idleDays ? `غائب ${target.idleDays} يوم` : `إنفاق ${money(target.totalSpent)} د.ك`}`],
+        actionLabel: 'افتح العميل',
+        action: () => onNavigate('customers', { exactId: target.id, search: target.name || target.phone }),
+        tone: 'emerald',
+      };
+    }
+
+    if (q.includes('مورد') || q.includes('موردين') || q.includes('مديونية') || q.includes('سداد')) {
+      if (!topSupplierDebt || num(topSupplierDebt.balance) <= 0) return { title: 'الموردين', value: 'لا توجد مديونية واضحة', subtitle: 'أرصدة الموردين تحت السيطرة حسب البيانات الحالية.', tone: 'emerald' };
+      return {
+        title: 'أول مورد للمراجعة',
+        value: topSupplierDebt.name || 'مورد',
+        subtitle: `الرصيد ${money(topSupplierDebt.balance)} د.ك`,
+        details: ['افتح صفحة المراجعة قبل أي قرار سداد.'],
+        actionLabel: 'افتح المورد',
+        action: () => onNavigate('suppliers-audit', { supplierId: topSupplierDebt.id, openModal: true }),
+        tone: num(topSupplierDebt.balance) > 1000 ? 'rose' : 'amber',
+      };
+    }
+
+    if (q.includes('حلل') || q.includes('ذكي') || q.includes('اقترح') || q.includes('اقتراح')) {
+      const hiddenGem = quality.signals.find((item) => item.id === 'hidden-gems')?.products?.[0];
+      return {
+        title: 'اقتراح ذكي فوري',
+        value: hiddenGem ? `ادفع ${hiddenGem.name}` : quality.title,
+        subtitle: hiddenGem ? 'منتج يستاهل مساحة أكبر لأنه فرصة مخفية.' : quality.decision,
+        details: [quality.proof, quality.action],
+        actionLabel: hiddenGem ? 'افتح المنتج' : 'افتح الأولويات',
+        action: () => onNavigate('products', hiddenGem ? { exactId: hiddenGem.id, search: hiddenGem.name } : { scrollTarget: 'product-quality-board' }),
+        tone: 'emerald',
       };
     }
 

@@ -3263,7 +3263,7 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
 }
 .ai-executive-console{
   flex:1 1 0!important;
-  min-height:0!important;
+  min-height:640px!important;
   border-radius:28px!important;
   overflow:hidden!important;
   display:flex!important;
@@ -3319,13 +3319,13 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
   min-height:0!important;
   flex:1 1 0!important;
   overflow-y:auto!important;
-  padding:28px!important;
+  padding:34px!important;
 }
 .ai-chat-row.is-assistant .ai-chat-bubble{
   width:100%!important;
   max-width:100%!important;
-  min-height:140px!important;
-  padding:30px 34px!important;
+  min-height:190px!important;
+  padding:36px 40px!important;
   font-size:1.15rem!important;
   line-height:2.1!important;
 }
@@ -3346,6 +3346,47 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
   .ai-executive-messages{padding:14px!important;flex:1 1 0!important;overflow-y:auto!important;}
   .ai-chat-row.is-assistant .ai-chat-bubble{width:100%!important;max-width:100%!important;min-height:120px!important;padding:18px 16px!important;font-size:1.02rem!important;line-height:1.9!important;}
 }
+
+.whatsapp-support-workspace{
+  align-items:stretch!important;
+}
+.whatsapp-support-workspace section{
+  border-radius:24px!important;
+}
+.whatsapp-support-workspace .customer-soft-alert-bubble,
+.whatsapp-support-workspace .animate-ping{
+  animation:none!important;
+}
+@media (min-width:1280px){
+  .whatsapp-support-workspace{
+    min-height:820px!important;
+  }
+}
+
+.whatsapp-ops-board{background:linear-gradient(135deg,#fff,#f8fafc)!important;border-radius:24px!important}
+.whatsapp-ops-lane{position:relative;overflow:hidden;text-align:right;border:1px solid #e2e8f0;background:#fff;border-radius:18px;padding:12px 13px;min-height:92px;box-shadow:0 10px 24px rgba(15,23,42,.045);transition:.18s ease}
+.whatsapp-ops-lane:hover{transform:translateY(-1px);box-shadow:0 16px 34px rgba(15,23,42,.08)}
+.whatsapp-ops-lane:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:#cbd5e1}
+.whatsapp-ops-lane.is-live:after{content:"";position:absolute;inset:auto -20% 0;width:38%;height:2px;background:rgba(255,255,255,.7);animation:opsSweep 1.8s linear infinite}
+.whatsapp-ops-lane.is-anger:before{background:#f43f5e}.whatsapp-ops-lane.is-payment:before{background:#10b981}.whatsapp-ops-lane.is-delivery:before{background:#0ea5e9}.whatsapp-ops-lane.is-waiting:before{background:#f59e0b}
+.ops-live-dot{width:9px;height:9px;border-radius:999px;background:#cbd5e1;display:inline-block;margin-left:7px;box-shadow:0 0 0 0 rgba(15,23,42,.1)}
+.whatsapp-ops-lane.is-live .ops-live-dot{background:#22c55e;animation:opsPulse 1.5s ease-in-out infinite}
+.ops-label{font-size:11px;font-weight:950;color:#64748b}.whatsapp-ops-lane strong{display:block;margin-top:8px;font-size:28px;line-height:1;font-weight:950;color:#0f172a}.whatsapp-ops-lane small{display:block;margin-top:6px;font-size:10px;font-weight:900;color:#94a3b8}
+@keyframes opsPulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.32)}50%{box-shadow:0 0 0 8px rgba(34,197,94,0)}}@keyframes opsSweep{from{transform:translateX(145%)}to{transform:translateX(-145%)}}
+
+.studio-preview-stage{isolation:isolate;background:radial-gradient(circle at 85% 8%,rgba(99,102,241,.22),transparent 28%),linear-gradient(135deg,#020617,#0f172a 58%,#111827)!important}
+.studio-preview-stage-light{background:linear-gradient(135deg,#f8fafc,#ffffff)!important}
+.studio-production-desk{position:absolute;top:14px;left:14px;z-index:20;width:min(190px,42%);border:1px solid rgba(255,255,255,.13);background:rgba(15,23,42,.72);color:white;border-radius:22px;padding:12px;text-align:right;backdrop-filter:blur(18px);box-shadow:0 18px 45px rgba(2,6,23,.28)}
+.studio-preview-stage-light .studio-production-desk{background:rgba(255,255,255,.9);color:#0f172a;border-color:#e2e8f0;box-shadow:0 14px 34px rgba(15,23,42,.08)}
+.studio-production-desk span{display:block;font-size:9px;font-weight:950;letter-spacing:.14em;text-transform:uppercase;color:#a5b4fc}.studio-production-desk strong{display:block;font-size:22px;font-weight:950;margin:3px 0 8px}.studio-production-desk div{font-size:10px;font-weight:850;line-height:1.7;color:rgba(255,255,255,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.studio-preview-stage-light .studio-production-desk div{color:#64748b}
+
+.diwaniya-pulse-live{position:relative;overflow:hidden;border-radius:30px;border:1px solid rgba(148,163,184,.22);background:linear-gradient(135deg,#07130d,#0f172a 58%,#1f2937);padding:16px;box-shadow:0 22px 58px rgba(15,23,42,.16);color:white}
+.pulse-live-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.pulse-live-head span{display:block;color:#f8d98d;font-size:10px;font-weight:950;letter-spacing:.15em;text-transform:uppercase}.pulse-live-head strong{display:block;font-size:22px;font-weight:950;margin-top:3px}.pulse-live-head button{display:inline-flex;align-items:center;gap:7px;border-radius:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);padding:9px 12px;color:#fff;font-size:12px;font-weight:950}
+.pulse-live-line{position:relative;height:74px;margin-bottom:14px;border-radius:22px;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(248,217,141,.12),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.08)}
+.pulse-live-line:before{content:"";position:absolute;left:6%;right:6%;top:34px;height:3px;border-radius:99px;background:linear-gradient(90deg,#22c55e,#f59e0b,#ef4444)}
+.pulse-live-node{position:absolute;top:21px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:7px;max-width:110px}.pulse-live-node span{width:18px;height:18px;border-radius:999px;background:#f8d98d;border:3px solid #0f172a;box-shadow:0 0 0 8px rgba(248,217,141,.13);animation:opsPulse 1.8s ease-in-out infinite}.pulse-live-node small{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:900;color:rgba(255,255,255,.72)}
+
+@media(max-width:720px){.studio-production-desk{position:relative;top:auto;left:auto;width:100%;margin-bottom:12px}.pulse-live-head{align-items:flex-start;flex-direction:column}.pulse-live-line{height:88px}.whatsapp-ops-lane{min-height:86px}}
 
 
 /* Mobile spacing fix: reduce empty gap between command brief toggle and dashboard content */

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { AlertCircle, Bot, CheckCircle2, Clock, Headphones, Loader2, MessageCircle, Pencil, Plus, RefreshCw, Save, Search, Send, Trash2, UserRound, X, Zap } from 'lucide-react';
+import { AlertCircle, Bot, CheckCircle2, Clock, Headphones, Loader2, MessageCircle, Pencil, Plus, RefreshCw, Save, Search, Send, Sparkles, Trash2, UserRound, X, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 type Conversation = {
@@ -116,6 +116,57 @@ const slaClass = (level?: string, active = false) => {
   return active ? 'bg-emerald-400 text-slate-950' : 'bg-emerald-50 text-emerald-700 border border-emerald-100';
 };
 
+type UrgentReplyKind = 'anger' | 'payment' | 'delivery' | 'waiting';
+
+const urgentReplyInfo: Record<UrgentReplyKind, { label: string; className: string; reply: string; weight: number }> = {
+  anger: {
+    label: 'غضب',
+    className: 'bg-rose-50 text-rose-700 border-rose-100',
+    weight: 400,
+    reply: 'حقك علينا، أنا استلمت الموضوع الآن وبراجع التفاصيل فورًا. عطيني دقيقة وأرجع لك بحل واضح.',
+  },
+  payment: {
+    label: 'دفع',
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    weight: 300,
+    reply: 'حياك الله، أراجع حالة الدفع والفاتورة الآن. إذا الدفع تم، بنثبتها لك مباشرة ونحدث الطلب.',
+  },
+  delivery: {
+    label: 'توصيل',
+    className: 'bg-sky-50 text-sky-700 border-sky-100',
+    weight: 200,
+    reply: 'أبشر، أتابع حالة التوصيل الآن وأرجع لك بالتحديث الصحيح بأسرع وقت.',
+  },
+  waiting: {
+    label: 'انتظار',
+    className: 'bg-amber-50 text-amber-700 border-amber-100',
+    weight: 100,
+    reply: 'حياك الله، أنا معك الآن. شفت رسالتك وبراجعها لك فورًا.',
+  },
+};
+
+const classifyUrgentReply = (c: Conversation, nowMs: number) => {
+  const text = normalizeArabicSearch([c.lastMessageText, c.lastInboundText, c.priority, ...(Array.isArray(c.tags) ? c.tags : [])].filter(Boolean).join(' '));
+  const hasAny = (words: string[]) => words.some((word) => text.includes(normalizeArabicSearch(word)));
+  const sla = getConversationSlaInfo(c, nowMs);
+  const unread = Number(c.unreadCount || 0);
+  const inboundLast = c.lastMessageDirection === 'inbound';
+  let kind: UrgentReplyKind | null = null;
+  if (hasAny(['زعل', 'غضب', 'غاضب', 'مشكلة', 'شكوى', 'تأخير', 'حرام', 'سيء', 'غلط', 'ما يصير', 'تعبت'])) kind = 'anger';
+  else if (hasAny(['دفع', 'فاتورة', 'مدفوع', 'كي نت', 'كي نت', 'knet', 'payment', 'paid', 'رابط'])) kind = 'payment';
+  else if (hasAny(['توصيل', 'وصل', 'مندوب', 'عنوان', 'delivery', 'driver', 'تأخر الطلب'])) kind = 'delivery';
+  else if (sla || unread > 0 || inboundLast) kind = 'waiting';
+  if (!kind) return null;
+  const lastAt = c.lastMessageAt ? new Date(c.lastMessageAt).getTime() : NaN;
+  const waitingMinutes = Number.isFinite(lastAt) ? Math.max(0, Math.floor((nowMs - lastAt) / 60000)) : 0;
+  return {
+    conversation: c,
+    kind,
+    waitingMinutes,
+    score: urgentReplyInfo[kind].weight + waitingMinutes + unread * 12 + (inboundLast ? 20 : 0),
+  };
+};
+
 const DEFAULT_QUICK_REPLIES: QuickReply[] = [
   { id: 'welcome-elegant', title: 'ترحيب راقٍ', text: 'حياك الله في Alturath 🤍\nأنا معك الآن، شنو أقدر أساعدك فيه؟' },
   { id: 'ask-order-number', title: 'طلب رقم الطلب', text: 'ممكن ترسل لنا رقم الطلب أو الفاتورة، أو رقم الهاتف المسجل بالطلب؟ وسأراجع لك التفاصيل مباشرة.' },
@@ -221,8 +272,8 @@ export default function WhatsAppSupportInbox() {
       setSelected(json.conversation || null);
       setMessages(json.messages || []);
       setQuickReplies(json.quickReplies || []);
-      await fetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(phone))}/read`, { method: 'POST' }).catch(() => {});
-      if (scrollToEnd) setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' }), 60);
+      void fetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(phone))}/read`, { method: 'POST' }).catch(() => {});
+      if (scrollToEnd) setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' }), 20);
     } catch (e: any) {
       setError(e?.message || 'تعذر تحميل المحادثة');
     }
@@ -230,12 +281,12 @@ export default function WhatsAppSupportInbox() {
 
   useEffect(() => {
     loadConversations();
-    const timer = window.setInterval(() => loadConversations(true), 6000);
+    const timer = window.setInterval(() => loadConversations(true), 1200);
     return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setSlaNowMs(Date.now()), 60000);
+    const timer = window.setInterval(() => setSlaNowMs(Date.now()), 15000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -259,7 +310,7 @@ export default function WhatsAppSupportInbox() {
   useEffect(() => {
     if (!selectedPhone) return;
     loadMessages(selectedPhone, true);
-    const timer = window.setInterval(() => loadMessages(selectedPhone, false), 5500);
+    const timer = window.setInterval(() => loadMessages(selectedPhone, false), 1000);
     return () => window.clearInterval(timer);
   }, [selectedPhone]);
 
@@ -283,6 +334,29 @@ export default function WhatsAppSupportInbox() {
 
   const selectedActionState = useMemo(() => getConversationActionState(selected), [selected]);
   const selectedSlaInfo = useMemo(() => getConversationSlaInfo(selected, slaNowMs), [selected, slaNowMs]);
+  const urgentReplies = useMemo(() => (
+    conversations
+      .map((c) => classifyUrgentReply(c, slaNowMs))
+      .filter(Boolean)
+      .sort((a: any, b: any) => b.score - a.score)
+      .slice(0, 6)
+  ), [conversations, slaNowMs]);
+  const operationLane = useMemo(() => {
+    const items = conversations
+      .map((c) => classifyUrgentReply(c, slaNowMs))
+      .filter(Boolean) as any[];
+    const base: Record<UrgentReplyKind, { count: number; maxWait: number }> = {
+      anger: { count: 0, maxWait: 0 },
+      payment: { count: 0, maxWait: 0 },
+      delivery: { count: 0, maxWait: 0 },
+      waiting: { count: 0, maxWait: 0 },
+    };
+    items.forEach((item) => {
+      base[item.kind as UrgentReplyKind].count += 1;
+      base[item.kind as UrgentReplyKind].maxWait = Math.max(base[item.kind as UrgentReplyKind].maxWait, item.waitingMinutes || 0);
+    });
+    return base;
+  }, [conversations, slaNowMs]);
 
   const availableQuickReplies = useMemo(() => {
     const merged = [...managedQuickReplies, ...quickReplies];
@@ -371,6 +445,12 @@ export default function WhatsAppSupportInbox() {
     showNotice('info', 'تم وضع الرد السريع في مربع الرد، راجعه ثم اضغط إرسال.');
   };
 
+  const applyUrgentReply = (item: any) => {
+    const phone = item?.conversation?.phone || item?.conversation?.id || '';
+    if (phone) setSelectedPhone(phone);
+    applyQuickReply(urgentReplyInfo[item.kind as UrgentReplyKind].reply);
+  };
+
   const sendReply = async (text = replyText) => {
     const body = text.trim();
     if (!selectedPhone || !body || sending) return;
@@ -417,7 +497,14 @@ export default function WhatsAppSupportInbox() {
 
   return (
     <div dir="rtl" className="min-h-[calc(100vh-120px)] text-slate-900">
-      <div className="mb-4 flex flex-col lg:flex-row lg:items-end lg:justify-end gap-4">
+      <div className="mb-4 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-100 px-4 py-2 text-emerald-700 text-xs font-bold mb-3">
+            <Sparkles size={14} /> مركز واتساب الذكي
+          </div>
+          <h1 className="text-3xl md:text-5xl font-black tracking-tight">مركز واتساب الذكي</h1>
+          
+        </div>
         <div className="grid grid-cols-3 gap-3 min-w-[320px]">
           <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-4"><div className="text-xs text-slate-400">المحادثات</div><div className="text-2xl font-black">{counts.all}</div></div>
           <div className="rounded-3xl bg-amber-50 border border-amber-100 shadow-sm p-4"><div className="text-xs text-amber-600">تحتاج دعم</div><div className="text-2xl font-black text-amber-700">{counts.support}</div></div>
@@ -427,8 +514,59 @@ export default function WhatsAppSupportInbox() {
 
       {notice && <div className={cn('mb-4 rounded-2xl border px-4 py-3 text-sm font-black flex items-center gap-2', notice.type === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : notice.type === 'error' ? 'border-rose-100 bg-rose-50 text-rose-700' : 'border-sky-100 bg-sky-50 text-sky-700')}><AlertCircle size={16} /> {notice.text}</div>}
       {error && <div className="mb-4 rounded-2xl border border-rose-100 bg-rose-50 text-rose-700 px-4 py-3 text-sm font-bold">{error}</div>}
-      <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)] gap-4 h-auto xl:h-[calc(100vh-170px)] min-h-0 xl:min-h-[760px] whatsapp-support-workspace">
-        <section className="rounded-[2rem] bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[320px] max-h-[440px] xl:min-h-[760px] xl:max-h-none">
+      <section className="mb-4 rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm whatsapp-urgent-board whatsapp-ops-board">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="font-black text-slate-900 flex items-center gap-2"><Zap size={18} className="text-amber-500" /> غرفة عمليات واتساب</div>
+          <div className="text-[11px] font-bold text-slate-400">مراقبة حية حسب الغضب والدفع والتوصيل والانتظار</div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          {(['anger', 'payment', 'delivery', 'waiting'] as UrgentReplyKind[]).map((kind) => {
+            const info = urgentReplyInfo[kind];
+            const stat = operationLane[kind];
+            const active = stat.count > 0;
+            return (
+              <button key={kind} type="button" onClick={() => setFilter(kind === 'waiting' ? 'unread' : 'all')} className={cn('whatsapp-ops-lane', active && 'is-live', `is-${kind}`)}>
+                <span className="ops-live-dot" />
+                <span className="ops-label">{info.label}</span>
+                <strong>{stat.count}</strong>
+                <small>{stat.maxWait > 0 ? `${stat.maxWait} د انتظار` : 'هادئ الآن'}</small>
+              </button>
+            );
+          })}
+        </div>
+        {urgentReplies.length > 0 && (
+          <div className="mt-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="font-black text-slate-900 flex items-center gap-2"><Zap size={18} className="text-amber-500" /> الردود العاجلة</div>
+            <div className="text-[11px] font-bold text-slate-400">{urgentReplies.length} حالة مرتبة حسب الانتظار والدفع والغضب والتوصيل</div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+            {urgentReplies.map((item: any) => {
+              const c = item.conversation;
+              const info = urgentReplyInfo[item.kind as UrgentReplyKind];
+              return (
+                <button key={`${item.kind}-${c.phone || c.id}`} onClick={() => applyUrgentReply(item)} className="text-right rounded-2xl border border-slate-100 bg-slate-50 hover:bg-white p-3 transition shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-black text-slate-900 truncate">{c.customerName || c.phone}</div>
+                      <div className="text-[11px] font-bold text-slate-400 truncate">{c.phone}</div>
+                    </div>
+                    <span className={cn('shrink-0 rounded-full border px-2 py-1 text-[10px] font-black', info.className)}>{info.label}</span>
+                  </div>
+                  <div className="mt-2 line-clamp-2 text-xs font-bold leading-5 text-slate-500">{c.lastInboundText || c.lastMessageText || 'محادثة تحتاج متابعة'}</div>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-black text-slate-400">{item.waitingMinutes > 0 ? `ينتظر ${item.waitingMinutes} د` : 'الآن'}</span>
+                    <span className="rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-black text-white">رد جاهز</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          </div>
+        )}
+      </section>
+      <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-4 h-auto xl:h-[calc(100vh-146px)] min-h-0 xl:min-h-[820px] whatsapp-support-workspace">
+        <section className="rounded-[1.5rem] bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[320px] max-h-[440px] xl:min-h-[820px] xl:max-h-none">
           <div className="p-4 border-b border-slate-100 space-y-3">
             <div className="flex items-center gap-2 rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2">
               <Search size={18} className="text-slate-400" />
@@ -473,7 +611,7 @@ export default function WhatsAppSupportInbox() {
           </div>
         </section>
 
-        <section className="rounded-[2rem] bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[72vh] xl:min-h-[760px]">
+        <section className="rounded-[1.5rem] bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[78vh] xl:min-h-[820px]">
           {selected ? (
             <>
               <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-l from-white to-slate-50">

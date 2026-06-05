@@ -2,7 +2,7 @@
 
 const PUSH_DEDUPE_CACHE = "alturath-push-dedupe-v1";
 const PUSH_DEDUPE_TTL_MS = 48 * 60 * 60 * 1000;
-const PUSH_DEDUPE_TIMEOUT_MS = 250;
+const PUSH_DEDUPE_TIMEOUT_MS = 5;
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

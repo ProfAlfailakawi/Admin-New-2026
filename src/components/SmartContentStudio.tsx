@@ -1157,6 +1157,18 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     }
   };
 
+  const renderProductionDesk = (mode: 'image' | 'reel') => (
+    <aside className="studio-production-desk">
+      <span>{mode === 'reel' ? 'Reel Desk' : 'Production Desk'}</span>
+      <strong>{selectedFormat}</strong>
+      <div>المشهد: {activeStudioScene.label}</div>
+      <div>المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
+      <div>الواقعية: {STUDIO_REALITY_MODES[realityMode]?.label || 'واقعي'}</div>
+      <div>الخلفية: {backgroundPreset}</div>
+      {mode === 'reel' && <div>المدة: {reelDuration} ثواني</div>}
+    </aside>
+  );
+
   const generateReel = async () => {
     const productBrain = ensureAlturathProductOnly({ imageOnly: reelSource === 'image' });
     if (!productBrain) return;
@@ -1654,6 +1666,31 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     { n: 6, t: 'توليد' },
   ];
   const visibleStudioSteps = studioTab === 'product' ? fullStudioSteps : ideaFastSteps;
+
+  const startFastIdeaPath = () => {
+    closeOpenPanels();
+    resetGeneratedOutput();
+    setSelectedFormat('9:16');
+    setSelectedTheme('نبض الكويت');
+    setCustomThemeQuery('');
+    setCreateSubTab('custom');
+    setMaxCreateStepReached(2);
+    setCreateStep(2);
+    setStudioTab('create');
+  };
+
+  const startFastReelPath = () => {
+    closeOpenPanels();
+    resetGeneratedOutput();
+    setSelectedFormat('9:16');
+    setReelSource('idea');
+    setGeneratedReel(null);
+    setShowReelSettings(false);
+    setReelSubTab('generate');
+    setReelStep(4);
+    setStudioTab('reel');
+  };
+
   const renderStageProgress = (currentStep: number, setStep: (step: number) => void) => {
     const steps = visibleStudioSteps;
     const maxAllowedStep = studioTab === 'product' ? maxProductStepReached : maxCreateStepReached;
@@ -1717,6 +1754,20 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <p className="text-xs font-black text-indigo-500 mb-1">اختَر البداية</p>
               <h2 className="text-2xl font-black text-slate-950">ابدأ بفكرة أو بصورة</h2>
             </div>
+          </div>
+          <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-3xl border border-indigo-100 bg-indigo-50/70 p-2">
+            <button type="button" onClick={startFastIdeaPath} className="rounded-2xl bg-white px-4 py-3 text-right shadow-sm hover:shadow-md transition">
+              <div className="text-xs font-black text-indigo-600">مسار خاطف</div>
+              <div className="mt-1 text-sm font-black text-slate-900">بوستر واتساب</div>
+            </button>
+            <button type="button" onClick={startFreshImageUpload} className="rounded-2xl bg-white px-4 py-3 text-right shadow-sm hover:shadow-md transition">
+              <div className="text-xs font-black text-indigo-600">أسرع رفع</div>
+              <div className="mt-1 text-sm font-black text-slate-900">صورة منتج</div>
+            </button>
+            <button type="button" onClick={startFastReelPath} className="rounded-2xl bg-white px-4 py-3 text-right shadow-sm hover:shadow-md transition">
+              <div className="text-xs font-black text-violet-600">ريل مباشر</div>
+              <div className="mt-1 text-sm font-black text-slate-900">جاهز للتوليد</div>
+            </button>
           </div>
           <div className="grid sm:grid-cols-3 gap-3">
             <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setCreateSubTab('custom'); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
@@ -2018,8 +2069,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             </>)}
           </div>
 
-          <div className="rounded-[2.2rem] bg-slate-950 p-3 shadow-2xl border border-slate-900 min-h-[620px] flex items-center justify-center relative overflow-hidden">
+          <div className="rounded-[2.2rem] bg-slate-950 p-3 shadow-2xl border border-slate-900 min-h-[620px] flex items-center justify-center relative overflow-hidden studio-preview-stage">
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
+            {renderProductionDesk('reel')}
             {!generatedReel && !isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-5xl shadow-2xl"><Film size={46} /></div><h3 className="text-3xl font-black mb-3">معاينة الريل تظهر هنا</h3><p className="text-sm font-bold text-white/55 leading-7">ريل عمودي واقعي · {reelDuration} ثواني</p></div>}
             {isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نولّد ريل واقعي...</p><p className="mt-3 text-xs font-bold text-white/45">نثبت الطعام ونحرك الكاميرا فقط</p></div>}
             {generatedReel && !isGeneratingReel && <div className="relative z-10 w-full max-w-[380px] space-y-4"><button type="button" onClick={() => setShowReelSettings((v) => !v)} className="w-full aspect-[9/16] rounded-[1.8rem] overflow-hidden bg-black border border-white/10 shadow-2xl relative group">{generatedReel.startsWith('data:image') ? <img src={generatedReel} className="w-full h-full object-contain bg-black" alt="ريل موشن" /> : <video src={generatedReel} className="w-full h-full object-contain bg-black" controls playsInline />}</button>{showReelSettings && <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white"><div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3"><div><p className="text-xs font-black text-white/75">إعدادات هذا الريل</p><p className="text-[11px] font-bold text-white/45 mt-1">انسخها وكرر نفس الحركة لاحقاً.</p></div><button type="button" onClick={() => copyReelSettings()} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-xs font-black flex items-center gap-1"><Copy size={14} /> نسخ</button></div><pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans max-h-48 overflow-y-auto break-words">{buildReelSettingsText()}</pre></div>}<div className="flex items-center justify-center gap-2"><button onClick={downloadReel} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-violet-500 text-white flex items-center justify-center"><Download size={18} /></button><button type="button" onClick={() => copyReelSettings()} title="نسخ الإعدادات" aria-label="نسخ الإعدادات" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Copy size={18} /></button><button type="button" onClick={() => { setGeneratedReel(null); setReelStep(4); }} title="إعادة بنفس الأسلوب" aria-label="إعادة بنفس الأسلوب" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><RotateCcw size={18} /></button></div></div>}
@@ -2331,8 +2383,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             </>)}
           </div>
 
-          <div className="rounded-[2.2rem] bg-slate-950 p-3 sm:p-4 shadow-2xl border border-slate-900 min-h-[420px] sm:min-h-[560px] flex items-center justify-center relative overflow-hidden">
+          <div className="rounded-[2.2rem] bg-slate-950 p-3 sm:p-4 shadow-2xl border border-slate-900 min-h-[420px] sm:min-h-[560px] flex items-center justify-center relative overflow-hidden studio-preview-stage">
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
+            {renderProductionDesk('image')}
             {!generatedImage && !isGenerating && (
               <div className="relative z-10 text-center text-white p-8">
                 <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-6xl shadow-2xl">{activeStudioScene.icon}</div>
@@ -2563,7 +2616,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
           </div>
 
           <div className="w-full space-y-6 sticky top-4 z-40">
-            <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100 min-h-[250px] md:min-h-[500px] flex items-center justify-center bg-slate-50 relative overflow-hidden">
+            <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100 min-h-[250px] md:min-h-[500px] flex items-center justify-center bg-slate-50 relative overflow-hidden studio-preview-stage studio-preview-stage-light">
+              {renderProductionDesk('image')}
               {!generatedImage && !isGenerating && (
                 <div className="text-center w-full max-w-lg mx-auto p-4 space-y-5">
                   <div className="w-full max-w-[260px] mx-auto aspect-square bg-white rounded-2xl border shadow-sm p-2 overflow-hidden flex items-center justify-center relative group">

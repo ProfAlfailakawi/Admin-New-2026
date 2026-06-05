@@ -64,7 +64,8 @@ function startForegroundPushListener(messaging: Messaging) {
     const dedupeKey = `foreground_push_${eventId}`;
     const lastShown = Number(sessionStorage.getItem(dedupeKey) || "0");
 
-    if (lastShown && Date.now() - lastShown < 60 * 1000) return;
+    const isPaymentAlert = String(alertType || "").toLowerCase().includes("payment") || String(alertType || "").toLowerCase().includes("invoice");
+    if (lastShown && Date.now() - lastShown < (isPaymentAlert ? 5000 : 60 * 1000)) return;
     sessionStorage.setItem(dedupeKey, String(Date.now()));
 
     const notification = new Notification(title, {
@@ -148,7 +149,7 @@ async function getFreshMessagingServiceWorkerRegistration(): Promise<ServiceWork
   }
 
   await navigator.serviceWorker.ready;
-  await new Promise((resolve) => setTimeout(resolve, 180));
+  await new Promise((resolve) => setTimeout(resolve, 40));
 
   return registration;
 }
@@ -240,7 +241,7 @@ export async function registerPushNotifications(options?: {
     } catch (firstError) {
       console.warn("[Push] First getToken failed, retrying:", firstError);
 
-      await new Promise((resolve) => setTimeout(resolve, 2500));
+      await new Promise((resolve) => setTimeout(resolve, 220));
 
       token = await getToken(messaging, {
         vapidKey: FALLBACK_VAPID_KEY,
@@ -299,7 +300,7 @@ export async function refreshPushRegistrationIfAlreadyAllowed(options?: {
       });
     } catch (firstError) {
       console.warn("[Push] Silent token refresh failed, retrying:", firstError);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 220));
       token = await getToken(messaging, {
         vapidKey: FALLBACK_VAPID_KEY,
         serviceWorkerRegistration: registration,
