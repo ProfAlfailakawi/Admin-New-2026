@@ -109,6 +109,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [studioTab, setStudioTab] = useState<'home' | 'create' | 'quick' | 'whatsapp' | 'occasions' | 'product' | 'reel' | 'library' | 'advanced' | 'campaigner' | 'storyboard'>('home');
   const [createSubTab, setCreateSubTab] = useState<'custom' | 'campaigner'>('custom');
   const [reelSubTab, setReelSubTab] = useState<'generate' | 'storyboard'>('generate');
+  const [menuOutputType, setMenuOutputType] = useState<'image' | 'reel'>('image');
   const [createStep, setCreateStep] = useState<number>(1);
   const [productStep, setProductStep] = useState<number>(1);
   const [maxCreateStepReached, setMaxCreateStepReached] = useState<number>(1);
@@ -130,6 +131,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [showReelSettings, setShowReelSettings] = useState(false);
   const [openProductionDesk, setOpenProductionDesk] = useState<'image' | 'reel' | null>(null);
   const [showReelShotList, setShowReelShotList] = useState(false);
+  const [showMenuRecipe, setShowMenuRecipe] = useState(false);
   const [reelHistory, setReelHistory] = useState<StudioReelHistoryItem[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1716,6 +1718,40 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     setStudioTab('reel');
   };
 
+  const openMenuGenerator = (target: 'image' | 'reel') => {
+    const currentName = selectedStudioProductName || customThemeQuery.trim();
+    if (!currentName) {
+      toast.error('اختر وجبة من المنيو أولاً');
+      return;
+    }
+    closeOpenPanels();
+    resetGeneratedOutput();
+    setCustomThemeQuery(currentName);
+    setSelectedTheme('نبض الكويت');
+    setSelectedSceneId('food-detail');
+    setSelectedOrderPlace('delivery');
+    setBackgroundPreset('neutral-menu');
+    setRealityMode('finalBoss');
+    setSelectedMood('ناعم');
+    if (target === 'image') {
+      setSelectedFormat('1:1');
+      setCreateSubTab('custom');
+      setMaxCreateStepReached(6);
+      setCreateStep(6);
+      setStudioTab('create');
+      toast.success('جهزنا الصورة من المنيو — بقي ضغطة التوليد');
+      return;
+    }
+    setSelectedFormat('9:16');
+    setReelSource('idea');
+    setGeneratedReel(null);
+    setShowReelSettings(false);
+    setReelSubTab('generate');
+    setReelStep(4);
+    setStudioTab('reel');
+    toast.success('جهزنا الريل من المنيو — بقي ضغطة التوليد');
+  };
+
   const renderStageProgress = (currentStep: number, setStep: (step: number) => void) => {
     const steps = visibleStudioSteps;
     const maxAllowedStep = studioTab === 'product' ? maxProductStepReached : maxCreateStepReached;
@@ -1773,14 +1809,14 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       </div>
 
       {studioTab === 'home' && (
-        <div className="max-w-4xl mx-auto rounded-[2rem] bg-white border border-slate-100 shadow-sm p-5 text-right">
+        <div className="max-w-5xl mx-auto rounded-[2rem] bg-white border border-slate-100 shadow-sm p-5 text-right">
           <div className="flex items-center justify-between gap-3 mb-5">
             <div>
               <p className="text-xs font-black text-indigo-500 mb-1">اختَر البداية</p>
-              <h2 className="text-2xl font-black text-slate-950">ابدأ بفكرة أو بصورة</h2>
+              <h2 className="text-2xl font-black text-slate-950">ابدأ بالصيغة المناسبة لمحتواك</h2>
             </div>
           </div>
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
             <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setCreateSubTab('custom'); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Sparkles className="text-indigo-500 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من فكرة</div>
@@ -1793,8 +1829,13 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             </button>
             <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setSelectedFormat('9:16'); setReelStep(1); setReelSource('idea'); setGeneratedReel(null); setShowReelSettings(false); setReelSubTab('generate'); setStudioTab('reel'); }} className="rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
               <Film className="text-violet-600 mb-3" size={26} />
-              <div className="font-black text-slate-900 text-lg">ريل قصير</div>
+              <div className="font-black text-slate-900 text-lg">ريل مباشر</div>
               <div className="text-xs font-bold text-slate-400 mt-1">فيديو واقعي 4–8 ثواني جاهز لريلز.</div>
+            </button>
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setMenuOutputType('image'); setStudioTab('storyboard'); }} className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
+              <Layout className="text-emerald-600 mb-3" size={26} />
+              <div className="font-black text-slate-900 text-lg">من المنيو</div>
+              <div className="text-xs font-bold text-slate-400 mt-1">اختر وجبة جاهزة، ثم جهّزها لصورة أو ريل.</div>
             </button>
           </div>
         </div>
@@ -1856,35 +1897,12 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <p className="text-sm font-bold text-slate-500 mt-2 leading-7">4–8 ثواني، عمودي، حركة بسيطة، وواقعية نظيفة لمشروعك.</p>
             </div>
 
-            {/* Sub Tab Switching Inside the Left Configuration Column for Reel */}
-            <div className="flex gap-1 bg-slate-50 border border-slate-100 p-1 rounded-2xl mb-5">
-              <button
-                type="button"
-                onClick={() => setReelSubTab('generate')}
-                className={cn(
-                  "flex-1 py-2 text-xs font-black rounded-xl transition-all",
-                  reelSubTab === 'generate'
-                    ? "bg-slate-950 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-855"
-                )}
-              >
-                🎬 توليد ريل
-              </button>
-              <button
-                type="button"
-                onClick={() => setReelSubTab('storyboard')}
-                className={cn(
-                  "flex-1 py-2 text-xs font-black rounded-xl transition-all",
-                  reelSubTab === 'storyboard'
-                    ? "bg-slate-950 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-855"
-                )}
-              >
-                🧠 عقل صانع الريلز
-              </button>
+            <div className="mb-5 rounded-2xl border border-violet-100 bg-violet-50/50 p-3 text-right">
+              <div className="text-xs font-black text-violet-700">ريل مباشر</div>
+              <div className="text-[11px] font-bold text-violet-900/70 mt-1">اختيار الوجبة من المنيو أصبح في مسار مستقل: من المنيو.</div>
             </div>
 
-            {reelSubTab === 'storyboard' ? (
+            {false ? (
               <div className="space-y-4 animate-in fade-in duration-200">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-black text-slate-500">سيناريوهات ولقطات مخرجة مسبقاً</span>
@@ -1972,7 +1990,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                                 `- المدة: ${s.duration}`,
                                 `-------------------------------------------`
                               ])
-                            ].join('\n');
+                            ].join('\\n');
                             await writeClipboardText(formattedText);
                             toast.success('تم نسخ سيناريو المخرج');
                           }}
@@ -2222,7 +2240,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                               `المكان الافتراضي: ${KUWAIT_PLACES[activeCampaign.place]?.label || activeCampaign.place}`,
                               `الإضاءة: ${activeCampaign.mood}`,
                               `الترشيح الصوتي: ${activeCampaign.soundscapeSuggestion}`
-                            ].join('\n');
+                            ].join('\\n');
                             await writeClipboardText(settingsText);
                             toast.success('تم نسخ محددات الحملة');
                           }}
@@ -2752,12 +2770,13 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       )}
 
       {studioTab === 'storyboard' && (
-        <div className="max-w-4xl mx-auto space-y-6 text-right animate-in fade-in duration-300">
+        <div className="max-w-5xl mx-auto space-y-6 text-right animate-in fade-in duration-300">
           <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div>
-                <span className="text-xs font-black text-violet-500 block mb-1">المخرج الذكي</span>
-                <h2 className="text-2xl font-black text-slate-955">عقل صانع الريلز والمقاطع الطولية</h2>
+                <span className="text-xs font-black text-emerald-500 block mb-1">من المنيو</span>
+                <h2 className="text-2xl font-black text-slate-955">اختر وجبة، ثم افتح الصورة أو الريل</h2>
+                <p className="text-sm font-bold text-slate-500 mt-2 leading-7">نفس منطق الاستوديو بالكامل، لكن البداية هنا من منتجاتك الجاهزة داخل المنيو.</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -2772,9 +2791,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       setSelectedStudioProductId(String(prod.id));
                     }
                   }}
-                  className="rounded-2xl border border-slate-100 bg-slate-50 p-2.5 text-xs font-black text-slate-700 focus:outline-none focus:border-violet-400 text-right"
+                  className="rounded-2xl border border-slate-100 bg-slate-50 p-2.5 text-xs font-black text-slate-700 focus:outline-none focus:border-emerald-400 text-right"
                 >
-                  <option value="">اختر طبق من مطبخك</option>
+                  <option value="">اختر وجبة من المنيو</option>
                   {data?.products?.map((p: any) => (
                     <option key={p.id} value={p.id}>{getAlturathProductName(p)}</option>
                   ))}
@@ -2786,99 +2805,153 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <input
                 id="storyboard-theme-input"
                 type="text"
-                placeholder="اكتب اسم طبق كويتي هنا لتفصيل لقطاته..."
+                placeholder="اكتب اسم الطبق إذا حبيت، أو اختره من المنيو..."
                 value={customThemeQuery}
                 onChange={(e) => setCustomThemeQuery(e.target.value)}
-                className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-violet-500 font-sans"
+                className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-emerald-500 font-sans"
               />
             </div>
 
-            {(() => {
-              const currentName = selectedStudioProduct ? getAlturathProductName(selectedStudioProduct) : (customThemeQuery || 'طبق التراث المميز');
-              const steps = getStoryboardStepsForProduct(currentName);
-              return (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {steps.map((st) => (
-                      <div key={st.step} className="p-5 rounded-3xl border border-slate-100 bg-slate-50/50 flex flex-col justify-between space-y-4 relative">
-                        <span className="absolute left-4 top-4 font-mono text-3xl font-black text-violet-200/40 select-none">
-                          {st.step}
-                        </span>
+            <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-5 items-start">
+              <div className="space-y-4">
+                {renderAlturathBrainCard(menuOutputType === 'reel' ? 'reel' : 'image')}
+
+                {(() => {
+                  const currentName = selectedStudioProduct ? getAlturathProductName(selectedStudioProduct) : (customThemeQuery || 'طبق التراث المميز');
+                  const steps = getStoryboardStepsForProduct(currentName);
+                  return (
+                    <div className="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setShowMenuRecipe((v) => !v)}
+                        className="w-full flex items-center justify-between gap-3 p-4 text-right hover:bg-slate-50 transition-colors"
+                      >
                         <div>
-                          <span className="text-[10px] font-black text-violet-600 bg-violet-50 px-2.5 py-1 rounded-full">{st.title}</span>
-                          <h4 className="text-xs font-black text-slate-900 mt-4 leading-normal">{st.shotName}</h4>
-                          
-                          <div className="mt-3 space-y-2 border-t border-dashed border-slate-200/60 pt-3">
-                            <div>
-                              <span className="text-[9px] font-black text-slate-400 block">حركة الكاميرا</span>
-                              <p className="text-[10px] font-bold text-slate-600 mt-0.5 leading-relaxed">{st.camera}</p>
-                            </div>
-                            <div>
-                              <span className="text-[9px] font-black text-slate-400 block">العنصر البصري والمشاعر</span>
-                              <p className="text-[10px] font-bold text-slate-500 mt-0.5 leading-relaxed">{st.vibe}</p>
-                            </div>
-                            <div>
-                              <span className="text-[9px] font-black text-slate-400 block">الترشيح الصوتي</span>
-                              <p className="text-[10px] font-bold text-slate-500 mt-0.5 leading-relaxed">{st.audio}</p>
-                            </div>
+                          <h3 className="text-sm font-black text-slate-900">وصفة التنفيذ السريع</h3>
+                          <p className="text-[11px] font-bold text-slate-400 mt-1">مستخرجة تلقائياً من اختيارك في المنيو.</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {menuOutputType === 'reel' && (
+                            <span className="hidden sm:inline rounded-2xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-black text-slate-600">
+                              سيناريو ريل
+                            </span>
+                          )}
+                          <span className="rounded-full bg-slate-100 p-2">
+                            <ChevronLeft className={cn("w-4 h-4 text-slate-500 transition-transform", showMenuRecipe ? "-rotate-90" : "rotate-0")} />
+                          </span>
+                        </div>
+                      </button>
+
+                      {showMenuRecipe && (
+                        <div className="border-t border-slate-100 p-4 space-y-4 animate-in fade-in duration-200">
+                          {menuOutputType === 'reel' && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const formattedText = [
+                                  `🎬 سيناريو مخرج الريلز القصير لصنف: ${currentName}`,
+                                  `===========================================`,
+                                  ...steps.flatMap(s => [
+                                    `[اللقطة ${s.step}]: ${s.title}`,
+                                    `- اللقطة: ${s.shotName}`,
+                                    `- الكاميرا: ${s.camera}`,
+                                    `- الإيقاع والحس: ${s.vibe}`,
+                                    `- الإيقاع الصوتي والسمعي: ${s.audio}`,
+                                    `- المدة: ${s.duration}`,
+                                    `-------------------------------------------`
+                                  ])
+                                ].join('\n');
+                                await writeClipboardText(formattedText);
+                                toast.success('تم نسخ سيناريو المنيو');
+                              }}
+                              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[11px] font-black text-slate-700 hover:bg-slate-50 flex items-center justify-center gap-2"
+                            >
+                              <Copy size={14} /> نسخ السيناريو
+                            </button>
+                          )}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {steps.map((st) => (
+                              <div key={st.step} className="p-5 rounded-3xl border border-slate-100 bg-slate-50/50 flex flex-col justify-between space-y-4 relative">
+                                <span className="absolute left-4 top-4 font-mono text-3xl font-black text-emerald-200/50 select-none">
+                                  {st.step}
+                                </span>
+                                <div>
+                                  <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">{st.title}</span>
+                                  <h4 className="text-xs font-black text-slate-900 mt-4 leading-normal">{st.shotName}</h4>
+                                  <div className="mt-3 space-y-2 border-t border-dashed border-slate-200/60 pt-3">
+                                    <div>
+                                      <span className="text-[9px] font-black text-slate-400 block">حركة الكاميرا</span>
+                                      <p className="text-[10px] font-bold text-slate-600 mt-0.5 leading-relaxed">{st.camera}</p>
+                                    </div>
+                                    <div>
+                                      <span className="text-[9px] font-black text-slate-400 block">العنصر البصري والمشاعر</span>
+                                      <p className="text-[10px] font-bold text-slate-500 mt-0.5 leading-relaxed">{st.vibe}</p>
+                                    </div>
+                                    <div>
+                                      <span className="text-[9px] font-black text-slate-400 block">الترشيح الصوتي</span>
+                                      <p className="text-[10px] font-bold text-slate-500 mt-0.5 leading-relaxed">{st.audio}</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-between border-t border-slate-200/40 pt-2.5 mt-2">
+                                  <span className="text-[9px] font-black text-slate-400">الزاوية: 4K ستيديكام</span>
+                                  <span className="text-[10px] font-black text-emerald-700">{st.duration}</span>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
 
-                        <div className="flex items-center justify-between border-t border-slate-200/40 pt-2.5 mt-2">
-                          <span className="text-[9px] font-black text-slate-400">الزاوية: 4K ستيديكام</span>
-                          <span className="text-[10px] font-black text-violet-700">{st.duration}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="p-4 rounded-2xl border border-violet-100 bg-violet-50/10 flex flex-col sm:flex-row gap-2">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const formattedText = [
-                          `🎬 سيناريو مخرج الريلز القصير لصنف: ${currentName}`,
-                          `===========================================`,
-                          ...steps.flatMap(s => [
-                            `[اللقطة ${s.step}]: ${s.title}`,
-                            `- اللقطة: ${s.shotName}`,
-                            `- الكاميرا: ${s.camera}`,
-                            `- الإيقاع والحس: ${s.vibe}`,
-                            `- الإيقاع الصوتي والسمعي: ${s.audio}`,
-                            `- المدة: ${s.duration}`,
-                            `-------------------------------------------`
-                          ])
-                        ].join('\n');
-                        await writeClipboardText(formattedText);
-                        toast.success('تم نسخ السيناريو كامل وجاهز للمخرج');
-                      }}
-                      className="flex-1 p-3.5 rounded-2xl bg-violet-600 hover:bg-violet-750 text-white font-black text-xs transition-all shadow-md flex items-center justify-center gap-2"
-                    >
-                      <Copy size={16} />
-                      نسخ سيناريو المخرج بالكامل
+              <div className="space-y-4">
+                <div className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="text-[11px] font-black text-slate-500 mb-3">نوع التوليد</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => setMenuOutputType('image')} className={cn("rounded-2xl border p-4 text-right transition-all", menuOutputType === 'image' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-white text-slate-600 border-slate-100")}>
+                      <ImageIcon size={18} className="mb-2" />
+                      <span className="block text-sm font-black">صورة</span>
+                      <span className="block text-[10px] font-bold mt-1 opacity-80">يفتح استوديو الصورة بمنتجك المختار</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCustomThemeQuery(`${currentName} في مشهد تصوير سينمائي ناعم وراق`);
-                        setSelectedSceneId('food-detail');
-                        setSelectedOrderPlace('delivery');
-                        setBackgroundPreset('neutral-menu');
-                        setRealityMode('finalBoss');
-                        setSelectedFormat('9:16');
-                        setReelStep(4);
-                        setStudioTab('reel');
-                        toast.success('تم نقل معلومات اللقطات لاستوديو الريلز');
-                      }}
-                      className="flex-1 p-3.5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs transition-all flex items-center justify-center gap-2"
-                    >
-                      <Film size={16} />
-                      تجهيز المشهد والتوليد فوراً بمقاس ريلز
+                    <button type="button" onClick={() => setMenuOutputType('reel')} className={cn("rounded-2xl border p-4 text-right transition-all", menuOutputType === 'reel' ? "bg-violet-600 text-white border-violet-600 shadow-md" : "bg-white text-slate-600 border-slate-100")}>
+                      <Film size={18} className="mb-2" />
+                      <span className="block text-sm font-black">ريل</span>
+                      <span className="block text-[10px] font-bold mt-1 opacity-80">يفتح ريل مباشر على الوجبة المختارة</span>
                     </button>
                   </div>
                 </div>
-              );
-            })()}
+
+                <div className="rounded-3xl bg-slate-950 text-white p-5">
+                  <div className="text-[11px] font-black text-white/45 mb-2">ملخص الاختيار</div>
+                  <div className="text-lg font-black leading-8 whitespace-normal [word-break:keep-all]">{selectedStudioProductName || customThemeQuery || 'اختر وجبة من المنيو'}</div>
+                  <div className="mt-3 grid grid-cols-1 gap-2 text-xs font-black text-white/85">
+                    <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المسار: {menuOutputType === 'image' ? 'صورة من المنيو' : 'ريل من المنيو'}</div>
+                    <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المكان الافتراضي: {KUWAIT_PLACES.delivery.label}</div>
+                    <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">الواقعية: {STUDIO_REALITY_MODES.finalBoss?.label || 'واقعية قصوى'}</div>
+                    <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">الأرشيف: {menuOutputType === 'image' ? 'سيحفظ ضمن أرشيف الصور' : 'سيحفظ ضمن أرشيف الريلز'}</div>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-emerald-100 bg-emerald-50/50 p-4 space-y-3">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">جاهز بنفس منطق الاستوديو</div>
+                    <div className="text-[11px] font-bold text-slate-500 mt-1">نجهز لك كل الاختيارات، ثم ننقلك مباشرة لخطوة التوليد النهائية.</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openMenuGenerator(menuOutputType)}
+                    className={cn("w-full p-4 rounded-2xl text-white font-black shadow-lg flex items-center justify-center gap-2 transition-all", menuOutputType === 'image' ? 'bg-slate-950 hover:bg-slate-800' : 'bg-violet-600 hover:bg-violet-700')}
+                  >
+                    {menuOutputType === 'image' ? <Sparkles size={18} /> : <PlayCircle size={18} />}
+                    {menuOutputType === 'image' ? 'فتح توليد الصورة' : 'فتح توليد الريل'}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
