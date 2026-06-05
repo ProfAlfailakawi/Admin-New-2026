@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Award, Users, Star, Gift, MessageCircle, Clock, Settings, TrendingUp, Zap, Search, ChevronRight, ChevronLeft, Tag, X, History } from 'lucide-react';
+import { Award, Users, Star, Gift, MessageCircle, Clock, Settings, TrendingUp, Zap, Search, ChevronRight, ChevronLeft, Tag, X, History, ChevronDown } from 'lucide-react';
 import { cn, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly } from '../lib/utils';
 import { AppState } from '../types';
 import { toast } from 'sonner';
@@ -28,6 +28,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  const rowsPerPage = 10;
 
  const [showSettings, setShowSettings] = useState(false);
+ const [expandedHeroId, setExpandedHeroId] = useState<string | null>(null);
 
  const customers = data?.customers || [];
  const invoices = data?.invoices || [];
@@ -523,76 +524,86 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  </div>
 
  {/* TOP 10 GAMIFICATION */}
- {loyaltyData.length > 0 && (
- <div className="bg-slate-900 rounded-3xl p-6 text-white relative overflow-hidden shadow-xl my-8 text-right" dir="rtl">
+ {loyaltyData.length > 0 && (() => {
+ const topHeroes = [...loyaltyData].sort((a,b) => b.totalSpent - a.totalSpent).slice(0, 10);
+ const activeHeroes = topHeroes.filter((hero: any) => hero.daysSinceLastOrder <= 14).length;
+ const missingHeroes = topHeroes.filter((hero: any) => hero.daysSinceLastOrder > 14).length;
+ return (
+ <div className="bg-slate-900 rounded-3xl p-4 md:p-6 text-white relative overflow-hidden shadow-xl my-8 text-right" dir="rtl">
  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
  <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 blur-[100px] rounded-full pointer-events-none" />
- <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 relative z-10">
+ <div className="relative z-10 flex flex-col gap-3 mb-4">
+ <div className="flex items-start justify-between gap-3">
  <div>
- <h3 className="text-2xl md:text-3xl font-bold text-amber-400 flex flex-wrap items-center gap-3">
- أبطال الطلبات 🏆 
- <span className="text-[11px] md:text-sm font-bold bg-amber-500/20 text-amber-200 px-3 py-1 rounded-full border border-amber-500/30">Top 10 Leaderboard</span>
+ <h3 className="text-xl md:text-3xl font-bold text-amber-400 flex flex-wrap items-center gap-2">
+ أبطال الطلبات 🏆
+ <span className="text-[10px] md:text-sm font-bold bg-amber-500/20 text-amber-200 px-3 py-1 rounded-full border border-amber-500/30">Top 10</span>
  </h3>
- <p className="text-slate-500 font-bold mt-2 text-xs md:text-sm">أكثر العملاء ولاءً.. حوّلهم من أرقام هواتف إلى "شخصيات وأبطال" وارفع مبيعاتك.</p>
+ <p className="text-slate-400 font-bold mt-1 text-[11px] md:text-sm">مختصر مرتب؛ افتح أي بطل فقط عند الحاجة.</p>
  </div>
  </div>
- 
- <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 relative z-10">
- {[...loyaltyData].sort((a,b) => b.totalSpent - a.totalSpent).slice(0, 10).map((hero, idx) => (
- <div key={hero.id} className="relative group bg-slate-800/80 hover:bg-slate-800 backdrop-blur-xl border border-slate-700 hover:border-amber-500/50 rounded-2xl p-4 transition-all duration-300">
- <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-900 flex items-center justify-center font-bold text-xs text-amber-400 shadow-xl z-20">
- #{idx + 1}
+ <div className="grid grid-cols-3 gap-2">
+ <div className="rounded-2xl bg-white/10 border border-white/10 p-2 text-center"><span className="block text-[9px] text-slate-400 font-black">الأبطال</span><b className="text-sm text-white">{topHeroes.length}</b></div>
+ <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/15 p-2 text-center"><span className="block text-[9px] text-emerald-200 font-black">نشط</span><b className="text-sm text-emerald-100">{activeHeroes}</b></div>
+ <div className="rounded-2xl bg-rose-500/10 border border-rose-500/15 p-2 text-center"><span className="block text-[9px] text-rose-200 font-black">غائب</span><b className="text-sm text-rose-100">{missingHeroes}</b></div>
  </div>
- <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg md:text-xl font-bold mb-3 border border-amber-500/20">
- {hero.name?.charAt(0) || '?'}
  </div>
+ <div className="relative z-10 space-y-2">
+ {topHeroes.map((hero: any, idx: number) => {
+ const isOpen = expandedHeroId === hero.id;
+ const isMissing = hero.daysSinceLastOrder > 14;
+ return (
+ <div key={hero.id} className="rounded-2xl border border-slate-700 bg-slate-800/70 overflow-hidden">
+ <button
+ type="button"
+ onClick={() => setExpandedHeroId(isOpen ? null : hero.id)}
+ className="w-full px-3 py-3 flex items-center justify-between gap-3 text-right hover:bg-white/5 transition"
+ >
+ <div className="flex items-center gap-3 min-w-0">
+ <span className="w-8 h-8 rounded-xl bg-slate-700 border border-slate-600 flex items-center justify-center font-bold text-[11px] text-amber-300 shrink-0">#{idx + 1}</span>
+ <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-300 flex items-center justify-center text-base font-bold border border-amber-500/20 shrink-0">{hero.name?.charAt(0) || '?'}</div>
+ <div className="min-w-0">
  <h4 className="font-bold text-xs md:text-sm text-slate-100 truncate">{hero.name || 'عميلنا الكفو'}</h4>
- <p className="text-[10px] md:text-[11px] text-slate-500 font-bold mt-1">المحفظة: {hero.totalSpent.toFixed(2)} د.ك</p>
- 
- {/* Smart Action */}
- {hero.daysSinceLastOrder > 14 && (
- <div className="mt-4 pt-4 border-t border-slate-700/20">
- <p className="text-[10px] md:text-[11px] text-rose-300 font-bold mb-2">البطل غايب من {hero.daysSinceLastOrder} يوم!</p>
- <button 
+ <p className="text-[10px] text-slate-400 font-bold truncate">{hero.totalSpent.toFixed(2)} د.ك · {isMissing ? `غائب ${hero.daysSinceLastOrder} يوم` : 'في قمة النشاط'}</p>
+ </div>
+ </div>
+ <div className="flex items-center gap-2 shrink-0">
+ <span className={cn('rounded-full px-2 py-1 text-[9px] font-black', isMissing ? 'bg-rose-500/15 text-rose-200' : 'bg-emerald-500/15 text-emerald-200')}>{isMissing ? 'استرجاع' : 'مكافأة'}</span>
+ <ChevronDown size={15} className={cn('text-slate-400 transition-transform', isOpen ? 'rotate-180' : '')} />
+ </div>
+ </button>
+ {isOpen && (
+ <div className="border-t border-slate-700 p-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+ <div className="rounded-xl bg-slate-900/60 border border-slate-700 p-2"><span className="block text-[9px] text-slate-500 font-black">المحفظة</span><b className="text-[11px] text-white">{hero.totalSpent.toFixed(2)} د.ك</b></div>
+ <div className="rounded-xl bg-slate-900/60 border border-slate-700 p-2"><span className="block text-[9px] text-slate-500 font-black">الحالة</span><b className={cn('text-[11px]', isMissing ? 'text-rose-200' : 'text-emerald-200')}>{isMissing ? `غائب من ${hero.daysSinceLastOrder} يوم` : 'في قمة النشاط 🔥'}</b></div>
+ <button
  onClick={() => {
  const heroName = getFriendlyName(hero.name);
- const msg = pickBySeed([
+ const msg = isMissing ? pickBySeed([
    `عاش من شافك، ${heroName}. اشتقنا لك، وجهزنا لك خصم عودة خاص.`,
    `${heroName}، غيبتك طولت. نحب نرجعك بطلب مرتب وخصم خاص لك.`,
    `هلا ${heroName}، مكانك محفوظ بين أبطال التراث. عندك عرض عودة ينتظرك.`
- ], hero.id || hero.phone || hero.name);
- handleWhatsApp(hero.phone, msg);
- }}
- className="w-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 py-2 rounded-lg text-[10px] md:text-[11px] font-bold transition-all"
- >
- استرجاع بخصم 15%
- </button>
- </div>
- )}
- {hero.daysSinceLastOrder <= 14 && (
- <div className="mt-4 pt-4 border-t border-slate-700/20">
- <p className="text-[10px] md:text-[11px] text-emerald-300 font-bold mb-2">في قمة النشاط 🔥</p>
- <button 
- onClick={() => {
- const heroName = getFriendlyName(hero.name);
- const msg = pickBySeed([
+ ], hero.id || hero.phone || hero.name) : pickBySeed([
    `هلا ${heroName}، أنت من أبطال الطلبات، ولك تقدير خاص في الطلب القادم.`,
    `${heroName}، حضورك مستمر وذوقك واضح. جهزنا لك تقدير بسيط للطلب القادم.`,
    `يا هلا ${heroName}، استمرارك محل تقدير، وطلبك القادم له لمسة خاصة من التراث.`
  ], hero.id || hero.phone || hero.name);
  handleWhatsApp(hero.phone, msg);
  }}
- className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 py-2 rounded-lg text-[10px] md:text-[11px] font-bold transition-all"
+ className={cn('rounded-xl py-2 px-3 text-[10px] font-black transition-all', isMissing ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-200' : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200')}
  >
- مكافأة الاستمرار
+ {isMissing ? 'استرجاع بخصم 15%' : 'مكافأة الاستمرار'}
  </button>
  </div>
  )}
  </div>
- ))}
+ );
+ })}
  </div>
  </div>
- )}
+ );
+ })()}
+
 
  {/* Customer Segments Table */}
  <div className="loyalty-customers-panel bg-white border text-right border-slate-200/60 rounded-2xl p-3 shadow-sm">
@@ -681,6 +692,12 @@ setSearchTerm(val);
  </div>
  </div>
 
+ <details className="mt-3 rounded-2xl border border-slate-100 bg-slate-50/70 px-3 py-2">
+ <summary className="cursor-pointer list-none flex items-center justify-between gap-2 text-xs font-black text-slate-600">
+ <span>عرض التفاصيل والإجراء</span>
+ <ChevronDown size={15} className="text-slate-400" />
+ </summary>
+ <div className="mt-3 space-y-3">
  <div className="loyalty-mobile-meta-grid">
  <div>
  <small>التصنيف</small>
@@ -717,6 +734,8 @@ setSearchTerm(val);
  <MessageCircle size={17} />
  {c.actionLabel}
  </button>
+ </div>
+ </details>
  </motion.div>
  )) : (
  <div className="p-8 text-center text-slate-500 font-bold bg-slate-50 rounded-2xl">

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import LeafletKuwaitMap from './LeafletKuwaitMap';
 import { AppState } from '../types';
-import { Activity, AlertTriangle, Crown, MapPin, Radar, ShieldCheck, Sparkles, TrendingUp, Users } from 'lucide-react';
+import { Activity, AlertTriangle, ChevronDown, Crown, MapPin, Radar, ShieldCheck, Sparkles, TrendingUp, Users } from 'lucide-react';
 
 interface GeoHeatmapProps {
  data: AppState;
@@ -418,29 +418,48 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
    </div>
   </div>
   {areaData.markers.length > 0 && (
-   <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-    {areaData.markers.slice(0, 3).map((marker, index) => (
-     <button
-      key={marker.name}
-      type="button"
-      onClick={() => setActiveRegion(marker.name)}
-      className={`group rounded-3xl border p-4 text-right transition-all ${activeRegion === marker.name ? 'border-amber-300/60 bg-amber-300/15 shadow-lg shadow-amber-900/20' : 'border-white/10 bg-white/[0.05] hover:bg-white/[0.08]'}`}
-     >
-      <div className="flex items-center justify-between gap-3">
-       <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-slate-300">#{index + 1}</span>
-       <div className="font-black text-white truncate">{marker.name}</div>
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-       <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">إيراد</div><div className="text-xs font-black text-amber-100">{fmtMoney(marker.revenue)}</div></div>
-       <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">طلبات</div><div className="text-xs font-black text-white">{marker.count}</div></div>
-       <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">متوسط</div><div className="text-xs font-black text-white">{fmtMoney(marker.avgOrder)}</div></div>
-      </div>
-      <div className="mt-3 flex flex-wrap justify-end gap-2">
-       <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-black text-emerald-200"><Sparkles size={11} className="inline ml-1" />{marker.persona}</span>
-       <span className="rounded-full bg-rose-400/10 px-3 py-1 text-[10px] font-black text-rose-100"><ShieldCheck size={11} className="inline ml-1" />{marker.risk}</span>
-      </div>
-     </button>
-    ))}
+   <div className="rounded-3xl border border-white/10 bg-white/[0.05] overflow-hidden">
+    <div className="px-3 py-3 flex items-center justify-between gap-3">
+     <div className="text-right">
+      <div className="text-xs font-black text-white">أقوى المناطق الآن</div>
+      <div className="text-[10px] font-bold text-slate-400">قائمة مختصرة؛ افتح المنطقة لمشاهدة التفاصيل بدون زحمة.</div>
+     </div>
+     <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-slate-300">Top 3</span>
+    </div>
+    <div className="border-t border-white/10 divide-y divide-white/10">
+     {areaData.markers.slice(0, 3).map((marker, index) => {
+      const isOpen = activeRegion === marker.name;
+      return (
+       <div key={marker.name}>
+        <button
+         type="button"
+         onClick={() => setActiveRegion(isOpen ? null : marker.name)}
+         className={`w-full px-3 py-3 text-right transition-all flex items-center justify-between gap-3 ${isOpen ? 'bg-amber-300/10' : 'hover:bg-white/[0.04]'}`}
+        >
+         <div className="flex items-center gap-3 min-w-0">
+          <span className="rounded-xl bg-white/10 px-2.5 py-2 text-[10px] font-black text-slate-300">#{index + 1}</span>
+          <div className="min-w-0">
+           <div className="font-black text-white truncate">{marker.name}</div>
+           <div className="mt-0.5 text-[10px] font-bold text-slate-400 truncate">{fmtMoney(marker.revenue)} · {marker.count} طلب · {marker.persona}</div>
+          </div>
+         </div>
+         <ChevronDown size={15} className={`shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {isOpen && (
+         <div className="px-3 pb-3 grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">إيراد</div><div className="text-[11px] font-black text-amber-100 truncate">{fmtMoney(marker.revenue)}</div></div>
+          <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">طلبات</div><div className="text-[11px] font-black text-white">{marker.count}</div></div>
+          <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">متوسط</div><div className="text-[11px] font-black text-white truncate">{fmtMoney(marker.avgOrder)}</div></div>
+          <div className="col-span-3 flex flex-wrap justify-end gap-2">
+           <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-black text-emerald-200"><Sparkles size={11} className="inline ml-1" />{marker.persona}</span>
+           <span className="rounded-full bg-rose-400/10 px-3 py-1 text-[10px] font-black text-rose-100"><ShieldCheck size={11} className="inline ml-1" />{marker.risk}</span>
+          </div>
+         </div>
+        )}
+       </div>
+      );
+     })}
+    </div>
    </div>
   )}
  </div>
