@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Tag, Plus, Trash2, CheckCircle, Clock, Percent, DollarSign, Activity, X, Sparkles, Award } from 'lucide-react';
+import { Tag, Plus, Trash2, CheckCircle, Clock, Percent, DollarSign, Activity, X, Sparkles, Award, Scale, ShieldAlert, Gavel, AlertTriangle, LockKeyhole } from 'lucide-react';
 import { AppState } from '../types';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -12,8 +12,55 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  const coupons = data?.promocodes || [];
  const [showModal, setShowModal] = useState(false);
  const [couponToDelete, setCouponToDelete] = useState<string | null>(null);
+ const [activationCourtCoupon, setActivationCourtCoupon] = useState<any | null>(null);
  const [newCode, setNewCode] = useState({ code: '', value: '', type: 'percentage' as 'percentage' | 'fixed', description: '' });
  const seasonalMove = useMemo(() => getKuwaitiSeasonalMove(data), [data]);
+
+
+ const buildCouponCourt = (coupon: any) => {
+  const invoices = Array.isArray(data?.invoices) ? data.invoices : [];
+  const products = Array.isArray((data as any)?.products) ? (data as any).products : [];
+  const totalSales = invoices.reduce((sum: number, inv: any) => sum + Number(inv?.totalAmount || inv?.total || inv?.amount || 0), 0);
+  const avgOrder = invoices.length ? totalSales / invoices.length : 0;
+  const value = Number(coupon?.discountValue ?? coupon?.value ?? newCode.value ?? 0) || 0;
+  const type = coupon?.discountType || coupon?.type || newCode.type;
+  const limit = Number(coupon?.usageLimit || 100) || 100;
+  const estimatedDiscount = type === 'percentage'
+   ? Math.min(avgOrder * (value / 100), avgOrder || value)
+   : value;
+  const maxExposure = estimatedDiscount * Math.min(limit, 100);
+  const exposureRate = totalSales ? maxExposure / totalSales : 0;
+  const isHighPercent = type === 'percentage' && value >= 35;
+  const isHeavyFixed = type !== 'percentage' && avgOrder > 0 && value >= avgOrder * 0.35;
+  const verdict = isHighPercent || isHeavyFixed || exposureRate > 0.22
+   ? 'لا تطلقه الآن'
+   : exposureRate > 0.11 || value >= 20
+    ? 'مغري لكن يحتاج حدود'
+    : 'آمن للإطلاق';
+  const tone = verdict === 'لا تطلقه الآن' ? 'danger' : verdict === 'مغري لكن يحتاج حدود' ? 'warning' : 'safe';
+  const reasons = [
+   type === 'percentage' ? `خصم نسبي ${value}%` : `خصم ثابت ${value.toFixed(3)} د.ك`,
+   avgOrder ? `متوسط الطلب الحالي ${avgOrder.toFixed(3)} د.ك` : 'لا توجد طلبات كافية لقياس متوسط السلة',
+   `أقصى تعرض تقديري ${maxExposure.toFixed(3)} د.ك حسب حد الاستخدام`,
+   products.length ? `المنيو يحتوي ${products.length} منتجًا؛ راقب المنتجات ضعيفة الهامش` : 'لا توجد منتجات كافية لقراءة أثر الخصم على الأصناف',
+  ];
+  const action = tone === 'danger'
+   ? 'الأفضل إيقاف التفعيل ومراجعة قيمة الخصم أو حد الاستخدام قبل الإطلاق.'
+   : tone === 'warning'
+    ? 'فعّله فقط إذا كان محدود المدة أو موجّهًا لشريحة محددة، مع متابعة الاستخدام يوميًا.'
+    : 'يمكن تفعيله كعرض خفيف، مع مراقبة الخصم الممنوح في سجل الكوبونات.';
+  return { verdict, tone, reasons, action, estimatedDiscount, maxExposure, exposureRate };
+ };
+
+ const confirmActivationFromCourt = () => {
+  if (!activationCourtCoupon || !onUpdateData) return;
+  onUpdateData({
+   ...data,
+   promocodes: coupons.map((c: any) => c.id === activationCourtCoupon.id ? { ...c, isActive: true } : c)
+  });
+  toast.success('تم تفعيل الكود بعد مراجعة محكمة العروض', { description: activationCourtCoupon.code });
+  setActivationCourtCoupon(null);
+ };
 
  const stats = useMemo(() => {
  const totalSales = (data?.invoices || []).reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
@@ -79,15 +126,20 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  };
 
  const handleToggleActive = (id: string) => {
+ const coupon = coupons.find((c: any) => c.id === id);
+ if (!coupon) return;
+ if (!coupon.isActive) {
+  setActivationCourtCoupon(coupon);
+  return;
+ }
  if (onUpdateData) {
  onUpdateData({
  ...data,
  promocodes: coupons.map((c: any) => 
- c.id === id ? { ...c, isActive: !c.isActive } : c
+ c.id === id ? { ...c, isActive: false } : c
 )
  });
- const coupon = coupons.find((c: any) => c.id === id);
- toast.success(coupon?.isActive ? 'تم إيقاف الكود' : 'تم تفعيل الكود');
+ toast.success('تم إيقاف الكود');
  }
  };
 
@@ -321,6 +373,28 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
      )}
   </AnimatePresence>
 
+ {newCode.value && (() => {
+  const court = buildCouponCourt({ ...newCode, discountValue: Number(newCode.value), discountType: newCode.type });
+  return (
+   <div className={cn("rounded-3xl border p-4 text-right", court.tone === 'danger' ? 'border-rose-200 bg-rose-50' : court.tone === 'warning' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50')}>
+    <div className="flex items-center justify-between gap-3">
+     <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center", court.tone === 'danger' ? 'bg-rose-100 text-rose-600' : court.tone === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600')}>
+      <Gavel size={22} />
+     </div>
+     <div>
+      <div className="text-[10px] font-black text-slate-400">محكمة العروض قبل الإطلاق</div>
+      <div className={cn("text-lg font-black", court.tone === 'danger' ? 'text-rose-700' : court.tone === 'warning' ? 'text-amber-700' : 'text-emerald-700')}>{court.verdict}</div>
+     </div>
+    </div>
+    <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+     <div className="rounded-2xl bg-white/70 p-3"><div className="text-[9px] font-black text-slate-400">خصم متوقع للطلب</div><div className="text-sm font-black text-slate-800">{court.estimatedDiscount.toFixed(3)} د.ك</div></div>
+     <div className="rounded-2xl bg-white/70 p-3"><div className="text-[9px] font-black text-slate-400">تعرض أقصى</div><div className="text-sm font-black text-slate-800">{court.maxExposure.toFixed(3)} د.ك</div></div>
+    </div>
+    <p className="mt-3 text-xs font-bold leading-6 text-slate-600">{court.action}</p>
+   </div>
+  );
+ })()}
+
  <button 
  onClick={handleCreateCode}
  className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-lg hover:bg-slate-800 active:scale-[0.98] transition-all shadow-xl shadow-slate-900/20"
@@ -332,6 +406,47 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  </div>
 )}
  </AnimatePresence>
+
+ {activationCourtCoupon && (() => {
+  const court = buildCouponCourt(activationCourtCoupon);
+  return (
+   <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[1001] flex items-center justify-center p-3" dir="rtl">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0" onClick={() => setActivationCourtCoupon(null)} />
+    <motion.div initial={{ scale: 0.94, opacity: 0, y: 18 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.94, opacity: 0, y: 18 }} className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+     <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 p-5 text-white text-right">
+      <button onClick={() => setActivationCourtCoupon(null)} className="absolute left-5 top-5 rounded-full bg-white/10 p-2 text-white/70 hover:text-white"><X size={18} /></button>
+      <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-[10px] font-black text-amber-100 mb-3"><Scale size={13} /> مراجعة قبل التفعيل</div>
+      <h3 className="text-2xl font-black flex items-center justify-end gap-3"><span>محكمة العروض</span><Gavel className="text-amber-300" /></h3>
+      <p className="mt-2 text-sm font-bold text-slate-300">لن يتم تفعيل الكوبون إلا بعد هذا الحكم البصري. القراءة من الداتا الحالية فقط.</p>
+     </div>
+     <div className="p-5 space-y-4 text-right">
+      <div className={cn("rounded-3xl border p-4", court.tone === 'danger' ? 'border-rose-200 bg-rose-50' : court.tone === 'warning' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50')}>
+       <div className="flex items-center justify-between gap-4">
+        <div className="rounded-2xl bg-white/80 px-4 py-3 text-left ltr:font-mono font-black text-slate-900 uppercase tracking-widest">{activationCourtCoupon.code}</div>
+        <div className="text-right">
+         <div className="text-[10px] font-black text-slate-400">الحكم</div>
+         <div className={cn("text-2xl font-black", court.tone === 'danger' ? 'text-rose-700' : court.tone === 'warning' ? 'text-amber-700' : 'text-emerald-700')}>{court.verdict}</div>
+        </div>
+       </div>
+       <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="rounded-2xl bg-white/70 p-3"><div className="text-[9px] font-black text-slate-400">خصم الطلب المتوقع</div><div className="text-sm font-black text-slate-800">{court.estimatedDiscount.toFixed(3)} د.ك</div></div>
+        <div className="rounded-2xl bg-white/70 p-3"><div className="text-[9px] font-black text-slate-400">تعرض أقصى</div><div className="text-sm font-black text-slate-800">{court.maxExposure.toFixed(3)} د.ك</div></div>
+        <div className="rounded-2xl bg-white/70 p-3"><div className="text-[9px] font-black text-slate-400">نسبة من المبيعات</div><div className="text-sm font-black text-slate-800">{Math.round(court.exposureRate * 100)}%</div></div>
+       </div>
+      </div>
+      <div className="grid gap-2">
+       {court.reasons.map((reason: string) => <div key={reason} className="flex items-start justify-end gap-2 rounded-2xl bg-slate-50 p-3 text-sm font-bold text-slate-600"><span>{reason}</span><ShieldAlert size={15} className="mt-1 text-slate-400" /></div>)}
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold leading-7 text-slate-700 flex items-start justify-end gap-2"><span>{court.action}</span>{court.tone === 'danger' ? <AlertTriangle className="mt-1 text-rose-500" size={18} /> : <LockKeyhole className="mt-1 text-emerald-600" size={18} />}</div>
+      <div className="flex flex-col sm:flex-row gap-3 pt-1">
+       <button onClick={() => setActivationCourtCoupon(null)} className="flex-1 rounded-2xl border border-slate-200 bg-white py-3 font-black text-slate-600 hover:bg-slate-50">إلغاء</button>
+       <button onClick={confirmActivationFromCourt} className={cn("flex-1 rounded-2xl py-3 font-black text-white shadow-lg", court.tone === 'danger' ? 'bg-rose-600 shadow-rose-900/20' : court.tone === 'warning' ? 'bg-amber-600 shadow-amber-900/20' : 'bg-emerald-600 shadow-emerald-900/20')}>تفعيل بعد الحكم</button>
+      </div>
+     </div>
+    </motion.div>
+   </div>
+  );
+ })()}
 
  {couponToDelete && (
  <ConfirmModal
