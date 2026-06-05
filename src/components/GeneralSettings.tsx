@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
-import { Settings, Save, Upload, Trash2, Shield, Bell, CreditCard, DownloadCloud, Database, Sparkles, RefreshCw, Loader2, Map as MapIcon, Plus, CheckCircle2, ChevronDown, ChevronRight, Edit2, X, AlertTriangle, Code, Store, Search } from 'lucide-react';
+import { Settings, Save, Upload, Trash2, Shield, Bell, CreditCard, DownloadCloud, Database, Sparkles, RefreshCw, Loader2, Map as MapIcon, Plus, CheckCircle2, ChevronDown, ChevronRight, Edit2, X, AlertTriangle, Code, Store, Search, Activity } from 'lucide-react';
 import { motion } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { AppState, AppSettings, Zone, Product, Customer, Expense, Supplier, Testimonial, PulseAnalysisRecord, AICampaign, SupplierTransfer } from '../types';
@@ -14,6 +14,7 @@ import { Toggle } from './ui/Toggle';
 import { INITIAL_DATA } from '../data'; 
 
 import { EnableNotificationsButton } from './EnableNotificationsButton';
+import { getPushSupportStatus, refreshPushRegistrationIfAlreadyAllowed } from '../lib/pushNotifications';
 import { DEFAULT_GLOBAL_LOGO } from '../constants';
 import { recalculateStateBalances } from '../lib/business-logic';
 import { getProtectedStorageItem, removeProtectedStorageItemIntentionally, setProtectedStorageItem } from '../lib/dataGuard';
@@ -30,6 +31,16 @@ interface Props {
 
 const WHATSAPP_QUICK_REPLIES_STORAGE_KEY = 'alturath_whatsapp_quick_replies_v1';
 const WHATSAPP_QUICK_REPLIES_SHEET = 'WhatsAppQuickReplies';
+
+type PushHealthCheck = {
+  support: string;
+  permission: string;
+  token: string;
+  lastRegistration: string;
+  serviceWorker: string;
+  verdict: string;
+  tone: 'success' | 'warning' | 'danger';
+};
 
 const readWhatsAppQuickRepliesForBackup = () => {
   if (typeof window === 'undefined') return [] as any[];
@@ -97,6 +108,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
  const [isSyncing, setIsSyncing] = useState(false);
  const [isResetting, setIsResetting] = useState(false);
+ const [pushHealth, setPushHealth] = useState<PushHealthCheck | null>(null);
+ const [checkingPushHealth, setCheckingPushHealth] = useState(false);
 
  const [activeSection, setActiveSection] = useState<string>('');
  const [searchZoneTerm, setSearchZoneTerm] = useState('');
@@ -114,6 +127,59 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  setIsSyncing(false);
  addToast("تمت المزامنة","تمت إعادة حساب مديونيات الموردين وأرصدة العملاء بنجاح.","success");
  }, 800);
+ };
+
+ const formatPushHealthDate = (value: string | null) => {
+  if (!value) return 'غير مسجل';
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return 'غير واضح';
+  return new Intl.DateTimeFormat('ar-KW', {
+    timeZone: 'Asia/Kuwait',
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(time));
+ };
+
+ const runPushHealthCheck = async () => {
+  setCheckingPushHealth(true);
+  try {
+    const status = await getPushSupportStatus();
+    if (status.permission === 'granted') {
+      await refreshPushRegistrationIfAlreadyAllowed({
+        userId: auth?.currentUser?.uid || 'admin',
+        restaurantId: 'kitchen_default',
+      }).catch(() => null);
+    }
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('last_push_token') || '' : '';
+    const enabledAt = typeof window !== 'undefined' ? localStorage.getItem('push_enabled_at') : '';
+    const refreshedAt = typeof window !== 'undefined' ? localStorage.getItem('push_last_silent_refresh') : '';
+    let serviceWorkerState = status.hasServiceWorker ? 'مدعوم' : 'غير مدعوم';
+    try {
+      if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+        const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+        serviceWorkerState = registration
+          ? registration.active ? 'نشط' : 'مسجل وينتظر التفعيل'
+          : 'غير مسجل';
+      }
+    } catch {
+      serviceWorkerState = 'تعذر الفحص';
+    }
+
+    const ready = status.supported && status.permission === 'granted' && Boolean(token) && serviceWorkerState !== 'غير مسجل';
+    const blocked = status.permission === 'denied' || !status.supported;
+    setPushHealth({
+      support: status.supported ? 'مدعوم' : 'غير مدعوم',
+      permission: status.permission === 'granted' ? 'مسموح' : status.permission === 'denied' ? 'محظور' : 'بانتظار السماح',
+      token: token ? `موجود · ${token.slice(0, 9)}...` : 'غير موجود',
+      lastRegistration: formatPushHealthDate(refreshedAt || enabledAt || ''),
+      serviceWorker: serviceWorkerState,
+      verdict: ready ? 'جاهز لاستقبال Push' : blocked ? 'يحتاج تفعيل من المتصفح' : 'يحتاج تفعيل/تجديد',
+      tone: ready ? 'success' : blocked ? 'danger' : 'warning',
+    });
+  } finally {
+    setCheckingPushHealth(false);
+  }
  };
 
  const handleResetData = async () => {
@@ -991,6 +1057,52 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                   </div>
                 ) : (
                   <EnableNotificationsButton userId={auth?.currentUser?.uid || "local_user"} restaurantId="kitchen_default" />
+                )}
+              </div>
+              <div className="rounded-[1.5rem] border border-slate-200/70 bg-gradient-to-br from-slate-950 to-slate-800 p-4 text-white shadow-sm overflow-hidden relative">
+                <div className="absolute -left-10 -top-10 h-28 w-28 rounded-full bg-emerald-400/20 blur-3xl" />
+                <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  <div>
+                    <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/10 px-3 py-1 text-[10px] font-black text-emerald-200">
+                      <Activity size={13} />
+                      <span>Push Health Check</span>
+                    </div>
+                    <h3 className="mt-2 text-lg font-black">اختبار صحة الإشعارات</h3>
+                    <p className="mt-1 text-xs font-bold leading-6 text-white/60">يفحص إذن المتصفح، التوكن، آخر تسجيل، و Service Worker بدون إرسال إشعار حقيقي.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={runPushHealthCheck}
+                    disabled={checkingPushHealth || appMode === 'local'}
+                    className="rounded-2xl bg-white text-slate-950 px-4 py-3 text-xs font-black shadow-sm hover:bg-emerald-50 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                  >
+                    {checkingPushHealth ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+                    فحص الآن
+                  </button>
+                </div>
+                {pushHealth && (
+                  <div className="relative z-10 mt-4 grid grid-cols-2 lg:grid-cols-5 gap-2">
+                    {[
+                      ['الدعم', pushHealth.support],
+                      ['الإذن', pushHealth.permission],
+                      ['التوكن', pushHealth.token],
+                      ['آخر تسجيل', pushHealth.lastRegistration],
+                      ['Service Worker', pushHealth.serviceWorker],
+                    ].map(([label, value]) => (
+                      <div key={label} className="rounded-2xl bg-white/10 border border-white/10 px-3 py-3 min-w-0">
+                        <span className="block text-[10px] font-black text-white/45">{label}</span>
+                        <strong className="mt-1 block truncate text-xs font-black text-white">{value}</strong>
+                      </div>
+                    ))}
+                    <div className={cn(
+                      'col-span-2 lg:col-span-5 rounded-2xl border px-4 py-3 text-xs font-black',
+                      pushHealth.tone === 'success' ? 'bg-emerald-400/15 border-emerald-300/20 text-emerald-100' :
+                      pushHealth.tone === 'danger' ? 'bg-rose-400/15 border-rose-300/20 text-rose-100' :
+                      'bg-amber-400/15 border-amber-300/20 text-amber-100'
+                    )}>
+                      النتيجة: {pushHealth.verdict}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

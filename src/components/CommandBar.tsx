@@ -129,6 +129,10 @@ const itemTotal = (item: any, fallbackUnitPrice = 0) => {
   const unitPrice = itemUnitPrice(item) || num(fallbackUnitPrice);
   return unitPrice * itemQty(item);
 };
+const invoiceTotal = (invoice: any) => num(invoice?.totalAmount ?? invoice?.total ?? invoice?.amount);
+const orderTotal = (order: any) => num(order?.total ?? order?.totalAmount ?? order?.amount);
+const isLowIntent = (value: string) => value.includes('اقل') || value.includes('أقل') || value.includes('اخفض') || value.includes('أخفض') || value.includes('ادنى') || value.includes('أدنى') || value.includes('اضعف') || value.includes('أضعف');
+const isHighIntent = (value: string) => value.includes('اعلى') || value.includes('أعلى') || value.includes('اكبر') || value.includes('أكبر') || value.includes('افضل') || value.includes('أفضل') || value.includes('اغلى') || value.includes('أغلى');
 
 const buildCustomerStats = (data: any) => {
   const byKey = new Map<string, any>();
@@ -267,15 +271,41 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     const customers = buildCustomerStats(data);
     const products = buildProductStats(data);
     const orders = safeArray(data?.orders);
+    const invoices = safeArray(data?.invoices).filter((inv: any) => !inv?.isDeleted);
     const suppliers = safeArray(data?.suppliers);
-    const hasTop = q.includes('اعلى') || q.includes('اكبر') || q.includes('افضل') || q.includes('أعلى') || q.includes('أكبر') || q.includes('أفضل');
+    const hasTop = isHighIntent(q);
+    const hasLow = isLowIntent(q);
     const pendingOrders = orders.filter((order: any) => isPendingText(order?.paymentStatus || order?.status)).length;
     const failedOrders = orders.filter((order: any) => isFailedText(order?.paymentStatus || order?.status)).length;
+    const paidOrders = orders.filter((order: any) => isPaidText(order?.paymentStatus || order?.status)).length;
+    const paidInvoices = invoices.filter((inv: any) => isPaidText(inv?.paymentStatus || inv?.status) || inv?.paymentStatus === undefined);
+    const totalSales = paidInvoices.reduce((sum: number, inv: any) => sum + invoiceTotal(inv), 0);
+    const topInvoice = [...invoices].sort((a: any, b: any) => invoiceTotal(b) - invoiceTotal(a))[0];
+    const lowInvoice = [...invoices].filter((inv: any) => invoiceTotal(inv) > 0).sort((a: any, b: any) => invoiceTotal(a) - invoiceTotal(b))[0];
+    const lowCustomer = [...customers].filter((customer: any) => num(customer.totalSpent) > 0).sort((a: any, b: any) => num(a.totalSpent) - num(b.totalSpent))[0];
+    const weakProduct = [...products].filter((product: any) => num(product.quantity) > 0 || num(product.sales) > 0).sort((a: any, b: any) => (num(a.quantity) + num(a.sales)) - (num(b.quantity) + num(b.sales)))[0];
     const topSupplierDebt = [...suppliers].sort((a: any, b: any) => num(b?.balance) - num(a?.balance))[0];
     const absentCustomer = [...customers]
       .map((customer: any) => ({ ...customer, idleDays: daysIdle(customer?.lastOrderDate || customer?.lastActive) }))
       .filter((customer: any) => customer.idleDays >= 21 && num(customer.totalSpent) > 0)
       .sort((a: any, b: any) => (num(b.totalSpent) + b.idleDays) - (num(a.totalSpent) + a.idleDays))[0];
+    const wantsStats = q.includes('احص') || q.includes('إحص') || q.includes('ملخص') || q.includes('تقرير') || q.includes('كم') || q.includes('عدد') || q.includes('عطني');
+
+    if (q.includes('تطوير') || q.includes('طور') || q.includes('نووي') || q.includes('زلزال') || q.includes('تسونامي') || q.includes('ابهار') || q.includes('إبهار')) {
+      return {
+        title: 'خارطة إبهار تنفيذية',
+        value: 'ابدأ من مركز القيادة',
+        subtitle: 'الكوماند يفتح لك عقل النظام لاختصار القرار بدل إضافة شاشة جديدة.',
+        details: [
+          `جودة المنيو: ${quality.score}%`,
+          failedOrders > 0 ? `أولوية تشغيل: ${failedOrders} فشل دفع` : pendingOrders > 0 ? `أولوية تشغيل: ${pendingOrders} بانتظار الدفع` : 'التشغيل مستقر الآن',
+          absentCustomer ? `فرصة ولاء: ${absentCustomer.name || absentCustomer.phone}` : 'لا يوجد عميل غائب واضح للتركيز'
+        ],
+        actionLabel: 'افتح عقل النظام',
+        action: () => onNavigate('dashboard', { exactId: 'intelligence' }),
+        tone: quality.score >= 72 ? 'emerald' : 'amber',
+      };
+    }
 
     if ((hasTop && (q.includes('عميل') || q.includes('زبون'))) || q.includes('اكثر عميل') || q.includes('أكثر عميل')) {
       const top = customers[0];
@@ -346,6 +376,63 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       };
     }
 
+    if (q.includes('منو محتاج') || q.includes('مين محتاج') || q.includes('محتاج متابعة') || q.includes('اتابع اليوم') || q.includes('أتابع اليوم')) {
+      const targetText = failedOrders > 0
+        ? `${failedOrders} طلب فشل دفع`
+        : pendingOrders > 0
+          ? `${pendingOrders} طلب بانتظار الدفع`
+          : absentCustomer
+            ? `${absentCustomer.name || absentCustomer.phone}`
+            : topSupplierDebt && num(topSupplierDebt.balance) > 0
+              ? `${topSupplierDebt.name || 'مورد'}`
+              : 'لا توجد متابعة حرجة';
+      return {
+        title: 'من يحتاج متابعة اليوم؟',
+        value: targetText,
+        subtitle: failedOrders > 0 ? 'ابدأ بفشل الدفع لأنه أعلى مخاطرة تشغيلية.' : pendingOrders > 0 ? 'المعلق يحتاج إغلاق بهدوء.' : absentCustomer ? `عميل غائب ${absentCustomer.idleDays} يوم.` : 'الوضع هادئ حسب البيانات الحالية.',
+        details: [
+          failedOrders ? `فشل الدفع: ${failedOrders}` : `بانتظار الدفع: ${pendingOrders}`,
+          absentCustomer ? `ولاء: ${absentCustomer.name || absentCustomer.phone}` : topSupplierDebt ? `مورد: ${money(topSupplierDebt.balance)} د.ك` : 'لا توجد إشارة إضافية'
+        ],
+        actionLabel: failedOrders || pendingOrders ? 'افتح الطلبات' : absentCustomer ? 'افتح العملاء' : topSupplierDebt ? 'افتح المورد' : 'افتح لوحة القيادة',
+        action: () => failedOrders || pendingOrders
+          ? onNavigate('orders', { search: failedOrders ? 'فشل' : 'بانتظار' })
+          : absentCustomer
+            ? onNavigate('customers', { exactId: absentCustomer.id, search: absentCustomer.name || absentCustomer.phone })
+            : topSupplierDebt
+              ? onNavigate('suppliers-audit', { supplierId: topSupplierDebt.id, openModal: true })
+              : onNavigate('dashboard', { exactId: 'pulse' }),
+        tone: failedOrders ? 'rose' : pendingOrders || topSupplierDebt ? 'amber' : absentCustomer ? 'blue' : 'emerald',
+      };
+    }
+
+    if (q.includes('اخطر') || q.includes('أخطر') || q.includes('الخطر') || q.includes('خطر اليوم') || q.includes('شنو الخطر')) {
+      const risk = failedOrders > 0
+        ? { title: 'أخطر شيء الآن', value: `${failedOrders} فشل دفع`, subtitle: 'هذا أعلى خطر لأنه يمس إغلاق الطلب.', target: 'orders', search: 'فشل', tone: 'rose' as const }
+        : pendingOrders > 0
+          ? { title: 'أخطر شيء الآن', value: `${pendingOrders} بانتظار الدفع`, subtitle: 'هذا خطر تأخير إغلاق الطلبات.', target: 'orders', search: 'بانتظار', tone: 'amber' as const }
+          : quality.status === 'critical'
+            ? { title: 'أخطر شيء الآن', value: quality.title, subtitle: quality.decision, target: 'products', search: '', tone: 'rose' as const }
+            : topSupplierDebt && num(topSupplierDebt.balance) > 1000
+              ? { title: 'أخطر شيء الآن', value: `${money(topSupplierDebt.balance)} د.ك مورد`, subtitle: topSupplierDebt.name || 'مديونية مورد عالية', target: 'suppliers-audit', search: '', tone: 'amber' as const }
+              : { title: 'أخطر شيء الآن', value: 'لا يوجد خطر حاد', subtitle: 'المؤشرات الأساسية مستقرة حسب البيانات المتاحة.', target: 'dashboard', search: '', tone: 'emerald' as const };
+      return {
+        title: risk.title,
+        value: risk.value,
+        subtitle: risk.subtitle,
+        details: [quality.proof, failedOrders || pendingOrders ? `الدفع: ${paidOrders} مدفوع / ${pendingOrders} بانتظار / ${failedOrders} فشل` : quality.action],
+        actionLabel: 'افتح مصدر الخطر',
+        action: () => risk.target === 'orders'
+          ? onNavigate('orders', { search: risk.search })
+          : risk.target === 'products'
+            ? onNavigate('products', { scrollTarget: 'product-quality-board' })
+            : risk.target === 'suppliers-audit'
+              ? onNavigate('suppliers-audit', { supplierId: topSupplierDebt?.id, openModal: true })
+              : onNavigate('dashboard', { exactId: 'pulse' }),
+        tone: risk.tone,
+      };
+    }
+
     if (q.includes('شنو اسوي') || q.includes('ماذا افعل') || q.includes('ماذا أفعل') || q.includes('قرار') || q.includes('ركز') || q.includes('أركز')) {
       const liveDecision = failedOrders > 0
         ? `ابدأ بفشل الدفع: ${failedOrders} طلب يحتاج متابعة`
@@ -360,6 +447,88 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
         actionLabel: 'افتح نقطة التركيز',
         action: () => failedOrders || pendingOrders ? onNavigate('orders', { search: failedOrders ? 'فشل' : 'بانتظار' }) : onNavigate('products', { scrollTarget: 'product-quality-board' }),
         tone: failedOrders ? 'rose' : pendingOrders ? 'amber' : quality.status === 'critical' ? 'rose' : quality.status === 'watch' ? 'amber' : 'emerald',
+      };
+    }
+
+    if (wantsStats || q.includes('كل شي') || q.includes('كل شيء')) {
+      return {
+        title: 'إحصائية فورية',
+        value: `${money(totalSales)} د.ك`,
+        subtitle: `${paidInvoices.length} فاتورة مدفوعة · ${orders.length} طلب · ${customers.length} عميل · ${products.length} منتج`,
+        details: [
+          failedOrders ? `فشل الدفع: ${failedOrders}` : pendingOrders ? `بانتظار الدفع: ${pendingOrders}` : `المدفوع: ${paidOrders}`,
+          topInvoice ? `أغلى فاتورة: ${money(invoiceTotal(topInvoice))} د.ك` : 'لا توجد فواتير واضحة'
+        ],
+        actionLabel: 'افتح التقارير',
+        action: () => onNavigate('reports'),
+        tone: failedOrders ? 'rose' : pendingOrders ? 'amber' : 'emerald',
+      };
+    }
+
+    if ((q.includes('دفع') || q.includes('مدفوع') || q.includes('لم يدفع') || q.includes('ما دفع') || q.includes('معلق') || q.includes('بانتظار')) && !q.includes('مورد') && !q.includes('سداد') && !q.includes('حوال') && !q.includes('تحويل')) {
+      return {
+        title: 'رادار الدفع',
+        value: `${paidOrders} مدفوع`,
+        subtitle: `${pendingOrders} بانتظار · ${failedOrders} فشل`,
+        details: [
+          topInvoice ? `أكبر قيمة مرتبطة بالفواتير: ${money(invoiceTotal(topInvoice))} د.ك` : 'لا توجد فاتورة أعلى واضحة',
+          failedOrders ? 'الأولوية: متابعة الفشل بهدوء' : pendingOrders ? 'الأولوية: إغلاق المعلّق' : 'الوضع مستقر'
+        ],
+        actionLabel: failedOrders ? 'افتح الفاشل' : pendingOrders ? 'افتح المعلق' : 'افتح الطلبات',
+        action: () => onNavigate('orders', { search: failedOrders ? 'فشل' : pendingOrders ? 'بانتظار' : 'تم الدفع' }),
+        tone: failedOrders ? 'rose' : pendingOrders ? 'amber' : 'emerald',
+      };
+    }
+
+    if (hasLow && (q.includes('عميل') || q.includes('زبون'))) {
+      if (!lowCustomer) return { title: 'أقل عميل', value: 'لا توجد بيانات كافية', subtitle: 'ما لقيت عميل عنده إنفاق محسوب.', tone: 'slate' };
+      return {
+        title: 'أقل عميل بإنفاق محسوب',
+        value: lowCustomer.name || lowCustomer.phone || 'عميل',
+        subtitle: `${money(lowCustomer.totalSpent)} د.ك · ${lowCustomer.totalOrders || 0} طلب`,
+        details: [lowCustomer.phone ? `الهاتف: ${lowCustomer.phone}` : '', 'مفيد لحملة رفع متوسط الطلب.'].filter(Boolean),
+        actionLabel: 'افتح العميل',
+        action: () => onNavigate('customers', { exactId: lowCustomer.id, search: lowCustomer.name || lowCustomer.phone }),
+        tone: 'amber',
+      };
+    }
+
+    if (hasLow && (q.includes('منتج') || q.includes('صنف'))) {
+      if (!weakProduct) return { title: 'أضعف منتج', value: 'لا توجد مبيعات كافية', subtitle: 'ما لقيت حركة كافية للمقارنة.', tone: 'slate' };
+      return {
+        title: 'أضعف منتج بالحركة',
+        value: weakProduct.name,
+        subtitle: `${Math.round(weakProduct.quantity || 0)} قطعة · ${money(weakProduct.sales)} د.ك`,
+        details: [weakProduct.category ? `التصنيف: ${weakProduct.category}` : '', 'راجعه: صورة، سعر، أو مكانه في المنيو.'].filter(Boolean),
+        actionLabel: 'افتح المنتج',
+        action: () => onNavigate('products', { exactId: weakProduct.id, search: weakProduct.name }),
+        tone: 'amber',
+      };
+    }
+
+    if (hasLow && (q.includes('فاتوره') || q.includes('فاتورة') || q.includes('مبيعات'))) {
+      if (!lowInvoice) return { title: 'أقل فاتورة', value: 'لا توجد فواتير كافية', subtitle: 'ما لقيت قيمة فاتورة صالحة للمقارنة.', tone: 'slate' };
+      return {
+        title: 'أقل فاتورة بقيمة محسوبة',
+        value: `${money(invoiceTotal(lowInvoice))} د.ك`,
+        subtitle: lowInvoice.customerName || lowInvoice.customerPhone || `فاتورة ${lowInvoice.id || ''}`,
+        details: [lowInvoice.date ? `التاريخ: ${formatKuwaitiDateOnly(lowInvoice.date)}` : '', 'مفيدة لفهم أقل سلة شراء.'].filter(Boolean),
+        actionLabel: 'افتح الفاتورة',
+        action: () => onNavigate('invoices-list', { exactId: lowInvoice.id, search: lowInvoice.id }),
+        tone: 'blue',
+      };
+    }
+
+    if (hasTop && (q.includes('فاتوره') || q.includes('فاتورة') || q.includes('مبيعات') || q.includes('اغلى') || q.includes('أغلى'))) {
+      if (!topInvoice) return { title: 'أغلى فاتورة', value: 'لا توجد فواتير كافية', subtitle: 'ما لقيت فاتورة صالحة للمقارنة.', tone: 'slate' };
+      return {
+        title: 'أغلى فاتورة',
+        value: `${money(invoiceTotal(topInvoice))} د.ك`,
+        subtitle: topInvoice.customerName || topInvoice.customerPhone || `فاتورة ${topInvoice.id || ''}`,
+        details: [topInvoice.date ? `التاريخ: ${formatKuwaitiDateOnly(topInvoice.date)}` : '', 'هذه أعلى قيمة ظاهرة في الفواتير.'].filter(Boolean),
+        actionLabel: 'افتح الفاتورة',
+        action: () => onNavigate('invoices-list', { exactId: topInvoice.id, search: topInvoice.id }),
+        tone: 'emerald',
       };
     }
 
@@ -428,7 +597,29 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       };
     }
 
-    return null;
+    const bestSignal =
+      failedOrders > 0 ? { title: 'فهمت سؤالك كتنبيه تشغيلي', value: `${failedOrders} فشل دفع`, tone: 'rose' as const, actionSearch: 'فشل' } :
+      pendingOrders > 0 ? { title: 'فهمت سؤالك كمتابعة طلبات', value: `${pendingOrders} بانتظار الدفع`, tone: 'amber' as const, actionSearch: 'بانتظار' } :
+      customers[0] ? { title: 'فهمت سؤالك كبحث ذكي', value: customers[0].name || customers[0].phone || 'أفضل عميل', tone: 'emerald' as const, actionSearch: customers[0].name || customers[0].phone || '' } :
+      products[0] ? { title: 'فهمت سؤالك كبحث منتج', value: products[0].name, tone: 'blue' as const, actionSearch: products[0].name || '' } :
+      { title: 'فهمت عليك', value: 'لا توجد بيانات كافية', tone: 'slate' as const, actionSearch: q };
+
+    return {
+      title: bestSignal.title,
+      value: bestSignal.value,
+      subtitle: `قرأت: "${deferredQuery}" وربطتها بالبيانات المتاحة بدل تركها بدون نتيجة.`,
+      details: [
+        `مبيعات محسوبة: ${money(totalSales)} د.ك`,
+        `طلبات: ${orders.length} · عملاء: ${customers.length} · منتجات: ${products.length}`
+      ],
+      actionLabel: q.includes('عميل') ? 'افتح العملاء' : q.includes('منتج') || q.includes('صنف') ? 'افتح المنتجات' : 'افتح الطلبات',
+      action: () => q.includes('عميل')
+        ? onNavigate('customers', { search: bestSignal.actionSearch || q })
+        : q.includes('منتج') || q.includes('صنف')
+          ? onNavigate('products', { search: bestSignal.actionSearch || q })
+          : onNavigate('orders', { search: bestSignal.actionSearch || q }),
+      tone: bestSignal.tone,
+    };
   }, [deferredQuery, data, onNavigate]);
 
   const commands = useMemo<CommandItem[]>(() => {

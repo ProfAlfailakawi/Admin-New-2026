@@ -1816,7 +1816,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <h2 className="text-2xl font-black text-slate-950">ابدأ بالصيغة المناسبة لمحتواك</h2>
             </div>
           </div>
-          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <div className="grid sm:grid-cols-2 xl:grid-cols-5 gap-3">
             <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setCreateSubTab('custom'); setStudioTab('create'); }} className="rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
               <Sparkles className="text-indigo-500 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من فكرة</div>
@@ -1836,6 +1836,11 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <Layout className="text-emerald-600 mb-3" size={26} />
               <div className="font-black text-slate-900 text-lg">من المنيو</div>
               <div className="text-xs font-bold text-slate-400 mt-1">اختر وجبة جاهزة، ثم جهّزها لصورة أو ريل.</div>
+            </button>
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateSubTab('campaigner'); setCreateStep(1); setMaxCreateStepReached(1); setStudioTab('create'); }} className="rounded-3xl border border-rose-100 bg-gradient-to-br from-rose-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
+              <Brain className="text-rose-600 mb-3" size={26} />
+              <div className="font-black text-slate-900 text-lg">حملة ذكية</div>
+              <div className="text-xs font-bold text-slate-400 mt-1">ابدأ مباشرة من رادار المواسم والطقس.</div>
             </button>
           </div>
         </div>

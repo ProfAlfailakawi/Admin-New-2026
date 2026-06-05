@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import LZString from 'lz-string';
 import { 
@@ -105,6 +105,14 @@ import { refreshPushRegistrationIfAlreadyAllowed } from './lib/pushNotifications
 import { getProtectedStorageItem, hasMeaningfulData, safeMergeData, setProtectedStorageItem } from './lib/dataGuard';
 
 type AdminNotification = AppState['notifications'][number];
+
+const isVisibleAdminNotification = (notification: AdminNotification) => {
+  const title = String(notification?.title || '');
+  return !title.includes('درع الربح') && !title.includes('درع') && !title.includes('مجبوس دجاج');
+};
+
+const getVisibleAdminNotifications = (notifications?: AdminNotification[]) =>
+  (notifications || []).filter(isVisibleAdminNotification);
 
 const getAdminNotificationDeepLink = () => {
   const params = new URLSearchParams(window.location.search);
@@ -870,9 +878,9 @@ const MainApp: React.FC = () => {
     const refreshIfNeeded = () => {
       const lastRefresh = localStorage.getItem('push_last_silent_refresh');
       const lastTime = lastRefresh ? new Date(lastRefresh).getTime() : 0;
-      const ninetyMinutes = 90 * 60 * 1000;
+      const thirtyMinutes = 30 * 60 * 1000;
 
-      if (lastTime && Date.now() - lastTime < ninetyMinutes) return;
+      if (lastTime && Date.now() - lastTime < thirtyMinutes) return;
 
       refreshPushRegistrationIfAlreadyAllowed({
         userId: user.uid || 'admin',
@@ -886,9 +894,11 @@ const MainApp: React.FC = () => {
       if (document.visibilityState === 'visible') refreshIfNeeded();
     };
     window.addEventListener('focus', refreshIfNeeded);
+    window.addEventListener('online', refreshIfNeeded);
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       window.removeEventListener('focus', refreshIfNeeded);
+      window.removeEventListener('online', refreshIfNeeded);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [isAuthenticated, user, userRole]);
@@ -1096,6 +1106,14 @@ const MainApp: React.FC = () => {
   });
   
   const [data, setData] = useState<AppState>(INITIAL_DATA);
+  const visibleNotifications = useMemo(
+    () => getVisibleAdminNotifications(data?.notifications || []),
+    [data?.notifications]
+  );
+  const hasUnreadVisibleNotifications = useMemo(
+    () => visibleNotifications.some(n => !n.read),
+    [visibleNotifications]
+  );
   const [hasRunMigration, setHasRunMigration] = useState(false);
 
   // MIGRATION: Ensure old orders have the correct customer names matching the DB.
@@ -3271,7 +3289,7 @@ const MainApp: React.FC = () => {
                 aria-label="تنبيهات"
               >
                 <Bell size={20} className={cn("transition-colors", notifOpen ? "text-primary" : "text-slate-600")} />
-                {(data?.notifications || []).some(n => !n.read) && (
+                {hasUnreadVisibleNotifications && (
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-white" />
                 )}
               </button>
@@ -3314,8 +3332,8 @@ const MainApp: React.FC = () => {
                         </div>
                     </div>
                     <div className="max-h-[70vh] overflow-y-auto p-2 scrollbar-hide">
-                      {data.notifications && data.notifications.filter(n => !n.title.includes('درع الربح')).length > 0 ? (
-                        (data?.notifications || []).filter(n => !n.title.includes('درع الربح')).map(notif => (
+                      {visibleNotifications.length > 0 ? (
+                        visibleNotifications.map(notif => (
                           <div 
                             key={notif.id} 
                             onClick={(e) => {
@@ -3599,7 +3617,7 @@ const MainApp: React.FC = () => {
               <div className="relative z-10 flex items-center justify-center bg-white/5 rounded-full w-7 h-7 backdrop-blur-md border border-white/5">
                 <Command className="text-amber-400 group-hover:scale-110 transition-transform duration-300" size={15} />
               </div>
-              {(data?.notifications || []).some(n => !n.read) && (
+              {hasUnreadVisibleNotifications && (
                 <div className="absolute top-2.5 right-2.5 flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-[120%] w-[120%] rounded-full bg-amber-400 opacity-60"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>

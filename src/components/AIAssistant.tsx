@@ -41,6 +41,11 @@ const money = (value: any) => {
  return Number.isFinite(n) ? n.toFixed(3) : '0.000';
 };
 
+const amount = (value: any) => {
+ const n = Number(value?.totalAmount ?? value?.total ?? value?.amount ?? 0);
+ return Number.isFinite(n) ? n : 0;
+};
+
 const daysBetween = (dateValue: any) => {
  const time = new Date(dateValue || 0).getTime();
  if (!time) return 0;
@@ -101,6 +106,8 @@ const buildAssistantIntel = (data: AppState) => {
  const pendingOrders = orders.filter((o: any) => isPending(o.paymentStatus || o.status));
  const failedOrders = orders.filter((o: any) => isFailed(o.paymentStatus || o.status));
  const paidOrders = orders.filter((o: any) => isPaid(o.paymentStatus || o.status));
+ const topInvoice = [...invoices].sort((a: any, b: any) => amount(b) - amount(a))[0];
+ const lowInvoice = [...invoices].filter((i: any) => amount(i) > 0).sort((a: any, b: any) => amount(a) - amount(b))[0];
  const startOfDay = (offsetDays: number) => {
    const d = new Date();
    d.setHours(0, 0, 0, 0);
@@ -194,6 +201,15 @@ const buildAssistantIntel = (data: AppState) => {
  const weakProducts = [...productRank]
    .filter((p: any) => p.soldQty === 0 || (p.margin > 20 && p.soldQty <= 2))
    .slice(0, 6);
+ const lowestCustomer = [...customers]
+   .map((c: any) => ({
+     name: c.name || c.phone || 'عميل',
+     phone: c.phone || '',
+     spent: Number(c.totalSpent || 0),
+     orders: Number(c.totalOrders || c.orderCount || 0),
+   }))
+   .filter((c: any) => c.spent > 0)
+   .sort((a: any, b: any) => a.spent - b.spent)[0];
  const lowStockProducts = [...productRank]
    .filter((p: any) => p.stock > 0 && p.stock <= 5)
    .slice(0, 6);
@@ -279,11 +295,15 @@ const buildAssistantIntel = (data: AppState) => {
    salesTrend7: salesTrend7 === null ? 'لا توجد بيانات كافية للمقارنة' : `${salesTrend7}%`,
    avgOrderValue,
    topSupplierDebt: topSupplierDebt ? `${topSupplierDebt.name || 'مورد'} (${money(topSupplierDebt.balance)} د.ك)` : 'لا يوجد',
+   paymentRadar: `طلبات مدفوعة ${paidOrders.length} / بانتظار ${pendingOrders.length} / فشل ${failedOrders.length}`,
+   topInvoice: topInvoice ? `${topInvoice.customerName || topInvoice.customerPhone || topInvoice.id || 'فاتورة'}: ${money(amount(topInvoice))} د.ك` : 'لا يوجد',
+   lowestInvoice: lowInvoice ? `${lowInvoice.customerName || lowInvoice.customerPhone || lowInvoice.id || 'فاتورة'}: ${money(amount(lowInvoice))} د.ك` : 'لا يوجد',
    topCategory: topCategory ? `${topCategory[0]} / مبيعات ${money(topCategory[1].sales)} د.ك / كمية ${Math.round(topCategory[1].qty)}` : 'لا يوجد',
    topProducts: productRank.slice(0, 5).map((p) => `${p.name}: ${p.soldQty} مبيع / هامش ${p.margin}% / سعر ${money(p.price)} / تكلفة ${money(p.cost)}`).join(' | '),
    weakProducts: weakProducts.map((p) => `${p.name}: مبيعات ${p.soldQty} / هامش ${p.margin}% / مخزون ${p.stock}`).join(' | ') || 'لا يوجد',
    lowStockProducts: lowStockProducts.map((p) => `${p.name}: مخزون ${p.stock}`).join(' | ') || 'لا يوجد',
    topCustomers: topCustomers.map((c) => `${c.name}: إنفاق ${money(c.spent)} د.ك / طلبات ${c.orders}`).join(' | ') || 'لا يوجد',
+   lowestCustomer: lowestCustomer ? `${lowestCustomer.name}: إنفاق ${money(lowestCustomer.spent)} د.ك / طلبات ${lowestCustomer.orders}` : 'لا يوجد',
    recentInvoices: recentInvoices.map((i) => `${i.date}: ${money(i.total)} د.ك / ربح ${money(i.profit)} / ${i.items}`).join(' | ') || 'لا توجد فواتير حديثة',
    hiddenGem: hiddenGem ? `${hiddenGem.name} / هامش ${hiddenGem.margin}% / مبيعات ${hiddenGem.soldQty} / سعر ${money(hiddenGem.price)} / تكلفة ${money(hiddenGem.cost)}` : 'لا يوجد',
    atRiskCustomer: atRiskCustomer ? `${atRiskCustomer.name || atRiskCustomer.phone} / غياب ${atRiskCustomer.idleDays} يوم / إنفاق ${money(atRiskCustomer.spent)}` : 'لا يوجد',
@@ -411,6 +431,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 - تفهم المطعم من البيانات المرسلة فقط: المبيعات، الفواتير، المنتجات، العملاء، الموردين، الطلبات، الربح، الهامش.
 - تتكلم كأنك مستشار ملازم للتاجر ويفهمه من رمشة العين، لكن بدون مبالغة أو اختراع.
 - إذا السؤال عام، اربطه فوراً بأرقام مطعمه وواقعه الحالي.
+- افهم أي صياغة عامية أو ناقصة: "عطني إحصائية"، "الأغلى"، "الأخفض"، "لم يدفع"، "أفضل عميل"، "أسوأ منتج"، "شنو الوضع" ثم جاوب من statsSummary.
 قواعد صارمة:
 - ممنوع الكلام العام مثل: حسّن التسويق أو راقب المبيعات بدون ربطه برقم/منتج/عميل/مورد من البيانات.
 - لا تخترع أرقاماً ولا أسماء منتجات ولا عملاء؛ إذا البيانات ناقصة قل: ما عندي هالرقم حالياً.
@@ -418,6 +439,9 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 - لا تنفذ ولا تدعي أنك نفذت.
 - اكتب بلهجة كويتية بيضاء راقية، مختصرة وواضحة.
 - قبل الرد صنّف نية السؤال من intentKind وتعامل معها كمدير عمليات: قرار، مبيعات، ربح، عميل، منتج، مورد، رسالة، خطر.
+- عند الإحصائيات استخدم paymentRadar وtopInvoice وlowestInvoice وtopCustomers وlowestCustomer وtopProducts وweakProducts قبل أي كلام إنشائي.
+- إذا طلب "كل شي" لا تسرد كل البيانات؛ أعطه أعلى 3 مؤشرات: الخطر، الفرصة، والرقم الأهم.
+- إذا ذكر الدفع أو لم يدفع، تعامل معها كقراءة حالة فقط ولا تقترح تغيير منطق الدفع أو إعداداته.
 - الرد المثالي دائماً قصير: الحكم، الدليل من البيانات، القرار العملي، ثم نص جاهز إذا يناسب.
 - ممنوع الإطالة: لا تتجاوز 5 أسطر قصيرة إلا إذا طلب المستخدم تفصيل.
 - لا تكتب مقدمات طويلة ولا تشخيص معقد؛ خل الرد قابل للقراءة خلال 10 ثواني.
@@ -479,13 +503,17 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 	 const suggestions = [
 	  { label: 'شنو أسوي الحين؟', prompt: `حسب الصفحة الحالية ${effectivePage} وبيانات مطعمي، عطِني قرار واحد فقط الآن. القرار المحلي المقترح: ${pageDecision.decision}. الدليل: ${pageDecision.proof}.` },
 	  { label: 'ضبطها', prompt: 'ضبطها' },
+	  { label: 'إحصائية ذكية', prompt: 'عطني إحصائية تنفيذية مختصرة: المدفوع ولم يدفع وفشل الدفع، أغلى فاتورة، أقل فاتورة، أفضل عميل، أضعف منتج، ثم قرار واحد الآن.' },
+	  { label: 'خطة إبهار', prompt: 'تصرف كمعماري منتج ومصمم تجربة. من بيانات النظام الحالية فقط، اعطني 3 تطويرات غير مكررة ومحددة: جمال، سرعة قرار، وميزة ذكية. لا تقترح شيء موجود في الواجهة الحالية إذا ظهر في البيانات المرسلة.' },
 	  { label: 'اكتب رسالة عميل', prompt: 'اختَر من بياناتي عميل يستاهل متابعة أو استرجاع، وكتب له رسالة واتساب كويتية قصيرة. إذا ما عندك اسم واضح، قل لي شنو الناقص.' },
 	  { label: 'طلع فرصة بيع', prompt: 'من منتجاتي وفواتيري الحالية، اختر منتج واحد يستاهل حملة اليوم، واشرح لي ليش، واكتب نص حملة قصير.' },
 	  { label: 'فسّر الربح', prompt: 'حلل ربح مطعمي وهامشه من البيانات الحالية، وقل لي قرار واحد يحسن الربح اليوم بدون تخفيض عشوائي.' },
 	 ];
 	   const decisionCards = [
 	    { title: 'قرار الآن', text: pageDecision.decision || 'افتح أهم رقم في الصفحة الحالية.', prompt: 'اعطني قرار الآن في سطرين: الدليل والإجراء.' },
+	    { title: 'رادار الأرقام', text: intel.paymentRadar, prompt: 'اقرأ رادار الأرقام: الدفع، الأغلى، الأقل، أفضل عميل، أضعف منتج. أعطني خلاصة وقرار واحد.' },
 	    { title: 'الدليل', text: pageDecision.proof || intel.dataFreshness, prompt: 'اختصر لي الدليل من البيانات بدون شرح طويل.' },
+	    { title: 'تطوير مبهر', text: '3 نقلات بلا تكرار', prompt: 'اعطني 3 نقلات تطوير مبهر للبرنامج بناء على الموجود فقط: تجربة، ذكاء، سرعة. لا تكرر واتساب/استوديو/كوماند إلا إذا كان التطوير جديد فعلاً.' },
 	    { title: 'فرصة سريعة', text: intel.hiddenGem !== 'لا يوجد' ? intel.hiddenGem : `متوسط الطلب ${money(intel.avgOrderValue)} د.ك`, prompt: 'طلع لي فرصة بيع واحدة اليوم مع نص واتساب قصير.' },
 	    { title: 'تنبيه هادئ', text: intel.failedOrders > 0 ? `${intel.failedOrders} فشل دفع` : intel.pendingOrders > 0 ? `${intel.pendingOrders} بانتظار الدفع` : 'لا يوجد خطر واضح الآن', prompt: 'رتب لي أهم تنبيه تشغيلي في سطرين فقط.' },
 	   ];

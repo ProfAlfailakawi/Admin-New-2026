@@ -241,7 +241,7 @@ export async function registerPushNotifications(options?: {
     } catch (firstError) {
       console.warn("[Push] First getToken failed, retrying:", firstError);
 
-      await new Promise((resolve) => setTimeout(resolve, 220));
+      await new Promise((resolve) => setTimeout(resolve, 120));
 
       token = await getToken(messaging, {
         vapidKey: FALLBACK_VAPID_KEY,
@@ -300,7 +300,7 @@ export async function refreshPushRegistrationIfAlreadyAllowed(options?: {
       });
     } catch (firstError) {
       console.warn("[Push] Silent token refresh failed, retrying:", firstError);
-      await new Promise((resolve) => setTimeout(resolve, 220));
+      await new Promise((resolve) => setTimeout(resolve, 120));
       token = await getToken(messaging, {
         vapidKey: FALLBACK_VAPID_KEY,
         serviceWorkerRegistration: registration,
