@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, MessageCircle, Film, PlayCircle, Copy, RotateCcw, Info } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, MessageCircle, Film, PlayCircle, Copy, RotateCcw } from 'lucide-react';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from '../constants';
 import { toast } from 'sonner';
 import { Product } from '../types';
@@ -128,7 +128,6 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [generatedReel, setGeneratedReel] = useState<string | null>(null);
   const [isGeneratingReel, setIsGeneratingReel] = useState(false);
   const [showReelSettings, setShowReelSettings] = useState(false);
-  const [showProductionDesk, setShowProductionDesk] = useState(false);
   const [showReelShotList, setShowReelShotList] = useState(false);
   const [reelHistory, setReelHistory] = useState<StudioReelHistoryItem[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -1159,28 +1158,15 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   };
 
   const renderProductionDesk = (mode: 'image' | 'reel') => (
-    <div className="studio-production-desk-wrap">
-      <button
-        type="button"
-        onClick={() => setShowProductionDesk((v) => !v)}
-        className="studio-production-desk-trigger"
-        title="تفاصيل الإنتاج"
-        aria-label="تفاصيل الإنتاج"
-      >
-        <Info size={15} />
-      </button>
-      {showProductionDesk && (
-        <aside className="studio-production-desk">
-          <span>{mode === 'reel' ? 'Reel Desk' : 'Production Desk'}</span>
-          <strong>{mode === 'reel' ? '9:16' : selectedFormat}</strong>
-          <div>المشهد: {activeStudioScene.label}</div>
-          <div>المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
-          <div>الواقعية: {STUDIO_REALITY_MODES[realityMode]?.label || 'واقعي'}</div>
-          <div>الخلفية: {backgroundPreset}</div>
-          {mode === 'reel' && <div>المدة: {reelDuration} ثواني</div>}
-        </aside>
-      )}
-    </div>
+    <aside className="studio-production-desk">
+      <span>{mode === 'reel' ? 'Reel Desk' : 'Production Desk'}</span>
+      <strong>{selectedFormat}</strong>
+      <div>المشهد: {activeStudioScene.label}</div>
+      <div>المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
+      <div>الواقعية: {STUDIO_REALITY_MODES[realityMode]?.label || 'واقعي'}</div>
+      <div>الخلفية: {backgroundPreset}</div>
+      {mode === 'reel' && <div>المدة: {reelDuration} ثواني</div>}
+    </aside>
   );
 
   const generateReel = async () => {
@@ -2663,8 +2649,45 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {isGenerating && (
+                <div className="relative z-10 w-full max-w-lg mx-auto p-8 text-center text-slate-950">
+                  <div className="relative mx-auto mb-6 h-28 w-28">
+                    <div className="absolute inset-0 rounded-[2rem] bg-indigo-500/20 blur-2xl animate-pulse" />
+                    <div className="relative h-full w-full rounded-[2rem] bg-white border border-indigo-100 shadow-2xl flex items-center justify-center">
+                      <Sparkles className="text-indigo-600 animate-pulse" size={42} />
+                    </div>
+                  </div>
+                  <h3 className="text-2xl font-black mb-2">نجهز الصورة الواقعية...</h3>
+                  <p className="text-xs font-black text-slate-500 leading-6">نثبت الطبق · نضبط الإضاءة · نركب المشهد الكويتي بدون تشويه المنتج</p>
+                  <div className="mt-6 mx-auto max-w-xs h-2 rounded-full bg-slate-200 overflow-hidden">
+                    <div className="h-full w-1/2 rounded-full bg-slate-950 animate-pulse" />
+                  </div>
+                </div>
+              )}
+
+              {generatedImage && !isGenerating && (
+                <div className="relative z-10 w-full max-w-full space-y-4 p-2 text-center">
+                  <button type="button" onClick={() => setShowImageSettings((v) => !v)} className={cn("w-full max-w-3xl mx-auto rounded-[1.6rem] overflow-hidden bg-white border border-slate-100 shadow-sm relative group block", previewAspectClass)}>
+                    <img src={generatedImage} alt="Generated" className="w-full h-full object-contain bg-white" />
+                    <span className="absolute bottom-4 right-4 rounded-2xl bg-slate-950/85 px-3 py-2 text-[10px] font-black text-white shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">الإعدادات</span>
+                  </button>
+                  {showImageSettings && (
+                    <div className="mx-auto max-w-3xl rounded-3xl border border-slate-100 bg-white p-4 text-right text-slate-800 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-xs font-black text-slate-700">إعدادات هذه الصورة</p>
+                          <p className="text-[11px] font-bold text-slate-400 mt-1">انسخها لتكرار نفس النتيجة لاحقاً.</p>
+                        </div>
+                        <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-2"><button type="button" onClick={startFreshImageUpload} className="w-full sm:w-auto rounded-2xl bg-slate-100 text-slate-700 px-4 py-2 text-xs font-black">رفع صورة جديدة</button><button type="button" onClick={copyCurrentSettings} className="w-full sm:w-auto rounded-2xl bg-slate-950 text-white px-4 py-2 text-xs font-black">نسخ الإعدادات</button></div>
+                      </div>
+                      <pre className="whitespace-pre-wrap rounded-2xl bg-slate-50 border border-slate-100 p-3 text-[11px] leading-6 font-bold text-slate-600 text-right font-sans max-h-48 overflow-y-auto break-words">{buildSettingsText()}</pre>
+                    </div>
+                  )}
                   {realityVariants.length > 0 && (
-                    <div className="w-full rounded-3xl border border-emerald-100 bg-emerald-50/50 p-4">
+                    <div className="w-full max-w-3xl mx-auto rounded-3xl border border-emerald-100 bg-emerald-50/50 p-4">
                       <div className="flex items-center justify-between mb-3"><span className="text-[10px] font-black text-emerald-600">4 نسخ واقعية</span></div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {realityVariants.map((item, idx) => (
@@ -2679,14 +2702,12 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
                   <div className="flex flex-wrap gap-2 justify-center px-1">
                     <button onClick={handleDownload} title="تحميل" aria-label="تحميل" className="h-12 w-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center"><Download size={18} /></button>
-                    <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !selectedImage} title="اجعلها أصدق" aria-label="اجعلها أصدق" className="h-12 w-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center disabled:opacity-50"><Sparkles size={18} /></button>
+                    <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !generatedImage} title="اجعلها أصدق" aria-label="اجعلها أصدق" className="h-12 w-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center disabled:opacity-50"><Sparkles size={18} /></button>
                     <button type="button" onClick={markCurrentStyleAsAvoided} title="لا تكرر الأسلوب" aria-label="لا تكرر الأسلوب" className="h-12 w-12 bg-white border border-slate-200 text-slate-700 rounded-2xl flex items-center justify-center"><X size={18} /></button>
-                    {generatedImage && (
-                      <button type="button" onClick={() => { setReelSource('image'); setSelectedImage(generatedImage); setGeneratedReel(null); setShowReelSettings(false); setStudioTab('reel'); setReelStep(1); }} className="h-12 px-5 min-w-[150px] bg-violet-600 hover:bg-violet-700 text-white rounded-2xl flex items-center justify-center gap-2 font-black text-xs shadow-md transition-all animate-in fade-in"><Film size={16} /> حولها لريل</button>
-                    )}
+                    <button type="button" onClick={() => { setReelSource('image'); setSelectedImage(generatedImage); setGeneratedReel(null); setShowReelSettings(false); setStudioTab('reel'); setReelStep(1); }} className="h-12 px-5 min-w-[150px] bg-violet-600 hover:bg-violet-700 text-white rounded-2xl flex items-center justify-center gap-2 font-black text-xs shadow-md transition-all animate-in fade-in"><Film size={16} /> حولها لريل</button>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 w-full flex flex-col items-center gap-3">
+                  <div className="pt-4 border-t border-slate-100 w-full max-w-3xl mx-auto flex flex-col items-center gap-3">
                     <p className="text-xs font-bold text-slate-500">حفظها داخل المنتج</p>
                     <div className="flex flex-col sm:flex-row gap-2 w-full max-w-sm">
                       <select className="flex-1 p-3 border rounded-xl bg-slate-50 text-slate-800 text-sm focus:border-indigo-500 outline-none text-right" value={selectedProductId} onChange={(e) => setSelectedProductId(e.target.value)}>
