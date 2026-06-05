@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
-import { Settings, Save, Upload, Trash2, Shield, Bell, CreditCard, DownloadCloud, Database, Sparkles, RefreshCw, Loader2, Map as MapIcon, Plus, CheckCircle2, ChevronDown, ChevronRight, Edit2, X, AlertTriangle, Code, Store, Search, Activity } from 'lucide-react';
+import { Settings, Save, Upload, Trash2, Shield, Bell, CreditCard, DownloadCloud, Database, Sparkles, RefreshCw, Loader2, Map as MapIcon, Plus, CheckCircle2, ChevronDown, ChevronRight, Edit2, X, AlertTriangle, Code, Store, Search, Activity, Smartphone, WifiOff } from 'lucide-react';
 import { motion } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { AppState, AppSettings, Zone, Product, Customer, Expense, Supplier, Testimonial, PulseAnalysisRecord, AICampaign, SupplierTransfer } from '../types';
@@ -31,6 +31,17 @@ interface Props {
 
 const WHATSAPP_QUICK_REPLIES_STORAGE_KEY = 'alturath_whatsapp_quick_replies_v1';
 const WHATSAPP_QUICK_REPLIES_SHEET = 'WhatsAppQuickReplies';
+
+
+type PushDeviceSnapshot = {
+  id: string;
+  label: string;
+  token: string;
+  lastConnection: string;
+  lastRead: string;
+  status: 'online' | 'late' | 'unknown';
+  note: string;
+};
 
 type PushHealthCheck = {
   support: string;
@@ -110,6 +121,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const [isResetting, setIsResetting] = useState(false);
  const [pushHealth, setPushHealth] = useState<PushHealthCheck | null>(null);
  const [checkingPushHealth, setCheckingPushHealth] = useState(false);
+ const [pushDevices, setPushDevices] = useState<PushDeviceSnapshot[]>([]);
 
  const [activeSection, setActiveSection] = useState<string>('');
  const [searchZoneTerm, setSearchZoneTerm] = useState('');
@@ -140,6 +152,54 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   }).format(new Date(time));
  };
 
+
+ const readPushDeviceSnapshots = (): PushDeviceSnapshot[] => {
+  if (typeof window === 'undefined') return [];
+  const now = Date.now();
+  const toDate = (value: string | null) => {
+    if (!value) return 'غير مسجل';
+    const t = new Date(value).getTime();
+    return Number.isFinite(t) ? formatPushHealthDate(value) : 'غير واضح';
+  };
+  const token = localStorage.getItem('last_push_token') || '';
+  const enabledAt = localStorage.getItem('push_enabled_at') || '';
+  const refreshedAt = localStorage.getItem('push_last_silent_refresh') || '';
+  const last = refreshedAt || enabledAt;
+  const t = last ? new Date(last).getTime() : NaN;
+  const minutes = Number.isFinite(t) ? Math.floor((now - t) / 60000) : 999999;
+  const base: PushDeviceSnapshot = {
+    id: 'current-browser',
+    label: 'هذا المتصفح',
+    token: token ? `${token.slice(0, 12)}...${token.slice(-6)}` : 'غير موجود',
+    lastConnection: toDate(enabledAt),
+    lastRead: toDate(refreshedAt || enabledAt),
+    status: !token ? 'unknown' : minutes > 1440 ? 'late' : 'online',
+    note: !token ? 'لم يتم تسجيل توكن Push على هذا الجهاز.' : minutes > 1440 ? 'الجهاز متأخر عن القراءة اليومية.' : 'الجهاز قراءته حديثة.',
+  };
+  let extra: PushDeviceSnapshot[] = [];
+  try {
+    const raw = localStorage.getItem('alturath_push_devices_readonly') || localStorage.getItem('push_devices_readonly') || '';
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) {
+      extra = parsed.map((item: any, index: number) => {
+        const lastSeen = item?.lastRead || item?.lastConnection || item?.updatedAt || '';
+        const seenTime = lastSeen ? new Date(lastSeen).getTime() : NaN;
+        const seenMinutes = Number.isFinite(seenTime) ? Math.floor((now - seenTime) / 60000) : 999999;
+        return {
+          id: String(item?.id || `device-${index}`),
+          label: String(item?.label || item?.name || `جهاز ${index + 1}`),
+          token: item?.token ? `${String(item.token).slice(0, 12)}...${String(item.token).slice(-6)}` : 'غير موجود',
+          lastConnection: toDate(item?.lastConnection || item?.connectedAt || ''),
+          lastRead: toDate(lastSeen),
+          status: item?.token ? (seenMinutes > 1440 ? 'late' : 'online') : 'unknown',
+          note: seenMinutes > 1440 ? 'متأخر عن آخر قراءة مسجلة.' : 'ضمن القراءة الطبيعية.',
+        } as PushDeviceSnapshot;
+      });
+    }
+  } catch {}
+  return [base, ...extra].filter((item, index, arr) => arr.findIndex(x => x.id === item.id) === index);
+ };
+
  const runPushHealthCheck = async () => {
   setCheckingPushHealth(true);
   try {
@@ -168,6 +228,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
     const ready = status.supported && status.permission === 'granted' && Boolean(token) && serviceWorkerState !== 'غير مسجل';
     const blocked = status.permission === 'denied' || !status.supported;
+    setPushDevices(readPushDeviceSnapshots());
     setPushHealth({
       support: status.supported ? 'مدعوم' : 'غير مدعوم',
       permission: status.permission === 'granted' ? 'مسموح' : status.permission === 'denied' ? 'محظور' : 'بانتظار السماح',
@@ -1101,6 +1162,30 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                       'bg-amber-400/15 border-amber-300/20 text-amber-100'
                     )}>
                       النتيجة: {pushHealth.verdict}
+                    </div>
+                  </div>
+                )}
+                {pushDevices.length > 0 && (
+                  <div className="relative z-10 mt-4 rounded-[1.35rem] border border-white/10 bg-white/10 p-3">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-xs font-black text-white"><Smartphone size={15} /> لوحة الأجهزة المستقبلة للـ Push</div>
+                      <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-white/60">قراءة فقط</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {pushDevices.map((device) => (
+                        <div key={device.id} className="rounded-2xl border border-white/10 bg-slate-950/30 p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <strong className="text-xs font-black text-white">{device.label}</strong>
+                            <span className={cn('rounded-full px-2 py-1 text-[10px] font-black', device.status === 'online' ? 'bg-emerald-400/15 text-emerald-100' : device.status === 'late' ? 'bg-rose-400/15 text-rose-100' : 'bg-amber-400/15 text-amber-100')}>{device.status === 'online' ? 'متصل' : device.status === 'late' ? 'متأخر' : 'غير مكتمل'}</span>
+                          </div>
+                          <div className="mt-2 grid grid-cols-1 gap-1 text-[11px] font-bold text-white/60">
+                            <span>آخر توكن: <b className="text-white/85">{device.token}</b></span>
+                            <span>آخر اتصال: <b className="text-white/85">{device.lastConnection}</b></span>
+                            <span>آخر قراءة: <b className="text-white/85">{device.lastRead}</b></span>
+                          </div>
+                          <p className="mt-2 flex items-center gap-1 text-[11px] font-bold text-white/50"><WifiOff size={12} /> {device.note}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

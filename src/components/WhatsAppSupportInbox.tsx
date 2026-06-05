@@ -485,6 +485,30 @@ const normalizeArabicSearch = (value: string) => String(value || '')
   .replace(/[ًٌٍَُِّْـ]/g, '')
   .trim();
 
+
+const buildTemperatureTimeline = (messages: ChatMessage[], selected?: Conversation | null) => {
+  const source = messages.length ? messages : selected ? [{ id: 'last', direction: (selected.lastMessageDirection === 'outbound' ? 'outbound' : 'inbound') as 'inbound' | 'outbound', text: selected.lastMessageText || selected.lastInboundText || '', createdAt: selected.lastMessageAt }] : [];
+  const scoreMessage = (text: string, direction: string) => {
+    const t = normalizeArabicSearch(text);
+    let score = direction === 'inbound' ? 35 : 18;
+    if (['زعل','غضب','غاضب','شكوى','تأخير','حرام','سيء','غلط','ما يصير','وين','تعبت'].some(w => t.includes(normalizeArabicSearch(w)))) score += 45;
+    if (['عاجل','ضروري','الحين','دفع','فاتورة','مندوب','توصيل'].some(w => t.includes(normalizeArabicSearch(w)))) score += 25;
+    if (direction === 'outbound' && ['حقك علينا','أبشر','أراجع','تم','شكرا','حياك'].some(w => t.includes(normalizeArabicSearch(w)))) score -= 18;
+    return Math.max(5, Math.min(100, score));
+  };
+  const points = source.slice(-7).map((m: any, index) => ({
+    id: m.id || `p-${index}`,
+    label: formatTime(m.createdAt) || `#${index + 1}`,
+    score: scoreMessage(m.text || '', m.direction || 'inbound'),
+    direction: m.direction || 'inbound',
+  }));
+  const last = points[points.length - 1]?.score || 0;
+  const prev = points[points.length - 2]?.score || last;
+  const trend = last >= prev + 10 ? 'يتصاعد' : last <= prev - 10 ? 'يبرد' : 'ثابت';
+  const alert = last >= 75 || (trend === 'يتصاعد' && last >= 60);
+  return { points, trend, alert, last };
+};
+
 const createQuickReplyId = () => `qr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 const loadSavedQuickReplies = (): QuickReply[] => {
@@ -635,6 +659,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   const selectedTemperature = useMemo(() => getCustomerTemperature(selected), [selected]);
   const selectedSlaInfo = useMemo(() => getConversationSlaInfo(selected, slaNowMs), [selected, slaNowMs]);
   const selectedSmartReplies = useMemo(() => getSmartRepliesForConversation(selected, data), [selected, data]);
+  const selectedTempTimeline = useMemo(() => buildTemperatureTimeline(messages, selected), [messages, selected]);
   const activeSmartReply = activeSmartReplySnapshot;
   const urgentReplies = useMemo(() => (
     conversations
@@ -1047,6 +1072,23 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               </div>
 
               <div className="border-b border-slate-100 bg-white px-5 py-3">
+                <div className={cn('mb-3 rounded-3xl border p-4', selectedTempTimeline.alert ? 'border-rose-100 bg-rose-50' : 'border-slate-100 bg-slate-50')}>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                    <div>
+                      <div className="text-[11px] font-black text-slate-500">خط زمني لحرارة العميل · تحليل من الداتا الموجودة فقط</div>
+                      <div className="mt-1 text-sm font-black text-slate-900">الحرارة الآن {selectedTempTimeline.last}/100 · العميل {selectedTempTimeline.trend}</div>
+                    </div>
+                    {selectedTempTimeline.alert && <span className="rounded-full bg-rose-600 px-3 py-1 text-xs font-black text-white">إنذار قبل الغضب</span>}
+                  </div>
+                  <div className="mt-3 flex items-end gap-2 overflow-x-auto pb-1">
+                    {selectedTempTimeline.points.map((point) => (
+                      <div key={point.id} className="min-w-[54px] text-center">
+                        <div className={cn('mx-auto w-4 rounded-full', point.score >= 75 ? 'bg-rose-500' : point.score >= 55 ? 'bg-amber-400' : 'bg-emerald-400')} style={{ height: `${Math.max(18, Math.round(point.score * 0.72))}px` }} />
+                        <div className="mt-1 text-[10px] font-bold text-slate-400">{point.direction === 'outbound' ? 'رد' : 'عميل'}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-center rounded-3xl border border-emerald-100 bg-gradient-to-l from-emerald-50 to-white p-4">
                   <div>
                     <div className="flex items-center gap-2 text-[11px] font-black text-emerald-700">

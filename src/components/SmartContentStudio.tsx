@@ -2436,6 +2436,17 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   ) : null}
                   <span className="absolute bottom-4 right-4 rounded-2xl bg-white/90 px-3 py-2 text-[10px] font-black text-slate-700 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">الإعدادات</span>
                 </button>
+                <div className="rounded-3xl border border-white/10 bg-white/10 p-3 text-white">
+                  <div className="mb-3 flex items-center justify-between"><b className="text-xs font-black">معاينة المقاسات قبل النشر</b><span className="text-[10px] font-black text-white/45">موبايل / تابلت / ديسكتوب</span></div>
+                  <div className="grid grid-cols-3 gap-2 items-end">
+                    {[['موبايل','w-16 aspect-[9/16]'], ['تابلت','w-24 aspect-[4/3]'], ['ديسكتوب','w-full aspect-video']].map(([label, cls]) => (
+                      <div key={label} className="rounded-2xl bg-slate-950/35 border border-white/10 p-2 text-center">
+                        <div className={cn('mx-auto overflow-hidden rounded-xl bg-white/5 border border-white/10', cls)}><img src={generatedImage} alt={label} className="h-full w-full object-contain" /></div>
+                        <div className="mt-2 text-[10px] font-black text-white/60">{label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 {showImageSettings && (
                   <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
@@ -2722,6 +2733,17 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <img src={generatedImage} alt="Generated" className="w-full h-full object-contain bg-white" />
                     <span className="absolute bottom-4 right-4 rounded-2xl bg-slate-950/85 px-3 py-2 text-[10px] font-black text-white shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">الإعدادات</span>
                   </button>
+                  <div className="mx-auto max-w-3xl rounded-3xl border border-slate-100 bg-white p-3 text-slate-900 shadow-sm">
+                    <div className="mb-3 flex items-center justify-between"><b className="text-xs font-black">معاينة كل المقاسات قبل النشر</b><span className="text-[10px] font-black text-slate-400">Mobile / Tablet / Desktop</span></div>
+                    <div className="grid grid-cols-3 gap-2 items-end">
+                      {[['موبايل','w-16 aspect-[9/16]'], ['تابلت','w-24 aspect-[4/3]'], ['ديسكتوب','w-full aspect-video']].map(([label, cls]) => (
+                        <div key={label} className="rounded-2xl bg-slate-50 border border-slate-100 p-2 text-center">
+                          <div className={cn('mx-auto overflow-hidden rounded-xl bg-white border border-slate-100', cls)}><img src={generatedImage} alt={label} className="h-full w-full object-contain" /></div>
+                          <div className="mt-2 text-[10px] font-black text-slate-500">{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                   {showImageSettings && (
                     <div className="mx-auto max-w-3xl rounded-3xl border border-slate-100 bg-white p-4 text-right text-slate-800 shadow-sm">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
