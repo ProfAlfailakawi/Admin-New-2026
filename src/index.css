@@ -3376,9 +3376,13 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
 
 .studio-preview-stage{isolation:isolate;background:radial-gradient(circle at 85% 8%,rgba(99,102,241,.22),transparent 28%),linear-gradient(135deg,#020617,#0f172a 58%,#111827)!important}
 .studio-preview-stage-light{background:linear-gradient(135deg,#f8fafc,#ffffff)!important}
-.studio-production-desk{position:absolute;right:16px;bottom:16px;top:auto;left:auto;z-index:20;width:min(270px,calc(100% - 32px));border:1px solid rgba(255,255,255,.12);background:rgba(2,6,23,.62);color:white;border-radius:18px;padding:10px 12px;text-align:right;backdrop-filter:blur(16px);box-shadow:0 14px 34px rgba(2,6,23,.22);pointer-events:none}
-.studio-preview-stage-light .studio-production-desk{background:rgba(255,255,255,.88);color:#0f172a;border-color:#e2e8f0;box-shadow:0 14px 34px rgba(15,23,42,.08)}
-.studio-production-desk span{display:block;font-size:8px;font-weight:950;letter-spacing:.12em;text-transform:uppercase;color:#a5b4fc}.studio-production-desk strong{display:inline-block;font-size:16px;font-weight:950;margin:2px 0 5px}.studio-production-desk div{font-size:9px;font-weight:850;line-height:1.55;color:rgba(255,255,255,.68);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.studio-preview-stage-light .studio-production-desk div{color:#64748b}
+.studio-production-desk-wrap{position:absolute;right:14px;bottom:14px;z-index:30;display:flex;align-items:flex-end;justify-content:flex-end;pointer-events:none}
+.studio-production-desk-trigger{pointer-events:auto;width:34px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(15,23,42,.72);color:#fff;display:inline-flex;align-items:center;justify-content:center;backdrop-filter:blur(16px);box-shadow:0 10px 28px rgba(2,6,23,.24);transition:transform .18s ease,background .18s ease}
+.studio-production-desk-trigger:hover{transform:translateY(-1px);background:rgba(15,23,42,.88)}
+.studio-preview-stage-light .studio-production-desk-trigger{background:rgba(255,255,255,.86);color:#0f172a;border-color:#e2e8f0;box-shadow:0 10px 24px rgba(15,23,42,.08)}
+.studio-production-desk{position:absolute;right:0;bottom:42px;width:min(230px,70vw);border:1px solid rgba(255,255,255,.13);background:rgba(15,23,42,.84);color:white;border-radius:20px;padding:12px;text-align:right;backdrop-filter:blur(18px);box-shadow:0 18px 45px rgba(2,6,23,.28);pointer-events:auto}
+.studio-preview-stage-light .studio-production-desk{background:rgba(255,255,255,.94);color:#0f172a;border-color:#e2e8f0;box-shadow:0 14px 34px rgba(15,23,42,.08)}
+.studio-production-desk span{display:block;font-size:9px;font-weight:950;letter-spacing:.14em;text-transform:uppercase;color:#a5b4fc}.studio-production-desk strong{display:block;font-size:21px;font-weight:950;margin:3px 0 8px}.studio-production-desk div{font-size:10px;font-weight:850;line-height:1.7;color:rgba(255,255,255,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.studio-preview-stage-light .studio-production-desk div{color:#64748b}
 
 .diwaniya-pulse-live{position:relative;overflow:hidden;border-radius:30px;border:1px solid rgba(148,163,184,.22);background:linear-gradient(135deg,#07130d,#0f172a 58%,#1f2937);padding:16px;box-shadow:0 22px 58px rgba(15,23,42,.16);color:white}
 .pulse-live-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.pulse-live-head span{display:block;color:#f8d98d;font-size:10px;font-weight:950;letter-spacing:.15em;text-transform:uppercase}.pulse-live-head strong{display:block;font-size:22px;font-weight:950;margin-top:3px}.pulse-live-head button{display:inline-flex;align-items:center;gap:7px;border-radius:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);padding:9px 12px;color:#fff;font-size:12px;font-weight:950}
@@ -3386,7 +3390,7 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
 .pulse-live-line:before{content:"";position:absolute;left:6%;right:6%;top:34px;height:3px;border-radius:99px;background:linear-gradient(90deg,#22c55e,#f59e0b,#ef4444)}
 .pulse-live-node{position:absolute;top:21px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:7px;max-width:110px}.pulse-live-node span{width:18px;height:18px;border-radius:999px;background:#f8d98d;border:3px solid #0f172a;box-shadow:0 0 0 8px rgba(248,217,141,.13);animation:opsPulse 1.8s ease-in-out infinite}.pulse-live-node small{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:900;color:rgba(255,255,255,.72)}
 
-@media(max-width:720px){.studio-production-desk{position:relative;top:auto;left:auto;width:100%;margin-bottom:12px}.pulse-live-head{align-items:flex-start;flex-direction:column}.pulse-live-line{height:88px}.whatsapp-ops-lane{min-height:86px}}
+@media(max-width:720px){.studio-production-desk{width:min(220px,76vw)}.pulse-live-head{align-items:flex-start;flex-direction:column}.pulse-live-line{height:88px}.whatsapp-ops-lane{min-height:86px}}
 
 
 /* Mobile spacing fix: reduce empty gap between command brief toggle and dashboard content */
