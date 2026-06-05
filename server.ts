@@ -5904,7 +5904,7 @@ ${JSON.stringify(allComments)}
     .split(",")
     .map((model) => model.trim())
     .filter(Boolean)
-    .concat(["gemini-2.5-flash-image-preview", "gemini-2.0-flash-preview-image-generation"]);
+    .concat(["gemini-3.1-flash-image", "gemini-3-pro-image", "gemini-2.5-flash-image"]);
 
   const generateSmartStudioImage = async (ai: any, args: any) => {
     let lastError: any = null;
