@@ -3031,7 +3031,7 @@ const MainApp: React.FC = () => {
       case 'ai': return <AIAssistant data={data} currentPage={currentPage} />;
       case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
       case 'diwaniya': return <DiwaniyaTournaments data={data} setData={setData} onNavigate={setCurrentPage} />;
-      case 'whatsapp-support': return <WhatsAppSupportInbox />;
+      case 'whatsapp-support': return <WhatsAppSupportInbox data={data} />;
       case 'settings': return <GeneralSettings data={data} setData={setData} appMode={appMode} switchMode={switchMode} addToast={addToast} onCloudImport={onCloudImport} />;
       case 'suppliers-audit': return (
         <SupplierAudit 
