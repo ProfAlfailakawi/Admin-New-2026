@@ -3105,6 +3105,126 @@ app.get("/api/push/debug-tokens", async (req, res) => {
 });
 
 
+
+app.post("/api/push/test-device", async (req, res) => {
+    const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
+    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
+
+    if (!expectedSecret) {
+      return res.status(500).json({ success: false, error: "ADMIN_TEST_SECRET is not configured" });
+    }
+
+    if (receivedSecret !== expectedSecret) {
+      return res.status(401).json({ success: false, error: "Unauthorized test secret" });
+    }
+
+    if (!firebaseInitialized || !db) {
+      return res.status(500).json({ success: false, error: "Firebase not initialized" });
+    }
+
+    try {
+      const { token, title, body, url, userId, deviceLabel } = req.body || {};
+      const cleanToken = String(token || "").trim();
+      if (!cleanToken || cleanToken.length < 50 || !/^[\x20-\x7E]+$/.test(cleanToken)) {
+        return res.status(400).json({ success: false, error: "Valid device token is required" });
+      }
+
+      const eventId = `admin-device-test-${Date.now()}`;
+      const notificationTitle = String(title || "اختبار إشعار تجريبي من الأدمن");
+      const notificationBody = String(body || "هذا إشعار اختبار فقط للتأكد من وصول التنبيه لهذا الجهاز.");
+      const targetUrl = String(url || "https://alturath-admin-0200723670.web.app");
+
+      const message = {
+        token: cleanToken,
+        notification: {
+          title: notificationTitle,
+          body: notificationBody,
+        },
+        data: {
+          type: "admin_device_test",
+          alertType: "admin_device_test",
+          eventId,
+          notificationTag: eventId,
+          url: targetUrl,
+          click_action: targetUrl,
+          title: notificationTitle,
+          body: notificationBody,
+          userId: String(userId || ""),
+          deviceLabel: String(deviceLabel || ""),
+        },
+        webpush: {
+          headers: {
+            Urgency: "high",
+            TTL: "120",
+          },
+          notification: {
+            title: notificationTitle,
+            body: notificationBody,
+            icon: "/icons/icon-192.png",
+            badge: "/icons/icon-192.png",
+            tag: eventId,
+            renotify: true,
+            requireInteraction: true,
+            data: {
+              url: targetUrl,
+              eventId,
+              notificationTag: eventId,
+              alertType: "admin_device_test",
+            },
+          },
+          fcmOptions: {
+            link: targetUrl,
+          },
+        },
+      };
+
+      const responseId = await admin.messaging().send(message as any);
+
+      try {
+        await db.collection("pushEvents").doc(eventId).set(removeUndefinedDeep({
+          eventId,
+          type: "admin_device_test",
+          title: notificationTitle,
+          body: notificationBody,
+          userId: userId || null,
+          deviceLabel: deviceLabel || null,
+          tokenStart: cleanToken.slice(0, 24),
+          tokenLength: cleanToken.length,
+          success: true,
+          responseId,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        }), { merge: true });
+      } catch (logError: any) {
+        console.warn("[PUSH TEST DEVICE LOG ERROR]", logError?.message || logError);
+      }
+
+      return res.json({
+        success: true,
+        tokensCount: 1,
+        successCount: 1,
+        failureCount: 0,
+        eventId,
+        responseId,
+      });
+    } catch (error: any) {
+      const code = error?.code || "unknown";
+      if (
+        code === "messaging/registration-token-not-registered" ||
+        code === "messaging/invalid-registration-token" ||
+        code === "messaging/invalid-argument"
+      ) {
+        try {
+          const cleanToken = String(req.body?.token || "").trim();
+          if (cleanToken) await db.collection("pushTokens").doc(cleanToken).set({ active: false, lastTestError: code, lastTestErrorAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        } catch (cleanupError: any) {
+          console.warn("[PUSH TEST DEVICE CLEANUP ERROR]", cleanupError?.message || cleanupError);
+        }
+      }
+      console.warn("[PUSH TEST DEVICE ERROR]", error?.message || error);
+      return res.status(200).json({ success: false, tokensCount: 1, successCount: 0, failureCount: 1, error: error?.message || String(error), code });
+    }
+  });
+
 app.post("/api/push/test-smart-alert", async (req, res) => {
     console.log("PUSH TEST VERSION", "push-debug-2026-05-08-v1");
     const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
