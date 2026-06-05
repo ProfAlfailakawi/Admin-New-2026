@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import LeafletKuwaitMap from './LeafletKuwaitMap';
 import { AppState } from '../types';
+import { Activity, AlertTriangle, Crown, MapPin, Radar, ShieldCheck, Sparkles, TrendingUp, Users } from 'lucide-react';
 
 interface GeoHeatmapProps {
  data: AppState;
@@ -13,6 +14,11 @@ type MapMarker = {
  revenue: number;
  count: number;
  hasLocation: boolean;
+ customers: Set<string>;
+ profit: number;
+ avgOrder: number;
+ persona: string;
+ risk: string;
 };
 
 type Tile = { key: string; url: string; fallbackUrl: string; left: number; top: number };
@@ -182,6 +188,43 @@ const getAreaName = (item: any, customer: any) => normalizeArabicText(
  'غير محدد'
 );
 
+
+const getInvoiceCostEstimate = (inv: any) => {
+ const explicit = toNumber(inv?.costTotal ?? inv?.totalCost ?? inv?.cost ?? inv?.itemsCost ?? inv?.purchaseCost);
+ if (explicit !== null) return explicit;
+ const items = Array.isArray(inv?.items) ? inv.items : Array.isArray(inv?.cartItems) ? inv.cartItems : [];
+ const itemCost = items.reduce((sum: number, item: any) => {
+  const qty = toNumber(item?.quantity ?? item?.qty) || 1;
+  const cost = toNumber(item?.cost ?? item?.unitCost ?? item?.purchasePrice ?? item?.baseCost);
+  const price = toNumber(item?.price ?? item?.unitPrice ?? item?.totalPrice);
+  return sum + (cost !== null ? cost : price !== null ? price * 0.58 : 0) * qty;
+ }, 0);
+ return itemCost || null;
+};
+
+const getCustomerKey = (inv: any, customer: any) => String(inv?.customerId || inv?.clientId || inv?.phone || customer?.id || customer?.phone || inv?.customerPhone || 'unknown');
+
+const getAreaPersona = (marker: { revenue: number; count: number; profit: number; customers: Set<string> }, maxRev: number) => {
+ const avg = marker.count ? marker.revenue / marker.count : 0;
+ const margin = marker.revenue ? marker.profit / marker.revenue : 0;
+ if (marker.revenue >= maxRev * 0.72) return 'منطقة ذهبية';
+ if (margin >= 0.38 && marker.count >= 2) return 'منطقة ربحية';
+ if (marker.count >= 5 && avg < 7) return 'طلبات كثيرة وهامش يحتاج متابعة';
+ if (marker.customers.size >= 4) return 'ولاء وانتشار';
+ if (avg >= 12) return 'سلة عالية القيمة';
+ return 'نبض ناشئ';
+};
+
+const getAreaRisk = (marker: { revenue: number; count: number; profit: number }) => {
+ const margin = marker.revenue ? marker.profit / marker.revenue : 0;
+ if (marker.count >= 4 && margin < 0.18) return 'ضغط ربح';
+ if (marker.count <= 1) return 'تحتاج عينة أكبر';
+ if (margin >= 0.35) return 'آمنة تجاريًا';
+ return 'راقب العروض والتوصيل';
+};
+
+const fmtMoney = (value: number) => `${Number(value || 0).toFixed(3)} د.ك`;
+
 const lonLatToWorldPixel = (lat: number, lng: number, zoom: number) => {
  const sinLat = Math.sin((Math.max(-85.05112878, Math.min(85.05112878, lat)) * Math.PI) / 180);
  const scale = MAP_TILE_SIZE * 2 ** zoom;
@@ -283,6 +326,11 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
      revenue: 0,
      count: 0,
      hasLocation: Boolean(exactLocation),
+     customers: new Set<string>(),
+     profit: 0,
+     avgOrder: 0,
+     persona: 'نبض ناشئ',
+     risk: 'تحتاج عينة أكبر',
     };
    } else if (!grouped[key].hasLocation && exactLocation) {
     grouped[key].lat = exactLocation.lat;
@@ -290,12 +338,22 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
     grouped[key].hasLocation = true;
    }
 
-   grouped[key].revenue += Number(inv?.totalAmount || inv?.total || inv?.amount || 0);
+   const revenue = Number(inv?.totalAmount || inv?.total || inv?.amount || 0);
+   const cost = getInvoiceCostEstimate(inv);
+   grouped[key].revenue += revenue;
+   grouped[key].profit += Math.max(0, revenue - (cost ?? revenue * 0.58));
    grouped[key].count += 1;
+   grouped[key].customers.add(getCustomerKey(inv, customer));
   });
 
-  const markers = Object.values(grouped).sort((a, b) => b.revenue - a.revenue || b.count - a.count);
-  const maxRev = markers.reduce((max, marker) => Math.max(max, marker.revenue), 1);
+  const rawMarkers = Object.values(grouped);
+  const maxRev = rawMarkers.reduce((max, marker) => Math.max(max, marker.revenue), 1);
+  const markers = rawMarkers.map((marker) => ({
+   ...marker,
+   avgOrder: marker.count ? marker.revenue / marker.count : 0,
+   persona: getAreaPersona(marker, maxRev),
+   risk: getAreaRisk(marker),
+  })).sort((a, b) => b.revenue - a.revenue || b.count - a.count);
   return { markers, maxRev };
  }, [data.invoices, (data as any).customers]);
 
@@ -329,12 +387,63 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
 
  return (
  <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-3xl md:rounded-2xl p-4 shadow-2xl shadow-indigo-900/50 border border-white/10 glass-dark text-white relative overflow-hidden border border-[#f0e6d2]/10">
- <h3 className="text-2xl md:text-3xl font-bold mb-6 sm:mb-8 text-white flex items-center justify-end gap-3 relative z-10 text-right w-full">
- خريطة الذهب الاستراتيجية 🇰🇼
- </h3>
- <p className="text-sm font-bold text-slate-300 text-right mb-4 sm:mb-6 relative z-10">
- توزيع القوة الشرائية وربحية المناطق في الكويت
- </p>
+ <div className="relative z-10 flex flex-col gap-5 mb-5">
+  <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+   <div className="text-right">
+    <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-[10px] font-black text-amber-200 mb-3">
+     <Radar size={14} /> خريطة الكويت التجارية الحية
+    </div>
+    <h3 className="text-2xl md:text-3xl font-black text-white flex items-center justify-end gap-3">
+     رادار المناطق والربح 🇰🇼
+    </h3>
+    <p className="text-sm font-bold text-slate-300 text-right mt-2">
+     قراءة بصرية فقط من الطلبات والعملاء: أين الربح، أين الولاء، وأين يحتاج القرار هدوءًا.
+    </p>
+   </div>
+   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 min-w-full lg:min-w-[520px]">
+    {[
+     { label: 'مناطق نشطة', value: areaData.markers.length, icon: MapPin },
+     { label: 'إيراد مرصود', value: fmtMoney(areaData.markers.reduce((s, m) => s + m.revenue, 0)), icon: TrendingUp },
+     { label: 'عملاء ظاهرون', value: areaData.markers.reduce((s, m) => s + m.customers.size, 0), icon: Users },
+     { label: 'أعلى منطقة', value: areaData.markers[0]?.name || 'غير محدد', icon: Crown },
+    ].map((item) => {
+     const Icon = item.icon;
+     return (
+      <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.06] p-3 text-right backdrop-blur-xl">
+       <div className="flex items-center justify-end gap-2 text-[10px] font-black text-slate-400"><span>{item.label}</span><Icon size={13} /></div>
+       <div className="mt-1 truncate text-sm font-black text-white">{item.value}</div>
+      </div>
+     );
+    })}
+   </div>
+  </div>
+  {areaData.markers.length > 0 && (
+   <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+    {areaData.markers.slice(0, 3).map((marker, index) => (
+     <button
+      key={marker.name}
+      type="button"
+      onClick={() => setActiveRegion(marker.name)}
+      className={`group rounded-3xl border p-4 text-right transition-all ${activeRegion === marker.name ? 'border-amber-300/60 bg-amber-300/15 shadow-lg shadow-amber-900/20' : 'border-white/10 bg-white/[0.05] hover:bg-white/[0.08]'}`}
+     >
+      <div className="flex items-center justify-between gap-3">
+       <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-slate-300">#{index + 1}</span>
+       <div className="font-black text-white truncate">{marker.name}</div>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+       <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">إيراد</div><div className="text-xs font-black text-amber-100">{fmtMoney(marker.revenue)}</div></div>
+       <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">طلبات</div><div className="text-xs font-black text-white">{marker.count}</div></div>
+       <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">متوسط</div><div className="text-xs font-black text-white">{fmtMoney(marker.avgOrder)}</div></div>
+      </div>
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+       <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-black text-emerald-200"><Sparkles size={11} className="inline ml-1" />{marker.persona}</span>
+       <span className="rounded-full bg-rose-400/10 px-3 py-1 text-[10px] font-black text-rose-100"><ShieldCheck size={11} className="inline ml-1" />{marker.risk}</span>
+      </div>
+     </button>
+    ))}
+   </div>
+  )}
+ </div>
 
  <div className="w-full relative p-0 sm:p-2" dir="ltr">
  <LeafletKuwaitMap
@@ -346,7 +455,30 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
   onMarkerClick={(marker) => setActiveRegion(marker.name)}
  />
  </div>
- <p className="text-[10px] text-slate-500 mt-6 font-bold text-center relative z-10 w-full">الدوائر الذهبية الكبيرة تعني تركيزاً وربحية أعلى للمناطق</p>
+ {activeRegion && areaData.markers.find((m) => m.name === activeRegion) && (() => {
+  const marker = areaData.markers.find((m) => m.name === activeRegion)!;
+  const margin = marker.revenue ? Math.round((marker.profit / marker.revenue) * 100) : 0;
+  return (
+   <div className="relative z-10 mt-4 rounded-3xl border border-white/10 bg-white/[0.06] p-4 text-right backdrop-blur-xl">
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+     <div>
+      <div className="text-[10px] font-black text-amber-200">تقرير المنطقة المختارة</div>
+      <div className="text-xl font-black text-white mt-1">{marker.name}</div>
+     </div>
+     <div className="flex flex-wrap justify-end gap-2 text-[10px] font-black">
+      <span className="rounded-full bg-white/10 px-3 py-1 text-slate-200">{marker.persona}</span>
+      <span className="rounded-full bg-white/10 px-3 py-1 text-slate-200">هامش تقديري {margin}%</span>
+      <span className="rounded-full bg-white/10 px-3 py-1 text-slate-200">{marker.hasLocation ? 'إحداثيات دقيقة' : 'تقدير منطقة'}</span>
+     </div>
+    </div>
+    <div className="mt-3 flex items-start justify-end gap-2 rounded-2xl bg-black/15 p-3 text-sm font-bold leading-7 text-slate-200">
+     <span>{marker.risk === 'ضغط ربح' ? 'لا تطلق عروضًا عميقة هنا قبل مراجعة تكلفة التوصيل والهامش.' : marker.persona === 'منطقة ذهبية' ? 'هذه منطقة تستحق ظهورًا أعلى في حملات نهاية الأسبوع والعروض المحدودة.' : 'راقب هذه المنطقة بهدوء؛ القرار الأفضل يعتمد على تكرار الطلب ومتوسط السلة.'}</span>
+     {marker.risk === 'ضغط ربح' ? <AlertTriangle className="mt-1 text-rose-300" size={16} /> : marker.persona === 'منطقة ذهبية' ? <TrendingUp className="mt-1 text-emerald-300" size={16} /> : <Activity className="mt-1 text-amber-200" size={16} />}
+    </div>
+   </div>
+  );
+ })()}
+ <p className="text-[10px] text-slate-500 mt-6 font-bold text-center relative z-10 w-full">الدوائر الذهبية الكبيرة تعني تركيزاً وربحية أعلى للمناطق — قراءة عرضية فقط بدون تعديل أي بيانات.</p>
  </div>
  );
 };
