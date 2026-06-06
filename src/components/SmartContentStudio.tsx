@@ -567,12 +567,59 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     }
   };
 
-  const campaignRecipeItems = (kind: 'image' | 'reel' = 'image') => [
-    { when: 'اليوم', action: kind === 'reel' ? 'انشر الريل كافتتاحية شهية' : 'انشر الصورة كبوست بيع واضح' },
-    { when: 'بعد ساعتين', action: 'حوّلها إلى ستوري مع سؤال: شنو طلبكم اليوم؟' },
-    { when: 'غدًا', action: 'أعد نشر نفس المنتج بزاوية مختلفة أو كابشن أقصر' },
-    { when: 'نهاية الأسبوع', action: 'استخدمها كعرض واتساب سريع للطلبات الجماعية' }
-  ];
+  const getLiveStudioIntelligence = (kind: 'image' | 'idea' | 'reel') => {
+    const isReel = kind === 'reel';
+    const isIdeaImage = !isReel && imageDirectSource === 'idea';
+    const isPhotoImage = !isReel && imageDirectSource === 'image';
+    const isReelFromPhoto = isReel && reelSource === 'image';
+    const isReelFromIdea = isReel && reelSource === 'idea';
+    const productLabel = selectedStudioProductName || currentStudioBrain.primaryProductName || customThemeQuery.trim() || 'الناتج الحالي';
+    const activeShot = reelShots.find((shot) => shot.id === reelShot) || reelShots[0];
+    const place = KUWAIT_PLACES[selectedOrderPlace] || KUWAIT_PLACES.delivery;
+    const formatLabel = selectedFormat === '9:16' ? 'عمودي للستوري والريل' : selectedFormat === '1:1' ? 'مربع للمنشورات' : 'أفقي للعرض الواسع';
+    const moodLabel = selectedMood === 'dramatic' ? 'درامي فاخر' : selectedMood === 'warm' ? 'دافئ وشهي' : selectedMood === 'bright' ? 'مشرق ونظيف' : 'متوازن وواقعي';
+    const nextBestMove = isReel
+      ? (isReelFromPhoto ? 'لا تنتج ريلًا ثانيًا بنفس الصورة الآن؛ الأفضل ستوري ثابت ثم عرض واتساب.' : 'استخدم الريل كافتتاحية، ثم اصنع صورة ثابتة من زاوية مختلفة لنفس الفكرة.')
+      : (isPhotoImage ? 'لا تعيد نشر الصورة الأصلية؛ استخدم الناتج كبوست، ثم اصنع ريل بلقطة مختلفة.' : 'حوّل الفكرة الناجحة إلى ريل قصير، ثم ثبّت الهوية بصورة ثانية لاحقًا.');
+    const audienceRead = isReel
+      ? 'هذا الناتج يخاطب المشاهد السريع؛ أول ثانيتين هي لحظة البيع.'
+      : (selectedFormat === '9:16' ? 'هذا الناتج مناسب للستوري؛ اجعل الرسالة قصيرة ومباشرة.' : 'هذا الناتج مناسب كبوست بيع؛ يحتاج عبارة طلب واضحة لا شرح طويل.');
+    const publishingWindow = isReel
+      ? 'قبل الغداء أو العشاء بـ 60 إلى 90 دقيقة'
+      : (isIdeaImage ? 'بداية اليوم أو قبل إعلان العرض' : 'وقت الذروة أو قبل الطلب المباشر');
+    const avoidMove = isReel
+      ? 'تجنب إعادة نفس الحركة أو نفس زاوية الكاميرا في المنشور التالي.'
+      : 'تجنب نشر صورة ثانية بنفس التكوين حتى لا يشعر العميل بالتكرار.';
+    const directorVerdict = isReel
+      ? `ريل ${isReelFromPhoto ? 'مبني على صورة منتج' : 'مبني على فكرة'} في مشهد ${place.label}؛ قوته في الحركة السريعة لا في كثرة التفاصيل.`
+      : `صورة ${isIdeaImage ? 'مبنية على فكرة' : 'مبنية على صورة منتج'} بصيغة ${formatLabel}؛ قوتها في وضوح الطبق والطلب.`;
+    const campaignSteps = isReel
+      ? [
+          ['الآن', `انشر الريل كافتتاحية لـ ${productLabel} مع عبارة طلب قصيرة.`],
+          ['بعد ساعتين', 'ستوري ثابت بصورة أو لقطة مقربة مع سؤال مباشر للطلب.'],
+          ['غدًا', `صورة ${isReelFromPhoto ? 'بزاوية مختلفة عن الصورة الأصلية' : 'من نفس الفكرة لكن بتكوين أهدأ'}.`],
+          ['نهاية الأسبوع', 'رسالة واتساب مختصرة للطلبات الجماعية أو العائلية.']
+        ]
+      : [
+          ['الآن', `انشر الصورة كبوست واضح لـ ${productLabel}.`],
+          ['بعد ساعتين', 'ستوري مختصر مع زر أو عبارة طلب مباشرة.'],
+          ['غدًا', `ريل قصير بلقطة ${activeShot.label} بدون تكرار نفس التكوين.`],
+          ['نهاية الأسبوع', 'عرض واتساب مبني على نفس الصورة لكن بنص مختلف.']
+        ];
+    const actionCards = [
+      { label: 'قراءة المخرج', value: directorVerdict },
+      { label: 'الخطوة التالية', value: nextBestMove },
+      { label: 'نافذة النشر', value: publishingWindow },
+      { label: 'ما يجب تجنبه', value: avoidMove },
+    ];
+    const scoreChips = [
+      isReel ? 'قوة الحركة عالية' : 'وضوح البيع مهم',
+      `المشهد: ${place.label}`,
+      `النبرة: ${moodLabel}`,
+      audienceRead,
+    ];
+    return { productLabel, activeShot, formatLabel, actionCards, scoreChips, campaignSteps };
+  };
 
   const renderLiveStudioCard = (kind: 'image' | 'idea' | 'reel') => {
     const card = liveStudioCards[kind];
@@ -580,30 +627,15 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     const hasOutput = isReel ? Boolean(generatedReel) : Boolean(generatedImage || aiImage);
     if (!hasOutput) return null;
 
-    const productLabel = selectedStudioProductName || currentStudioBrain.primaryProductName || customThemeQuery.trim() || 'الناتج الحالي';
-    const activeShot = reelShots.find((shot) => shot.id === reelShot) || reelShots[0];
-    const sourceHint = isReel
-      ? (reelSource === 'image' ? 'الريل مبني على صورة طبق؛ الأفضل أن تكون المتابعة بصورة ثابتة لا ريل ثانٍ فوراً.' : 'الريل مبني على فكرة؛ اختبره كافتتاحية ثم غيّر الزاوية في النشر التالي.')
-      : (imageDirectSource === 'image' ? 'الصورة أعادت إخراج طبق موجود؛ لا تكرر نفس الزاوية في الستوري.' : 'الصورة مبنية من فكرة؛ اجعل الريل التالي يشرح نفس الإحساس لا نفس النص.');
-    const smartTips = isReel
-      ? [
-          `انشر الريل كافتتاحية واحدة لـ ${productLabel} ولا تكرر نفس اللقطة في نفس اليوم.`,
-          sourceHint,
-          `أفضل متابعة: ستوري بعد ساعتين بصورة ثابتة أو سؤال طلب مباشر، ثم عرض واتساب آخر اليوم.`,
-        ]
-      : [
-          `استخدم الصورة كبوست بيع واضح لـ ${productLabel}.`,
-          sourceHint,
-          `إذا أعجبتك النتيجة، حوّلها لريل بلقطة مختلفة: ${activeShot.label}.`,
-        ];
+    const intelligence = getLiveStudioIntelligence(kind);
 
     return (
       <details className="group rounded-3xl border border-slate-800 bg-slate-950 text-right text-white shadow-sm overflow-hidden">
         <summary className="cursor-pointer list-none p-4 flex items-center justify-between gap-3 select-none">
           <div>
             <div className="text-[10px] font-black text-emerald-200 uppercase tracking-[0.2em]">الاستوديو الحي</div>
-            <h4 className="mt-1 text-base font-black">اقتراحات ذكية بعد الإنتاج</h4>
-            <p className="mt-1 text-[11px] font-bold text-white/45">تظهر بعد الصورة أو الريل حتى لا تزحم مرحلة التوليد.</p>
+            <h4 className="mt-1 text-base font-black">مخرج تسويق ذكي بعد الإنتاج</h4>
+            <p className="mt-1 text-[11px] font-bold text-white/45">يفتح بعد الناتج فقط ويقترح الخطوة التالية حسب الصورة أو الريل.</p>
           </div>
           <span className="rounded-2xl bg-emerald-300 text-slate-950 px-3 py-1 text-[10px] font-black group-open:hidden">فتح</span>
           <span className="rounded-2xl bg-white/10 text-white px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
@@ -616,6 +648,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               ['مدة الاستخدام', isReel ? card.duration : '24-48 ساعة ثم زاوية جديدة'],
               ['أفضل وقت', card.timing],
               ['قوة التأثير', card.impact],
+              ['صيغة القراءة', intelligence.formatLabel],
             ].map(([label, value]) => (
               <div key={label} className="rounded-2xl bg-black/20 border border-white/10 p-3">
                 <div className="text-[9px] font-black text-white/35 mb-1">{label}</div>
@@ -623,40 +656,52 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               </div>
             ))}
           </div>
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-3">
-            <div className="text-[10px] font-black text-emerald-200 mb-2">ماذا تفعل الآن؟</div>
+
+          <div className="rounded-2xl bg-emerald-300/10 border border-emerald-300/20 p-3">
+            <div className="text-[10px] font-black text-emerald-200 mb-2">توصية المخرج الآن</div>
             <div className="grid gap-2">
-              {smartTips.map((tip, index) => (
-                <div key={tip} className="rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/70 leading-5">
-                  {index + 1}. {tip}
+              {intelligence.actionCards.map((item) => (
+                <div key={item.label} className="rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/75 leading-5">
+                  <span className="text-emerald-200">{item.label}: </span>{item.value}
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {intelligence.scoreChips.map((chip) => (
+              <span key={chip} className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-[10px] font-black text-white/65">{chip}</span>
+            ))}
           </div>
         </div>
       </details>
     );
   };
 
-  const renderCampaignRecipe = (kind: 'image' | 'reel' = 'image') => (
-    <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-right shadow-sm">
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <div>
-          <div className="text-[10px] font-black text-amber-600">وصفة الحملة</div>
-          <h4 className="text-sm font-black text-slate-950">حوّل الناتج إلى خطة نشر قصيرة</h4>
-        </div>
-        <Sparkles size={18} className="text-amber-600" />
-      </div>
-      <div className="grid sm:grid-cols-2 gap-2">
-        {campaignRecipeItems(kind).map((item) => (
-          <div key={item.when} className="rounded-2xl bg-white border border-amber-100 p-3">
-            <div className="text-[10px] font-black text-amber-600">{item.when}</div>
-            <div className="mt-1 text-[11px] font-bold text-slate-700 leading-5">{item.action}</div>
+  const renderCampaignRecipe = (kind: 'image' | 'reel' = 'image') => {
+    const intelligence = getLiveStudioIntelligence(kind);
+    return (
+      <details className="group rounded-3xl border border-amber-200 bg-amber-50 text-right shadow-sm overflow-hidden">
+        <summary className="cursor-pointer list-none p-4 flex items-center justify-between gap-3 select-none">
+          <div>
+            <div className="text-[10px] font-black text-amber-600">وصفة الحملة</div>
+            <h4 className="text-sm font-black text-slate-950">حوّل الناتج إلى خطة نشر قصيرة</h4>
+            <p className="mt-1 text-[11px] font-bold text-slate-500">مغلقة افتراضيًا حتى يبقى الاستوديو نظيفًا.</p>
           </div>
-        ))}
-      </div>
-    </div>
-  );
+          <Sparkles size={18} className="text-amber-600 group-open:hidden" />
+          <span className="rounded-2xl bg-white text-amber-700 border border-amber-100 px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
+        </summary>
+        <div className="px-4 pb-4 grid sm:grid-cols-2 gap-2">
+          {intelligence.campaignSteps.map(([when, action]) => (
+            <div key={when} className="rounded-2xl bg-white border border-amber-100 p-3">
+              <div className="text-[10px] font-black text-amber-600">{when}</div>
+              <div className="mt-1 text-[11px] font-bold text-slate-700 leading-5">{action}</div>
+            </div>
+          ))}
+        </div>
+      </details>
+    );
+  };
 
   const applyStudioSceneChoice = (scene: typeof mergedScenes[number], closePanel: 'create' | 'product') => {
     setSelectedSceneId(scene.id);
