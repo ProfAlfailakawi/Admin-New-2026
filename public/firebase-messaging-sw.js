@@ -43,6 +43,45 @@ async function wasPushAlreadyShown(eventId) {
   return false;
 }
 
+
+function pushAckUrl() {
+  try {
+    return new URL("/api/push/ack", self.location.origin).toString();
+  } catch (e) {
+    return "/api/push/ack";
+  }
+}
+
+async function sendPushReceiptAck(data, status) {
+  const eventId = data?.eventId || data?.parentEventId;
+  if (!eventId) return;
+
+  const payload = {
+    eventId: String(eventId),
+    parentEventId: data?.parentEventId || String(eventId),
+    notificationTag: data?.notificationTag || "",
+    alertType: data?.alertType || "general",
+    status,
+    url: data?.url || "/",
+    clientTimestamp: new Date().toISOString(),
+    source: "firebase-messaging-sw",
+  };
+
+  try {
+    await Promise.race([
+      fetch(pushAckUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      }),
+      new Promise((resolve) => setTimeout(resolve, 1200)),
+    ]);
+  } catch (e) {
+    // Delivery must never fail because receipt logging failed.
+  }
+}
+
 function paymentNotificationTag(alertType, url, eventId) {
   const type = String(alertType || "").toLowerCase();
   if (!type.includes("payment") && !type.includes("invoice")) return eventId;
@@ -117,6 +156,8 @@ self.addEventListener("push", (event) => {
     const oldNotifications = await self.registration.getNotifications({ tag: notificationTag });
     oldNotifications.forEach((notification) => notification.close());
 
+    const notificationData = { url, eventId, parentEventId: eventId, alertType, notificationTag };
+
     await self.registration.showNotification(title, {
       body,
       icon: "/icons/icon-192.png",
@@ -124,18 +165,23 @@ self.addEventListener("push", (event) => {
       tag: notificationTag,
       renotify: false,
       requireInteraction: true,
-      data: { url, eventId, alertType, notificationTag },
+      data: notificationData,
     });
+
+    await sendPushReceiptAck(notificationData, "received");
   })());
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const url = event.notification?.data?.url || "/";
+  const notificationData = event.notification?.data || {};
+  const url = notificationData.url || "/";
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+    Promise.all([
+      sendPushReceiptAck(notificationData, "clicked"),
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
         if ("focus" in client && client.url && client.url.includes(self.location.origin)) {
           if ("navigate" in client) {
@@ -149,5 +195,6 @@ self.addEventListener("notificationclick", (event) => {
         return self.clients.openWindow(url);
       }
     })
+    ])
   );
 });
