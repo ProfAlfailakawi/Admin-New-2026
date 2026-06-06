@@ -4224,18 +4224,21 @@ html body .login-brand-stage h1 {
 }
 /* Push health center: manager-first, readable, scoped to GeneralSettings only. */
 .push-health-pro {
-  color: #0f172a;
+  color: #f8fafc;
+  background: #020617 !important;
 }
 
-.push-health-pro [class*="text-white"] {
-  color: #475569 !important;
+.push-health-pro [class*="text-slate-900"],
+.push-health-pro [class*="text-slate-800"],
+.push-health-pro [class*="text-slate-700"] {
+  color: #f8fafc !important;
 }
 
 .push-health-pro h3,
 .push-health-pro h4,
 .push-health-pro strong,
 .push-health-pro .font-black {
-  color: #0f172a;
+  color: inherit;
 }
 
 .push-health-pro [class*="bg-white/10"],
@@ -4244,53 +4247,53 @@ html body .login-brand-stage h1 {
 .push-health-pro [class*="bg-black/20"],
 .push-health-pro [class*="bg-black/25"],
 .push-health-pro [class*="bg-slate-950"] {
-  background: #ffffff !important;
-  border-color: #e2e8f0 !important;
+  background: rgba(255,255,255,.08) !important;
+  border-color: rgba(255,255,255,.12) !important;
 }
 
 .push-health-pro [class*="border-white/10"],
 .push-health-pro [class*="border-slate-300/20"] {
-  border-color: #e2e8f0 !important;
+  border-color: rgba(255,255,255,.12) !important;
 }
 
 .push-health-pro input {
-  background: #f8fafc !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
+  background: rgba(255,255,255,.08) !important;
+  color: #ffffff !important;
+  border-color: rgba(255,255,255,.14) !important;
 }
 
 .push-health-pro input::placeholder {
-  color: #94a3b8 !important;
+  color: rgba(255,255,255,.45) !important;
 }
 
 .push-health-pro button.bg-white {
-  background: #0f172a !important;
-  color: #ffffff !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
 }
 
 .push-health-pro button.bg-white:hover {
-  background: #1e293b !important;
+  background: #ecfdf5 !important;
 }
 
 .push-health-pro .bg-emerald-400\/15,
 .push-health-pro .bg-emerald-400\/12 {
-  background: #ecfdf5 !important;
+  background: rgba(52,211,153,.14) !important;
 }
 
 .push-health-pro .bg-amber-400\/15,
 .push-health-pro .bg-amber-400\/12 {
-  background: #fffbeb !important;
+  background: rgba(251,191,36,.14) !important;
 }
 
 .push-health-pro .bg-rose-400\/15,
 .push-health-pro .bg-rose-400\/12 {
-  background: #fff1f2 !important;
+  background: rgba(251,113,133,.14) !important;
 }
 
 .push-health-pro .bg-sky-400\/12 {
-  background: #f0f9ff !important;
+  background: rgba(56,189,248,.14) !important;
 }
 
 .push-health-pro code {
-  color: #047857 !important;
+  color: #a7f3d0 !important;
 }

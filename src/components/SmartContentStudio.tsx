@@ -151,6 +151,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [reelDuration, setReelDuration] = useState<number>(4);
   const [reelShot, setReelShot] = useState<string>('hero-push');
   const [reelSource, setReelSource] = useState<'idea' | 'image'>('idea');
+  const [reelDirectSource, setReelDirectSource] = useState<'idea' | 'image' | 'menu'>('idea');
+  const [imageDirectSource, setImageDirectSource] = useState<'image' | 'idea' | 'menu'>('image');
   const [generatedReel, setGeneratedReel] = useState<string | null>(null);
   const [isGeneratingReel, setIsGeneratingReel] = useState(false);
   const [showReelSettings, setShowReelSettings] = useState(false);
@@ -888,6 +890,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       setSelectedImage(result.base64);
       setCompressionStats({ original: result.originalSize, compressed: result.size });
       setReelSource('image');
+      setReelDirectSource('image');
       setGeneratedReel(null);
       setShowReelSettings(false);
       setShowReelShotList(false);
@@ -1390,9 +1393,16 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   const buildReelSettingsText = (item?: Partial<StudioReelHistoryItem>) => {
     const shot = reelShots.find((s) => s.id === (item?.shot || reelShot));
     const placeId = item?.place || selectedOrderPlace;
+    const sourceLabel = item?.source
+      ? (item.source === 'image' ? 'من صورة' : 'من فكرة')
+      : reelDirectSource === 'menu'
+        ? 'من المنيو'
+        : reelSource === 'image'
+          ? 'من صورة'
+          : 'من فكرة';
     return [
       `المسار: ريل قصير`,
-      `المصدر: ${(item?.source || reelSource) === 'image' ? 'من صورة' : 'من فكرة'}`,
+      `المصدر: ${sourceLabel}`,
       `المقاس: 9:16`,
       `المدة: ${item?.duration || reelDuration} ثواني`,
       `اللقطة: ${shot?.label || reelShot}`,
@@ -1959,7 +1969,10 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
   const startFreshImageUpload = () => {
     resetGeneratedOutput();
+    setImageDirectSource('image');
     setSelectedImage(null);
+    setOriginalImage(null);
+    setCompressedImage(null);
     setCompressionStats(null);
     setProductStep(1);
     setMaxProductStepReached(1);
@@ -2004,8 +2017,15 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     const modeId = item?.mode || realityMode;
     const moodLabel = item?.mood || selectedMood;
     const ideaText = item?.customIdea || customThemeQuery;
+    const sourceLabel = item?.source === 'image'
+      ? 'من صورة'
+      : imageDirectSource === 'menu' && studioTab === 'create'
+        ? 'من المنيو'
+        : studioTab === 'product'
+          ? imageDirectSource === 'menu' ? 'من المنيو' : 'من صورة'
+          : 'من فكرة';
     return [
-      `المسار: ${(item?.source || (studioTab === 'product' ? 'image' : 'idea')) === 'image' ? 'من صورة' : 'من فكرة'}`,
+      `المسار: ${sourceLabel}`,
       `المقاس: ${formatLabel}`,
       `المشهد: ${sceneLabel} / ${KUWAIT_PLACES[placeId]?.label || KUWAIT_PLACES[selectedOrderPlace]?.label}`,
       `الإضاءة: ${moods.find((m) => m.id === moodLabel)?.label || moodLabel}`,
@@ -2063,11 +2083,58 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     resetGeneratedOutput();
     setSelectedFormat('9:16');
     setReelSource('idea');
+    setReelDirectSource('idea');
     setGeneratedReel(null);
     setShowReelSettings(false);
     setReelSubTab('generate');
     setReelStep(4);
     setStudioTab('reel');
+  };
+
+  const openReelDirect = () => {
+    closeOpenPanels();
+    resetGeneratedOutput();
+    setSelectedFormat('9:16');
+    setReelStep(1);
+    setReelSource('idea');
+    setReelDirectSource('idea');
+    setSelectedImage(null);
+    setOriginalImage(null);
+    setCompressedImage(null);
+    setCompressionStats(null);
+    setGeneratedReel(null);
+    setShowReelSettings(false);
+    setReelSubTab('generate');
+    setStudioTab('reel');
+  };
+
+  const openImageDirect = () => {
+    closeOpenPanels();
+    resetGeneratedOutput();
+    setImageDirectSource('image');
+    setSelectedImage(null);
+    setOriginalImage(null);
+    setCompressedImage(null);
+    setCompressionStats(null);
+    setProductStep(1);
+    setMaxProductStepReached(1);
+    setStudioTab('product');
+  };
+
+  const openImageIdeaDirect = () => {
+    if (!customThemeQuery.trim()) {
+      toast.error('اكتب فكرة الصورة أولاً');
+      return;
+    }
+    closeOpenPanels();
+    resetGeneratedOutput();
+    setImageDirectSource('idea');
+    setSelectedFormat('1:1');
+    setSelectedTheme('نبض الكويت');
+    setCreateStep(6);
+    setMaxCreateStepReached(6);
+    setCreateSubTab('custom');
+    setStudioTab('create');
   };
 
   const openMenuGenerator = (target: 'image' | 'reel') => {
@@ -2086,6 +2153,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     setRealityMode('finalBoss');
     setSelectedMood('ناعم');
     if (target === 'image') {
+      setImageDirectSource('menu');
       setSelectedFormat('1:1');
       setCreateSubTab('custom');
       setMaxCreateStepReached(6);
@@ -2096,6 +2164,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     }
     setSelectedFormat('9:16');
     setReelSource('idea');
+    setReelDirectSource('menu');
     setGeneratedReel(null);
     setShowReelSettings(false);
     setReelSubTab('generate');
@@ -2165,19 +2234,19 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
             <div>
               <p className="text-xs font-black text-indigo-500 mb-1">اختَر مسار الإنتاج</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">معمارية إنتاج واضحة</h2>
-              <p className="text-xs sm:text-sm font-bold text-slate-400 mt-2 leading-6">ترتيب واضح حسب طريقة البداية: ريل، صورة، منيو، أو فكرة.</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">ابدأ بالناتج، والباقي داخل المسار</h2>
+              <p className="text-xs sm:text-sm font-bold text-slate-400 mt-2 leading-6">مساران فقط: ريل مباشر أو صورة مباشرة. داخل كل مسار تختار: من فكرة، من صورة، أو من المنيو.</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3 mb-3">
             <div className="h-px flex-1 bg-slate-100" />
-            <span className="text-[11px] font-black text-slate-400">إنتاج مباشر</span>
+            <span className="text-[11px] font-black text-slate-400">المسارات الرئيسية</span>
             <div className="h-px flex-1 bg-slate-100" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5 mb-6">
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setSelectedFormat('9:16'); setReelStep(1); setReelSource('idea'); setGeneratedReel(null); setShowReelSettings(false); setReelSubTab('generate'); setStudioTab('reel'); }} className="group rounded-[2rem] border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-5 sm:p-6 text-right transition-all hover:-translate-y-0.5 hover:shadow-lg min-h-[210px] flex flex-col justify-between overflow-hidden relative">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
+            <button onClick={openReelDirect} className="group rounded-[2rem] border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-5 sm:p-6 text-right transition-all hover:-translate-y-0.5 hover:shadow-lg min-h-[260px] flex flex-col justify-between overflow-hidden relative">
               <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-violet-200/40 blur-2xl" />
               <div className="relative flex items-center justify-between gap-3">
                 <span className="h-13 w-13 rounded-3xl bg-white border border-violet-100 shadow-sm flex items-center justify-center text-violet-600"><Film size={25} /></span>
@@ -2185,49 +2254,29 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               </div>
               <div className="relative mt-7">
                 <div className="text-2xl font-black text-slate-950 leading-tight">ريل مباشر</div>
-                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">غرفة مونتاج سريعة: فكرة أو صورة، لقطة، مدة، ثم توليد.</div>
+                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">غرفة مونتاج واحدة: من فكرة، من صورة، أو من المنيو. بعدها لقطة، مدة، وتوليد.</div>
+                <div className="mt-5 grid grid-cols-3 gap-2 text-center text-[10px] font-black">
+                  <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">فكرة</span>
+                  <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">صورة</span>
+                  <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">منيو</span>
+                </div>
               </div>
             </button>
 
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setProductStep(1); setMaxProductStepReached(1); setStudioTab('product'); }} className="group rounded-[2rem] border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-slate-50 p-5 sm:p-6 text-right transition-all hover:-translate-y-0.5 hover:shadow-lg min-h-[210px] flex flex-col justify-between overflow-hidden relative">
+            <button onClick={openImageDirect} className="group rounded-[2rem] border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-slate-50 p-5 sm:p-6 text-right transition-all hover:-translate-y-0.5 hover:shadow-lg min-h-[260px] flex flex-col justify-between overflow-hidden relative">
               <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-indigo-200/40 blur-2xl" />
               <div className="relative flex items-center justify-between gap-3">
                 <span className="h-13 w-13 rounded-3xl bg-white border border-indigo-100 shadow-sm flex items-center justify-center text-indigo-600"><Camera size={25} /></span>
-                <span className="rounded-full bg-indigo-600 text-white px-4 py-2 text-xs font-black shadow-sm">من صورة جاهزة</span>
+                <span className="rounded-full bg-indigo-600 text-white px-4 py-2 text-xs font-black shadow-sm">صورة / تصميم</span>
               </div>
               <div className="relative mt-7">
-                <div className="text-2xl font-black text-slate-950 leading-tight">من صورة</div>
-                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">الصورة هي البطل: ارفعها، اضبط المقاس، ثم عاين النتيجة.</div>
-              </div>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-px flex-1 bg-slate-100" />
-            <span className="text-[11px] font-black text-slate-400">إنتاج من مصدر</span>
-            <div className="h-px flex-1 bg-slate-100" />
-          </div>
-
-          <div className="smart-studio-home-grid grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 auto-rows-fr">
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setMenuOutputType('image'); setStudioTab('storyboard'); }} className="smart-studio-home-card rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden min-h-[150px] flex flex-col justify-between">
-              <div className="flex items-center justify-between gap-3">
-                <Layout className="text-emerald-600" size={25} />
-                <span className="rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-[10px] font-black">من وجبة</span>
-              </div>
-              <div>
-                <div className="font-black text-slate-900 text-lg">من المنيو</div>
-                <div className="text-xs font-bold text-slate-400 mt-1 leading-5">كتالوج إنتاج: اختر الوجبة ثم حدد صورة أو ريل.</div>
-              </div>
-            </button>
-
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setCreateSubTab('custom'); setStudioTab('create'); }} className="smart-studio-home-card rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all min-h-[150px] flex flex-col justify-between">
-              <div className="flex items-center justify-between gap-3">
-                <ImageIcon className="text-indigo-500" size={25} />
-                <span className="rounded-full bg-white border border-slate-100 text-slate-500 px-3 py-1 text-[10px] font-black">بدون صورة</span>
-              </div>
-              <div>
-                <div className="font-black text-slate-900 text-lg">صورة من فكرة</div>
-                <div className="text-xs font-bold text-slate-400 mt-1 leading-5">لوحة إبداع هادئة عندما تبدأ من وصف فقط.</div>
+                <div className="text-2xl font-black text-slate-950 leading-tight">صورة مباشرة</div>
+                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">استوديو صورة واحد: ارفع صورة، اكتب فكرة، أو اختر من المنيو ثم ولّد صورة جاهزة للنشر.</div>
+                <div className="mt-5 grid grid-cols-3 gap-2 text-center text-[10px] font-black">
+                  <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">صورة</span>
+                  <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">فكرة</span>
+                  <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">منيو</span>
+                </div>
               </div>
             </button>
           </div>
@@ -2252,7 +2301,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               return reelHistory.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                   {reelHistory.map((item, idx) => (
-                    <button key={idx} onClick={() => { setGeneratedReel(item.url); setReelDuration(item.duration); setReelShot(item.shot); setReelSource(item.source); if (item.idea) setCustomThemeQuery(item.idea); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); setShowReelSettings(true); setStudioTab('reel'); }} className="group rounded-3xl overflow-hidden border border-slate-100 bg-slate-950 shadow-sm hover:shadow-md transition-all text-right">
+                    <button key={idx} onClick={() => { setGeneratedReel(item.url); setReelDuration(item.duration); setReelShot(item.shot); setReelSource(item.source); setReelDirectSource(item.source); if (item.idea) setCustomThemeQuery(item.idea); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); setShowReelSettings(true); setStudioTab('reel'); }} className="group rounded-3xl overflow-hidden border border-slate-100 bg-slate-950 shadow-sm hover:shadow-md transition-all text-right">
                       {item.url?.startsWith('data:image') ? <img src={item.url} className="w-full aspect-[9/16] object-cover bg-black" alt="ريل موشن" /> : <video src={item.url} className="w-full aspect-[9/16] object-cover bg-black" muted playsInline />}
                       <div className="p-3 text-[11px] font-bold text-white/70 line-clamp-2">ريل {item.duration} ثواني · {reelShots.find(s => s.id === item.shot)?.label || 'لقطة واقعية'}</div>
                     </button>
@@ -2429,15 +2478,77 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
                 {reelStep === 1 && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setReelSource('idea')} className={cn("rounded-2xl border p-4 text-right transition-all", reelSource === 'idea' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}><Sparkles size={18} className="mb-2" /><span className="block text-sm font-black">من فكرة</span></button>
-                  <button type="button" onClick={() => setReelSource('image')} className={cn("rounded-2xl border p-4 text-right transition-all", reelSource === 'image' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}><Camera size={18} className="mb-2" /><span className="block text-sm font-black">من صورة</span></button>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReelDirectSource('idea');
+                      setReelSource('idea');
+                      setSelectedImage(null);
+                      setOriginalImage(null);
+                      setCompressedImage(null);
+                    }}
+                    className={cn("rounded-2xl border p-3 text-right transition-all", reelDirectSource === 'idea' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
+                  >
+                    <Sparkles size={18} className="mb-2" />
+                    <span className="block text-sm font-black">من فكرة</span>
+                    <span className="block text-[10px] font-bold mt-1 opacity-70">وصف سريع</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReelDirectSource('image');
+                      setReelSource('image');
+                    }}
+                    className={cn("rounded-2xl border p-3 text-right transition-all", reelDirectSource === 'image' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
+                  >
+                    <Camera size={18} className="mb-2" />
+                    <span className="block text-sm font-black">من صورة</span>
+                    <span className="block text-[10px] font-bold mt-1 opacity-70">طبق جاهز</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReelDirectSource('menu');
+                      setReelSource('idea');
+                      setSelectedImage(null);
+                      setOriginalImage(null);
+                      setCompressedImage(null);
+                    }}
+                    className={cn("rounded-2xl border p-3 text-right transition-all", reelDirectSource === 'menu' ? "bg-violet-600 text-white border-violet-600 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
+                  >
+                    <Layout size={18} className="mb-2" />
+                    <span className="block text-sm font-black">من المنيو</span>
+                    <span className="block text-[10px] font-bold mt-1 opacity-70">اختيار ذكي</span>
+                  </button>
                 </div>
-                {reelSource === 'idea' && (
+                {reelDirectSource === 'idea' && (
                   <input type="text" placeholder="مثال: لقطة مجبوس حار يفتح الشهية لريلز إنستغرام..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-violet-500 transition-all duration-300 animate-in fade-in" />
                 )}
-                {renderAlturathBrainCard('reel')}
-                {reelSource === 'image' && (
+                {reelDirectSource === 'menu' && (
+                  <div className="rounded-3xl border border-violet-100 bg-violet-50/60 p-3 space-y-3">
+                    <div>
+                      <div className="text-xs font-black text-violet-700">اختر وجبة من المنيو</div>
+                      <div className="text-[11px] font-bold text-violet-900/60 mt-1">نجهز اسم المنتج والمشهد واللقطة، ثم تكمل نفس مسار الريل.</div>
+                    </div>
+                    <select
+                      value={selectedStudioProductId}
+                      onChange={(e) => {
+                        setSelectedStudioProductId(e.target.value);
+                        const prod = data?.products?.find((p: any) => String(p.id) === String(e.target.value));
+                        if (prod) handleStudioIdeaChange(getAlturathProductName(prod));
+                      }}
+                      className="w-full rounded-2xl border border-violet-100 bg-white p-3 text-xs font-black text-slate-700 focus:outline-none focus:border-violet-400 text-right"
+                    >
+                      <option value="">اختر وجبة من المنيو</option>
+                      {data?.products?.map((p: any) => (
+                        <option key={p.id} value={p.id}>{getAlturathProductName(p)}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {reelDirectSource !== 'image' && renderAlturathBrainCard('reel')}
+                {reelDirectSource === 'image' && (
                   <div onClick={() => reelImageInputRef.current?.click()} className="rounded-3xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-5 cursor-pointer text-center">
                     <input type="file" ref={reelImageInputRef} className="hidden" accept="image/*" onChange={handleReelImageUpload} />
                     {selectedImage ? <img src={selectedImage} alt="صورة الريل المختارة" className="mx-auto mb-3 h-40 w-full rounded-2xl object-cover border border-violet-100 bg-white" /> : <Camera className="mx-auto mb-2 text-violet-600" size={26} />}
@@ -2864,16 +2975,86 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <div className="space-y-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-black text-indigo-500 mb-1">من صورة</p>
-                    <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">ارفع صورة المنتج</h2>
-                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">ابدأ من الصورة نفسها؛ بعدها تظهر الخطوات القصيرة حولها.</p>
+                    <p className="text-xs font-black text-indigo-500 mb-1">صورة مباشرة</p>
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">اختر مصدر الصورة</h2>
+                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">ابدأ من صورة جاهزة، فكرة، أو وجبة من المنيو. كلها داخل نفس مسار الصورة.</p>
                   </div>
                 </div>
-                <div onClick={() => productImageInputRef.current?.click()} className="w-full h-72 sm:h-96 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-gradient-to-br from-indigo-50 via-white to-white rounded-[2.2rem] flex flex-col items-center justify-center cursor-pointer transition-all group shadow-inner">
-                  <div className="w-24 h-24 rounded-[2rem] bg-indigo-100 flex items-center justify-center mb-6 group-hover:scale-110 shadow-sm transition-transform"><Camera className="w-10 h-10 text-indigo-600" /></div>
-                  <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">ارفع صورة المنتج</h3>
-                  <p className="text-slate-500 text-sm font-bold">JPG / PNG</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setImageDirectSource('image')}
+                    className={cn("rounded-2xl border p-3 text-right transition-all", imageDirectSource === 'image' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
+                  >
+                    <Camera size={18} className="mb-2" />
+                    <span className="block text-sm font-black">من صورة</span>
+                    <span className="block text-[10px] font-bold mt-1 opacity-70">منتج جاهز</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageDirectSource('idea')}
+                    className={cn("rounded-2xl border p-3 text-right transition-all", imageDirectSource === 'idea' ? "bg-indigo-600 text-white border-indigo-600 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
+                  >
+                    <Sparkles size={18} className="mb-2" />
+                    <span className="block text-sm font-black">من فكرة</span>
+                    <span className="block text-[10px] font-bold mt-1 opacity-70">وصف فقط</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageDirectSource('menu')}
+                    className={cn("rounded-2xl border p-3 text-right transition-all", imageDirectSource === 'menu' ? "bg-emerald-600 text-white border-emerald-600 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
+                  >
+                    <Layout size={18} className="mb-2" />
+                    <span className="block text-sm font-black">من المنيو</span>
+                    <span className="block text-[10px] font-bold mt-1 opacity-70">وجبة جاهزة</span>
+                  </button>
                 </div>
+                {imageDirectSource === 'image' && (
+                  <div onClick={() => productImageInputRef.current?.click()} className="w-full h-72 sm:h-96 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-gradient-to-br from-indigo-50 via-white to-white rounded-[2.2rem] flex flex-col items-center justify-center cursor-pointer transition-all group shadow-inner">
+                    <div className="w-24 h-24 rounded-[2rem] bg-indigo-100 flex items-center justify-center mb-6 group-hover:scale-110 shadow-sm transition-transform"><Camera className="w-10 h-10 text-indigo-600" /></div>
+                    <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">ارفع صورة المنتج</h3>
+                    <p className="text-slate-500 text-sm font-bold">JPG / PNG</p>
+                  </div>
+                )}
+                {imageDirectSource === 'idea' && (
+                  <div className="rounded-[2rem] border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4 space-y-3">
+                    <div>
+                      <div className="text-xs font-black text-indigo-700">صورة من فكرة</div>
+                      <div className="text-[11px] font-bold text-indigo-900/60 mt-1">تكتب الفكرة، ثم نفتح لك نفس لوحة الصورة بخطوة التوليد.</div>
+                    </div>
+                    <input type="text" placeholder="مثال: صورة مجبوس دجاج للبيت بإضاءة دافئة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-indigo-100 bg-white text-sm text-right focus:outline-none focus:border-indigo-500" />
+                    {renderAlturathBrainCard('image')}
+                    <button type="button" onClick={openImageIdeaDirect} className="w-full p-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-lg flex items-center justify-center gap-2">
+                      <Sparkles size={18} /> فتح توليد الصورة
+                    </button>
+                  </div>
+                )}
+                {imageDirectSource === 'menu' && (
+                  <div className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 space-y-3">
+                    <div>
+                      <div className="text-xs font-black text-emerald-700">صورة من المنيو</div>
+                      <div className="text-[11px] font-bold text-emerald-900/60 mt-1">اختر وجبة، ونجهزها كصورة واقعية مباشرة.</div>
+                    </div>
+                    <select
+                      value={selectedStudioProductId}
+                      onChange={(e) => {
+                        setSelectedStudioProductId(e.target.value);
+                        const prod = data?.products?.find((p: any) => String(p.id) === String(e.target.value));
+                        if (prod) handleStudioIdeaChange(getAlturathProductName(prod));
+                      }}
+                      className="w-full rounded-2xl border border-emerald-100 bg-white p-3 text-xs font-black text-slate-700 focus:outline-none focus:border-emerald-400 text-right"
+                    >
+                      <option value="">اختر وجبة من المنيو</option>
+                      {data?.products?.map((p: any) => (
+                        <option key={p.id} value={p.id}>{getAlturathProductName(p)}</option>
+                      ))}
+                    </select>
+                    {renderAlturathBrainCard('image')}
+                    <button type="button" onClick={() => openMenuGenerator('image')} className="w-full p-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg flex items-center justify-center gap-2">
+                      <Sparkles size={18} /> فتح توليد الصورة
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-5">
@@ -3158,7 +3339,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <button onClick={handleDownload} title="تحميل" aria-label="تحميل" className="h-12 w-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center"><Download size={18} /></button>
                     <button type="button" onClick={makeMoreHuman} disabled={isGenerating || !generatedImage} title="اجعلها أصدق" aria-label="اجعلها أصدق" className="h-12 w-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center disabled:opacity-50"><Sparkles size={18} /></button>
                     <button type="button" onClick={markCurrentStyleAsAvoided} title="لا تكرر الأسلوب" aria-label="لا تكرر الأسلوب" className="h-12 w-12 bg-white border border-slate-200 text-slate-700 rounded-2xl flex items-center justify-center"><X size={18} /></button>
-                    <button type="button" onClick={() => { setReelSource('image'); setSelectedImage(generatedImage); setGeneratedReel(null); setShowReelSettings(false); setStudioTab('reel'); setReelStep(1); }} className="h-12 px-5 min-w-[150px] bg-violet-600 hover:bg-violet-700 text-white rounded-2xl flex items-center justify-center gap-2 font-black text-xs shadow-md transition-all animate-in fade-in"><Film size={16} /> حولها لريل</button>
+                    <button type="button" onClick={() => { setReelSource('image'); setReelDirectSource('image'); setSelectedImage(generatedImage); setGeneratedReel(null); setShowReelSettings(false); setStudioTab('reel'); setReelStep(1); }} className="h-12 px-5 min-w-[150px] bg-violet-600 hover:bg-violet-700 text-white rounded-2xl flex items-center justify-center gap-2 font-black text-xs shadow-md transition-all animate-in fade-in"><Film size={16} /> حولها لريل</button>
                   </div>
 
                   <div className="pt-4 border-t border-slate-100 w-full max-w-3xl mx-auto flex flex-col items-center gap-3">
