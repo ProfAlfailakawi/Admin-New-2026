@@ -596,7 +596,7 @@ Alturath.kw`;
       const min = isCoverage
         ? suggested
         : (rule.mode === 'required' ? Math.max(baseMin, suggested) : baseMin);
-      const max = isCoverage ? suggested : Math.max(min, baseMax);
+      const max = isCoverage ? Math.max(min, baseMax, suggested) : Math.max(min, baseMax);
       return { available: true, min, max, suggested: Math.min(max, Math.max(min, suggested)), minProductQty };
     };
 
@@ -653,6 +653,10 @@ Alturath.kw`;
           if (!limits.available && qty > 0) {
             toast.error(`الإضافة "${addon.name}" غير متاحة لكمية ${product.name} الحالية`);
             return false;
+          }
+          const isForcedAddon = addon?.isRequired || addon?.quantityRule?.mode === "required" || addon?.quantityRule?.mode === "auto";
+          if (limits.available && qty <= 0 && !isForcedAddon) {
+            continue;
           }
           if (limits.available && qty < limits.min) {
             toast.error(`الإضافة "${addon.name}" تحتاج حد أدنى ${limits.min}`);
@@ -752,8 +756,15 @@ Alturath.kw`;
             if (!limits.available) return { ...a, quantity: 0 };
             const min = limits.min;
             const max = limits.max;
+            const isForcedAddon = a?.isRequired || a?.quantityRule?.mode === "required" || a?.quantityRule?.mode === "auto";
             const rawNext = isCoverageRangeAddon(a) && cur <= 0 && delta > 0 ? limits.suggested : cur + delta;
-            const next = Math.max(min, Math.min(max, rawNext));
+            let next = Math.max(min, Math.min(max, rawNext));
+            if (!isForcedAddon && delta < 0 && cur <= min) {
+              next = 0;
+            }
+            if (!isForcedAddon && rawNext <= 0) {
+              next = 0;
+            }
             return { ...a, quantity: next };
           }
           return a;
@@ -1678,7 +1689,7 @@ Alturath.kw`;
                                           }
                                           className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 rounded text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed"
                                           disabled={
-                                            !limits.available || currentQty <= limits.min
+                                            !limits.available || currentQty <= 0 || ((a.isRequired || a.quantityRule?.mode === "required" || a.quantityRule?.mode === "auto") && currentQty <= limits.min)
                                           }
                                         >
                                           <Minus size={11} />
