@@ -6297,7 +6297,7 @@ ${JSON.stringify(allComments)}
     .split(",")
     .map((model) => model.trim())
     .filter(Boolean)
-    .concat(["gemini-3.1-flash-image", "gemini-3-pro-image", "gemini-2.5-flash-image"]);
+    .concat(["gemini-2.5-flash-image-preview", "gemini-2.0-flash-preview-image-generation", "gemini-2.5-flash-image", "gemini-3.1-flash-image", "gemini-3-pro-image"]);
 
   const generateSmartStudioImage = async (ai: any, args: any) => {
     let lastError: any = null;
@@ -6355,8 +6355,9 @@ ${JSON.stringify(allComments)}
 قواعد قفل الطبق (غير قابلة للكسر):
 - حافظ على الطبق/الصحن/الوعاء نفسه، نفس الطعام، نفس المكونات، نفس الصوص، نفس القوام، نفس الكمية، نفس الحواف، نفس طريقة التقديم.
 - ممنوع اختراع مكونات، ممنوع تغيير الصحن، ممنوع إضافة/حذف توبنغ، ممنوع تبديل الوصفة.
-- المسموح فقط: ترتيب بسيط للحواف، تحسين قص خفيف، دمج إضاءة وظلال واقعية، وتغيير الخلفية/الطاولة/العمق فقط.
-${strictPlateLock !== false ? '- قفل صارم: لا تبدّل الصحن إطلاقاً، لا تغيّر شكل الطبق، لا تضف أو تحذف أي مكون حتى لو كان التحسين أجمل.\n' : ''}
+- المطلوب ليس إرجاع نفس الصورة الأصلية ولا نسخها كما هي؛ المطلوب تصوير جديد/إخراج جديد لنفس الطبق بهوية محفوظة وخلفية وإضاءة وتكوين احترافي مختلف.
+- المسموح: إعادة إخراج التكوين، تحسين زاوية التصوير، تنظيف الخلفية، تغيير الطاولة/العمق/الإضاءة، مع بقاء هوية الطبق والمكونات والكمية منطقية وواضحة.
+${strictPlateLock !== false ? '- قفل صارم للهوية فقط: لا تبدّل الوصفة ولا نوع البروتين ولا المكونات الأساسية، لكن لا تكرر نفس لقطة المصدر pixel-by-pixel ولا تعرضها كأنها توليد جديد.\n' : ''}
 
 قواعد هوية الطلب الكويتي والمكان الواقعي:
 - هوية النشاط: عيوش، أكل شعبي، أسماك، محاشي، ورق عنب، ومشاوي أحياناً؛ الطلبات منزلية وتصل للبيت والديوانية والشاليه والمزرعة والجاخور والزوارة؛ ممنوع تحويل المشهد إلى مطعم جلوس أو كافيه أو قهوة أو ديكور ضيافة.
@@ -6384,8 +6385,8 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
       if (format === '4:3') { width = 960; height = 720; ar = '4:3'; }
 
       if (!process.env.GEMINI_API_KEY) {
-        console.warn("[Smart Studio] No API key configured. Returning original image as fallback simulation.");
-        return res.json({ imageUrl: `data:${mimeType || "image/jpeg"};base64,${imageContent}`, simulated: true });
+        console.warn("[Smart Studio] No API key configured. Refusing to return the original uploaded image as a fake generation.");
+        return res.status(503).json({ error: "توليد الصور غير مفعّل على الخادم حالياً: مفتاح Gemini غير موجود. لم نرجع الصورة الأصلية حتى لا تظهر كتوليد مكرر.", needsKey: true });
       }
 
       const ai = new GoogleGenAI({
@@ -6420,8 +6421,9 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
 
       res.json({ imageUrl: finalImgBase64 });
     } catch (e: any) {
-      console.warn("[Smart Studio] API Error, returning original image as fallback simulation:", e);
-      return res.json({ imageUrl: `data:${req.body?.mimeType || "image/jpeg"};base64,${req.body?.imageContent}`, simulated: true });
+      console.warn("[Smart Studio] API Error; not returning original image as a fake generation:", e);
+      const errMsg = e?.message || String(e);
+      return res.status(500).json({ error: `تعذر توليد الصورة من مزود الذكاء حالياً: ${errMsg}. لم نرجع الصورة الأصلية حتى لا يتكرر نفس المصدر.` });
     }
   });
 
@@ -6692,7 +6694,13 @@ Make viewers believe it was shot quickly by a real videographer in Kuwait for an
           reason: errMsg.includes("durationSeconds") || errMsg.includes("INVALID_ARGUMENT") ? "Reel duration was normalized to the supported 4-8 second range" : "Veo quota exhausted; generated local motion reel instantly"
         });
       }
-      return res.status(500).json({ error: errMsg });
+      return res.json({
+        videoUrl: buildLocalMotionReelDataUrl({ prompt: req.body?.prompt, imageContent: req.body?.imageContent, mimeType: req.body?.mimeType, duration: Math.min(8, Math.max(4, Number(req.body?.duration) || 4)), shotType: req.body?.shotType, place: req.body?.place, mood: req.body?.mood }),
+        posterUrl: null,
+        provider: "local-motion-reel",
+        fallback: true,
+        reason: `تعذر مزود الفيديو الخارجي مؤقتاً؛ تم إنشاء ريل موشن محلي بدل توقف الاستوديو: ${errMsg}`
+      });
     }
   });
 

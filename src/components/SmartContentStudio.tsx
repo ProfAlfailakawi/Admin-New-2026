@@ -352,6 +352,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'chalet-weekend-order', label: 'طلب الشاليه', desc: 'طلبات ويكند مرتبة على طاولة بسيطة بإضاءة نهارية أو غروب ناعم', icon: '🌊', place: 'chalet', mode: 'human', background: 'chalet-spread' },
     { id: 'farm-clean-table', label: 'طلب المزرعة', desc: 'طاولة خارجية نظيفة تحت ظل طبيعي؛ بدون خيم وزخارف مبالغ فيها', icon: '🌴', place: 'farm', mode: 'human', background: 'farm-gathering' },
     { id: 'jakhour-clean-order', label: 'طلب الجاخور', desc: 'قعدة عملية نظيفة للربع بخلفية هادئة؛ بدون حيوانات أو تراب أو فوضى', icon: '🐪', place: 'jakhour', mode: 'human', background: 'jakhour-setup' },
+    { id: 'late-night-craving', label: 'جوع آخر الليل', desc: 'لقطة قريبة وسريعة لطلب يفتح النفس قبل نهاية اليوم، بدون مبالغة أو فوضى', icon: '🌙', place: 'delivery', mode: 'finalBoss', background: 'delivery-packaging' },
+    { id: 'family-lunch', label: 'غداء البيت', desc: 'سفرة بيتية نظيفة تصلح لطلب العائلة وقت الظهر وتبرز الكمية بصدق', icon: '🍚', place: 'home', mode: 'finalBoss', background: 'home-table' },
+    { id: 'diwaniya-share', label: 'لقطة المشاركة', desc: 'طلب جماعي واضح للربع، المنتج بالوسط والخلفية حية بدون وجوه أو عناصر مشتتة', icon: '🤝', place: 'diwaniya', mode: 'human', background: 'diwaniya-table' },
+    { id: 'gift-ready-order', label: 'طلب يبيض الوجه', desc: 'تغليف مرتب ولقطة فاخرة مقيدة مناسبة للهدايا والزوارات دون ديكور زائد', icon: '🎁', place: 'zowara', mode: 'finalBoss', background: 'zowara-spread' },
     { id: 'food-detail', label: 'تفاصيل الطبق', desc: 'لقطة قريبة للرز أو السمك أو اللحم أو ورق العنب مع ثبات كامل', icon: '🔎', place: 'delivery', mode: 'finalBoss', background: 'neutral-menu' },
   ];
 
@@ -536,6 +540,88 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const activePulsePack = getKuwaitPulsePack(selectedPulseId);
   const activeStudioScene = mergedScenes.find((scene) => scene.id === selectedSceneId) || mergedScenes[0];
   const activeSceneSummary = `${activeStudioScene.icon} ${activeStudioScene.label}`;
+  const liveStudioCards = {
+    image: {
+      title: 'من صورة',
+      output: 'يعيد إخراج نفس الطبق بصورة تسويقية جديدة بدون تكرار الصورة الأصلية',
+      platform: selectedFormat === '9:16' ? 'ستوري وإنستغرام' : 'إنستغرام، واتساب، والمنيو',
+      duration: 'جاهزة خلال جلسة توليد واحدة',
+      timing: 'قبل وقت الطلب أو وقت الجوع',
+      impact: 'قفل هوية الطبق + تحسين الخلفية والضوء'
+    },
+    idea: {
+      title: 'من فكرة',
+      output: 'ينتج صورة من وصفك مع مشهد كويتي مناسب',
+      platform: 'إنستغرام وستوري وواتساب',
+      duration: 'مناسب للمحتوى السريع والحملات',
+      timing: 'قبل العروض أو بداية اليوم',
+      impact: 'تحويل الفكرة إلى مشهد قابل للبيع'
+    },
+    reel: {
+      title: 'ريل مباشر',
+      output: 'ريل عمودي 9:16 بحركة كاميرا واحدة واقعية',
+      platform: 'إنستغرام وتيك توك',
+      duration: `${Math.min(8, Math.max(4, reelDuration))} ثواني`,
+      timing: 'الأفضل وقت الجوع أو قبل الذروة',
+      impact: 'تأثير سريع ومناسب للانتشار'
+    }
+  };
+
+  const campaignRecipeItems = (kind: 'image' | 'reel' = 'image') => [
+    { when: 'اليوم', action: kind === 'reel' ? 'انشر الريل كافتتاحية شهية' : 'انشر الصورة كبوست بيع واضح' },
+    { when: 'بعد ساعتين', action: 'حوّلها إلى ستوري مع سؤال: شنو طلبكم اليوم؟' },
+    { when: 'غدًا', action: 'أعد نشر نفس المنتج بزاوية مختلفة أو كابشن أقصر' },
+    { when: 'نهاية الأسبوع', action: 'استخدمها كعرض واتساب سريع للطلبات الجماعية' }
+  ];
+
+  const renderLiveStudioCard = (kind: 'image' | 'idea' | 'reel') => {
+    const card = liveStudioCards[kind];
+    return (
+      <div className="rounded-3xl border border-slate-800 bg-slate-950 p-4 text-right text-white shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[10px] font-black text-white/45 uppercase tracking-[0.2em]">الاستوديو الحي</div>
+            <h4 className="mt-1 text-base font-black">{card.title}</h4>
+          </div>
+          <span className="rounded-2xl bg-emerald-300 text-slate-950 px-3 py-1 text-[10px] font-black">جاهز</span>
+        </div>
+        <div className="mt-3 grid sm:grid-cols-2 gap-2 text-[11px] font-bold text-white/65">
+          {[
+            ['ماذا سينتج؟', card.output],
+            ['المنصة', card.platform],
+            ['مدة الاستخدام', card.duration],
+            ['أفضل وقت', card.timing],
+            ['قوة التأثير', card.impact],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-2xl bg-black/20 border border-white/10 p-3">
+              <div className="text-[9px] font-black text-white/35 mb-1">{label}</div>
+              <div className="leading-5">{value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderCampaignRecipe = (kind: 'image' | 'reel' = 'image') => (
+    <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-right shadow-sm">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div>
+          <div className="text-[10px] font-black text-amber-600">وصفة الحملة</div>
+          <h4 className="text-sm font-black text-slate-950">حوّل الناتج إلى خطة نشر قصيرة</h4>
+        </div>
+        <Sparkles size={18} className="text-amber-600" />
+      </div>
+      <div className="grid sm:grid-cols-2 gap-2">
+        {campaignRecipeItems(kind).map((item) => (
+          <div key={item.when} className="rounded-2xl bg-white border border-amber-100 p-3">
+            <div className="text-[10px] font-black text-amber-600">{item.when}</div>
+            <div className="mt-1 text-[11px] font-bold text-slate-700 leading-5">{item.action}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   const applyStudioSceneChoice = (scene: typeof mergedScenes[number], closePanel: 'create' | 'product') => {
     setSelectedSceneId(scene.id);
@@ -611,7 +697,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       profile.brandStyleHint,
       isMenuPhoto ? profile.menuModeHint : '',
       source === 'image'
-        ? 'Original image match mode: preserve the uploaded image identity strongly. Do not turn a delivery box into a luxury spread, do not turn a simple plate into a feast, and do not replace the visible food.'
+        ? 'Original image direction mode: keep the product identity, main ingredients, quantity logic, and serving truth, but do not repeat the exact uploaded photo. Re-shoot it visually with a better angle, cleaner background, believable Kuwaiti light, and new composition.'
         : 'Text-to-image truth order: food identity first, realism second, delivery/menu clarity third, beauty fourth, creativity last.',
       'Dish-transform blocker: never let the scene, lighting, or aesthetic override the actual product identity. No protein swap, no recipe swap, no side-item invention, no decorative clutter.'
     ].filter(Boolean).join(' ');
@@ -968,8 +1054,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
       const resData = await response.json();
       let imageResult = resData.imageUrl || resData.image || resData.url || resData.dataUrl || resData.base64 || resData.imageBase64 || resData.data?.imageUrl || resData.data?.url || resData.data?.base64;
+      if (resData?.simulated || resData?.fallbackOriginal) {
+        throw new Error('الخادم رجّع الصورة الأصلية بدل توليد جديد؛ أوقفنا عرضها حتى لا تتكرر نفس صورتك.');
+      }
       if (imageResult && typeof imageResult === 'string' && !imageResult.startsWith('http') && !imageResult.startsWith('data:')) {
         imageResult = `data:image/png;base64,${imageResult}`;
+      }
+      if (imageResult && sourceImage && imageResult === sourceImage) {
+        throw new Error('الصورة الناتجة مطابقة للمصدر. أعدنا منع التكرار حتى يرجع الاستوديو يولّد إخراجاً جديداً فعلياً.');
       }
       if (imageResult) {
         setAiImage(imageResult);
@@ -2518,6 +2610,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 {reelDirectSource === 'idea' && studioProductPickMode !== 'manual' && (
                   <input type="text" placeholder="مثال: لقطة مجبوس حار يفتح الشهية لريلز إنستغرام..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-violet-500 transition-all duration-300 animate-in fade-in" />
                 )}
+                {renderLiveStudioCard(reelDirectSource === 'image' ? 'image' : 'idea')}
                 {reelDirectSource !== 'image' && renderAlturathBrainCard('reel')}
                 {reelDirectSource === 'image' && (
                   <div onClick={() => reelImageInputRef.current?.click()} className="rounded-3xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-5 cursor-pointer text-center">
@@ -2572,6 +2665,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <div className="space-y-4">
                 {renderFineTools()}
                 <div className="rounded-3xl bg-slate-950 text-white p-5"><div className="text-[11px] font-black text-white/45 mb-2">جاهز للتوليد</div><div className="text-lg font-black">{customThemeQuery.trim() || `${reelShots.find(s => s.id === reelShot)?.icon} ${reelShots.find(s => s.id === reelShot)?.label}`}</div><div className="mt-2 text-sm font-bold text-white/60">{reelShots.find(s => s.id === reelShot)?.label} · 9:16 · {reelDuration} ثواني · {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>{reelSource === 'image' && selectedImage && <img src={selectedImage} alt="مصدر الريل" className="mt-4 h-28 w-full rounded-2xl object-cover border border-white/10" />}</div>
+                {renderLiveStudioCard('reel')}
                 <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => setReelStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button><button type="button" onClick={generateReel} disabled={isGeneratingReel} className="p-4 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white font-black shadow-lg flex items-center justify-center gap-2 disabled:opacity-50">{isGeneratingReel ? <Loader2 className="animate-spin" size={18} /> : <PlayCircle size={18} />} ولّد الريل</button></div>
               </div>
             )}
@@ -2583,7 +2677,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             {renderProductionDesk('reel')}
             {!generatedReel && !isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-5xl shadow-2xl"><Film size={46} /></div><h3 className="text-3xl font-black mb-3">معاينة الريل تظهر هنا</h3><p className="text-sm font-bold text-white/55 leading-7">إطار 9:16 · ريل عمودي واقعي · {reelDuration} ثواني</p></div>}
             {isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نولّد ريل واقعي...</p><p className="mt-3 text-xs font-bold text-white/45">نثبت الطعام ونحرك الكاميرا فقط</p></div>}
-            {generatedReel && !isGeneratingReel && <div className="relative z-10 w-full max-w-[380px] space-y-4"><button type="button" onClick={() => setShowReelSettings((v) => !v)} className="w-full aspect-[9/16] rounded-[1.8rem] overflow-hidden bg-black border border-white/10 shadow-2xl relative group">{generatedReel.startsWith('data:image') ? <img src={generatedReel} className="w-full h-full object-contain bg-black" alt="ريل موشن" /> : <video src={generatedReel} className="w-full h-full object-contain bg-black" controls playsInline />}</button>{renderQualityAuditCard('reel')}{showReelSettings && <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white"><div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3"><div><p className="text-xs font-black text-white/75">إعدادات هذا الريل</p><p className="text-[11px] font-bold text-white/45 mt-1">انسخها وكرر نفس الحركة لاحقاً.</p></div><button type="button" onClick={() => copyReelSettings()} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-xs font-black flex items-center gap-1"><Copy size={14} /> نسخ</button></div><pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans max-h-48 overflow-y-auto break-words">{buildReelSettingsText()}</pre></div>}<div className="flex items-center justify-center gap-2"><button onClick={downloadReel} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-violet-500 text-white flex items-center justify-center"><Download size={18} /></button><button type="button" onClick={() => copyReelSettings()} title="نسخ الإعدادات" aria-label="نسخ الإعدادات" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Copy size={18} /></button><button type="button" onClick={() => { setGeneratedReel(null); setReelStep(4); }} title="إعادة بنفس الأسلوب" aria-label="إعادة بنفس الأسلوب" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><RotateCcw size={18} /></button></div></div>}
+            {generatedReel && !isGeneratingReel && <div className="relative z-10 w-full max-w-[380px] space-y-4"><button type="button" onClick={() => setShowReelSettings((v) => !v)} className="w-full aspect-[9/16] rounded-[1.8rem] overflow-hidden bg-black border border-white/10 shadow-2xl relative group">{generatedReel.startsWith('data:image') ? <img src={generatedReel} className="w-full h-full object-contain bg-black" alt="ريل موشن" /> : <video src={generatedReel} className="w-full h-full object-contain bg-black" controls playsInline />}</button>{renderQualityAuditCard('reel')}{renderCampaignRecipe('reel')}{showReelSettings && <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white"><div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3"><div><p className="text-xs font-black text-white/75">إعدادات هذا الريل</p><p className="text-[11px] font-bold text-white/45 mt-1">انسخها وكرر نفس الحركة لاحقاً.</p></div><button type="button" onClick={() => copyReelSettings()} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-xs font-black flex items-center gap-1"><Copy size={14} /> نسخ</button></div><pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans max-h-48 overflow-y-auto break-words">{buildReelSettingsText()}</pre></div>}<div className="flex items-center justify-center gap-2"><button onClick={downloadReel} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-violet-500 text-white flex items-center justify-center"><Download size={18} /></button><button type="button" onClick={() => copyReelSettings()} title="نسخ الإعدادات" aria-label="نسخ الإعدادات" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Copy size={18} /></button><button type="button" onClick={() => { setGeneratedReel(null); setReelStep(4); }} title="إعادة بنفس الأسلوب" aria-label="إعادة بنفس الأسلوب" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><RotateCcw size={18} /></button></div></div>}
           </div>
         </div>
       )}
@@ -2918,7 +3012,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 </div>
                 {renderQualityAuditCard('image')}
                 {showImageSettings && (
-                  <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white shadow-sm">
+                  <div className="rounded-3xl border border-slate-800 bg-slate-950 p-4 text-right text-white shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                       <div>
                         <p className="text-xs font-black text-white/75">إعدادات هذه الصورة</p>
@@ -3150,6 +3244,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                         <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المنتج: {selectedStudioProductName || 'تلقائي'}</div>
                       </div>
                     </div>
+                    {renderLiveStudioCard('image')}
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(5)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
                       <button onClick={() => generateContent()} disabled={isGenerating || isGeneratingVariants} className="p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 transition-all disabled:opacity-50">
@@ -3282,6 +3377,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       </div>
                     </div>
                   )}
+
+                  <div className="w-full max-w-3xl mx-auto">{renderCampaignRecipe('image')}</div>
 
                   <div className="flex flex-wrap gap-2 justify-center px-1">
                     <button onClick={handleDownload} title="تحميل" aria-label="تحميل" className="h-12 w-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center"><Download size={18} /></button>
