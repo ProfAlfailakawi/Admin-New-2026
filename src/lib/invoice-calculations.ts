@@ -38,7 +38,7 @@ export const computeAddonQuantity = (addon: any, item: any): number => {
          * (e.g. 3 items with a threshold of 2 would count as 2 units).
          * We instead use Math.floor so that only full groups are counted.
          */
-        const groups = Math.floor(qty / threshold);
+        const groups = addon?.roundingMode === 'ceil' ? Math.ceil(qty / threshold) : Math.floor(qty / threshold);
         return groups * multiplier;
     } else {
         // Default behaviour: one addon per item
@@ -104,7 +104,7 @@ export const computeAddonRevenue = (addon: any, item: any, products: any[] = [])
     } else if (addon?.calculationType === 'per_x_items') {
         // For per_x_items, charge only for complete groups of threshold items.
         // Use Math.floor instead of Math.ceil to avoid overcharging partial groups.
-        units = Math.floor(itemQty / threshold);
+        units = addon?.roundingMode === 'ceil' ? Math.ceil(itemQty / threshold) : Math.floor(itemQty / threshold);
     } else {
         // Default to one addon per item
         units = itemQty;
@@ -138,7 +138,7 @@ export const computeAddonCost = (addon: any, item: any, products: any[] = []): n
          * leftover items to count as another full addon. Switching to
          * Math.floor aligns the behaviour with per-item revenue.
          */
-        units = Math.floor(qty / threshold) * mult;
+        units = (addon?.roundingMode === 'ceil' ? Math.ceil(qty / threshold) : Math.floor(qty / threshold)) * mult;
     } else {
         // per_item cost is proportional to item quantity
         units = qty * mult;

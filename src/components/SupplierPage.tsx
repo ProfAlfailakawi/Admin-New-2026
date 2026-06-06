@@ -51,12 +51,27 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  phone: '', 
  paymentMethods: [] as PaymentMethod[],
  balance: 0,
- status: 'pending' as ('paid' | 'pending' | 'partially_paid')
+ status: 'pending' as ('paid' | 'pending' | 'partially_paid'),
+ supplierType: 'food' as 'food' | 'delivery',
+ deliverySettlement: 'heritage' as 'heritage' | 'supplier' | 'delivery_company' | 'invoice'
  });
  const [deleteError, setDeleteError] = useState<string | null>(null);
  const [shakingId, setShakingId] = useState<string | null>(null);
  const [showLedgerSupplierId, setShowLedgerSupplierId] = useState<string | null>(null);
  const [expandedLedgerId, setExpandedLedgerId] = useState<string | null>(null);
+
+
+ const getInvoiceDeliverySettlement = (inv: any, supId: string) => {
+   const info = inv?.deliveryInfo || {};
+   const target = info.settlementTarget || inv?.deliverySettlementTarget;
+   const value = Number(inv?.deliveryFee ?? info.finalPrice ?? 0) || 0;
+   if (value <= 0) return 0;
+   const supplier = (data?.suppliers || []).find(s => String(s.id) === String(supId));
+   const matchesSupplier = String(info.settlementSupplierId || '') === String(supId)
+     || (!!supplier?.name && String(info.settlementSupplierName || info.company || '').trim() === String(supplier.name).trim());
+   if ((target === 'supplier' || target === 'delivery_company') && matchesSupplier) return value;
+   return 0;
+ };
 
  const getSupplierProducts = (supId: string) => (data?.products || []).filter(p => p.supplierId === supId);
 
@@ -90,13 +105,17 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
      const supplierCost = itemsForThisSupplier.reduce((acc, item) => acc + item.totalCost, 0);
      const supplierRevenue = itemsForThisSupplier.reduce((acc, item) => acc + item.totalPrice, 0);
+     const supplierDelivery = getInvoiceDeliverySettlement(inv, supId);
+     const supplierDue = Math.round((supplierCost + supplierDelivery) * 1000) / 1000;
 
-     if (supplierCost > 0) {
+     if (supplierDue > 0) {
        transactions.push({
          id: `inv-${inv.id}`,
          date: inv.date,
          type: 'invoice',
-         amount: supplierCost,
+         amount: supplierDue,
+         supplyAmount: supplierCost,
+         deliveryAmount: supplierDelivery,
          revenue: supplierRevenue,
          refId: inv.id,
          label: `فاتورة توريد #${inv.id}`,
@@ -131,13 +150,14 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  const supplierInvoices = (data?.invoices || [])
  .filter(inv => !inv.isDeleted)
  .map(inv => {
- const supplierCost = (inv.items || []).reduce((total, item) => {
+ const supplyCost = (inv.items || []).reduce((total, item) => {
  const product = (data?.products || []).find(p => p.id === item.productId);
  if (!product || product.supplierId !== supId || !supplierProductIds.has(item.productId)) return total;
  const itemCost = item.costAtTime !== undefined ? item.costAtTime : (product.cost || 0);
  const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
  return total + (itemCost * qty);
  }, 0);
+ const supplierCost = supplyCost + getInvoiceDeliverySettlement(inv, supId);
 
  return {
  id: inv.id,
@@ -232,7 +252,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
  const openAddModal = () => {
  setEditingId(null);
- setSupplierForm({ name: '', phone: '', paymentMethods: [], balance: 0, status: 'paid' });
+ setSupplierForm({ name: '', phone: '', paymentMethods: [], balance: 0, status: 'paid', supplierType: 'food', deliverySettlement: 'heritage' });
  setShowModal(true);
  };
 
@@ -243,7 +263,9 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  phone: supplier.phone, 
  paymentMethods: supplier.paymentMethods,
  balance: Number((supplier.balance || 0).toFixed(3)),
- status: supplier.status
+ status: supplier.status,
+ supplierType: (supplier as any).supplierType || 'food',
+ deliverySettlement: (supplier as any).deliverySettlement || 'heritage'
  });
  setShowModal(true);
  };
@@ -487,6 +509,14 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  )}
  </div>
 
+
+ <div className="flex flex-wrap gap-2 justify-end">
+ <span className="bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-blue-600 flex items-center gap-1">
+ <Truck size={12} />
+ {(supplier as any).supplierType === 'delivery' ? 'شركة توصيل فقط' : ((supplier as any).deliverySettlement === 'supplier' ? 'يورد ويوصل' : ((supplier as any).deliverySettlement === 'invoice' ? 'حسب الفاتورة' : 'توريد فقط'))}
+ </span>
+ </div>
+
  <div className="flex flex-wrap gap-2 justify-end">
  {(supplier.paymentMethods || []).map(method => (
  <span key={method} className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
@@ -606,6 +636,34 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  />
  </div>
 
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+ <div className="space-y-2">
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">نوع المورد</label>
+ <select
+ value={supplierForm.supplierType}
+ onChange={(e) => setSupplierForm({ ...supplierForm, supplierType: e.target.value as any })}
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right"
+ >
+ <option value="food">مورد أكل</option>
+ <option value="delivery">شركة توصيل فقط</option>
+ </select>
+ </div>
+ <div className="space-y-2">
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">تسوية التوصيل الافتراضية</label>
+ <select
+ value={supplierForm.deliverySettlement}
+ onChange={(e) => setSupplierForm({ ...supplierForm, deliverySettlement: e.target.value as any })}
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right"
+ >
+ <option value="heritage">التوصيل علينا</option>
+ <option value="supplier">المورد يوصل ويستحق التوصيل</option>
+ <option value="delivery_company">شركة توصيل فقط</option>
+ <option value="invoice">حسب الفاتورة</option>
+ </select>
+ <p className="text-[10px] font-bold text-slate-400 leading-5">تعبئة تلقائية فقط، ويمكن تغييرها من الفاتورة.</p>
+ </div>
+ </div>
+
  <div className="space-y-4">
  <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">قنوات الدفع المدعومة</label>
  <div className="flex flex-wrap gap-2 justify-end">
@@ -696,7 +754,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   <div className="grid grid-cols-3 gap-3">
   <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
   <div className="absolute top-0 right-0 w-16 h-16 bg-slate-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
-  <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي التوريد</div>
+  <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي المستحق</div>
   <div className="text-base font-black text-slate-900 text-center relative z-10">{totalInvoiced.toFixed(3)}</div>
   </div>
   <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
@@ -752,6 +810,9 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
     )}
   </div>
   <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">{formatKuwaitiDateOnly(item.date)}</div>
+  {item.type === 'invoice' && item.deliveryAmount > 0 && (
+    <div className="mt-1 text-[10px] font-black text-blue-500 bg-blue-50 rounded-xl px-2 py-1 inline-block">يشمل توصيل مورد {Number(item.deliveryAmount || 0).toFixed(3)} د.ك</div>
+  )}
   </div>
   </div>
   <div className="order-2 text-left">
