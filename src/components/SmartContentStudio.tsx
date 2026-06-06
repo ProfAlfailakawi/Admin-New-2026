@@ -27,6 +27,31 @@ type RealityAuditResult = {
   verdict?: string;
   notes?: string[];
   fixHint?: string;
+  publishReady?: boolean;
+  dishLocked?: boolean;
+  hasTextOrLogo?: boolean;
+  instagramReady?: boolean;
+  subscores?: {
+    dishLock?: number;
+    realism?: number;
+    textSafety?: number;
+    instagramFit?: number;
+    appetite?: number;
+  };
+};
+
+type StudioDirectorResult = {
+  productType?: string;
+  reason?: string;
+  place: KuwaitOrderPlace;
+  pulseId: string;
+  mode: StudioRealityMode;
+  background: StudioBackgroundPresetId;
+  mood: string;
+  shot: string;
+  format?: string;
+  confidence?: number;
+  directorNote?: string;
 };
 
 type ProductStudioFlow = 'quick' | 'kuwait' | 'pro';
@@ -160,6 +185,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'hero-push', label: 'اقتراب على الطلب', desc: 'الكاميرا تدخل بهدوء على الطبق مع ثبات كامل للأكل', icon: '🎥' },
     { id: 'box-open', label: 'فتح علبة التوصيل', desc: 'كشف واقعي لعلبة طلب نظيفة بدون يد معقدة', icon: '📦' },
     { id: 'table-pass', label: 'مرور على السفرة', desc: 'حركة جانبية هادئة على صينية أو عدة أطباق', icon: '🍽️' },
+    { id: 'floor-spread-overhead', label: 'سفرة أرضية من فوق', desc: 'لقطة علوية مستوحاة من اليمعة: المنتج بالوسط وأطراف الجالسين فقط بدون وجوه', icon: '▦' },
     { id: 'top-spread', label: 'من فوق السفرة', desc: 'لقطة top shot مرتبة للبيت أو الزوارة أو الطلبات الجماعية', icon: '⬇️' },
     { id: 'steam-close', label: 'بخار خفيف واقعي', desc: 'للطبق الحار فقط: بخار بسيط ولمعة طبيعية بدون مبالغة', icon: '♨️' },
     { id: 'texture-close', label: 'تفاصيل شهية قريبة', desc: 'قوام الرز/اللحم/السمك/ورق العنب بدون صوص طائر أو حركة غريبة', icon: '🔎' },
@@ -320,13 +346,16 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'home-rice-tray', label: 'صينية عيوش للبيت', desc: 'مجبوس/مربين/عيش وسمك على سفرة بيتية مرتبة', icon: '🏠', place: 'home', mode: 'finalBoss', background: 'home-table' },
     { id: 'diwaniya-order', label: 'طلب ديوانية للربع', desc: 'طلب جماعي مرتب بخلفية ديوانية blur بدون وجوه أو ديكور مصطنع', icon: '🛋️', place: 'diwaniya', mode: 'human', background: 'diwaniya-table' },
     { id: 'zowara-spread', label: 'سفرة زوارة', desc: 'محاشي/ورق عنب/أطباق عائلية جاهزة للتقديم داخل بيت', icon: '👨‍👩‍👧‍👦', place: 'zowara', mode: 'menu', background: 'zowara-spread' },
+    { id: 'floor-spread-overhead', label: 'سفرة أرضية من فوق', desc: 'عرض علوي مثل الصورة: بساط نظيف، المنتج بالوسط، أطراف الجالسين بدون وجوه', icon: '▦', place: 'zowara', mode: 'finalBoss', background: 'floor-spread' },
     { id: 'chalet-weekend-order', label: 'طلب الشاليه', desc: 'طلبات ويكند مرتبة على طاولة بسيطة بإضاءة نهارية أو غروب ناعم', icon: '🌊', place: 'chalet', mode: 'human', background: 'chalet-spread' },
     { id: 'farm-clean-table', label: 'طلب المزرعة', desc: 'طاولة خارجية نظيفة تحت ظل طبيعي؛ بدون خيم وزخارف مبالغ فيها', icon: '🌴', place: 'farm', mode: 'human', background: 'farm-gathering' },
     { id: 'jakhour-clean-order', label: 'طلب الجاخور', desc: 'قعدة عملية نظيفة للربع بخلفية هادئة؛ بدون حيوانات أو تراب أو فوضى', icon: '🐪', place: 'jakhour', mode: 'human', background: 'jakhour-setup' },
     { id: 'food-detail', label: 'تفاصيل الطبق', desc: 'لقطة قريبة للرز أو السمك أو اللحم أو ورق العنب مع ثبات كامل', icon: '🔎', place: 'delivery', mode: 'finalBoss', background: 'neutral-menu' },
   ];
 
+  const FLOOR_SPREAD_OVERHEAD_DIRECTION = 'مشهد سفرة أرضية من فوق: استخدم زاوية top-down حقيقية من السقف أو درون داخلي، بساط أو سجادة نظيفة بنقشة هادئة، مفرش سفرة بسيط في الوسط، المنتج أو الصحن الرئيسي واضح في مركز التكوين، وأطراف أشخاص جالسين بلبس كويتي أبيض فقط حول السفرة بدون وجوه واضحة أو تفاصيل تعريفية. يجب أن يبدو كتصوير حقيقي ليمعة كويتية منزلية، لا إعلان مصطنع ولا مطعم ولا كافيه.';
 
+  const isFloorSpreadScene = (scene: typeof mergedScenes[number]) => scene.id === 'floor-spread-overhead' || scene.background === 'floor-spread';
 
   const inferStudioChoicesFromText = (rawValue: string) => {
     const brain = analyzeAlturathStudioIdea(rawValue, data?.products || []);
@@ -405,6 +434,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const [realityBoost, setRealityBoost] = useState(true);
   const [isAuditingReality, setIsAuditingReality] = useState(false);
   const [realityAudit, setRealityAudit] = useState<RealityAuditResult | null>(null);
+  const [isDirectingStudio, setIsDirectingStudio] = useState(false);
+  const [studioDirector, setStudioDirector] = useState<StudioDirectorResult | null>(null);
+  const [isAuditingReel, setIsAuditingReel] = useState(false);
+  const [reelAudit, setReelAudit] = useState<RealityAuditResult | null>(null);
   const [backgroundLibrary, setBackgroundLibrary] = useState<StudioBackgroundLibraryItem[]>([]);
   const [isSavingBackground, setIsSavingBackground] = useState(false);
   const [tasteMemoryPrompt, setTasteMemoryPrompt] = useState('');
@@ -486,6 +519,22 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const activeStudioScene = mergedScenes.find((scene) => scene.id === selectedSceneId) || mergedScenes[0];
   const activeSceneSummary = `${activeStudioScene.icon} ${activeStudioScene.label}`;
 
+  const applyStudioSceneChoice = (scene: typeof mergedScenes[number], closePanel: 'create' | 'product') => {
+    setSelectedSceneId(scene.id);
+    if (scene.id === 'national-day') setSelectedPulseId('national-day');
+    setSelectedOrderPlace(scene.place as KuwaitOrderPlace);
+    setBackgroundPreset(scene.background as StudioBackgroundPresetId);
+    setRealityMode(scene.mode as StudioRealityMode);
+    if (isFloorSpreadScene(scene)) {
+      setReelShot('floor-spread-overhead');
+      setRealityBoost(true);
+      setStrictPlateLock(true);
+    }
+    setSelectedTheme('نبض الكويت');
+    if (closePanel === 'create') setShowCreateOccasion(false);
+    if (closePanel === 'product') setShowProductOccasion(false);
+  };
+
   const studioSignatureLabel = (signature: string) => signature.split('|').filter(Boolean).join(' · ');
 
   const pushStudioMemory = (signature: string, kind: 'generated' | 'avoid' = 'generated') => {
@@ -523,9 +572,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     const productName = selectedStudioProductName || brain?.primaryProductName || brain?.categoryLabel || customThemeQuery.trim();
     return [
       `مخرج التراث: المنتج/الفكرة=${productName || 'اختيار ذكي'}، المشهد=${activeStudioScene.label}، اللقطة=${activeShot?.label || reelShot}، المكان=${KUWAIT_PLACES[selectedOrderPlace]?.label || selectedOrderPlace}.`,
+      isFloorSpreadScene(activeStudioScene) ? FLOOR_SPREAD_OVERHEAD_DIRECTION : '',
       `اختبار الواقعية الكويتية: الصورة يجب أن تبدو كطلب مطبخ كويتي حقيقي للتوصيل أو البيت، لا إعلان فندقي ولا مطعم جلوس ولا ديكور تراثي مصطنع.`,
       `اختبار البيع: المنتج واضح أولاً، الكمية مقنعة، التغليف/السفرة نظيف، ولا توجد عناصر تسرق الانتباه من الطبق.`
-    ].join(' ');
+    ].filter(Boolean).join(' ');
   };
 
   const buildAdvancedStudioDirection = (brain?: AlturathStudioBrainResult, options?: { source?: 'idea' | 'image' | 'reel' }) => {
@@ -552,6 +602,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const markCurrentStyleAsAvoided = () => {
     const signature = buildStudioSignature(selectedStudioProductName || currentStudioBrain.primaryProductName);
     pushStudioMemory(signature, 'avoid');
+    recordStudioTasteChoice({ mode: realityMode, background: backgroundPreset, theme: selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme, format: selectedFormat, label: 'avoid-style', source: 'avoid-style', dishKey: selectedStudioProductName || currentStudioBrain.primaryProductName || customThemeQuery, scene: activeStudioScene.label, shot: reelShot });
+    refreshStudioLearning();
     toast.success('تم. لن نكرر هذا الأسلوب.');
   };
 
@@ -579,6 +631,69 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setSelectedSceneId(matchingScene.id);
   };
 
+  const applyStudioDirector = (director: StudioDirectorResult) => {
+    const place = KUWAIT_PLACES[director.place] ? director.place : 'delivery';
+    const pack = getKuwaitPulsePack(director.pulseId || 'quick-kuwait');
+    setSelectedPulseId(pack.id);
+    setSelectedOrderPlace(place);
+    setBackgroundPreset(director.background || KUWAIT_PLACES[place].background);
+    setRealityMode(director.mode || pack.mode || 'finalBoss');
+    setSelectedMood(director.mood || 'دافئ');
+    setSelectedTheme('نبض الكويت');
+    setRealityBoost(true);
+    setStrictPlateLock(true);
+    if (director.format) setSelectedFormat(director.format);
+    if (director.shot) setReelShot(director.shot);
+    const matchingScene = mergedScenes.find((scene) =>
+      scene.background === (director.background || KUWAIT_PLACES[place].background)
+      || scene.place === place
+    ) || mergedScenes[0];
+    setSelectedSceneId(matchingScene.id);
+    setStudioDirector(director);
+  };
+
+  const runStudioDirector = async (options?: { imageDataUrl?: string; source?: 'image' | 'idea' | 'reel' }) => {
+    if (isDirectingStudio) return;
+    const sourceImage = options?.imageDataUrl || selectedImage || compressedImage || originalImage || '';
+    if (!sourceImage && !customThemeQuery.trim()) return;
+    setIsDirectingStudio(true);
+    try {
+      const productHints = (data?.products || [])
+        .slice(0, 80)
+        .map((p: any) => [p?.name, p?.category, p?.description].filter(Boolean).join(' - '))
+        .filter(Boolean);
+      const imagePayload = sourceImage ? getDataImagePayload(sourceImage) : null;
+      const response = await fetch('/api/smart-studio/live-director', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageContent: imagePayload?.imageContent,
+          mimeType: imagePayload?.mimeType,
+          idea: customThemeQuery,
+          source: options?.source || (sourceImage ? 'image' : 'idea'),
+          productHints,
+          current: {
+            place: selectedOrderPlace,
+            background: backgroundPreset,
+            mode: realityMode,
+            shot: reelShot,
+            format: selectedFormat,
+            mood: selectedMood,
+          },
+          tasteProfile: buildStudioTastePrompt()
+        })
+      });
+      const director = await response.json().catch(() => null);
+      if (!response.ok || !director) throw new Error(director?.error || 'director failed');
+      applyStudioDirector(director as StudioDirectorResult);
+      if (director?.directorNote || director?.reason) toast.success(director.directorNote || director.reason);
+    } catch {
+      toast.info('طبقنا أفضل إعدادات آمنة محلياً، والمخرج الذكي يرجع يحاول مع أول توليد.');
+    } finally {
+      setIsDirectingStudio(false);
+    }
+  };
+
   const recommendSceneFromImage = async (imageDataUrl: string) => {
     setIsSuggestingScene(true);
     setSceneSuggestion(null);
@@ -602,6 +717,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       const suggestion = result as StudioSceneSuggestion;
       applySceneSuggestion(suggestion);
       setSceneSuggestion(suggestion);
+      runStudioDirector({ imageDataUrl, source: 'image' });
     } catch (err) {
       const fallback: StudioSceneSuggestion = {
         productType: 'طبق كويتي',
@@ -845,7 +961,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         const themeUsed = themeText;
         addToHistory(branded, null, { mode: usedMode, background: usedBackground, theme: themeUsed, format: selectedFormat, source: 'image' });
         pushStudioMemory(buildStudioSignature(imageBrain.primaryProductName || selectedStudioProductName));
-        recordStudioTasteChoice({ mode: usedMode, background: usedBackground, theme: themeUsed, format: selectedFormat, label: variantOverride?.label || STUDIO_REALITY_MODES[usedMode].label, source: 'generated-image' });
+        recordStudioTasteChoice({ mode: usedMode, background: usedBackground, theme: themeUsed, format: selectedFormat, label: variantOverride?.label || STUDIO_REALITY_MODES[usedMode].label, source: 'generated-image', dishKey: imageBrain.primaryProductName || selectedStudioProductName || customThemeQuery, scene: activeStudioScene.label, shot: reelShot });
         refreshStudioLearning();
         if (variantOverride?.label) {
           setRealityVariants(prev => [...prev, {
@@ -855,8 +971,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
             background: variantOverride.background || backgroundPreset
           }].slice(-4));
         }
+        return branded;
       } else {
         toast.error("تم التوليد، بس رابط الصورة ما وصل بشكل مفهوم");
+        return null;
       }
     } catch (err: any) {
       console.error(err);
@@ -865,6 +983,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       } else {
         alert("التوليد تعطل: " + err.message + ". تأكد من المفتاح والنت.");
       }
+      return null;
     } finally {
       setIsGenerating(false);
     }
@@ -911,7 +1030,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       setAiCaption(null);
       addToHistory(branded, null, { mode: realityMode, background: backgroundPreset, theme: themeText, format: selectedFormat, source: 'idea' });
       pushStudioMemory(buildStudioSignature(ideaBrain.primaryProductName || selectedStudioProductName));
-      recordStudioTasteChoice({ mode: realityMode, background: backgroundPreset, theme: themeText, format: selectedFormat, label: 'kuwait-no-product', source: 'quick-no-product' });
+      recordStudioTasteChoice({ mode: realityMode, background: backgroundPreset, theme: themeText, format: selectedFormat, label: 'kuwait-no-product', source: 'quick-no-product', dishKey: ideaBrain.primaryProductName || selectedStudioProductName || customThemeQuery, scene: activeStudioScene.label, shot: reelShot });
       refreshStudioLearning();
       toast.success('تم تجهيز الصورة');
     } catch (err: any) {
@@ -953,6 +1072,51 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     }
   };
 
+  const generateBestAutoAttempt = async () => {
+    if (!selectedImage || isGenerating || isGeneratingVariants) return;
+    setIsGeneratingVariants(true);
+    setRealityVariants([]);
+    setRealityAudit(null);
+    const candidatePlan: { label: string; mode: StudioRealityMode; background: StudioBackgroundPresetId }[] = [
+      { label: 'محاولة ذكية 1', mode: 'finalBoss', background: backgroundPreset || 'home-table' },
+      { label: 'محاولة ذكية 2', mode: 'human', background: selectedOrderPlace === 'delivery' ? 'delivery-packaging' : 'home-table' },
+      { label: 'محاولة ذكية 3', mode: 'menu', background: backgroundPreset === 'floor-spread' ? 'floor-spread' : 'neutral-menu' },
+    ];
+    const previousImage = generatedImage;
+    const previousAiImage = aiImage;
+    let best: { url: string; score: number; audit: RealityAuditResult; label: string; mode: StudioRealityMode; background: StudioBackgroundPresetId } | null = null;
+    try {
+      for (const candidate of candidatePlan) {
+        const current = await generateContent({ ...candidate, sourceImage: selectedImage });
+        if (!current) continue;
+        const payload = getDataImagePayload(current);
+        const response = await fetch('/api/smart-studio/reality-audit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, publishGate: true, sourcePrompt: `${buildSettingsText()} / ${candidate.label}` })
+        });
+        const audit = await response.json().catch(() => null) as RealityAuditResult | null;
+        const score = Number(audit?.score || 0);
+        if (!best || score > best.score) best = { url: current, score, audit: audit || {}, label: candidate.label, mode: candidate.mode, background: candidate.background };
+      }
+      if (best) {
+        setAiImage(best.url);
+        const branded = await applyBranding(best.url).catch(() => best.url);
+        setGeneratedImage(branded);
+        setRealityAudit(best.audit);
+        setRealityVariants(prev => [{ label: `الأفضل ${Math.round(best!.score)}%`, url: branded, mode: best!.mode, background: best!.background }, ...prev].slice(0, 4));
+        recordStudioTasteChoice({ mode: best.mode, background: best.background, theme: selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme, format: selectedFormat, label: 'best-auto-attempt', source: 'best-auto-attempt', dishKey: customThemeQuery || selectedStudioProductName, scene: activeStudioScene.label, shot: reelShot });
+        toast.success(`اخترنا أفضل محاولة تلقائياً: ${Math.round(best.score)}%`);
+      } else {
+        setGeneratedImage(previousImage);
+        setAiImage(previousAiImage);
+        toast.error('ما قدرنا نحدد أفضل محاولة');
+      }
+    } finally {
+      setIsGeneratingVariants(false);
+    }
+  };
+
   const auditReality = async () => {
     const source = aiImage || generatedImage;
     if (!source || isAuditingReality) return;
@@ -973,6 +1137,88 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     } finally {
       setIsAuditingReality(false);
     }
+  };
+
+  const ensureImagePublishQuality = async () => {
+    const source = aiImage || generatedImage;
+    if (!source) return false;
+    if (realityAudit?.publishReady === true || (Number(realityAudit?.score || 0) >= 84 && realityAudit?.hasTextOrLogo !== true)) return true;
+    setIsAuditingReality(true);
+    try {
+      const payload = getDataImagePayload(source);
+      const response = await fetch('/api/smart-studio/reality-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, publishGate: true, sourcePrompt: buildSettingsText() })
+      });
+      if (!response.ok) throw new Error('ما قدرنا نفحص جودة الصورة');
+      const result = await response.json();
+      setRealityAudit(result);
+      const ready = result?.publishReady !== false && Number(result?.score || 0) >= 82 && result?.hasTextOrLogo !== true;
+      if (!ready) {
+        toast.error(result?.fixHint || 'الصورة تحتاج إعادة أصدق قبل التحميل.');
+      }
+      return ready;
+    } catch (err: any) {
+      toast.error(err?.message || 'ما قدرنا نفحص جودة الصورة');
+      return false;
+    } finally {
+      setIsAuditingReality(false);
+    }
+  };
+
+  const buildReelQualityPayload = () => {
+    const payload: any = {
+      prompt: buildReelPrompt(),
+      settings: buildReelSettingsText(),
+      source: reelSource,
+      shotType: reelShot,
+      place: selectedOrderPlace,
+      duration: reelDuration,
+      tasteProfile: buildStudioTastePrompt()
+    };
+    if (selectedImage) {
+      const imagePayload = getDataImagePayload(selectedImage);
+      payload.sourceImageContent = imagePayload.imageContent;
+      payload.sourceImageMimeType = imagePayload.mimeType;
+    }
+    if (generatedReel?.startsWith('data:') && generatedReel.length < 22_000_000) {
+      const [header, data] = generatedReel.split(',');
+      payload.videoContent = data;
+      payload.videoMimeType = header?.split(';')[0]?.split(':')[1] || (generatedReel.startsWith('data:image') ? 'image/svg+xml' : 'video/mp4');
+    }
+    return payload;
+  };
+
+  const auditReelQuality = async () => {
+    if (!generatedReel || isAuditingReel) return null;
+    setIsAuditingReel(true);
+    try {
+      const response = await fetch('/api/smart-studio/reel-quality-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildReelQualityPayload())
+      });
+      if (!response.ok) throw new Error('ما قدرنا نفحص جودة الريل');
+      const result = await response.json();
+      setReelAudit(result);
+      toast.success(`فحص الريل: ${Math.round(Number(result.score || 0))}%`);
+      return result as RealityAuditResult;
+    } catch (err: any) {
+      toast.error(err?.message || 'ما قدرنا نفحص جودة الريل');
+      return null;
+    } finally {
+      setIsAuditingReel(false);
+    }
+  };
+
+  const ensureReelPublishQuality = async () => {
+    if (!generatedReel) return false;
+    if (reelAudit?.publishReady === true || (Number(reelAudit?.score || 0) >= 84 && reelAudit?.hasTextOrLogo !== true)) return true;
+    const result = await auditReelQuality();
+    const ready = result?.publishReady !== false && Number(result?.score || 0) >= 82 && result?.hasTextOrLogo !== true;
+    if (!ready) toast.error(result?.fixHint || 'الريل يحتاج إعادة أصدق قبل التحميل.');
+    return ready;
   };
 
   const makeMoreHuman = async () => {
@@ -1034,8 +1280,10 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       toast.success('اخترت لقطة من مكتبتك — النظام تعلم هذا الذوق');
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!generatedImage && !aiImage) return;
+    const ready = await ensureImagePublishQuality();
+    if (!ready) return;
     const a = document.createElement('a');
     a.href = generatedImage;
     a.download = `smart-studio-${selectedTheme}-${Date.now()}.png`;
@@ -1056,6 +1304,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
   const handleSaveToProduct = async () => {
     if (!generatedImage || !selectedProductId) return;
+    const ready = await ensureImagePublishQuality();
+    if (!ready) return;
     setIsSaving(true);
     try {
       const product = data.products.find((p: Product) => p.id === selectedProductId);
@@ -1120,6 +1370,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       'hero-push': 'حركة push-in بطيئة على الطبق، لا تغيّر ترتيب الطعام ولا تضف عناصر جديدة.',
       'box-open': 'علبة توصيل plain تُفتح أو تُكشف بشكل بسيط؛ اليد إن ظهرت تكون جزئية وطبيعية جداً، بدون أصابع غريبة.',
       'table-pass': 'حركة جانبية قصيرة على سفرة أو صينية مرتبة؛ الأطباق ثابتة ولا تظهر صحون جديدة فجأة.',
+      'floor-spread-overhead': 'لقطة علوية ثابتة أو drift خفيف جداً فوق سفرة أرضية كويتية نظيفة؛ المنتج في الوسط وأطراف الجالسين حوله بدون وجوه واضحة.',
       'top-spread': 'لقطة من الأعلى لسفرة مرتبة، حركة خفيفة جداً أو zoom بسيط، مناسبة للطلبات الجماعية.',
       'steam-close': 'بخار خفيف فقط إذا الطبق حار؛ لا تستخدمه للحلويات أو ورق العنب البارد أو التغليف.',
       'texture-close': 'لقطة قريبة للملمس: رز، لحم، سمك، محاشي أو ورق عنب؛ بدون سكب صوص أو حركة سوائل غير منطقية.'
@@ -1210,7 +1461,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     setIsGeneratingReel(true);
     setGeneratedReel(null);
     setShowReelSettings(false);
+    setReelAudit(null);
     try {
+      const isImageReel = reelSource === 'image';
       const payload: any = {
         prompt: buildReelPrompt(),
         duration: Math.min(8, Math.max(4, reelDuration)),
@@ -1218,19 +1471,21 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         format: '9:16',
         resolution: '540x960',
         targetResolution: '540x960',
-        quality: 'economy',
-        renderMode: 'balanced-economy',
+        sourceType: reelSource,
+        quality: isImageReel ? 'plate-lock' : 'fast-realistic',
+        renderMode: isImageReel ? 'image-to-video-plate-lock' : 'text-to-video-fast-realistic',
         compression: 'balanced',
-        bitrate: '1200k',
+        bitrate: isImageReel ? '1800k' : '1200k',
         fps: 24,
         audio: false,
         voiceover: false,
         noTalking: true,
-        tokenBudget: 'low',
+        tokenBudget: isImageReel ? 'medium' : 'low',
         place: selectedOrderPlace,
         mood: selectedMood,
         tasteProfile: buildStudioTastePrompt(),
         productOnlyGuard: productBrain.promptGuard,
+        dishLock: isImageReel ? 'strict-source-image-identity' : 'truth-first-generated-food',
       };
       if (reelSource === 'image' && selectedImage) {
         const img = getDataImagePayload(selectedImage);
@@ -1268,6 +1523,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       };
       setReelHistory(prev => [item, ...prev.filter(r => r.url !== item.url)].slice(0, 18));
       pushStudioMemory(buildStudioSignature(productBrain.primaryProductName || selectedStudioProductName));
+      recordStudioTasteChoice({ mode: realityMode, background: backgroundPreset, theme: selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme, format: '9:16', label: reelShot, source: 'generated-reel', dishKey: productBrain.primaryProductName || selectedStudioProductName || customThemeQuery, scene: activeStudioScene.label, shot: reelShot });
       toast.success('الريل جاهز وخفيف ومحفوظ في أرشيف الريلز');
     } catch (e: any) {
       toast.error(e?.message || 'ما قدرنا نولّد الريل الحين');
@@ -1276,8 +1532,10 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     }
   };
 
-  const downloadReel = () => {
+  const downloadReel = async () => {
     if (!generatedReel) return;
+    const ready = await ensureReelPublishQuality();
+    if (!ready) return;
     const a = document.createElement('a');
     a.href = generatedReel;
     a.download = generatedReel.startsWith('data:image/svg') ? `smart-studio-motion-reel-${Date.now()}.svg` : `smart-studio-reel-${Date.now()}.mp4`;
@@ -1330,7 +1588,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     const profile = getAlturathDishProfile(selectedStudioProductName || brain.primaryProductName || customThemeQuery, studioProducts);
     let score = typeof matchValue === 'number' ? matchValue : 68;
     if (selectedSceneId.includes('delivery') || selectedOrderPlace === 'delivery') score += 4;
-    if (['steam-close', 'texture-close', 'box-open', 'top-spread'].includes(reelShot)) score += 4;
+    if (['steam-close', 'texture-close', 'box-open', 'top-spread', 'floor-spread-overhead'].includes(reelShot)) score += 4;
     if (brain.category !== 'generic') score += 5;
     score += Math.round((profile.deliverySuitability.value - 80) / 4);
     score += Math.round((profile.clutterRisk.value - 80) / 6);
@@ -1388,6 +1646,12 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             </div>
           )}
         </div>
+
+        {(isDirectingStudio || studioDirector?.directorNote || studioDirector?.reason) && (
+          <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-[11px] font-black text-indigo-800 leading-6">
+            {isDirectingStudio ? 'المخرج الذكي يضبط المشهد واللقطة...' : (studioDirector?.directorNote || studioDirector?.reason)}
+          </div>
+        )}
 
         {!brain.canGenerate && (
           <div className="rounded-2xl border p-3 text-[11px] font-black leading-6 bg-red-50 border-red-200 text-red-700">
@@ -1586,6 +1850,91 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     </div>
   );
 
+  const renderQualityAuditCard = (kind: 'image' | 'reel') => {
+    const audit = kind === 'image' ? realityAudit : reelAudit;
+    const isBusy = kind === 'image' ? isAuditingReality : isAuditingReel;
+    const runAudit = kind === 'image' ? auditReality : auditReelQuality;
+    const score = Math.round(Number(audit?.score || 0));
+    const ready = audit ? audit.publishReady !== false && score >= 82 && audit.hasTextOrLogo !== true : false;
+    const subscores = audit?.subscores ? [
+      ['ثبات الطبق', audit.subscores.dishLock],
+      ['الواقعية', audit.subscores.realism],
+      ['خلو النصوص', audit.subscores.textSafety],
+      ['إنستغرام', audit.subscores.instagramFit],
+      ['شهية المنتج', audit.subscores.appetite],
+    ].filter(([, value]) => typeof value === 'number') as [string, number][] : [];
+    return (
+      <div className={cn("rounded-3xl border p-3 text-right shadow-sm", audit ? ready ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100" : "bg-white border-slate-100")}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className={cn("text-[11px] font-black", audit ? ready ? "text-emerald-700" : "text-amber-700" : "text-slate-500")}>
+              {kind === 'image' ? 'فحص جودة الصورة' : 'فحص جودة الريل'}
+            </div>
+            <div className="mt-1 text-xs font-black text-slate-900 leading-6">
+              {audit ? (audit.verdict || (ready ? 'جاهز للنشر' : 'يحتاج تحسين قبل النشر')) : 'يفحص المنتج، النصوص، الواقعية، وجاهزية إنستغرام قبل التحميل.'}
+            </div>
+          </div>
+          {audit && <div className={cn("rounded-2xl px-3 py-2 text-xs font-black", ready ? "bg-emerald-600 text-white" : "bg-amber-500 text-white")}>{score}%</div>}
+        </div>
+        {audit?.notes?.length ? (
+          <div className="mt-2 grid gap-1">
+            {audit.notes.slice(0, 3).map((note) => <div key={note} className="text-[10px] font-bold text-slate-600 leading-5">{note}</div>)}
+          </div>
+        ) : null}
+        {subscores.length > 0 && (
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {subscores.map(([label, value]) => (
+              <div key={label} className="rounded-2xl bg-white/80 border border-white px-2 py-2 text-center">
+                <div className="text-[9px] font-black text-slate-500">{label}</div>
+                <div className="mt-1 text-xs font-black text-slate-900">{Math.round(value)}%</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {audit && !ready && audit.fixHint && <div className="mt-2 rounded-2xl bg-white/70 border border-white px-3 py-2 text-[10px] font-black text-amber-800 leading-5">{audit.fixHint}</div>}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button type="button" onClick={() => runAudit()} disabled={isBusy} className="rounded-2xl bg-slate-950 text-white px-3 py-2 text-[11px] font-black disabled:opacity-50">
+            {isBusy ? 'نفحص...' : 'فحص الآن'}
+          </button>
+          {kind === 'image' && audit && !ready && (
+            <button type="button" onClick={makeMoreHuman} disabled={isGenerating} className="rounded-2xl bg-white border border-amber-200 text-amber-700 px-3 py-2 text-[11px] font-black disabled:opacity-50">أعدها أصدق</button>
+          )}
+          {kind === 'reel' && audit && !ready && (
+            <button type="button" onClick={generateReel} disabled={isGeneratingReel} className="rounded-2xl bg-white border border-amber-200 text-amber-700 px-3 py-2 text-[11px] font-black disabled:opacity-50">أعد الريل أصدق</button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderBeforeAfterCompare = () => {
+    const before = selectedImage || compressedImage || originalImage;
+    const after = generatedImage || aiImage;
+    if (!before || !after) return null;
+    return (
+      <div className="mx-auto max-w-3xl rounded-3xl border border-slate-100 bg-white p-3 text-right text-slate-900 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <b className="text-xs font-black">مقارنة الأصل والنتيجة</b>
+          <span className="text-[10px] font-black text-slate-400">هل تغير الطبق؟</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-2">
+            <div className="mb-2 text-[10px] font-black text-slate-500">الأصل</div>
+            <div className="aspect-square overflow-hidden rounded-xl bg-white">
+              <img src={before} alt="الصورة الأصلية" className="h-full w-full object-contain" />
+            </div>
+          </div>
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-2">
+            <div className="mb-2 text-[10px] font-black text-emerald-700">النتيجة</div>
+            <div className="aspect-square overflow-hidden rounded-xl bg-white">
+              <img src={after} alt="الصورة الناتجة" className="h-full w-full object-contain" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
 
   const closeOpenPanels = () => {
     setShowCreateOccasion(false);
@@ -1601,6 +1950,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     setPreviousAiCaption(null);
     setRealityVariants([]);
     setRealityAudit(null);
+    setReelAudit(null);
+    setStudioDirector(null);
     setShowImageSettings(false);
     setShowBrandingPanel(false);
     setShowInstagramPreview(false);
@@ -2103,7 +2454,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             {renderProductionDesk('reel')}
             {!generatedReel && !isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-5xl shadow-2xl"><Film size={46} /></div><h3 className="text-3xl font-black mb-3">معاينة الريل تظهر هنا</h3><p className="text-sm font-bold text-white/55 leading-7">ريل عمودي واقعي · {reelDuration} ثواني</p></div>}
             {isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نولّد ريل واقعي...</p><p className="mt-3 text-xs font-bold text-white/45">نثبت الطعام ونحرك الكاميرا فقط</p></div>}
-            {generatedReel && !isGeneratingReel && <div className="relative z-10 w-full max-w-[380px] space-y-4"><button type="button" onClick={() => setShowReelSettings((v) => !v)} className="w-full aspect-[9/16] rounded-[1.8rem] overflow-hidden bg-black border border-white/10 shadow-2xl relative group">{generatedReel.startsWith('data:image') ? <img src={generatedReel} className="w-full h-full object-contain bg-black" alt="ريل موشن" /> : <video src={generatedReel} className="w-full h-full object-contain bg-black" controls playsInline />}</button>{showReelSettings && <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white"><div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3"><div><p className="text-xs font-black text-white/75">إعدادات هذا الريل</p><p className="text-[11px] font-bold text-white/45 mt-1">انسخها وكرر نفس الحركة لاحقاً.</p></div><button type="button" onClick={() => copyReelSettings()} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-xs font-black flex items-center gap-1"><Copy size={14} /> نسخ</button></div><pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans max-h-48 overflow-y-auto break-words">{buildReelSettingsText()}</pre></div>}<div className="flex items-center justify-center gap-2"><button onClick={downloadReel} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-violet-500 text-white flex items-center justify-center"><Download size={18} /></button><button type="button" onClick={() => copyReelSettings()} title="نسخ الإعدادات" aria-label="نسخ الإعدادات" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Copy size={18} /></button><button type="button" onClick={() => { setGeneratedReel(null); setReelStep(4); }} title="إعادة بنفس الأسلوب" aria-label="إعادة بنفس الأسلوب" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><RotateCcw size={18} /></button></div></div>}
+            {generatedReel && !isGeneratingReel && <div className="relative z-10 w-full max-w-[380px] space-y-4"><button type="button" onClick={() => setShowReelSettings((v) => !v)} className="w-full aspect-[9/16] rounded-[1.8rem] overflow-hidden bg-black border border-white/10 shadow-2xl relative group">{generatedReel.startsWith('data:image') ? <img src={generatedReel} className="w-full h-full object-contain bg-black" alt="ريل موشن" /> : <video src={generatedReel} className="w-full h-full object-contain bg-black" controls playsInline />}</button>{renderQualityAuditCard('reel')}{showReelSettings && <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white"><div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3"><div><p className="text-xs font-black text-white/75">إعدادات هذا الريل</p><p className="text-[11px] font-bold text-white/45 mt-1">انسخها وكرر نفس الحركة لاحقاً.</p></div><button type="button" onClick={() => copyReelSettings()} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-xs font-black flex items-center gap-1"><Copy size={14} /> نسخ</button></div><pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans max-h-48 overflow-y-auto break-words">{buildReelSettingsText()}</pre></div>}<div className="flex items-center justify-center gap-2"><button onClick={downloadReel} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-violet-500 text-white flex items-center justify-center"><Download size={18} /></button><button type="button" onClick={() => copyReelSettings()} title="نسخ الإعدادات" aria-label="نسخ الإعدادات" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Copy size={18} /></button><button type="button" onClick={() => { setGeneratedReel(null); setReelStep(4); }} title="إعادة بنفس الأسلوب" aria-label="إعادة بنفس الأسلوب" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><RotateCcw size={18} /></button></div></div>}
           </div>
         </div>
       )}
@@ -2338,15 +2689,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                               <button
                                 key={scene.id}
                                 type="button"
-                                onClick={() => {
-                                  setSelectedSceneId(scene.id);
-                                  if (scene.id === 'national-day') setSelectedPulseId('national-day');
-                                  setSelectedOrderPlace(scene.place as any);
-                                  setBackgroundPreset(scene.background as any);
-                                  setRealityMode(scene.mode as any);
-                                                                setSelectedTheme('نبض الكويت');
-                                  setShowCreateOccasion(false); // Close list after selection
-                                }}
+                                onClick={() => applyStudioSceneChoice(scene, 'create')}
                                 className={cn(
                                   "relative p-3 rounded-2xl border text-right transition-all flex items-center gap-3 cursor-pointer outline-none select-none",
                                   isSelected 
@@ -2442,6 +2785,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     ))}
                   </div>
                 </div>
+                {renderQualityAuditCard('image')}
                 {showImageSettings && (
                   <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
@@ -2576,15 +2920,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                                   <button
                                     key={scene.id}
                                     type="button"
-                                    onClick={() => {
-                                      setSelectedSceneId(scene.id);
-                                      if (scene.id === 'national-day') setSelectedPulseId('national-day');
-                                      setSelectedOrderPlace(scene.place as any);
-                                      setBackgroundPreset(scene.background as any);
-                                      setRealityMode(scene.mode as any);
-                                                                        setSelectedTheme('نبض الكويت');
-                                      setShowProductOccasion(false); // Close list after selection
-                                    }}
+                                    onClick={() => applyStudioSceneChoice(scene, 'product')}
                                     className={cn(
                                       "relative p-3 rounded-2xl border text-right transition-all flex items-center gap-3 cursor-pointer outline-none select-none",
                                       isSelected 
@@ -2648,6 +2984,10 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <button type="button" onClick={generateFourRealityOptions} disabled={isGenerating || isGeneratingVariants || !selectedImage} className="w-full p-4 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-2xl font-black flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50">
                       {isGeneratingVariants ? <Loader2 className="animate-spin" size={20} /> : <Layout size={20} />}
                       4 نسخ واقعية
+                    </button>
+                    <button type="button" onClick={generateBestAutoAttempt} disabled={isGenerating || isGeneratingVariants || !selectedImage} className="w-full p-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50">
+                      {isGeneratingVariants ? <Loader2 className="animate-spin" size={20} /> : <Check size={20} />}
+                      أفضل محاولة تلقائياً
                     </button>
                   </div>
                 )}
@@ -2728,7 +3068,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <img src={generatedImage} alt="Generated" className="w-full h-full object-contain bg-white" />
                     <span className="absolute bottom-4 right-4 rounded-2xl bg-slate-950/85 px-3 py-2 text-[10px] font-black text-white shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">الإعدادات</span>
                   </button>
-                  <div className="mx-auto max-w-3xl rounded-3xl border border-slate-100 bg-white p-3 text-slate-900 shadow-sm">
+	                  <div className="mx-auto max-w-3xl rounded-3xl border border-slate-100 bg-white p-3 text-slate-900 shadow-sm">
                     <div className="mb-3 flex items-center justify-between"><b className="text-xs font-black">معاينة كل المقاسات قبل النشر</b><span className="text-[10px] font-black text-slate-400">Mobile / Tablet / Desktop</span></div>
                     <div className="grid grid-cols-3 gap-2 items-end">
                       {[['موبايل','w-16 aspect-[9/16]'], ['تابلت','w-24 aspect-[4/3]'], ['ديسكتوب','w-full aspect-video']].map(([label, cls]) => (
@@ -2737,9 +3077,11 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                           <div className="mt-2 text-[10px] font-black text-slate-500">{label}</div>
                         </div>
                       ))}
-                    </div>
-                  </div>
-                  {showImageSettings && (
+	                    </div>
+	                  </div>
+	                  {renderBeforeAfterCompare()}
+	                  <div className="mx-auto max-w-3xl">{renderQualityAuditCard('image')}</div>
+	                  {showImageSettings && (
                     <div className="mx-auto max-w-3xl rounded-3xl border border-slate-100 bg-white p-4 text-right text-slate-800 shadow-sm">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                         <div>
