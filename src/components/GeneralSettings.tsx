@@ -49,6 +49,22 @@ type PushDeviceSnapshot = {
   recentNotifications: { id: string; title: string; message: string; date: string; read?: boolean; type?: string }[];
 };
 
+type PushEventLog = {
+  id: string;
+  title: string;
+  message: string;
+  date: string;
+  type?: string;
+  token?: string;
+  tokenStart?: string;
+  userId?: string;
+  deviceId?: string;
+  deviceLabel?: string;
+  success?: boolean;
+  status?: string;
+  responseId?: string;
+};
+
 type PushHealthCheck = {
   support: string;
   permission: string;
@@ -128,15 +144,15 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const [pushHealth, setPushHealth] = useState<PushHealthCheck | null>(null);
  const [checkingPushHealth, setCheckingPushHealth] = useState(false);
  const [pushDevices, setPushDevices] = useState<PushDeviceSnapshot[]>([]);
+ const [pushEventLogs, setPushEventLogs] = useState<PushEventLog[]>([]);
  const [expandedPushDeviceId, setExpandedPushDeviceId] = useState<string | null>(null);
  const [pushHealthDetailsOpen, setPushHealthDetailsOpen] = useState(false);
  const [pushDevicesPanelOpen, setPushDevicesPanelOpen] = useState(false);
- const [pushDeviceTab, setPushDeviceTab] = useState<'all' | 'active' | 'late' | 'archive' | 'log' | 'team' | 'cleanup' | 'investigate' | 'export'>('all');
+ const [pushDeviceTab, setPushDeviceTab] = useState<'all' | 'active' | 'late' | 'archive' | 'log' | 'investigate'>('all');
  const [pushDeviceSearch, setPushDeviceSearch] = useState('');
  const [expandedPushDeviceGroup, setExpandedPushDeviceGroup] = useState<string>('active');
  const [pushAdvancedFilter, setPushAdvancedFilter] = useState<'all' | 'noRead' | 'noUser' | 'noLogs' | 'weak' | 'duplicates'>('all');
  const [pushInvestigationQuery, setPushInvestigationQuery] = useState('');
- const [pushTestSecret, setPushTestSecret] = useState('');
  const [pushTestTitle, setPushTestTitle] = useState('اختبار إشعار تجريبي من الأدمن');
  const [pushTestBody, setPushTestBody] = useState('هذا إشعار اختبار فقط للتأكد من وصول التنبيه لهذا الجهاز.');
  const [sendingPushTestId, setSendingPushTestId] = useState<string | null>(null);
@@ -185,37 +201,92 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   }).format(new Date(time));
  };
 
- const getRecentPushNotifications = (device?: any) => {
-  const token = String(device?.token || device?.id || '');
+ const normalizePushEventLog = (event: any, index: number): PushEventLog | null => {
+  if (!event || typeof event !== 'object') return null;
+  const hasPushMarker = Boolean(
+    event.responseId || event.token || event.pushToken || event.deviceToken || event.tokenStart ||
+    String(event.type || '').toLowerCase().includes('push') ||
+    String(event.channel || '').toLowerCase() === 'push' ||
+    String(event.method || '').toLowerCase() === 'push'
+  );
+  if (!hasPushMarker) return null;
+  const dateRaw = event.createdAt || event.sentAt || event.date || event.updatedAt || event.timestamp;
+  return {
+    id: String(event.eventId || event.id || event.notificationId || `push-event-${index}`),
+    title: String(event.title || event.heading || event.notificationTitle || 'Push Notification'),
+    message: String(event.body || event.message || event.text || event.notificationBody || ''),
+    date: formatPushHealthDate(dateRaw),
+    type: String(event.type || event.alertType || event.status || 'push'),
+    token: String(event.token || event.pushToken || event.deviceToken || ''),
+    tokenStart: String(event.tokenStart || event.tokenPrefix || ''),
+    userId: String(event.userId || event.recipientId || event.adminId || ''),
+    deviceId: String(event.deviceId || event.tokenId || event.pushTokenId || ''),
+    deviceLabel: String(event.deviceLabel || event.platform || event.deviceType || ''),
+    success: event.success === undefined ? undefined : Boolean(event.success),
+    status: String(event.status || (event.success === true ? 'success' : event.success === false ? 'failed' : 'recorded')),
+    responseId: event.responseId ? String(event.responseId) : undefined,
+  };
+ };
+
+ const readRealPushEventLogs = async (): Promise<PushEventLog[]> => {
+  const localEvents = [
+    ...(((data as any)?.pushEvents || []) as any[]),
+    ...(((data as any)?.pushDeliveryLogs || []) as any[]),
+    ...(((data as any)?.pushTestEvents || []) as any[]),
+  ]
+    .map(normalizePushEventLog)
+    .filter(Boolean) as PushEventLog[];
+
+  if (appMode !== 'cloud' || !db) {
+    return localEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 120);
+  }
+
+  try {
+    const snapshot = await getDocs(collection(db, 'pushEvents'));
+    const serverEvents = snapshot.docs
+      .map((eventDoc, index) => normalizePushEventLog({ id: eventDoc.id, ...eventDoc.data() }, index))
+      .filter(Boolean) as PushEventLog[];
+    const merged = [...serverEvents, ...localEvents];
+    const seen = new Set<string>();
+    return merged
+      .filter(event => {
+        const key = event.id || `${event.token}-${event.date}-${event.title}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 120);
+  } catch (error) {
+    console.warn('[Push] read real push events failed:', error);
+    return localEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 120);
+  }
+ };
+
+ const getRecentPushNotifications = (device?: any, logs: PushEventLog[] = pushEventLogs) => {
+  const token = String(device?.token || '');
+  const tokenStart = token ? token.slice(0, 24) : '';
   const userId = String(device?.userId || '');
   const deviceId = String(device?.id || device?.tokenHash || '');
-  const rawNotifications = [
-    ...(((data as any)?.notifications || []) as any[]),
-    ...(((data as any)?.pushLogs || []) as any[]),
-    ...(((data as any)?.notificationLogs || []) as any[]),
-  ];
-  const sorted = rawNotifications
-    .slice()
-    .sort((a: any, b: any) => new Date(b?.date || b?.createdAt || b?.sentAt || 0).getTime() - new Date(a?.date || a?.createdAt || a?.sentAt || 0).getTime());
+  const deviceLabel = String(device?.label || device?.platform || device?.deviceType || '');
 
-  const matched = sorted.filter((notification: any) => {
-    const targetToken = String(notification?.token || notification?.pushToken || notification?.deviceToken || '');
-    const targetUser = String(notification?.userId || notification?.recipientId || notification?.adminId || '');
-    const targetDevice = String(notification?.deviceId || notification?.tokenId || notification?.pushTokenId || '');
-    if (targetToken && token && targetToken === token) return true;
-    if (targetUser && userId && targetUser === userId) return true;
-    if (targetDevice && deviceId && targetDevice === deviceId) return true;
+  const matched = logs.filter((event: PushEventLog) => {
+    if (event.token && token && event.token === token) return true;
+    if (event.token && tokenStart && event.token.startsWith(tokenStart)) return true;
+    if (event.tokenStart && token && token.startsWith(event.tokenStart)) return true;
+    if (event.userId && userId && event.userId === userId) return true;
+    if (event.deviceId && deviceId && event.deviceId === deviceId) return true;
+    if (event.deviceLabel && deviceLabel && event.deviceLabel === deviceLabel) return true;
     return false;
   });
 
-  const source = matched.length ? matched : sorted;
-  return source.slice(0, 6).map((notification: any, index: number) => ({
-    id: String(notification?.id || notification?.notificationId || `notification-${index}`),
-    title: String(notification?.title || notification?.heading || 'Notification'),
-    message: String(notification?.message || notification?.body || notification?.text || ''),
-    date: formatPushHealthDate(notification?.date || notification?.createdAt || notification?.sentAt),
-    read: Boolean(notification?.read || notification?.openedAt || notification?.acknowledgedAt),
-    type: String(notification?.type || notification?.status || 'info'),
+  return matched.slice(0, 8).map((event: PushEventLog, index: number) => ({
+    id: String(event.id || `push-event-${index}`),
+    title: event.title,
+    message: event.message,
+    date: event.date,
+    read: event.success === true,
+    type: event.success === false ? 'failed' : event.type || 'push',
   }));
  };
 
@@ -236,10 +307,10 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  };
 
  const getPushDeviceRecommendedAction = (device: PushDeviceSnapshot) => {
-  if (device.status === 'online') return 'اتركه فعال: الجهاز يقرأ حديثًا.';
-  if (device.status === 'cold') return 'راقبه قبل التعطيل: الجهاز بدأ يبرد.';
-  if (device.status === 'duplicate') return 'مرشح للدمج أو الأرشفة بعد التأكد من الجهاز الأحدث.';
-  if (device.status === 'abandoned') return 'مرشح للأرشفة الآمنة، وليس الحذف المباشر.';
+  if (device.status === 'online') return 'اتركه فعال: جاهز لاستقبال Push غالبًا.';
+  if (device.status === 'cold') return 'راجع الجهاز: التوكن موجود لكن آخر قراءة قديمة.';
+  if (device.status === 'duplicate') return 'مكرر غالبًا: اختبر الجهاز المطلوب فقط ولا ترسل للجميع.';
+  if (device.status === 'abandoned') return 'قديم/غير صالح غالبًا: اختبره أو أعد تفعيل Push من الجهاز.';
   return 'يحتاج ربط أو تعريف قبل اتخاذ أي قرار.';
  };
 
@@ -249,7 +320,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     { label: 'Last token update', value: device.lastConnection },
     { label: 'Last read/open', value: device.lastRead },
     ...((device.recentNotifications || []).slice(0, 4).map(notification => ({
-      label: notification.read ? 'Notification opened/read' : 'Notification recorded',
+      label: notification.read ? 'Push sent successfully' : 'Push event recorded',
       value: `${notification.title} - ${notification.date}`,
     }))),
   ];
@@ -259,7 +330,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
  const getPushAdvancedFilterLabel = (filter: typeof pushAdvancedFilter) => {
   if (filter === 'noRead') return 'بلا قراءة واضحة';
   if (filter === 'noUser') return 'بلا مستخدم';
-  if (filter === 'noLogs') return 'بلا سجل إشعارات';
+  if (filter === 'noLogs') return 'بلا أرشيف Push';
   if (filter === 'weak') return 'ثقة ضعيفة';
   if (filter === 'duplicates') return 'مكررة';
   return 'كل الحالات';
@@ -348,7 +419,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     'Investigation:',
     ...lines.map(([label, value]) => `- ${label}: ${value}`),
     '',
-    `Safe action: ${getPushDeviceRecommendedAction(device)}`,
+    `Push recommendation: ${getPushDeviceRecommendedAction(device)}`,
   ].join('\n');
  };
 
@@ -449,10 +520,6 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     toast.error('لا يوجد توكن صالح لهذا الجهاز');
     return;
   }
-  if (!pushTestSecret.trim()) {
-    toast.warning('أدخل رمز اختبار الأدمن أولًا', { description: 'يستخدمه الخادم لحماية إرسال الاختبار اليدوي.' });
-    return;
-  }
   setSendingPushTestId(device.id);
   setPushTestResults(prev => ({ ...prev, [device.id]: 'جاري إرسال اختبار افتراضي...' }));
   try {
@@ -460,7 +527,6 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-admin-secret': pushTestSecret.trim(),
       },
       body: JSON.stringify({
         token: device.token,
@@ -487,16 +553,20 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   }
  };
 
- const buildPushDeviceSnapshot = (item: any, index: number, source: 'server' | 'local' | 'current'): PushDeviceSnapshot => {
+ const buildPushDeviceSnapshot = (item: any, index: number, source: 'server' | 'local' | 'current', logs: PushEventLog[] = pushEventLogs): PushDeviceSnapshot => {
   const now = Date.now();
   const token = String(item?.token || item?.id || '');
-  const lastConnectionRaw = item?.lastConnection || item?.connectedAt || item?.createdAt || item?.savedAtClient || '';
-  const lastReadRaw = item?.lastRead || item?.updatedAt || item?.savedAtClient || lastConnectionRaw || '';
+  const lastConnectionRaw = item?.lastConnection || item?.connectedAt || item?.createdAt || item?.registeredAt || item?.savedAtServer || item?.savedAtClient || item?.updatedAt || item?.lastSeenAt || item?.lastSeen || '';
+  const lastReadRaw = item?.lastRead || item?.lastReadAt || item?.lastOpenAt || item?.lastSeenAt || item?.lastSeen || item?.updatedAt || item?.savedAtServer || item?.savedAtClient || lastConnectionRaw || '';
   const lastReadIso = normalizePushDateValue(lastReadRaw);
   const seenTime = lastReadIso ? new Date(lastReadIso).getTime() : NaN;
   const seenMinutes = Number.isFinite(seenTime) ? Math.floor((now - seenTime) / 60000) : 999999;
+  const explicitActive = item?.active === true || item?.enabled === true || item?.permission === 'granted' || item?.notificationPermission === 'granted';
+  const explicitlyDisabled = item?.active === false || item?.enabled === false || item?.disabled === true || item?.archived === true;
   const status: PushDeviceSnapshot['status'] = !token
     ? 'unknown'
+    : explicitlyDisabled ? 'abandoned'
+    : explicitActive ? 'online'
     : seenMinutes > 60 * 24 * 45 ? 'abandoned'
     : seenMinutes > 60 * 24 * 14 ? 'cold'
     : 'online';
@@ -510,18 +580,18 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     token: token || 'Not available',
     platform: item?.platform ? String(item.platform) : undefined,
     deviceType: item?.deviceType ? String(item.deviceType) : undefined,
-    browser: item?.vendor ? String(item.vendor) : undefined,
+    browser: item?.browser ? String(item.browser) : item?.vendor ? String(item.vendor) : item?.userAgent ? String(item.userAgent).slice(0, 80) : undefined,
     userId: item?.userId ? String(item.userId) : undefined,
     currentUrl: item?.currentUrl ? String(item.currentUrl) : undefined,
     lastConnection: formatPushHealthDate(lastConnectionRaw),
     lastRead: formatPushHealthDate(lastReadRaw),
     status,
     note: !token ? 'No Push token recorded for this phone.' : status === 'abandoned' ? 'Abandoned device: no fresh reading for more than 45 days.' : status === 'cold' ? 'Cold device: no fresh reading for more than 14 days.' : 'Fresh reading within the normal window.',
-    recentNotifications: getRecentPushNotifications(item),
+    recentNotifications: getRecentPushNotifications(item, logs),
   };
  };
 
- const readLocalPushDeviceSnapshots = (): PushDeviceSnapshot[] => {
+ const readLocalPushDeviceSnapshots = (logs: PushEventLog[] = pushEventLogs): PushDeviceSnapshot[] => {
   if (typeof window === 'undefined') return [];
   const token = localStorage.getItem('last_push_token') || '';
   const enabledAt = localStorage.getItem('push_enabled_at') || '';
@@ -536,25 +606,25 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     lastConnection: enabledAt,
     lastRead: refreshedAt || enabledAt,
     currentUrl: window.location.href,
-  }, 0, 'current');
+  }, 0, 'current', logs);
 
   let extra: PushDeviceSnapshot[] = [];
   try {
     const raw = localStorage.getItem('alturath_push_devices_readonly') || localStorage.getItem('push_devices_readonly') || '';
     const parsed = raw ? JSON.parse(raw) : [];
     if (Array.isArray(parsed)) {
-      extra = parsed.map((item: any, index: number) => buildPushDeviceSnapshot(item, index, 'local'));
+      extra = parsed.map((item: any, index: number) => buildPushDeviceSnapshot(item, index, 'local', logs));
     }
   } catch {}
   return [base, ...extra].filter((item, index, arr) => arr.findIndex(x => x.token === item.token || x.id === item.id) === index);
  };
 
- const readAllPushDeviceSnapshots = async (): Promise<PushDeviceSnapshot[]> => {
-  const localDevices = readLocalPushDeviceSnapshots();
+ const readAllPushDeviceSnapshots = async (logs: PushEventLog[] = pushEventLogs): Promise<PushDeviceSnapshot[]> => {
+  const localDevices = readLocalPushDeviceSnapshots(logs);
   if (appMode !== 'cloud' || !db) return localDevices;
   try {
     const snapshot = await getDocs(collection(db, 'pushTokens'));
-    const serverDevices = snapshot.docs.map((pushDoc, index) => buildPushDeviceSnapshot({ id: pushDoc.id, ...pushDoc.data() }, index, 'server'));
+    const serverDevices = snapshot.docs.map((pushDoc, index) => buildPushDeviceSnapshot({ id: pushDoc.id, ...pushDoc.data() }, index, 'server', logs));
     const seenKeys = new Set<string>();
     return [...serverDevices, ...localDevices]
       .map(device => {
@@ -599,7 +669,9 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
     const ready = status.supported && status.permission === 'granted' && Boolean(token) && serviceWorkerState !== 'غير مسجل';
     const blocked = status.permission === 'denied' || !status.supported;
-    const allDevices = await readAllPushDeviceSnapshots();
+    const realPushEvents = await readRealPushEventLogs();
+    setPushEventLogs(realPushEvents);
+    const allDevices = await readAllPushDeviceSnapshots(realPushEvents);
     setPushDevices(allDevices);
     setExpandedPushDeviceId(null);
     setPushDeviceTab('all');
@@ -1505,7 +1577,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                       <span>Push Health Check</span>
                     </div>
                     <h3 className="mt-2 text-lg font-black">اختبار صحة الإشعارات</h3>
-                    <p className="mt-1 text-xs font-bold leading-6 text-white/60">يفحص إذن المتصفح، التوكن، آخر تسجيل، و Service Worker بدون إرسال إشعار حقيقي.</p>
+                    <p className="mt-1 text-xs font-bold leading-6 text-white/60">يفحص أجهزة Push الحقيقية فقط: التوكن، الإذن، آخر تسجيل، و Service Worker. لا يعرض التنبيهات الذكية الداخلية.</p>
                   </div>
                   <button
                     type="button"
@@ -1575,9 +1647,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                     active: pushDevices.filter(d => d.status === 'online').length,
                     late: pushDevices.filter(d => d.status === 'cold').length,
                     archive: pushDevices.filter(d => ['abandoned', 'duplicate', 'unknown'].includes(d.status)).length,
-                    team: new Set(pushDevices.map(d => d.userId || d.label).filter(Boolean)).size,
-                    cleanup: pushDevices.filter(d => d.status !== 'online').length,
-                    log: pushDevices.reduce((total, device) => total + (device.recentNotifications?.length || 0), 0),
+                    log: pushEventLogs.length,
                   };
                   const filteredDevices = pushDevices.filter(device => {
                     const haystack = [device.label, device.userId, device.platform, device.deviceType, device.browser, device.currentUrl, device.token, device.lastRead].filter(Boolean).join(' ').toLowerCase();
@@ -1585,28 +1655,16 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                       || (pushDeviceTab === 'active' && device.status === 'online')
                       || (pushDeviceTab === 'late' && device.status === 'cold')
                       || (pushDeviceTab === 'archive' && ['abandoned', 'duplicate', 'unknown'].includes(device.status))
-                      || (pushDeviceTab === 'cleanup' && device.status !== 'online')
-                      || pushDeviceTab === 'team'
                       || pushDeviceTab === 'log'
-                      || pushDeviceTab === 'investigate'
-                      || pushDeviceTab === 'export';
+                      || pushDeviceTab === 'investigate';
                     return tabMatch && (!query || haystack.includes(query)) && matchesPushAdvancedFilter(device, pushDevices);
                   });
                   const groupedDevices = [
                     { id: 'active', title: 'الأجهزة النشطة', hint: 'تعمل وتقرأ حديثًا', devices: filteredDevices.filter(d => d.status === 'online') },
                     { id: 'late', title: 'الأجهزة الباردة', hint: 'مر عليها أكثر من 14 يوم', devices: filteredDevices.filter(d => d.status === 'cold') },
-                    { id: 'archive', title: 'مرشحة للأرشفة الآمنة', hint: 'قديمة، مكررة، أو غير مكتملة', devices: filteredDevices.filter(d => ['abandoned', 'duplicate', 'unknown'].includes(d.status)) },
+                    { id: 'archive', title: 'أجهزة قديمة/غير صالحة', hint: 'قديمة، مكررة، أو غير مكتملة', devices: filteredDevices.filter(d => ['abandoned', 'duplicate', 'unknown'].includes(d.status)) },
                   ].filter(group => pushDeviceTab === 'all' ? group.devices.length : group.devices.length || group.id === pushDeviceTab);
-                  const notificationLog = filteredDevices
-                    .flatMap(device => (device.recentNotifications || []).map(notification => ({ ...notification, deviceLabel: device.label, deviceStatus: device.status })))
-                    .slice(0, 30);
-                  const cleanupCandidates = filteredDevices.filter(device => device.status !== 'online');
-                  const employeeDeviceGroups = Object.values(filteredDevices.reduce((acc: any, device) => {
-                    const key = device.userId || device.label || 'Unlinked';
-                    if (!acc[key]) acc[key] = { key, devices: [] as PushDeviceSnapshot[] };
-                    acc[key].devices.push(device);
-                    return acc;
-                  }, {})).sort((a: any, b: any) => b.devices.length - a.devices.length) as { key: string; devices: PushDeviceSnapshot[] }[];
+                  const notificationLog = pushEventLogs.slice(0, 60);
 
                   return (
                   <div className="relative z-10 mt-3 rounded-[1.35rem] border border-white/10 bg-white/10 overflow-hidden">
@@ -1616,8 +1674,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                       className="w-full p-3 flex items-center justify-between gap-3 text-right hover:bg-white/5 transition"
                     >
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 text-xs font-black text-white"><MonitorSmartphone size={15} /> مركز صحة الأجهزة والتحقيق في الإشعارات</div>
-                        <p className="mt-1 text-[10px] font-bold text-white/45">تابات، بحث سريع، قوائم مطوية، وأرشفة مقترحة بدون حذف أو تغيير بيانات.</p>
+                        <div className="flex items-center gap-2 text-xs font-black text-white"><MonitorSmartphone size={15} /> مركز Push الحقيقي للأجهزة والاختبار</div>
+                        <p className="mt-1 text-[10px] font-bold text-white/45">يعرض أجهزة Push والتوكنات واختبار إرسال فعلي لجهاز محدد فقط؛ بدون تنبيهات ذكية داخلية.</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-white/60">{pushDevices.length} جهاز</span>
@@ -1629,20 +1687,17 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                         <div className="rounded-2xl border border-white/10 bg-slate-950/30 p-1 overflow-x-auto">
                           <div className="flex min-w-max gap-1">
                             {[
-                              ['all', 'الكل', counts.all],
+                              ['all', 'كل الأجهزة', counts.all],
                               ['active', 'نشط', counts.active],
-                              ['late', 'بارد', counts.late],
-                              ['archive', 'أرشيف', counts.archive],
-                              ['team', 'الموظفين', counts.team],
-                              ['cleanup', 'تنظيف الشهر', counts.cleanup],
-                              ['log', 'السجل', counts.log],
-                              ['investigate', 'تحقيق سريع', counts.all],
-                              ['export', 'تقرير', counts.all],
+                              ['late', 'يحتاج مراجعة', counts.late],
+                              ['archive', 'قديم/غير صالح', counts.archive],
+                              ['log', 'أرشيف Push', counts.log],
+                              ['investigate', 'اختبار شخص', counts.all],
                             ].map(([id, label, count]) => (
                               <button
                                 key={String(id)}
                                 type="button"
-                                onClick={() => { setPushDeviceTab(id as any); setExpandedPushDeviceGroup(id === 'late' ? 'late' : id === 'archive' || id === 'cleanup' ? 'archive' : 'active'); }}
+                                onClick={() => { setPushDeviceTab(id as any); setExpandedPushDeviceGroup(id === 'late' ? 'late' : id === 'archive' ? 'archive' : 'active'); }}
                                 className={cn('rounded-xl px-3 py-2 text-[10px] font-black transition whitespace-nowrap', pushDeviceTab === id ? 'bg-white text-slate-950 shadow-sm' : 'text-white/55 hover:bg-white/10')}
                               >
                                 <span className="block">{label}</span>
@@ -1670,7 +1725,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                               ['all', 'كل الحالات'],
                               ['noRead', 'بلا قراءة'],
                               ['noUser', 'بلا مستخدم'],
-                              ['noLogs', 'بلا سجل إشعارات'],
+                              ['noLogs', 'بلا أرشيف Push'],
                               ['weak', 'ثقة ضعيفة'],
                               ['duplicates', 'مكررة'],
                             ].map(([id, label]) => (
@@ -1680,11 +1735,11 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                         </details>
 
                         <details className="rounded-2xl border border-amber-300/15 bg-amber-400/10 p-3" open={false}>
-                          <summary className="cursor-pointer text-[11px] font-black text-amber-100 flex items-center gap-2"><Shield size={14} /> بروتوكول التنظيف الآمن</summary>
+                          <summary className="cursor-pointer text-[11px] font-black text-amber-100 flex items-center gap-2"><Shield size={14} /> ملاحظة مهمة</summary>
                           <div className="mt-3 grid gap-2 text-[10px] font-bold leading-5 text-white/65">
-                            <p>1) لا حذف مباشر للتوكنات أو الأجهزة من هنا. هذه لوحة تحقيق وقرار فقط.</p>
-                            <p>2) الجهاز البارد يراقب أولًا، والمهجور يؤرشف بعد التأكد من الموظف والجهاز الأحدث.</p>
-                            <p>3) الحذف النهائي يحتاج إجراء منفصل وتأكيدين حتى لا تنكسر إشعارات موظف فعّال بالخطأ.</p>
+                            <p>1) هذا المكان خاص بـ Push الحقيقي فقط، وليس التنبيهات الذكية داخل النظام.</p>
+                            <p>2) أرشيف Push يعرض فقط ما تم تسجيله كإرسال/اختبار Push فعلي.</p>
+                            <p>3) زر الاختبار يرسل Push تجريبيًا للتوكن المحدد فقط، وليس للجميع.</p>
                           </div>
                         </details>
 
@@ -1711,8 +1766,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                                 <Search size={13} className="text-white/40" />
                                 <input value={pushInvestigationQuery} onChange={e => setPushInvestigationQuery(e.target.value)} placeholder="مثال: خالد، iPhone، جزء من التوكن..." className="w-full bg-transparent text-[10px] font-bold text-white placeholder:text-white/35 outline-none" />
                               </div>
-                              <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
-                                <input value={pushTestSecret} onChange={e => setPushTestSecret(e.target.value)} placeholder="رمز اختبار الأدمن" className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-[10px] font-bold text-white placeholder:text-white/35 outline-none" />
+                              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
                                 <input value={pushTestTitle} onChange={e => setPushTestTitle(e.target.value)} placeholder="عنوان إشعار الاختبار" className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-[10px] font-bold text-white placeholder:text-white/35 outline-none" />
                                 <input value={pushTestBody} onChange={e => setPushTestBody(e.target.value)} placeholder="نص إشعار الاختبار" className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-[10px] font-bold text-white placeholder:text-white/35 outline-none" />
                               </div>
@@ -1757,91 +1811,12 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                               );
                             })}
                           </div>
-                        ) : pushDeviceTab === 'export' ? (
-                          <div className="space-y-2">
-                            <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/10 p-3">
-                              <div className="flex items-center gap-2 text-[11px] font-black text-emerald-100"><ShieldCheck size={14} /> تقرير الكمال التنفيذي</div>
-                              <p className="mt-1 text-[10px] font-bold leading-5 text-white/55">تصدير ونسخ تقارير بدون حذف أو تعطيل. مناسب للمراجعة الشهرية أو عند شكوى موظف.</p>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                              <button type="button" onClick={() => downloadPushDevicesCsv(filteredDevices)} className="rounded-2xl bg-white text-slate-950 px-4 py-3 text-[11px] font-black hover:bg-emerald-50 flex items-center justify-center gap-2"><FileDown size={15} /> تحميل تقرير Excel</button>
-                              <button type="button" onClick={() => copyPushExecutiveSummary(filteredDevices)} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-[11px] font-black text-white hover:bg-white/15 flex items-center justify-center gap-2"><ClipboardCheck size={15} /> نسخ ملخص تنفيذي</button>
-                            </div>
-                            <div className="rounded-2xl border border-white/10 bg-slate-950/30 p-3 space-y-1.5">
-                              {filteredDevices.slice().sort((a, b) => getPushDeviceConfidence(a) - getPushDeviceConfidence(b)).slice(0, 10).map(device => (
-                                <div key={device.id} className="rounded-xl bg-white/5 border border-white/10 p-2 flex items-center justify-between gap-2">
-                                  <div className="min-w-0"><b className="block truncate text-[10px] font-black text-white">{device.label}</b><span dir="ltr" className="block truncate text-[9px] font-bold text-white/40">{device.lastRead}</span></div>
-                                  <span className="rounded-full bg-white/10 px-2 py-1 text-[9px] font-black text-white">{getPushDeviceConfidence(device)}%</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : pushDeviceTab === 'team' ? (
-                          <div className="space-y-2">
-                            {employeeDeviceGroups.length ? employeeDeviceGroups.map((group: any) => {
-                              const activeCount = group.devices.filter((d: PushDeviceSnapshot) => d.status === 'online').length;
-                              const oldCount = group.devices.length - activeCount;
-                              return (
-                                <details key={group.key} className="rounded-2xl border border-white/10 bg-slate-950/30 p-3">
-                                  <summary className="cursor-pointer list-none flex items-center justify-between gap-3">
-                                    <div className="min-w-0">
-                                      <div className="text-[11px] font-black text-white truncate">{group.key}</div>
-                                      <p className="mt-0.5 text-[9px] font-bold text-white/40">مقارنة أجهزة نفس الموظف / الحساب</p>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <span className="rounded-full bg-emerald-400/15 px-2 py-1 text-[9px] font-black text-emerald-100">نشط {activeCount}</span>
-                                      <span className="rounded-full bg-rose-400/15 px-2 py-1 text-[9px] font-black text-rose-100">قديم {oldCount}</span>
-                                    </div>
-                                  </summary>
-                                  <button type="button" onClick={(event) => { event.preventDefault(); copyPushEmployeeReport(group.key, group.devices); }} className="mt-3 w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-[10px] font-black text-white hover:bg-white/15 transition flex items-center justify-center gap-2"><Users size={13} /> نسخ تقرير هذا الموظف</button>
-                                  <div className="mt-3 space-y-1.5">
-                                    {group.devices.map((device: PushDeviceSnapshot) => {
-                                      const score = getPushDeviceConfidence(device);
-                                      const meta = getPushStatusMeta(device.status);
-                                      return (
-                                        <div key={device.id} className="rounded-xl border border-white/10 bg-white/5 p-2 flex items-center justify-between gap-2">
-                                          <div className="min-w-0">
-                                            <div className="flex items-center gap-1.5"><b className="text-[10px] font-black text-white truncate">{device.label}</b><span className={cn('rounded-full border px-1.5 py-0.5 text-[8px] font-black', meta.pill)}>{meta.label}</span></div>
-                                            <p dir="ltr" className="mt-0.5 truncate text-[8px] font-bold text-white/40">{device.lastRead}</p>
-                                          </div>
-                                          <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[9px] font-black text-white">{score}%</span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </details>
-                              );
-                            }) : <p className="rounded-2xl border border-dashed border-white/10 p-4 text-center text-[10px] font-bold text-white/45">لا توجد مجموعات موظفين مطابقة.</p>}
-                          </div>
-                        ) : pushDeviceTab === 'cleanup' ? (
-                          <div className="space-y-2">
-                            <div className="rounded-2xl border border-rose-300/15 bg-rose-400/10 p-3">
-                              <div className="text-[11px] font-black text-rose-100">تنظيف الشهر - قرار آمن فقط</div>
-                              <p className="mt-1 text-[10px] font-bold leading-5 text-white/55">هذه شاشة ترشيح فقط: لا حذف، لا تعطيل، لا تعديل في قاعدة البيانات. الهدف معرفة الأجهزة القديمة والمكررة قبل أي إجراء منفصل.</p>
-                            </div>
-                            {cleanupCandidates.length ? cleanupCandidates.map(device => {
-                              const score = getPushDeviceConfidence(device);
-                              const meta = getPushStatusMeta(device.status);
-                              return (
-                                <div key={device.id} className="rounded-2xl border border-white/10 bg-slate-950/30 p-3">
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0">
-                                      <div className="flex flex-wrap items-center gap-1.5"><strong className="text-[11px] font-black text-white">{device.label}</strong><span className={cn('rounded-full border px-2 py-0.5 text-[9px] font-black', meta.pill)}>{meta.label}</span></div>
-                                      <p dir="ltr" className="mt-1 truncate text-[9px] font-bold text-white/40">Last read: {device.lastRead}</p>
-                                    </div>
-                                    <span className="rounded-full bg-white/10 px-2 py-1 text-[9px] font-black text-white">ثقة {score}%</span>
-                                  </div>
-                                  <div className="mt-2 rounded-xl border border-amber-300/15 bg-amber-400/10 p-2 text-[10px] font-bold leading-5 text-amber-50">{getPushDeviceRecommendedAction(device)}</div>
-                                </div>
-                              );
-                            }) : <p className="rounded-2xl border border-dashed border-white/10 p-4 text-center text-[10px] font-bold text-white/45">لا توجد أجهزة مرشحة للتنظيف في الفلتر الحالي.</p>}
-                          </div>
                         ) : pushDeviceTab === 'log' ? (
                           <div className="rounded-2xl border border-white/10 bg-slate-950/30 overflow-hidden">
                             <button type="button" className="w-full p-3 flex items-center justify-between gap-2 text-right">
                               <div>
-                                <div className="text-[11px] font-black text-white">سجل آخر الإشعارات المرصودة</div>
-                                <p className="mt-1 text-[10px] font-bold text-white/45">يعرض آخر ما هو محفوظ في بيانات النظام؛ الاستلام الفعلي يحتاج سجل acknowledgment مستقبلاً.</p>
+                                <div className="text-[11px] font-black text-white">أرشيف Push الحقيقي</div>
+                                <p className="mt-1 text-[10px] font-bold text-white/45">يعرض فقط محاولات Push الحقيقية المحفوظة في pushEvents، ولا يعرض التنبيهات الذكية الداخلية.</p>
                               </div>
                               <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-white/60">{notificationLog.length}</span>
                             </button>
@@ -1858,7 +1833,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                                   {notification.message && <p className="mt-1 line-clamp-2 text-[9px] font-bold leading-4 text-white/55">{notification.message}</p>}
                                 </div>
                               )) : (
-                                <p className="rounded-xl border border-dashed border-white/10 p-3 text-center text-[10px] font-bold text-white/45">لا توجد إشعارات محفوظة في البيانات الحالية.</p>
+                                <p className="rounded-xl border border-dashed border-white/10 p-3 text-center text-[10px] font-bold text-white/45">لا يوجد أرشيف Push حقيقي محفوظ حتى الآن. سيظهر هنا اختبار Push الفعلي بعد إرساله.</p>
                               )}
                             </div>
                           </div>
@@ -1979,7 +1954,6 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                                                       <details className="rounded-xl bg-emerald-400/10 border border-emerald-300/15 p-2">
                                                         <summary className="cursor-pointer text-[10px] font-black text-emerald-100">إرسال اختبار افتراضي لهذا الجهاز</summary>
                                                         <div className="mt-2 space-y-2">
-                                                          <input value={pushTestSecret} onChange={e => setPushTestSecret(e.target.value)} placeholder="رمز اختبار الأدمن" className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-[10px] font-bold text-white placeholder:text-white/35 outline-none" />
                                                           <input value={pushTestTitle} onChange={e => setPushTestTitle(e.target.value)} placeholder="عنوان الاختبار" className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-[10px] font-bold text-white placeholder:text-white/35 outline-none" />
                                                           <input value={pushTestBody} onChange={e => setPushTestBody(e.target.value)} placeholder="رسالة الاختبار" className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-[10px] font-bold text-white placeholder:text-white/35 outline-none" />
                                                           <button type="button" onClick={() => sendPushDeviceTestNotification(device)} disabled={sendingPushTestId === device.id} className="w-full rounded-xl bg-emerald-400 px-3 py-2 text-[10px] font-black text-slate-950 hover:bg-emerald-300 disabled:opacity-60 transition flex items-center justify-center gap-2">{sendingPushTestId === device.id ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} أرسل إشعار اختبار الآن</button>
@@ -1990,7 +1964,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                                                   );
                                                 })()}
                                                 <div className="rounded-xl border border-emerald-300/15 bg-emerald-400/10 p-2">
-                                                  <span className="block text-[9px] font-black text-emerald-100/70">قرار آمن مقترح</span>
+                                                  <span className="block text-[9px] font-black text-emerald-100/70">حكم Push المقترح</span>
                                                   <p className="mt-1 text-[10px] font-bold leading-5 text-emerald-50">{getPushDeviceRecommendedAction(device)}</p>
                                                 </div>
                                                 <details className="rounded-xl bg-black/25 border border-white/10 p-2">
@@ -1998,7 +1972,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                                                   <code dir="ltr" className="mt-2 block max-h-28 overflow-auto whitespace-pre-wrap break-all text-[10px] font-bold leading-5 text-emerald-100">{device.token}</code>
                                                 </details>
                                                 <details className="rounded-xl bg-white/10 border border-white/10 p-2">
-                                                  <summary className="cursor-pointer text-[10px] font-black text-white">آخر إشعارات هذا الجهاز/الحساب <span className="text-white/45">({device.recentNotifications.length || 0})</span></summary>
+                                                  <summary className="cursor-pointer text-[10px] font-black text-white">أرشيف Push الحقيقي لهذا الجهاز <span className="text-white/45">({device.recentNotifications.length || 0})</span></summary>
                                                   {device.recentNotifications.length ? (
                                                     <div className="mt-2 space-y-1.5 max-h-52 overflow-auto">
                                                       {device.recentNotifications.map(notification => (
@@ -2017,7 +1991,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                                                       ))}
                                                     </div>
                                                   ) : (
-                                                    <p className="mt-2 rounded-xl border border-dashed border-white/10 p-2 text-[10px] font-bold text-white/45">لا توجد إشعارات محفوظة لهذا الجهاز حاليًا.</p>
+                                                    <p className="mt-2 rounded-xl border border-dashed border-white/10 p-2 text-[10px] font-bold text-white/45">لا يوجد أرشيف Push حقيقي لهذا الجهاز حتى الآن.</p>
                                                   )}
                                                 </details>
                                                 <p className="flex items-center gap-1 text-[10px] font-bold text-white/45"><WifiOff size={12} /> {device.note}</p>

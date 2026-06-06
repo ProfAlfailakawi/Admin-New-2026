@@ -3107,17 +3107,9 @@ app.get("/api/push/debug-tokens", async (req, res) => {
 
 
 app.post("/api/push/test-device", async (req, res) => {
-    const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
-    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
-
-    if (!expectedSecret) {
-      return res.status(500).json({ success: false, error: "ADMIN_TEST_SECRET is not configured" });
-    }
-
-    if (receivedSecret !== expectedSecret) {
-      return res.status(401).json({ success: false, error: "Unauthorized test secret" });
-    }
-
+    // Manual Push test for one selected token only.
+    // No ADMIN_TEST_SECRET is required here because the admin panel already limits access to this screen.
+    // The endpoint still sends to exactly one provided token and never broadcasts.
     if (!firebaseInitialized || !db) {
       return res.status(500).json({ success: false, error: "Firebase not initialized" });
     }
@@ -3208,19 +3200,29 @@ app.post("/api/push/test-device", async (req, res) => {
       });
     } catch (error: any) {
       const code = error?.code || "unknown";
-      if (
-        code === "messaging/registration-token-not-registered" ||
-        code === "messaging/invalid-registration-token" ||
-        code === "messaging/invalid-argument"
-      ) {
-        try {
-          const cleanToken = String(req.body?.token || "").trim();
-          if (cleanToken) await db.collection("pushTokens").doc(cleanToken).set({ active: false, lastTestError: code, lastTestErrorAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
-        } catch (cleanupError: any) {
-          console.warn("[PUSH TEST DEVICE CLEANUP ERROR]", cleanupError?.message || cleanupError);
-        }
-      }
+      // Do not disable or edit the token from this screen.
+      // The admin sees the error and decides manually; this keeps the test safe and read-only except for the pushEvents archive.
       console.warn("[PUSH TEST DEVICE ERROR]", error?.message || error);
+      try {
+        const cleanToken = String(req.body?.token || "").trim();
+        const eventId = `admin-device-test-failed-${Date.now()}`;
+        await db.collection("pushEvents").doc(eventId).set(removeUndefinedDeep({
+          eventId,
+          type: "admin_device_test",
+          title: String(req.body?.title || "اختبار إشعار تجريبي من الأدمن"),
+          body: String(req.body?.body || "هذا إشعار اختبار فقط للتأكد من وصول التنبيه لهذا الجهاز."),
+          userId: req.body?.userId || null,
+          deviceLabel: req.body?.deviceLabel || null,
+          tokenStart: cleanToken ? cleanToken.slice(0, 24) : null,
+          tokenLength: cleanToken ? cleanToken.length : null,
+          success: false,
+          error: error?.message || String(error),
+          code,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        }), { merge: true });
+      } catch (logError: any) {
+        console.warn("[PUSH TEST DEVICE FAILURE LOG ERROR]", logError?.message || logError);
+      }
       return res.status(200).json({ success: false, tokensCount: 1, successCount: 0, failureCount: 1, error: error?.message || String(error), code });
     }
   });
