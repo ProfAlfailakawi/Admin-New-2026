@@ -606,19 +606,23 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           ['غدًا', `ريل قصير بلقطة ${activeShot.label} بدون تكرار نفس التكوين.`],
           ['نهاية الأسبوع', 'عرض واتساب مبني على نفس الصورة لكن بنص مختلف.']
         ];
-    const actionCards = [
-      { label: 'قراءة المخرج', value: directorVerdict },
-      { label: 'الخطوة التالية', value: nextBestMove },
-      { label: 'نافذة النشر', value: publishingWindow },
-      { label: 'ما يجب تجنبه', value: avoidMove },
-    ];
+    const decisionCards = isReel
+      ? [
+          { label: 'أفضل استخدام', value: isReelFromPhoto ? 'ريل سريع يثبت المنتج بصريًا' : 'ريل افتتاحي يحول الفكرة إلى رغبة' },
+          { label: 'أفضل وقت', value: 'قبل وقت الطلبات أو الذروة بـ 60 إلى 90 دقيقة' },
+          { label: 'الخطوة التالية', value: isReelFromPhoto ? 'صورة عرض مساءً بدون تكرار نفس الزاوية' : 'صورة ثابتة من نفس الفكرة بنبرة أهدأ' },
+        ]
+      : [
+          { label: 'أفضل استخدام', value: selectedFormat === '9:16' ? 'ستوري بيع مباشر' : 'منشور إنستغرام واضح' },
+          { label: 'أفضل وقت', value: isIdeaImage ? 'قبل إعلان العرض أو بداية اليوم' : 'قبل الغداء أو وقت الجوع' },
+          { label: 'الخطوة التالية', value: isPhotoImage ? 'ستوري بعد ساعتين ثم ريل بزاوية مختلفة' : 'ريل قصير يختبر قوة الفكرة' },
+        ];
     const scoreChips = [
       isReel ? 'قوة الحركة عالية' : 'وضوح البيع مهم',
       `المشهد: ${place.label}`,
       `النبرة: ${moodLabel}`,
-      audienceRead,
     ];
-    return { productLabel, activeShot, formatLabel, actionCards, scoreChips, campaignSteps };
+    return { productLabel, activeShot, formatLabel, decisionCards, scoreChips, campaignSteps, directorVerdict, avoidMove };
   };
 
   const renderLiveStudioCard = (kind: 'image' | 'idea' | 'reel') => {
@@ -641,37 +645,27 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           <span className="rounded-2xl bg-white/10 text-white px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
         </summary>
         <div className="px-4 pb-4 space-y-3">
-          <div className="grid sm:grid-cols-2 gap-2 text-[11px] font-bold text-white/65">
-            {[
-              ['الناتج', isReel ? 'ريل جاهز للنشر' : card.output],
-              ['المنصة', card.platform],
-              ['مدة الاستخدام', isReel ? card.duration : '24-48 ساعة ثم زاوية جديدة'],
-              ['أفضل وقت', card.timing],
-              ['قوة التأثير', card.impact],
-              ['صيغة القراءة', intelligence.formatLabel],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-2xl bg-black/20 border border-white/10 p-3">
-                <div className="text-[9px] font-black text-white/35 mb-1">{label}</div>
-                <div className="leading-5">{value}</div>
+          <div className="rounded-2xl bg-emerald-300/10 border border-emerald-300/20 p-3">
+            <div className="text-[10px] font-black text-emerald-200 mb-1">قراءة المخرج</div>
+            <p className="text-[11px] font-bold text-white/70 leading-6">{intelligence.directorVerdict}</p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-2">
+            {intelligence.decisionCards.map((item) => (
+              <div key={item.label} className="rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] font-bold text-white/75 leading-5">
+                <div className="text-[9px] font-black text-emerald-200 mb-1">{item.label}</div>
+                {item.value}
               </div>
             ))}
           </div>
 
-          <div className="rounded-2xl bg-emerald-300/10 border border-emerald-300/20 p-3">
-            <div className="text-[10px] font-black text-emerald-200 mb-2">توصية المخرج الآن</div>
-            <div className="grid gap-2">
-              {intelligence.actionCards.map((item) => (
-                <div key={item.label} className="rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/75 leading-5">
-                  <span className="text-emerald-200">{item.label}: </span>{item.value}
-                </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-2">
+              {intelligence.scoreChips.map((chip) => (
+                <span key={chip} className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-[10px] font-black text-white/65">{chip}</span>
               ))}
             </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {intelligence.scoreChips.map((chip) => (
-              <span key={chip} className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-[10px] font-black text-white/65">{chip}</span>
-            ))}
+            <span className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">افتح خطة الحملة بالأسفل</span>
           </div>
         </div>
       </details>
@@ -685,8 +679,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         <summary className="cursor-pointer list-none p-4 flex items-center justify-between gap-3 select-none">
           <div>
             <div className="text-[10px] font-black text-amber-600">وصفة الحملة</div>
-            <h4 className="text-sm font-black text-slate-950">حوّل الناتج إلى خطة نشر قصيرة</h4>
-            <p className="mt-1 text-[11px] font-bold text-slate-500">مغلقة افتراضيًا حتى يبقى الاستوديو نظيفًا.</p>
+            <h4 className="text-sm font-black text-slate-950">وصفة الحملة جاهزة</h4>
+            <p className="mt-1 text-[11px] font-bold text-slate-500">4 خطوات مقترحة لهذا الناتج، مغلقة افتراضيًا حتى يبقى الاستوديو نظيفًا.</p>
           </div>
           <Sparkles size={18} className="text-amber-600 group-open:hidden" />
           <span className="rounded-2xl bg-white text-amber-700 border border-amber-100 px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
@@ -2421,6 +2415,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 border border-white/10"><Camera className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-200" /></span>
               استوديو التراث الذكي
             </h1>
+            <p className="mt-2 text-sm font-bold text-white/55">حوّل المنتج إلى حملة جاهزة.</p>
           </div>
           <button onClick={() => setStudioTab('library')} className="h-12 w-12 rounded-2xl border border-white/10 bg-white/10 text-white flex items-center justify-center backdrop-blur shrink-0" title="الأرشيف">
             <Library size={18} />
@@ -2443,7 +2438,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             <div>
               <p className="text-xs font-black text-indigo-500 mb-1">اختَر مسار الإنتاج</p>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">ابدأ بالناتج، والباقي داخل المسار</h2>
-              <p className="text-xs sm:text-sm font-bold text-slate-400 mt-2 leading-6">مساران فقط: ريل مباشر أو صورة مباشرة. الريل يبدأ من صورة أو فكرة، والصورة تبدأ من صورة أو فكرة مع اختيار ذكي من المنيو عند الحاجة.</p>
+              <p className="text-xs sm:text-sm font-bold text-slate-400 mt-2 leading-6">مساران فقط بلا زحمة: ريل مباشر أو صورة مباشرة. من فكرة مدمجة داخل كل مسار عند الحاجة.</p>
             </div>
           </div>
 
@@ -2462,7 +2457,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               </div>
               <div className="relative mt-7">
                 <div className="text-2xl font-black text-slate-950 leading-tight">ريل مباشر</div>
-                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">غرفة مونتاج واحدة: من صورة أو من فكرة. بعدها لقطة، مدة، وتوليد.</div>
+                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">غرفة مونتاج واحدة: اختر صورة أو صف فكرة، ثم لقطة ومدة وتوليد.</div>
                 <div className="mt-5 grid grid-cols-2 gap-2 text-center text-[10px] font-black">
                   <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">فكرة</span>
                   <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">صورة</span>
@@ -2478,7 +2473,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               </div>
               <div className="relative mt-7">
                 <div className="text-2xl font-black text-slate-950 leading-tight">صورة مباشرة</div>
-                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">استوديو صورة واحد: ارفع صورة أو اكتب فكرة، والاختيار الذكي يساعدك من المنيو بدون مسار مكرر.</div>
+                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">استوديو صورة واحد: ابدأ من صورة المنتج أو صف مشهدًا من خيالك.</div>
                 <div className="mt-5 grid grid-cols-2 gap-2 text-center text-[10px] font-black">
                   <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">صورة</span>
                   <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">فكرة</span>
@@ -3100,7 +3095,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 <p className="text-sm font-bold text-white/55 leading-7">{activeStudioScene.label} · {KUWAIT_PLACES[selectedOrderPlace]?.label}</p>
               </div>
             )}
-            {isGenerating && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نجهز صورة واقعية...</p></div>}
+            {isGenerating && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نختار زاوية التصوير…</p><p className="mt-3 text-xs font-bold text-white/45">نضبط الإضاءة ونجهز اللقطة للنشر</p></div>}
             {generatedImage && !isGenerating && (
               <div className="relative z-10 w-full max-w-full space-y-4">
                 <button type="button" onClick={() => setShowImageSettings((v) => !v)} className={cn("w-full rounded-[1.6rem] overflow-hidden bg-white/5 border border-white/10 relative group", previewAspectClass)}>
@@ -3458,8 +3453,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       <Sparkles className="text-indigo-600 animate-pulse" size={42} />
                     </div>
                   </div>
-                  <h3 className="text-2xl font-black mb-2">نجهز الصورة الواقعية...</h3>
-                  <p className="text-xs font-black text-slate-500 leading-6">نثبت الطبق · نضبط الإضاءة · نركب المشهد الكويتي بدون تشويه المنتج</p>
+                  <h3 className="text-2xl font-black mb-2">نختار زاوية التصوير…</h3>
+                  <p className="text-xs font-black text-slate-500 leading-6">نضبط الإضاءة ونكتب نبرة الحملة بدون تشويه المنتج</p>
                   <div className="mt-6 mx-auto max-w-xs h-2 rounded-full bg-slate-200 overflow-hidden">
                     <div className="h-full w-1/2 rounded-full bg-slate-950 animate-pulse" />
                   </div>

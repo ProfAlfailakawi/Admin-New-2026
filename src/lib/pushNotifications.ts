@@ -54,6 +54,42 @@ function paymentNotificationTag(alertType: string, url: string, eventId: string)
   return id ? `payment-final-state-${invoiceMatch ? "invoice" : "order"}-${id}` : eventId;
 }
 
+function pushAckUrl() {
+  try {
+    return new URL("/api/push/ack", window.location.origin).toString();
+  } catch {
+    return "/api/push/ack";
+  }
+}
+
+async function sendForegroundPushReceiptAck(data: { eventId?: string; notificationTag?: string; alertType?: string; url?: string }, status: "received" | "clicked") {
+  const eventId = data?.eventId;
+  if (!eventId || typeof window === "undefined") return;
+
+  try {
+    await Promise.race([
+      fetch(pushAckUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: String(eventId),
+          parentEventId: String(eventId),
+          notificationTag: data.notificationTag || "",
+          alertType: data.alertType || "general",
+          status,
+          url: data.url || "/",
+          clientTimestamp: new Date().toISOString(),
+          source: "foreground-push-listener",
+        }),
+        keepalive: true,
+      }),
+      new Promise((resolve) => setTimeout(resolve, 1200)),
+    ]);
+  } catch {
+    // Receipt logging must never block notification delivery.
+  }
+}
+
 function startForegroundPushListener(messaging: Messaging) {
   if (foregroundPushListenerStarted || typeof window === "undefined") return;
   foregroundPushListenerStarted = true;
@@ -68,6 +104,7 @@ function startForegroundPushListener(messaging: Messaging) {
     const isPaymentAlert = String(alertType || "").toLowerCase().includes("payment") || String(alertType || "").toLowerCase().includes("invoice");
     if (lastShown && Date.now() - lastShown < (isPaymentAlert ? 5000 : 60 * 1000)) return;
     sessionStorage.setItem(dedupeKey, String(Date.now()));
+    void sendForegroundPushReceiptAck({ eventId, notificationTag, alertType, url }, "received");
 
     const notification = new Notification(title, {
       body,
@@ -81,6 +118,7 @@ function startForegroundPushListener(messaging: Messaging) {
 
     notification.onclick = () => {
       notification.close();
+      void sendForegroundPushReceiptAck({ eventId, notificationTag, alertType, url }, "clicked");
       window.focus();
       if (url && url !== "/") {
         window.location.href = url;
