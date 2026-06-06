@@ -3641,15 +3641,34 @@ const GeneralSettings: React.FC<Props> = ({
                         const ghostDevices = pushDevices.filter((device) => device.status === "abandoned" || device.status === "duplicate" || pushInvalidTestTokens[device.token]);
                         const systemPulseScore = Math.max(0, Math.min(100, Math.round((deliveredCount / Math.max(allCards.length, 1)) * 60 + (goldenDevices.length / Math.max(pushDevices.length, 1)) * 30 + (pushHealth?.tone === "success" ? 8 : pushHealth?.tone === "warning" ? 3 : 0))));
                         const oldTokenCount = ghostDevices.length;
+                        const latestDeviceReadAt = Math.max(
+                          0,
+                          ...pushDevices.map((device) => {
+                            const deviceDates = [device.updatedAt, device.lastSeenAt, device.lastSeen, device.createdAt]
+                              .map((value) => value ? new Date(String(value)).getTime() : 0);
+                            const notificationDates = (device.recentNotifications || []).flatMap((notification) => [notification.receivedAt, notification.clickedAt, notification.sentAt, notification.createdAt])
+                              .map((value) => value ? new Date(String(value)).getTime() : 0);
+                            return Math.max(0, ...deviceDates, ...notificationDates);
+                          })
+                        );
+                        const latestDeviceReadLabel = latestDeviceReadAt
+                          ? new Date(latestDeviceReadAt).toLocaleString('ar-KW', { dateStyle: 'short', timeStyle: 'short' })
+                          : 'لا توجد قراءة محفوظة';
+                        const hasRecentDeviceReading = latestDeviceReadAt > 0 && (Date.now() - latestDeviceReadAt) < 1000 * 60 * 60 * 24 * 14;
                         const runCustomerLikePushCheck = () => {
                           const permission = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
                           const supportOk = pushHealth?.support === "مدعوم" || pushHealth?.support === "Supported" || (typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator);
                           const duplicates = pushDevices.length - new Set(pushDevices.map((d) => d.token).filter(Boolean)).size;
-                          const verdict = supportOk && permission === "granted" && goldenDevices.length > 0
-                            ? `النظام سليم. الإشعارات تعمل، والمشكلة إن وجدت غالباً في ${oldTokenCount || duplicates || 0} جهاز/توكن قديم.`
+                          const healthySignal = goldenDevices.length > 0 || deliveredCount > 0 || Object.values(pushTestResults).some((v) => String(v).includes('تم إرسال'));
+                          const verdict = !supportOk
+                            ? "هذا المتصفح لا يدعم إشعارات الويب بالكامل؛ جرّب من جهاز عميل فعلي."
                             : permission !== "granted"
                               ? "المتصفح الحالي لا يسمح بالإشعارات. فعّل الإذن ثم اضغط فحص الآن."
-                              : "النظام يحتاج قراءة أحدث من الأجهزة قبل الحكم النهائي.";
+                              : healthySignal
+                                ? `النظام سليم من قراءة الأدمن الحالية. آخر قراءة جهاز: ${latestDeviceReadLabel}. توجد ${oldTokenCount || duplicates || 0} أجهزة/توكنات تحتاج متابعة فقط.`
+                                : hasRecentDeviceReading
+                                  ? `آخر قراءة جهاز كانت ${latestDeviceReadLabel}. لا يوجد فشل واضح، لكن لا توجد تجربة اختبار ناجحة حديثة على هذا المتصفح.`
+                                  : "لا توجد قراءة جهاز حديثة كافية. افتح موقع العميل من جهاز فعلي، فعّل الإشعارات، ثم ارجع واضغط الفحص مرة ثانية.";
                           toast.info("فحص كأني عميل", { description: verdict });
                         };
                         return (
@@ -3659,8 +3678,8 @@ const GeneralSettings: React.FC<Props> = ({
                               <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                 <div>
                                   <div className="text-[10px] font-black text-emerald-200 uppercase tracking-[0.2em]">مركز نبض النظام</div>
-                                  <div className="mt-1 text-3xl font-black">النظام حي بنسبة {systemPulseScore}%</div>
-                                  <p className="mt-2 text-xs font-bold text-white/55">قراءة تشغيلية من الأجهزة، التوكنات، وسجل الوصول بدون تغيير منطق الإرسال.</p>
+                                  <div className="mt-1 flex items-center gap-3"><span className={cn("relative flex h-4 w-4 shrink-0", systemPulseScore >= 75 ? "text-emerald-300" : "text-amber-300")}><span className="absolute inline-flex h-full w-full rounded-full bg-current opacity-35 animate-ping" /><span className="relative inline-flex h-4 w-4 rounded-full bg-current" /></span><div className="text-3xl font-black">النظام حي بنسبة {systemPulseScore}%</div></div>
+                                  <p className="mt-2 text-xs font-bold text-white/55">كل المسارات الأساسية تعمل بهدوء، وآخر قراءة جهاز: {latestDeviceReadLabel}.</p>
                                 </div>
                                 <button type="button" onClick={runCustomerLikePushCheck} className="rounded-2xl bg-emerald-300 text-slate-950 px-4 py-3 text-xs font-black hover:bg-emerald-200 transition flex items-center justify-center gap-2">
                                   <ClipboardCheck size={15} /> افحص النظام كأني عميل
