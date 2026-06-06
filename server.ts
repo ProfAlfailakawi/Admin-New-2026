@@ -3175,16 +3175,30 @@ app.post("/api/push/test-device", async (req, res) => {
       try {
         await db.collection("pushEvents").doc(eventId).set(removeUndefinedDeep({
           eventId,
+          parentEventId: eventId,
+          pushEventKind: "delivery_attempt",
+          channel: "web_push",
+          deliveryChannel: "push",
+          source: "admin_manual_device_test",
           type: "admin_device_test",
+          alertType: "admin_device_test",
           title: notificationTitle,
           body: notificationBody,
+          message: notificationBody,
+          url: targetUrl,
           userId: userId || null,
           deviceLabel: deviceLabel || null,
+          token: cleanToken,
           tokenStart: cleanToken.slice(0, 24),
           tokenLength: cleanToken.length,
+          status: "accepted_by_fcm",
           success: true,
           responseId,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          note: "FCM accepted this manual Push test. Browser/device display is not guaranteed unless a client receipt is later added.",
+          searchText: [notificationTitle, notificationBody, userId, deviceLabel, cleanToken.slice(0, 24), "admin_device_test"].filter(Boolean).join(" ").toLowerCase(),
         }), { merge: true });
       } catch (logError: any) {
         console.warn("[PUSH TEST DEVICE LOG ERROR]", logError?.message || logError);
@@ -3208,17 +3222,29 @@ app.post("/api/push/test-device", async (req, res) => {
         const eventId = `admin-device-test-failed-${Date.now()}`;
         await db.collection("pushEvents").doc(eventId).set(removeUndefinedDeep({
           eventId,
+          parentEventId: eventId,
+          pushEventKind: "delivery_attempt",
+          channel: "web_push",
+          deliveryChannel: "push",
+          source: "admin_manual_device_test",
           type: "admin_device_test",
+          alertType: "admin_device_test",
           title: String(req.body?.title || "اختبار إشعار تجريبي من الأدمن"),
           body: String(req.body?.body || "هذا إشعار اختبار فقط للتأكد من وصول التنبيه لهذا الجهاز."),
+          message: String(req.body?.body || "هذا إشعار اختبار فقط للتأكد من وصول التنبيه لهذا الجهاز."),
           userId: req.body?.userId || null,
           deviceLabel: req.body?.deviceLabel || null,
+          token: cleanToken || null,
           tokenStart: cleanToken ? cleanToken.slice(0, 24) : null,
           tokenLength: cleanToken ? cleanToken.length : null,
+          status: "failed_by_fcm",
           success: false,
-          error: error?.message || String(error),
-          code,
+          errorMessage: error?.message || String(error),
+          errorCode: code,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          searchText: [req.body?.title, req.body?.body, req.body?.userId, req.body?.deviceLabel, cleanToken ? cleanToken.slice(0, 24) : "", "admin_device_test"].filter(Boolean).join(" ").toLowerCase(),
         }), { merge: true });
       } catch (logError: any) {
         console.warn("[PUSH TEST DEVICE FAILURE LOG ERROR]", logError?.message || logError);
@@ -4062,6 +4088,155 @@ function smartNotificationTag(alertType: string, url: string, fallbackEventId: s
   return `payment-final-state-${invoiceMatch ? "invoice" : "order"}-${id}`;
 }
 
+
+type PushTokenRecordForArchive = {
+  token: string;
+  tokenDocId: string;
+  userId?: string;
+  deviceId?: string;
+  deviceLabel?: string;
+  platform?: string;
+  deviceType?: string;
+  browser?: string;
+  permission?: string;
+  notificationPermission?: string;
+  active?: boolean;
+};
+
+function normalizePushTokenRecord(doc: any): PushTokenRecordForArchive | null {
+  const data = (doc?.data && typeof doc.data === "function") ? (doc.data() || {}) : (doc || {});
+  const token = String(data.token || data.pushToken || data.deviceToken || doc?.id || "").trim();
+  if (!token || token.length < 50 || !/^[\x20-\x7E]+$/.test(token)) return null;
+  return {
+    token,
+    tokenDocId: String(doc?.id || data.id || token),
+    userId: data.userId ? String(data.userId) : (data.uid ? String(data.uid) : undefined),
+    deviceId: data.deviceId ? String(data.deviceId) : (data.tokenHash ? String(data.tokenHash) : String(doc?.id || token.slice(0, 24))),
+    deviceLabel: String(data.label || data.name || data.deviceLabel || data.platform || data.deviceType || data.browser || "Push device"),
+    platform: data.platform ? String(data.platform) : undefined,
+    deviceType: data.deviceType ? String(data.deviceType) : undefined,
+    browser: data.browser ? String(data.browser) : (data.vendor ? String(data.vendor) : undefined),
+    permission: data.permission ? String(data.permission) : undefined,
+    notificationPermission: data.notificationPermission ? String(data.notificationPermission) : undefined,
+    active: data.active === undefined ? undefined : Boolean(data.active),
+  };
+}
+
+function pushArchiveDocId(eventId: string, token: string, index: number) {
+  const safeEvent = String(eventId || `push-${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 90);
+  const safeToken = Buffer.from(String(token || "").slice(0, 64)).toString("base64").replace(/[^a-zA-Z0-9]/g, "").slice(0, 36);
+  return `${safeEvent}_${index}_${safeToken}`;
+}
+
+function getPushArchiveOrderMeta(url: string, extra: any = {}) {
+  const text = String(url || "");
+  const invoiceMatch = text.match(/[?&]invoice=([^&#]+)/);
+  const orderMatch = text.match(/[?&]order=([^&#]+)/);
+  return removeUndefinedDeep({
+    invoiceId: extra.invoiceId || (invoiceMatch ? decodeURIComponent(invoiceMatch[1]) : undefined),
+    orderId: extra.orderId || (orderMatch ? decodeURIComponent(orderMatch[1]) : undefined),
+    orderNumber: extra.orderNumber,
+    restaurantId: extra.restaurantId,
+    total: extra.total,
+  });
+}
+
+async function archivePushDeliveryAttempts({
+  eventId,
+  source,
+  title,
+  body,
+  alertType = "general",
+  url = "",
+  tokenBatches,
+  batchResponses,
+  extra = {},
+}: {
+  eventId: string;
+  source: string;
+  title: string;
+  body: string;
+  alertType?: string;
+  url?: string;
+  tokenBatches: PushTokenRecordForArchive[][];
+  batchResponses: any[];
+  extra?: any;
+}) {
+  if (!firebaseInitialized || !db) return;
+  try {
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const orderMeta = getPushArchiveOrderMeta(url, extra);
+    const writes: any[] = [];
+    let globalIndex = 0;
+
+    batchResponses.forEach((batchItem: any, batchIndex: number) => {
+      const records = tokenBatches[batchIndex] || batchItem?.records || [];
+      const responses = batchItem?.response?.responses || [];
+      records.forEach((record: PushTokenRecordForArchive, idx: number) => {
+        const resp = responses[idx] || {};
+        const success = Boolean(resp.success);
+        const docId = pushArchiveDocId(eventId, record.token, globalIndex++);
+        writes.push({
+          id: docId,
+          data: removeUndefinedDeep({
+            eventId: docId,
+            parentEventId: eventId,
+            pushEventKind: "delivery_attempt",
+            channel: "web_push",
+            deliveryChannel: "push",
+            source,
+            type: "push_delivery_attempt",
+            alertType,
+            title,
+            body,
+            message: body,
+            url,
+            status: success ? "accepted_by_fcm" : "failed_by_fcm",
+            success,
+            responseId: resp.messageId || null,
+            errorCode: resp.error?.code || null,
+            errorMessage: resp.error?.message || null,
+            token: record.token,
+            tokenStart: record.token.slice(0, 24),
+            tokenLength: record.token.length,
+            tokenDocId: record.tokenDocId,
+            deviceId: record.deviceId,
+            deviceLabel: record.deviceLabel,
+            userId: record.userId,
+            platform: record.platform,
+            deviceType: record.deviceType,
+            browser: record.browser,
+            permission: record.permission,
+            notificationPermission: record.notificationPermission,
+            tokenActiveAtSend: record.active,
+            ...orderMeta,
+            createdAt: now,
+            sentAt: now,
+            updatedAt: now,
+            note: success
+              ? "FCM accepted this Push send request. Browser/device display is not guaranteed unless a client receipt is later added."
+              : "FCM rejected this Push send request; inspect errorCode and token.",
+            searchText: [title, body, alertType, record.userId, record.deviceLabel, record.platform, record.browser, record.tokenDocId, record.token.slice(0, 24), orderMeta.orderId, orderMeta.invoiceId, orderMeta.orderNumber]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase(),
+          }),
+        });
+      });
+    });
+
+    for (let i = 0; i < writes.length; i += 400) {
+      const batch = db.batch();
+      writes.slice(i, i + 400).forEach((item) => {
+        batch.set(db.collection("pushEvents").doc(item.id), item.data, { merge: true });
+      });
+      await batch.commit();
+    }
+  } catch (error: any) {
+    console.warn("[PUSH ARCHIVE WRITE ERROR]", error?.message || error);
+  }
+}
+
 async function sendSmartAlertPushNotification({
   title,
   body,
@@ -4094,9 +4269,10 @@ async function sendSmartAlertPushNotification({
       .where("active", "==", true)
       .get();
 
-    const tokens = snap.docs
-      .map((doc: any) => String((doc.data() || {}).token || ""))
-      .filter((token: string) => token.length > 50 && /^[\x20-\x7E]+$/.test(token));
+    const tokenRecords = snap.docs
+      .map((doc: any) => normalizePushTokenRecord(doc))
+      .filter(Boolean) as PushTokenRecordForArchive[];
+    const tokens = tokenRecords.map(record => record.token);
 
     if (tokens.length === 0) {
       return {
@@ -4163,12 +4339,13 @@ async function sendSmartAlertPushNotification({
       },
     };
 
-    const tokenBatches: string[][] = [];
-    for (let i = 0; i < tokens.length; i += 500) tokenBatches.push(tokens.slice(i, i + 500));
+    const tokenBatches: PushTokenRecordForArchive[][] = [];
+    for (let i = 0; i < tokenRecords.length; i += 500) tokenBatches.push(tokenRecords.slice(i, i + 500));
     const batchResponses = await Promise.all(
-      tokenBatches.map(async (batchTokens) => ({
-        tokens: batchTokens,
-        response: await admin.messaging().sendEachForMulticast({ ...baseMessage, tokens: batchTokens }),
+      tokenBatches.map(async (batchRecords) => ({
+        records: batchRecords,
+        tokens: batchRecords.map(record => record.token),
+        response: await admin.messaging().sendEachForMulticast({ ...baseMessage, tokens: batchRecords.map(record => record.token) }),
       }))
     );
     const response = {
@@ -4181,7 +4358,7 @@ async function sendSmartAlertPushNotification({
       const batch = db.batch();
       let changed = 0;
 
-      batchResponses.forEach(({ tokens: batchTokens, response: batchResponse }) => {
+      batchResponses.forEach(({ records: batchRecords, response: batchResponse }) => {
         batchResponse.responses.forEach((resp: any, idx: number) => {
           if (!resp.success) {
             const errorCode = resp.error?.code;
@@ -4190,8 +4367,11 @@ async function sendSmartAlertPushNotification({
               errorCode === "messaging/invalid-registration-token" ||
               errorCode === "messaging/invalid-argument"
             ) {
-              batch.update(db.collection("pushTokens").doc(batchTokens[idx]), { active: false });
-              changed++;
+              const failedRecord = batchRecords[idx];
+              if (failedRecord?.tokenDocId) {
+                batch.update(db.collection("pushTokens").doc(failedRecord.tokenDocId), { active: false });
+                changed++;
+              }
             }
           }
         });
@@ -4201,6 +4381,17 @@ async function sendSmartAlertPushNotification({
         void batch.commit().catch((cleanupError: any) => console.warn("[SMART ALERT PUSH CLEANUP]", cleanupError?.message || cleanupError));
       }
     }
+
+    await archivePushDeliveryAttempts({
+      eventId: normalizedEventId,
+      source: "sendSmartAlertPushNotification",
+      title: String(title || "تنبيه"),
+      body: String(body || ""),
+      alertType: normalizedAlertType,
+      url: normalizedUrl,
+      tokenBatches,
+      batchResponses,
+    });
 
     return {
       success: true,
@@ -4237,9 +4428,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       const snap = await db.collection("pushTokens").where("active", "==", true).get();
       if (snap.empty) return { success: false, error: "No active push tokens found", tokensCount: 0 };
       
-      const tokens = snap.docs
-        .map(d => String(d.data().token || ""))
-        .filter(t => t.length > 50 && /^[\x20-\x7E]+$/.test(t));
+      const tokenRecords = snap.docs
+        .map((doc: any) => normalizePushTokenRecord(doc))
+        .filter(Boolean) as PushTokenRecordForArchive[];
+      const tokens = tokenRecords.map(record => record.token);
       
       const notificationTitle = "⏳ طلب بانتظار الدفع";
       const notificationBody = `الطلب ${orderNumber || orderId} بانتظار الدفع`;
@@ -4283,12 +4475,13 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         },
       };
 
-      const tokenBatches: string[][] = [];
-      for (let i = 0; i < tokens.length; i += 500) tokenBatches.push(tokens.slice(i, i + 500));
+      const tokenBatches: PushTokenRecordForArchive[][] = [];
+      for (let i = 0; i < tokenRecords.length; i += 500) tokenBatches.push(tokenRecords.slice(i, i + 500));
       const batchResponses = await Promise.all(
-        tokenBatches.map(async (batchTokens) => ({
-          tokens: batchTokens,
-          response: await admin.messaging().sendEachForMulticast({ ...baseMessage, tokens: batchTokens }),
+        tokenBatches.map(async (batchRecords) => ({
+          records: batchRecords,
+          tokens: batchRecords.map(record => record.token),
+          response: await admin.messaging().sendEachForMulticast({ ...baseMessage, tokens: batchRecords.map(record => record.token) }),
         }))
       );
       const response = {
@@ -4300,14 +4493,15 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       // Cleanup invalid tokens
       if (response.failureCount > 0) {
         const failedTokens: string[] = [];
-        batchResponses.forEach(({ tokens: batchTokens, response: batchResponse }) => {
-          batchResponse.responses.forEach((resp, idx) => {
+        batchResponses.forEach(({ records: batchRecords, response: batchResponse }) => {
+          batchResponse.responses.forEach((resp: any, idx: number) => {
             if (!resp.success) {
               const errorCode = resp.error?.code;
               if (errorCode === "messaging/registration-token-not-registered" || 
                   errorCode === "messaging/invalid-registration-token" ||
                   errorCode === "messaging/invalid-argument") {
-                failedTokens.push(batchTokens[idx]);
+                const failedRecord = batchRecords[idx];
+                if (failedRecord?.tokenDocId) failedTokens.push(failedRecord.tokenDocId);
               }
             }
           });
@@ -4315,19 +4509,31 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
         if (failedTokens.length > 0) {
           const batch = db.batch();
-          for (const token of failedTokens) {
-            batch.update(db.collection("pushTokens").doc(token), { active: false });
+          for (const tokenDocId of failedTokens) {
+            batch.update(db.collection("pushTokens").doc(tokenDocId), { active: false });
           }
           void batch.commit().catch((cleanupError: any) => console.warn("[NEW ORDER PUSH CLEANUP]", cleanupError?.message || cleanupError));
         }
       }
+
+      await archivePushDeliveryAttempts({
+        eventId: String(baseMessage.data.eventId),
+        source: "sendNewOrderPushNotification",
+        title: notificationTitle,
+        body: notificationBody,
+        alertType: "payment_pending_immediate",
+        url: String(url),
+        tokenBatches,
+        batchResponses,
+        extra: { orderId, orderNumber, restaurantId, total },
+      });
 
       return {
         success: response.successCount > 0,
         tokensCount: tokens.length,
         successCount: response.successCount,
         failureCount: response.failureCount,
-        errors: response.responses.filter(r => !r.success).map(r => (r.error ? { code: r.error.code, message: r.error.message } : { message: "Unknown error" }))
+        errors: response.responses.filter((r: any) => !r.success).map((r: any) => (r.error ? { code: r.error.code, message: r.error.message } : { message: "Unknown error" }))
       };
     } catch (e: any) {
       console.warn("Sending smart alert push error suppressed in preview:", e.message);
