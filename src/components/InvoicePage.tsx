@@ -188,23 +188,30 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
 
     const applyDeliverySettlementFromSupplier = (supplier: any) => {
       if (!supplier) return;
-      const settlement = supplier.deliverySettlement || 'heritage';
-      if (settlement === 'supplier') {
-        setDeliveryType('company');
+      setDeliveryType('company');
+      const supplierDelivers = supplier.supplierType !== 'delivery' && (supplier.deliverySettlement || 'delivery_company') === 'supplier';
+      if (supplierDelivers || supplier.supplierType === 'delivery') {
         setDeliveryCompany(supplier.name || '');
-        setDeliverySettlementTarget('supplier');
         setDeliverySettlementSupplierId(String(supplier.id || ''));
-      } else if (settlement === 'delivery_company' || supplier.supplierType === 'delivery') {
-        setDeliveryType('company');
-        setDeliveryCompany(supplier.name || '');
+        setDeliverySettlementTarget(supplier.supplierType === 'delivery' ? 'delivery_company' : 'supplier');
+      } else if (!deliverySettlementSupplierId) {
+        setDeliveryCompany('');
+        setDeliverySettlementSupplierId('');
         setDeliverySettlementTarget('delivery_company');
-        setDeliverySettlementSupplierId(String(supplier.id || ''));
-      } else if (settlement === 'invoice') {
-        setDeliveryType('company');
-        setDeliveryCompany(supplier.name || '');
+      }
+    };
+
+    const pickDeliverySettlementEntity = (supplierId: string) => {
+      const supplier = (data.suppliers || []).find((s: any) => String(s.id) === String(supplierId));
+      if (!supplier) {
         setDeliverySettlementTarget('heritage');
         setDeliverySettlementSupplierId('');
+        return;
       }
+      setDeliveryType('company');
+      setDeliveryCompany(supplier.name || '');
+      setDeliverySettlementSupplierId(String(supplier.id || ''));
+      setDeliverySettlementTarget(supplier.supplierType === 'delivery' ? 'delivery_company' : 'supplier');
     };
 
 
@@ -1459,66 +1466,19 @@ Alturath.kw`;
                   <div className="text-[9px] font-bold text-slate-400 text-right mb-1">
                     اسم شركة التوصيل
                   </div>
-                  <input
-                    type="text"
-                    value={deliveryCompany}
-                    onChange={(e) => setDeliveryCompany(e.target.value)}
-                    placeholder="اسم شركة التوصيل..."
+                  <select
+                    value={deliverySettlementSupplierId}
+                    onChange={(e) => pickDeliverySettlementEntity(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-right text-xs font-bold focus:ring-2 focus:ring-primary/10 outline-none transition-all"
-                  />
-                </div>
-
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[9px] font-bold text-slate-400 text-right">التوصيل يُحسب لـ</div>
-                    <span className="text-[9px] font-black text-blue-500 bg-blue-50 border border-blue-100 px-2 py-1 rounded-full">محاسبي داخلي</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'heritage', label: 'التراث' },
-                      { id: 'supplier', label: 'المورد' },
-                      { id: 'delivery_company', label: 'شركة' },
-                    ].map((opt: any) => (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => {
-                          setDeliverySettlementTarget(opt.id);
-                          if (opt.id === 'heritage') setDeliverySettlementSupplierId('');
-                          if (opt.id !== 'heritage' && !deliverySettlementSupplierId) {
-                            const currentSupplier = (data.suppliers || []).find((s: any) => s.name === deliveryCompany) || (data.suppliers || []).find((s: any) => opt.id === 'delivery_company' ? s.supplierType === 'delivery' : s.deliverySettlement === 'supplier');
-                            if (currentSupplier) {
-                              setDeliverySettlementSupplierId(currentSupplier.id);
-                              setDeliveryCompany(currentSupplier.name);
-                            }
-                          }
-                        }}
-                        className={cn(
-                          "rounded-xl border px-2 py-2 text-[10px] font-black transition-all",
-                          deliverySettlementTarget === opt.id ? "bg-slate-950 text-white border-slate-950 shadow-sm" : "bg-white border-slate-200 text-slate-500"
-                        )}
-                      >
-                        {opt.label}
-                      </button>
+                  >
+                    <option value="">اختر شركة أو مورد التوصيل</option>
+                    {(data.suppliers || []).map((s: any) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} {s.supplierType === 'delivery' ? '— شركة توصيل' : '— مورد'}
+                      </option>
                     ))}
-                  </div>
-                  {deliverySettlementTarget !== 'heritage' && (
-                    <select
-                      value={deliverySettlementSupplierId}
-                      onChange={(e) => {
-                        setDeliverySettlementSupplierId(e.target.value);
-                        const s = (data.suppliers || []).find((x: any) => String(x.id) === String(e.target.value));
-                        if (s) setDeliveryCompany(s.name);
-                      }}
-                      className="w-full bg-white border border-slate-200 rounded-xl p-3 text-right text-xs font-bold outline-none focus:ring-2 focus:ring-primary/10"
-                    >
-                      <option value="">اختر الجهة المستحقة للتوصيل</option>
-                      {(data.suppliers || [])
-                        .filter((s: any) => deliverySettlementTarget === 'delivery_company' ? s.supplierType === 'delivery' : s.supplierType !== 'delivery')
-                        .map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                  )}
-                  <p className="text-[10px] font-bold text-slate-400 leading-5 text-right">لا يغير دفع العميل. فقط يحدد هل رسوم التوصيل تدخل في كشف المورد أو شركة التوصيل.</p>
+                  </select>
+                  <p className="mt-1 text-[10px] font-bold text-slate-400 leading-5 text-right">يظهر تلقائيًا اسم المورد إذا كان يوصل، وتقدر تبدله هنا عند الحاجة.</p>
                 </div>
               </div>
               )}

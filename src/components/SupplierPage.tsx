@@ -53,7 +53,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  balance: 0,
  status: 'pending' as ('paid' | 'pending' | 'partially_paid'),
  supplierType: 'food' as 'food' | 'delivery',
- deliverySettlement: 'heritage' as 'heritage' | 'supplier' | 'delivery_company' | 'invoice'
+ deliverySettlement: 'supplier' as 'supplier' | 'delivery_company'
  });
  const [deleteError, setDeleteError] = useState<string | null>(null);
  const [shakingId, setShakingId] = useState<string | null>(null);
@@ -252,7 +252,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
  const openAddModal = () => {
  setEditingId(null);
- setSupplierForm({ name: '', phone: '', paymentMethods: [], balance: 0, status: 'paid', supplierType: 'food', deliverySettlement: 'heritage' });
+ setSupplierForm({ name: '', phone: '', paymentMethods: [], balance: 0, status: 'paid', supplierType: 'food', deliverySettlement: 'supplier' });
  setShowModal(true);
  };
 
@@ -265,7 +265,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  balance: Number((supplier.balance || 0).toFixed(3)),
  status: supplier.status,
  supplierType: (supplier as any).supplierType || 'food',
- deliverySettlement: (supplier as any).deliverySettlement || 'heritage'
+ deliverySettlement: ((supplier as any).supplierType === 'delivery' ? 'delivery_company' : ((supplier as any).deliverySettlement === 'delivery_company' ? 'delivery_company' : 'supplier'))
  });
  setShowModal(true);
  };
@@ -513,7 +513,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="flex flex-wrap gap-2 justify-end">
  <span className="bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-blue-600 flex items-center gap-1">
  <Truck size={12} />
- {(supplier as any).supplierType === 'delivery' ? 'شركة توصيل فقط' : ((supplier as any).deliverySettlement === 'supplier' ? 'يورد ويوصل' : ((supplier as any).deliverySettlement === 'invoice' ? 'حسب الفاتورة' : 'توريد فقط'))}
+ {(supplier as any).supplierType === 'delivery' || (supplier as any).deliverySettlement === 'delivery_company' ? 'شركة توصيل' : 'مورد'}
  </span>
  </div>
 
@@ -641,27 +641,30 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">نوع المورد</label>
  <select
  value={supplierForm.supplierType}
- onChange={(e) => setSupplierForm({ ...supplierForm, supplierType: e.target.value as any })}
+ onChange={(e) => { const nextType = e.target.value as any; setSupplierForm({ ...supplierForm, supplierType: nextType, deliverySettlement: nextType === 'delivery' ? 'delivery_company' : supplierForm.deliverySettlement }); }}
  className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right"
  >
  <option value="food">مورد أكل</option>
  <option value="delivery">شركة توصيل فقط</option>
  </select>
+ {(supplierForm.supplierType === 'delivery') && (
+   <p className="text-[10px] font-bold text-slate-400 leading-5 text-right">هذا الاسم يظهر كخيار في شركة التوصيل فقط، ولا يحتاج إعداد تسوية إضافي.</p>
+ )}
  </div>
+ {supplierForm.supplierType !== 'delivery' && (
  <div className="space-y-2">
- <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">تسوية التوصيل الافتراضية</label>
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">هل المورد يوصل طلباته؟</label>
  <select
  value={supplierForm.deliverySettlement}
  onChange={(e) => setSupplierForm({ ...supplierForm, deliverySettlement: e.target.value as any })}
  className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right"
  >
- <option value="heritage">التوصيل علينا</option>
- <option value="supplier">المورد يوصل ويستحق التوصيل</option>
- <option value="delivery_company">شركة توصيل فقط</option>
- <option value="invoice">حسب الفاتورة</option>
+ <option value="supplier">نعم، يوصّل ويستحق التوصيل</option>
+ <option value="delivery_company">لا، أختار شركة التوصيل من الفاتورة</option>
  </select>
- <p className="text-[10px] font-bold text-slate-400 leading-5">تعبئة تلقائية فقط، ويمكن تغييرها من الفاتورة.</p>
+ <p className="text-[10px] font-bold text-slate-400 leading-5 text-right">إذا اخترت نعم يظهر اسم المورد تلقائيًا في فاتورة جديدة، وتقدر تبدله من الفاتورة.</p>
  </div>
+ )}
  </div>
 
  <div className="space-y-4">
