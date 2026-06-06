@@ -3106,6 +3106,88 @@ app.get("/api/push/debug-tokens", async (req, res) => {
 
 
 
+
+app.post("/api/push/ack", async (req, res) => {
+    // Client-side Push receipt logging only.
+    // This endpoint never sends Push, never changes tokens, and never changes payment/order logic.
+    if (!firebaseInitialized || !db) {
+      return res.status(200).json({ success: false, skipped: true, error: "Firebase not initialized" });
+    }
+
+    try {
+      const body = req.body || {};
+      const rawEventId = String(body.eventId || body.parentEventId || "").trim();
+      const receiptStatus = String(body.status || "received").trim().toLowerCase();
+      const allowedStatuses = new Set(["received", "clicked"]);
+
+      if (!rawEventId || rawEventId.length > 180 || !allowedStatuses.has(receiptStatus)) {
+        return res.status(200).json({ success: false, skipped: true, error: "Invalid Push receipt payload" });
+      }
+
+      const now = admin.firestore.FieldValue.serverTimestamp();
+      const safeEventId = rawEventId.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 160);
+      const eventRef = db.collection("pushEvents").doc(safeEventId);
+      const eventSnap = await eventRef.get();
+      const receiptPayload = removeUndefinedDeep({
+        lastClientReceiptStatus: receiptStatus,
+        clientReceiptObserved: true,
+        receivedByDevice: receiptStatus === "received" ? true : undefined,
+        openedByEmployee: receiptStatus === "clicked" ? true : undefined,
+        receivedAt: receiptStatus === "received" ? now : undefined,
+        clickedAt: receiptStatus === "clicked" ? now : undefined,
+        lastClientReceiptAt: now,
+        updatedAt: now,
+        clientReceiptSource: String(body.source || "firebase-messaging-sw"),
+        clientReceiptUrl: body.url ? String(body.url).slice(0, 500) : undefined,
+        notificationTag: body.notificationTag ? String(body.notificationTag).slice(0, 180) : undefined,
+        alertType: body.alertType ? String(body.alertType).slice(0, 80) : undefined,
+        note: receiptStatus === "received"
+          ? "The employee device Service Worker reported receiving this Push. This is a display/receipt log only and does not change delivery logic."
+          : "The employee clicked/opened this Push notification. This is a display/receipt log only and does not change delivery logic.",
+      });
+
+      if (eventSnap.exists) {
+        await eventRef.set(receiptPayload, { merge: true });
+        return res.json({ success: true, linked: true, eventId: safeEventId, status: receiptStatus });
+      }
+
+      const receiptDocId = `receipt_${safeEventId}_${receiptStatus}_${Date.now()}`.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 190);
+      await db.collection("pushEvents").doc(receiptDocId).set(removeUndefinedDeep({
+        eventId: receiptDocId,
+        parentEventId: rawEventId,
+        pushEventKind: "client_receipt",
+        channel: "web_push",
+        deliveryChannel: "push",
+        source: "firebase-messaging-sw",
+        type: "push_client_receipt",
+        status: receiptStatus === "received" ? "received_by_device" : "clicked_by_employee",
+        success: true,
+        clientReceiptObserved: true,
+        receivedByDevice: receiptStatus === "received" ? true : undefined,
+        openedByEmployee: receiptStatus === "clicked" ? true : undefined,
+        receivedAt: receiptStatus === "received" ? now : undefined,
+        clickedAt: receiptStatus === "clicked" ? now : undefined,
+        createdAt: now,
+        updatedAt: now,
+        lastClientReceiptAt: now,
+        clientReceiptSource: String(body.source || "firebase-messaging-sw"),
+        clientReceiptUrl: body.url ? String(body.url).slice(0, 500) : undefined,
+        notificationTag: body.notificationTag ? String(body.notificationTag).slice(0, 180) : undefined,
+        alertType: body.alertType ? String(body.alertType).slice(0, 80) : undefined,
+        title: "Push receipt from employee device",
+        body: receiptStatus === "received" ? "Device reported Push receipt." : "Employee clicked Push notification.",
+        message: receiptStatus === "received" ? "Device reported Push receipt." : "Employee clicked Push notification.",
+        searchText: [rawEventId, receiptStatus, body.alertType, body.notificationTag, body.url, "push receipt employee device"].filter(Boolean).join(" ").toLowerCase(),
+        note: "Receipt could not be linked to a specific delivery-attempt document, so it was stored as a separate receipt record. It does not change delivery logic.",
+      }), { merge: true });
+
+      return res.json({ success: true, linked: false, eventId: receiptDocId, parentEventId: rawEventId, status: receiptStatus });
+    } catch (error: any) {
+      console.warn("[PUSH ACK ERROR]", error?.message || error);
+      return res.status(200).json({ success: false, skipped: true, error: error?.message || String(error) });
+    }
+  });
+
 app.post("/api/push/test-device", async (req, res) => {
     // Manual Push test for one selected token only.
     // No ADMIN_TEST_SECRET is required here because the admin panel already limits access to this screen.
@@ -3136,6 +3218,7 @@ app.post("/api/push/test-device", async (req, res) => {
           type: "admin_device_test",
           alertType: "admin_device_test",
           eventId,
+          parentEventId: eventId,
           notificationTag: eventId,
           url: targetUrl,
           click_action: targetUrl,
@@ -3160,6 +3243,7 @@ app.post("/api/push/test-device", async (req, res) => {
             data: {
               url: targetUrl,
               eventId,
+              parentEventId: eventId,
               notificationTag: eventId,
               alertType: "admin_device_test",
             },
@@ -4307,6 +4391,7 @@ async function sendSmartAlertPushNotification({
         type: "smart_alert",
         alertType: normalizedAlertType,
         eventId: normalizedEventId,
+        parentEventId: normalizedEventId,
         notificationTag: normalizedNotificationTag,
         url: normalizedUrl,
         click_action: normalizedUrl,
@@ -4329,6 +4414,7 @@ async function sendSmartAlertPushNotification({
           data: {
             url: normalizedUrl,
             eventId: normalizedEventId,
+            parentEventId: normalizedEventId,
             notificationTag: normalizedNotificationTag,
             alertType: normalizedAlertType,
           },
@@ -4435,6 +4521,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       
       const notificationTitle = "⏳ طلب بانتظار الدفع";
       const notificationBody = `الطلب ${orderNumber || orderId} بانتظار الدفع`;
+      const newOrderEventId = `new-order-${orderId}-${Date.now()}`;
 
       const baseMessage = {
         notification: {
@@ -4444,7 +4531,8 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         data: {
           type: "smart_alert",
           alertType: "payment_pending_immediate",
-          eventId: `new-order-${orderId}-${Date.now()}`,
+          eventId: newOrderEventId,
+          parentEventId: newOrderEventId,
           url: String(url),
           click_action: String(url),
           title: notificationTitle,
@@ -4467,6 +4555,9 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
             requireInteraction: true,
             data: {
               url: String(url),
+              eventId: newOrderEventId,
+              parentEventId: newOrderEventId,
+              alertType: "payment_pending_immediate",
             },
           },
           fcmOptions: {

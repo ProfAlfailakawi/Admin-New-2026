@@ -46,7 +46,7 @@ type PushDeviceSnapshot = {
   lastRead: string;
   status: 'online' | 'cold' | 'abandoned' | 'duplicate' | 'unknown';
   note: string;
-  recentNotifications: { id: string; title: string; message: string; date: string; read?: boolean; type?: string }[];
+  recentNotifications: { id: string; title: string; message: string; date: string; read?: boolean; type?: string; success?: boolean; userId?: string; tokenStart?: string; receivedAt?: string; clickedAt?: string; receivedByDevice?: boolean; openedByEmployee?: boolean; deliveryStage?: string }[];
 };
 
 type PushEventLog = {
@@ -63,6 +63,12 @@ type PushEventLog = {
   success?: boolean;
   status?: string;
   responseId?: string;
+  receivedAt?: string;
+  clickedAt?: string;
+  receivedByDevice?: boolean;
+  openedByEmployee?: boolean;
+  clientReceiptObserved?: boolean;
+  deliveryStage?: string;
 };
 
 type PushHealthCheck = {
@@ -201,18 +207,28 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   }).format(new Date(time));
  };
 
+
+ const getPushDeliveryStageLabel = (event: Partial<PushEventLog> | any) => {
+  if (event?.openedByEmployee || event?.status === 'clicked_by_employee' || event?.lastClientReceiptStatus === 'clicked') return 'فتحه الموظف';
+  if (event?.receivedByDevice || event?.status === 'received_by_device' || event?.lastClientReceiptStatus === 'received') return 'استلمه الجهاز';
+  if (event?.success === false || event?.status === 'failed_by_fcm') return 'فشل من FCM';
+  if (event?.success === true || event?.status === 'accepted_by_fcm') return 'قبله FCM';
+  return 'مسجل';
+ };
+
  const normalizePushEventLog = (event: any, index: number): PushEventLog | null => {
   if (!event || typeof event !== 'object') return null;
   const channel = String(event.channel || event.deliveryChannel || event.method || '').toLowerCase();
   const kind = String(event.pushEventKind || event.kind || '').toLowerCase();
   const hasPushMarker = Boolean(
     kind === 'delivery_attempt' ||
+    kind === 'client_receipt' ||
     channel === 'web_push' ||
     channel === 'push' ||
     event.responseId || event.token || event.pushToken || event.deviceToken || event.tokenStart
   );
   if (!hasPushMarker) return null;
-  const dateRaw = event.createdAt || event.sentAt || event.date || event.updatedAt || event.timestamp;
+  const dateRaw = event.createdAt || event.sentAt || event.receivedAt || event.clickedAt || event.lastClientReceiptAt || event.date || event.updatedAt || event.timestamp;
   return {
     id: String(event.eventId || event.id || event.notificationId || `push-event-${index}`),
     title: String(event.title || event.heading || event.notificationTitle || 'Push Notification'),
@@ -227,6 +243,12 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     success: event.success === undefined ? undefined : Boolean(event.success),
     status: String(event.status || (event.success === true ? 'success' : event.success === false ? 'failed' : 'recorded')),
     responseId: event.responseId ? String(event.responseId) : undefined,
+    receivedAt: event.receivedAt ? formatPushHealthDate(event.receivedAt) : undefined,
+    clickedAt: event.clickedAt ? formatPushHealthDate(event.clickedAt) : undefined,
+    receivedByDevice: Boolean(event.receivedByDevice || event.status === 'received_by_device' || event.lastClientReceiptStatus === 'received'),
+    openedByEmployee: Boolean(event.openedByEmployee || event.status === 'clicked_by_employee' || event.lastClientReceiptStatus === 'clicked'),
+    clientReceiptObserved: Boolean(event.clientReceiptObserved || event.receivedByDevice || event.openedByEmployee),
+    deliveryStage: getPushDeliveryStageLabel(event),
   };
  };
 
@@ -287,8 +309,16 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     title: event.title,
     message: event.message,
     date: event.date,
-    read: event.success === true,
+    read: event.openedByEmployee || event.receivedByDevice || event.success === true,
     type: event.success === false ? 'failed' : event.type || 'push',
+    receivedAt: event.receivedAt,
+    clickedAt: event.clickedAt,
+    receivedByDevice: event.receivedByDevice,
+    openedByEmployee: event.openedByEmployee,
+    deliveryStage: event.deliveryStage || getPushDeliveryStageLabel(event),
+    success: event.success,
+    userId: event.userId,
+    tokenStart: event.tokenStart,
   }));
  };
 
@@ -322,8 +352,8 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     { label: 'Last token update', value: device.lastConnection },
     { label: 'Last read/open', value: device.lastRead },
     ...((device.recentNotifications || []).slice(0, 4).map(notification => ({
-      label: notification.read ? 'Push sent successfully' : 'Push event recorded',
-      value: `${notification.title} - ${notification.date}`,
+      label: notification.deliveryStage || (notification.read ? 'Push accepted/received' : 'Push event recorded'),
+      value: `${notification.title} - ${notification.clickedAt || notification.receivedAt || notification.date}`,
     }))),
   ];
   return items.filter(item => item.value && item.value !== 'Not registered' && item.value !== 'Unknown');
@@ -1820,7 +1850,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                             <button type="button" className="w-full p-3 flex items-center justify-between gap-2 text-right">
                               <div>
                                 <div className="text-[11px] font-black text-white">أرشيف Push الحقيقي</div>
-                                <p className="mt-1 text-[10px] font-bold text-white/45">يعرض فقط محاولات Push الحقيقية المحفوظة في pushEvents، ولا يعرض التنبيهات الذكية الداخلية.</p>
+                                <p className="mt-1 text-[10px] font-bold text-white/45">يعرض فقط Push الحقيقي: إرسال السيرفر، قبول FCM، استلام جهاز الموظف، وفتح الإشعار عند توفر الإقرار من الجهاز. لا يعرض التنبيهات الذكية الداخلية.</p>
                               </div>
                               <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-white/60">{notificationLog.length}</span>
                             </button>
@@ -1836,15 +1866,17 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                                   </div>
                                   {notification.message && <p className="mt-1 line-clamp-2 text-[9px] font-bold leading-4 text-white/55">{notification.message}</p>}
                                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[9px] font-black">
-                                    <span className={cn('rounded-full px-2 py-0.5 border', notification.success === false ? 'bg-rose-400/15 text-rose-100 border-rose-300/20' : notification.success === true ? 'bg-emerald-400/15 text-emerald-100 border-emerald-300/20' : 'bg-white/10 text-white/55 border-white/10')}>
-                                      {notification.success === false ? 'فشل من FCM' : notification.success === true ? 'قبله FCM' : 'مسجل'}
+                                    <span className={cn('rounded-full px-2 py-0.5 border', notification.openedByEmployee ? 'bg-sky-400/15 text-sky-100 border-sky-300/20' : notification.receivedByDevice ? 'bg-emerald-400/15 text-emerald-100 border-emerald-300/20' : notification.success === false ? 'bg-rose-400/15 text-rose-100 border-rose-300/20' : notification.success === true ? 'bg-emerald-400/10 text-emerald-100 border-emerald-300/15' : 'bg-white/10 text-white/55 border-white/10')}>
+                                      {notification.deliveryStage || (notification.success === false ? 'فشل من FCM' : notification.success === true ? 'قبله FCM' : 'مسجل')}
                                     </span>
                                     {notification.userId && <span className="rounded-full bg-white/10 px-2 py-0.5 text-white/50">User: {notification.userId}</span>}
                                     {notification.tokenStart && <span dir="ltr" className="rounded-full bg-white/10 px-2 py-0.5 text-white/50">{notification.tokenStart}</span>}
+                                    {notification.receivedAt && <span dir="ltr" className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-emerald-100">Received: {notification.receivedAt}</span>}
+                                    {notification.clickedAt && <span dir="ltr" className="rounded-full bg-sky-400/10 px-2 py-0.5 text-sky-100">Clicked: {notification.clickedAt}</span>}
                                   </div>
                                 </div>
                               )) : (
-                                <p className="rounded-xl border border-dashed border-white/10 p-3 text-center text-[10px] font-bold text-white/45">لا يوجد أرشيف Push حقيقي محفوظ حتى الآن. سيظهر هنا اختبار Push الفعلي بعد إرساله.</p>
+                                <p className="rounded-xl border border-dashed border-white/10 p-3 text-center text-[10px] font-bold text-white/45">لا يوجد أرشيف Push حقيقي محفوظ حتى الآن. سيظهر هنا إرسال Push الفعلي، ثم إقرار الاستلام/الفتح إذا أرسله جهاز الموظف.</p>
                               )}
                             </div>
                           </div>
@@ -1994,11 +2026,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                                                           </div>
                                                           {notification.message && <p className="mt-1 line-clamp-2 text-[9px] font-bold leading-4 text-white/55">{notification.message}</p>}
                                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[9px] font-black">
-                                    <span className={cn('rounded-full px-2 py-0.5 border', notification.success === false ? 'bg-rose-400/15 text-rose-100 border-rose-300/20' : notification.success === true ? 'bg-emerald-400/15 text-emerald-100 border-emerald-300/20' : 'bg-white/10 text-white/55 border-white/10')}>
-                                      {notification.success === false ? 'فشل من FCM' : notification.success === true ? 'قبله FCM' : 'مسجل'}
+                                    <span className={cn('rounded-full px-2 py-0.5 border', notification.openedByEmployee ? 'bg-sky-400/15 text-sky-100 border-sky-300/20' : notification.receivedByDevice ? 'bg-emerald-400/15 text-emerald-100 border-emerald-300/20' : notification.success === false ? 'bg-rose-400/15 text-rose-100 border-rose-300/20' : notification.success === true ? 'bg-emerald-400/10 text-emerald-100 border-emerald-300/15' : 'bg-white/10 text-white/55 border-white/10')}>
+                                      {notification.deliveryStage || (notification.success === false ? 'فشل من FCM' : notification.success === true ? 'قبله FCM' : 'مسجل')}
                                     </span>
                                     {notification.userId && <span className="rounded-full bg-white/10 px-2 py-0.5 text-white/50">User: {notification.userId}</span>}
                                     {notification.tokenStart && <span dir="ltr" className="rounded-full bg-white/10 px-2 py-0.5 text-white/50">{notification.tokenStart}</span>}
+                                    {notification.receivedAt && <span dir="ltr" className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-emerald-100">Received: {notification.receivedAt}</span>}
+                                    {notification.clickedAt && <span dir="ltr" className="rounded-full bg-sky-400/10 px-2 py-0.5 text-sky-100">Clicked: {notification.clickedAt}</span>}
                                   </div>
                                                           <div className="mt-1 flex items-center gap-1 text-[9px] font-bold text-white/35">
                                                             <span>{notification.read ? 'Opened/Read recorded' : 'No open/read recorded'}</span>
