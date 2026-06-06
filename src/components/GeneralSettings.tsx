@@ -304,6 +304,9 @@ const GeneralSettings: React.FC<Props> = ({
   const [pushTestResults, setPushTestResults] = useState<
     Record<string, string>
   >({});
+  const [pushInvalidTestTokens, setPushInvalidTestTokens] = useState<
+    Record<string, true>
+  >({});
   const [pushUserDirectory, setPushUserDirectory] = useState<
     Map<string, PushUserIdentity>
   >(new Map());
@@ -972,9 +975,44 @@ const GeneralSettings: React.FC<Props> = ({
     setPushDevices(allDevices);
   };
 
-  const sendPushDeviceTestNotification = async (device: PushDeviceSnapshot) => {
-    if (!device?.token || device.token === "Not available") {
-      toast.error("لا يوجد توكن صالح لهذا الجهاز");
+  const getPushTestDeviceTime = (device?: PushDeviceSnapshot) => {
+    if (!device) return 0;
+    const readTime = Date.parse(device.lastRead || "");
+    if (Number.isFinite(readTime)) return readTime;
+    const connectionTime = Date.parse(device.lastConnection || "");
+    return Number.isFinite(connectionTime) ? connectionTime : 0;
+  };
+
+  const getBestPushTestDevice = (
+    primaryDevice: PushDeviceSnapshot,
+    candidateDevices: PushDeviceSnapshot[] = [],
+  ) => {
+    const uniqueDevices = [primaryDevice, ...candidateDevices].filter(
+      (item, index, arr) =>
+        item?.token &&
+        item.token !== "Not available" &&
+        arr.findIndex((device) => device.token === item.token) === index,
+    );
+    return uniqueDevices
+      .filter((item) => !pushInvalidTestTokens[item.token])
+      .sort((a, b) => {
+        const statusScore = (device: PushDeviceSnapshot) =>
+          device.status === "online" ? 3 : device.status === "cold" ? 2 : device.status === "unknown" ? 1 : 0;
+        const statusDiff = statusScore(b) - statusScore(a);
+        if (statusDiff) return statusDiff;
+        const confidenceDiff = getPushDeviceConfidence(b) - getPushDeviceConfidence(a);
+        if (confidenceDiff) return confidenceDiff;
+        return getPushTestDeviceTime(b) - getPushTestDeviceTime(a);
+      });
+  };
+
+  const sendPushDeviceTestNotification = async (
+    device: PushDeviceSnapshot,
+    candidateDevices: PushDeviceSnapshot[] = [],
+  ) => {
+    const testDevices = getBestPushTestDevice(device, candidateDevices);
+    if (!testDevices.length) {
+      toast.error("لا يوجد توكن حديث صالح للاختبار لهذا الحساب");
       return;
     }
     const getPushTestFailureMessage = (rawError?: any, rawMessage?: any) => {
@@ -986,16 +1024,26 @@ const GeneralSettings: React.FC<Props> = ({
       if (
         lower.includes("device unregistered") ||
         lower.includes("registration-token-not-registered") ||
+        lower.includes("notregistered") ||
         lower.includes("not registered")
       ) {
         return "تعذر إرسال الاختبار: التوكن المختار قديم أو استبدله الجهاز. لا يعني أن حسابك غير مربوط؛ جرّب فحص الآن من نفس الجهاز بعد تفعيل الإشعارات لتحديث التوكن.";
       }
       return `تعذر إرسال الاختبار: ${raw}`;
     };
+    const isRetiredPushTokenError = (rawError?: any, rawMessage?: any) => {
+      const lower = String(rawError || rawMessage || "").toLowerCase();
+      return (
+        lower.includes("device unregistered") ||
+        lower.includes("registration-token-not-registered") ||
+        lower.includes("notregistered") ||
+        lower.includes("not registered")
+      );
+    };
     setSendingPushTestId(device.id);
     setPushTestResults((prev) => ({
       ...prev,
-      [device.id]: "جاري إرسال اختبار افتراضي...",
+      [device.id]: "جاري اختيار أحدث توكن نشط وإرسال اختبار...",
     }));
     try {
       await refreshPushRegistrationIfAlreadyAllowed({
@@ -1009,39 +1057,56 @@ const GeneralSettings: React.FC<Props> = ({
           : "admin",
         restaurantId: "kitchen_default",
       }).catch(() => null);
-      const response = await fetch("/api/push/test-device", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          token: device.token,
-          title: pushTestTitle || "اختبار إشعار تجريبي من الأدمن",
-          body:
-            pushTestBody ||
-            "هذا إشعار اختبار فقط للتأكد من وصول التنبيه لهذا الجهاز.",
-          userId: device.userId || "",
-          deviceLabel: device.label,
-          url: typeof window !== "undefined" ? window.location.href : "/",
-        }),
-      });
-      const result = await response.json().catch(() => ({}));
-      const message = result?.success
-        ? "تم إرسال الاختبار. راقب آخر الإشعارات: إذا ظهر وصل للجهاز أو انفتح فهذا تأكيد الوصول."
-        : getPushTestFailureMessage(result?.error, result?.message);
-      setPushTestResults((prev) => ({ ...prev, [device.id]: message }));
-      if (result?.success) {
-        toast.success("تم إرسال إشعار اختبار للجهاز");
-        await refreshPushDashboardReadings().catch(() => null);
-        if (typeof window !== "undefined") {
-          window.setTimeout(() => {
-            void refreshPushDashboardReadings().catch(() => null);
-          }, 1800);
-        }
-      } else
-        toast.error("فشل إرسال إشعار الاختبار", {
-          description: getPushTestFailureMessage(result?.error, result?.message),
+
+      let lastFailureMessage = "";
+      for (const testDevice of testDevices.slice(0, 3)) {
+        const response = await fetch("/api/push/test-device", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            token: testDevice.token,
+            title: pushTestTitle || "اختبار إشعار تجريبي من الأدمن",
+            body:
+              pushTestBody ||
+              "هذا إشعار اختبار فقط للتأكد من وصول التنبيه لهذا الجهاز.",
+            userId: testDevice.userId || device.userId || "",
+            deviceLabel: testDevice.label,
+            url: typeof window !== "undefined" ? window.location.href : "/",
+          }),
         });
+        const result = await response.json().catch(() => ({}));
+        if (result?.success) {
+          const usedNewest = testDevice.id !== device.id;
+          const message = usedNewest
+            ? "تم إرسال الاختبار على أحدث جهاز نشط بدل توكن قديم لهذا الحساب."
+            : "تم إرسال الاختبار. راقب آخر الإشعارات: إذا ظهر وصل للجهاز أو انفتح فهذا تأكيد الوصول.";
+          setPushTestResults((prev) => ({ ...prev, [device.id]: message }));
+          toast.success("تم إرسال إشعار اختبار للجهاز");
+          await refreshPushDashboardReadings().catch(() => null);
+          if (typeof window !== "undefined") {
+            window.setTimeout(() => {
+              void refreshPushDashboardReadings().catch(() => null);
+            }, 1800);
+          }
+          return;
+        }
+        lastFailureMessage = getPushTestFailureMessage(result?.error, result?.message);
+        if (isRetiredPushTokenError(result?.error, result?.message)) {
+          setPushInvalidTestTokens((prev) => ({ ...prev, [testDevice.token]: true }));
+          continue;
+        }
+        break;
+      }
+
+      const message = testDevices.length > 1
+        ? `${lastFailureMessage} تم تجاوز أي توكن قديم معروف وتجربة أحدث خيار متاح دون حذف أو تعديل بيانات.`
+        : lastFailureMessage;
+      setPushTestResults((prev) => ({ ...prev, [device.id]: message }));
+      toast.error("فشل إرسال إشعار الاختبار", {
+        description: message,
+      });
     } catch (error: any) {
       const message = error?.message || String(error);
       setPushTestResults((prev) => ({
@@ -3732,11 +3797,11 @@ const GeneralSettings: React.FC<Props> = ({
                                           <button
                                             type="button"
                                             disabled={!firstDevice || sendingPushTestId === firstDevice.id || !firstDevice.token || firstDevice.token === "Not available"}
-                                            onClick={() => firstDevice && sendPushDeviceTestNotification(firstDevice)}
+                                            onClick={() => firstDevice && sendPushDeviceTestNotification(firstDevice, card.devices)}
                                             className="flex-1 rounded-2xl bg-white text-slate-950 px-3 py-2.5 text-[11px] font-black hover:bg-emerald-50 disabled:opacity-45 transition flex items-center justify-center gap-2"
                                           >
                                             {firstDevice && sendingPushTestId === firstDevice.id ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                                            اختبر الآن
+                                            اختبر أحدث جهاز
                                           </button>
                                           <button
                                             type="button"
