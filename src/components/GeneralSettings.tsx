@@ -730,16 +730,16 @@ const GeneralSettings: React.FC<Props> = ({
     if (score >= 80)
       return {
         label: "ثقة عالية",
-        className: "text-emerald-100 bg-emerald-400/15 border-emerald-300/20",
+        className: "text-emerald-700 bg-emerald-50 border-emerald-200",
       };
     if (score >= 55)
       return {
         label: "ثقة متوسطة",
-        className: "text-amber-100 bg-amber-400/15 border-amber-300/20",
+        className: "text-amber-700 bg-amber-50 border-amber-200",
       };
     return {
       label: "ثقة ضعيفة",
-      className: "text-rose-100 bg-rose-400/15 border-rose-300/20",
+      className: "text-rose-700 bg-rose-50 border-rose-200",
     };
   };
 
@@ -3243,14 +3243,14 @@ const GeneralSettings: React.FC<Props> = ({
                   )}
                 </div>
 
-                <div className="push-health-pro rounded-2xl border border-slate-800 bg-slate-950 p-4 md:p-5 text-white shadow-sm overflow-hidden relative">
+                <div className="push-health-pro rounded-2xl border border-slate-200 bg-white p-4 md:p-5 text-slate-900 shadow-sm overflow-hidden relative">
                   <div className="relative z-10 space-y-4">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                       <div>
-                        <div className="inline-flex items-center gap-2 rounded-lg bg-emerald-400/15 border border-emerald-300/20 px-3 py-1 text-[10px] font-black text-emerald-100">
+                        <div className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700">
                           <ShieldCheck size={13} /> متابعة وصول الإشعارات
                         </div>
-                        <h3 className="mt-2 text-lg md:text-xl font-black text-white">
+                        <h3 className="mt-2 text-lg md:text-xl font-black text-slate-950">
                           من تصله الإشعارات الآن؟
                         </h3>
                       </div>
@@ -3324,8 +3324,15 @@ const GeneralSettings: React.FC<Props> = ({
                           if (completed === 1) return "محاولة إرسال فقط";
                           return "غير مؤكد";
                         };
+                        const extractPushEmail = (...values: any[]) => {
+                          for (const value of values) {
+                            const match = String(value || "").match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+                            if (match?.[0]) return normalizePushLookupKey(match[0]);
+                          }
+                          return "";
+                        };
                         const getIdentityMergeKey = (identity: PushUserIdentity) => {
-                          const email = normalizePushLookupKey(identity.email);
+                          const email = normalizePushLookupKey(identity.email) || extractPushEmail(identity.name, identity.id, identity.phone);
                           if (email) return `email:${email}`;
                           const id = normalizePushLookupKey(identity.id);
                           if (id) return `id:${id}`;
@@ -3358,10 +3365,11 @@ const GeneralSettings: React.FC<Props> = ({
                         };
                         Array.from(pushUserDirectory.values() as Iterable<PushUserIdentity>).forEach(addUserSeed);
                         pushDevices.forEach((device) => {
+                          const extractedEmail = extractPushEmail(device.userEmail, device.userName, device.ownerLabel, device.label, device.userId);
                           addUserSeed({
-                            id: device.userId || device.userEmail || device.userName || device.ownerLabel || device.id,
+                            id: device.userId || device.userEmail || extractedEmail || device.userName || device.ownerLabel || device.id,
                             name: device.userName || device.ownerLabel || "",
-                            email: device.userEmail,
+                            email: device.userEmail || extractedEmail,
                             role: device.userRole,
                             source: "pushToken",
                           });
@@ -3375,8 +3383,8 @@ const GeneralSettings: React.FC<Props> = ({
                             const deviceKeys = [device.userId, device.userEmail, device.userName, device.ownerLabel, device.label]
                               .map(normalizePushLookupKey)
                               .filter(Boolean);
-                            const identityEmail = normalizePushLookupKey(identity.email);
-                            const deviceEmail = normalizePushLookupKey(device.userEmail);
+                            const identityEmail = normalizePushLookupKey(identity.email) || extractPushEmail(identity.name, identity.id);
+                            const deviceEmail = normalizePushLookupKey(device.userEmail) || extractPushEmail(device.userName, device.ownerLabel, device.label, device.userId);
                             if (identityEmail && deviceEmail && identityEmail === deviceEmail) return true;
                             return identityKeys.some((key) => deviceKeys.includes(key));
                           });
@@ -3404,7 +3412,7 @@ const GeneralSettings: React.FC<Props> = ({
                           let state = {
                             label: "لا يوجد جهاز",
                             detail: "هذا الحساب ظاهر عندك، لكن لا يوجد له جهاز مفعّل للإشعارات حتى الآن.",
-                            className: "border-white/10 bg-white/10 text-white",
+                            className: "border-slate-200 bg-slate-50 text-slate-900",
                             dot: "bg-slate-300",
                             rank: 4,
                           };
@@ -3415,8 +3423,8 @@ const GeneralSettings: React.FC<Props> = ({
                                 ? "يوجد أثر من الجهاز يؤكد أن الإشعار وصل أو انفتح."
                                 : "تم إرسال إشعار لهذا الحساب، لكن لا يوجد تأكيد من الجهاز حتى الآن.",
                               className: hasReceipt
-                                ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-50"
-                                : "border-sky-300/20 bg-sky-400/10 text-sky-50",
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+                                : "border-sky-200 bg-sky-50 text-sky-950",
                               dot: "bg-emerald-300",
                               rank: hasReceipt ? 1 : 2,
                             };
@@ -3424,7 +3432,7 @@ const GeneralSettings: React.FC<Props> = ({
                             state = {
                               label: "يحتاج اختبار",
                               detail: "الجهاز موجود، اضغط اختبار الآن حتى نتأكد أنه يستقبل فعلًا.",
-                              className: "border-amber-300/20 bg-amber-400/10 text-amber-50",
+                              className: "border-amber-200 bg-amber-50 text-amber-950",
                               dot: "bg-amber-300",
                               rank: 3,
                             };
@@ -3477,7 +3485,7 @@ const GeneralSettings: React.FC<Props> = ({
                             state: {
                               label: device.status === "online" ? "جهاز جاهز بلا اسم" : "غير مرتبط",
                               detail: "هذا الجهاز لديه تسجيل إشعارات، لكنه غير مربوط بإيميل واضح.",
-                              className: "border-white/10 bg-white/10 text-white",
+                              className: "border-slate-200 bg-white text-slate-900",
                               dot: "bg-sky-300",
                               rank: 5,
                             },
@@ -3502,10 +3510,7 @@ const GeneralSettings: React.FC<Props> = ({
                             .includes(query);
                         });
                         const isArchivedAccountCard = (card: any) =>
-                          card.state.rank >= 4 ||
-                          (card.devices || []).every((device: PushDeviceSnapshot) =>
-                            ["abandoned", "unknown"].includes(device.status),
-                          );
+                          (card.devices || []).length === 0;
                         const archivedCards = filteredCards.filter(isArchivedAccountCard);
                         const visibleCards =
                           query || pushArchiveAccountsOpen
@@ -3644,7 +3649,7 @@ const GeneralSettings: React.FC<Props> = ({
                                   >
                                     <span className="flex items-center gap-2 font-black text-sm">
                                       <Archive size={16} className="text-amber-200" />
-                                      حسابات مهجورة أو بلا جهاز
+                                      حسابات بلا جهاز
                                     </span>
                                     <span className="flex items-center gap-2 text-[11px] font-black text-white/55">
                                       {archivedCards.length} حساب
