@@ -500,7 +500,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     quick: {
       icon: '⚡',
       title: 'تحسين سريع',
-      desc: 'ارفع الصورة واضغط توليد. نضبط الإضاءة والواقعية بدون قرارات كثيرة.',
+      desc: 'ارفع الصورة واضغط أطلق الإبداع. نضبط الإضاءة والواقعية بدون قرارات كثيرة.',
       badge: 'للموظف',
       tone: 'bg-emerald-50 border-emerald-200 text-emerald-700'
     },
@@ -1127,7 +1127,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       if (err.message === 'KEY_REQUIRED') {
         alert("توليد الصور يحتاج مفتاح Gemini مدفوع ومفعّل من الإعدادات.");
       } else {
-        alert("التوليد تعطل: " + err.message + ". تأكد من المفتاح والنت.");
+        alert("لم تكتمل عملية التوليد: " + err.message + ". لم نفقد إعداداتك، ويمكنك المحاولة مرة أخرى بعد التأكد من مزود الذكاء.");
       }
       return null;
     } finally {
@@ -2916,11 +2916,11 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-slate-600 flex items-center gap-1"><Edit3 size={14} /> فكرتك</label>
                   <div className="grid grid-cols-2 gap-2">
-                    <button type="button" className={cn("rounded-2xl border p-3 text-xs font-black transition-all", customThemeQuery.trim() ? "bg-slate-950 text-white border-slate-950" : "bg-white text-slate-500 border-slate-100")}>اكتب فكرة</button>
+                    <button type="button" className={cn("rounded-2xl border p-3 text-xs font-black transition-all", customThemeQuery.trim() ? "bg-slate-950 text-white border-slate-950" : "bg-white text-slate-500 border-slate-100")}>صف المشهد</button>
                     <button type="button" onClick={() => { setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); }} className={cn("rounded-2xl border p-3 text-xs font-black transition-all", !customThemeQuery.trim() ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-slate-500 border-slate-100")}>اختيارات جاهزة</button>
                   </div>
                   {studioProductPickMode !== 'manual' && (
-                    <input type="text" placeholder="اكتب فكرة الصورة المطلوبة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-5 min-h-[74px] rounded-[1.4rem] border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-indigo-500 shadow-sm" />
+                    <input type="text" placeholder="صف المشهد الذي تتخيله..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-5 min-h-[74px] rounded-[1.4rem] border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-indigo-500 shadow-sm" />
                   )}
                   <p className="text-[11px] font-bold text-slate-400">اكتب وصفك ونختصر لك الطريق، أو اتركها فارغة للاقتراحات الجاهزة.</p>
                 </div>
@@ -3060,7 +3060,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <div className="relative z-10 w-full max-w-full space-y-4">
                 <button type="button" onClick={() => setShowImageSettings((v) => !v)} className={cn("w-full rounded-[1.6rem] overflow-hidden bg-white/5 border border-white/10 relative group", previewAspectClass)}>
                   {generatedImage ? (
-                    <img src={generatedImage} alt="Generated" className="w-full h-full object-contain" />
+                    <img src={generatedImage} alt="الصورة الناتجة" className="w-full h-full object-contain" />
                   ) : null}
                   <span className="absolute bottom-4 right-4 rounded-2xl bg-white/90 px-3 py-2 text-[10px] font-black text-slate-700 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">الإعدادات</span>
                 </button>
@@ -3109,7 +3109,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   <div>
                     <p className="text-xs font-black text-indigo-500 mb-1">صورة مباشرة</p>
                     <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">اختر مصدر الصورة</h2>
-                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">ابدأ من صورة جاهزة أو فكرة. اختيار المنيو صار داخل الاختيار الذكي بدون تكرار.</p>
+                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختر: تبدأ من صورة منتج، أو تكتب فكرة مباشرة بدون انتظار صورة.</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -3135,7 +3135,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   >
                     <Sparkles size={18} className="mb-2" />
                     <span className="block text-sm font-black">من فكرة</span>
-                    <span className="block text-[10px] font-bold mt-1 opacity-70">وصف فقط</span>
+                    <span className="block text-[10px] font-bold mt-1 opacity-70">بدون صورة</span>
                   </button>
                 </div>
                 {imageDirectSource === 'image' && (
@@ -3149,14 +3149,14 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   <div className="rounded-[2rem] border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4 space-y-3">
                     <div>
                       <div className="text-xs font-black text-indigo-700">صورة من فكرة</div>
-                      <div className="text-[11px] font-bold text-indigo-900/60 mt-1">تكتب الفكرة، ثم نفتح لك نفس لوحة الصورة بخطوة التوليد.</div>
+                      <div className="text-[11px] font-bold text-indigo-900/60 mt-1">اكتب الفكرة وسننتقل للتوليد مباشرة، بدون انتظار صورة منتج.</div>
                     </div>
                     {studioProductPickMode !== 'manual' && (
                       <input type="text" placeholder="مثال: صورة مجبوس دجاج للبيت بإضاءة دافئة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-indigo-100 bg-white text-sm text-right focus:outline-none focus:border-indigo-500" />
                     )}
                     {renderAlturathBrainCard('image')}
                     <button type="button" onClick={openImageIdeaDirect} className="w-full p-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-lg flex items-center justify-center gap-2">
-                      <Sparkles size={18} /> فتح توليد الصورة
+                      <Sparkles size={18} /> اصنع صورة تسويقية
                     </button>
                   </div>
                 )}
@@ -3166,8 +3166,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 <div className="flex items-start justify-between gap-4 mb-1">
                   <div>
                     <p className="text-xs font-black text-indigo-500 mb-1">من صورة</p>
-                    <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">تحسين صورة المنتج</h2>
-                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">الصورة في المركز، وكل خطوة قرار بصري واحد فقط.</p>
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">إخراج الصورة التسويقية</h2>
+                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">خطوات قليلة وواضحة: مقاس، فكرة، مشهد، ثم إطلاق الصورة.</p>
                   </div>
                 </div>
 
@@ -3192,11 +3192,11 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <div className="flex flex-col gap-2">
                       <label className="text-xs font-bold text-slate-600 flex items-center gap-1"><Edit3 size={14} /> فكرتك</label>
                       <div className="grid grid-cols-2 gap-2">
-                        <button type="button" className={cn("rounded-2xl border p-3 text-xs font-black transition-all", customThemeQuery.trim() ? "bg-slate-950 text-white border-slate-950" : "bg-white text-slate-500 border-slate-100")}>اكتب فكرة</button>
+                        <button type="button" className={cn("rounded-2xl border p-3 text-xs font-black transition-all", customThemeQuery.trim() ? "bg-slate-950 text-white border-slate-950" : "bg-white text-slate-500 border-slate-100")}>صف المشهد</button>
                         <button type="button" onClick={() => { setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); }} className={cn("rounded-2xl border p-3 text-xs font-black transition-all", !customThemeQuery.trim() ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-slate-500 border-slate-100")}>اختيارات جاهزة</button>
                       </div>
                       {studioProductPickMode !== 'manual' && (
-                        <input type="text" placeholder="اكتب الجو أو المطلوب للصورة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 text-sm text-right focus:outline-none border-slate-200 bg-white focus:border-indigo-500" />
+                        <input type="text" placeholder="صف المشهد أو الجو المطلوب للصورة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 text-sm text-right focus:outline-none border-slate-200 bg-white focus:border-indigo-500" />
                       )}
                       <p className="text-[11px] font-bold text-slate-400">اكتب فكرتك وننتقل مباشرة للمسات النهائية، أو اتركها فارغة للاختيارات الجاهزة.</p>
                     </div>
@@ -3291,7 +3291,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     {renderFineTools()}
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(3)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                      <button type="button" onClick={() => advanceProductStep(6)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                      <button type="button" onClick={() => advanceProductStep(6)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">آخر لمسة</button>
                     </div>
                   </div>
                 )}
@@ -3322,7 +3322,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       <button type="button" onClick={() => goProductStep(5)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
                       <button onClick={() => generateContent()} disabled={isGenerating || isGeneratingVariants} className="p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 transition-all disabled:opacity-50">
                         {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
-                        توليد
+                        أطلق الإبداع
                       </button>
                     </div>
                     <button type="button" onClick={generateFourRealityOptions} disabled={isGenerating || isGeneratingVariants || !selectedImage} className="w-full p-4 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-2xl font-black flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50">
@@ -3344,23 +3344,38 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               {renderProductionDesk('image')}
               {!generatedImage && !isGenerating && (
                 <div className="text-center w-full max-w-lg mx-auto p-4 space-y-5">
-                  <div className="w-full max-w-[260px] mx-auto aspect-square bg-white rounded-2xl border shadow-sm p-2 overflow-hidden flex items-center justify-center relative group">
-                    {compressedImage || selectedImage || originalImage ? (
-                      <>
-                        <img src={compressedImage || selectedImage || originalImage} alt="Product" className="w-full h-full object-cover rounded-xl" />
-                        <button type="button" onClick={() => productImageInputRef.current?.click()} className="absolute top-4 right-4 bg-slate-900/80 text-white rounded-full p-2.5 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md shadow-lg" title="تغيير الصورة">
-                          <RotateCcw size={16} />
+                  {imageDirectSource === 'idea' ? (
+                    <div className="w-full max-w-[300px] mx-auto aspect-square bg-gradient-to-br from-indigo-50 via-white to-amber-50 rounded-2xl border border-indigo-100 shadow-sm p-5 overflow-hidden flex flex-col items-center justify-center text-center">
+                      <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mb-4 shadow-sm">
+                        <Sparkles size={26} />
+                      </div>
+                      <div className="text-xs font-black text-indigo-600 mb-2">صورة من فكرة</div>
+                      <div className="text-sm font-black text-slate-900 leading-6">
+                        {customThemeQuery.trim() || selectedStudioProductName || 'صف المشهد الذي تتخيله'}
+                      </div>
+                      <div className="mt-3 text-[11px] font-bold text-slate-500 leading-5">هذا المسار لا يحتاج رفع صورة. اكتب الفكرة ثم أطلق الإبداع.</div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-full max-w-[260px] mx-auto aspect-square bg-white rounded-2xl border shadow-sm p-2 overflow-hidden flex items-center justify-center relative group">
+                        {compressedImage || selectedImage || originalImage ? (
+                          <>
+                            <img src={compressedImage || selectedImage || originalImage} alt="صورة المنتج" className="w-full h-full object-cover rounded-xl" />
+                            <button type="button" onClick={() => productImageInputRef.current?.click()} className="absolute top-4 right-4 bg-slate-900/80 text-white rounded-full p-2.5 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md shadow-lg" title="تغيير صورة المنتج">
+                              <RotateCcw size={16} />
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-xs font-bold text-slate-400">بانتظار صورة المنتج</span>
+                        )}
+                      </div>
+                      {compressedImage || selectedImage || originalImage ? (
+                        <button type="button" onClick={() => productImageInputRef.current?.click()} className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black rounded-full transition-colors mt-2">
+                          <RotateCcw size={14} /> تغيير صورة المنتج
                         </button>
-                      </>
-                    ) : (
-                      <span className="text-xs font-bold text-slate-400">بانتظار صورة المنتج</span>
-                    )}
-                  </div>
-                  {compressedImage || selectedImage || originalImage ? (
-                    <button type="button" onClick={() => productImageInputRef.current?.click()} className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black rounded-full transition-colors mt-2">
-                      <RotateCcw size={14} /> تغيير الصورة
-                    </button>
-                  ) : null}
+                      ) : null}
+                    </>
+                  )}
                   {compressionSavedPercent !== null && (
                     <p className="-mt-3 text-[10px] font-medium text-emerald-600/80 tracking-tight">
                       {compressionSavedPercent > 0
@@ -3409,7 +3424,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               {generatedImage && !isGenerating && (
                 <div className="relative z-10 w-full max-w-full space-y-4 p-2 text-center">
                   <button type="button" onClick={() => setShowImageSettings((v) => !v)} className={cn("w-full max-w-3xl mx-auto rounded-[1.6rem] overflow-hidden bg-white border border-slate-100 shadow-sm relative group block", previewAspectClass)}>
-                    <img src={generatedImage} alt="Generated" className="w-full h-full object-contain bg-white" />
+                    <img src={generatedImage} alt="الصورة الناتجة" className="w-full h-full object-contain bg-white" />
                     <span className="absolute bottom-4 right-4 rounded-2xl bg-slate-950/85 px-3 py-2 text-[10px] font-black text-white shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">الإعدادات</span>
                   </button>
 	                  <div className="mx-auto max-w-3xl rounded-3xl border border-slate-100 bg-white p-3 text-slate-900 shadow-sm">
