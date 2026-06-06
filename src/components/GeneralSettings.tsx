@@ -295,6 +295,7 @@ const GeneralSettings: React.FC<Props> = ({
     "all" | "delivered" | "opened" | "failed" | "waiting"
   >("all");
   const [pushLogVisibleCount, setPushLogVisibleCount] = useState(20);
+  const [pushCustomerVerdict, setPushCustomerVerdict] = useState<string>("اضغط الفحص لقراءة أحدث إشارة من الأجهزة قبل الحكم.");
   const [pushInvestigationQuery, setPushInvestigationQuery] = useState("");
   const [pushTestTitle, setPushTestTitle] = useState(
     "اختبار إشعار تجريبي من الأدمن",
@@ -3672,11 +3673,23 @@ const GeneralSettings: React.FC<Props> = ({
                         const silentDevices = pushDevices.filter((device) => (device.status === "cold" || getPushDeviceConfidence(device) < 70) && (device.recentNotifications || []).some((n) => n.success === true) && !(device.recentNotifications || []).some((n) => n.receivedByDevice || n.openedByEmployee));
                         const ghostDevices = pushDevices.filter((device) => device.status === "abandoned" || device.status === "duplicate" || pushInvalidTestTokens[device.token]);
                         const systemPulseScore = Math.max(0, Math.min(100, Math.round((deliveredCount / Math.max(allCards.length, 1)) * 60 + (goldenDevices.length / Math.max(pushDevices.length, 1)) * 30 + (pushHealth?.tone === "success" ? 8 : pushHealth?.tone === "warning" ? 3 : 0))));
+                        const latestNotification = notificationLog[0] || rawNotificationLog[0] || null;
+                        const latestNotificationSentence = latestNotification
+                          ? latestNotification.openedByEmployee || latestNotification.clickedAt
+                            ? "الإشعار الأخير انفتح من الجهاز، والمسار مكتمل."
+                            : latestNotification.receivedByDevice || latestNotification.receivedAt
+                              ? "الإشعار وصل للجهاز، لكنه لم يُفتح بعد."
+                              : latestNotification.success === false
+                                ? "الإشعار الأخير لم يكتمل؛ راجع طبيب الإشعارات."
+                                : "الإشعار وصل للسيرفر وينتظر تأكيد الجهاز."
+                          : "لا يوجد إشعار حديث لعرض نبضته بعد.";
+                        const latestCriticalIssue = rawNotificationLog.find((event) => event.success === false || String(event.status || event.type || "").toLowerCase().includes("notregistered") || String(event.message || "").toLowerCase().includes("notregistered"));
                         const oldTokenCount = ghostDevices.length;
                         const latestDeviceReadAt = Math.max(
                           0,
                           ...pushDevices.map((device) => {
-                            const deviceDates = [device.updatedAt, device.lastSeenAt, device.lastSeen, device.createdAt]
+                            const rawDevice = device as any;
+                            const deviceDates = [rawDevice.updatedAt, rawDevice.lastSeenAt, rawDevice.lastSeen, rawDevice.createdAt, rawDevice.savedAtClient]
                               .map((value) => value ? new Date(String(value)).getTime() : 0);
                             const notificationDates = (device.recentNotifications || []).flatMap((notification) => [notification.receivedAt, notification.clickedAt, notification.sentAt, notification.createdAt])
                               .map((value) => value ? new Date(String(value)).getTime() : 0);
@@ -3697,10 +3710,11 @@ const GeneralSettings: React.FC<Props> = ({
                             : permission !== "granted"
                               ? "المتصفح الحالي لا يسمح بالإشعارات. فعّل الإذن ثم اضغط فحص الآن."
                               : healthySignal
-                                ? `النظام سليم من قراءة الأدمن الحالية. آخر قراءة جهاز: ${latestDeviceReadLabel}. توجد ${oldTokenCount || duplicates || 0} أجهزة/توكنات تحتاج متابعة فقط.`
+                                ? `النظام سليم. توجد ${oldTokenCount || duplicates || 0} أجهزة/توكنات قديمة تحتاج متابعة فقط، وآخر قراءة جهاز: ${latestDeviceReadLabel}.`
                                 : hasRecentDeviceReading
-                                  ? `آخر قراءة جهاز كانت ${latestDeviceReadLabel}. لا يوجد فشل واضح، لكن لا توجد تجربة اختبار ناجحة حديثة على هذا المتصفح.`
-                                  : "لا توجد قراءة جهاز حديثة كافية. افتح موقع العميل من جهاز فعلي، فعّل الإشعارات، ثم ارجع واضغط الفحص مرة ثانية.";
+                                  ? `النظام يحتاج اختبارًا حديثًا، لكن آخر قراءة جهاز محفوظة كانت ${latestDeviceReadLabel}.`
+                                  : "النظام يحتاج قراءة أحدث من الأجهزة قبل الحكم النهائي. افتح موقع العميل من جهاز فعلي ثم اضغط فحص الآن.";
+                          setPushCustomerVerdict(verdict);
                           toast.info("فحص كأني عميل", { description: verdict });
                         };
                         return (
@@ -3717,19 +3731,79 @@ const GeneralSettings: React.FC<Props> = ({
                                   <ClipboardCheck size={15} /> افحص النظام كأني عميل
                                 </button>
                               </div>
-                              <div className="relative z-10 mt-4 grid grid-cols-2 md:grid-cols-5 gap-2">
+                              <div className="relative z-10 mt-4 grid grid-cols-1 md:grid-cols-3 gap-2">
                                 {[
                                   ['الإشعارات', pushHealth?.tone === 'danger' ? 'تحتاج فحص' : 'نشطة'],
-                                  ['الأجهزة', `${goldenDevices.length} متصل`],
+                                  ['الأجهزة', oldTokenCount > goldenDevices.length ? 'تحتاج مراجعة' : 'مستقرة'],
                                   ['آخر اختبار', Object.values(pushTestResults).some((v) => String(v).includes('تم إرسال')) ? 'ناجح' : 'بانتظار'],
-                                  ['التوكنات القديمة', `${oldTokenCount} تحتاج مراجعة`],
-                                  ['المستخدمون بلا جهاز', `${missingCount}`],
                                 ].map(([label, value]) => (
                                   <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3">
                                     <div className="text-[9px] font-black text-white/35">{label}</div>
                                     <div className="mt-1 text-sm font-black text-white">{value}</div>
                                   </div>
                                 ))}
+                              </div>
+                              <details className="relative z-10 mt-3 rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+                                <summary className="cursor-pointer list-none px-3 py-2 text-[11px] font-black text-white/70 flex items-center justify-between gap-2">
+                                  <span>تفاصيل التشغيل</span>
+                                  <ChevronDown size={14} />
+                                </summary>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 pt-0">
+                                  {[
+                                    ['التوكنات القديمة', `${oldTokenCount} تحتاج مراجعة`],
+                                    ['المستخدمون بلا جهاز', `${missingCount}`],
+                                    ['آخر قراءة', latestDeviceReadLabel],
+                                    ['وصول مؤكد', `${deliveredCount}`],
+                                  ].map(([label, value]) => (
+                                    <div key={label} className="rounded-xl bg-black/15 border border-white/10 p-2 min-w-0">
+                                      <div className="text-[9px] font-black text-white/35">{label}</div>
+                                      <div className="mt-1 text-xs font-black text-white truncate">{value}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </details>
+                            </div>
+
+                            <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-3">
+                              <div className="rounded-[1.8rem] border border-white/10 bg-white/10 p-4 text-white">
+                                <div className="flex items-center justify-between gap-3 mb-4">
+                                  <div>
+                                    <div className="text-[10px] font-black text-emerald-200">رادار حياة الإشعار</div>
+                                    <h4 className="text-sm font-black mt-1">نبضة آخر إشعار فقط</h4>
+                                  </div>
+                                  <button type="button" onClick={() => setPushDeviceTab('log')} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">عرض آخر الإشعارات</button>
+                                </div>
+                                <div className="grid grid-cols-4 gap-1.5">
+                                  {[
+                                    ['تم إنشاؤه', true],
+                                    ['وصل للسيرفر', Boolean(latestNotification?.success || latestNotification)],
+                                    ['وصل للجهاز', Boolean(latestNotification?.receivedByDevice || latestNotification?.receivedAt || latestNotification?.openedByEmployee || latestNotification?.clickedAt)],
+                                    ['تم فتحه', Boolean(latestNotification?.openedByEmployee || latestNotification?.clickedAt)],
+                                  ].map(([label, active], idx) => (
+                                    <div key={String(label)} className="relative rounded-2xl bg-black/15 border border-white/10 p-2 text-center min-h-[70px] flex flex-col items-center justify-center gap-2">
+                                      <span className={cn('relative h-3 w-3 rounded-full', active ? 'bg-emerald-300' : 'bg-white/20')}>
+                                        {active && <span className="absolute inset-0 rounded-full bg-emerald-300/70 animate-ping" />}
+                                      </span>
+                                      <span className="text-[9px] font-black text-white/65">{label}</span>
+                                      {idx < 3 && <span className="hidden md:block absolute -left-2 top-1/2 h-px w-4 bg-white/15" />}
+                                    </div>
+                                  ))}
+                                </div>
+                                <p className="mt-3 rounded-2xl bg-black/15 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/65 leading-5">{latestNotificationSentence}</p>
+                              </div>
+                              <div className={cn("rounded-[1.8rem] border p-4 text-white", latestCriticalIssue || oldTokenCount > 0 ? "border-amber-300/20 bg-amber-400/10" : "border-emerald-300/20 bg-emerald-400/10")}>
+                                <div className="text-[10px] font-black text-white/45">طبيب الإشعارات</div>
+                                <h4 className="mt-1 text-sm font-black">{latestCriticalIssue || oldTokenCount > 0 ? 'تم رصد علة بسيطة' : 'لا توجد أعطال حرجة'}</h4>
+                                <p className="mt-2 text-[11px] font-bold text-white/65 leading-6">
+                                  {latestCriticalIssue
+                                    ? 'هذا الجهاز لم يعد يستقبل الإشعارات؛ يبدو أن التوكن استُبدل من الجهاز نفسه. الحل: اختبر أحدث جهاز بدل هذا.'
+                                    : oldTokenCount > 0
+                                      ? `توجد ${oldTokenCount} أجهزة أو توكنات قديمة. الحل الآمن: اختبر أحدث جهاز بدون حذف أي سجل.`
+                                      : 'كل المؤشرات الحرجة هادئة الآن. التفاصيل تبقى داخل السجل عند الحاجة.'}
+                                </p>
+                                {(latestCriticalIssue || oldTokenCount > 0) && (
+                                  <button type="button" onClick={() => setPushDeviceTab('users')} className="mt-3 rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">اختبار أحدث جهاز</button>
+                                )}
                               </div>
                             </div>
 
@@ -3748,29 +3822,42 @@ const GeneralSettings: React.FC<Props> = ({
                                   ['أجهزة شبحية', `${ghostDevices.length}`, 'توكن موجود لكنه ميت أو مكرر', 'bg-rose-400/15 text-rose-50 border-rose-300/20'],
                                   ['حسابات بلا جهاز', `${archivedCards.length}`, 'تحت الكروت لأنها أقل أولوية', 'bg-white/10 text-white border-white/10'],
                                 ].map(([label, value, hint, cls]) => (
-                                  <div key={label} className={cn("rounded-2xl border p-3", cls)}>
+                                  <button type="button" key={label} onClick={() => { setPushDeviceTab('users'); setPushDeviceSearch(label === 'حسابات بلا جهاز' ? 'غير مرتبط' : ''); }} className={cn("rounded-2xl border p-3 text-right hover:scale-[1.01] transition", cls)}>
                                     <div className="text-[10px] font-black opacity-70">{label}</div>
                                     <div className="mt-1 text-2xl font-black">{value}</div>
                                     <div className="mt-1 text-[10px] font-bold opacity-65 leading-5">{hint}</div>
-                                  </div>
+                                  </button>
                                 ))}
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                              {[
-                                ["الحسابات", `${allCards.length}`, "الكل"],
-                                ["وصول مؤكد", `${deliveredCount}`, "وصل"],
-                                ["يحتاج اختبار", `${testCount}`, "اختبار"],
-                                ["بلا جهاز", `${missingCount}`, "ناقص"],
-                              ].map(([label, value, hint]) => (
-                                <div key={label} className="rounded-2xl border border-white/10 bg-white/10 p-3">
-                                  <span className="block text-[10px] font-black text-white/45">{hint}</span>
-                                  <strong className="mt-1 block text-2xl font-black">{value}</strong>
-                                  <span className="text-[11px] font-bold text-white/60">{label}</span>
+                            <details className="rounded-[1.8rem] border border-white/10 bg-white/10 p-4 text-white overflow-hidden">
+                              <summary className="cursor-pointer list-none flex items-center justify-between gap-3 select-none">
+                                <div>
+                                  <div className="text-[10px] font-black text-white/40">فحص كأني عميل</div>
+                                  <h4 className="mt-1 text-sm font-black leading-6">{pushCustomerVerdict}</h4>
                                 </div>
-                              ))}
-                            </div>
+                                <span className="rounded-2xl bg-white/10 px-3 py-2 text-[10px] font-black">عرض التفاصيل</span>
+                              </summary>
+                              <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+                                {[
+                                  ["الحسابات", `${allCards.length}`, "الكل"],
+                                  ["وصول مؤكد", `${deliveredCount}`, "وصل"],
+                                  ["يحتاج اختبار", `${testCount}`, "اختبار"],
+                                  ["بلا جهاز", `${missingCount}`, "ناقص"],
+                                ].map(([label, value, hint]) => (
+                                  <div key={label} className="rounded-2xl border border-white/10 bg-black/15 p-3">
+                                    <span className="block text-[10px] font-black text-white/45">{hint}</span>
+                                    <strong className="mt-1 block text-2xl font-black">{value}</strong>
+                                    <span className="text-[11px] font-bold text-white/60">{label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <button type="button" onClick={() => setPushDeviceTab('users')} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">اختبار أحدث جهاز</button>
+                                <button type="button" onClick={() => { setPushDeviceTab('users'); setPushDeviceSearch('صامت'); }} className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 text-[10px] font-black text-white">عرض الأجهزة الصامتة</button>
+                              </div>
+                            </details>
 
                             <div className={cn("rounded-2xl border px-3 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3", pushHealth.tone === "success" ? "bg-emerald-400/15 border-emerald-300/20" : pushHealth.tone === "danger" ? "bg-rose-400/15 border-rose-300/20" : "bg-amber-400/15 border-amber-300/20")}>
                               <div>
