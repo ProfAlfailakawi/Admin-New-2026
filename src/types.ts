@@ -66,7 +66,7 @@ export interface ProductAddon {
   name: string;
   price: number;
   cost: number;
-  calculationType: 'per_item' | 'per_x_items' | 'fixed';
+  calculationType: 'per_item' | 'per_x_items' | 'fixed' | 'coverage';
   xItemsThreshold?: number;
   isHiddenPrice: boolean;
   isRequired?: boolean;
@@ -74,6 +74,7 @@ export interface ProductAddon {
   maxQuantity?: number;
   freeQuantity?: number;
   roundingMode?: 'floor' | 'ceil';
+  perXMode?: 'groups' | 'coverage_range';
   quantityRule?: {
     enabled?: boolean;
     minProductQty?: number;

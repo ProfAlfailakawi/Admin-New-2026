@@ -214,6 +214,17 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
       setDeliverySettlementTarget(supplier.supplierType === 'delivery' ? 'delivery_company' : 'supplier');
     };
 
+    const syncDeliveryCompanyFromCart = (nextCart: Record<string, any>) => {
+      const nextProductIds = Object.keys(nextCart || {}).filter((id) => Number(nextCart[id]?.quantity || 0) > 0);
+      const nextProducts = nextProductIds
+        .map((id) => (data.products || []).find((p: any) => String(p.id) === String(id)))
+        .filter(Boolean);
+      const uniqueSupplierIds = Array.from(new Set(nextProducts.map((p: any) => String(p.supplierId || '')).filter(Boolean)));
+      if (uniqueSupplierIds.length !== 1) return;
+      const supplier = (data.suppliers || []).find((s: any) => String(s.id) === String(uniqueSupplierIds[0]));
+      if (supplier) applyDeliverySettlementFromSupplier(supplier);
+    };
+
 
     // Discount Fields
     const [discountType, setDiscountType] = useState<"amount" | "percentage">(
@@ -554,6 +565,18 @@ Alturath.kw`;
     const getAddonKey = (addon: any) =>
       String(addon?.id || addon?.addonId || addon?.name || "");
 
+    const isCoverageRangeAddon = (addon: any) => addon?.calculationType === 'coverage' || (addon?.calculationType === 'per_x_items' && addon?.perXMode === 'coverage_range');
+
+    const getCoverageUnits = (addon: any, productQty: number) => {
+      const rule = addon?.quantityRule || {};
+      const minProductQty = Math.max(1, Number(rule.minProductQty || addon?.minProductQty || 1));
+      const coverToQty = Math.max(minProductQty, Number(rule.maxProductQtyPerAddon || addon?.maxProductQtyPerAddon || addon?.xItemsThreshold || minProductQty));
+      const qty = Math.max(0, Number(productQty || 0));
+      if (qty < minProductQty) return 0;
+      const span = Math.max(1, coverToQty - minProductQty + 1);
+      return Math.max(1, Math.ceil((qty - minProductQty + 1) / span));
+    };
+
     const getAddonRuleLimits = (addon: any, productQty: number) => {
       const baseMin = addon?.isRequired ? Math.max(1, Number(addon?.minQuantity || 1)) : Number(addon?.minQuantity || 0);
       const baseMax = addon?.maxQuantity !== undefined && addon?.maxQuantity !== null && addon?.maxQuantity !== '' ? Number(addon.maxQuantity) : 999;
@@ -566,9 +589,14 @@ Alturath.kw`;
       if (Number(productQty || 0) < minProductQty) {
         return { available: false, min: 0, max: 0, suggested: 0, minProductQty };
       }
-      const suggested = Math.max(1, Math.ceil(Number(productQty || 0) / perAddon));
-      const min = rule.mode === 'required' ? Math.max(baseMin, suggested) : baseMin;
-      const max = Math.max(min, baseMax);
+      const isCoverage = isCoverageRangeAddon(addon);
+      const suggested = isCoverage
+        ? getCoverageUnits(addon, Number(productQty || 0))
+        : Math.max(1, Math.ceil(Number(productQty || 0) / perAddon));
+      const min = isCoverage
+        ? suggested
+        : (rule.mode === 'required' ? Math.max(baseMin, suggested) : baseMin);
+      const max = isCoverage ? suggested : Math.max(min, baseMax);
       return { available: true, min, max, suggested: Math.min(max, Math.max(min, suggested)), minProductQty };
     };
 
@@ -577,6 +605,7 @@ Alturath.kw`;
       if (!limits.available) return 0;
       if (addon?.isRequired || addon?.quantityRule?.mode === 'required') return Math.max(limits.min, limits.suggested || 1);
       if (addon?.quantityRule?.mode === 'auto') return limits.suggested;
+      if (isCoverageRangeAddon(addon)) return 0;
       return 0;
     };
 
@@ -701,6 +730,7 @@ Alturath.kw`;
       setCart((prev) => {
         const newCart = { ...prev };
         delete newCart[productId];
+        syncDeliveryCompanyFromCart(newCart);
         return newCart;
       });
     };
@@ -722,7 +752,8 @@ Alturath.kw`;
             if (!limits.available) return { ...a, quantity: 0 };
             const min = limits.min;
             const max = limits.max;
-            const next = Math.max(min, Math.min(max, cur + delta));
+            const rawNext = isCoverageRangeAddon(a) && cur <= 0 && delta > 0 ? limits.suggested : cur + delta;
+            const next = Math.max(min, Math.min(max, rawNext));
             return { ...a, quantity: next };
           }
           return a;
