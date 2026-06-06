@@ -4141,3 +4141,84 @@ html body .login-brand-stage h1 {
   .ai-executive-inputbar{padding:10px!important;}
   .ai-input-wrap{min-height:54px!important;border-radius:20px!important;}
 }
+
+
+/* Admin60: mobile-only polish for the geo pulse map card */
+@media (max-width: 760px){
+  .dashboard #geo-heatmap-section.geo-heatmap-mobile-card{
+    width:100%!important;
+    max-width:100%!important;
+    min-height:0!important;
+    border-radius:26px!important;
+    overflow:hidden!important;
+    margin-inline:auto!important;
+  }
+  .dashboard #geo-heatmap-section .geo-heatmap-mobile-head{
+    padding:14px 16px!important;
+    gap:10px!important;
+    align-items:center!important;
+  }
+  .dashboard #geo-heatmap-section .geo-heatmap-mobile-head .font-black.text-white{
+    font-size:16px!important;
+    line-height:1.45!important;
+    max-width:190px!important;
+  }
+  .dashboard #geo-heatmap-section .geo-heatmap-mobile-head [class*="Geo Intel"],
+  .dashboard #geo-heatmap-section .geo-heatmap-mobile-head .uppercase{
+    font-size:8px!important;
+    padding:6px 8px!important;
+    letter-spacing:.08em!important;
+  }
+  .dashboard #geo-heatmap-section .geo-heatmap-mobile-body{
+    padding:0!important;
+  }
+  .dashboard #geo-heatmap-section .geo-heatmap-inner{
+    min-height:0!important;
+    border-radius:22px!important;
+    overflow:hidden!important;
+  }
+  .geo-heatmap-component{
+    border-radius:22px!important;
+    padding:14px!important;
+    box-shadow:0 22px 55px rgba(15,23,42,.26)!important;
+  }
+  .geo-heatmap-component .relative.z-10{
+    gap:14px!important;
+    margin-bottom:14px!important;
+  }
+  .geo-heatmap-component h3{
+    font-size:22px!important;
+    line-height:1.35!important;
+    justify-content:flex-start!important;
+    text-align:right!important;
+  }
+  .geo-heatmap-component p{
+    font-size:12px!important;
+    line-height:1.75!important;
+  }
+  .geo-heatmap-component .grid.grid-cols-2.sm\:grid-cols-4{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    min-width:0!important;
+    width:100%!important;
+    gap:8px!important;
+  }
+  .geo-heatmap-component .grid.grid-cols-2.sm\:grid-cols-4 > div{
+    border-radius:18px!important;
+    padding:11px!important;
+    min-width:0!important;
+  }
+  .geo-heatmap-component .grid.grid-cols-2.sm\:grid-cols-4 .text-sm{
+    font-size:13px!important;
+  }
+  .geo-heatmap-component [class*="Top 3"]{
+    transform:scale(.92);
+    transform-origin:left center;
+  }
+  .geo-heatmap-component .w-full.relative.p-0{
+    margin-top:10px!important;
+  }
+  .dashboard #geo-heatmap-section > .p-5:last-child{
+    display:none!important;
+  }
+}

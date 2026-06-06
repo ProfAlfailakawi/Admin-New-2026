@@ -386,7 +386,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  }), [areaData.markers, areaData.maxRev, activeRegion]);
 
  return (
- <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-3xl md:rounded-2xl p-4 shadow-2xl shadow-indigo-900/50 border border-white/10 glass-dark text-white relative overflow-hidden border border-[#f0e6d2]/10">
+ <div className="geo-heatmap-component bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-3xl md:rounded-2xl p-4 shadow-2xl shadow-indigo-900/50 border border-white/10 glass-dark text-white relative overflow-hidden border border-[#f0e6d2]/10">
  <div className="relative z-10 flex flex-col gap-5 mb-5">
   <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
    <div className="text-right">

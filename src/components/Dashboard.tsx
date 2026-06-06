@@ -3372,8 +3372,8 @@ const [isPending, startTransition] = useTransition();
 
                     {/* Sidebar tools - Map is taller and smarter */}
                     <div className="xl:col-span-4 space-y-10 order-2 lg:order-1 flex flex-col">
-                       <div id="geo-heatmap-section" className="bg-slate-900 rounded-2xl p-1 border border-slate-800 overflow-hidden shadow-2xl group transition-all duration-500 h-full flex flex-col min-h-[500px]">
-                        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                       <div id="geo-heatmap-section" className="geo-heatmap-mobile-card bg-slate-900 rounded-2xl p-1 border border-slate-800 overflow-hidden shadow-2xl group transition-all duration-500 h-full flex flex-col min-h-[500px]">
+                        <div className="geo-heatmap-mobile-head p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                           <div className="flex items-center gap-3">
                              <div className="p-2.5 bg-amber-500/10 rounded-xl">
                               <MapPin size={20} className="text-amber-500" />
@@ -3382,9 +3382,9 @@ const [isPending, startTransition] = useTransition();
                           </div>
                           <div className="px-3 py-1 bg-amber-500/20 text-amber-500 text-[10px] font-black rounded-full border border-amber-500/30 uppercase tracking-widest">Geo Intel</div>
                         </div>
-                        <div className="p-2 flex-grow">
+                        <div className="geo-heatmap-mobile-body p-2 flex-grow">
                           <React.Suspense fallback={<div className="h-64 animate-pulse bg-slate-800 rounded-2xl" />}>
-                            <div className="h-full min-h-[500px] rounded-2xl overflow-visible ring-1 ring-white/10">
+                            <div className="geo-heatmap-inner h-full min-h-[500px] rounded-2xl overflow-hidden ring-1 ring-white/10">
                               <GeoHeatmap data={data} />
                             </div>
                           </React.Suspense>
