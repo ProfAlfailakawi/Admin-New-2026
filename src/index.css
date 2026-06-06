@@ -4222,3 +4222,75 @@ html body .login-brand-stage h1 {
     display:none!important;
   }
 }
+/* Push health center: manager-first, readable, scoped to GeneralSettings only. */
+.push-health-pro {
+  color: #0f172a;
+}
+
+.push-health-pro [class*="text-white"] {
+  color: #475569 !important;
+}
+
+.push-health-pro h3,
+.push-health-pro h4,
+.push-health-pro strong,
+.push-health-pro .font-black {
+  color: #0f172a;
+}
+
+.push-health-pro [class*="bg-white/10"],
+.push-health-pro [class*="bg-white/8"],
+.push-health-pro [class*="bg-black/15"],
+.push-health-pro [class*="bg-black/20"],
+.push-health-pro [class*="bg-black/25"],
+.push-health-pro [class*="bg-slate-950"] {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.push-health-pro [class*="border-white/10"],
+.push-health-pro [class*="border-slate-300/20"] {
+  border-color: #e2e8f0 !important;
+}
+
+.push-health-pro input {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.push-health-pro input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.push-health-pro button.bg-white {
+  background: #0f172a !important;
+  color: #ffffff !important;
+}
+
+.push-health-pro button.bg-white:hover {
+  background: #1e293b !important;
+}
+
+.push-health-pro .bg-emerald-400\/15,
+.push-health-pro .bg-emerald-400\/12 {
+  background: #ecfdf5 !important;
+}
+
+.push-health-pro .bg-amber-400\/15,
+.push-health-pro .bg-amber-400\/12 {
+  background: #fffbeb !important;
+}
+
+.push-health-pro .bg-rose-400\/15,
+.push-health-pro .bg-rose-400\/12 {
+  background: #fff1f2 !important;
+}
+
+.push-health-pro .bg-sky-400\/12 {
+  background: #f0f9ff !important;
+}
+
+.push-health-pro code {
+  color: #047857 !important;
+}

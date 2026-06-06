@@ -1,6 +1,7 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getMessaging, getToken, isSupported, onMessage, type Messaging } from "firebase/messaging";
 import rawConfig from "../../firebase-applet-config.json";
+import { auth } from "../firebase";
 
 const firebaseConfig = {
   ...rawConfig,
@@ -156,11 +157,22 @@ async function getFreshMessagingServiceWorkerRegistration(): Promise<ServiceWork
 
 async function saveTokenToServer(token: string, options?: {
   userId?: string;
+  userEmail?: string;
+  userName?: string;
+  userRole?: string;
   restaurantId?: string;
 }) {
+  const currentUser = auth?.currentUser;
   const payload = {
     token,
-    userId: options?.userId || "admin",
+    userId: options?.userId || currentUser?.uid || "admin",
+    userEmail: options?.userEmail || currentUser?.email || "",
+    userName:
+      options?.userName ||
+      currentUser?.displayName ||
+      currentUser?.email ||
+      "",
+    userRole: options?.userRole || "",
     restaurantId: options?.restaurantId || "default",
     platform: /iPhone|iPad|iPod/i.test(navigator.userAgent) ? "iPhone" : "web",
     userAgent: navigator.userAgent || null,
@@ -201,6 +213,9 @@ async function saveTokenToServer(token: string, options?: {
 
 export async function registerPushNotifications(options?: {
   userId?: string;
+  userEmail?: string;
+  userName?: string;
+  userRole?: string;
   restaurantId?: string;
 }): Promise<{
   success: boolean;
@@ -278,6 +293,9 @@ export async function registerPushNotifications(options?: {
 
 export async function refreshPushRegistrationIfAlreadyAllowed(options?: {
   userId?: string;
+  userEmail?: string;
+  userName?: string;
+  userRole?: string;
   restaurantId?: string;
 }): Promise<{ success: boolean; token?: string; skipped?: boolean; error?: string }> {
   try {

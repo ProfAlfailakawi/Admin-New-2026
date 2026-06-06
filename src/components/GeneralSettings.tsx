@@ -76,7 +76,13 @@ import {
   getPushSupportStatus,
   refreshPushRegistrationIfAlreadyAllowed,
 } from "../lib/pushNotifications";
-import { DEFAULT_GLOBAL_LOGO } from "../constants";
+import {
+  AUTHORIZED_EMAILS,
+  AUTHORIZED_PARTNERS,
+  AUTHORIZED_PARTNER_UIDS,
+  AUTHORIZED_UIDS,
+  DEFAULT_GLOBAL_LOGO,
+} from "../constants";
 import { recalculateStateBalances } from "../lib/business-logic";
 import {
   getProtectedStorageItem,
@@ -334,7 +340,7 @@ const GeneralSettings: React.FC<Props> = ({
     if (!normalized) return "No timestamp saved";
     const time = new Date(normalized).getTime();
     if (!Number.isFinite(time)) return "Unknown";
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat("ar-KW", {
       timeZone: "Asia/Kuwait",
       year: "numeric",
       month: "short",
@@ -351,18 +357,50 @@ const GeneralSettings: React.FC<Props> = ({
       event?.status === "clicked_by_employee" ||
       event?.lastClientReceiptStatus === "clicked"
     )
-      return "فتحه الموظف";
+      return "انفتح";
     if (
       event?.receivedByDevice ||
       event?.status === "received_by_device" ||
       event?.lastClientReceiptStatus === "received"
     )
-      return "استلمه الجهاز";
+      return "وصل للجهاز";
     if (event?.success === false || event?.status === "failed_by_fcm")
-      return "فشل من FCM";
+      return "فشل الإرسال";
     if (event?.success === true || event?.status === "accepted_by_fcm")
-      return "قبله FCM";
+      return "أرسلناه";
     return "مسجل";
+  };
+
+  const looksLikeTechnicalId = (value?: string) => {
+    const text = String(value || "").trim();
+    if (!text) return false;
+    if (text.includes("@")) return false;
+    return /^[a-zA-Z0-9_-]{20,}$/.test(text);
+  };
+
+  const cleanPushAccountLabel = (value?: string, fallback = "حساب غير مسمى") => {
+    const text = String(value || "").trim();
+    if (!text || looksLikeTechnicalId(text) || /^User\s+/i.test(text)) return fallback;
+    return text;
+  };
+
+  const getPushPersonName = (identity?: PushUserIdentity, fallbackUserId?: string) => {
+    if (!identity) return cleanPushAccountLabel(fallbackUserId, "حساب غير مرتبط");
+    return cleanPushAccountLabel(
+      identity.name || identity.email || identity.phone || fallbackUserId || identity.id,
+      identity.email || "حساب غير مسمى",
+    );
+  };
+
+  const getPushPersonSubtitle = (identity?: PushUserIdentity, fallbackUserId?: string) => {
+    const email = String(identity?.email || "").trim();
+    if (email) return email;
+    const phone = String(identity?.phone || "").trim();
+    if (phone) return phone;
+    const cleanId = cleanPushAccountLabel(identity?.id || fallbackUserId, "");
+    return cleanId && cleanId !== getPushPersonName(identity, fallbackUserId)
+      ? cleanId
+      : "لم يتم حفظ الإيميل لهذا الحساب";
   };
 
   const normalizePushEventLog = (
@@ -538,8 +576,7 @@ const GeneralSettings: React.FC<Props> = ({
       date: event.date,
       read:
         event.openedByEmployee ||
-        event.receivedByDevice ||
-        event.success === true,
+        event.receivedByDevice,
       type: event.success === false ? "failed" : event.type || "push",
       receivedAt: event.receivedAt,
       clickedAt: event.clickedAt,
@@ -921,6 +958,18 @@ const GeneralSettings: React.FC<Props> = ({
     });
   };
 
+  const refreshPushDashboardReadings = async () => {
+    const realPushEvents = await readRealPushEventLogs();
+    setPushEventLogs(realPushEvents);
+    const userDirectory = await readPushUserDirectory();
+    setPushUserDirectory(userDirectory);
+    const allDevices = await readAllPushDeviceSnapshots(
+      realPushEvents,
+      userDirectory,
+    );
+    setPushDevices(allDevices);
+  };
+
   const sendPushDeviceTestNotification = async (device: PushDeviceSnapshot) => {
     if (!device?.token || device.token === "Not available") {
       toast.error("لا يوجد توكن صالح لهذا الجهاز");
@@ -950,11 +999,18 @@ const GeneralSettings: React.FC<Props> = ({
       });
       const result = await response.json().catch(() => ({}));
       const message = result?.success
-        ? `تم إرسال الاختبار: نجاح ${result.successCount || 0} / فشل ${result.failureCount || 0}`
+        ? "تم إرسال الاختبار. راقب آخر الإشعارات: إذا ظهر وصل للجهاز أو انفتح فهذا تأكيد الوصول."
         : `تعذر إرسال الاختبار: ${result?.error || result?.message || "Unknown error"}`;
       setPushTestResults((prev) => ({ ...prev, [device.id]: message }));
-      if (result?.success) toast.success("تم إرسال إشعار اختبار للجهاز");
-      else
+      if (result?.success) {
+        toast.success("تم إرسال إشعار اختبار للجهاز");
+        await refreshPushDashboardReadings().catch(() => null);
+        if (typeof window !== "undefined") {
+          window.setTimeout(() => {
+            void refreshPushDashboardReadings().catch(() => null);
+          }, 1800);
+        }
+      } else
         toast.error("فشل إرسال إشعار الاختبار", {
           description:
             result?.error ||
@@ -1117,6 +1173,58 @@ const GeneralSettings: React.FC<Props> = ({
       "admin",
       "auth",
     );
+    AUTHORIZED_EMAILS.forEach((email) =>
+      addPushUserIdentity(
+        map,
+        {
+          id: email,
+          email,
+          displayName: email,
+          role: "admin",
+        },
+        "admin",
+        "authorizedEmails",
+      ),
+    );
+    AUTHORIZED_PARTNERS.forEach((email) =>
+      addPushUserIdentity(
+        map,
+        {
+          id: email,
+          email,
+          displayName: email,
+          role: "partner",
+        },
+        "partner",
+        "authorizedPartners",
+      ),
+    );
+    AUTHORIZED_UIDS.forEach((uid) =>
+      addPushUserIdentity(
+        map,
+        {
+          uid,
+          id: uid,
+          displayName: "حساب أدمن محفوظ",
+          role: "admin",
+        },
+        "admin",
+        "authorizedUids",
+      ),
+    );
+    AUTHORIZED_PARTNER_UIDS.forEach((uid) =>
+      addPushUserIdentity(
+        map,
+        {
+          uid,
+          id: uid,
+          displayName: "حساب شريك محفوظ",
+          role: "partner",
+        },
+        "partner",
+        "authorizedPartnerUids",
+      ),
+    );
     const root: any = data || {};
     [
       ["users", "user"],
@@ -1263,15 +1371,7 @@ const GeneralSettings: React.FC<Props> = ({
     identity?: PushUserIdentity,
     fallbackUserId?: string,
   ) => {
-    if (!identity)
-      return fallbackUserId ? `User ${fallbackUserId}` : "غير مرتبط بموظف";
-    return (
-      identity.name ||
-      identity.email ||
-      identity.id ||
-      fallbackUserId ||
-      "غير مرتبط بموظف"
-    );
+    return getPushPersonName(identity, fallbackUserId);
   };
 
   const getPushUserDisplayById = (userId?: string) => {
@@ -1514,6 +1614,16 @@ const GeneralSettings: React.FC<Props> = ({
       if (status.permission === "granted") {
         await refreshPushRegistrationIfAlreadyAllowed({
           userId: auth?.currentUser?.uid || "admin",
+          userEmail: auth?.currentUser?.email || "",
+          userName:
+            auth?.currentUser?.displayName ||
+            auth?.currentUser?.email ||
+            "",
+          userRole: AUTHORIZED_PARTNERS.includes(
+            String(auth?.currentUser?.email || "").toLowerCase(),
+          )
+            ? "partner"
+            : "admin",
           restaurantId: "kitchen_default",
         }).catch(() => null);
       }
@@ -3108,27 +3218,25 @@ const GeneralSettings: React.FC<Props> = ({
                   )}
                 </div>
 
-                <div className="rounded-[2rem] border border-slate-200/70 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-4 md:p-5 text-white shadow-sm overflow-hidden relative">
-                  <div className="absolute -left-16 -top-16 h-44 w-44 rounded-full bg-emerald-400/20 blur-3xl" />
-                  <div className="absolute -right-20 bottom-0 h-52 w-52 rounded-full bg-sky-400/10 blur-3xl" />
+                <div className="push-health-pro rounded-2xl border border-slate-200 bg-white p-4 md:p-5 text-slate-900 shadow-sm overflow-hidden relative">
                   <div className="relative z-10 space-y-4">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                       <div>
-                        <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/10 px-3 py-1 text-[10px] font-black text-emerald-100">
-                          <ShieldCheck size={13} /> مركز صحة الإشعارات
+                        <div className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700">
+                          <ShieldCheck size={13} /> متابعة وصول الإشعارات
                         </div>
-                        <h3 className="mt-2 text-lg md:text-xl font-black">
-                          منو توصله الإشعارات؟
+                        <h3 className="mt-2 text-lg md:text-xl font-black text-slate-900">
+                          من تصله الإشعارات الآن؟
                         </h3>
-                        <p className="mt-1 text-xs md:text-sm font-bold leading-6 text-white/60 max-w-2xl">
-                          شاشة مختصرة للمستخدمين: جاهز، يحتاج تفعيل، أو يحتاج اختبار. التفاصيل الفنية موجودة بالأسفل لمن يحتاجها فقط.
+                        <p className="mt-1 text-xs md:text-sm font-bold leading-6 text-slate-500 max-w-2xl">
+                          هنا تشوف كل أدمن أو شريك: هل عنده جهاز مفعّل، ما آخر إشعار وصل له، وهل فتحه أو يحتاج اختبار.
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={runPushHealthCheck}
                         disabled={checkingPushHealth || appMode === "local"}
-                        className="rounded-2xl bg-white text-slate-950 px-4 py-3 text-xs font-black shadow-sm hover:bg-emerald-50 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                        className="rounded-lg bg-slate-900 text-white px-4 py-3 text-xs font-black shadow-sm hover:bg-slate-800 disabled:opacity-50 transition flex items-center justify-center gap-2"
                       >
                         {checkingPushHealth ? (
                           <Loader2 size={15} className="animate-spin" />
@@ -3178,20 +3286,20 @@ const GeneralSettings: React.FC<Props> = ({
                             stageText.includes("فتحه"),
                           );
                           return [
-                            { key: "sent", label: "أرسله النظام", done: hasNotification },
-                            { key: "fcm", label: "قبله FCM", done: acceptedByFcm },
-                            { key: "device", label: "استلمه الجهاز", done: receivedByDevice },
-                            { key: "open", label: "فتحه المستخدم", done: openedByUser },
+                            { key: "sent", label: "أرسلناه", done: hasNotification },
+                            { key: "fcm", label: "قبله نظام الإرسال", done: acceptedByFcm },
+                            { key: "device", label: "وصل للجهاز", done: receivedByDevice },
+                            { key: "open", label: "انفتح", done: openedByUser },
                           ];
                         };
                         const getDeliveryMilestoneSummary = (notification?: any) => {
                           const steps = getDeliveryMilestones(notification);
                           const completed = steps.filter((step) => step.done).length;
                           if (!notification) return "لا يوجد إشعار محفوظ حتى الآن";
-                          if (completed >= 4) return "مكتمل: وصل وانفتح";
+                          if (completed >= 4) return "وصل وانفتح";
                           if (completed === 3) return "وصل للجهاز";
-                          if (completed === 2) return "FCM قبله";
-                          if (completed === 1) return "مرسل فقط";
+                          if (completed === 2) return "أرسلناه ولم يتأكد الوصول";
+                          if (completed === 1) return "محاولة إرسال فقط";
                           return "غير مؤكد";
                         };
                         const userSeed = new Map<string, PushUserIdentity>();
@@ -3225,6 +3333,12 @@ const GeneralSettings: React.FC<Props> = ({
                             .flatMap((device) => (device.recentNotifications || []).map((notification) => ({ ...notification, device })))
                             .sort((a, b) => Date.parse(b.date || "") - Date.parse(a.date || ""));
                           const latest = notifications[0];
+                          const deliveredNotifications = notifications.filter(
+                            (notification) =>
+                              notification.receivedByDevice ||
+                              notification.openedByEmployee,
+                          );
+                          const latestDelivered = deliveredNotifications[0];
                           const bestDevice = devices.slice().sort((a, b) => getPushDeviceConfidence(b) - getPushDeviceConfidence(a))[0];
                           const bestScore = bestDevice ? getPushDeviceConfidence(bestDevice) : 0;
                           const hasReadyDevice = devices.some((device) => device.status === "online" && getPushDeviceConfidence(device) >= 70);
@@ -3234,26 +3348,28 @@ const GeneralSettings: React.FC<Props> = ({
                           const lastTestResult = bestDevice ? pushTestResults[bestDevice.id] : "";
                           let state = {
                             label: "لا يوجد جهاز",
-                            detail: "هذا المستخدم لا يظهر له جهاز مسجل للإشعارات حتى الآن.",
-                            className: "border-slate-300/20 bg-white/8 text-white",
+                            detail: "هذا الحساب ظاهر عندك، لكن لا يوجد له جهاز مفعّل للإشعارات حتى الآن.",
+                            className: "border-slate-200 bg-slate-50 text-slate-900",
                             dot: "bg-slate-300",
                             rank: 4,
                           };
                           if (hasReadyDevice && (hasReceipt || hasFcmAccepted || latest)) {
                             state = {
-                              label: hasReceipt ? "واصل ومؤكد" : "جاهز غالبًا",
+                              label: hasReceipt ? "يوصل له" : "أرسلناه ولم يتأكد الوصول",
                               detail: hasReceipt
-                                ? "يوجد أثر استلام/فتح من الجهاز. الوضع مطمئن."
-                                : "FCM قبل آخر إرسال، لكن تأكيد الجهاز غير ظاهر دائمًا.",
-                              className: "border-emerald-300/25 bg-emerald-400/12 text-emerald-50",
+                                ? "يوجد أثر من الجهاز يؤكد أن الإشعار وصل أو انفتح."
+                                : "تم إرسال إشعار لهذا الحساب، لكن لا يوجد تأكيد من الجهاز حتى الآن.",
+                              className: hasReceipt
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+                                : "border-sky-200 bg-sky-50 text-sky-950",
                               dot: "bg-emerald-300",
                               rank: hasReceipt ? 1 : 2,
                             };
                           } else if (hasToken) {
                             state = {
                               label: "يحتاج اختبار",
-                              detail: "التوكن موجود، لكن نحتاج اختبار سريع للتأكد من الوصول.",
-                              className: "border-amber-300/25 bg-amber-400/12 text-amber-50",
+                              detail: "الجهاز موجود، اضغط اختبار الآن حتى نتأكد أنه يستقبل فعلًا.",
+                              className: "border-amber-200 bg-amber-50 text-amber-950",
                               dot: "bg-amber-300",
                               rank: 3,
                             };
@@ -3265,6 +3381,8 @@ const GeneralSettings: React.FC<Props> = ({
                             bestDevice,
                             bestScore,
                             latest,
+                            latestDelivered,
+                            deliveredNotifications,
                             notifications,
                             lastTestResult,
                             state,
@@ -3289,12 +3407,22 @@ const GeneralSettings: React.FC<Props> = ({
                             bestDevice: device,
                             bestScore: getPushDeviceConfidence(device),
                             latest: (device.recentNotifications || [])[0],
+                            latestDelivered: (device.recentNotifications || []).find(
+                              (notification) =>
+                                notification.receivedByDevice ||
+                                notification.openedByEmployee,
+                            ),
+                            deliveredNotifications: (device.recentNotifications || []).filter(
+                              (notification) =>
+                                notification.receivedByDevice ||
+                                notification.openedByEmployee,
+                            ),
                             notifications: device.recentNotifications || [],
                             lastTestResult: pushTestResults[device.id] || "",
                             state: {
                               label: device.status === "online" ? "جهاز جاهز بلا اسم" : "غير مرتبط",
-                              detail: "هذا الجهاز لديه توكن لكنه غير مربوط باسم مستخدم واضح.",
-                              className: "border-sky-300/25 bg-sky-400/12 text-sky-50",
+                              detail: "هذا الجهاز لديه تسجيل إشعارات، لكنه غير مربوط بإيميل واضح.",
+                              className: "border-slate-200 bg-white text-slate-900",
                               dot: "bg-sky-300",
                               rank: 5,
                             },
@@ -3318,7 +3446,7 @@ const GeneralSettings: React.FC<Props> = ({
                             .toLowerCase()
                             .includes(query);
                         });
-                        const readyCount = allCards.filter((card) => card.state.rank <= 2).length;
+                        const deliveredCount = allCards.filter((card) => card.deliveredNotifications.length > 0).length;
                         const testCount = allCards.filter((card) => card.state.rank === 3).length;
                         const missingCount = allCards.filter((card) => card.state.rank >= 4).length;
                         const notificationLog = pushEventLogs
@@ -3349,10 +3477,10 @@ const GeneralSettings: React.FC<Props> = ({
                           <div className="space-y-4">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                               {[
-                                ["المستخدمين", `${allCards.length}`, "Users"],
-                                ["جاهزين", `${readyCount}`, "Check"],
-                                ["يحتاج اختبار", `${testCount}`, "Test"],
-                                ["ناقصين", `${missingCount}`, "Missing"],
+                                ["الحسابات", `${allCards.length}`, "الكل"],
+                                ["وصول مؤكد", `${deliveredCount}`, "وصل"],
+                                ["يحتاج اختبار", `${testCount}`, "اختبار"],
+                                ["بلا جهاز", `${missingCount}`, "ناقص"],
                               ].map(([label, value, hint]) => (
                                 <div key={label} className="rounded-2xl border border-white/10 bg-white/10 p-3">
                                   <span className="block text-[10px] font-black text-white/45">{hint}</span>
@@ -3452,7 +3580,10 @@ const GeneralSettings: React.FC<Props> = ({
                                         <div className="min-w-0 flex-1">
                                           <div className="flex flex-wrap items-center gap-2">
                                             <span className={cn("h-2.5 w-2.5 rounded-full", card.state.dot)} />
-                                            <h4 className="text-base font-black truncate">{getPushUserDisplay(card.identity, card.identity.id)}</h4>
+                                            <div className="min-w-0">
+                                              <h4 className="text-base font-black truncate">{getPushPersonName(card.identity, card.identity.id)}</h4>
+                                              <div className="mt-0.5 truncate text-[11px] font-bold text-slate-500">{getPushPersonSubtitle(card.identity, card.identity.id)}</div>
+                                            </div>
                                             <span className="rounded-full bg-white/10 border border-white/10 px-2 py-0.5 text-[10px] font-black text-white/60">{cleanRole(card.identity.role)}</span>
                                             <span className="rounded-full bg-black/15 border border-white/10 px-2 py-0.5 text-[10px] font-black">{card.state.label}</span>
                                           </div>
@@ -3463,13 +3594,15 @@ const GeneralSettings: React.FC<Props> = ({
                                               <strong className="mt-1 block text-sm font-black">{card.devices.length ? `${card.devices.length} جهاز` : "لا يوجد"}</strong>
                                             </div>
                                             <div className="rounded-2xl bg-black/15 border border-white/10 p-3 min-w-0">
-                                              <span className="block text-[10px] font-black text-white/40">آخر إشعار</span>
-                                              <strong className="mt-1 block truncate text-sm font-black">{card.latest?.title || "لا يوجد سجل"}</strong>
-                                              {card.latest?.date && <span className="mt-1 block text-[10px] font-bold text-white/45">{card.latest.date}</span>}
+                                              <span className="block text-[10px] font-black text-white/40">آخر إشعار وصل</span>
+                                              <strong className="mt-1 block truncate text-sm font-black">{card.latestDelivered?.title || "لا يوجد وصول مؤكد"}</strong>
+                                              {card.latestDelivered?.message && <span className="mt-1 block truncate text-[11px] font-bold text-white/50">{card.latestDelivered.message}</span>}
+                                              {card.latestDelivered?.date && <span className="mt-1 block text-[10px] font-bold text-white/45">{card.latestDelivered.date}</span>}
                                             </div>
                                             <div className="rounded-2xl bg-black/15 border border-white/10 p-3">
-                                              <span className="block text-[10px] font-black text-white/40">آخر نتيجة</span>
+                                              <span className="block text-[10px] font-black text-white/40">آخر محاولة</span>
                                               <strong className="mt-1 block text-sm font-black">{getDeliveryMilestoneSummary(card.latest)}</strong>
+                                              {card.latest?.title && <span className="mt-1 block truncate text-[10px] font-bold text-white/45">{card.latest.title}</span>}
                                             </div>
                                           </div>
                                           <div className="mt-3 rounded-2xl border border-white/10 bg-black/15 p-3">
@@ -3540,15 +3673,16 @@ const GeneralSettings: React.FC<Props> = ({
                                               );
                                             })}
                                           </div>
-                                          {card.notifications.length > 0 && (
+                                          {card.deliveredNotifications.length > 0 ? (
                                             <div className="space-y-2">
-                                              <div className="text-[10px] font-black text-white/45">آخر الإشعارات لهذا المستخدم</div>
-                                              {card.notifications.slice(0, 4).map((notification: any) => (
+                                              <div className="text-[10px] font-black text-white/45">آخر الإشعارات التي وصلت لهذا المستخدم</div>
+                                              {card.deliveredNotifications.slice(0, 4).map((notification: any) => (
                                                 <div key={notification.id} className="rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/70 space-y-2">
                                                   <div className="flex items-center justify-between gap-3">
                                                     <span className="truncate">{notification.title}</span>
                                                     <span className="shrink-0 text-white/40">{getDeliveryMilestoneSummary(notification)}</span>
                                                   </div>
+                                                  {notification.message && <div className="truncate text-[10px] text-white/45">{notification.message}</div>}
                                                   <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
                                                     {getDeliveryMilestones(notification).map((step) => (
                                                       <span
@@ -3567,7 +3701,11 @@ const GeneralSettings: React.FC<Props> = ({
                                                 </div>
                                               ))}
                                             </div>
-                                          )}
+                                          ) : card.notifications.length > 0 ? (
+                                            <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] font-bold text-amber-800">
+                                              توجد محاولات إرسال محفوظة، لكن لا يوجد تأكيد وصول من الجهاز حتى الآن.
+                                            </div>
+                                          ) : null}
                                         </div>
                                       )}
                                     </div>
@@ -3587,7 +3725,14 @@ const GeneralSettings: React.FC<Props> = ({
                                     <div className="min-w-0">
                                       <div className="font-black text-sm truncate">{notification.title}</div>
                                       <div className="mt-1 text-[11px] font-bold text-white/50 truncate">{notification.message || "بدون نص"}</div>
-                                      <div className="mt-1 text-[10px] font-bold text-white/35">{notification.userName || notification.userEmail || getPushUserDisplayById(notification.userId)}</div>
+                                      <div className="mt-1 text-[10px] font-bold text-white/35">
+                                        {notification.userName ||
+                                          notification.userEmail ||
+                                          cleanPushAccountLabel(
+                                            getPushUserDisplayById(notification.userId),
+                                            "حساب غير محدد",
+                                          )}
+                                      </div>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black">
                                       <span className="rounded-full bg-white/10 px-2 py-1 text-white/60">{notification.deliveryStage || getPushDeliveryStageLabel(notification)}</span>
@@ -3639,7 +3784,7 @@ const GeneralSettings: React.FC<Props> = ({
                                         <span className="rounded-full bg-black/20 px-2 py-0.5 text-[9px] font-black text-white/50">{getPushStatusMeta(device.status).label}</span>
                                       </div>
                                       <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold text-white/50">
-                                        <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{device.userId || "No userId"}</span>
+                                        <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{device.userEmail || device.userName || cleanPushAccountLabel(device.userId, "بلا إيميل محفوظ")}</span>
                                         <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{device.platform || device.deviceType || "No platform"}</span>
                                         <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{device.lastRead}</span>
                                         <span className="rounded-xl bg-black/20 px-2 py-1 truncate" dir="ltr">{device.token ? `${device.token.slice(0, 12)}...${device.token.slice(-8)}` : "No token"}</span>
