@@ -1791,7 +1791,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 </div>
                 
                 {((productForm as any)?.addons && Array.isArray((productForm as any)?.addons) ? Array.from((productForm as any).addons) : ((productForm as any)?.addons && typeof (productForm as any)?.addons === 'object' ? Object.values((productForm as any)?.addons) : [])).map((addon: any, index: number) => (
-                  <div key={addon.id} className="bg-white border text-right border-slate-200 p-3 rounded-2xl relative shadow-sm">
+                  <div key={addon.id} className="bg-white border text-right border-slate-200 p-3 sm:p-4 rounded-3xl relative shadow-sm overflow-hidden">
                     <button
                       onClick={() => {
                         setProductForm(prev => ({
@@ -1799,11 +1799,11 @@ const ProductPage: React.FC<ProductPageProps> = ({
                           addons: (prev as any).addons.filter((_: any, i: number) => i !== index)
                         }));
                       }}
-                      className="absolute top-3 left-3 text-red-500 hover:bg-red-50 p-1.5 rounded-full transition-colors"
+                      className="absolute top-3 left-3 text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors z-10"
                     >
                       <Trash size={16} />
                     </button>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-8 sm:mt-4">
                       <div className="space-y-1">
                         <label className="text-xs font-bold text-slate-500">اسم الإضافة</label>
                         <input
@@ -1827,11 +1827,11 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         )}
                       </div>
 
-                      <div className="md:col-span-2 space-y-3 mt-2 mb-1 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                        <label className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                      <div className="md:col-span-2 space-y-3 mt-2 mb-1 p-3 sm:p-4 bg-slate-50 rounded-3xl border border-slate-100">
+                        <label className="text-sm font-bold text-slate-800 flex items-center justify-end gap-2">
                           طريقة الحساب
                         </label>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-3 gap-2 sm:gap-3">
                           <button
                             type="button"
                             onClick={() => {
@@ -1840,10 +1840,10 @@ const ProductPage: React.FC<ProductPageProps> = ({
                               newAddons[index].perXMode = undefined;
                               setProductForm(prev => ({ ...prev, addons: newAddons }));
                             }}
-                            className={cn("flex flex-col items-center text-center p-3 rounded-xl border transition-all", addon.calculationType === 'per_item' ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm" : "bg-white border-slate-200 hover:border-indigo-200")}
+                            className={cn("flex min-h-[92px] flex-col items-center justify-center text-center p-2 sm:p-3 rounded-2xl border transition-all", addon.calculationType === 'per_item' ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm" : "bg-white border-slate-200 hover:border-indigo-200")}
                           >
-                            <div className={cn("font-bold text-sm mb-1", addon.calculationType === 'per_item' ? "text-indigo-900" : "text-slate-700")}>لكل طبق</div>
-                            <div className="text-[10px] text-slate-500">يزيد مع كمية المنتج</div>
+                            <div className={cn("font-bold text-xs sm:text-sm mb-1 leading-5", addon.calculationType === 'per_item' ? "text-indigo-900" : "text-slate-700")}>لكل طبق</div>
+                            <div className="text-[10px] sm:text-[11px] text-slate-500 leading-4">يزيد مع كمية المنتج</div>
                           </button>
 
                           <button
@@ -1854,10 +1854,10 @@ const ProductPage: React.FC<ProductPageProps> = ({
                               newAddons[index].perXMode = newAddons[index].perXMode || 'groups';
                               setProductForm(prev => ({ ...prev, addons: newAddons }));
                             }}
-                            className={cn("flex flex-col items-center text-center p-3 rounded-xl border transition-all", (addon.calculationType === 'per_x_items' || addon.calculationType === 'coverage') ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm" : "bg-white border-slate-200 hover:border-indigo-200")}
+                            className={cn("flex min-h-[92px] flex-col items-center justify-center text-center p-2 sm:p-3 rounded-2xl border transition-all", (addon.calculationType === 'per_x_items' || addon.calculationType === 'coverage') ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm" : "bg-white border-slate-200 hover:border-indigo-200")}
                           >
-                            <div className={cn("font-bold text-sm mb-1", (addon.calculationType === 'per_x_items' || addon.calculationType === 'coverage') ? "text-indigo-900" : "text-slate-700")}>حسب الكمية</div>
-                            <div className="text-[10px] text-slate-500">كل عدد أو تغطية ذكية</div>
+                            <div className={cn("font-bold text-xs sm:text-sm mb-1 leading-5", (addon.calculationType === 'per_x_items' || addon.calculationType === 'coverage') ? "text-indigo-900" : "text-slate-700")}>حسب الكمية</div>
+                            <div className="text-[10px] sm:text-[11px] text-slate-500 leading-4">كل عدد أو تغطية ذكية</div>
                           </button>
 
                           <button
@@ -1868,19 +1868,19 @@ const ProductPage: React.FC<ProductPageProps> = ({
                               newAddons[index].perXMode = undefined;
                               setProductForm(prev => ({ ...prev, addons: newAddons }));
                             }}
-                            className={cn("flex flex-col items-center text-center p-3 rounded-xl border transition-all", addon.calculationType === 'fixed' ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm" : "bg-white border-slate-200 hover:border-indigo-200")}
+                            className={cn("flex min-h-[92px] flex-col items-center justify-center text-center p-2 sm:p-3 rounded-2xl border transition-all", addon.calculationType === 'fixed' ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm" : "bg-white border-slate-200 hover:border-indigo-200")}
                           >
-                            <div className={cn("font-bold text-sm mb-1", addon.calculationType === 'fixed' ? "text-indigo-900" : "text-slate-700")}>مرة واحدة</div>
-                            <div className="text-[10px] text-slate-500">تُحسب مرة عند اختيارها</div>
+                            <div className={cn("font-bold text-xs sm:text-sm mb-1 leading-5", addon.calculationType === 'fixed' ? "text-indigo-900" : "text-slate-700")}>مرة واحدة</div>
+                            <div className="text-[10px] sm:text-[11px] text-slate-500 leading-4">تُحسب مرة عند اختيارها</div>
                           </button>
                         </div>
                       </div>
 
                       {(addon.calculationType === 'per_x_items' || addon.calculationType === 'coverage') && (
-                        <div className="md:col-span-2 rounded-2xl border border-indigo-100 bg-white p-3 space-y-3">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="md:col-span-2 rounded-3xl border border-indigo-100 bg-white p-3 sm:p-4 space-y-3">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                             <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-500">نمط الحساب</label>
+                              <label className="block text-xs font-bold text-slate-500 text-right">نمط الحساب</label>
                               <select
                                 value={addon.calculationType === 'coverage' ? 'coverage_range' : (addon.perXMode || 'groups')}
                                 onChange={e => {
@@ -1897,7 +1897,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                   }
                                   setProductForm(prev => ({ ...prev, addons: newAddons }));
                                 }}
-                                className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-xs font-bold text-right"
+                                className="w-full min-h-[48px] bg-slate-50 border border-slate-200/60 rounded-2xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-xs sm:text-sm font-bold text-right"
                               >
                                 <option value="groups">كل عدد من البداية</option>
                                 <option value="coverage_range">تغطية ذكية</option>
@@ -1905,9 +1905,9 @@ const ProductPage: React.FC<ProductPageProps> = ({
                             </div>
 
                             {(addon.calculationType !== 'coverage' && (addon.perXMode || 'groups') === 'groups') ? (
-                              <div className="grid grid-cols-2 gap-2">
+                              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                 <div className="space-y-1">
-                                  <label className="text-xs font-bold text-slate-500">كل كم حبة؟</label>
+                                  <label className="block min-h-[34px] text-xs font-bold text-slate-500 text-right leading-5">كل كم حبة؟</label>
                                   <input
                                     type="number"
                                     value={addon.xItemsThreshold || 1}
@@ -1917,11 +1917,11 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                       setProductForm(prev => ({ ...prev, addons: newAddons }));
                                     }}
                                     min={1}
-                                    className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
+                                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200/60 rounded-2xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-base sm:text-sm font-bold text-right"
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <label className="text-xs font-bold text-slate-500">احتساب الزيادة</label>
+                                  <label className="block min-h-[34px] text-xs font-bold text-slate-500 text-right leading-5">احتساب الزيادة</label>
                                   <select
                                     value={addon.roundingMode || 'floor'}
                                     onChange={e => {
@@ -1929,7 +1929,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                       newAddons[index].roundingMode = e.target.value;
                                       setProductForm(prev => ({ ...prev, addons: newAddons }));
                                     }}
-                                    className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-xs font-bold text-right"
+                                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200/60 rounded-2xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-xs sm:text-sm font-bold text-right"
                                   >
                                     <option value="floor">المكتمل فقط</option>
                                     <option value="ceil">أي زيادة تُحسب</option>
@@ -1937,9 +1937,9 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                 </div>
                               </div>
                             ) : (
-                              <div className="grid grid-cols-2 gap-2">
+                              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                 <div className="space-y-1">
-                                  <label className="text-xs font-bold text-slate-500">تبدأ من كمية</label>
+                                  <label className="block min-h-[34px] text-xs font-bold text-slate-500 text-right leading-5">تبدأ من كمية</label>
                                   <input
                                     type="number"
                                     min={1}
@@ -1949,11 +1949,11 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                       newAddons[index].quantityRule = { ...(newAddons[index].quantityRule || {}), enabled: true, minProductQty: parseInt(e.target.value) || 1 };
                                       setProductForm(prev => ({ ...prev, addons: newAddons }));
                                     }}
-                                    className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-center"
+                                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200/60 rounded-2xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-base font-bold text-center"
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <label className="text-xs font-bold text-slate-500">أول إضافة تكفي حتى كمية</label>
+                                  <label className="block min-h-[34px] text-xs font-bold text-slate-500 text-right leading-5">أول إضافة تكفي حتى كمية</label>
                                   <input
                                     type="number"
                                     min={1}
@@ -1963,14 +1963,14 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                       newAddons[index].quantityRule = { ...(newAddons[index].quantityRule || {}), enabled: true, maxProductQtyPerAddon: parseInt(e.target.value) || 1 };
                                       setProductForm(prev => ({ ...prev, addons: newAddons }));
                                     }}
-                                    className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-center"
+                                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200/60 rounded-2xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-base font-bold text-center"
                                   />
                                 </div>
                               </div>
                             )}
                           </div>
 
-                          <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-[11px] font-bold text-slate-500 leading-6">
+                          <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-[11px] sm:text-xs font-bold text-slate-500 leading-6 text-right">
                             {(addon.calculationType !== 'coverage' && (addon.perXMode || 'groups') === 'groups')
                               ? 'مثال: كل 3 مع احتساب الزيادة = 1–3 مرة، 4–6 مرتين، 7–9 ثلاث مرات.'
                               : 'مثال: تبدأ من 2 وتكفي حتى 6 = 2–6 مرة، 7–11 مرتين، 12–16 ثلاث مرات. عند كمية 7 الحد الأدنى 2، ويمكن للعميل زيادتها إلى 3 أو 4 ولا يمكنه إنقاصها إلى 1.'}
@@ -1978,7 +1978,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         </div>
                       )}
 
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3">
                         <div className="space-y-1">
                           <label className="text-xs font-bold text-slate-500">سعر الإضافة</label>
                           <input
@@ -1989,7 +1989,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                               newAddons[index].price = parseFloat(e.target.value) || 0;
                               setProductForm(prev => ({ ...prev, addons: newAddons }));
                             }}
-                            className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
+                            className="w-full min-h-[48px] bg-slate-50 border border-slate-200/60 rounded-2xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-base sm:text-sm font-bold text-right"
                             placeholder="0.000"
                           />
                         </div>
@@ -2003,7 +2003,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                               newAddons[index].cost = parseFloat(e.target.value) || 0;
                               setProductForm(prev => ({ ...prev, addons: newAddons }));
                             }}
-                            className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
+                            className="w-full min-h-[48px] bg-slate-50 border border-slate-200/60 rounded-2xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-base sm:text-sm font-bold text-right"
                             placeholder="0.000"
                           />
                         </div>
@@ -2044,7 +2044,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                           </div>
                           <p className="text-[10px] font-bold text-slate-400 leading-5">استخدمها فقط إذا كانت الإضافة لازم تنضاف دائماً. إذا تبيها تنضاف حسب كمية المنتج، استخدم خيار إظهار حسب كمية المنتج فقط.</p>
                           
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-2 sm:gap-3">
                             <div className="space-y-1">
                               <label className="text-xs font-bold text-slate-500">أقل كمية إضافية</label>
                               <input
@@ -2098,7 +2098,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                               </div>
                               {!!addon.quantityRule?.enabled && (
                                 <div className="space-y-3">
-                                  <div className="grid grid-cols-2 gap-2">
+                                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                     <div className="space-y-1">
                                       <label className="text-[10px] font-bold text-slate-500">تظهر من كمية</label>
                                       <input

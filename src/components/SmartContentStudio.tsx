@@ -2039,7 +2039,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   ];
   const ideaFastSteps = [
     { n: 1, t: 'مقاس' },
-    { n: 2, t: 'المشهد والفكرة' },
+    { n: 2, t: 'فكرة' },
+    { n: 3, t: 'المشهد' },
     { n: 5, t: 'أدوات' },
     { n: 6, t: 'توليد' },
   ];
@@ -2130,17 +2131,17 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   };
 
   return (
-    <div className="smart-studio-shell max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500 pb-32">
+    <div className="smart-studio-shell max-w-6xl mx-auto px-3 sm:px-4 py-5 sm:py-8 animate-in fade-in duration-500 pb-32">
       
-      <div className="smart-studio-hero mb-8 rounded-[2.4rem] bg-[radial-gradient(circle_at_top_left,_#4338ca,_#0f172a_46%,_#020617)] p-6 md:p-7 shadow-2xl border border-white/10 text-white relative overflow-hidden">
+      <div className="smart-studio-hero mb-5 sm:mb-8 rounded-[2rem] sm:rounded-[2.4rem] bg-[radial-gradient(circle_at_top_left,_#4338ca,_#0f172a_46%,_#020617)] p-5 sm:p-6 md:p-7 shadow-2xl border border-white/10 text-white relative overflow-hidden">
         <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl pointer-events-none" />
         <div className="absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-cyan-300/10 blur-3xl pointer-events-none" />
         <div className="absolute inset-x-8 bottom-0 h-px bg-gradient-to-l from-transparent via-white/25 to-transparent" />
 
-        <div className="relative z-10 flex items-center justify-between gap-4">
+        <div className="relative z-10 flex items-center justify-between gap-3 sm:gap-4">
           <div className="text-right">
-            <h1 className="smart-studio-title text-3xl md:text-4xl font-black flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 border border-white/10"><Camera className="w-7 h-7 text-indigo-200" /></span>
+            <h1 className="smart-studio-title text-2xl sm:text-3xl md:text-4xl font-black flex items-center gap-3 leading-tight">
+              <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 border border-white/10"><Camera className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-200" /></span>
               استوديو التراث الذكي
             </h1>
           </div>
@@ -2160,40 +2161,81 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       </div>
 
       {studioTab === 'home' && (
-        <div className="smart-studio-home-panel max-w-5xl mx-auto rounded-[2rem] bg-white border border-slate-100 shadow-sm p-5 text-right">
-          <div className="flex items-center justify-between gap-3 mb-5">
+        <div className="smart-studio-home-panel max-w-6xl mx-auto rounded-[2.3rem] bg-white border border-slate-100 shadow-sm p-4 sm:p-6 text-right">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
             <div>
-              <p className="text-xs font-black text-indigo-500 mb-1">اختَر البداية</p>
-              <h2 className="text-2xl font-black text-slate-950">ابدأ بالصيغة المناسبة لمحتواك</h2>
+              <p className="text-xs font-black text-indigo-500 mb-1">اختَر مسار الإنتاج</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">معمارية إنتاج واضحة</h2>
+              <p className="text-xs sm:text-sm font-bold text-slate-400 mt-2 leading-6">ترتيب واضح حسب طريقة البداية: ريل، صورة، منيو، أو فكرة.</p>
             </div>
           </div>
-          <div className="smart-studio-home-grid grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setCreateSubTab('custom'); setStudioTab('create'); }} className="smart-studio-home-card rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
-              <Sparkles className="text-indigo-500 mb-3" size={26} />
-              <div className="font-black text-slate-900 text-lg">من فكرة</div>
-              <div className="text-xs font-bold text-slate-400 mt-1">اكتب وصفك، أو اختر بداية جاهزة.</div>
+
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-px flex-1 bg-slate-100" />
+            <span className="text-[11px] font-black text-slate-400">إنتاج مباشر</span>
+            <div className="h-px flex-1 bg-slate-100" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5 mb-6">
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setSelectedFormat('9:16'); setReelStep(1); setReelSource('idea'); setGeneratedReel(null); setShowReelSettings(false); setReelSubTab('generate'); setStudioTab('reel'); }} className="group rounded-[2rem] border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-5 sm:p-6 text-right transition-all hover:-translate-y-0.5 hover:shadow-lg min-h-[210px] flex flex-col justify-between overflow-hidden relative">
+              <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-violet-200/40 blur-2xl" />
+              <div className="relative flex items-center justify-between gap-3">
+                <span className="h-13 w-13 rounded-3xl bg-white border border-violet-100 shadow-sm flex items-center justify-center text-violet-600"><Film size={25} /></span>
+                <span className="rounded-full bg-violet-600 text-white px-4 py-2 text-xs font-black shadow-sm">فيديو / ريل</span>
+              </div>
+              <div className="relative mt-7">
+                <div className="text-2xl font-black text-slate-950 leading-tight">ريل مباشر</div>
+                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">غرفة مونتاج سريعة: فكرة أو صورة، لقطة، مدة، ثم توليد.</div>
+              </div>
             </button>
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setProductStep(1); setMaxProductStepReached(1); setStudioTab('product'); }} className="smart-studio-home-card rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all">
-              <Camera className="text-indigo-500 mb-3" size={26} />
-              <div className="font-black text-slate-900 text-lg">من صورة</div>
-              <div className="text-xs font-bold text-slate-400 mt-1">ارفع صورة المنتج ونرتّبها بواقعية أعلى.</div>
+
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setProductStep(1); setMaxProductStepReached(1); setStudioTab('product'); }} className="group rounded-[2rem] border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-slate-50 p-5 sm:p-6 text-right transition-all hover:-translate-y-0.5 hover:shadow-lg min-h-[210px] flex flex-col justify-between overflow-hidden relative">
+              <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-indigo-200/40 blur-2xl" />
+              <div className="relative flex items-center justify-between gap-3">
+                <span className="h-13 w-13 rounded-3xl bg-white border border-indigo-100 shadow-sm flex items-center justify-center text-indigo-600"><Camera size={25} /></span>
+                <span className="rounded-full bg-indigo-600 text-white px-4 py-2 text-xs font-black shadow-sm">من صورة جاهزة</span>
+              </div>
+              <div className="relative mt-7">
+                <div className="text-2xl font-black text-slate-950 leading-tight">من صورة</div>
+                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">الصورة هي البطل: ارفعها، اضبط المقاس، ثم عاين النتيجة.</div>
+              </div>
             </button>
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setSelectedFormat('9:16'); setReelStep(1); setReelSource('idea'); setGeneratedReel(null); setShowReelSettings(false); setReelSubTab('generate'); setStudioTab('reel'); }} className="smart-studio-home-card rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
-              <Film className="text-violet-600 mb-3" size={26} />
-              <div className="font-black text-slate-900 text-lg">ريل مباشر</div>
-              <div className="text-xs font-bold text-slate-400 mt-1">فيديو واقعي 4–8 ثواني جاهز لريلز.</div>
+          </div>
+
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-px flex-1 bg-slate-100" />
+            <span className="text-[11px] font-black text-slate-400">إنتاج من مصدر</span>
+            <div className="h-px flex-1 bg-slate-100" />
+          </div>
+
+          <div className="smart-studio-home-grid grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 auto-rows-fr">
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setMenuOutputType('image'); setStudioTab('storyboard'); }} className="smart-studio-home-card rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden min-h-[150px] flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-3">
+                <Layout className="text-emerald-600" size={25} />
+                <span className="rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-[10px] font-black">من وجبة</span>
+              </div>
+              <div>
+                <div className="font-black text-slate-900 text-lg">من المنيو</div>
+                <div className="text-xs font-bold text-slate-400 mt-1 leading-5">كتالوج إنتاج: اختر الوجبة ثم حدد صورة أو ريل.</div>
+              </div>
             </button>
-            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setMenuOutputType('image'); setStudioTab('storyboard'); }} className="smart-studio-home-card rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white hover:bg-white p-5 text-right transition-all relative overflow-hidden">
-              <Layout className="text-emerald-600 mb-3" size={26} />
-              <div className="font-black text-slate-900 text-lg">من المنيو</div>
-              <div className="text-xs font-bold text-slate-400 mt-1">اختر وجبة جاهزة، ثم جهّزها لصورة أو ريل.</div>
+
+            <button onClick={() => { closeOpenPanels(); resetGeneratedOutput(); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setCreateStep(1); setMaxCreateStepReached(1); setCreateSubTab('custom'); setStudioTab('create'); }} className="smart-studio-home-card rounded-3xl border border-slate-100 bg-slate-50 hover:bg-white p-5 text-right transition-all min-h-[150px] flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-3">
+                <ImageIcon className="text-indigo-500" size={25} />
+                <span className="rounded-full bg-white border border-slate-100 text-slate-500 px-3 py-1 text-[10px] font-black">بدون صورة</span>
+              </div>
+              <div>
+                <div className="font-black text-slate-900 text-lg">صورة من فكرة</div>
+                <div className="text-xs font-bold text-slate-400 mt-1 leading-5">لوحة إبداع هادئة عندما تبدأ من وصف فقط.</div>
+              </div>
             </button>
           </div>
         </div>
       )}
 
       {studioTab === 'library' && (
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 text-right">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 sm:p-6 text-right">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 gap-4">
             <div className="min-w-0">
               <h2 className="text-xl font-black text-slate-900 flex items-center gap-2"><Library size={20} className="text-indigo-500 shrink-0" /> الأرشيف</h2>
@@ -2208,7 +2250,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
           {(() => {
             if (archiveTab === 'reel') {
               return reelHistory.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                   {reelHistory.map((item, idx) => (
                     <button key={idx} onClick={() => { setGeneratedReel(item.url); setReelDuration(item.duration); setReelShot(item.shot); setReelSource(item.source); if (item.idea) setCustomThemeQuery(item.idea); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); setShowReelSettings(true); setStudioTab('reel'); }} className="group rounded-3xl overflow-hidden border border-slate-100 bg-slate-950 shadow-sm hover:shadow-md transition-all text-right">
                       {item.url?.startsWith('data:image') ? <img src={item.url} className="w-full aspect-[9/16] object-cover bg-black" alt="ريل موشن" /> : <video src={item.url} className="w-full aspect-[9/16] object-cover bg-black" muted playsInline />}
@@ -2221,7 +2263,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             const allItems = history.filter(item => item.url);
             const items = allItems.filter((item) => archiveTab === 'idea' ? item.source !== 'image' : item.source === 'image');
             return items.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                 {items.map((item, idx) => (
                   <button key={idx} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); setAiCaption(item.caption); if (item.format) setSelectedFormat(item.format); if (item.mode) setRealityMode(item.mode); if (item.background) setBackgroundPreset(item.background); if (item.packId) setSelectedPulseId(item.packId); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); if (item.customIdea) { setCustomThemeQuery(item.customIdea); setSelectedTheme('مخصص'); } setShowImageSettings(true); setStudioTab(archiveTab === 'image' ? 'product' : 'create'); }} className="group rounded-3xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm hover:shadow-md transition-all text-right">
                     <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
@@ -2240,17 +2282,22 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
 
       {studioTab === 'reel' && (
-        <div className="studio-workbench-grid grid lg:grid-cols-[390px_minmax(0,1fr)] gap-6 items-start">
-          <div className="studio-control-card rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 text-right">
+        <div className="studio-workbench-grid grid xl:grid-cols-[420px_minmax(0,1fr)] gap-4 sm:gap-6 items-start">
+          <div className="studio-control-card rounded-[2rem] border border-slate-100 bg-white shadow-sm p-4 sm:p-5 text-right">
             <div className="mb-5">
               <p className="text-xs font-black text-violet-500 mb-1">ريل قصير</p>
-              <h2 className="text-2xl font-black text-slate-950">فيديو واقعي جاهز للنشر</h2>
-              <p className="text-sm font-bold text-slate-500 mt-2 leading-7">4–8 ثواني، عمودي، حركة بسيطة، وواقعية نظيفة لمشروعك.</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">ريل مباشر — غرفة مونتاج مصغّرة</h2>
+              <p className="text-sm font-bold text-slate-500 mt-2 leading-7">ابدأ من فكرة أو صورة، ثم اختر اللقطة والمدة داخل مسار واضح.</p>
             </div>
 
-            <div className="mb-5 rounded-2xl border border-violet-100 bg-violet-50/50 p-3 text-right">
-              <div className="text-xs font-black text-violet-700">ريل مباشر</div>
-              <div className="text-[11px] font-bold text-violet-900/70 mt-1">اختيار الوجبة من المنيو أصبح في مسار مستقل: من المنيو.</div>
+            <div className="mb-5 rounded-[1.6rem] border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-3 text-right shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-xs font-black text-violet-700">ريل مباشر</div>
+                  <div className="text-[11px] font-bold text-violet-900/70 mt-1">المسار مرتب كعملية فيديو: مصدر → لقطة → مدة → توليد.</div>
+                </div>
+                <div className="hidden sm:flex items-center gap-1 text-[10px] font-black text-violet-500"><span className="rounded-xl bg-white border border-violet-100 px-2 py-1">مصدر</span><span className="rounded-xl bg-white border border-violet-100 px-2 py-1">لقطة</span><span className="rounded-xl bg-white border border-violet-100 px-2 py-1">مدة</span></div>
+              </div>
             </div>
 
             {false ? (
@@ -2449,10 +2496,10 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             </>)}
           </div>
 
-          <div className="studio-preview-card rounded-[2.2rem] bg-slate-950 p-3 shadow-2xl border border-slate-900 min-h-[620px] flex items-center justify-center relative overflow-hidden studio-preview-stage">
+          <div className="studio-preview-card rounded-[2rem] sm:rounded-[2.2rem] bg-slate-950 p-3 sm:p-5 shadow-2xl border border-slate-900 min-h-[460px] sm:min-h-[640px] flex items-center justify-center relative overflow-hidden studio-preview-stage">
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
             {renderProductionDesk('reel')}
-            {!generatedReel && !isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-5xl shadow-2xl"><Film size={46} /></div><h3 className="text-3xl font-black mb-3">معاينة الريل تظهر هنا</h3><p className="text-sm font-bold text-white/55 leading-7">ريل عمودي واقعي · {reelDuration} ثواني</p></div>}
+            {!generatedReel && !isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-5xl shadow-2xl"><Film size={46} /></div><h3 className="text-3xl font-black mb-3">معاينة الريل تظهر هنا</h3><p className="text-sm font-bold text-white/55 leading-7">إطار 9:16 · ريل عمودي واقعي · {reelDuration} ثواني</p></div>}
             {isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نولّد ريل واقعي...</p><p className="mt-3 text-xs font-bold text-white/45">نثبت الطعام ونحرك الكاميرا فقط</p></div>}
             {generatedReel && !isGeneratingReel && <div className="relative z-10 w-full max-w-[380px] space-y-4"><button type="button" onClick={() => setShowReelSettings((v) => !v)} className="w-full aspect-[9/16] rounded-[1.8rem] overflow-hidden bg-black border border-white/10 shadow-2xl relative group">{generatedReel.startsWith('data:image') ? <img src={generatedReel} className="w-full h-full object-contain bg-black" alt="ريل موشن" /> : <video src={generatedReel} className="w-full h-full object-contain bg-black" controls playsInline />}</button>{renderQualityAuditCard('reel')}{showReelSettings && <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white"><div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3"><div><p className="text-xs font-black text-white/75">إعدادات هذا الريل</p><p className="text-[11px] font-bold text-white/45 mt-1">انسخها وكرر نفس الحركة لاحقاً.</p></div><button type="button" onClick={() => copyReelSettings()} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-xs font-black flex items-center gap-1"><Copy size={14} /> نسخ</button></div><pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans max-h-48 overflow-y-auto break-words">{buildReelSettingsText()}</pre></div>}<div className="flex items-center justify-center gap-2"><button onClick={downloadReel} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-violet-500 text-white flex items-center justify-center"><Download size={18} /></button><button type="button" onClick={() => copyReelSettings()} title="نسخ الإعدادات" aria-label="نسخ الإعدادات" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Copy size={18} /></button><button type="button" onClick={() => { setGeneratedReel(null); setReelStep(4); }} title="إعادة بنفس الأسلوب" aria-label="إعادة بنفس الأسلوب" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><RotateCcw size={18} /></button></div></div>}
           </div>
@@ -2460,18 +2507,18 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       )}
 
       {(studioTab === 'create' || studioTab === 'quick' || studioTab === 'whatsapp' || studioTab === 'occasions') && (
-        <div className="studio-workbench-grid grid lg:grid-cols-[390px_minmax(0,1fr)] gap-6 items-start">
-          <div className="studio-control-card rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 text-right">
+        <div className="studio-workbench-grid grid xl:grid-cols-[420px_minmax(0,1fr)] gap-4 sm:gap-6 items-start">
+          <div className="studio-control-card rounded-[2rem] border border-slate-100 bg-white shadow-sm p-4 sm:p-5 text-right">
             <div className="flex items-start justify-between gap-4 mb-5">
               <div>
                 <p className="text-xs font-black text-indigo-500 mb-1">من فكرة</p>
-                <h2 className="text-2xl font-black text-slate-900">صورة من فكرة</h2>
-              <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختر المقاس المناسب، ثم اكتب فكرتك أو خلّ استوديو التراث الذكي يقترح لك المسار.</p>
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">صورة من فكرة</h2>
+              <p className="text-sm font-bold text-slate-500 mt-2 leading-7">لوحة تصميم هادئة: مقاس، فكرة، مشهد، ثم توليد بدون زحمة.</p>
               </div>
             </div>
 
             {/* Sub Tab Switching Inside the Left Configuration Column */}
-            <div className="flex gap-1 bg-slate-50 border border-slate-100 p-1 rounded-2xl mb-5">
+            <div className="flex gap-1 bg-slate-50 border border-slate-100 p-1 rounded-[1.4rem] mb-5 shadow-inner">
               <button
                 type="button"
                 onClick={() => setCreateSubTab('custom')}
@@ -2631,7 +2678,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <button type="button" className={cn("rounded-2xl border p-3 text-xs font-black transition-all", customThemeQuery.trim() ? "bg-slate-950 text-white border-slate-950" : "bg-white text-slate-500 border-slate-100")}>اكتب فكرة</button>
                     <button type="button" onClick={() => { setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); }} className={cn("rounded-2xl border p-3 text-xs font-black transition-all", !customThemeQuery.trim() ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-slate-500 border-slate-100")}>اختيارات جاهزة</button>
                   </div>
-                  <input type="text" placeholder="اكتب وصف الصورة المطلوبة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-indigo-500" />
+                  <input type="text" placeholder="اكتب فكرة الصورة المطلوبة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-5 min-h-[74px] rounded-[1.4rem] border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-indigo-500 shadow-sm" />
                   <p className="text-[11px] font-bold text-slate-400">اكتب وصفك ونختصر لك الطريق، أو اتركها فارغة للاقتراحات الجاهزة.</p>
                 </div>
                 {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">اعتمدنا الفكرة. التالي يفتح لك المشهد والبيئة.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تبي اختيارات جاهزة؟ التالي يفتح لك المشهد والبيئة.</div>}
@@ -2755,7 +2802,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             </>)}
           </div>
 
-          <div className="studio-preview-card rounded-[2.2rem] bg-slate-950 p-3 sm:p-4 shadow-2xl border border-slate-900 min-h-[420px] sm:min-h-[560px] flex items-center justify-center relative overflow-hidden studio-preview-stage">
+          <div className="studio-preview-card rounded-[2.2rem] bg-slate-950 p-3 sm:p-5 shadow-2xl border border-slate-900 min-h-[440px] sm:min-h-[590px] flex items-center justify-center relative overflow-hidden studio-preview-stage">
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
             {renderProductionDesk('image')}
             {!generatedImage && !isGenerating && (
@@ -2810,21 +2857,21 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       )}
 
       {studioTab === 'product' && (
-        <div className="studio-workbench-grid grid lg:grid-cols-[390px_minmax(0,1fr)] gap-6 items-start">
+        <div className="studio-workbench-grid grid xl:grid-cols-[420px_minmax(0,1fr)] gap-4 sm:gap-6 items-start">
           <input type="file" ref={productImageInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-          <div className="studio-control-card rounded-[2rem] border border-slate-100 bg-white shadow-sm p-5 text-right">
+          <div className="studio-control-card rounded-[2rem] border border-slate-100 bg-white shadow-sm p-4 sm:p-5 text-right">
             {!originalImage ? (
               <div className="space-y-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-black text-indigo-500 mb-1">من صورة</p>
-                    <h2 className="text-2xl font-black text-slate-950">ارفع صورة المنتج</h2>
-                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">بعد الرفع نمر بخطوات قصيرة وواضحة قبل التوليد.</p>
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">ارفع صورة المنتج</h2>
+                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">ابدأ من الصورة نفسها؛ بعدها تظهر الخطوات القصيرة حولها.</p>
                   </div>
                 </div>
-                <div onClick={() => productImageInputRef.current?.click()} className="w-full h-80 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-gradient-to-br from-indigo-50 to-white rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition-all group shadow-inner">
-                  <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center mb-6 group-hover:scale-110 shadow-sm transition-transform"><Camera className="w-10 h-10 text-indigo-600" /></div>
-                  <h3 className="text-2xl font-black text-slate-900 mb-2">ارفع صورة المنتج</h3>
+                <div onClick={() => productImageInputRef.current?.click()} className="w-full h-72 sm:h-96 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-gradient-to-br from-indigo-50 via-white to-white rounded-[2.2rem] flex flex-col items-center justify-center cursor-pointer transition-all group shadow-inner">
+                  <div className="w-24 h-24 rounded-[2rem] bg-indigo-100 flex items-center justify-center mb-6 group-hover:scale-110 shadow-sm transition-transform"><Camera className="w-10 h-10 text-indigo-600" /></div>
+                  <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">ارفع صورة المنتج</h3>
                   <p className="text-slate-500 text-sm font-bold">JPG / PNG</p>
                 </div>
               </div>
@@ -2833,8 +2880,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 <div className="flex items-start justify-between gap-4 mb-1">
                   <div>
                     <p className="text-xs font-black text-indigo-500 mb-1">من صورة</p>
-                    <h2 className="text-2xl font-black text-slate-950">تحسين صورة المنتج</h2>
-                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">كل خطوة فيها قرار واحد فقط.</p>
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">تحسين صورة المنتج</h2>
+                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">الصورة في المركز، وكل خطوة قرار بصري واحد فقط.</p>
                   </div>
                 </div>
 
@@ -3134,13 +3181,13 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       )}
 
       {studioTab === 'storyboard' && (
-        <div className="max-w-5xl mx-auto space-y-6 text-right animate-in fade-in duration-300">
-          <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="max-w-6xl mx-auto space-y-6 text-right animate-in fade-in duration-300">
+          <div className="rounded-[2.2rem] border border-slate-100 bg-white p-5 sm:p-6 shadow-sm">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
               <div>
                 <span className="text-xs font-black text-emerald-500 block mb-1">من المنيو</span>
                 <h2 className="text-2xl font-black text-slate-955">اختر وجبة، ثم افتح الصورة أو الريل</h2>
-                <p className="text-sm font-bold text-slate-500 mt-2 leading-7">نفس منطق الاستوديو بالكامل، لكن البداية هنا من منتجاتك الجاهزة داخل المنيو.</p>
+                <p className="text-sm font-bold text-slate-500 mt-2 leading-7">مسار كتالوج بصري يبدأ من المنيو وينتهي بصورة أو ريل.</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -3155,7 +3202,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       setSelectedStudioProductId(String(prod.id));
                     }
                   }}
-                  className="rounded-2xl border border-slate-100 bg-slate-50 p-2.5 text-xs font-black text-slate-700 focus:outline-none focus:border-emerald-400 text-right"
+                  className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3 text-xs font-black text-slate-700 focus:outline-none focus:border-emerald-400 text-right min-w-[220px]"
                 >
                   <option value="">اختر وجبة من المنيو</option>
                   {data?.products?.map((p: any) => (
@@ -3163,6 +3210,12 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div className="mb-4 rounded-[1.6rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm">
+              <div className="text-[11px] font-black text-emerald-600 mb-1">الوجبة المختارة</div>
+              <div className="text-lg font-black text-slate-950 leading-7">{selectedStudioProductName || customThemeQuery || 'اختر وجبة من المنيو'}</div>
+              <div className="mt-2 text-[11px] font-bold text-slate-500">بعد اختيار الوجبة حدد نوع المخرج: صورة أو ريل.</div>
             </div>
 
             <div className="mb-6">
@@ -3176,7 +3229,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               />
             </div>
 
-            <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-5 items-start">
+            <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-5 items-start">
               <div className="space-y-4">
                 {renderAlturathBrainCard(menuOutputType === 'reel' ? 'reel' : 'image')}
 
@@ -3191,7 +3244,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                         className="w-full flex items-center justify-between gap-3 p-4 text-right hover:bg-slate-50 transition-colors"
                       >
                         <div>
-                          <h3 className="text-sm font-black text-slate-900">وصفة التنفيذ السريع</h3>
+                          <h3 className="text-sm font-black text-slate-900">خريطة التنفيذ السريع</h3>
                           <p className="text-[11px] font-bold text-slate-400 mt-1">مستخرجة تلقائياً من اختيارك في المنيو.</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
