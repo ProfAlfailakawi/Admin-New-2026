@@ -382,6 +382,22 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     inferStudioChoicesFromText(value);
   };
 
+  const resetStudioSourceDraft = (options?: { clearImage?: boolean }) => {
+    resetGeneratedOutput();
+    setCustomThemeQuery('');
+    setSelectedTheme('نبض الكويت');
+    setSelectedStudioProductId('');
+    setSelectedStudioCategoryId('');
+    setStudioProductPickMode('smart');
+    setShowStudioProductPicker(false);
+    if (options?.clearImage) {
+      setSelectedImage(null);
+      setOriginalImage(null);
+      setCompressedImage(null);
+      setCompressionStats(null);
+    }
+  };
+
   const FORBIDDEN_STUDIO_WORDS = ['دلة', 'دلال', 'مبخر', 'مباخر', 'بخور', 'عود', 'سدو', 'فانوس', 'فوانيس', 'قهوة', 'قهوت', 'بن', 'فنجان', 'فناجين', 'كلينكس', 'منديل مستخدم', 'مناديل مستخدمة', 'منديل وصخ', 'مناديل وصخة', 'مخلفات'];
   const sanitizeStudioPrompt = (value: string) =>
     FORBIDDEN_STUDIO_WORDS.reduce((text, word) => text.replace(new RegExp(word, 'g'), ''), String(value || ''))
@@ -1639,7 +1655,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     const shouldShowImageProductLink = false;
     const shouldShowProductPicker = studioProductGroups.length > 0 && !hasImageSource;
 
-    if (!brain.hasInput && !hasImageSource && productSuggestions.length === 0) return null;
+    if (!brain.hasInput && !hasImageSource && productSuggestions.length === 0 && studioProductGroups.length === 0) return null;
 
     return (
       <div className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 text-right shadow-sm space-y-3">
@@ -1673,7 +1689,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         {shouldShowImageProductLink && (
           <button
             type="button"
-            onClick={() => { setStudioProductPickMode('manual'); setShowStudioProductPicker(true); }}
+            onClick={() => { setStudioProductPickMode('manual'); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setShowStudioProductPicker(true); }}
             className="w-full rounded-2xl border border-slate-100 bg-white px-4 py-3 text-right text-xs font-black text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-3"
           >
             <span>ربط بمنتج</span>
@@ -1710,7 +1726,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <div className="border-t border-slate-100 p-3 space-y-3">
                 <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-1 border border-slate-100">
                   <button type="button" onClick={() => { setStudioProductPickMode('smart'); setSelectedStudioProductId(''); }} className={cn("rounded-xl px-3 py-2 text-[11px] font-black transition-all", studioProductPickMode === 'smart' ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>ذكي تلقائي</button>
-                  <button type="button" onClick={() => setStudioProductPickMode('manual')} className={cn("rounded-xl px-3 py-2 text-[11px] font-black transition-all", studioProductPickMode === 'manual' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>أختار بنفسي</button>
+                  <button type="button" onClick={() => { setStudioProductPickMode('manual'); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); }} className={cn("rounded-xl px-3 py-2 text-[11px] font-black transition-all", studioProductPickMode === 'manual' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>أختار بنفسي</button>
                 </div>
 
                 {studioProductPickMode === 'smart' ? (
@@ -1729,7 +1745,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                         const name = getAlturathProductName(product);
                         const isSelected = String(selectedStudioProductId) === String(product.id);
                         return (
-                          <button key={product.id || name} type="button" onClick={() => { setSelectedStudioProductId(String(product.id || '')); setShowStudioProductPicker(false); }} className={cn("rounded-2xl border p-3 text-right transition-all", isSelected ? "bg-emerald-50 border-emerald-400 ring-4 ring-emerald-500/10" : "bg-slate-50 border-slate-100 hover:bg-white hover:border-emerald-200")}>
+                          <button key={product.id || name} type="button" onClick={() => { setSelectedStudioProductId(String(product.id || '')); setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); setShowStudioProductPicker(false); }} className={cn("rounded-2xl border p-3 text-right transition-all", isSelected ? "bg-emerald-50 border-emerald-400 ring-4 ring-emerald-500/10" : "bg-slate-50 border-slate-100 hover:bg-white hover:border-emerald-200")}>
                             <div className="text-xs font-black text-slate-950 truncate">{name}</div>
                             <div className="text-[10px] font-bold text-slate-400 mt-1">ضمن {studioProductGroups.find(g => g.id === activeStudioCategoryId)?.label || 'قائمة مطبخك'}</div>
                           </button>
@@ -2069,9 +2085,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   const startFastIdeaPath = () => {
     closeOpenPanels();
     resetGeneratedOutput();
+    resetStudioSourceDraft({ clearImage: true });
     setSelectedFormat('9:16');
     setSelectedTheme('نبض الكويت');
-    setCustomThemeQuery('');
     setCreateSubTab('custom');
     setMaxCreateStepReached(2);
     setCreateStep(2);
@@ -2081,6 +2097,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   const startFastReelPath = () => {
     closeOpenPanels();
     resetGeneratedOutput();
+    resetStudioSourceDraft({ clearImage: true });
     setSelectedFormat('9:16');
     setReelSource('idea');
     setReelDirectSource('idea');
@@ -2094,14 +2111,11 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   const openReelDirect = () => {
     closeOpenPanels();
     resetGeneratedOutput();
+    resetStudioSourceDraft({ clearImage: true });
     setSelectedFormat('9:16');
     setReelStep(1);
     setReelSource('idea');
     setReelDirectSource('idea');
-    setSelectedImage(null);
-    setOriginalImage(null);
-    setCompressedImage(null);
-    setCompressionStats(null);
     setGeneratedReel(null);
     setShowReelSettings(false);
     setReelSubTab('generate');
@@ -2111,19 +2125,16 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   const openImageDirect = () => {
     closeOpenPanels();
     resetGeneratedOutput();
+    resetStudioSourceDraft({ clearImage: true });
     setImageDirectSource('image');
-    setSelectedImage(null);
-    setOriginalImage(null);
-    setCompressedImage(null);
-    setCompressionStats(null);
     setProductStep(1);
     setMaxProductStepReached(1);
     setStudioTab('product');
   };
 
   const openImageIdeaDirect = () => {
-    if (!customThemeQuery.trim()) {
-      toast.error('اكتب فكرة الصورة أولاً');
+    if (!customThemeQuery.trim() && !selectedStudioProductName) {
+      toast.error('اكتب فكرة أو اختر منتجًا أولاً');
       return;
     }
     closeOpenPanels();
@@ -2140,7 +2151,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   const openMenuGenerator = (target: 'image' | 'reel') => {
     const currentName = selectedStudioProductName || customThemeQuery.trim();
     if (!currentName) {
-      toast.error('اختر وجبة من المنيو أولاً');
+      toast.error('اختر منتجًا أولاً');
       return;
     }
     closeOpenPanels();
@@ -2235,7 +2246,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             <div>
               <p className="text-xs font-black text-indigo-500 mb-1">اختَر مسار الإنتاج</p>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">ابدأ بالناتج، والباقي داخل المسار</h2>
-              <p className="text-xs sm:text-sm font-bold text-slate-400 mt-2 leading-6">مساران فقط: ريل مباشر أو صورة مباشرة. داخل كل مسار تختار: من فكرة، من صورة، أو من المنيو.</p>
+              <p className="text-xs sm:text-sm font-bold text-slate-400 mt-2 leading-6">مساران فقط: ريل مباشر أو صورة مباشرة. الريل يبدأ من صورة أو فكرة، والصورة تبدأ من صورة أو فكرة مع اختيار ذكي من المنيو عند الحاجة.</p>
             </div>
           </div>
 
@@ -2254,11 +2265,10 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               </div>
               <div className="relative mt-7">
                 <div className="text-2xl font-black text-slate-950 leading-tight">ريل مباشر</div>
-                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">غرفة مونتاج واحدة: من فكرة، من صورة، أو من المنيو. بعدها لقطة، مدة، وتوليد.</div>
-                <div className="mt-5 grid grid-cols-3 gap-2 text-center text-[10px] font-black">
+                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">غرفة مونتاج واحدة: من صورة أو من فكرة. بعدها لقطة، مدة، وتوليد.</div>
+                <div className="mt-5 grid grid-cols-2 gap-2 text-center text-[10px] font-black">
                   <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">فكرة</span>
                   <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">صورة</span>
-                  <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">منيو</span>
                 </div>
               </div>
             </button>
@@ -2271,11 +2281,10 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               </div>
               <div className="relative mt-7">
                 <div className="text-2xl font-black text-slate-950 leading-tight">صورة مباشرة</div>
-                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">استوديو صورة واحد: ارفع صورة، اكتب فكرة، أو اختر من المنيو ثم ولّد صورة جاهزة للنشر.</div>
-                <div className="mt-5 grid grid-cols-3 gap-2 text-center text-[10px] font-black">
+                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">استوديو صورة واحد: ارفع صورة أو اكتب فكرة، والاختيار الذكي يساعدك من المنيو بدون مسار مكرر.</div>
+                <div className="mt-5 grid grid-cols-2 gap-2 text-center text-[10px] font-black">
                   <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">صورة</span>
                   <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">فكرة</span>
-                  <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">منيو</span>
                 </div>
               </div>
             </button>
@@ -2478,15 +2487,13 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
                 {reelStep === 1 && (
               <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => {
+                      resetStudioSourceDraft({ clearImage: true });
                       setReelDirectSource('idea');
                       setReelSource('idea');
-                      setSelectedImage(null);
-                      setOriginalImage(null);
-                      setCompressedImage(null);
                     }}
                     className={cn("rounded-2xl border p-3 text-right transition-all", reelDirectSource === 'idea' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
                   >
@@ -2497,6 +2504,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   <button
                     type="button"
                     onClick={() => {
+                      resetStudioSourceDraft({ clearImage: true });
                       setReelDirectSource('image');
                       setReelSource('image');
                     }}
@@ -2506,46 +2514,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <span className="block text-sm font-black">من صورة</span>
                     <span className="block text-[10px] font-bold mt-1 opacity-70">طبق جاهز</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setReelDirectSource('menu');
-                      setReelSource('idea');
-                      setSelectedImage(null);
-                      setOriginalImage(null);
-                      setCompressedImage(null);
-                    }}
-                    className={cn("rounded-2xl border p-3 text-right transition-all", reelDirectSource === 'menu' ? "bg-violet-600 text-white border-violet-600 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
-                  >
-                    <Layout size={18} className="mb-2" />
-                    <span className="block text-sm font-black">من المنيو</span>
-                    <span className="block text-[10px] font-bold mt-1 opacity-70">اختيار ذكي</span>
-                  </button>
                 </div>
-                {reelDirectSource === 'idea' && (
+                {reelDirectSource === 'idea' && studioProductPickMode !== 'manual' && (
                   <input type="text" placeholder="مثال: لقطة مجبوس حار يفتح الشهية لريلز إنستغرام..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-violet-500 transition-all duration-300 animate-in fade-in" />
-                )}
-                {reelDirectSource === 'menu' && (
-                  <div className="rounded-3xl border border-violet-100 bg-violet-50/60 p-3 space-y-3">
-                    <div>
-                      <div className="text-xs font-black text-violet-700">اختر وجبة من المنيو</div>
-                      <div className="text-[11px] font-bold text-violet-900/60 mt-1">نجهز اسم المنتج والمشهد واللقطة، ثم تكمل نفس مسار الريل.</div>
-                    </div>
-                    <select
-                      value={selectedStudioProductId}
-                      onChange={(e) => {
-                        setSelectedStudioProductId(e.target.value);
-                        const prod = data?.products?.find((p: any) => String(p.id) === String(e.target.value));
-                        if (prod) handleStudioIdeaChange(getAlturathProductName(prod));
-                      }}
-                      className="w-full rounded-2xl border border-violet-100 bg-white p-3 text-xs font-black text-slate-700 focus:outline-none focus:border-violet-400 text-right"
-                    >
-                      <option value="">اختر وجبة من المنيو</option>
-                      {data?.products?.map((p: any) => (
-                        <option key={p.id} value={p.id}>{getAlturathProductName(p)}</option>
-                      ))}
-                    </select>
-                  </div>
                 )}
                 {reelDirectSource !== 'image' && renderAlturathBrainCard('reel')}
                 {reelDirectSource === 'image' && (
@@ -2789,7 +2760,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <button type="button" className={cn("rounded-2xl border p-3 text-xs font-black transition-all", customThemeQuery.trim() ? "bg-slate-950 text-white border-slate-950" : "bg-white text-slate-500 border-slate-100")}>اكتب فكرة</button>
                     <button type="button" onClick={() => { setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); }} className={cn("rounded-2xl border p-3 text-xs font-black transition-all", !customThemeQuery.trim() ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-slate-500 border-slate-100")}>اختيارات جاهزة</button>
                   </div>
-                  <input type="text" placeholder="اكتب فكرة الصورة المطلوبة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-5 min-h-[74px] rounded-[1.4rem] border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-indigo-500 shadow-sm" />
+                  {studioProductPickMode !== 'manual' && (
+                    <input type="text" placeholder="اكتب فكرة الصورة المطلوبة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-5 min-h-[74px] rounded-[1.4rem] border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-indigo-500 shadow-sm" />
+                  )}
                   <p className="text-[11px] font-bold text-slate-400">اكتب وصفك ونختصر لك الطريق، أو اتركها فارغة للاقتراحات الجاهزة.</p>
                 </div>
                 {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">اعتمدنا الفكرة. التالي يفتح لك المشهد والبيئة.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تبي اختيارات جاهزة؟ التالي يفتح لك المشهد والبيئة.</div>}
@@ -2977,13 +2950,16 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   <div>
                     <p className="text-xs font-black text-indigo-500 mb-1">صورة مباشرة</p>
                     <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">اختر مصدر الصورة</h2>
-                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">ابدأ من صورة جاهزة، فكرة، أو وجبة من المنيو. كلها داخل نفس مسار الصورة.</p>
+                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">ابدأ من صورة جاهزة أو فكرة. اختيار المنيو صار داخل الاختيار الذكي بدون تكرار.</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setImageDirectSource('image')}
+                    onClick={() => {
+                      resetStudioSourceDraft({ clearImage: true });
+                      setImageDirectSource('image');
+                    }}
                     className={cn("rounded-2xl border p-3 text-right transition-all", imageDirectSource === 'image' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
                   >
                     <Camera size={18} className="mb-2" />
@@ -2992,21 +2968,15 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   </button>
                   <button
                     type="button"
-                    onClick={() => setImageDirectSource('idea')}
+                    onClick={() => {
+                      resetStudioSourceDraft({ clearImage: true });
+                      setImageDirectSource('idea');
+                    }}
                     className={cn("rounded-2xl border p-3 text-right transition-all", imageDirectSource === 'idea' ? "bg-indigo-600 text-white border-indigo-600 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
                   >
                     <Sparkles size={18} className="mb-2" />
                     <span className="block text-sm font-black">من فكرة</span>
                     <span className="block text-[10px] font-bold mt-1 opacity-70">وصف فقط</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImageDirectSource('menu')}
-                    className={cn("rounded-2xl border p-3 text-right transition-all", imageDirectSource === 'menu' ? "bg-emerald-600 text-white border-emerald-600 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
-                  >
-                    <Layout size={18} className="mb-2" />
-                    <span className="block text-sm font-black">من المنيو</span>
-                    <span className="block text-[10px] font-bold mt-1 opacity-70">وجبة جاهزة</span>
                   </button>
                 </div>
                 {imageDirectSource === 'image' && (
@@ -3022,35 +2992,11 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       <div className="text-xs font-black text-indigo-700">صورة من فكرة</div>
                       <div className="text-[11px] font-bold text-indigo-900/60 mt-1">تكتب الفكرة، ثم نفتح لك نفس لوحة الصورة بخطوة التوليد.</div>
                     </div>
-                    <input type="text" placeholder="مثال: صورة مجبوس دجاج للبيت بإضاءة دافئة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-indigo-100 bg-white text-sm text-right focus:outline-none focus:border-indigo-500" />
+                    {studioProductPickMode !== 'manual' && (
+                      <input type="text" placeholder="مثال: صورة مجبوس دجاج للبيت بإضاءة دافئة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-indigo-100 bg-white text-sm text-right focus:outline-none focus:border-indigo-500" />
+                    )}
                     {renderAlturathBrainCard('image')}
                     <button type="button" onClick={openImageIdeaDirect} className="w-full p-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-lg flex items-center justify-center gap-2">
-                      <Sparkles size={18} /> فتح توليد الصورة
-                    </button>
-                  </div>
-                )}
-                {imageDirectSource === 'menu' && (
-                  <div className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 space-y-3">
-                    <div>
-                      <div className="text-xs font-black text-emerald-700">صورة من المنيو</div>
-                      <div className="text-[11px] font-bold text-emerald-900/60 mt-1">اختر وجبة، ونجهزها كصورة واقعية مباشرة.</div>
-                    </div>
-                    <select
-                      value={selectedStudioProductId}
-                      onChange={(e) => {
-                        setSelectedStudioProductId(e.target.value);
-                        const prod = data?.products?.find((p: any) => String(p.id) === String(e.target.value));
-                        if (prod) handleStudioIdeaChange(getAlturathProductName(prod));
-                      }}
-                      className="w-full rounded-2xl border border-emerald-100 bg-white p-3 text-xs font-black text-slate-700 focus:outline-none focus:border-emerald-400 text-right"
-                    >
-                      <option value="">اختر وجبة من المنيو</option>
-                      {data?.products?.map((p: any) => (
-                        <option key={p.id} value={p.id}>{getAlturathProductName(p)}</option>
-                      ))}
-                    </select>
-                    {renderAlturathBrainCard('image')}
-                    <button type="button" onClick={() => openMenuGenerator('image')} className="w-full p-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg flex items-center justify-center gap-2">
                       <Sparkles size={18} /> فتح توليد الصورة
                     </button>
                   </div>
@@ -3090,7 +3036,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                         <button type="button" className={cn("rounded-2xl border p-3 text-xs font-black transition-all", customThemeQuery.trim() ? "bg-slate-950 text-white border-slate-950" : "bg-white text-slate-500 border-slate-100")}>اكتب فكرة</button>
                         <button type="button" onClick={() => { setCustomThemeQuery(''); setSelectedTheme('نبض الكويت'); }} className={cn("rounded-2xl border p-3 text-xs font-black transition-all", !customThemeQuery.trim() ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-slate-500 border-slate-100")}>اختيارات جاهزة</button>
                       </div>
-                      <input type="text" placeholder="اكتب الجو أو المطلوب للصورة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 text-sm text-right focus:outline-none border-slate-200 bg-white focus:border-indigo-500" />
+                      {studioProductPickMode !== 'manual' && (
+                        <input type="text" placeholder="اكتب الجو أو المطلوب للصورة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 text-sm text-right focus:outline-none border-slate-200 bg-white focus:border-indigo-500" />
+                      )}
                       <p className="text-[11px] font-bold text-slate-400">اكتب فكرتك وننتقل مباشرة للمسات النهائية، أو اتركها فارغة للاختيارات الجاهزة.</p>
                     </div>
                     {customThemeQuery.trim() ? <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-black text-indigo-700">اعتمدنا الفكرة. بعدها لمسات نهائية ثم التوليد.</div> : <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs font-black text-slate-500">تبي اختيارات جاهزة؟ التالي يفتح لك المشهد والبيئة.</div>}
@@ -3385,7 +3333,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   }}
                   className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3 text-xs font-black text-slate-700 focus:outline-none focus:border-emerald-400 text-right min-w-[220px]"
                 >
-                  <option value="">اختر وجبة من المنيو</option>
+                  <option value="">اختر منتجًا</option>
                   {data?.products?.map((p: any) => (
                     <option key={p.id} value={p.id}>{getAlturathProductName(p)}</option>
                   ))}
@@ -3395,7 +3343,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
             <div className="mb-4 rounded-[1.6rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm">
               <div className="text-[11px] font-black text-emerald-600 mb-1">الوجبة المختارة</div>
-              <div className="text-lg font-black text-slate-950 leading-7">{selectedStudioProductName || customThemeQuery || 'اختر وجبة من المنيو'}</div>
+              <div className="text-lg font-black text-slate-950 leading-7">{selectedStudioProductName || customThemeQuery || 'اختر منتجًا'}</div>
               <div className="mt-2 text-[11px] font-bold text-slate-500">بعد اختيار الوجبة حدد نوع المخرج: صورة أو ريل.</div>
             </div>
 
@@ -3525,7 +3473,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
                 <div className="rounded-3xl bg-slate-950 text-white p-5">
                   <div className="text-[11px] font-black text-white/45 mb-2">ملخص الاختيار</div>
-                  <div className="text-lg font-black leading-8 whitespace-normal [word-break:keep-all]">{selectedStudioProductName || customThemeQuery || 'اختر وجبة من المنيو'}</div>
+                  <div className="text-lg font-black leading-8 whitespace-normal [word-break:keep-all]">{selectedStudioProductName || customThemeQuery || 'اختر منتجًا'}</div>
                   <div className="mt-3 grid grid-cols-1 gap-2 text-xs font-black text-white/85">
                     <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المسار: {menuOutputType === 'image' ? 'صورة من المنيو' : 'ريل من المنيو'}</div>
                     <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المكان الافتراضي: {KUWAIT_PLACES.delivery.label}</div>
