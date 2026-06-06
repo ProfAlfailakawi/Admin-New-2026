@@ -112,6 +112,7 @@ type PushDeviceSnapshot = {
   userName?: string;
   userEmail?: string;
   userRole?: string;
+  userEmailMissing?: boolean;
   ownerLabel?: string;
   deviceLabel?: string;
   currentUrl?: string;
@@ -155,6 +156,9 @@ type PushEventLog = {
   token?: string;
   tokenStart?: string;
   userId?: string;
+  userName?: string;
+  userEmail?: string;
+  userRole?: string;
   deviceId?: string;
   deviceLabel?: string;
   success?: boolean;
@@ -415,7 +419,10 @@ const GeneralSettings: React.FC<Props> = ({
       type: String(event.status || event.alertType || event.type || "push"),
       token: String(event.token || event.pushToken || event.deviceToken || ""),
       tokenStart: String(event.tokenStart || event.tokenPrefix || ""),
-      userId: String(event.userId || event.recipientId || event.adminId || ""),
+      userId: String(event.userId || event.recipientId || event.adminId || event.employeeId || event.staffId || event.ownerId || ""),
+      userName: String(event.userName || event.employeeName || event.staffName || event.adminName || event.ownerName || event.displayName || ""),
+      userEmail: String(event.userEmail || event.email || event.employeeEmail || event.staffEmail || event.adminEmail || event.ownerEmail || ""),
+      userRole: String(event.userRole || event.role || event.accountType || ""),
       deviceId: String(
         event.deviceId || event.tokenId || event.pushTokenId || "",
       ),
@@ -974,6 +981,11 @@ const GeneralSettings: React.FC<Props> = ({
   const pickPushUserName = (record: any) =>
     String(
       record?.displayName ||
+        record?.username ||
+        record?.ownerName ||
+        record?.accountName ||
+        record?.createdByName ||
+        record?.registeredByName ||
         record?.userName ||
         record?.employeeName ||
         record?.staffName ||
@@ -1000,18 +1012,39 @@ const GeneralSettings: React.FC<Props> = ({
     if (!record) return;
     const id = String(
       record.uid ||
+        record.authUid ||
+        record.accountUid ||
+        record.ownerUid ||
+        record.createdByUid ||
+        record.registeredByUid ||
         record.userId ||
         record.employeeId ||
         record.staffId ||
         record.adminId ||
         record.partnerId ||
         record.localId ||
+        record.ownerId ||
+        record.accountId ||
+        record.createdBy ||
+        record.registeredBy ||
         record.id ||
         record.email ||
         "",
     ).trim();
     const email = String(
-      record.email || record.userEmail || record.employeeEmail || "",
+      record.email ||
+        record.userEmail ||
+        record.employeeEmail ||
+        record.staffEmail ||
+        record.adminEmail ||
+        record.partnerEmail ||
+        record.localEmail ||
+        record.ownerEmail ||
+        record.accountEmail ||
+        record.loginEmail ||
+        record.createdByEmail ||
+        record.registeredByEmail ||
+        "",
     ).trim();
     const phone = String(
       record.phone || record.mobile || record.userPhone || "",
@@ -1039,6 +1072,18 @@ const GeneralSettings: React.FC<Props> = ({
       record.adminId,
       record.partnerId,
       record.localId,
+      record.ownerId,
+      record.accountId,
+      record.authUid,
+      record.accountUid,
+      record.ownerUid,
+      record.createdBy,
+      record.registeredBy,
+      record.createdByEmail,
+      record.registeredByEmail,
+      record.ownerEmail,
+      record.accountEmail,
+      record.loginEmail,
       record.id,
     ]
       .map(normalizePushLookupKey)
@@ -1084,6 +1129,10 @@ const GeneralSettings: React.FC<Props> = ({
       ["locals", "local"],
       ["localUsers", "local"],
       ["accounts", "account"],
+      ["appUsers", "user"],
+      ["systemUsers", "user"],
+      ["teamMembers", "employee"],
+      ["roles", "role"],
       ["team", "team"],
       ["drivers", "driver"],
       ["workers", "employee"],
@@ -1107,6 +1156,11 @@ const GeneralSettings: React.FC<Props> = ({
       ["locals", "local"],
       ["localUsers", "local"],
       ["accounts", "account"],
+      ["appUsers", "user"],
+      ["systemUsers", "user"],
+      ["teamMembers", "employee"],
+      ["workers", "employee"],
+      ["drivers", "driver"],
     ];
     await Promise.all(
       collectionsToTry.map(async ([collectionName, role]) => {
@@ -1132,7 +1186,19 @@ const GeneralSettings: React.FC<Props> = ({
   ) => {
     const directName = pickPushUserName(item);
     const directEmail = String(
-      item?.email || item?.userEmail || item?.employeeEmail || "",
+      item?.email ||
+        item?.userEmail ||
+        item?.employeeEmail ||
+        item?.staffEmail ||
+        item?.adminEmail ||
+        item?.partnerEmail ||
+        item?.localEmail ||
+        item?.ownerEmail ||
+        item?.accountEmail ||
+        item?.loginEmail ||
+        item?.createdByEmail ||
+        item?.registeredByEmail ||
+        "",
     ).trim();
     const directRole = pickPushUserRole(item);
     const candidateKeys = [
@@ -1145,11 +1211,26 @@ const GeneralSettings: React.FC<Props> = ({
       item?.partnerId,
       item?.localId,
       item?.accountId,
+      item?.ownerId,
+      item?.authUid,
+      item?.accountUid,
+      item?.ownerUid,
       item?.createdBy,
       item?.registeredBy,
+      item?.createdByUid,
+      item?.registeredByUid,
       item?.email,
       item?.userEmail,
       item?.employeeEmail,
+      item?.staffEmail,
+      item?.adminEmail,
+      item?.partnerEmail,
+      item?.localEmail,
+      item?.ownerEmail,
+      item?.accountEmail,
+      item?.loginEmail,
+      item?.createdByEmail,
+      item?.registeredByEmail,
       item?.phone,
       item?.userPhone,
     ]
@@ -1275,11 +1356,18 @@ const GeneralSettings: React.FC<Props> = ({
     const userIdText = String(
       item?.userId ||
         item?.uid ||
+        item?.authUid ||
+        item?.accountUid ||
+        item?.ownerUid ||
         item?.employeeId ||
         item?.staffId ||
         item?.adminId ||
         item?.partnerId ||
         item?.localId ||
+        item?.ownerId ||
+        item?.accountId ||
+        item?.createdBy ||
+        item?.registeredBy ||
         "",
     ).trim();
     const identity = resolvePushUserIdentity(item, directory);
@@ -1320,6 +1408,7 @@ const GeneralSettings: React.FC<Props> = ({
       userName: identity?.name,
       userEmail: identity?.email,
       userRole: identity?.role,
+      userEmailMissing: Boolean((userIdText || identity?.id || identity?.name) && !identity?.email),
       ownerLabel,
       deviceLabel,
       currentUrl: item?.currentUrl ? String(item.currentUrl) : undefined,
@@ -3207,6 +3296,9 @@ const GeneralSettings: React.FC<Props> = ({
                             notification.type,
                             notification.status,
                             notification.userId,
+                            notification.userName,
+                            notification.userEmail,
+                            notification.userRole,
                             getPushUserDisplayById(notification.userId),
                             notification.deviceLabel,
                             notification.deviceId,
@@ -3220,12 +3312,25 @@ const GeneralSettings: React.FC<Props> = ({
                             .includes(query);
                         })
                         .slice(0, 120);
+                      const isPushDeviceQuietForMain = (device: PushDeviceSnapshot) => {
+                        const readTime = Date.parse(device.lastRead || "");
+                        const daysOld = Number.isFinite(readTime)
+                          ? (Date.now() - readTime) / 86400000
+                          : 9999;
+                        return (
+                          device.status !== "online" ||
+                          daysOld > 7 ||
+                          getPushDeviceConfidence(device) < 70
+                        );
+                      };
+                      const activeMainDevices = visibleDevices.filter((device) => !isPushDeviceQuietForMain(device));
+                      const hiddenMainDevices = visibleDevices.filter((device) => isPushDeviceQuietForMain(device));
                       const userGroups = (Object.values(
                         visibleDevices.reduce(
                           (acc, device) => {
                             const owner =
-                              device.ownerLabel ||
                               device.userName ||
+                              device.ownerLabel ||
                               device.userEmail ||
                               device.userId ||
                               "غير مرتبط بموظف";
@@ -3263,10 +3368,9 @@ const GeneralSettings: React.FC<Props> = ({
                         users: userGroups.length,
                         devices: pushDevices.length,
                         visible: visibleDevices.length,
-                        active: pushDevices.filter((d) => d.status === "online")
-                          .length,
-                        attention: pushDevices.filter((d) => d.status !== "online")
-                          .length,
+                        active: activeMainDevices.length,
+                        hidden: hiddenMainDevices.length,
+                        attention: hiddenMainDevices.length,
                         log: pushEventLogs.length,
                       };
                       const renderPushStage = (notification?: any) => {
@@ -3590,8 +3694,10 @@ const GeneralSettings: React.FC<Props> = ({
                                         .flatMap((d) => d.recentNotifications || [])
                                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                                       const latest = groupNotifications[0];
-                                      const activeCount = group.devices.filter((d) => d.status === "online").length;
-                                      const attentionCount = group.devices.length - activeCount;
+                                      const activeDevices = group.devices.filter((device) => !isPushDeviceQuietForMain(device));
+                                      const quietDevices = group.devices.filter((device) => isPushDeviceQuietForMain(device));
+                                      const activeCount = activeDevices.length;
+                                      const attentionCount = quietDevices.length;
                                       return (
                                         <div key={group.id} className="rounded-2xl border border-white/10 bg-slate-950/30 overflow-hidden">
                                           <button
@@ -3625,8 +3731,28 @@ const GeneralSettings: React.FC<Props> = ({
                                                 </div>
                                               )}
                                               <div className="space-y-1.5">
-                                                {group.devices.map(renderDeviceDetails)}
+                                                {activeDevices.length ? (
+                                                  activeDevices.map(renderDeviceDetails)
+                                                ) : (
+                                                  <p className="rounded-xl border border-dashed border-white/10 bg-white/5 p-3 text-center text-[10px] font-bold text-white/45">
+                                                    لا يوجد جهاز نشط ظاهر لهذا المستخدم حاليًا. الأجهزة القديمة محفوظة بالأسفل ولا تُحذف.
+                                                  </p>
+                                                )}
                                               </div>
+                                              {quietDevices.length > 0 && (
+                                                <details className="rounded-xl border border-amber-300/15 bg-amber-400/10 p-2">
+                                                  <summary className="cursor-pointer text-[10px] font-black text-amber-100 flex items-center justify-between gap-2">
+                                                    <span>الأجهزة القديمة والمخفية بصريًا</span>
+                                                    <span className="rounded-full bg-amber-300/15 px-2 py-0.5 text-[9px]">{quietDevices.length}</span>
+                                                  </summary>
+                                                  <p className="mt-2 text-[9px] font-bold leading-5 text-white/55">
+                                                    هذه الأجهزة لم تُحذف ولم تُعطّل. تم إخفاؤها فقط لأنها أقدم من أسبوع أو ناقصة وقت قراءة/استلام واضح. البحث السريع لا يزال يجدها.
+                                                  </p>
+                                                  <div className="mt-2 space-y-1.5">
+                                                    {quietDevices.map(renderDeviceDetails)}
+                                                  </div>
+                                                </details>
+                                              )}
                                               <details className="rounded-xl border border-white/10 bg-black/20 p-2">
                                                 <summary className="cursor-pointer text-[10px] font-black text-white/70">
                                                   تفاصيل المستخدم الفنية
@@ -3666,9 +3792,23 @@ const GeneralSettings: React.FC<Props> = ({
                               )}
 
                               {pushDeviceTab === "devices" && (
-                                <div className="space-y-1.5">
-                                  {visibleDevices.length ? visibleDevices.map(renderDeviceDetails) : (
-                                    <p className="rounded-2xl border border-dashed border-white/10 p-4 text-center text-[10px] font-bold text-white/45">لا توجد أجهزة مطابقة.</p>
+                                <div className="space-y-2">
+                                  <div className="rounded-2xl border border-white/10 bg-slate-950/30 p-3 text-[10px] font-bold leading-5 text-white/55">
+                                    العرض الافتراضي يعرض الأجهزة الجاهزة فقط. الأجهزة القديمة محفوظة تحت قائمة مخفية حتى لا تسبب زحمة بصرية.
+                                  </div>
+                                  {activeMainDevices.length ? activeMainDevices.map(renderDeviceDetails) : (
+                                    <p className="rounded-2xl border border-dashed border-white/10 p-4 text-center text-[10px] font-bold text-white/45">لا توجد أجهزة نشطة مطابقة.</p>
+                                  )}
+                                  {hiddenMainDevices.length > 0 && (
+                                    <details className="rounded-2xl border border-amber-300/15 bg-amber-400/10 p-3">
+                                      <summary className="cursor-pointer text-[11px] font-black text-amber-100 flex items-center justify-between gap-2">
+                                        <span>عرض الأجهزة القديمة والمخفية بصريًا</span>
+                                        <span className="rounded-full bg-amber-300/15 px-2 py-0.5 text-[9px]">{hiddenMainDevices.length}</span>
+                                      </summary>
+                                      <div className="mt-3 space-y-1.5">
+                                        {hiddenMainDevices.map(renderDeviceDetails)}
+                                      </div>
+                                    </details>
                                   )}
                                 </div>
                               )}
@@ -3757,6 +3897,7 @@ const GeneralSettings: React.FC<Props> = ({
                                       <p>1) هذا المكان خاص بـ Push الحقيقي للموظفين فقط.</p>
                                       <p>2) الأرشيف لا يعرض إشعارات ذكية داخلية ولا يسترجع إشعارات قديمة لم تكن مسجلة.</p>
                                       <p>3) زر الاختبار يرسل Push لجهاز محدد فقط، وليس Broadcast.</p>
+                                      <p>4) الأجهزة القديمة مخفية بصريًا فقط ولا يتم حذفها أو تعطيلها. إذا عاد الجهاز للنشاط يظهر تلقائيًا.</p>
                                     </div>
                                   </details>
                                   <button

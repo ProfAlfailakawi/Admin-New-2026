@@ -4177,6 +4177,9 @@ type PushTokenRecordForArchive = {
   token: string;
   tokenDocId: string;
   userId?: string;
+  userName?: string;
+  userEmail?: string;
+  userRole?: string;
   deviceId?: string;
   deviceLabel?: string;
   platform?: string;
@@ -4194,7 +4197,10 @@ function normalizePushTokenRecord(doc: any): PushTokenRecordForArchive | null {
   return {
     token,
     tokenDocId: String(doc?.id || data.id || token),
-    userId: data.userId ? String(data.userId) : (data.uid ? String(data.uid) : undefined),
+    userId: data.userId ? String(data.userId) : (data.uid ? String(data.uid) : (data.employeeId ? String(data.employeeId) : (data.adminId ? String(data.adminId) : undefined))),
+    userName: data.userName ? String(data.userName) : (data.displayName ? String(data.displayName) : (data.employeeName ? String(data.employeeName) : (data.adminName ? String(data.adminName) : undefined))),
+    userEmail: data.userEmail ? String(data.userEmail) : (data.email ? String(data.email) : (data.employeeEmail ? String(data.employeeEmail) : (data.adminEmail ? String(data.adminEmail) : undefined))),
+    userRole: data.userRole ? String(data.userRole) : (data.role ? String(data.role) : (data.accountType ? String(data.accountType) : undefined)),
     deviceId: data.deviceId ? String(data.deviceId) : (data.tokenHash ? String(data.tokenHash) : String(doc?.id || token.slice(0, 24))),
     deviceLabel: String(data.label || data.name || data.deviceLabel || data.platform || data.deviceType || data.browser || "Push device"),
     platform: data.platform ? String(data.platform) : undefined,
@@ -4287,6 +4293,9 @@ async function archivePushDeliveryAttempts({
             deviceId: record.deviceId,
             deviceLabel: record.deviceLabel,
             userId: record.userId,
+            userName: record.userName,
+            userEmail: record.userEmail,
+            userRole: record.userRole,
             platform: record.platform,
             deviceType: record.deviceType,
             browser: record.browser,
@@ -4300,7 +4309,7 @@ async function archivePushDeliveryAttempts({
             note: success
               ? "FCM accepted this Push send request. Browser/device display is not guaranteed unless a client receipt is later added."
               : "FCM rejected this Push send request; inspect errorCode and token.",
-            searchText: [title, body, alertType, record.userId, record.deviceLabel, record.platform, record.browser, record.tokenDocId, record.token.slice(0, 24), orderMeta.orderId, orderMeta.invoiceId, orderMeta.orderNumber]
+            searchText: [title, body, alertType, record.userId, record.userName, record.userEmail, record.userRole, record.deviceLabel, record.platform, record.browser, record.tokenDocId, record.token.slice(0, 24), orderMeta.orderId, orderMeta.invoiceId, orderMeta.orderNumber]
               .filter(Boolean)
               .join(" ")
               .toLowerCase(),
