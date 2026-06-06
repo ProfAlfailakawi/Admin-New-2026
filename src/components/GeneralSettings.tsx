@@ -291,6 +291,10 @@ const GeneralSettings: React.FC<Props> = ({
   const [pushAdvancedFilter, setPushAdvancedFilter] = useState<
     "all" | "noRead" | "noUser" | "noLogs" | "weak" | "duplicates"
   >("all");
+  const [pushLogStatusFilter, setPushLogStatusFilter] = useState<
+    "all" | "delivered" | "opened" | "failed" | "waiting"
+  >("all");
+  const [pushLogVisibleCount, setPushLogVisibleCount] = useState(20);
   const [pushInvestigationQuery, setPushInvestigationQuery] = useState("");
   const [pushTestTitle, setPushTestTitle] = useState(
     "اختبار إشعار تجريبي من الأدمن",
@@ -3600,7 +3604,7 @@ const GeneralSettings: React.FC<Props> = ({
                         const deliveredCount = allCards.filter((card) => card.deliveredNotifications.length > 0).length;
                         const testCount = allCards.filter((card) => card.state.rank === 3).length;
                         const missingCount = allCards.filter((card) => card.state.rank >= 4).length;
-                        const notificationLog = pushEventLogs
+                        const rawNotificationLog = pushEventLogs
                           .filter((notification) => {
                             if (!query) return true;
                             return [
@@ -3622,10 +3626,86 @@ const GeneralSettings: React.FC<Props> = ({
                               .join(" ")
                               .toLowerCase()
                               .includes(query);
-                          })
-                          .slice(0, 80);
+                          });
+                        const notificationLog = rawNotificationLog.filter((notification) => {
+                          if (pushLogStatusFilter === "all") return true;
+                          if (pushLogStatusFilter === "opened") return Boolean(notification.openedByEmployee || notification.clickedAt);
+                          if (pushLogStatusFilter === "delivered") return Boolean(notification.receivedByDevice || notification.receivedAt || notification.openedByEmployee || notification.clickedAt);
+                          if (pushLogStatusFilter === "failed") return notification.success === false || String(notification.status || notification.type || "").toLowerCase().includes("fail");
+                          if (pushLogStatusFilter === "waiting") return notification.success === true && !notification.receivedByDevice && !notification.receivedAt && !notification.openedByEmployee && !notification.clickedAt;
+                          return true;
+                        });
+                        const visibleNotificationLog = notificationLog.slice(0, pushLogVisibleCount);
+                        const goldenDevices = pushDevices.filter((device) => device.status === "online" && getPushDeviceConfidence(device) >= 70);
+                        const silentDevices = pushDevices.filter((device) => (device.status === "cold" || getPushDeviceConfidence(device) < 70) && (device.recentNotifications || []).some((n) => n.success === true) && !(device.recentNotifications || []).some((n) => n.receivedByDevice || n.openedByEmployee));
+                        const ghostDevices = pushDevices.filter((device) => device.status === "abandoned" || device.status === "duplicate" || pushInvalidTestTokens[device.token]);
+                        const systemPulseScore = Math.max(0, Math.min(100, Math.round((deliveredCount / Math.max(allCards.length, 1)) * 60 + (goldenDevices.length / Math.max(pushDevices.length, 1)) * 30 + (pushHealth?.tone === "success" ? 8 : pushHealth?.tone === "warning" ? 3 : 0))));
+                        const oldTokenCount = ghostDevices.length;
+                        const runCustomerLikePushCheck = () => {
+                          const permission = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
+                          const supportOk = pushHealth?.support === "مدعوم" || pushHealth?.support === "Supported" || (typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator);
+                          const duplicates = pushDevices.length - new Set(pushDevices.map((d) => d.token).filter(Boolean)).size;
+                          const verdict = supportOk && permission === "granted" && goldenDevices.length > 0
+                            ? `النظام سليم. الإشعارات تعمل، والمشكلة إن وجدت غالباً في ${oldTokenCount || duplicates || 0} جهاز/توكن قديم.`
+                            : permission !== "granted"
+                              ? "المتصفح الحالي لا يسمح بالإشعارات. فعّل الإذن ثم اضغط فحص الآن."
+                              : "النظام يحتاج قراءة أحدث من الأجهزة قبل الحكم النهائي.";
+                          toast.info("فحص كأني عميل", { description: verdict });
+                        };
                         return (
                           <div className="space-y-4">
+                            <div className="rounded-[1.8rem] border border-white/10 bg-slate-950/50 p-4 md:p-5 text-white overflow-hidden relative">
+                              <div className="absolute -left-12 -top-12 h-36 w-36 rounded-full bg-emerald-400/20 blur-3xl" />
+                              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                                <div>
+                                  <div className="text-[10px] font-black text-emerald-200 uppercase tracking-[0.2em]">مركز نبض النظام</div>
+                                  <div className="mt-1 text-3xl font-black">النظام حي بنسبة {systemPulseScore}%</div>
+                                  <p className="mt-2 text-xs font-bold text-white/55">قراءة تشغيلية من الأجهزة، التوكنات، وسجل الوصول بدون تغيير منطق الإرسال.</p>
+                                </div>
+                                <button type="button" onClick={runCustomerLikePushCheck} className="rounded-2xl bg-emerald-300 text-slate-950 px-4 py-3 text-xs font-black hover:bg-emerald-200 transition flex items-center justify-center gap-2">
+                                  <ClipboardCheck size={15} /> افحص النظام كأني عميل
+                                </button>
+                              </div>
+                              <div className="relative z-10 mt-4 grid grid-cols-2 md:grid-cols-5 gap-2">
+                                {[
+                                  ['الإشعارات', pushHealth?.tone === 'danger' ? 'تحتاج فحص' : 'نشطة'],
+                                  ['الأجهزة', `${goldenDevices.length} متصل`],
+                                  ['آخر اختبار', Object.values(pushTestResults).some((v) => String(v).includes('تم إرسال')) ? 'ناجح' : 'بانتظار'],
+                                  ['التوكنات القديمة', `${oldTokenCount} تحتاج مراجعة`],
+                                  ['المستخدمون بلا جهاز', `${missingCount}`],
+                                ].map(([label, value]) => (
+                                  <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3">
+                                    <div className="text-[9px] font-black text-white/35">{label}</div>
+                                    <div className="mt-1 text-sm font-black text-white">{value}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="rounded-[1.8rem] border border-white/10 bg-white/10 p-4 text-white">
+                              <div className="flex items-center justify-between gap-3 mb-3">
+                                <div>
+                                  <div className="text-[10px] font-black text-white/40">خريطة الأجهزة الذكية</div>
+                                  <h4 className="text-sm font-black">تصنيف سريع بدل قائمة طويلة</h4>
+                                </div>
+                                <MonitorSmartphone size={18} className="text-emerald-200" />
+                              </div>
+                              <div className="grid md:grid-cols-4 gap-2">
+                                {[
+                                  ['أجهزة ذهبية', `${goldenDevices.length}`, 'حديثة وتستقبل غالباً', 'bg-emerald-400/15 text-emerald-50 border-emerald-300/20'],
+                                  ['أجهزة صامتة', `${silentDevices.length}`, 'تُرسل لها محاولات بلا فتح مؤكد', 'bg-amber-400/15 text-amber-50 border-amber-300/20'],
+                                  ['أجهزة شبحية', `${ghostDevices.length}`, 'توكن موجود لكنه ميت أو مكرر', 'bg-rose-400/15 text-rose-50 border-rose-300/20'],
+                                  ['حسابات بلا جهاز', `${archivedCards.length}`, 'تحت الكروت لأنها أقل أولوية', 'bg-white/10 text-white border-white/10'],
+                                ].map(([label, value, hint, cls]) => (
+                                  <div key={label} className={cn("rounded-2xl border p-3", cls)}>
+                                    <div className="text-[10px] font-black opacity-70">{label}</div>
+                                    <div className="mt-1 text-2xl font-black">{value}</div>
+                                    <div className="mt-1 text-[10px] font-bold opacity-65 leading-5">{hint}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                               {[
                                 ["الحسابات", `${allCards.length}`, "الكل"],
@@ -3895,8 +3975,27 @@ const GeneralSettings: React.FC<Props> = ({
                             )}
 
                             {pushDeviceTab === "log" && (
-                              <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-3 space-y-2">
-                                {notificationLog.length ? notificationLog.map((notification) => (
+                              <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-3 space-y-3">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                  <div>
+                                    <div className="text-xs font-black text-white">السجل الذكي</div>
+                                    <div className="text-[10px] font-bold text-white/45 mt-1">يعرض {visibleNotificationLog.length} من {notificationLog.length} نتيجة فقط حتى لو كان الأرشيف ضخم.</div>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {[
+                                      ['all', 'الكل'],
+                                      ['delivered', 'وصل للجهاز'],
+                                      ['opened', 'تم فتحه'],
+                                      ['waiting', 'بانتظار تأكيد'],
+                                      ['failed', 'فشل'],
+                                    ].map(([id, label]) => (
+                                      <button key={id} type="button" onClick={() => { setPushLogStatusFilter(id as any); setPushLogVisibleCount(20); }} className={cn("rounded-xl px-3 py-2 text-[10px] font-black transition", pushLogStatusFilter === id ? "bg-white text-slate-950" : "bg-white/10 text-white/60 hover:bg-white/15")}>
+                                        {label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                                {visibleNotificationLog.length ? visibleNotificationLog.map((notification) => (
                                   <div key={notification.id} className="rounded-2xl bg-slate-950/35 border border-white/10 p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                                     <div className="min-w-0">
                                       <div className="font-black text-sm truncate">{notification.title}</div>
@@ -3917,6 +4016,11 @@ const GeneralSettings: React.FC<Props> = ({
                                   </div>
                                 )) : (
                                   <div className="p-5 text-center text-sm font-bold text-white/60">لا يوجد أرشيف إشعارات مسجل.</div>
+                                )}
+                                {notificationLog.length > visibleNotificationLog.length && (
+                                  <button type="button" onClick={() => setPushLogVisibleCount((v) => v + 20)} className="w-full rounded-2xl bg-white/10 border border-white/10 px-4 py-3 text-[11px] font-black text-white hover:bg-white/15">
+                                    عرض المزيد من السجل
+                                  </button>
                                 )}
                               </div>
                             )}
