@@ -7,6 +7,9 @@ export type StudioTasteSignal = {
   format?: string;
   label?: string;
   source?: string;
+  dishKey?: string;
+  scene?: string;
+  shot?: string;
 };
 
 export type StudioBackgroundLibraryItem = StudioTasteSignal & {
@@ -24,6 +27,8 @@ type StudioTasteProfile = {
   themes: Record<string, number>;
   formats: Record<string, number>;
   labels: Record<string, number>;
+  dishStyles: Record<string, Record<string, number>>;
+  avoidedStyles: Record<string, number>;
   lastUpdated: string;
 };
 
@@ -36,7 +41,7 @@ const isBrowser = typeof window !== 'undefined' && typeof indexedDB !== 'undefin
 const FORBIDDEN_TASTE_TERMS = /دلة|دلال|مبخر|مباخر|بخور|عود|سدو|فانوس|فوانيس|قهوة|قهوت|بن|فنجان|فناجين|dallah|coffee|incense|bukhoor|oud|sadu|lantern/gi;
 const sanitizeTasteText = (value?: string) => String(value || '').replace(FORBIDDEN_TASTE_TERMS, '').replace(/\s{2,}/g, ' ').trim();
 
-const emptyProfile = (): StudioTasteProfile => ({ modes: {}, backgrounds: {}, themes: {}, formats: {}, labels: {}, lastUpdated: new Date().toISOString() });
+const emptyProfile = (): StudioTasteProfile => ({ modes: {}, backgrounds: {}, themes: {}, formats: {}, labels: {}, dishStyles: {}, avoidedStyles: {}, lastUpdated: new Date().toISOString() });
 
 const increment = (bucket: Record<string, number>, key?: string) => {
   const clean = sanitizeTasteText(key);
@@ -95,6 +100,8 @@ export const loadStudioTasteProfile = (): StudioTasteProfile => {
       themes: parsed?.themes || {},
       formats: parsed?.formats || {},
       labels: parsed?.labels || {},
+      dishStyles: parsed?.dishStyles || {},
+      avoidedStyles: parsed?.avoidedStyles || {},
       lastUpdated: parsed?.lastUpdated || new Date().toISOString(),
     };
   } catch {
@@ -110,6 +117,15 @@ export const recordStudioTasteChoice = (signal: StudioTasteSignal) => {
     increment(profile.themes, signal.theme);
     increment(profile.formats, signal.format);
     increment(profile.labels, signal.label || signal.source);
+    const dishKey = sanitizeTasteText(signal.dishKey);
+    const styleKey = sanitizeTasteText([signal.scene, signal.shot, signal.background, signal.mode].filter(Boolean).join(' / '));
+    if (dishKey && styleKey) {
+      profile.dishStyles[dishKey] = profile.dishStyles[dishKey] || {};
+      increment(profile.dishStyles[dishKey], styleKey);
+    }
+    if (signal.source === 'avoid-style' && styleKey) {
+      increment(profile.avoidedStyles, styleKey);
+    }
     profile.lastUpdated = new Date().toISOString();
     localStorage.setItem(TASTE_KEY, JSON.stringify(profile));
   } catch (err) {
@@ -123,11 +139,18 @@ export const buildStudioTastePrompt = () => {
   const favoriteBackgrounds = topKeys(profile.backgrounds, 4);
   const favoriteThemes = topKeys(profile.themes, 3);
   const favoriteFormats = topKeys(profile.formats, 2);
+  const favoriteDishStyles = Object.entries(profile.dishStyles || {})
+    .slice(-6)
+    .map(([dish, styles]) => `${dish}: ${topKeys(styles, 2).join(', ')}`)
+    .filter((line) => !line.endsWith(': '));
+  const avoidedStyles = topKeys(profile.avoidedStyles, 5);
   const parts = [
     favoriteModes.length ? `Preferred realism modes: ${favoriteModes.join(', ')}` : '',
     favoriteBackgrounds.length ? `Preferred restaurant background types: ${favoriteBackgrounds.join(', ')}` : '',
     favoriteThemes.length ? `Preferred visual themes: ${favoriteThemes.join(', ')}` : '',
     favoriteFormats.length ? `Preferred content formats: ${favoriteFormats.join(', ')}` : '',
+    favoriteDishStyles.length ? `Dish-specific winning styles: ${favoriteDishStyles.join(' | ')}` : '',
+    avoidedStyles.length ? `Avoid repeating these rejected styles: ${avoidedStyles.join(' | ')}` : '',
   ].filter(Boolean);
   if (!parts.length) return '';
   return sanitizeTasteText(`USER TASTE MEMORY: Respect the user's repeated selections when choosing the background and camera feel. ${parts.join('. ')}. Keep the result human-real, ordinary, and believable; never override the dish lock, the popular-food identity, or the strict reality bans.`);

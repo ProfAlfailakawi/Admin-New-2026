@@ -14,6 +14,7 @@ export type StudioBackgroundPresetId =
   | 'farm-gathering'
   | 'jakhour-setup'
   | 'zowara-spread'
+  | 'floor-spread'
   | 'kuwait-towers'
   | 'mubarakiya'
   | 'bidaa';
@@ -131,6 +132,10 @@ export const REAL_RESTAURANT_BACKGROUNDS: Record<StudioBackgroundPresetId, { lab
   'zowara-spread': {
     label: 'زوارة / عزيمة',
     prompt: 'Background: real Kuwaiti family zowara spread at home, generous but tidy serving, warm family atmosphere, premium but believable, no restaurant context.'
+  },
+  'floor-spread': {
+    label: 'سفرة أرضية من فوق',
+    prompt: 'Background: top-down overhead Kuwaiti floor-spread product scene inspired by a real home gathering: clean patterned carpet or rug, neat central serving mat, food arranged clearly in the middle, partial seated people in white dishdasha only at the edges with no identifiable faces, no coffee props, no incense, no sadu, no readable text, realistic ceiling/drone-style photography and believable shadows.'
   },
   'kuwait-towers': {
     label: 'أبراج الكويت',
