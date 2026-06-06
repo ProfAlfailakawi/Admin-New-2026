@@ -3251,8 +3251,11 @@ const GeneralSettings: React.FC<Props> = ({
                           <ShieldCheck size={13} /> متابعة وصول الإشعارات
                         </div>
                         <h3 className="mt-2 text-lg md:text-xl font-black text-slate-950">
-                          من تصله الإشعارات الآن؟
+                          رادار حياة الإشعار
                         </h3>
+                        <p className="mt-1 text-xs font-bold text-slate-500">
+                          نبض حي يوضح رحلة كل إشعار: من الإنشاء إلى الفتح، بدون تغيير نظام الإرسال.
+                        </p>
                       </div>
                       <button
                         type="button"
@@ -3308,10 +3311,10 @@ const GeneralSettings: React.FC<Props> = ({
                             stageText.includes("فتحه"),
                           );
                           return [
-                            { key: "sent", label: "أرسلناه", done: hasNotification },
-                            { key: "fcm", label: "قبله نظام الإرسال", done: acceptedByFcm },
+                            { key: "sent", label: "تم إنشاؤه", done: hasNotification },
+                            { key: "fcm", label: "وصل للسيرفر", done: acceptedByFcm },
                             { key: "device", label: "وصل للجهاز", done: receivedByDevice },
-                            { key: "open", label: "انفتح", done: openedByUser },
+                            { key: "open", label: "تم فتحه", done: openedByUser },
                           ];
                         };
                         const getDeliveryMilestoneSummary = (notification?: any) => {
@@ -3320,9 +3323,22 @@ const GeneralSettings: React.FC<Props> = ({
                           if (!notification) return "لا يوجد إشعار محفوظ حتى الآن";
                           if (completed >= 4) return "وصل وانفتح";
                           if (completed === 3) return "وصل للجهاز";
-                          if (completed === 2) return "أرسلناه ولم يتأكد الوصول";
-                          if (completed === 1) return "محاولة إرسال فقط";
+                          if (completed === 2) return "وصل للسيرفر ولم يتأكد وصوله للجهاز";
+                          if (completed === 1) return "تم إنشاؤه فقط";
                           return "غير مؤكد";
+                        };
+                        const getDeliveryHumanReason = (notification?: any, device?: any) => {
+                          if (!notification) return "لا توجد محاولة إشعار محفوظة لهذا الحساب حتى الآن.";
+                          const steps = getDeliveryMilestones(notification);
+                          const server = steps.find((step) => step.key === "fcm")?.done;
+                          const deviceReached = steps.find((step) => step.key === "device")?.done;
+                          const opened = steps.find((step) => step.key === "open")?.done;
+                          if (opened) return "الإشعار وصل للجهاز وتم فتحه من المستخدم.";
+                          if (deviceReached) return "الإشعار وصل للجهاز، لكنه لم يُفتح حتى الآن.";
+                          if (server) return "الإشعار وصل للسيرفر، لكن لا يوجد تأكيد وصول من الجهاز.";
+                          if (device?.notificationPermission && device.notificationPermission !== "granted") return "الإشعار لم يصل غالبًا لأن إذن الجهاز غير مفعّل.";
+                          if (!device?.token || device?.token === "Not available") return "الإشعار لا يملك جهازًا جاهزًا أو توكنًا صالحًا حاليًا.";
+                          return "تم إنشاء محاولة الإرسال، لكن لا توجد إشارة وصول كافية من الجهاز.";
                         };
                         const extractPushEmail = (...values: any[]) => {
                           for (const value of values) {
@@ -3562,7 +3578,7 @@ const GeneralSettings: React.FC<Props> = ({
 
                             <div className={cn("rounded-2xl border px-3 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3", pushHealth.tone === "success" ? "bg-emerald-400/15 border-emerald-300/20" : pushHealth.tone === "danger" ? "bg-rose-400/15 border-rose-300/20" : "bg-amber-400/15 border-amber-300/20")}>
                               <div>
-                                <div className="text-xs font-black">حالة هذا المتصفح: {pushHealth.verdict}</div>
+                                <div className="text-xs font-black">نبض هذا المتصفح: {pushHealth.verdict}</div>
                                 <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-white/60">
                                   <span className="rounded-full bg-white/10 px-2 py-0.5">{pushHealth.support}</span>
                                   <span className="rounded-full bg-white/10 px-2 py-0.5">{pushHealth.permission}</span>
@@ -3606,28 +3622,34 @@ const GeneralSettings: React.FC<Props> = ({
                               </div>
                             )}
 
-                            <div className="flex flex-col lg:flex-row gap-2 lg:items-center lg:justify-between">
-                              <div className="flex rounded-2xl bg-white/10 border border-white/10 p-1 overflow-x-auto">
-                                {[
-                                  ["users", "المستخدمون"],
-                                  ["log", "آخر الإشعارات"],
-                                  ["advanced", "فني مخفي"],
-                                ].map(([id, label]) => (
-                                  <button
-                                    key={id}
-                                    type="button"
-                                    onClick={() => setPushDeviceTab(id as any)}
-                                    className={cn(
-                                      "rounded-xl px-3 py-2 text-[11px] font-black whitespace-nowrap transition",
-                                      pushDeviceTab === id
-                                        ? "bg-white text-slate-950 shadow-sm"
-                                        : "text-white/60 hover:bg-white/10 hover:text-white",
-                                    )}
-                                  >
-                                    {label}
-                                  </button>
-                                ))}
-                              </div>
+                            <div className="flex flex-col lg:flex-row gap-2 lg:items-start lg:justify-between">
+                              <details className="rounded-2xl bg-white/10 border border-white/10 p-1 overflow-hidden">
+                                <summary className="cursor-pointer list-none rounded-xl px-3 py-2 text-[11px] font-black text-white flex items-center justify-between gap-3 min-w-44">
+                                  <span>قائمة الرادار</span>
+                                  <ChevronDown size={14} />
+                                </summary>
+                                <div className="mt-1 grid gap-1 p-1">
+                                  {[
+                                    ["users", "المستخدمون"],
+                                    ["log", "آخر الإشعارات"],
+                                    ["advanced", "فني مخفي"],
+                                  ].map(([id, label]) => (
+                                    <button
+                                      key={id}
+                                      type="button"
+                                      onClick={() => setPushDeviceTab(id as any)}
+                                      className={cn(
+                                        "rounded-xl px-3 py-2 text-[11px] font-black whitespace-nowrap transition text-right",
+                                        pushDeviceTab === id
+                                          ? "bg-white text-slate-950 shadow-sm"
+                                          : "text-white/60 hover:bg-white/10 hover:text-white",
+                                      )}
+                                    >
+                                      {label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </details>
                               <div className="relative min-w-0 lg:w-80">
                                 <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35" />
                                 <input
@@ -3641,22 +3663,6 @@ const GeneralSettings: React.FC<Props> = ({
 
                             {pushDeviceTab === "users" && (
                               <div className="grid gap-3">
-                                {!query && archivedCards.length > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setPushArchiveAccountsOpen((v) => !v)}
-                                    className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-right text-white hover:bg-white/15 transition flex items-center justify-between gap-3"
-                                  >
-                                    <span className="flex items-center gap-2 font-black text-sm">
-                                      <Archive size={16} className="text-amber-200" />
-                                      حسابات بلا جهاز
-                                    </span>
-                                    <span className="flex items-center gap-2 text-[11px] font-black text-white/55">
-                                      {archivedCards.length} حساب
-                                      <ChevronDown size={14} className={cn("transition-transform", pushArchiveAccountsOpen ? "rotate-180" : "")} />
-                                    </span>
-                                  </button>
-                                )}
                                 {visibleCards.length ? visibleCards.map((card) => {
                                   const firstDevice = card.bestDevice;
                                   const expanded = expandedPushDeviceId === card.key;
@@ -3695,6 +3701,9 @@ const GeneralSettings: React.FC<Props> = ({
                                             <div className="mb-2 flex items-center justify-between gap-2">
                                               <span className="text-[10px] font-black text-white/40">مسار آخر إشعار</span>
                                               <span className="text-[10px] font-bold text-white/45">عرض مبسط فقط — بدون تغيير نظام الإرسال</span>
+                                            </div>
+                                            <div className="mb-2 rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/70">
+                                              {getDeliveryHumanReason(card.latest, card.bestDevice)}
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                                               {getDeliveryMilestones(card.latest).map((step) => (
@@ -3800,6 +3809,22 @@ const GeneralSettings: React.FC<Props> = ({
                                   <div className="rounded-2xl border border-white/10 bg-white/10 p-5 text-center text-sm font-bold text-white/60">
                                     لا توجد نتائج مطابقة للبحث.
                                   </div>
+                                )}
+                                {!query && archivedCards.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPushArchiveAccountsOpen((v) => !v)}
+                                    className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-right text-white hover:bg-white/15 transition flex items-center justify-between gap-3"
+                                  >
+                                    <span className="flex items-center gap-2 font-black text-sm">
+                                      <Archive size={16} className="text-amber-200" />
+                                      حسابات بلا جهاز
+                                    </span>
+                                    <span className="flex items-center gap-2 text-[11px] font-black text-white/55">
+                                      {archivedCards.length} حساب
+                                      <ChevronDown size={14} className={cn("transition-transform", pushArchiveAccountsOpen ? "rotate-180" : "")} />
+                                    </span>
+                                  </button>
                                 )}
                               </div>
                             )}

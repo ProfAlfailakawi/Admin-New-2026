@@ -2492,19 +2492,6 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     type="button"
                     onClick={() => {
                       resetStudioSourceDraft({ clearImage: true });
-                      setReelDirectSource('idea');
-                      setReelSource('idea');
-                    }}
-                    className={cn("rounded-2xl border p-3 text-right transition-all", reelDirectSource === 'idea' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
-                  >
-                    <Sparkles size={18} className="mb-2" />
-                    <span className="block text-sm font-black">من فكرة</span>
-                    <span className="block text-[10px] font-bold mt-1 opacity-70">وصف سريع</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      resetStudioSourceDraft({ clearImage: true });
                       setReelDirectSource('image');
                       setReelSource('image');
                     }}
@@ -2513,6 +2500,19 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <Camera size={18} className="mb-2" />
                     <span className="block text-sm font-black">من صورة</span>
                     <span className="block text-[10px] font-bold mt-1 opacity-70">طبق جاهز</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetStudioSourceDraft({ clearImage: true });
+                      setReelDirectSource('idea');
+                      setReelSource('idea');
+                    }}
+                    className={cn("rounded-2xl border p-3 text-right transition-all", reelDirectSource === 'idea' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
+                  >
+                    <Sparkles size={18} className="mb-2" />
+                    <span className="block text-sm font-black">من فكرة</span>
+                    <span className="block text-[10px] font-bold mt-1 opacity-70">وصف سريع</span>
                   </button>
                 </div>
                 {reelDirectSource === 'idea' && studioProductPickMode !== 'manual' && (

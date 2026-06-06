@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Package,
   Slash,
@@ -93,17 +93,47 @@ const ProductPage: React.FC<ProductPageProps> = ({
   const [search, setSearch] = useState("");
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("all");
 
+  const handledDeepLinkRef = useRef("");
+
+  const scrollInsideAdminContent = (targetId: string) => {
+    const target = document.getElementById(targetId);
+    if (!target) return;
+
+    const scrollContainer = target.closest("main.overflow-y-auto") || target.closest("main");
+    if (scrollContainer instanceof HTMLElement) {
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollTop + targetRect.top - containerRect.top - 24,
+        behavior: "smooth",
+      });
+      return;
+    }
+
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   useEffect(() => {
-    if (deepLinkData?.search) {
+    const deepLinkKey = JSON.stringify({
+      search: deepLinkData?.search || "",
+      exactId: deepLinkData?.exactId || "",
+      scrollTarget: deepLinkData?.scrollTarget || "",
+    });
+    if (!deepLinkData || handledDeepLinkRef.current === deepLinkKey) return;
+    handledDeepLinkRef.current = deepLinkKey;
+
+    if (deepLinkData.search) {
       setSearch(deepLinkData.search);
-      if (onClearDeepLink) onClearDeepLink();
     }
-    if (deepLinkData?.scrollTarget === "product-quality-board") {
-      window.setTimeout(() => {
-        document.getElementById("product-quality-board")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 180);
+
+    if (deepLinkData.scrollTarget === "product-quality-board") {
+      window.setTimeout(() => scrollInsideAdminContent("product-quality-board"), 180);
     }
-  }, [deepLinkData, onClearDeepLink]);
+
+    if (deepLinkData.search || deepLinkData.scrollTarget || deepLinkData.exactId) {
+      window.setTimeout(() => onClearDeepLink?.(), 260);
+    }
+  }, [deepLinkData?.search, deepLinkData?.exactId, deepLinkData?.scrollTarget, onClearDeepLink]);
 
   const [filterType, setFilterType] = useState<string>("all");
   const [showModal, setShowModal] = useState(false);
@@ -771,7 +801,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
           setSearch(product.name || "");
           setOpenProductListCategory(normalizeCategoryName(product.category));
           window.setTimeout(() => {
-            document.getElementById("products-list-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            scrollInsideAdminContent("products-list-section");
           }, 120);
         }}
       />
