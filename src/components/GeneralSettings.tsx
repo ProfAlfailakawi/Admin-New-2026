@@ -412,6 +412,38 @@ const GeneralSettings: React.FC<Props> = ({
       : "لم يتم حفظ الإيميل لهذا الحساب";
   };
 
+
+  const getPushNotificationRecipientMeta = (notification: any) => {
+    const device = notification?.device || {};
+    const rawUserId = String(
+      notification?.userId ||
+        notification?.recipientId ||
+        device?.userId ||
+        device?.ownerId ||
+        device?.uid ||
+        "",
+    ).trim();
+    const directName = cleanPushAccountLabel(
+      notification?.userName || notification?.displayName || device?.userName || device?.ownerLabel || device?.label,
+      "",
+    );
+    const directoryName = getPushUserDisplayById(rawUserId);
+    const name = cleanPushAccountLabel(
+      directName || notification?.userEmail || device?.userEmail || directoryName || rawUserId,
+      "حساب غير محدد",
+    );
+    const deviceLabel = cleanPushAccountLabel(
+      notification?.deviceLabel || device?.label || device?.platform || device?.deviceType,
+      "جهاز غير محدد",
+    );
+    const subtitle = String(notification?.userEmail || device?.userEmail || device?.phone || device?.userPhone || rawUserId || "").trim();
+    const tokenSource = String(notification?.tokenStart || notification?.token || device?.tokenStart || device?.token || "").trim();
+    const tokenTail = tokenSource
+      ? `${tokenSource.slice(0, 7)}…${tokenSource.slice(-5)}`
+      : "بدون توكن ظاهر";
+    return { name, subtitle, deviceLabel, tokenTail };
+  };
+
   const normalizePushEventLog = (
     event: any,
     index: number,
@@ -3942,6 +3974,15 @@ const GeneralSettings: React.FC<Props> = ({
                                                     <span className="shrink-0 text-white/40">{getDeliveryMilestoneSummary(notification)}</span>
                                                   </div>
                                                   {notification.message && <div className="truncate text-[10px] text-white/45">{notification.message}</div>}
+                                                  {(() => {
+                                                    const recipient = getPushNotificationRecipientMeta(notification);
+                                                    return (
+                                                      <div className="grid md:grid-cols-2 gap-1.5 text-[10px] font-black text-white/50">
+                                                        <span className="rounded-lg bg-white/5 border border-white/10 px-2 py-1 truncate">أُرسل إلى: {recipient.name}</span>
+                                                        <span className="rounded-lg bg-white/5 border border-white/10 px-2 py-1 truncate">الجهاز: {recipient.deviceLabel}</span>
+                                                      </div>
+                                                    );
+                                                  })()}
                                                   <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
                                                     {getDeliveryMilestones(notification).map((step) => (
                                                       <span
@@ -4019,14 +4060,17 @@ const GeneralSettings: React.FC<Props> = ({
                                     <div className="min-w-0">
                                       <div className="font-black text-sm truncate">{notification.title}</div>
                                       <div className="mt-1 text-[11px] font-bold text-white/50 truncate">{notification.message || "بدون نص"}</div>
-                                      <div className="mt-1 text-[10px] font-bold text-white/35">
-                                        {notification.userName ||
-                                          notification.userEmail ||
-                                          cleanPushAccountLabel(
-                                            getPushUserDisplayById(notification.userId),
-                                            "حساب غير محدد",
-                                          )}
-                                      </div>
+                                      {(() => {
+                                        const recipient = getPushNotificationRecipientMeta(notification);
+                                        return (
+                                          <div className="mt-2 grid md:grid-cols-2 gap-1.5 text-[10px] font-bold text-white/45">
+                                            <span className="rounded-xl bg-black/20 border border-white/10 px-2 py-1 truncate">أُرسل إلى: {recipient.name}</span>
+                                            <span className="rounded-xl bg-black/20 border border-white/10 px-2 py-1 truncate">الجهاز: {recipient.deviceLabel}</span>
+                                            {recipient.subtitle && <span className="rounded-xl bg-black/20 border border-white/10 px-2 py-1 truncate">المعرّف: {recipient.subtitle}</span>}
+                                            <span className="rounded-xl bg-black/20 border border-white/10 px-2 py-1 truncate">التوكن: {recipient.tokenTail}</span>
+                                          </div>
+                                        );
+                                      })()}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black">
                                       <span className="rounded-full bg-white/10 px-2 py-1 text-white/60">{notification.deliveryStage || getPushDeliveryStageLabel(notification)}</span>
