@@ -35,6 +35,7 @@ import {
   Users,
   Filter,
   ShieldCheck,
+  Archive,
 } from "lucide-react";
 import { motion } from "motion/react";
 import LogoEngine from "./ui/LogoEngine";
@@ -286,6 +287,7 @@ const GeneralSettings: React.FC<Props> = ({
   const [pushDeviceSearch, setPushDeviceSearch] = useState("");
   const [expandedPushDeviceGroup, setExpandedPushDeviceGroup] =
     useState<string>("active");
+  const [pushArchiveAccountsOpen, setPushArchiveAccountsOpen] = useState(false);
   const [pushAdvancedFilter, setPushAdvancedFilter] = useState<
     "all" | "noRead" | "noUser" | "noLogs" | "weak" | "duplicates"
   >("all");
@@ -340,7 +342,7 @@ const GeneralSettings: React.FC<Props> = ({
     if (!normalized) return "No timestamp saved";
     const time = new Date(normalized).getTime();
     if (!Number.isFinite(time)) return "Unknown";
-    return new Intl.DateTimeFormat("ar-KW", {
+    return new Intl.DateTimeFormat("en-US", {
       timeZone: "Asia/Kuwait",
       year: "numeric",
       month: "short",
@@ -975,12 +977,38 @@ const GeneralSettings: React.FC<Props> = ({
       toast.error("لا يوجد توكن صالح لهذا الجهاز");
       return;
     }
+    const getPushTestFailureMessage = (rawError?: any, rawMessage?: any) => {
+      const raw = String(rawError || rawMessage || "Unknown error");
+      const lower = raw.toLowerCase();
+      if (lower.includes("firebase not initialized")) {
+        return "تعذر إرسال الاختبار: اتصال Firebase في الخادم غير جاهز الآن. جهازك قد يكون مربوط، لكن الاختبار يحتاج صلاحية الخادم للإرسال.";
+      }
+      if (
+        lower.includes("device unregistered") ||
+        lower.includes("registration-token-not-registered") ||
+        lower.includes("not registered")
+      ) {
+        return "تعذر إرسال الاختبار: التوكن المختار قديم أو استبدله الجهاز. لا يعني أن حسابك غير مربوط؛ جرّب فحص الآن من نفس الجهاز بعد تفعيل الإشعارات لتحديث التوكن.";
+      }
+      return `تعذر إرسال الاختبار: ${raw}`;
+    };
     setSendingPushTestId(device.id);
     setPushTestResults((prev) => ({
       ...prev,
       [device.id]: "جاري إرسال اختبار افتراضي...",
     }));
     try {
+      await refreshPushRegistrationIfAlreadyAllowed({
+        userId: auth?.currentUser?.uid || "admin",
+        userEmail: auth?.currentUser?.email || "",
+        userName: auth?.currentUser?.displayName || auth?.currentUser?.email || "",
+        userRole: AUTHORIZED_PARTNERS.includes(
+          String(auth?.currentUser?.email || "").toLowerCase(),
+        )
+          ? "partner"
+          : "admin",
+        restaurantId: "kitchen_default",
+      }).catch(() => null);
       const response = await fetch("/api/push/test-device", {
         method: "POST",
         headers: {
@@ -1000,7 +1028,7 @@ const GeneralSettings: React.FC<Props> = ({
       const result = await response.json().catch(() => ({}));
       const message = result?.success
         ? "تم إرسال الاختبار. راقب آخر الإشعارات: إذا ظهر وصل للجهاز أو انفتح فهذا تأكيد الوصول."
-        : `تعذر إرسال الاختبار: ${result?.error || result?.message || "Unknown error"}`;
+        : getPushTestFailureMessage(result?.error, result?.message);
       setPushTestResults((prev) => ({ ...prev, [device.id]: message }));
       if (result?.success) {
         toast.success("تم إرسال إشعار اختبار للجهاز");
@@ -1012,10 +1040,7 @@ const GeneralSettings: React.FC<Props> = ({
         }
       } else
         toast.error("فشل إرسال إشعار الاختبار", {
-          description:
-            result?.error ||
-            result?.message ||
-            "راجع حالة الخادم أو صلاحية التوكن.",
+          description: getPushTestFailureMessage(result?.error, result?.message),
         });
     } catch (error: any) {
       const message = error?.message || String(error);
@@ -3218,25 +3243,22 @@ const GeneralSettings: React.FC<Props> = ({
                   )}
                 </div>
 
-                <div className="push-health-pro rounded-2xl border border-slate-200 bg-white p-4 md:p-5 text-slate-900 shadow-sm overflow-hidden relative">
+                <div className="push-health-pro rounded-2xl border border-slate-800 bg-slate-950 p-4 md:p-5 text-white shadow-sm overflow-hidden relative">
                   <div className="relative z-10 space-y-4">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                       <div>
-                        <div className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700">
+                        <div className="inline-flex items-center gap-2 rounded-lg bg-emerald-400/15 border border-emerald-300/20 px-3 py-1 text-[10px] font-black text-emerald-100">
                           <ShieldCheck size={13} /> متابعة وصول الإشعارات
                         </div>
-                        <h3 className="mt-2 text-lg md:text-xl font-black text-slate-900">
+                        <h3 className="mt-2 text-lg md:text-xl font-black text-white">
                           من تصله الإشعارات الآن؟
                         </h3>
-                        <p className="mt-1 text-xs md:text-sm font-bold leading-6 text-slate-500 max-w-2xl">
-                          هنا تشوف كل أدمن أو شريك: هل عنده جهاز مفعّل، ما آخر إشعار وصل له، وهل فتحه أو يحتاج اختبار.
-                        </p>
                       </div>
                       <button
                         type="button"
                         onClick={runPushHealthCheck}
                         disabled={checkingPushHealth || appMode === "local"}
-                        className="rounded-lg bg-slate-900 text-white px-4 py-3 text-xs font-black shadow-sm hover:bg-slate-800 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                        className="rounded-lg bg-emerald-300 text-slate-950 px-4 py-3 text-xs font-black shadow-sm hover:bg-emerald-200 disabled:opacity-50 transition flex items-center justify-center gap-2"
                       >
                         {checkingPushHealth ? (
                           <Loader2 size={15} className="animate-spin" />
@@ -3302,17 +3324,43 @@ const GeneralSettings: React.FC<Props> = ({
                           if (completed === 1) return "محاولة إرسال فقط";
                           return "غير مؤكد";
                         };
-                        const userSeed = new Map<string, PushUserIdentity>();
-                        Array.from(pushUserDirectory.values() as Iterable<PushUserIdentity>).forEach((identity) => {
-                          const key = normalizePushLookupKey(identity.id || identity.email || identity.name);
-                          if (key) userSeed.set(key, identity);
+                        const getIdentityMergeKey = (identity: PushUserIdentity) => {
+                          const email = normalizePushLookupKey(identity.email);
+                          if (email) return `email:${email}`;
+                          const id = normalizePushLookupKey(identity.id);
+                          if (id) return `id:${id}`;
+                          const name = normalizePushLookupKey(identity.name);
+                          return name ? `name:${name}` : "";
+                        };
+                        const mergePushIdentity = (base: PushUserIdentity, incoming: PushUserIdentity): PushUserIdentity => ({
+                          id: base.id || incoming.id,
+                          name:
+                            cleanPushAccountLabel(base.name, "") ||
+                            cleanPushAccountLabel(incoming.name, "") ||
+                            base.email ||
+                            incoming.email,
+                          email: base.email || incoming.email,
+                          phone: base.phone || incoming.phone,
+                          role: base.role || incoming.role,
+                          source: base.source || incoming.source,
                         });
+                        const userSeed = new Map<string, PushUserIdentity>();
+                        const addUserSeed = (identity?: PushUserIdentity) => {
+                          if (!identity) return;
+                          const key = getIdentityMergeKey(identity);
+                          if (!key) return;
+                          userSeed.set(
+                            key,
+                            userSeed.has(key)
+                              ? mergePushIdentity(userSeed.get(key)!, identity)
+                              : identity,
+                          );
+                        };
+                        Array.from(pushUserDirectory.values() as Iterable<PushUserIdentity>).forEach(addUserSeed);
                         pushDevices.forEach((device) => {
-                          const key = normalizePushLookupKey(device.userId || device.userEmail || device.userName || device.ownerLabel || device.label);
-                          if (!key || userSeed.has(key)) return;
-                          userSeed.set(key, {
-                            id: device.userId || key,
-                            name: device.userName || device.ownerLabel || device.label,
+                          addUserSeed({
+                            id: device.userId || device.userEmail || device.userName || device.ownerLabel || device.id,
+                            name: device.userName || device.ownerLabel || "",
                             email: device.userEmail,
                             role: device.userRole,
                             source: "pushToken",
@@ -3327,6 +3375,9 @@ const GeneralSettings: React.FC<Props> = ({
                             const deviceKeys = [device.userId, device.userEmail, device.userName, device.ownerLabel, device.label]
                               .map(normalizePushLookupKey)
                               .filter(Boolean);
+                            const identityEmail = normalizePushLookupKey(identity.email);
+                            const deviceEmail = normalizePushLookupKey(device.userEmail);
+                            if (identityEmail && deviceEmail && identityEmail === deviceEmail) return true;
                             return identityKeys.some((key) => deviceKeys.includes(key));
                           });
                           const notifications = devices
@@ -3339,7 +3390,11 @@ const GeneralSettings: React.FC<Props> = ({
                               notification.openedByEmployee,
                           );
                           const latestDelivered = deliveredNotifications[0];
-                          const bestDevice = devices.slice().sort((a, b) => getPushDeviceConfidence(b) - getPushDeviceConfidence(a))[0];
+                          const bestDevice = devices.slice().sort((a, b) => {
+                            const confidenceDiff = getPushDeviceConfidence(b) - getPushDeviceConfidence(a);
+                            if (confidenceDiff) return confidenceDiff;
+                            return Date.parse(b.lastRead || "") - Date.parse(a.lastRead || "");
+                          })[0];
                           const bestScore = bestDevice ? getPushDeviceConfidence(bestDevice) : 0;
                           const hasReadyDevice = devices.some((device) => device.status === "online" && getPushDeviceConfidence(device) >= 70);
                           const hasToken = devices.some((device) => Boolean(device.token && device.token !== "Not available"));
@@ -3349,7 +3404,7 @@ const GeneralSettings: React.FC<Props> = ({
                           let state = {
                             label: "لا يوجد جهاز",
                             detail: "هذا الحساب ظاهر عندك، لكن لا يوجد له جهاز مفعّل للإشعارات حتى الآن.",
-                            className: "border-slate-200 bg-slate-50 text-slate-900",
+                            className: "border-white/10 bg-white/10 text-white",
                             dot: "bg-slate-300",
                             rank: 4,
                           };
@@ -3360,8 +3415,8 @@ const GeneralSettings: React.FC<Props> = ({
                                 ? "يوجد أثر من الجهاز يؤكد أن الإشعار وصل أو انفتح."
                                 : "تم إرسال إشعار لهذا الحساب، لكن لا يوجد تأكيد من الجهاز حتى الآن.",
                               className: hasReceipt
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-950"
-                                : "border-sky-200 bg-sky-50 text-sky-950",
+                                ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-50"
+                                : "border-sky-300/20 bg-sky-400/10 text-sky-50",
                               dot: "bg-emerald-300",
                               rank: hasReceipt ? 1 : 2,
                             };
@@ -3369,13 +3424,13 @@ const GeneralSettings: React.FC<Props> = ({
                             state = {
                               label: "يحتاج اختبار",
                               detail: "الجهاز موجود، اضغط اختبار الآن حتى نتأكد أنه يستقبل فعلًا.",
-                              className: "border-amber-200 bg-amber-50 text-amber-950",
+                              className: "border-amber-300/20 bg-amber-400/10 text-amber-50",
                               dot: "bg-amber-300",
                               rank: 3,
                             };
                           }
                           return {
-                            key: identity.id || identity.email || identity.name || `push-user-${index}`,
+                            key: getIdentityMergeKey(identity) || identity.id || identity.email || identity.name || `push-user-${index}`,
                             identity,
                             devices,
                             bestDevice,
@@ -3422,14 +3477,14 @@ const GeneralSettings: React.FC<Props> = ({
                             state: {
                               label: device.status === "online" ? "جهاز جاهز بلا اسم" : "غير مرتبط",
                               detail: "هذا الجهاز لديه تسجيل إشعارات، لكنه غير مربوط بإيميل واضح.",
-                              className: "border-slate-200 bg-white text-slate-900",
+                              className: "border-white/10 bg-white/10 text-white",
                               dot: "bg-sky-300",
                               rank: 5,
                             },
                           })),
                         ];
                         const query = pushDeviceSearch.trim().toLowerCase();
-                        const visibleCards = allCards.filter((card) => {
+                        const filteredCards = allCards.filter((card) => {
                           if (!query) return true;
                           return [
                             card.identity.name,
@@ -3446,6 +3501,16 @@ const GeneralSettings: React.FC<Props> = ({
                             .toLowerCase()
                             .includes(query);
                         });
+                        const isArchivedAccountCard = (card: any) =>
+                          card.state.rank >= 4 ||
+                          (card.devices || []).every((device: PushDeviceSnapshot) =>
+                            ["abandoned", "unknown"].includes(device.status),
+                          );
+                        const archivedCards = filteredCards.filter(isArchivedAccountCard);
+                        const visibleCards =
+                          query || pushArchiveAccountsOpen
+                            ? filteredCards
+                            : filteredCards.filter((card) => !isArchivedAccountCard(card));
                         const deliveredCount = allCards.filter((card) => card.deliveredNotifications.length > 0).length;
                         const testCount = allCards.filter((card) => card.state.rank === 3).length;
                         const missingCount = allCards.filter((card) => card.state.rank >= 4).length;
@@ -3571,6 +3636,22 @@ const GeneralSettings: React.FC<Props> = ({
 
                             {pushDeviceTab === "users" && (
                               <div className="grid gap-3">
+                                {!query && archivedCards.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPushArchiveAccountsOpen((v) => !v)}
+                                    className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-right text-white hover:bg-white/15 transition flex items-center justify-between gap-3"
+                                  >
+                                    <span className="flex items-center gap-2 font-black text-sm">
+                                      <Archive size={16} className="text-amber-200" />
+                                      حسابات مهجورة أو بلا جهاز
+                                    </span>
+                                    <span className="flex items-center gap-2 text-[11px] font-black text-white/55">
+                                      {archivedCards.length} حساب
+                                      <ChevronDown size={14} className={cn("transition-transform", pushArchiveAccountsOpen ? "rotate-180" : "")} />
+                                    </span>
+                                  </button>
+                                )}
                                 {visibleCards.length ? visibleCards.map((card) => {
                                   const firstDevice = card.bestDevice;
                                   const expanded = expandedPushDeviceId === card.key;
@@ -3582,7 +3663,7 @@ const GeneralSettings: React.FC<Props> = ({
                                             <span className={cn("h-2.5 w-2.5 rounded-full", card.state.dot)} />
                                             <div className="min-w-0">
                                               <h4 className="text-base font-black truncate">{getPushPersonName(card.identity, card.identity.id)}</h4>
-                                              <div className="mt-0.5 truncate text-[11px] font-bold text-slate-500">{getPushPersonSubtitle(card.identity, card.identity.id)}</div>
+                                              <div className="mt-0.5 truncate text-[11px] font-bold text-white/55">{getPushPersonSubtitle(card.identity, card.identity.id)}</div>
                                             </div>
                                             <span className="rounded-full bg-white/10 border border-white/10 px-2 py-0.5 text-[10px] font-black text-white/60">{cleanRole(card.identity.role)}</span>
                                             <span className="rounded-full bg-black/15 border border-white/10 px-2 py-0.5 text-[10px] font-black">{card.state.label}</span>
@@ -3702,7 +3783,7 @@ const GeneralSettings: React.FC<Props> = ({
                                               ))}
                                             </div>
                                           ) : card.notifications.length > 0 ? (
-                                            <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] font-bold text-amber-800">
+                                            <div className="rounded-xl bg-amber-400/10 border border-amber-300/20 px-3 py-2 text-[11px] font-bold text-amber-100">
                                               توجد محاولات إرسال محفوظة، لكن لا يوجد تأكيد وصول من الجهاز حتى الآن.
                                             </div>
                                           ) : null}
@@ -3710,7 +3791,7 @@ const GeneralSettings: React.FC<Props> = ({
                                       )}
                                     </div>
                                   );
-                                }) : (
+                                }) : archivedCards.length > 0 && !query && !pushArchiveAccountsOpen ? null : (
                                   <div className="rounded-2xl border border-white/10 bg-white/10 p-5 text-center text-sm font-bold text-white/60">
                                     لا توجد نتائج مطابقة للبحث.
                                   </div>
