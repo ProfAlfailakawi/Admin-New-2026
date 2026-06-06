@@ -43,15 +43,21 @@ export const computeAddonQuantity = (addon: any, item: any): number => {
     if (addon?.selected === false || addon?.enabled === false || addon?.isSelected === false) return 0;
     const itemQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
     const qty = Math.max(1, itemQty);
-    const multiplier = Number(addon.quantity !== undefined ? addon.quantity : (addon.qty !== undefined ? addon.qty : 1));
+    const hasExplicitQty = addon?.quantity !== undefined || addon?.qty !== undefined || addon?.count !== undefined || addon?.selectedQuantity !== undefined || addon?.value !== undefined;
+    const selectedQty = computeAddonSelectedQuantity(addon);
+    const multiplier = hasExplicitQty ? selectedQty : Number(addon.quantity !== undefined ? addon.quantity : (addon.qty !== undefined ? addon.qty : 1));
 
+    if (hasExplicitQty && selectedQty <= 0) return 0;
     if (addon.calculationType === 'fixed') {
         return multiplier;
     }
-    if (isCoverageRangeAddon(addon) || addon.calculationType === 'per_x_items') {
-        return getPerXUnits(addon, qty) * multiplier;
+    if (isCoverageRangeAddon(addon)) {
+        return hasExplicitQty ? Math.max(selectedQty, getCoverageUnits(addon, qty)) : getCoverageUnits(addon, qty);
     }
-    return qty * multiplier;
+    if (addon.calculationType === 'per_x_items') {
+        return hasExplicitQty ? selectedQty : getPerXUnits(addon, qty);
+    }
+    return hasExplicitQty ? selectedQty : qty * multiplier;
 };
 
 /**
@@ -106,7 +112,7 @@ export const computeAddonRevenue = (addon: any, item: any, products: any[] = [])
 
     let units = 0;
     if (hasExplicitQty) {
-        units = selectedQty;
+        units = isCoverageRangeAddon(addon) ? Math.max(selectedQty, getCoverageUnits(addon, itemQty)) : selectedQty;
     } else if (addon?.calculationType === 'fixed') {
         units = addon?.selected === false ? 0 : 1;
     } else if (isCoverageRangeAddon(addon) || addon?.calculationType === 'per_x_items') {
@@ -137,7 +143,9 @@ export const computeAddonCost = (addon: any, item: any, products: any[] = []): n
     if (addon.calculationType === 'fixed') {
         // Fixed addons cost the multiplier regardless of item quantity
         units = mult;
-    } else if (isCoverageRangeAddon(addon) || addon.calculationType === 'per_x_items') {
+    } else if (isCoverageRangeAddon(addon)) {
+        units = Math.max(mult, getCoverageUnits(addon, qty));
+    } else if (addon.calculationType === 'per_x_items') {
         units = getPerXUnits(addon, qty) * mult;
     } else {
         // per_item cost is proportional to item quantity

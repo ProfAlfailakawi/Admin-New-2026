@@ -1857,7 +1857,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                             className={cn("flex flex-col items-center text-center p-3 rounded-xl border transition-all", (addon.calculationType === 'per_x_items' || addon.calculationType === 'coverage') ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm" : "bg-white border-slate-200 hover:border-indigo-200")}
                           >
                             <div className={cn("font-bold text-sm mb-1", (addon.calculationType === 'per_x_items' || addon.calculationType === 'coverage') ? "text-indigo-900" : "text-slate-700")}>حسب الكمية</div>
-                            <div className="text-[10px] text-slate-500">كل عدد أو تغطية كمية</div>
+                            <div className="text-[10px] text-slate-500">كل عدد أو تغطية ذكية</div>
                           </button>
 
                           <button
@@ -1900,7 +1900,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                 className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-xs font-bold text-right"
                               >
                                 <option value="groups">كل عدد من البداية</option>
-                                <option value="coverage_range">تغطية تبدأ من كمية</option>
+                                <option value="coverage_range">تغطية ذكية</option>
                               </select>
                             </div>
 
@@ -1953,7 +1953,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <label className="text-xs font-bold text-slate-500">أول إضافة تكفي إلى كمية</label>
+                                  <label className="text-xs font-bold text-slate-500">أول إضافة تكفي حتى كمية</label>
                                   <input
                                     type="number"
                                     min={1}
@@ -1973,7 +1973,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                           <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-[11px] font-bold text-slate-500 leading-6">
                             {(addon.calculationType !== 'coverage' && (addon.perXMode || 'groups') === 'groups')
                               ? 'مثال: كل 3 مع احتساب الزيادة = 1–3 مرة، 4–6 مرتين، 7–9 ثلاث مرات.'
-                              : 'مثال: تبدأ من 2 وتكفي إلى 6 = 2–6 مرة، 7–11 مرتين، 12–16 ثلاث مرات.'}
+                              : 'مثال: تبدأ من 2 وتكفي حتى 6 = 2–6 مرة، 7–11 مرتين، 12–16 ثلاث مرات. عند كمية 7 الحد الأدنى 2، ويمكن للعميل زيادتها إلى 3 أو 4 ولا يمكنه إنقاصها إلى 1.'}
                           </div>
                         </div>
                       )}
@@ -2027,10 +2027,10 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         {/* Constraints */}
                         <div className="space-y-3 p-3 bg-indigo-50/30 rounded-2xl border border-indigo-50">
                           <h4 className="font-bold text-indigo-900 flex items-center gap-2 text-sm">
-                            الاختيار والحدود
+                            سلوك الإضافة
                           </h4>
                           <div className="flex flex-row items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-100 text-sm">
-                            <label className="font-bold text-slate-700 cursor-pointer flex-1 text-right">إضافة إلزامية</label>
+                            <label className="font-bold text-slate-700 cursor-pointer flex-1 text-right">تُضاف دائماً بدون شرط</label>
                             <input
                               type="checkbox"
                               checked={addon.isRequired || false}
@@ -2042,10 +2042,11 @@ const ProductPage: React.FC<ProductPageProps> = ({
                               className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
                             />
                           </div>
+                          <p className="text-[10px] font-bold text-slate-400 leading-5">استخدمها فقط إذا كانت الإضافة لازم تنضاف دائماً. إذا تبيها تنضاف حسب كمية المنتج، استخدم خيار إظهار حسب كمية المنتج فقط.</p>
                           
                           <div className="grid grid-cols-2 gap-2">
                             <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-500">أقل عدد</label>
+                              <label className="text-xs font-bold text-slate-500">أقل كمية إضافية</label>
                               <input
                                 type="number"
                                 min={0}
@@ -2059,7 +2060,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                               />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-500">أكبر عدد</label>
+                              <label className="text-xs font-bold text-slate-500">أقصى كمية اختيارية</label>
                               <input
                                 type="number"
                                 min={1}
@@ -2078,7 +2079,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                           {(addon.calculationType === 'per_item' || addon.calculationType === 'fixed') && (
                             <div className="mt-3 p-3 bg-white rounded-2xl border border-indigo-100 space-y-3">
                               <div className="flex items-center justify-between gap-2">
-                                <label className="font-bold text-slate-700 text-xs cursor-pointer flex-1 text-right">إظهار حسب كمية المنتج</label>
+                                <label className="font-bold text-slate-700 text-xs cursor-pointer flex-1 text-right">إظهار حسب كمية المنتج فقط</label>
                                 <input
                                   type="checkbox"
                                   checked={!!addon.quantityRule?.enabled}
@@ -2113,7 +2114,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                       />
                                     </div>
                                     <div className="space-y-1">
-                                      <label className="text-[10px] font-bold text-slate-500">الاقتراح يغطي حتى</label>
+                                      <label className="text-[10px] font-bold text-slate-500">الاقتراح يغطي حتى كمية</label>
                                       <input
                                         type="number"
                                         min={1}
@@ -2137,10 +2138,10 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                     className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-bold text-right"
                                   >
                                     <option value="manual">يدوي</option>
-                                    <option value="auto">اقتراح تلقائي</option>
-                                    <option value="required">إجباري</option>
+                                    <option value="auto">يُضاف تلقائياً</option>
+                                    <option value="required">تُضاف إجبارياً عند تحقق الكمية</option>
                                   </select>
-                                  <p className="text-[10px] font-bold text-slate-400 leading-5">هذا الخيار للظهور أو الاقتراح فقط، ولا يغيّر طريقة الحساب.</p>
+                                  <p className="text-[10px] font-bold text-slate-400 leading-5">هذا الخيار يتحكم بالظهور أو الاختيار التلقائي فقط، أما الحساب فيبقى حسب طريقة الحساب المختارة.</p>
                                 </div>
                               )}
                             </div>
