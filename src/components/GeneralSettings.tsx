@@ -203,11 +203,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
 
  const normalizePushEventLog = (event: any, index: number): PushEventLog | null => {
   if (!event || typeof event !== 'object') return null;
+  const channel = String(event.channel || event.deliveryChannel || event.method || '').toLowerCase();
+  const kind = String(event.pushEventKind || event.kind || '').toLowerCase();
   const hasPushMarker = Boolean(
-    event.responseId || event.token || event.pushToken || event.deviceToken || event.tokenStart ||
-    String(event.type || '').toLowerCase().includes('push') ||
-    String(event.channel || '').toLowerCase() === 'push' ||
-    String(event.method || '').toLowerCase() === 'push'
+    kind === 'delivery_attempt' ||
+    channel === 'web_push' ||
+    channel === 'push' ||
+    event.responseId || event.token || event.pushToken || event.deviceToken || event.tokenStart
   );
   if (!hasPushMarker) return null;
   const dateRaw = event.createdAt || event.sentAt || event.date || event.updatedAt || event.timestamp;
@@ -216,7 +218,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
     title: String(event.title || event.heading || event.notificationTitle || 'Push Notification'),
     message: String(event.body || event.message || event.text || event.notificationBody || ''),
     date: formatPushHealthDate(dateRaw),
-    type: String(event.type || event.alertType || event.status || 'push'),
+    type: String(event.status || event.alertType || event.type || 'push'),
     token: String(event.token || event.pushToken || event.deviceToken || ''),
     tokenStart: String(event.tokenStart || event.tokenPrefix || ''),
     userId: String(event.userId || event.recipientId || event.adminId || ''),
@@ -543,7 +545,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
       : `تعذر إرسال الاختبار: ${result?.error || result?.message || 'Unknown error'}`;
     setPushTestResults(prev => ({ ...prev, [device.id]: message }));
     if (result?.success) toast.success('تم إرسال إشعار اختبار للجهاز');
-    else toast.error('فشل إرسال إشعار الاختبار', { description: result?.error || result?.message || 'راجع رمز الأدمن أو حالة الخادم.' });
+    else toast.error('فشل إرسال إشعار الاختبار', { description: result?.error || result?.message || 'راجع حالة الخادم أو صلاحية التوكن.' });
   } catch (error: any) {
     const message = error?.message || String(error);
     setPushTestResults(prev => ({ ...prev, [device.id]: `فشل الاتصال بالخادم: ${message}` }));
@@ -625,14 +627,7 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
   try {
     const snapshot = await getDocs(collection(db, 'pushTokens'));
     const serverDevices = snapshot.docs.map((pushDoc, index) => buildPushDeviceSnapshot({ id: pushDoc.id, ...pushDoc.data() }, index, 'server', logs));
-    const seenKeys = new Set<string>();
     return [...serverDevices, ...localDevices]
-      .map(device => {
-        const key = device.userId || device.token || device.id;
-        const duplicate = Boolean(key && seenKeys.has(key));
-        if (key) seenKeys.add(key);
-        return duplicate ? { ...device, status: 'duplicate' as const, note: 'Duplicate candidate: same user/token appeared more than once.' } : device;
-      })
       .filter((item, index, arr) => arr.findIndex(x => x.token === item.token || x.id === item.id) === index)
       .sort((a, b) => getPushDeviceScore(b) - getPushDeviceScore(a));
   } catch (error) {
@@ -1664,7 +1659,16 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                     { id: 'late', title: 'الأجهزة الباردة', hint: 'مر عليها أكثر من 14 يوم', devices: filteredDevices.filter(d => d.status === 'cold') },
                     { id: 'archive', title: 'أجهزة قديمة/غير صالحة', hint: 'قديمة، مكررة، أو غير مكتملة', devices: filteredDevices.filter(d => ['abandoned', 'duplicate', 'unknown'].includes(d.status)) },
                   ].filter(group => pushDeviceTab === 'all' ? group.devices.length : group.devices.length || group.id === pushDeviceTab);
-                  const notificationLog = pushEventLogs.slice(0, 60);
+                  const notificationLog = pushEventLogs
+                    .filter(notification => {
+                      if (!query) return true;
+                      return [notification.title, notification.message, notification.type, notification.status, notification.userId, notification.deviceLabel, notification.deviceId, notification.token, notification.tokenStart, notification.responseId]
+                        .filter(Boolean)
+                        .join(' ')
+                        .toLowerCase()
+                        .includes(query);
+                    })
+                    .slice(0, 80);
 
                   return (
                   <div className="relative z-10 mt-3 rounded-[1.35rem] border border-white/10 bg-white/10 overflow-hidden">
@@ -1831,6 +1835,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                                     <span dir="ltr" className="shrink-0 text-[9px] font-bold text-white/45">{notification.date}</span>
                                   </div>
                                   {notification.message && <p className="mt-1 line-clamp-2 text-[9px] font-bold leading-4 text-white/55">{notification.message}</p>}
+                                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[9px] font-black">
+                                    <span className={cn('rounded-full px-2 py-0.5 border', notification.success === false ? 'bg-rose-400/15 text-rose-100 border-rose-300/20' : notification.success === true ? 'bg-emerald-400/15 text-emerald-100 border-emerald-300/20' : 'bg-white/10 text-white/55 border-white/10')}>
+                                      {notification.success === false ? 'فشل من FCM' : notification.success === true ? 'قبله FCM' : 'مسجل'}
+                                    </span>
+                                    {notification.userId && <span className="rounded-full bg-white/10 px-2 py-0.5 text-white/50">User: {notification.userId}</span>}
+                                    {notification.tokenStart && <span dir="ltr" className="rounded-full bg-white/10 px-2 py-0.5 text-white/50">{notification.tokenStart}</span>}
+                                  </div>
                                 </div>
                               )) : (
                                 <p className="rounded-xl border border-dashed border-white/10 p-3 text-center text-[10px] font-bold text-white/45">لا يوجد أرشيف Push حقيقي محفوظ حتى الآن. سيظهر هنا اختبار Push الفعلي بعد إرساله.</p>
@@ -1982,6 +1993,13 @@ const GeneralSettings: React.FC<Props> = ({ data, setData, appMode, switchMode, 
                                                             <span dir="ltr" className="shrink-0 text-[9px] font-bold text-white/45">{notification.date}</span>
                                                           </div>
                                                           {notification.message && <p className="mt-1 line-clamp-2 text-[9px] font-bold leading-4 text-white/55">{notification.message}</p>}
+                                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[9px] font-black">
+                                    <span className={cn('rounded-full px-2 py-0.5 border', notification.success === false ? 'bg-rose-400/15 text-rose-100 border-rose-300/20' : notification.success === true ? 'bg-emerald-400/15 text-emerald-100 border-emerald-300/20' : 'bg-white/10 text-white/55 border-white/10')}>
+                                      {notification.success === false ? 'فشل من FCM' : notification.success === true ? 'قبله FCM' : 'مسجل'}
+                                    </span>
+                                    {notification.userId && <span className="rounded-full bg-white/10 px-2 py-0.5 text-white/50">User: {notification.userId}</span>}
+                                    {notification.tokenStart && <span dir="ltr" className="rounded-full bg-white/10 px-2 py-0.5 text-white/50">{notification.tokenStart}</span>}
+                                  </div>
                                                           <div className="mt-1 flex items-center gap-1 text-[9px] font-bold text-white/35">
                                                             <span>{notification.read ? 'Opened/Read recorded' : 'No open/read recorded'}</span>
                                                             <span>•</span>
