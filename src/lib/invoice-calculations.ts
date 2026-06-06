@@ -18,32 +18,40 @@ export const safeParsePrice = (val: any): number => {
 /**
  * Calculates the quantity for an addon based on its calculation type and the item quantity.
  */
+
+const isCoverageRangeAddon = (addon: any): boolean => {
+    return addon?.calculationType === 'coverage' || (addon?.calculationType === 'per_x_items' && addon?.perXMode === 'coverage_range');
+};
+
+const getCoverageUnits = (addon: any, itemQty: number): number => {
+    const rule = addon?.quantityRule || {};
+    const minProductQty = Math.max(1, Number(rule.minProductQty || addon?.minProductQty || 1));
+    const coverToQty = Math.max(minProductQty, Number(rule.maxProductQtyPerAddon || addon?.maxProductQtyPerAddon || addon?.xItemsThreshold || minProductQty));
+    const qty = Math.max(0, Number(itemQty || 0));
+    if (qty < minProductQty) return 0;
+    const span = Math.max(1, coverToQty - minProductQty + 1);
+    return Math.max(1, Math.ceil((qty - minProductQty + 1) / span));
+};
+
+const getPerXUnits = (addon: any, qty: number): number => {
+    if (isCoverageRangeAddon(addon)) return getCoverageUnits(addon, qty);
+    const threshold = Math.max(1, Number(addon?.xItemsThreshold || addon?.threshold || 1));
+    return addon?.roundingMode === 'ceil' ? Math.ceil(qty / threshold) : Math.floor(qty / threshold);
+};
+
 export const computeAddonQuantity = (addon: any, item: any): number => {
     if (addon?.selected === false || addon?.enabled === false || addon?.isSelected === false) return 0;
     const itemQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
     const qty = Math.max(1, itemQty);
-    const threshold = Math.max(1, Number(addon.xItemsThreshold || addon.threshold || 1));
-
-    // addon.quantity is the "selected quantity" (multiplier) by the user (e.g. 2 sauces)
     const multiplier = Number(addon.quantity !== undefined ? addon.quantity : (addon.qty !== undefined ? addon.qty : 1));
 
     if (addon.calculationType === 'fixed') {
-        // Fixed addons apply a constant multiplier regardless of the item quantity
         return multiplier;
-    } else if (addon.calculationType === 'per_x_items') {
-        /*
-         * "per_x_items" addons should be applied only once per complete
-         * group of X items (defined by xItemsThreshold). Previously this
-         * used Math.ceil which would round up any remainder and overcharge
-         * (e.g. 3 items with a threshold of 2 would count as 2 units).
-         * We instead use Math.floor so that only full groups are counted.
-         */
-        const groups = addon?.roundingMode === 'ceil' ? Math.ceil(qty / threshold) : Math.floor(qty / threshold);
-        return groups * multiplier;
-    } else {
-        // Default behaviour: one addon per item
-        return qty * multiplier;
     }
+    if (isCoverageRangeAddon(addon) || addon.calculationType === 'per_x_items') {
+        return getPerXUnits(addon, qty) * multiplier;
+    }
+    return qty * multiplier;
 };
 
 /**
@@ -101,10 +109,8 @@ export const computeAddonRevenue = (addon: any, item: any, products: any[] = [])
         units = selectedQty;
     } else if (addon?.calculationType === 'fixed') {
         units = addon?.selected === false ? 0 : 1;
-    } else if (addon?.calculationType === 'per_x_items') {
-        // For per_x_items, charge only for complete groups of threshold items.
-        // Use Math.floor instead of Math.ceil to avoid overcharging partial groups.
-        units = addon?.roundingMode === 'ceil' ? Math.ceil(itemQty / threshold) : Math.floor(itemQty / threshold);
+    } else if (isCoverageRangeAddon(addon) || addon?.calculationType === 'per_x_items') {
+        units = getPerXUnits(addon, itemQty);
     } else {
         // Default to one addon per item
         units = itemQty;
@@ -131,14 +137,8 @@ export const computeAddonCost = (addon: any, item: any, products: any[] = []): n
     if (addon.calculationType === 'fixed') {
         // Fixed addons cost the multiplier regardless of item quantity
         units = mult;
-    } else if (addon.calculationType === 'per_x_items') {
-        /*
-         * For per_x_items cost, only whole groups of threshold items
-         * should incur cost. Ceil was previously used here, causing
-         * leftover items to count as another full addon. Switching to
-         * Math.floor aligns the behaviour with per-item revenue.
-         */
-        units = (addon?.roundingMode === 'ceil' ? Math.ceil(qty / threshold) : Math.floor(qty / threshold)) * mult;
+    } else if (isCoverageRangeAddon(addon) || addon.calculationType === 'per_x_items') {
+        units = getPerXUnits(addon, qty) * mult;
     } else {
         // per_item cost is proportional to item quantity
         units = qty * mult;
