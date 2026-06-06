@@ -296,8 +296,18 @@ const buildAssistantIntel = (data: AppState) => {
    avgOrderValue,
    topSupplierDebt: topSupplierDebt ? `${topSupplierDebt.name || 'مورد'} (${money(topSupplierDebt.balance)} د.ك)` : 'لا يوجد',
    paymentRadar: `طلبات مدفوعة ${paidOrders.length} / بانتظار ${pendingOrders.length} / فشل ${failedOrders.length}`,
-   topInvoice: topInvoice ? `${topInvoice.customerName || topInvoice.customerPhone || topInvoice.id || 'فاتورة'}: ${money(amount(topInvoice))} د.ك` : 'لا يوجد',
-   lowestInvoice: lowInvoice ? `${lowInvoice.customerName || lowInvoice.customerPhone || lowInvoice.id || 'فاتورة'}: ${money(amount(lowInvoice))} د.ك` : 'لا يوجد',
+   topInvoice: (() => {
+      if (!topInvoice) return 'لا يوجد';
+      const cust = customers.find(c => String(c.id) === String(topInvoice.customerId));
+      const name = cust?.name || cust?.phone || topInvoice.id || 'فاتورة';
+      return `${name}: ${money(amount(topInvoice))} د.ك`;
+    })(),
+   lowestInvoice: (() => {
+      if (!lowInvoice) return 'لا يوجد';
+      const cust = customers.find(c => String(c.id) === String(lowInvoice.customerId));
+      const name = cust?.name || cust?.phone || lowInvoice.id || 'فاتورة';
+      return `${name}: ${money(amount(lowInvoice))} د.ك`;
+    })(),
    topCategory: topCategory ? `${topCategory[0]} / مبيعات ${money(topCategory[1].sales)} د.ك / كمية ${Math.round(topCategory[1].qty)}` : 'لا يوجد',
    topProducts: productRank.slice(0, 5).map((p) => `${p.name}: ${p.soldQty} مبيع / هامش ${p.margin}% / سعر ${money(p.price)} / تكلفة ${money(p.cost)}`).join(' | '),
    weakProducts: weakProducts.map((p) => `${p.name}: مبيعات ${p.soldQty} / هامش ${p.margin}% / مخزون ${p.stock}`).join(' | ') || 'لا يوجد',

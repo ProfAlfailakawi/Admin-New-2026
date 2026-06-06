@@ -1562,7 +1562,7 @@ const GeneralSettings: React.FC<Props> = ({
       );
       setPushDevices(allDevices);
       setExpandedPushDeviceId(null);
-      setPushDeviceTab("all");
+      setPushDeviceTab("users");
       setExpandedPushDeviceGroup("active");
       setPushDevicesPanelOpen(true);
       setPushHealth({
