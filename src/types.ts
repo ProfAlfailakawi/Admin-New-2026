@@ -35,6 +35,8 @@ export interface Supplier {
   paymentMethods: PaymentMethod[];
   balance: number;
   status: 'paid' | 'pending' | 'partially_paid';
+  supplierType?: 'food' | 'delivery';
+  deliverySettlement?: 'heritage' | 'supplier' | 'delivery_company' | 'invoice';
 }
 
 export interface SupplierTransfer {
@@ -71,6 +73,7 @@ export interface ProductAddon {
   minQuantity?: number;
   maxQuantity?: number;
   freeQuantity?: number;
+  roundingMode?: 'floor' | 'ceil';
   quantityRule?: {
     enabled?: boolean;
     minProductQty?: number;
@@ -180,6 +183,9 @@ export interface DeliveryInfo {
   cost: number;
   profit: number;
   finalPrice: number;
+  settlementTarget?: 'heritage' | 'supplier' | 'delivery_company';
+  settlementSupplierId?: string;
+  settlementSupplierName?: string;
 }
 
 export type DeliveryType = 'standard' | 'company' | 'special' | 'free';

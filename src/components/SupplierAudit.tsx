@@ -106,17 +106,24 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  }
  });
 
+ const settlementId = inv?.deliveryInfo?.settlementSupplierId || inv?.deliverySettlementSupplierId;
+ if (settlementId && !supplierTotals[settlementId]) supplierTotals[settlementId] = 0;
  Object.entries(supplierTotals).forEach(([supplierId, amount]) => {
+ const deliveryAmount = getInvoiceDeliverySettlement(inv, supplierId);
+ const dueAmount = Math.round((amount + deliveryAmount) * 1000) / 1000;
+ if (dueAmount <= 0) return;
  transactions.push({
  id: `${inv.id}-${supplierId}`,
  supplierId,
- amount: amount, // Positive (Obligation)
- rawAmount: amount,
+ amount: dueAmount, // Positive (Obligation)
+ rawAmount: dueAmount,
+ supplyAmount: amount,
+ deliveryAmount,
  date: inv.date,
  type: 'invoice',
- displayType: 'فاتورة (توريد أصناف)',
+ displayType: deliveryAmount > 0 ? 'فاتورة (توريد + توصيل)' : 'فاتورة (توريد أصناف)',
  method: inv.paymentMethod,
- notes: `فاتورة رقم ${inv.id}`,
+ notes: deliveryAmount > 0 ? `فاتورة رقم ${inv.id} · تشمل توصيل ${deliveryAmount.toFixed(3)} د.ك` : `فاتورة رقم ${inv.id}`,
  refId: inv.id
  });
  });

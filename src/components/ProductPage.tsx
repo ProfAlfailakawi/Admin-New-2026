@@ -1877,19 +1877,37 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       </div>
 
                       {addon.calculationType === 'per_x_items' && (
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-500">كل كم طبق؟</label>
-                          <input
-                            type="number"
-                            value={addon.xItemsThreshold || 1}
-                            onChange={e => {
-                              const newAddons = [...(productForm as any).addons];
-                              newAddons[index].xItemsThreshold = parseInt(e.target.value) || 1;
-                              setProductForm(prev => ({ ...prev, addons: newAddons }));
-                            }}
-                            min={1}
-                            className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-slate-500">كل كم طبق؟</label>
+                            <input
+                              type="number"
+                              value={addon.xItemsThreshold || 1}
+                              onChange={e => {
+                                const newAddons = [...(productForm as any).addons];
+                                newAddons[index].xItemsThreshold = parseInt(e.target.value) || 1;
+                                setProductForm(prev => ({ ...prev, addons: newAddons }));
+                              }}
+                              min={1}
+                              className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold text-right"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-slate-500">طريقة التقريب</label>
+                            <select
+                              value={addon.roundingMode || 'floor'}
+                              onChange={e => {
+                                const newAddons = [...(productForm as any).addons];
+                                newAddons[index].roundingMode = e.target.value;
+                                setProductForm(prev => ({ ...prev, addons: newAddons }));
+                              }}
+                              className="w-full bg-slate-50 border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-xs font-bold text-right"
+                            >
+                              <option value="floor">مجموعات مكتملة فقط</option>
+                              <option value="ceil">تقريب للأعلى</option>
+                            </select>
+                            <p className="text-[10px] font-bold text-slate-400 leading-5">مثال التقريب للأعلى: ٢–٣ = مرة، ٤–٦ = مرتين، ٧–٩ = ثلاث.</p>
+                          </div>
                         </div>
                       )}
 
@@ -2131,6 +2149,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         cost: 0,
                         calculationType: 'per_item',
                         xItemsThreshold: 1,
+                        roundingMode: 'floor',
                         isHiddenPrice: false,
                         quantityRule: {
                           enabled: false,
