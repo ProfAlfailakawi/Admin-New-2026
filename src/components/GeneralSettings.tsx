@@ -3073,15 +3073,13 @@ const GeneralSettings: React.FC<Props> = ({
                 <Bell size={20} className="text-secondary" />
                 <h2 className="font-bold">إشعارات النظام</h2>
               </div>
-              <div className="flex items-center gap-4">
-                <ChevronDown
-                  size={20}
-                  className={cn(
-                    "text-slate-500 transition-transform duration-300",
-                    activeSection === "notifications" ? "rotate-180" : "",
-                  )}
-                />
-              </div>
+              <ChevronDown
+                size={20}
+                className={cn(
+                  "text-slate-500 transition-transform duration-300",
+                  activeSection === "notifications" ? "rotate-180" : "",
+                )}
+              />
             </button>
             <div
               className={cn(
@@ -3109,811 +3107,564 @@ const GeneralSettings: React.FC<Props> = ({
                     />
                   )}
                 </div>
-                <div className="rounded-[1.5rem] border border-slate-200/70 bg-gradient-to-br from-slate-950 to-slate-800 p-4 text-white shadow-sm overflow-hidden relative">
-                  <div className="absolute -left-10 -top-10 h-28 w-28 rounded-full bg-emerald-400/20 blur-3xl" />
-                  <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <div>
-                      <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/10 px-3 py-1 text-[10px] font-black text-emerald-200">
-                        <Activity size={13} />
-                        <span>Push Health Check</span>
+
+                <div className="rounded-[2rem] border border-slate-200/70 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-4 md:p-5 text-white shadow-sm overflow-hidden relative">
+                  <div className="absolute -left-16 -top-16 h-44 w-44 rounded-full bg-emerald-400/20 blur-3xl" />
+                  <div className="absolute -right-20 bottom-0 h-52 w-52 rounded-full bg-sky-400/10 blur-3xl" />
+                  <div className="relative z-10 space-y-4">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                      <div>
+                        <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/10 px-3 py-1 text-[10px] font-black text-emerald-100">
+                          <ShieldCheck size={13} /> مركز صحة الإشعارات
+                        </div>
+                        <h3 className="mt-2 text-lg md:text-xl font-black">
+                          منو توصله الإشعارات؟
+                        </h3>
+                        <p className="mt-1 text-xs md:text-sm font-bold leading-6 text-white/60 max-w-2xl">
+                          شاشة مختصرة للمستخدمين: جاهز، يحتاج تفعيل، أو يحتاج اختبار. التفاصيل الفنية موجودة بالأسفل لمن يحتاجها فقط.
+                        </p>
                       </div>
-                      <h3 className="mt-2 text-lg font-black">
-                        اختبار صحة الإشعارات
-                      </h3>
-                      <p className="mt-1 text-xs font-bold leading-6 text-white/60">
-                        يفحص أجهزة Push الحقيقية فقط: التوكن، الإذن، آخر تسجيل،
-                        و Service Worker. لا يعرض التنبيهات الذكية الداخلية.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={runPushHealthCheck}
-                      disabled={checkingPushHealth || appMode === "local"}
-                      className="rounded-2xl bg-white text-slate-950 px-4 py-3 text-xs font-black shadow-sm hover:bg-emerald-50 disabled:opacity-50 transition flex items-center justify-center gap-2"
-                    >
-                      {checkingPushHealth ? (
-                        <Loader2 size={15} className="animate-spin" />
-                      ) : (
-                        <RefreshCw size={15} />
-                      )}
-                      فحص الآن
-                    </button>
-                  </div>
-                  {pushHealth && (
-                    <div className="relative z-10 mt-4 space-y-2">
-                      <div
-                        className={cn(
-                          "rounded-2xl border px-3 py-3 flex items-center justify-between gap-3",
-                          pushHealth.tone === "success"
-                            ? "bg-emerald-400/15 border-emerald-300/20 text-emerald-100"
-                            : pushHealth.tone === "danger"
-                              ? "bg-rose-400/15 border-rose-300/20 text-rose-100"
-                              : "bg-amber-400/15 border-amber-300/20 text-amber-100",
-                        )}
+                      <button
+                        type="button"
+                        onClick={runPushHealthCheck}
+                        disabled={checkingPushHealth || appMode === "local"}
+                        className="rounded-2xl bg-white text-slate-950 px-4 py-3 text-xs font-black shadow-sm hover:bg-emerald-50 disabled:opacity-50 transition flex items-center justify-center gap-2"
                       >
-                        <div className="min-w-0">
-                          <div className="text-xs font-black">
-                            النتيجة: {pushHealth.verdict}
-                          </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-white/60">
-                            <span className="rounded-full bg-white/10 px-2 py-0.5">
-                              {pushHealth.support}
-                            </span>
-                            <span className="rounded-full bg-white/10 px-2 py-0.5">
-                              {pushHealth.permission}
-                            </span>
-                            <span className="rounded-full bg-white/10 px-2 py-0.5">
-                              {pushHealth.serviceWorker}
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setPushHealthDetailsOpen((v) => !v)}
-                          className="shrink-0 rounded-xl bg-white/10 px-2.5 py-2 text-[10px] font-black text-white hover:bg-white/15 transition flex items-center gap-1"
-                        >
-                          التفاصيل
-                          <ChevronDown
-                            size={14}
-                            className={cn(
-                              "transition-transform",
-                              pushHealthDetailsOpen ? "rotate-180" : "",
-                            )}
-                          />
-                        </button>
-                      </div>
-                      {pushHealthDetailsOpen && (
-                        <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-3 space-y-2">
-                          <div className="grid grid-cols-2 gap-2">
-                            {[
-                              ["Support", pushHealth.support],
-                              ["Permission", pushHealth.permission],
-                              [
-                                "Last Registration",
-                                pushHealth.lastRegistration,
-                              ],
-                              ["Service Worker", pushHealth.serviceWorker],
-                            ].map(([label, value]) => (
-                              <div
-                                key={label}
-                                className="rounded-xl bg-white/10 border border-white/10 px-3 py-2 min-w-0"
-                              >
-                                <span className="block text-[9px] font-black text-white/45">
-                                  {label}
-                                </span>
-                                <strong
-                                  dir="ltr"
-                                  className="mt-1 block truncate text-[10px] font-black text-white"
-                                >
-                                  {value}
-                                </strong>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="rounded-xl bg-black/25 border border-white/10 p-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-[10px] font-black text-white/45">
-                                Current Browser Token
-                              </span>
-                              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black text-white/45">
-                                كامل للأدمن
-                              </span>
-                            </div>
-                            <code
-                              dir="ltr"
-                              className="mt-2 block max-h-24 overflow-auto whitespace-pre-wrap break-all text-[10px] font-bold leading-5 text-emerald-100"
-                            >
-                              {pushHealth.token || "Not available"}
-                            </code>
-                          </div>
-                        </div>
-                      )}
+                        {checkingPushHealth ? (
+                          <Loader2 size={15} className="animate-spin" />
+                        ) : (
+                          <RefreshCw size={15} />
+                        )}
+                        فحص الآن
+                      </button>
                     </div>
-                  )}
-                  {pushDevices.length > 0 &&
-                    (() => {
-                      const query = pushDeviceSearch.trim().toLowerCase();
-                      const isMissingTimestamp = (value?: string) =>
-                        !value ||
-                        value === "Not registered" ||
-                        value === "No timestamp saved" ||
-                        value === "Unknown";
-                      const deviceMatchesQuery = (device: PushDeviceSnapshot) => {
-                        const haystack = [
-                          device.label,
-                          device.ownerLabel,
-                          device.userName,
-                          device.userEmail,
-                          device.userRole,
-                          device.userId,
-                          device.platform,
-                          device.deviceType,
-                          device.browser,
-                          device.currentUrl,
-                          device.token,
-                          device.lastRead,
-                          device.lastConnection,
-                          ...(device.recentNotifications || []).flatMap((n) => [
-                            n.title,
-                            n.message,
-                            n.date,
-                            n.deliveryStage,
-                            n.type,
-                          ]),
-                        ]
-                          .filter(Boolean)
-                          .join(" ")
-                          .toLowerCase();
-                        return !query || haystack.includes(query);
-                      };
-                      const visibleDevices = pushDevices.filter(
-                        (device) =>
-                          deviceMatchesQuery(device) &&
-                          matchesPushAdvancedFilter(device, pushDevices),
-                      );
-                      const getLatestDevicePush = (device: PushDeviceSnapshot) =>
-                        (device.recentNotifications || [])[0];
-                      const allVisibleNotifications = visibleDevices
-                        .flatMap((device) =>
-                          (device.recentNotifications || []).map((n) => ({
-                            ...n,
-                            deviceLabel: device.deviceLabel || device.label,
-                            ownerLabel: device.ownerLabel || device.userName,
-                            deviceId: device.id,
+
+                    {pushHealth ? (
+                      (() => {
+                        const isMissingTimestamp = (value?: string) =>
+                          !value ||
+                          value === "Not registered" ||
+                          value === "No timestamp saved" ||
+                          value === "Unknown";
+                        const cleanRole = (role?: string) => {
+                          const normalized = String(role || "").toLowerCase();
+                          if (normalized.includes("admin")) return "أدمن";
+                          if (normalized.includes("partner")) return "شريك";
+                          if (normalized.includes("local")) return "لوكل";
+                          if (normalized.includes("driver")) return "سائق";
+                          if (normalized.includes("employee") || normalized.includes("staff")) return "موظف";
+                          return role || "مستخدم";
+                        };
+                        const getDeliveryMilestones = (notification?: any) => {
+                          const hasNotification = Boolean(notification);
+                          const stageText = String(notification?.deliveryStage || notification?.status || notification?.type || "").toLowerCase();
+                          const acceptedByFcm = Boolean(
+                            notification?.success === true ||
+                            stageText.includes("fcm") ||
+                            notification?.receivedByDevice ||
+                            notification?.openedByEmployee,
+                          );
+                          const receivedByDevice = Boolean(
+                            notification?.receivedByDevice ||
+                            notification?.openedByEmployee ||
+                            notification?.receivedAt ||
+                            stageText.includes("received") ||
+                            stageText.includes("استلمه"),
+                          );
+                          const openedByUser = Boolean(
+                            notification?.openedByEmployee ||
+                            notification?.clickedAt ||
+                            stageText.includes("clicked") ||
+                            stageText.includes("فتحه"),
+                          );
+                          return [
+                            { key: "sent", label: "أرسله النظام", done: hasNotification },
+                            { key: "fcm", label: "قبله FCM", done: acceptedByFcm },
+                            { key: "device", label: "استلمه الجهاز", done: receivedByDevice },
+                            { key: "open", label: "فتحه المستخدم", done: openedByUser },
+                          ];
+                        };
+                        const getDeliveryMilestoneSummary = (notification?: any) => {
+                          const steps = getDeliveryMilestones(notification);
+                          const completed = steps.filter((step) => step.done).length;
+                          if (!notification) return "لا يوجد إشعار محفوظ حتى الآن";
+                          if (completed >= 4) return "مكتمل: وصل وانفتح";
+                          if (completed === 3) return "وصل للجهاز";
+                          if (completed === 2) return "FCM قبله";
+                          if (completed === 1) return "مرسل فقط";
+                          return "غير مؤكد";
+                        };
+                        const userSeed = new Map<string, PushUserIdentity>();
+                        Array.from(pushUserDirectory.values() as Iterable<PushUserIdentity>).forEach((identity) => {
+                          const key = normalizePushLookupKey(identity.id || identity.email || identity.name);
+                          if (key) userSeed.set(key, identity);
+                        });
+                        pushDevices.forEach((device) => {
+                          const key = normalizePushLookupKey(device.userId || device.userEmail || device.userName || device.ownerLabel || device.label);
+                          if (!key || userSeed.has(key)) return;
+                          userSeed.set(key, {
+                            id: device.userId || key,
+                            name: device.userName || device.ownerLabel || device.label,
+                            email: device.userEmail,
+                            role: device.userRole,
+                            source: "pushToken",
+                          });
+                        });
+                        const users = Array.from(userSeed.values());
+                        const cards = users.map((identity, index) => {
+                          const identityKeys = [identity.id, identity.email, identity.name]
+                            .map(normalizePushLookupKey)
+                            .filter(Boolean);
+                          const devices = pushDevices.filter((device) => {
+                            const deviceKeys = [device.userId, device.userEmail, device.userName, device.ownerLabel, device.label]
+                              .map(normalizePushLookupKey)
+                              .filter(Boolean);
+                            return identityKeys.some((key) => deviceKeys.includes(key));
+                          });
+                          const notifications = devices
+                            .flatMap((device) => (device.recentNotifications || []).map((notification) => ({ ...notification, device })))
+                            .sort((a, b) => Date.parse(b.date || "") - Date.parse(a.date || ""));
+                          const latest = notifications[0];
+                          const bestDevice = devices.slice().sort((a, b) => getPushDeviceConfidence(b) - getPushDeviceConfidence(a))[0];
+                          const bestScore = bestDevice ? getPushDeviceConfidence(bestDevice) : 0;
+                          const hasReadyDevice = devices.some((device) => device.status === "online" && getPushDeviceConfidence(device) >= 70);
+                          const hasToken = devices.some((device) => Boolean(device.token && device.token !== "Not available"));
+                          const hasReceipt = notifications.some((notification) => notification.receivedByDevice || notification.openedByEmployee);
+                          const hasFcmAccepted = notifications.some((notification) => notification.success === true);
+                          const lastTestResult = bestDevice ? pushTestResults[bestDevice.id] : "";
+                          let state = {
+                            label: "لا يوجد جهاز",
+                            detail: "هذا المستخدم لا يظهر له جهاز مسجل للإشعارات حتى الآن.",
+                            className: "border-slate-300/20 bg-white/8 text-white",
+                            dot: "bg-slate-300",
+                            rank: 4,
+                          };
+                          if (hasReadyDevice && (hasReceipt || hasFcmAccepted || latest)) {
+                            state = {
+                              label: hasReceipt ? "واصل ومؤكد" : "جاهز غالبًا",
+                              detail: hasReceipt
+                                ? "يوجد أثر استلام/فتح من الجهاز. الوضع مطمئن."
+                                : "FCM قبل آخر إرسال، لكن تأكيد الجهاز غير ظاهر دائمًا.",
+                              className: "border-emerald-300/25 bg-emerald-400/12 text-emerald-50",
+                              dot: "bg-emerald-300",
+                              rank: hasReceipt ? 1 : 2,
+                            };
+                          } else if (hasToken) {
+                            state = {
+                              label: "يحتاج اختبار",
+                              detail: "التوكن موجود، لكن نحتاج اختبار سريع للتأكد من الوصول.",
+                              className: "border-amber-300/25 bg-amber-400/12 text-amber-50",
+                              dot: "bg-amber-300",
+                              rank: 3,
+                            };
+                          }
+                          return {
+                            key: identity.id || identity.email || identity.name || `push-user-${index}`,
+                            identity,
+                            devices,
+                            bestDevice,
+                            bestScore,
+                            latest,
+                            notifications,
+                            lastTestResult,
+                            state,
+                          };
+                        }).sort((a, b) => a.state.rank - b.state.rank || b.bestScore - a.bestScore);
+                        const unassignedDevices = pushDevices.filter((device) => {
+                          const key = normalizePushLookupKey(device.userId || device.userEmail || device.userName || device.ownerLabel || device.label);
+                          return !key;
+                        });
+                        const allCards = [
+                          ...cards,
+                          ...unassignedDevices.map((device, index) => ({
+                            key: `unassigned-${device.id || index}`,
+                            identity: {
+                              id: device.id,
+                              name: device.label || "جهاز غير مرتبط",
+                              email: "",
+                              role: device.userRole || "غير مرتبط",
+                              source: "pushToken",
+                            } as PushUserIdentity,
+                            devices: [device],
+                            bestDevice: device,
+                            bestScore: getPushDeviceConfidence(device),
+                            latest: (device.recentNotifications || [])[0],
+                            notifications: device.recentNotifications || [],
+                            lastTestResult: pushTestResults[device.id] || "",
+                            state: {
+                              label: device.status === "online" ? "جهاز جاهز بلا اسم" : "غير مرتبط",
+                              detail: "هذا الجهاز لديه توكن لكنه غير مربوط باسم مستخدم واضح.",
+                              className: "border-sky-300/25 bg-sky-400/12 text-sky-50",
+                              dot: "bg-sky-300",
+                              rank: 5,
+                            },
                           })),
-                        )
-                        .sort(
-                          (a, b) =>
-                            new Date(b.date).getTime() -
-                            new Date(a.date).getTime(),
-                        );
-                      const notificationLog = pushEventLogs
-                        .filter((notification) => {
+                        ];
+                        const query = pushDeviceSearch.trim().toLowerCase();
+                        const visibleCards = allCards.filter((card) => {
                           if (!query) return true;
                           return [
-                            notification.title,
-                            notification.message,
-                            notification.type,
-                            notification.status,
-                            notification.userId,
-                            notification.userName,
-                            notification.userEmail,
-                            notification.userRole,
-                            getPushUserDisplayById(notification.userId),
-                            notification.deviceLabel,
-                            notification.deviceId,
-                            notification.token,
-                            notification.tokenStart,
-                            notification.responseId,
+                            card.identity.name,
+                            card.identity.email,
+                            card.identity.role,
+                            card.identity.id,
+                            card.state.label,
+                            card.latest?.title,
+                            card.latest?.message,
+                            ...(card.devices || []).flatMap((device) => [device.label, device.platform, device.browser, device.userId, device.userEmail]),
                           ]
                             .filter(Boolean)
                             .join(" ")
                             .toLowerCase()
                             .includes(query);
-                        })
-                        .slice(0, 120);
-                      const isPushDeviceQuietForMain = (device: PushDeviceSnapshot) => {
-                        const readTime = Date.parse(device.lastRead || "");
-                        const daysOld = Number.isFinite(readTime)
-                          ? (Date.now() - readTime) / 86400000
-                          : 9999;
+                        });
+                        const readyCount = allCards.filter((card) => card.state.rank <= 2).length;
+                        const testCount = allCards.filter((card) => card.state.rank === 3).length;
+                        const missingCount = allCards.filter((card) => card.state.rank >= 4).length;
+                        const notificationLog = pushEventLogs
+                          .filter((notification) => {
+                            if (!query) return true;
+                            return [
+                              notification.title,
+                              notification.message,
+                              notification.type,
+                              notification.status,
+                              notification.userId,
+                              notification.userName,
+                              notification.userEmail,
+                              notification.userRole,
+                              getPushUserDisplayById(notification.userId),
+                              notification.deviceLabel,
+                              notification.deviceId,
+                              notification.tokenStart,
+                              notification.responseId,
+                            ]
+                              .filter(Boolean)
+                              .join(" ")
+                              .toLowerCase()
+                              .includes(query);
+                          })
+                          .slice(0, 80);
                         return (
-                          device.status !== "online" ||
-                          daysOld > 7 ||
-                          getPushDeviceConfidence(device) < 70
-                        );
-                      };
-                      const activeMainDevices = visibleDevices.filter((device) => !isPushDeviceQuietForMain(device));
-                      const hiddenMainDevices = visibleDevices.filter((device) => isPushDeviceQuietForMain(device));
-                      const userGroups = (Object.values(
-                        visibleDevices.reduce(
-                          (acc, device) => {
-                            const owner =
-                              device.userName ||
-                              device.ownerLabel ||
-                              device.userEmail ||
-                              device.userId ||
-                              "غير مرتبط بموظف";
-                            const id = String(
-                              device.userId || device.userEmail || owner,
-                            );
-                            const key = id || owner;
-                            if (!acc[key]) {
-                              acc[key] = {
-                                id: `user-${key}`,
-                                owner,
-                                userId: device.userId,
-                                email: device.userEmail,
-                                role: device.userRole,
-                                devices: [] as PushDeviceSnapshot[],
-                              };
-                            }
-                            acc[key].devices.push(device);
-                            return acc;
-                          },
-                          {} as Record<
-                            string,
-                            {
-                              id: string;
-                              owner: string;
-                              userId?: string;
-                              email?: string;
-                              role?: string;
-                              devices: PushDeviceSnapshot[];
-                            }
-                          >,
-                        ),
-                      ) as Array<{ id: string; owner: string; userId?: string; email?: string; role?: string; devices: PushDeviceSnapshot[] }>).sort((a, b) => a.owner.localeCompare(b.owner, "ar"));
-                      const counts = {
-                        users: userGroups.length,
-                        devices: pushDevices.length,
-                        visible: visibleDevices.length,
-                        active: activeMainDevices.length,
-                        hidden: hiddenMainDevices.length,
-                        attention: hiddenMainDevices.length,
-                        log: pushEventLogs.length,
-                      };
-                      const renderPushStage = (notification?: any) => {
-                        const label = notification?.deliveryStage || "لا يوجد Push محفوظ";
-                        const className = notification?.openedByEmployee
-                          ? "bg-sky-400/15 text-sky-100 border-sky-300/20"
-                          : notification?.receivedByDevice
-                            ? "bg-emerald-400/15 text-emerald-100 border-emerald-300/20"
-                            : notification?.success === false
-                              ? "bg-rose-400/15 text-rose-100 border-rose-300/20"
-                              : notification?.success === true
-                                ? "bg-emerald-400/10 text-emerald-100 border-emerald-300/15"
-                                : "bg-white/10 text-white/55 border-white/10";
-                        return (
-                          <span className={cn("rounded-full border px-2 py-0.5 text-[9px] font-black", className)}>
-                            {label}
-                          </span>
-                        );
-                      };
-                      const renderNotificationCard = (notification: any, compact = false) => (
-                        <details
-                          key={`${notification.id}-${notification.deviceId || notification.date}`}
-                          className="rounded-xl border border-white/10 bg-white/5 p-2.5"
-                        >
-                          <summary className="cursor-pointer list-none flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <strong className="block truncate text-[10px] font-black text-white">
-                                {notification.title || "Push Notification"}
-                              </strong>
-                              <span className="mt-0.5 block truncate text-[9px] font-bold text-white/40">
-                                {notification.ownerLabel || getPushUserDisplayById(notification.userId)}
-                                {notification.deviceLabel ? ` — ${notification.deviceLabel}` : ""}
-                              </span>
-                            </div>
-                            <div className="shrink-0 text-left space-y-1">
-                              {renderPushStage(notification)}
-                              <span dir="ltr" className="block text-[8px] font-bold text-white/40">
-                                {notification.date}
-                              </span>
-                            </div>
-                          </summary>
-                          <div className="mt-2 border-t border-white/10 pt-2 space-y-2">
-                            {notification.message && (
-                              <p className="text-[10px] font-bold leading-5 text-white/60">
-                                {notification.message}
-                              </p>
-                            )}
-                            <div className="grid grid-cols-2 gap-1.5 text-[9px] font-bold text-white/55">
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                               {[
-                                ["Sent/Recorded", notification.date],
-                                ["Received", notification.receivedAt || "No receipt yet"],
-                                ["Clicked", notification.clickedAt || "No click yet"],
-                                ["Type", notification.type || notification.status || "push"],
-                              ].map(([label, value]) => (
-                                <div key={label} className="rounded-lg border border-white/10 bg-slate-950/30 p-2 min-w-0">
-                                  <span className="block text-[8px] font-black text-white/35">{label}</span>
-                                  <b dir="ltr" className="mt-1 block truncate text-[9px] font-black text-white/75">{value}</b>
+                                ["المستخدمين", `${allCards.length}`, "Users"],
+                                ["جاهزين", `${readyCount}`, "Check"],
+                                ["يحتاج اختبار", `${testCount}`, "Test"],
+                                ["ناقصين", `${missingCount}`, "Missing"],
+                              ].map(([label, value, hint]) => (
+                                <div key={label} className="rounded-2xl border border-white/10 bg-white/10 p-3">
+                                  <span className="block text-[10px] font-black text-white/45">{hint}</span>
+                                  <strong className="mt-1 block text-2xl font-black">{value}</strong>
+                                  <span className="text-[11px] font-bold text-white/60">{label}</span>
                                 </div>
                               ))}
                             </div>
-                            {!compact && notification.tokenStart && (
-                              <div dir="ltr" className="rounded-lg bg-black/25 border border-white/10 p-2 text-[9px] font-bold text-white/45 break-all">
-                                Token start: {notification.tokenStart}
+
+                            <div className={cn("rounded-2xl border px-3 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3", pushHealth.tone === "success" ? "bg-emerald-400/15 border-emerald-300/20" : pushHealth.tone === "danger" ? "bg-rose-400/15 border-rose-300/20" : "bg-amber-400/15 border-amber-300/20")}>
+                              <div>
+                                <div className="text-xs font-black">حالة هذا المتصفح: {pushHealth.verdict}</div>
+                                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-white/60">
+                                  <span className="rounded-full bg-white/10 px-2 py-0.5">{pushHealth.support}</span>
+                                  <span className="rounded-full bg-white/10 px-2 py-0.5">{pushHealth.permission}</span>
+                                  <span className="rounded-full bg-white/10 px-2 py-0.5">{pushHealth.serviceWorker}</span>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setPushHealthDetailsOpen((v) => !v)}
+                                className="rounded-xl bg-white/10 px-3 py-2 text-[10px] font-black text-white hover:bg-white/15 transition flex items-center justify-center gap-1"
+                              >
+                                التفاصيل الفنية
+                                <ChevronDown size={14} className={cn("transition-transform", pushHealthDetailsOpen ? "rotate-180" : "")} />
+                              </button>
+                            </div>
+
+                            {pushHealthDetailsOpen && (
+                              <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-3 space-y-2">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                  {[
+                                    ["Support", pushHealth.support],
+                                    ["Permission", pushHealth.permission],
+                                    ["Last Registration", pushHealth.lastRegistration],
+                                    ["Service Worker", pushHealth.serviceWorker],
+                                  ].map(([label, value]) => (
+                                    <div key={label} className="rounded-xl bg-white/10 border border-white/10 px-3 py-2 min-w-0">
+                                      <span className="block text-[9px] font-black text-white/45">{label}</span>
+                                      <strong dir="ltr" className="mt-1 block truncate text-[10px] font-black text-white">{value}</strong>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="rounded-xl bg-black/25 border border-white/10 p-2">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-[10px] font-black text-white/45">Current Browser Token</span>
+                                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black text-white/45">مخفي افتراضيًا</span>
+                                  </div>
+                                  <code dir="ltr" className="mt-2 block truncate text-[10px] font-bold text-emerald-100">
+                                    {pushHealth.token ? `${pushHealth.token.slice(0, 18)}...${pushHealth.token.slice(-10)}` : "Not available"}
+                                  </code>
+                                </div>
                               </div>
                             )}
-                          </div>
-                        </details>
-                      );
-                      const renderDeviceDetails = (device: PushDeviceSnapshot) => {
-                        const isOpen = expandedPushDeviceId === device.id;
-                        const meta = getPushStatusMeta(device.status);
-                        const score = getPushDeviceConfidence(device);
-                        const confidence = getPushDeviceConfidenceMeta(score);
-                        const readiness = getPushReadinessVerdict(device);
-                        const latest = getLatestDevicePush(device);
-                        const timeline = getPushTimelineEvents(device);
-                        return (
-                          <div key={device.id} className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-                            <button
-                              type="button"
-                              onClick={() => setExpandedPushDeviceId(isOpen ? null : device.id)}
-                              className="w-full px-3 py-2.5 flex items-center justify-between gap-3 text-right hover:bg-white/5 transition"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <strong className="truncate text-[11px] font-black text-white">
-                                    {device.deviceLabel || device.label}
-                                  </strong>
-                                  <span className={cn("rounded-full border px-2 py-0.5 text-[9px] font-black", meta.pill)}>
-                                    {meta.label}
-                                  </span>
-                                  {renderPushStage(latest)}
-                                </div>
-                                <p className="mt-1 truncate text-[9px] font-bold text-white/45">
-                                  آخر Push: {latest ? `${latest.title} — ${latest.date}` : "لا يوجد Push محفوظ لهذا الجهاز"}
-                                </p>
-                              </div>
-                              <ChevronDown
-                                size={15}
-                                className={cn("shrink-0 text-white/60 transition-transform", isOpen ? "rotate-180" : "")}
-                              />
-                            </button>
-                            {isOpen && (
-                              <div className="border-t border-white/10 p-2.5 space-y-2.5">
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div className={cn("rounded-xl border p-2", confidence.className)}>
-                                    <span className="block text-[9px] font-black opacity-70">جاهزية Push</span>
-                                    <b className="mt-1 block text-sm font-black">{score}%</b>
-                                    <small className="block text-[9px] font-bold opacity-70">{confidence.label}</small>
-                                  </div>
-                                  <div className={cn("rounded-xl border p-2", readiness.className)}>
-                                    <span className="block text-[9px] font-black opacity-70">الحكم السريع</span>
-                                    <b className="mt-1 block text-[11px] font-black">{readiness.label}</b>
-                                    <small className="block text-[9px] font-bold opacity-70">{isMissingTimestamp(device.lastRead) ? "وقت القراءة غير محفوظ" : "آخر قراءة محفوظة"}</small>
-                                  </div>
-                                </div>
 
-                                <div className="rounded-xl border border-white/10 bg-slate-950/30 p-2">
-                                  <span className="block text-[9px] font-black text-white/40">آخر إشعار لهذا الجهاز</span>
-                                  {latest ? (
-                                    <div className="mt-2">{renderNotificationCard(latest, true)}</div>
-                                  ) : (
-                                    <p className="mt-2 text-[10px] font-bold text-white/45">لا يوجد Push حقيقي محفوظ لهذا الجهاز حتى الآن. أرسل اختبارًا سريعًا وسيظهر هنا.</p>
-                                  )}
-                                </div>
-
-                                <details className="rounded-xl border border-emerald-300/15 bg-emerald-400/10 p-2">
-                                  <summary className="cursor-pointer text-[10px] font-black text-emerald-100">
-                                    إرسال اختبار سريع لهذا الجهاز
-                                  </summary>
-                                  <div className="mt-2 space-y-2">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                      <input
-                                        value={pushTestTitle}
-                                        onChange={(e) => setPushTestTitle(e.target.value)}
-                                        placeholder="عنوان الاختبار"
-                                        className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-[10px] font-bold text-white placeholder:text-white/35 outline-none"
-                                      />
-                                      <input
-                                        value={pushTestBody}
-                                        onChange={(e) => setPushTestBody(e.target.value)}
-                                        placeholder="رسالة الاختبار"
-                                        className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-[10px] font-bold text-white placeholder:text-white/35 outline-none"
-                                      />
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => sendPushDeviceTestNotification(device)}
-                                      disabled={sendingPushTestId === device.id}
-                                      className="w-full rounded-xl bg-emerald-400 px-3 py-2 text-[10px] font-black text-slate-950 hover:bg-emerald-300 disabled:opacity-60 transition flex items-center justify-center gap-2"
-                                    >
-                                      {sendingPushTestId === device.id ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                                      أرسل Push اختبار لهذا الجهاز فقط
-                                    </button>
-                                    {pushTestResults[device.id] && (
-                                      <p className="rounded-xl border border-white/10 bg-white/10 p-2 text-[10px] font-bold text-white/65">
-                                        {pushTestResults[device.id]}
-                                      </p>
+                            <div className="flex flex-col lg:flex-row gap-2 lg:items-center lg:justify-between">
+                              <div className="flex rounded-2xl bg-white/10 border border-white/10 p-1 overflow-x-auto">
+                                {[
+                                  ["users", "المستخدمون"],
+                                  ["log", "آخر الإشعارات"],
+                                  ["advanced", "فني مخفي"],
+                                ].map(([id, label]) => (
+                                  <button
+                                    key={id}
+                                    type="button"
+                                    onClick={() => setPushDeviceTab(id as any)}
+                                    className={cn(
+                                      "rounded-xl px-3 py-2 text-[11px] font-black whitespace-nowrap transition",
+                                      pushDeviceTab === id
+                                        ? "bg-white text-slate-950 shadow-sm"
+                                        : "text-white/60 hover:bg-white/10 hover:text-white",
                                     )}
-                                  </div>
-                                </details>
+                                  >
+                                    {label}
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="relative min-w-0 lg:w-80">
+                                <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35" />
+                                <input
+                                  value={pushDeviceSearch}
+                                  onChange={(e) => setPushDeviceSearch(e.target.value)}
+                                  placeholder="بحث باسم المستخدم أو الحالة..."
+                                  className="w-full rounded-2xl border border-white/10 bg-white/10 py-2.5 pr-9 pl-3 text-xs font-bold text-white placeholder:text-white/35 outline-none focus:border-emerald-300/40"
+                                />
+                              </div>
+                            </div>
 
-                                <details className="rounded-xl border border-white/10 bg-white/10 p-2">
-                                  <summary className="cursor-pointer text-[10px] font-black text-white">
-                                    خط زمني للجهاز
-                                  </summary>
-                                  {timeline.length ? (
-                                    <div className="mt-2 space-y-1.5">
-                                      {timeline.map((item, idx) => (
-                                        <div key={`${item.label}-${idx}`} className="flex items-start gap-2 rounded-lg border border-white/10 bg-slate-950/30 p-2">
-                                          <span className="mt-1 h-2 w-2 rounded-full bg-emerald-300" />
-                                          <div className="min-w-0">
-                                            <b className="block text-[9px] font-black text-white/75">{item.label}</b>
-                                            <span dir="ltr" className="block truncate text-[9px] font-bold text-white/40">{item.value}</span>
+                            {pushDeviceTab === "users" && (
+                              <div className="grid gap-3">
+                                {visibleCards.length ? visibleCards.map((card) => {
+                                  const firstDevice = card.bestDevice;
+                                  const expanded = expandedPushDeviceId === card.key;
+                                  return (
+                                    <div key={card.key} className={cn("rounded-[1.5rem] border p-3 md:p-4", card.state.className)}>
+                                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <span className={cn("h-2.5 w-2.5 rounded-full", card.state.dot)} />
+                                            <h4 className="text-base font-black truncate">{getPushUserDisplay(card.identity, card.identity.id)}</h4>
+                                            <span className="rounded-full bg-white/10 border border-white/10 px-2 py-0.5 text-[10px] font-black text-white/60">{cleanRole(card.identity.role)}</span>
+                                            <span className="rounded-full bg-black/15 border border-white/10 px-2 py-0.5 text-[10px] font-black">{card.state.label}</span>
                                           </div>
+                                          <p className="mt-1 text-xs font-bold leading-6 text-white/65">{card.state.detail}</p>
+                                          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+                                            <div className="rounded-2xl bg-black/15 border border-white/10 p-3">
+                                              <span className="block text-[10px] font-black text-white/40">الأجهزة</span>
+                                              <strong className="mt-1 block text-sm font-black">{card.devices.length ? `${card.devices.length} جهاز` : "لا يوجد"}</strong>
+                                            </div>
+                                            <div className="rounded-2xl bg-black/15 border border-white/10 p-3 min-w-0">
+                                              <span className="block text-[10px] font-black text-white/40">آخر إشعار</span>
+                                              <strong className="mt-1 block truncate text-sm font-black">{card.latest?.title || "لا يوجد سجل"}</strong>
+                                              {card.latest?.date && <span className="mt-1 block text-[10px] font-bold text-white/45">{card.latest.date}</span>}
+                                            </div>
+                                            <div className="rounded-2xl bg-black/15 border border-white/10 p-3">
+                                              <span className="block text-[10px] font-black text-white/40">آخر نتيجة</span>
+                                              <strong className="mt-1 block text-sm font-black">{getDeliveryMilestoneSummary(card.latest)}</strong>
+                                            </div>
+                                          </div>
+                                          <div className="mt-3 rounded-2xl border border-white/10 bg-black/15 p-3">
+                                            <div className="mb-2 flex items-center justify-between gap-2">
+                                              <span className="text-[10px] font-black text-white/40">مسار آخر إشعار</span>
+                                              <span className="text-[10px] font-bold text-white/45">عرض مبسط فقط — بدون تغيير نظام الإرسال</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                              {getDeliveryMilestones(card.latest).map((step) => (
+                                                <div
+                                                  key={step.key}
+                                                  className={cn(
+                                                    "rounded-xl border px-2.5 py-2 text-[10px] font-black flex items-center gap-2",
+                                                    step.done
+                                                      ? "border-emerald-300/25 bg-emerald-400/15 text-emerald-50"
+                                                      : "border-white/10 bg-white/5 text-white/35",
+                                                  )}
+                                                >
+                                                  <span className={cn("h-2 w-2 rounded-full", step.done ? "bg-emerald-300" : "bg-white/20")} />
+                                                  <span>{step.label}</span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                          {card.lastTestResult && (
+                                            <div className="mt-2 rounded-2xl bg-white/10 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/70">
+                                              {card.lastTestResult}
+                                            </div>
+                                          )}
                                         </div>
-                                      ))}
+                                        <div className="flex flex-row lg:flex-col gap-2 lg:w-40">
+                                          <button
+                                            type="button"
+                                            disabled={!firstDevice || sendingPushTestId === firstDevice.id || !firstDevice.token || firstDevice.token === "Not available"}
+                                            onClick={() => firstDevice && sendPushDeviceTestNotification(firstDevice)}
+                                            className="flex-1 rounded-2xl bg-white text-slate-950 px-3 py-2.5 text-[11px] font-black hover:bg-emerald-50 disabled:opacity-45 transition flex items-center justify-center gap-2"
+                                          >
+                                            {firstDevice && sendingPushTestId === firstDevice.id ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                                            اختبر الآن
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => setExpandedPushDeviceId(expanded ? null : card.key)}
+                                            className="flex-1 rounded-2xl bg-white/10 border border-white/10 px-3 py-2.5 text-[11px] font-black text-white hover:bg-white/15 transition flex items-center justify-center gap-2"
+                                          >
+                                            التفاصيل
+                                            <ChevronDown size={13} className={cn("transition-transform", expanded ? "rotate-180" : "")} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                      {expanded && (
+                                        <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/30 p-3 space-y-3">
+                                          <div className="grid md:grid-cols-2 gap-2">
+                                            {(card.devices || []).map((device) => {
+                                              const readiness = getPushReadinessVerdict(device);
+                                              return (
+                                                <div key={device.id} className="rounded-2xl bg-white/10 border border-white/10 p-3 min-w-0">
+                                                  <div className="flex items-center justify-between gap-2">
+                                                    <strong className="truncate text-xs font-black">{device.label}</strong>
+                                                    <span className={cn("rounded-full border px-2 py-0.5 text-[9px] font-black", getPushDeviceConfidenceMeta(getPushDeviceConfidence(device)).className)}>{getPushDeviceConfidence(device)}%</span>
+                                                  </div>
+                                                  <p className="mt-2 text-[10px] font-bold leading-5 text-white/55">{readiness.detail}</p>
+                                                  <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold text-white/55">
+                                                    <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{device.platform || device.deviceType || "جهاز"}</span>
+                                                    <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{isMissingTimestamp(device.lastRead) ? "بلا قراءة" : device.lastRead}</span>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                          {card.notifications.length > 0 && (
+                                            <div className="space-y-2">
+                                              <div className="text-[10px] font-black text-white/45">آخر الإشعارات لهذا المستخدم</div>
+                                              {card.notifications.slice(0, 4).map((notification: any) => (
+                                                <div key={notification.id} className="rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/70 space-y-2">
+                                                  <div className="flex items-center justify-between gap-3">
+                                                    <span className="truncate">{notification.title}</span>
+                                                    <span className="shrink-0 text-white/40">{getDeliveryMilestoneSummary(notification)}</span>
+                                                  </div>
+                                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
+                                                    {getDeliveryMilestones(notification).map((step) => (
+                                                      <span
+                                                        key={step.key}
+                                                        className={cn(
+                                                          "rounded-lg border px-2 py-1 text-[9px] font-black text-center",
+                                                          step.done
+                                                            ? "border-emerald-300/20 bg-emerald-400/15 text-emerald-50"
+                                                            : "border-white/10 bg-white/5 text-white/30",
+                                                        )}
+                                                      >
+                                                        {step.done ? "✓ " : "— "}{step.label}
+                                                      </span>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
-                                  ) : (
-                                    <p className="mt-2 rounded-xl border border-dashed border-white/10 p-2 text-[10px] font-bold text-white/45">
-                                      لا يوجد خط زمني محفوظ لهذا الجهاز حتى الآن. السبب غالبًا أن إشعارات الدفع القديمة لم تكن تسجل في PushEvents.
-                                    </p>
-                                  )}
-                                </details>
+                                  );
+                                }) : (
+                                  <div className="rounded-2xl border border-white/10 bg-white/10 p-5 text-center text-sm font-bold text-white/60">
+                                    لا توجد نتائج مطابقة للبحث.
+                                  </div>
+                                )}
+                              </div>
+                            )}
 
-                                <details className="rounded-xl border border-white/10 bg-black/20 p-2">
-                                  <summary className="cursor-pointer text-[10px] font-black text-white/75">
-                                    تفاصيل فنية متقدمة
-                                  </summary>
-                                  <div className="mt-2 space-y-2">
-                                    <div className="grid grid-cols-2 gap-2">
-                                      {[
-                                        ["Employee", device.ownerLabel || device.userName || "Not linked"],
-                                        ["User ID", device.userId || "Not linked"],
-                                        ["Email", device.userEmail || "Not linked"],
-                                        ["Role", device.userRole || "Not linked"],
-                                        ["Last Registration", device.lastConnection],
-                                        ["Last Read", device.lastRead],
-                                        ["Platform", device.platform || device.deviceType || "Unknown"],
-                                        ["Browser", device.browser || "Unknown"],
-                                        ["Current URL", device.currentUrl || "Not available"],
-                                      ].map(([label, value]) => (
-                                        <div key={label} className="rounded-xl bg-white/10 border border-white/10 p-2 min-w-0">
-                                          <span className="block text-[9px] font-black text-white/35">{label}</span>
-                                          <b dir={String(label).includes("URL") ? "ltr" : undefined} className="mt-1 block truncate text-[10px] font-black text-white/80">{value}</b>
-                                        </div>
-                                      ))}
+                            {pushDeviceTab === "log" && (
+                              <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-3 space-y-2">
+                                {notificationLog.length ? notificationLog.map((notification) => (
+                                  <div key={notification.id} className="rounded-2xl bg-slate-950/35 border border-white/10 p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <div className="font-black text-sm truncate">{notification.title}</div>
+                                      <div className="mt-1 text-[11px] font-bold text-white/50 truncate">{notification.message || "بدون نص"}</div>
+                                      <div className="mt-1 text-[10px] font-bold text-white/35">{notification.userName || notification.userEmail || getPushUserDisplayById(notification.userId)}</div>
                                     </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => copyPushDeviceReport(device, pushDevices)}
-                                      className="w-full rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-[10px] font-black text-white hover:bg-white/15 flex items-center justify-center gap-2"
-                                    >
-                                      <Code size={13} /> نسخ تقرير الجهاز
-                                    </button>
-                                    <details className="rounded-xl bg-slate-950/40 border border-white/10 p-2">
-                                      <summary className="cursor-pointer text-[10px] font-black text-emerald-100">Full Push Token</summary>
-                                      <code dir="ltr" className="mt-2 block max-h-28 overflow-auto whitespace-pre-wrap break-all text-[10px] font-bold leading-5 text-emerald-100">
-                                        {device.token}
-                                      </code>
-                                    </details>
-                                    <p className="flex items-center gap-1 text-[10px] font-bold text-white/45">
-                                      <WifiOff size={12} /> {device.note}
-                                    </p>
+                                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black">
+                                      <span className="rounded-full bg-white/10 px-2 py-1 text-white/60">{notification.deliveryStage || getPushDeliveryStageLabel(notification)}</span>
+                                      <span className="rounded-full bg-white/10 px-2 py-1 text-white/40">{notification.date}</span>
+                                    </div>
+                                  </div>
+                                )) : (
+                                  <div className="p-5 text-center text-sm font-bold text-white/60">لا يوجد أرشيف إشعارات مسجل.</div>
+                                )}
+                              </div>
+                            )}
+
+                            {pushDeviceTab === "advanced" && (
+                              <div className="space-y-3">
+                                <details className="rounded-2xl border border-white/10 bg-slate-950/35 p-3">
+                                  <summary className="cursor-pointer text-[11px] font-black text-white flex items-center gap-2">
+                                    <Filter size={14} /> فلاتر وفحص فني متقدم
+                                  </summary>
+                                  <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-1.5">
+                                    {[
+                                      ["all", "كل الحالات"],
+                                      ["noRead", "بلا وقت قراءة"],
+                                      ["noUser", "بلا مستخدم"],
+                                      ["noLogs", "بلا أرشيف Push"],
+                                      ["weak", "جاهزية ضعيفة"],
+                                      ["duplicates", "عدة أجهزة لنفس المستخدم"],
+                                    ].map(([id, label]) => (
+                                      <button
+                                        key={id}
+                                        type="button"
+                                        onClick={() => setPushAdvancedFilter(id as any)}
+                                        className={cn(
+                                          "rounded-xl px-3 py-2 text-[10px] font-black transition",
+                                          pushAdvancedFilter === id
+                                            ? "bg-white text-slate-950"
+                                            : "bg-white/10 text-white/60 hover:bg-white/15",
+                                        )}
+                                      >
+                                        {label}
+                                      </button>
+                                    ))}
                                   </div>
                                 </details>
+                                <div className="grid md:grid-cols-2 gap-2">
+                                  {pushDevices.filter((device) => matchesPushAdvancedFilter(device, pushDevices)).map((device) => (
+                                    <div key={device.id} className="rounded-2xl border border-white/10 bg-white/10 p-3 min-w-0">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <strong className="truncate text-xs font-black">{device.label}</strong>
+                                        <span className="rounded-full bg-black/20 px-2 py-0.5 text-[9px] font-black text-white/50">{getPushStatusMeta(device.status).label}</span>
+                                      </div>
+                                      <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold text-white/50">
+                                        <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{device.userId || "No userId"}</span>
+                                        <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{device.platform || device.deviceType || "No platform"}</span>
+                                        <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{device.lastRead}</span>
+                                        <span className="rounded-xl bg-black/20 px-2 py-1 truncate" dir="ltr">{device.token ? `${device.token.slice(0, 12)}...${device.token.slice(-8)}` : "No token"}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => copyPushExecutiveSummary(pushDevices)}
+                                  className="w-full rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-[10px] font-black text-white hover:bg-white/15 flex items-center justify-center gap-2"
+                                >
+                                  <Code size={13} /> نسخ ملخص فني
+                                </button>
                               </div>
                             )}
                           </div>
                         );
-                      };
-
-                      return (
-                        <div className="relative z-10 mt-3 rounded-[1.35rem] border border-white/10 bg-white/10 overflow-hidden">
-                          <button
-                            type="button"
-                            onClick={() => setPushDevicesPanelOpen((v) => !v)}
-                            className="w-full p-3 flex items-center justify-between gap-3 text-right hover:bg-white/5 transition"
-                          >
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2 text-xs font-black text-white">
-                                <Users size={15} /> مركز Push الموظفين الحقيقي
-                              </div>
-                              <p className="mt-1 text-[10px] font-bold text-white/45">
-                                العرض الأساسي حسب المستخدم. التفاصيل الفنية والتوكنات مخفية إلا عند طلبها.
-                              </p>
-                            </div>
-                            <div className="flex shrink-0 items-center gap-2">
-                              <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-white/60">
-                                {counts.users} مستخدم / {counts.devices} جهاز
-                              </span>
-                              <ChevronDown
-                                size={16}
-                                className={cn("text-white/60 transition-transform", pushDevicesPanelOpen ? "rotate-180" : "")}
-                              />
-                            </div>
-                          </button>
-                          {pushDevicesPanelOpen && (
-                            <div className="border-t border-white/10 p-2.5 space-y-3">
-                              <div className="grid grid-cols-3 gap-2">
-                                {[
-                                  ["المستخدمون", counts.users, "افتح المستخدم ثم الأجهزة"],
-                                  ["الأجهزة", counts.devices, "كل التوكنات المسجلة"],
-                                  ["أرشيف Push", counts.log, "إرسال/استلام/فتح"],
-                                ].map(([label, value, hint]) => (
-                                  <div key={String(label)} className="rounded-2xl border border-white/10 bg-white/5 p-2.5 text-center">
-                                    <span className="block text-[9px] font-black text-white/40">{label}</span>
-                                    <strong className="mt-1 block text-sm font-black text-white">{value}</strong>
-                                    <small className="mt-0.5 block text-[8px] font-bold text-white/35">{hint}</small>
-                                  </div>
-                                ))}
-                              </div>
-
-                              <div className="rounded-2xl border border-white/10 bg-slate-950/30 p-1 overflow-x-auto">
-                                <div className="flex min-w-max gap-1">
-                                  {[
-                                    ["users", "حسب المستخدم", counts.users],
-                                    ["devices", "كل الأجهزة", counts.visible],
-                                    ["log", "أرشيف Push", counts.log],
-                                    ["investigate", "اختبار سريع", counts.visible],
-                                    ["advanced", "فني مخفي", counts.attention],
-                                  ].map(([id, label, count]) => (
-                                    <button
-                                      key={String(id)}
-                                      type="button"
-                                      onClick={() => {
-                                        setPushDeviceTab(id as any);
-                                        setExpandedPushDeviceId(null);
-                                      }}
-                                      className={cn(
-                                        "rounded-xl px-3 py-2 text-[10px] font-black transition whitespace-nowrap",
-                                        pushDeviceTab === id
-                                          ? "bg-white text-slate-950 shadow-sm"
-                                          : "text-white/55 hover:bg-white/10",
-                                      )}
-                                    >
-                                      <span className="block">{label}</span>
-                                      <span className="mt-0.5 block text-[9px] opacity-70">{count}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-3 py-2">
-                                <Search size={14} className="shrink-0 text-white/45" />
-                                <input
-                                  value={pushDeviceSearch}
-                                  onChange={(e) => setPushDeviceSearch(e.target.value)}
-                                  placeholder="بحث سريع: مستخدم، إيميل، جهاز، عنوان إشعار، توكن..."
-                                  dir="rtl"
-                                  className="w-full bg-transparent text-[11px] font-bold text-white placeholder:text-white/35 outline-none"
-                                />
-                              </div>
-
-                              {pushDeviceTab === "users" && (
-                                <div className="space-y-2">
-                                  {userGroups.length ? (
-                                    userGroups.map((group) => {
-                                      const groupOpen = expandedPushDeviceGroup === group.id;
-                                      const groupNotifications = group.devices
-                                        .flatMap((d) => d.recentNotifications || [])
-                                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                                      const latest = groupNotifications[0];
-                                      const activeDevices = group.devices.filter((device) => !isPushDeviceQuietForMain(device));
-                                      const quietDevices = group.devices.filter((device) => isPushDeviceQuietForMain(device));
-                                      const activeCount = activeDevices.length;
-                                      const attentionCount = quietDevices.length;
-                                      return (
-                                        <div key={group.id} className="rounded-2xl border border-white/10 bg-slate-950/30 overflow-hidden">
-                                          <button
-                                            type="button"
-                                            onClick={() => setExpandedPushDeviceGroup(groupOpen ? "" : group.id)}
-                                            className="w-full px-3 py-3 flex items-center justify-between gap-3 text-right hover:bg-white/5 transition"
-                                          >
-                                            <div className="min-w-0 flex-1">
-                                              <div className="flex flex-wrap items-center gap-2">
-                                                <strong className="truncate text-[12px] font-black text-white">{group.owner}</strong>
-                                                {group.role && <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black text-white/55">{group.role}</span>}
-                                                {renderPushStage(latest)}
-                                              </div>
-                                              <p className="mt-1 truncate text-[10px] font-bold text-white/45">
-                                                آخر Push: {latest ? `${latest.title} — ${latest.date}` : "لا يوجد أرشيف Push لهذا المستخدم"}
-                                              </p>
-                                            </div>
-                                            <div className="shrink-0 flex items-center gap-2">
-                                              <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[9px] font-black text-emerald-100">{activeCount} جاهز</span>
-                                              <span className="rounded-full bg-white/10 px-2 py-1 text-[9px] font-black text-white/55">{group.devices.length} جهاز</span>
-                                              {attentionCount > 0 && <span className="rounded-full bg-amber-400/10 px-2 py-1 text-[9px] font-black text-amber-100">{attentionCount} مراجعة</span>}
-                                              <ChevronDown size={15} className={cn("text-white/60 transition-transform", groupOpen ? "rotate-180" : "")} />
-                                            </div>
-                                          </button>
-                                          {groupOpen && (
-                                            <div className="border-t border-white/10 p-2.5 space-y-2">
-                                              {latest && (
-                                                <div className="rounded-xl border border-white/10 bg-white/5 p-2">
-                                                  <span className="block text-[9px] font-black text-white/40">آخر إشعار لهذا المستخدم</span>
-                                                  <div className="mt-2">{renderNotificationCard(latest, true)}</div>
-                                                </div>
-                                              )}
-                                              <div className="space-y-1.5">
-                                                {activeDevices.length ? (
-                                                  activeDevices.map(renderDeviceDetails)
-                                                ) : (
-                                                  <p className="rounded-xl border border-dashed border-white/10 bg-white/5 p-3 text-center text-[10px] font-bold text-white/45">
-                                                    لا يوجد جهاز نشط ظاهر لهذا المستخدم حاليًا. الأجهزة القديمة محفوظة بالأسفل ولا تُحذف.
-                                                  </p>
-                                                )}
-                                              </div>
-                                              {quietDevices.length > 0 && (
-                                                <details className="rounded-xl border border-amber-300/15 bg-amber-400/10 p-2">
-                                                  <summary className="cursor-pointer text-[10px] font-black text-amber-100 flex items-center justify-between gap-2">
-                                                    <span>الأجهزة القديمة والمخفية بصريًا</span>
-                                                    <span className="rounded-full bg-amber-300/15 px-2 py-0.5 text-[9px]">{quietDevices.length}</span>
-                                                  </summary>
-                                                  <p className="mt-2 text-[9px] font-bold leading-5 text-white/55">
-                                                    هذه الأجهزة لم تُحذف ولم تُعطّل. تم إخفاؤها فقط لأنها أقدم من أسبوع أو ناقصة وقت قراءة/استلام واضح. البحث السريع لا يزال يجدها.
-                                                  </p>
-                                                  <div className="mt-2 space-y-1.5">
-                                                    {quietDevices.map(renderDeviceDetails)}
-                                                  </div>
-                                                </details>
-                                              )}
-                                              <details className="rounded-xl border border-white/10 bg-black/20 p-2">
-                                                <summary className="cursor-pointer text-[10px] font-black text-white/70">
-                                                  تفاصيل المستخدم الفنية
-                                                </summary>
-                                                <div className="mt-2 grid grid-cols-2 gap-2">
-                                                  {[
-                                                    ["User ID", group.userId || "Not linked"],
-                                                    ["Email", group.email || "Not linked"],
-                                                    ["Role", group.role || "Not linked"],
-                                                    ["Push events", groupNotifications.length],
-                                                  ].map(([label, value]) => (
-                                                    <div key={label} className="rounded-lg border border-white/10 bg-white/5 p-2 min-w-0">
-                                                      <span className="block text-[8px] font-black text-white/35">{label}</span>
-                                                      <b dir="ltr" className="mt-1 block truncate text-[9px] font-black text-white/75">{value}</b>
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => copyPushEmployeeReport(group.owner, group.devices)}
-                                                  className="mt-2 w-full rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-[10px] font-black text-white hover:bg-white/15 flex items-center justify-center gap-2"
-                                                >
-                                                  <Code size={13} /> نسخ تقرير المستخدم
-                                                </button>
-                                              </details>
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })
-                                  ) : (
-                                    <p className="rounded-2xl border border-dashed border-white/10 p-4 text-center text-[10px] font-bold text-white/45">
-                                      لا توجد نتائج مطابقة للبحث الحالي.
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-
-                              {pushDeviceTab === "devices" && (
-                                <div className="space-y-2">
-                                  <div className="rounded-2xl border border-white/10 bg-slate-950/30 p-3 text-[10px] font-bold leading-5 text-white/55">
-                                    العرض الافتراضي يعرض الأجهزة الجاهزة فقط. الأجهزة القديمة محفوظة تحت قائمة مخفية حتى لا تسبب زحمة بصرية.
-                                  </div>
-                                  {activeMainDevices.length ? activeMainDevices.map(renderDeviceDetails) : (
-                                    <p className="rounded-2xl border border-dashed border-white/10 p-4 text-center text-[10px] font-bold text-white/45">لا توجد أجهزة نشطة مطابقة.</p>
-                                  )}
-                                  {hiddenMainDevices.length > 0 && (
-                                    <details className="rounded-2xl border border-amber-300/15 bg-amber-400/10 p-3">
-                                      <summary className="cursor-pointer text-[11px] font-black text-amber-100 flex items-center justify-between gap-2">
-                                        <span>عرض الأجهزة القديمة والمخفية بصريًا</span>
-                                        <span className="rounded-full bg-amber-300/15 px-2 py-0.5 text-[9px]">{hiddenMainDevices.length}</span>
-                                      </summary>
-                                      <div className="mt-3 space-y-1.5">
-                                        {hiddenMainDevices.map(renderDeviceDetails)}
-                                      </div>
-                                    </details>
-                                  )}
-                                </div>
-                              )}
-
-                              {pushDeviceTab === "log" && (
-                                <div className="rounded-2xl border border-white/10 bg-slate-950/30 overflow-hidden">
-                                  <div className="p-3 flex items-center justify-between gap-2 text-right">
-                                    <div>
-                                      <div className="text-[11px] font-black text-white">أرشيف Push الحقيقي</div>
-                                      <p className="mt-1 text-[10px] font-bold text-white/45">
-                                        يعرض Push الحقيقي فقط: أرسل، قبله FCM، استلمه الجهاز، فتحه الموظف. الإشعارات القديمة لا تظهر إذا لم تكن مسجلة سابقًا.
-                                      </p>
-                                    </div>
-                                    <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-white/60">{notificationLog.length}</span>
-                                  </div>
-                                  <div className="border-t border-white/10 p-2 space-y-1.5 max-h-96 overflow-auto">
-                                    {notificationLog.length ? notificationLog.map((notification) => renderNotificationCard(notification)) : (
-                                      <p className="rounded-xl border border-dashed border-white/10 p-3 text-center text-[10px] font-bold text-white/45">
-                                        لا يوجد أرشيف Push حقيقي محفوظ حتى الآن. سيظهر هنا أي Push جديد يتم تسجيله من السيرفر أو الاختبار.
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {pushDeviceTab === "investigate" && (
-                                <div className="space-y-2">
-                                  <div className="rounded-2xl border border-sky-300/15 bg-sky-400/10 p-3">
-                                    <div className="flex items-center gap-2 text-[11px] font-black text-sky-100">
-                                      <ClipboardCheck size={14} /> أمر سريع: موظف يقول ما وصلني Push
-                                    </div>
-                                    <p className="mt-1 text-[10px] font-bold leading-5 text-white/55">
-                                      ابحث باسم المستخدم أو الإيميل، افتح الجهاز الحالي، ثم أرسل اختبارًا سريعًا لجهاز واحد فقط.
-                                    </p>
-                                  </div>
-                                  {userGroups.length ? userGroups.map((group) => (
-                                    <div key={`investigate-${group.id}`} className="rounded-2xl border border-white/10 bg-slate-950/30 p-2 space-y-1.5">
-                                      <div className="flex items-center justify-between gap-2 px-1">
-                                        <strong className="text-[11px] font-black text-white">{group.owner}</strong>
-                                        <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black text-white/55">{group.devices.length} جهاز</span>
-                                      </div>
-                                      {group.devices.map(renderDeviceDetails)}
-                                    </div>
-                                  )) : (
-                                    <p className="rounded-2xl border border-dashed border-white/10 p-4 text-center text-[10px] font-bold text-white/45">اكتب اسم المستخدم أو الجهاز للبحث.</p>
-                                  )}
-                                </div>
-                              )}
-
-                              {pushDeviceTab === "advanced" && (
-                                <div className="space-y-2">
-                                  <details className="rounded-2xl border border-white/10 bg-slate-950/30 p-3" open>
-                                    <summary className="cursor-pointer text-[11px] font-black text-white flex items-center gap-2">
-                                      <Filter size={14} /> فلاتر فنية متقدمة ({getPushAdvancedFilterLabel(pushAdvancedFilter)})
-                                    </summary>
-                                    <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-1.5">
-                                      {[
-                                        ["all", "كل الحالات"],
-                                        ["noRead", "بلا وقت قراءة"],
-                                        ["noUser", "بلا مستخدم"],
-                                        ["noLogs", "بلا أرشيف Push"],
-                                        ["weak", "جاهزية ضعيفة"],
-                                        ["duplicates", "عدة أجهزة لنفس المستخدم"],
-                                      ].map(([id, label]) => (
-                                        <button
-                                          key={id}
-                                          type="button"
-                                          onClick={() => setPushAdvancedFilter(id as any)}
-                                          className={cn(
-                                            "rounded-xl px-3 py-2 text-[10px] font-black transition",
-                                            pushAdvancedFilter === id
-                                              ? "bg-white text-slate-950"
-                                              : "bg-white/10 text-white/60 hover:bg-white/15",
-                                          )}
-                                        >
-                                          {label}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </details>
-                                  <details className="rounded-2xl border border-amber-300/15 bg-amber-400/10 p-3">
-                                    <summary className="cursor-pointer text-[11px] font-black text-amber-100 flex items-center gap-2">
-                                      <Shield size={14} /> ملاحظة فنية
-                                    </summary>
-                                    <div className="mt-3 grid gap-2 text-[10px] font-bold leading-5 text-white/65">
-                                      <p>1) هذا المكان خاص بـ Push الحقيقي للموظفين فقط.</p>
-                                      <p>2) الأرشيف لا يعرض إشعارات ذكية داخلية ولا يسترجع إشعارات قديمة لم تكن مسجلة.</p>
-                                      <p>3) زر الاختبار يرسل Push لجهاز محدد فقط، وليس Broadcast.</p>
-                                      <p>4) الأجهزة القديمة مخفية بصريًا فقط ولا يتم حذفها أو تعطيلها. إذا عاد الجهاز للنشاط يظهر تلقائيًا.</p>
-                                    </div>
-                                  </details>
-                                  <button
-                                    type="button"
-                                    onClick={() => copyPushExecutiveSummary(pushDevices)}
-                                    className="w-full rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-[10px] font-black text-white hover:bg-white/15 flex items-center justify-center gap-2"
-                                  >
-                                    <Code size={13} /> نسخ ملخص تنفيذي
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
+                      })()
+                    ) : (
+                      <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm font-bold leading-7 text-white/65">
+                        اضغط <span className="font-black text-white">فحص الآن</span> لعرض المستخدمين، الأجهزة، آخر الإشعارات، وزر اختبار سريع لكل مستخدم.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
