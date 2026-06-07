@@ -582,14 +582,14 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  initial={{ opacity: 0 }} 
  animate={{ opacity: 1 }} 
  exit={{ opacity: 0 }} 
- className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
+ className="supplier-payment-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
  onClick={() => setShowAddModal(false)}
  >
  <motion.div 
  initial={{ opacity: 0, scale: 0.95, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95, y: 20 }}
- className="bg-white rounded-3xl w-[calc(100vw-1.5rem)] sm:w-[95%] md:w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+ className="supplier-payment-modal bg-white rounded-3xl w-[calc(100vw-1.5rem)] sm:w-[95%] md:w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
  onClick={e => e.stopPropagation()}
  >
  <div className="p-3 md:p-4 md:p-3 pb-0 shrink-0">

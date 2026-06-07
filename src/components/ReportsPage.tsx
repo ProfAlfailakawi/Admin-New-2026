@@ -37,6 +37,7 @@ import {
   ChevronDown,
   ChevronUp,
   Package,
+  Truck,
   User,
   CreditCard,
   Clock,
@@ -1434,10 +1435,11 @@ Alturath.kw`;
                                           e.stopPropagation();
                                           handleManageDelivery(inv);
                                         }}
-                                        className="px-2.5 py-2 hover:bg-blue-50 rounded-lg text-slate-500 hover:text-blue-600 transition-colors text-[10px] font-black whitespace-nowrap"
+                                        className="p-2 hover:bg-blue-50 rounded-lg text-slate-500 hover:text-blue-600 transition-colors"
                                         title="إدارة التوصيل والمستحقات"
+                                        aria-label="إدارة التوصيل والمستحقات"
                                       >
-                                        إدارة التوصيل
+                                        <Truck size={16} />
                                       </button>
                                     )}
                                     {!isPartner && (
