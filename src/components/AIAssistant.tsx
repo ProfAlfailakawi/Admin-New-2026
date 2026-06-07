@@ -14,7 +14,10 @@ import {
 	 ShieldAlert,
 	 Wand2,
 	 Clock3,
-	 Package as PackageIcon
+	 Package as PackageIcon,
+	 BarChart3,
+	 Target,
+	 AlertTriangle
 	} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppState } from '../types';
@@ -65,6 +68,95 @@ const isFailed = (value: any) => {
 const isPending = (value: any) => {
  const s = String(value || '').toLowerCase();
  return !s || s.includes('pending') || s.includes('بانتظار') || s.includes('انتظار') || s.includes('جديد');
+};
+
+
+const getTextFromNode = (children: any): string => {
+  if (Array.isArray(children)) return children.map(getTextFromNode).join(' ');
+  if (children && typeof children === 'object' && 'props' in children) return getTextFromNode(children.props?.children);
+  return String(children || '');
+};
+
+const normalizeArabicNumber = (value: string) => String(value || '').replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
+
+const extractVisualKpis = (content: string) => {
+  const text = normalizeArabicNumber(String(content || '').replace(/[*_#`]/g, ' '));
+  const candidates: Array<{ value: string; label: string; tone: 'money' | 'percent' | 'count' | 'plain' }> = [];
+  const push = (value: string, label: string, tone: 'money' | 'percent' | 'count' | 'plain') => {
+    const cleanValue = value.trim();
+    if (!cleanValue || candidates.some((c) => c.value === cleanValue && c.label === label)) return;
+    candidates.push({ value: cleanValue, label: label.trim() || 'مؤشر', tone });
+  };
+
+  const moneyRegex = /([^\n:،|]{0,24}?)(\d+(?:\.\d{1,3})?)\s*(?:د\.ك|دينار)/g;
+  let match: RegExpExecArray | null;
+  while ((match = moneyRegex.exec(text)) && candidates.length < 3) {
+    push(`${match[2]} د.ك`, match[1].replace(/[\-–•|]/g, ' ').trim() || 'قيمة مالية', 'money');
+  }
+
+  const percentRegex = /([^\n:،|]{0,22}?)(\d+(?:\.\d+)?)\s*%/g;
+  while ((match = percentRegex.exec(text)) && candidates.length < 4) {
+    push(`${match[2]}%`, match[1].replace(/[\-–•|]/g, ' ').trim() || 'نسبة', 'percent');
+  }
+
+  const countRegex = /([^\n:،|]{0,22}?)(\d+)\s*(?:طلبات|طلب|مبيع|مبيعات|عميل|منتج)/g;
+  while ((match = countRegex.exec(text)) && candidates.length < 4) {
+    const unit = /طلبات|طلب|مبيع|مبيعات|عميل|منتج/.exec(match[0])?.[0] || 'عدد';
+    push(`${match[2]} ${unit}`, match[1].replace(/[\-–•|]/g, ' ').trim() || 'عدد', 'count');
+  }
+
+  return candidates.slice(0, 4);
+};
+
+const headingIconFor = (value: string) => {
+  const text = String(value || '');
+  if (/خطر|تنبيه|فشل|مشكلة|ناقص|معل/.test(text)) return <AlertTriangle size={17} />;
+  if (/إجراء|قرار|افعل|الآن|اليوم/.test(text)) return <Target size={17} />;
+  if (/إحص|رادار|أرقام|بيانات|مؤشر|مبيعات|ربح/.test(text)) return <BarChart3 size={17} />;
+  return <Sparkles size={17} />;
+};
+
+const AssistantVisualMessage: React.FC<{ content: string }> = ({ content }) => {
+  const kpis = React.useMemo(() => extractVisualKpis(content), [content]);
+
+  return (
+    <div className="ai-premium-answer">
+      <div className="ai-premium-glow" aria-hidden="true" />
+      {kpis.length > 0 && (
+        <div className="ai-answer-kpi-strip" aria-label="مؤشرات مختصرة">
+          {kpis.map((item, index) => (
+            <div key={`${item.value}-${index}`} className={cn('ai-answer-kpi', `is-${item.tone}`)}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
+      )}
+      <Markdown components={{
+        h1: ({node, children, ...props}) => {
+          const label = getTextFromNode(children);
+          return <h3 className="ai-answer-heading" {...props}><span>{headingIconFor(label)}</span>{children}</h3>;
+        },
+        h2: ({node, children, ...props}) => {
+          const label = getTextFromNode(children);
+          return <h3 className="ai-answer-heading" {...props}><span>{headingIconFor(label)}</span>{children}</h3>;
+        },
+        h3: ({node, children, ...props}) => {
+          const label = getTextFromNode(children);
+          return <h3 className="ai-answer-heading" {...props}><span>{headingIconFor(label)}</span>{children}</h3>;
+        },
+        p: ({node, ...props}) => <p className="ai-answer-paragraph" {...props} />,
+        strong: ({node, ...props}) => <strong className="ai-answer-emphasis" {...props} />,
+        em: ({node, ...props}) => <em className="ai-answer-soft" {...props} />,
+        ul: ({node, ...props}) => <ul className="ai-answer-list" {...props} />,
+        ol: ({node, ...props}) => <ol className="ai-answer-list is-numbered" {...props} />,
+        li: ({node, ...props}) => <li className="ai-answer-item" {...props} />,
+        table: ({node, ...props}) => <div className="ai-answer-table-wrap"><table {...props} /></div>,
+        th: ({node, ...props}) => <th {...props} />,
+        td: ({node, ...props}) => <td {...props} />,
+      }}>{content}</Markdown>
+    </div>
+  );
 };
 
 const compactAssistantReply = (value: string) => {
@@ -582,15 +674,17 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
           >
             <div className="ai-chat-avatar">{m.role === 'user' ? <User size={15} /> : <Bot size={15} />}</div>
             <div className="ai-chat-bubble">
-              <Markdown components={{
-                strong: ({node, ...props}) => <strong {...props} />,
-                h3: ({node, ...props}) => <h3 {...props} />,
-                li: ({node, ...props}) => <li {...props} />,
-                table: ({node, ...props}) => <div className="my-5 overflow-x-auto rounded-2xl border border-slate-200/60 shadow-sm"><table className="w-full text-right border-collapse" {...props} /></div>,
-                th: ({node, ...props}) => <th className="bg-slate-50 p-3 font-black text-slate-800 border-b border-slate-200/80" {...props} />,
-                td: ({node, ...props}) => <td className="p-3 border-b border-slate-100 text-slate-600 font-medium" {...props} />,
-                em: ({node, ...props}) => <em {...props} />
-              }}>{m.content}</Markdown>
+              {m.role === 'assistant' ? <AssistantVisualMessage content={m.content} /> : (
+                <Markdown components={{
+                  strong: ({node, ...props}) => <strong {...props} />,
+                  h3: ({node, ...props}) => <h3 {...props} />,
+                  li: ({node, ...props}) => <li {...props} />,
+                  table: ({node, ...props}) => <div className="my-5 overflow-x-auto rounded-2xl border border-slate-200/60 shadow-sm"><table className="w-full text-right border-collapse" {...props} /></div>,
+                  th: ({node, ...props}) => <th className="bg-slate-50 p-3 font-black text-slate-800 border-b border-slate-200/80" {...props} />,
+                  td: ({node, ...props}) => <td className="p-3 border-b border-slate-100 text-slate-600 font-medium" {...props} />,
+                  em: ({node, ...props}) => <em {...props} />
+                }}>{m.content}</Markdown>
+              )}
             </div>
           </motion.div>
         ))}
