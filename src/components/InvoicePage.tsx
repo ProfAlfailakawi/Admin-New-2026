@@ -1478,9 +1478,8 @@ Alturath.kw`;
               {/* فاتورة جديدة: إدارة التوصيل والمستحقات الداخلية */}
               {!isPartner && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center justify-end gap-2">
                   <span className="text-[10px] font-bold text-slate-500 text-right">طريقة التوصيل</span>
-                  <span className="text-[9px] font-bold text-slate-400">داخلياً للحسابات ولا يغير مبلغ العميل</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
@@ -1537,7 +1536,6 @@ Alturath.kw`;
                       </option>
                     ))}
                   </select>
-                  <p className="mt-1 text-[10px] font-bold text-slate-400 leading-5 text-right">اسم الشركة يظهر تلقائيًا حسب الاتفاق، وتستطيع تغييره عند الحاجة.</p>
                 </div>
               </div>
               )}

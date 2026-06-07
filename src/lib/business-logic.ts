@@ -5,7 +5,8 @@ import { isPaidStatus } from './status-utils';
 const getInvoiceDeliverySettlementAmount = (inv: any, supplierId: string, state: AppState): number => {
   const info = inv?.deliveryInfo || {};
   const target = info.settlementTarget || inv?.deliverySettlementTarget;
-  const value = Number(info.cost ?? inv?.deliveryCost ?? info.finalPrice ?? inv?.deliveryFee ?? 0) || 0;
+  const valueCandidates = [info.cost, inv?.deliveryCost, info.finalPrice, inv?.deliveryFee];
+  const value = Number(valueCandidates.find((candidate) => Number(candidate || 0) > 0) || 0) || 0;
   if (value <= 0) return 0;
 
   const supplier = (state?.suppliers || []).find((s: any) => String(s.id) === String(supplierId));

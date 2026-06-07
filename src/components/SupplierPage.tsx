@@ -64,7 +64,8 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  const getInvoiceDeliverySettlement = (inv: any, supId: string) => {
    const info = inv?.deliveryInfo || {};
    const target = info.settlementTarget || inv?.deliverySettlementTarget;
-   const value = Number(info.cost ?? inv?.deliveryCost ?? info.finalPrice ?? inv?.deliveryFee ?? 0) || 0;
+   const valueCandidates = [info.cost, inv?.deliveryCost, info.finalPrice, inv?.deliveryFee];
+  const value = Number(valueCandidates.find((candidate) => Number(candidate || 0) > 0) || 0) || 0;
    if (value <= 0) return 0;
    const supplier = (data?.suppliers || []).find(s => String(s.id) === String(supId));
    if (!supplier) return 0;
