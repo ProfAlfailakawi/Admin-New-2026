@@ -2,15 +2,17 @@ import React, { useMemo, useState } from 'react';
 import { AppState } from '../types';
 import { getKitchenNowDecision, getKuwaitiSeasonalMove } from '../lib/ai-engine';
 import { getProductQualityReport } from '../lib/command-quality';
+import { cn } from '../lib/utils';
 import { AlertCircle, Target, Users, TrendingUp, Zap, ShieldAlert, ChevronDown, ChevronUp, Sparkles, Gauge } from 'lucide-react';
 
 interface Props {
   data: AppState;
   dateFilter?: 'day' | 'week' | 'month' | 'year' | 'all';
   onNavigate?: (page: string, payload?: any) => void;
+  partnerMode?: boolean;
 }
 
-export function CommandBrief({ data, dateFilter = 'day', onNavigate }: Props) {
+export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode = false }: Props) {
   const hour = new Date().getHours();
   const greeting = hour >= 17 && hour < 22
     ? { title: 'تحية مسائية هادئة ☕', sub: 'النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.' }
@@ -241,13 +243,25 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate }: Props) {
             <p className="text-xs md:text-sm font-medium leading-7 text-slate-500 break-words">
               {greeting.sub}
             </p>
-            <button
-              type="button"
+            <div
+              className={cn(
+                "mt-3 max-w-4xl rounded-2xl border border-slate-200 bg-white/85 px-3 py-2.5 text-right shadow-sm",
+                !partnerMode && onNavigate ? "cursor-pointer hover:bg-white transition-colors" : "cursor-default"
+              )}
+              role={!partnerMode && onNavigate ? 'button' : undefined}
+              tabIndex={!partnerMode && onNavigate ? 0 : undefined}
               onClick={(e) => {
+                if (partnerMode || !onNavigate) return;
                 e.stopPropagation();
-                onNavigate?.('products', { scrollTarget: 'product-quality-board' });
+                onNavigate('products', { scrollTarget: 'product-quality-board' });
               }}
-              className="mt-3 max-w-4xl rounded-2xl border border-slate-200 bg-white/85 px-3 py-2.5 text-right shadow-sm hover:bg-white transition-colors"
+              onKeyDown={(e) => {
+                if (partnerMode || !onNavigate) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onNavigate('products', { scrollTarget: 'product-quality-board' });
+                }
+              }}
             >
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
@@ -258,10 +272,10 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate }: Props) {
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600"><Gauge size={13} /> جودة المنيو {qualityReport.score}%</span>
-                  <span className="rounded-full bg-slate-950 px-3 py-1 text-[11px] font-black text-white">تفاصيل</span>
+                  {!partnerMode && <span className="rounded-full bg-slate-950 px-3 py-1 text-[11px] font-black text-white">تفاصيل</span>}
                 </div>
               </div>
-            </button>
+            </div>
           </div>
         </div>
 
@@ -290,13 +304,19 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate }: Props) {
                   <div className="mt-1 text-sm font-black text-slate-800 line-clamp-1">{qualityReport.risk?.title || 'لا يوجد تنبيه مهم'}</div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => onNavigate?.('products', { scrollTarget: 'product-quality-board' })}
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-[11px] font-black text-white hover:bg-slate-800 transition-colors"
-              >
-                <Gauge size={13} /> جودة المنيو {qualityReport.score}%
-              </button>
+              {partnerMode ? (
+                <span className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-[11px] font-black text-white">
+                  <Gauge size={13} /> جودة المنيو {qualityReport.score}%
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.('products', { scrollTarget: 'product-quality-board' })}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-[11px] font-black text-white hover:bg-slate-800 transition-colors"
+                >
+                  <Gauge size={13} /> جودة المنيو {qualityReport.score}%
+                </button>
+              )}
             </div>
           </div>
           <div className="grid w-full max-w-full grid-cols-1 gap-3 lg:grid-cols-2">

@@ -2367,12 +2367,48 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         {brain.warning && <div className="rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 p-3 text-[11px] font-black leading-6">{brain.warning}</div>}
 
         {context === 'reel' && brain.hasInput && (
-          <div className="rounded-2xl bg-violet-50 border border-violet-100 p-3">
-            <div className="text-[10px] font-black text-violet-600 mb-2">وصفة الريل حسب الطبق</div>
-            <div className="grid gap-1">
-              {brain.reelRecipe.map((item, index) => <div key={item} className="text-[11px] font-bold text-violet-900">{index + 1}. {item}</div>)}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+            className="rounded-[1.4rem] bg-gradient-to-br from-amber-50 to-orange-50/50 border border-[#C5A059]/30 p-4 relative overflow-hidden mt-4 shadow-sm"
+          >
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] opacity-20 mix-blend-overlay pointer-events-none" />
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-400/10 blur-xl rounded-full translate-x-12 -translate-y-12" />
+            
+            <div className="text-[11px] font-black text-amber-800 mb-3 flex items-center gap-2 z-10 relative">
+               <Sparkles size={14} className="text-[#C5A059]" /> السرد البصري (Storytelling)
             </div>
-          </div>
+            
+            <motion.div 
+              initial="hidden" 
+              animate="visible" 
+              variants={{
+                hidden: { opacity: 0 },
+                visible: { opacity: 1, transition: { staggerChildren: 0.8 } }
+              }} 
+              className="grid gap-3 z-10 relative"
+            >
+              {brain.reelRecipe.map((item, index) => (
+                <motion.div 
+                   key={item} 
+                   variants={{
+                     hidden: { opacity: 0.1, backgroundPosition: "200% 0", filter: "blur(2px)" },
+                     visible: { 
+                       opacity: 1, 
+                       backgroundPosition: "-200% 0", 
+                       filter: "blur(0px)",
+                       transition: { duration: 2, ease: "easeOut" }
+                     }
+                   }}
+                   style={{
+                     backgroundSize: "200% auto",
+                   }}
+                   className="text-xs font-bold leading-relaxed border-r-[1.5px] border-[#C5A059]/40 pr-3 pb-1 text-transparent bg-clip-text bg-gradient-to-l from-amber-950 via-amber-700 to-[#C5A059] animate-[gradientGold_3s_ease]"
+                >
+                   {item}
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
         )}
 
       </div>
@@ -2386,21 +2422,21 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     ];
 
     return (
-      <div className="rounded-[1.7rem] border border-slate-100 bg-slate-50 p-3 space-y-3">
+      <div className="rounded-[1.7rem] border border-slate-200/60 bg-slate-50/50 backdrop-blur-xl p-3 space-y-3 shadow-inner">
         <button
           type="button"
           onClick={() => setShowFineTools(!showFineTools)}
-          className="w-full rounded-3xl bg-white border border-slate-100 p-4 text-right flex items-center justify-between gap-3"
+          className="w-full rounded-3xl bg-white/70 backdrop-blur-md border border-white/60 p-4 text-right flex items-center justify-between gap-3 shadow-sm hover:bg-white/90 transition-all"
         >
           <span>
-            <span className="block text-xs font-black text-slate-500">أدوات دقيقة</span>
-            <span className="block text-sm font-black text-slate-950 mt-1">افتحها فقط عند الحاجة للتعديل</span>
+            <span className="block text-xs font-black text-slate-500 font-mono uppercase tracking-widest">أدوات دقيقة</span>
+            <span className="block text-sm font-black text-slate-900 mt-1">افتحها فقط عند الحاجة للتعديل</span>
           </span>
           <ChevronLeft className={cn("transition-transform text-slate-400", showFineTools ? "-rotate-90" : "")} size={20} />
         </button>
 
         {showFineTools && (
-          <div className="space-y-3">
+          <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="grid grid-cols-2 gap-2">
               {toolTabs.map((tab) => (
                 <button
@@ -2409,7 +2445,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   onClick={() => setFineToolTab(tab.id)}
                   className={cn(
                     "rounded-2xl px-3 py-3 text-sm font-black transition-all flex items-center justify-center gap-2",
-                    fineToolTab === tab.id ? "bg-slate-950 text-white shadow-md" : "bg-white text-slate-500 border border-slate-100"
+                    fineToolTab === tab.id ? "bg-slate-900 text-white shadow-md transform scale-[0.99]" : "bg-white/60 backdrop-blur-md text-slate-500 border border-white/40 hover:bg-white/80"
                   )}
                 >
                   <span>{tab.icon}</span>
@@ -2419,12 +2455,12 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             </div>
 
             {fineToolTab === 'lighting' && (
-              <div className="rounded-3xl border border-amber-100 bg-white p-4">
-                <p className="text-[11px] font-black text-amber-700 mb-3">اختر إحساس الإضاءة</p>
+              <div className="rounded-[1.5rem] border border-amber-900/10 bg-gradient-to-b from-white/90 to-white/50 backdrop-blur-xl p-4 shadow-sm">
+                <p className="text-[11px] font-black text-amber-800 mb-3 font-mono">اختر إحساس الإضاءة</p>
                 <div className="grid grid-cols-2 gap-2">
                   {moods.map(m => (
-                    <button key={m.id} type="button" onClick={() => setSelectedMood(m.id)} className={cn("p-3 rounded-2xl border flex items-center justify-between gap-2 transition-all", selectedMood === m.id ? "bg-amber-50 border-amber-500 text-amber-700 shadow-sm" : "bg-slate-50 border-slate-100 text-slate-600") }>
-                      <span className="text-xl">{m.icon}</span><span className="text-[11px] font-black">{m.label}</span>
+                    <button key={m.id} type="button" onClick={() => setSelectedMood(m.id)} className={cn("p-3 rounded-[1.2rem] border flex items-center justify-between gap-2 transition-all active:scale-95", selectedMood === m.id ? "bg-amber-50/80 border-[#C5A059] text-amber-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.03),0_1px_5px_rgba(197,160,89,0.2)] scale-[0.98]" : "bg-white/60 backdrop-blur-sm border-white/40 text-slate-600 hover:bg-white/90 hover:-translate-y-0.5 hover:shadow-sm") }>
+                      <span className="text-xl drop-shadow-sm">{m.icon}</span><span className="text-[11px] font-black">{m.label}</span>
                     </button>
                   ))}
                 </div>
@@ -2432,11 +2468,11 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             )}
 
             {fineToolTab === 'reality' && (
-              <div className="rounded-3xl border border-emerald-100 bg-white p-4">
-                <p className="text-[11px] font-black text-emerald-700 mb-3">أسلوب الصورة النهائي</p>
+              <div className="rounded-[1.5rem] border border-emerald-900/10 bg-gradient-to-b from-white/90 to-white/50 backdrop-blur-xl p-4 shadow-sm">
+                <p className="text-[11px] font-black text-emerald-800 mb-3 font-mono">أسلوب الصورة النهائي</p>
                 <div className="grid grid-cols-2 gap-2">
                   {(Object.entries(STUDIO_REALITY_MODES) as [StudioRealityMode, typeof STUDIO_REALITY_MODES[StudioRealityMode]][]).map(([id, item]) => (
-                    <button key={id} type="button" onClick={() => setRealityMode(id)} className={cn("p-3 rounded-2xl border text-right transition-all", realityMode === id ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm" : "bg-slate-50 border-slate-100 text-slate-600") }>
+                    <button key={id} type="button" onClick={() => setRealityMode(id)} className={cn("p-3 rounded-[1.2rem] border text-right transition-all active:scale-95", realityMode === id ? "bg-emerald-50/80 border-emerald-500/60 text-emerald-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.03),0_1px_5px_rgba(16,185,129,0.2)] scale-[0.98]" : "bg-white/60 backdrop-blur-sm border-white/40 text-slate-600 hover:bg-white/90 hover:-translate-y-0.5 hover:shadow-sm") }>
                       <span className="block text-xs font-black">{cleanRealityLabel(item.label)}</span>
                     </button>
                   ))}
@@ -2450,24 +2486,24 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   };
 
   const renderPlaceLibrary = () => (
-    <div className="rounded-[1.7rem] border border-slate-100 bg-slate-50 p-3 space-y-3">
+    <div className="rounded-[1.7rem] border border-slate-200/60 bg-slate-50/50 backdrop-blur-xl p-3 space-y-3 shadow-inner">
       <button
         type="button"
         onClick={() => setShowPlaceLibrary(!showPlaceLibrary)}
-        className="w-full rounded-3xl bg-white border border-slate-100 p-4 text-right flex items-center justify-between gap-3"
+        className="w-full rounded-3xl bg-white/70 backdrop-blur-md border border-white/60 p-4 text-right flex items-center justify-between gap-3 shadow-sm hover:bg-white/90 transition-all"
       >
         <span>
-          <span className="block text-xs font-black text-slate-500">مشاهد واقعية جاهزة</span>
-          <span className="mt-1 flex items-center justify-end gap-2 text-sm font-black text-slate-950"><span>{KUWAIT_PLACES[selectedOrderPlace]?.label}</span>{selectedOrderPlace === 'towers' ? renderKuwaitTowersMark('sm') : <span>{KUWAIT_PLACES[selectedOrderPlace]?.icon}</span>}</span>
+          <span className="block text-xs font-black text-slate-500 font-mono uppercase tracking-widest">مشاهد واقعية جاهزة</span>
+          <span className="mt-1 flex items-center justify-end gap-2 text-sm font-black text-slate-900"><span>{KUWAIT_PLACES[selectedOrderPlace]?.label}</span>{selectedOrderPlace === 'towers' ? renderKuwaitTowersMark('sm') : <span className="drop-shadow-sm">{KUWAIT_PLACES[selectedOrderPlace]?.icon}</span>}</span>
         </span>
         <ChevronLeft className={cn("transition-transform text-slate-400", showPlaceLibrary ? "-rotate-90" : "")} size={20} />
       </button>
       {showPlaceLibrary && (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
           {(Object.entries(KUWAIT_PLACES) as [KuwaitOrderPlace, typeof KUWAIT_PLACES[KuwaitOrderPlace]][]).map(([id, place]) => (
-            <button key={id} type="button" onClick={() => { setSelectedOrderPlace(id); setBackgroundPreset(place.background); setShowPlaceLibrary(false); }} className={cn("rounded-2xl border p-3 text-right transition-all min-h-[72px]", selectedOrderPlace === id ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-white text-slate-600 border-slate-100 hover:bg-slate-50") }>
-              <span className="mx-auto mb-1 inline-flex">{renderKuwaitPlaceIcon(id, place)}</span>
-              <span className="block text-xs font-black mt-1">{place.label}</span>
+            <button key={id} type="button" onClick={() => { setSelectedOrderPlace(id); setBackgroundPreset(place.background); setShowPlaceLibrary(false); }} className={cn("rounded-[1.2rem] border p-3 text-right transition-all min-h-[72px] active:scale-95", selectedOrderPlace === id ? "bg-slate-900 text-white border-slate-800 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] scale-[0.98]" : "bg-white/60 backdrop-blur-sm text-slate-600 border-white/50 hover:bg-white/90 hover:-translate-y-0.5 hover:shadow-sm") }>
+              <span className="mx-auto mb-1 inline-flex drop-shadow-sm">{renderKuwaitPlaceIcon(id, place)}</span>
+              <span className="block text-[11px] font-black mt-1">{place.label}</span>
             </button>
           ))}
         </div>
@@ -2821,6 +2857,42 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     toast.success('جهزنا الريل من المنيو — بقي ضغطة التوليد');
   };
 
+  const renderViewfinderFrame = () => (
+    <div className="absolute inset-3 sm:inset-5 pointer-events-none opacity-40 z-0">
+      <div className="absolute top-0 left-0 w-8 h-8 border-t-[1.5px] border-l-[1.5px] border-white/60" />
+      <div className="absolute top-0 right-0 w-8 h-8 border-t-[1.5px] border-r-[1.5px] border-white/60" />
+      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-[1.5px] border-l-[1.5px] border-white/60" />
+      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-[1.5px] border-r-[1.5px] border-white/60" />
+      <div className="absolute inset-0 border border-white/10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 opacity-50">
+         <div className="absolute top-1/2 left-0 w-1.5 h-[1px] bg-white/60" />
+         <div className="absolute top-1/2 right-0 w-1.5 h-[1px] bg-white/60" />
+         <div className="absolute top-0 left-1/2 w-[1px] h-1.5 bg-white/60" />
+         <div className="absolute bottom-0 left-1/2 w-[1px] h-1.5 bg-white/60" />
+      </div>
+    </div>
+  );
+
+  const renderScannerSweep = (message: string, subMessage?: string) => (
+    <div className="relative z-10 text-center text-white p-8 w-full h-full flex flex-col items-center justify-center animate-in fade-in duration-500">
+      <div className="relative w-48 h-[2px] bg-white/10 mb-8 overflow-hidden rounded-full">
+        <motion.div 
+          animate={{ x: ['-100%', '100%'] }} 
+          transition={{ repeat: Infinity, duration: 2, ease: "linear", repeatType: "mirror" }} 
+          className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-violet-400 to-transparent shadow-[0_0_15px_rgba(167,139,250,0.8)]" 
+        />
+      </div>
+      <div className="w-20 h-20 relative flex items-center justify-center mb-6">
+         <div className="absolute inset-0 rounded-full border border-violet-400/30 animate-[ping_2s_ease-out_infinite]" />
+         <div className="absolute inset-0 rounded-full border border-indigo-400/20 animate-[ping_3s_ease-in-out_infinite]" />
+         <div className="absolute inset-0 rounded-full bg-violet-400/10 blur-xl animate-pulse" />
+         <Camera className="text-violet-300 opacity-90" size={30} strokeWidth={2.5} />
+      </div>
+      <p className="font-black text-xl tracking-wide font-display text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">{message}</p>
+      {subMessage && <p className="mt-3 text-xs font-bold text-white/50">{subMessage}</p>}
+    </div>
+  );
+
   const renderStageProgress = (currentStep: number, setStep: (step: number) => void) => {
     const steps = visibleStudioSteps;
     const maxAllowedStep = studioTab === 'product' ? maxProductStepReached : maxCreateStepReached;
@@ -2848,79 +2920,87 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   };
 
   return (
-    <div className="smart-studio-shell max-w-6xl mx-auto px-3 sm:px-4 py-5 sm:py-8 animate-in fade-in duration-500 pb-32">
+    <div className={cn("smart-studio-shell max-w-6xl mx-auto px-2 sm:px-4 py-5 sm:py-8 animate-in fade-in duration-700 pb-32 min-h-[calc(100vh-100px)] rounded-[2.5rem] transition-colors", studioTab === 'home' || studioTab === 'library' ? "bg-slate-50/50" : "bg-slate-950")}>
       
-      <div className="smart-studio-hero mb-5 sm:mb-8 rounded-[2rem] sm:rounded-[2.4rem] bg-[radial-gradient(circle_at_top_left,_#4338ca,_#0f172a_46%,_#020617)] p-5 sm:p-6 md:p-7 shadow-2xl border border-white/10 text-white relative overflow-hidden">
+      <div className={cn("smart-studio-hero mb-4 sm:mb-8 rounded-[2rem] sm:rounded-[2.4rem] p-5 sm:p-6 md:p-7 shadow-xl border relative overflow-hidden transition-all duration-700", studioTab === 'home' || studioTab === 'library' ? "bg-[radial-gradient(circle_at_top_left,_#4338ca,_#0f172a_46%,_#020617)] border-white/10 text-white" : "bg-slate-900 border-white/5 text-slate-100")}>
         <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl pointer-events-none" />
         <div className="absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-cyan-300/10 blur-3xl pointer-events-none" />
-        <div className="absolute inset-x-8 bottom-0 h-px bg-gradient-to-l from-transparent via-white/25 to-transparent" />
+        <div className="absolute inset-x-8 bottom-0 h-px bg-gradient-to-l from-transparent via-white/20 to-transparent" />
 
         <div className="relative z-10 flex items-center justify-between gap-3 sm:gap-4">
           <div className="text-right">
-            <h1 className="smart-studio-title text-2xl sm:text-3xl md:text-4xl font-black flex items-center gap-3 leading-tight">
-              <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 border border-white/10"><Camera className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-200" /></span>
+            <h1 className="smart-studio-title text-2xl sm:text-3xl md:text-4xl font-black flex items-center gap-3 leading-tight font-display tracking-tight">
+              <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-[1.2rem] bg-white/10 border border-white/10 shadow-inner group-hover:scale-105 transition-transform"><Camera className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-200" strokeWidth={2.5} /></span>
               استوديو التراث الذكي
             </h1>
           </div>
-          <button onClick={() => setStudioTab('library')} className="h-12 w-12 rounded-2xl border border-white/10 bg-white/10 text-white flex items-center justify-center backdrop-blur shrink-0" title="الأرشيف">
-            <Library size={18} />
+          <button onClick={() => setStudioTab('library')} className="h-11 w-11 sm:h-12 sm:w-12 rounded-[1.2rem] border border-white/10 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur shrink-0 transition-all shadow-sm" title="الأرشيف">
+            <Library size={18} strokeWidth={2.5} />
           </button>
         </div>
         
         <div className="relative z-10 mt-5 flex items-center justify-between gap-3">
           {studioTab !== 'home' ? (
-            <button onClick={changeStudioPath} className="h-10 w-10 rounded-2xl text-xs sm:text-sm font-black bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10 flex items-center justify-center" title="العودة للمنيو الرئيسي" aria-label="العودة للمنيو الرئيسي">
-              <ChevronLeft size={18} className="rotate-180" />
+            <button onClick={changeStudioPath} className="h-10 w-10 sm:h-11 sm:w-11 rounded-[1.1rem] text-xs sm:text-sm font-black bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10 flex items-center justify-center backdrop-blur shadow-sm" title="العودة للمنيو الرئيسي" aria-label="العودة للمنيو الرئيسي">
+              <ChevronLeft size={20} strokeWidth={3} className="rotate-180" />
             </button>
           ) : <div />}
         </div>
       </div>
 
       {studioTab === 'home' && (
-        <div className="smart-studio-home-panel max-w-6xl mx-auto rounded-[2.3rem] bg-white border border-slate-100 shadow-sm p-4 sm:p-6 text-right">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
+        <div className="smart-studio-home-panel max-w-6xl mx-auto rounded-[2.3rem] bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 sm:p-7 text-right">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
             <div>
-              <p className="text-xs font-black text-indigo-500 mb-1">اختَر مسار الإنتاج</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">ابدأ بالناتج، والباقي داخل المسار</h2>
-              <p className="text-xs sm:text-sm font-bold text-slate-400 mt-2 leading-6">مساران فقط: ريل مباشر أو صورة مباشرة. الريل يبدأ من صورة أو فكرة، والصورة تبدأ من صورة أو فكرة مع اختيار ذكي من المنيو عند الحاجة.</p>
+              <p className="text-xs font-black text-indigo-500 mb-2 uppercase tracking-wider font-mono">Creative Paths</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight font-display">ابدأ بالناتج، والباقي داخل المسار</h2>
+              <p className="text-xs sm:text-sm font-bold text-slate-500 mt-2 leading-relaxed">مساران فقط: ريل مباشر أو صورة مباشرة. الريل يبدأ من صورة أو فكرة، والصورة تبدأ من صورة أو فكرة مع ذكاء يدعمك.</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-px flex-1 bg-slate-100" />
-            <span className="text-[11px] font-black text-slate-400">المسارات الرئيسية</span>
-            <div className="h-px flex-1 bg-slate-100" />
+          <div className="flex items-center gap-4 mb-5 opacity-60">
+            <div className="h-px flex-1 bg-gradient-to-l from-transparent to-slate-300" />
+            <span className="text-[10px] font-black text-slate-400 uppercase font-mono tracking-widest">Main Modules</span>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent to-slate-300" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
-            <button onClick={openReelDirect} className="group rounded-[2rem] border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-5 sm:p-6 text-right transition-all hover:-translate-y-0.5 hover:shadow-lg min-h-[260px] flex flex-col justify-between overflow-hidden relative">
-              <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-violet-200/40 blur-2xl" />
-              <div className="relative flex items-center justify-between gap-3">
-                <span className="h-13 w-13 rounded-3xl bg-white border border-violet-100 shadow-sm flex items-center justify-center text-violet-600"><Film size={25} /></span>
-                <span className="rounded-full bg-violet-600 text-white px-4 py-2 text-xs font-black shadow-sm">فيديو / ريل</span>
-              </div>
-              <div className="relative mt-7">
-                <div className="text-2xl font-black text-slate-950 leading-tight">ريل مباشر</div>
-                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">غرفة مونتاج واحدة: من صورة أو من فكرة. بعدها لقطة، مدة، وتوليد.</div>
-                <div className="mt-5 grid grid-cols-2 gap-2 text-center text-[10px] font-black">
-                  <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">فكرة</span>
-                  <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">صورة</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <button onClick={openReelDirect} className="group relative rounded-[2.2rem] text-right transition-all hover:-translate-y-1 min-h-[280px] flex flex-col justify-between outline-none">
+              <div className="absolute inset-0 rounded-[2.2rem] bg-gradient-to-br from-violet-400/20 via-transparent to-violet-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-xl" />
+              <div className="absolute inset-0 rounded-[2.2rem] p-[1.5px] bg-gradient-to-br from-violet-200 via-white/20 to-violet-300 opacity-60 group-hover:opacity-100 group-hover:from-violet-400 group-hover:to-violet-500 transition-all duration-700 [mask-image:linear-gradient(#fff_0_0)]" />
+              <div className="relative h-full w-full rounded-[2.2rem] bg-white/70 backdrop-blur-xl border border-white/50 p-6 sm:p-7 overflow-hidden flex flex-col justify-between shadow-sm group-hover:bg-white/90 transition-colors duration-500">
+                <div className="absolute -left-12 -top-12 h-40 w-40 rounded-full bg-violet-300/30 blur-3xl group-hover:bg-violet-400/40 transition-colors duration-700" />
+                <div className="relative flex items-center justify-between gap-3">
+                  <span className="h-14 w-14 rounded-[1.3rem] bg-white border border-violet-100 shadow-sm flex items-center justify-center text-violet-600 group-hover:scale-110 transition-transform duration-500 ease-out"><Film size={26} strokeWidth={2.5} /></span>
+                  <span className="rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-2 text-[11px] font-black shadow-md flex items-center gap-1.5"><Sparkles size={12} className="opacity-70" /> فيديو / ريل</span>
+                </div>
+                <div className="relative mt-8">
+                  <div className="text-2xl font-black text-slate-900 leading-tight font-display">ريل مباشر</div>
+                  <div className="text-sm font-bold text-slate-500/90 mt-2 leading-relaxed">غرفة مونتاج واحدة: من صورة أو من فكرة. بعدها لقطة، مدة، وتوليد فوري.</div>
+                  <div className="mt-6 grid grid-cols-2 gap-2 text-center text-[11px] font-black">
+                    <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2.5 text-violet-700 shadow-[0_2px_10px_rgb(139,92,246,0.06)] group-hover:border-violet-200 transition-colors">فكرة مستوحاة</span>
+                    <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2.5 text-violet-700 shadow-[0_2px_10px_rgb(139,92,246,0.06)] group-hover:border-violet-200 transition-colors">صورة مصغرة</span>
+                  </div>
                 </div>
               </div>
             </button>
 
-            <button onClick={openImageDirect} className="group rounded-[2rem] border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-slate-50 p-5 sm:p-6 text-right transition-all hover:-translate-y-0.5 hover:shadow-lg min-h-[260px] flex flex-col justify-between overflow-hidden relative">
-              <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-indigo-200/40 blur-2xl" />
-              <div className="relative flex items-center justify-between gap-3">
-                <span className="h-13 w-13 rounded-3xl bg-white border border-indigo-100 shadow-sm flex items-center justify-center text-indigo-600"><Camera size={25} /></span>
-                <span className="rounded-full bg-indigo-600 text-white px-4 py-2 text-xs font-black shadow-sm">صورة / تصميم</span>
-              </div>
-              <div className="relative mt-7">
-                <div className="text-2xl font-black text-slate-950 leading-tight">صورة مباشرة</div>
-                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">استوديو صورة واحد: ارفع صورة أو اكتب فكرة، والاختيار الذكي يساعدك من المنيو بدون مسار مكرر.</div>
-                <div className="mt-5 grid grid-cols-2 gap-2 text-center text-[10px] font-black">
-                  <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">صورة</span>
-                  <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">فكرة</span>
+            <button onClick={openImageDirect} className="group relative rounded-[2.2rem] text-right transition-all hover:-translate-y-1 min-h-[280px] flex flex-col justify-between outline-none">
+              <div className="absolute inset-0 rounded-[2.2rem] bg-gradient-to-br from-indigo-400/20 via-transparent to-cyan-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-xl" />
+              <div className="absolute inset-0 rounded-[2.2rem] p-[1.5px] bg-gradient-to-br from-indigo-200 via-white/20 to-indigo-300 opacity-60 group-hover:opacity-100 group-hover:from-indigo-400 group-hover:to-indigo-500 transition-all duration-700 [mask-image:linear-gradient(#fff_0_0)]" />
+              <div className="relative h-full w-full rounded-[2.2rem] bg-white/70 backdrop-blur-xl border border-white/50 p-6 sm:p-7 overflow-hidden flex flex-col justify-between shadow-sm group-hover:bg-white/90 transition-colors duration-500">
+                <div className="absolute -left-12 -top-12 h-40 w-40 rounded-full bg-indigo-300/30 blur-3xl group-hover:bg-indigo-400/40 transition-colors duration-700" />
+                <div className="relative flex items-center justify-between gap-3">
+                  <span className="h-14 w-14 rounded-[1.3rem] bg-white border border-indigo-100 shadow-sm flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform duration-500 ease-out"><Camera size={26} strokeWidth={2.5} /></span>
+                  <span className="rounded-full bg-gradient-to-r from-indigo-600 to-cyan-600 text-white px-4 py-2 text-[11px] font-black shadow-md flex items-center gap-1.5"><Sparkles size={12} className="opacity-70" /> صورة / تصميم</span>
+                </div>
+                <div className="relative mt-8">
+                  <div className="text-2xl font-black text-slate-900 leading-tight font-display">صورة مباشرة</div>
+                  <div className="text-sm font-bold text-slate-500/90 mt-2 leading-relaxed">استوديو صورة متكامل: ارفع صورة أو اكتب فكرة، والاختيار الذكي يوجهك بقوة.</div>
+                  <div className="mt-6 grid grid-cols-2 gap-2 text-center text-[11px] font-black">
+                    <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2.5 text-indigo-700 shadow-[0_2px_10px_rgb(99,102,241,0.06)] group-hover:border-indigo-200 transition-colors">صورة حية</span>
+                    <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2.5 text-indigo-700 shadow-[0_2px_10px_rgb(99,102,241,0.06)] group-hover:border-indigo-200 transition-colors">فكرة إبداعية</span>
+                  </div>
                 </div>
               </div>
             </button>
@@ -2929,45 +3009,45 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       )}
 
       {studioTab === 'library' && (
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 sm:p-6 text-right">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 gap-4">
+        <div className="smart-studio-archive-panel max-w-6xl mx-auto rounded-[2.3rem] bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 sm:p-7 text-right">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
             <div className="min-w-0">
-              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2"><Library size={20} className="text-indigo-500 shrink-0" /> الأرشيف</h2>
-              <p className="text-xs font-bold text-slate-400 mt-1">صورك المحفوظة من الاستوديو</p>
+              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2 font-display"><Library size={22} className="text-indigo-500 shrink-0" strokeWidth={2.5}/> الأرشيف الإبداعي</h2>
+              <p className="text-xs font-bold text-slate-500 mt-2 leading-relaxed">سجل مرئي لجميع المنتجات والأفكار المولدة.</p>
             </div>
-            <div className="grid grid-cols-3 gap-1 rounded-2xl bg-slate-50 border border-slate-100 p-1 w-full sm:w-auto sm:min-w-[190px]">
-              <button type="button" onClick={() => setArchiveTab('idea')} className={cn("rounded-xl px-3 py-2 text-xs font-black transition-all whitespace-nowrap", archiveTab === 'idea' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>الفكرة</button>
-              <button type="button" onClick={() => setArchiveTab('image')} className={cn("rounded-xl px-3 py-2 text-xs font-black transition-all whitespace-nowrap", archiveTab === 'image' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>الصورة</button>
-              <button type="button" onClick={() => setArchiveTab('reel')} className={cn("rounded-xl px-3 py-2 text-xs font-black transition-all whitespace-nowrap", archiveTab === 'reel' ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-white")}>الريلز</button>
+            <div className="grid grid-cols-3 gap-1 rounded-[1.3rem] bg-white/60 backdrop-blur-md border border-white/80 p-1.5 w-full sm:w-auto sm:min-w-[200px] shadow-sm">
+              <button type="button" onClick={() => setArchiveTab('idea')} className={cn("rounded-xl px-4 py-2.5 text-xs font-black transition-all whitespace-nowrap", archiveTab === 'idea' ? "bg-slate-900 text-white shadow-md transform scale-[1.02]" : "text-slate-500 hover:bg-white/80 hover:text-slate-800")}>أفكار</button>
+              <button type="button" onClick={() => setArchiveTab('image')} className={cn("rounded-xl px-4 py-2.5 text-xs font-black transition-all whitespace-nowrap", archiveTab === 'image' ? "bg-slate-900 text-white shadow-md transform scale-[1.02]" : "text-slate-500 hover:bg-white/80 hover:text-slate-800")}>صور</button>
+              <button type="button" onClick={() => setArchiveTab('reel')} className={cn("rounded-xl px-4 py-2.5 text-xs font-black transition-all whitespace-nowrap", archiveTab === 'reel' ? "bg-slate-900 text-white shadow-md transform scale-[1.02]" : "text-slate-500 hover:bg-white/80 hover:text-slate-800")}>ريلز</button>
             </div>
           </div>
           {(() => {
             if (archiveTab === 'reel') {
               return reelHistory.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+                <div className="columns-2 sm:columns-3 md:columns-4 gap-4 space-y-4">
                   {reelHistory.map((item, idx) => (
-                    <button key={idx} onClick={() => { setGeneratedReel(item.url); setReelDuration(item.duration); setReelShot(item.shot); setReelSource(item.source); setReelDirectSource(item.source); if (item.idea) setCustomThemeQuery(item.idea); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); setShowReelSettings(true); setStudioTab('reel'); }} className="group rounded-3xl overflow-hidden border border-slate-100 bg-slate-950 shadow-sm hover:shadow-md transition-all text-right">
-                      {item.url?.startsWith('data:image') ? <img src={item.url} className="w-full aspect-[9/16] object-cover bg-black" alt="ريل موشن" /> : <video src={item.url} className="w-full aspect-[9/16] object-cover bg-black" muted playsInline />}
-                      <div className="p-3 text-[11px] font-bold text-white/70 line-clamp-2">ريل {item.duration} ثواني · {reelShots.find(s => s.id === item.shot)?.label || 'لقطة واقعية'}</div>
+                    <button key={idx} onClick={() => { setGeneratedReel(item.url); setReelDuration(item.duration); setReelShot(item.shot); setReelSource(item.source); setReelDirectSource(item.source); if (item.idea) setCustomThemeQuery(item.idea); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); setShowReelSettings(true); setStudioTab('reel'); }} className="group break-inside-avoid rounded-3xl overflow-hidden border border-slate-200/50 bg-slate-900 shadow-sm hover:shadow-xl hover:-translate-y-1 opacity-90 saturate-[0.85] hover:opacity-100 hover:saturate-100 transition-all duration-500 block w-full text-right outline-none">
+                      {item.url?.startsWith('data:image') ? <img src={item.url} className="w-full object-cover bg-black" alt="ريل موشن" /> : <video src={item.url} className="w-full object-cover bg-black" muted playsInline />}
+                      <div className="p-4 text-[11px] font-bold text-white/80 line-clamp-2 md:leading-relaxed">ريل {item.duration} ثواني · {reelShots.find(s => s.id === item.shot)?.label || 'لقطة واقعية'}</div>
                     </button>
                   ))}
                 </div>
-              ) : <div className="rounded-3xl bg-slate-50 border border-dashed border-slate-200 p-12 text-center text-slate-500 font-bold">الريلز المحفوظة تظهر هنا.</div>;
+              ) : <div className="rounded-[2rem] bg-white/50 border border-dashed border-slate-300 p-16 text-center text-slate-500 mb-4 font-bold">الريلز المحفوظة تظهر هنا متى ما أضفتها لرحلتك.</div>;
             }
             const allItems = history.filter(item => item.url);
             const items = allItems.filter((item) => archiveTab === 'idea' ? item.source !== 'image' : item.source === 'image');
             return items.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+              <div className="columns-2 sm:columns-3 md:columns-4 gap-4 space-y-4">
                 {items.map((item, idx) => (
-                  <button key={idx} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); setAiCaption(item.caption); if (item.format) setSelectedFormat(item.format); if (item.mode) setRealityMode(item.mode); if (item.background) setBackgroundPreset(item.background); if (item.packId) setSelectedPulseId(item.packId); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); if (item.customIdea) { setCustomThemeQuery(item.customIdea); setSelectedTheme('مخصص'); } setShowImageSettings(true); setStudioTab(archiveTab === 'image' ? 'product' : 'create'); }} className="group rounded-3xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm hover:shadow-md transition-all text-right">
-                    <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
-                    <div className="p-3 text-[11px] font-bold text-slate-500 line-clamp-2">{archiveTab === 'image' ? 'صورة منتج' : 'صورة من فكرة'}</div>
+                  <button key={idx} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); setAiCaption(item.caption); if (item.format) setSelectedFormat(item.format); if (item.mode) setRealityMode(item.mode); if (item.background) setBackgroundPreset(item.background); if (item.packId) setSelectedPulseId(item.packId); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); if (item.customIdea) { setCustomThemeQuery(item.customIdea); setSelectedTheme('مخصص'); } setShowImageSettings(true); setStudioTab(archiveTab === 'image' ? 'product' : 'create'); }} className="group break-inside-avoid rounded-3xl overflow-hidden border border-slate-200/50 bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 opacity-90 saturate-[0.85] hover:opacity-100 hover:saturate-100 transition-all duration-500 block w-full text-right outline-none">
+                    <img src={item.url} className="w-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out" />
+                    <div className="p-4 bg-white/80 backdrop-blur-sm text-[11px] font-bold text-slate-600 line-clamp-2 md:leading-relaxed">{archiveTab === 'image' ? 'صورة منتج' : 'صورة من فكرة'}</div>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="rounded-3xl bg-slate-50 border border-dashed border-slate-200 p-12 text-center text-slate-500 font-bold">
-                {archiveTab === 'idea' ? 'صور الأفكار المحفوظة تظهر هنا.' : 'صور المنتجات المحفوظة تظهر هنا.'}
+              <div className="rounded-[2rem] bg-white/50 border border-dashed border-slate-300 p-16 text-center text-slate-500 mb-4 font-bold">
+                {archiveTab === 'idea' ? 'أفكارك وتخيلاتك البصرية تحفظ هنا كلوحة إلهام.' : 'صور المنتجات المتقنة تظهر هنا لسهولة الوصول.'}
               </div>
             );
           })()}
@@ -3231,9 +3311,10 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
           <div className="studio-preview-card rounded-[2rem] sm:rounded-[2.2rem] bg-slate-950 p-3 sm:p-5 shadow-2xl border border-slate-900 min-h-[460px] sm:min-h-[640px] flex items-center justify-center relative overflow-hidden studio-preview-stage">
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
+            {renderViewfinderFrame()}
             {renderProductionDesk('reel')}
-            {!generatedReel && !isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem]">{renderSceneBadge(activeStudioScene, 'lg')}</div><h3 className="text-3xl font-black mb-3">معاينة الريل تظهر هنا</h3><p className="text-sm font-bold text-white/55 leading-7">{activeStudioScene.label} · إطار 9:16 · ريل عمودي واقعي · {reelDuration} ثواني</p></div>}
-            {isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نحضّر اللقطة...</p><p className="mt-3 text-xs font-bold text-white/45">نختار زاوية التصوير ونضبط الإضاءة قبل الحركة</p></div>}
+            {!generatedReel && !isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2.2rem] bg-white/5 border border-white/10 shadow-inner group-hover:scale-105 transition-transform"><Film className="w-10 h-10 text-white/40" strokeWidth={1.5}/></div><h3 className="text-3xl font-black mb-3 font-display">معاينة الريل من الكاميرا</h3><p className="text-sm font-bold text-white/55 leading-7 font-mono uppercase tracking-widest">{activeStudioScene.label} · إطار 9:16 · ريل عمودي · {reelDuration} ثواني</p></div>}
+            {isGeneratingReel && renderScannerSweep('نحضّر اللقطة...', 'نختار زاوية التصوير ونضبط الإضاءة قبل الحركة')}
             {generatedReel && !isGeneratingReel && <div className="relative z-10 w-full max-w-[380px] space-y-4"><button type="button" onClick={() => setShowReelSettings((v) => !v)} className="w-full aspect-[9/16] rounded-[1.8rem] overflow-hidden bg-black border border-white/10 shadow-2xl relative group">{generatedReel.startsWith('data:image') ? <img src={generatedReel} className="w-full h-full object-contain bg-black" alt="ريل موشن" /> : <video src={generatedReel} className="w-full h-full object-contain bg-black" controls playsInline />}</button>{renderQualityAuditCard('reel')}{renderLiveStudioCard('reel')}{renderCampaignRecipe('reel')}{showReelSettings && <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white"><div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3"><div><p className="text-xs font-black text-white/75">إعدادات هذا الريل</p><p className="text-[11px] font-bold text-white/45 mt-1">انسخها وكرر نفس الحركة لاحقاً.</p></div><button type="button" onClick={() => copyReelSettings()} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-xs font-black flex items-center gap-1"><Copy size={14} /> نسخ</button></div><pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans max-h-48 overflow-y-auto break-words">{buildReelSettingsText()}</pre></div>}<div className="flex items-center justify-center gap-2"><button onClick={downloadReel} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-violet-500 text-white flex items-center justify-center"><Download size={18} /></button><button type="button" onClick={() => copyReelSettings()} title="نسخ الإعدادات" aria-label="نسخ الإعدادات" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Copy size={18} /></button><button type="button" onClick={() => { setGeneratedReel(null); setReelStep(4); }} title="إعادة بنفس الأسلوب" aria-label="إعادة بنفس الأسلوب" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><RotateCcw size={18} /></button></div></div>}
           </div>
         </div>
@@ -3539,16 +3620,19 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
           </div>
 
           <div className="studio-preview-card rounded-[2.2rem] bg-slate-950 p-3 sm:p-5 shadow-2xl border border-slate-900 min-h-[440px] sm:min-h-[590px] flex items-center justify-center relative overflow-hidden studio-preview-stage">
-            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
+            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl opacity-60" />
+            
+            {renderViewfinderFrame()}
             {renderProductionDesk('image')}
+            
             {!generatedImage && !isGenerating && (
               <div className="relative z-10 text-center text-white p-8">
-                <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem]">{renderSceneBadge(activeStudioScene, 'lg')}</div>
-                <h3 className="text-3xl font-black mb-3">المعاينة تظهر هنا</h3>
-                <p className="text-sm font-bold text-white/55 leading-7">{activeStudioScene.label} · {KUWAIT_PLACES[selectedOrderPlace]?.label}</p>
+                <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2.2rem] bg-white/5 border border-white/10 shadow-inner group-hover:scale-105 transition-transform"><Camera className="w-10 h-10 text-white/40" strokeWidth={1.5}/></div>
+                <h3 className="text-3xl font-black mb-3 font-display">معاينة الصورة من الكاميرا</h3>
+                <p className="text-sm font-bold text-white/55 leading-7 font-mono uppercase tracking-widest">{activeStudioScene.label} · {KUWAIT_PLACES[selectedOrderPlace]?.label}</p>
               </div>
             )}
-            {isGenerating && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نجهز صورة واقعية...</p></div>}
+            {isGenerating && renderScannerSweep('نلتقط الصورة الاستوديو...', 'نضبط الإضاءة والمشهد والواقعية')}
             {generatedImage && !isGenerating && (
               <div className="relative z-10 w-full max-w-full space-y-4">
                 <button type="button" onClick={() => setShowImageSettings((v) => !v)} className={cn("w-full rounded-[1.6rem] overflow-hidden bg-white/5 border border-white/10 relative group", previewAspectClass)}>

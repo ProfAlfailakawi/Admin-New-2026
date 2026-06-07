@@ -1,7 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Tajawal:wght@400;500;700;800;900&family=Cinzel:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Tajawal:wght@400;500;700;800;900&family=Cinzel:wght@400;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 @layer utilities {
+  @keyframes gradientGold {
+    0% { background-position: 200% 50%; opacity: 0; filter: blur(2px) }
+    10% { opacity: 1; filter: blur(0px) }
+    100% { background-position: -200% 50%; opacity: 1; filter: blur(0px) }
+  }
 }
 
 @theme {
@@ -10,6 +15,8 @@
   --color-accent: #D4AF37; /* Metallic Gold */
   --color-muted: #f4f4f5;
   --font-sans: "Cairo", "Tajawal", "Inter", "Segoe UI", Tahoma, sans-serif;
+  --font-display: "Playfair Display", "Cairo", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --font-cinema-arabic: "Cairo", "Tajawal", "Segoe UI", Tahoma, sans-serif;
   --font-cinema-numbers: "Cinzel", "Playfair Display", "Times New Roman", serif;
   

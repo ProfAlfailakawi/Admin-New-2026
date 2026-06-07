@@ -64,18 +64,32 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  const getInvoiceDeliverySettlement = (inv: any, supId: string) => {
    const info = inv?.deliveryInfo || {};
    const target = info.settlementTarget || inv?.deliverySettlementTarget;
-   const value = Number(inv?.deliveryFee ?? info.finalPrice ?? 0) || 0;
+   const value = Number(info.cost ?? inv?.deliveryCost ?? info.finalPrice ?? inv?.deliveryFee ?? 0) || 0;
    if (value <= 0) return 0;
    const supplier = (data?.suppliers || []).find(s => String(s.id) === String(supId));
    if (!supplier) return 0;
    const isDeliveryCompany = (supplier as any).supplierType === 'delivery';
    const isFoodSupplierDelivering = !isDeliveryCompany && (supplier as any).deliverySettlement === 'supplier';
    if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
-   if (isDeliveryCompany && target !== 'delivery_company') return 0;
-   if (isFoodSupplierDelivering && target !== 'supplier') return 0;
-   const matchesSupplier = String(info.settlementSupplierId || '') === String(supId)
-     || (!!supplier?.name && String(info.settlementSupplierName || info.company || '').trim() === String(supplier.name).trim());
-   return matchesSupplier ? value : 0;
+   const invoiceHasSupplierProduct = (inv?.items || []).some((item: any) => {
+     const product = (data?.products || []).find((p: any) => String(p.id) === String(item.productId));
+     return String(product?.supplierId || '') === String(supId);
+   });
+   const explicitSupplierId = String(info.settlementSupplierId || inv?.deliverySettlementSupplierId || '');
+   const supplierName = String(supplier?.name || '').trim();
+   const explicitName = String(info.settlementSupplierName || info.company || inv?.deliveryCompany || '').trim();
+   const matchesSupplier = explicitSupplierId === String(supId)
+     || (!!supplierName && explicitName === supplierName);
+   const hasNoExplicitSettlement = !target && !explicitSupplierId && !explicitName;
+   if (isDeliveryCompany) {
+     if (target && target !== 'delivery_company') return 0;
+     return matchesSupplier ? value : 0;
+   }
+   if (isFoodSupplierDelivering) {
+     if (target && target !== 'supplier') return 0;
+     return (matchesSupplier || (hasNoExplicitSettlement && invoiceHasSupplierProduct)) ? value : 0;
+   }
+   return 0;
  };
 
  const getSupplierProducts = (supId: string) => (data?.products || []).filter(p => p.supplierId === supId);
@@ -123,7 +137,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
          deliveryAmount: supplierDelivery,
          revenue: supplierRevenue,
          refId: inv.id,
-         label: `فاتورة توريد #${inv.id}`,
+         label: supplierCost > 0 ? `فاتورة توريد #${inv.id}` : `فاتورة توصيل #${inv.id}`,
          items: itemsForThisSupplier
        });
      }
@@ -392,6 +406,11 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  {filteredSuppliers.map(supplier => {
  const supplierProducts = getSupplierProducts(supplier.id);
  const invoiceStats = getSupplierInvoiceStats(supplier.id);
+ const isDeliveryOnlySupplier = (supplier as any).supplierType === 'delivery';
+ const isSupplierDelivering = !isDeliveryOnlySupplier && (supplier as any).deliverySettlement === 'supplier';
+ const supplierLedger = getSupplierLedger(supplier.id);
+ const supplierDeliveryDue = supplierLedger.filter((l: any) => l.type === 'invoice').reduce((acc: number, l: any) => acc + Number(l.deliveryAmount || 0), 0);
+ const showDeliveryAction = isDeliveryOnlySupplier || isSupplierDelivering || supplierDeliveryDue > 0;
  return (
  <motion.div 
  key={supplier.id}
@@ -459,6 +478,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <ArrowLeftRight size={18} className="mb-1 mt-1" />
  <div className="text-[10px] font-bold">عرض الفواتير</div>
  </div>
+ {!isDeliveryOnlySupplier && (
  <div 
  onClick={() => setProductsToShow(supplierProducts)}
  className="flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2 bg-slate-50 border-slate-100 hover:border-slate-300 hover:bg-slate-100"
@@ -466,8 +486,10 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">المنتجات</div>
  <div className="text-xl font-bold text-slate-800">{supplierProducts.length}</div>
  </div>
+ )}
  </div>
 
+ {!isDeliveryOnlySupplier && (
  <div className="bg-gradient-to-l from-slate-50 via-white to-white border border-slate-100 rounded-3xl p-3 text-right shadow-inner">
  <div className="flex items-center justify-between gap-3 mb-3">
  <div className="bg-slate-100 rounded-2xl p-3 shrink-0">
@@ -513,28 +535,14 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
  )}
  </div>
+ )}
 
 
  <div className="flex flex-wrap gap-2 justify-end">
- {(supplier as any).supplierType === 'delivery' ? (
- <span className="bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-blue-600 flex items-center gap-1">
- <Truck size={12} /> شركة توصيل فقط
- </span>
- ) : (
- <>
+ {(supplier as any).supplierType !== 'delivery' && (
  <span className="bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-emerald-700 flex items-center gap-1">
  <Package size={12} /> مورد أكل
  </span>
- <span className={cn(
- "border px-3 py-1.5 rounded-xl text-[10px] font-bold flex items-center gap-1",
- (supplier as any).deliverySettlement === 'supplier'
- ? "bg-cyan-50 border-cyan-100 text-cyan-700"
- : "bg-slate-50 border-slate-100 text-slate-500"
- )}>
- <Truck size={12} />
- {(supplier as any).deliverySettlement === 'supplier' ? 'يوصل طلباته' : 'لا يوصل'}
- </span>
- </>
  )}
  </div>
 
@@ -753,9 +761,18 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   {(() => {
   const supplier = (data?.suppliers || []).find(s => s.id === showLedgerSupplierId);
   const ledger = getSupplierLedger(showLedgerSupplierId);
-  const totalInvoiced = ledger.filter(l => l.type === 'invoice').reduce((acc, l) => acc + l.amount, 0);
+  const totalSupplyDue = ledger.filter(l => l.type === 'invoice').reduce((acc, l) => acc + Number(l.supplyAmount || 0), 0);
+  const totalDeliveryDue = ledger.filter(l => l.type === 'invoice').reduce((acc, l) => acc + Number(l.deliveryAmount || 0), 0);
+  const totalInvoiced = totalSupplyDue + totalDeliveryDue;
   const totalPaid = Math.abs(ledger.filter(l => l.type === 'transfer').reduce((acc, l) => acc + l.amount, 0));
+  const paidToSupply = Math.min(totalPaid, totalSupplyDue);
+  const paidToDelivery = Math.min(Math.max(totalPaid - totalSupplyDue, 0), totalDeliveryDue);
+  const remainingSupply = Math.max(0, totalSupplyDue - paidToSupply);
+  const remainingDelivery = Math.max(0, totalDeliveryDue - paidToDelivery);
   const currentBalance = Number(supplier?.balance || 0);
+  const isDeliveryOnlySupplier = (supplier as any)?.supplierType === 'delivery';
+  const showSupplySummary = !isDeliveryOnlySupplier && totalSupplyDue > 0;
+  const showDeliverySummary = totalDeliveryDue > 0 || isDeliveryOnlySupplier || ((supplier as any)?.deliverySettlement === 'supplier');
 
   return (
   <>
@@ -775,15 +792,31 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   </div>
   </div>
 
-  <div className="grid grid-cols-3 gap-3">
+  <div className={cn("grid grid-cols-2 gap-3", showSupplySummary && showDeliverySummary ? "md:grid-cols-5" : "md:grid-cols-4")}>
+  {showSupplySummary && (
+  <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+  <div className="absolute top-0 right-0 w-16 h-16 bg-slate-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
+  <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">توريد المنتجات</div>
+  <div className="text-base font-black text-slate-900 text-center relative z-10">{totalSupplyDue.toFixed(3)}</div>
+  <div className="text-[9px] font-black text-slate-400 mt-1 text-center">متبقي {remainingSupply.toFixed(3)}</div>
+  </div>
+  )}
+  {showDeliverySummary && (
+  <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 shadow-sm relative overflow-hidden group">
+  <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
+  <div className="text-[10px] font-black text-blue-400 uppercase mb-1 text-center relative z-10">توصيل المورد</div>
+  <div className="text-base font-black text-blue-700 text-center relative z-10">{totalDeliveryDue.toFixed(3)}</div>
+  <div className="text-[9px] font-black text-blue-400 mt-1 text-center">متبقي {remainingDelivery.toFixed(3)}</div>
+  </div>
+  )}
   <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
   <div className="absolute top-0 right-0 w-16 h-16 bg-slate-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
   <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي المستحق</div>
   <div className="text-base font-black text-slate-900 text-center relative z-10">{totalInvoiced.toFixed(3)}</div>
   </div>
-  <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+  <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-100 shadow-sm relative overflow-hidden group">
   <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
-  <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي السداد</div>
+  <div className="text-[10px] font-black text-emerald-500 uppercase mb-1 text-center relative z-10">إجمالي السداد</div>
   <div className="text-base font-black text-emerald-600 text-center relative z-10">{totalPaid.toFixed(3)}</div>
   </div>
   <div className="bg-slate-900 p-3 rounded-2xl text-white shadow-xl relative overflow-hidden">
@@ -873,10 +906,12 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
               <div className="text-[10px] font-black text-slate-400 uppercase mb-1">توريد المنتجات</div>
               <div className="text-base font-black text-rose-500 whitespace-nowrap" dir="ltr">{(item.supplyAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
             </div>
+            {Number(item.deliveryAmount || 0) > 0 && (
             <div className="text-right border-r border-slate-100 px-3">
               <div className="text-[10px] font-black text-slate-400 uppercase mb-1">توصيل المورد</div>
               <div className="text-base font-black text-blue-600 whitespace-nowrap" dir="ltr">{(item.deliveryAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
             </div>
+            )}
           </div>
 
           <div className="space-y-2">

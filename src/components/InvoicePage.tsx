@@ -823,13 +823,6 @@ Alturath.kw`;
         ? subtotal * (discountValue / 100)
         : discountValue;
     const totalValue = Math.max(0, subtotal + deliveryFee - discountAmount);
-    const selectedDeliveryEntity = (data?.suppliers || []).find((s: any) => String(s.id) === String(deliverySettlementSupplierId));
-    const cartSupplyCost = cartItems.reduce((sum, it) => sum + (Number(it.costAtTime || it.product?.cost || 0) * Number(it.qty || 1)), 0);
-    const deliverySettlementText = selectedDeliveryEntity
-      ? `${selectedDeliveryEntity.name} — ${getDeliveryEntityLabel(selectedDeliveryEntity)}`
-      : 'لم يتم اختيار جهة توصيل من الموردين';
-
-
     const handleCreateInvoice = async () => {
       if (isNewCustomer && normalizePhoneDigits(customerPhone).length !== 8) {
         toast.error("رقم التلفون لازم يكون 8 أرقام");
@@ -1482,11 +1475,12 @@ Alturath.kw`;
               ))}
             </select>
 
-              {/* فاتورة جديدة: خيارات طريقة التوصيل */}
+              {/* فاتورة جديدة: إدارة التوصيل والمستحقات الداخلية */}
               {!isPartner && (
               <div className="space-y-3">
-                <div className="text-[10px] font-bold text-slate-500 text-right">
-                  طريقة التوصيل
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold text-slate-500 text-right">طريقة التوصيل</span>
+                  <span className="text-[9px] font-bold text-slate-400">داخلياً للحسابات ولا يغير مبلغ العميل</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
@@ -1529,35 +1523,21 @@ Alturath.kw`;
 
                 <div className="relative">
                   <div className="text-[9px] font-bold text-slate-400 text-right mb-1">
-                    اسم شركة التوصيل
+                    جهة التوصيل
                   </div>
                   <select
                     value={deliverySettlementSupplierId}
                     onChange={(e) => pickDeliverySettlementEntity(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-right text-xs font-bold focus:ring-2 focus:ring-primary/10 outline-none transition-all"
                   >
-                    <option value="">اختر شركة توصيل أو مورداً يوصل</option>
+                    <option value="">تحديد تلقائي / اختر جهة توصيل</option>
                     {getEligibleDeliveryEntities().map((s: any) => (
                       <option key={s.id} value={s.id}>
-                        {s.name} — {getDeliveryEntityLabel(s)}
+                        {s.name}
                       </option>
                     ))}
                   </select>
-                  <p className="mt-1 text-[10px] font-bold text-slate-400 leading-5 text-right">لا يظهر هنا أي مورد تم تحديده بأنه لا يوصل. يظهر فقط: شركة توصيل، أو مورد أكل مفعّل له خيار التوصيل.</p>
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <div className="bg-white border border-slate-100 rounded-2xl p-3 text-right shadow-sm">
-                      <div className="text-[9px] font-black text-slate-400 mb-1">توريد المنتجات</div>
-                      <div className="text-sm font-black text-slate-900" dir="ltr">{cartSupplyCost.toFixed(3)} د.ك</div>
-                    </div>
-                    <div className="bg-blue-50 border border-blue-100 rounded-2xl p-3 text-right shadow-sm">
-                      <div className="text-[9px] font-black text-blue-500 mb-1">مبلغ التوصيل</div>
-                      <div className="text-sm font-black text-blue-700" dir="ltr">{Number(deliveryFee || 0).toFixed(3)} د.ك</div>
-                    </div>
-                    <div className="bg-slate-900 text-white rounded-2xl p-3 text-right shadow-sm">
-                      <div className="text-[9px] font-black text-white/60 mb-1">جهة التوصيل</div>
-                      <div className="text-[10px] font-black leading-5">{deliverySettlementText}</div>
-                    </div>
-                  </div>
+                  <p className="mt-1 text-[10px] font-bold text-slate-400 leading-5 text-right">اسم الشركة يظهر تلقائيًا حسب الاتفاق، وتستطيع تغييره عند الحاجة.</p>
                 </div>
               </div>
               )}
