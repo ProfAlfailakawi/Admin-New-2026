@@ -498,7 +498,7 @@ const {
  const bentoCardStyle ="bg-[#fdfbf7] p-3 md:p-4 rounded-2xl2xl lg:rounded-2xl2xl md:rounded-2xl2xl border border-[#f0e6d2] shadow-[0_4px_20px_-10px_rgba(212,192,152,0.3)] text-right relative overflow-hidden flex flex-col h-full";
  
  return (
- <div className="partner-clean-shell min-h-full bg-slate-50 p-3 md:p-3 lg:p-3 md:p-4 animate-in fade-in duration-500 transition-colors" dir="rtl">
+ <div className="partner-clean-shell min-h-full bg-slate-50 p-3 pb-28 md:p-4 md:pb-28 animate-in fade-in duration-500 transition-colors" dir="rtl">
     <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex flex-col gap-3 mb-8">
 
         {isPushSupported && !pushEnabled && !pushDenied && (
@@ -587,7 +587,7 @@ const {
               ];
 
               return (
-                 <div className="partner-date-filter-elegant bg-slate-950/80 border border-white/5 text-white backdrop-blur-3xl rounded-full py-0.5 px-1 flex items-center justify-between gap-0.5 pointer-events-auto w-[68%] max-w-[190px] h-7 shadow-[0_12px_28px_rgba(0,0,0,0.85),_inset_0_1px_0_rgba(255,255,255,0.03)] relative overflow-visible">
+                 <div className="partner-date-filter-elegant bg-slate-950/78 border border-white/10 text-white backdrop-blur-3xl rounded-full py-0.5 px-1 flex items-center justify-between gap-0.5 pointer-events-auto w-[68%] max-w-[190px] h-7 shadow-[0_10px_24px_rgba(0,0,0,0.62),_inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-visible">
                    
                    {options.map((opt) => {
                      const isActive = filter === opt.id;
@@ -606,13 +606,13 @@ const {
                              {/* Ultra-soft background capsule glow */}
                              <motion.div
                                layoutId="softCapsulePartner"
-                               className="absolute inset-[1px] bg-gradient-to-r from-amber-400/5 to-orange-500/5 border border-amber-400/10 rounded-full -z-10"
+                               className="absolute inset-[1px] bg-gradient-to-r from-amber-400/8 to-orange-500/6 border border-amber-400/12 rounded-full -z-10"
                                transition={{ type: "spring", stiffness: 450, damping: 30 }}
                              />
                              {/* Micro Laser Glowing Dot/Thread at bottom of option */}
                              <motion.span 
                                layoutId="microThreadPartner"
-                               className="absolute bottom-0 w-1.5 h-[1.5px] rounded-full bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_1px_4px_rgba(245,158,11,0.8)]"
+                               className="absolute bottom-0 w-1.5 h-[1.5px] rounded-full bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_1px_3px_rgba(245,158,11,0.65)]"
                                transition={{ type: "spring", stiffness: 450, damping: 30 }}
                              />
                            </>
@@ -628,12 +628,12 @@ const {
         )}
 
         {!activeWidget && (
-          <div className="fixed bottom-16 left-0 right-0 z-[101] px-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-4 duration-500">
-            <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/90 px-2 py-1.5 shadow-[0_14px_35px_rgba(15,23,42,0.14)] backdrop-blur-2xl">
+          <div className="fixed bottom-[3.9rem] left-0 right-0 z-[101] px-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-4 duration-500">
+            <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-slate-200/65 bg-white/88 px-1.5 py-1.5 shadow-[0_10px_26px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
               <button
                 type="button"
                 onClick={() => onNavigate('new-invoice')}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-950 text-white shadow-sm transition-transform active:scale-95"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-950 text-white shadow-[0_6px_14px_rgba(15,23,42,0.16)] transition-transform hover:-translate-y-0.5 active:scale-95"
                 aria-label="فاتورة جديدة"
                 title="فاتورة جديدة"
               >
@@ -642,7 +642,7 @@ const {
               <button
                 type="button"
                 onClick={() => onNavigate('invoices-list')}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-800 shadow-sm transition-transform active:scale-95"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100/95 text-slate-800 shadow-[0_5px_12px_rgba(15,23,42,0.08)] transition-transform hover:-translate-y-0.5 active:scale-95"
                 aria-label="سجل الفواتير"
                 title="سجل الفواتير"
               >
@@ -652,13 +652,13 @@ const {
           </div>
         )}
       
-       <div className="mb-8">
+       <div className="mb-6 md:mb-7">
          <CommandBrief data={data} dateFilter={filter} partnerMode />
        </div>
 
 
         {/* Stats Grid - Exactly like Admin */}
-        <motion.div layout className="mb-12 bg-white rounded-3xl p-2 md:p-5 border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden relative z-10">
+        <motion.div layout className="mb-10 bg-white rounded-3xl p-2 md:p-4 border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden relative z-10">
           <button 
             onClick={() => setShowFinancialStats(!showFinancialStats)}
             className="w-full flex items-center justify-between p-3 md:p-0 group outline-none"

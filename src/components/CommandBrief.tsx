@@ -205,7 +205,7 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode
 
   return (
     <section
-      className="w-full max-w-full overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_14px_35px_rgba(15,23,42,0.07)]"
+      className="w-full max-w-full overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_10px_28px_rgba(15,23,42,0.055)]"
       dir="rtl"
       aria-label="مركز القيادة"
     >
@@ -219,10 +219,10 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode
             setIsExpanded(!isExpanded);
           }
         }}
-        className="w-full max-w-full p-4 md:p-5 text-right flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-gradient-to-l from-white via-slate-50 to-amber-50/45 hover:from-slate-50 transition-colors cursor-pointer select-none"
+        className="w-full max-w-full p-3.5 md:p-4 text-right flex flex-col gap-3.5 md:flex-row md:items-center md:justify-between bg-gradient-to-l from-white via-slate-50/80 to-amber-50/25 hover:from-slate-50 transition-colors cursor-pointer select-none"
       >
         <div className="min-w-0 flex items-start gap-3 md:gap-4">
-          <div className="shrink-0 w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shadow-sm">
+          <div className="shrink-0 w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-700 flex items-center justify-center shadow-sm">
             <Zap size={21} />
           </div>
           <div className="min-w-0 space-y-1">
@@ -245,7 +245,7 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode
             </p>
             <div
               className={cn(
-                "mt-3 max-w-4xl rounded-2xl border border-slate-200 bg-white/85 px-3 py-2.5 text-right shadow-sm",
+                "mt-2.5 max-w-4xl rounded-2xl border border-slate-200/80 bg-white/88 px-3 py-2.5 text-right shadow-[0_6px_18px_rgba(15,23,42,0.04)]",
                 !partnerMode && onNavigate ? "cursor-pointer hover:bg-white transition-colors" : "cursor-default"
               )}
               role={!partnerMode && onNavigate ? 'button' : undefined}
@@ -279,15 +279,15 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode
           </div>
         </div>
 
-        <span className="shrink-0 inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm md:min-w-[92px]">
+        <span className="shrink-0 inline-flex items-center justify-center gap-2 rounded-full border border-slate-200/80 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm md:min-w-[92px]">
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           {isExpanded ? 'إغلاق' : 'فتح'}
         </span>
       </div>
 
       {isExpanded && (
-        <div className="w-full max-w-full overflow-hidden border-t border-slate-100 bg-slate-50/70 p-3 md:p-4">
-          <div className="mb-3 rounded-2xl border border-slate-200 bg-white p-3 md:p-4 shadow-sm">
+        <div className="w-full max-w-full overflow-hidden border-t border-slate-100 bg-slate-50/60 p-3 md:p-4">
+          <div className="mb-3 rounded-2xl border border-slate-200/80 bg-white p-3 md:p-4 shadow-[0_6px_18px_rgba(15,23,42,0.035)]">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div className="min-w-0 xl:max-w-xl">
                 <div className="flex items-center gap-2 text-xs font-black text-slate-500"><Target size={15} /> الأهم الآن</div>
@@ -323,7 +323,7 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode
             {brief.map((item, idx) => (
               <div
                 key={idx}
-                className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 md:p-4 shadow-sm"
+                className="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-3 md:p-4 shadow-[0_5px_16px_rgba(15,23,42,0.03)]"
               >
                 <div className="flex min-w-0 items-start gap-3">
                   <div className="shrink-0 w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center">
