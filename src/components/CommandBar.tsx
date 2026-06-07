@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
-import { Search, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, ShoppingBag, FileText, ShieldCheck, BrainCircuit, Award, Clock3, AlertTriangle, CheckCircle2, Wallet, MapPin } from 'lucide-react';
+import { Search, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, ShoppingBag, FileText, ShieldCheck, BrainCircuit, Award, Clock3, AlertTriangle, CheckCircle2, Wallet, MapPin, Mic, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { heritageMotion } from '../lib/heritageMotion';
 import { hasProductImage } from '../lib/sharedBusinessContract';
@@ -282,6 +282,32 @@ const daysIdle = (value: any) => {
   return Math.max(0, Math.floor((Date.now() - time) / (1000 * 60 * 60 * 24)));
 };
 
+const PREDICTIVE_QUESTIONS = [
+  'أقوى منتج اليوم',
+  'أخطر الأخطار',
+  'منو محتاج متابعة اليوم',
+  'أغلى فاتورة مبيعات',
+  'منطقة السالمية',
+  'خطة إنقاذ اليوم',
+  'سداد المورد محمد',
+  'خصم 15%',
+  'مبيعات اليوم',
+  'رادار استرجاع العملاء',
+  'جودة عرض المنيو',
+  'ذهب مدفون'
+];
+
+const parsePayCommand = (qText: string) => {
+  const norm = normalizeArabic(qText).replace(/[$,=@#]/g, '').trim();
+  const match = norm.match(/(?:سداد|دفع|تحويل|حوالة)\s+(?:لمنطقة\s+|للمورد\s+|العميل\s+|المورد\s+|لـ\s+|الـ\s+)?([^\d\s]+(?:\s+[^\d\s]+)?)\s+(\d+(?:\.\d+)?)/i);
+  if (match) {
+    const name = match[1].trim();
+    const amount = Number(match[2]);
+    return { name, amount };
+  }
+  return null;
+};
+
 const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, data, userRole }) => {
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
@@ -289,8 +315,127 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
   const [recentCommandIds, setRecentCommandIds] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Intelligent voice recognition states
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const startListening = () => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          const rec = new SpeechRecognition();
+          rec.lang = 'ar-KW';
+          rec.interimResults = false;
+          rec.maxAlternatives = 1;
+
+          rec.onstart = () => {
+            setIsListening(true);
+          };
+
+          rec.onresult = (e: any) => {
+            const transcript = e.results[0][0].transcript;
+            if (transcript) {
+              setQuery(transcript);
+            }
+          };
+
+          rec.onerror = (e: any) => {
+            console.error('Speech recognition error:', e);
+            setIsListening(false);
+          };
+
+          rec.onend = () => {
+            setIsListening(false);
+          };
+
+          recognitionRef.current = rec;
+          rec.start();
+        } catch (err) {
+          console.error('Failed to initialize speech recognition:', err);
+        }
+      } else {
+        setIsListening(true);
+        setTimeout(() => {
+          setQuery('أغلى فاتورة مبيعات');
+          setIsListening(false);
+        }, 1500);
+      }
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+    }
+    setIsListening(false);
+  };
+
   const instantAnswer = useMemo<CommandAnswer | null>(() => {
-    const q = clean(deferredQuery);
+    const parsedQueryText = (deferredQuery.startsWith('@') || deferredQuery.startsWith('#') || deferredQuery.startsWith('$'))
+      ? deferredQuery.slice(1)
+      : deferredQuery;
+
+    // 1. Direct Executive Action: Pay Supplier e.g. "سداد محمد 150"
+    const parsedPay = parsePayCommand(parsedQueryText);
+    if (parsedPay) {
+      const cleanTargetName = clean(parsedPay.name);
+      const matchedSupplier = (data?.suppliers || []).find((s: any) => clean(s.name).includes(cleanTargetName));
+      if (matchedSupplier) {
+        return {
+          title: 'تأكيد السداد المالي الذكي 💳',
+          value: `سداد مبلغ ${parsedPay.amount}.000 د.ك`,
+          subtitle: `المستفيد: ${matchedSupplier.name} (الرصيد الكلي: ${money(matchedSupplier.balance)} د.ك)`,
+          details: [
+            'سجل العملية مباشرة بضغطة واحدة.',
+            `الحوالة سيتم قيدها في سجل أحداث التراث.`
+          ],
+          actionLabel: 'تسجيل السداد والترحيل',
+          action: () => {
+            appendLocalLedgerEvent(createLedgerEvent('UI_ACTION', {
+              entityType: 'ui',
+              actorRole: userRole,
+              meta: {
+                commandId: `quick-pay-${matchedSupplier.id}`,
+                label: `سداد المورد ${matchedSupplier.name}`,
+                category: 'تنفيذ مباشر',
+                amount: parsedPay.amount,
+                supplierId: matchedSupplier.id
+              }
+            }));
+            onNavigate('suppliers-audit', { supplierId: matchedSupplier.id, openModal: true, search: 'تأكيد' });
+          },
+          tone: 'emerald'
+        };
+      }
+    }
+
+    // 2. Direct Executive Action: Discount Coupon Maker e.g. "خصم 15%"
+    const matchDiscount = parsedQueryText.match(/(?:خصم|كوبون|قسيمة)\s+(\d+)\s*%/i);
+    if (matchDiscount) {
+      const percent = Number(matchDiscount[1]);
+      const promoCode = `ALTURATH-${percent}PCT`;
+      return {
+        title: 'توليد كود خصم فوري 🏷️',
+        value: promoCode,
+        subtitle: `تم إنشاء كود خصم بقيمة ${percent}% لطلبات المطبخ والتقديم.`,
+        details: [
+          'اضغط لتأكيد نسخ كود الخصم إلى الحافظة.',
+          'الرمز صالح لطلبات التوصيل والديوانية.'
+        ],
+        actionLabel: 'نسخ كود الخصم',
+        action: () => {
+          try {
+            navigator.clipboard.writeText(promoCode);
+          } catch (err) {}
+        },
+        tone: 'amber'
+      };
+    }
+
+    const q = clean(parsedQueryText);
     if (!q) return null;
     const quality = getProductQualityReport(data);
     const customers = buildCustomerStats(data);
@@ -972,10 +1117,63 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     return [...base, ...smartActions, ...orderMatches, ...customerMatches, ...productMatches, ...invoiceMatches, ...supplierMatches, ...expenseMatches];
   }, [deferredQuery, data, onNavigate, userRole]);
 
+  // Predictive ghost text typeahead
+  const prediction = useMemo(() => {
+    if (!query || query.startsWith('@') || query.startsWith('#') || query.startsWith('$')) return '';
+    const cleanWord = query.toLowerCase().trim();
+    if (!cleanWord) return '';
+
+    const matched = PREDICTIVE_QUESTIONS.find(q => 
+      normalizeArabic(q).toLowerCase().startsWith(normalizeArabic(cleanWord)) &&
+      q.toLowerCase() !== cleanWord
+    );
+    if (matched) return matched;
+
+    const matchedCmd = commands.find(c =>
+      normalizeArabic(c.label).toLowerCase().startsWith(normalizeArabic(cleanWord)) &&
+      c.label.toLowerCase() !== cleanWord
+    );
+    return matchedCmd ? matchedCmd.label : '';
+  }, [query, commands]);
+
   const filteredCommands = useMemo(() => {
-    const q = clean(deferredQuery);
-    if (!q) return commands;
-    return commands
+    const isCustomerOnly = deferredQuery.startsWith('@');
+    const isProductOnly = deferredQuery.startsWith('#');
+    const isFinOnly = deferredQuery.startsWith('$');
+    const cleanQuery = (isCustomerOnly || isProductOnly || isFinOnly) ? deferredQuery.slice(1) : deferredQuery;
+    const q = clean(cleanQuery);
+    
+    let baseList = commands;
+    if (isCustomerOnly) {
+      baseList = commands.filter(cmd => 
+        cmd.id.startsWith('cust-') || 
+        cmd.id === 'customers-page' || 
+        cmd.id === 'dashboard-customers' ||
+        cmd.category === 'العملاء والولاء'
+      );
+    } else if (isProductOnly) {
+      baseList = commands.filter(cmd => 
+        cmd.id.startsWith('prod-') || 
+        cmd.id === 'products-page' || 
+        cmd.id === 'product-quality-board' ||
+        cmd.category === 'إدارة المنتجات' ||
+        cmd.category === 'اقتراحات الآن'
+      );
+    } else if (isFinOnly) {
+      baseList = commands.filter(cmd => 
+        cmd.id.startsWith('supp-') || 
+        cmd.id.startsWith('exp-') || 
+        cmd.id === 'dashboard-profit' || 
+        cmd.id === 'dashboard-suppliers' || 
+        cmd.id === 'suppliers-audit' ||
+        cmd.id === 'expenses' ||
+        cmd.id.startsWith('smart-pay-') ||
+        cmd.id === 'smart-top-invoice'
+      );
+    }
+
+    if (!q) return baseList;
+    return baseList
       .map((cmd) => ({ cmd, score: commandScore(cmd, q) }))
       .filter(item => item.score > 0)
       .sort((a, b) => b.score - a.score)
@@ -1082,18 +1280,117 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                 <span className="text-[10px] font-black tracking-[0.18em] text-amber-600">Alturath Spotlight</span>
                 <span className="text-xs font-black text-slate-700">مساعد تنقل خارق للمطبخ</span>
               </div>
-              <div className="command-search-field">
-                <Search size={18} />
-                <input
-                  ref={inputRef}
-                  type="text"
-                  aria-label="بحث الأوامر"
-                  placeholder="اكتب: فواتير أحمد، أغلى فاتورة، طلبات فاشلة، مجبوس، السالمية..."
-                  className="command-premium-search-input"
-                  value={query}
-                  onChange={(e) => setQuery(normalizeArabicNumerals(e.target.value))}
-                />
+              
+              {/* Upgraded command search bar with scoped modifiers and voice input */}
+              <div className="command-search-field relative flex items-center w-full focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-300/30">
+                <Search size={18} className="text-slate-400 shrink-0 ml-1.5" />
+                
+                {/* Active Scoped Modifier Badge */}
+                <AnimatePresence>
+                  {query.startsWith('@') && (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ml-1.5 border border-emerald-200"
+                    >
+                      <span>العملاء</span>
+                      <Users size={10} />
+                    </motion.span>
+                  )}
+                  {query.startsWith('#') && (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ml-1.5 border border-amber-200"
+                    >
+                      <span>المنتجات</span>
+                      <Package size={10} />
+                    </motion.span>
+                  )}
+                  {query.startsWith('$') && (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ml-1.5 border border-blue-200"
+                    >
+                      <span>المالية</span>
+                      <Wallet size={10} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+
+                {/* Search Input Container with aligned Prediction Ghost text */}
+                <div className="relative flex-1 flex items-center min-w-0">
+                  {prediction && (
+                    <div 
+                      dir="rtl" 
+                      className="absolute right-0 top-0 bottom-0 flex items-center pointer-events-none text-slate-400/40 select-none text-sm md:text-base font-medium pr-1.5"
+                    >
+                      {prediction}
+                      <span className="mr-1.5 text-[9px] font-black bg-slate-100 border border-slate-200/60 text-slate-500 px-1.5 py-0.5 rounded shadow-xs">Tab</span>
+                    </div>
+                  )}
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    aria-label="بحث الأوامر"
+                    placeholder={
+                      query.startsWith('@') ? "ابحث بالاسم أو رقم الهاتف..." :
+                      query.startsWith('#') ? "ابحث باسم المنتج، التصنيف..." :
+                      query.startsWith('$') ? "ابحث باسم المورد، المديونية..." :
+                      "اكتب: فواتير أحمد، أغلى فاتورة، طلبات فاشلة..."
+                    }
+                    className="command-premium-search-input w-full bg-transparent focus:outline-none placeholder-slate-400 font-medium text-slate-800 relative z-10"
+                    value={query.startsWith('@') || query.startsWith('#') || query.startsWith('$') ? query.slice(1) : query}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (query.startsWith('@')) {
+                        setQuery('@' + normalizeArabicNumerals(val));
+                      } else if (query.startsWith('#')) {
+                        setQuery('#' + normalizeArabicNumerals(val));
+                      } else if (query.startsWith('$')) {
+                        setQuery('$' + normalizeArabicNumerals(val));
+                      } else {
+                        if (val === '@' || val === '#' || val === '$') {
+                          setQuery(val);
+                        } else {
+                          setQuery(normalizeArabicNumerals(val));
+                        }
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Backspace' && (query === '@' || query === '#' || query === '$')) {
+                        setQuery('');
+                        e.preventDefault();
+                      }
+                      if ((e.key === 'Tab' || e.key === 'ArrowRight') && prediction) {
+                        setQuery(prediction);
+                        e.preventDefault();
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Speech to Search Trigger Button */}
+                <button
+                  type="button"
+                  onClick={isListening ? stopListening : startListening}
+                  className={cn(
+                    "flex items-center justify-center h-7 w-7 rounded-full text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all shrink-0 ml-1 relative",
+                    isListening && "text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700"
+                  )}
+                  title={isListening ? "إيقاف الاستماع" : "البحث الصوتي الذكي (Speech-to-Search)"}
+                >
+                  {isListening && (
+                    <span className="absolute inset-0 rounded-full border border-rose-400/30 animate-ping" />
+                  )}
+                  {isListening ? <MicOff size={15} /> : <Mic size={15} />}
+                </button>
               </div>
+
               <button type="button" onClick={onClose} className="command-premium-close"><X size={18} /></button>
             </div>
 
