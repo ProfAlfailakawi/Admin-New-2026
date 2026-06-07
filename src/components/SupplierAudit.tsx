@@ -89,14 +89,23 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  consumedPaymentDeepLinkRef.current = deepLinkKey;
 
  if (initialSupplierId) {
+ const supplier = (data?.suppliers || []).find(s => s.id === initialSupplierId);
+ const initialBalance = supplier ? Math.max(0, Math.round((Number(supplier.balance || 0)) * 1000) / 1000) : 0;
+
+ if (!supplier || initialBalance <= 0) {
+   toast.success('لا يوجد مستحق مالي على هذا المورد', {
+     description: 'المورد مسدد بالكامل، لذلك لم يتم فتح شاشة تسجيل دفعة.',
+     position: 'bottom-right'
+   });
+   if (onClearDeepLink) onClearDeepLink();
+   return;
+ }
+
  setSelectedSupplier(initialSupplierId); // Filter the list too
  setTransferForm(prev => ({ 
  ...prev, 
  supplierId: initialSupplierId,
- amount: (() => {
-   const supplier = (data?.suppliers || []).find(s => s.id === initialSupplierId);
-   return supplier ? Math.max(0, Math.round((Number(supplier.balance || 0)) * 1000) / 1000) : 0;
- })()
+ amount: initialBalance
  }));
  }
  

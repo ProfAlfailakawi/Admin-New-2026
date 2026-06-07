@@ -224,6 +224,14 @@ const getAreaRisk = (marker: { revenue: number; count: number; profit: number })
 };
 
 const fmtMoney = (value: number) => `${Number(value || 0).toFixed(3)} د.ك`;
+const fmtMoneyNumber = (value: number) => Number(value || 0).toFixed(3);
+
+const MoneyValue: React.FC<{ value: number; tone?: 'default' | 'amber' | 'white'; compact?: boolean }> = ({ value, tone = 'default', compact = false }) => (
+ <span className={`geo-money-value ${compact ? 'geo-money-value-compact' : ''} geo-money-${tone}`} dir="ltr">
+  <span className="geo-money-number">{fmtMoneyNumber(value)}</span>
+  <span className="geo-money-currency">د.ك</span>
+ </span>
+);
 
 const lonLatToWorldPixel = (lat: number, lng: number, zoom: number) => {
  const sinLat = Math.sin((Math.max(-85.05112878, Math.min(85.05112878, lat)) * Math.PI) / 180);
@@ -403,7 +411,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 min-w-full lg:min-w-[520px]">
     {[
      { label: 'مناطق نشطة', value: areaData.markers.length, icon: MapPin },
-     { label: 'إيراد مرصود', value: fmtMoney(areaData.markers.reduce((s, m) => s + m.revenue, 0)), icon: TrendingUp },
+     { label: 'إيراد مرصود', value: <MoneyValue value={areaData.markers.reduce((s, m) => s + m.revenue, 0)} />, icon: TrendingUp },
      { label: 'عملاء ظاهرون', value: areaData.markers.reduce((s, m) => s + m.customers.size, 0), icon: Users },
      { label: 'أعلى منطقة', value: areaData.markers[0]?.name || 'غير محدد', icon: Crown },
     ].map((item) => {
@@ -411,20 +419,20 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
      return (
       <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.06] p-3 text-right backdrop-blur-xl min-w-0">
        <div className="flex items-center justify-end gap-2 text-[10px] font-black text-slate-400"><span>{item.label}</span><Icon size={13} /></div>
-       <div className="mt-1 text-[12px] min-[390px]:text-[13px] sm:text-sm font-black text-white leading-tight whitespace-nowrap tabular-nums tracking-tight">{item.value}</div>
+       <div className="geo-summary-value mt-1 text-[12px] min-[390px]:text-[13px] sm:text-sm font-black text-white leading-tight tabular-nums tracking-tight">{item.value}</div>
       </div>
      );
     })}
    </div>
   </div>
   {areaData.markers.length > 0 && (
-   <div className="rounded-3xl border border-white/10 bg-white/[0.05] overflow-hidden">
-    <div className="px-3 py-3 flex items-center justify-between gap-3">
-     <div className="text-right">
+   <div className="geo-zone-panel rounded-3xl border border-white/10 bg-white/[0.05] overflow-hidden">
+    <div className="geo-zone-panel-head px-3 py-3">
+     <span className="geo-zone-top-badge rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-slate-300 whitespace-nowrap">Top 3</span>
+     <div className="text-right min-w-0">
       <div className="text-xs font-black text-white">أقوى المناطق الآن</div>
       <div className="text-[10px] font-bold text-slate-400">قائمة مختصرة؛ افتح المنطقة لمشاهدة التفاصيل بدون زحمة.</div>
      </div>
-     <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-slate-300 whitespace-nowrap">Top 3</span>
     </div>
     <div className="border-t border-white/10 divide-y divide-white/10">
      {areaData.markers.slice(0, 3).map((marker, index) => {
@@ -434,27 +442,25 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
         <button
          type="button"
          onClick={() => setActiveRegion(isOpen ? null : marker.name)}
-         className={`w-full px-3 py-3 text-right transition-all flex items-center justify-between gap-3 ${isOpen ? 'bg-amber-300/10' : 'hover:bg-white/[0.04]'}`}
+         className={`geo-zone-button w-full px-3 py-3 text-right transition-all ${isOpen ? 'bg-amber-300/10' : 'hover:bg-white/[0.04]'}`}
         >
-         <div className="flex items-center gap-3 min-w-0 flex-1 justify-end" dir="rtl">
-          <div className="min-w-0 flex-1 text-right">
-           <div className="font-black text-white truncate">{marker.name}</div>
-           <div className="mt-1 flex flex-wrap justify-end gap-x-2 gap-y-1 text-[10px] font-bold text-slate-300 leading-5">
-            <span className="whitespace-nowrap tabular-nums">{fmtMoney(marker.revenue)}</span>
-            <span className="whitespace-nowrap">{marker.count} طلب</span>
-            <span className="max-w-full truncate text-slate-400">{marker.persona}</span>
-           </div>
+         <ChevronDown size={15} className={`geo-zone-chevron shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+         <span className="geo-zone-rank rounded-xl bg-white/10 px-2.5 py-2 text-[10px] font-black text-slate-300 shrink-0">#{index + 1}</span>
+         <div className="geo-zone-main min-w-0 text-right" dir="rtl">
+          <div className="geo-zone-name font-black text-white">{marker.name}</div>
+          <div className="geo-zone-meta mt-2">
+           <span className="geo-meta-chip geo-meta-money"><MoneyValue value={marker.revenue} compact /></span>
+           <span className="geo-meta-chip">{marker.count} طلب</span>
+           <span className="geo-meta-chip geo-meta-persona">{marker.persona}</span>
           </div>
-          <span className="rounded-xl bg-white/10 px-2.5 py-2 text-[10px] font-black text-slate-300 shrink-0">#{index + 1}</span>
          </div>
-         <ChevronDown size={15} className={`shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
         {isOpen && (
-         <div className="px-3 pb-3 grid grid-cols-3 gap-2 text-center geo-region-stats">
-          <div className="rounded-2xl bg-black/15 p-2 min-w-0"><div className="text-[9px] font-black text-slate-400">إيراد</div><div className="text-[10px] sm:text-[11px] font-black text-amber-100 whitespace-nowrap leading-4 tabular-nums">{fmtMoney(marker.revenue)}</div></div>
-          <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">طلبات</div><div className="text-[11px] font-black text-white">{marker.count}</div></div>
-          <div className="rounded-2xl bg-black/15 p-2 min-w-0"><div className="text-[9px] font-black text-slate-400">متوسط</div><div className="text-[10px] sm:text-[11px] font-black text-white whitespace-nowrap leading-4 tabular-nums">{fmtMoney(marker.avgOrder)}</div></div>
-          <div className="col-span-3 flex flex-wrap justify-end gap-2">
+         <div className="px-3 pb-3 geo-region-stats">
+          <div className="geo-stat-card"><div className="geo-stat-label">إيراد</div><div className="geo-stat-value text-amber-100"><MoneyValue value={marker.revenue} /></div></div>
+          <div className="geo-stat-card"><div className="geo-stat-label">طلبات</div><div className="geo-stat-value text-white">{marker.count}</div></div>
+          <div className="geo-stat-card"><div className="geo-stat-label">متوسط</div><div className="geo-stat-value text-white"><MoneyValue value={marker.avgOrder} /></div></div>
+          <div className="geo-zone-tags">
            <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-black text-emerald-200"><Sparkles size={11} className="inline ml-1" />{marker.persona}</span>
            <span className="rounded-full bg-rose-400/10 px-3 py-1 text-[10px] font-black text-rose-100"><ShieldCheck size={11} className="inline ml-1" />{marker.risk}</span>
           </div>
