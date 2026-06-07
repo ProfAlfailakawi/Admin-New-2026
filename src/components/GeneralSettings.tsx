@@ -234,6 +234,248 @@ const restoreWhatsAppQuickRepliesFromBackup = (rows: any[]) => {
   }
 };
 
+interface DeviceCompassProps {
+  allCards: any[];
+  sendingPushTestId: string | null;
+  sendPushDeviceTestNotification: (device: any, candidateDevices?: any[]) => Promise<void>;
+  triggerShockwave: (e: React.MouseEvent) => void;
+  openPushRadarArea: (tab: "users" | "log" | "advanced", filter?: "all" | "golden" | "silent" | "ghost" | "archived") => void;
+  getPushDeviceConfidence: (device: any) => number;
+  getPushDeviceConfidenceMeta: (score: number) => { label: string; className: string };
+}
+
+const DeviceCompass: React.FC<DeviceCompassProps> = ({
+  allCards,
+  sendingPushTestId,
+  sendPushDeviceTestNotification,
+  triggerShockwave,
+  openPushRadarArea,
+  getPushDeviceConfidence,
+  getPushDeviceConfidenceMeta
+}) => {
+  const [hoveredCard, setHoveredCard] = useState<any | null>(null);
+
+  // Group cards that have devices
+  const cardsWithDevices = allCards.filter(c => (c.devices || []).length > 0);
+
+  // Separate them into three groups
+  const goldCards = cardsWithDevices.filter(c => c.state.rank === 1 || c.state.rank === 2);
+  const silentCards = cardsWithDevices.filter(c => c.state.rank === 3);
+  const ghostCards = cardsWithDevices.filter(c => c.state.rank >= 4);
+
+  // Helper to calculate exact coordinates
+  const getCoordinates = (index: number, total: number, radius: number, offsetAngle = 0) => {
+    if (total === 0) return { x: 160, y: 160, angle: 0 };
+    const angle = (index * (2 * Math.PI) / total) + offsetAngle;
+    const x = 160 + radius * Math.cos(angle);
+    const y = 160 + radius * Math.sin(angle);
+    return { x, y, angle };
+  };
+
+  const compassNodes: any[] = [];
+
+  goldCards.forEach((card, idx) => {
+    const coords = getCoordinates(idx, goldCards.length, 55, 0.4);
+    compassNodes.push({ card, ...coords, radius: 55, type: 'golden', dotColor: '#10b981', glowColor: 'rgba(16, 185, 129, 0.35)' });
+  });
+
+  silentCards.forEach((card, idx) => {
+    const coords = getCoordinates(idx, silentCards.length, 95, 1.2);
+    compassNodes.push({ card, ...coords, radius: 95, type: 'silent', dotColor: '#fbbf24', glowColor: 'rgba(251, 191, 36, 0.35)' });
+  });
+
+  ghostCards.forEach((card, idx) => {
+    const coords = getCoordinates(idx, ghostCards.length, 132, 2.3);
+    compassNodes.push({ card, ...coords, radius: 132, type: 'ghost', dotColor: '#ef4444', glowColor: 'rgba(239, 68, 68, 0.2)' });
+  });
+
+  return (
+    <div className="relative w-[320px] h-[320px] rounded-full flex items-center justify-center select-none bg-slate-950/60 border border-amber-500/20 shadow-[0_15px_45px_-10px_rgba(0,0,0,0.85)] p-1" id="device-deera-compass">
+       {/* Scanning effect */}
+       <motion.div
+         className="absolute inset-0 pointer-events-none rounded-full z-0"
+         style={{
+           background: "conic-gradient(from 0deg, rgba(245, 158, 11, 0.12) 0deg, rgba(245, 158, 11, 0) 90deg)",
+         }}
+         animate={{ rotate: 360 }}
+         transition={{ duration: 16, repeat: Infinity, ease: "linear" }}
+       />
+
+       {/* Traditional compass face background SVG */}
+       <svg width="310" height="310" viewBox="0 0 320 320" className="absolute inset-0 m-auto pointer-events-none z-10">
+         <defs>
+           <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+             <stop offset="0%" stopColor="#ffd700" />
+             <stop offset="50%" stopColor="#d4af37" />
+             <stop offset="100%" stopColor="#aa7c11" />
+           </linearGradient>
+           <radialGradient id="ringGlow" cx="50%" cy="50%" r="50%">
+             <stop offset="0%" stopColor="rgba(24, 34, 54, 0.95)" />
+             <stop offset="70%" stopColor="rgba(12, 17, 30, 0.98)" />
+             <stop offset="100%" stopColor="rgba(2, 4, 10, 1)" />
+           </radialGradient>
+         </defs>
+
+         {/* Base backing */}
+         <circle cx="160" cy="160" r="156" fill="url(#ringGlow)" stroke="url(#goldGradient)" strokeWidth="1.5" className="opacity-95" />
+         
+         {/* Concentric Orbits (Matching green, yellow, red statuses with elegant translucent contrast) */}
+         <circle cx="160" cy="160" r="55" fill="none" stroke="rgba(16, 185, 129, 0.25)" strokeWidth="1" strokeDasharray="3 3" />
+         <circle cx="160" cy="160" r="95" fill="none" stroke="rgba(251, 191, 36, 0.22)" strokeWidth="1" strokeDasharray="4 4" />
+         <circle cx="160" cy="160" r="132" fill="none" stroke="rgba(239, 68, 68, 0.18)" strokeWidth="0.75" strokeDasharray="5 5" />
+         
+         {/* Cross axis markings */}
+         <line x1="160" y1="18" x2="160" y2="302" stroke="rgba(212, 175, 55, 0.12)" strokeWidth="0.75" />
+         <line x1="18" y1="160" x2="302" y2="160" stroke="rgba(212, 175, 55, 0.12)" strokeWidth="0.75" />
+
+         {/* Outer dial markings with improved gold visibility */}
+         {Array.from({ length: 48 }).map((_, i) => {
+           const angle = (i * 360 / 48) * Math.PI / 180;
+           const isQuarterLabel = i % 12 === 0;
+           const rStart = isQuarterLabel ? 146 : 149;
+           const rEnd = 155;
+           const x1 = 160 + rStart * Math.cos(angle);
+           const y1 = 160 + rStart * Math.sin(angle);
+           const x2 = 160 + rEnd * Math.cos(angle);
+           const y2 = 160 + rEnd * Math.sin(angle);
+           return (
+             <line
+               key={i}
+               x1={x1}
+               y1={y1}
+               x2={x2}
+               y2={y2}
+               stroke={isQuarterLabel ? "url(#goldGradient)" : "rgba(212, 175, 55, 0.35)"}
+               strokeWidth={isQuarterLabel ? "1.5" : "0.75"}
+             />
+           );
+         })}
+
+         {/* Traditional Arabic cardinal titles with high contrast drop shadows */}
+         <text x="160" y="32" fill="url(#goldGradient)" fontSize="11" fontWeight="950" textAnchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.9))">الشمال</text>
+         <text x="160" y="296" fill="url(#goldGradient)" fontSize="11" fontWeight="950" textAnchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.9))">الجنوب</text>
+         <text x="286" y="164" fill="url(#goldGradient)" fontSize="11" fontWeight="950" textAnchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.9))">الشرق</text>
+         <text x="34" y="164" fill="url(#goldGradient)" fontSize="11" fontWeight="950" textAnchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.9))">الغرب</text>
+
+         {/* Compass center title */}
+         <text x="160" y="222" fill="rgba(212, 175, 55, 0.25)" fontSize="10" fontWeight="bold" textAnchor="middle" letterSpacing="2">ديرة الأجهزة</text>
+       </svg>
+
+       {/* Interactive Nodes */}
+       {compassNodes.map((node, i) => {
+         const isActive = sendingPushTestId === node.card.bestDevice?.id;
+         // Soft float offset calculated with cosine/sine relative to node index
+         const floatX = Math.sin(i + Date.now() / 2000) * 1.5;
+         const floatY = Math.cos(i + Date.now() / 2000) * 1.5;
+
+         const leftPos = node.x + floatX;
+         const topPos = node.y + floatY;
+
+         return (
+           <div
+             key={node.card.key}
+             className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer z-20 group"
+             style={{ left: leftPos, top: topPos }}
+             onMouseEnter={() => setHoveredCard(node.card)}
+             onMouseLeave={() => setHoveredCard(null)}
+             onClick={(e) => {
+               if (node.card.bestDevice) {
+                 triggerShockwave(e);
+                 void sendPushDeviceTestNotification(node.card.bestDevice, node.card.devices);
+               }
+             }}
+           >
+             <div className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110">
+               {/* Translucent glow ring */}
+               <motion.div
+                 className="absolute inset-0 rounded-full opacity-40"
+                 style={{ border: `1.5px solid ${node.dotColor}`, backgroundColor: node.glowColor }}
+                 animate={node.type === 'golden' ? { scale: [1, 1.35, 1], opacity: [0.5, 0.2, 0.5] } : {}}
+                 transition={{ duration: 2.2 + (i % 3) * 0.4, repeat: Infinity }}
+               />
+               
+               {/* Center core dot */}
+               <div
+                 className="w-3.5 h-3.5 rounded-full border border-slate-950 shadow-md flex items-center justify-center"
+                 style={{ backgroundColor: node.dotColor }}
+               >
+                 {isActive && (
+                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                 )}
+               </div>
+             </div>
+           </div>
+         );
+       })}
+
+       {/* Floating Detail Overlay inside the compass center when node hovered */}
+       {hoveredCard ? (
+         <div className="absolute inset-x-6 top-[80px] bottom-[80px] mx-auto w-[220px] h-[150px] z-30 rounded-2xl bg-slate-950/95 border border-amber-400/40 p-3 shadow-[0_12px_48px_rgba(0,0,0,0.95)] shadow-amber-950/40 backdrop-blur-md flex flex-col justify-between text-right pointer-events-none">
+           <div>
+             <div className="flex items-center justify-between border-b border-white/10 pb-1.5 mb-1.5 min-w-0">
+               <span className="text-[8px] rounded-lg bg-white/10 px-1.5 py-0.5 text-white/75 font-black shrink-0">
+                 {hoveredCard.identity.role === 'partner' ? 'شريك' : hoveredCard.identity.role === 'admin' ? 'مدير' : 'موظف'}
+               </span>
+               <strong className="text-[11px] font-black text-amber-300 truncate mr-2">
+                 {hoveredCard.identity.name || "مستخدم"}
+               </strong>
+             </div>
+             
+             <div className="space-y-1 text-[9px] font-bold">
+               <div className="flex items-center justify-between text-white/80">
+                 <span dir="ltr" className="font-semibold truncate max-w-[130px] text-white">{hoveredCard.bestDevice?.label || hoveredCard.bestDevice?.browser || "جهاز غير معروف"}</span>
+                 <span className="text-white/50">الجهاز:</span>
+               </div>
+               <div className="flex items-center justify-between text-white/80">
+                 <span dir="ltr" className="font-semibold text-emerald-400">{hoveredCard.bestScore}%</span>
+                 <span className="text-white/50">ثقة الإشارة:</span>
+               </div>
+               <div className="flex items-center justify-between text-white/80">
+                 <span className="text-amber-200 truncate max-w-[125px]">{hoveredCard.state.label}</span>
+                 <span className="text-white/50">الحالة:</span>
+               </div>
+             </div>
+           </div>
+
+           <div className="border-t border-white/5 pt-1 text-center font-black">
+             <div className="text-[9px] font-black text-amber-200/90 flex items-center justify-center gap-1">
+               <Send size={10} className="text-amber-300" />
+               اضغط للاختبار وإطلاق موجة
+             </div>
+           </div>
+         </div>
+       ) : (
+         /* Center server hub and pulsing compass needle representing orientation */
+         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+           {/* Center golden hub */}
+           <div className="relative w-8 h-8 rounded-full bg-slate-950 border-2 border-amber-400 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.4)]">
+             <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 animate-pulse" />
+             <div className="absolute -inset-1.5 rounded-full border border-amber-400/20 animate-ping opacity-30" />
+           </div>
+           
+           {/* Real Compass needle element with gentle micro-swing animation */}
+           <svg width="310" height="310" viewBox="0 0 320 320" className="absolute inset-0 m-auto pointer-events-none z-0">
+             <motion.g
+               initial={{ rotate: 15 }}
+               animate={{ rotate: [15, 45, 25, 38, 32, 35] }}
+               transition={{
+                 duration: 6,
+                 ease: "easeOut",
+                 repeat: Infinity,
+                 repeatType: "reverse"
+               }}
+               style={{ transformOrigin: "160px 160px" }}
+             >
+               <polygon points="160,82 163,160 160,168 157,160" fill="url(#goldGradient)" className="opacity-90" />
+               <polygon points="160,238 163,160 160,152 157,160" fill="rgba(255,255,255,0.4)" className="opacity-50" />
+             </motion.g>
+           </svg>
+         </div>
+       )}
+    </div>
+  );
+};
+
 const GeneralSettings: React.FC<Props> = ({
   data,
   setData,
@@ -242,6 +484,18 @@ const GeneralSettings: React.FC<Props> = ({
   addToast,
   onCloudImport,
 }) => {
+  const [shockwaves, setShockwaves] = useState<{ id: string; x: number; y: number }[]>([]);
+
+  const triggerShockwave = (e: React.MouseEvent) => {
+    const x = e.clientX;
+    const y = e.clientY;
+    const newWave = { id: String(Math.random()), x, y };
+    setShockwaves((prev) => [...prev, newWave]);
+    setTimeout(() => {
+      setShockwaves((prev) => prev.filter((w) => w.id !== newWave.id));
+    }, 1800);
+  };
+
   const [settings, setSettingsState] = useState<AppSettings>(
     data?.settings || INITIAL_DATA.settings,
   );
@@ -3867,45 +4121,65 @@ const GeneralSettings: React.FC<Props> = ({
                               </div>
                             </div>
 
-                            <div className="rounded-[1.8rem] border border-white/10 bg-slate-900/85 p-4 text-white shadow-lg">
-                              <div className="flex items-center justify-between gap-3 mb-3">
+                            <div className="rounded-[1.8rem] border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-950 p-6 text-white shadow-2xl">
+                              <div className="flex items-center justify-between gap-3 mb-6 pb-2 border-b border-white/5">
                                 <div>
-                                  <div className="text-[10px] font-black text-white/40">خريطة الأجهزة الذكية</div>
-                                  <h4 className="text-sm font-black">اضغط على أي لون لفتح الأجهزة المعنية</h4>
+                                  <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest font-mono">خريطة الأجهزة الذكية</div>
+                                  <h4 className="text-sm md:text-base font-black text-slate-100 mt-1">بوصلة الأجهزة الحية والتناغم التلقائي (ديرة الأجهزة)</h4>
                                 </div>
-                                <MonitorSmartphone size={18} className="text-emerald-200" />
+                                <MonitorSmartphone size={20} className="text-amber-400 animate-pulse" />
                               </div>
-                              <div className="mb-3 grid grid-cols-2 md:grid-cols-4 gap-1.5 text-[10px] font-bold text-white/60">
-                                {[
-                                  ['الأخضر', 'جهاز حديث جاهز للاستقبال', 'golden', 'bg-emerald-400/10 border-emerald-300/15 text-emerald-50'],
-                                  ['الأصفر', 'جهاز صامت ينتظر تأكيد وصول/فتح', 'silent', 'bg-amber-400/10 border-amber-300/15 text-amber-50'],
-                                  ['الأحمر', 'توكن قديم أو جهاز شبح', 'ghost', 'bg-rose-400/10 border-rose-300/15 text-rose-50'],
-                                  ['الأبيض', 'حساب بلا جهاز مفعّل', 'archived', 'bg-white/10 border-white/10 text-white'],
-                                ].map(([color, meaning, filter, cls]) => (
-                                  <button
-                                    key={color}
-                                    type="button"
-                                    onClick={() => { setPushDeviceSearch(''); openPushRadarArea('users', filter as any); }}
-                                    className={cn("rounded-xl border px-2 py-1 text-right hover:bg-white/15 transition", cls)}
-                                  >
-                                    <span className="block font-black">{color}</span>
-                                    <span className="block opacity-70 truncate">{meaning}</span>
-                                  </button>
-                                ))}
-                              </div>
-                              <div className="grid md:grid-cols-4 gap-2">
-                                {[
-                                  ['أجهزة ذهبية', `${goldenDevices.length}`, 'حديثة وتستقبل غالباً', 'bg-emerald-400/15 text-emerald-50 border-emerald-300/20', 'golden'],
-                                  ['أجهزة صامتة', `${silentDevices.length}`, 'محاولات إرسال بلا فتح مؤكد', 'bg-amber-400/15 text-amber-50 border-amber-300/20', 'silent'],
-                                  ['أجهزة شبحية', `${ghostDevices.length}`, 'توكن قديم أو مكرر', 'bg-rose-400/15 text-rose-50 border-rose-300/20', 'ghost'],
-                                  ['حسابات بلا جهاز', `${archivedCards.length}`, 'حساب محفوظ بلا جهاز مفعّل', 'bg-white/10 text-white border-white/10', 'archived'],
-                                ].map(([label, value, hint, cls, filter]) => (
-                                  <button type="button" key={label} onClick={() => { setPushDeviceSearch(''); openPushRadarArea('users', filter as any); }} className={cn("rounded-2xl border p-3 text-right hover:scale-[1.01] transition", cls, pushDeviceMapFilter === filter ? "ring-2 ring-white/45" : "")}>
-                                    <div className="text-[10px] font-black opacity-70">{label}</div>
-                                    <div className="mt-1 text-2xl font-black">{value}</div>
-                                    <div className="mt-1 text-[10px] font-bold opacity-65 leading-5">{hint}</div>
-                                  </button>
-                                ))}
+
+                              <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6 items-center">
+                                {/* ديرة الأجهزة */}
+                                <div className="flex justify-center shrink-0">
+                                  <DeviceCompass
+                                    allCards={allCards}
+                                    sendingPushTestId={sendingPushTestId}
+                                    sendPushDeviceTestNotification={sendPushDeviceTestNotification}
+                                    triggerShockwave={triggerShockwave}
+                                    openPushRadarArea={openPushRadarArea}
+                                    getPushDeviceConfidence={getPushDeviceConfidence}
+                                    getPushDeviceConfidenceMeta={getPushDeviceConfidenceMeta}
+                                  />
+                                </div>
+
+                                {/* أزرار التحكم والإحصائيات */}
+                                <div className="flex flex-col gap-4 w-full">
+                                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 text-[10px] font-bold text-white/60">
+                                    {[
+                                      ['الأخضر', 'جهاز حديث جاهز للاستقبال', 'golden', 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/25 text-emerald-300'],
+                                      ['الأصفر', 'جهاز صامت ينتظر تأكيد وصول/فتح', 'silent', 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/25 text-amber-300'],
+                                      ['الأحمر', 'توكن قديم أو جهاز شبح', 'ghost', 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/25 text-rose-300'],
+                                      ['الأبيض', 'حساب بلا جهاز مفعّل', 'archived', 'bg-slate-800/40 hover:bg-slate-800/60 border-slate-700/50 text-slate-200'],
+                                    ].map(([color, meaning, filter, cls]) => (
+                                      <button
+                                        key={color}
+                                        type="button"
+                                        onClick={() => { setPushDeviceSearch(''); openPushRadarArea('users', filter as any); }}
+                                        className={cn("rounded-xl border px-2 py-1.5 text-right transition focus:outline-none", cls)}
+                                      >
+                                        <span className="block font-black text-[11px] mb-0.5">{color}</span>
+                                        <span className="block opacity-75 truncate text-[9px] font-medium leading-4">{meaning}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+
+                                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                    {[
+                                      ['أجهزة ذهبية', `${goldenDevices.length}`, 'حديثة وتستقبل غالباً', 'bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-300 border-emerald-500/20', 'golden'],
+                                      ['أجهزة صامتة', `${silentDevices.length}`, 'محاولات إرسال بلا فتح مؤكد', 'bg-amber-500/10 hover:bg-amber-500/15 text-amber-300 border-amber-500/20', 'silent'],
+                                      ['أجهزة شبحية', `${ghostDevices.length}`, 'توكن قديم أو مكرر', 'bg-rose-500/10 hover:bg-rose-500/15 text-rose-300 border-rose-500/20', 'ghost'],
+                                      ['حسابات بلا جهاز', `${archivedCards.length}`, 'حساب محفوظ بلا جهاز مفعّل', 'bg-slate-800/40 hover:bg-slate-800/50 text-slate-300 border-slate-700/30', 'archived'],
+                                    ].map(([label, value, hint, cls, filter]) => (
+                                      <button type="button" key={label} onClick={() => { setPushDeviceSearch(''); openPushRadarArea('users', filter as any); }} className={cn("rounded-2xl border p-3 text-right hover:scale-[1.01] transition focus:outline-none", cls, pushDeviceMapFilter === filter ? "ring-2 ring-amber-400 border-amber-300" : "")}>
+                                        <div className="text-[10px] font-black opacity-80">{label}</div>
+                                        <div className="mt-1 text-2xl font-black">{value}</div>
+                                        <div className="mt-1 text-[10px] font-bold opacity-75 leading-5">{hint}</div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
                               </div>
                             </div>
 
@@ -4111,7 +4385,12 @@ const GeneralSettings: React.FC<Props> = ({
                                           <button
                                             type="button"
                                             disabled={!firstDevice || sendingPushTestId === firstDevice.id || !firstDevice.token || firstDevice.token === "Not available"}
-                                            onClick={() => firstDevice && sendPushDeviceTestNotification(firstDevice, card.devices)}
+                                            onClick={(e) => {
+                                              if (firstDevice) {
+                                                triggerShockwave(e);
+                                                void sendPushDeviceTestNotification(firstDevice, card.devices);
+                                              }
+                                            }}
                                             className="flex-1 rounded-2xl bg-white text-slate-950 px-3 py-2.5 text-[11px] font-black hover:bg-emerald-50 disabled:opacity-45 transition flex items-center justify-center gap-2"
                                           >
                                             {firstDevice && sendingPushTestId === firstDevice.id ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
@@ -5205,6 +5484,48 @@ const GeneralSettings: React.FC<Props> = ({
           </section>
         </div>
       </div>
+
+      {/* أوركسترا موجات الإشعارات (Visual Notification Waves) */}
+      {shockwaves.map((wave) => (
+        <div key={wave.id} className="fixed inset-0 pointer-events-none z-[99999]">
+          <motion.div
+            initial={{ x: wave.x, y: wave.y, scale: 0, opacity: 0.95 }}
+            animate={{
+              scale: 18,
+              opacity: 0,
+            }}
+            transition={{ duration: 1.6, ease: "easeOut" }}
+            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-400 bg-gradient-to-r from-amber-300/10 to-transparent shadow-[0_0_60px_rgba(245,158,11,0.2)]"
+            style={{
+              width: "100px",
+              height: "100px",
+              left: 0,
+              top: 0
+            }}
+          />
+          <motion.div
+            initial={{ x: wave.x, y: wave.y, scale: 0, opacity: 0.8 }}
+            animate={{
+              scale: 14,
+              opacity: 0,
+            }}
+            transition={{ duration: 1.3, delay: 0.15, ease: "easeOut" }}
+            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-emerald-400 bg-gradient-to-r from-emerald-400/5 to-transparent shadow-[0_0_40px_rgba(52,211,153,0.15)]"
+            style={{
+              width: "100px",
+              height: "100px",
+              left: 0,
+              top: 0
+            }}
+          />
+          <motion.div
+            initial={{ opacity: 0.2 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+            className="absolute inset-0 bg-white/[0.02] backdrop-blur-[0.5px]"
+          />
+        </div>
+      ))}
     </div>
   );
 };
