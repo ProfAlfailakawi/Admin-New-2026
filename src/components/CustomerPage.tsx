@@ -402,7 +402,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
    </div>
 
    {/* Table */}
-   <div className="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm border border-slate-200 overflow-hidden">
+   <div className="customers-ledger-table bg-white rounded-[2rem] border border-slate-200/60 shadow-sm border border-slate-200 overflow-hidden">
     <div className="overflow-x-auto">
     <table className="w-full text-right min-w-[800px]" dir="rtl">
      <thead>

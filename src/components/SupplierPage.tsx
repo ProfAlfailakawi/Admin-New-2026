@@ -588,7 +588,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  initial={{ opacity: 0, scale: 0.95, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95, y: 20 }}
- className="bg-white rounded-3xl md:rounded-3xl w-[95%] md:w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+ className="admin-supplier-modal bg-white rounded-3xl md:rounded-3xl w-[95%] md:w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
  onClick={(e) => e.stopPropagation()}
  >
  {/* Header - Fixed */}
@@ -630,7 +630,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  initial={{ opacity: 0 }} 
  animate={{ opacity: 1 }} 
  exit={{ opacity: 0 }} 
- className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
+ className="admin-supplier-modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
  onClick={() => setShowModal(false)}
  >
  <motion.div 
