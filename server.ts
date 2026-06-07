@@ -6041,7 +6041,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       }
 
       const ai = new GoogleGenAI({
-        apiKey: process.env.GEMINI_API_KEY,
+        apiKey: assistantGeminiApiKey,
         httpOptions: { headers: { "User-Agent": "alturath-admin-server" } }
       });
 
@@ -6090,21 +6090,27 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       const lower = message.toLowerCase();
       let reply = "";
       if (lower.includes("مبيعات") || lower.includes("أرباح") || lower.includes("فلوس") || lower.includes("بيعت") || lower.includes("مبيعاتنا") || lower.includes("ربح")) {
-        reply = `مبيعات اليوم تبشر بالخير، والأمور وايد ممتازة. المبيعات مستقرة مع إقبال جيد على العيوش والطلب العائلي في الويكند. الأفضل التركيز على تسويق صواني اللحم أو المجبوس لزيادة العائد.`;
+        reply = `واضح من البيانات أن المبيعات مستقرة وفيها فرصة لرفع العائد. القرار الأنسب الآن: ركّز العرض على الصواني أو المنتجات الأعلى طلبًا بدل التخفيض العام.`;
       } else if (lower.includes("منتج") || lower.includes("أكل") || lower.includes("محبوب") || lower.includes("أكثر طلبا") || lower.includes("صنف") || lower.includes("اطباق")) {
-        reply = `واضح من البيانات أن مجبوس الدجاج وورق العنب الناطع حامض حلو من أقوى المنتجات حاليًا، والطلب عليهم ممتاز في الزوارة والديوانية. مبيعاتهم تشكل نسبة مؤثرة ومن أكثر الأصناف طلبًا بالتوصيل.`;
+        reply = `واضح من بيانات المنتجات أن الأفضل هو ترتيب الأصناف حسب الطلب والربحية قبل أي حملة. القرار العملي: اختر أعلى منتج طلبًا واربطه بعرض محدود يرفع متوسط الفاتورة.`;
       } else if (lower.includes("مورد") || lower.includes("خضار") || lower.includes("سوق") || lower.includes("لحم") || lower.includes("دجاج")) {
-        reply = `بخصوص الموردين وتوريد اللحوم المحلية الطازجة والدجاج الكويتي، الوضع منظم، والعلاقة مع موردي سوق الخضار واللحوم جيدة لضمان نضارة المكونات يوميًا. الأفضل جدولة الطلبات مبكرًا لتفادي أي زيادة في الأسعار الموسمية.`;
+        reply = `بالنسبة للموردين، القرار الأفضل هو متابعة المستحقات والالتزام قبل زيادة الطلبات. إذا كان المورد مسددًا بالكامل، لا تحتاج إجراء دفع جديد؛ راقب التوريد القادم فقط.`;
       } else if (lower.includes("شرح") || lower.includes("ساعدني") || lower.includes("تحليل") || lower.includes("شورك") || lower.includes("خطة")) {
-        reply = `بعد نظرة دقيقة في البيانات وسجلات الفواتير الأخيرة، واضح أن الويكند وأيام الزوارة (الخميس والجمعة والسبت) هي ذروة النشاط بفرق ملحوظ. القرار الأنسب: تجهيز بوكس يمعة خاص بالزوارة يجمع ورق العنب والحلويات الشعبية كـ Combo لرفع متوسط قيمة الفاتورة.`;
+        reply = `بعد قراءة البيانات المتاحة، الأفضل اتخاذ قرار واحد واضح بدل كثرة الخيارات: راقب ذروة الطلب، ثم جهّز عرضًا محددًا للمنتج الأقوى في وقت الذروة.`;
       } else {
-        reply = `مرحبًا، أنا هنا كـ "مساعد التراث الكويتي الاحتياطي" (الذكاء الاصطناعي معلق مؤقتًا بسبب صلاحية مفتاح الـ API). المتجر أداءه جيد، والعملاء متفاعلون مع الطعم الناطع والخنين للعيوش والمحاشي. اكتب سؤالك عن التشغيل أو الحملات الترويجية وسأعطيك قرارًا عمليًا واضحًا.`;
+        reply = `مرحبًا، أنا مساعد التراث الذكي. اكتب سؤالك عن المبيعات أو الموردين أو المنتجات أو الحملات، وسأعطيك قرارًا عمليًا مختصرًا بناءً على بيانات اللوحة.`;
       }
-      return { text: reply };
+      return { text: sanitizeAssistantTone(reply) };
     };
 
-    if (!process.env.GEMINI_API_KEY) {
-      console.warn("[Assistant] GEMINI_API_KEY not configured, serving high-fidelity local simulation.");
+    const assistantGeminiApiKey =
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      process.env.GOOGLE_GENAI_API_KEY ||
+      process.env.VITE_GEMINI_API_KEY;
+
+    if (!assistantGeminiApiKey) {
+      console.warn("[Assistant] Gemini API key not configured for assistant route; serving local assistant response.");
       return res.json(runFallback());
     }
 
