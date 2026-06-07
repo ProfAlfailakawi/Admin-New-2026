@@ -3447,7 +3447,7 @@ const MainApp: React.FC = () => {
                        animate={{ opacity: 1, y: 0, scale: 1 }}
                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
                        transition={{ duration: 0.2 }}
-                       className="absolute left-0 mt-3 w-[290px] xs:w-[320px] sm:w-[380px] md:w-[420px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200/60 z-[9999] overflow-hidden origin-top-left"
+                       className="smart-notifications-popover absolute left-0 mt-3 w-[290px] xs:w-[320px] sm:w-[380px] md:w-[420px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200/60 z-[9999] overflow-hidden origin-top-left"
                       >
                       <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white">
                         <span className="font-bold text-slate-800 text-sm sm:text-base">التنبيهات الذكية</span>
@@ -3464,7 +3464,7 @@ const MainApp: React.FC = () => {
                                      notifications: (prev?.notifications || []).map(n => ({ ...n, read: true }))
                                  }));
                              }}
-                             className="text-xs text-primary font-bold hover:underline bg-transparent border-none"
+                             className="notification-mark-all text-xs text-primary font-bold hover:underline bg-transparent border-none"
                            >
                              تحديد الكل كمقروء
                            </button>

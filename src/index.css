@@ -4656,3 +4656,429 @@ button[aria-label="إدارة التوصيل"] {
   align-items: center;
   justify-content: center;
 }
+
+/* --------------------------------------------------------------------------
+ * Admin70 full mobile audit patch
+ * Scope: visual/mobile layout only. No payment/database/AI/WhatsApp logic.
+ * Purpose: keep every page, card, icon, button and text readable inside phones.
+ * -------------------------------------------------------------------------- */
+@media (max-width: 760px) {
+  :root {
+    --admin-mobile-gutter: 12px;
+    --admin-mobile-card-radius: 22px;
+    --admin-mobile-text: #0f172a;
+    --admin-mobile-muted: #475569;
+    --admin-mobile-soft: #64748b;
+  }
+
+  html,
+  body,
+  #root,
+  .admin-heritage-shell {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .admin-heritage-shell {
+    position: relative;
+  }
+
+  .admin-heritage-shell > main,
+  .admin-experience-stack,
+  .admin-content-polish,
+  .dashboard-content-shell,
+  .dashboard-content-shell > *,
+  .admin-page-hero,
+  .admin-smart-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .admin-content-polish,
+  .dashboard-content-shell {
+    padding-inline: var(--admin-mobile-gutter) !important;
+  }
+
+  .admin-page-hero,
+  .admin-smart-panel,
+  .smart-collapsible-panel,
+  .panel-head,
+  .smart-panel-toggle,
+  .smart-panel-body,
+  .product-score-card,
+  .customer-intel-card,
+  .supplier-radar-card,
+  .coupon-ticket,
+  .lab-tool-card,
+  .scenario-strip,
+  .whatsapp-ops-board,
+  .whatsapp-urgent-board,
+  .studio-preview-card,
+  .supplier-card-mobile-safe {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Global typography normalization: large desktop titles become phone-sized. */
+  .admin-content-polish :where(h1, .text-5xl, .text-6xl, .text-7xl, .text-8xl, .text-9xl),
+  .dashboard-content-shell :where(h1, .text-5xl, .text-6xl, .text-7xl, .text-8xl, .text-9xl) {
+    font-size: clamp(1.65rem, 7.2vw, 2.35rem) !important;
+    line-height: 1.22 !important;
+    letter-spacing: -0.035em !important;
+  }
+
+  .admin-content-polish :where(h2, .text-4xl),
+  .dashboard-content-shell :where(h2, .text-4xl) {
+    font-size: clamp(1.28rem, 5.6vw, 1.8rem) !important;
+    line-height: 1.28 !important;
+    letter-spacing: -0.025em !important;
+  }
+
+  .admin-content-polish :where(h3, .text-3xl),
+  .dashboard-content-shell :where(h3, .text-3xl) {
+    font-size: clamp(1.05rem, 4.7vw, 1.45rem) !important;
+    line-height: 1.35 !important;
+  }
+
+  .admin-content-polish :where(p, span, small, label, div, button, a),
+  .dashboard-content-shell :where(p, span, small, label, div, button, a) {
+    min-width: 0;
+  }
+
+  .admin-content-polish :where(p, .leading-relaxed),
+  .dashboard-content-shell :where(p, .leading-relaxed) {
+    line-height: 1.72 !important;
+  }
+
+  /* Prevent the notorious one-letter-per-line issue on narrow pills/buttons. */
+  .admin-content-polish :where(button, a, [role="button"], .rounded-full, .rounded-2xl, .rounded-3xl),
+  .dashboard-content-shell :where(button, a, [role="button"], .rounded-full, .rounded-2xl, .rounded-3xl),
+  .smart-notifications-popover :where(button, div, span, p) {
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    white-space: normal;
+  }
+
+  .admin-content-polish :where(p, h1, h2, h3, h4, h5, h6),
+  .dashboard-content-shell :where(p, h1, h2, h3, h4, h5, h6) {
+    overflow-wrap: anywhere;
+  }
+
+  .tabular-nums,
+  [dir="ltr"],
+  input[type="time"],
+  input[type="number"],
+  .font-mono,
+  .font-cinema-numbers,
+  .text-2xl.font-black,
+  .text-3xl.font-black,
+  .text-4xl.font-black {
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    white-space: nowrap !important;
+  }
+
+  /* Cards, tiles and action areas: compact spacing and no outside-frame bleed. */
+  .admin-content-polish :where(article, section, .bg-white, .bg-slate-50, .bg-slate-100, .bg-amber-50, .bg-yellow-50, .bg-emerald-50, .bg-rose-50, .bg-blue-50),
+  .dashboard-content-shell :where(article, section, .bg-white, .bg-slate-50, .bg-slate-100, .bg-amber-50, .bg-yellow-50, .bg-emerald-50, .bg-rose-50, .bg-blue-50) {
+    max-width: 100% !important;
+  }
+
+  .admin-content-polish .grid,
+  .dashboard-content-shell .grid {
+    min-width: 0 !important;
+  }
+
+  .admin-content-polish :where(.grid-cols-4, .grid-cols-5, .grid-cols-6),
+  .dashboard-content-shell :where(.grid-cols-4, .grid-cols-5, .grid-cols-6) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .admin-content-polish :where(.p-8, .p-10, .p-12),
+  .dashboard-content-shell :where(.p-8, .p-10, .p-12) {
+    padding: 1rem !important;
+  }
+
+  .admin-content-polish :where(.px-8, .px-10, .px-12),
+  .dashboard-content-shell :where(.px-8, .px-10, .px-12) {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .admin-content-polish :where(.py-8, .py-10, .py-12),
+  .dashboard-content-shell :where(.py-8, .py-10, .py-12) {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+
+  .admin-content-polish :where(.gap-8, .gap-10, .gap-12),
+  .dashboard-content-shell :where(.gap-8, .gap-10, .gap-12) {
+    gap: .85rem !important;
+  }
+
+  /* Horizontal lists: scroll inside their own row, never the whole page. */
+  .admin-content-polish :where(.overflow-x-auto, [class*="overflow-x-auto"]),
+  .dashboard-content-shell :where(.overflow-x-auto, [class*="overflow-x-auto"]) {
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    max-width: 100% !important;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-content-polish :where(table),
+  .dashboard-content-shell :where(table) {
+    width: max-content !important;
+    max-width: none !important;
+  }
+
+  /* Top bar and notification menu. */
+  .smart-notifications-popover {
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top, 0px) + 72px) !important;
+    left: var(--admin-mobile-gutter) !important;
+    right: var(--admin-mobile-gutter) !important;
+    width: auto !important;
+    max-width: calc(100vw - (var(--admin-mobile-gutter) * 2)) !important;
+    transform-origin: top center !important;
+    border-radius: 24px !important;
+  }
+
+  .smart-notifications-popover > div:first-child {
+    gap: .65rem !important;
+    flex-wrap: wrap !important;
+  }
+
+  .smart-notifications-popover .notification-mark-all {
+    width: auto !important;
+    min-width: max-content !important;
+    padding: .45rem .65rem !important;
+    border-radius: 999px !important;
+    background: rgba(227,24,55,.06) !important;
+  }
+
+  .smart-notifications-popover .max-h-\[70vh\] {
+    max-height: min(70vh, 560px) !important;
+  }
+
+  /* Working hours table: stack the day and time inputs neatly. */
+  .working-hours-table-mobile {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .working-hours-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .75rem !important;
+    align-items: stretch !important;
+  }
+
+  .working-hours-day {
+    width: 100% !important;
+    justify-content: space-between !important;
+    gap: .75rem !important;
+  }
+
+  .working-hours-times {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: .65rem !important;
+    justify-content: stretch !important;
+  }
+
+  .working-hours-times > div {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: .45rem !important;
+  }
+
+  .working-hours-time-input,
+  input[type="time"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 3.15rem !important;
+    border-radius: 16px !important;
+    font-size: 16px !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    direction: ltr !important;
+  }
+
+  /* Maps: touch handles become round and readable. */
+  .leaflet-container,
+  .leaflet-pane,
+  .leaflet-map-pane {
+    max-width: 100% !important;
+  }
+
+  .leaflet-control-container a,
+  .leaflet-control-zoom a {
+    width: 34px !important;
+    height: 34px !important;
+    line-height: 32px !important;
+    border-radius: 12px !important;
+    font-size: 18px !important;
+  }
+
+  .leaflet-marker-icon,
+  .leaflet-div-icon,
+  .alturath-leaflet-marker,
+  .alturath-leaflet-marker > div {
+    border-radius: 999px !important;
+    aspect-ratio: 1 / 1;
+  }
+
+  /* WhatsApp/support screens: cards are readable and not washed out. */
+  .whatsapp-ops-board,
+  .whatsapp-urgent-board {
+    border-radius: 22px !important;
+  }
+
+  .whatsapp-ops-board .grid,
+  .whatsapp-urgent-board .grid {
+    min-width: 0 !important;
+  }
+
+  .whatsapp-ops-board button,
+  .whatsapp-urgent-board button {
+    min-height: 48px !important;
+  }
+
+  /* Studio / AI visual cards: keep text visible over light and dark theatrical cards. */
+  .studio-preview-card,
+  .ig-attractivity-gauge,
+  .instagram-magic-wand,
+  .admin-content-polish [class*="from-amber-50"],
+  .admin-content-polish [class*="from-yellow-50"],
+  .dashboard-content-shell [class*="from-amber-50"],
+  .dashboard-content-shell [class*="from-yellow-50"] {
+    color: var(--admin-mobile-text) !important;
+  }
+
+  .ig-gauge-output,
+  .ig-gauge-output * {
+    opacity: 1 !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,.8) !important;
+  }
+
+  .admin-content-polish .text-white,
+  .dashboard-content-shell .text-white {
+    text-shadow: 0 1px 2px rgba(15,23,42,.18);
+  }
+
+  .admin-content-polish :where(.bg-white .text-white, .bg-slate-50 .text-white, .bg-amber-50 .text-white, .bg-yellow-50 .text-white, [class*="from-amber-50"] .text-white, [class*="from-yellow-50"] .text-white),
+  .dashboard-content-shell :where(.bg-white .text-white, .bg-slate-50 .text-white, .bg-amber-50 .text-white, .bg-yellow-50 .text-white, [class*="from-amber-50"] .text-white, [class*="from-yellow-50"] .text-white) {
+    color: #0f172a !important;
+    text-shadow: none !important;
+  }
+
+  .admin-content-polish :where(.text-slate-300, .text-slate-400, .text-slate-500),
+  .dashboard-content-shell :where(.text-slate-300, .text-slate-400, .text-slate-500) {
+    color: var(--admin-mobile-muted) !important;
+  }
+
+  .admin-content-polish :where(.bg-slate-900, .bg-slate-950, [class*="from-slate-900"], [class*="from-slate-950"]) :where(.text-slate-500, .text-slate-400, .text-slate-300, .text-white\/40, .text-white\/50, .text-white\/60),
+  .dashboard-content-shell :where(.bg-slate-900, .bg-slate-950, [class*="from-slate-900"], [class*="from-slate-950"]) :where(.text-slate-500, .text-slate-400, .text-slate-300, .text-white\/40, .text-white\/50, .text-white\/60) {
+    color: rgba(248,250,252,.86) !important;
+    opacity: 1 !important;
+  }
+
+  .admin-content-polish :where(.bg-slate-900, .bg-slate-950, [class*="from-slate-900"], [class*="from-slate-950"]) :where(h1,h2,h3,strong),
+  .dashboard-content-shell :where(.bg-slate-900, .bg-slate-950, [class*="from-slate-900"], [class*="from-slate-950"]) :where(h1,h2,h3,strong) {
+    color: rgba(255,255,255,.96) !important;
+  }
+
+  /* Disabled buttons should look disabled but still readable. */
+  button:disabled,
+  .opacity-30,
+  .opacity-40,
+  .opacity-50 {
+    opacity: .72 !important;
+  }
+
+  button:disabled {
+    color: #64748b !important;
+  }
+
+  /* Floating/absolute widgets cannot cover the phone width or create giant overlays. */
+  .admin-content-polish :where(.absolute, .fixed),
+  .dashboard-content-shell :where(.absolute, .fixed) {
+    max-width: calc(100vw - 24px);
+  }
+
+  .admin-content-polish :where(.w-\[300px\], .w-\[320px\], .w-\[350px\], .w-\[380px\], .w-\[420px\]),
+  .dashboard-content-shell :where(.w-\[300px\], .w-\[320px\], .w-\[350px\], .w-\[380px\], .w-\[420px\]) {
+    max-width: 100% !important;
+  }
+
+  /* Action chips / filters / tab bars: preserve labels and allow clean swipe. */
+  .admin-content-polish :where(.rounded-full.px-3, .rounded-full.px-4, .rounded-full.px-5, .rounded-2xl.px-4, .rounded-2xl.px-5),
+  .dashboard-content-shell :where(.rounded-full.px-3, .rounded-full.px-4, .rounded-full.px-5, .rounded-2xl.px-4, .rounded-2xl.px-5) {
+    font-size: clamp(.72rem, 3.4vw, .9rem) !important;
+    line-height: 1.35 !important;
+  }
+
+  /* Customer/supplier/report cards: avoid vertical digits and cramped financial values. */
+  .supplier-summary-row,
+  .supplier-invoice-stats,
+  .customer-intel-grid,
+  .supplier-radar-grid,
+  .smart-mini-grid,
+  .coupon-theater-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .supplier-summary-row,
+  .supplier-invoice-stats {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .supplier-summary-row :where(strong, .text-lg, .text-xl),
+  .supplier-invoice-stats :where(strong, .text-lg, .text-xl) {
+    font-size: clamp(.95rem, 4vw, 1.15rem) !important;
+    white-space: nowrap !important;
+  }
+
+  /* iPhone safe-area bottom/top: floating scroll helpers and menus stay outside content. */
+  .admin-scroll-to-top,
+  [aria-label="العودة للأعلى"] {
+    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-content-polish,
+  .dashboard-content-shell {
+    padding-inline: 10px !important;
+  }
+
+  .admin-content-polish :where(.grid-cols-3),
+  .dashboard-content-shell :where(.grid-cols-3) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .working-hours-times {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-content-polish :where(.text-2xl),
+  .dashboard-content-shell :where(.text-2xl) {
+    font-size: clamp(1.05rem, 5vw, 1.35rem) !important;
+    line-height: 1.35 !important;
+  }
+
+  .admin-content-polish :where(.text-xl),
+  .dashboard-content-shell :where(.text-xl) {
+    font-size: clamp(.98rem, 4.4vw, 1.2rem) !important;
+    line-height: 1.4 !important;
+  }
+}

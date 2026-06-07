@@ -5039,7 +5039,7 @@ const GeneralSettings: React.FC<Props> = ({
                         : "",
                     )}
                   >
-                    <div className="divide-y divide-slate-100 min-w-[350px]">
+                    <div className="working-hours-table-mobile divide-y divide-slate-100 min-w-[350px]">
                       {[
                         { id: "sunday", name: "الأحد" },
                         { id: "monday", name: "الإثنين" },
@@ -5055,9 +5055,9 @@ const GeneralSettings: React.FC<Props> = ({
                         return (
                           <div
                             key={day.id}
-                            className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                            className="working-hours-row p-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
                           >
-                            <div className="flex items-center gap-4 w-32 shrink-0">
+                            <div className="working-hours-day flex items-center gap-4 w-32 shrink-0">
                               <label className="relative inline-flex items-center cursor-pointer">
                                 <input
                                   type="checkbox"
@@ -5094,7 +5094,7 @@ const GeneralSettings: React.FC<Props> = ({
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-4 flex-1 justify-end">
+                            <div className="working-hours-times flex items-center gap-4 flex-1 justify-end">
                               {hours.enabled ? (
                                 <>
                                   <div className="flex items-center gap-2">
@@ -5120,7 +5120,7 @@ const GeneralSettings: React.FC<Props> = ({
                                           },
                                         }))
                                       }
-                                      className="bg-white border border-slate-200/60 rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-blue-500 font-bold w-28 text-center"
+                                      className="working-hours-time-input bg-white border border-slate-200/60 rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-blue-500 font-bold w-28 text-center"
                                       dir="ltr"
                                     />
                                   </div>
@@ -5147,7 +5147,7 @@ const GeneralSettings: React.FC<Props> = ({
                                           },
                                         }))
                                       }
-                                      className="bg-white border border-slate-200/60 rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-blue-500 font-bold w-28 text-center"
+                                      className="working-hours-time-input bg-white border border-slate-200/60 rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-blue-500 font-bold w-28 text-center"
                                       dir="ltr"
                                     />
                                   </div>

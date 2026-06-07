@@ -53,7 +53,6 @@ import {
   ClipboardList,
   Puzzle,
   ShoppingBag,
-  Truck,
 } from "lucide-react";
 import { AppState, Invoice } from "../types";
 import { DEFAULT_GLOBAL_LOGO } from "../constants";
@@ -107,8 +106,7 @@ const getInvoiceAddress = (inv: any, customerObj?: any): string => {
 const getSupplierDeliverySettlementAmountForReport = (inv: any, supplierId: string, data: AppState): number => {
   const info = inv?.deliveryInfo || {};
   const target = info.settlementTarget || inv?.deliverySettlementTarget;
-  const valueCandidates = [info.cost, inv?.deliveryCost, info.finalPrice, inv?.deliveryFee];
-  const value = Number(valueCandidates.find((candidate) => Number(candidate || 0) > 0) || 0) || 0;
+  const value = Number(info.cost ?? inv?.deliveryCost ?? info.finalPrice ?? inv?.deliveryFee ?? 0) || 0;
   if (value <= 0) return 0;
   const supplier = (data?.suppliers || []).find((s: any) => String(s.id) === String(supplierId));
   if (!supplier) return 0;
@@ -453,11 +451,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       const byId = explicitId ? (data?.suppliers || []).find((s: any) => String(s.id) === explicitId) : null;
       return String(byId?.name || invoice?.deliveryInfo?.settlementSupplierName || invoice?.deliveryInfo?.company || invoice?.deliveryCompany || '').trim();
     };
-    const getInvoiceDeliveryCostValue = (invoice: any) => {
-      const info = invoice?.deliveryInfo || {};
-      const valueCandidates = [info.cost, (invoice as any)?.deliveryCost, info.finalPrice, (invoice as any)?.deliveryFee];
-      return Number(valueCandidates.find((candidate) => Number(candidate || 0) > 0) || 0) || 0;
-    };
+    const getInvoiceDeliveryCostValue = (invoice: any) => Number(invoice?.deliveryInfo?.cost ?? (invoice as any)?.deliveryCost ?? invoice?.deliveryInfo?.finalPrice ?? (invoice as any)?.deliveryFee ?? 0) || 0;
     const getInvoiceSupplierEntities = (invoice: any) => {
       const supplierIds = Array.from(new Set((invoice?.items || []).map((item: any) => {
         const product = (data?.products || []).find((p: any) => String(p.id) === String(item.productId));
@@ -493,15 +487,12 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       setData((prev) => {
         const apply = (inv: any) => {
           const currentInfo = inv.deliveryInfo || {};
-          const currentDeliveryAmount = getInvoiceDeliveryCostValue(inv);
           return {
             ...inv,
             deliveryType: deliveryManagerType,
             deliveryInfo: {
               ...currentInfo,
               company: settlementName,
-              cost: currentDeliveryAmount,
-              finalPrice: Number(currentInfo.finalPrice ?? inv.deliveryFee ?? currentDeliveryAmount) || currentDeliveryAmount,
               settlementTarget,
               settlementSupplierId: deliveryManagerSupplierId,
               settlementSupplierName: settlementName,
@@ -510,14 +501,13 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
             deliverySettlementSupplierId: deliveryManagerSupplierId,
           };
         };
-        const nextState = {
+        return {
           ...prev,
           invoices: (prev.invoices || []).map((inv: any) => String(inv.id) === String(deliveryManagerInvoice.id) ? apply(inv) : inv),
           orders: (prev.orders || []).map((order: any) => (
             String(order.id) === String(deliveryManagerInvoice.id) || String(order.linkedInvoiceId || '') === String(deliveryManagerInvoice.id)
           ) ? apply(order) : order),
         } as any;
-        return recalculateStateBalances(nextState);
       });
       toast.success('تم تحديث إدارة التوصيل', { description: 'تم تعديل طريقة التوصيل وجهتها داخليًا فقط دون تغيير إجمالي الفاتورة المدفوع.' });
       setDeliveryManagerInvoice(null);
@@ -1100,13 +1090,13 @@ Alturath.kw`;
                       className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
                     />
                   </div>
-                  <div className="flex p-1 bg-slate-100 rounded-xl">
+                  <div className="flex overflow-x-auto hide-scrollbar p-1 bg-slate-100 rounded-2xl gap-1 w-full md:w-auto">
                     {["all", "today", "week", "month", "custom"].map((f) => (
                       <button
                         key={f}
                         onClick={() => setTimeFilter(f as any)}
                         className={cn(
-                          "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all",
+                          "shrink-0 px-4 sm:px-5 py-2 rounded-xl text-[11px] font-bold uppercase transition-all whitespace-nowrap",
                           timeFilter === f
                             ? "bg-white text-slate-900 shadow-sm"
                             : "text-slate-500 hover:text-slate-600",
@@ -1444,11 +1434,10 @@ Alturath.kw`;
                                           e.stopPropagation();
                                           handleManageDelivery(inv);
                                         }}
-                                        className="p-2 hover:bg-blue-50 rounded-lg text-slate-500 hover:text-blue-600 transition-colors"
+                                        className="px-2.5 py-2 hover:bg-blue-50 rounded-lg text-slate-500 hover:text-blue-600 transition-colors text-[10px] font-black whitespace-nowrap"
                                         title="إدارة التوصيل والمستحقات"
-                                        aria-label="إدارة التوصيل"
                                       >
-                                        <Truck size={16} />
+                                        إدارة التوصيل
                                       </button>
                                     )}
                                     {!isPartner && (

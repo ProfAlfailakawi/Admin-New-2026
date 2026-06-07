@@ -175,22 +175,40 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  });
 
  const totalTransferred = (data?.supplierTransfers || []).reduce((acc, t) => acc + Number(t.amount || 0), 0);
- const totalOutstanding = (data?.suppliers || []).reduce((acc, s) => acc + (s.balance || 0), 0);
  const totalSupplyDue = allTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.supplyAmount || 0), 0);
  const totalDeliveryDue = allTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.deliveryAmount || 0), 0);
+ const supplierOutstandingMap = React.useMemo(() => {
+   const map: Record<string, { remainingSupply: number; remainingDelivery: number; balance: number; paid: number; supplyDue: number; deliveryDue: number; totalDue: number; paidToSupply: number; paidToDelivery: number; }> = {};
+   (data?.suppliers || []).forEach((supplier) => {
+     const supplierTransactions = allTransactions.filter(t => t.supplierId === supplier.id);
+     const supplyDue = supplierTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.supplyAmount || 0), 0);
+     const deliveryDue = supplierTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.deliveryAmount || 0), 0);
+     const paid = (data?.supplierTransfers || []).filter(t => t.supplierId === supplier.id).reduce((acc, t) => acc + Number(t.amount || 0), 0);
+     const paidToSupply = Math.min(paid, supplyDue);
+     const paidToDelivery = Math.min(Math.max(paid - paidToSupply, 0), deliveryDue);
+     const remainingSupply = Math.max(0, Math.round((supplyDue - paidToSupply) * 1000) / 1000);
+     const remainingDelivery = Math.max(0, Math.round((deliveryDue - paidToDelivery) * 1000) / 1000);
+     const totalDue = Math.round((supplyDue + deliveryDue) * 1000) / 1000;
+     const balance = Math.max(0, Math.round((totalDue - paid) * 1000) / 1000);
+     map[supplier.id] = { remainingSupply, remainingDelivery, balance, paid, supplyDue, deliveryDue, totalDue, paidToSupply, paidToDelivery };
+   });
+   return map;
+ }, [allTransactions, data?.supplierTransfers, data?.suppliers]);
+ const totalOutstanding = Object.values(supplierOutstandingMap).reduce((acc, s) => acc + (s.balance || 0), 0);
  const selectedSupplierSummary = React.useMemo(() => {
    if (!transferForm.supplierId) return null;
-   const supplierTransactions = allTransactions.filter(t => t.supplierId === transferForm.supplierId);
-   const supplyDue = supplierTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.supplyAmount || 0), 0);
-   const deliveryDue = supplierTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.deliveryAmount || 0), 0);
-   const paid = (data?.supplierTransfers || []).filter(t => t.supplierId === transferForm.supplierId).reduce((acc, t) => acc + Number(t.amount || 0), 0);
-   const paidToSupply = Math.min(paid, supplyDue);
-   const paidToDelivery = Math.min(Math.max(paid - paidToSupply, 0), deliveryDue);
-   const remainingSupply = Math.max(0, Math.round((supplyDue - paidToSupply) * 1000) / 1000);
-   const remainingDelivery = Math.max(0, Math.round((deliveryDue - paidToDelivery) * 1000) / 1000);
-   const balance = Math.max(0, Math.round((supplyDue + deliveryDue - paid) * 1000) / 1000);
-   return { supplyDue, deliveryDue, totalDue: supplyDue + deliveryDue, paid, paidToSupply, paidToDelivery, remainingSupply, remainingDelivery, balance };
- }, [transferForm.supplierId, allTransactions, data?.supplierTransfers]);
+   return supplierOutstandingMap[transferForm.supplierId] || null;
+ }, [transferForm.supplierId, supplierOutstandingMap]);
+
+ React.useEffect(() => {
+   if (!transferForm.supplierId || transferForm.id) return;
+   const nextBalance = supplierOutstandingMap[transferForm.supplierId]?.balance ?? 0;
+   setTransferForm(prev => {
+     if (prev.id || !prev.supplierId) return prev;
+     const rounded = Math.max(0, Math.round(nextBalance * 1000) / 1000);
+     return prev.amount === rounded ? prev : { ...prev, amount: rounded };
+   });
+ }, [transferForm.supplierId, transferForm.id, supplierOutstandingMap]);
  
  // Last movement logic
  const getLastMovement = (supId: string) => {
@@ -202,7 +220,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
 
  const handleAddTransfer = () => {
  const supplier = (data?.suppliers || []).find(s => s.id === transferForm.supplierId);
- const currentBalance = supplier ? (supplier.balance || 0) : 0;
+ const currentBalance = supplierOutstandingMap[transferForm.supplierId]?.balance ?? (supplier ? (supplier.balance || 0) : 0);
 
  if (!transferForm.supplierId || transferForm.amount <= 0) return;
 
@@ -261,7 +279,8 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  const id = Math.random().toString(36).substr(2, 9);
  const supplier = (data?.suppliers || []).find(s => s.id === transferForm.supplierId);
  const amount = Math.round(transferForm.amount * 1000) / 1000;
- const newRemaining = Math.max(0, Math.round(((supplier?.balance || 0) - amount) * 1000) / 1000);
+ const sourceBalance = supplierOutstandingMap[transferForm.supplierId]?.balance ?? (supplier?.balance || 0);
+ const newRemaining = Math.max(0, Math.round((sourceBalance - amount) * 1000) / 1000);
 
  setData(prev => ({
  ...prev,
@@ -587,11 +606,19 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <select 
  className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right"
  value={transferForm.supplierId}
- onChange={(e) => setTransferForm({ ...transferForm, supplierId: e.target.value })}
+ onChange={(e) => {
+   const nextSupplierId = e.target.value;
+   const nextBalance = nextSupplierId ? (supplierOutstandingMap[nextSupplierId]?.balance ?? 0) : 0;
+   setTransferForm({
+     ...transferForm,
+     supplierId: nextSupplierId,
+     amount: transferForm.id ? transferForm.amount : Math.max(0, Math.round(nextBalance * 1000) / 1000)
+   });
+ }}
  >
  <option value="">اختر مورد...</option>
- {(data?.suppliers || []).filter(s => transferForm.id || (s.balance || 0) > 0).map(s => (
- <option key={s.id} value={s.id}>{s.name} (المستحق: {Number(s.balance || 0).toFixed(3)})</option>
+ {(data?.suppliers || []).filter(s => transferForm.id || ((supplierOutstandingMap[s.id]?.balance ?? Number(s.balance || 0)) > 0)).map(s => (
+ <option key={s.id} value={s.id}>{s.name} (المستحق: {Number(supplierOutstandingMap[s.id]?.balance ?? Number(s.balance || 0)).toFixed(3)})</option>
 ))}
  </select>
  </div>
@@ -602,12 +629,8 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  {transferForm.supplierId && (
  <button 
  onClick={() => {
- const s = data.suppliers.find(s => s.id === transferForm.supplierId);
- if (s) {
- // Use Math.round with 1000 for 3 decimal precision
- const clean = Math.round((s.balance || 0) * 1000) / 1000;
+ const clean = Math.round(((selectedSupplierSummary?.balance ?? 0)) * 1000) / 1000;
  setTransferForm({ ...transferForm, amount: clean });
- }
  }}
  className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded border border-emerald-100 font-bold hover:bg-emerald-100 cursor-pointer transition-colors"
  >

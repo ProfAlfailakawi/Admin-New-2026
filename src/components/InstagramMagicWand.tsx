@@ -95,7 +95,7 @@ const AttractivenessGauge: React.FC<{ score: number }> = ({ score }) => {
         </svg>
 
         {/* Dashboard needle pin cap */}
-        <div className="absolute w-5 h-5 rounded-full bg-slate-50 border border-slate-200 text-slate-900 border border-amber-400 shadow-[0_2px_6px_rgba(245,158,11,0.6)] z-20 flex items-center justify-center -bottom-2.5">
+        <div className="absolute w-5 h-5 rounded-full bg-slate-900 border border-amber-300 shadow-[0_2px_10px_rgba(245,158,11,0.45)] z-20 flex items-center justify-center -bottom-2.5">
           <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
         </div>
 
@@ -110,8 +110,8 @@ const AttractivenessGauge: React.FC<{ score: number }> = ({ score }) => {
 
         {/* High performance digital output below */}
         <div className="absolute bottom-1 text-center pointer-events-none">
-          <div className="text-[8px] font-black tracking-widest text-slate-800/30 uppercase">SCORE ATTRACTIVITY</div>
-          <div className="text-2xl font-black font-mono text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.4)] mt-0.5">
+          <div className="text-[8px] font-black tracking-widest text-slate-700/80 uppercase">SCORE ATTRACTIVITY</div>
+          <div className="text-2xl font-black font-mono text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.25)] mt-0.5 leading-none">
             {score}
             <span className="text-[10px] text-red-500 ml-0.5 font-black font-sans">%</span>
           </div>
@@ -335,7 +335,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
  onClick={() => setIsOpen(false)}
- className="fixed inset-0 bg-slate-50 border border-slate-200 text-slate-900/60 z-[100]"
+ className="fixed inset-0 bg-slate-950/50 z-[100]"
  />
  <motion.div
  initial={{ x: '-100%' }}
