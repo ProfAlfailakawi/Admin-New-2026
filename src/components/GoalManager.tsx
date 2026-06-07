@@ -25,21 +25,21 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
 
  return (
  <div className="space-y-6 md:space-y-8" dir="rtl">
- <div className="flex flex-col md:flex-row justify-between items-center bg-white border border-slate-200 text-slate-900 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-sm border border-slate-200 flex-row-reverse gap-4 relative overflow-hidden">
+ <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex-row-reverse gap-4 relative overflow-hidden">
  <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(99,102,241,0.05)_50%,transparent_75%)] bg-[length:10px_10px] pointer-events-none" />
  <div className="text-right relative z-10">
  <h3 className="font-bold text-xl md:text-2xl text-slate-800">قمرة قيادة الأهداف</h3>
- <p className="text-indigo-400 text-[10px] md:text-xs font-bold mt-1">Alturath Goal Commander 🚀</p>
+ <p className="text-indigo-500 text-[10px] md:text-xs font-bold mt-1">Alturath Goal Commander 🚀</p>
  </div>
- <div className="flex items-center gap-3 bg-indigo-500/10 px-4 py-2 rounded-full border border-indigo-500/30 relative z-10">
- <Target className="text-indigo-400" size={14} />
- <span className="text-[10px] md:text-[11px] font-bold text-indigo-300 uppercase">تتبع الأهداف مفعّل</span>
+ <div className="flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-200 relative z-10">
+ <Target className="text-indigo-600" size={14} />
+ <span className="text-[10px] md:text-[11px] font-bold text-indigo-700 uppercase">تتبع الأهداف مفعّل</span>
  </div>
  </div>
 
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-3 md:p-4">
  {/* Create / Active Goal */}
- <div className="bg-slate-50 border border-slate-200 text-slate-900 border border-slate-800 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl text-white relative overflow-hidden group shadow-xl">
+ <div className="bg-slate-900 p-4 rounded-2xl text-white relative overflow-hidden group shadow-xl border border-slate-800">
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(99,102,241,0.15)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
  <div className="absolute top-0 right-0 w-32 h-32 md:w-64 md:h-64 bg-indigo-500/10 blur-[80px] rounded-full -mr-16 -mt-16 pointer-events-none" />
  <div className="relative z-10 flex flex-col h-full">
@@ -50,7 +50,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
  <span className="text-[10px] md:text-xs font-bold text-indigo-400 uppercase block mb-1">الهدف الحالي المفعّل</span>
  <h4 className="text-xl md:text-3xl font-bold text-white">{activeGoal.title}</h4>
  </div>
- <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-50 border border-slate-200 text-slate-800/50 rounded-2xl flex items-center justify-center border border-indigo-500/20 text-indigo-400">
+ <div className="w-12 h-12 md:w-16 md:h-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10 text-indigo-300">
  {activeGoal.category === 'revenue' ? <TrendingUp size={24} /> : <Users size={24} />}
  </div>
  </div>
@@ -60,7 +60,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
  <span className="text-indigo-300">التقدم: {activeGoal.currentProgress}%</span>
  <span className="text-white">الهدف: {Number(activeGoal.targetValue || 0).toFixed(0)}</span>
  </div>
- <div className="h-3 md:h-4 bg-slate-50 border border-slate-200 text-slate-900 rounded-full overflow-hidden border border-slate-800">
+ <div className="h-3 md:h-4 bg-white/10 rounded-full overflow-hidden border border-white/10">
  <motion.div 
  initial={{ width: 0 }}
  animate={{ width: `${Math.min(activeGoal.currentProgress, 100)}%` }}
@@ -99,7 +99,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
 
  {/* Recommendations */}
  <div className="space-y-4 md:space-y-6">
- <h4 className="font-bold text-base md:text-lg text-white text-right pr-4">اقتراحات القائد الذكي 🤖</h4>
+ <h4 className="font-bold text-base md:text-lg text-slate-900 text-right pr-1">اقتراحات القائد الذكي 🤖</h4>
  <div className="space-y-3 md:space-y-4">
  {recommendations.map((rec, index) => (
  <motion.div
@@ -107,7 +107,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
  initial={{ opacity: 0, x: 20 }}
  animate={{ opacity: 1, x: 0 }}
  transition={{ delay: index * 0.1 }}
- className="bg-slate-50 border border-slate-200 text-slate-900/80 backdrop-blur-xl p-3 md:p-4 rounded-2xl border border-slate-800 hover:border-indigo-500/50 transition-all cursor-pointer group flex flex-row-reverse items-center justify-between gap-4 shadow-xl"
+ className="bg-white border border-slate-200 p-3 md:p-4 rounded-2xl hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer group flex flex-row-reverse items-center justify-between gap-4 shadow-sm"
  onClick={() => !activeGoal && setActiveGoal({
  id: `goal-${index}`,
  title: rec.title,
@@ -122,15 +122,15 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
  })}
  >
  <div className="flex items-center gap-4 flex-row-reverse">
- <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-800 rounded-xl md:rounded-2xl flex items-center justify-center text-indigo-400 border border-slate-700 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-500 transition-all shrink-0">
+ <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-50 rounded-xl md:rounded-2xl flex items-center justify-center text-indigo-600 border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-500 transition-all shrink-0">
  {rec.category === 'revenue' ? <TrendingUp size={20} /> : <Users size={20} />}
  </div>
  <div className="text-right">
- <h5 className="font-bold text-sm md:text-base text-slate-200 group-hover:text-white transition-colors">{rec.title}</h5>
- <p className="text-[10px] md:text-xs font-bold text-slate-500 mt-1">{rec.reason}</p>
+ <h5 className="font-bold text-sm md:text-base text-slate-800 group-hover:text-indigo-700 transition-colors">{rec.title}</h5>
+ <p className="text-[10px] md:text-xs font-bold text-slate-500 mt-1 leading-5">{rec.reason}</p>
  </div>
  </div>
- <ChevronLeft className="text-slate-600 group-hover:text-indigo-400 transition-colors shrink-0" size={20} />
+ <ChevronLeft className="text-slate-400 group-hover:text-indigo-500 transition-colors shrink-0" size={20} />
  </motion.div>
 ))}
  </div>

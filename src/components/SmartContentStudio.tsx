@@ -2457,7 +2457,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             {fineToolTab === 'lighting' && (
               <div className="rounded-[1.5rem] border border-amber-900/10 bg-gradient-to-b from-white/90 to-white/50 backdrop-blur-xl p-4 shadow-sm">
                 <p className="text-[11px] font-black text-amber-800 mb-3 font-mono">اختر إحساس الإضاءة</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {moods.map(m => (
                     <button key={m.id} type="button" onClick={() => setSelectedMood(m.id)} className={cn("p-3 rounded-[1.2rem] border flex items-center justify-between gap-2 transition-all active:scale-95", selectedMood === m.id ? "bg-amber-50/80 border-[#C5A059] text-amber-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.03),0_1px_5px_rgba(197,160,89,0.2)] scale-[0.98]" : "bg-white/60 backdrop-blur-sm border-white/40 text-slate-600 hover:bg-white/90 active:scale-[0.98] hover:shadow-sm") }>
                       <span className="text-xl drop-shadow-sm">{m.icon}</span><span className="text-[11px] font-black">{m.label}</span>
@@ -2949,19 +2949,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
       {studioTab === 'home' && (
         <div className="smart-studio-home-panel max-w-6xl mx-auto rounded-[2.3rem] bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 sm:p-7 text-right">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
-            <div>
-              <p className="text-xs font-black text-indigo-500 mb-2 uppercase tracking-wider font-mono">Creative Paths</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight font-display">ابدأ بالناتج، والباقي داخل المسار</h2>
-              <p className="text-xs sm:text-sm font-bold text-slate-500 mt-2 leading-relaxed">مساران فقط: ريل مباشر أو صورة مباشرة. الريل يبدأ من صورة أو فكرة، والصورة تبدأ من صورة أو فكرة مع ذكاء يدعمك.</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 mb-5 opacity-60">
-            <div className="h-px flex-1 bg-gradient-to-l from-transparent to-slate-300" />
-            <span className="text-[10px] font-black text-slate-400 uppercase font-mono tracking-widest">Main Modules</span>
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent to-slate-300" />
-          </div>
+          <div className="mb-4 sm:mb-5" />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <button onClick={openReelDirect} className="group rounded-[20px] text-right transition-all active:scale-[0.98] overflow-hidden outline-none bg-white border border-slate-200 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 hover:border-slate-300 active:scale-95 flex flex-col justify-between min-h-[260px] p-6 sm:p-7 relative">
@@ -3686,11 +3674,13 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       resetStudioSourceDraft({ clearImage: true });
                       setImageDirectSource('image');
                     }}
-                    className={cn("rounded-2xl border p-3 text-right transition-all", imageDirectSource === 'image' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
+                    className={cn("rounded-[1.35rem] border p-4 text-right transition-all shadow-sm min-h-[112px] flex flex-col justify-between", imageDirectSource === 'image' ? "bg-slate-950 text-white border-slate-950 shadow-lg" : "bg-white text-slate-800 border-slate-200 hover:border-indigo-300")}
                   >
-                    <Camera size={18} className="mb-2" />
+                    <div className={cn("mb-3 flex h-10 w-10 items-center justify-center rounded-2xl", imageDirectSource === 'image' ? "bg-white/10 text-white" : "bg-indigo-50 text-indigo-700")}>
+                      <Camera size={18} />
+                    </div>
                     <span className="block text-sm font-black">من صورة</span>
-                    <span className="block text-[10px] font-bold mt-1 opacity-70">منتج جاهز</span>
+                    <span className={cn("block text-[11px] font-bold mt-1 leading-5", imageDirectSource === 'image' ? "text-white/75" : "text-slate-500")}>منتج جاهز</span>
                   </button>
                   <button
                     type="button"
@@ -3698,11 +3688,13 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       resetStudioSourceDraft({ clearImage: true });
                       setImageDirectSource('idea');
                     }}
-                    className={cn("rounded-2xl border p-3 text-right transition-all", imageDirectSource === 'idea' ? "bg-indigo-600 text-white border-indigo-600 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
+                    className={cn("rounded-[1.35rem] border p-4 text-right transition-all shadow-sm min-h-[112px] flex flex-col justify-between", imageDirectSource === 'idea' ? "bg-indigo-600 text-white border-indigo-600 shadow-lg" : "bg-white text-slate-800 border-slate-200 hover:border-indigo-300")}
                   >
-                    <Sparkles size={18} className="mb-2" />
+                    <div className={cn("mb-3 flex h-10 w-10 items-center justify-center rounded-2xl", imageDirectSource === 'idea' ? "bg-white/10 text-white" : "bg-indigo-50 text-indigo-700")}>
+                      <Sparkles size={18} />
+                    </div>
                     <span className="block text-sm font-black">من فكرة</span>
-                    <span className="block text-[10px] font-bold mt-1 opacity-70">فكرة مباشرة</span>
+                    <span className={cn("block text-[11px] font-bold mt-1 leading-5", imageDirectSource === 'idea' ? "text-white/75" : "text-slate-500")}>فكرة مباشرة</span>
                   </button>
                 </div>
                 {imageDirectSource === 'image' && (

@@ -924,7 +924,10 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       )}>
         <div className="absolute -left-10 -bottom-12 h-28 w-28 rounded-full bg-white/70 blur-2xl" />
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.2fr_2fr] gap-4 items-center">
-          <div className="hidden" aria-hidden="true" />
+          <div>
+                        <h2 className="mt-1 text-2xl font-black">{whatsappCommandPulse.health}</h2>
+            <p className="mt-2 text-xs font-bold leading-6 opacity-75">{whatsappCommandPulse.move}</p>
+          </div>
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-white/75 border border-white px-3 py-3">
               <span className="block text-[10px] font-black opacity-55">عاجل</span>
