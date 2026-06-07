@@ -421,7 +421,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  } : {}}
  transition={shakingId === supplier.id ? { duration: 0.5 } : {}}
  className={cn(
-"bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-3 gap-2 md:gap-2 shadow-sm hover:shadow-xl transition-all relative overflow-hidden group border-t-4 border-t-emerald-500/20",
+"supplier-card-mobile-safe bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-3 gap-2 md:gap-2 shadow-sm hover:shadow-xl transition-all relative overflow-hidden group border-t-4 border-t-emerald-500/20",
  shakingId === supplier.id &&"ring-2 ring-red-500 ring-offset-2"
 )}
  >
@@ -457,7 +457,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
 
  <div className="space-y-6">
- <div className="flex gap-2">
+ <div className="supplier-summary-row flex gap-2">
  <div 
  onClick={() => { setDeepLinkData({ supplierId: supplier.id, openModal: true }); setCurrentPage('suppliers-audit'); }}
  className={cn(
@@ -510,7 +510,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  />
  </div>
 
- <div className="grid grid-cols-3 gap-2">
+ <div className="supplier-invoice-stats grid grid-cols-3 gap-2">
  <div className="bg-white border border-slate-100 rounded-2xl p-2 text-center">
  <div className="text-[10px] font-bold text-slate-400 mb-1">الإجمالي</div>
  <div className="text-lg font-extrabold text-slate-800 leading-none">{invoiceStats.totalInvoices}</div>
@@ -538,10 +538,15 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  )}
 
 
- <div className="flex flex-wrap gap-2 justify-end">
+ <div className="supplier-kind-badges flex flex-wrap gap-2 justify-end">
  {(supplier as any).supplierType !== 'delivery' && (
  <span className="bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-emerald-700 flex items-center gap-1">
  <Package size={12} /> مورد أكل
+ </span>
+ )}
+ {((supplier as any).supplierType === 'delivery' || (supplier as any).deliverySettlement === 'supplier') && (
+ <span className="bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-blue-700 flex items-center gap-1">
+ <Truck size={12} /> توصيل
  </span>
  )}
  </div>
