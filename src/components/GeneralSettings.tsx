@@ -3728,7 +3728,7 @@ const GeneralSettings: React.FC<Props> = ({
                             const rawDevice = device as any;
                             const deviceDates = [rawDevice.updatedAt, rawDevice.lastSeenAt, rawDevice.lastSeen, rawDevice.createdAt, rawDevice.savedAtClient]
                               .map((value) => value ? new Date(String(value)).getTime() : 0);
-                            const notificationDates = (device.recentNotifications || []).flatMap((notification) => [notification.receivedAt, notification.clickedAt, notification.sentAt, notification.createdAt])
+                            const notificationDates = (device.recentNotifications || []).flatMap((notification: any) => [notification.receivedAt, notification.clickedAt, notification.sentAt, notification.createdAt])
                               .map((value) => value ? new Date(String(value)).getTime() : 0);
                             return Math.max(0, ...deviceDates, ...notificationDates);
                           })

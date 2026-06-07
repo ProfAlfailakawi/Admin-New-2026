@@ -20,6 +20,18 @@ interface SupplierAuditProps {
 
 const SUPPLIER_AUDIT_SEARCH_INPUT_ID = 'supplier-audit-search-input';
 
+const getInvoiceDeliverySettlement = (inv: any, supId: string, data: any) => {
+  const info = inv?.deliveryInfo || {};
+  const target = info.settlementTarget || inv?.deliverySettlementTarget;
+  const value = Number(inv?.deliveryFee ?? info.finalPrice ?? 0) || 0;
+  if (value <= 0) return 0;
+  const supplier = (data?.suppliers || []).find((s: any) => String(s.id) === String(supId));
+  const matchesSupplier = String(info.settlementSupplierId || '') === String(supId)
+    || (!!supplier?.name && String(info.settlementSupplierName || info.company || '').trim() === String(supplier.name).trim());
+  if ((target === 'supplier' || target === 'delivery_company') && matchesSupplier) return value;
+  return 0;
+};
+
 const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSupplierId, autoOpenModal, onClearDeepLink, deepLinkData }) => {
  const [search, setSearch] = useState('');
  const [selectedSupplier, setSelectedSupplier] = useState<string>('all');
@@ -109,7 +121,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  const settlementId = inv?.deliveryInfo?.settlementSupplierId || inv?.deliverySettlementSupplierId;
  if (settlementId && !supplierTotals[settlementId]) supplierTotals[settlementId] = 0;
  Object.entries(supplierTotals).forEach(([supplierId, amount]) => {
- const deliveryAmount = getInvoiceDeliverySettlement(inv, supplierId);
+ const deliveryAmount = getInvoiceDeliverySettlement(inv, supplierId, data);
  const dueAmount = Math.round((amount + deliveryAmount) * 1000) / 1000;
  if (dueAmount <= 0) return;
  transactions.push({
