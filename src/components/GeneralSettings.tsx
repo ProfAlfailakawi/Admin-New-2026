@@ -285,6 +285,10 @@ const GeneralSettings: React.FC<Props> = ({
     "users" | "devices" | "log" | "investigate" | "advanced"
   >("users");
   const [pushDeviceSearch, setPushDeviceSearch] = useState("");
+  const [pushDeviceMapFilter, setPushDeviceMapFilter] = useState<
+    "all" | "golden" | "silent" | "ghost" | "archived"
+  >("all");
+  const [pushUsersVisibleCount, setPushUsersVisibleCount] = useState(12);
   const [expandedPushDeviceGroup, setExpandedPushDeviceGroup] =
     useState<string>("active");
   const [pushArchiveAccountsOpen, setPushArchiveAccountsOpen] = useState(false);
@@ -3630,8 +3634,8 @@ const GeneralSettings: React.FC<Props> = ({
                         const isArchivedAccountCard = (card: any) =>
                           (card.devices || []).length === 0;
                         const archivedCards = filteredCards.filter(isArchivedAccountCard);
-                        const visibleCards =
-                          query || pushArchiveAccountsOpen
+                        let visibleCards =
+                          query || pushArchiveAccountsOpen || pushDeviceMapFilter === "archived"
                             ? filteredCards
                             : filteredCards.filter((card) => !isArchivedAccountCard(card));
                         const deliveredCount = allCards.filter((card) => card.deliveredNotifications.length > 0).length;
@@ -3672,6 +3676,20 @@ const GeneralSettings: React.FC<Props> = ({
                         const goldenDevices = pushDevices.filter((device) => device.status === "online" && getPushDeviceConfidence(device) >= 70);
                         const silentDevices = pushDevices.filter((device) => (device.status === "cold" || getPushDeviceConfidence(device) < 70) && (device.recentNotifications || []).some((n) => n.success === true) && !(device.recentNotifications || []).some((n) => n.receivedByDevice || n.openedByEmployee));
                         const ghostDevices = pushDevices.filter((device) => device.status === "abandoned" || device.status === "duplicate" || pushInvalidTestTokens[device.token]);
+                        const deviceTokenSet = (devices: PushDeviceSnapshot[]) => new Set(devices.map((device) => device.id || device.token).filter(Boolean) as string[]);
+                        const goldenDeviceIds = deviceTokenSet(goldenDevices);
+                        const silentDeviceIds = deviceTokenSet(silentDevices);
+                        const ghostDeviceIds = deviceTokenSet(ghostDevices);
+                        const cardHasDeviceIn = (card: any, ids: Set<string>) => (card.devices || []).some((device: PushDeviceSnapshot) => ids.has(device.id || device.token));
+                        visibleCards = visibleCards.filter((card: any) => {
+                          if (pushDeviceMapFilter === "all") return true;
+                          if (pushDeviceMapFilter === "archived") return isArchivedAccountCard(card);
+                          if (pushDeviceMapFilter === "golden") return cardHasDeviceIn(card, goldenDeviceIds);
+                          if (pushDeviceMapFilter === "silent") return cardHasDeviceIn(card, silentDeviceIds);
+                          if (pushDeviceMapFilter === "ghost") return cardHasDeviceIn(card, ghostDeviceIds);
+                          return true;
+                        });
+                        const visibleUserCards = visibleCards.slice(0, pushUsersVisibleCount);
                         const systemPulseScore = Math.max(0, Math.min(100, Math.round((deliveredCount / Math.max(allCards.length, 1)) * 60 + (goldenDevices.length / Math.max(pushDevices.length, 1)) * 30 + (pushHealth?.tone === "success" ? 8 : pushHealth?.tone === "warning" ? 3 : 0))));
                         const latestNotification = notificationLog[0] || rawNotificationLog[0] || null;
                         const latestNotificationSentence = latestNotification
@@ -3683,6 +3701,15 @@ const GeneralSettings: React.FC<Props> = ({
                                 ? "الإشعار الأخير لم يكتمل؛ راجع طبيب الإشعارات."
                                 : "الإشعار وصل للسيرفر وينتظر تأكيد الجهاز."
                           : "لا يوجد إشعار حديث لعرض نبضته بعد.";
+                        const latestNotificationRecipient = latestNotification ? getPushNotificationRecipientMeta(latestNotification) : null;
+                        const openPushRadarArea = (tab: "users" | "log" | "advanced", filter?: "all" | "golden" | "silent" | "ghost" | "archived") => {
+                          setPushDeviceTab(tab);
+                          if (filter) {
+                            setPushDeviceMapFilter(filter);
+                            setPushUsersVisibleCount(12);
+                          }
+                          setTimeout(() => document.getElementById("push-radar-list")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+                        };
                         const latestCriticalIssue = rawNotificationLog.find((event) => event.success === false || String(event.status || event.type || "").toLowerCase().includes("notregistered") || String(event.message || "").toLowerCase().includes("notregistered"));
                         const oldTokenCount = ghostDevices.length;
                         const latestDeviceReadAt = Math.max(
@@ -3771,7 +3798,7 @@ const GeneralSettings: React.FC<Props> = ({
                                     <div className="text-[10px] font-black text-emerald-200">رادار حياة الإشعار</div>
                                     <h4 className="text-sm font-black mt-1">نبضة آخر إشعار فقط</h4>
                                   </div>
-                                  <button type="button" onClick={() => setPushDeviceTab('log')} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">عرض آخر الإشعارات</button>
+                                  <button type="button" onClick={() => openPushRadarArea('log')} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">عرض آخر الإشعارات</button>
                                 </div>
                                 <div className="grid grid-cols-4 gap-1.5">
                                   {[
@@ -3790,6 +3817,22 @@ const GeneralSettings: React.FC<Props> = ({
                                   ))}
                                 </div>
                                 <p className="mt-3 rounded-2xl bg-black/15 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/65 leading-5">{latestNotificationSentence}</p>
+                                {latestNotification && latestNotificationRecipient && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setPushDeviceSearch("");
+                                      openPushRadarArea('log');
+                                    }}
+                                    className="mt-2 w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-right hover:bg-white/15 transition"
+                                  >
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
+                                      <span className="text-[11px] font-black text-white truncate">آخر إشعار: {latestNotification.title || "إشعار بدون عنوان"}</span>
+                                      <span className="text-[10px] font-black text-emerald-100 truncate">أُرسل إلى: {latestNotificationRecipient.name}</span>
+                                    </div>
+                                    <div className="mt-1 text-[10px] font-bold text-white/45 truncate">الجهاز: {latestNotificationRecipient.deviceLabel} — اضغط لفتح السجل المرتبط</div>
+                                  </button>
+                                )}
                               </div>
                               <div className={cn("rounded-[1.8rem] border p-4 text-white", latestCriticalIssue || oldTokenCount > 0 ? "border-amber-300/20 bg-amber-400/10" : "border-emerald-300/20 bg-emerald-400/10")}>
                                 <div className="text-[10px] font-black text-white/45">طبيب الإشعارات</div>
@@ -3802,7 +3845,7 @@ const GeneralSettings: React.FC<Props> = ({
                                       : 'كل المؤشرات الحرجة هادئة الآن. التفاصيل تبقى داخل السجل عند الحاجة.'}
                                 </p>
                                 {(latestCriticalIssue || oldTokenCount > 0) && (
-                                  <button type="button" onClick={() => setPushDeviceTab('users')} className="mt-3 rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">اختبار أحدث جهاز</button>
+                                  <button type="button" onClick={() => openPushRadarArea('users', 'all')} className="mt-3 rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">اختبار أحدث جهاز</button>
                                 )}
                               </div>
                             </div>
@@ -3811,18 +3854,24 @@ const GeneralSettings: React.FC<Props> = ({
                               <div className="flex items-center justify-between gap-3 mb-3">
                                 <div>
                                   <div className="text-[10px] font-black text-white/40">خريطة الأجهزة الذكية</div>
-                                  <h4 className="text-sm font-black">تصنيف سريع بدل قائمة طويلة</h4>
+                                  <h4 className="text-sm font-black">اضغط على أي لون لفتح الأجهزة المعنية</h4>
                                 </div>
                                 <MonitorSmartphone size={18} className="text-emerald-200" />
                               </div>
+                              <div className="mb-3 grid grid-cols-2 md:grid-cols-4 gap-1.5 text-[10px] font-bold text-white/55">
+                                <span className="rounded-xl bg-emerald-400/10 border border-emerald-300/15 px-2 py-1">الأخضر: جاهز</span>
+                                <span className="rounded-xl bg-amber-400/10 border border-amber-300/15 px-2 py-1">الأصفر: صامت</span>
+                                <span className="rounded-xl bg-rose-400/10 border border-rose-300/15 px-2 py-1">الأحمر: شبح/قديم</span>
+                                <span className="rounded-xl bg-white/10 border border-white/10 px-2 py-1">الأبيض: حساب بلا جهاز</span>
+                              </div>
                               <div className="grid md:grid-cols-4 gap-2">
                                 {[
-                                  ['أجهزة ذهبية', `${goldenDevices.length}`, 'حديثة وتستقبل غالباً', 'bg-emerald-400/15 text-emerald-50 border-emerald-300/20'],
-                                  ['أجهزة صامتة', `${silentDevices.length}`, 'تُرسل لها محاولات بلا فتح مؤكد', 'bg-amber-400/15 text-amber-50 border-amber-300/20'],
-                                  ['أجهزة شبحية', `${ghostDevices.length}`, 'توكن موجود لكنه ميت أو مكرر', 'bg-rose-400/15 text-rose-50 border-rose-300/20'],
-                                  ['حسابات بلا جهاز', `${archivedCards.length}`, 'تحت الكروت لأنها أقل أولوية', 'bg-white/10 text-white border-white/10'],
-                                ].map(([label, value, hint, cls]) => (
-                                  <button type="button" key={label} onClick={() => { setPushDeviceTab('users'); setPushDeviceSearch(label === 'حسابات بلا جهاز' ? 'غير مرتبط' : ''); }} className={cn("rounded-2xl border p-3 text-right hover:scale-[1.01] transition", cls)}>
+                                  ['أجهزة ذهبية', `${goldenDevices.length}`, 'حديثة وتستقبل غالباً', 'bg-emerald-400/15 text-emerald-50 border-emerald-300/20', 'golden'],
+                                  ['أجهزة صامتة', `${silentDevices.length}`, 'محاولات إرسال بلا فتح مؤكد', 'bg-amber-400/15 text-amber-50 border-amber-300/20', 'silent'],
+                                  ['أجهزة شبحية', `${ghostDevices.length}`, 'توكن قديم أو مكرر', 'bg-rose-400/15 text-rose-50 border-rose-300/20', 'ghost'],
+                                  ['حسابات بلا جهاز', `${archivedCards.length}`, 'حساب محفوظ بلا جهاز مفعّل', 'bg-white/10 text-white border-white/10', 'archived'],
+                                ].map(([label, value, hint, cls, filter]) => (
+                                  <button type="button" key={label} onClick={() => { setPushDeviceSearch(''); openPushRadarArea('users', filter as any); }} className={cn("rounded-2xl border p-3 text-right hover:scale-[1.01] transition", cls, pushDeviceMapFilter === filter ? "ring-2 ring-white/45" : "")}>
                                     <div className="text-[10px] font-black opacity-70">{label}</div>
                                     <div className="mt-1 text-2xl font-black">{value}</div>
                                     <div className="mt-1 text-[10px] font-bold opacity-65 leading-5">{hint}</div>
@@ -3854,8 +3903,8 @@ const GeneralSettings: React.FC<Props> = ({
                                 ))}
                               </div>
                               <div className="mt-3 flex flex-wrap gap-2">
-                                <button type="button" onClick={() => setPushDeviceTab('users')} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">اختبار أحدث جهاز</button>
-                                <button type="button" onClick={() => { setPushDeviceTab('users'); setPushDeviceSearch('صامت'); }} className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 text-[10px] font-black text-white">عرض الأجهزة الصامتة</button>
+                                <button type="button" onClick={() => openPushRadarArea('users', 'all')} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">اختبار أحدث جهاز</button>
+                                <button type="button" onClick={() => { setPushDeviceSearch(''); openPushRadarArea('users', 'silent'); }} className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 text-[10px] font-black text-white">عرض الأجهزة الصامتة</button>
                               </div>
                             </details>
 
@@ -3905,7 +3954,7 @@ const GeneralSettings: React.FC<Props> = ({
                               </div>
                             )}
 
-                            <div className="flex flex-col lg:flex-row gap-2 lg:items-start lg:justify-between">
+                            <div id="push-radar-list" className="flex flex-col lg:flex-row gap-2 lg:items-start lg:justify-between">
                               <details className="rounded-2xl bg-white/10 border border-white/10 p-1 overflow-hidden">
                                 <summary className="cursor-pointer list-none rounded-xl px-3 py-2 text-[11px] font-black text-white flex items-center justify-between gap-3 min-w-44">
                                   <span>قائمة الرادار</span>
@@ -3920,7 +3969,7 @@ const GeneralSettings: React.FC<Props> = ({
                                     <button
                                       key={id}
                                       type="button"
-                                      onClick={() => setPushDeviceTab(id as any)}
+                                      onClick={() => openPushRadarArea(id as any)}
                                       className={cn(
                                         "rounded-xl px-3 py-2 text-[11px] font-black whitespace-nowrap transition text-right",
                                         pushDeviceTab === id
@@ -3946,7 +3995,16 @@ const GeneralSettings: React.FC<Props> = ({
 
                             {pushDeviceTab === "users" && (
                               <div className="grid gap-3">
-                                {visibleCards.length ? visibleCards.map((card) => {
+                                <div className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-white">
+                                  <div className="text-[11px] font-black">
+                                    {pushDeviceMapFilter === "all" ? "كل المستخدمين والأجهزة" : pushDeviceMapFilter === "golden" ? "الأجهزة الذهبية" : pushDeviceMapFilter === "silent" ? "الأجهزة الصامتة" : pushDeviceMapFilter === "ghost" ? "الأجهزة الشبحية" : "حسابات بلا جهاز"}
+                                    <span className="mr-2 text-white/45">({visibleCards.length})</span>
+                                  </div>
+                                  {pushDeviceMapFilter !== "all" && (
+                                    <button type="button" onClick={() => { setPushDeviceMapFilter("all"); setPushUsersVisibleCount(12); }} className="rounded-xl bg-white/10 border border-white/10 px-3 py-1.5 text-[10px] font-black text-white hover:bg-white/15">عرض الكل</button>
+                                  )}
+                                </div>
+                                {visibleCards.length ? visibleUserCards.map((card) => {
                                   const firstDevice = card.bestDevice;
                                   const expanded = expandedPushDeviceId === card.key;
                                   return (
@@ -4102,6 +4160,11 @@ const GeneralSettings: React.FC<Props> = ({
                                     لا توجد نتائج مطابقة للبحث.
                                   </div>
                                 )}
+                                {visibleCards.length > visibleUserCards.length && (
+                                  <button type="button" onClick={() => setPushUsersVisibleCount((v) => v + 12)} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-[11px] font-black text-white hover:bg-white/15 transition">
+                                    عرض المزيد من الأجهزة والحسابات ({visibleCards.length - visibleUserCards.length} متبقي)
+                                  </button>
+                                )}
                                 {!query && archivedCards.length > 0 && (
                                   <button
                                     type="button"
@@ -4122,7 +4185,7 @@ const GeneralSettings: React.FC<Props> = ({
                             )}
 
                             {pushDeviceTab === "log" && (
-                              <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-3 space-y-3">
+                              <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-3 space-y-3 max-h-[70vh] overflow-y-auto overscroll-contain">
                                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                   <div>
                                     <div className="text-xs font-black text-white">السجل الذكي</div>
