@@ -299,6 +299,7 @@ const GeneralSettings: React.FC<Props> = ({
     "all" | "delivered" | "opened" | "failed" | "waiting"
   >("all");
   const [pushLogVisibleCount, setPushLogVisibleCount] = useState(20);
+  const [selectedPushNotificationId, setSelectedPushNotificationId] = useState<string | null>(null);
   const [pushCustomerVerdict, setPushCustomerVerdict] = useState<string>("اضغط الفحص لقراءة أحدث إشارة من الأجهزة قبل الحكم.");
   const [pushInvestigationQuery, setPushInvestigationQuery] = useState("");
   const [pushTestTitle, setPushTestTitle] = useState(
@@ -3692,6 +3693,9 @@ const GeneralSettings: React.FC<Props> = ({
                         const visibleUserCards = visibleCards.slice(0, pushUsersVisibleCount);
                         const systemPulseScore = Math.max(0, Math.min(100, Math.round((deliveredCount / Math.max(allCards.length, 1)) * 60 + (goldenDevices.length / Math.max(pushDevices.length, 1)) * 30 + (pushHealth?.tone === "success" ? 8 : pushHealth?.tone === "warning" ? 3 : 0))));
                         const latestNotification = notificationLog[0] || rawNotificationLog[0] || null;
+                        const focusedNotification = selectedPushNotificationId
+                          ? notificationLog.find((notification) => notification.id === selectedPushNotificationId) || rawNotificationLog.find((notification) => notification.id === selectedPushNotificationId) || null
+                          : null;
                         const latestNotificationSentence = latestNotification
                           ? latestNotification.openedByEmployee || latestNotification.clickedAt
                             ? "الإشعار الأخير انفتح من الجهاز، والمسار مكتمل."
@@ -3709,6 +3713,12 @@ const GeneralSettings: React.FC<Props> = ({
                             setPushUsersVisibleCount(12);
                           }
                           setTimeout(() => document.getElementById("push-radar-list")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+                        };
+                        const openPushNotificationLog = (notification?: any, statusFilter?: "all" | "delivered" | "opened" | "failed" | "waiting") => {
+                          if (statusFilter) setPushLogStatusFilter(statusFilter);
+                          if (notification?.id) setSelectedPushNotificationId(notification.id);
+                          setPushDeviceTab("log");
+                          setTimeout(() => document.getElementById("push-notification-log")?.scrollIntoView({ behavior: "smooth", block: "start" }), 70);
                         };
                         const latestCriticalIssue = rawNotificationLog.find((event) => event.success === false || String(event.status || event.type || "").toLowerCase().includes("notregistered") || String(event.message || "").toLowerCase().includes("notregistered"));
                         const oldTokenCount = ghostDevices.length;
@@ -3798,7 +3808,7 @@ const GeneralSettings: React.FC<Props> = ({
                                     <div className="text-[10px] font-black text-emerald-200">رادار حياة الإشعار</div>
                                     <h4 className="text-sm font-black mt-1">نبضة آخر إشعار فقط</h4>
                                   </div>
-                                  <button type="button" onClick={() => openPushRadarArea('log')} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">عرض آخر الإشعارات</button>
+                                  <button type="button" onClick={() => openPushNotificationLog(latestNotification)} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">عرض آخر الإشعارات</button>
                                 </div>
                                 <div className="grid grid-cols-4 gap-1.5">
                                   {[
@@ -3816,13 +3826,20 @@ const GeneralSettings: React.FC<Props> = ({
                                     </div>
                                   ))}
                                 </div>
-                                <p className="mt-3 rounded-2xl bg-black/15 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/65 leading-5">{latestNotificationSentence}</p>
+                                <div className="mt-3 rounded-2xl bg-black/15 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/70 leading-5 space-y-1.5">
+                                  <p>{latestNotificationSentence}</p>
+                                  <p className="text-white/45">
+                                    {latestNotification
+                                      ? `المكان: قائمة الرادار ← آخر الإشعارات. ${latestNotificationRecipient ? `أُرسل إلى ${latestNotificationRecipient.name}.` : "اضغط لعرض السجل."}`
+                                      : "عند أول إرسال سيظهر هنا آخر إشعار مع مساره ومكانه داخل السجل."}
+                                  </p>
+                                </div>
                                 {latestNotification && latestNotificationRecipient && (
                                   <button
                                     type="button"
                                     onClick={() => {
                                       setPushDeviceSearch("");
-                                      openPushRadarArea('log');
+                                      openPushNotificationLog(latestNotification);
                                     }}
                                     className="mt-2 w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-right hover:bg-white/15 transition"
                                   >
@@ -3830,7 +3847,7 @@ const GeneralSettings: React.FC<Props> = ({
                                       <span className="text-[11px] font-black text-white truncate">آخر إشعار: {latestNotification.title || "إشعار بدون عنوان"}</span>
                                       <span className="text-[10px] font-black text-emerald-100 truncate">أُرسل إلى: {latestNotificationRecipient.name}</span>
                                     </div>
-                                    <div className="mt-1 text-[10px] font-bold text-white/45 truncate">الجهاز: {latestNotificationRecipient.deviceLabel} — اضغط لفتح السجل المرتبط</div>
+                                    <div className="mt-1 text-[10px] font-bold text-white/45 truncate">الجهاز: {latestNotificationRecipient.deviceLabel} — اضغط لفتح هذا الإشعار داخل السجل</div>
                                   </button>
                                 )}
                               </div>
@@ -3858,11 +3875,23 @@ const GeneralSettings: React.FC<Props> = ({
                                 </div>
                                 <MonitorSmartphone size={18} className="text-emerald-200" />
                               </div>
-                              <div className="mb-3 grid grid-cols-2 md:grid-cols-4 gap-1.5 text-[10px] font-bold text-white/55">
-                                <span className="rounded-xl bg-emerald-400/10 border border-emerald-300/15 px-2 py-1">الأخضر: جاهز</span>
-                                <span className="rounded-xl bg-amber-400/10 border border-amber-300/15 px-2 py-1">الأصفر: صامت</span>
-                                <span className="rounded-xl bg-rose-400/10 border border-rose-300/15 px-2 py-1">الأحمر: شبح/قديم</span>
-                                <span className="rounded-xl bg-white/10 border border-white/10 px-2 py-1">الأبيض: حساب بلا جهاز</span>
+                              <div className="mb-3 grid grid-cols-2 md:grid-cols-4 gap-1.5 text-[10px] font-bold text-white/60">
+                                {[
+                                  ['الأخضر', 'جهاز حديث جاهز للاستقبال', 'golden', 'bg-emerald-400/10 border-emerald-300/15 text-emerald-50'],
+                                  ['الأصفر', 'جهاز صامت ينتظر تأكيد وصول/فتح', 'silent', 'bg-amber-400/10 border-amber-300/15 text-amber-50'],
+                                  ['الأحمر', 'توكن قديم أو جهاز شبح', 'ghost', 'bg-rose-400/10 border-rose-300/15 text-rose-50'],
+                                  ['الأبيض', 'حساب بلا جهاز مفعّل', 'archived', 'bg-white/10 border-white/10 text-white'],
+                                ].map(([color, meaning, filter, cls]) => (
+                                  <button
+                                    key={color}
+                                    type="button"
+                                    onClick={() => { setPushDeviceSearch(''); openPushRadarArea('users', filter as any); }}
+                                    className={cn("rounded-xl border px-2 py-1 text-right hover:bg-white/15 transition", cls)}
+                                  >
+                                    <span className="block font-black">{color}</span>
+                                    <span className="block opacity-70 truncate">{meaning}</span>
+                                  </button>
+                                ))}
                               </div>
                               <div className="grid md:grid-cols-4 gap-2">
                                 {[
@@ -3954,7 +3983,7 @@ const GeneralSettings: React.FC<Props> = ({
                               </div>
                             )}
 
-                            <div id="push-radar-list" className="flex flex-col lg:flex-row gap-2 lg:items-start lg:justify-between">
+                            <div id="push-radar-list" className="flex flex-col lg:flex-row gap-2 lg:items-start lg:justify-between scroll-mt-24">
                               <details className="rounded-2xl bg-white/10 border border-white/10 p-1 overflow-hidden">
                                 <summary className="cursor-pointer list-none rounded-xl px-3 py-2 text-[11px] font-black text-white flex items-center justify-between gap-3 min-w-44">
                                   <span>قائمة الرادار</span>
@@ -3995,6 +4024,15 @@ const GeneralSettings: React.FC<Props> = ({
 
                             {pushDeviceTab === "users" && (
                               <div className="grid gap-3">
+                                <div className="rounded-2xl border border-white/10 bg-slate-950/35 px-3 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-white">
+                                  <div className="text-[11px] font-black">
+                                    أنت الآن تشاهد: {pushDeviceMapFilter === "all" ? "كل المستخدمين والأجهزة" : pushDeviceMapFilter === "golden" ? "الأجهزة الذهبية الجاهزة" : pushDeviceMapFilter === "silent" ? "الأجهزة الصامتة" : pushDeviceMapFilter === "ghost" ? "الأجهزة الشبحية/القديمة" : "الحسابات بلا جهاز"}
+                                    <span className="mr-2 text-white/45">اضغط التفاصيل داخل أي بطاقة للقراءة الكاملة.</span>
+                                  </div>
+                                  {pushDeviceMapFilter !== "all" && (
+                                    <button type="button" onClick={() => { setPushDeviceMapFilter("all"); setPushUsersVisibleCount(12); }} className="rounded-xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">رجوع للخريطة الكاملة</button>
+                                  )}
+                                </div>
                                 <div className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-white">
                                   <div className="text-[11px] font-black">
                                     {pushDeviceMapFilter === "all" ? "كل المستخدمين والأجهزة" : pushDeviceMapFilter === "golden" ? "الأجهزة الذهبية" : pushDeviceMapFilter === "silent" ? "الأجهزة الصامتة" : pushDeviceMapFilter === "ghost" ? "الأجهزة الشبحية" : "حسابات بلا جهاز"}
@@ -4185,11 +4223,11 @@ const GeneralSettings: React.FC<Props> = ({
                             )}
 
                             {pushDeviceTab === "log" && (
-                              <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-3 space-y-3 max-h-[70vh] overflow-y-auto overscroll-contain">
+                              <div id="push-notification-log" className="rounded-[1.5rem] border border-white/10 bg-white/10 p-2.5 md:p-3 space-y-3 max-h-[70vh] overflow-y-auto overscroll-contain scroll-mt-24">
                                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                   <div>
-                                    <div className="text-xs font-black text-white">السجل الذكي</div>
-                                    <div className="text-[10px] font-bold text-white/45 mt-1">يعرض {visibleNotificationLog.length} من {notificationLog.length} نتيجة فقط حتى لو كان الأرشيف ضخم.</div>
+                                    <div className="text-xs font-black text-white">السجل الذكي للإشعارات</div>
+                                    <div className="text-[10px] font-bold text-white/45 mt-1">يعرض {visibleNotificationLog.length} من {notificationLog.length} نتيجة. {focusedNotification ? "تم فتح الإشعار المحدد من الرادار." : "اختر أي إشعار لفتح تفاصيله."}</div>
                                   </div>
                                   <div className="flex flex-wrap gap-1.5">
                                     {[
@@ -4205,29 +4243,44 @@ const GeneralSettings: React.FC<Props> = ({
                                     ))}
                                   </div>
                                 </div>
-                                {visibleNotificationLog.length ? visibleNotificationLog.map((notification) => (
-                                  <div key={notification.id} className="rounded-2xl bg-slate-950/35 border border-white/10 p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                                    <div className="min-w-0">
-                                      <div className="font-black text-sm truncate">{notification.title}</div>
-                                      <div className="mt-1 text-[11px] font-bold text-white/50 truncate">{notification.message || "بدون نص"}</div>
-                                      {(() => {
-                                        const recipient = getPushNotificationRecipientMeta(notification);
-                                        return (
-                                          <div className="mt-2 grid md:grid-cols-2 gap-1.5 text-[10px] font-bold text-white/45">
+                                {visibleNotificationLog.length ? visibleNotificationLog.map((notification) => {
+                                  const selected = selectedPushNotificationId === notification.id;
+                                  const recipient = getPushNotificationRecipientMeta(notification);
+                                  const steps = getDeliveryMilestones(notification);
+                                  return (
+                                    <div key={notification.id} className={cn("rounded-2xl border p-3 transition", selected ? "bg-emerald-400/15 border-emerald-300/30 ring-1 ring-emerald-200/25" : "bg-slate-950/35 border-white/10")}>
+                                      <button type="button" onClick={() => setSelectedPushNotificationId(selected ? null : notification.id)} className="w-full text-right flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                                        <div className="min-w-0">
+                                          <div className="font-black text-sm truncate">{notification.title || "إشعار بدون عنوان"}</div>
+                                          <div className="mt-1 text-[11px] font-bold text-white/50 truncate">أُرسل إلى: {recipient.name} — {notification.message || "بدون نص"}</div>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black shrink-0">
+                                          <span className={cn("rounded-full px-2 py-1", notification.success === false ? "bg-rose-400/15 text-rose-100" : (notification.receivedByDevice || notification.receivedAt || notification.openedByEmployee || notification.clickedAt) ? "bg-emerald-400/15 text-emerald-100" : "bg-amber-400/15 text-amber-100")}>{notification.deliveryStage || getPushDeliveryStageLabel(notification)}</span>
+                                          <span className="rounded-full bg-white/10 px-2 py-1 text-white/40">{notification.date || "بلا وقت"}</span>
+                                          <span className="rounded-full bg-white/10 px-2 py-1 text-white/60">{selected ? "إخفاء" : "تفاصيل"}</span>
+                                        </div>
+                                      </button>
+                                      {selected && (
+                                        <div className="mt-3 space-y-2">
+                                          <div className="grid sm:grid-cols-2 gap-1.5 text-[10px] font-bold text-white/55">
                                             <span className="rounded-xl bg-black/20 border border-white/10 px-2 py-1 truncate">أُرسل إلى: {recipient.name}</span>
                                             <span className="rounded-xl bg-black/20 border border-white/10 px-2 py-1 truncate">الجهاز: {recipient.deviceLabel}</span>
                                             {recipient.subtitle && <span className="rounded-xl bg-black/20 border border-white/10 px-2 py-1 truncate">المعرّف: {recipient.subtitle}</span>}
                                             <span className="rounded-xl bg-black/20 border border-white/10 px-2 py-1 truncate">التوكن: {recipient.tokenTail}</span>
                                           </div>
-                                        );
-                                      })()}
+                                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                                            {steps.map((step) => (
+                                              <span key={step.key} className={cn("rounded-lg border px-2 py-1 text-[9px] font-black text-center", step.done ? "border-emerald-300/20 bg-emerald-400/15 text-emerald-50" : "border-white/10 bg-white/5 text-white/30")}>
+                                                {step.done ? "✓ " : "— "}{step.label}
+                                              </span>
+                                            ))}
+                                          </div>
+                                          <div className="rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/65">{getDeliveryHumanReason(notification, (notification as any).device)}</div>
+                                        </div>
+                                      )}
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black">
-                                      <span className="rounded-full bg-white/10 px-2 py-1 text-white/60">{notification.deliveryStage || getPushDeliveryStageLabel(notification)}</span>
-                                      <span className="rounded-full bg-white/10 px-2 py-1 text-white/40">{notification.date}</span>
-                                    </div>
-                                  </div>
-                                )) : (
+                                  );
+                                }) : (
                                   <div className="p-5 text-center text-sm font-bold text-white/60">لا يوجد أرشيف إشعارات مسجل.</div>
                                 )}
                                 {notificationLog.length > visibleNotificationLog.length && (
