@@ -6088,18 +6088,37 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 
     const runFallback = () => {
       const lower = message.toLowerCase();
-      let reply = "";
+      const ctx = statsSummary && typeof statsSummary === "object" ? statsSummary : {};
+      const line = (label: string, value: any) => value !== undefined && value !== null && value !== "" && value !== "لا يوجد" ? `${label}: ${value}` : "";
+      const facts = [
+        line("المبيعات", ctx.totalSales !== undefined ? `${Number(ctx.totalSales || 0).toFixed(3)} د.ك` : ""),
+        line("مبيعات اليوم", ctx.todaySales !== undefined ? `${Number(ctx.todaySales || 0).toFixed(3)} د.ك` : ""),
+        line("الهامش", ctx.margin !== undefined ? `${ctx.margin}%` : ""),
+        line("الدفع", ctx.paymentRadar),
+        line("أقوى منتج", ctx.topProducts),
+        line("أضعف منتج", ctx.weakProducts),
+        line("أفضل عميل", ctx.topCustomers),
+        line("الموردون", ctx.topSupplierDebt),
+      ].filter(Boolean);
+
+      let focus = "";
       if (lower.includes("مبيعات") || lower.includes("أرباح") || lower.includes("فلوس") || lower.includes("بيعت") || lower.includes("مبيعاتنا") || lower.includes("ربح")) {
-        reply = `واضح من البيانات أن المبيعات مستقرة وفيها فرصة لرفع العائد. القرار الأنسب الآن: ركّز العرض على الصواني أو المنتجات الأعلى طلبًا بدل التخفيض العام.`;
+        focus = `الحكم: اقرأ المبيعات من زاويتين؛ إجمالي ${Number(ctx.totalSales || 0).toFixed(3)} د.ك واليوم ${Number(ctx.todaySales || 0).toFixed(3)} د.ك. القرار: لا تسوي خصم عام؛ وجّه العرض على أعلى صنف ظاهر في البيانات وارفع متوسط الطلب.`;
       } else if (lower.includes("منتج") || lower.includes("أكل") || lower.includes("محبوب") || lower.includes("أكثر طلبا") || lower.includes("صنف") || lower.includes("اطباق")) {
-        reply = `واضح من بيانات المنتجات أن الأفضل هو ترتيب الأصناف حسب الطلب والربحية قبل أي حملة. القرار العملي: اختر أعلى منتج طلبًا واربطه بعرض محدود يرفع متوسط الفاتورة.`;
+        focus = `الحكم: المنتج الأقوى عندك هو اللي يثبت نفسه بالأرقام، مو بالإحساس. الدليل: ${ctx.topProducts || "البيانات اللي عندي ما تكفي لتحديد اسم المنتج"}. القرار: سوّق صنف واحد فقط اليوم، واربطه بإضافة ترفع الفاتورة.`;
       } else if (lower.includes("مورد") || lower.includes("خضار") || lower.includes("سوق") || lower.includes("لحم") || lower.includes("دجاج")) {
-        reply = `بالنسبة للموردين، القرار الأفضل هو متابعة المستحقات والالتزام قبل زيادة الطلبات. إذا كان المورد مسددًا بالكامل، لا تحتاج إجراء دفع جديد؛ راقب التوريد القادم فقط.`;
-      } else if (lower.includes("شرح") || lower.includes("ساعدني") || lower.includes("تحليل") || lower.includes("شورك") || lower.includes("خطة")) {
-        reply = `بعد قراءة البيانات المتاحة، الأفضل اتخاذ قرار واحد واضح بدل كثرة الخيارات: راقب ذروة الطلب، ثم جهّز عرضًا محددًا للمنتج الأقوى في وقت الذروة.`;
+        focus = `الحكم: لا تدفع ولا تفتح إجراء مالي إلا على مستحق فعلي. الدليل: ${ctx.topSupplierDebt || "لا يظهر مورد عليه مستحق واضح"}. القرار: راجع المورد الأعلى مستحقاً فقط، واترك المورد المسدد بدون إجراء.`;
+      } else if (lower.includes("عميل") || lower.includes("عملاء") || lower.includes("زبون")) {
+        focus = `الحكم: العميل الأعلى قيمة أهم من كثرة العملاء. الدليل: ${ctx.topCustomers || "لا تظهر أسماء عملاء كافية"}. القرار: ابدأ برسالة متابعة راقية للعميل الأعلى إنفاقاً أو العميل الغائب إذا كان ظاهر بالبيانات.`;
       } else {
-        reply = `مرحبًا، أنا مساعد التراث الذكي. اكتب سؤالك عن المبيعات أو الموردين أو المنتجات أو الحملات، وسأعطيك قرارًا عمليًا مختصرًا بناءً على بيانات اللوحة.`;
+        focus = `الحكم: ${ctx.nextBestAction || "البيانات تحتاج سؤال أدق عشان أعطي قرار حاسم"}. القرار: خذ إجراء واحد الآن بدل تشتيت الفريق.`;
       }
+
+      const proof = facts.slice(0, 4).join("\n");
+      const reply = `${focus}${proof ? `
+
+الدليل السريع:
+${proof}` : ""}`;
       return { text: sanitizeAssistantTone(reply) };
     };
 
@@ -6136,15 +6155,15 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
         : "{}";
 
       const ai = new GoogleGenAI({
-        apiKey: process.env.GEMINI_API_KEY,
+        apiKey: assistantGeminiApiKey,
         httpOptions: { headers: { "User-Agent": "alturath-admin-server" } }
       });
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-lite",
+        model: "gemini-2.5-flash",
         config: {
-          temperature: 0.18,
-          topP: 0.75,
+          temperature: 0.55,
+          topP: 0.9,
           systemInstruction: (typeof systemPrompt === "string" && systemPrompt.trim()
             ? systemPrompt
             : "أنت مساعد إداري ذكي خاص ببيانات المطعم. أجب بالعربية وباختصار ووضوح، ولا تعطِ كلاماً عاماً.") +
@@ -6167,8 +6186,9 @@ ${ownerMemory}
 2) اربط كل توصية برقم أو منتج أو عميل أو مورد ظاهر في البيانات.
 3) إذا طلب التاجر قرار سريع، أعطه قرار واحد واضح ثم السبب.
 4) إذا البيانات ناقصة، قل: "البيانات اللي عندي ما تكفي لهالحكم" ثم اذكر الناقص بالضبط.
-5) اكتب باللهجة الكويتية البيضاء وبأسلوب تاجر يفهم التشغيل، بدون تنظير.
+5) اكتب باللهجة الكويتية البيضاء الراقية وبأسلوب مستشار عمليات مبدع: دقيق، ذكي، ويطلع زاوية غير مكررة من الأرقام، بدون تنظير.
 6) ممنوع تمامًا استخدام أي اسم شخصي أو كنية مثل: بوناصر، بو ناصر، يا بو فلان. خاطب بصيغة عامة واحترافية مثل: واضح من البيانات، الأفضل الآن، القرار المقترح.
+7) لا ترد برد عام. لازم كل رد يحتوي: حكم واضح + دليل من البيانات + إجراء واحد اليوم. إذا ما عندك دليل، قل بالضبط ما هو الرقم الناقص.
 
 اكتب الرد الآن كقرار عملي مرتبط بهذه البيانات فقط. إذا البيانات لا تكفي، قل شنو الناقص تحديداً بدل الكلام العام.` }] }]
       });
