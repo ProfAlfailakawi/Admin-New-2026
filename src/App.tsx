@@ -1038,6 +1038,21 @@ const MainApp: React.FC = () => {
   const notifRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
 
+  useEffect(() => {
+    const applyMobileGlassDockState = () => {
+      const shouldCondense = window.scrollY > 28;
+      document.body.classList.toggle("al-mobile-ui-condensed", shouldCondense);
+    };
+
+    applyMobileGlassDockState();
+    window.addEventListener("scroll", applyMobileGlassDockState, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", applyMobileGlassDockState);
+      document.body.classList.remove("al-mobile-ui-condensed");
+    };
+  }, []);
+
   const closeAllMenus = () => {
     if (isMobile) setSidebarOpen(false);
     setNotifOpen(false);

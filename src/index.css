@@ -4305,3 +4305,60 @@ html body .login-brand-stage h1 {
 .push-health-pro code {
   color: #047857 !important;
 }
+
+/* Instagram-inspired mobile glass motion layer: UI only, no business logic touched */
+@media (max-width: 768px) {
+  header.sticky.top-0,
+  aside.fixed.right-0,
+  aside.fixed.right-0 nav,
+  aside.fixed.right-0 button {
+    transition: transform .28s cubic-bezier(.2,.8,.2,1), padding .28s cubic-bezier(.2,.8,.2,1), min-height .28s cubic-bezier(.2,.8,.2,1), border-radius .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s cubic-bezier(.2,.8,.2,1), background .28s ease !important;
+  }
+
+  header.sticky.top-0 {
+    margin: 8px 10px 0 !important;
+    width: calc(100% - 20px) !important;
+    border-radius: 28px !important;
+    background: rgba(15, 23, 42, .78) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,.14) !important;
+    backdrop-filter: blur(22px) saturate(1.25) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(1.25) !important;
+    box-shadow: 0 18px 46px rgba(2,6,23,.24), inset 0 1px 0 rgba(255,255,255,.16) !important;
+  }
+
+  header.sticky.top-0 button {
+    border-radius: 22px !important;
+  }
+
+  header.sticky.top-0 button[title="العودة للصفحة الرئيسية"] {
+    background: linear-gradient(135deg, #f8d98d, #f59e0b 48%, #0f172a) !important;
+    color: #111827 !important;
+    box-shadow: 0 12px 26px rgba(245,158,11,.24), inset 0 1px 0 rgba(255,255,255,.55) !important;
+  }
+
+  body.al-mobile-ui-condensed header.sticky.top-0 {
+    transform: translateY(-2px) scale(.94) !important;
+    transform-origin: center top !important;
+    min-height: 46px !important;
+    border-radius: 24px !important;
+  }
+
+  body.al-mobile-ui-condensed header.sticky.top-0 button {
+    transform: scale(.92) !important;
+  }
+
+  aside.fixed.right-0 {
+    backdrop-filter: blur(20px) saturate(1.2) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.2) !important;
+  }
+
+  aside.fixed.right-0 nav button {
+    border-radius: 22px !important;
+  }
+
+  aside.fixed.right-0 nav button[class*="text-amber-300"] {
+    background: linear-gradient(135deg, rgba(248,217,141,.24), rgba(245,158,11,.14)) !important;
+    box-shadow: 0 12px 26px rgba(245,158,11,.10), inset 0 1px 0 rgba(255,255,255,.10) !important;
+  }
+}
