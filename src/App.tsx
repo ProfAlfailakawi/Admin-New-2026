@@ -3815,7 +3815,7 @@ const SubNavItem: React.FC<{ label: string; icon: React.ReactNode; active?: bool
     )}
   >
     <span className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all", active ? "bg-amber-400/15 text-amber-300" : "bg-white/5 text-white/50")}>{icon}</span>
-    <span className="flex-1 truncate">{label}</span>
+    <span className="flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis leading-none">{label}</span>
   </button>
 );
 

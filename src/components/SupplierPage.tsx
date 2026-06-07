@@ -761,7 +761,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   initial={{ opacity: 0, scale: 0.95, y: 20 }}
   animate={{ opacity: 1, scale: 1, y: 0 }}
   exit={{ opacity: 0, scale: 0.95, y: 20 }}
-  className="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-sm border border-slate-200 p-0 border border-slate-100 text-right flex flex-col max-h-[85dvh] overflow-hidden translate-y-6 sm:translate-y-12 shadow-black/20"
+  className="supplier-ledger-modal bg-white rounded-[2.5rem] w-full max-w-2xl shadow-sm border border-slate-200 p-0 border border-slate-100 text-right flex flex-col max-h-[85dvh] overflow-hidden translate-y-6 sm:translate-y-12 shadow-black/20"
   onClick={e => e.stopPropagation()}
   >
   {(() => {
