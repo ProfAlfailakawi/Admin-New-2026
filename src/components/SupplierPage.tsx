@@ -231,8 +231,19 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  .filter(s => normalizeArabic(s.name || '').includes(normalizedSearch) || (s.phone || '').includes(search))
  .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
 
- const totalOutstanding = (data?.suppliers || []).reduce((acc, s) => acc + (s.balance || 0), 0);
- const suppliersWithBalances = (data?.suppliers || []).filter(s => (s.balance || 0) > 0).length;
+ const getSupplierLiveBalance = (supId: string) => {
+   const ledger = getSupplierLedger(supId);
+   const due = ledger
+     .filter((item: any) => item.type === 'invoice')
+     .reduce((acc: number, item: any) => acc + Math.max(0, Number(item.amount || 0)), 0);
+   const paid = ledger
+     .filter((item: any) => item.type === 'transfer')
+     .reduce((acc: number, item: any) => acc + Math.max(0, Math.abs(Number(item.amount || 0))), 0);
+   return Math.max(0, Math.round((due - paid) * 1000) / 1000);
+ };
+
+ const totalOutstanding = (data?.suppliers || []).reduce((acc, s) => acc + getSupplierLiveBalance(s.id), 0);
+ const suppliersWithBalances = (data?.suppliers || []).filter(s => getSupplierLiveBalance(s.id) > 0).length;
 
  const handleSaveSupplier = () => {
  if (!supplierForm.name || !supplierForm.phone) {
@@ -415,6 +426,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  const isDeliveryOnlySupplier = (supplier as any).supplierType === 'delivery';
  const isSupplierDelivering = !isDeliveryOnlySupplier && (supplier as any).deliverySettlement === 'supplier';
  const supplierLedger = getSupplierLedger(supplier.id);
+ const supplierLiveBalance = getSupplierLiveBalance(supplier.id);
  const supplierDeliveryDue = supplierLedger.filter((l: any) => l.type === 'invoice').reduce((acc: number, l: any) => acc + Number(l.deliveryAmount || 0), 0);
  const showDeliveryAction = isDeliveryOnlySupplier || isSupplierDelivering || supplierDeliveryDue > 0;
  const priceIndicator = getSupplierPriceIndicator(supplier, { productCount: supplierProducts.length, invoiceCount: invoiceStats.totalInvoices });
@@ -466,15 +478,25 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="space-y-6">
  <div className="flex gap-2">
  <div 
- onClick={() => { setDeepLinkData({ supplierId: supplier.id, openModal: true }); setCurrentPage('suppliers-audit'); }}
+ onClick={() => {
+   if (supplierLiveBalance <= 0) {
+     toast.success('لا يوجد مستحق مالي على هذا المورد', {
+       description: 'المورد مسدد بالكامل، لذلك لا حاجة لفتح شاشة تسجيل دفعة.',
+       position: 'bottom-right'
+     });
+     return;
+   }
+   setDeepLinkData({ supplierId: supplier.id, openModal: true, _t: Date.now() } as any);
+   setCurrentPage('suppliers-audit');
+ }}
  className={cn(
-"flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2",
- supplier.balance > 0 ?"bg-red-50 border-red-100 hover:border-red-300" :"bg-emerald-50 border-emerald-100 hover:border-emerald-300"
+"flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center transition-all border-2",
+ supplierLiveBalance > 0 ?"cursor-pointer bg-red-50 border-red-100 hover:border-red-300" :"cursor-default bg-emerald-50 border-emerald-100"
 )}
  >
  <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">المستحق المالي</div>
- <div className={cn("text-lg font-bold tracking-tighter", supplier.balance > 0 ?"text-red-600" :"text-emerald-600")}>
- {Number(supplier.balance || 0).toFixed(3)}
+ <div className={cn("text-lg font-bold tracking-tighter", supplierLiveBalance > 0 ?"text-red-600" :"text-emerald-600")}>
+ {Number(supplierLiveBalance || 0).toFixed(3)}
  </div>
  </div>
  <div 
