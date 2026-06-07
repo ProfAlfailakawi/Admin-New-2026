@@ -26,10 +26,15 @@ const getInvoiceDeliverySettlement = (inv: any, supId: string, data: any) => {
   const value = Number(inv?.deliveryFee ?? info.finalPrice ?? 0) || 0;
   if (value <= 0) return 0;
   const supplier = (data?.suppliers || []).find((s: any) => String(s.id) === String(supId));
+  if (!supplier) return 0;
+  const isDeliveryCompany = supplier.supplierType === 'delivery';
+  const isFoodSupplierDelivering = !isDeliveryCompany && supplier.deliverySettlement === 'supplier';
+  if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
+  if (isDeliveryCompany && target !== 'delivery_company') return 0;
+  if (isFoodSupplierDelivering && target !== 'supplier') return 0;
   const matchesSupplier = String(info.settlementSupplierId || '') === String(supId)
     || (!!supplier?.name && String(info.settlementSupplierName || info.company || '').trim() === String(supplier.name).trim());
-  if ((target === 'supplier' || target === 'delivery_company') && matchesSupplier) return value;
-  return 0;
+  return matchesSupplier ? value : 0;
 };
 
 const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSupplierId, autoOpenModal, onClearDeepLink, deepLinkData }) => {

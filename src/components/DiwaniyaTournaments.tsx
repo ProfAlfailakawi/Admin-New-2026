@@ -1197,9 +1197,9 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                </div>
                <div>
                   <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500">
-                     بطولات الديوانية (Squad Rewards)
+                     Diwaniya Golden Arena | حلبة الدواوين الذهبية 🏆
                   </h2>
-                  <p className="text-amber-100/70 font-medium mt-1">حوّل ولاء الأفراد إلى ولاء جماعي وتنافس شرس بين الدواوين!</p>
+                  <p className="text-amber-100/70 font-medium mt-1">ساحة تتبع النقاط، جوائز مستويات الولاء، التحديات ورادار التفاعل الساخن!</p>
                </div>
              </div>
              {onNavigate && (

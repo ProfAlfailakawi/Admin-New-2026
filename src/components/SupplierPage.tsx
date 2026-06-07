@@ -53,7 +53,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  balance: 0,
  status: 'pending' as ('paid' | 'pending' | 'partially_paid'),
  supplierType: 'food' as 'food' | 'delivery',
- deliverySettlement: 'supplier' as 'supplier' | 'delivery_company'
+ deliverySettlement: 'delivery_company' as 'supplier' | 'delivery_company'
  });
  const [deleteError, setDeleteError] = useState<string | null>(null);
  const [shakingId, setShakingId] = useState<string | null>(null);
@@ -67,10 +67,15 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
    const value = Number(inv?.deliveryFee ?? info.finalPrice ?? 0) || 0;
    if (value <= 0) return 0;
    const supplier = (data?.suppliers || []).find(s => String(s.id) === String(supId));
+   if (!supplier) return 0;
+   const isDeliveryCompany = (supplier as any).supplierType === 'delivery';
+   const isFoodSupplierDelivering = !isDeliveryCompany && (supplier as any).deliverySettlement === 'supplier';
+   if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
+   if (isDeliveryCompany && target !== 'delivery_company') return 0;
+   if (isFoodSupplierDelivering && target !== 'supplier') return 0;
    const matchesSupplier = String(info.settlementSupplierId || '') === String(supId)
      || (!!supplier?.name && String(info.settlementSupplierName || info.company || '').trim() === String(supplier.name).trim());
-   if ((target === 'supplier' || target === 'delivery_company') && matchesSupplier) return value;
-   return 0;
+   return matchesSupplier ? value : 0;
  };
 
  const getSupplierProducts = (supId: string) => (data?.products || []).filter(p => p.supplierId === supId);
@@ -252,7 +257,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
  const openAddModal = () => {
  setEditingId(null);
- setSupplierForm({ name: '', phone: '', paymentMethods: [], balance: 0, status: 'paid', supplierType: 'food', deliverySettlement: 'supplier' });
+ setSupplierForm({ name: '', phone: '', paymentMethods: [], balance: 0, status: 'paid', supplierType: 'food', deliverySettlement: 'delivery_company' });
  setShowModal(true);
  };
 
@@ -265,7 +270,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  balance: Number((supplier.balance || 0).toFixed(3)),
  status: supplier.status,
  supplierType: (supplier as any).supplierType || 'food',
- deliverySettlement: ((supplier as any).supplierType === 'delivery' ? 'delivery_company' : ((supplier as any).deliverySettlement === 'delivery_company' ? 'delivery_company' : 'supplier'))
+ deliverySettlement: ((supplier as any).supplierType === 'delivery' ? 'delivery_company' : ((supplier as any).deliverySettlement === 'supplier' ? 'supplier' : 'delivery_company'))
  });
  setShowModal(true);
  };
@@ -419,7 +424,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="flex-1 order-1">
  <div className="flex items-center gap-2 justify-end mb-1">
  {getSupplierPriceIndicator(supplier).type === 'low' && (
- <div title="مورد منافس جداً" className="bg-emerald-500/10 p-2 rounded-full border border-emerald-500/20 cursor-pointer">
+ <div title="مؤشر تكلفة منخفضة لهذا المورد" className="bg-emerald-500/10 p-2 rounded-full border border-emerald-500/20 cursor-pointer">
  <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
  </div>
 )}
@@ -511,10 +516,26 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
 
  <div className="flex flex-wrap gap-2 justify-end">
+ {(supplier as any).supplierType === 'delivery' ? (
  <span className="bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-blue-600 flex items-center gap-1">
- <Truck size={12} />
- {(supplier as any).supplierType === 'delivery' || (supplier as any).deliverySettlement === 'delivery_company' ? 'شركة توصيل' : 'مورد'}
+ <Truck size={12} /> شركة توصيل فقط
  </span>
+ ) : (
+ <>
+ <span className="bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-emerald-700 flex items-center gap-1">
+ <Package size={12} /> مورد أكل
+ </span>
+ <span className={cn(
+ "border px-3 py-1.5 rounded-xl text-[10px] font-bold flex items-center gap-1",
+ (supplier as any).deliverySettlement === 'supplier'
+ ? "bg-cyan-50 border-cyan-100 text-cyan-700"
+ : "bg-slate-50 border-slate-100 text-slate-500"
+ )}>
+ <Truck size={12} />
+ {(supplier as any).deliverySettlement === 'supplier' ? 'يوصل طلباته' : 'لا يوصل'}
+ </span>
+ </>
+ )}
  </div>
 
  <div className="flex flex-wrap gap-2 justify-end">
@@ -843,14 +864,18 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
         className="bg-slate-50/50 border-t border-slate-100"
       >
         <div className="p-5 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm grid grid-cols-2 gap-4">
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm grid grid-cols-3 gap-3">
             <div className="text-right">
-              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي البيع (Revenue)</div>
-              <div className="text-lg font-black text-slate-900 whitespace-nowrap" dir="ltr">{(item.revenue || 0).toFixed(3)} <span className="text-xs text-slate-500">د.ك</span></div>
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي البيع</div>
+              <div className="text-base font-black text-slate-900 whitespace-nowrap" dir="ltr">{(item.revenue || 0).toFixed(3)} <span className="text-xs text-slate-500">د.ك</span></div>
             </div>
-            <div className="text-right border-r border-slate-100 px-4">
-              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">تكلفة التوريد (Supply Cost)</div>
-              <div className="text-lg font-black text-rose-500 whitespace-nowrap" dir="ltr">{item.amount.toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
+            <div className="text-right border-r border-slate-100 px-3">
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">توريد المنتجات</div>
+              <div className="text-base font-black text-rose-500 whitespace-nowrap" dir="ltr">{(item.supplyAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
+            </div>
+            <div className="text-right border-r border-slate-100 px-3">
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">توصيل المورد</div>
+              <div className="text-base font-black text-blue-600 whitespace-nowrap" dir="ltr">{(item.deliveryAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
             </div>
           </div>
 

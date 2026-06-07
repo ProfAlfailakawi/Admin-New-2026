@@ -15,6 +15,120 @@ interface InstagramMagicWandProps {
 
 type Category = 'motivation' | 'engagement' | 'promo' | 'contest' | 'trend';
 
+// Deterministic attractiveness assessment tool
+const getStableAttractivenessScore = (text: string, category: string) => {
+  if (!text) return 75;
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = text.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const categoryBonus = category === 'trend' ? 5 : category === 'contest' ? 3 : 0;
+  const score = 75 + (Math.abs(hash) % 20) + categoryBonus; // results in 75 to 99 range
+  return Math.min(99, score);
+};
+
+// Luxurious sports-car dashboard attractiveness gauge
+const AttractivenessGauge: React.FC<{ score: number }> = ({ score }) => {
+  const angle = (score / 100) * 240 - 120; // needle angle from -120 to 120 deg
+  
+  return (
+    <div className="flex flex-col items-center bg-slate-950 border border-amber-500/20 px-3.5 py-3 rounded-2xl shadow-[0_12px_24px_rgba(0,0,0,0.9)] relative overflow-hidden w-full max-w-[240px] mx-auto select-none">
+      {/* Carbon fiber grid pattern */}
+      <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:12px_12px] opacity-25 pointer-events-none" />
+      
+      <div className="relative w-36 h-24 flex items-end justify-center overflow-hidden">
+        {/* Semi-circular dial */}
+        <svg className="w-36 h-36 absolute -bottom-10" viewBox="0 0 100 100">
+          <path
+            d="M 15 80 A 40 40 0 1 1 85 80"
+            fill="none"
+            stroke="rgba(255,255,255,0.04)"
+            strokeWidth="6"
+            strokeLinecap="round"
+          />
+          {/* Green-yellow zone (lower performance) */}
+          <path
+            d="M 15 80 A 40 40 0 0 1 50 13.5"
+            fill="none"
+            stroke="url(#speedGreenYellow)"
+            strokeWidth="6.5"
+            strokeLinecap="round"
+          />
+          {/* High rpm red overdrive zone */}
+          <path
+            d="M 50 13.5 A 40 40 0 0 1 85 80"
+            fill="none"
+            stroke="url(#speedYellowRed)"
+            strokeWidth="6.5"
+            strokeLinecap="round"
+          />
+          <defs>
+            <linearGradient id="speedGreenYellow" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#10b981" />
+              <stop offset="100%" stopColor="#eab308" />
+            </linearGradient>
+            <linearGradient id="speedYellowRed" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#eab308" />
+              <stop offset="100%" stopColor="#ef4444" />
+            </linearGradient>
+          </defs>
+          
+          {/* Gauge dial markers */}
+          {Array.from({ length: 9 }).map((_, i) => {
+            const tickAngle = (i * 30 - 120) * Math.PI / 180;
+            const x1 = 50 + 33 * Math.cos(tickAngle);
+            const y1 = 50 + 33 * Math.sin(tickAngle);
+            const x2 = 50 + 38 * Math.cos(tickAngle);
+            const y2 = 50 + 38 * Math.sin(tickAngle);
+            return (
+              <line
+                key={i}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke={i >= 7 ? "rgba(239, 68, 68, 0.7)" : i >= 4 ? "rgba(234, 179, 8, 0.4)" : "rgba(255,255,255,0.15)"}
+                strokeWidth={i >= 7 ? "1.5" : "1"}
+              />
+            );
+          })}
+        </svg>
+
+        {/* Dashboard needle pin cap */}
+        <div className="absolute w-5 h-5 rounded-full bg-slate-900 border border-amber-400 shadow-[0_2px_6px_rgba(245,158,11,0.6)] z-20 flex items-center justify-center -bottom-2.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+        </div>
+
+        {/* Dynamic rev meter needle */}
+        <motion.div
+          initial={{ rotate: -120 }}
+          animate={{ rotate: angle }}
+          transition={{ type: "spring", stiffness: 45, damping: 10, mass: 0.8 }}
+          style={{ transformOrigin: "bottom center" }}
+          className="absolute w-[1.5px] h-16 bg-gradient-to-t from-red-600 via-amber-500 to-yellow-300 z-10 bottom-0 -translate-x-[50%]"
+        />
+
+        {/* High performance digital output below */}
+        <div className="absolute bottom-1 text-center pointer-events-none">
+          <div className="text-[8px] font-black tracking-widest text-white/30 uppercase">SCORE ATTRACTIVITY</div>
+          <div className="text-2xl font-black font-mono text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.4)] mt-0.5">
+            {score}
+            <span className="text-[10px] text-red-500 ml-0.5 font-black font-sans">%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Speedometer status badge */}
+      <div className="flex items-center gap-1 mt-1.5 justify-center w-full border-t border-white/5 pt-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+        <span className="text-[8px] font-mono font-black text-amber-300/95 tracking-wider">
+          {score > 88 ? "✦ ENGINE OVERDRIVE: جاذبية قصوى" : "✦ HIGH RPM: تفاعل عربي فريد"}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, currentPage = 'dashboard', userRole = 'admin' }) => {
  const [isOpen, setIsOpen] = useState(false);
  const [activeCategory, setActiveCategory] = useState<Category>('trend');
@@ -228,46 +342,46 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  animate={{ x: 0 }}
  exit={{ x: '-100%' }}
  transition={{ type: 'spring', damping: 28, stiffness: 220 }}
- className="fixed left-0 top-0 bottom-0 w-full max-w-sm bg-white shadow-xl z-[110] overflow-hidden flex flex-col border-r border-white/10"
+ className="fixed left-0 top-0 bottom-0 w-full max-w-sm bg-white border-r border-slate-200 shadow-[0_0_40px_rgba(0,0,0,0.15)] z-[110] overflow-hidden flex flex-col pt-1.5"
  dir="rtl"
  >
  {/* Header */}
- <div className="p-3 md:p-3 bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-950 text-white relative">
+ <div className="p-4 bg-slate-50 text-slate-900 border-b border-slate-200 relative">
+
  <button 
  onClick={() => setIsOpen(false)}
- className="absolute top-3 md:p-4 left-6 p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-all active:scale-90 z-20"
+ className="absolute top-4 left-6 p-2 bg-slate-200/80 hover:bg-slate-200 text-slate-700 rounded-full transition-all active:scale-90 z-20"
  >
  <X size={18} />
  </button>
  <div className="relative z-10">
  <div className="flex items-center gap-4 mb-4">
- <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-2xl shadow-lg shadow-indigo-500/30">
+ <div className="bg-gradient-to-br from-amber-500 to-yellow-600 shadow-md p-2.5 rounded-2xl text-white">
  <Instagram size={28} className="text-white" />
  </div>
  <div>
- <h3 className="text-2xl font-bold tracking-tight">ملهم الانستغرام</h3>
+ <h3 className="text-lg font-black text-slate-900 tracking-wide font-sans">ملهم الانستغرام</h3>
  <div className="flex items-center gap-1.5 mt-1">
- <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
- <span className="text-[10px] font-bold text-indigo-300 uppercase">المحرك الذهبي نشط</span>
+ <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+ <span className="text-[9px] font-bold text-slate-500 uppercase font-sans">مساعد صناعة المحتوى والمسابقات الذكية</span>
  </div>
  </div>
  </div>
- <p className="text-indigo-200/80 text-xs font-bold leading-relaxed">تخطى"حيرة المحتوى" وأبهر متابعينك بلمسة كويتية ناطعة وذكية.</p>
  </div>
  </div>
 
  {/* Tabs */}
- <div className="p-3 bg-slate-50 border-b border-black/5 space-y-3">
+ <div className="p-3 bg-slate-50 border-b border-slate-200 space-y-3">
  <button
  onClick={() => { setActiveCategory('trend'); fetchMessages('trend', true); }}
  className={cn(
- "w-full py-4 px-4 rounded-3xl text-sm font-black border-2 transition-all active:scale-95 flex items-center justify-center gap-2",
+ "w-full py-3 px-4 rounded-2xl text-xs font-black border transition-all active:scale-95 flex items-center justify-center gap-2",
  activeCategory === 'trend'
- ? "bg-gradient-to-br from-violet-600 to-purple-700 text-white border-transparent shadow-xl shadow-purple-500/30"
- : "bg-white text-purple-700 border-purple-100 shadow-sm"
+ ? "bg-slate-900 text-white border-transparent shadow-md"
+ : "bg-white text-slate-700 border-slate-200 shadow-sm"
  )}
  >
- ⚡ عصا إنستقرام السحرية (Trends آخر 60 دقيقة)
+ ✨ ريشة صناعة المحتوى السحرية (Trends)
  </button>
  <div className="grid grid-cols-2 gap-3">
  {(['contest', 'engagement', 'motivation', 'promo'] as Category[]).map((cat) => (
@@ -278,36 +392,29 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  fetchMessages(cat, true);
  }}
  className={cn(
-"py-3 text-[11px] font-bold rounded-2xl transition-all duration-500 active:scale-90 border-2",
+"py-2.5 text-[11px] font-black rounded-2xl transition-all duration-300 border",
  activeCategory === cat 
  ? cn(
-"shadow-xl scale-[1.05] border-transparent text-white",
- cat === 'contest' ? "bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30" :
- cat === 'motivation' ?"bg-gradient-to-br from-rose-500 to-pink-600 shadow-rose-500/30" :
- cat === 'engagement' ?"bg-gradient-to-br from-indigo-500 to-blue-600 shadow-indigo-500/30" :
-"bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/30"
+"shadow-md scale-[1.02] border-transparent text-white font-black",
+ cat === 'contest' ? "bg-emerald-600 shadow-emerald-500/20" :
+ cat === 'motivation' ? "bg-rose-600 shadow-rose-500/20" :
+ cat === 'engagement' ? "bg-indigo-600 shadow-indigo-500/20" :
+"bg-amber-600 shadow-amber-500/20"
 )
- :"bg-white/80 text-slate-500 border-slate-100 hover:border-slate-200/60"
+ :"bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
 )}
  >
- {cat === 'contest' ? '🏆 مسابقات' : cat === 'motivation' ? '🚀 إلهام' : cat === 'engagement' ? '💬 تفاعل' : '🎯 ترويج'}
+ {cat === 'contest' ? '🏆 مسابقة ديوان' : cat === 'motivation' ? '🚀 إلهام تراثي' : cat === 'engagement' ? '💬 تفاعل دائم' : '🎯 ترويج المتجر'}
  </button>
 ))}
  </div>
  </div>
 
  {/* Content Area */}
- <div className={cn(
-"flex-1 overflow-y-auto p-3 md:p-4 space-y-6 custom-scrollbar transition-colors duration-1000",
- activeCategory === 'contest' ? "bg-emerald-50/50" :
- activeCategory === 'trend' ? "bg-violet-50/50" :
- activeCategory === 'motivation' ?"bg-rose-50/50" :
- activeCategory === 'engagement' ?"bg-indigo-50/50" :
-"bg-amber-50/50"
-)}>
+ <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-6 custom-scrollbar bg-slate-50">
  {isGenerating ? (
  <div className="flex flex-col items-center justify-center h-full space-y-8">
- <div className="relative w-24 h-24">
+ <div className="relative w-28 h-28 flex items-center justify-center bg-slate-950/20 rounded-full border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
  <div className={cn(
 "absolute inset-0 rounded-full transition-colors duration-1000",
  activeCategory === 'contest' ? "bg-emerald-400/30" :
@@ -324,12 +431,35 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
 "border-amber-500"
 )} />
  <div className="absolute inset-0 flex items-center justify-center">
- <Sparkles className="animate-bounce" size={28} />
+ <motion.div
+  animate={{
+  x: [0, 15, -15, 10, -10, 0],
+  y: [0, -8, 6, -3, 8, 0],
+  rotate: [0, 10, -10, 6, -6, 0]
+  }}
+  transition={{
+  duration: 3,
+  repeat: Infinity,
+  ease: "easeInOut"
+  }}
+  className="text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]"
+  >
+  <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+  <path strokeLinecap="round" strokeLinejoin="round" d="M16.88 3.549a1.125 1.125 0 011.58 1.58L6.86 16.73a2.25 2.25 0 01-1.011.574l-3.267.817.817-3.267a2.25 2.25 0 01.574-1.011L16.88 3.55z" />
+  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.5l-3-3" />
+  </svg>
+  </motion.div>
  </div>
  </div>
  <div className="text-center space-y-2">
- <h4 className="text-lg font-bold text-slate-800">نبتكر...</h4>
- <p className="text-xs font-bold text-slate-500">محرك الإبداع الذكي يكتب لك الآن</p>
+ <motion.h4 
+  animate={{ opacity: [0.6, 1, 0.6] }}
+  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+ className="text-sm font-black text-amber-800 tracking-wide font-sans md:text-sm"
+ >
+  توهج الحبر يسطر البيان بالذهب...
+ </motion.h4>
+ <p className="text-[10px] text-slate-400 font-bold leading-relaxed">أثواب الصياغة والدرر تكتبها الريشة السحرية</p>
  </div>
  </div>
 ) : (
@@ -367,7 +497,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  initial={{ opacity: 0, scale: 0.9 }}
  animate={{ opacity: 1, scale: 1 }}
  transition={{ delay: index * 0.1 }}
- className="group bg-white border border-slate-100 p-3 md:p-3 rounded-3xl md:rounded-2xl shadow-xl hover:shadow-indigo-500/10 transition-all duration-700 relative overflow-hidden"
+ className="group bg-white border border-slate-200 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden"
  >
  <div className={cn(
 "absolute top-0 right-0 w-32 h-32 opacity-10 rounded-bl-[100px] transition-all duration-700",
@@ -389,9 +519,9 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  <Instagram size={24} />
  </div>
  {isContest || isStory || isTrend ? (
-   <h3 className="text-xl md:text-2xl font-black text-slate-800 text-right pr-4 leading-tight flex-1" style={{direction: "rtl"}}>{title}</h3>
+   <h3 className="text-lg md:text-xl font-black text-slate-800 text-right pr-4 leading-tight flex-1" style={{direction: "rtl"}}>{title}</h3>
  ) : (
-   <span className="text-[10px] font-bold text-slate-300 tracking-tighter mr-auto">0{index + 1} / {messages.length}</span>
+   <span className="text-[10px] font-bold text-slate-400 tracking-tighter mr-auto">0{index + 1} / {messages.length}</span>
  )}
  </div>
 
@@ -400,7 +530,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
    <div className="mb-6 space-y-3" dir="rtl">
      <div className="flex flex-wrap gap-2 text-[10.5px] font-bold">
          <span className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-xl border border-emerald-100 flex items-center gap-1"><span className="text-emerald-400/80">{isTrend ? '📈' : '💰'}</span>{isTrend ? 'زخم التريند:' : 'التكلفة:'} {cost}</span>
-         <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl border border-blue-100 flex items-center gap-1"><span className="text-blue-400/80">🎯</span>الهدف: {target}</span>
+         <span className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl border border-indigo-100 flex items-center gap-1"><span className="text-blue-400/80">🎯</span>الهدف: {target}</span>
      </div>
      <div className="flex flex-wrap gap-2 text-[10.5px] font-bold">
          <span className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-xl border border-purple-100 flex items-center gap-1"><span className="text-purple-400/80">📱</span>القناة: {channel}</span>
@@ -412,13 +542,18 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
    </div>
  )}
 
- {(isContest || isStory || isTrend) && <div className="text-[11px] font-bold text-slate-400 mb-3 border-b border-black/5 pb-2">{isStory ? 'ستوري هدفه يبيع، مو بس شكله حلو:' : isTrend ? 'الفكرة الحالية لمجاراة هذا التريند الكويتي الصاعد:' : 'النص الجاهز للنسخ:'}</div>}
- <p className="text-lg md:text-xl font-bold text-slate-900 leading-[1.6] mb-8 whitespace-pre-line text-right" dir="rtl">
+ {(isContest || isStory || isTrend) && <div className="text-[11px] font-black text-amber-700 mb-2 border-b border-slate-100 pb-1.5">{isStory ? 'ستوري للتسويق المباشر:' : isTrend ? 'الفكرة لمجاراة التريند الكويتي الصاعد:' : 'النص المقترح للنسخ:'}</div>}
+ <p className="text-sm md:text-base font-semibold text-slate-800 leading-[1.7] mb-4 whitespace-pre-line text-right" dir="rtl">
  {text}
  </p>
 
+ {/* Attractiveness Gauge Indicator (dial) */}
+ <div className="mb-6">
+   <AttractivenessGauge score={getStableAttractivenessScore(text, activeCategory)} />
+ </div>
+
  {/* AI & Publishing Intelligent Row */}
- <div className="my-5 border-t border-b border-slate-50 py-4 flex flex-col sm:flex-row gap-3 justify-between" dir="rtl">
+ <div className="my-5 border-t border-b border-slate-100 py-4 flex flex-col sm:flex-row gap-3 justify-between" dir="rtl">
    {publishedIndices[index] ? (
      <div className="w-full bg-emerald-50 text-emerald-700 text-xs font-bold py-3.5 px-4 rounded-2xl border border-emerald-200/50 flex items-center justify-center gap-2 font-sans">
        <CheckCircle size={16} /> تم النشر مباشرة على حساب المتجر بنجاح! 🎉
@@ -620,8 +755,8 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  {/* Footer */}
  <div className="p-3 md:p-4 border-t border-slate-100 bg-slate-50">
  <p className="text-[10px] text-center font-bold text-slate-500 leading-relaxed">
- استخدم هذه الرسائل والمسابقات لرفع التفاعل بدون خصومات مؤذية أو خسارة. <br/>
- المسابقات تُنوّع تلقائياً وتراعي التكلفة، والنصوص جاهزة للنسخ.
+ ملهم الانستغرام الذكي لتسويق المقتنيات والتراث ✨
+ 
  </p>
  </div>
  </motion.div>

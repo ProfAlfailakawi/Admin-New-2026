@@ -530,8 +530,8 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     },
     {
       id: 'diwaniya',
-      label: 'بطولات الديوانية',
-      subtitle: 'لوحة تنظيم النقاط وترتيب جوائز البطولات',
+      label: 'Diwaniya Golden Arena',
+      subtitle: 'ساحة الدواوين الذهبية وترتيب الجوائز والولاء',
       icon: <ClipboardCheck size={18} />,
       tone: 'slate',
       value: `الديوانية والجوائز`,
@@ -772,7 +772,7 @@ const getAdminPageMeta = (page: string) => {
     coupons: { title: 'مسرح عروض التراث', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'Smart Offers Theater' },
     'growth-simulator': { title: 'محاكي النمو والتسويق', subtitle: 'سيناريوهات ماذا لو للمبيعات والربح والمخاطر.', tag: 'Growth Simulator Pro' },
     'profit-guard': { title: 'المالية وحماية الأرباح', subtitle: 'درع الربح: المبيعات، المصروفات، الهامش، النزيف، والفرص.', tag: 'Profit Shield' },
-    diwaniya: { title: 'بطولات الديوانية', subtitle: 'لوحة بطولات ناعمة للترتيب والنقاط والجوائز.', tag: 'Tournament Board' },
+    diwaniya: { title: 'Diwaniya Golden Arena', subtitle: 'ساحة الدواوين الذهبية: الترتيب، النقاط، الجوائز ورادار الانضمام الجغرافي.', tag: 'Tournament Board' },
     'whatsapp-support': { title: 'مركز واتساب الذكي', subtitle: '', tag: 'WhatsApp Center' },
     settings: { title: 'الإعدادات العامة', subtitle: 'هوية المتجر، التشغيل، التوصيل، النظام، والحساب في بطاقات هادئة.', tag: 'General Settings' },
   };
@@ -2997,6 +2997,14 @@ const MainApp: React.FC = () => {
             deepLinkData={deepLinkData}
             onClearDeepLink={() => {}}
             isPartner={true}
+            onEditInvoice={(id) => {
+              if (id === 'new') {
+                setEditingInvoiceId(null);
+              } else {
+                setEditingInvoiceId(id);
+              }
+              setCurrentPage('new-invoice');
+            }}
           />
         );
         case 'new-invoice': return (

@@ -899,6 +899,19 @@ Alturath.kw`;
               </div>
 
               <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
+                {onEditInvoice && (
+                  <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3 px-1 md:px-2">
+                    <span className="text-xs font-black text-slate-700">سجل المعاملات والفواتير</span>
+                    <button
+                      onClick={() => onEditInvoice("new")}
+                      type="button"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-black shadow-sm hover:shadow active:scale-95 transition-all text-xs"
+                    >
+                      <Plus size={16} />
+                      <span>فاتورة جديدة</span>
+                    </button>
+                  </div>
+                )}
                 <div className="flex flex-col md:flex-row md:items-center gap-4 mb-8">
                   <div className="relative flex-1">
                     <Search
