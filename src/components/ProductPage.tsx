@@ -1524,14 +1524,14 @@ const ProductPage: React.FC<ProductPageProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
+            className="admin-product-modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
             onClick={() => setShowModal(false)}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl md:rounded-3xl w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[85vh] md:max-h-[90vh] overflow-hidden"
+              className="admin-product-modal bg-white rounded-2xl md:rounded-3xl w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[85vh] md:max-h-[90vh] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header - Fixed */}
@@ -2351,7 +2351,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
+            className="admin-product-modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
             onClick={() => setShowMarketingModal(null)}
           >
             <motion.div

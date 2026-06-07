@@ -3648,7 +3648,7 @@ const GeneralSettings: React.FC<Props> = ({
                   )}
                 </div>
 
-                <div className="push-health-pro rounded-2xl border border-slate-200 bg-white p-4 md:p-5 text-slate-900 shadow-sm overflow-hidden relative">
+                <div className="push-health-pro notification-life-radar rounded-2xl border border-slate-200 bg-white p-4 md:p-5 text-slate-900 shadow-sm overflow-hidden relative">
                   <div className="relative z-10 space-y-4">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                       <div>
@@ -4762,7 +4762,7 @@ const GeneralSettings: React.FC<Props> = ({
                   <Plus size={14} /> إضافة منطقة
                 </button>
               </div>
-              <div className="p-3 md:p-4 overflow-x-auto">
+              <div className="delivery-zones-table-wrap p-3 md:p-4 overflow-x-auto">
                 <div className="max-h-[300px] overflow-y-auto custom-scrollbar border border-slate-200/60 rounded-xl relative">
                   {appMode === "local" && (
                     <div className="absolute inset-0 bg-slate-50/10 backdrop-blur-[0.5px] z-20 cursor-not-allowed cursor-not-allowed" />

@@ -5212,3 +5212,369 @@ html body .login-brand-stage h1 {
     min-width: 0 !important;
   }
 }
+
+/* =========================================================
+   Admin71 FINAL visual repair pass
+   Scope: admin UI only, CSS/layout/readability fixes.
+   No business logic, payment, notification delivery, WhatsApp, AI engine,
+   auth, DB or cloud connection changes.
+   ========================================================= */
+
+/* Prevent accidental side-scroll on admin pages and modals */
+html, body, #root { max-width: 100%; overflow-x: hidden; }
+.admin-heritage-shell,
+.admin-heritage-shell main,
+.admin-heritage-shell main > div,
+.admin-heritage-shell .admin-content-polish,
+.admin-heritage-shell .invoice-new-page,
+.admin-heritage-shell .invoice-mobile-flow {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+.admin-heritage-shell * { box-sizing: border-box; }
+
+/* Sidebar: keep requested items on one line like before */
+.admin-heritage-shell aside nav button,
+.admin-heritage-shell aside nav [role="button"] { min-width: 0 !important; }
+.admin-heritage-shell aside nav button span:last-child,
+.admin-heritage-shell aside nav button .flex-1,
+.admin-heritage-shell aside nav [role="button"] span {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.2 !important;
+}
+.admin-heritage-shell aside nav button:has(span:last-child) {
+  display: flex !important;
+  align-items: center !important;
+  gap: .65rem !important;
+}
+
+/* Top mobile header / quick action row: no vertical broken letters */
+.admin-heritage-shell header button,
+.admin-heritage-shell .admin-action-chip,
+.admin-heritage-shell .heritage-command-tile,
+.admin-heritage-shell .heritage-command-tile * {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+}
+@media (max-width: 768px) {
+  .admin-heritage-shell header {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+  }
+  .admin-heritage-shell header::-webkit-scrollbar { display: none !important; }
+  .admin-heritage-shell header > div { min-width: max-content !important; }
+  .admin-heritage-shell .heritage-command-grid { grid-template-columns: 1fr !important; }
+  .admin-heritage-shell .heritage-command-tile { min-height: 64px !important; }
+}
+
+/* Light cards/forms: make labels and helper copy readable on the pale background */
+.admin-heritage-shell :is(.admin-product-modal,.admin-supplier-modal,.supplier-payment-modal,.supplier-ledger-modal,.notification-life-radar,.push-health-pro,.customers-ledger-table,.delivery-zones-table-wrap) :is(label,p,small,span,div) {
+  color: inherit;
+}
+.admin-heritage-shell :is(.admin-product-modal,.admin-supplier-modal,.supplier-payment-modal,.supplier-ledger-modal) label,
+.admin-heritage-shell :is(.admin-product-modal,.admin-supplier-modal,.supplier-payment-modal,.supplier-ledger-modal) .text-slate-400,
+.admin-heritage-shell :is(.admin-product-modal,.admin-supplier-modal,.supplier-payment-modal,.supplier-ledger-modal) .text-slate-500,
+.admin-heritage-shell .notification-life-radar :is(.text-white\/65,.text-slate-400,.text-slate-500),
+.admin-heritage-shell .push-health-pro :is(.text-white\/65,.text-slate-400,.text-slate-500) {
+  color: #475569 !important;
+  opacity: 1 !important;
+}
+.admin-heritage-shell :is(.admin-product-modal,.admin-supplier-modal,.supplier-payment-modal,.supplier-ledger-modal) :is(h2,h3,strong,.font-black,.font-bold),
+.admin-heritage-shell .notification-life-radar :is(h2,h3,strong,.font-black,.font-bold),
+.admin-heritage-shell .push-health-pro :is(h2,h3,strong,.font-black,.font-bold) {
+  color: #0f172a !important;
+}
+.admin-heritage-shell :is(.admin-product-modal,.admin-supplier-modal,.supplier-payment-modal,.supplier-ledger-modal) :is(input,select,textarea),
+.admin-heritage-shell .notification-life-radar :is(input,select,textarea),
+.admin-heritage-shell .push-health-pro :is(input,select,textarea) {
+  color: #0f172a !important;
+  background-color: rgba(248,250,252,.96) !important;
+}
+.admin-heritage-shell :is(.admin-product-modal,.admin-supplier-modal,.supplier-payment-modal,.supplier-ledger-modal) ::placeholder {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+
+/* Dark radar panels: restore high contrast without changing notification/smart logic */
+.admin-heritage-shell :is(.bg-slate-900,.bg-slate-950,[class*="from-slate-900"],[class*="from-slate-950"],[class*="to-slate-900"],[class*="to-slate-950"]) :is(h1,h2,h3,h4,strong,.font-black) {
+  color: #ffffff !important;
+}
+.admin-heritage-shell :is(.bg-slate-900,.bg-slate-950,[class*="from-slate-900"],[class*="from-slate-950"],[class*="to-slate-900"],[class*="to-slate-950"]) :is(p,span,small,label,div):not(.text-amber-500):not(.text-amber-600):not(.text-emerald-500):not(.text-emerald-600):not(.text-red-500):not(.text-rose-500) {
+  color: rgba(248,250,252,.86) !important;
+}
+.admin-heritage-shell :is(.bg-slate-900,.bg-slate-950,[class*="from-slate-900"],[class*="from-slate-950"],[class*="to-slate-900"],[class*="to-slate-950"]) .text-slate-400,
+.admin-heritage-shell :is(.bg-slate-900,.bg-slate-950,[class*="from-slate-900"],[class*="from-slate-950"],[class*="to-slate-900"],[class*="to-slate-950"]) .text-slate-500,
+.admin-heritage-shell :is(.bg-slate-900,.bg-slate-950,[class*="from-slate-900"],[class*="from-slate-950"],[class*="to-slate-900"],[class*="to-slate-950"]) .text-white\/65 {
+  color: rgba(248,250,252,.78) !important;
+  opacity: 1 !important;
+}
+
+/* Notification life radar: readable full section */
+.notification-life-radar,
+.push-health-pro {
+  background: linear-gradient(180deg,#ffffff,#f8fafc) !important;
+  color: #0f172a !important;
+}
+.notification-life-radar .rounded-2xl,
+.push-health-pro .rounded-2xl {
+  background-color: rgba(255,255,255,.92) !important;
+  border-color: rgba(203,213,225,.85) !important;
+}
+.notification-life-radar button,
+.push-health-pro button { color: #0f172a !important; }
+
+/* Suppliers/products edit modals: mobile fitting and readable spacing */
+.admin-product-modal-overlay,
+.admin-supplier-modal-overlay,
+.supplier-payment-overlay {
+  overflow-x: hidden !important;
+  align-items: center !important;
+}
+.admin-product-modal,
+.admin-supplier-modal,
+.supplier-payment-modal,
+.supplier-ledger-modal {
+  width: min(100%, 42rem) !important;
+  max-width: calc(100vw - 1.5rem) !important;
+  overflow-x: hidden !important;
+}
+.admin-product-modal label,
+.admin-supplier-modal label { margin-bottom: .35rem !important; }
+.admin-product-modal .space-y-6,
+.admin-supplier-modal .space-y-8 { gap: 1rem !important; }
+@media (max-width: 768px) {
+  .admin-product-modal-overlay,
+  .admin-supplier-modal-overlay,
+  .supplier-payment-overlay {
+    padding: calc(.65rem + env(safe-area-inset-top)) .65rem calc(.65rem + env(safe-area-inset-bottom)) !important;
+    align-items: flex-start !important;
+  }
+  .admin-product-modal,
+  .admin-supplier-modal,
+  .supplier-payment-modal,
+  .supplier-ledger-modal {
+    max-width: calc(100vw - 1.3rem) !important;
+    width: calc(100vw - 1.3rem) !important;
+    border-radius: 1.35rem !important;
+    transform: none !important;
+  }
+  .admin-product-modal h2,
+  .admin-supplier-modal h2,
+  .supplier-payment-modal h2 {
+    font-size: 1.35rem !important;
+    line-height: 1.35 !important;
+    margin-bottom: .85rem !important;
+    white-space: normal !important;
+  }
+  .admin-product-modal :is(input,select,textarea),
+  .admin-supplier-modal :is(input,select,textarea),
+  .supplier-payment-modal :is(input,select,textarea) {
+    font-size: 16px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  .supplier-payment-modal .grid,
+  .supplier-ledger-modal .grid { grid-template-columns: minmax(0,1fr) !important; }
+}
+
+/* Register supplier payment: no right/left movement on phone */
+.supplier-payment-overlay,
+.supplier-payment-modal,
+.supplier-payment-modal * { max-width: 100%; }
+.supplier-payment-modal [dir="ltr"] { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+.supplier-payment-modal .flex { min-width: 0 !important; }
+
+/* Product and supplier forms: faded helper text fixed */
+.admin-product-modal .text-slate-400,
+.admin-supplier-modal .text-slate-400,
+.admin-product-modal .text-slate-300,
+.admin-supplier-modal .text-slate-300 {
+  color: #64748b !important;
+}
+
+/* Delivery zones: keep fields in one horizontal line/table like before */
+.delivery-zones-table-wrap {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+.delivery-zones-table-wrap table {
+  min-width: 720px !important;
+  table-layout: fixed !important;
+}
+.delivery-zones-table-wrap th,
+.delivery-zones-table-wrap td,
+.delivery-zones-table-wrap input,
+.delivery-zones-table-wrap button {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+}
+.delivery-zones-table-wrap input { min-width: 0 !important; }
+@media (max-width: 768px) {
+  .delivery-zones-table-wrap { padding: .65rem !important; }
+  .delivery-zones-table-wrap table { min-width: 680px !important; }
+  .delivery-zones-table-wrap th,
+  .delivery-zones-table-wrap td { padding: .65rem !important; }
+}
+
+/* Invoice cart date: keep date input inside cart frame */
+.invoice-mobile-cart input[type="date"],
+.invoice-new-page input[type="date"] {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  display: block !important;
+}
+@media (max-width: 768px) {
+  .invoice-mobile-cart > div { overflow: hidden !important; }
+  .invoice-mobile-cart input[type="date"] {
+    width: 100% !important;
+    padding-inline: .85rem !important;
+    text-align: center !important;
+    font-size: 16px !important;
+  }
+}
+
+/* Reports / invoice ledger: keep row data compact and action icon-only */
+.admin-heritage-shell table :is(th,td) {
+  word-break: keep-all;
+}
+.admin-heritage-shell table td .whitespace-nowrap,
+.admin-heritage-shell table th,
+.admin-heritage-shell table td {
+  white-space: nowrap;
+}
+@media (max-width: 768px) {
+  .admin-heritage-shell table {
+    font-size: 12px !important;
+  }
+  .admin-heritage-shell table :is(th,td) {
+    padding: .65rem !important;
+  }
+  .admin-heritage-shell table button {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+/* Customers list: keep list/table on a single row style, not stacked/wrapped */
+.customers-ledger-table .overflow-x-auto { -webkit-overflow-scrolling: touch !important; }
+.customers-ledger-table table { min-width: 980px !important; }
+.customers-ledger-table :is(th,td,.font-black,.font-bold,span,div) {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+}
+.customers-ledger-table td:nth-child(2) div { max-width: 250px !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+@media (max-width: 768px) {
+  .customers-ledger-table table { min-width: 920px !important; }
+  .customers-ledger-table :is(th,td) { padding: .7rem !important; }
+}
+
+/* Expense / financial cards: improve card spacing without touching data */
+.admin-heritage-shell .rounded-\[2rem\] :is(.text-slate-300,.text-slate-400),
+.admin-heritage-shell .rounded-3xl :is(.text-slate-300,.text-slate-400) {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+.admin-heritage-shell .rounded-\[2rem\] :is(.text-slate-800,.text-slate-900,.font-black),
+.admin-heritage-shell .rounded-3xl :is(.text-slate-800,.text-slate-900,.font-black) {
+  color: #0f172a !important;
+}
+
+/* Restore smart assistant closer to previous mobile composition; undo the cramped/hide pass */
+.ai-executive-assistant-shell {
+  height: calc(100dvh - 96px) !important;
+  max-width: 1280px !important;
+  gap: 10px !important;
+  padding: 0 !important;
+}
+.ai-mission-strip {
+  display: grid !important;
+  grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+  gap: 10px !important;
+  overflow: visible !important;
+}
+.ai-decision-deck {
+  display: grid !important;
+  grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+  gap: 10px !important;
+  overflow: visible !important;
+}
+.ai-executive-console {
+  min-height: 0 !important;
+  border-radius: 28px !important;
+}
+.ai-executive-messages {
+  min-height: 0 !important;
+  padding: 22px !important;
+}
+.ai-chat-row.is-assistant .ai-chat-bubble {
+  width: auto !important;
+  max-width: min(920px, 100%) !important;
+  min-height: 76px !important;
+  padding: 20px 22px !important;
+  font-size: 1rem !important;
+  line-height: 2 !important;
+}
+@media (max-width: 760px) {
+  .ai-executive-assistant-shell {
+    height: auto !important;
+    min-height: calc(100dvh - 92px) !important;
+    gap: 10px !important;
+    padding: 6px 0 10px !important;
+    overflow-x: hidden !important;
+  }
+  .ai-command-hero { display: grid !important; grid-template-columns: 1fr !important; }
+  .ai-mission-strip,
+  .ai-decision-deck {
+    display: flex !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    gap: 8px !important;
+    scrollbar-width: none !important;
+    padding-bottom: 4px !important;
+  }
+  .ai-mission-strip::-webkit-scrollbar,
+  .ai-decision-deck::-webkit-scrollbar { display: none !important; }
+  .ai-mission-card { min-width: 245px !important; min-height: 78px !important; }
+  .ai-decision-deck button { min-width: 210px !important; min-height: 74px !important; }
+  .ai-executive-console { border-radius: 24px !important; min-height: 58dvh !important; }
+  .ai-executive-messages { padding: 12px !important; gap: 12px !important; }
+  .ai-chat-row { max-width: 100% !important; }
+  .ai-chat-row.is-assistant .ai-chat-bubble,
+  .ai-chat-row.is-user .ai-chat-bubble {
+    width: auto !important;
+    max-width: calc(100vw - 84px) !important;
+    min-height: auto !important;
+    font-size: .92rem !important;
+    line-height: 1.85 !important;
+    padding: 15px 16px !important;
+  }
+}
+
+/* Invoice expanded financial summary: keep totals in one/two neat lines */
+@media (max-width: 768px) {
+  .admin-heritage-shell td[colspan="6"] .grid,
+  .admin-heritage-shell td[colspan="6"] .grid > div,
+  .admin-heritage-shell td[colspan="6"] .bg-white {
+    min-width: 0 !important;
+  }
+  .admin-heritage-shell td[colspan="6"] .bg-white .flex {
+    flex-wrap: wrap !important;
+    gap: .55rem !important;
+  }
+  .admin-heritage-shell td[colspan="6"] .bg-white span,
+  .admin-heritage-shell td[colspan="6"] .bg-white div {
+    line-height: 1.55 !important;
+  }
+}
