@@ -6317,7 +6317,7 @@ ${JSON.stringify(allComments)}
 
   app.post("/api/smart-studio/generate", express.json({ limit: '50mb' }), async (req, res) => {
     try {
-      const { imageContent, mimeType, format, theme, mood, realityMode, backgroundPreset, strictPlateLock, realityBoost, correctionHint, tasteProfile } = req.body;
+      const { imageContent, mimeType, format, theme, mood, realityMode, backgroundPreset, strictPlateLock, realityBoost, correctionHint, tasteProfile, sceneLabel, shotType, directorSceneDirection, shotDirectorDirection, sceneProductionGuide } = req.body;
       if (!imageContent) return res.status(400).json({ error: "Missing image" });
       
       const systemInstruction = "أنت مصور أطعمة بشري محترف ومدير فني لطلبات كويتية منزلية واقعية. هدفك جعل الصورة تبدو مصورة بكاميرا حقيقية في الكويت لطلب منزلي/ديوانية/شاليه/مزرعة/جاخور/زوارة/توصيل، وليس مولدة بالذكاء الاصطناعي. النشاط متخصص أساساً في العيوش والأكل الشعبي والأسماك والمحاشي وورق العنب، والمشاوي خيار ثانوي فقط؛ لا تتعامل معه كمطعم جلوس أو كافيه أو محل قهوة.";
@@ -6350,6 +6350,16 @@ ${JSON.stringify(allComments)}
       };
       const chosenMode = realityModeMap[realityMode || "restaurant"] || realityModeMap.restaurant;
       const chosenBackground = backgroundMap[backgroundPreset || "wood-table"] || backgroundMap["wood-table"];
+      const sceneGuideText = sceneProductionGuide
+        ? (typeof sceneProductionGuide === "string" ? sceneProductionGuide : [sceneProductionGuide.visual, sceneProductionGuide.composition, sceneProductionGuide.mustShow, sceneProductionGuide.avoid, sceneProductionGuide.reel].filter(Boolean).join(" "))
+        : "";
+      const studioDirectorPayload = [
+        sceneLabel ? `المشهد المختار: ${sceneLabel}` : "",
+        shotType ? `نوع اللقطة المختارة: ${shotType}` : "",
+        directorSceneDirection ? `تعليمات المخرج للمشهد: ${directorSceneDirection}` : "",
+        shotDirectorDirection ? `تعليمات المخرج للقطة: ${shotDirectorDirection}` : "",
+        sceneGuideText ? `دليل إنتاج المشهد: ${sceneGuideText}` : ""
+      ].filter(Boolean).join("\n");
       let autoPrompt = `بناءً على الصورة المرفقة للطبق، أنشئ صورة فوتوغرافية بشرية واقعية جداً لطلب كويتي منزلي/ديوانية/شاليه/مزرعة/جاخور/زوارة/توصيل.
 
 قواعد قفل الطبق (غير قابلة للكسر):
@@ -6372,7 +6382,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
 - المود الفني: ${mood || 'دافئ'}.
 - وضع الواقع: ${chosenMode}
 - مكتبة الخلفية: ${chosenBackground}
-
+${studioDirectorPayload ? `\nتعليمات اختيار الاستوديو الحالية لا يجوز تجاهلها:\n${studioDirectorPayload}\n` : ''}
 حظر صارم جداً:
 - ممنوع دلة، دلال، قهوة عربية، قهوة، فناجين، أكواب قهوة، حبوب قهوة، مبخر، بخور، عود، سدو، فوانيس، قصر، دخان مصطنع، زخارف تراثية، نيون مبالغ، أدوات غير مرتبطة، لافتات أو كلمات، وممنوع كلينكس مستخدم أو مناديل مستخدمة أو متسخة أو مكرمشة أو طاولة وصخة أو بقايا أكل أو فتات أو مخلفات ورقية.
 - IMPORTANT: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO SIGNATURES, NO LOGOS, NO WATERMARKS ANYWHERE IN THE IMAGE.
@@ -6486,7 +6496,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
     };
 
     try {
-      const { prompt, format, realityBoost, tasteProfile } = req.body;
+      const { prompt, format, realityBoost, tasteProfile, sceneLabel, shotType, directorSceneDirection, shotDirectorDirection, sceneProductionGuide } = req.body;
       let ar = "1:1";
       if (format === "9:16") { ar = "9:16"; }
       if (format === "4:3") { ar = "4:3"; }
@@ -6500,6 +6510,17 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
         apiKey: process.env.GEMINI_API_KEY,
         httpOptions: { headers: { "User-Agent": "aistudio-build" } }
       });
+
+      const sceneGuideText = sceneProductionGuide
+        ? (typeof sceneProductionGuide === "string" ? sceneProductionGuide : [sceneProductionGuide.visual, sceneProductionGuide.composition, sceneProductionGuide.mustShow, sceneProductionGuide.avoid, sceneProductionGuide.reel].filter(Boolean).join(" "))
+        : "";
+      const studioDirectorPayload = [
+        sceneLabel ? `Selected scene: ${sceneLabel}` : "",
+        shotType ? `Selected shot: ${shotType}` : "",
+        directorSceneDirection ? `Scene director instructions: ${directorSceneDirection}` : "",
+        shotDirectorDirection ? `Shot director instructions: ${shotDirectorDirection}` : "",
+        sceneGuideText ? `Scene production guide: ${sceneGuideText}` : ""
+      ].filter(Boolean).join("\n");
 
       const response = await generateSmartStudioImage(ai, {
         contents: {
@@ -6526,7 +6547,7 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
 
   app.post("/api/smart-studio/generate-reel", express.json({ limit: "50mb" }), async (req, res) => {
     try {
-      const { prompt, imageContent, mimeType, duration, shotType, format, place, mood, tasteProfile, quality, renderMode, sourceType, dishLock } = req.body || {};
+      const { prompt, imageContent, mimeType, duration, shotType, format, place, mood, tasteProfile, quality, renderMode, sourceType, dishLock, sceneLabel, directorSceneDirection, shotDirectorDirection, sceneProductionGuide } = req.body || {};
       if (!prompt || typeof prompt !== "string") return res.status(400).json({ error: "Missing prompt" });
 
       const wantsEconomy = String(quality || renderMode || "").toLowerCase().includes("economy") || String(renderMode || "").toLowerCase().includes("fast");
@@ -6550,10 +6571,22 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
         chalet: "Believable Kuwaiti chalet order: simple table, daylight or soft sunset, weekend feeling, no obvious people, no exaggerated sea/tourism scene.",
         farm: "Clean farm/outdoor table under natural shade, group order, no tents, no fake heritage setup, no clutter.",
         jakhour: "Careful clean jakhour setup: practical clean table, quiet blurred background, no animals, no dirt, no waste, no chaos.",
-        zowara: "Family zowara inside a home: arranged family spread, mahshi/grape leaves/rice dishes ready to serve, no faces, no wedding scene, no coffee props."
+        zowara: "Family zowara inside a home: arranged family spread, mahshi/grape leaves/rice dishes ready to serve, no faces, no wedding scene, no coffee props.",
+        towers: "Kuwait Towers background only: towers must stay softly blurred in the distance; food/order remains the hero in the foreground, no tourist postcard framing.",
+        mubarakiya: "Mubarakiya souk atmosphere only: warm traditional market bokeh in the background, no readable signs, no identifiable faces, food/order remains clean and modern.",
+        bidaa: "Al-Bidaa coast background only: soft seaside/golden hour hint, no beach crowd, no swimwear, food/order remains stable and appetising."
       };
       const selectedShotGuide = shotGuides[String(shotType || "hero-push")] || shotGuides["hero-push"];
       const selectedPlaceGuide = placeGuides[String(place || "delivery")] || placeGuides.delivery;
+      const sceneGuideText = sceneProductionGuide
+        ? (typeof sceneProductionGuide === "string" ? sceneProductionGuide : [sceneProductionGuide.visual, sceneProductionGuide.composition, sceneProductionGuide.mustShow, sceneProductionGuide.avoid, sceneProductionGuide.reel].filter(Boolean).join(" "))
+        : "";
+      const studioDirectorPayload = [
+        sceneLabel ? `Selected scene: ${sceneLabel}` : "",
+        directorSceneDirection ? `Scene director instructions: ${directorSceneDirection}` : "",
+        shotDirectorDirection ? `Shot director instructions: ${shotDirectorDirection}` : "",
+        sceneGuideText ? `Scene production guide: ${sceneGuideText}` : ""
+      ].filter(Boolean).join("\n");
       const localFallback = (reason: string) => res.json({
         videoUrl: buildLocalMotionReelDataUrl({ prompt, imageContent, mimeType, duration: durationSeconds, shotType, place, mood }),
         posterUrl: null,
@@ -6569,6 +6602,7 @@ SMART STUDIO REEL ENFORCEMENT:
 - Food identity: rice dishes (ayoush/machboos/murabyan), seafood/fish, mahshi, grape leaves, and occasional grills.
 - Shot type: ${shotType || "hero-push"}. Shot behavior: ${selectedShotGuide}
 - Place context: ${place || "delivery"}. Place behavior: ${selectedPlaceGuide}
+${studioDirectorPayload ? `- Selected studio scene lock:\n${studioDirectorPayload}` : ""}
 - Mood/light: ${mood || "warm"}. Use believable Kuwaiti home/delivery lighting, not fantasy studio CGI.
 - One coherent scene only; no random montage, no scene jumping, no objects appearing or disappearing.
 - Preserve the uploaded food/plate/box: same dish, ingredients, quantity, shape, color, plate/box edges, and serving style.

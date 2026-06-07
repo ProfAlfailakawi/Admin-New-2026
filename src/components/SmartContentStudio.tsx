@@ -178,9 +178,9 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const previewAspectClass = selectedFormat === '9:16' ? 'aspect-[9/16] max-h-[680px]' : selectedFormat === '4:3' ? 'aspect-[4/3]' : 'aspect-square';
 
   const formats = [
-    { id: '1:1', label: 'Instagram Post', sub: '1:1', icon: <ImageIcon size={16} /> },
-    { id: '9:16', label: 'Story / TikTok', sub: '9:16', icon: <ImageIcon size={16} className="h-5" /> },
-    { id: '4:3', label: 'إعلان بسيط', sub: '4:3', icon: <ImageIcon size={16} className="w-5" /> }
+    { id: '1:1', label: 'منشور إنستغرام', sub: '1:1', icon: <ImageIcon size={16} /> },
+    { id: '9:16', label: 'ستوري / تيك توك', sub: '9:16', icon: <ImageIcon size={16} className="h-5" /> },
+    { id: '4:3', label: 'إعلان أفقي هادئ', sub: '4:3', icon: <ImageIcon size={16} className="w-5" /> }
   ];
 
   const reelShots = [
@@ -357,7 +357,210 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'diwaniya-share', label: 'لقطة المشاركة', desc: 'طلب جماعي واضح للربع، المنتج بالوسط والخلفية حية بدون وجوه أو عناصر مشتتة', icon: '🤝', place: 'diwaniya', mode: 'human', background: 'diwaniya-table' },
     { id: 'gift-ready-order', label: 'طلب يبيض الوجه', desc: 'تغليف مرتب ولقطة فاخرة مقيدة مناسبة للهدايا والزوارات دون ديكور زائد', icon: '🎁', place: 'zowara', mode: 'finalBoss', background: 'zowara-spread' },
     { id: 'food-detail', label: 'تفاصيل الطبق', desc: 'لقطة قريبة للرز أو السمك أو اللحم أو ورق العنب مع ثبات كامل', icon: '🔎', place: 'delivery', mode: 'finalBoss', background: 'neutral-menu' },
+    { id: 'kuwait-towers-evening', label: 'أبراج الكويت', desc: 'الأبراج بالخلفية فقط كهوية كويتية راقية؛ المنتج يبقى البطل في المقدمة', icon: '🗼', place: 'towers', mode: 'luxury', background: 'kuwait-towers' },
+    { id: 'mubarakiya-souk', label: 'سوق المباركية', desc: 'أجواء سوق كويتي شعبي blur بإضاءة دافئة؛ بدون زحمة وجوه أو لافتات مقروءة', icon: '🛍️', place: 'mubarakiya', mode: 'human', background: 'mubarakiya' },
+    { id: 'bidaa-coast', label: 'شاطئ البدع', desc: 'طاولة طلب هادئة على ساحل البدع وقت الغروب؛ البحر خلفية ناعمة لا يسرق التركيز', icon: '🏖️', place: 'bidaa', mode: 'human', background: 'bidaa' },
   ];
+
+  const SCENE_TO_REEL_SHOT: Record<string, string> = {
+    'box-reveal': 'box-open',
+    'delivery-ready': 'hero-push',
+    'late-night-craving': 'hero-push',
+    'food-detail': 'texture-close',
+    'floor-spread-overhead': 'floor-spread-overhead',
+    'home-rice-tray': 'top-spread',
+    'family-lunch': 'top-spread',
+    'zowara-spread': 'top-spread',
+    'diwaniya-order': 'table-pass',
+    'diwaniya-share': 'table-pass',
+    'chalet-weekend-order': 'table-pass',
+    'farm-clean-table': 'table-pass',
+    'jakhour-clean-order': 'table-pass',
+    'gift-ready-order': 'hero-push',
+    'kuwait-towers-evening': 'hero-push',
+    'mubarakiya-souk': 'table-pass',
+    'bidaa-coast': 'table-pass',
+    'winter-camp': 'steam-close',
+    'rainy-chill': 'steam-close',
+    'ramadan-nights': 'top-spread',
+    'national-spirit': 'hero-push',
+    'summer-chalet': 'table-pass'
+  };
+
+  type StudioSceneProductionGuide = {
+    visual: string;
+    composition: string;
+    mustShow: string;
+    avoid: string;
+    reel: string;
+  };
+
+  const SCENE_PRODUCTION_GUIDES: Record<string, StudioSceneProductionGuide> = {
+    'delivery-ready': {
+      visual: 'مشهد طلب توصيل جاهز: علب مرتبة وكيس plain أو تغليف نظيف على كاونتر/طاولة بسيطة، المنتج واضح كطلب جاهز للاستلام.',
+      composition: 'التكوين منظم: العلبة أو الكيس في الخلف أو الجانب، الطعام/الطلب في المركز، مساحة نظيفة حول المنتج بدون ازدحام.',
+      mustShow: 'يجب أن تظهر هوية التوصيل: علبة أو كيس أو تغليف واضح، مع إحساس جاهزية الطلب.',
+      avoid: 'ممنوع تحويل المشهد إلى مطعم جلوس، سيارة توصيل، سائق، شعارات، فوضى تغليف، أو ديكور تراثي مصطنع.',
+      reel: 'للريل: push-in أو حركة قصيرة على الطلب الجاهز؛ حافظ على العلبة/الكيس كجزء من القصة وليس كديكور عابر.'
+    },
+    'box-reveal': {
+      visual: 'مشهد فتح علبة الطلب إلزامي: علبة توصيل مفتوحة أو لحظة كشف واضحة، الطبق داخل العلبة أو خارجها مباشرة والغطاء ظاهر.',
+      composition: 'اجعل العلبة والغطاء والطعام مثلث المشهد الرئيسي؛ لا تضع الطبق وحده على طاولة وكأن العلبة غير موجودة.',
+      mustShow: 'يجب أن تظهر العلبة المفتوحة أو الغطاء المفتوح بوضوح، مع الطعام مكشوفًا بطريقة شهية ونظيفة.',
+      avoid: 'ممنوع طبق عادي بدون علبة، ممنوع يد كاملة مع أصابع معقدة، ممنوع فوضى مناديل أو علب كثيرة.',
+      reel: 'للريل: بداية أو منتصف اللقطة يجب أن يحمل لحظة كشف العلبة؛ اليد إن ظهرت تكون جزئية جدًا وطبيعية، أو تكون العلبة مفتوحة أصلًا.'
+    },
+    'home-rice-tray': {
+      visual: 'صينية عيوش للبيت: مجبوس/مربين/عيش وسمك أو طبق رئيسي على سفرة بيتية كويتية نظيفة وهادئة.',
+      composition: 'زاوية علوية أو 45 درجة، الصحن أو الصينية في الوسط، كمية مقنعة للعائلة بدون مبالغة.',
+      mustShow: 'يجب أن يظهر إحساس البيت: طاولة بسيطة، ترتيب منزلي، طعام واضح ومركزي.',
+      avoid: 'ممنوع ديكور تراثي مصطنع، مطعم فندقي، زحمة صحون جانبية، أو تغيير نوع البروتين.',
+      reel: 'للريل: top-spread أو push-in بطيء على الصينية، بدون تحريك الطعام أو إضافة أطباق فجأة.'
+    },
+    'diwaniya-order': {
+      visual: 'طلب ديوانية للربع: طلب جماعي مرتب في ديوانية عصرية بخلفية blur، الطعام واضح ويكفي المشاركة.',
+      composition: 'لقطة table-pass أو زاوية واسعة مضبوطة، الطلب في الوسط والخلفية ديوانية هادئة غير مشتتة.',
+      mustShow: 'يجب أن يظهر أنه طلب جماعي للربع: أكثر من علبة/طبق أو كمية مشاركة مع ترتيب نظيف.',
+      avoid: 'ممنوع وجوه واضحة، دخان، شيشة، سدو زائد، زخرفة قديمة، أو عناصر سياسية/تعريفية.',
+      reel: 'للريل: حركة جانبية قصيرة على الطلب الجماعي، مع تثبيت الطعام وعدم تغيير الكمية.'
+    },
+    'zowara-spread': {
+      visual: 'سفرة زوارة: أطباق عائلية أو محاشي/ورق عنب/صواني داخل بيت، إحساس ضيافة مرتب لا زحمة.',
+      composition: 'المنتج أو الطبق الرئيسي يبقى واضحًا، مع عناصر عائلية خفيفة في الأطراف لا تسرق التركيز.',
+      mustShow: 'يجب أن يظهر إحساس الزوارة: سفرة بيتية، ضيافة، ترتيب عائلي نظيف، بدون وجوه.',
+      avoid: 'ممنوع تحويلها إلى عرس، بوفيه ضخم، مطعم، أو إضافة أطباق غير مرتبطة بالفكرة.',
+      reel: 'للريل: لقطة top-spread أو table-pass على السفرة، لا تدخل وجوه أو أيادٍ كثيرة.'
+    },
+    'floor-spread-overhead': {
+      visual: 'سفرة أرضية من فوق: top-down حقيقي على بساط/سجادة نظيفة، المنتج بالوسط وأطراف الجالسين فقط حوله.',
+      composition: 'زاوية علوية دقيقة، مفرش أو سفرة في المركز، توازن دائري حول الطبق، بدون وجوه ولا تفاصيل تعريفية.',
+      mustShow: 'يجب أن يظهر أنها سفرة أرضية كويتية من فوق، لا طاولة مطعم ولا إعلان استوديو.',
+      avoid: 'ممنوع وجوه، أجسام كاملة، فوضى أرضية، زخارف مبالغ فيها، أو أكل مبعثر.',
+      reel: 'للريل: drift علوي خفيف جدًا أو zoom بسيط؛ لا تحرك الناس ولا تجعلها لقطة مطعم.'
+    },
+    'chalet-weekend-order': {
+      visual: 'طلب الشاليه: طاولة بسيطة في شاليه كويتي، ضوء نهاري أو غروب ناعم، طلب ويكند مرتب.',
+      composition: 'الطعام في المقدمة، الخلفية توحي بالشاليه بشكل خفيف blur دون أن تصبح سياحية.',
+      mustShow: 'يجب أن يظهر إحساس الويكند والطلب العملي: طاولة نظيفة، أجواء مفتوحة، طعام واضح.',
+      avoid: 'ممنوع بحر مبالغ، قوارب، ناس واضحة، مشهد سياحي، أو ديكور يصرف النظر عن الطبق.',
+      reel: 'للريل: table-pass أو push-in على الطلب، مع ضوء غروب أو نهار بسيط، بدون استعراض مكان.'
+    },
+    'farm-clean-table': {
+      visual: 'طلب المزرعة: طاولة خارجية نظيفة تحت ظل طبيعي، إحساس مزرعة هادئة ومرتبة.',
+      composition: 'ضع الطعام واضحًا على طاولة مستقرة، والخلفية خضراء/ظل طبيعي blur بشكل بسيط.',
+      mustShow: 'يجب أن تظهر طاولة خارجية نظيفة وطلب مناسب للطلعة، لا فوضى ولا مخيم.',
+      avoid: 'ممنوع خيام تراثية، تراب، حيوانات، مخلفات، نار، أو عناصر كثيرة خارج موضوع الطعام.',
+      reel: 'للريل: مرور قصير على الطاولة الخارجية، الطعام ثابت والخلفية لا تسيطر.'
+    },
+    'jakhour-clean-order': {
+      visual: 'طلب الجاخور: قعدة عملية نظيفة للربع، طاولة مرتبة وخلفية جاخور blur بحذر شديد.',
+      composition: 'الطعام والعلب في المركز، الخلفية مجرد إيحاء خفيف بالمكان لا تفاصيل مزعجة.',
+      mustShow: 'يجب أن يظهر طلب عملي مرتب، مناسب لجلسة ربع، مع نظافة عالية.',
+      avoid: 'ممنوع حيوانات، تراب، مخلفات، نار، فوضى، أو أي مشهد يقلل شهية الطعام.',
+      reel: 'للريل: table-pass قصير على الطلب، بدون كشف محيط الجاخور بشكل مفصل.'
+    },
+    'late-night-craving': {
+      visual: 'جوع آخر الليل: لقطة قريبة دافئة لطلب يفتح النفس، إضاءة منزلية ليلية ناعمة.',
+      composition: 'الطبق قريب وواضح، الخلفية داكنة قليلًا ونظيفة، الإحساس سريع وشهي لا درامي زائد.',
+      mustShow: 'يجب أن يظهر إحساس طلب آخر الليل: قرب، دفء، بساطة، وجاهزية للأكل.',
+      avoid: 'ممنوع فوضى، ألوان نيون مبالغ فيها، غرفة نوم، أو مؤثرات غير واقعية.',
+      reel: 'للريل: push-in قصير أو texture-close، أول ثانيتين تبيع الشهية فورًا.'
+    },
+    'family-lunch': {
+      visual: 'غداء البيت: سفرة بيتية وقت الظهر، طبق رئيسي أو طلب عائلي في الوسط بإضاءة طبيعية.',
+      composition: 'زاوية واسعة معتدلة أو علوية، تظهر الكمية بصدق وتبقي الطبق الرئيسي بطل المشهد.',
+      mustShow: 'يجب أن يظهر إحساس الغداء العائلي النظيف: طعام كافٍ، ترتيب، بيت لا مطعم.',
+      avoid: 'ممنوع وجوه واضحة، زحمة صحون، ديكور ثقيل، أو تغيير الطبق حسب المشهد.',
+      reel: 'للريل: top-spread أو table-pass هادئ على السفرة، بدون إدخال أطباق عشوائية.'
+    },
+    'diwaniya-share': {
+      visual: 'لقطة المشاركة: طلب واضح في الوسط مناسب للربع، إحساس مشاركة بدون أشخاص واضحين.',
+      composition: 'أطراف بسيطة أو أكواب نظيفة مسموحة، لكن الطعام هو المركز، والخلفية ديوانية blur.',
+      mustShow: 'يجب أن يظهر أن الطلب للمشاركة: كمية جماعية، ترتيب، مساحة حول الطبق.',
+      avoid: 'ممنوع أيادٍ كثيرة، وجوه، دخان، أو إضافة صحون غير منطقية.',
+      reel: 'للريل: table-pass أو حركة خفيفة حول الطلب، بدون تغيير التكوين أثناء الفيديو.'
+    },
+    'gift-ready-order': {
+      visual: 'طلب يبيض الوجه: تغليف مرتب وفاخر بشكل مقيد، مناسب لهدية أو زوارة، المنتج واضح وليس مغلفًا بالكامل.',
+      composition: 'التغليف يدعم الطعام ولا يخفيه؛ لقطة نظيفة، ألوان هادئة، مساحة سلبية فاخرة.',
+      mustShow: 'يجب أن يظهر عنصر التغليف الراقي أو التقديم المهذب مع الطعام/الطلب.',
+      avoid: 'ممنوع ديكور زائد، ورد مبالغ، هدايا كثيرة، علب تخفي المنتج، أو نصوص داخل الصورة.',
+      reel: 'للريل: push-in على التغليف والطلب، ثم تثبيت على المنتج، بدون فتح معقد.'
+    },
+    'food-detail': {
+      visual: 'تفاصيل الطبق: لقطة قريبة جدًا للملمس والمكونات الحقيقية: رز، لحم، سمك، محاشي أو ورق عنب.',
+      composition: 'املأ الإطار بالتفاصيل الشهية مع عمق ميدان بسيط، لا تقطع الطبق بطريقة غريبة.',
+      mustShow: 'يجب أن تظهر مادة الطعام نفسها بوضوح: الحبات، اللون، اللمعة الطبيعية، التتبيل الحقيقي.',
+      avoid: 'ممنوع صوص طائر، بخار مبالغ، إضافات غير موجودة، تغيير مكونات، أو خلفية كثيرة.',
+      reel: 'للريل: texture-close أو slow push، حركة صغيرة جدًا على الملمس فقط.'
+    },
+    'kuwait-towers-evening': {
+      visual: 'أبراج الكويت: خلفية كويتية راقية فقط، الأبراج تظهر blur في العمق وقت الغروب أو السحر، والطلب/الطبق في المقدمة هو البطل.',
+      composition: 'ضع الطعام على طاولة خارجية نظيفة أو سطح تقديم بسيط؛ الأبراج في الثلث الخلفي بعيدًا عن المنتج، مع عمق ميدان واقعي.',
+      mustShow: 'يجب أن تظهر هوية الأبراج كخلفية واضحة لكن غير طاغية، ويجب أن يبقى المنتج حادًا ومركزيًا.',
+      avoid: 'ممنوع تحويلها لصورة سياحية للأبراج، ممنوع أعلام أو نصوص أو ناس واضحة، وممنوع أن تختفي الأكلة أمام المعلم.',
+      reel: 'للريل: اقتراب على الطلب مع بقاء الأبراج blur في الخلف؛ الحركة على الطعام لا على المعلم السياحي.'
+    },
+    'mubarakiya-souk': {
+      visual: 'سوق المباركية: أجواء سوق شعبي كويتي دافئة في الخلفية blur، إضاءة محلات ناعمة، والطلب في المقدمة بنظافة عالية.',
+      composition: 'الطعام أو العلبة في المقدمة على سطح بسيط؛ خلفية السوق بعيدة وغير مقروءة، بدون زحمة وجوه أو لافتات واضحة.',
+      mustShow: 'يجب أن يظهر إحساس المباركية: دفء شعبي كويتي وخلفية سوق blur، مع المنتج واضحًا كطلب عصري مرتب.',
+      avoid: 'ممنوع وجوه واضحة، نصوص مقروءة، لافتات، ازدحام سوق يسرق المنتج، أو تحويل المشهد إلى مطعم شعبي قديم.',
+      reel: 'للريل: table-pass قصير على الطلب مع إضاءة سوق دافئة في الخلف؛ لا تجعل السوق هو القصة بدل المنتج.'
+    },
+    'bidaa-coast': {
+      visual: 'شاطئ البدع: طاولة طلب هادئة على الساحل وقت الغروب، البحر أو الرمل يظهران blur كخلفية راقية والمنتج في المقدمة.',
+      composition: 'المنتج قريب وواضح على طاولة مستقرة، الخلفية الساحلية ناعمة جدًا، ألوان نظيفة ومنعشة بدون مبالغة.',
+      mustShow: 'يجب أن يظهر إحساس ساحل البدع أو الجو البحري الكويتي بطريقة هادئة، مع بقاء الطلب صالحًا للتسويق.',
+      avoid: 'ممنوع تحويلها لإعلان سياحي، ممنوع أشخاص بملابس بحر، قوارب كثيرة، أو بحر يطغى على المنتج.',
+      reel: 'للريل: حركة جانبية أو اقتراب بسيط على الطلب مع ضوء غروب بحري blur، لا تستعرض الشاطئ أكثر من الطعام.'
+    }
+  };
+
+  const SHOT_PRODUCTION_GUIDES: Record<string, string> = {
+    'hero-push': 'تعليمات اللقطة: اقتراب بطيء ثابت على بطل المشهد؛ المنتج يكبر داخل الكادر بدون تبديل مكونات أو إضافة عناصر.',
+    'box-open': 'تعليمات اللقطة: فتح/كشف علبة التوصيل هو الحدث الأساسي؛ العلبة والغطاء والطعام يجب أن يظهروا بوضوح طوال اللقطة.',
+    'table-pass': 'تعليمات اللقطة: مرور جانبي هادئ على سفرة أو طاولة؛ لا تظهر أطباق جديدة فجأة ولا تتغير أماكن الطعام.',
+    'floor-spread-overhead': 'تعليمات اللقطة: زاوية علوية حقيقية لسفرة أرضية؛ المنتج في الوسط وأطراف الجالسين فقط بدون وجوه.',
+    'top-spread': 'تعليمات اللقطة: لقطة من فوق لسفرة مرتبة؛ الحركة إن وجدت تكون zoom أو drift خفيف جدًا.',
+    'steam-close': 'تعليمات اللقطة: بخار طبيعي خفيف للأطباق الحارة فقط؛ ممنوع استخدامه إذا كان المنتج باردًا أو داخل تغليف.',
+    'texture-close': 'تعليمات اللقطة: لقطة قريبة للملمس الحقيقي؛ ركز على القوام ولا تضف صوص أو مكونات غير موجودة.'
+  };
+
+  const getSceneProductionGuide = (scene = activeStudioScene): StudioSceneProductionGuide => {
+    const directGuide = SCENE_PRODUCTION_GUIDES[scene.id];
+    if (directGuide) return directGuide;
+    const campaignGuide = KUWAIT_SEASON_CAMPAIGNS.find((campaign) => campaign.id === scene.id);
+    if (campaignGuide) {
+      return {
+        visual: `رادار المواسم: ${campaignGuide.title}. ${campaignGuide.visualPromptAddition}`,
+        composition: `المشهد الموسمي يجب أن يدعم المنتج ولا يسرق التركيز. المكان الافتراضي: ${KUWAIT_PLACES[campaignGuide.place]?.label || campaignGuide.place}. الإضاءة: ${campaignGuide.mood}.`,
+        mustShow: `يجب أن يظهر أثر الموسم المختار بوضوح وهدوء: ${campaignGuide.desc}`,
+        avoid: 'ممنوع تحويل الموسم إلى ديكور زائد، ممنوع نصوص داخل الصورة، ممنوع وجوه واضحة، ممنوع فوانيس/سدو/دلة/بخور إلا إذا كانت جزءًا حقيقيًا لا يطغى، والأصل تجنبها للحفاظ على نظافة المنتج.',
+        reel: `للريل: حركة واحدة قصيرة تثبت المنتج وتلمّح للموسم فقط. الإيقاع المقترح: ${campaignGuide.soundscapeSuggestion}`
+      };
+    }
+    return SCENE_PRODUCTION_GUIDES['delivery-ready'];
+  };
+  const sceneDirectorLock = (scene = activeStudioScene) => {
+    const guide = getSceneProductionGuide(scene);
+    return [
+      `Scene lock: ${scene.label}. Background preset: ${scene.background}. Place: ${KUWAIT_PLACES[scene.place as KuwaitOrderPlace]?.label || scene.place}.`,
+      guide.visual,
+      guide.composition,
+      `إلزامي: ${guide.mustShow}`,
+      `تجنب: ${guide.avoid}`,
+      guide.reel
+    ].filter(Boolean).join(' ');
+  };
+  const SHOT_ALIAS_MAP: Record<string, string> = {
+    'elevated-flat': 'top-spread',
+    'macro-reveal': 'texture-close',
+    'delivery-box': 'box-open',
+    'wide-table': 'table-pass'
+  };
+  const normalizeShotId = (shotId = reelShot) => SHOT_PRODUCTION_GUIDES[shotId] ? shotId : (SHOT_ALIAS_MAP[shotId] || 'hero-push');
+  const shotDirectorLock = (shotId = reelShot) => SHOT_PRODUCTION_GUIDES[normalizeShotId(shotId)] || SHOT_PRODUCTION_GUIDES['hero-push'];
 
   const FLOOR_SPREAD_OVERHEAD_DIRECTION = 'مشهد سفرة أرضية من فوق: استخدم زاوية top-down حقيقية من السقف أو درون داخلي، بساط أو سجادة نظيفة بنقشة هادئة، مفرش سفرة بسيط في الوسط، المنتج أو الصحن الرئيسي واضح في مركز التكوين، وأطراف أشخاص جالسين بلبس كويتي أبيض فقط حول السفرة بدون وجوه واضحة أو تفاصيل تعريفية. يجب أن يبدو كتصوير حقيقي ليمعة كويتية منزلية، لا إعلان مصطنع ولا مطعم ولا كافيه.';
 
@@ -367,7 +570,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     const brain = analyzeAlturathStudioIdea(rawValue, data?.products || []);
     if (!brain.hasInput) return;
 
-    const scene = mergedScenes.find((item) => item.id === brain.sceneId) || mergedScenes[0];
+    const scene = mergedScenes.find((item) => item.id === brain.sceneId || item.background === brain.sceneId) || mergedScenes[0];
     setSelectedSceneId(scene.id);
     setSelectedPulseId(brain.pulseId);
     setSelectedOrderPlace(scene.place as KuwaitOrderPlace);
@@ -376,7 +579,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setSelectedMood(brain.mood);
     setRealityBoost(true);
     setStrictPlateLock(true);
-    setReelShot(brain.shotId);
+    setReelShot(SCENE_TO_REEL_SHOT[scene.id] || SHOT_ALIAS_MAP[brain.shotId] || brain.shotId || 'hero-push');
   };
 
 
@@ -537,8 +740,46 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     }
   };
 
+  const seasonCampaignScenes = KUWAIT_SEASON_CAMPAIGNS.map((campaign) => ({
+    id: campaign.id,
+    label: campaign.title,
+    desc: campaign.desc,
+    icon: campaign.icon,
+    place: campaign.place,
+    mode: campaign.realityMode,
+    background: campaign.background
+  }));
+  const studioSceneChoices = [...mergedScenes, ...seasonCampaignScenes];
+  const nowForSeasonRadar = new Date();
+  const currentMonthForSeasonRadar = nowForSeasonRadar.getMonth() + 1;
+  const currentDayForSeasonRadar = nowForSeasonRadar.getDay();
+  const isWeekendForSeasonRadar = currentDayForSeasonRadar === 4 || currentDayForSeasonRadar === 5 || currentDayForSeasonRadar === 6;
+  const getSeasonRadarScore = (campaign: SeasonCampaign) => {
+    let score = 20;
+    if (campaign.id === 'national-spirit' && currentMonthForSeasonRadar === 2) score += 80;
+    if (campaign.id === 'summer-chalet' && currentMonthForSeasonRadar >= 5 && currentMonthForSeasonRadar <= 9) score += 70;
+    if (campaign.id === 'winter-camp' && (currentMonthForSeasonRadar >= 11 || currentMonthForSeasonRadar <= 2)) score += 70;
+    if (campaign.id === 'rainy-chill' && (currentMonthForSeasonRadar === 12 || currentMonthForSeasonRadar <= 2)) score += 55;
+    if (campaign.id === 'ramadan-nights' && (currentMonthForSeasonRadar === 3 || currentMonthForSeasonRadar === 4)) score += 35;
+    if (isWeekendForSeasonRadar && (campaign.id === 'summer-chalet' || campaign.id === 'winter-camp')) score += 18;
+    if (campaign.place === selectedOrderPlace) score += 8;
+    return Math.min(100, score);
+  };
+  const getSeasonRadarReason = (campaign: SeasonCampaign) => {
+    if (campaign.id === 'national-spirit' && currentMonthForSeasonRadar === 2) return 'الأقرب الآن لفبراير والمناسبات الوطنية';
+    if (campaign.id === 'summer-chalet' && currentMonthForSeasonRadar >= 5 && currentMonthForSeasonRadar <= 9) return 'مناسب لحر الصيف والشاليهات والطلبات الخفيفة';
+    if (campaign.id === 'winter-camp' && (currentMonthForSeasonRadar >= 11 || currentMonthForSeasonRadar <= 2)) return 'مناسب للشتاء والبر والكشتات';
+    if (campaign.id === 'rainy-chill' && (currentMonthForSeasonRadar === 12 || currentMonthForSeasonRadar <= 2)) return 'مناسب لأيام الغيم والمطر والأكلات الدافئة';
+    if (campaign.id === 'ramadan-nights') return 'يُستخدم عند اقتراب رمضان أو الغبقات';
+    if (isWeekendForSeasonRadar && campaign.place === 'chalet') return 'الويكند يقوّي هذا الاختيار';
+    return 'اقتراح موسمي احتياطي حسب نوع الطلب والمكان';
+  };
+  const seasonRadarCards = [...KUWAIT_SEASON_CAMPAIGNS]
+    .map((campaign) => ({ ...campaign, radarScore: getSeasonRadarScore(campaign), radarReason: getSeasonRadarReason(campaign) }))
+    .sort((a, b) => b.radarScore - a.radarScore);
+
   const activePulsePack = getKuwaitPulsePack(selectedPulseId);
-  const activeStudioScene = mergedScenes.find((scene) => scene.id === selectedSceneId) || mergedScenes[0];
+  const activeStudioScene = studioSceneChoices.find((scene) => scene.id === selectedSceneId) || mergedScenes[0];
   const activeSceneSummary = `${activeStudioScene.icon} ${activeStudioScene.label}`;
   const liveStudioCards = {
     image: {
@@ -606,23 +847,19 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           ['غدًا', `ريل قصير بلقطة ${activeShot.label} بدون تكرار نفس التكوين.`],
           ['نهاية الأسبوع', 'عرض واتساب مبني على نفس الصورة لكن بنص مختلف.']
         ];
-    const decisionCards = isReel
-      ? [
-          { label: 'أفضل استخدام', value: isReelFromPhoto ? 'ريل سريع يثبت المنتج بصريًا' : 'ريل افتتاحي يحول الفكرة إلى رغبة' },
-          { label: 'أفضل وقت', value: 'قبل وقت الطلبات أو الذروة بـ 60 إلى 90 دقيقة' },
-          { label: 'الخطوة التالية', value: isReelFromPhoto ? 'صورة عرض مساءً بدون تكرار نفس الزاوية' : 'صورة ثابتة من نفس الفكرة بنبرة أهدأ' },
-        ]
-      : [
-          { label: 'أفضل استخدام', value: selectedFormat === '9:16' ? 'ستوري بيع مباشر' : 'منشور إنستغرام واضح' },
-          { label: 'أفضل وقت', value: isIdeaImage ? 'قبل إعلان العرض أو بداية اليوم' : 'قبل الغداء أو وقت الجوع' },
-          { label: 'الخطوة التالية', value: isPhotoImage ? 'ستوري بعد ساعتين ثم ريل بزاوية مختلفة' : 'ريل قصير يختبر قوة الفكرة' },
-        ];
+    const actionCards = [
+      { label: 'قراءة المخرج', value: directorVerdict },
+      { label: 'الخطوة التالية', value: nextBestMove },
+      { label: 'نافذة النشر', value: publishingWindow },
+      { label: 'ما يجب تجنبه', value: avoidMove },
+    ];
     const scoreChips = [
       isReel ? 'قوة الحركة عالية' : 'وضوح البيع مهم',
       `المشهد: ${place.label}`,
       `النبرة: ${moodLabel}`,
+      audienceRead,
     ];
-    return { productLabel, activeShot, formatLabel, decisionCards, scoreChips, campaignSteps, directorVerdict, avoidMove };
+    return { productLabel, activeShot, formatLabel, actionCards, scoreChips, campaignSteps };
   };
 
   const renderLiveStudioCard = (kind: 'image' | 'idea' | 'reel') => {
@@ -645,27 +882,37 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           <span className="rounded-2xl bg-white/10 text-white px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
         </summary>
         <div className="px-4 pb-4 space-y-3">
-          <div className="rounded-2xl bg-emerald-300/10 border border-emerald-300/20 p-3">
-            <div className="text-[10px] font-black text-emerald-200 mb-1">قراءة المخرج</div>
-            <p className="text-[11px] font-bold text-white/70 leading-6">{intelligence.directorVerdict}</p>
-          </div>
-
-          <div className="grid sm:grid-cols-3 gap-2">
-            {intelligence.decisionCards.map((item) => (
-              <div key={item.label} className="rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] font-bold text-white/75 leading-5">
-                <div className="text-[9px] font-black text-emerald-200 mb-1">{item.label}</div>
-                {item.value}
+          <div className="grid sm:grid-cols-2 gap-2 text-[11px] font-bold text-white/65">
+            {[
+              ['الناتج', isReel ? 'ريل جاهز للنشر' : card.output],
+              ['المنصة', card.platform],
+              ['مدة الاستخدام', isReel ? card.duration : '24-48 ساعة ثم زاوية جديدة'],
+              ['أفضل وقت', card.timing],
+              ['قوة التأثير', card.impact],
+              ['صيغة القراءة', intelligence.formatLabel],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl bg-black/20 border border-white/10 p-3">
+                <div className="text-[9px] font-black text-white/35 mb-1">{label}</div>
+                <div className="leading-5">{value}</div>
               </div>
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap gap-2">
-              {intelligence.scoreChips.map((chip) => (
-                <span key={chip} className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-[10px] font-black text-white/65">{chip}</span>
+          <div className="rounded-2xl bg-emerald-300/10 border border-emerald-300/20 p-3">
+            <div className="text-[10px] font-black text-emerald-200 mb-2">توصية المخرج الآن</div>
+            <div className="grid gap-2">
+              {intelligence.actionCards.map((item) => (
+                <div key={item.label} className="rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/75 leading-5">
+                  <span className="text-emerald-200">{item.label}: </span>{item.value}
+                </div>
               ))}
             </div>
-            <span className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">افتح خطة الحملة بالأسفل</span>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {intelligence.scoreChips.map((chip) => (
+              <span key={chip} className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-[10px] font-black text-white/65">{chip}</span>
+            ))}
           </div>
         </div>
       </details>
@@ -679,8 +926,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         <summary className="cursor-pointer list-none p-4 flex items-center justify-between gap-3 select-none">
           <div>
             <div className="text-[10px] font-black text-amber-600">وصفة الحملة</div>
-            <h4 className="text-sm font-black text-slate-950">وصفة الحملة جاهزة</h4>
-            <p className="mt-1 text-[11px] font-bold text-slate-500">4 خطوات مقترحة لهذا الناتج، مغلقة افتراضيًا حتى يبقى الاستوديو نظيفًا.</p>
+            <h4 className="text-sm font-black text-slate-950">حوّل الناتج إلى خطة نشر قصيرة</h4>
+            <p className="mt-1 text-[11px] font-bold text-slate-500">مغلقة افتراضيًا حتى يبقى الاستوديو نظيفًا.</p>
           </div>
           <Sparkles size={18} className="text-amber-600 group-open:hidden" />
           <span className="rounded-2xl bg-white text-amber-700 border border-amber-100 px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
@@ -703,14 +950,22 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     setSelectedOrderPlace(scene.place as KuwaitOrderPlace);
     setBackgroundPreset(scene.background as StudioBackgroundPresetId);
     setRealityMode(scene.mode as StudioRealityMode);
+    const linkedShot = SCENE_TO_REEL_SHOT[scene.id];
+    if (linkedShot) setReelShot(linkedShot);
     if (isFloorSpreadScene(scene)) {
       setReelShot('floor-spread-overhead');
+      setRealityBoost(true);
+      setStrictPlateLock(true);
+    }
+    if (scene.id === 'box-reveal') {
+      setReelShot('box-open');
       setRealityBoost(true);
       setStrictPlateLock(true);
     }
     setSelectedTheme('نبض الكويت');
     if (closePanel === 'create') setShowCreateOccasion(false);
     if (closePanel === 'product') setShowProductOccasion(false);
+    toast.success(`تم اعتماد مشهد: ${scene.label}`);
   };
 
   const studioSignatureLabel = (signature: string) => signature.split('|').filter(Boolean).join(' · ');
@@ -750,7 +1005,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     const productName = selectedStudioProductName || brain?.primaryProductName || brain?.categoryLabel || customThemeQuery.trim();
     return [
       `مخرج التراث: المنتج/الفكرة=${productName || 'اختيار ذكي'}، المشهد=${activeStudioScene.label}، اللقطة=${activeShot?.label || reelShot}، المكان=${KUWAIT_PLACES[selectedOrderPlace]?.label || selectedOrderPlace}.`,
+      sceneDirectorLock(activeStudioScene),
+      shotDirectorLock(reelShot),
       isFloorSpreadScene(activeStudioScene) ? FLOOR_SPREAD_OVERHEAD_DIRECTION : '',
+      `اختبار الالتزام بالمشهد: يجب أن يظهر أثر المشهد المختار بوضوح في الصورة أو الريل، ولا يبقى مجرد اسم داخل البرومبت. إذا كان المشهد فتح علبة، فالعلبة تظهر. إذا كان ديوانية، فالطلب جماعي بخلفية ديوانية blur. إذا كان تفصيل طبق، فالملمس هو البطل.`,
       `اختبار الواقعية الكويتية: الصورة يجب أن تبدو كطلب مطبخ كويتي حقيقي للتوصيل أو البيت، لا إعلان فندقي ولا مطعم جلوس ولا ديكور تراثي مصطنع.`,
       `اختبار البيع: المنتج واضح أولاً، الكمية مقنعة، التغليف/السفرة نظيف، ولا توجد عناصر تسرق الانتباه من الطبق.`
     ].filter(Boolean).join(' ');
@@ -769,6 +1027,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       profile.clutterRisk.prompt,
       profile.truthBiasHint,
       profile.brandStyleHint,
+      sceneDirectorLock(activeStudioScene),
+      shotDirectorLock(reelShot),
       isMenuPhoto ? profile.menuModeHint : '',
       source === 'image'
         ? 'Original image direction mode: keep the product identity, main ingredients, quantity logic, and serving truth, but do not repeat the exact uploaded photo. Re-shoot it visually with a better angle, cleaner background, believable Kuwaiti light, and new composition.'
@@ -804,7 +1064,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     const matchingScene = mergedScenes.find(s => 
       s.place === place && 
       s.background === (suggestion.background || KUWAIT_PLACES[place].background)
-    ) || mergedScenes.find(s => s.place === place) || mergedScenes[0];
+    ) || mergedScenes.find(s => s.background === suggestion.background) || mergedScenes.find(s => s.place === place) || mergedScenes[0];
     
     setSelectedSceneId(matchingScene.id);
   };
@@ -1113,6 +1373,12 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           strictPlateLock,
           realityBoost,
           correctionHint: variantOverride?.label?.includes('أصدق') ? 'أعد بناء الخلفية لتكون أبسط وأكثر بشرية وكويتية: ظلال تلامس صحيحة، سفرة/طلب عادي، إضاءة أقل مثالية، بدون لمعان أو عمق مبالغ، وبدون إيحاء مطعم.' : undefined,
+          sceneId: activeStudioScene.id,
+          sceneLabel: activeStudioScene.label,
+          shotType: reelShot,
+          directorSceneDirection: sceneDirectorLock(activeStudioScene),
+          shotDirectorDirection: shotDirectorLock(reelShot),
+          sceneProductionGuide: getSceneProductionGuide(activeStudioScene),
           tasteProfile: buildStudioTastePrompt(),
           speedTier: 'turbo' // Signal for faster generation logic if available
         })
@@ -1197,11 +1463,11 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       const prompt = `${themeText}
 ${studioDirection}
 ${ideaBrain.promptGuard}
-Generate a believable Kuwaiti occasion / delivery / gathering image without requiring a product upload. Make it look like a real photographed Kuwaiti order moment, suitable for menu/social/product use. No readable text inside the image. ${STUDIO_NEGATIVE_PROMPT}`;
+Generate a believable Kuwaiti occasion / delivery / gathering image without requiring a product upload. The selected scene is mandatory: ${activeStudioScene.label}. ${sceneDirectorLock(activeStudioScene)} Make it look like a real photographed Kuwaiti order moment, suitable for menu/social/product use. No readable text inside the image. ${STUDIO_NEGATIVE_PROMPT}`;
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, format: selectedFormat, realityBoost: true, tasteProfile: buildStudioTastePrompt() })
+        body: JSON.stringify({ prompt, format: selectedFormat, realityBoost: true, sceneId: activeStudioScene.id, sceneLabel: activeStudioScene.label, shotType: reelShot, directorSceneDirection: sceneDirectorLock(activeStudioScene), shotDirectorDirection: shotDirectorLock(reelShot), sceneProductionGuide: getSceneProductionGuide(activeStudioScene), tasteProfile: buildStudioTastePrompt() })
       });
       const imgData = await imgRes.json().catch(() => ({}));
       if (!imgRes.ok) throw new Error(imgData?.error || 'ما قدرنا نولّد صورة المشهد');
@@ -1358,6 +1624,10 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       settings: buildReelSettingsText(),
       source: reelSource,
       shotType: reelShot,
+      sceneId: activeStudioScene.id,
+      sceneLabel: activeStudioScene.label,
+      directorSceneDirection: sceneDirectorLock(activeStudioScene),
+      shotDirectorDirection: shotDirectorLock(reelShot),
       place: selectedOrderPlace,
       duration: reelDuration,
       tasteProfile: buildStudioTastePrompt()
@@ -1553,7 +1823,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     const idea = customThemeQuery.trim() || `${activeStudioScene.label} لطلب كويتي واقعي من مطبخ التراث الكويتي`;
     const shotGuide: Record<string, string> = {
       'hero-push': 'حركة push-in بطيئة على الطبق، لا تغيّر ترتيب الطعام ولا تضف عناصر جديدة.',
-      'box-open': 'علبة توصيل plain تُفتح أو تُكشف بشكل بسيط؛ اليد إن ظهرت تكون جزئية وطبيعية جداً، بدون أصابع غريبة.',
+      'box-open': 'مشهد فتح علبة الطلب إلزامي: يبدأ أو يظهر ككشف واضح لعلبة توصيل plain، الغطاء/العلبة ظاهران والطبق داخلها أو يُكشف منها، اليد إن ظهرت تكون جزئية وطبيعية جداً، بدون أصابع غريبة. لا تحوّلها إلى طبق ثابت على طاولة فقط.',
       'table-pass': 'حركة جانبية قصيرة على سفرة أو صينية مرتبة؛ الأطباق ثابتة ولا تظهر صحون جديدة فجأة.',
       'floor-spread-overhead': 'لقطة علوية ثابتة أو drift خفيف جداً فوق سفرة أرضية كويتية نظيفة؛ المنتج في الوسط وأطراف الجالسين حوله بدون وجوه واضحة.',
       'top-spread': 'لقطة من الأعلى لسفرة مرتبة، حركة خفيفة جداً أو zoom بسيط، مناسبة للطلبات الجماعية.',
@@ -1569,7 +1839,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       jakhour: 'جاخور مرتب وحذر: طاولة عملية نظيفة وخلفية blur، بدون حيوانات أو تراب أو مخلفات أو فوضى.',
       zowara: 'زوارة عائلية داخل بيت: سفرة مرتبة ومحاشي/ورق عنب/أطباق عائلية، بدون وجوه أو عرس أو قهوة.'
     };
-    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي، نشاط مطبخ وتوصيل أكل كويتي وليس مطعم جلوس. فكرة مختصرة: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب على الطلب'} — ${shotGuide[reelShot] || shotGuide['hero-push']}. المكان: ${place.label} — ${placeGuide[selectedOrderPlace] || placeGuide.delivery}. ${buildDirectorDirection(brain)} ${buildAdvancedStudioDirection(brain, { source: 'reel' })} ${buildNoRepeatDirection()} مدة ${Math.min(8, Math.max(4, reelDuration))} ثواني. المطلوب لقطة واحدة واقعية جداً، حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، لا يتغير شكل الطبق أو الكمية أو المكونات عبر الفيديو. حافظ على الطبق والتغليف كما هما إذا كان المصدر صورة. تكوين بصري نظيف وإضاءة شهية واقعية. ممنوع وجوه واضحة، شخص يتكلم، شفاه، نصوص، شعارات، دلة، قهوة، بخور، سدو، فوانيس، سيارة توصيل، مطعم جلوس، كافيه، كلينكس مستخدم، فوضى، صحون تظهر فجأة، صوص يطير، أو أي حركة غير منطقية. إضاءة ${selectedMood}. وصفة الريل الذكية حسب الطبق: ${brain.reelRecipe.join('، ')}. ${brain.promptGuard}`;
+    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي، نشاط مطبخ وتوصيل أكل كويتي وليس مطعم جلوس. فكرة مختصرة: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب على الطلب'} — ${shotGuide[reelShot] || shotGuide['hero-push']} ${shotDirectorLock(reelShot)}. المكان: ${place.label} — ${placeGuide[selectedOrderPlace] || placeGuide.delivery}. ${sceneDirectorLock(activeStudioScene)} ${buildDirectorDirection(brain)} ${buildAdvancedStudioDirection(brain, { source: 'reel' })} ${buildNoRepeatDirection()} مدة ${Math.min(8, Math.max(4, reelDuration))} ثواني. المطلوب لقطة واحدة واقعية جداً، حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، لا يتغير شكل الطبق أو الكمية أو المكونات عبر الفيديو. حافظ على الطبق والتغليف كما هما إذا كان المصدر صورة. تكوين بصري نظيف وإضاءة شهية واقعية. ممنوع وجوه واضحة، شخص يتكلم، شفاه، نصوص، شعارات، دلة، قهوة، بخور، سدو، فوانيس، سيارة توصيل، مطعم جلوس، كافيه، كلينكس مستخدم، فوضى، صحون تظهر فجأة، صوص يطير، أو أي حركة غير منطقية. إضاءة ${selectedMood}. وصفة الريل الذكية حسب الطبق: ${brain.reelRecipe.join('، ')}. ${brain.promptGuard}`;
   };
 
   const buildReelSettingsText = (item?: Partial<StudioReelHistoryItem>) => {
@@ -1623,7 +1893,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         {isOpen && (
           <aside className="absolute bottom-11 right-0 w-[min(17rem,calc(100vw-2rem))] rounded-3xl border border-white/15 bg-slate-950/90 p-3 text-white shadow-2xl backdrop-blur-2xl">
             <div className="mb-2 flex items-center justify-between gap-3" dir="ltr">
-              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-200">{mode === 'reel' ? 'Reel Desk' : 'Production Desk'}</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-200">{mode === 'reel' ? 'تفاصيل الريل' : 'تفاصيل الإنتاج'}</span>
               <strong className="rounded-xl bg-white/10 px-2 py-1 text-xs font-black text-white">{mode === 'reel' ? '9:16' : selectedFormat}</strong>
             </div>
             <div className="space-y-1.5 text-[11px] font-bold leading-5 text-white/75">
@@ -1699,6 +1969,11 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         tasteProfile: buildStudioTastePrompt(),
         productOnlyGuard: productBrain.promptGuard,
         dishLock: isImageReel ? 'strict-source-image-identity' : 'truth-first-generated-food',
+        sceneId: activeStudioScene.id,
+        sceneLabel: activeStudioScene.label,
+        directorSceneDirection: sceneDirectorLock(activeStudioScene),
+        shotDirectorDirection: shotDirectorLock(reelShot),
+        sceneProductionGuide: getSceneProductionGuide(activeStudioScene),
       };
       if (reelSource === 'image' && selectedImage) {
         const img = getDataImagePayload(selectedImage);
@@ -1812,7 +2087,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   const renderAlturathBrainCard = (context: 'image' | 'reel' = 'image') => {
     const hasImageSource = Boolean(selectedImage) && (context === 'image' || context === 'reel');
     const brain: AlturathStudioBrainResult = hasImageSource ? analyzeAlturathStudioIdea(customThemeQuery, studioProducts) : currentStudioBrain;
-    const activeScene = mergedScenes.find(scene => scene.id === selectedSceneId) || mergedScenes[0];
+    const activeScene = studioSceneChoices.find(scene => scene.id === selectedSceneId) || mergedScenes[0];
     const activeShot = reelShots.find(shot => shot.id === reelShot) || reelShots[0];
     const imageIdeaLabel = sceneSuggestion?.productType || (isSuggestingScene ? 'نقرأ الصورة الآن' : 'صورة مرفوعة');
     const smartSelectionLine = (!hasImageSource && selectedStudioProductName)
@@ -2415,7 +2690,6 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 border border-white/10"><Camera className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-200" /></span>
               استوديو التراث الذكي
             </h1>
-            <p className="mt-2 text-sm font-bold text-white/55">حوّل المنتج إلى حملة جاهزة.</p>
           </div>
           <button onClick={() => setStudioTab('library')} className="h-12 w-12 rounded-2xl border border-white/10 bg-white/10 text-white flex items-center justify-center backdrop-blur shrink-0" title="الأرشيف">
             <Library size={18} />
@@ -2438,7 +2712,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             <div>
               <p className="text-xs font-black text-indigo-500 mb-1">اختَر مسار الإنتاج</p>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">ابدأ بالناتج، والباقي داخل المسار</h2>
-              <p className="text-xs sm:text-sm font-bold text-slate-400 mt-2 leading-6">مساران فقط بلا زحمة: ريل مباشر أو صورة مباشرة. من فكرة مدمجة داخل كل مسار عند الحاجة.</p>
+              <p className="text-xs sm:text-sm font-bold text-slate-400 mt-2 leading-6">مساران فقط: ريل مباشر أو صورة مباشرة. الريل يبدأ من صورة أو فكرة، والصورة تبدأ من صورة أو فكرة مع اختيار ذكي من المنيو عند الحاجة.</p>
             </div>
           </div>
 
@@ -2457,7 +2731,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               </div>
               <div className="relative mt-7">
                 <div className="text-2xl font-black text-slate-950 leading-tight">ريل مباشر</div>
-                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">غرفة مونتاج واحدة: اختر صورة أو صف فكرة، ثم لقطة ومدة وتوليد.</div>
+                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">غرفة مونتاج واحدة: من صورة أو من فكرة. بعدها لقطة، مدة، وتوليد.</div>
                 <div className="mt-5 grid grid-cols-2 gap-2 text-center text-[10px] font-black">
                   <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">فكرة</span>
                   <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">صورة</span>
@@ -2473,7 +2747,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               </div>
               <div className="relative mt-7">
                 <div className="text-2xl font-black text-slate-950 leading-tight">صورة مباشرة</div>
-                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">استوديو صورة واحد: ابدأ من صورة المنتج أو صف مشهدًا من خيالك.</div>
+                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">استوديو صورة واحد: ارفع صورة أو اكتب فكرة، والاختيار الذكي يساعدك من المنيو بدون مسار مكرر.</div>
                 <div className="mt-5 grid grid-cols-2 gap-2 text-center text-[10px] font-black">
                   <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">صورة</span>
                   <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">فكرة</span>
@@ -2828,9 +3102,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
             {createSubTab === 'campaigner' ? (
               <div className="space-y-4 animate-in fade-in duration-200">
-                <p className="text-xs font-black text-slate-500">حملات فورية تلقائية متزامنة مع الطقس الكويتي</p>
+                <p className="text-xs font-black text-slate-500">رادار ذكي يتغير حسب الشهر، الويكند، المكان، ونوع الأجواء؛ اختره فقط عندما يخدم المنتج</p>
                 <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
-                  {KUWAIT_SEASON_CAMPAIGNS.map((campaign) => {
+                  {seasonRadarCards.map((campaign) => {
                     const isSelected = selectedSceneId === campaign.id;
                     return (
                       <button
@@ -2843,6 +3117,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                           setBackgroundPreset(campaign.background);
                           setRealityMode(campaign.realityMode);
                           setSelectedMood(campaign.mood);
+                          if (!customThemeQuery.trim()) setCustomThemeQuery(`${campaign.title}: ${campaign.desc}`);
                         }}
                         className={cn(
                           "w-full p-4 rounded-2xl border text-right transition-all flex flex-col justify-between hover:bg-slate-50 relative overflow-hidden text-slate-700 select-none outline-none",
@@ -2854,9 +3129,11 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                         <div className="flex items-center justify-between w-full">
                           <span className="text-2xl">{campaign.icon}</span>
                           <span className="text-[9px] font-black text-slate-400 bg-slate-50 border px-2 py-0.5 rounded-full">{campaign.seasonLabel}</span>
+                          <span className={cn("text-[9px] font-black px-2 py-0.5 rounded-full border", campaign.radarScore >= 75 ? "bg-emerald-50 text-emerald-700 border-emerald-100" : campaign.radarScore >= 50 ? "bg-amber-50 text-amber-700 border-amber-100" : "bg-slate-50 text-slate-500 border-slate-100")}>ذكاء {campaign.radarScore}%</span>
                         </div>
                         <h3 className="text-xs font-black text-slate-900 mt-2.5">{campaign.title}</h3>
                         <p className="text-[10px] font-bold text-slate-400 mt-1 line-clamp-2 leading-relaxed">{campaign.desc}</p>
+                        <p className="text-[10px] font-black text-rose-500 mt-1 leading-relaxed">{campaign.radarReason}</p>
                         
                         <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100/55 w-full">
                           <span className="text-[9px] font-black text-slate-400">{KUWAIT_PLACES[campaign.place]?.label || campaign.place} · {campaign.mood}</span>
@@ -2870,7 +3147,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 </div>
 
                 {(() => {
-                  const activeCampaign = KUWAIT_SEASON_CAMPAIGNS.find(c => c.id === selectedSceneId) || KUWAIT_SEASON_CAMPAIGNS[0];
+                  const activeCampaign = seasonRadarCards.find(c => c.id === selectedSceneId) || seasonRadarCards[0];
                   return (
                     <div className="p-4 rounded-2xl border border-rose-100 bg-rose-50/20 text-right space-y-3">
                       <div>
@@ -2893,7 +3170,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                         <button
                           type="button"
                           onClick={() => {
-                            setCustomThemeQuery(activeCampaign.visualPromptAddition);
+                            setCustomThemeQuery(`${activeCampaign.title}: ${activeCampaign.desc}. ${activeCampaign.visualPromptAddition}`);
                             setSelectedSceneId(activeCampaign.id);
                             setSelectedPulseId(activeCampaign.pulseId);
                             setSelectedOrderPlace(activeCampaign.place);
@@ -2974,7 +3251,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             )}
 
             {createStep === 3 && (() => {
-              const activeScene = mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0];
+              const activeScene = studioSceneChoices.find(s => s.id === selectedSceneId) || mergedScenes[0];
 
               return (
                 <div className="space-y-4 text-right">
@@ -3067,7 +3344,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   <div className="text-lg font-black leading-8 whitespace-normal [word-break:keep-all]">{customThemeQuery.trim() || activeStudioScene.label}</div>
                   <div className="mt-3 grid grid-cols-1 gap-2 text-xs font-black text-white/85">
                     {(() => { const badge = calculateStudioMatch(currentStudioBrain, false); const sale = calculateSalesReadiness(currentStudioBrain, badge?.value); const profile = getAlturathDishProfile(selectedStudioProductName || currentStudioBrain.primaryProductName || customThemeQuery, studioProducts); return <div className="rounded-2xl bg-emerald-400/15 border border-emerald-300/20 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">جاهزية: {sale}% · {profile.deliverySuitability.label}</div>; })()}
-                    <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المشهد: {(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label}</div>
+                    <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المشهد: {(studioSceneChoices.find(s => s.id === selectedSceneId) || mergedScenes[0]).label}</div>
                     <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">اللقطة: {(reelShots.find(s => s.id === reelShot) || reelShots[0]).label}</div>
                     <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
                     <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المنتج: {selectedStudioProductName || 'تلقائي'}</div>
@@ -3095,7 +3372,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 <p className="text-sm font-bold text-white/55 leading-7">{activeStudioScene.label} · {KUWAIT_PLACES[selectedOrderPlace]?.label}</p>
               </div>
             )}
-            {isGenerating && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نختار زاوية التصوير…</p><p className="mt-3 text-xs font-bold text-white/45">نضبط الإضاءة ونجهز اللقطة للنشر</p></div>}
+            {isGenerating && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نجهز صورة واقعية...</p></div>}
             {generatedImage && !isGenerating && (
               <div className="relative z-10 w-full max-w-full space-y-4">
                 <button type="button" onClick={() => setShowImageSettings((v) => !v)} className={cn("w-full rounded-[1.6rem] overflow-hidden bg-white/5 border border-white/10 relative group", previewAspectClass)}>
@@ -3149,7 +3426,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   <div>
                     <p className="text-xs font-black text-indigo-500 mb-1">صورة مباشرة</p>
                     <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">اختر مصدر الصورة</h2>
-                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختر: تبدأ من صورة منتج، أو تكتب فكرة مباشرة بدون انتظار صورة.</p>
+                    <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختر المسار: صورة منتج جاهزة، أو فكرة مكتوبة تتحول مباشرة إلى لقطة تسويقية.</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -3175,7 +3452,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   >
                     <Sparkles size={18} className="mb-2" />
                     <span className="block text-sm font-black">من فكرة</span>
-                    <span className="block text-[10px] font-bold mt-1 opacity-70">بدون صورة</span>
+                    <span className="block text-[10px] font-bold mt-1 opacity-70">فكرة مباشرة</span>
                   </button>
                 </div>
                 {imageDirectSource === 'image' && (
@@ -3189,7 +3466,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   <div className="rounded-[2rem] border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4 space-y-3">
                     <div>
                       <div className="text-xs font-black text-indigo-700">صورة من فكرة</div>
-                      <div className="text-[11px] font-bold text-indigo-900/60 mt-1">اكتب الفكرة وسننتقل للتوليد مباشرة، بدون انتظار صورة منتج.</div>
+                      <div className="text-[11px] font-bold text-indigo-900/60 mt-1">اكتب الفكرة وسنحوّلها إلى صورة مباشرة، من غير طلب صورة منتج.</div>
                     </div>
                     {studioProductPickMode !== 'manual' && (
                       <input type="text" placeholder="مثال: صورة مجبوس دجاج للبيت بإضاءة دافئة..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-indigo-100 bg-white text-sm text-right focus:outline-none focus:border-indigo-500" />
@@ -3250,7 +3527,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 )}
 
                 {productStep === 3 && (() => {
-                  const activeScene = mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0];
+                  const activeScene = studioSceneChoices.find(s => s.id === selectedSceneId) || mergedScenes[0];
 
                   return (
                     <div className="space-y-4 text-right">
@@ -3351,7 +3628,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       <div className="text-lg font-black leading-8 whitespace-normal [word-break:keep-all]">{customThemeQuery.trim() || activeStudioScene.label}</div>
                       <div className="mt-3 grid grid-cols-1 gap-2 text-xs font-black text-white/85">
                         {(() => { const imageBrain = analyzeAlturathStudioIdea(customThemeQuery, studioProducts); const badge = calculateStudioMatch(imageBrain, true); const sale = calculateSalesReadiness(imageBrain, badge?.value); const profile = getAlturathDishProfile(customThemeQuery || sceneSuggestion?.productType || activeStudioScene.label, studioProducts); return <div className="rounded-2xl bg-emerald-400/15 border border-emerald-300/20 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">جاهزية: {sale}% · {profile.clutterRisk.label}</div>; })()}
-                        <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المشهد: {(mergedScenes.find(s => s.id === selectedSceneId) || mergedScenes[0]).label}</div>
+                        <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المشهد: {(studioSceneChoices.find(s => s.id === selectedSceneId) || mergedScenes[0]).label}</div>
                         <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">اللقطة: {(reelShots.find(s => s.id === reelShot) || reelShots[0]).label}</div>
                         <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المكان: {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>
                         <div className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 leading-6 whitespace-normal [word-break:keep-all]">المنتج: {selectedStudioProductName || 'تلقائي'}</div>
@@ -3393,7 +3670,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       <div className="text-sm font-black text-slate-900 leading-6">
                         {customThemeQuery.trim() || selectedStudioProductName || 'صف المشهد الذي تتخيله'}
                       </div>
-                      <div className="mt-3 text-[11px] font-bold text-slate-500 leading-5">هذا المسار لا يحتاج رفع صورة. اكتب الفكرة ثم أطلق الإبداع.</div>
+                      <div className="mt-3 text-[11px] font-bold text-slate-500 leading-5">هذا المسار يبدأ من النص فقط. اكتب الفكرة ثم أطلق الإبداع.</div>
                     </div>
                   ) : (
                     <>
@@ -3406,7 +3683,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                             </button>
                           </>
                         ) : (
-                          <span className="text-xs font-bold text-slate-400">بانتظار صورة المنتج</span>
+                          <span className="text-xs font-bold text-slate-400">ابدأ برفع صورة المنتج</span>
                         )}
                       </div>
                       {compressedImage || selectedImage || originalImage ? (
@@ -3453,8 +3730,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       <Sparkles className="text-indigo-600 animate-pulse" size={42} />
                     </div>
                   </div>
-                  <h3 className="text-2xl font-black mb-2">نختار زاوية التصوير…</h3>
-                  <p className="text-xs font-black text-slate-500 leading-6">نضبط الإضاءة ونكتب نبرة الحملة بدون تشويه المنتج</p>
+                  <h3 className="text-2xl font-black mb-2">نجهز الصورة الواقعية...</h3>
+                  <p className="text-xs font-black text-slate-500 leading-6">نثبت الطبق · نضبط الإضاءة · نركب المشهد الكويتي بدون تشويه المنتج</p>
                   <div className="mt-6 mx-auto max-w-xs h-2 rounded-full bg-slate-200 overflow-hidden">
                     <div className="h-full w-1/2 rounded-full bg-slate-950 animate-pulse" />
                   </div>
@@ -3719,7 +3996,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     className={cn("w-full p-4 rounded-2xl text-white font-black shadow-lg flex items-center justify-center gap-2 transition-all", menuOutputType === 'image' ? 'bg-slate-950 hover:bg-slate-800' : 'bg-violet-600 hover:bg-violet-700')}
                   >
                     {menuOutputType === 'image' ? <Sparkles size={18} /> : <PlayCircle size={18} />}
-                    {menuOutputType === 'image' ? 'فتح توليد الصورة' : 'فتح توليد الريل'}
+                    {menuOutputType === 'image' ? 'ابدأ توليد الصورة' : 'ابدأ توليد الريل'}
                   </button>
                 </div>
               </div>
