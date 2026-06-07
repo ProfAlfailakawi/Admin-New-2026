@@ -1107,7 +1107,7 @@ Alturath.kw`;
       return (
         <div className={cn(
           "bg-white overflow-hidden text-right",
-          isMobile ? "rounded-3xl p-4 border border-slate-200 shadow-sm" : "rounded-3xl p-4 md:p-6 shadow-sm border border-slate-200"
+          isMobile ? "rounded-2xl p-4 border border-slate-200 shadow-sm" : "rounded-3xl p-4 md:p-6 shadow-sm border border-slate-200"
         )} dir="rtl">
           {isMobile && (
             <div className="text-sm font-black text-slate-700 text-right mb-4 flex items-center justify-between border-b pb-3 border-slate-100">
@@ -1163,7 +1163,7 @@ Alturath.kw`;
                     addToCart(p.id);
                   }}
                   className={cn(
-                    "invoice-product-card bg-white border p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative ceramic-glint overflow-hidden shadow-sm hover:shadow-xl min-w-0",
+                    "invoice-product-card bg-white border p-4 rounded-2xl text-right hover:border-primary transition-all group flex flex-col gap-2 relative ceramic-glint overflow-hidden shadow-sm hover:shadow-sm border border-slate-200 min-w-0",
                     p.isActive === false
                       ? "border-dashed border-amber-400/60 bg-amber-50/10 hover:border-amber-400"
                       : "border-slate-200"
@@ -1266,7 +1266,7 @@ Alturath.kw`;
                         د.ك
                       </span>
                     </div>
-                    <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all shadow-sm">
+                    <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-slate-800 group-hover:border-primary transition-all shadow-sm">
                       <Plus size={18} />
                     </div>
                   </div>
@@ -1373,7 +1373,7 @@ Alturath.kw`;
                 />
 
                 {showCustomerDropdown && (
-                  <div className="absolute top-full right-0 left-0 bg-white border rounded-2xl mt-1 shadow-2xl z-50 max-h-60 overflow-y-auto">
+                  <div className="absolute top-full right-0 left-0 bg-white border rounded-2xl mt-1 shadow-sm border border-slate-200 z-50 max-h-60 overflow-y-auto">
                     {customerSearch.length > 0 &&
                       !data.customers.some(
                         (c) =>
@@ -1852,7 +1852,7 @@ Alturath.kw`;
             <button
               disabled={loading}
               onClick={handleCreateInvoice}
-              className="invoice-mobile-submit w-full mt-4 sm:mt-6 bg-rose-600 text-white py-3.5 sm:py-4 rounded-2xl font-bold shadow-lg shadow-rose-200 hover:bg-rose-700 transition-all hover:-translate-y-1 active:scale-95"
+              className="invoice-mobile-submit w-full mt-4 sm:mt-6 bg-rose-600 text-white py-3.5 sm:py-4 rounded-2xl font-bold shadow-sm border border-slate-200 shadow-rose-200 hover:bg-rose-700 transition-all active:scale-[0.98] active:scale-95"
             >
               إصدار الفاتورة
             </button>

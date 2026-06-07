@@ -52,7 +52,7 @@ const SmartEmptyState: React.FC<Props> = ({
       {actionLabel && onAction && (
           <button 
              onClick={onAction}
-             className="px-6 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-900/20 animate-pulse-slow relative overflow-hidden group"
+             className="px-6 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-sm hover:bg-slate-100 transition-all active:scale-95 shadow-sm border border-slate-200 shadow-slate-200/50 animate-pulse-slow relative overflow-hidden group"
           >
              <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-[0%] transition-transform duration-300" />
              <span className="relative z-10">{actionLabel}</span>

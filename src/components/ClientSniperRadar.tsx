@@ -141,7 +141,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  };
 
  return (
- <div className="w-full bg-slate-950 rounded-3xl md:rounded-2xl border border-slate-800 p-3 md:p-3 shadow-xl overflow-hidden relative group font-sans">
+ <div className="w-full bg-white border border-slate-200 text-slate-900 rounded-2xl md:rounded-2xl border border-slate-800 p-3 md:p-3 shadow-sm border border-slate-200 overflow-hidden relative group font-sans">
  {/* Background Matrix/Night Vision Vibe */}
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.05)_0%,rgba(0,0,0,0)_70%)]" />
  <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:20px_20px] opacity-10" />
@@ -214,7 +214,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  {/* Info & Action Panel */}
  <div className="flex-1 flex flex-col justify-center gap-3 md:p-4">
  <div className="text-right">
- <h3 className="text-2xl font-bold text-white mb-2 flex items-center justify-end gap-3">
+ <h3 className="text-2xl font-bold text-slate-800 mb-2 flex items-center justify-end gap-3">
  <span className="text-emerald-400">رادار قنص العملاء</span>
  <Target className="text-emerald-500" />
  </h3>
@@ -229,7 +229,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  <motion.div 
  initial={{ opacity: 0, x: 20 }}
  animate={{ opacity: 1, x: 0 }}
- className="bg-slate-900 border border-slate-700 rounded-3xl p-3 md:p-4 text-right relative overflow-hidden"
+ className="bg-slate-50 border border-slate-200 text-slate-900 border border-slate-700 rounded-3xl p-3 md:p-4 text-right relative overflow-hidden"
  >
  <div className={cn(
 "absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] -translate-y-1/2 translate-x-1/2 pointer-events-none",
@@ -249,7 +249,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  </div>
  </div>
 
- <div className="bg-slate-950 rounded-2xl p-3 mb-6 border border-slate-800 flex items-center justify-between text-right">
+ <div className="bg-slate-50 border border-slate-200 text-slate-900 rounded-2xl p-3 mb-6 border border-slate-800 flex items-center justify-between text-right">
  <div className="flex items-center gap-3">
  <div className={cn(
 "px-3 py-1 rounded-full text-[10px] font-bold uppercase",
@@ -272,10 +272,10 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  onClick={() => handleLaunchMessage(selectedTarget)}
  className="w-full relative group overflow-hidden rounded-2xl bg-gradient-to-l from-emerald-600 to-emerald-500 text-white font-bold text-lg py-4 transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.3)]"
  >
- <div className="absolute inset-0 bg-slate-900/10 opacity-10 mix-blend-overlay" />
+ <div className="absolute inset-0 bg-slate-50 border border-slate-200 text-slate-900/10 opacity-10 mix-blend-overlay" />
  <div className="relative z-10 flex items-center justify-center gap-3">
  <span>إرسال رسالة واتساب</span>
- <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+ <Send size={20} className="group-hover:translate-x-1 group-active:scale-[0.98] transition-transform" />
  </div>
  </button>
  </motion.div>

@@ -32,7 +32,7 @@ const AttractivenessGauge: React.FC<{ score: number }> = ({ score }) => {
   const angle = (score / 100) * 240 - 120; // needle angle from -120 to 120 deg
   
   return (
-    <div className="flex flex-col items-center bg-slate-950 border border-amber-500/20 px-3.5 py-3 rounded-2xl shadow-[0_12px_24px_rgba(0,0,0,0.9)] relative overflow-hidden w-full max-w-[240px] mx-auto select-none">
+    <div className="flex flex-col items-center bg-white border border-slate-200 text-slate-900 border border-amber-500/20 px-3.5 py-3 rounded-2xl shadow-[0_12px_24px_rgba(0,0,0,0.9)] relative overflow-hidden w-full max-w-[240px] mx-auto select-none">
       {/* Carbon fiber grid pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:12px_12px] opacity-25 pointer-events-none" />
       
@@ -95,7 +95,7 @@ const AttractivenessGauge: React.FC<{ score: number }> = ({ score }) => {
         </svg>
 
         {/* Dashboard needle pin cap */}
-        <div className="absolute w-5 h-5 rounded-full bg-slate-900 border border-amber-400 shadow-[0_2px_6px_rgba(245,158,11,0.6)] z-20 flex items-center justify-center -bottom-2.5">
+        <div className="absolute w-5 h-5 rounded-full bg-slate-50 border border-slate-200 text-slate-900 border border-amber-400 shadow-[0_2px_6px_rgba(245,158,11,0.6)] z-20 flex items-center justify-center -bottom-2.5">
           <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
         </div>
 
@@ -110,7 +110,7 @@ const AttractivenessGauge: React.FC<{ score: number }> = ({ score }) => {
 
         {/* High performance digital output below */}
         <div className="absolute bottom-1 text-center pointer-events-none">
-          <div className="text-[8px] font-black tracking-widest text-white/30 uppercase">SCORE ATTRACTIVITY</div>
+          <div className="text-[8px] font-black tracking-widest text-slate-800/30 uppercase">SCORE ATTRACTIVITY</div>
           <div className="text-2xl font-black font-mono text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.4)] mt-0.5">
             {score}
             <span className="text-[10px] text-red-500 ml-0.5 font-black font-sans">%</span>
@@ -306,10 +306,10 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  whileHover={{ scale: 1.1, x: 5 }}
  whileTap={{ scale: 0.9 }}
  onClick={() => setIsOpen(true)}
- className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white p-3 rounded-r-2xl shadow-xl shadow-purple-500/40 group relative"
+ className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white p-3 rounded-r-2xl shadow-sm border border-slate-200 shadow-purple-500/40 group relative"
  >
  <Sparkles className="group-hover:rotate-12 transition-transform" size={24} />
- <div className="absolute right-full mr-4 bg-slate-900 border border-white/10 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 whitespace-nowrap pointer-events-none shadow-xl">
+ <div className="absolute right-full mr-4 bg-slate-50 border border-slate-200 text-slate-900 border border-white/10 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 whitespace-nowrap pointer-events-none shadow-xl">
  ملهم الانستغرام الذكي ✨
  </div>
  </motion.button>
@@ -335,7 +335,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
  onClick={() => setIsOpen(false)}
- className="fixed inset-0 bg-slate-950/60 z-[100]"
+ className="fixed inset-0 bg-slate-50 border border-slate-200 text-slate-900/60 z-[100]"
  />
  <motion.div
  initial={{ x: '-100%' }}
@@ -377,7 +377,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  className={cn(
  "w-full py-3 px-4 rounded-2xl text-xs font-black border transition-all active:scale-95 flex items-center justify-center gap-2",
  activeCategory === 'trend'
- ? "bg-slate-900 text-white border-transparent shadow-md"
+ ? "bg-indigo-600 text-white border-transparent shadow-md"
  : "bg-white text-slate-700 border-slate-200 shadow-sm"
  )}
  >
@@ -497,7 +497,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  initial={{ opacity: 0, scale: 0.9 }}
  animate={{ opacity: 1, scale: 1 }}
  transition={{ delay: index * 0.1 }}
- className="group bg-white border border-slate-200 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden"
+ className="group bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden"
  >
  <div className={cn(
 "absolute top-0 right-0 w-32 h-32 opacity-10 rounded-bl-[100px] transition-all duration-700",
@@ -661,7 +661,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
 "flex items-center gap-2 text-[11px] font-bold px-4 md:px-8 py-4 rounded-3xl transition-all active:scale-90 shadow-xl",
  copiedIndex === index 
  ?"bg-emerald-500 text-white shadow-emerald-500/30" 
- :"bg-slate-900 text-white shadow-slate-900/40 hover:bg-black"
+ :"bg-slate-900 text-white shadow-slate-900/40 hover:bg-slate-100"
 )}
  >
  {copiedIndex === index ? <Check size={18} /> : <Copy size={18} />}

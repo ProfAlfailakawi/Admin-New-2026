@@ -36,12 +36,12 @@ export const VIPMissions: React.FC<VIPMissionsProps> = ({ data }) => {
  };
 
  return (
- <div className="w-full bg-slate-950 rounded-3xl md:rounded-2xl border border-amber-900/30 p-3 md:p-4 md:p-3 md:p-3 shadow-xl overflow-hidden relative group">
+ <div className="w-full bg-white border border-slate-200 text-slate-900 rounded-2xl md:rounded-2xl border border-amber-900/30 p-3 md:p-4 md:p-3 md:p-3 shadow-sm border border-slate-200 overflow-hidden relative group">
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,158,11,0.08)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
  <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
  <div className="absolute inset-0 bg-[linear-gradient(to_right,#fbbf24_1px,transparent_1px),linear-gradient(to_bottom,#fbbf24_1px,transparent_1px)] bg-[size:40px_40px] opacity-[0.03] pointer-events-none" />
 
- <h3 className="text-2xl md:text-3xl font-bold mb-8 text-white flex items-center gap-3 relative z-10 text-right w-full justify-end">
+ <h3 className="text-2xl md:text-3xl font-bold mb-8 text-slate-800 flex items-center gap-3 relative z-10 text-right w-full justify-end">
  <span className="text-amber-400">مهام العملاء السريين</span>
  <Award className="text-amber-500" />
  </h3>
@@ -56,7 +56,7 @@ export const VIPMissions: React.FC<VIPMissionsProps> = ({ data }) => {
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: idx * 0.1 }}
  key={m.id} 
- className="flex flex-col md:flex-row items-center justify-between p-3 md:p-4 md:p-3 bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-amber-500/10 hover:border-amber-500/30 transition-all group/item shadow-lg"
+ className="flex flex-col md:flex-row items-center justify-between p-3 md:p-4 md:p-3 bg-slate-50 border border-slate-200 text-slate-900/50 backdrop-blur-xl rounded-2xl border border-amber-500/10 hover:border-amber-500/30 transition-all group/item shadow-sm border border-slate-200"
  >
  <div className="text-right flex-1 w-full md:mr-6 mb-4 md:mb-0">
  <div className="flex justify-end items-center gap-3 mb-2">
@@ -73,7 +73,7 @@ export const VIPMissions: React.FC<VIPMissionsProps> = ({ data }) => {
 ))}
  
  {missions.length === 0 && (
- <div className="text-center p-3 md:p-3 bg-slate-900/50 rounded-2xl border border-slate-800">
+ <div className="text-center p-3 md:p-3 bg-slate-50 border border-slate-200 text-slate-900/50 rounded-2xl border border-slate-800">
  <p className="text-slate-500 font-bold">لا يوجد مهام حالية. سيقوم التراث الذكي برصد كبار العملاء قريباً.</p>
  </div>
 )}

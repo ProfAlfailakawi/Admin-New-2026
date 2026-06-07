@@ -59,14 +59,14 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  <button 
  onClick={() => setShowHub(true)}
  className={cn(
-"relative w-12 h-12 md:w-16 md:h-16 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 group overflow-hidden",
+"relative w-12 h-12 md:w-16 md:h-16 rounded-full shadow-sm border border-slate-200 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group overflow-hidden",
  activeAlerts[0].insightType === 'خطر' ?"bg-rose-500" : 
  activeAlerts[0].insightType === 'فرصة' ?"bg-indigo-600" : 
 "bg-amber-500"
 )}
  >
  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
- <Sparkles className="text-white animate-pulse" size={32} />
+ <Sparkles className="text-slate-800 animate-pulse" size={32} />
  
  {/* Badge */}
  <div className="absolute -top-1 -left-1 w-6 h-6 bg-white rounded-full flex items-center justify-center border-2 border-indigo-600 shadow-sm">
@@ -89,7 +89,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
  onClick={() => setShowHub(false)}
- className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[101]"
+ className="fixed inset-0 bg-slate-50 border border-slate-200 text-slate-900/40 backdrop-blur-sm z-[101]"
  />
  <motion.div 
  initial={{ x: 400, opacity: 0 }}
@@ -174,7 +174,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
- className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[300] flex items-center justify-center p-3"
+ className="fixed inset-0 bg-slate-50 border border-slate-200 text-slate-900/60 backdrop-blur-md z-[300] flex items-center justify-center p-3"
  dir="rtl"
  >
  <motion.div 
@@ -234,7 +234,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  onMarkAsRead(selectedAlert.id);
  setSelectedAlert(null);
  }}
- className={cn("flex-1 text-white py-3 md:py-4 rounded-xl font-bold text-sm transition-all hover:opacity-90 active:scale-95 shadow-lg", getColors(selectedAlert.insightType!).bg)}
+ className={cn("flex-1 text-white py-3 md:py-4 rounded-xl font-bold text-sm transition-all hover:opacity-90 active:scale-95 shadow-sm border border-slate-200", getColors(selectedAlert.insightType!).bg)}
  >
  فهمت ومستعد للعمل
  </button>

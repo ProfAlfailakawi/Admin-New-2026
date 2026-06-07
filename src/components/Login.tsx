@@ -226,12 +226,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
 
       <AnimatePresence>
         {showIOSPrompt && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-50 border border-slate-200 text-slate-900/40 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl border border-slate-200/60 p-6 max-w-sm w-full relative"
+              className="bg-white rounded-2xl shadow-sm ring-1 ring-inset ring-slate-900/5/60 p-6 max-w-sm w-full relative"
               dir="rtl"
             >
               <button onClick={handleCloseIOSPrompt} className="absolute top-4 left-4 p-2 text-slate-500 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors">

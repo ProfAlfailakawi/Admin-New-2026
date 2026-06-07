@@ -25,10 +25,10 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
 
  return (
  <div className="space-y-6 md:space-y-8" dir="rtl">
- <div className="flex flex-col md:flex-row justify-between items-center bg-slate-950 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-xl flex-row-reverse gap-4 relative overflow-hidden">
+ <div className="flex flex-col md:flex-row justify-between items-center bg-white border border-slate-200 text-slate-900 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-sm border border-slate-200 flex-row-reverse gap-4 relative overflow-hidden">
  <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(99,102,241,0.05)_50%,transparent_75%)] bg-[length:10px_10px] pointer-events-none" />
  <div className="text-right relative z-10">
- <h3 className="font-bold text-xl md:text-2xl text-white">قمرة قيادة الأهداف</h3>
+ <h3 className="font-bold text-xl md:text-2xl text-slate-800">قمرة قيادة الأهداف</h3>
  <p className="text-indigo-400 text-[10px] md:text-xs font-bold mt-1">Alturath Goal Commander 🚀</p>
  </div>
  <div className="flex items-center gap-3 bg-indigo-500/10 px-4 py-2 rounded-full border border-indigo-500/30 relative z-10">
@@ -39,7 +39,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
 
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-3 md:p-4">
  {/* Create / Active Goal */}
- <div className="bg-slate-900 border border-slate-800 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl text-white relative overflow-hidden group shadow-xl">
+ <div className="bg-slate-50 border border-slate-200 text-slate-900 border border-slate-800 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl text-white relative overflow-hidden group shadow-xl">
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(99,102,241,0.15)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
  <div className="absolute top-0 right-0 w-32 h-32 md:w-64 md:h-64 bg-indigo-500/10 blur-[80px] rounded-full -mr-16 -mt-16 pointer-events-none" />
  <div className="relative z-10 flex flex-col h-full">
@@ -50,7 +50,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
  <span className="text-[10px] md:text-xs font-bold text-indigo-400 uppercase block mb-1">الهدف الحالي المفعّل</span>
  <h4 className="text-xl md:text-3xl font-bold text-white">{activeGoal.title}</h4>
  </div>
- <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-800/50 rounded-2xl flex items-center justify-center border border-indigo-500/20 text-indigo-400">
+ <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-50 border border-slate-200 text-slate-800/50 rounded-2xl flex items-center justify-center border border-indigo-500/20 text-indigo-400">
  {activeGoal.category === 'revenue' ? <TrendingUp size={24} /> : <Users size={24} />}
  </div>
  </div>
@@ -60,7 +60,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
  <span className="text-indigo-300">التقدم: {activeGoal.currentProgress}%</span>
  <span className="text-white">الهدف: {Number(activeGoal.targetValue || 0).toFixed(0)}</span>
  </div>
- <div className="h-3 md:h-4 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+ <div className="h-3 md:h-4 bg-slate-50 border border-slate-200 text-slate-900 rounded-full overflow-hidden border border-slate-800">
  <motion.div 
  initial={{ width: 0 }}
  animate={{ width: `${Math.min(activeGoal.currentProgress, 100)}%` }}
@@ -107,7 +107,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
  initial={{ opacity: 0, x: 20 }}
  animate={{ opacity: 1, x: 0 }}
  transition={{ delay: index * 0.1 }}
- className="bg-slate-900/80 backdrop-blur-xl p-3 md:p-4 rounded-2xl border border-slate-800 hover:border-indigo-500/50 transition-all cursor-pointer group flex flex-row-reverse items-center justify-between gap-4 shadow-xl"
+ className="bg-slate-50 border border-slate-200 text-slate-900/80 backdrop-blur-xl p-3 md:p-4 rounded-2xl border border-slate-800 hover:border-indigo-500/50 transition-all cursor-pointer group flex flex-row-reverse items-center justify-between gap-4 shadow-xl"
  onClick={() => !activeGoal && setActiveGoal({
  id: `goal-${index}`,
  title: rec.title,

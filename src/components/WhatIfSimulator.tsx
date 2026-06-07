@@ -48,9 +48,9 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
 
  if (!data?.products || data.products.length === 0) {
  return (
- <div className="flex flex-col items-center justify-center p-3 md:p-4 bg-slate-950 rounded-3xl border border-slate-800 text-center">
+ <div className="flex flex-col items-center justify-center p-3 md:p-4 bg-white border border-slate-200 text-slate-900 rounded-2xl border border-slate-800 text-center">
  <AlertCircle className="text-slate-600 mb-4" size={48} />
- <h3 className="text-xl font-bold text-white mb-2">ماكو أصناف متاحة</h3>
+ <h3 className="text-xl font-bold text-slate-800 mb-2">ماكو أصناف متاحة</h3>
  <p className="text-slate-500 font-bold mb-6 text-sm max-w-sm">عشان نسوي محاكاة "ماذا لو" أو حملة بالتراث الذكي، أضف كم صنف للمتجر أول.</p>
  </div>
 );
@@ -189,7 +189,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  return (
  <div className="space-y-6 md:space-y-8" dir="rtl">
  {/* Header Panel */}
- <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 shadow-xl relative overflow-hidden flex flex-col items-start">
+ <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 shadow-sm border border-slate-200 relative overflow-hidden flex flex-col items-start">
  <div className="absolute top-0 left-0 w-full h-1 md:h-2 bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-400" />
  <div className="absolute top-3 md:p-4 left-10 opacity-10 text-white rotate-12 hidden sm:block"><Calculator size={200} /></div>
  
@@ -210,7 +210,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
 
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:p-4 md:gap-4 md:p-3">
  {/* Controls Panel */}
- <div className="lg:col-span-1 bg-slate-950 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-xl relative overflow-hidden group space-y-6 md:space-y-8">
+ <div className="lg:col-span-1 bg-slate-50 border border-slate-200 text-slate-900 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-xl relative overflow-hidden group space-y-6 md:space-y-8">
  <div className="absolute inset-0 bg-[linear-gradient(to_right,#6366f1_1px,transparent_1px),linear-gradient(to_bottom,#6366f1_1px,transparent_1px)] bg-[size:30px_30px] opacity-[0.03] pointer-events-none" />
  <div className="space-y-4 relative z-10">
  <h3 className="font-bold text-base md:text-lg text-white border-b border-slate-800 pb-2">1. اختر نوع السيناريو</h3>
@@ -219,7 +219,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  onClick={() => { setScenarioType('price_change'); setCampaignPlan(null); }}
  className={cn(
 "p-3 rounded-2xl border text-right font-bold text-sm flex items-center justify-between transition-all active:scale-95 min-h-[44px]",
- scenarioType === 'price_change' ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg' : 'bg-slate-900/50 text-slate-500 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80'
+ scenarioType === 'price_change' ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm border border-slate-200' : 'bg-slate-50 border border-slate-200 text-slate-900/50 text-slate-500 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-100/80'
 )}
  >
  تغيير سعر بيع صنف <Tag size={16} />
@@ -228,7 +228,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  onClick={() => { setScenarioType('cost_change'); setCampaignPlan(null); }}
  className={cn(
 "p-3 rounded-2xl border text-right font-bold text-sm flex items-center justify-between transition-all active:scale-95 min-h-[44px]",
- scenarioType === 'cost_change' ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg' : 'bg-slate-900/50 text-slate-500 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80'
+ scenarioType === 'cost_change' ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg' : 'bg-slate-50 border border-slate-200 text-slate-900/50 text-slate-500 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-50 border border-slate-200 text-slate-800/80'
 )}
  >
  تغيير تكلفة توريد صنف <Truck size={16} />
@@ -342,7 +342,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <button 
  onClick={generateCampaign}
  disabled={isGenerating}
- className="w-full bg-slate-900 text-white p-3 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50 min-h-[44px]"
+ className="w-full bg-indigo-600 text-white p-3 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50 min-h-[44px]"
  >
  {isGenerating ? <RefreshCw size={20} className="animate-spin" /> : <Megaphone size={20} />}
  {isGenerating ? 'نحلل البيانات...' : 'إنشاء خطة الحملة بالتراث الذكي'}

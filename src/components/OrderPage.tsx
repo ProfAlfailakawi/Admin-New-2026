@@ -399,7 +399,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
         hasUnselectedSuppliers(order) &&
         !isVerifiedPaid
       ) {
-        return "bg-gradient-to-r from-rose-500 to-rose-600 text-white border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)]";
+        return "bg-gradient-to-r from-rose-500 to-rose-600 text-slate-800 border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)]";
       }
       return "bg-emerald-100 text-emerald-700 border-emerald-200";
     }
@@ -1548,7 +1548,7 @@ Alturath.kw`;
       </div>
 
       {/* Main Container */}
-      <div className="bg-white rounded-2xl p-3 md:p-4 lg:p-3 md:p-3 shadow-lg border border-slate-100">
+      <div className="bg-white rounded-2xl p-3 md:p-4 lg:p-3 md:p-3 shadow-sm border border-slate-200 border border-slate-100">
         <div className="max-w-2xl mx-auto relative mb-8">
           <Search
             className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300"
@@ -1856,7 +1856,7 @@ Alturath.kw`;
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedOrder(null)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-50 border border-slate-200 text-slate-900/60 backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -2632,7 +2632,7 @@ Alturath.kw`;
                   {/* Left Column: Info & Actions */}
                   <div className="space-y-6 md:space-y-8">
                     {/* Status Card */}
-                    <div className="bg-white p-3 md:p-4 rounded-2xl md:rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/50 space-y-3 md:space-y-6">
+                    <div className="bg-white p-3 md:p-4 rounded-2xl md:rounded-2xl border border-slate-100 shadow-sm border border-slate-200 shadow-slate-200/50 space-y-3 md:space-y-6">
                       <div className="flex items-center justify-between">
                         <h4 className="font-bold text-slate-800 text-xs md:text-base">
                           حالة الطلب
@@ -2786,7 +2786,7 @@ Alturath.kw`;
                     </div>
 
                     {/* Customer & Address Card */}
-                    <div className="bg-slate-900 p-3 md:p-3 rounded-2xl md:rounded-2xl shadow-xl text-white space-y-3 md:space-y-6 relative overflow-hidden">
+                    <div className="bg-slate-50 border border-slate-200 text-slate-900 p-3 md:p-3 rounded-2xl md:rounded-2xl shadow-xl text-white space-y-3 md:space-y-6 relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-12 md:w-20 md:w-32 h-12 md:h-20 md:h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
 
                       <div className="relative z-10">

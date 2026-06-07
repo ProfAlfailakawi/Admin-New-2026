@@ -97,13 +97,13 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  }, [selectedProducts, offerMargin, offerPrice]);
 
  return (
- <div className="bg-white/60 backdrop-blur-3xl rounded-3xl md:rounded-2xl border border-white/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] p-3 md:p-4 md:p-3 relative overflow-hidden" dir="rtl">
+ <div className="bg-white/60 backdrop-blur-3xl rounded-2xl md:rounded-2xl border border-white/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] p-3 md:p-4 md:p-3 relative overflow-hidden" dir="rtl">
  {/* Background Decor */}
  <div className="absolute -top-24 -right-24 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
  <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
  <div className="flex items-center gap-4 mb-10 relative z-10">
- <div className="p-3 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl shadow-xl shadow-amber-500/20 text-white">
+ <div className="p-3 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl shadow-sm border border-slate-200 shadow-amber-500/20 text-slate-800">
  <Calculator size={28} />
  </div>
  <div>
@@ -171,7 +171,7 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  />
  <div className="absolute top-0 left-0 right-0 flex justify-between px-1 pointer-events-none">
  <div className="flex-1 flex justify-center mt-[-20px]">
- <span className="bg-slate-900 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg" style={{ marginLeft: `calc(${discountPercent}% - 50%)` }}>
+ <span className="bg-slate-50 border border-slate-200 text-slate-900 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-slate-200" style={{ marginLeft: `calc(${discountPercent}% - 50%)` }}>
  خصم {discountPercent}%
  </span>
  </div>

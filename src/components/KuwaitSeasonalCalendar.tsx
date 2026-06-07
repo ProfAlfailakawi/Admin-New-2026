@@ -31,7 +31,7 @@ export const KuwaitSeasonalCalendar: React.FC<{ data: AppState }> = ({ data }) =
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: index * 0.1 }}
- className="p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border transition-all relative overflow-hidden group h-full flex flex-col justify-between bg-indigo-600 border-indigo-600 shadow-xl shadow-indigo-100 text-white"
+ className="p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border transition-all relative overflow-hidden group h-full flex flex-col justify-between bg-indigo-600 border-indigo-600 shadow-sm border border-slate-200 shadow-indigo-100 text-slate-800"
  >
  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl rounded-full -mr-16 -mt-16" />
  

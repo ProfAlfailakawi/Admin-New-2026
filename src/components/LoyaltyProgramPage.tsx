@@ -422,7 +422,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
     </button>
   </div>
  {/* Header Stats */}
- <div className="loyalty-hero-panel bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-2 md:p-6 text-white shadow-xl relative overflow-hidden">
+ <div className="loyalty-hero-panel bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-2 md:p-6 text-slate-800 shadow-sm border border-slate-200 relative overflow-hidden">
  <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
  <Award size={300} className="absolute -bottom-20 -right-20" />
  </div>
@@ -487,7 +487,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  }}
  className={cn(
 "px-4 py-2 rounded-xl text-xs font-bold transition-all",
- isDynamicRewardsEnabled ?"bg-amber-500 text-white shadow-lg" :"text-slate-500"
+ isDynamicRewardsEnabled ?"bg-amber-500 text-white shadow-sm border border-slate-200" :"text-slate-500"
 )}
  >
  مكافآت متكيفة آلياً (Pulse Mode)
@@ -499,7 +499,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  }}
  className={cn(
 "px-4 py-2 rounded-xl text-xs font-bold transition-all",
- !isDynamicRewardsEnabled ?"bg-slate-900 text-white shadow-lg" :"text-slate-500"
+ !isDynamicRewardsEnabled ?"bg-slate-50 border border-slate-200 text-slate-900 text-white shadow-lg" :"text-slate-500"
 )}
  >
  مكافآت ثابتة
@@ -509,7 +509,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
  {rewards.map((reward, i) => (
- <div key={i} className="p-3 md:p-3 bg-slate-50 border border-slate-100 rounded-3xl hover:border-amber-200 transition-all group">
+ <div key={i} className="p-3 md:p-3 bg-slate-50 border border-slate-100 rounded-2xl hover:border-amber-200 transition-all group">
  <div className="w-12 h-12 bg-white rounded-2xl border border-slate-100 flex justify-center items-center text-amber-500 mb-4 group-hover:scale-110 transition-transform shadow-sm">
  {reward.icon}
  </div>
@@ -529,7 +529,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  const activeHeroes = topHeroes.filter((hero: any) => hero.daysSinceLastOrder <= 14).length;
  const missingHeroes = topHeroes.filter((hero: any) => hero.daysSinceLastOrder > 14).length;
  return (
- <div className="bg-slate-900 rounded-3xl p-4 md:p-6 text-white relative overflow-hidden shadow-xl my-8 text-right" dir="rtl">
+ <div className="bg-slate-50 border border-slate-200 text-slate-900 rounded-3xl p-4 md:p-6 text-white relative overflow-hidden shadow-xl my-8 text-right" dir="rtl">
  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
  <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 blur-[100px] rounded-full pointer-events-none" />
  <div className="relative z-10 flex flex-col gap-3 mb-4">
@@ -553,7 +553,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  const isOpen = expandedHeroId === hero.id;
  const isMissing = hero.daysSinceLastOrder > 14;
  return (
- <div key={hero.id} className="rounded-2xl border border-slate-700 bg-slate-800/70 overflow-hidden">
+ <div key={hero.id} className="rounded-2xl border border-slate-700 bg-slate-50 border border-slate-200 text-slate-800/70 overflow-hidden">
  <button
  type="button"
  onClick={() => setExpandedHeroId(isOpen ? null : hero.id)}
@@ -613,7 +613,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  <div className="flex flex-col xl:flex-row items-center gap-2 md:gap-3 w-full md:w-auto">
  {/* Sorting */}
  <div className="flex items-center gap-1 md:gap-2 bg-slate-50 border border-slate-200/60 rounded-xl md:rounded-2xl p-1 w-full xl:w-auto">
- <button onClick={() => setSortBy('points')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[10px] md:text-[11px] font-bold transition-all", sortBy === 'points' ?"bg-slate-900 text-white" :"text-slate-500")}>الأعلى نقاط</button>
+ <button onClick={() => setSortBy('points')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[10px] md:text-[11px] font-bold transition-all", sortBy === 'points' ?"bg-indigo-600 text-white" :"text-slate-500")}>الأعلى نقاط</button>
  <button onClick={() => setSortBy('spent')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[10px] md:text-[11px] font-bold transition-all", sortBy === 'spent' ?"bg-slate-900 text-white" :"text-slate-500")}>الأعلى صرف</button>
  <button onClick={() => setSortBy('lastOrder')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[10px] md:text-[11px] font-bold transition-all", sortBy === 'lastOrder' ?"bg-slate-900 text-white" :"text-slate-500")}>أحدث طلب</button>
  </div>
