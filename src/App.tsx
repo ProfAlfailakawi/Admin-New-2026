@@ -1038,34 +1038,6 @@ const MainApp: React.FC = () => {
   const notifRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    let motionTimer: number | undefined;
-
-    const applyMobileGlassDockState = () => {
-      const scrollTop = Math.max(window.scrollY || 0, mainRef.current?.scrollTop || 0);
-      const shouldCondense = scrollTop > 28;
-      document.body.classList.toggle("al-mobile-ui-condensed", shouldCondense);
-      document.body.classList.add("al-mobile-ui-moving");
-
-      if (motionTimer) window.clearTimeout(motionTimer);
-      motionTimer = window.setTimeout(() => {
-        document.body.classList.remove("al-mobile-ui-moving");
-      }, 260);
-    };
-
-    const mainElement = mainRef.current;
-    applyMobileGlassDockState();
-    window.addEventListener("scroll", applyMobileGlassDockState, { passive: true });
-    mainElement?.addEventListener("scroll", applyMobileGlassDockState, { passive: true });
-
-    return () => {
-      if (motionTimer) window.clearTimeout(motionTimer);
-      window.removeEventListener("scroll", applyMobileGlassDockState);
-      mainElement?.removeEventListener("scroll", applyMobileGlassDockState);
-      document.body.classList.remove("al-mobile-ui-condensed", "al-mobile-ui-moving");
-    };
-  }, []);
-
   const closeAllMenus = () => {
     if (isMobile) setSidebarOpen(false);
     setNotifOpen(false);
