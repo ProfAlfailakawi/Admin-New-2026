@@ -2881,7 +2881,7 @@ const MainApp: React.FC = () => {
             }}
           />
         );
-        case 'ai':
+        case 'ai': return <AIAssistant data={data} currentPage={currentPage} />;
         case 'diwaniya':
           return <div className="partner-clean-shell"><PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} /></div>;
         case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
