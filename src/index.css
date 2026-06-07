@@ -4332,3 +4332,83 @@ html body .login-brand-stage h1 {
 @media(max-width:640px){
   .invoice-new-page input[type="date"]{padding-left:14px!important;padding-right:14px!important;text-align:center!important;}
 }
+
+/* Ahmad mobile review pass: precise UI-only polish for iPhone widths */
+@media (max-width: 640px){
+  html, body, #root { overflow-x: hidden; }
+
+  /* Keep currency and numbers together across dashboard / radar cards */
+  .geo-heatmap-component .tabular-nums,
+  #customers-pulse-section .tabular-nums {
+    white-space: nowrap !important;
+    letter-spacing: -0.01em;
+  }
+
+  /* Top customers: avoid currency falling under the price */
+  #customers-pulse-section h3{
+    font-size: 1.35rem !important;
+    line-height: 1.35 !important;
+  }
+  #customers-pulse-section .group\/item{
+    border-radius: 24px !important;
+    padding: 13px !important;
+  }
+  #customers-pulse-section .group\/item > div{
+    min-width: 0 !important;
+  }
+
+  /* Loyalty pagination: keep 1 / 4 on one line and centered */
+  .loyalty-pagination,
+  .loyalty-pagination *{
+    min-width: 0;
+  }
+
+  /* Date inputs were clipped on the left on iOS because the native date field needs padding room */
+  .invoice-date-input,
+  .supplier-date-input{
+    direction: ltr !important;
+    text-align: center !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    -webkit-appearance: none;
+    appearance: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .invoice-date-input::-webkit-date-and-time-value,
+  .supplier-date-input::-webkit-date-and-time-value{
+    text-align: center;
+    min-width: 0;
+  }
+
+  /* Supplier payment modal: prevent horizontal drift while keeping the fixed footer stable */
+  .supplier-transfer-modal{
+    width: calc(100vw - 22px) !important;
+    max-width: calc(100vw - 22px) !important;
+    margin-inline: auto !important;
+  }
+  .supplier-transfer-modal .grid,
+  .supplier-transfer-modal .space-y-6,
+  .supplier-transfer-modal .space-y-2{
+    min-width: 0 !important;
+  }
+  .supplier-transfer-modal input,
+  .supplier-transfer-modal select,
+  .supplier-transfer-modal textarea{
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Assistant input: show the full placeholder and keep icons from squeezing text */
+  .ai-input-wrap{
+    display: grid !important;
+    grid-template-columns: 18px minmax(0,1fr) 40px !important;
+    align-items: center !important;
+  }
+  .ai-input-wrap textarea{
+    white-space: normal !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+    min-height: 42px !important;
+    padding-block: 7px !important;
+  }
+}

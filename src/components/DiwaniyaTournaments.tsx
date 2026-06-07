@@ -1299,9 +1299,9 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
               <Crown className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
             </div>
             <div>
-              <div className="text-sm font-black text-slate-800 flex flex-wrap items-center justify-end gap-2">
-                <span>شريط مستويات الدواوين</span>
-                <span className="inline-flex items-center whitespace-nowrap bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+              <div className="text-sm font-black text-slate-800 flex flex-wrap items-center justify-end gap-2 min-w-0">
+                <span className="shrink-0">شريط مستويات الدواوين</span>
+                <span className="inline-flex items-center whitespace-nowrap bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full leading-5">
                   {tiers.length} مستويات تتبع النقاط
                 </span>
               </div>
@@ -1677,7 +1677,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                             
                             return (
                           <React.Fragment key={s.id}>
-                            <tr className={`transition-colors cursor-pointer ${expandedSquadId === s.id ? 'bg-blue-50/30' : 'hover:bg-slate-50/50'}`} onClick={() => setExpandedSquadId(String(expandedSquadId) === String(s.id) ? null : s.id)}>
+                            <tr className={`transition-colors cursor-pointer ${String(expandedSquadId) === String(s.id) ? 'bg-blue-50/30' : 'hover:bg-slate-50/50'}`} onClick={() => setExpandedSquadId(String(expandedSquadId) === String(s.id) ? null : s.id)}>
                               <td className="p-4 pr-6 font-bold text-slate-800">
                                 <div className="flex items-center gap-2">
                                   {editingSquadId === s.id ? (
@@ -1691,7 +1691,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                   ) : (
                                     <span>{s.name}</span>
                                   )}
-                                  {expandedSquadId === s.id ? <span className="text-blue-500 text-xs">▼</span> : <span className="text-slate-400 text-xs">◀</span>}
+                                  {String(expandedSquadId) === String(s.id) ? <span className="text-blue-500 text-xs">▼</span> : <span className="text-slate-400 text-xs">◀</span>}
                                 </div>
                               </td>
                               <td className="p-4">
@@ -1773,7 +1773,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                 </div>
                               </td>
                             </tr>
-                            {expandedSquadId === s.id && (
+                            {String(expandedSquadId) === String(s.id) && (
                               <tr className="bg-slate-50/50 table-row">
                                 <td colSpan={7} className="p-0">
                                   <div className="p-4 pr-12 bg-blue-50/10 border-t border-b border-blue-100/50">

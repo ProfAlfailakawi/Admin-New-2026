@@ -5553,7 +5553,7 @@ const [isPending, startTransition] = useTransition();
                         key={c.id}
                         className="flex flex-col p-3 bg-slate-900/50 backdrop-blur-sm rounded-3xl border border-slate-800/80 hover:border-amber-500/50 hover:bg-slate-800/80 transition-all group/item cursor-pointer shadow-lg active:scale-95 text-right w-full"
                       >
-                        <div className="flex items-center gap-3 flex-row-reverse w-full">
+                        <div className="flex items-center gap-3 flex-row-reverse w-full min-w-0">
                           <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xs shadow-inner group-hover/item:scale-110 group-hover/item:bg-amber-500/20 transition-all shrink-0">
                             {c.name.slice(0, 2).toUpperCase()}
                           </div>
@@ -5565,9 +5565,9 @@ const [isPending, startTransition] = useTransition();
                               {c.totalOrders || 0} طلب
                             </div>
                           </div>
-                          <div className="text-left shrink-0 pl-2 border-l border-slate-800/20 min-w-[92px]" dir="ltr">
-                            <div className="font-bold text-amber-400 text-sm whitespace-nowrap">
-                              {Number(c.totalSpent || 0).toFixed(3)} <span className="text-[10px] text-amber-500/70 font-black">د.ك</span>
+                          <div className="text-left shrink-0 pl-2 border-l border-slate-800/20 min-w-[108px]" dir="ltr">
+                            <div className="font-black text-amber-400 text-[13px] min-[390px]:text-sm whitespace-nowrap tabular-nums leading-none">
+                              {Number(c.totalSpent || 0).toFixed(3)} <span className="text-[10px] text-amber-500/70 font-black inline-block align-baseline">د.ك</span>
                             </div>
                           </div>
                         </div>

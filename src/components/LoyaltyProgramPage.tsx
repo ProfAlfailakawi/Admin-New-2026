@@ -850,11 +850,11 @@ setSearchTerm(val);
 
  {/* Pagination Controls */}
  {totalPages > 1 && (
- <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-100 px-4">
- <div className="text-sm font-bold text-slate-500">
+ <div className="loyalty-pagination flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mt-6 pt-6 border-t border-slate-100 px-1 sm:px-4">
+ <div className="text-xs sm:text-sm font-bold text-slate-500 text-right leading-6 order-2 sm:order-1">
  إظهار {((currentPage - 1) * rowsPerPage) + 1} إلى {Math.min(currentPage * rowsPerPage, filteredCustomers.length)} من {filteredCustomers.length} عميل
  </div>
- <div className="flex items-center gap-2">
+ <div className="flex items-center justify-center gap-2 order-1 sm:order-2">
  <button 
  onClick={() => handlePageChange(currentPage - 1)}
  disabled={currentPage === 1}
@@ -862,7 +862,7 @@ setSearchTerm(val);
  >
  <ChevronRight size={18} />
  </button>
- <div className="px-4 py-1.5 font-bold text-sm bg-amber-50 text-amber-700 rounded-xl border border-amber-100">
+ <div className="inline-flex items-center justify-center min-w-[74px] px-4 py-2 font-black text-sm bg-amber-50 text-amber-700 rounded-xl border border-amber-100 whitespace-nowrap tabular-nums">
  {currentPage} / {totalPages}
  </div>
  <button 

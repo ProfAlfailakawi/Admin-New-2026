@@ -591,7 +591,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  onClick={e => e.stopPropagation()}
  >
  <div className="p-3 md:p-4 md:p-3 pb-0 shrink-0">
- <h2 className="text-2xl font-bold text-slate-800 mb-8 flex items-center gap-3 justify-end leading-tight text-right">
+ <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-5 sm:mb-8 flex items-center gap-3 justify-end leading-tight text-right">
  تسجيل دفعة مورد
  <CreditCard className="text-emerald-500" />
  </h2>
@@ -690,7 +690,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <input 
  type="date"
  lang="en-GB" dir="ltr"
- className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-5 mb-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right text-lg"
+ className="supplier-date-input w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-4 mb-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-center text-base sm:text-lg"
  value={transferForm.date.split('T')[0]}
  onChange={(e) => setTransferForm({ ...transferForm, date: e.target.value ? new Date(e.target.value).toISOString() : new Date().toISOString() })}
  />
