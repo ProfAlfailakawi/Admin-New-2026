@@ -499,13 +499,13 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
            </div>
            
            {/* Real Compass needle element with gentle micro-swing animation */}
-           <svg width="310" height="310" viewBox="0 0 320 320" className="absolute inset-0 m-auto pointer-events-none z-0">
+           <svg width={compassSize - 10} height={compassSize - 10} viewBox="0 0 320 320" className="absolute inset-0 m-auto pointer-events-none z-0">
              <motion.g
                initial={{ rotate: 15 }}
-               animate={{ rotate: [15, 45, 25, 38, 32, 35] }}
+               animate={{ rotate: [15, 38, 22, 34, 28, 30] }}
                transition={{
-                 duration: 6,
-                 ease: "easeOut",
+                 duration: 7,
+                 ease: "easeInOut",
                  repeat: Infinity,
                  repeatType: "reverse"
                }}
@@ -4228,13 +4228,13 @@ const GeneralSettings: React.FC<Props> = ({
                               </div>
                             </div>
 
-                            <details className="rounded-[1.8rem] border border-white/10 bg-white/10 p-4 text-white overflow-hidden">
+                            <details className="rounded-[1.8rem] border border-white/10 bg-slate-900/72 p-4 text-white overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                               <summary className="cursor-pointer list-none flex items-center justify-between gap-3 select-none">
                                 <div>
-                                  <div className="text-[10px] font-black text-white/40">فحص كأني عميل</div>
-                                  <h4 className="mt-1 text-sm font-black leading-6">{pushCustomerVerdict}</h4>
+                                  <div className="text-[10px] font-black text-slate-300">فحص كأني عميل</div>
+                                  <h4 className="mt-1 text-sm font-black leading-6 text-white">{pushCustomerVerdict}</h4>
                                 </div>
-                                <span className="rounded-2xl bg-white/10 px-3 py-2 text-[10px] font-black">عرض التفاصيل</span>
+                                <span className="rounded-2xl bg-white/14 border border-white/10 px-3 py-2 text-[10px] font-black text-white">عرض التفاصيل</span>
                               </summary>
                               <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
                                 {[
@@ -4256,19 +4256,19 @@ const GeneralSettings: React.FC<Props> = ({
                               </div>
                             </details>
 
-                            <div className={cn("rounded-2xl border px-3 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3", pushHealth.tone === "success" ? "bg-emerald-400/15 border-emerald-300/20" : pushHealth.tone === "danger" ? "bg-rose-400/15 border-rose-300/20" : "bg-amber-400/15 border-amber-300/20")}>
+                            <div className="push-browser-health-card rounded-2xl border border-rose-900/10 bg-rose-50 px-3 py-3 text-slate-900 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-[0_16px_34px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.88)]">
                               <div>
-                                <div className="text-xs font-black">نبض هذا المتصفح: {pushHealth.verdict}</div>
-                                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-white/60">
-                                  <span className="rounded-full bg-white/10 px-2 py-0.5">{pushHealth.support}</span>
-                                  <span className="rounded-full bg-white/10 px-2 py-0.5">{pushHealth.permission}</span>
-                                  <span className="rounded-full bg-white/10 px-2 py-0.5">{pushHealth.serviceWorker}</span>
+                                <div className="text-xs font-black text-slate-950">نبض هذا المتصفح: {pushHealth.verdict}</div>
+                                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-slate-700">
+                                  <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{pushHealth.support}</span>
+                                  <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{pushHealth.permission}</span>
+                                  <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{pushHealth.serviceWorker}</span>
                                 </div>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => setPushHealthDetailsOpen((v) => !v)}
-                                className="rounded-xl bg-white/10 px-3 py-2 text-[10px] font-black text-white hover:bg-white/15 transition flex items-center justify-center gap-1"
+                                className="rounded-xl bg-white/80 border border-rose-900/10 px-3 py-2 text-[10px] font-black text-slate-900 hover:bg-white transition flex items-center justify-center gap-1"
                               >
                                 التفاصيل الفنية
                                 <ChevronDown size={14} className={cn("transition-transform", pushHealthDetailsOpen ? "rotate-180" : "")} />
@@ -4302,7 +4302,7 @@ const GeneralSettings: React.FC<Props> = ({
                               </div>
                             )}
 
-                            <div id="push-radar-list" className="flex flex-col lg:flex-row gap-2 lg:items-start lg:justify-between scroll-mt-24">
+                            <div id="push-radar-list" className="push-radar-list-clean flex flex-col lg:flex-row gap-2 lg:items-start lg:justify-between scroll-mt-24">
                               <details className="rounded-2xl bg-white/10 border border-white/10 p-1 overflow-hidden">
                                 <summary className="cursor-pointer list-none rounded-xl px-3 py-2 text-[11px] font-black text-white flex items-center justify-between gap-3 min-w-44">
                                   <span>قائمة الرادار</span>
@@ -4342,7 +4342,7 @@ const GeneralSettings: React.FC<Props> = ({
                             </div>
 
                             {pushDeviceTab === "users" && (
-                              <div className="grid gap-3">
+                              <div className="push-radar-users-clean grid gap-3">
                                 <div className="rounded-2xl border border-white/10 bg-slate-950/35 px-3 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-white">
                                   <div className="text-[11px] font-black">
                                     أنت الآن تشاهد: {pushDeviceMapFilter === "all" ? "كل المستخدمين والأجهزة" : pushDeviceMapFilter === "golden" ? "الأجهزة الذهبية الجاهزة" : pushDeviceMapFilter === "silent" ? "الأجهزة الصامتة" : pushDeviceMapFilter === "ghost" ? "الأجهزة الشبحية/القديمة" : "الحسابات بلا جهاز"}
@@ -4365,42 +4365,42 @@ const GeneralSettings: React.FC<Props> = ({
                                   const firstDevice = card.bestDevice;
                                   const expanded = expandedPushDeviceId === card.key;
                                   return (
-                                    <div key={card.key} className={cn("rounded-[1.5rem] border p-3 md:p-4 overflow-hidden max-w-full", card.state.className)}>
+                                    <div key={card.key} className="push-radar-user-card push-radar-readable-card push-radar-night-card rounded-[1.5rem] border p-3 md:p-4 overflow-hidden max-w-full" style={{ background: "radial-gradient(circle at top right, rgba(245,158,11,0.18), transparent 36%), linear-gradient(145deg, #0f172a 0%, #111827 48%, #1e1b4b 100%)", borderColor: "rgba(245,158,11,0.34)", color: "#f8fafc", boxShadow: "0 22px 54px rgba(2,6,23,0.34), inset 0 1px 0 rgba(255,255,255,0.10)" }}>
                                       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 min-w-0 max-w-full">
                                         <div className="min-w-0 flex-1">
                                           <div className="flex flex-wrap items-center gap-2 min-w-0">
                                             <span className={cn("h-2.5 w-2.5 rounded-full", card.state.dot)} />
                                             <div className="min-w-0">
-                                              <h4 className="text-base font-black truncate">{getPushPersonName(card.identity, card.identity.id)}</h4>
-                                              <div className="mt-0.5 truncate text-[11px] font-bold text-white/55">{getPushPersonSubtitle(card.identity, card.identity.id)}</div>
+                                              <h4 className="push-radar-readable-title text-base font-black truncate" style={{ color: "#ffffff" }}>{getPushPersonName(card.identity, card.identity.id)}</h4>
+                                              <div className="push-radar-readable-muted mt-0.5 truncate text-[11px] font-bold" style={{ color: "#cbd5e1" }}>{getPushPersonSubtitle(card.identity, card.identity.id)}</div>
                                             </div>
-                                            <span className="rounded-full bg-white/10 border border-white/10 px-2 py-0.5 text-[10px] font-black text-white/60">{cleanRole(card.identity.role)}</span>
-                                            <span className="rounded-full bg-black/15 border border-white/10 px-2 py-0.5 text-[10px] font-black">{card.state.label}</span>
+                                            <span className="push-radar-readable-pill rounded-full border px-2 py-0.5 text-[10px] font-black" style={{ background: "rgba(245,158,11,0.16)", borderColor: "rgba(251,191,36,0.28)", color: "#fde68a" }}>{cleanRole(card.identity.role)}</span>
+                                            <span className="push-radar-readable-status rounded-full border px-2 py-0.5 text-[10px] font-black" style={{ background: "rgba(255,255,255,0.94)", borderColor: "rgba(251,191,36,0.28)", color: "#7c2d12" }}>{card.state.label}</span>
                                           </div>
-                                          <p className="mt-1 text-xs font-bold leading-6 text-white/65">{card.state.detail}</p>
+                                          <p className="push-radar-readable-detail mt-1 text-xs font-bold leading-6" style={{ color: "#e2e8f0" }}>{card.state.detail}</p>
                                           <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
-                                            <div className="rounded-2xl bg-black/15 border border-white/10 p-3">
-                                              <span className="block text-[10px] font-black text-white/40">الأجهزة</span>
-                                              <strong className="mt-1 block text-sm font-black">{card.devices.length ? `${card.devices.length} جهاز` : "لا يوجد"}</strong>
+                                            <div className="push-radar-readable-metric rounded-2xl border p-3" style={{ background: "rgba(15,23,42,0.72)", borderColor: "rgba(148,163,184,0.22)" }}>
+                                              <span className="push-radar-readable-label block text-[10px] font-black" style={{ color: "#fcd34d" }}>الأجهزة</span>
+                                              <strong className="push-radar-readable-value mt-1 block text-sm font-black" style={{ color: "#ffffff" }}>{card.devices.length ? `${card.devices.length} جهاز` : "لا يوجد"}</strong>
                                             </div>
-                                            <div className="rounded-2xl bg-black/15 border border-white/10 p-3 min-w-0">
-                                              <span className="block text-[10px] font-black text-white/40">آخر إشعار وصل</span>
-                                              <strong className="mt-1 block truncate text-sm font-black">{card.latestDelivered?.title || "لا يوجد وصول مؤكد"}</strong>
-                                              {card.latestDelivered?.message && <span className="mt-1 block truncate text-[11px] font-bold text-white/50">{card.latestDelivered.message}</span>}
-                                              {card.latestDelivered?.date && <span className="mt-1 block text-[10px] font-bold text-white/45">{card.latestDelivered.date}</span>}
+                                            <div className="push-radar-readable-metric rounded-2xl border p-3 min-w-0" style={{ background: "rgba(15,23,42,0.72)", borderColor: "rgba(148,163,184,0.22)" }}>
+                                              <span className="push-radar-readable-label block text-[10px] font-black" style={{ color: "#fcd34d" }}>آخر إشعار وصل</span>
+                                              <strong className="push-radar-readable-value mt-1 block truncate text-sm font-black" style={{ color: "#ffffff" }}>{card.latestDelivered?.title || "لا يوجد وصول مؤكد"}</strong>
+                                              {card.latestDelivered?.message && <span className="push-radar-readable-muted mt-1 block truncate text-[11px] font-bold text-slate-600">{card.latestDelivered.message}</span>}
+                                              {card.latestDelivered?.date && <span className="push-radar-readable-muted mt-1 block text-[10px] font-bold text-slate-500">{card.latestDelivered.date}</span>}
                                             </div>
-                                            <div className="rounded-2xl bg-black/15 border border-white/10 p-3">
-                                              <span className="block text-[10px] font-black text-white/40">آخر محاولة</span>
-                                              <strong className="mt-1 block text-sm font-black">{getDeliveryMilestoneSummary(card.latest)}</strong>
-                                              {card.latest?.title && <span className="mt-1 block truncate text-[10px] font-bold text-white/45">{card.latest.title}</span>}
+                                            <div className="push-radar-readable-metric rounded-2xl border p-3" style={{ background: "rgba(15,23,42,0.72)", borderColor: "rgba(148,163,184,0.22)" }}>
+                                              <span className="push-radar-readable-label block text-[10px] font-black" style={{ color: "#fcd34d" }}>آخر محاولة</span>
+                                              <strong className="push-radar-readable-value mt-1 block text-sm font-black" style={{ color: "#ffffff" }}>{getDeliveryMilestoneSummary(card.latest)}</strong>
+                                              {card.latest?.title && <span className="push-radar-readable-muted mt-1 block truncate text-[10px] font-bold text-slate-500">{card.latest.title}</span>}
                                             </div>
                                           </div>
-                                          <div className="mt-3 rounded-2xl border border-white/10 bg-black/15 p-3">
+                                          <div className="push-radar-readable-panel mt-3 rounded-2xl border p-3" style={{ background: "rgba(2,6,23,0.42)", borderColor: "rgba(251,191,36,0.22)" }}>
                                             <div className="mb-2 flex items-center justify-between gap-2">
-                                              <span className="text-[10px] font-black text-white/40">مسار آخر إشعار</span>
-                                              <span className="text-[10px] font-bold text-white/45">عرض مبسط فقط — بدون تغيير نظام الإرسال</span>
+                                              <span className="push-radar-readable-label text-[10px] font-black" style={{ color: "#fcd34d" }}>مسار آخر إشعار</span>
+                                              <span className="push-radar-readable-muted text-[10px] font-bold" style={{ color: "#cbd5e1" }}>عرض مبسط فقط — بدون تغيير نظام الإرسال</span>
                                             </div>
-                                            <div className="mb-2 rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/70">
+                                            <div className="push-radar-readable-note mb-2 rounded-xl border px-3 py-2 text-[11px] font-bold" style={{ background: "rgba(255,255,255,0.08)", borderColor: "rgba(251,191,36,0.18)", color: "#f8fafc" }}>
                                               {getDeliveryHumanReason(card.latest, card.bestDevice)}
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-w-full">
@@ -4410,8 +4410,8 @@ const GeneralSettings: React.FC<Props> = ({
                                                   className={cn(
                                                     "rounded-xl border px-2.5 py-2 text-[10px] font-black flex items-center gap-2",
                                                     step.done
-                                                      ? "border-emerald-300/25 bg-emerald-400/15 text-emerald-50"
-                                                      : "border-white/10 bg-white/5 text-white/35",
+                                                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                                      : "border-slate-200 bg-slate-50 text-slate-500",
                                                   )}
                                                 >
                                                   <span className={cn("h-2 w-2 rounded-full", step.done ? "bg-emerald-300" : "bg-white/20")} />
@@ -4421,7 +4421,7 @@ const GeneralSettings: React.FC<Props> = ({
                                             </div>
                                           </div>
                                           {card.lastTestResult && (
-                                            <div className="mt-2 rounded-2xl bg-white/10 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/70">
+                                            <div className="push-radar-readable-note mt-2 rounded-2xl border px-3 py-2 text-[11px] font-bold" style={{ background: "rgba(255,255,255,0.08)", borderColor: "rgba(251,191,36,0.18)", color: "#f8fafc" }}>
                                               {card.lastTestResult}
                                             </div>
                                           )}
@@ -4444,7 +4444,7 @@ const GeneralSettings: React.FC<Props> = ({
                                           <button
                                             type="button"
                                             onClick={() => setExpandedPushDeviceId(expanded ? null : card.key)}
-                                            className="min-w-0 rounded-2xl bg-white/10 border border-white/10 px-2.5 py-2.5 text-[10px] sm:text-[11px] font-black text-white hover:bg-white/15 transition flex items-center justify-center gap-1.5"
+                                            className="push-radar-details-btn min-w-0 rounded-2xl bg-white/75 border border-amber-900/10 px-2.5 py-2.5 text-[10px] sm:text-[11px] font-black text-slate-800 hover:bg-white transition flex items-center justify-center gap-1.5"
                                           >
                                             التفاصيل
                                             <ChevronDown size={13} className={cn("transition-transform", expanded ? "rotate-180" : "")} />
@@ -4452,20 +4452,20 @@ const GeneralSettings: React.FC<Props> = ({
                                         </div>
                                       </div>
                                       {expanded && (
-                                        <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/30 p-2.5 sm:p-3 space-y-3 overflow-hidden max-w-full">
+                                        <div className="push-radar-readable-expanded mt-3 rounded-2xl border p-2.5 sm:p-3 space-y-3 overflow-hidden max-w-full" style={{ background: "rgba(2,6,23,0.36)", borderColor: "rgba(251,191,36,0.22)", color: "#f8fafc" }}>
                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-w-full overflow-hidden">
                                             {(card.devices || []).map((device) => {
                                               const readiness = getPushReadinessVerdict(device);
                                               return (
-                                                <div key={device.id} className="rounded-2xl bg-white/10 border border-white/10 p-3 min-w-0 overflow-hidden max-w-full">
+                                                <div key={device.id} className="push-radar-readable-device rounded-2xl border p-3 min-w-0 overflow-hidden max-w-full" style={{ background: "rgba(15,23,42,0.72)", borderColor: "rgba(148,163,184,0.22)", color: "#f8fafc" }}>
                                                   <div className="grid grid-cols-[1fr_auto] items-center gap-2 min-w-0">
                                                     <strong className="block min-w-0 truncate text-xs font-black">{device.label}</strong>
                                                     <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black", getPushDeviceConfidenceMeta(getPushDeviceConfidence(device)).className)}>{getPushDeviceConfidence(device)}%</span>
                                                   </div>
-                                                  <p className="mt-2 text-[10px] font-bold leading-5 text-white/55">{readiness.detail}</p>
-                                                  <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold text-white/55">
-                                                    <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{device.platform || device.deviceType || "جهاز"}</span>
-                                                    <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{isMissingTimestamp(device.lastRead) ? "بلا قراءة" : device.lastRead}</span>
+                                                  <p className="push-radar-readable-muted mt-2 text-[10px] font-bold leading-5 text-slate-600">{readiness.detail}</p>
+                                                  <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-600">
+                                                    <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{device.platform || device.deviceType || "جهاز"}</span>
+                                                    <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{isMissingTimestamp(device.lastRead) ? "بلا قراءة" : device.lastRead}</span>
                                                   </div>
                                                 </div>
                                               );
@@ -4473,20 +4473,20 @@ const GeneralSettings: React.FC<Props> = ({
                                           </div>
                                           {card.deliveredNotifications.length > 0 ? (
                                             <div className="space-y-2">
-                                              <div className="text-[10px] font-black text-white/45">آخر الإشعارات التي وصلت لهذا المستخدم</div>
+                                              <div className="push-radar-readable-label text-[10px] font-black" style={{ color: "#fcd34d" }}>آخر الإشعارات التي وصلت لهذا المستخدم</div>
                                               {card.deliveredNotifications.slice(0, 4).map((notification: any) => (
-                                                <div key={notification.id} className="rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/70 space-y-2">
+                                                <div key={notification.id} className="push-radar-readable-notification rounded-xl border px-3 py-2 text-[11px] font-bold space-y-2" style={{ background: "rgba(15,23,42,0.72)", borderColor: "rgba(148,163,184,0.22)", color: "#f8fafc" }}>
                                                   <div className="flex items-center justify-between gap-3">
                                                     <span className="truncate">{notification.title}</span>
-                                                    <span className="shrink-0 text-white/40">{getDeliveryMilestoneSummary(notification)}</span>
+                                                    <span className="push-radar-readable-muted shrink-0 text-slate-500">{getDeliveryMilestoneSummary(notification)}</span>
                                                   </div>
-                                                  {notification.message && <div className="truncate text-[10px] text-white/45">{notification.message}</div>}
+                                                  {notification.message && <div className="push-radar-readable-muted truncate text-[10px] text-slate-500">{notification.message}</div>}
                                                   {(() => {
                                                     const recipient = getPushNotificationRecipientMeta(notification);
                                                     return (
-                                                      <div className="grid md:grid-cols-2 gap-1.5 text-[10px] font-black text-white/50">
-                                                        <span className="rounded-lg bg-white/5 border border-white/10 px-2 py-1 truncate">أُرسل إلى: {recipient.name}</span>
-                                                        <span className="rounded-lg bg-white/5 border border-white/10 px-2 py-1 truncate">الجهاز: {recipient.deviceLabel}</span>
+                                                      <div className="grid md:grid-cols-2 gap-1.5 text-[10px] font-black text-slate-600">
+                                                        <span className="rounded-lg bg-slate-50 border border-slate-200 px-2 py-1 truncate text-slate-700">أُرسل إلى: {recipient.name}</span>
+                                                        <span className="rounded-lg bg-slate-50 border border-slate-200 px-2 py-1 truncate text-slate-700">الجهاز: {recipient.deviceLabel}</span>
                                                       </div>
                                                     );
                                                   })()}
@@ -4654,9 +4654,9 @@ const GeneralSettings: React.FC<Props> = ({
                                         <span className="rounded-full bg-black/20 px-2 py-0.5 text-[9px] font-black text-white/50">{getPushStatusMeta(device.status).label}</span>
                                       </div>
                                       <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold text-white/50">
-                                        <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{device.userEmail || device.userName || cleanPushAccountLabel(device.userId, "بلا إيميل محفوظ")}</span>
-                                        <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{device.platform || device.deviceType || "No platform"}</span>
-                                        <span className="rounded-xl bg-black/20 px-2 py-1 truncate">{device.lastRead}</span>
+                                        <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{device.userEmail || device.userName || cleanPushAccountLabel(device.userId, "بلا إيميل محفوظ")}</span>
+                                        <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{device.platform || device.deviceType || "No platform"}</span>
+                                        <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{device.lastRead}</span>
                                         <span className="rounded-xl bg-black/20 px-2 py-1 truncate" dir="ltr">{device.token ? `${device.token.slice(0, 12)}...${device.token.slice(-8)}` : "No token"}</span>
                                       </div>
                                     </div>

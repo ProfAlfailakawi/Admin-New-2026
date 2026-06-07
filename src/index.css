@@ -4946,3 +4946,331 @@ html body .login-brand-stage h1 {
     gap:12px!important;
   }
 }
+
+/* Push radar visual readability patch: layout and color contrast only. */
+.push-radar-status-strip{
+  background:linear-gradient(135deg,rgba(15,23,42,.72),rgba(30,41,59,.62))!important;
+  border-color:rgba(226,232,240,.16)!important;
+  color:#f8fafc!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 18px 36px rgba(2,6,23,.18)!important;
+}
+.push-radar-status-strip [class*="text-white/60"],
+.push-radar-status-strip [class*="text-white/45"],
+.push-radar-status-strip [class*="text-white/35"]{
+  color:rgba(226,232,240,.78)!important;
+}
+.push-radar-status-strip [class*="bg-white/10"]{
+  background:rgba(255,255,255,.12)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+}
+.push-radar-list-clean details{
+  background:rgba(15,23,42,.66)!important;
+  border-color:rgba(226,232,240,.14)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important;
+}
+.push-radar-list-clean summary{
+  color:#f8fafc!important;
+}
+.push-radar-users-clean > div:not(.push-radar-user-card){
+  background:rgba(15,23,42,.62)!important;
+  border-color:rgba(226,232,240,.14)!important;
+  color:#f8fafc!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06)!important;
+}
+.push-radar-users-clean > div:not(.push-radar-user-card) [class*="text-white/45"]{
+  color:rgba(203,213,225,.74)!important;
+}
+.push-radar-user-card{
+  background:linear-gradient(135deg,#fffaf0 0%,#fff7db 46%,#ffffff 100%)!important;
+  border-color:rgba(180,83,9,.24)!important;
+  color:#1e293b!important;
+  box-shadow:0 18px 42px rgba(15,23,42,.12),inset 0 1px 0 rgba(255,255,255,.88)!important;
+}
+.push-radar-user-card h4,
+.push-radar-user-card strong{
+  color:#0f172a!important;
+  text-shadow:none!important;
+}
+.push-radar-user-card p,
+.push-radar-user-card span,
+.push-radar-user-card div{
+  text-shadow:none!important;
+}
+.push-radar-user-card [class*="text-white"],
+.push-radar-user-card [class*="text-amber-100"],
+.push-radar-user-card [class*="text-emerald-100"]{
+  color:#475569!important;
+}
+.push-radar-user-card [class*="text-white/40"],
+.push-radar-user-card [class*="text-white/45"],
+.push-radar-user-card [class*="text-white/50"],
+.push-radar-user-card [class*="text-white/55"],
+.push-radar-user-card [class*="text-white/60"],
+.push-radar-user-card [class*="text-white/65"],
+.push-radar-user-card [class*="text-white/70"]{
+  color:#64748b!important;
+}
+.push-radar-user-card [class*="bg-black/15"],
+.push-radar-user-card [class*="bg-black/20"],
+.push-radar-user-card [class*="bg-slate-950/30"],
+.push-radar-user-card [class*="bg-white/10"],
+.push-radar-user-card [class*="bg-white/5"]{
+  background:rgba(15,23,42,.055)!important;
+  border-color:rgba(15,23,42,.10)!important;
+}
+.push-radar-user-card button[class*="bg-white/10"]{
+  background:rgba(255,255,255,.76)!important;
+  border-color:rgba(15,23,42,.12)!important;
+  color:#1e293b!important;
+}
+.push-radar-user-card button[class*="bg-white/10"] svg{
+  color:#1e293b!important;
+}
+.push-radar-user-card .rounded-full[class*="bg-black/15"],
+.push-radar-user-card .rounded-full[class*="bg-white/10"]{
+  background:rgba(146,64,14,.10)!important;
+  border-color:rgba(146,64,14,.16)!important;
+  color:#78350f!important;
+}
+.push-radar-user-card [class*="bg-emerald-400/15"]{
+  background:rgba(16,185,129,.12)!important;
+  border-color:rgba(5,150,105,.20)!important;
+  color:#065f46!important;
+}
+.push-radar-user-card [class*="bg-amber-400/10"],
+.push-radar-user-card [class*="bg-amber-400/15"]{
+  background:rgba(245,158,11,.14)!important;
+  border-color:rgba(217,119,6,.22)!important;
+  color:#78350f!important;
+}
+.push-radar-user-card [class*="bg-rose-400/10"],
+.push-radar-user-card [class*="bg-rose-400/15"]{
+  background:rgba(244,63,94,.10)!important;
+  border-color:rgba(225,29,72,.18)!important;
+  color:#881337!important;
+}
+@media (max-width:760px){
+  .push-radar-status-strip,
+  .push-radar-user-card{
+    border-radius:22px!important;
+  }
+  .push-radar-user-card{
+    padding:14px!important;
+  }
+}
+
+/* Strong push radar readability fix: direct readable classes, visual only. */
+.push-radar-readable-card,
+.push-radar-readable-card *{
+  text-shadow:none!important;
+}
+.push-radar-readable-card{
+  background:linear-gradient(145deg,#fffdf2 0%,#fff4c9 44%,#fffaf0 100%)!important;
+  border:1px solid rgba(217,119,6,.42)!important;
+  color:#0f172a!important;
+  box-shadow:0 18px 46px rgba(15,23,42,.14),inset 0 1px 0 rgba(255,255,255,.9)!important;
+}
+.push-radar-readable-title,
+.push-radar-readable-card h4{
+  color:#111827!important;
+  opacity:1!important;
+}
+.push-radar-readable-value,
+.push-radar-readable-card strong{
+  color:#0f172a!important;
+  opacity:1!important;
+}
+.push-radar-readable-detail,
+.push-radar-readable-note,
+.push-radar-readable-card p{
+  color:#334155!important;
+  opacity:1!important;
+}
+.push-radar-readable-muted,
+.push-radar-readable-card [class*="text-white/35"],
+.push-radar-readable-card [class*="text-white/40"],
+.push-radar-readable-card [class*="text-white/45"],
+.push-radar-readable-card [class*="text-white/50"],
+.push-radar-readable-card [class*="text-white/55"],
+.push-radar-readable-card [class*="text-white/60"],
+.push-radar-readable-card [class*="text-white/65"],
+.push-radar-readable-card [class*="text-white/70"]{
+  color:#475569!important;
+  opacity:1!important;
+}
+.push-radar-readable-label{
+  color:#64748b!important;
+  opacity:1!important;
+}
+.push-radar-readable-pill,
+.push-radar-readable-status{
+  background:rgba(255,255,255,.82)!important;
+  border-color:rgba(146,64,14,.18)!important;
+  color:#78350f!important;
+}
+.push-radar-readable-metric,
+.push-radar-readable-panel,
+.push-radar-readable-expanded,
+.push-radar-readable-device,
+.push-radar-readable-notification{
+  background:rgba(255,255,255,.74)!important;
+  border-color:rgba(146,64,14,.13)!important;
+  color:#1e293b!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.72)!important;
+}
+.push-radar-readable-note{
+  background:rgba(255,251,235,.86)!important;
+  border-color:rgba(217,119,6,.16)!important;
+}
+.push-radar-details-btn{
+  color:#1e293b!important;
+  background:rgba(255,255,255,.82)!important;
+  border-color:rgba(146,64,14,.16)!important;
+}
+.push-radar-details-btn svg{
+  color:#1e293b!important;
+}
+.push-radar-readable-card .text-white,
+.push-radar-readable-card [class~="text-white"]{
+  color:#334155!important;
+}
+.push-radar-readable-card .bg-white,
+.push-radar-readable-card button.bg-white{
+  color:#0f172a!important;
+}
+
+/* Push radar v3: final contrast fix for the browser pulse card and light radar cards only. */
+.push-browser-health-card,
+.push-browser-health-card *{
+  text-shadow:none!important;
+}
+.push-browser-health-card{
+  background:linear-gradient(145deg,#fff7f7 0%,#ffecec 58%,#ffffff 100%)!important;
+  border-color:rgba(127,29,29,.16)!important;
+  color:#0f172a!important;
+}
+.push-browser-health-card [class*="text-white"],
+.push-browser-health-card [class*="text-white/"],
+.push-browser-health-card span,
+.push-browser-health-card div,
+.push-browser-health-card button{
+  color:#0f172a!important;
+  opacity:1!important;
+}
+.push-browser-health-card span[class*="rounded-full"]{
+  background:rgba(255,255,255,.82)!important;
+  border:1px solid rgba(127,29,29,.12)!important;
+  color:#475569!important;
+}
+.push-browser-health-card button{
+  background:rgba(255,255,255,.86)!important;
+  border:1px solid rgba(127,29,29,.12)!important;
+  color:#0f172a!important;
+}
+.push-radar-readable-card{
+  background:linear-gradient(145deg,#fffbea 0%,#fff2bf 46%,#fffdf4 100%)!important;
+  color:#0f172a!important;
+}
+.push-radar-readable-card,
+.push-radar-readable-card *{
+  opacity:1!important;
+  text-shadow:none!important;
+}
+.push-radar-readable-card .push-radar-readable-title,
+.push-radar-readable-card h4{
+  color:#111827!important;
+}
+.push-radar-readable-card .push-radar-readable-value,
+.push-radar-readable-card strong{
+  color:#0f172a!important;
+}
+.push-radar-readable-card .push-radar-readable-detail,
+.push-radar-readable-card .push-radar-readable-muted,
+.push-radar-readable-card .push-radar-readable-label,
+.push-radar-readable-card p,
+.push-radar-readable-card span,
+.push-radar-readable-card div{
+  color:#334155!important;
+}
+.push-radar-readable-card .push-radar-readable-pill,
+.push-radar-readable-card .push-radar-readable-status{
+  color:#78350f!important;
+}
+.push-radar-readable-card .push-radar-readable-metric,
+.push-radar-readable-card .push-radar-readable-panel,
+.push-radar-readable-card .push-radar-readable-note,
+.push-radar-readable-card .push-radar-readable-expanded,
+.push-radar-readable-card .push-radar-readable-device,
+.push-radar-readable-card .push-radar-readable-notification{
+  background:rgba(255,255,255,.78)!important;
+  border-color:rgba(120,53,15,.14)!important;
+}
+
+/* Push radar v4: creative dark readability redesign for the problematic radar cards only. */
+.push-radar-night-card,
+.push-radar-night-card *{
+  text-shadow:none!important;
+  opacity:1!important;
+}
+.push-radar-night-card{
+  background:radial-gradient(circle at top right,rgba(245,158,11,.18),transparent 36%),linear-gradient(145deg,#0f172a 0%,#111827 48%,#1e1b4b 100%)!important;
+  border-color:rgba(245,158,11,.34)!important;
+  color:#f8fafc!important;
+}
+.push-radar-night-card h4,
+.push-radar-night-card strong,
+.push-radar-night-card .push-radar-readable-value{
+  color:#fff!important;
+}
+.push-radar-night-card p,
+.push-radar-night-card div,
+.push-radar-night-card span{
+  color:#e2e8f0!important;
+}
+.push-radar-night-card .push-radar-readable-label{
+  color:#fcd34d!important;
+}
+.push-radar-night-card .push-radar-readable-muted{
+  color:#cbd5e1!important;
+}
+.push-radar-night-card .push-radar-readable-metric,
+.push-radar-night-card .push-radar-readable-panel,
+.push-radar-night-card .push-radar-readable-expanded,
+.push-radar-night-card .push-radar-readable-device,
+.push-radar-night-card .push-radar-readable-notification{
+  background:rgba(15,23,42,.72)!important;
+  border-color:rgba(148,163,184,.22)!important;
+  color:#f8fafc!important;
+}
+.push-radar-night-card .push-radar-readable-note{
+  background:rgba(255,255,255,.08)!important;
+  border-color:rgba(251,191,36,.18)!important;
+  color:#f8fafc!important;
+}
+.push-radar-night-card .push-radar-readable-pill{
+  background:rgba(245,158,11,.16)!important;
+  border-color:rgba(251,191,36,.28)!important;
+  color:#fde68a!important;
+}
+.push-radar-night-card .push-radar-readable-status{
+  background:rgba(255,255,255,.94)!important;
+  border-color:rgba(251,191,36,.28)!important;
+  color:#7c2d12!important;
+}
+.push-radar-night-card button,
+.push-radar-night-card .push-radar-details-btn{
+  background:rgba(255,255,255,.92)!important;
+  border-color:rgba(251,191,36,.22)!important;
+  color:#0f172a!important;
+}
+.push-radar-night-card .bg-slate-50,
+.push-radar-night-card .bg-slate-100\/90{
+  background:rgba(255,255,255,.10)!important;
+  border-color:rgba(148,163,184,.22)!important;
+  color:#e2e8f0!important;
+}
+.push-radar-night-card .bg-emerald-50{
+  background:rgba(16,185,129,.16)!important;
+  border-color:rgba(110,231,183,.28)!important;
+  color:#d1fae5!important;
+}
