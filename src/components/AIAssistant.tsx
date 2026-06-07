@@ -116,48 +116,174 @@ const headingIconFor = (value: string) => {
   return <Sparkles size={17} />;
 };
 
+
+const stripInlineMarkdown = (value: string) => String(value || '')
+  .replace(/\*\*/g, '')
+  .replace(/__/g, '')
+  .replace(/`/g, '')
+  .replace(/[•]+/g, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const isDenseStatsText = (value: string) => {
+  const text = stripInlineMarkdown(value);
+  const hits = ['مبيع', 'مبيعات', 'هامش', 'سعر', 'تكلفة', 'إنفاق', 'طلبات', 'د.ك', 'مخزون', 'ربح', 'مدفوعة', 'بانتظار', 'فشل'];
+  return text.length > 42 && hits.filter((word) => text.includes(word)).length >= 2;
+};
+
+const removeStatsIntro = (value: string) => stripInlineMarkdown(value)
+  .replace(/^(أقوى\s+منتج\s+طلب[اًًا]*|أفضل\s+العملاء\s+تفاعل[اًًا]*|حالة\s+رادار\s+الدفع|المورد\s+الأعلى\s+مديونية|أضعف\s+منتج\s+في\s+المبيعات|رادار\s+البيانات\s+ومقاييس\s+النظام)\s*[:：]\s*/i, '')
+  .trim();
+
+const splitDenseStats = (value: string) => {
+  const cleaned = removeStatsIntro(value);
+  if (!cleaned) return [];
+  const pipeParts = cleaned.split(/\s+\|\s+/).map((part) => part.trim()).filter(Boolean);
+  if (pipeParts.length > 1) return pipeParts;
+  return [cleaned];
+};
+
+type VisualStatCard = {
+  title: string;
+  chips: Array<{ label: string; tone: 'money' | 'percent' | 'count' | 'cost' | 'plain' }>;
+};
+
+const chipTone = (value: string): VisualStatCard['chips'][number]['tone'] => {
+  if (/%|هامش|نسبة/.test(value)) return 'percent';
+  if (/تكلفة|كلفة/.test(value)) return 'cost';
+  if (/د\.ك|دينار|سعر|إنفاق|ربح|مديونية|قيمة/.test(value)) return 'money';
+  if (/مبيع|مبيعات|طلبات|طلب|مخزون|عدد|عميل|منتج|فشل|بانتظار|مدفوعة/.test(value)) return 'count';
+  return 'plain';
+};
+
+const parseDenseStatCard = (value: string, index: number): VisualStatCard | null => {
+  const text = removeStatsIntro(value)
+    .replace(/^[-–—]\s*/, '')
+    .replace(/^\d+[.)-]\s*/, '')
+    .trim();
+  if (!text || !isDenseStatsText(text)) return null;
+
+  let title = `مؤشر ${index + 1}`;
+  let rest = text;
+  const colonIndex = text.indexOf(':');
+  if (colonIndex > 0 && colonIndex < 72) {
+    title = text.slice(0, colonIndex).trim();
+    rest = text.slice(colonIndex + 1).trim();
+  } else if (text.includes('/')) {
+    const firstSlash = text.indexOf('/');
+    const beforeSlash = text.slice(0, firstSlash).trim();
+    if (beforeSlash.length <= 48) {
+      title = beforeSlash;
+      rest = text.slice(firstSlash + 1).trim();
+    }
+  }
+
+  const chips = rest
+    .split(/\s*\/\s*|\s*،\s*/)
+    .map((item) => item.trim())
+    .filter((item) => item && !/^[-–—]$/.test(item))
+    .slice(0, 5)
+    .map((label) => ({ label, tone: chipTone(label) }));
+
+  if (chips.length < 2) return null;
+  return { title: title || `مؤشر ${index + 1}`, chips };
+};
+
+const highlightNumbers = (value: string) => {
+  const text = stripInlineMarkdown(value);
+  const parts = text.split(/(\d+(?:\.\d+)?\s*(?:د\.ك|%|طلبات|طلب|مبيع|مبيعات|عميل|منتج)?)/g).filter(Boolean);
+  return parts.map((part, index) => /\d/.test(part) ? <span key={index} className="ai-answer-number">{part}</span> : <React.Fragment key={index}>{part}</React.Fragment>);
+};
+
+const renderDenseCards = (value: string, keyPrefix: string) => {
+  const cards = splitDenseStats(value)
+    .map((part, index) => parseDenseStatCard(part, index))
+    .filter(Boolean) as VisualStatCard[];
+
+  if (!cards.length) return null;
+  return (
+    <div className="ai-answer-stat-grid" key={keyPrefix}>
+      {cards.map((card, index) => (
+        <article className="ai-answer-stat-card" key={`${keyPrefix}-${index}`}>
+          <div className="ai-answer-stat-topline">
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <strong>{card.title}</strong>
+          </div>
+          <div className="ai-answer-chip-cloud">
+            {card.chips.map((chip, chipIndex) => (
+              <span className={cn('ai-answer-chip', `is-${chip.tone}`)} key={`${chip.label}-${chipIndex}`}>{chip.label}</span>
+            ))}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+};
+
 const AssistantVisualMessage: React.FC<{ content: string }> = ({ content }) => {
-  const kpis = React.useMemo(() => extractVisualKpis(content), [content]);
+  const kpis = React.useMemo(() => extractVisualKpis(content).slice(0, 3), [content]);
+  const blocks = React.useMemo(() => String(content || '').split(/\n+/).map((line) => line.trim()).filter(Boolean), [content]);
+
+  const visualNodes: React.ReactNode[] = [];
+  const pendingBullets: string[] = [];
+
+  const flushBullets = (key: string) => {
+    if (!pendingBullets.length) return;
+    const current = pendingBullets.splice(0, pendingBullets.length);
+    visualNodes.push(
+      <ul className="ai-answer-list" key={key}>
+        {current.map((item, index) => {
+          const dense = renderDenseCards(item, `${key}-dense-${index}`);
+          return <li className={cn('ai-answer-item', dense && 'has-visual-card')} key={`${key}-${index}`}>{dense || highlightNumbers(item)}</li>;
+        })}
+      </ul>
+    );
+  };
+
+  blocks.forEach((rawLine, index) => {
+    const headingMatch = rawLine.match(/^#{1,3}\s+(.+)$/);
+    if (headingMatch) {
+      flushBullets(`bullets-before-${index}`);
+      const label = stripInlineMarkdown(headingMatch[1]);
+      visualNodes.push(<h3 className="ai-answer-heading" key={`heading-${index}`}><span>{headingIconFor(label)}</span>{label}</h3>);
+      return;
+    }
+
+    const bulletMatch = rawLine.match(/^[-*•]\s+(.+)$/);
+    if (bulletMatch) {
+      pendingBullets.push(bulletMatch[1]);
+      return;
+    }
+
+    flushBullets(`bullets-${index}`);
+    const dense = renderDenseCards(rawLine, `dense-${index}`);
+    if (dense) {
+      visualNodes.push(dense);
+      return;
+    }
+
+    visualNodes.push(<p className="ai-answer-paragraph" key={`p-${index}`}>{highlightNumbers(rawLine)}</p>);
+  });
+  flushBullets('bullets-final');
 
   return (
-    <div className="ai-premium-answer">
+    <div className="ai-premium-answer ai-nuclear-answer">
       <div className="ai-premium-glow" aria-hidden="true" />
       {kpis.length > 0 && (
-        <div className="ai-answer-kpi-strip" aria-label="مؤشرات مختصرة">
+        <div className="ai-answer-signal-rail" aria-label="مؤشرات مختصرة">
           {kpis.map((item, index) => (
-            <div key={`${item.value}-${index}`} className={cn('ai-answer-kpi', `is-${item.tone}`)}>
+            <div key={`${item.value}-${index}`} className={cn('ai-answer-signal', `is-${item.tone}`)}>
               <span>{item.label}</span>
               <strong>{item.value}</strong>
             </div>
           ))}
         </div>
       )}
-      <Markdown components={{
-        h1: ({node, children, ...props}) => {
-          const label = getTextFromNode(children);
-          return <h3 className="ai-answer-heading" {...props}><span>{headingIconFor(label)}</span>{children}</h3>;
-        },
-        h2: ({node, children, ...props}) => {
-          const label = getTextFromNode(children);
-          return <h3 className="ai-answer-heading" {...props}><span>{headingIconFor(label)}</span>{children}</h3>;
-        },
-        h3: ({node, children, ...props}) => {
-          const label = getTextFromNode(children);
-          return <h3 className="ai-answer-heading" {...props}><span>{headingIconFor(label)}</span>{children}</h3>;
-        },
-        p: ({node, ...props}) => <p className="ai-answer-paragraph" {...props} />,
-        strong: ({node, ...props}) => <strong className="ai-answer-emphasis" {...props} />,
-        em: ({node, ...props}) => <em className="ai-answer-soft" {...props} />,
-        ul: ({node, ...props}) => <ul className="ai-answer-list" {...props} />,
-        ol: ({node, ...props}) => <ol className="ai-answer-list is-numbered" {...props} />,
-        li: ({node, ...props}) => <li className="ai-answer-item" {...props} />,
-        table: ({node, ...props}) => <div className="ai-answer-table-wrap"><table {...props} /></div>,
-        th: ({node, ...props}) => <th {...props} />,
-        td: ({node, ...props}) => <td {...props} />,
-      }}>{content}</Markdown>
+      <div className="ai-answer-flow">{visualNodes}</div>
     </div>
   );
 };
+
 
 const compactAssistantReply = (value: string) => {
  return String(value || '')
@@ -543,6 +669,9 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 - إذا ذكر الدفع أو لم يدفع، تعامل معها كقراءة حالة فقط ولا تقترح تغيير منطق الدفع أو إعداداته.
 - الرد المثالي يجب أن يكون مرتباً بصرياً، هادئاً، فاخراً، وخالياً من التلوث البصري.
 - اكتب الإجابة كأنها بطاقة تنفيذية نظيفة داخل لوحة تحكم احترافية، لا كمنشور تسويقي مزدحم.
+- عند ذكر أكثر من منتج أو عميل أو مورد، اكتب كل عنصر في سطر منفصل يبدأ بشرطة، ولا تضع أكثر من عنصرين في نفس السطر.
+- ممنوع حشر الأرقام في جملة طويلة؛ افصلها بصيغة قصيرة مثل: اسم العنصر: 4 مبيع / هامش 18% / سعر 225.000 / تكلفة 185.000.
+- لا تكرر كلمة "قيمة مالية" ولا تعرض أرقاماً كثيرة بلا عنوان واضح. اختر أهم 3 إلى 5 مؤشرات فقط.
 - استخدم هذا الترتيب غالباً:
   ### الخلاصة
   جملة أو جملتان فقط توضحان القرار أو القراءة الأهم.
