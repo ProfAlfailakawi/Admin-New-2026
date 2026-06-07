@@ -223,7 +223,7 @@ const getAreaRisk = (marker: { revenue: number; count: number; profit: number })
  return 'راقب العروض والتوصيل';
 };
 
-const fmtMoney = (value: number) => `د.ك ${Number(value || 0).toFixed(3)}`;
+const fmtMoney = (value: number) => `${Number(value || 0).toFixed(3)} د.ك`;
 
 const lonLatToWorldPixel = (lat: number, lng: number, zoom: number) => {
  const sinLat = Math.sin((Math.max(-85.05112878, Math.min(85.05112878, lat)) * Math.PI) / 180);
@@ -439,14 +439,18 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
          <div className="flex items-center gap-3 min-w-0 flex-1 justify-end" dir="rtl">
           <div className="min-w-0 flex-1 text-right">
            <div className="font-black text-white truncate">{marker.name}</div>
-           <div className="mt-0.5 text-[10px] font-bold text-slate-400 whitespace-nowrap leading-5 overflow-hidden text-ellipsis">{fmtMoney(marker.revenue)} · {marker.count} طلب · {marker.persona}</div>
+           <div className="mt-1 flex flex-wrap justify-end gap-x-2 gap-y-1 text-[10px] font-bold text-slate-300 leading-5">
+            <span className="whitespace-nowrap tabular-nums">{fmtMoney(marker.revenue)}</span>
+            <span className="whitespace-nowrap">{marker.count} طلب</span>
+            <span className="max-w-full truncate text-slate-400">{marker.persona}</span>
+           </div>
           </div>
           <span className="rounded-xl bg-white/10 px-2.5 py-2 text-[10px] font-black text-slate-300 shrink-0">#{index + 1}</span>
          </div>
          <ChevronDown size={15} className={`shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
         {isOpen && (
-         <div className="px-3 pb-3 grid grid-cols-3 gap-2 text-center">
+         <div className="px-3 pb-3 grid grid-cols-3 gap-2 text-center geo-region-stats">
           <div className="rounded-2xl bg-black/15 p-2 min-w-0"><div className="text-[9px] font-black text-slate-400">إيراد</div><div className="text-[10px] sm:text-[11px] font-black text-amber-100 whitespace-nowrap leading-4 tabular-nums">{fmtMoney(marker.revenue)}</div></div>
           <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">طلبات</div><div className="text-[11px] font-black text-white">{marker.count}</div></div>
           <div className="rounded-2xl bg-black/15 p-2 min-w-0"><div className="text-[9px] font-black text-slate-400">متوسط</div><div className="text-[10px] sm:text-[11px] font-black text-white whitespace-nowrap leading-4 tabular-nums">{fmtMoney(marker.avgOrder)}</div></div>

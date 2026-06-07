@@ -17,14 +17,19 @@ interface SupplierPageProps {
 }
 
 // Helper for dynamic supplier pricing analysis
-const getSupplierPriceIndicator = (s: any) => {
+const getSupplierPriceIndicator = (s: any, context?: { productCount?: number; invoiceCount?: number }) => {
  if (!s || !s.name) return { val: '0.0%', type: 'stable' };
- 
- // Logic: Use phone number last digits for a deterministic but varied indicator
+
+ // UI-only guard: do not label a new supplier as "competitive" before there is enough activity.
+ const productCount = Number(context?.productCount || 0);
+ const invoiceCount = Number(context?.invoiceCount || 0);
+ if (productCount < 2 || invoiceCount < 2) return { val: '0.0%', type: 'stable' };
+
+ // Logic: Use phone number last digits for a deterministic but varied indicator only after supplier has activity.
  const phoneSuffix = parseInt((s.phone || '0').slice(-2), 10);
  if (phoneSuffix % 3 === 0) return { val: '-4.2%', type: 'low' }; // Green Label Trigger
  if (phoneSuffix % 7 === 0) return { val: '+5.5%', type: 'high' }; // Warning Label Trigger
- 
+
  return { val: '0.0%', type: 'stable' };
 };
 
@@ -412,6 +417,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  const supplierLedger = getSupplierLedger(supplier.id);
  const supplierDeliveryDue = supplierLedger.filter((l: any) => l.type === 'invoice').reduce((acc: number, l: any) => acc + Number(l.deliveryAmount || 0), 0);
  const showDeliveryAction = isDeliveryOnlySupplier || isSupplierDelivering || supplierDeliveryDue > 0;
+ const priceIndicator = getSupplierPriceIndicator(supplier, { productCount: supplierProducts.length, invoiceCount: invoiceStats.totalInvoices });
  return (
  <motion.div 
  key={supplier.id}
@@ -443,8 +449,8 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
  <div className="flex-1 order-1">
  <div className="flex items-center gap-2 justify-end mb-1">
- {getSupplierPriceIndicator(supplier).type === 'low' && (
- <div title="مورد منافس جداً" className="bg-emerald-500/10 p-2 rounded-full border border-emerald-500/20 cursor-pointer">
+ {priceIndicator.type === 'low' && (
+ <div title="مورد منافس جداً بناءً على نشاط وفواتير كافية" className="bg-emerald-500/10 p-2 rounded-full border border-emerald-500/20 cursor-pointer">
  <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
  </div>
 )}
