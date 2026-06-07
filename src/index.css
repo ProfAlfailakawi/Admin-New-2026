@@ -4313,772 +4313,277 @@ html body .login-brand-stage h1 {
   color: #047857 !important;
 }
 
-/* Mobile stability patch: prevent sideways drift and accidental visual overflow without changing feature logic. */
+/* =========================================================
+   Admin70 mobile full visual audit patch v3
+   Scope: visual/mobile readability only. No business logic.
+   ========================================================= */
 @media (max-width: 768px) {
-  html,
-  body,
-  #root {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-    overscroll-behavior-x: none;
-  }
-
-  *,
-  *::before,
-  *::after {
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-
-  img,
-  video,
-  canvas,
-  svg {
-    max-width: 100%;
-  }
-
-  input,
-  textarea,
-  select,
-  button {
-    font-size: 16px;
-  }
-
-  .fixed.inset-0 {
-    max-width: 100vw;
-    overflow-x: hidden;
-  }
-
-  .admin-experience-stack,
-  .admin-content-polish,
-  .admin-smart-panel,
-  .admin-page-hero,
-  .rounded-\[1\.8rem\],
-  .rounded-\[2rem\],
-  .rounded-\[2\.5rem\],
-  .rounded-3xl {
-    max-width: 100%;
-  }
-
-  .grid,
-  .flex {
-    min-width: 0;
-  }
-
-  #device-deera-compass {
-    flex: 0 0 auto;
-    overflow: hidden;
-  }
-}
-
-/* Dark-panel readability patch for notification and studio-like cards. */
-.bg-slate-900 .text-slate-400,
-.bg-slate-950 .text-slate-400,
-.bg-gradient-to-br.from-slate-900 .text-slate-400,
-.bg-gradient-to-br.from-slate-950 .text-slate-400 {
-  color: rgba(226, 232, 240, 0.78) !important;
-}
-
-.bg-slate-900 .text-slate-500,
-.bg-slate-950 .text-slate-500,
-.bg-gradient-to-br.from-slate-900 .text-slate-500,
-.bg-gradient-to-br.from-slate-950 .text-slate-500 {
-  color: rgba(226, 232, 240, 0.72) !important;
-}
-
-.bg-slate-900 .text-slate-600,
-.bg-slate-950 .text-slate-600,
-.bg-gradient-to-br.from-slate-900 .text-slate-600,
-.bg-gradient-to-br.from-slate-950 .text-slate-600 {
-  color: rgba(241, 245, 249, 0.82) !important;
-}
-
-/* Admin70 follow-up: supplier badges + full mobile typography audit. */
-.supplier-kind-badges span{
-  white-space:nowrap;
-  box-shadow:0 10px 24px rgba(15,23,42,.045);
-}
-
-@media (max-width: 760px) {
-  /* Keep all major Tailwind heading sizes sane on phones without changing desktop design. */
-  .text-9xl{font-size:clamp(2rem,13vw,3.35rem)!important;line-height:1.05!important;}
-  .text-8xl{font-size:clamp(1.9rem,12vw,3.1rem)!important;line-height:1.08!important;}
-  .text-7xl{font-size:clamp(1.8rem,10.5vw,2.85rem)!important;line-height:1.1!important;}
-  .text-6xl{font-size:clamp(1.65rem,9vw,2.55rem)!important;line-height:1.12!important;}
-  .text-5xl{font-size:clamp(1.45rem,7.6vw,2.25rem)!important;line-height:1.18!important;}
-  .text-4xl{font-size:clamp(1.25rem,6.3vw,1.9rem)!important;line-height:1.22!important;}
-  .text-3xl{font-size:clamp(1.1rem,5.4vw,1.55rem)!important;line-height:1.28!important;}
-
-  h1,h2,h3,h4,
-  .font-black,
-  .font-extrabold{
-    overflow-wrap:anywhere;
-    text-wrap:balance;
-  }
-
-  /* Prevent mobile cards and tables from forcing sideways movement. */
-  .admin-heritage-shell,
-  .admin-heritage-shell main,
-  .admin-content-polish,
-  .dashboard-content-shell,
-  .dashboard,
-  [class*="max-w-"]{
-    min-width:0!important;
-  }
-
-  .admin-heritage-shell main,
-  .admin-content-polish{
-    overflow-x:hidden!important;
-  }
-
-  /* Sidebar/menu: compact readable text on phone, no oversized labels. */
-  aside nav,
-  aside nav *{
-    min-width:0!important;
-  }
-  aside nav span,
-  aside nav button,
-  aside nav div[role="button"]{
-    font-size:11px!important;
-    line-height:1.45!important;
-    letter-spacing:.02em!important;
-  }
-  aside nav .tracking-\[0\.25em\]{
-    letter-spacing:.08em!important;
-  }
-  aside .text-xl{
-    font-size:1rem!important;
-    line-height:1.25!important;
-  }
-
-  /* Supplier cards: keep financial cards and badges aligned on small screens. */
-  .supplier-card-mobile-safe{
-    overflow:visible!important;
-    border-radius:22px!important;
-    padding:12px!important;
-  }
-  .supplier-card-mobile-safe h3{
-    font-size:1rem!important;
-    line-height:1.35!important;
-    max-width:100%;
-  }
-  .supplier-summary-row{
-    gap:7px!important;
-  }
-  .supplier-summary-row > div{
-    min-width:0!important;
-    padding:10px 6px!important;
-    border-radius:20px!important;
-  }
-  .supplier-summary-row .text-lg,
-  .supplier-summary-row .text-xl{
-    font-size:1.05rem!important;
-    line-height:1.1!important;
-  }
-  .supplier-summary-row .text-\[10px\]{
-    font-size:9px!important;
-    line-height:1.35!important;
-  }
-  .supplier-invoice-stats{
-    gap:7px!important;
-  }
-  .supplier-invoice-stats > div{
-    min-width:0!important;
-    padding:9px 5px!important;
-    border-radius:18px!important;
-  }
-  .supplier-kind-badges{
-    justify-content:flex-start!important;
-    direction:rtl;
-  }
-  .supplier-kind-badges span{
-    font-size:10px!important;
-    padding:7px 10px!important;
-    border-radius:14px!important;
-  }
-
-  /* Dark backgrounds: improve contrast for every muted label used in studio/notifications-like screens. */
-  .bg-slate-900 .text-slate-300,
-  .bg-slate-950 .text-slate-300,
-  .bg-gradient-to-br.from-slate-900 .text-slate-300,
-  .bg-gradient-to-br.from-slate-950 .text-slate-300{
-    color:rgba(248,250,252,.88)!important;
-  }
-  .bg-slate-900 .text-white\/40,
-  .bg-slate-950 .text-white\/40,
-  .bg-gradient-to-br.from-slate-900 .text-white\/40,
-  .bg-gradient-to-br.from-slate-950 .text-white\/40{
-    color:rgba(255,255,255,.68)!important;
-  }
-  .bg-slate-900 .text-white\/50,
-  .bg-slate-950 .text-white\/50,
-  .bg-gradient-to-br.from-slate-900 .text-white\/50,
-  .bg-gradient-to-br.from-slate-950 .text-white\/50{
-    color:rgba(255,255,255,.76)!important;
-  }
-}
-
-
-/* Admin70 deep mobile visual audit patch: typography, cards, contrast, overflow. */
-@media (max-width: 760px) {
-  body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-
-  /* Every screen/card must stay inside the phone viewport. */
-  main, section, article, aside, header, footer,
-  [class*="rounded-"], [class*="shadow"], [class*="border"],
-  .bg-white, .bg-slate-50, .bg-slate-100, .bg-slate-900, .bg-slate-950 {
-    max-width: 100% !important;
-  }
-
-  /* Make horizontal filter chips scroll cleanly instead of pushing the page. */
-  .overflow-x-auto,
-  [class*="overflow-x-auto"] {
+  html, body, #root {
     max-width: 100vw !important;
-    overscroll-behavior-x: contain;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Tables/cards that used desktop minimum widths should scroll within their own container only. */
-  table,
-  .min-w-\[800px\], .min-w-\[700px\], .min-w-\[600px\], .min-w-\[520px\], .min-w-\[350px\] {
-    max-width: none !important;
-  }
-
-  /* Keep visible cards compact and legible on iPhone widths. */
-  .p-6 { padding: .95rem !important; }
-  .p-5 { padding: .85rem !important; }
-  .p-4 { padding: .75rem !important; }
-  .px-6 { padding-left: .95rem !important; padding-right: .95rem !important; }
-  .py-6 { padding-top: .95rem !important; padding-bottom: .95rem !important; }
-  .gap-6 { gap: .9rem !important; }
-  .gap-5 { gap: .75rem !important; }
-  .gap-4 { gap: .65rem !important; }
-
-  /* Numeric/financial columns: no digit-per-line breaks. */
-  td, th, strong, small, span, p, div, button, label {
-    overflow-wrap: normal;
-  }
-  [class*="text-"][class*="font-black"],
-  [class*="text-"][class*="font-extrabold"],
-  input[type="time"],
-  input[inputmode="numeric"],
-  .tabular-nums {
-    word-break: keep-all !important;
-    overflow-wrap: normal !important;
-  }
-
-  /* iOS time inputs: prevent AM/PM from splitting into two lines. */
-  input[type="time"] {
-    min-width: 7.6rem !important;
-    width: 7.6rem !important;
-    direction: ltr !important;
-    white-space: nowrap !important;
-    font-size: 15px !important;
-    line-height: 1.1 !important;
-    letter-spacing: 0 !important;
-  }
-
-  /* Reusable contrast fixes for washed-out light cards and dark panels. */
-  .text-white\/40, .text-white\/50, .text-white\/60,
-  .opacity-40, .opacity-50, .opacity-60 {
-    opacity: .86 !important;
-  }
-  .bg-slate-900 .text-slate-500,
-  .bg-slate-950 .text-slate-500,
-  .bg-slate-900 .text-slate-400,
-  .bg-slate-950 .text-slate-400,
-  .bg-slate-900 .text-slate-300,
-  .bg-slate-950 .text-slate-300,
-  .bg-gradient-to-br.from-slate-900 .text-slate-500,
-  .bg-gradient-to-br.from-slate-950 .text-slate-500 {
-    color: rgba(248,250,252,.84) !important;
-  }
-
-  /* Big English/Arabic mixed labels should not explode on phones. */
-  .tracking-widest, .tracking-\[0\.2em\], .tracking-\[0\.25em\], .tracking-\[0\.3em\] {
-    letter-spacing: .08em !important;
-  }
-  .uppercase { letter-spacing: .05em; }
-
-  /* Modal/search suggestion chips and command bar shortcuts. */
-  .rounded-full, .rounded-2xl, .rounded-3xl, .rounded-\[2rem\], .rounded-\[2\.5rem\] {
-    min-width: 0;
-  }
-  button, a, select, input, textarea {
-    max-width: 100%;
-  }
-  button { min-width: 0; }
-
-  /* Dashboard/studio cards: readable line-height and no outside-frame text. */
-  .dashboard-content-shell h1,
-  .dashboard-content-shell h2,
-  .dashboard-content-shell h3,
-  .admin-content-polish h1,
-  .admin-content-polish h2,
-  .admin-content-polish h3 {
-    line-height: 1.25 !important;
-  }
-  .dashboard-content-shell p,
-  .admin-content-polish p {
-    line-height: 1.75 !important;
-  }
-
-  /* Leaflet map controls/markers: circular, finger-friendly markers instead of thin visual sticks. */
-  .leaflet-container { max-width: 100% !important; }
-  .alturath-leaflet-marker,
-  .alturath-leaflet-marker > div {
-    border-radius: 999px !important;
-    min-width: 34px !important;
-    min-height: 34px !important;
-    line-height: 1 !important;
-  }
-  .leaflet-marker-icon:not(.leaflet-div-icon) {
-    border-radius: 999px !important;
-  }
-
-  /* Mobile nav: keep top/header menu icons neat and text hidden where it crowds. */
-  header button, nav button { flex-shrink: 0; }
-
-  /* Prevent card labels from disappearing on pale/yellow gradients. */
-  .bg-amber-50 .text-amber-100,
-  .bg-amber-50 .text-white,
-  .bg-yellow-50 .text-white,
-  .bg-gradient-to-br.from-amber-50 .text-white,
-  .bg-gradient-to-br.from-yellow-50 .text-white {
-    color: #78350f !important;
-  }
-}
-
-/* Delivery manager icon-only action button safety. */
-button[aria-label="إدارة التوصيل"] {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* --------------------------------------------------------------------------
- * Admin70 full mobile audit patch
- * Scope: visual/mobile layout only. No payment/database/AI/WhatsApp logic.
- * Purpose: keep every page, card, icon, button and text readable inside phones.
- * -------------------------------------------------------------------------- */
-@media (max-width: 760px) {
-  :root {
-    --admin-mobile-gutter: 12px;
-    --admin-mobile-card-radius: 22px;
-    --admin-mobile-text: #0f172a;
-    --admin-mobile-muted: #475569;
-    --admin-mobile-soft: #64748b;
-  }
-
-  html,
-  body,
-  #root,
-  .admin-heritage-shell {
-    width: 100% !important;
-    max-width: 100% !important;
     overflow-x: hidden !important;
   }
 
-  .admin-heritage-shell {
-    position: relative;
-  }
-
-  .admin-heritage-shell > main,
-  .admin-experience-stack,
-  .admin-content-polish,
-  .dashboard-content-shell,
-  .dashboard-content-shell > *,
-  .admin-page-hero,
-  .admin-smart-panel {
-    width: 100% !important;
+  .app-shell,
+  main,
+  section,
+  article,
+  .card,
+  .rounded-2xl,
+  .rounded-3xl,
+  [class*="rounded-["] {
     max-width: 100% !important;
-    min-width: 0 !important;
-    overflow-x: hidden !important;
   }
 
-  .admin-content-polish,
-  .dashboard-content-shell {
-    padding-inline: var(--admin-mobile-gutter) !important;
-  }
-
-  .admin-page-hero,
-  .admin-smart-panel,
-  .smart-collapsible-panel,
-  .panel-head,
-  .smart-panel-toggle,
-  .smart-panel-body,
-  .product-score-card,
-  .customer-intel-card,
-  .supplier-radar-card,
-  .coupon-ticket,
-  .lab-tool-card,
-  .scenario-strip,
-  .whatsapp-ops-board,
-  .whatsapp-urgent-board,
-  .studio-preview-card,
-  .supplier-card-mobile-safe {
-    max-width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  /* Global typography normalization: large desktop titles become phone-sized. */
-  .admin-content-polish :where(h1, .text-5xl, .text-6xl, .text-7xl, .text-8xl, .text-9xl),
-  .dashboard-content-shell :where(h1, .text-5xl, .text-6xl, .text-7xl, .text-8xl, .text-9xl) {
-    font-size: clamp(1.65rem, 7.2vw, 2.35rem) !important;
-    line-height: 1.22 !important;
-    letter-spacing: -0.035em !important;
-  }
-
-  .admin-content-polish :where(h2, .text-4xl),
-  .dashboard-content-shell :where(h2, .text-4xl) {
-    font-size: clamp(1.28rem, 5.6vw, 1.8rem) !important;
-    line-height: 1.28 !important;
-    letter-spacing: -0.025em !important;
-  }
-
-  .admin-content-polish :where(h3, .text-3xl),
-  .dashboard-content-shell :where(h3, .text-3xl) {
-    font-size: clamp(1.05rem, 4.7vw, 1.45rem) !important;
-    line-height: 1.35 !important;
-  }
-
-  .admin-content-polish :where(p, span, small, label, div, button, a),
-  .dashboard-content-shell :where(p, span, small, label, div, button, a) {
-    min-width: 0;
-  }
-
-  .admin-content-polish :where(p, .leading-relaxed),
-  .dashboard-content-shell :where(p, .leading-relaxed) {
-    line-height: 1.72 !important;
-  }
-
-  /* Prevent the notorious one-letter-per-line issue on narrow pills/buttons. */
-  .admin-content-polish :where(button, a, [role="button"], .rounded-full, .rounded-2xl, .rounded-3xl),
-  .dashboard-content-shell :where(button, a, [role="button"], .rounded-full, .rounded-2xl, .rounded-3xl),
-  .smart-notifications-popover :where(button, div, span, p) {
+  h1, h2, h3, h4, h5, h6, p, span, strong, button, label, input, textarea, select, div {
     word-break: normal !important;
-    overflow-wrap: normal !important;
-    white-space: normal;
+    overflow-wrap: break-word !important;
   }
 
-  .admin-content-polish :where(p, h1, h2, h3, h4, h5, h6),
-  .dashboard-content-shell :where(p, h1, h2, h3, h4, h5, h6) {
-    overflow-wrap: anywhere;
+  button, a, input, select, textarea {
+    min-height: 42px;
   }
 
-  .tabular-nums,
-  [dir="ltr"],
-  input[type="time"],
-  input[type="number"],
-  .font-mono,
-  .font-cinema-numbers,
-  .text-2xl.font-black,
-  .text-3xl.font-black,
-  .text-4xl.font-black {
-    word-break: keep-all !important;
-    overflow-wrap: normal !important;
-    white-space: nowrap !important;
+  .font-black,
+  .font-bold {
+    letter-spacing: -0.015em;
   }
 
-  /* Cards, tiles and action areas: compact spacing and no outside-frame bleed. */
-  .admin-content-polish :where(article, section, .bg-white, .bg-slate-50, .bg-slate-100, .bg-amber-50, .bg-yellow-50, .bg-emerald-50, .bg-rose-50, .bg-blue-50),
-  .dashboard-content-shell :where(article, section, .bg-white, .bg-slate-50, .bg-slate-100, .bg-amber-50, .bg-yellow-50, .bg-emerald-50, .bg-rose-50, .bg-blue-50) {
-    max-width: 100% !important;
+  [class*="text-white/30"],
+  [class*="text-white/40"],
+  [class*="text-white/45"],
+  [class*="text-white/50"] {
+    color: rgba(255,255,255,0.78) !important;
   }
 
-  .admin-content-polish .grid,
-  .dashboard-content-shell .grid {
-    min-width: 0 !important;
-  }
-
-  .admin-content-polish :where(.grid-cols-4, .grid-cols-5, .grid-cols-6),
-  .dashboard-content-shell :where(.grid-cols-4, .grid-cols-5, .grid-cols-6) {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-
-  .admin-content-polish :where(.p-8, .p-10, .p-12),
-  .dashboard-content-shell :where(.p-8, .p-10, .p-12) {
-    padding: 1rem !important;
-  }
-
-  .admin-content-polish :where(.px-8, .px-10, .px-12),
-  .dashboard-content-shell :where(.px-8, .px-10, .px-12) {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-  }
-
-  .admin-content-polish :where(.py-8, .py-10, .py-12),
-  .dashboard-content-shell :where(.py-8, .py-10, .py-12) {
-    padding-top: 1rem !important;
-    padding-bottom: 1rem !important;
-  }
-
-  .admin-content-polish :where(.gap-8, .gap-10, .gap-12),
-  .dashboard-content-shell :where(.gap-8, .gap-10, .gap-12) {
-    gap: .85rem !important;
-  }
-
-  /* Horizontal lists: scroll inside their own row, never the whole page. */
-  .admin-content-polish :where(.overflow-x-auto, [class*="overflow-x-auto"]),
-  .dashboard-content-shell :where(.overflow-x-auto, [class*="overflow-x-auto"]) {
-    overflow-x: auto !important;
-    overflow-y: hidden;
-    max-width: 100% !important;
-    overscroll-behavior-x: contain;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .admin-content-polish :where(table),
-  .dashboard-content-shell :where(table) {
-    width: max-content !important;
-    max-width: none !important;
-  }
-
-  /* Top bar and notification menu. */
-  .smart-notifications-popover {
-    position: fixed !important;
-    top: calc(env(safe-area-inset-top, 0px) + 72px) !important;
-    left: var(--admin-mobile-gutter) !important;
-    right: var(--admin-mobile-gutter) !important;
-    width: auto !important;
-    max-width: calc(100vw - (var(--admin-mobile-gutter) * 2)) !important;
-    transform-origin: top center !important;
-    border-radius: 24px !important;
-  }
-
-  .smart-notifications-popover > div:first-child {
-    gap: .65rem !important;
-    flex-wrap: wrap !important;
-  }
-
-  .smart-notifications-popover .notification-mark-all {
-    width: auto !important;
-    min-width: max-content !important;
-    padding: .45rem .65rem !important;
-    border-radius: 999px !important;
-    background: rgba(227,24,55,.06) !important;
-  }
-
-  .smart-notifications-popover .max-h-\[70vh\] {
-    max-height: min(70vh, 560px) !important;
-  }
-
-  /* Working hours table: stack the day and time inputs neatly. */
-  .working-hours-table-mobile {
-    min-width: 0 !important;
-    width: 100% !important;
-  }
-
-  .working-hours-row {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: .75rem !important;
-    align-items: stretch !important;
-  }
-
-  .working-hours-day {
-    width: 100% !important;
-    justify-content: space-between !important;
-    gap: .75rem !important;
-  }
-
-  .working-hours-times {
-    width: 100% !important;
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: .65rem !important;
-    justify-content: stretch !important;
-  }
-
-  .working-hours-times > div {
-    display: grid !important;
-    grid-template-columns: auto minmax(0, 1fr) !important;
-    align-items: center !important;
-    gap: .45rem !important;
-  }
-
-  .working-hours-time-input,
-  input[type="time"] {
-    width: 100% !important;
-    min-width: 0 !important;
-    height: 3.15rem !important;
-    border-radius: 16px !important;
-    font-size: 16px !important;
-    line-height: 1 !important;
-    letter-spacing: 0 !important;
-    white-space: nowrap !important;
-    text-align: center !important;
-    direction: ltr !important;
-  }
-
-  /* Maps: touch handles become round and readable. */
-  .leaflet-container,
-  .leaflet-pane,
-  .leaflet-map-pane {
-    max-width: 100% !important;
-  }
-
-  .leaflet-control-container a,
-  .leaflet-control-zoom a {
-    width: 34px !important;
-    height: 34px !important;
-    line-height: 32px !important;
-    border-radius: 12px !important;
-    font-size: 18px !important;
-  }
-
-  .leaflet-marker-icon,
-  .leaflet-div-icon,
-  .alturath-leaflet-marker,
-  .alturath-leaflet-marker > div {
-    border-radius: 999px !important;
-    aspect-ratio: 1 / 1;
-  }
-
-  /* WhatsApp/support screens: cards are readable and not washed out. */
-  .whatsapp-ops-board,
-  .whatsapp-urgent-board {
-    border-radius: 22px !important;
-  }
-
-  .whatsapp-ops-board .grid,
-  .whatsapp-urgent-board .grid {
-    min-width: 0 !important;
-  }
-
-  .whatsapp-ops-board button,
-  .whatsapp-urgent-board button {
-    min-height: 48px !important;
-  }
-
-  /* Studio / AI visual cards: keep text visible over light and dark theatrical cards. */
-  .studio-preview-card,
-  .ig-attractivity-gauge,
-  .instagram-magic-wand,
-  .admin-content-polish [class*="from-amber-50"],
-  .admin-content-polish [class*="from-yellow-50"],
-  .dashboard-content-shell [class*="from-amber-50"],
-  .dashboard-content-shell [class*="from-yellow-50"] {
-    color: var(--admin-mobile-text) !important;
-  }
-
-  .ig-gauge-output,
-  .ig-gauge-output * {
-    opacity: 1 !important;
-    text-shadow: 0 1px 0 rgba(255,255,255,.8) !important;
-  }
-
-  .admin-content-polish .text-white,
-  .dashboard-content-shell .text-white {
-    text-shadow: 0 1px 2px rgba(15,23,42,.18);
-  }
-
-  .admin-content-polish :where(.bg-white .text-white, .bg-slate-50 .text-white, .bg-amber-50 .text-white, .bg-yellow-50 .text-white, [class*="from-amber-50"] .text-white, [class*="from-yellow-50"] .text-white),
-  .dashboard-content-shell :where(.bg-white .text-white, .bg-slate-50 .text-white, .bg-amber-50 .text-white, .bg-yellow-50 .text-white, [class*="from-amber-50"] .text-white, [class*="from-yellow-50"] .text-white) {
-    color: #0f172a !important;
-    text-shadow: none !important;
-  }
-
-  .admin-content-polish :where(.text-slate-300, .text-slate-400, .text-slate-500),
-  .dashboard-content-shell :where(.text-slate-300, .text-slate-400, .text-slate-500) {
-    color: var(--admin-mobile-muted) !important;
-  }
-
-  .admin-content-polish :where(.bg-slate-900, .bg-slate-950, [class*="from-slate-900"], [class*="from-slate-950"]) :where(.text-slate-500, .text-slate-400, .text-slate-300, .text-white\/40, .text-white\/50, .text-white\/60),
-  .dashboard-content-shell :where(.bg-slate-900, .bg-slate-950, [class*="from-slate-900"], [class*="from-slate-950"]) :where(.text-slate-500, .text-slate-400, .text-slate-300, .text-white\/40, .text-white\/50, .text-white\/60) {
-    color: rgba(248,250,252,.86) !important;
-    opacity: 1 !important;
-  }
-
-  .admin-content-polish :where(.bg-slate-900, .bg-slate-950, [class*="from-slate-900"], [class*="from-slate-950"]) :where(h1,h2,h3,strong),
-  .dashboard-content-shell :where(.bg-slate-900, .bg-slate-950, [class*="from-slate-900"], [class*="from-slate-950"]) :where(h1,h2,h3,strong) {
-    color: rgba(255,255,255,.96) !important;
-  }
-
-  /* Disabled buttons should look disabled but still readable. */
-  button:disabled,
-  .opacity-30,
-  .opacity-40,
-  .opacity-50 {
-    opacity: .72 !important;
-  }
-
-  button:disabled {
+  [class*="text-slate-800/30"],
+  [class*="text-slate-900/30"],
+  [class*="text-slate-800/40"],
+  [class*="text-slate-900/40"] {
     color: #64748b !important;
   }
+}
 
-  /* Floating/absolute widgets cannot cover the phone width or create giant overlays. */
-  .admin-content-polish :where(.absolute, .fixed),
-  .dashboard-content-shell :where(.absolute, .fixed) {
-    max-width: calc(100vw - 24px);
+/* Smart Studio: keep dark selection cards readable on phone */
+.smart-studio-shell [class*="bg-slate-950"],
+.smart-studio-shell [class*="bg-slate-900"],
+.smart-studio-shell [class*="from-slate-900"],
+.smart-studio-shell [class*="to-slate-950"] {
+  color: #ffffff;
+}
+
+.smart-studio-shell [class*="bg-slate-950"] span,
+.smart-studio-shell [class*="bg-slate-950"] p,
+.smart-studio-shell [class*="bg-slate-950"] h2,
+.smart-studio-shell [class*="bg-slate-950"] h3,
+.smart-studio-shell [class*="bg-slate-950"] div,
+.smart-studio-shell [class*="bg-slate-900"] span,
+.smart-studio-shell [class*="bg-slate-900"] p,
+.smart-studio-shell [class*="bg-slate-900"] h2,
+.smart-studio-shell [class*="bg-slate-900"] h3,
+.smart-studio-shell [class*="bg-slate-900"] div {
+  color: inherit;
+}
+
+.smart-studio-shell button[disabled],
+.smart-studio-shell .disabled,
+.smart-studio-shell [aria-disabled="true"] {
+  opacity: 0.72 !important;
+}
+
+.smart-studio-shell input::placeholder,
+.smart-studio-shell textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.smart-studio-shell .studio-control-card {
+  overflow: hidden;
+}
+
+.smart-studio-shell [class*="min-h-[112px]"] {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .smart-studio-shell {
+    padding-left: 0.45rem !important;
+    padding-right: 0.45rem !important;
   }
-
-  .admin-content-polish :where(.w-\[300px\], .w-\[320px\], .w-\[350px\], .w-\[380px\], .w-\[420px\]),
-  .dashboard-content-shell :where(.w-\[300px\], .w-\[320px\], .w-\[350px\], .w-\[380px\], .w-\[420px\]) {
-    max-width: 100% !important;
+  .smart-studio-shell .studio-workbench-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
   }
-
-  /* Action chips / filters / tab bars: preserve labels and allow clean swipe. */
-  .admin-content-polish :where(.rounded-full.px-3, .rounded-full.px-4, .rounded-full.px-5, .rounded-2xl.px-4, .rounded-2xl.px-5),
-  .dashboard-content-shell :where(.rounded-full.px-3, .rounded-full.px-4, .rounded-full.px-5, .rounded-2xl.px-4, .rounded-2xl.px-5) {
-    font-size: clamp(.72rem, 3.4vw, .9rem) !important;
+  .smart-studio-shell .studio-control-card {
+    border-radius: 1.45rem !important;
+    padding: 1rem !important;
+  }
+  .smart-studio-shell h2 {
+    font-size: clamp(1.25rem, 6vw, 1.85rem) !important;
     line-height: 1.35 !important;
   }
-
-  /* Customer/supplier/report cards: avoid vertical digits and cramped financial values. */
-  .supplier-summary-row,
-  .supplier-invoice-stats,
-  .customer-intel-grid,
-  .supplier-radar-grid,
-  .smart-mini-grid,
-  .coupon-theater-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .supplier-summary-row,
-  .supplier-invoice-stats {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  }
-
-  .supplier-summary-row :where(strong, .text-lg, .text-xl),
-  .supplier-invoice-stats :where(strong, .text-lg, .text-xl) {
-    font-size: clamp(.95rem, 4vw, 1.15rem) !important;
-    white-space: nowrap !important;
-  }
-
-  /* iPhone safe-area bottom/top: floating scroll helpers and menus stay outside content. */
-  .admin-scroll-to-top,
-  [aria-label="العودة للأعلى"] {
-    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+  .smart-studio-shell .smart-studio-home-panel > .flex.items-center.gap-4.mb-5,
+  .smart-studio-shell .smart-studio-home-panel p.uppercase,
+  .smart-studio-shell .smart-studio-home-panel h2 + p {
+    display: none !important;
   }
 }
 
-@media (max-width: 420px) {
-  .admin-content-polish,
-  .dashboard-content-shell {
-    padding-inline: 10px !important;
-  }
+/* Instagram/engagement gauge readability */
+.speedometer-card,
+.instagram-magic-wand-card,
+[class*="SCORE ATTRACTIVITY"] {
+  text-shadow: none !important;
+}
 
-  .admin-content-polish :where(.grid-cols-3),
-  .dashboard-content-shell :where(.grid-cols-3) {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
+/* The score card in ملهم uses decorative pale colors; force readable foregrounds */
+[class*="SCORE"] {
+  opacity: 1 !important;
+}
 
-  .working-hours-times {
-    grid-template-columns: 1fr !important;
+/* Supplier audit modal and account sheet */
+@media (max-width: 768px) {
+  .fixed.inset-0 .max-w-lg,
+  .fixed.inset-0 .max-w-2xl,
+  .fixed.inset-0 .max-w-3xl {
+    width: calc(100vw - 1.25rem) !important;
+    max-width: calc(100vw - 1.25rem) !important;
   }
-
-  .admin-content-polish :where(.text-2xl),
-  .dashboard-content-shell :where(.text-2xl) {
-    font-size: clamp(1.05rem, 5vw, 1.35rem) !important;
-    line-height: 1.35 !important;
+  .fixed.inset-0 select,
+  .fixed.inset-0 input,
+  .fixed.inset-0 textarea {
+    font-size: 16px !important;
   }
+  .fixed.inset-0 [dir="ltr"] {
+    white-space: nowrap !important;
+  }
+}
 
-  .admin-content-polish :where(.text-xl),
-  .dashboard-content-shell :where(.text-xl) {
-    font-size: clamp(.98rem, 4.4vw, 1.2rem) !important;
-    line-height: 1.4 !important;
+/* Push notification health / compass: make dark cards readable */
+.push-health-pro {
+  color: #0f172a !important;
+}
+
+.push-health-pro .bg-gradient-to-br.from-slate-900,
+.push-health-pro [class*="from-slate-900"],
+.push-health-pro [class*="via-slate-950"],
+.push-health-pro [class*="to-slate-950"],
+.push-health-pro [class*="bg-slate-900"],
+.push-health-pro [class*="bg-slate-950"] {
+  color: #f8fafc !important;
+}
+
+.push-health-pro [class*="from-slate-900"] h1,
+.push-health-pro [class*="from-slate-900"] h2,
+.push-health-pro [class*="from-slate-900"] h3,
+.push-health-pro [class*="from-slate-900"] h4,
+.push-health-pro [class*="from-slate-900"] p,
+.push-health-pro [class*="from-slate-900"] span,
+.push-health-pro [class*="from-slate-900"] div,
+.push-health-pro [class*="from-slate-900"] button,
+.push-health-pro [class*="bg-slate-900"] h1,
+.push-health-pro [class*="bg-slate-900"] h2,
+.push-health-pro [class*="bg-slate-900"] h3,
+.push-health-pro [class*="bg-slate-900"] h4,
+.push-health-pro [class*="bg-slate-900"] p,
+.push-health-pro [class*="bg-slate-900"] span,
+.push-health-pro [class*="bg-slate-900"] div,
+.push-health-pro [class*="bg-slate-900"] button {
+  color: inherit;
+}
+
+.push-health-pro [class*="text-white/40"],
+.push-health-pro [class*="text-white/45"],
+.push-health-pro [class*="text-white/50"],
+.push-health-pro [class*="text-white/60"],
+.push-health-pro [class*="text-white/65"],
+.push-health-pro [class*="text-white/70"] {
+  color: rgba(248,250,252,0.82) !important;
+}
+
+.push-health-pro [class*="bg-slate-800/15"],
+.push-health-pro [class*="bg-black/15"],
+.push-health-pro [class*="bg-white/10"] {
+  background: rgba(255,255,255,0.10) !important;
+  border-color: rgba(255,255,255,0.22) !important;
+}
+
+.push-health-pro .bg-white,
+.push-health-pro [class*="bg-white"] {
+  color: #0f172a;
+}
+
+.push-health-pro [class*="bg-white"] h1,
+.push-health-pro [class*="bg-white"] h2,
+.push-health-pro [class*="bg-white"] h3,
+.push-health-pro [class*="bg-white"] h4,
+.push-health-pro [class*="bg-white"] p,
+.push-health-pro [class*="bg-white"] span,
+.push-health-pro [class*="bg-white"] div {
+  color: inherit;
+}
+
+.push-health-pro [class*="bg-white"] [class*="text-slate-500"] {
+  color: #64748b !important;
+}
+
+@media (max-width: 768px) {
+  .push-health-pro {
+    padding: 0.85rem !important;
+    border-radius: 1.35rem !important;
+  }
+  .push-health-pro [class*="rounded-[1.8rem]"],
+  .push-health-pro [class*="rounded-[2rem]"] {
+    border-radius: 1.25rem !important;
+    padding: 1rem !important;
+  }
+  .push-health-pro .grid {
+    min-width: 0 !important;
+  }
+  .push-health-pro button,
+  .push-health-pro .rounded-2xl {
+    min-width: 0 !important;
+  }
+  .push-health-pro [class*="grid-cols-2"] {
+    gap: 0.6rem !important;
+  }
+}
+
+/* Loyalty: remove faded badges and overlapping pills */
+@media (max-width: 768px) {
+  .loyalty-segment-scroll,
+  .loyalty-customers-panel [class*="overflow-x-auto"] {
+    scrollbar-width: none;
+  }
+  .loyalty-segment-scroll::-webkit-scrollbar,
+  .loyalty-customers-panel [class*="overflow-x-auto"]::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Dashboard recommendations: avoid dark-on-dark and vertical text */
+@media (max-width: 768px) {
+  .admin-smart-panel,
+  .smart-collapsible-panel,
+  .scenario-strip,
+  .customer-intel-grid {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+  .scenario-strip span,
+  .admin-smart-panel button,
+  .admin-smart-panel span,
+  .admin-smart-panel p,
+  .admin-smart-panel h2,
+  .admin-smart-panel h3 {
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    white-space: normal !important;
+  }
+}
+
+/* Keep small action chips from covering text */
+@media (max-width: 768px) {
+  [class*="-space-x"],
+  [class*="space-x-reverse"] {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 }

@@ -335,7 +335,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
      </div>
      <button 
      onClick={() => setShowAddModal(true)}
-     className="w-full md:w-auto bg-slate-50 border border-slate-200 text-slate-900 border border-slate-800 text-slate-800 px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-100 transition-all shadow-sm border border-slate-200 active:scale-95"
+     className="w-full md:w-auto bg-white border border-slate-200 text-slate-800 px-6 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-50 transition-all shadow-sm active:scale-95"
      >
      <CreditCard size={22} />
      <span>تسجيل تحويل مالي جديد</span>
@@ -361,12 +361,12 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="text-2xl md:text-3xl font-black text-blue-700">{Number(totalDeliveryDue || 0).toFixed(3)} <span className="text-xs text-blue-400">د.ك</span></div>
  <div className="text-[10px] font-bold mt-3 text-blue-400">للموردين الذين يوصلون أو شركات التوصيل فقط</div>
  </div>
- <div className="bg-slate-50 border border-slate-200 text-slate-900 p-3 md:p-4 rounded-[20px] md:rounded-3xl text-white shadow-xl shadow-slate-200/50 relative">
+ <div className="bg-white border border-slate-200 text-slate-900 p-3 md:p-4 rounded-[20px] md:rounded-3xl shadow-sm relative">
  <div className="text-[10px] font-bold uppercase opacity-40 mb-2">إجمالي المستحق</div>
  <div className="text-2xl md:text-3xl font-bold text-red-500">{Number(totalOutstanding || 0).toFixed(3)} <span className="text-xs">د.ك</span></div>
  <button 
  onClick={() => setShowWaitingList(prev => !prev)}
- className="flex items-center gap-2 text-[10px] font-bold mt-3 text-slate-500 cursor-pointer hover:text-white transition-colors p-1 -ml-1 rounded"
+ className="flex items-center gap-2 text-[10px] font-bold mt-3 text-slate-500 cursor-pointer hover:text-slate-900 transition-colors p-1 -ml-1 rounded"
  >
  <Clock size={12} />
  موردين بالانتظار: {(data?.suppliers || []).filter(s => s.balance > 0).length}
@@ -589,7 +589,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  initial={{ opacity: 0, scale: 0.95, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95, y: 20 }}
- className="bg-white rounded-3xl w-[95%] md:w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+ className="bg-white rounded-3xl w-[calc(100vw-1.5rem)] sm:w-[95%] md:w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
  onClick={e => e.stopPropagation()}
  >
  <div className="p-3 md:p-4 md:p-3 pb-0 shrink-0">
@@ -641,7 +641,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </div>
  {selectedSupplierSummary && !transferForm.id && (
  <div className="bg-slate-50 border border-slate-100 rounded-3xl p-3 md:p-4 space-y-3">
-   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5">
+   <div className="grid grid-cols-2 gap-2.5">
      <div className="bg-white rounded-2xl p-3 text-right border border-slate-100 min-w-0">
        <div className="text-[10px] font-black text-slate-400 mb-1 whitespace-nowrap">توريد متبقّي</div>
        <div className="text-lg font-black text-slate-900 whitespace-nowrap" dir="ltr">{selectedSupplierSummary.remainingSupply.toFixed(3)}</div>

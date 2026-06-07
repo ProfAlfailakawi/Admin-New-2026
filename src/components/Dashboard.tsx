@@ -2481,9 +2481,9 @@ const [isPending, startTransition] = useTransition();
           dir="rtl"
         >
           {showSampleDataPrompt && (
-            <div className="mb-4 bg-amber-50/90 border border-amber-200 rounded-xl p-2.5 flex flex-row items-center justify-between gap-3 animate-in slide-in-from-top-4 fade-in duration-500 text-right w-full overflow-hidden relative shadow-sm">
+            <div className="mb-4 bg-amber-50/90 border border-amber-200 rounded-xl p-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 animate-in slide-in-from-top-4 fade-in duration-500 text-right w-full overflow-hidden relative shadow-sm">
               <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] bg-amber-500/10 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-              <div className="flex-1 relative z-10 flex items-center gap-3">
+              <div className="flex-1 relative z-10 flex items-start sm:items-center gap-3 min-w-0">
                 <div className="bg-amber-500 text-white p-1.5 rounded-lg shrink-0">
                   <Database size={16} />
                 </div>
@@ -2498,10 +2498,10 @@ const [isPending, startTransition] = useTransition();
                   </p>
                 </div>
               </div>
-              <div className="flex justify-end gap-2 shrink-0 relative z-10 w-auto font-sans">
+              <div className="flex justify-end gap-2 shrink-0 relative z-10 w-full sm:w-auto font-sans">
                 <button
                   onClick={handleLoadDemoData}
-                  className="bg-amber-600 outline-none text-white font-bold text-sm text-[11px] px-3 py-1.5 rounded-md hover:bg-amber-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95"
+                  className="bg-amber-600 outline-none text-white font-bold text-[11px] px-3 py-2 rounded-md hover:bg-amber-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95 whitespace-nowrap flex-1 sm:flex-none"
                 >
                   <Download size={14} />
                   <span>{appMode === 'cloud' || hasActiveBackup ? "استرجاع بياناتي" : "تحميل بيانات تجريبية"}</span>
@@ -5113,8 +5113,8 @@ const [isPending, startTransition] = useTransition();
                                 )}
                               </div>
                             </div>
-                            <div className="md:col-span-2 bg-indigo-900 text-white p-3 md:p-4 rounded-2xl shadow-xl relative overflow-hidden">
-                              <div className="absolute -top-3 md:p-4 -left-10 opacity-20 text-indigo-400 rotate-12">
+                            <div className="md:col-span-2 bg-indigo-50 text-slate-900 p-3 md:p-4 rounded-2xl shadow-sm border border-indigo-100 relative overflow-hidden">
+                              <div className="absolute -top-3 md:p-4 -left-10 opacity-10 text-indigo-400 rotate-12">
                                 <Cpu size={200} />
                               </div>
                               <div className="relative z-10">
@@ -5127,7 +5127,7 @@ const [isPending, startTransition] = useTransition();
                                     (rec: string, i: number) => (
                                       <div
                                         key={i}
-                                        className="bg-white/10 backdrop-blur-md p-3 md:p-3 rounded-2xl border border-white/10 hover:bg-white/20 transition-all"
+                                        className="bg-white p-3 md:p-3 rounded-2xl border border-indigo-100 hover:bg-indigo-50/70 transition-all text-slate-800 shadow-sm"
                                       >
                                         <div className="text-amber-400 font-bold text-lg mb-2">
                                           0{i + 1}
@@ -5162,10 +5162,10 @@ const [isPending, startTransition] = useTransition();
                               { icon: "🧠" },
                             )
                           }
-                          className="w-12 h-12 rounded-2xl bg-indigo-500/20 hover:bg-indigo-500/40 hover:scale-110 active:scale-95 transition-all flex items-center justify-center border border-indigo-400/30 cursor-pointer"
+                          className="w-12 h-12 rounded-2xl bg-indigo-50 hover:bg-indigo-100 hover:scale-110 active:scale-95 transition-all flex items-center justify-center border border-indigo-100 cursor-pointer"
                         >
                           <Sparkles
-                            className="text-indigo-300 pointer-events-none"
+                            className="text-indigo-600 pointer-events-none"
                             size={24}
                           />
                         </button>
@@ -5175,18 +5175,18 @@ const [isPending, startTransition] = useTransition();
                       </div>
                       <div className="space-y-3 relative z-10 text-right">
                         {!ltv || !cac ? (
-                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 text-center">
-                            <p className="text-xs text-white/50 font-bold">
+                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <p className="text-xs text-slate-500 font-bold">
                               لا توجد بيانات كافية لإصدار توصية تخص النمو
                             </p>
                           </div>
                         ) : (
-                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 group hover:bg-white transition-all">
                             <div className="flex justify-between items-center mb-1 flex-row-reverse">
-                              <div className="text-[10px] text-indigo-300 font-bold">
+                              <div className="text-[10px] text-indigo-600 font-bold">
                                 النمو الاستراتيجي
                               </div>
-                              <span className="text-[10px] text-white/30 font-bold italic">
+                              <span className="text-[10px] text-slate-400 font-bold italic">
                                 LTV:CAC = {ltvCacRatio.toFixed(1)}
                               </span>
                             </div>
@@ -5201,18 +5201,18 @@ const [isPending, startTransition] = useTransition();
                         )}
 
                         {totalGatewayFees === 0 ? (
-                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 text-center">
-                            <p className="text-xs text-white/50 font-bold">
+                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <p className="text-xs text-slate-500 font-bold">
                               لا توجد رسوم بوابات الدفع لإصدار توصية
                             </p>
                           </div>
                         ) : (
-                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 group hover:bg-white transition-all">
                             <div className="flex justify-between items-center mb-1 flex-row-reverse">
-                              <div className="text-[10px] text-indigo-300 font-bold">
+                              <div className="text-[10px] text-indigo-600 font-bold">
                                 كفاءة التكاليف
                               </div>
-                              <span className="text-[10px] text-white/30 font-bold italic">
+                              <span className="text-[10px] text-slate-400 font-bold italic">
                                 الرسوم = {totalGatewayFees.toFixed(3)} د.ك
                               </span>
                             </div>
@@ -5225,18 +5225,18 @@ const [isPending, startTransition] = useTransition();
                         )}
 
                         {profitMargin === 0 && totalSalesVal === 0 ? (
-                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 text-center">
-                            <p className="text-xs text-white/50 font-bold">
+                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <p className="text-xs text-slate-500 font-bold">
                               لا توجد مبيعات كافية لتحليل الأرباح
                             </p>
                           </div>
                         ) : (
-                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 group hover:bg-white transition-all">
                             <div className="flex justify-between items-center mb-1 flex-row-reverse">
-                              <div className="text-[10px] text-indigo-300 font-bold">
+                              <div className="text-[10px] text-indigo-600 font-bold">
                                 الصحة المالية
                               </div>
-                              <span className="text-[10px] text-white/30 font-bold italic">
+                              <span className="text-[10px] text-slate-400 font-bold italic">
                                 هامش الربح = {profitMargin.toFixed(1)}%
                               </span>
                             </div>
