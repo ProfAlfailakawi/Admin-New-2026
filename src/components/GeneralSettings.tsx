@@ -254,6 +254,9 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
   getPushDeviceConfidenceMeta
 }) => {
   const [hoveredCard, setHoveredCard] = useState<any | null>(null);
+  const compassSize = 280;
+  const compassCenter = compassSize / 2;
+  const compassScale = compassSize / 320;
 
   // Group cards that have devices
   const cardsWithDevices = allCards.filter(c => (c.devices || []).length > 0);
@@ -265,10 +268,10 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
 
   // Helper to calculate exact coordinates
   const getCoordinates = (index: number, total: number, radius: number, offsetAngle = 0) => {
-    if (total === 0) return { x: 160, y: 160, angle: 0 };
+    if (total === 0) return { x: compassCenter, y: compassCenter, angle: 0 };
     const angle = (index * (2 * Math.PI) / total) + offsetAngle;
-    const x = 160 + radius * Math.cos(angle);
-    const y = 160 + radius * Math.sin(angle);
+    const x = compassCenter + (radius * compassScale) * Math.cos(angle);
+    const y = compassCenter + (radius * compassScale) * Math.sin(angle);
     return { x, y, angle };
   };
 
@@ -290,7 +293,11 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
   });
 
   return (
-    <div className="relative w-[320px] h-[320px] rounded-full flex items-center justify-center select-none bg-white border border-slate-200 text-slate-900/60 border border-amber-500/20 shadow-[0_15px_45px_-10px_rgba(0,0,0,0.85)] p-1" id="device-deera-compass">
+    <div
+      className="relative rounded-full flex items-center justify-center select-none bg-white border border-slate-200 text-slate-900/60 border-amber-500/20 shadow-[0_15px_45px_-10px_rgba(0,0,0,0.85)] p-1"
+      id="device-deera-compass"
+      style={{ width: compassSize, height: compassSize, maxWidth: 'calc(100vw - 56px)', maxHeight: 'calc(100vw - 56px)' }}
+    >
        {/* Scanning effect */}
        <motion.div
          className="absolute inset-0 pointer-events-none rounded-full z-0"
@@ -302,7 +309,7 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
        />
 
        {/* Traditional compass face background SVG */}
-       <svg width="310" height="310" viewBox="0 0 320 320" className="absolute inset-0 m-auto pointer-events-none z-10">
+       <svg width={compassSize - 10} height={compassSize - 10} viewBox="0 0 320 320" className="absolute inset-0 m-auto pointer-events-none z-10">
          <defs>
            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
              <stop offset="0%" stopColor="#ffd700" />
@@ -447,10 +454,10 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
 
        {/* Floating Detail Overlay inside the compass center when node hovered */}
        {hoveredCard ? (
-         <div className="absolute inset-x-6 top-[80px] bottom-[80px] mx-auto w-[220px] h-[150px] z-30 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900/95 border border-amber-400/40 p-3 shadow-[0_12px_48px_rgba(0,0,0,0.95)] shadow-amber-950/40 backdrop-blur-md flex flex-col justify-between text-right pointer-events-none">
+         <div className="absolute inset-x-6 top-[70px] bottom-[70px] mx-auto w-[210px] h-[145px] z-30 rounded-2xl bg-slate-950/95 border border-amber-400/40 p-3 shadow-[0_12px_48px_rgba(0,0,0,0.95)] shadow-amber-950/40 backdrop-blur-md flex flex-col justify-between text-right pointer-events-none">
            <div>
              <div className="flex items-center justify-between border-b border-white/10 pb-1.5 mb-1.5 min-w-0">
-               <span className="text-[8px] rounded-lg bg-white/10 px-1.5 py-0.5 text-slate-800/75 font-black shrink-0">
+               <span className="text-[8px] rounded-lg bg-white/10 px-1.5 py-0.5 text-white/75 font-black shrink-0">
                  {hoveredCard.identity.role === 'partner' ? 'شريك' : hoveredCard.identity.role === 'admin' ? 'مدير' : 'موظف'}
                </span>
                <strong className="text-[11px] font-black text-amber-300 truncate mr-2">
@@ -4083,7 +4090,7 @@ const GeneralSettings: React.FC<Props> = ({
                                     ['آخر قراءة', latestDeviceReadLabel],
                                     ['وصول مؤكد', `${deliveredCount}`],
                                   ].map(([label, value]) => (
-                                    <div key={label} className="rounded-xl bg-slate-50 border border-slate-200 text-slate-800/15 border border-white/10 p-2 min-w-0">
+                                    <div key={label} className="rounded-xl bg-white/10 border border-white/10 p-2 min-w-0">
                                       <div className="text-[9px] font-black text-white/35">{label}</div>
                                       <div className="mt-1 text-xs font-black text-white truncate">{value}</div>
                                     </div>
@@ -4093,7 +4100,7 @@ const GeneralSettings: React.FC<Props> = ({
                             </div>
 
                             <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-3">
-                              <div className="rounded-[1.8rem] border border-white/10 bg-slate-50 border border-slate-200 text-slate-900/85 p-4 text-white shadow-sm border border-slate-200">
+                              <div className="rounded-[1.8rem] border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 p-4 text-white shadow-sm overflow-hidden">
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                   <div>
                                     <div className="text-[10px] font-black text-emerald-200">رادار حياة الإشعار</div>

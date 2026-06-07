@@ -501,13 +501,14 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
             deliverySettlementSupplierId: deliveryManagerSupplierId,
           };
         };
-        return {
+        const nextState = {
           ...prev,
           invoices: (prev.invoices || []).map((inv: any) => String(inv.id) === String(deliveryManagerInvoice.id) ? apply(inv) : inv),
           orders: (prev.orders || []).map((order: any) => (
             String(order.id) === String(deliveryManagerInvoice.id) || String(order.linkedInvoiceId || '') === String(deliveryManagerInvoice.id)
           ) ? apply(order) : order),
         } as any;
+        return recalculateStateBalances(nextState);
       });
       toast.success('تم تحديث إدارة التوصيل', { description: 'تم تعديل طريقة التوصيل وجهتها داخليًا فقط دون تغيير إجمالي الفاتورة المدفوع.' });
       setDeliveryManagerInvoice(null);
