@@ -422,7 +422,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
     </button>
   </div>
  {/* Header Stats */}
- <div className="loyalty-hero-panel bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-2 md:p-6 text-slate-800 shadow-sm border border-slate-200 relative overflow-hidden">
+ <div className="loyalty-hero-panel bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-2 md:p-6 text-white shadow-xl relative overflow-hidden">
  <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
  <Award size={300} className="absolute -bottom-20 -right-20" />
  </div>
@@ -487,7 +487,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  }}
  className={cn(
 "px-4 py-2 rounded-xl text-xs font-bold transition-all",
- isDynamicRewardsEnabled ?"bg-amber-500 text-white shadow-sm border border-slate-200" :"text-slate-500"
+ isDynamicRewardsEnabled ?"bg-amber-500 text-white shadow-lg" :"text-slate-500"
 )}
  >
  مكافآت متكيفة آلياً (Pulse Mode)
@@ -499,7 +499,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  }}
  className={cn(
 "px-4 py-2 rounded-xl text-xs font-bold transition-all",
- !isDynamicRewardsEnabled ?"bg-slate-50 border border-slate-200 text-slate-900 text-white shadow-lg" :"text-slate-500"
+ !isDynamicRewardsEnabled ?"bg-slate-900 text-white shadow-lg" :"text-slate-500"
 )}
  >
  مكافآت ثابتة
@@ -509,7 +509,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
  {rewards.map((reward, i) => (
- <div key={i} className="p-3 md:p-3 bg-slate-50 border border-slate-100 rounded-2xl hover:border-amber-200 transition-all group">
+ <div key={i} className="p-3 md:p-3 bg-slate-50 border border-slate-100 rounded-3xl hover:border-amber-200 transition-all group">
  <div className="w-12 h-12 bg-white rounded-2xl border border-slate-100 flex justify-center items-center text-amber-500 mb-4 group-hover:scale-110 transition-transform shadow-sm">
  {reward.icon}
  </div>
@@ -529,23 +529,23 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  const activeHeroes = topHeroes.filter((hero: any) => hero.daysSinceLastOrder <= 14).length;
  const missingHeroes = topHeroes.filter((hero: any) => hero.daysSinceLastOrder > 14).length;
  return (
- <div className="bg-gradient-to-br from-amber-50 via-white to-slate-50 rounded-3xl p-4 md:p-6 relative overflow-hidden shadow-sm my-8 text-right border border-amber-100" dir="rtl">
- <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.04] pointer-events-none"></div>
- <div className="absolute top-0 right-0 w-64 h-64 bg-amber-300/25 blur-[100px] rounded-full pointer-events-none" />
+ <div className="bg-slate-900 rounded-3xl p-4 md:p-6 text-white relative overflow-hidden shadow-xl my-8 text-right" dir="rtl">
+ <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
+ <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 blur-[100px] rounded-full pointer-events-none" />
  <div className="relative z-10 flex flex-col gap-3 mb-4">
  <div className="flex items-start justify-between gap-3">
  <div>
- <h3 className="text-xl md:text-3xl font-bold text-amber-700 flex flex-wrap items-center gap-2">
+ <h3 className="text-xl md:text-3xl font-bold text-amber-400 flex flex-wrap items-center gap-2">
  أبطال الطلبات 🏆
- <span className="text-[10px] md:text-sm font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full border border-amber-200">Top 10</span>
+ <span className="text-[10px] md:text-sm font-bold bg-amber-500/20 text-amber-200 px-3 py-1 rounded-full border border-amber-500/30">Top 10</span>
  </h3>
- <p className="text-slate-500 font-bold mt-1 text-[11px] md:text-sm">مختصر مرتب؛ افتح أي بطل فقط عند الحاجة.</p>
+ <p className="text-slate-400 font-bold mt-1 text-[11px] md:text-sm">مختصر مرتب؛ افتح أي بطل فقط عند الحاجة.</p>
  </div>
  </div>
  <div className="grid grid-cols-3 gap-2">
- <div className="rounded-2xl bg-white border border-slate-200 p-2 text-center"><span className="block text-[9px] text-slate-500 font-black">الأبطال</span><b className="text-sm text-slate-900">{topHeroes.length}</b></div>
- <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-2 text-center"><span className="block text-[9px] text-emerald-600 font-black">نشط</span><b className="text-sm text-emerald-700">{activeHeroes}</b></div>
- <div className="rounded-2xl bg-rose-50 border border-rose-100 p-2 text-center"><span className="block text-[9px] text-rose-600 font-black">غائب</span><b className="text-sm text-rose-700">{missingHeroes}</b></div>
+ <div className="rounded-2xl bg-white/10 border border-white/10 p-2 text-center"><span className="block text-[9px] text-slate-400 font-black">الأبطال</span><b className="text-sm text-white">{topHeroes.length}</b></div>
+ <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/15 p-2 text-center"><span className="block text-[9px] text-emerald-200 font-black">نشط</span><b className="text-sm text-emerald-100">{activeHeroes}</b></div>
+ <div className="rounded-2xl bg-rose-500/10 border border-rose-500/15 p-2 text-center"><span className="block text-[9px] text-rose-200 font-black">غائب</span><b className="text-sm text-rose-100">{missingHeroes}</b></div>
  </div>
  </div>
  <div className="relative z-10 space-y-2">
@@ -553,29 +553,29 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  const isOpen = expandedHeroId === hero.id;
  const isMissing = hero.daysSinceLastOrder > 14;
  return (
- <div key={hero.id} className="rounded-2xl border border-slate-200 bg-white text-slate-800 overflow-hidden shadow-sm">
+ <div key={hero.id} className="rounded-2xl border border-slate-700 bg-slate-800/70 overflow-hidden">
  <button
  type="button"
  onClick={() => setExpandedHeroId(isOpen ? null : hero.id)}
- className="w-full px-3 py-3 flex items-center justify-between gap-3 text-right hover:bg-amber-50/40 transition"
+ className="w-full px-3 py-3 flex items-center justify-between gap-3 text-right hover:bg-white/5 transition"
  >
  <div className="flex items-center gap-3 min-w-0">
- <span className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center font-bold text-[11px] text-amber-300 shrink-0">#{idx + 1}</span>
- <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-base font-bold border border-amber-200 shrink-0">{hero.name?.charAt(0) || '?'}</div>
+ <span className="w-8 h-8 rounded-xl bg-slate-700 border border-slate-600 flex items-center justify-center font-bold text-[11px] text-amber-300 shrink-0">#{idx + 1}</span>
+ <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-300 flex items-center justify-center text-base font-bold border border-amber-500/20 shrink-0">{hero.name?.charAt(0) || '?'}</div>
  <div className="min-w-0">
- <h4 className="font-bold text-xs md:text-sm text-slate-900 truncate">{hero.name || 'عميلنا الكفو'}</h4>
- <p className="text-[10px] text-slate-500 font-bold truncate">{hero.totalSpent.toFixed(2)} د.ك · {isMissing ? `غائب ${hero.daysSinceLastOrder} يوم` : 'في قمة النشاط'}</p>
+ <h4 className="font-bold text-xs md:text-sm text-slate-100 truncate">{hero.name || 'عميلنا الكفو'}</h4>
+ <p className="text-[10px] text-slate-400 font-bold truncate">{hero.totalSpent.toFixed(2)} د.ك · {isMissing ? `غائب ${hero.daysSinceLastOrder} يوم` : 'في قمة النشاط'}</p>
  </div>
  </div>
  <div className="flex items-center gap-2 shrink-0">
- <span className={cn('rounded-full px-2 py-1 text-[9px] font-black', isMissing ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700')}>{isMissing ? 'استرجاع' : 'مكافأة'}</span>
+ <span className={cn('rounded-full px-2 py-1 text-[9px] font-black', isMissing ? 'bg-rose-500/15 text-rose-200' : 'bg-emerald-500/15 text-emerald-200')}>{isMissing ? 'استرجاع' : 'مكافأة'}</span>
  <ChevronDown size={15} className={cn('text-slate-400 transition-transform', isOpen ? 'rotate-180' : '')} />
  </div>
  </button>
  {isOpen && (
- <div className="border-t border-slate-200 p-3 grid grid-cols-1 md:grid-cols-3 gap-2">
- <div className="rounded-xl bg-slate-50 border border-slate-200 p-2"><span className="block text-[9px] text-slate-500 font-black">المحفظة</span><b className="text-[11px] text-slate-900">{hero.totalSpent.toFixed(2)} د.ك</b></div>
- <div className="rounded-xl bg-slate-50 border border-slate-200 p-2"><span className="block text-[9px] text-slate-500 font-black">الحالة</span><b className={cn('text-[11px]', isMissing ? 'text-rose-700' : 'text-emerald-700')}>{isMissing ? `غائب من ${hero.daysSinceLastOrder} يوم` : 'في قمة النشاط 🔥'}</b></div>
+ <div className="border-t border-slate-700 p-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+ <div className="rounded-xl bg-slate-900/60 border border-slate-700 p-2"><span className="block text-[9px] text-slate-500 font-black">المحفظة</span><b className="text-[11px] text-white">{hero.totalSpent.toFixed(2)} د.ك</b></div>
+ <div className="rounded-xl bg-slate-900/60 border border-slate-700 p-2"><span className="block text-[9px] text-slate-500 font-black">الحالة</span><b className={cn('text-[11px]', isMissing ? 'text-rose-200' : 'text-emerald-200')}>{isMissing ? `غائب من ${hero.daysSinceLastOrder} يوم` : 'في قمة النشاط 🔥'}</b></div>
  <button
  onClick={() => {
  const heroName = getFriendlyName(hero.name);
@@ -590,7 +590,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  ], hero.id || hero.phone || hero.name);
  handleWhatsApp(hero.phone, msg);
  }}
- className={cn('rounded-xl py-2 px-3 text-[10px] font-black transition-all', isMissing ? 'bg-rose-100 hover:bg-rose-200 text-rose-700' : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700')}
+ className={cn('rounded-xl py-2 px-3 text-[10px] font-black transition-all', isMissing ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-200' : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200')}
  >
  {isMissing ? 'استرجاع بخصم 15%' : 'مكافأة الاستمرار'}
  </button>

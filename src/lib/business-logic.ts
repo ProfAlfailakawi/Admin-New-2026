@@ -1,46 +1,6 @@
 import { AppState } from '../types';
 import { isPaidStatus } from './status-utils';
 
-
-const getInvoiceDeliverySettlementAmount = (inv: any, supplierId: string, state: AppState): number => {
-  const info = inv?.deliveryInfo || {};
-  const target = info.settlementTarget || inv?.deliverySettlementTarget;
-  const valueCandidates = [info.cost, inv?.deliveryCost, info.finalPrice, inv?.deliveryFee];
-  const value = Number(valueCandidates.find((candidate) => Number(candidate || 0) > 0) || 0) || 0;
-  if (value <= 0) return 0;
-
-  const supplier = (state?.suppliers || []).find((s: any) => String(s.id) === String(supplierId));
-  if (!supplier) return 0;
-
-  const isDeliveryCompany = (supplier as any).supplierType === 'delivery';
-  const isFoodSupplierDelivering = !isDeliveryCompany && (supplier as any).deliverySettlement === 'supplier';
-  if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
-
-  const invoiceHasSupplierProduct = (inv?.items || []).some((item: any) => {
-    const product = (state?.products || []).find((p: any) => String(p.id) === String(item.productId));
-    return String(product?.supplierId || '') === String(supplierId);
-  });
-
-  const explicitSupplierId = String(info.settlementSupplierId || inv?.deliverySettlementSupplierId || '');
-  const supplierName = String((supplier as any)?.name || '').trim();
-  const explicitName = String(info.settlementSupplierName || info.company || inv?.deliveryCompany || '').trim();
-  const matchesSupplier = explicitSupplierId === String(supplierId) || (!!supplierName && explicitName === supplierName);
-  const hasNoExplicitSettlement = !target && !explicitSupplierId && !explicitName;
-
-  if (isDeliveryCompany) {
-    if (target && target !== 'delivery_company') return 0;
-    return matchesSupplier ? Math.round(value * 1000) / 1000 : 0;
-  }
-
-  if (isFoodSupplierDelivering) {
-    if (target && target !== 'supplier') return 0;
-    return (matchesSupplier || (hasNoExplicitSettlement && invoiceHasSupplierProduct)) ? Math.round(value * 1000) / 1000 : 0;
-  }
-
-  return 0;
-};
-
-
 /**
  * Recalculates all derived balances in the application state to ensure consistency.
  * 1. Supplier Balances = Sum(Invoice Item Costs) - Sum(Supplier Transfers)
@@ -70,13 +30,6 @@ export function recalculateStateBalances(state: AppState): AppState {
         supplierBalances[product.supplierId] = Math.round((currentTotal + cost) * 1000) / 1000;
       } else {
       }
-    });
-
-    (newState.suppliers || []).forEach((supplier: any) => {
-      const deliverySettlementAmount = getInvoiceDeliverySettlementAmount(inv, String(supplier.id), newState);
-      if (deliverySettlementAmount <= 0) return;
-      const currentTotal = supplierBalances[supplier.id] || 0;
-      supplierBalances[supplier.id] = Math.round((currentTotal + deliverySettlementAmount) * 1000) / 1000;
     });
   });
 

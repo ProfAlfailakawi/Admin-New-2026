@@ -36,7 +36,7 @@ export const ProductQualityBoard: React.FC<Props> = ({ data, onFocusProduct }) =
     <section id="product-quality-board" className="rounded-[26px] border border-slate-200 bg-white shadow-sm text-right overflow-hidden" dir="rtl">
       <div className="p-3 md:p-4">
         <div className="flex items-start gap-3">
-          <div className="h-10 w-10 shrink-0 rounded-2xl bg-white border border-slate-200 text-slate-900 flex items-center justify-center">
+          <div className="h-10 w-10 shrink-0 rounded-2xl bg-slate-950 text-white flex items-center justify-center">
             {report.score >= 72 ? <CheckCircle2 size={18} /> : <Target size={18} />}
           </div>
           <div className="min-w-0 flex-1">
@@ -86,7 +86,7 @@ export const ProductQualityBoard: React.FC<Props> = ({ data, onFocusProduct }) =
           <button
             type="button"
             onClick={() => setIsOpen((v) => !v)}
-            className="min-h-11 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 px-4 py-2 text-xs font-black text-white hover:bg-slate-100 transition-colors"
+            className="min-h-11 rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black text-white hover:bg-slate-800 transition-colors"
           >
             {isOpen ? 'إخفاء الأولويات' : 'عرض الأولويات'}
           </button>

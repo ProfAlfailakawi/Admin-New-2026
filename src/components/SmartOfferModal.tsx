@@ -49,7 +49,7 @@ export const SmartOfferModal: React.FC<SmartOfferModalProps> = ({ product, isOpe
  initial={{ opacity: 0 }} 
  animate={{ opacity: 1 }} 
  exit={{ opacity: 0 }} 
- className="absolute inset-0 bg-slate-50 border border-slate-200 text-slate-900/60 backdrop-blur-sm" 
+ className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
  onClick={onClose}
  />
  
@@ -57,10 +57,10 @@ export const SmartOfferModal: React.FC<SmartOfferModalProps> = ({ product, isOpe
  initial={{ scale: 0.95, opacity: 0, y: 20 }}
  animate={{ scale: 1, opacity: 1, y: 0 }}
  exit={{ scale: 0.95, opacity: 0, y: 20 }}
- className="bg-white rounded-2xl shadow-sm border border-slate-200 relative z-10 w-full max-w-[95%] md:w-full md:max-w-2xl overflow-hidden flex flex-col max-h-[90dvh]"
+ className="bg-white rounded-2xl shadow-xl relative z-10 w-full max-w-[95%] md:w-full md:max-w-2xl overflow-hidden flex flex-col max-h-[90dvh]"
  >
  {/* Header */}
- <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-3 md:p-4 md:p-3 flex items-center justify-between text-slate-800 relative shrink-0">
+ <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-3 md:p-4 md:p-3 flex items-center justify-between text-white relative shrink-0">
  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
  <div className="relative z-10 text-right">
  <h2 className="text-xl md:text-2xl font-bold flex items-center gap-3 justify-end leading-none">
@@ -100,7 +100,7 @@ export const SmartOfferModal: React.FC<SmartOfferModalProps> = ({ product, isOpe
  />
  <div className="absolute top-0 left-0 right-0 flex justify-between px-1 pointer-events-none">
  <div className="flex-1 flex justify-center mt-[-22px]">
- <span className="bg-indigo-600 text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-sm border border-slate-200" style={{ marginLeft: `calc(${discountPercent}% - 50%)` }}>
+ <span className="bg-slate-900 text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-lg" style={{ marginLeft: `calc(${discountPercent}% - 50%)` }}>
  خصم {discountPercent}%
  </span>
  </div>

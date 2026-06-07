@@ -1069,7 +1069,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-white border border-slate-200 text-slate-900/45 backdrop-blur-xl"
+            className="fixed inset-0 bg-slate-950/45 backdrop-blur-xl"
           />
 
           <motion.div
@@ -1190,7 +1190,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                 </div>
               ) : (
                 <div className="py-12 text-center">
-                  <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100"><Search size={28} className="text-slate-300" /></div>
+                  <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-slate-100"><Search size={28} className="text-slate-300" /></div>
                   <div className="font-black text-slate-600">ما في نتائج</div>
                   <div className="text-xs text-slate-400 mt-1">جرب اسم عميل، منتج، فاتورة، أو صفحة</div>
                 </div>

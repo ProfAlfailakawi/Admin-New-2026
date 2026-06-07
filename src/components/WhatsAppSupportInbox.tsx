@@ -887,7 +887,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       <div className="mb-4 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div />
         <div className="grid grid-cols-3 gap-3 min-w-[320px]">
-          <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-4"><div className="text-xs text-slate-400">المحادثات</div><div className="text-2xl font-black">{counts.all}</div></div>
+          <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-4"><div className="text-xs text-slate-400">المحادثات</div><div className="text-2xl font-black">{counts.all}</div></div>
           <div className="rounded-3xl bg-amber-50 border border-amber-100 shadow-sm p-4"><div className="text-xs text-amber-600">تحتاج دعم</div><div className="text-2xl font-black text-amber-700">{counts.support}</div></div>
           <div className="rounded-3xl bg-rose-50 border border-rose-100 shadow-sm p-4"><div className="text-xs text-rose-600">غير مقروء</div><div className="text-2xl font-black text-rose-700">{counts.unread}</div></div>
         </div>
@@ -896,7 +896,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       {notice && <div className={cn('mb-4 rounded-2xl border px-4 py-3 text-sm font-black flex items-center gap-2', notice.type === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : notice.type === 'error' ? 'border-rose-100 bg-rose-50 text-rose-700' : 'border-sky-100 bg-sky-50 text-sky-700')}><AlertCircle size={16} /> {notice.text}</div>}
       {error && <div className="mb-4 rounded-2xl border border-rose-100 bg-rose-50 text-rose-700 px-4 py-3 text-sm font-bold">{error}</div>}
       {topSmartDecision && (
-        <section className="mb-4 rounded-[1.7rem] border border-slate-900 bg-white border border-slate-200 text-slate-900 text-white p-4 shadow-sm border border-slate-200 overflow-hidden relative">
+        <section className="mb-4 rounded-[1.7rem] border border-slate-900 bg-slate-950 text-white p-4 shadow-xl overflow-hidden relative">
           <div className="absolute -left-16 -top-16 h-36 w-36 rounded-full bg-emerald-400/20 blur-3xl" />
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="text-right">
@@ -986,7 +986,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                   <div className="mt-2 line-clamp-2 text-xs font-bold leading-5 text-slate-500">{c.lastInboundText || c.lastMessageText || 'محادثة تحتاج متابعة'}</div>
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <span className="text-[10px] font-black text-slate-400">{item.waitingMinutes > 0 ? `ينتظر ${item.waitingMinutes} د` : 'الآن'}</span>
-                    <span className="rounded-xl bg-slate-50 border border-slate-200 text-slate-900 px-3 py-1.5 text-[11px] font-black text-white">رد جاهز</span>
+                    <span className="rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-black text-white">رد جاهز</span>
                   </div>
                 </button>
               );
@@ -1099,7 +1099,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                     <button
                       type="button"
                       onClick={() => applySmartReply(selectedSmartReplies[0])}
-                      className="rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 px-4 py-3 text-xs font-black text-white hover:bg-slate-100 transition"
+                      className="rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white hover:bg-slate-800 transition"
                     >
                       اعتمد أقوى رد
                     </button>

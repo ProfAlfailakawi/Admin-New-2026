@@ -127,7 +127,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <StatCard label="مصروف اليوم" value={Number(todayExpenses || 0).toFixed(3)} icon={<ArrowDownRight />} color="amber" description="إجمالي الصرف لليوم الحالي" />
  </div>
 
- <div className="bg-white rounded-2xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
+ <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
  <div className="flex flex-col md:flex-row md:items-center gap-3 mb-10">
  <div className="relative flex-1">
  <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
@@ -148,7 +148,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  </div>
  <button 
  onClick={openAddModal}
- className="bg-slate-50 border border-slate-200 text-slate-900 px-4 md:px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-100 transition-all shadow-sm border border-slate-200 active:scale-95 shrink-0"
+ className="bg-slate-900 text-white px-4 md:px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95 shrink-0"
  >
  <Plus size={20} />
  <span>إضافة مصروف جديد</span>
@@ -228,7 +228,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <p className="text-slate-500 font-bold mb-8 leading-relaxed">لم تسجل أي مصروفات حتى الآن. أضف أول مصروف لتبدأ بتتبع تدفقاتك النقدية بدقة.</p>
  <button 
  onClick={() => { setShowModal(true); }} 
- className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-primary/20 active:scale-[0.98] transition-all active:scale-95 hover:rotate-1 mx-auto"
+ className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1 mx-auto"
  >
  <Plus size={24} />
  <span>سجل أول مصروف!</span>
@@ -248,7 +248,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  initial={{ opacity: 0 }} 
  animate={{ opacity: 1 }} 
  exit={{ opacity: 0 }} 
- className="fixed inset-0 bg-slate-50 border border-slate-200 text-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
+ className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
  onClick={() => setShowModal(false)}
  >
  <motion.div 
@@ -323,7 +323,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  </button>
  <button 
  onClick={handleSaveExpense}
- className="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl transition-all shadow-xl active:scale-95"
+ className="flex-1 py-4 bg-slate-900 text-white font-bold rounded-2xl transition-all shadow-xl active:scale-95"
  >
  {editingId ?"تحديث السجل" :"تأكيد المصروف"}
  </button>

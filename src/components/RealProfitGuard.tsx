@@ -71,7 +71,7 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
  return (
  <motion.div
  className={cn(
-"bg-white rounded-2xl border hover:shadow-sm border border-slate-200 transition-all relative overflow-hidden",
+"bg-white rounded-2xl border hover:shadow-lg transition-all relative overflow-hidden",
  insight.riskLevel === 'high' ? 'border-rose-200' : insight.riskLevel === 'medium' ? 'border-amber-200' : 'border-[#f0e6d2]'
 )}
  >
@@ -135,7 +135,7 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
  <span className="text-sm font-bold text-rose-600">{safeFormatPercent(insight.hiddenCostsRatio)}</span>
  </div>
  </div>
- <div className="bg-slate-50 border border-slate-200 text-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center flex-row-reverse">
+ <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center flex-row-reverse">
  <span className="text-[10px] font-bold text-slate-500">الربح الحقيقي الصافي</span>
  <span className={cn("text-sm font-bold", insight.realProfitValue < 0 ? 'text-rose-400' : 'text-emerald-400')}>
  {safeFormatCurrency(insight.realProfitValue)} د.ك
@@ -245,11 +245,11 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
 
  return (
  <div className="space-y-6">
- <div className="flex flex-col md:flex-row md:flex-row-reverse justify-between items-stretch md:items-center bg-white border border-slate-200 text-slate-900 p-4 sm:p-5 rounded-2xl border border-rose-500/30 shadow-[0_20px_50px_rgba(225,29,72,0.15)] gap-4 relative overflow-hidden">
+ <div className="flex flex-col md:flex-row md:flex-row-reverse justify-between items-stretch md:items-center bg-slate-950 p-4 sm:p-5 rounded-3xl border border-rose-500/30 shadow-[0_20px_50px_rgba(225,29,72,0.15)] gap-4 relative overflow-hidden">
  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(225,29,72,0.1)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
  <div className="text-right relative z-10 w-full min-w-0">
  <div className="flex flex-col sm:flex-row sm:flex-row-reverse sm:items-center gap-2 sm:justify-start mb-2">
- <h3 className="font-black text-xl sm:text-2xl text-slate-800 leading-snug break-words">رادار الدرع المالي</h3>
+ <h3 className="font-black text-xl sm:text-2xl text-white leading-snug break-words">رادار الدرع المالي</h3>
  <span className="w-fit bg-rose-500/20 text-rose-400 text-[10px] font-black px-3 py-1 rounded-full border border-rose-500/30 uppercase tracking-[0.12em] whitespace-normal sm:whitespace-nowrap leading-relaxed">Active Protection</span>
  </div>
  <p className="text-slate-400 text-[11px] sm:text-[10px] font-bold leading-6 sm:leading-relaxed">نظام حماية يراقب هوامش الربح بدقة ويكشف تآكل الأرباح فورا</p>

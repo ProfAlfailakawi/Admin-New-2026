@@ -119,7 +119,7 @@ class StudioErrorBoundary extends React.Component<{ title: string; children: Rea
     if (this.state.hasError) {
     
   return (
-        <div className="rounded-2xl border border-rose-100 bg-rose-50/80 p-8 text-right shadow-sm">
+        <div className="rounded-3xl border border-rose-100 bg-rose-50/80 p-8 text-right shadow-sm">
           <h3 className="text-lg font-black text-rose-700 mb-2">ما قدرنا نفتح {this.props.title}</h3>
           <p className="text-sm font-bold text-rose-600/80 leading-7">منعنا الشاشة البيضاء. حدّث الصفحة أو جرّب مرة ثانية، وإذا تكرر الخطأ راجع بيانات هذا القسم.</p>
           {this.state.message && <p className="mt-3 text-xs text-rose-500 bg-white/70 rounded-2xl p-3 direction-ltr text-left">{this.state.message}</p>}
@@ -820,7 +820,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     return (
       <span className={cn(
         "rounded-xl bg-slate-50 border border-slate-100/30 flex items-center justify-center shrink-0",
-        isLarge ? "h-24 w-24 rounded-[2rem] text-6xl border-white/10 bg-white/10 shadow-sm border border-slate-200" : "p-2 text-xl"
+        isLarge ? "h-24 w-24 rounded-[2rem] text-6xl border-white/10 bg-white/10 shadow-2xl" : "p-2 text-xl"
       )}>
         {scene.icon}
       </span>
@@ -1004,18 +1004,18 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     const intelligence = getLiveStudioIntelligence(kind);
 
     return (
-      <details className="group rounded-[20px] border border-slate-200 bg-white text-right text-slate-800 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 overflow-hidden">
+      <details className="group rounded-3xl border border-slate-800 bg-slate-950 text-right text-white shadow-sm overflow-hidden">
         <summary className="cursor-pointer list-none p-4 flex items-center justify-between gap-3 select-none">
           <div>
-            <div className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]">الاستوديو الحي</div>
-            <h4 className="mt-1 text-base font-black text-slate-900">مخرج تسويق ذكي بعد الإنتاج</h4>
-            <p className="mt-1 text-[11px] font-bold text-slate-500">يفتح بعد الناتج فقط ويقترح الخطوة التالية حسب الصورة أو الريل.</p>
+            <div className="text-[10px] font-black text-emerald-200 uppercase tracking-[0.2em]">الاستوديو الحي</div>
+            <h4 className="mt-1 text-base font-black">مخرج تسويق ذكي بعد الإنتاج</h4>
+            <p className="mt-1 text-[11px] font-bold text-white/45">يفتح بعد الناتج فقط ويقترح الخطوة التالية حسب الصورة أو الريل.</p>
           </div>
-          <span className="rounded-xl bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1.5 text-[10px] font-black shadow-sm group-open:hidden transition-colors">فتح</span>
-          <span className="rounded-xl bg-slate-100 text-slate-600 px-3 py-1.5 text-[10px] font-black hidden group-open:inline-flex transition-colors border border-transparent">إخفاء</span>
+          <span className="rounded-2xl bg-emerald-300 text-slate-950 px-3 py-1 text-[10px] font-black group-open:hidden">فتح</span>
+          <span className="rounded-2xl bg-white/10 text-white px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
         </summary>
         <div className="px-4 pb-4 space-y-3">
-          <div className="grid sm:grid-cols-2 gap-2 text-[11px] font-bold text-slate-600">
+          <div className="grid sm:grid-cols-2 gap-2 text-[11px] font-bold text-white/65">
             {[
               ['الناتج', isReel ? 'ريل جاهز للنشر' : card.output],
               ['المنصة', card.platform],
@@ -1024,19 +1024,19 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
               ['قوة التأثير', card.impact],
               ['صيغة القراءة', intelligence.formatLabel],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-[14px] bg-slate-50 border border-slate-100 p-3 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">
-                <div className="text-[9px] font-black text-slate-400 mb-1">{label}</div>
+              <div key={label} className="rounded-2xl bg-black/20 border border-white/10 p-3">
+                <div className="text-[9px] font-black text-white/35 mb-1">{label}</div>
                 <div className="leading-5">{value}</div>
               </div>
             ))}
           </div>
 
-          <div className="rounded-[16px] bg-indigo-50/50 border border-indigo-100/60 p-3 shadow-sm ring-1 ring-inset ring-indigo-900/5">
-            <div className="text-[10px] font-black text-indigo-600 mb-2">توصية المخرج الآن</div>
+          <div className="rounded-2xl bg-emerald-300/10 border border-emerald-300/20 p-3">
+            <div className="text-[10px] font-black text-emerald-200 mb-2">توصية المخرج الآن</div>
             <div className="grid gap-2">
               {intelligence.actionCards.map((item) => (
-                <div key={item.label} className="rounded-[12px] bg-white border border-indigo-100/40 px-3 py-2 text-[11px] font-bold text-indigo-900/80 leading-5 shadow-[0_1px_3px_rgba(99,102,241,0.04)]">
-                  <span className="text-indigo-600">{item.label}: </span>{item.value}
+                <div key={item.label} className="rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/75 leading-5">
+                  <span className="text-emerald-200">{item.label}: </span>{item.value}
                 </div>
               ))}
             </div>
@@ -1044,7 +1044,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
           <div className="flex flex-wrap gap-2">
             {intelligence.scoreChips.map((chip) => (
-              <span key={chip} className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-[10px] font-black text-slate-800/65">{chip}</span>
+              <span key={chip} className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-[10px] font-black text-white/65">{chip}</span>
             ))}
           </div>
         </div>
@@ -2017,7 +2017,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             event.stopPropagation();
             setOpenProductionDesk((current) => current === mode ? null : mode);
           }}
-          className="h-9 w-9 rounded-2xl border border-white/15 bg-white border border-slate-200 text-slate-900/80 text-white/90 shadow-sm border border-slate-200 backdrop-blur-xl flex items-center justify-center text-[13px] font-black hover:bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-white/30"
+          className="h-9 w-9 rounded-2xl border border-white/15 bg-slate-950/80 text-white/90 shadow-xl backdrop-blur-xl flex items-center justify-center text-[13px] font-black hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-white/30"
           aria-label={isOpen ? 'إخفاء تفاصيل الإنتاج' : 'إظهار تفاصيل الإنتاج'}
           title={isOpen ? 'إخفاء تفاصيل الإنتاج' : 'إظهار تفاصيل الإنتاج'}
         >
@@ -2025,7 +2025,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         </button>
 
         {isOpen && (
-          <aside className="absolute bottom-11 right-0 w-[min(17rem,calc(100vw-2rem))] rounded-3xl border border-white/15 bg-slate-50 border border-slate-200 text-slate-900/90 p-3 text-white shadow-2xl backdrop-blur-2xl">
+          <aside className="absolute bottom-11 right-0 w-[min(17rem,calc(100vw-2rem))] rounded-3xl border border-white/15 bg-slate-950/90 p-3 text-white shadow-2xl backdrop-blur-2xl">
             <div className="mb-2 flex items-center justify-between gap-3" dir="ltr">
               <span className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-200">{mode === 'reel' ? 'تفاصيل الريل' : 'تفاصيل الإنتاج'}</span>
               <strong className="rounded-xl bg-white/10 px-2 py-1 text-xs font-black text-white">{mode === 'reel' ? '9:16' : selectedFormat}</strong>
@@ -2314,7 +2314,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {selectedStudioProductName && <div className="rounded-2xl bg-indigo-600 text-white px-3 py-2 text-[10px] font-black max-w-[150px] truncate">{selectedStudioProductName}</div>}
+                {selectedStudioProductName && <div className="rounded-2xl bg-slate-950 text-white px-3 py-2 text-[10px] font-black max-w-[150px] truncate">{selectedStudioProductName}</div>}
                 <div className="rounded-full bg-slate-100 p-2">
                   <ChevronLeft className={cn("w-4 h-4 text-slate-500 transition-transform", showStudioProductPicker ? "-rotate-90" : "rotate-0")} />
                 </div>
@@ -2422,21 +2422,21 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     ];
 
     return (
-      <div className="rounded-[1.7rem] border border-slate-200/60 bg-slate-50/50 backdrop-blur-xl p-3 space-y-3 shadow-inner">
+      <div className="rounded-[1.7rem] border border-slate-100 bg-slate-50 p-3 space-y-3">
         <button
           type="button"
           onClick={() => setShowFineTools(!showFineTools)}
-          className="w-full rounded-3xl bg-white/70 backdrop-blur-md border border-white/60 p-4 text-right flex items-center justify-between gap-3 shadow-sm hover:bg-white/90 transition-all"
+          className="w-full rounded-3xl bg-white border border-slate-100 p-4 text-right flex items-center justify-between gap-3"
         >
           <span>
-            <span className="block text-xs font-black text-slate-500 font-mono uppercase tracking-widest">أدوات دقيقة</span>
-            <span className="block text-sm font-black text-slate-900 mt-1">افتحها فقط عند الحاجة للتعديل</span>
+            <span className="block text-xs font-black text-slate-500">أدوات دقيقة</span>
+            <span className="block text-sm font-black text-slate-950 mt-1">افتحها فقط عند الحاجة للتعديل</span>
           </span>
           <ChevronLeft className={cn("transition-transform text-slate-400", showFineTools ? "-rotate-90" : "")} size={20} />
         </button>
 
         {showFineTools && (
-          <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
               {toolTabs.map((tab) => (
                 <button
@@ -2445,7 +2445,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   onClick={() => setFineToolTab(tab.id)}
                   className={cn(
                     "rounded-2xl px-3 py-3 text-sm font-black transition-all flex items-center justify-center gap-2",
-                    fineToolTab === tab.id ? "bg-indigo-600 text-white shadow-md transform scale-[0.99]" : "bg-white/60 backdrop-blur-md text-slate-500 border border-white/40 hover:bg-white/80"
+                    fineToolTab === tab.id ? "bg-slate-950 text-white shadow-md" : "bg-white text-slate-500 border border-slate-100"
                   )}
                 >
                   <span>{tab.icon}</span>
@@ -2455,9 +2455,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             </div>
 
             {fineToolTab === 'lighting' && (
-              <div className="rounded-[1.5rem] border border-amber-900/10 bg-gradient-to-b from-white/90 to-white/50 backdrop-blur-xl p-4 shadow-sm">
-                <p className="text-[11px] font-black text-amber-800 mb-3 font-mono">اختر إحساس الإضاءة</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="rounded-3xl border border-amber-100 bg-white p-4">
+                <p className="text-[11px] font-black text-amber-700 mb-3">اختر إحساس الإضاءة</p>
+                <div className="grid grid-cols-2 gap-2">
                   {moods.map(m => (
                     <button key={m.id} type="button" onClick={() => setSelectedMood(m.id)} className={cn("p-3 rounded-[1.2rem] border flex items-center justify-between gap-2 transition-all active:scale-95", selectedMood === m.id ? "bg-amber-50/80 border-[#C5A059] text-amber-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.03),0_1px_5px_rgba(197,160,89,0.2)] scale-[0.98]" : "bg-white/60 backdrop-blur-sm border-white/40 text-slate-600 hover:bg-white/90 active:scale-[0.98] hover:shadow-sm") }>
                       <span className="text-xl drop-shadow-sm">{m.icon}</span><span className="text-[11px] font-black">{m.label}</span>
@@ -2468,8 +2468,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             )}
 
             {fineToolTab === 'reality' && (
-              <div className="rounded-[1.5rem] border border-emerald-900/10 bg-gradient-to-b from-white/90 to-white/50 backdrop-blur-xl p-4 shadow-sm">
-                <p className="text-[11px] font-black text-emerald-800 mb-3 font-mono">أسلوب الصورة النهائي</p>
+              <div className="rounded-3xl border border-emerald-100 bg-white p-4">
+                <p className="text-[11px] font-black text-emerald-700 mb-3">أسلوب الصورة النهائي</p>
                 <div className="grid grid-cols-2 gap-2">
                   {(Object.entries(STUDIO_REALITY_MODES) as [StudioRealityMode, typeof STUDIO_REALITY_MODES[StudioRealityMode]][]).map(([id, item]) => (
                     <button key={id} type="button" onClick={() => setRealityMode(id)} className={cn("p-3 rounded-[1.2rem] border text-right transition-all active:scale-95", realityMode === id ? "bg-emerald-50/80 border-emerald-500/60 text-emerald-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.03),0_1px_5px_rgba(16,185,129,0.2)] scale-[0.98]" : "bg-white/60 backdrop-blur-sm border-white/40 text-slate-600 hover:bg-white/90  hover:shadow-sm") }>
@@ -2486,11 +2486,11 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   };
 
   const renderPlaceLibrary = () => (
-    <div className="rounded-[1.7rem] border border-slate-200/60 bg-slate-50/50 backdrop-blur-xl p-3 space-y-3 shadow-inner">
+    <div className="rounded-[1.7rem] border border-slate-100 bg-slate-50 p-3 space-y-3">
       <button
         type="button"
         onClick={() => setShowPlaceLibrary(!showPlaceLibrary)}
-        className="w-full rounded-3xl bg-white/70 backdrop-blur-md border border-white/60 p-4 text-right flex items-center justify-between gap-3 shadow-sm hover:bg-white/90 transition-all"
+        className="w-full rounded-3xl bg-white border border-slate-100 p-4 text-right flex items-center justify-between gap-3"
       >
         <span>
           <span className="block text-xs font-black text-slate-500 font-mono uppercase tracking-widest">مشاهد واقعية جاهزة</span>
@@ -2499,7 +2499,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         <ChevronLeft className={cn("transition-transform text-slate-400", showPlaceLibrary ? "-rotate-90" : "")} size={20} />
       </button>
       {showPlaceLibrary && (
-        <div className="grid grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="grid grid-cols-2 gap-2">
           {(Object.entries(KUWAIT_PLACES) as [KuwaitOrderPlace, typeof KUWAIT_PLACES[KuwaitOrderPlace]][]).map(([id, place]) => (
             <button key={id} type="button" onClick={() => { setSelectedOrderPlace(id); setBackgroundPreset(place.background); setShowPlaceLibrary(false); }} className={cn("rounded-[1.2rem] border p-3 text-right transition-all min-h-[72px] active:scale-95", selectedOrderPlace === id ? "bg-slate-50 border border-slate-200 text-slate-900 text-white border-slate-800 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] scale-[0.98]" : "bg-white/60 backdrop-blur-sm text-slate-600 border-white/50 hover:bg-white/90 hover:-translate-y-0.5 hover:shadow-sm") }>
               <span className="mx-auto mb-1 inline-flex drop-shadow-sm">{renderKuwaitPlaceIcon(id, place)}</span>
@@ -2900,18 +2900,18 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     const current = steps[currentIndex] || steps[0];
     return (
       <div className="mb-5">
-        <div className="md:hidden rounded-[22px] border border-slate-100 bg-slate-50 p-3 flex items-center justify-between gap-3 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">
-          <span className="h-10 px-4 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-black shadow-[0_2px_8px_rgba(99,102,241,0.06)]">{currentIndex + 1} من {steps.length}</span>
+        <div className="md:hidden rounded-[22px] border border-slate-100 bg-slate-50 p-3 flex items-center justify-between gap-3">
+          <span className="h-10 px-4 rounded-2xl bg-slate-950 text-white flex items-center justify-center text-xs font-black">{currentIndex + 1} من {steps.length}</span>
           <div className="text-right">
-            <div className="text-sm font-black text-slate-800">{current.t}</div>
-            <div className="text-[10px] font-bold text-slate-500">المرحلة الحالية</div>
+            <div className="text-sm font-black text-slate-900">{current.t}</div>
+            <div className="text-[10px] font-bold text-slate-400">المرحلة الحالية</div>
           </div>
         </div>
-        <div className="hidden md:grid gap-1 rounded-[24px] border border-slate-100 bg-slate-50 p-2 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
+        <div className="hidden md:grid gap-1 rounded-[24px] border border-slate-100 bg-slate-50 p-2" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
           {steps.map((s, idx) => (
             <button key={s.n} type="button" disabled={s.n > maxAllowedStep} onClick={() => { closeOpenPanels(); setStep(s.n); }} className={cn("rounded-[16px] px-2 py-2 text-center transition-all", currentStep === s.n ? "bg-white text-indigo-700 border border-slate-200 shadow-[0_2px_12px_rgba(15,23,42,0.04)] ring-1 ring-inset ring-slate-900/5 transform scale-100" : s.n > maxAllowedStep ? "text-slate-300 border border-transparent cursor-not-allowed opacity-60" : "text-slate-500 border border-transparent hover:bg-slate-100/60") }>
               <div className="text-[10px] font-black">{idx + 1}</div>
-              <div className="text-[10px] font-black mt-1 whitespace-nowrap">{s.t}</div>
+              <div className="text-[9px] font-black mt-1 whitespace-nowrap">{s.t}</div>
             </button>
           ))}
         </div>
@@ -2920,16 +2920,17 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   };
 
   return (
-    <div className="smart-studio-shell max-w-6xl mx-auto px-2 sm:px-4 py-5 sm:py-8 animate-in fade-in duration-700 pb-32 min-h-[calc(100vh-100px)] rounded-[2.5rem] transition-colors bg-slate-50/50">
+    <div className="smart-studio-shell max-w-6xl mx-auto px-3 sm:px-4 py-5 sm:py-8 animate-in fade-in duration-500 pb-32">
       
-      <div className="smart-studio-hero mb-4 sm:mb-8 rounded-[20px] sm:rounded-[24px] p-5 sm:p-6 md:p-7 shadow-[0_2px_24px_rgba(15,23,42,0.08)] bg-white ring-1 ring-inset ring-slate-900/5 relative overflow-hidden transition-all duration-700">
-        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-slate-100 blur-3xl pointer-events-none" />
-        <div className="absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-slate-50 blur-3xl pointer-events-none" />
+      <div className="smart-studio-hero mb-5 sm:mb-8 rounded-[2rem] sm:rounded-[2.4rem] bg-[radial-gradient(circle_at_top_left,_#4338ca,_#0f172a_46%,_#020617)] p-5 sm:p-6 md:p-7 shadow-2xl border border-white/10 text-white relative overflow-hidden">
+        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl pointer-events-none" />
+        <div className="absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-cyan-300/10 blur-3xl pointer-events-none" />
+        <div className="absolute inset-x-8 bottom-0 h-px bg-gradient-to-l from-transparent via-white/25 to-transparent" />
 
         <div className="relative z-10 flex items-center justify-between gap-3 sm:gap-4">
           <div className="text-right">
-            <h1 className="smart-studio-title text-2xl sm:text-3xl md:text-4xl font-black flex items-center gap-3 leading-tight font-display tracking-tight text-slate-800">
-              <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-[14px] bg-slate-50 border border-slate-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"><Camera className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" strokeWidth={2.5} /></span>
+            <h1 className="smart-studio-title text-2xl sm:text-3xl md:text-4xl font-black flex items-center gap-3 leading-tight">
+              <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 border border-white/10"><Camera className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-200" /></span>
               استوديو التراث الذكي
             </h1>
           </div>
@@ -2938,7 +2939,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
           </button>
         </div>
         
-        <div className="relative z-10 mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-5">
+        <div className="relative z-10 mt-5 flex items-center justify-between gap-3">
           {studioTab !== 'home' ? (
             <button onClick={changeStudioPath} className="h-10 w-10 sm:h-11 sm:w-11 rounded-[12px] text-xs sm:text-sm font-black bg-white hover:bg-slate-50 text-slate-600 transition-colors border border-slate-200 flex items-center justify-center shadow-sm active:scale-95" title="العودة للمنيو الرئيسي" aria-label="العودة للمنيو الرئيسي">
               <ChevronLeft size={20} strokeWidth={3} className="rotate-180" />
@@ -2954,30 +2955,30 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <button onClick={openReelDirect} className="group rounded-[20px] text-right transition-all active:scale-[0.98] overflow-hidden outline-none bg-white border border-slate-200 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 hover:border-slate-300 active:scale-95 flex flex-col justify-between min-h-[260px] p-6 sm:p-7 relative">
               <div className="relative flex items-center justify-between gap-3">
-                <span className="h-14 w-14 rounded-[14px] bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] transition-transform duration-500 ease-out group-active:scale-[0.98]"><Film size={26} strokeWidth={2.5} /></span>
-                <span className="rounded-[10px] bg-slate-50 text-slate-800 px-3 py-1.5 text-[11px] font-black border border-slate-200 flex items-center gap-1.5"><Sparkles size={12} className="text-violet-500" /> فيديو / ريل</span>
+                <span className="h-13 w-13 rounded-3xl bg-white border border-violet-100 shadow-sm flex items-center justify-center text-violet-600"><Film size={25} /></span>
+                <span className="rounded-full bg-violet-600 text-white px-4 py-2 text-xs font-black shadow-sm">فيديو / ريل</span>
               </div>
-              <div className="relative mt-auto pt-8">
-                <div className="text-2xl font-black text-slate-900 leading-tight font-display tracking-tight">ريل مباشر</div>
-                <div className="text-sm font-bold text-slate-500 mt-2 leading-relaxed">غرفة مونتاج واحدة: من صورة أو من فكرة. بعدها لقطة، مدة، وتوليد فوري.</div>
-                <div className="mt-6 grid grid-cols-2 gap-2 text-center text-[11px] font-black">
-                  <span className="rounded-[12px] bg-slate-50 border border-slate-200 px-2 py-2.5 text-slate-600 shadow-sm transition-colors group-hover:bg-slate-100">فكرة مستوحاة</span>
-                  <span className="rounded-[12px] bg-slate-50 border border-slate-200 px-2 py-2.5 text-slate-600 shadow-sm transition-colors group-hover:bg-slate-100">صورة مصغرة</span>
+              <div className="relative mt-7">
+                <div className="text-2xl font-black text-slate-950 leading-tight">ريل مباشر</div>
+                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">غرفة مونتاج واحدة: من صورة أو من فكرة. بعدها لقطة، مدة، وتوليد.</div>
+                <div className="mt-5 grid grid-cols-2 gap-2 text-center text-[10px] font-black">
+                  <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">فكرة</span>
+                  <span className="rounded-2xl bg-white border border-violet-100 px-2 py-2 text-violet-700">صورة</span>
                 </div>
               </div>
             </button>
 
             <button onClick={openImageDirect} className="group rounded-[20px] text-right transition-all  overflow-hidden outline-none bg-white border border-slate-200 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 hover:border-slate-300 active:scale-95 flex flex-col justify-between min-h-[260px] p-6 sm:p-7 relative">
               <div className="relative flex items-center justify-between gap-3">
-                <span className="h-14 w-14 rounded-[14px] bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] transition-transform duration-500 ease-out group-hover:scale-105"><Camera size={26} strokeWidth={2.5} /></span>
-                <span className="rounded-[10px] bg-slate-50 text-slate-800 px-3 py-1.5 text-[11px] font-black border border-slate-200 flex items-center gap-1.5"><Sparkles size={12} className="text-indigo-500" /> صورة / تصميم</span>
+                <span className="h-13 w-13 rounded-3xl bg-white border border-indigo-100 shadow-sm flex items-center justify-center text-indigo-600"><Camera size={25} /></span>
+                <span className="rounded-full bg-indigo-600 text-white px-4 py-2 text-xs font-black shadow-sm">صورة / تصميم</span>
               </div>
-              <div className="relative mt-auto pt-8">
-                <div className="text-2xl font-black text-slate-900 leading-tight font-display tracking-tight">صورة مباشرة</div>
-                <div className="text-sm font-bold text-slate-500 mt-2 leading-relaxed">استوديو صورة متكامل: ارفع صورة أو اكتب فكرة، والاختيار الذكي يوجهك بقوة.</div>
-                <div className="mt-6 grid grid-cols-2 gap-2 text-center text-[11px] font-black">
-                  <span className="rounded-[12px] bg-slate-50 border border-slate-200 px-2 py-2.5 text-slate-600 shadow-sm transition-colors group-hover:bg-slate-100">صورة حية</span>
-                  <span className="rounded-[12px] bg-slate-50 border border-slate-200 px-2 py-2.5 text-slate-600 shadow-sm transition-colors group-hover:bg-slate-100">فكرة إبداعية</span>
+              <div className="relative mt-7">
+                <div className="text-2xl font-black text-slate-950 leading-tight">صورة مباشرة</div>
+                <div className="text-sm font-bold text-slate-500 mt-2 leading-6">استوديو صورة واحد: ارفع صورة أو اكتب فكرة، والاختيار الذكي يساعدك من المنيو بدون مسار مكرر.</div>
+                <div className="mt-5 grid grid-cols-2 gap-2 text-center text-[10px] font-black">
+                  <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">صورة</span>
+                  <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">فكرة</span>
                 </div>
               </div>
             </button>
@@ -2986,11 +2987,11 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       )}
 
       {studioTab === 'library' && (
-        <div className="smart-studio-archive-panel max-w-6xl mx-auto rounded-[2.3rem] bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 sm:p-7 text-right">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 sm:p-6 text-right">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 gap-4">
             <div className="min-w-0">
-              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2 font-display"><Library size={22} className="text-indigo-500 shrink-0" strokeWidth={2.5}/> الأرشيف الإبداعي</h2>
-              <p className="text-xs font-bold text-slate-500 mt-2 leading-relaxed">سجل مرئي لجميع المنتجات والأفكار المولدة.</p>
+              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2"><Library size={20} className="text-indigo-500 shrink-0" /> الأرشيف</h2>
+              <p className="text-xs font-bold text-slate-400 mt-1">صورك المحفوظة من الاستوديو</p>
             </div>
             <div className="grid grid-cols-3 gap-1 rounded-[1.3rem] bg-white border border-slate-200 p-1 w-full sm:w-auto sm:min-w-[200px] shadow-sm">
               <button type="button" onClick={() => setArchiveTab('idea')} className={cn("rounded-xl px-4 py-2 text-xs font-black transition-all whitespace-nowrap", archiveTab === 'idea' ? "bg-slate-50 text-slate-800 border border-slate-200 shadow-[0_2px_8px_rgba(15,23,42,0.06)] transform scale-[1.02]" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800 border border-transparent")}>أفكار</button>
@@ -3001,7 +3002,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
           {(() => {
             if (archiveTab === 'reel') {
               return reelHistory.length > 0 ? (
-                <div className="columns-2 sm:columns-3 md:columns-4 gap-4 space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                   {reelHistory.map((item, idx) => (
                     <button key={idx} onClick={() => { setGeneratedReel(item.url); setReelDuration(item.duration); setReelShot(item.shot); setReelSource(item.source); setReelDirectSource(item.source); if (item.idea) setCustomThemeQuery(item.idea); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); setShowReelSettings(true); setStudioTab('reel'); }} className="group break-inside-avoid rounded-[20px] overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-[0_2px_12px_rgba(15,23,42,0.04)] hover:-translate-y-[2px] opacity-90 hover:opacity-100 transition-all duration-300 block w-full text-right outline-none relative ring-1 ring-inset ring-slate-900/5">
                       {item.url?.startsWith('data:image') ? <img src={item.url} className="w-full object-cover bg-slate-50" alt="ريل موشن" /> : <video src={item.url} className="w-full object-cover bg-slate-50" muted playsInline />}
@@ -3009,12 +3010,12 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     </button>
                   ))}
                 </div>
-              ) : <div className="rounded-[2rem] bg-white/50 border border-dashed border-slate-300 p-16 text-center text-slate-500 mb-4 font-bold">الريلز المحفوظة تظهر هنا متى ما أضفتها لرحلتك.</div>;
+              ) : <div className="rounded-3xl bg-slate-50 border border-dashed border-slate-200 p-12 text-center text-slate-500 font-bold">الريلز المحفوظة تظهر هنا.</div>;
             }
             const allItems = history.filter(item => item.url);
             const items = allItems.filter((item) => archiveTab === 'idea' ? item.source !== 'image' : item.source === 'image');
             return items.length > 0 ? (
-              <div className="columns-2 sm:columns-3 md:columns-4 gap-4 space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                 {items.map((item, idx) => (
                   <button key={idx} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); setAiCaption(item.caption); if (item.format) setSelectedFormat(item.format); if (item.mode) setRealityMode(item.mode); if (item.background) setBackgroundPreset(item.background); if (item.packId) setSelectedPulseId(item.packId); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); if (item.customIdea) { setCustomThemeQuery(item.customIdea); setSelectedTheme('مخصص'); } setShowImageSettings(true); setStudioTab(archiveTab === 'image' ? 'product' : 'create'); }} className="group break-inside-avoid rounded-3xl overflow-hidden border border-slate-200/50 bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 opacity-90 saturate-[0.85] hover:opacity-100 hover:saturate-100 transition-all duration-500 block w-full text-right outline-none">
                     <img src={item.url} className="w-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out" />
@@ -3146,7 +3147,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                             await writeClipboardText(formattedText);
                             toast.success('تم نسخ سيناريو المخرج');
                           }}
-                          className="w-full p-3 rounded-xl bg-slate-950 hover:bg-slate-100 text-white font-black text-xs transition-all shadow flex items-center justify-center gap-1.5"
+                          className="w-full p-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-white font-black text-xs transition-all shadow flex items-center justify-center gap-1.5"
                         >
                           <Copy size={12} />
                           نسخ سيناريو المخرج بالكامل
@@ -3418,7 +3419,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                             setMaxCreateStepReached(6);
                             toast.success('تمت تهيئة محددات رادار المواسم');
                           }}
-                          className="p-3 rounded-xl bg-slate-950 hover:bg-slate-50 border border-slate-200 text-slate-800 text-white font-black text-[10px] shadow transition-all flex items-center justify-center gap-1.5"
+                          className="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-white font-black text-[10px] shadow transition-all flex items-center justify-center gap-1.5"
                         >
                           <Sparkles size={12} />
                           تطبيق وتعديل
@@ -3639,7 +3640,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       </div>
                       <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-2"><button type="button" onClick={startFreshImageUpload} className="w-full sm:w-auto rounded-2xl bg-white/10 border border-white/15 text-white px-4 py-2 text-xs font-black">رفع صورة جديدة</button><button type="button" onClick={copyCurrentSettings} className="w-full sm:w-auto rounded-2xl bg-white text-slate-950 px-4 py-2 text-xs font-black">نسخ الإعدادات</button></div>
                     </div>
-                    <pre className="whitespace-pre-wrap rounded-2xl bg-slate-800/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans max-h-48 overflow-y-auto break-words">{buildSettingsText()}</pre>
+                    <pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans max-h-48 overflow-y-auto break-words">{buildSettingsText()}</pre>
                   </div>
                 )}
                 <div className="flex items-center justify-center gap-2">
@@ -3674,13 +3675,13 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       resetStudioSourceDraft({ clearImage: true });
                       setImageDirectSource('image');
                     }}
-                    className={cn("rounded-[1.35rem] border p-4 text-right transition-all shadow-sm min-h-[112px] flex flex-col justify-between", imageDirectSource === 'image' ? "bg-slate-950 text-white border-slate-950 shadow-lg" : "bg-white text-slate-800 border-slate-200 hover:border-indigo-300")}
+                    className={cn("rounded-2xl border p-3 text-right transition-all", imageDirectSource === 'image' ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
                   >
                     <div className={cn("mb-3 flex h-10 w-10 items-center justify-center rounded-2xl", imageDirectSource === 'image' ? "bg-white/10 text-white" : "bg-indigo-50 text-indigo-700")}>
                       <Camera size={18} />
                     </div>
                     <span className="block text-sm font-black">من صورة</span>
-                    <span className={cn("block text-[11px] font-bold mt-1 leading-5", imageDirectSource === 'image' ? "text-white/75" : "text-slate-500")}>منتج جاهز</span>
+                    <span className="block text-[10px] font-bold mt-1 opacity-70">منتج جاهز</span>
                   </button>
                   <button
                     type="button"
@@ -3688,13 +3689,13 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       resetStudioSourceDraft({ clearImage: true });
                       setImageDirectSource('idea');
                     }}
-                    className={cn("rounded-[1.35rem] border p-4 text-right transition-all shadow-sm min-h-[112px] flex flex-col justify-between", imageDirectSource === 'idea' ? "bg-indigo-600 text-white border-indigo-600 shadow-lg" : "bg-white text-slate-800 border-slate-200 hover:border-indigo-300")}
+                    className={cn("rounded-2xl border p-3 text-right transition-all", imageDirectSource === 'idea' ? "bg-indigo-600 text-white border-indigo-600 shadow-md" : "bg-slate-50 text-slate-600 border-slate-100")}
                   >
                     <div className={cn("mb-3 flex h-10 w-10 items-center justify-center rounded-2xl", imageDirectSource === 'idea' ? "bg-white/10 text-white" : "bg-indigo-50 text-indigo-700")}>
                       <Sparkles size={18} />
                     </div>
                     <span className="block text-sm font-black">من فكرة</span>
-                    <span className={cn("block text-[11px] font-bold mt-1 leading-5", imageDirectSource === 'idea' ? "text-white/75" : "text-slate-500")}>فكرة مباشرة</span>
+                    <span className="block text-[10px] font-bold mt-1 opacity-70">فكرة مباشرة</span>
                   </button>
                 </div>
                 {imageDirectSource === 'image' && (
