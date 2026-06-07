@@ -357,7 +357,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'diwaniya-share', label: 'لقطة المشاركة', desc: 'طلب جماعي واضح للربع، المنتج بالوسط والخلفية حية بدون وجوه أو عناصر مشتتة', icon: '🤝', place: 'diwaniya', mode: 'human', background: 'diwaniya-table' },
     { id: 'gift-ready-order', label: 'طلب يبيض الوجه', desc: 'تغليف مرتب ولقطة فاخرة مقيدة مناسبة للهدايا والزوارات دون ديكور زائد', icon: '🎁', place: 'zowara', mode: 'finalBoss', background: 'zowara-spread' },
     { id: 'food-detail', label: 'تفاصيل الطبق', desc: 'لقطة قريبة للرز أو السمك أو اللحم أو ورق العنب مع ثبات كامل', icon: '🔎', place: 'delivery', mode: 'finalBoss', background: 'neutral-menu' },
-    { id: 'kuwait-towers-evening', label: 'أبراج الكويت', desc: 'خلفية كويتية راقية بعيدة فقط؛ بدون أيقونات أو شعارات داخل الكرت أو المشهد', icon: '🌆', place: 'towers', mode: 'luxury', background: 'kuwait-towers' },
+    { id: 'kuwait-towers-evening', label: 'أبراج الكويت', desc: 'صورة حقيقية للأبراج كمرجع بصري؛ خلفية بعيدة فقط والطلب يبقى البطل', icon: '🌆', place: 'towers', mode: 'luxury', background: 'kuwait-towers' },
     { id: 'mubarakiya-souk', label: 'سوق المباركية', desc: 'أجواء سوق كويتي شعبي blur بإضاءة دافئة؛ بدون زحمة وجوه أو لافتات مقروءة', icon: '🛍️', place: 'mubarakiya', mode: 'human', background: 'mubarakiya' },
     { id: 'bidaa-coast', label: 'شاطئ البدع', desc: 'طاولة طلب هادئة على ساحل البدع وقت الغروب؛ البحر خلفية ناعمة لا يسرق التركيز', icon: '🏖️', place: 'bidaa', mode: 'human', background: 'bidaa' },
   ];
@@ -495,11 +495,11 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       reel: 'للريل: texture-close أو slow push، حركة صغيرة جدًا على الملمس فقط.'
     },
     'kuwait-towers-evening': {
-      visual: 'أبراج الكويت: خلفية كويتية واقعية بعيدة فقط، تظهر كمعلم معماري حقيقي blur في العمق وقت الغروب أو السحر، والطلب/الطبق في المقدمة هو البطل. لا تستخدم أيقونة أو لوقو أو رسم صغير للأبراج.',
+      visual: 'أبراج الكويت: استخدم الهوية المعمارية الحقيقية فقط: ثلاثة أبراج كويتية بيضاء رفيعة، كرات فسيفساء زرقاء/تركوازية، البرج الأكبر بكرَتين، والبرج الآخر بكرَة واحدة، مع إحساس واجهة بحرية كويتية. تظهر كخلفية واقعية بعيدة blur، والطلب/الطبق في المقدمة هو البطل. لا تستخدم أيقونة أو لوقو أو رسم صغير أو برج أحمر.',
       composition: 'ضع الطعام على طاولة خارجية نظيفة أو سطح تقديم بسيط؛ الأبراج في الثلث الخلفي بعيدًا عن المنتج، مع عمق ميدان واقعي.',
-      mustShow: 'يجب أن تظهر هوية الأبراج كخلفية واضحة لكن غير طاغية، ويجب أن يبقى المنتج حادًا ومركزيًا.',
-      avoid: 'ممنوع تحويلها لصورة سياحية للأبراج، ممنوع وضع أي لوقو/أيقونة/ملصق صغير للأبراج داخل المشهد، ممنوع أعلام أو نصوص أو ناس واضحة، وممنوع أن تختفي الأكلة أمام المعلم.',
-      reel: 'للريل: اقتراب على الطلب مع بقاء الأبراج blur في الخلف؛ الحركة على الطعام لا على المعلم السياحي.'
+      mustShow: 'يجب أن تظهر أبراج الكويت الحقيقية كخلفية معمارية بعيدة: الأبراج الثلاثة، الكرات الزرقاء، والواجهة البحرية. المنتج حاد ومركزي في المقدمة.',
+      avoid: 'ممنوع تحويلها لصورة سياحية للأبراج، ممنوع أي لوقو/أيقونة/ملصق أو برج أحمر أو شكل قريب من الأبراج، ممنوع أبراج غير كويتية أو Twin Towers أو برج التحرير، ممنوع أعلام أو نصوص أو ناس واضحة، وممنوع أن تختفي الأكلة أمام المعلم.',
+      reel: 'للريل: اقتراب على الطلب مع بقاء أبراج الكويت الحقيقية blur في الخلف؛ الحركة على الطعام لا على المعلم السياحي. لا تستخدم أيقونة أو رسم للأبراج داخل الفيديو.'
     },
     'mubarakiya-souk': {
       visual: 'سوق المباركية: أجواء سوق شعبي كويتي دافئة في الخلفية blur، إضاءة محلات ناعمة، والطلب في المقدمة بنظافة عالية.',
@@ -780,7 +780,63 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
   const activePulsePack = getKuwaitPulsePack(selectedPulseId);
   const activeStudioScene = studioSceneChoices.find((scene) => scene.id === selectedSceneId) || mergedScenes[0];
-  const activeSceneSummary = `${activeStudioScene.icon} ${activeStudioScene.label}`;
+  const activeSceneSummary = activeStudioScene.label;
+  const KUWAIT_TOWERS_REAL_PHOTO_URL = 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Kuwait_towers_in_sunset.jpg';
+  const isKuwaitTowersScene = (scene: any) => scene?.id === 'kuwait-towers-evening' || scene?.background === 'kuwait-towers';
+  const renderSceneBadge = (scene: any, size: 'sm' | 'lg' = 'sm') => {
+    const isLarge = size === 'lg';
+    if (isKuwaitTowersScene(scene)) {
+      return (
+        <span
+          className={cn(
+            "relative overflow-hidden rounded-2xl border border-sky-100 bg-sky-50 shadow-sm shrink-0",
+            isLarge ? "h-24 w-24 rounded-[2rem]" : "h-12 w-12"
+          )}
+          title="صورة حقيقية لأبراج الكويت"
+        >
+          <img
+            src={KUWAIT_TOWERS_REAL_PHOTO_URL}
+            alt="أبراج الكويت"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="h-full w-full object-cover"
+          />
+          <span className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-white/10" />
+        </span>
+      );
+    }
+    return (
+      <span className={cn(
+        "rounded-xl bg-slate-50 border border-slate-100/30 flex items-center justify-center shrink-0",
+        isLarge ? "h-24 w-24 rounded-[2rem] text-6xl border-white/10 bg-white/10 shadow-2xl" : "p-2 text-xl"
+      )}>
+        {scene.icon}
+      </span>
+    );
+  };
+
+  const buildReelSceneContract = () => {
+    const sceneGuide = getSceneProductionGuide(activeStudioScene);
+    const shotGuide = shotDirectorLock(reelShot);
+    const towersLock = isKuwaitTowersScene(activeStudioScene)
+      ? 'Kuwait Towers real-reference lock: use the real Kuwait Towers architectural identity only: three slender white towers, blue-green mosaic spheres, one main tower with two spheres, a second tower with one sphere, and the Arabian Gulf waterfront feeling. Never show a red tower icon, logo, sticker, simplified symbol, or unrelated twin-tower silhouette. Keep the towers distant/blurred background only; the food/order remains the hero.'
+      : '';
+    const boxLock = activeStudioScene.id === 'box-reveal' || reelShot === 'box-open'
+      ? 'Box reveal lock: the reel must show a delivery box/food container reveal. The lid/box edge must be visible. Do not output a normal plate-only table shot.'
+      : '';
+    return [
+      `Reel scene contract: ${activeStudioScene.label}.`,
+      `Shot contract: ${reelShot}. ${typeof shotGuide === 'string' ? shotGuide : ''}`,
+      `Scene visual: ${sceneGuide.visual}`,
+      `Must show: ${sceneGuide.mustShow}`,
+      `Avoid: ${sceneGuide.avoid}`,
+      `Reel behavior: ${sceneGuide.reel}`,
+      towersLock,
+      boxLock,
+      'The reel must obey the selected scene and selected shot. Use one coherent shot only; do not ignore the selected scene.'
+    ].filter(Boolean).join(' ');
+  };
+
   const liveStudioCards = {
     image: {
       title: 'من صورة',
@@ -1839,7 +1895,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       jakhour: 'جاخور مرتب وحذر: طاولة عملية نظيفة وخلفية blur، بدون حيوانات أو تراب أو مخلفات أو فوضى.',
       zowara: 'زوارة عائلية داخل بيت: سفرة مرتبة ومحاشي/ورق عنب/أطباق عائلية، بدون وجوه أو عرس أو قهوة.'
     };
-    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي، نشاط مطبخ وتوصيل أكل كويتي وليس مطعم جلوس. فكرة مختصرة: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب على الطلب'} — ${shotGuide[reelShot] || shotGuide['hero-push']} ${shotDirectorLock(reelShot)}. المكان: ${place.label} — ${placeGuide[selectedOrderPlace] || placeGuide.delivery}. ${sceneDirectorLock(activeStudioScene)} ${buildDirectorDirection(brain)} ${buildAdvancedStudioDirection(brain, { source: 'reel' })} ${buildNoRepeatDirection()} مدة ${Math.min(8, Math.max(4, reelDuration))} ثواني. المطلوب لقطة واحدة واقعية جداً، حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، لا يتغير شكل الطبق أو الكمية أو المكونات عبر الفيديو. حافظ على الطبق والتغليف كما هما إذا كان المصدر صورة. تكوين بصري نظيف وإضاءة شهية واقعية. ممنوع وجوه واضحة، شخص يتكلم، شفاه، نصوص، شعارات، دلة، قهوة، بخور، سدو، فوانيس، سيارة توصيل، مطعم جلوس، كافيه، كلينكس مستخدم، فوضى، صحون تظهر فجأة، صوص يطير، أو أي حركة غير منطقية. إضاءة ${selectedMood}. وصفة الريل الذكية حسب الطبق: ${brain.reelRecipe.join('، ')}. ${brain.promptGuard}`;
+    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي، نشاط مطبخ وتوصيل أكل كويتي وليس مطعم جلوس. فكرة مختصرة: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب على الطلب'} — ${shotGuide[reelShot] || shotGuide['hero-push']} ${shotDirectorLock(reelShot)}. المكان: ${place.label} — ${placeGuide[selectedOrderPlace] || placeGuide.delivery}. ${sceneDirectorLock(activeStudioScene)} ${buildReelSceneContract()} ${buildDirectorDirection(brain)} ${buildAdvancedStudioDirection(brain, { source: 'reel' })} ${buildNoRepeatDirection()} مدة ${Math.min(8, Math.max(4, reelDuration))} ثواني. المطلوب لقطة واحدة واقعية جداً، حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، لا يتغير شكل الطبق أو الكمية أو المكونات عبر الفيديو. حافظ على الطبق والتغليف كما هما إذا كان المصدر صورة. تكوين بصري نظيف وإضاءة شهية واقعية. ممنوع وجوه واضحة، شخص يتكلم، شفاه، نصوص، شعارات، دلة، قهوة، بخور، سدو، فوانيس، سيارة توصيل، مطعم جلوس، كافيه، كلينكس مستخدم، فوضى، صحون تظهر فجأة، صوص يطير، أو أي حركة غير منطقية. إضاءة ${selectedMood}. وصفة الريل الذكية حسب الطبق: ${brain.reelRecipe.join('، ')}. ${brain.promptGuard}`;
   };
 
   const buildReelSettingsText = (item?: Partial<StudioReelHistoryItem>) => {
@@ -1974,6 +2030,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         directorSceneDirection: sceneDirectorLock(activeStudioScene),
         shotDirectorDirection: shotDirectorLock(reelShot),
         sceneProductionGuide: getSceneProductionGuide(activeStudioScene),
+        reelSceneContract: buildReelSceneContract(),
       };
       if (reelSource === 'image' && selectedImage) {
         const img = getDataImagePayload(selectedImage);
@@ -3319,9 +3376,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                                     : "bg-white border-slate-100/50 hover:border-rose-200 hover:bg-slate-50"
                                 )}
                               >
-                                <span className="text-xl p-2 rounded-xl bg-slate-50 border border-slate-100/30 flex items-center justify-center shrink-0">
-                                  {scene.icon}
-                                </span>
+                                {renderSceneBadge(scene)}
                                 <div className="flex-1 min-w-0 pr-1">
                                   <span className="block text-xs font-black text-slate-900">{scene.label}</span>
                                   <span className="block text-[10px] font-bold text-slate-400 mt-1 leading-normal">{scene.desc}</span>
@@ -3382,7 +3437,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             {renderProductionDesk('image')}
             {!generatedImage && !isGenerating && (
               <div className="relative z-10 text-center text-white p-8">
-                <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-6xl shadow-2xl">{activeStudioScene.icon}</div>
+                <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem]">{renderSceneBadge(activeStudioScene, 'lg')}</div>
                 <h3 className="text-3xl font-black mb-3">المعاينة تظهر هنا</h3>
                 <p className="text-sm font-bold text-white/55 leading-7">{activeStudioScene.label} · {KUWAIT_PLACES[selectedOrderPlace]?.label}</p>
               </div>
@@ -3597,9 +3652,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                                         : "bg-white border-slate-100/50 hover:border-rose-200 hover:bg-slate-50"
                                     )}
                                   >
-                                    <span className="text-xl p-2 rounded-xl bg-slate-50 border border-slate-100/30 flex items-center justify-center shrink-0">
-                                      {scene.icon}
-                                    </span>
+                                    {renderSceneBadge(scene)}
                                     <div className="flex-1 min-w-0 pr-1">
                                       <span className="block text-xs font-black text-slate-900">{scene.label}</span>
                                       <span className="block text-[10px] font-bold text-slate-400 mt-1 leading-normal">{scene.desc}</span>

@@ -6519,7 +6519,8 @@ ${studioDirectorPayload ? `\nتعليمات اختيار الاستوديو ال
         shotType ? `Selected shot: ${shotType}` : "",
         directorSceneDirection ? `Scene director instructions: ${directorSceneDirection}` : "",
         shotDirectorDirection ? `Shot director instructions: ${shotDirectorDirection}` : "",
-        sceneGuideText ? `Scene production guide: ${sceneGuideText}` : ""
+        sceneGuideText ? `Scene production guide: ${sceneGuideText}` : "",
+        reelSceneContract ? `Reel scene contract: ${String(reelSceneContract)}` : ""
       ].filter(Boolean).join("\n");
 
       const response = await generateSmartStudioImage(ai, {
@@ -6547,7 +6548,7 @@ ${studioDirectorPayload ? `\nتعليمات اختيار الاستوديو ال
 
   app.post("/api/smart-studio/generate-reel", express.json({ limit: "50mb" }), async (req, res) => {
     try {
-      const { prompt, imageContent, mimeType, duration, shotType, format, place, mood, tasteProfile, quality, renderMode, sourceType, dishLock, sceneLabel, directorSceneDirection, shotDirectorDirection, sceneProductionGuide } = req.body || {};
+      const { prompt, imageContent, mimeType, duration, shotType, format, place, mood, tasteProfile, quality, renderMode, sourceType, dishLock, sceneLabel, directorSceneDirection, shotDirectorDirection, sceneProductionGuide, reelSceneContract } = req.body || {};
       if (!prompt || typeof prompt !== "string") return res.status(400).json({ error: "Missing prompt" });
 
       const wantsEconomy = String(quality || renderMode || "").toLowerCase().includes("economy") || String(renderMode || "").toLowerCase().includes("fast");
@@ -6572,7 +6573,7 @@ ${studioDirectorPayload ? `\nتعليمات اختيار الاستوديو ال
         farm: "Clean farm/outdoor table under natural shade, group order, no tents, no fake heritage setup, no clutter.",
         jakhour: "Careful clean jakhour setup: practical clean table, quiet blurred background, no animals, no dirt, no waste, no chaos.",
         zowara: "Family zowara inside a home: arranged family spread, mahshi/grape leaves/rice dishes ready to serve, no faces, no wedding scene, no coffee props.",
-        towers: "Kuwait Towers background only: towers must stay softly blurred in the distance; food/order remains the hero in the foreground, no tourist postcard framing.",
+        towers: "Kuwait Towers real background only: use the real three Kuwait Towers identity with slender white shafts and blue-green mosaic spheres; keep them softly blurred in the distance; food/order remains the hero in the foreground; no red tower icon, no sticker, no logo, no unrelated twin-tower silhouette, no Liberation Tower.",
         mubarakiya: "Mubarakiya souk atmosphere only: warm traditional market bokeh in the background, no readable signs, no identifiable faces, food/order remains clean and modern.",
         bidaa: "Al-Bidaa coast background only: soft seaside/golden hour hint, no beach crowd, no swimwear, food/order remains stable and appetising."
       };
@@ -6585,7 +6586,8 @@ ${studioDirectorPayload ? `\nتعليمات اختيار الاستوديو ال
         sceneLabel ? `Selected scene: ${sceneLabel}` : "",
         directorSceneDirection ? `Scene director instructions: ${directorSceneDirection}` : "",
         shotDirectorDirection ? `Shot director instructions: ${shotDirectorDirection}` : "",
-        sceneGuideText ? `Scene production guide: ${sceneGuideText}` : ""
+        sceneGuideText ? `Scene production guide: ${sceneGuideText}` : "",
+        reelSceneContract ? `Reel scene contract: ${String(reelSceneContract)}` : ""
       ].filter(Boolean).join("\n");
       const localFallback = (reason: string) => res.json({
         videoUrl: buildLocalMotionReelDataUrl({ prompt, imageContent, mimeType, duration: durationSeconds, shotType, place, mood }),
