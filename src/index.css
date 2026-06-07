@@ -4228,6 +4228,7 @@ html body .login-brand-stage h1 {
   background: #ffffff !important;
 }
 
+/* Light mode overrides inside `.push-health-pro` - But keep .bg-slate-950 dark! */
 .push-health-pro[class*="text-white"],
 .push-health-pro [class*="text-white"] {
   color: #475569 !important;
@@ -4304,6 +4305,163 @@ html body .login-brand-stage h1 {
 
 .push-health-pro code {
   color: #047857 !important;
+}
+
+/* ==========================================
+   SOLID ISOLATION FOR DARK BG SLATE-950 BOXES 
+   ========================================== */
+.push-health-pro [class*="bg-slate-950"],
+.push-health-pro .bg-slate-950 {
+  background: #020617 !important; /* Premium dark slate background preserved */
+  border-color: rgba(251, 191, 36, 0.15) !important;
+  color: #f1f5f9 !important;
+}
+
+/* Dark text contrast preservation */
+.push-health-pro [class*="bg-slate-950"] [class*="text-white"],
+.push-health-pro .bg-slate-950 [class*="text-white"] {
+  color: #ffffff !important;
+}
+.push-health-pro [class*="bg-slate-950"] [class*="text-white/"],
+.push-health-pro .bg-slate-950 [class*="text-white/"] {
+  color: rgba(255, 255, 255, 0.70) !important;
+}
+.push-health-pro [class*="bg-slate-950"] [class*="text-white/55"],
+.push-health-pro .bg-slate-950 [class*="text-white/55"] {
+  color: rgba(241, 245, 249, 0.55) !important;
+}
+.push-health-pro [class*="bg-slate-950"] [class*="text-white/45"],
+.push-health-pro .bg-slate-950 [class*="text-white/45"] {
+  color: rgba(241, 245, 249, 0.45) !important;
+}
+.push-health-pro [class*="bg-slate-950"] [class*="text-white/65"],
+.push-health-pro .bg-slate-950 [class*="text-white/65"] {
+  color: rgba(241, 245, 249, 0.65) !important;
+}
+.push-health-pro [class*="bg-slate-950"] [class*="text-white/40"],
+.push-health-pro .bg-slate-950 [class*="text-white/40"] {
+  color: rgba(241, 245, 249, 0.40) !important;
+}
+.push-health-pro [class*="bg-slate-950"] [class*="text-white/50"],
+.push-health-pro .bg-slate-950 [class*="text-white/50"] {
+  color: rgba(241, 245, 249, 0.50) !important;
+}
+.push-health-pro [class*="bg-slate-950"] [class*="text-white/35"],
+.push-health-pro .bg-slate-950 [class*="text-white/35"] {
+  color: rgba(241, 245, 249, 0.35) !important;
+}
+.push-health-pro [class*="bg-slate-950"] h4,
+.push-health-pro .bg-slate-950 h4,
+.push-health-pro [class*="bg-slate-950"] h3,
+.push-health-pro .bg-slate-950 h3,
+.push-health-pro [class*="bg-slate-950"] strong,
+.push-health-pro .bg-slate-950 strong {
+  color: #f8fafc !important;
+}
+
+/* Internal components in Dark boxes */
+.push-health-pro [class*="bg-slate-950"] [class*="bg-white/10"],
+.push-health-pro .bg-slate-950 [class*="bg-white/10"] {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.push-health-pro [class*="bg-slate-950"] [class*="bg-black/15"],
+.push-health-pro .bg-slate-950 [class*="bg-black/15"] {
+  background: rgba(0, 0, 0, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.push-health-pro [class*="bg-slate-950"] [class*="bg-black/20"],
+.push-health-pro .bg-slate-950 [class*="bg-black/20"] {
+  background: rgba(0, 0, 0, 0.22) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.push-health-pro [class*="bg-slate-950"] [class*="bg-black/25"],
+.push-health-pro .bg-slate-950 [class*="bg-black/25"] {
+  background: rgba(0, 0, 0, 0.30) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.push-health-pro [class*="bg-slate-950"] [class*="bg-slate-950/30"],
+.push-health-pro .bg-slate-950 [class*="bg-slate-950/30"] {
+  background: rgba(2, 6, 23, 0.30) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.push-health-pro [class*="bg-slate-950"] [class*="border-white/10"],
+.push-health-pro .bg-slate-950 [class*="border-white/10"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.push-health-pro [class*="bg-slate-950"] [class*="border-slate-700/60"],
+.push-health-pro .bg-slate-950 [class*="border-slate-700/60"] {
+  border-color: rgba(71, 85, 105, 0.6) !important;
+}
+
+/* Inputs and buttons inside dark boxes */
+.push-health-pro [class*="bg-slate-950"] input,
+.push-health-pro .bg-slate-950 input {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+}
+.push-health-pro [class*="bg-slate-950"] input::placeholder,
+.push-health-pro .bg-slate-950 input::placeholder {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+.push-health-pro [class*="bg-slate-950"] button.bg-white,
+.push-health-pro .bg-slate-950 button.bg-white {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+.push-health-pro [class*="bg-slate-950"] button.bg-white:hover,
+.push-health-pro .bg-slate-950 button.bg-white:hover {
+  background: #f1f5f9 !important;
+}
+.push-health-pro [class*="bg-slate-950"] code,
+.push-health-pro .bg-slate-950 code {
+  color: #34d399 !important; /* clear green text on dark bg */
+}
+
+/* Mobile responsive container overflow fixes & text preservation */
+.push-health-pro,
+.push-health-pro-container {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+}
+
+.push-health-pro .truncate,
+.push-health-pro [class*="truncate"] {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Keeps long device label titles wrapped or truncated instead of expanding the viewport code */
+.push-health-pro strong,
+.push-health-pro span,
+.push-health-pro div,
+.push-health-pro code {
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  /* latest notifications card */
+  .push-health-pro .grid-cols-4 {
+    grid-template-cols: repeat(4, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+  }
+  .push-health-pro .grid-cols-4 > div {
+    padding: 6px 3px !important;
+    min-height: 60px !important;
+  }
+  .push-health-pro .grid-cols-4 > div span {
+    font-size: 8px !important;
+    line-height: 1.2 !important;
+  }
+  
+  /* Details button click layout fixes - clean expanding grid without skewing screen */
+  .push-health-pro [class*="rounded-[1.5rem]"] {
+    border-radius: 1.2rem !important;
+    padding: 12px !important;
+  }
 }
 
 

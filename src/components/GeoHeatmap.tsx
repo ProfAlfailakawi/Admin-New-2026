@@ -480,7 +480,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
   center={displayMapCenter}
   zoom={9}
   dark
-  heightClassName="h-[590px] max-h-[72vh] min-h-[520px] sm:h-[620px] sm:max-h-none"
+  heightClassName="h-[365px] min-h-[300px] sm:h-[590px] sm:min-h-[520px] sm:max-h-none"
   onMarkerClick={(marker) => setActiveRegion(marker.name)}
  />
  </div>
