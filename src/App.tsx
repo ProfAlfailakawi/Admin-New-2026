@@ -1628,9 +1628,20 @@ const MainApp: React.FC = () => {
     if (newNotifications.length > 0) {
         setData(prev => {
            let hasAdded = false;
-           const updatedNotifs = [...(prev?.notifications || [])];
+           let hasUpdates = false;
            
            const locallyReadIds = getStoredReadNotificationIds();
+           
+           // Ensure existing memory notifications are in sync with localStorage read IDs
+           const updatedNotifs = (prev?.notifications || []).map(n => {
+               const id = String(n.id || '').trim();
+               if (id && locallyReadIds.has(id) && !n.read) {
+                   hasUpdates = true;
+                   return { ...n, read: true };
+               }
+               return n;
+           });
+           
            newNotifications.forEach(newNotif => {
                const newId = String(newNotif.id || '').trim();
                const notificationToStore = newId && locallyReadIds.has(newId) ? { ...newNotif, read: true } : newNotif;
@@ -1648,7 +1659,7 @@ const MainApp: React.FC = () => {
                }
            });
            
-           if (!hasAdded) return prev;
+           if (!hasAdded && !hasUpdates) return prev;
            return { ...prev, notifications: updatedNotifs };
         });
     }
@@ -2500,6 +2511,18 @@ const MainApp: React.FC = () => {
 
         // Recalculate derived state (like supplier balances) upon load
         const finalProcessedState = recalculateStateBalances(loadedState);
+
+        // Sync read state from localStorage to ensure read status is kept fundamentally
+        const initialLocallyReadIds = getStoredReadNotificationIds();
+        if (finalProcessedState.notifications) {
+          finalProcessedState.notifications = finalProcessedState.notifications.map(n => {
+            const id = String(n.id || '').trim();
+            if (id && initialLocallyReadIds.has(id)) {
+              return { ...n, read: true };
+            }
+            return n;
+          });
+        }
 
         setData(finalProcessedState);
         lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
@@ -3574,6 +3597,7 @@ const MainApp: React.FC = () => {
               userRole={userRole}
               currentPage={currentPage}
               notifications={(data.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج'))} 
+              isNotificationRead={isNotificationReadForUi}
               onMarkAsRead={(id) => {
                  storeReadNotificationIds([id]);
                  setData(prev => ({

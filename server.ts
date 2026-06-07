@@ -148,6 +148,8 @@ function bestCreatedDateForPaymentItem(item: any, fallbackId?: any) {
   );
 }
 
+const KUWAIT_TOWERS_STRICT_REFERENCE_LOCK = `Use the uploaded/reference Kuwait Towers photo as a strict architectural reference for Kuwait Towers only. The Kuwait Towers must be accurate and recognizable: exactly 3 towers total; main tallest tower has 2 blue-green/turquoise mosaic spheres (one large lower sphere with a circular ring/observation deck and one smaller upper sphere near the top); second tower has 1 large blue-green mosaic sphere; third tower is a thin white needle tower with 0 spheres; white slender concrete shafts; sharp pointed spires; blue, green, turquoise mosaic sphere pattern. Only the food, table, restaurant/order lighting, and camera angle may change. Do not redesign, simplify, replace, blur beyond recognition, or invent Kuwait Towers. Never make three identical ball towers, never put one sphere on each tower, never add extra towers, never use Burj Khalifa, Dubai skyline, mosque domes, Saudi landmarks, fantasy towers, generic water towers, cartoon landmark, distorted towers, or blurry unrecognizable landmark. Real Kuwait Towers must match the reference landmark: 3 towers only — main tower has 2 spheres, second tower has 1 sphere, third needle tower has 0 spheres.`;
+
 function escapeXml(value: any) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -234,15 +236,26 @@ function buildLocalMotionReelDataUrl({
   const isTop = ["top-spread", "floor-spread-overhead"].includes(String(shotType || ""));
   const isTexture = String(shotType || "").includes("texture") || String(shotType || "").includes("steam");
   const backgroundScene = isTowers
-    ? `<g opacity=".68">
-        <path d="M0 390 C120 350 245 368 365 338 C510 302 610 320 720 286 L720 0 L0 0 Z" fill="#0b2235" opacity=".44"/>
-        <g transform="translate(438 118)" opacity=".78">
-          <line x1="0" y1="50" x2="0" y2="360" stroke="#e9f2f6" stroke-width="10" stroke-linecap="round"/>
-          <circle cx="0" cy="154" r="42" fill="#43c7d4" stroke="#eefcff" stroke-width="5"/>
-          <circle cx="0" cy="250" r="32" fill="#2aa8bd" stroke="#eefcff" stroke-width="4"/>
-          <line x1="82" y1="92" x2="82" y2="350" stroke="#e9f2f6" stroke-width="8" stroke-linecap="round"/>
-          <circle cx="82" cy="204" r="31" fill="#43c7d4" stroke="#eefcff" stroke-width="4"/>
-          <line x1="145" y1="128" x2="145" y2="354" stroke="#e9f2f6" stroke-width="7" stroke-linecap="round"/>
+    ? `<g opacity=".72">
+        <path d="M0 390 C120 350 245 368 365 338 C510 302 610 320 720 286 L720 0 L0 0 Z" fill="#0b2235" opacity=".38"/>
+        <g transform="translate(382 60)" opacity=".86">
+          <!-- Main tallest tower: two spheres -->
+          <path d="M112 14 L119 14 L132 430 L93 430 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+          <line x1="115" y1="14" x2="115" y2="0" stroke="#f8fafc" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="112" cy="202" r="58" fill="#2dd4bf" stroke="#ecfeff" stroke-width="7"/>
+          <circle cx="115" cy="98" r="31" fill="#38bdf8" stroke="#ecfeff" stroke-width="5"/>
+          <circle cx="112" cy="202" r="65" fill="none" stroke="#e0f2fe" stroke-width="5" opacity=".75"/>
+          <path d="M66 202 C86 184 137 184 158 202 C136 220 88 220 66 202 Z" fill="#0f172a" opacity=".32"/>
+          <path d="M84 170 L140 236 M72 202 L152 202 M88 236 L136 170" stroke="#0f766e" stroke-width="3" opacity=".28"/>
+          <path d="M96 78 L135 118 M84 98 L146 98 M98 120 L132 76" stroke="#075985" stroke-width="2" opacity=".25"/>
+          <!-- Second tower: one large sphere -->
+          <path d="M20 80 L27 80 L40 430 L5 430 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+          <line x1="23" y1="80" x2="23" y2="58" stroke="#f8fafc" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="24" cy="238" r="43" fill="#22d3ee" stroke="#ecfeff" stroke-width="6"/>
+          <path d="M-8 238 L56 238 M-3 212 L50 265 M0 268 L48 208" stroke="#0e7490" stroke-width="2.5" opacity=".28"/>
+          <!-- Third needle tower: zero spheres -->
+          <path d="M225 92 L231 92 L244 430 L210 430 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+          <line x1="228" y1="92" x2="228" y2="48" stroke="#f8fafc" stroke-width="3" stroke-linecap="round"/>
         </g>
       </g>`
     : isMubarakiya
@@ -6539,7 +6552,7 @@ ${studioDirectorPayload ? `\nتعليمات اختيار الاستوديو ال
     };
 
     try {
-      const { prompt, format, realityBoost, tasteProfile, sceneLabel, shotType, directorSceneDirection, shotDirectorDirection, sceneProductionGuide } = req.body;
+      const { prompt, format, realityBoost, tasteProfile, sceneLabel, shotType, directorSceneDirection, shotDirectorDirection, sceneProductionGuide, reelSceneContract } = req.body;
       let ar = "1:1";
       if (format === "9:16") { ar = "9:16"; }
       if (format === "4:3") { ar = "4:3"; }
@@ -6616,7 +6629,7 @@ ${studioDirectorPayload ? `\nتعليمات اختيار الاستوديو ال
         farm: "Clean farm/outdoor table under natural shade, group order, no tents, no fake heritage setup, no clutter.",
         jakhour: "Careful clean jakhour setup: practical clean table, quiet blurred background, no animals, no dirt, no waste, no chaos.",
         zowara: "Family zowara inside a home: arranged family spread, mahshi/grape leaves/rice dishes ready to serve, no faces, no wedding scene, no coffee props.",
-        towers: "Kuwait Towers real background only: use the real three Kuwait Towers identity with slender white shafts and blue-green mosaic spheres; keep them softly blurred in the distance; food/order remains the hero in the foreground; no red tower icon, no sticker, no logo, no unrelated twin-tower silhouette, no Liberation Tower.",
+        towers: `Kuwait Towers real background only: ${KUWAIT_TOWERS_STRICT_REFERENCE_LOCK} Keep the food/order as the hero in the foreground.`,
         mubarakiya: "Mubarakiya souk atmosphere only: warm traditional market bokeh in the background, no readable signs, no identifiable faces, food/order remains clean and modern.",
         bidaa: "Al-Bidaa coast background only: soft seaside/golden hour hint, no beach crowd, no swimwear, food/order remains stable and appetising."
       };
@@ -6649,6 +6662,7 @@ SMART STUDIO REEL ENFORCEMENT:
 - CRITICAL: do not use the default zoom-on-plate pattern unless shotType is exactly hero-push. If the selected shot is box-open, table-pass, top-spread, floor-spread-overhead, steam-close, or texture-close, the reel must visibly use that motion and composition.
 - Place context: ${place || "delivery"}. Place behavior: ${selectedPlaceGuide}
 - CRITICAL: if the selected place/scene is Kuwait Towers, Mubarakiya, Bidaa, diwaniya, chalet, farm, jakhour, or zowara, that environment must be visible as a soft background cue. Do not output the same generic plate zoom for all scenes.
+- KUWAIT TOWERS STRICT LOCK: if Kuwait Towers are selected or mentioned, obey this exactly: ${KUWAIT_TOWERS_STRICT_REFERENCE_LOCK}
 ${studioDirectorPayload ? `- Selected studio scene lock:\n${studioDirectorPayload}` : ""}
 - Mood/light: ${mood || "warm"}. Use believable Kuwaiti home/delivery lighting, not fantasy studio CGI.
 - One coherent scene only; no random montage, no scene jumping, no objects appearing or disappearing.

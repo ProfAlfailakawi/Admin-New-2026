@@ -342,6 +342,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     ];
   };
 
+  const KUWAIT_TOWERS_STRICT_REFERENCE_LOCK = `Use the uploaded/reference Kuwait Towers photo as a strict architectural reference for Kuwait Towers only. The Kuwait Towers must be accurate and recognizable: exactly 3 towers total; main tallest tower has 2 blue-green/turquoise mosaic spheres (one large lower sphere with a circular ring/observation deck and one smaller upper sphere near the top); second tower has 1 large blue-green mosaic sphere; third tower is a thin white needle tower with 0 spheres; white slender concrete shafts; sharp pointed spires; blue, green, turquoise mosaic sphere pattern. Only the food, table, restaurant/order lighting, and camera angle may change. Do not redesign, simplify, replace, blur beyond recognition, or invent Kuwait Towers. Never make three identical ball towers, never put one sphere on each tower, never add extra towers, never use Burj Khalifa, Dubai skyline, mosque domes, Saudi landmarks, fantasy towers, generic water towers, cartoon landmark, distorted towers, or blurry unrecognizable landmark. Real Kuwait Towers must match the reference landmark: 3 towers only — main tower has 2 spheres, second tower has 1 sphere, third needle tower has 0 spheres.`;
+
   const mergedScenes = [
     { id: 'delivery-ready', label: 'طلب توصيل جاهز', desc: 'علب مرتبة وكيس plain على كاونتر نظيف؛ أقوى خيار افتراضي', icon: '📦', place: 'delivery', mode: 'finalBoss', background: 'delivery-packaging' },
     { id: 'box-reveal', label: 'فتح علبة الطلب', desc: 'كشف بسيط للطبق داخل التغليف بدون يد معقدة أو فوضى', icon: '📦', place: 'delivery', mode: 'finalBoss', background: 'delivery-packaging' },
@@ -495,11 +497,11 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       reel: 'للريل: texture-close أو slow push، حركة صغيرة جدًا على الملمس فقط.'
     },
     'kuwait-towers-evening': {
-      visual: 'أبراج الكويت: استخدم الهوية المعمارية الحقيقية فقط: ثلاثة أبراج كويتية بيضاء رفيعة، كرات فسيفساء زرقاء/تركوازية، البرج الأكبر بكرَتين، والبرج الآخر بكرَة واحدة، مع إحساس واجهة بحرية كويتية. تظهر كخلفية واقعية بعيدة blur، والطلب/الطبق في المقدمة هو البطل. لا تستخدم أيقونة أو لوقو أو رسم صغير أو برج أحمر.',
-      composition: 'ضع الطعام على طاولة خارجية نظيفة أو سطح تقديم بسيط؛ الأبراج في الثلث الخلفي بعيدًا عن المنتج، مع عمق ميدان واقعي.',
-      mustShow: 'يجب أن تظهر أبراج الكويت الحقيقية كخلفية معمارية بعيدة: الأبراج الثلاثة، الكرات الزرقاء، والواجهة البحرية. المنتج حاد ومركزي في المقدمة.',
-      avoid: 'ممنوع تحويلها لصورة سياحية للأبراج، ممنوع أي لوقو/أيقونة/ملصق أو برج أحمر أو شكل قريب من الأبراج، ممنوع أبراج غير كويتية أو Twin Towers أو برج التحرير، ممنوع أعلام أو نصوص أو ناس واضحة، وممنوع أن تختفي الأكلة أمام المعلم.',
-      reel: 'للريل: اقتراب على الطلب مع بقاء أبراج الكويت الحقيقية blur في الخلف؛ الحركة على الطعام لا على المعلم السياحي. لا تستخدم أيقونة أو رسم للأبراج داخل الفيديو.'
+      visual: `${KUWAIT_TOWERS_STRICT_REFERENCE_LOCK} أبراج الكويت تظهر كمعلم حقيقي في الخلفية فقط، والطلب/الطبق في المقدمة هو البطل. لا تستخدم أيقونة أو لوقو أو رسم صغير أو برج أحمر.`,
+      composition: 'ضع الطعام على طاولة خارجية نظيفة أو سطح تقديم بسيط؛ الأبراج في الثلث الخلفي بعيدًا عن المنتج مع عمق ميدان واقعي، لكن تبقى دقيقة ومعروفة: البرج الرئيسي بكرَتين، الثاني بكرَة، الثالث إبرة بلا كرات.',
+      mustShow: 'يجب أن تظهر أبراج الكويت الحقيقية كخلفية معمارية واضحة الهوية: 3 أبراج فقط، البرج الأكبر بكرَتين، الثاني بكرَة واحدة، الثالث إبرة بلا كرات، كرات فسيفساء زرقاء/خضراء/تركوازية، واجهة بحرية كويتية. المنتج حاد ومركزي في المقدمة.',
+      avoid: 'ممنوع تحويلها لصورة سياحية للأبراج، ممنوع أي لوقو/أيقونة/ملصق، ممنوع 3 أبراج متطابقة، ممنوع كرة واحدة على كل برج، ممنوع إخفاء الكرة الثانية على البرج الرئيسي، ممنوع حذف برج الإبرة، ممنوع أبراج إضافية، ممنوع برج التحرير أو برج خليفة أو أبراج دبي أو قباب مساجد أو معالم سعودية أو أبراج خيالية أو كرتونية أو مشوهة، وممنوع أن تختفي الأكلة أمام المعلم.',
+      reel: `للريل: ${KUWAIT_TOWERS_STRICT_REFERENCE_LOCK} الحركة على الطعام أو الطلب، لكن أبراج الكويت الحقيقية يجب أن تبقى كخلفية معمارية صحيحة ومميزة. لا تستخدم أيقونة أو رسم للأبراج داخل الفيديو.`
     },
     'mubarakiya-souk': {
       visual: 'سوق المباركية: أجواء سوق شعبي كويتي دافئة في الخلفية blur، إضاءة محلات ناعمة، والطلب في المقدمة بنظافة عالية.',
@@ -788,43 +790,24 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     return (
       <span
         className={cn(
-          "relative overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-cyan-50 shadow-sm shrink-0 flex items-center justify-center",
+          "relative overflow-hidden rounded-2xl border border-sky-100 bg-slate-50 shadow-sm shrink-0 flex items-center justify-center",
           isLarge ? "h-24 w-24 rounded-[2rem]" : "h-12 w-12"
         )}
-        title="أبراج الكويت — رمز صحيح غير مبسط"
+        title="أبراج الكويت — صورة مرجعية حقيقية"
         aria-label="أبراج الكويت"
       >
-        <svg viewBox="0 0 120 120" className="h-full w-full" role="img" aria-hidden="true">
-          <defs>
-            <linearGradient id="ktSky" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#e0f2fe" />
-              <stop offset="100%" stopColor="#f8fafc" />
-            </linearGradient>
-            <linearGradient id="ktSphere" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#67e8f9" />
-              <stop offset="55%" stopColor="#0ea5e9" />
-              <stop offset="100%" stopColor="#155e75" />
-            </linearGradient>
-            <linearGradient id="ktTower" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#f8fafc" />
-              <stop offset="48%" stopColor="#cbd5e1" />
-              <stop offset="100%" stopColor="#f8fafc" />
-            </linearGradient>
-          </defs>
-          <rect width="120" height="120" fill="url(#ktSky)" />
-          <path d="M0 92 C26 86 44 98 70 91 C92 85 102 87 120 82 L120 120 L0 120 Z" fill="#bae6fd" opacity="0.55" />
-          <g transform="translate(10 4)">
-            <path d="M54 12 L58 12 L61 112 L49 112 Z" fill="url(#ktTower)" stroke="#94a3b8" strokeWidth="1" />
-            <ellipse cx="55" cy="45" rx="22" ry="17" fill="url(#ktSphere)" stroke="#075985" strokeWidth="1.2" />
-            <ellipse cx="55" cy="67" rx="16" ry="12" fill="url(#ktSphere)" stroke="#075985" strokeWidth="1.1" />
-            <path d="M25 35 L29 35 L32 112 L20 112 Z" fill="url(#ktTower)" stroke="#94a3b8" strokeWidth="1" />
-            <ellipse cx="26" cy="63" rx="15" ry="12" fill="url(#ktSphere)" stroke="#075985" strokeWidth="1" />
-            <path d="M86 24 L90 24 L94 112 L82 112 Z" fill="url(#ktTower)" stroke="#94a3b8" strokeWidth="1" />
-            <line x1="55" y1="12" x2="55" y2="3" stroke="#64748b" strokeWidth="1.2" strokeLinecap="round" />
-            <line x1="27" y1="35" x2="27" y2="24" stroke="#64748b" strokeWidth="1.2" strokeLinecap="round" />
-            <line x1="88" y1="24" x2="88" y2="13" stroke="#64748b" strokeWidth="1.2" strokeLinecap="round" />
-          </g>
-        </svg>
+        <img
+          src="/kuwait-towers-reference.jpg"
+          alt="أبراج الكويت"
+          className="h-full w-full object-cover"
+          loading="lazy"
+          onError={(event) => {
+            const target = event.currentTarget;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) parent.textContent = 'أبراج';
+          }}
+        />
       </span>
     );
   };
@@ -853,7 +836,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     const sceneGuide = getSceneProductionGuide(activeStudioScene);
     const shotGuide = shotDirectorLock(reelShot);
     const towersLock = isKuwaitTowersScene(activeStudioScene)
-      ? 'Kuwait Towers real-reference lock: use the real Kuwait Towers architectural identity only: three slender white towers, blue-green mosaic spheres, one main tower with two spheres, a second tower with one sphere, and the Arabian Gulf waterfront feeling. Never show a red tower icon, logo, sticker, simplified symbol, or unrelated twin-tower silhouette. Keep the towers distant/blurred background only; the food/order remains the hero.'
+      ? `Kuwait Towers strict reference lock: ${KUWAIT_TOWERS_STRICT_REFERENCE_LOCK}`
       : '';
     const boxLock = activeStudioScene.id === 'box-reveal' || reelShot === 'box-open'
       ? 'Box reveal lock: the reel must show a delivery box/food container reveal. The lid/box edge must be visible. Do not output a normal plate-only table shot.'
@@ -898,6 +881,66 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     }
   };
 
+  const getSmartPublishingPlan = (kind: 'image' | 'idea' | 'reel') => {
+    const now = new Date();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+    const isReel = kind === 'reel';
+    const isWeekend = [5, 6].includes(now.getDay());
+    const fmt = (h: number, m = 0) => {
+      const suffix = h < 12 ? 'صباحًا' : 'مساءً';
+      const hh = h % 12 || 12;
+      return `${hh}:${String(m).padStart(2, '0')} ${suffix}`;
+    };
+    const todayAt = (h: number, m = 0) => `اليوم ${fmt(h, m)}`;
+    const tomorrowAt = (h: number, m = 0) => `غدًا ${fmt(h, m)}`;
+    let primaryWindow = '';
+    let nextStory = '';
+    let nextPost = '';
+    let whatsappWindow = '';
+    let verdict = '';
+
+    if (hour < 6) {
+      primaryWindow = isReel ? todayAt(11, 15) : todayAt(10, 30);
+      nextStory = todayAt(12, 45);
+      nextPost = todayAt(18, 30);
+      whatsappWindow = todayAt(19, 15);
+      verdict = 'الفجر وقت تجهيز لا نشر؛ نؤجل الإطلاق إلى أول نافذة جوع حقيقية بدل نشره الآن.';
+    } else if (hour < 10) {
+      primaryWindow = todayAt(11, 30);
+      nextStory = todayAt(13, 0);
+      nextPost = todayAt(18, 45);
+      whatsappWindow = todayAt(19, 30);
+      verdict = 'الصباح مناسب للتحضير؛ أفضل نشر يكون قبل الغداء لا فورًا.';
+    } else if (hour < 13) {
+      primaryWindow = 'الآن مناسب قبل الغداء';
+      nextStory = todayAt(Math.min(hour + 1, 14), minute);
+      nextPost = todayAt(18, 45);
+      whatsappWindow = todayAt(19, 30);
+      verdict = 'هذه نافذة طلب قوية؛ انشر الآن ثم ادفع بستوري قريب.';
+    } else if (hour < 17) {
+      primaryWindow = todayAt(18, 0);
+      nextStory = todayAt(19, 15);
+      nextPost = tomorrowAt(11, 30);
+      whatsappWindow = todayAt(20, 0);
+      verdict = 'منتصف اليوم أهدأ؛ الأفضل تجهيز المحتوى لذروة العشاء.';
+    } else if (hour < 21) {
+      primaryWindow = 'الآن مناسب للعشاء';
+      nextStory = todayAt(Math.min(hour + 1, 21), minute);
+      nextPost = tomorrowAt(11, 30);
+      whatsappWindow = todayAt(21, 15);
+      verdict = 'هذه أقوى نافذة عشاء؛ لا تؤجل المحتوى كثيرًا.';
+    } else {
+      primaryWindow = isWeekend ? tomorrowAt(11, 30) : tomorrowAt(10, 45);
+      nextStory = tomorrowAt(12, 45);
+      nextPost = tomorrowAt(18, 30);
+      whatsappWindow = tomorrowAt(19, 15);
+      verdict = 'الوقت متأخر؛ الأفضل جدولة المحتوى بدل نشره في لحظة نوم الجمهور.';
+    }
+
+    return { primaryWindow, nextStory, nextPost, whatsappWindow, verdict };
+  };
+
   const getLiveStudioIntelligence = (kind: 'image' | 'idea' | 'reel') => {
     const isReel = kind === 'reel';
     const isIdeaImage = !isReel && imageDirectSource === 'idea';
@@ -915,9 +958,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     const audienceRead = isReel
       ? 'هذا الناتج يخاطب المشاهد السريع؛ أول ثانيتين هي لحظة البيع.'
       : (selectedFormat === '9:16' ? 'هذا الناتج مناسب للستوري؛ اجعل الرسالة قصيرة ومباشرة.' : 'هذا الناتج مناسب كبوست بيع؛ يحتاج عبارة طلب واضحة لا شرح طويل.');
-    const publishingWindow = isReel
-      ? 'قبل الغداء أو العشاء بـ 60 إلى 90 دقيقة'
-      : (isIdeaImage ? 'بداية اليوم أو قبل إعلان العرض' : 'وقت الذروة أو قبل الطلب المباشر');
+    const timingPlan = getSmartPublishingPlan(kind);
+    const publishingWindow = timingPlan.primaryWindow;
     const avoidMove = isReel
       ? 'تجنب إعادة نفس الحركة أو نفس زاوية الكاميرا في المنشور التالي.'
       : 'تجنب نشر صورة ثانية بنفس التكوين حتى لا يشعر العميل بالتكرار.';
@@ -926,21 +968,22 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       : `صورة ${isIdeaImage ? 'مبنية على فكرة' : 'مبنية على صورة منتج'} بصيغة ${formatLabel}؛ قوتها في وضوح الطبق والطلب.`;
     const campaignSteps = isReel
       ? [
-          ['الآن', `انشر الريل كافتتاحية لـ ${productLabel} مع عبارة طلب قصيرة.`],
-          ['بعد ساعتين', 'ستوري ثابت بصورة أو لقطة مقربة مع سؤال مباشر للطلب.'],
-          ['غدًا', `صورة ${isReelFromPhoto ? 'بزاوية مختلفة عن الصورة الأصلية' : 'من نفس الفكرة لكن بتكوين أهدأ'}.`],
-          ['نهاية الأسبوع', 'رسالة واتساب مختصرة للطلبات الجماعية أو العائلية.']
+          [timingPlan.primaryWindow, `انشر الريل كافتتاحية لـ ${productLabel} مع عبارة طلب قصيرة.`],
+          [timingPlan.nextStory, 'ستوري ثابت بصورة أو لقطة مقربة مع سؤال مباشر للطلب.'],
+          [timingPlan.nextPost, `صورة ${isReelFromPhoto ? 'بزاوية مختلفة عن الصورة الأصلية' : 'من نفس الفكرة لكن بتكوين أهدأ'}.`],
+          [timingPlan.whatsappWindow, 'رسالة واتساب مختصرة للطلبات الجماعية أو العائلية.']
         ]
       : [
-          ['الآن', `انشر الصورة كبوست واضح لـ ${productLabel}.`],
-          ['بعد ساعتين', 'ستوري مختصر مع زر أو عبارة طلب مباشرة.'],
-          ['غدًا', `ريل قصير بلقطة ${activeShot.label} بدون تكرار نفس التكوين.`],
-          ['نهاية الأسبوع', 'عرض واتساب مبني على نفس الصورة لكن بنص مختلف.']
+          [timingPlan.primaryWindow, `انشر الصورة كبوست واضح لـ ${productLabel}.`],
+          [timingPlan.nextStory, 'ستوري مختصر مع زر أو عبارة طلب مباشرة.'],
+          [timingPlan.nextPost, `ريل قصير بلقطة ${activeShot.label} بدون تكرار نفس التكوين.`],
+          [timingPlan.whatsappWindow, 'عرض واتساب مبني على نفس الصورة لكن بنص مختلف.']
         ];
     const actionCards = [
       { label: 'قراءة المخرج', value: directorVerdict },
       { label: 'الخطوة التالية', value: nextBestMove },
       { label: 'نافذة النشر', value: publishingWindow },
+      { label: 'حكم التوقيت', value: timingPlan.verdict },
       { label: 'ما يجب تجنبه', value: avoidMove },
     ];
     const scoreChips = [
@@ -1533,9 +1576,8 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
 
 
   const generateKuwaitNoProduct = async () => {
-    const productBrain = ensureAlturathProductOnly();
-    if (!productBrain) return;
-    const ideaBrain = analyzeAlturathStudioIdea(customThemeQuery, data?.products || []);
+    const ideaBrain = analyzeAlturathStudioIdea(customThemeQuery || selectedStudioProductName || activeStudioScene.label, data?.products || []);
+    const productBrain = ideaBrain;
     const themeText = sanitizeStudioPrompt(buildKuwaitStudioTheme({
       packId: selectedPulseId,
       place: selectedOrderPlace || activePulsePack.defaultPlace,
@@ -1553,6 +1595,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       const prompt = `${themeText}
 ${studioDirection}
 ${ideaBrain.promptGuard}
+${isKuwaitTowersScene(activeStudioScene) ? KUWAIT_TOWERS_STRICT_REFERENCE_LOCK : ''}
 Generate a believable Kuwaiti occasion / delivery / gathering image without requiring a product upload. The selected scene is mandatory: ${activeStudioScene.label}. ${sceneDirectorLock(activeStudioScene)} Make it look like a real photographed Kuwaiti order moment, suitable for menu/social/product use. No readable text inside the image. ${STUDIO_NEGATIVE_PROMPT}`;
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',

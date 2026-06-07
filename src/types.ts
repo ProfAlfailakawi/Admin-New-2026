@@ -237,6 +237,8 @@ export interface Invoice {
     apartment?: string;
     fullAddress?: string;
   };
+  deliverySettlementTarget?: string;
+  deliverySettlementSupplierId?: string;
 }
 
 export interface Expense {
