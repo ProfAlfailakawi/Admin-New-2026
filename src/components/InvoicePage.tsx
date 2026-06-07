@@ -1341,13 +1341,13 @@ Alturath.kw`;
             </h2>
 
             <div className="space-y-4 mb-6">
-              <div className="w-full max-w-full overflow-hidden block box-border">
+              <div className="w-full max-w-full overflow-visible block box-border">
                 <input
                   type="date"
                   lang="en-GB" dir="ltr"
                   value={invoiceDate}
                   onChange={(e) => setInvoiceDate(e.target.value)}
-                  className="w-full max-w-full bg-slate-50/80 border border-slate-200/80 rounded-xl sm:rounded-2xl px-3 py-2.5 sm:p-4 text-right font-black text-xs sm:text-base outline-none transition-all focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 [color-scheme:light] box-border block"
+                  className="w-full max-w-full min-w-0 bg-slate-50/80 border border-slate-200/80 rounded-xl sm:rounded-2xl px-4 py-2.5 sm:p-4 text-center font-black text-xs sm:text-base outline-none transition-all focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 [color-scheme:light] box-border block"
                 />
               </div>
 
@@ -1772,19 +1772,19 @@ Alturath.kw`;
                 <div className="text-[10px] font-bold text-slate-500 text-right uppercase">
                   خصم إضافي (رقم ونسبة)
                 </div>
-                <div className="flex gap-2">
-                  <div className="flex-1">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex-1 min-w-0">
                     <input
                       type="number"
                       step={discountType === "amount" ? "0.050" : "1"}
                       min="0"
                       value={discountValue || ""}
                       onChange={(e) => setDiscountValue(Math.max(0, parseFloat(e.target.value) || 0))}
-                      placeholder={discountType === "amount" ? "مثال: 1.500 د.ك" : "مثال: 10%"}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-right font-bold focus:ring-2 focus:ring-primary/20 transition-all text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      placeholder={discountType === "amount" ? "مثال: د.ك 1.500" : "مثال: 10%"}
+                      className="w-full min-w-0 bg-slate-50 border border-slate-200 rounded-2xl p-3 text-right font-bold focus:ring-2 focus:ring-primary/20 transition-all text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-2xl shrink-0 w-36">
+                  <div className="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-2xl shrink-0 w-full sm:w-44">
                     <button
                       type="button"
                       onClick={() => setDiscountType("amount")}
