@@ -572,13 +572,13 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
             <div className="ai-chat-avatar">{m.role === 'user' ? <User size={15} /> : <Bot size={15} />}</div>
             <div className="ai-chat-bubble">
               <Markdown components={{
-                strong: ({node, ...props}) => <strong className="text-amber-700 font-black bg-amber-50 px-1 rounded" {...props} />,
-                h3: ({node, ...props}) => <h3 className="text-lg text-slate-900 border-r-4 border-amber-500 pr-3 my-3 font-black" {...props} />,
-                li: ({node, ...props}) => <li className="list-disc list-inside marker:text-amber-500 mb-1" {...props} />,
-                table: ({node, ...props}) => <div className="my-3 overflow-x-auto rounded-xl border border-slate-100"><table className="w-full text-right border-collapse" {...props} /></div>,
-                th: ({node, ...props}) => <th className="bg-slate-100 p-2 font-black text-slate-900 border-b border-slate-200" {...props} />,
-                td: ({node, ...props}) => <td className="p-2 border-b border-slate-100" {...props} />,
-                em: ({node, ...props}) => <em className="text-emerald-600 font-black not-italic" {...props} />
+                strong: ({node, ...props}) => <strong {...props} />,
+                h3: ({node, ...props}) => <h3 {...props} />,
+                li: ({node, ...props}) => <li {...props} />,
+                table: ({node, ...props}) => <div className="my-5 overflow-x-auto rounded-2xl border border-slate-200/60 shadow-sm"><table className="w-full text-right border-collapse" {...props} /></div>,
+                th: ({node, ...props}) => <th className="bg-slate-50 p-3 font-black text-slate-800 border-b border-slate-200/80" {...props} />,
+                td: ({node, ...props}) => <td className="p-3 border-b border-slate-100 text-slate-600 font-medium" {...props} />,
+                em: ({node, ...props}) => <em {...props} />
               }}>{m.content}</Markdown>
             </div>
           </motion.div>
