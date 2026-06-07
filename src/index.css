@@ -4312,3 +4312,84 @@ html body .login-brand-stage h1 {
 .push-health-pro code {
   color: #047857 !important;
 }
+
+/* Mobile stability patch: prevent sideways drift and accidental visual overflow without changing feature logic. */
+@media (max-width: 768px) {
+  html,
+  body,
+  #root {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    overscroll-behavior-x: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font-size: 16px;
+  }
+
+  .fixed.inset-0 {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .admin-experience-stack,
+  .admin-content-polish,
+  .admin-smart-panel,
+  .admin-page-hero,
+  .rounded-\[1\.8rem\],
+  .rounded-\[2rem\],
+  .rounded-\[2\.5rem\],
+  .rounded-3xl {
+    max-width: 100%;
+  }
+
+  .grid,
+  .flex {
+    min-width: 0;
+  }
+
+  #device-deera-compass {
+    flex: 0 0 auto;
+    overflow: hidden;
+  }
+}
+
+/* Dark-panel readability patch for notification and studio-like cards. */
+.bg-slate-900 .text-slate-400,
+.bg-slate-950 .text-slate-400,
+.bg-gradient-to-br.from-slate-900 .text-slate-400,
+.bg-gradient-to-br.from-slate-950 .text-slate-400 {
+  color: rgba(226, 232, 240, 0.78) !important;
+}
+
+.bg-slate-900 .text-slate-500,
+.bg-slate-950 .text-slate-500,
+.bg-gradient-to-br.from-slate-900 .text-slate-500,
+.bg-gradient-to-br.from-slate-950 .text-slate-500 {
+  color: rgba(226, 232, 240, 0.72) !important;
+}
+
+.bg-slate-900 .text-slate-600,
+.bg-slate-950 .text-slate-600,
+.bg-gradient-to-br.from-slate-900 .text-slate-600,
+.bg-gradient-to-br.from-slate-950 .text-slate-600 {
+  color: rgba(241, 245, 249, 0.82) !important;
+}
