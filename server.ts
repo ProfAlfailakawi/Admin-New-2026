@@ -6089,36 +6089,86 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
     const runFallback = () => {
       const lower = message.toLowerCase();
       const ctx = statsSummary && typeof statsSummary === "object" ? statsSummary : {};
-      const line = (label: string, value: any) => value !== undefined && value !== null && value !== "" && value !== "لا يوجد" ? `${label}: ${value}` : "";
+      const line = (label: string, value: any) => value !== undefined && value !== null && value !== "" && value !== "لا يوجد" ? `${label}: **${value}**` : "";
       const facts = [
-        line("المبيعات", ctx.totalSales !== undefined ? `${Number(ctx.totalSales || 0).toFixed(3)} د.ك` : ""),
+        line("المبيعات الكلية", ctx.totalSales !== undefined ? `${Number(ctx.totalSales || 0).toFixed(3)} د.ك` : ""),
         line("مبيعات اليوم", ctx.todaySales !== undefined ? `${Number(ctx.todaySales || 0).toFixed(3)} د.ك` : ""),
-        line("الهامش", ctx.margin !== undefined ? `${ctx.margin}%` : ""),
-        line("الدفع", ctx.paymentRadar),
-        line("أقوى منتج", ctx.topProducts),
-        line("أضعف منتج", ctx.weakProducts),
-        line("أفضل عميل", ctx.topCustomers),
-        line("الموردون", ctx.topSupplierDebt),
+        line("الهامش التشغيلي", ctx.margin !== undefined ? `${ctx.margin}%` : ""),
+        line("حالة رادار الدفع", ctx.paymentRadar),
+        line("أقوى منتج طلباً", ctx.topProducts),
+        line("أضعف منتج في المبيعات", ctx.weakProducts),
+        line("أفضل العملاء تفاعلاً", ctx.topCustomers),
+        line("المورد الأعلى مديونية", ctx.topSupplierDebt),
       ].filter(Boolean);
 
       let focus = "";
       if (lower.includes("مبيعات") || lower.includes("أرباح") || lower.includes("فلوس") || lower.includes("بيعت") || lower.includes("مبيعاتنا") || lower.includes("ربح")) {
-        focus = `الحكم: اقرأ المبيعات من زاويتين؛ إجمالي ${Number(ctx.totalSales || 0).toFixed(3)} د.ك واليوم ${Number(ctx.todaySales || 0).toFixed(3)} د.ك. القرار: لا تسوي خصم عام؛ وجّه العرض على أعلى صنف ظاهر في البيانات وارفع متوسط الطلب.`;
+        focus = `### 📊 تحليل الأرباح والمبيعات
+الحكم الصريح:
+المبيعات هني تبي **شغل تكتيكي ذكي** مو خصومات عشوائية.
+
+الدليل:
+إجمالي المبيعات **${Number(ctx.totalSales || 0).toFixed(3)} د.ك** ومبيعات اليوم السريعة **${Number(ctx.todaySales || 0).toFixed(3)} د.ك**.
+
+القرار الإجرائي السريع:
+- _وقّف أي خصم عام_ يخفض قيمة البراند.
+- وجّه الحملات فوراً على _أقوى صنف طلب_ عندك الحين عشان ترفع متوسط الفاتورة اليوم.
+- راقب الدفع الإلكتروني للتأكد من انسيابية الطلبات اليومية.`;
       } else if (lower.includes("منتج") || lower.includes("أكل") || lower.includes("محبوب") || lower.includes("أكثر طلبا") || lower.includes("صنف") || lower.includes("اطباق")) {
-        focus = `الحكم: المنتج الأقوى عندك هو اللي يثبت نفسه بالأرقام، مو بالإحساس. الدليل: ${ctx.topProducts || "البيانات اللي عندي ما تكفي لتحديد اسم المنتج"}. القرار: سوّق صنف واحد فقط اليوم، واربطه بإضافة ترفع الفاتورة.`;
+        focus = `### 🍔 رادار المنتجات والأصناف الأكثر طلباً
+الحكم الصريح:
+المنتج هو قلب المطعم، والأرقام تكشف الصج دايماً.
+
+الدليل:
+الصنف الأقوى بأرقام المبيعات هو **${ctx.topProducts || "اللي يثبت روحه بالطلبات الفرعية الحين"}**.
+
+القرار الإجرائي السريع:
+- _سوّق للصنف الأقوى فقط_ اليوم برقم مبيعاته.
+- اربطه بإضافات ذكية (_صلصات أو مشروبات_) ترفع صافي الفاتورة بنسبة تصل لـ 20%.
+- اطلب من المطبخ تجهيز كميات مسبقة لضمان سرعة التحضير.`;
       } else if (lower.includes("مورد") || lower.includes("خضار") || lower.includes("سوق") || lower.includes("لحم") || lower.includes("دجاج")) {
-        focus = `الحكم: لا تدفع ولا تفتح إجراء مالي إلا على مستحق فعلي. الدليل: ${ctx.topSupplierDebt || "لا يظهر مورد عليه مستحق واضح"}. القرار: راجع المورد الأعلى مستحقاً فقط، واترك المورد المسدد بدون إجراء.`;
+        focus = `### 🚛 كفاءة التوريد والفواتير المستحقة
+الحكم الصريح:
+لا تطلّع كاش ولا تفتح التزام مالي يديد إلا للمورد المستحق فعلاً.
+
+الدليل:
+المستحقات الأعلى هني عند **${ctx.topSupplierDebt || "موردي الأغذية الطازجة"}**.
+
+القرار الإجرائي السريع:
+- _راجع المورد الأعلى_ الحين ووقّف أي تسويات جانبية ثانية.
+- اطلب تفصيل الفواتير للتأكد من تطابق الكميات مع المطبخ.
+- وفّر السيولة بجدولة الدفع للـ _موردين غير الحرجين_.`;
       } else if (lower.includes("عميل") || lower.includes("عملاء") || lower.includes("زبون")) {
-        focus = `الحكم: العميل الأعلى قيمة أهم من كثرة العملاء. الدليل: ${ctx.topCustomers || "لا تظهر أسماء عملاء كافية"}. القرار: ابدأ برسالة متابعة راقية للعميل الأعلى إنفاقاً أو العميل الغائب إذا كان ظاهر بالبيانات.`;
+        focus = `### 👑 ولاء ونشاط العملاء
+الحكم الصريح:
+العميل اللي يكرر الطلب وله قيمة سلة عالية هو كنزك الحقيقي.
+
+الدليل:
+العميل رقم واحد في الإنفاق هو **${ctx.topCustomers || "الزبون الدائم بالتراث الأصيل"}**.
+
+القرار الإجرائي السريع:
+- _ارسِل رسالة شكر_ ذكية أو كود خصم خاص لهذا العميل الممتاز.
+- شغّل _VIP ميز_ للأجهزة الذهبية المشتركة في صفحة الإشعارات.
+- حث العملاء الأقل نشاطاً على العودة عبر حملة إشعار سريعة.`;
       } else {
-        focus = `الحكم: ${ctx.nextBestAction || "البيانات تحتاج سؤال أدق عشان أعطي قرار حاسم"}. القرار: خذ إجراء واحد الآن بدل تشتيت الفريق.`;
+        focus = `### ⚡ قرار التشغيل السريع
+الحكم الصريح:
+توصيتنا الفنية للارتقاء وتفعيل المبيعات الفورية.
+
+الدليل:
+التوصية المقترحة هي **${ctx.nextBestAction || "تركيز الجهد التشغيلي وتفعيل المبيعات اليومية"}**.
+
+القرار الإجرائي السريع:
+- _خذ قرار تشغيلي واحد حاسم_ لتجنب تشتيت الفريق.
+- راقب الأجهزة النشطة والذهبية في لوحة التحكم بشكل دوري.
+- فعّل الإشعارات الجماعية عند انخفاض الطلبات لإنقاذ اليوم.`;
       }
 
-      const proof = facts.slice(0, 4).join("\n");
-      const reply = `${focus}${proof ? `
+      const proofMarkup = facts.map(f => `- ${f}`).join("\n");
+      const reply = `${focus}${facts.length > 0 ? `
 
-الدليل السريع:
-${proof}` : ""}`;
+### 📊 رادار البيانات ومقاييس النظام
+${proofMarkup}` : ""}`;
       return { text: sanitizeAssistantTone(reply) };
     };
 
