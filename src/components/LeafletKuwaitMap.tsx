@@ -164,6 +164,32 @@ const LeafletKuwaitMap: React.FC<{
     return () => { cancelled = true; };
   }, [markers, center.lat, center.lng, zoom, showRange, onMarkerClick, attributionPrefix, fitToMarkers]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize({ pan: false });
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && hostRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        if (mapRef.current) {
+          mapRef.current.invalidateSize({ pan: false });
+        }
+      });
+      resizeObserver.observe(hostRef.current);
+    }
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+      if (resizeObserver) resizeObserver.disconnect();
+    };
+  }, []);
+
   return (
     <div className={`relative overflow-hidden rounded-[2rem] border ${dark ? 'border-white/10 bg-slate-900' : 'border-slate-200 bg-slate-100'} shadow-inner ${heightClassName}`} dir="ltr">
       <div ref={hostRef} className="absolute inset-0 z-0" />

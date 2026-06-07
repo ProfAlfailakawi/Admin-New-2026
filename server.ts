@@ -6041,7 +6041,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
       }
 
       const ai = new GoogleGenAI({
-        apiKey: assistantGeminiApiKey,
+        apiKey: process.env.GEMINI_API_KEY,
         httpOptions: { headers: { "User-Agent": "alturath-admin-server" } }
       });
 
