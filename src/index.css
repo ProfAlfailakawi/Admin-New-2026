@@ -4412,3 +4412,49 @@ html body .login-brand-stage h1 {
     padding-block: 7px !important;
   }
 }
+
+/* Ahmad follow-up mobile polish: visual/layout only, no business logic changes */
+@media (max-width: 640px){
+  .geo-heatmap-component .geo-region-stats > div{
+    padding: 9px 6px !important;
+    border-radius: 16px !important;
+  }
+  .geo-heatmap-component .geo-region-stats .tabular-nums{
+    font-size: 10px !important;
+    letter-spacing: -0.035em !important;
+    white-space: nowrap !important;
+  }
+  .geo-heatmap-component button[ type="button" ]{
+    min-width: 0 !important;
+  }
+
+  /* Supplier payment modal: keep the whole sheet inside the phone viewport and let only the body scroll */
+  .supplier-transfer-modal{
+    width: calc(100vw - 18px) !important;
+    max-width: calc(100vw - 18px) !important;
+    max-height: calc(100dvh - 74px) !important;
+    border-radius: 22px !important;
+  }
+  .supplier-transfer-modal > div:first-child{
+    padding: 12px 14px 0 !important;
+  }
+  .supplier-transfer-modal h2{
+    font-size: 20px !important;
+    margin-bottom: 12px !important;
+  }
+  .supplier-transfer-modal > .flex-1{
+    padding: 12px 14px !important;
+    overscroll-behavior: contain !important;
+  }
+  .supplier-transfer-modal > div:last-child{
+    padding: 10px 12px !important;
+    gap: 10px !important;
+    background: rgba(255,255,255,.96) !important;
+    backdrop-filter: blur(12px) !important;
+  }
+  .supplier-transfer-modal > div:last-child button{
+    min-height: 52px !important;
+    padding-block: 12px !important;
+    font-size: 14px !important;
+  }
+}

@@ -337,7 +337,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 	 const [messages, setMessages] = useState<Message[]>([
 	 { 
 	 role: 'assistant', 
-	 content: 'حاضر يا طويل العمر. أنا أقرأ بيانات مطعمك أولاً، وبعدها أعطيك قرار واضح: شنو صار، ليش صار، وشنو تسوي الحين. ما راح أعطيك كلام عام.' 
+	 content: 'حاضر. أقرأ بيانات المطعم أولاً، وبعدها أعطيك قرار واضح: شنو صار، ليش صار، وشنو الأفضل الآن. ما راح أعطيك كلام عام.' 
 	 }
 	 ]);
  const [input, setInput] = useState('');
@@ -448,6 +448,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 - لا تطلب خطوات تقنية من المستخدم.
 - لا تنفذ ولا تدعي أنك نفذت.
 - اكتب بلهجة كويتية بيضاء راقية، مختصرة وواضحة.
+- ممنوع مخاطبة المستخدم باسم شخصي أو كنية مثل بو فلان أو يا بو ناصر؛ استخدم صيغة عامة واحترافية مثل: واضح من البيانات، عندك، الأفضل الآن.
 - قبل الرد صنّف نية السؤال من intentKind وتعامل معها كمدير عمليات: قرار، مبيعات، ربح، عميل، منتج، مورد، رسالة، خطر.
 - عند الإحصائيات استخدم paymentRadar وtopInvoice وlowestInvoice وtopCustomers وlowestCustomer وtopProducts وweakProducts قبل أي كلام إنشائي.
 - إذا طلب "كل شي" لا تسرد كل البيانات؛ أعطه أعلى 3 مؤشرات: الخطر، الفرصة، والرقم الأهم.
