@@ -53,6 +53,7 @@ import {
   ClipboardList,
   Puzzle,
   ShoppingBag,
+  Truck,
 } from "lucide-react";
 import { AppState, Invoice } from "../types";
 import { DEFAULT_GLOBAL_LOGO } from "../constants";
@@ -106,7 +107,8 @@ const getInvoiceAddress = (inv: any, customerObj?: any): string => {
 const getSupplierDeliverySettlementAmountForReport = (inv: any, supplierId: string, data: AppState): number => {
   const info = inv?.deliveryInfo || {};
   const target = info.settlementTarget || inv?.deliverySettlementTarget;
-  const value = Number(info.cost ?? inv?.deliveryCost ?? info.finalPrice ?? inv?.deliveryFee ?? 0) || 0;
+  const valueCandidates = [info.cost, inv?.deliveryCost, info.finalPrice, inv?.deliveryFee];
+  const value = Number(valueCandidates.find((candidate) => Number(candidate || 0) > 0) || 0) || 0;
   if (value <= 0) return 0;
   const supplier = (data?.suppliers || []).find((s: any) => String(s.id) === String(supplierId));
   if (!supplier) return 0;
@@ -451,7 +453,11 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       const byId = explicitId ? (data?.suppliers || []).find((s: any) => String(s.id) === explicitId) : null;
       return String(byId?.name || invoice?.deliveryInfo?.settlementSupplierName || invoice?.deliveryInfo?.company || invoice?.deliveryCompany || '').trim();
     };
-    const getInvoiceDeliveryCostValue = (invoice: any) => Number(invoice?.deliveryInfo?.cost ?? (invoice as any)?.deliveryCost ?? invoice?.deliveryInfo?.finalPrice ?? (invoice as any)?.deliveryFee ?? 0) || 0;
+    const getInvoiceDeliveryCostValue = (invoice: any) => {
+      const info = invoice?.deliveryInfo || {};
+      const valueCandidates = [info.cost, (invoice as any)?.deliveryCost, info.finalPrice, (invoice as any)?.deliveryFee];
+      return Number(valueCandidates.find((candidate) => Number(candidate || 0) > 0) || 0) || 0;
+    };
     const getInvoiceSupplierEntities = (invoice: any) => {
       const supplierIds = Array.from(new Set((invoice?.items || []).map((item: any) => {
         const product = (data?.products || []).find((p: any) => String(p.id) === String(item.productId));
@@ -487,12 +493,15 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       setData((prev) => {
         const apply = (inv: any) => {
           const currentInfo = inv.deliveryInfo || {};
+          const currentDeliveryAmount = getInvoiceDeliveryCostValue(inv);
           return {
             ...inv,
             deliveryType: deliveryManagerType,
             deliveryInfo: {
               ...currentInfo,
               company: settlementName,
+              cost: currentDeliveryAmount,
+              finalPrice: Number(currentInfo.finalPrice ?? inv.deliveryFee ?? currentDeliveryAmount) || currentDeliveryAmount,
               settlementTarget,
               settlementSupplierId: deliveryManagerSupplierId,
               settlementSupplierName: settlementName,
@@ -1435,10 +1444,11 @@ Alturath.kw`;
                                           e.stopPropagation();
                                           handleManageDelivery(inv);
                                         }}
-                                        className="px-2.5 py-2 hover:bg-blue-50 rounded-lg text-slate-500 hover:text-blue-600 transition-colors text-[10px] font-black whitespace-nowrap"
+                                        className="p-2 hover:bg-blue-50 rounded-lg text-slate-500 hover:text-blue-600 transition-colors"
                                         title="إدارة التوصيل والمستحقات"
+                                        aria-label="إدارة التوصيل"
                                       >
-                                        إدارة التوصيل
+                                        <Truck size={16} />
                                       </button>
                                     )}
                                     {!isPartner && (

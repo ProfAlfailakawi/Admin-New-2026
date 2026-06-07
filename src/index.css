@@ -4518,3 +4518,141 @@ html body .login-brand-stage h1 {
     color:rgba(255,255,255,.76)!important;
   }
 }
+
+
+/* Admin70 deep mobile visual audit patch: typography, cards, contrast, overflow. */
+@media (max-width: 760px) {
+  body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+  /* Every screen/card must stay inside the phone viewport. */
+  main, section, article, aside, header, footer,
+  [class*="rounded-"], [class*="shadow"], [class*="border"],
+  .bg-white, .bg-slate-50, .bg-slate-100, .bg-slate-900, .bg-slate-950 {
+    max-width: 100% !important;
+  }
+
+  /* Make horizontal filter chips scroll cleanly instead of pushing the page. */
+  .overflow-x-auto,
+  [class*="overflow-x-auto"] {
+    max-width: 100vw !important;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Tables/cards that used desktop minimum widths should scroll within their own container only. */
+  table,
+  .min-w-\[800px\], .min-w-\[700px\], .min-w-\[600px\], .min-w-\[520px\], .min-w-\[350px\] {
+    max-width: none !important;
+  }
+
+  /* Keep visible cards compact and legible on iPhone widths. */
+  .p-6 { padding: .95rem !important; }
+  .p-5 { padding: .85rem !important; }
+  .p-4 { padding: .75rem !important; }
+  .px-6 { padding-left: .95rem !important; padding-right: .95rem !important; }
+  .py-6 { padding-top: .95rem !important; padding-bottom: .95rem !important; }
+  .gap-6 { gap: .9rem !important; }
+  .gap-5 { gap: .75rem !important; }
+  .gap-4 { gap: .65rem !important; }
+
+  /* Numeric/financial columns: no digit-per-line breaks. */
+  td, th, strong, small, span, p, div, button, label {
+    overflow-wrap: normal;
+  }
+  [class*="text-"][class*="font-black"],
+  [class*="text-"][class*="font-extrabold"],
+  input[type="time"],
+  input[inputmode="numeric"],
+  .tabular-nums {
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+  }
+
+  /* iOS time inputs: prevent AM/PM from splitting into two lines. */
+  input[type="time"] {
+    min-width: 7.6rem !important;
+    width: 7.6rem !important;
+    direction: ltr !important;
+    white-space: nowrap !important;
+    font-size: 15px !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0 !important;
+  }
+
+  /* Reusable contrast fixes for washed-out light cards and dark panels. */
+  .text-white\/40, .text-white\/50, .text-white\/60,
+  .opacity-40, .opacity-50, .opacity-60 {
+    opacity: .86 !important;
+  }
+  .bg-slate-900 .text-slate-500,
+  .bg-slate-950 .text-slate-500,
+  .bg-slate-900 .text-slate-400,
+  .bg-slate-950 .text-slate-400,
+  .bg-slate-900 .text-slate-300,
+  .bg-slate-950 .text-slate-300,
+  .bg-gradient-to-br.from-slate-900 .text-slate-500,
+  .bg-gradient-to-br.from-slate-950 .text-slate-500 {
+    color: rgba(248,250,252,.84) !important;
+  }
+
+  /* Big English/Arabic mixed labels should not explode on phones. */
+  .tracking-widest, .tracking-\[0\.2em\], .tracking-\[0\.25em\], .tracking-\[0\.3em\] {
+    letter-spacing: .08em !important;
+  }
+  .uppercase { letter-spacing: .05em; }
+
+  /* Modal/search suggestion chips and command bar shortcuts. */
+  .rounded-full, .rounded-2xl, .rounded-3xl, .rounded-\[2rem\], .rounded-\[2\.5rem\] {
+    min-width: 0;
+  }
+  button, a, select, input, textarea {
+    max-width: 100%;
+  }
+  button { min-width: 0; }
+
+  /* Dashboard/studio cards: readable line-height and no outside-frame text. */
+  .dashboard-content-shell h1,
+  .dashboard-content-shell h2,
+  .dashboard-content-shell h3,
+  .admin-content-polish h1,
+  .admin-content-polish h2,
+  .admin-content-polish h3 {
+    line-height: 1.25 !important;
+  }
+  .dashboard-content-shell p,
+  .admin-content-polish p {
+    line-height: 1.75 !important;
+  }
+
+  /* Leaflet map controls/markers: circular, finger-friendly markers instead of thin visual sticks. */
+  .leaflet-container { max-width: 100% !important; }
+  .alturath-leaflet-marker,
+  .alturath-leaflet-marker > div {
+    border-radius: 999px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    line-height: 1 !important;
+  }
+  .leaflet-marker-icon:not(.leaflet-div-icon) {
+    border-radius: 999px !important;
+  }
+
+  /* Mobile nav: keep top/header menu icons neat and text hidden where it crowds. */
+  header button, nav button { flex-shrink: 0; }
+
+  /* Prevent card labels from disappearing on pale/yellow gradients. */
+  .bg-amber-50 .text-amber-100,
+  .bg-amber-50 .text-white,
+  .bg-yellow-50 .text-white,
+  .bg-gradient-to-br.from-amber-50 .text-white,
+  .bg-gradient-to-br.from-yellow-50 .text-white {
+    color: #78350f !important;
+  }
+}
+
+/* Delivery manager icon-only action button safety. */
+button[aria-label="إدارة التوصيل"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
