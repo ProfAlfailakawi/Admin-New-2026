@@ -62,10 +62,10 @@ export const BusinessHealthIndex: React.FC<BusinessHealthIndexProps> = React.mem
  initial={{ scale: 0.8, opacity: 0 }}
  animate={{ scale: 1, opacity: 1 }}
  transition={{ type:"spring", bounce: 0.5 }}
- className={cn("p-3 md:p-4 md:p-3 rounded-2xl mb-6 relative z-10 shadow-sm border border-slate-200", config.bg)}
+ className={cn("p-3 md:p-4 md:p-3 rounded-2xl mb-6 relative z-10 shadow-xl", config.bg)}
  >
  <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-700" />
- {React.cloneElement(config.icon as React.ReactElement<any>, { size: 56, className:"text-slate-800 relative z-10" })}
+ {React.cloneElement(config.icon as React.ReactElement<any>, { size: 56, className:"text-white relative z-10" })}
  </motion.div>
  <h3 className="text-sm md:text-base font-bold text-slate-500 uppercase mb-2 relative z-10">مؤشر عافية الشركة</h3>
  <div className={cn("text-3xl md:text-xl md:text-2xl md:text-3xl md:text-xl md:text-2xl font-bold mb-4 tracking-tighter relative z-10 bg-clip-text text-transparent bg-gradient-to-br from-slate-800 to-slate-500", config.text)}>{health.score}<span className="text-2xl md:text-xl md:text-2xl text-slate-300 ml-1">%</span></div>
@@ -129,14 +129,14 @@ export const BusinessHealthIndex: React.FC<BusinessHealthIndexProps> = React.mem
  </div>
 
   {/* Recommendations Panel */}
-  <div className="bg-white border border-slate-200 text-slate-900 p-5 md:p-7 rounded-2xl relative overflow-hidden group shadow-sm border border-slate-200">
+  <div className="bg-slate-950 p-5 md:p-7 rounded-3xl relative overflow-hidden group shadow-2xl">
     <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-1000"><TrendingUp size={300} className="text-white" /></div>
     <div className="relative z-10">
       <h3 className="text-xl md:text-2xl font-black text-white mb-6 flex items-center gap-3">خطة عمل التحسين الفوري <Sparkles className="text-amber-400" size={24} /></h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {health.recommendations.map((rec, i) => (
           <div key={i} className="bg-white/5 backdrop-blur-xl p-4 md:p-5 rounded-2xl border border-white/10 flex items-start gap-3 hover:bg-white/10 transition-all duration-500 min-h-[96px]">
-            <div className="w-9 h-9 rounded-xl bg-amber-400 flex items-center justify-center shrink-0 shadow-sm border border-slate-200 shadow-amber-400/20"><CheckCircle2 className="text-black" size={18} /></div>
+            <div className="w-9 h-9 rounded-xl bg-amber-400 flex items-center justify-center shrink-0 shadow-lg shadow-amber-400/20"><CheckCircle2 className="text-black" size={18} /></div>
             <p className="text-white font-bold text-sm md:text-base leading-relaxed">{rec}</p>
           </div>
         ))}

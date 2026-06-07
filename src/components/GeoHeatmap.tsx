@@ -386,7 +386,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
  }), [areaData.markers, areaData.maxRev, activeRegion]);
 
  return (
- <div className="geo-heatmap-component bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl md:rounded-2xl p-4 shadow-sm border border-slate-200 shadow-indigo-900/50 border border-white/10 glass-dark text-slate-800 relative overflow-hidden border border-[#f0e6d2]/10">
+ <div className="geo-heatmap-component bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-3xl md:rounded-2xl p-4 shadow-2xl shadow-indigo-900/50 border border-white/10 glass-dark text-white relative overflow-hidden border border-[#f0e6d2]/10">
  <div className="relative z-10 flex flex-col gap-5 mb-5">
   <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
    <div className="text-right">
@@ -447,8 +447,8 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
         </button>
         {isOpen && (
          <div className="px-3 pb-3 grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-2xl bg-slate-50 border border-slate-200 text-slate-800/15 p-2"><div className="text-[9px] font-black text-slate-400">إيراد</div><div className="text-[11px] font-black text-amber-100 truncate">{fmtMoney(marker.revenue)}</div></div>
-          <div className="rounded-2xl bg-slate-800/15 p-2"><div className="text-[9px] font-black text-slate-400">طلبات</div><div className="text-[11px] font-black text-white">{marker.count}</div></div>
+          <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">إيراد</div><div className="text-[11px] font-black text-amber-100 truncate">{fmtMoney(marker.revenue)}</div></div>
+          <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">طلبات</div><div className="text-[11px] font-black text-white">{marker.count}</div></div>
           <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">متوسط</div><div className="text-[11px] font-black text-white truncate">{fmtMoney(marker.avgOrder)}</div></div>
           <div className="col-span-3 flex flex-wrap justify-end gap-2">
            <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-black text-emerald-200"><Sparkles size={11} className="inline ml-1" />{marker.persona}</span>

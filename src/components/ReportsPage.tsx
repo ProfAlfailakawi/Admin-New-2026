@@ -37,7 +37,6 @@ import {
   ChevronDown,
   ChevronUp,
   Package,
-  Truck,
   User,
   CreditCard,
   Clock,
@@ -54,6 +53,7 @@ import {
   ClipboardList,
   Puzzle,
   ShoppingBag,
+  Truck,
 } from "lucide-react";
 import { AppState, Invoice } from "../types";
 import { DEFAULT_GLOBAL_LOGO } from "../constants";
@@ -1091,13 +1091,13 @@ Alturath.kw`;
                       className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
                     />
                   </div>
-                  <div className="flex overflow-x-auto hide-scrollbar p-1 bg-slate-100 rounded-2xl gap-1 w-full md:w-auto">
+                  <div className="flex p-1 bg-slate-100 rounded-xl">
                     {["all", "today", "week", "month", "custom"].map((f) => (
                       <button
                         key={f}
                         onClick={() => setTimeFilter(f as any)}
                         className={cn(
-                          "shrink-0 px-4 sm:px-5 py-2 rounded-xl text-[11px] font-bold uppercase transition-all whitespace-nowrap",
+                          "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all",
                           timeFilter === f
                             ? "bg-white text-slate-900 shadow-sm"
                             : "text-slate-500 hover:text-slate-600",
@@ -1180,7 +1180,7 @@ Alturath.kw`;
                                   onClick={() => {
                                     if (onEditInvoice) onEditInvoice("new");
                                   }}
-                                  className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-sm border border-slate-200 shadow-primary/20 active:scale-[0.98] transition-all active:scale-95 hover:rotate-1 mx-auto"
+                                  className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1 mx-auto"
                                 >
                                   <Plus size={24} />
                                   <span>ابدأ رحلتك وضيف أول فاتورة الآن!</span>

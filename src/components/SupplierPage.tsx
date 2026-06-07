@@ -375,7 +375,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 )}
  </AnimatePresence>
 
- <div className="bg-white rounded-2xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
+ <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
  <div className="flex flex-col md:flex-row md:items-center gap-2 mb-8">
  <div className="relative flex-1">
  <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
@@ -396,7 +396,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
  <button 
  onClick={openAddModal}
- className="bg-slate-50 border border-slate-200 text-slate-900 px-4 md:px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-100 transition-all shadow-sm border border-slate-200 active:scale-95 shrink-0"
+ className="bg-slate-900 text-white px-4 md:px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95 shrink-0"
  >
  <Plus size={20} />
  <span>إضافة مورد جديد</span>
@@ -422,7 +422,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  } : {}}
  transition={shakingId === supplier.id ? { duration: 0.5 } : {}}
  className={cn(
-"supplier-card-mobile-safe bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-3 gap-2 md:gap-2 shadow-sm hover:shadow-xl transition-all relative overflow-hidden group border-t-4 border-t-emerald-500/20",
+"bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-3 gap-2 md:gap-2 shadow-sm hover:shadow-xl transition-all relative overflow-hidden group border-t-4 border-t-emerald-500/20",
  shakingId === supplier.id &&"ring-2 ring-red-500 ring-offset-2"
 )}
  >
@@ -444,7 +444,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="flex-1 order-1">
  <div className="flex items-center gap-2 justify-end mb-1">
  {getSupplierPriceIndicator(supplier).type === 'low' && (
- <div title="مؤشر تكلفة منخفضة لهذا المورد" className="bg-emerald-500/10 p-2 rounded-full border border-emerald-500/20 cursor-pointer">
+ <div title="مورد منافس جداً" className="bg-emerald-500/10 p-2 rounded-full border border-emerald-500/20 cursor-pointer">
  <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
  </div>
 )}
@@ -458,7 +458,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
 
  <div className="space-y-6">
- <div className="supplier-summary-row flex gap-2">
+ <div className="flex gap-2">
  <div 
  onClick={() => { setDeepLinkData({ supplierId: supplier.id, openModal: true }); setCurrentPage('suppliers-audit'); }}
  className={cn(
@@ -511,7 +511,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  />
  </div>
 
- <div className="supplier-invoice-stats grid grid-cols-3 gap-2">
+ <div className="grid grid-cols-3 gap-2">
  <div className="bg-white border border-slate-100 rounded-2xl p-2 text-center">
  <div className="text-[10px] font-bold text-slate-400 mb-1">الإجمالي</div>
  <div className="text-lg font-extrabold text-slate-800 leading-none">{invoiceStats.totalInvoices}</div>
@@ -581,14 +581,14 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  initial={{ opacity: 0 }} 
  animate={{ opacity: 1 }} 
  exit={{ opacity: 0 }} 
- className="fixed inset-0 bg-slate-50 border border-slate-200 text-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
+ className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
  onClick={() => setProductsToShow(null)}
  >
  <motion.div 
  initial={{ opacity: 0, scale: 0.95, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95, y: 20 }}
- className="admin-supplier-modal bg-white rounded-3xl md:rounded-3xl w-[95%] md:w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+ className="bg-white rounded-3xl md:rounded-3xl w-[95%] md:w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
  onClick={(e) => e.stopPropagation()}
  >
  {/* Header - Fixed */}
@@ -614,7 +614,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="p-3 md:p-3 shrink-0 mt-auto border-t border-slate-100">
  <button 
  onClick={() => setProductsToShow(null)}
- className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl transition-all shadow-sm border border-slate-200 active:scale-95"
+ className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl transition-all shadow-lg active:scale-95"
  >
  إغلاق
  </button>
@@ -630,7 +630,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  initial={{ opacity: 0 }} 
  animate={{ opacity: 1 }} 
  exit={{ opacity: 0 }} 
- className="admin-supplier-modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
+ className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
  onClick={() => setShowModal(false)}
  >
  <motion.div 
@@ -761,7 +761,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   initial={{ opacity: 0, scale: 0.95, y: 20 }}
   animate={{ opacity: 1, scale: 1, y: 0 }}
   exit={{ opacity: 0, scale: 0.95, y: 20 }}
-  className="supplier-ledger-modal bg-white rounded-[2.5rem] w-full max-w-2xl shadow-sm border border-slate-200 p-0 border border-slate-100 text-right flex flex-col max-h-[85dvh] overflow-hidden translate-y-6 sm:translate-y-12 shadow-black/20"
+  className="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-2xl p-0 border border-slate-100 text-right flex flex-col max-h-[85dvh] overflow-hidden translate-y-6 sm:translate-y-12 shadow-black/20"
   onClick={e => e.stopPropagation()}
   >
   {(() => {
@@ -820,9 +820,9 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي المستحق</div>
   <div className="text-base font-black text-slate-900 text-center relative z-10">{totalInvoiced.toFixed(3)}</div>
   </div>
-  <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-100 shadow-sm relative overflow-hidden group">
+  <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
   <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
-  <div className="text-[10px] font-black text-emerald-500 uppercase mb-1 text-center relative z-10">إجمالي السداد</div>
+  <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي السداد</div>
   <div className="text-base font-black text-emerald-600 text-center relative z-10">{totalPaid.toFixed(3)}</div>
   </div>
   <div className="bg-slate-900 p-3 rounded-2xl text-white shadow-xl relative overflow-hidden">
@@ -903,14 +903,14 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
         className="bg-slate-50/50 border-t border-slate-100"
       >
         <div className="p-5 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm grid grid-cols-3 gap-3">
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm grid grid-cols-2 gap-4">
             <div className="text-right">
-              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي البيع</div>
-              <div className="text-base font-black text-slate-900 whitespace-nowrap" dir="ltr">{(item.revenue || 0).toFixed(3)} <span className="text-xs text-slate-500">د.ك</span></div>
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي البيع (Revenue)</div>
+              <div className="text-lg font-black text-slate-900 whitespace-nowrap" dir="ltr">{(item.revenue || 0).toFixed(3)} <span className="text-xs text-slate-500">د.ك</span></div>
             </div>
-            <div className="text-right border-r border-slate-100 px-3">
-              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">توريد المنتجات</div>
-              <div className="text-base font-black text-rose-500 whitespace-nowrap" dir="ltr">{(item.supplyAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
+            <div className="text-right border-r border-slate-100 px-4">
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">تكلفة التوريد (Supply Cost)</div>
+              <div className="text-lg font-black text-rose-500 whitespace-nowrap" dir="ltr">{item.amount.toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
             </div>
             {Number(item.deliveryAmount || 0) > 0 && (
             <div className="text-right border-r border-slate-100 px-3">

@@ -154,7 +154,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  </div>
  <button 
  onClick={() => setShowModal(true)}
- className="bg-slate-50 border border-slate-200 text-slate-900 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 active:scale-[0.98] active:scale-95 transition-all shadow-sm border border-slate-200 shadow-slate-200/50"
+ className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-slate-900/20"
  >
  <Plus size={20} /> إنشاء كود جديد
  </button>
@@ -190,7 +190,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  </div>
  </div>
 
- <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-3 md:p-3 text-white shadow-sm border border-slate-200 relative overflow-hidden">
+ <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-3 md:p-3 text-white shadow-xl relative overflow-hidden">
  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
  <div className="relative z-10 flex flex-col md:flex-row items-center gap-4 md:p-3">
  <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
@@ -278,7 +278,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
 
  <AnimatePresence>
  {showModal && (
- <div className="fixed inset-0 bg-slate-50 border border-slate-200 text-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-3">
+ <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-3">
  <motion.div 
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
@@ -376,7 +376,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  {newCode.value && (() => {
   const court = buildCouponCourt({ ...newCode, discountValue: Number(newCode.value), discountType: newCode.type });
   return (
-   <div className={cn("rounded-2xl border p-4 text-right", court.tone === 'danger' ? 'border-rose-200 bg-rose-50' : court.tone === 'warning' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50')}>
+   <div className={cn("rounded-3xl border p-4 text-right", court.tone === 'danger' ? 'border-rose-200 bg-rose-50' : court.tone === 'warning' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50')}>
     <div className="flex items-center justify-between gap-3">
      <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center", court.tone === 'danger' ? 'bg-rose-100 text-rose-600' : court.tone === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600')}>
       <Gavel size={22} />
@@ -397,7 +397,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
 
  <button 
  onClick={handleCreateCode}
- className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-bold text-lg hover:bg-slate-100 active:scale-[0.98] transition-all shadow-xl shadow-slate-900/20"
+ className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-lg hover:bg-slate-800 active:scale-[0.98] transition-all shadow-xl shadow-slate-900/20"
  >
  إطلاق الكود وتعميمه 🚀
  </button>
@@ -410,9 +410,9 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  {activationCourtCoupon && (() => {
   const court = buildCouponCourt(activationCourtCoupon);
   return (
-   <div className="fixed inset-0 bg-white border border-slate-200 text-slate-900/70 backdrop-blur-sm z-[1001] flex items-center justify-center p-3" dir="rtl">
+   <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[1001] flex items-center justify-center p-3" dir="rtl">
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0" onClick={() => setActivationCourtCoupon(null)} />
-    <motion.div initial={{ scale: 0.94, opacity: 0, y: 18 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.94, opacity: 0, y: 18 }} className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] bg-white shadow-sm border border-slate-200">
+    <motion.div initial={{ scale: 0.94, opacity: 0, y: 18 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.94, opacity: 0, y: 18 }} className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 p-5 text-white text-right">
       <button onClick={() => setActivationCourtCoupon(null)} className="absolute left-5 top-5 rounded-full bg-white/10 p-2 text-white/70 hover:text-white"><X size={18} /></button>
       <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-[10px] font-black text-amber-100 mb-3"><Scale size={13} /> مراجعة قبل التفعيل</div>

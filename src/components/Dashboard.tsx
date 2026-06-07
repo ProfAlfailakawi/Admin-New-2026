@@ -339,7 +339,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
   return (
     <div
       id="bi-engine-core-section"
-      className="relative w-full min-h-[400px] md:min-h-[500px] lg:min-h-[650px] py-16 flex items-center justify-center mb-4 lg:mb-16 overflow-hidden rounded-2xl rounded-3xl sm:rounded-2xl bg-white border border-slate-200 text-slate-900 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-800/20 group"
+      className="relative w-full min-h-[400px] md:min-h-[500px] lg:min-h-[650px] py-16 flex items-center justify-center mb-4 lg:mb-16 overflow-hidden rounded-3xl rounded-3xl sm:rounded-2xl bg-slate-950 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-800/20 group"
     >
       {/* Immersive Atmospheric Gradients */}
       <div
@@ -405,7 +405,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
             <div className="absolute inset-4 sm:inset-6 border-[2px] sm:border-[3px] border-slate-800 rounded-full" />
 
             {/* The Heart Reactor */}
-            <div className="w-32 h-32 sm:w-48 sm:h-48 bg-slate-50 border border-slate-200 text-slate-900 rounded-full border border-slate-700 flex items-center justify-center relative shadow-sm border border-slate-200 z-10 overflow-hidden translate-z-0">
+            <div className="w-32 h-32 sm:w-48 sm:h-48 bg-slate-900 rounded-full border border-slate-700 flex items-center justify-center relative shadow-xl z-10 overflow-hidden translate-z-0">
               {/* Holographic Scanline */}
               <motion.div
                 animate={{ y: [-100, 100] }}
@@ -426,7 +426,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
                     %
                   </span>
                 </motion.div>
-                <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase mt-1 sm:mt-2 px-3 sm:px-4 py-1 bg-slate-50 border border-slate-200 text-slate-900 rounded-full border border-slate-800">
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase mt-1 sm:mt-2 px-3 sm:px-4 py-1 bg-slate-950 rounded-full border border-slate-800">
                   استقرار النظام
                 </p>
               </div>
@@ -503,7 +503,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
               }}
               whileHover={{ scale: 1.2 }}
             >
-              <div className="bg-slate-50 border border-slate-200 text-slate-900/60 backdrop-blur-2xl border border-white/10 p-3 sm:p-3 rounded-2xl sm:rounded-2xl shadow-xl flex flex-col items-center min-w-[70px] sm:min-w-[100px]">
+              <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 p-3 sm:p-3 rounded-2xl sm:rounded-2xl shadow-xl flex flex-col items-center min-w-[70px] sm:min-w-[100px]">
                 <div
                   className={cn(
                     "mb-1 sm:mb-2 p-1.5 sm:p-2 rounded-xl bg-white/5",
@@ -518,7 +518,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
                 <span className="text-[10px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1">
                   {sat.label}
                 </span>
-                <span className="text-xs sm:text-sm font-bold text-slate-800">
+                <span className="text-xs sm:text-sm font-bold text-white">
                   {sat.val}
                 </span>
               </div>
@@ -571,7 +571,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
         <div className="text-[10px] font-mono text-slate-600">
           KUWAIT_REGION_01
         </div>
-        <div className="w-1.5 h-1.5 rounded-full bg-slate-50 border border-slate-200 text-slate-800" />
+        <div className="w-1.5 h-1.5 rounded-full bg-slate-800" />
       </div>
     </div>
   );
@@ -2145,7 +2145,7 @@ const [isPending, startTransition] = useTransition();
         >
           <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-3 group-hover:-rotate-12 transition-transform relative">
             <ShoppingCart size={24} strokeWidth={2} />
-            <div className="absolute -top-1.5 -right-1.5 bg-white text-slate-900 text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-sm border border-slate-200 border-2 border-slate-800">
+            <div className="absolute -top-1.5 -right-1.5 bg-white text-slate-900 text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-800">
               {totalOrdersCount}
             </div>
           </div>
@@ -2481,9 +2481,9 @@ const [isPending, startTransition] = useTransition();
           dir="rtl"
         >
           {showSampleDataPrompt && (
-            <div className="mb-4 bg-amber-50/90 border border-amber-200 rounded-xl p-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 animate-in slide-in-from-top-4 fade-in duration-500 text-right w-full overflow-hidden relative shadow-sm">
+            <div className="mb-4 bg-amber-50/90 border border-amber-200 rounded-xl p-2.5 flex flex-row items-center justify-between gap-3 animate-in slide-in-from-top-4 fade-in duration-500 text-right w-full overflow-hidden relative shadow-sm">
               <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] bg-amber-500/10 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-              <div className="flex-1 relative z-10 flex items-start sm:items-center gap-3 min-w-0">
+              <div className="flex-1 relative z-10 flex items-center gap-3">
                 <div className="bg-amber-500 text-white p-1.5 rounded-lg shrink-0">
                   <Database size={16} />
                 </div>
@@ -2498,10 +2498,10 @@ const [isPending, startTransition] = useTransition();
                   </p>
                 </div>
               </div>
-              <div className="flex justify-end gap-2 shrink-0 relative z-10 w-full sm:w-auto font-sans">
+              <div className="flex justify-end gap-2 shrink-0 relative z-10 w-auto font-sans">
                 <button
                   onClick={handleLoadDemoData}
-                  className="bg-amber-600 outline-none text-white font-bold text-[11px] px-3 py-2 rounded-md hover:bg-amber-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95 whitespace-nowrap flex-1 sm:flex-none"
+                  className="bg-amber-600 outline-none text-white font-bold text-sm text-[11px] px-3 py-1.5 rounded-md hover:bg-amber-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95"
                 >
                   <Download size={14} />
                   <span>{appMode === 'cloud' || hasActiveBackup ? "استرجاع بياناتي" : "تحميل بيانات تجريبية"}</span>
@@ -2531,7 +2531,7 @@ const [isPending, startTransition] = useTransition();
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 12, scale: 0.98 }}
                   transition={{ type: 'spring', stiffness: 280, damping: 24 }}
-                  className="w-full max-w-md rounded-[2rem] bg-white shadow-sm border border-slate-200 border border-white/70 overflow-hidden text-right"
+                  className="w-full max-w-md rounded-[2rem] bg-white shadow-2xl border border-white/70 overflow-hidden text-right"
                   dir="rtl"
                 >
                   <div className="relative p-6 bg-gradient-to-br from-white via-amber-50/50 to-slate-50">
@@ -2591,7 +2591,7 @@ const [isPending, startTransition] = useTransition();
                               setLocalOnboardingStep((step) => step + 1);
                             }
                           }}
-                          className="px-5 py-2.5 rounded-xl text-sm font-black bg-indigo-600 text-white shadow-lg shadow-slate-900/15 hover:scale-[1.02] active:scale-95 transition-transform"
+                          className="px-5 py-2.5 rounded-xl text-sm font-black bg-slate-900 text-white shadow-lg shadow-slate-900/15 hover:scale-[1.02] active:scale-95 transition-transform"
                         >
                           {localOnboardingStep >= localOnboardingSteps.length - 1 ? 'إنهاء' : 'التالي'}
                         </button>
@@ -2639,7 +2639,7 @@ const [isPending, startTransition] = useTransition();
                     className={cn(
                       "flex items-center justify-center gap-2 px-3.5 md:px-4 py-2 md:py-2.5 rounded-2xl text-[11px] md:text-xs font-black transition-all duration-300 outline-none whitespace-nowrap shrink-0 border relative snap-start",
                       isActive
-                        ? "bg-indigo-600 text-white border-slate-950 shadow-md scale-100 relative z-10"
+                        ? "bg-slate-950 text-white border-slate-950 shadow-md scale-100 relative z-10"
                         : "bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-900 border-slate-100/80"
                     )}
                   >
@@ -3006,7 +3006,7 @@ const [isPending, startTransition] = useTransition();
                         <div
                           key={p.id}
                           className={cn(
-                            "grid grid-cols-12 items-center gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm transition-all active:scale-[0.98] hover:shadow-md",
+                            "grid grid-cols-12 items-center gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
                             index === 0 && "bg-emerald-50/30 border-emerald-100"
                           )}
                         >
@@ -3345,7 +3345,7 @@ const [isPending, startTransition] = useTransition();
                       <div id="what-if-section" className="bg-white rounded-[40px] p-2 border-2 border-slate-100 overflow-hidden shadow-[0_30px_70px_-20px_rgba(0,0,0,0.1)] flex-grow hover:shadow-[0_45px_100px_-25px_rgba(0,0,0,0.15)] transition-all duration-700">
                         <div className="p-4 md:p-8 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6 bg-slate-50/30 min-w-0">
                           <div className="flex items-center gap-5">
-                             <div className="w-16 h-16 bg-slate-900 rounded-[24px] flex items-center justify-center text-white shadow-2xl shadow-slate-200/50 group hover:rotate-12 transition-transform duration-500">
+                             <div className="w-16 h-16 bg-slate-900 rounded-[24px] flex items-center justify-center text-white shadow-2xl shadow-slate-900/20 group hover:rotate-12 transition-transform duration-500">
                                 <Rocket size={28} className="group-hover:translate-y-[-2px] transition-transform" />
                              </div>
                              <div>
@@ -3481,7 +3481,7 @@ const [isPending, startTransition] = useTransition();
                       {/* Tactical Components Center - Fully Stacked and Full Width for Premium Feel */}
                       <div className="flex flex-col gap-5 md:gap-7 w-full p-2 md:p-0">
                         {/* 1. Processing Speed (Ultra Wide) */}
-                        <div className="bg-slate-900 rounded-3xl p-5 md:p-6 border border-white/10 flex flex-col items-center justify-center text-center group hover:bg-slate-100 transition-all duration-700 shadow-2xl min-h-[180px] md:min-h-[220px] relative overflow-hidden">
+                        <div className="bg-slate-900 rounded-3xl p-5 md:p-6 border border-white/10 flex flex-col items-center justify-center text-center group hover:bg-slate-800 transition-all duration-700 shadow-2xl min-h-[180px] md:min-h-[220px] relative overflow-hidden">
                           <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500" />
                           <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center mb-4 border border-indigo-500/30">
                              <Zap className="text-indigo-400" size={26} />
@@ -3623,7 +3623,7 @@ const [isPending, startTransition] = useTransition();
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true, margin: "-100px" }}
                                 transition={{ delay: i * 0.1, duration: 0.8, ease: "easeOut" }}
-                                className="bg-white p-4 md:p-5 rounded-3xl border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col group hover:shadow-xl transition-all duration-500 active:scale-[0.98] border-b-[4px] border-b-indigo-500/10 hover:border-b-indigo-500"
+                                className="bg-white p-4 md:p-5 rounded-3xl border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col group hover:shadow-xl transition-all duration-500 hover:-translate-y-1 border-b-[4px] border-b-indigo-500/10 hover:border-b-indigo-500"
                               >
                                 {/* Accuracy Badge */}
                                 <div className="absolute top-4 left-4">
@@ -4896,7 +4896,7 @@ const [isPending, startTransition] = useTransition();
                                       "تم تجهيز القالب الذكي بناءً على تحليلك الأخير.",
                                   });
                                 }}
-                                className="relative z-10 w-full w-full text-center justify-center bg-white text-indigo-700 px-6 py-4 rounded-2xl font-bold text-sm shadow-xl active:scale-[0.98] transition-all flex items-center gap-3 active:scale-95 group"
+                                className="relative z-10 w-full w-full text-center justify-center bg-white text-indigo-700 px-6 py-4 rounded-2xl font-bold text-sm shadow-xl hover:scale-105 transition-all flex items-center gap-3 active:scale-95 group"
                               >
                                 {focusedInsight.actionText || 'اذهب للإجراء'}
                               </button>
@@ -5113,8 +5113,8 @@ const [isPending, startTransition] = useTransition();
                                 )}
                               </div>
                             </div>
-                            <div className="md:col-span-2 bg-indigo-50 text-slate-900 p-3 md:p-4 rounded-2xl shadow-sm border border-indigo-100 relative overflow-hidden">
-                              <div className="absolute -top-3 md:p-4 -left-10 opacity-10 text-indigo-400 rotate-12">
+                            <div className="md:col-span-2 bg-indigo-900 text-white p-3 md:p-4 rounded-2xl shadow-xl relative overflow-hidden">
+                              <div className="absolute -top-3 md:p-4 -left-10 opacity-20 text-indigo-400 rotate-12">
                                 <Cpu size={200} />
                               </div>
                               <div className="relative z-10">
@@ -5127,7 +5127,7 @@ const [isPending, startTransition] = useTransition();
                                     (rec: string, i: number) => (
                                       <div
                                         key={i}
-                                        className="bg-white p-3 md:p-3 rounded-2xl border border-indigo-100 hover:bg-indigo-50/70 transition-all text-slate-800 shadow-sm"
+                                        className="bg-white/10 backdrop-blur-md p-3 md:p-3 rounded-2xl border border-white/10 hover:bg-white/20 transition-all"
                                       >
                                         <div className="text-amber-400 font-bold text-lg mb-2">
                                           0{i + 1}
@@ -5162,10 +5162,10 @@ const [isPending, startTransition] = useTransition();
                               { icon: "🧠" },
                             )
                           }
-                          className="w-12 h-12 rounded-2xl bg-indigo-50 hover:bg-indigo-100 hover:scale-110 active:scale-95 transition-all flex items-center justify-center border border-indigo-100 cursor-pointer"
+                          className="w-12 h-12 rounded-2xl bg-indigo-500/20 hover:bg-indigo-500/40 hover:scale-110 active:scale-95 transition-all flex items-center justify-center border border-indigo-400/30 cursor-pointer"
                         >
                           <Sparkles
-                            className="text-indigo-600 pointer-events-none"
+                            className="text-indigo-300 pointer-events-none"
                             size={24}
                           />
                         </button>
@@ -5175,18 +5175,18 @@ const [isPending, startTransition] = useTransition();
                       </div>
                       <div className="space-y-3 relative z-10 text-right">
                         {!ltv || !cac ? (
-                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
-                            <p className="text-xs text-slate-500 font-bold">
+                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 text-center">
+                            <p className="text-xs text-white/50 font-bold">
                               لا توجد بيانات كافية لإصدار توصية تخص النمو
                             </p>
                           </div>
                         ) : (
-                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 group hover:bg-white transition-all">
+                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
                             <div className="flex justify-between items-center mb-1 flex-row-reverse">
-                              <div className="text-[10px] text-indigo-600 font-bold">
+                              <div className="text-[10px] text-indigo-300 font-bold">
                                 النمو الاستراتيجي
                               </div>
-                              <span className="text-[10px] text-slate-400 font-bold italic">
+                              <span className="text-[10px] text-white/30 font-bold italic">
                                 LTV:CAC = {ltvCacRatio.toFixed(1)}
                               </span>
                             </div>
@@ -5201,18 +5201,18 @@ const [isPending, startTransition] = useTransition();
                         )}
 
                         {totalGatewayFees === 0 ? (
-                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
-                            <p className="text-xs text-slate-500 font-bold">
+                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 text-center">
+                            <p className="text-xs text-white/50 font-bold">
                               لا توجد رسوم بوابات الدفع لإصدار توصية
                             </p>
                           </div>
                         ) : (
-                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 group hover:bg-white transition-all">
+                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
                             <div className="flex justify-between items-center mb-1 flex-row-reverse">
-                              <div className="text-[10px] text-indigo-600 font-bold">
+                              <div className="text-[10px] text-indigo-300 font-bold">
                                 كفاءة التكاليف
                               </div>
-                              <span className="text-[10px] text-slate-400 font-bold italic">
+                              <span className="text-[10px] text-white/30 font-bold italic">
                                 الرسوم = {totalGatewayFees.toFixed(3)} د.ك
                               </span>
                             </div>
@@ -5225,18 +5225,18 @@ const [isPending, startTransition] = useTransition();
                         )}
 
                         {profitMargin === 0 && totalSalesVal === 0 ? (
-                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
-                            <p className="text-xs text-slate-500 font-bold">
+                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 text-center">
+                            <p className="text-xs text-white/50 font-bold">
                               لا توجد مبيعات كافية لتحليل الأرباح
                             </p>
                           </div>
                         ) : (
-                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 group hover:bg-white transition-all">
+                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
                             <div className="flex justify-between items-center mb-1 flex-row-reverse">
-                              <div className="text-[10px] text-indigo-600 font-bold">
+                              <div className="text-[10px] text-indigo-300 font-bold">
                                 الصحة المالية
                               </div>
-                              <span className="text-[10px] text-slate-400 font-bold italic">
+                              <span className="text-[10px] text-white/30 font-bold italic">
                                 هامش الربح = {profitMargin.toFixed(1)}%
                               </span>
                             </div>

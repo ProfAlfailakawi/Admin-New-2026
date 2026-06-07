@@ -530,8 +530,8 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     },
     {
       id: 'diwaniya',
-      label: 'Diwaniya Golden Arena',
-      subtitle: 'ساحة الدواوين الذهبية وترتيب الجوائز والولاء',
+      label: 'بطولات الديوانية',
+      subtitle: 'لوحة تنظيم النقاط وترتيب جوائز البطولات',
       icon: <ClipboardCheck size={18} />,
       tone: 'slate',
       value: `الديوانية والجوائز`,
@@ -772,7 +772,7 @@ const getAdminPageMeta = (page: string) => {
     coupons: { title: 'مسرح عروض التراث', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'Smart Offers Theater' },
     'growth-simulator': { title: 'محاكي النمو والتسويق', subtitle: 'سيناريوهات ماذا لو للمبيعات والربح والمخاطر.', tag: 'Growth Simulator Pro' },
     'profit-guard': { title: 'المالية وحماية الأرباح', subtitle: 'درع الربح: المبيعات، المصروفات، الهامش، النزيف، والفرص.', tag: 'Profit Shield' },
-    diwaniya: { title: 'Diwaniya Golden Arena', subtitle: 'ساحة الدواوين الذهبية: الترتيب، النقاط، الجوائز ورادار الانضمام الجغرافي.', tag: 'Tournament Board' },
+    diwaniya: { title: 'بطولات الديوانية', subtitle: 'لوحة بطولات ناعمة للترتيب والنقاط والجوائز.', tag: 'Tournament Board' },
     'whatsapp-support': { title: 'مركز واتساب الذكي', subtitle: '', tag: 'WhatsApp Center' },
     settings: { title: 'الإعدادات العامة', subtitle: 'هوية المتجر، التشغيل، التوصيل، النظام، والحساب في بطاقات هادئة.', tag: 'General Settings' },
   };
@@ -2997,14 +2997,6 @@ const MainApp: React.FC = () => {
             deepLinkData={deepLinkData}
             onClearDeepLink={() => {}}
             isPartner={true}
-            onEditInvoice={(id) => {
-              if (id === 'new') {
-                setEditingInvoiceId(null);
-              } else {
-                setEditingInvoiceId(id);
-              }
-              setCurrentPage('new-invoice');
-            }}
           />
         );
         case 'new-invoice': return (
@@ -3447,7 +3439,7 @@ const MainApp: React.FC = () => {
                        animate={{ opacity: 1, y: 0, scale: 1 }}
                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
                        transition={{ duration: 0.2 }}
-                       className="smart-notifications-popover absolute left-0 mt-3 w-[290px] xs:w-[320px] sm:w-[380px] md:w-[420px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200/60 z-[9999] overflow-hidden origin-top-left"
+                       className="absolute left-0 mt-3 w-[290px] xs:w-[320px] sm:w-[380px] md:w-[420px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200/60 z-[9999] overflow-hidden origin-top-left"
                       >
                       <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white">
                         <span className="font-bold text-slate-800 text-sm sm:text-base">التنبيهات الذكية</span>
@@ -3464,7 +3456,7 @@ const MainApp: React.FC = () => {
                                      notifications: (prev?.notifications || []).map(n => ({ ...n, read: true }))
                                  }));
                              }}
-                             className="notification-mark-all text-xs text-primary font-bold hover:underline bg-transparent border-none"
+                             className="text-xs text-primary font-bold hover:underline bg-transparent border-none"
                            >
                              تحديد الكل كمقروء
                            </button>
@@ -3815,7 +3807,7 @@ const SubNavItem: React.FC<{ label: string; icon: React.ReactNode; active?: bool
     )}
   >
     <span className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all", active ? "bg-amber-400/15 text-amber-300" : "bg-white/5 text-white/50")}>{icon}</span>
-    <span className="flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis leading-none">{label}</span>
+    <span className="flex-1 truncate">{label}</span>
   </button>
 );
 

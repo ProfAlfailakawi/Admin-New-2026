@@ -104,7 +104,7 @@ export function EnableNotificationsButton(props?: {
         type="button"
         onClick={handleEnable}
         disabled={loading}
-        className="inline-flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 px-6 py-3 text-slate-800 disabled:opacity-60 font-bold hover:shadow-sm border border-slate-200 hover:shadow-slate-200/50 active:scale-95 transition-all w-fit"
+        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-white disabled:opacity-60 font-bold hover:shadow-lg hover:shadow-slate-900/20 active:scale-95 transition-all w-fit"
       >
         <Bell size={18} />
         {loading ? "نفعّلها..." : "تفعيل الإشعارات الآن"}

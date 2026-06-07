@@ -40,9 +40,9 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  return (
  <div className="space-y-6 md:space-y-8" dir="rtl">
  {/* Header Section */}
- <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 shadow-sm border border-slate-200 relative overflow-hidden flex flex-col items-center text-center">
+ <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 shadow-xl relative overflow-hidden flex flex-col items-center text-center">
  <div className="absolute top-0 right-0 w-32 h-32 md:w-64 md:h-64 bg-indigo-500/20 blur-[100px] rounded-full -mr-16 -mt-16" />
- <div className="w-12 h-12 md:w-16 md:h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-slate-800 mb-4 md:mb-6 border border-white/10">
+ <div className="w-12 h-12 md:w-16 md:h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white mb-4 md:mb-6 border border-white/10">
  <Zap className="text-cyan-400" size={24} />
  </div>
  <h2 className="text-2xl md:text-3xl md:text-xl md:text-2xl font-bold text-white mb-2 md:mb-4 tracking-tight">مختبر الحملات التسويقية الذكي</h2>
@@ -158,7 +158,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
 )}
  <button 
  onClick={launchCampaign}
- className="px-4 md:px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 text-white font-bold flex items-center gap-3 hover:bg-slate-100 transition-all active:scale-95 shadow-sm border border-slate-200 shadow-slate-200 min-h-[44px] justify-center"
+ className="px-4 md:px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-2xl bg-slate-900 text-white font-bold flex items-center gap-3 hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200 min-h-[44px] justify-center"
  >
  إطلاق الحملة الآن <ArrowRight size={20} />
  </button>
@@ -171,7 +171,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  key="no-campaign"
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
- className="p-3 md:p-4 md:p-3 md:p-4 md:p-20 text-center border-2 border-dashed border-slate-200/60 rounded-2xl md:rounded-2xl bg-slate-50/50"
+ className="p-3 md:p-4 md:p-3 md:p-4 md:p-20 text-center border-2 border-dashed border-slate-200/60 rounded-3xl md:rounded-2xl bg-slate-50/50"
  >
  <div className="w-16 md:w-20 h-16 md:h-20 bg-white rounded-3xl shadow-sm flex items-center justify-center text-slate-300 mx-auto mb-6">
  <Target size={40} />

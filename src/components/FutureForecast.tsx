@@ -111,7 +111,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
 
  if (!isSufficientData) {
   return (
-   <div className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-sm flex flex-col items-center justify-center text-center">
+   <div className="bg-white rounded-3xl border border-slate-200/70 p-6 shadow-sm flex flex-col items-center justify-center text-center">
     <LineChartIcon className="text-slate-200 mb-4" size={48} />
     <h3 className="font-black text-slate-700 text-lg mb-2">التنبؤ المستقبلي</h3>
     <p className="text-sm font-bold text-slate-500">لا توجد بيانات كافية لإجراء التنبؤ المستقبلي</p>
@@ -164,7 +164,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
        <p className={cn('text-xs font-black mb-2', trend === 'up' ? 'text-emerald-700' : 'text-rose-700')}>قراءة مستقبلية</p>
        <p className="text-lg md:text-xl font-black leading-9 text-slate-800">{explanation}</p>
       </div>
-      <div className={cn('h-16 w-16 rounded-3xl flex items-center justify-center shadow-sm shrink-0', trend === 'up' ? 'bg-emerald-500 text-slate-800' : 'bg-rose-500 text-white')}>
+      <div className={cn('h-16 w-16 rounded-3xl flex items-center justify-center shadow-sm shrink-0', trend === 'up' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white')}>
        {trend === 'up' ? <TrendingUp size={30} /> : <TrendingDown size={30} />}
       </div>
      </div>

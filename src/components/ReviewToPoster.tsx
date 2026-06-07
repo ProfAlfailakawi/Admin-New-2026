@@ -74,7 +74,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
   };
 
   return (
-    <div className="bg-white p-6 rounded-2xl border border-slate-200 mt-6 shadow-sm flex flex-col-reverse lg:flex-row gap-8 items-start">
+    <div className="bg-white p-6 rounded-3xl border border-slate-200 mt-6 shadow-sm flex flex-col-reverse lg:flex-row gap-8 items-start">
       <div className="w-full lg:w-[45%] flex flex-col gap-6">
         <div className="flex justify-between items-start">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -126,7 +126,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
             <button
               onClick={generatePoster}
               disabled={loading || !review}
-              className="bg-purple-600 text-slate-800 px-8 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-purple-700 transition-colors w-full md:w-auto shadow-sm border border-slate-200 shadow-purple-200"
+              className="bg-purple-600 text-white px-8 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-purple-700 transition-colors w-full md:w-auto shadow-lg shadow-purple-200"
             >
               {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Star className="w-5 h-5" />}
               {loading ? "ننتج البوستر..." : "حوّل إلى بوستر كويتي"}
@@ -154,7 +154,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
                     <img
                       src={item.url}
                       alt="hist"
-                      className="w-full aspect-square object-cover group-active:scale-[0.98] transition-transform"
+                      className="w-full aspect-square object-cover group-hover:scale-105 transition-transform"
                     />
                   ) : (
                     <div className="w-full aspect-square bg-gradient-to-br from-purple-50 to-fuchsia-50 flex items-center justify-center text-purple-400"><ImageIcon size={28} /></div>
@@ -170,7 +170,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
 
       </div>
 
-      <div className="w-full lg:w-[55%] sticky top-4 z-40 bg-[#0a0a0a] rounded-3xl text-center relative overflow-hidden shadow-sm border border-slate-200 border border-purple-900/30 min-h-[500px] flex items-center justify-center">
+      <div className="w-full lg:w-[55%] sticky top-4 z-40 bg-[#0a0a0a] rounded-3xl text-center relative overflow-hidden shadow-2xl border border-purple-900/30 min-h-[500px] flex items-center justify-center">
         {!resultImage && !loading && (
           <div className="text-center p-6 w-full flex flex-col items-center opacity-30">
             <Clapperboard className="text-white w-24 h-24 mb-4" />
@@ -215,7 +215,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
             </div>
             
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 w-fit whitespace-nowrap">
-               <a href={resultImage} download="cinematic-review.png" className="bg-slate-50 border border-slate-200 text-slate-800/50 hover:bg-slate-800/80 text-white border border-white/20 px-6 py-2.5 rounded-full font-bold backdrop-blur-md transition-all flex items-center gap-2 text-sm">
+               <a href={resultImage} download="cinematic-review.png" className="bg-black/50 hover:bg-black/80 text-white border border-white/20 px-6 py-2.5 rounded-full font-bold backdrop-blur-md transition-all flex items-center gap-2 text-sm">
                    <ImageIcon className="w-4 h-4" />
                    حفظ البوستر
                </a>

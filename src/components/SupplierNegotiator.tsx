@@ -29,7 +29,7 @@ export const SupplierNegotiator: React.FC<SupplierNegotiatorProps> = ({ insights
 
   return (
   <div className="space-y-5 md:space-y-7 w-full max-w-full overflow-hidden" dir="rtl">
-    <div className="flex flex-col md:flex-row justify-between items-center bg-slate-50 p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm gap-4">
+    <div className="flex flex-col md:flex-row justify-between items-center bg-slate-50 p-4 md:p-6 rounded-3xl border border-slate-200 shadow-sm gap-4">
       <div className="text-right">
         <h3 className="font-black text-xl sm:text-2xl md:text-3xl text-slate-800 tracking-tight leading-tight">مفاوضات الموردين</h3>
         <p className="text-slate-500 text-xs md:text-sm font-bold mt-1 opacity-70">تحليل الموردين التنفيذي 🤝</p>
@@ -54,7 +54,7 @@ export const SupplierNegotiator: React.FC<SupplierNegotiatorProps> = ({ insights
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 className={cn(
-                  "bg-white rounded-3xl p-2 border hover:shadow-sm border border-slate-200 transition-all duration-500 relative overflow-hidden group flex flex-col justify-between min-h-[360px] md:min-h-[420px]",
+                  "bg-white rounded-3xl p-2 border hover:shadow-xl transition-all duration-500 relative overflow-hidden group flex flex-col justify-between min-h-[360px] md:min-h-[420px]",
                   insight.riskLevel === 'high' ? 'border-rose-100' : 'border-amber-100 shadow-xl shadow-amber-500/5'
                 )}
               >
@@ -119,12 +119,12 @@ export const SupplierNegotiator: React.FC<SupplierNegotiatorProps> = ({ insights
 
                   {/* Negotiation Approach Section */}
                   <div className="w-full mt-2">
-                    <div className="bg-slate-50 border border-slate-200 text-slate-900 p-4 md:p-5 rounded-3xl text-right border border-white/5 shadow-sm border border-slate-200 relative overflow-hidden group/btn cursor-pointer">
+                    <div className="bg-slate-900 p-4 md:p-5 rounded-3xl text-right border border-white/5 shadow-2xl relative overflow-hidden group/btn cursor-pointer">
                       <div className="absolute top-0 right-0 w-2 h-full bg-indigo-500" />
                       <h5 className="text-indigo-400 text-[10px] md:text-xs font-black uppercase tracking-wide mb-2 flex items-center justify-end gap-2">
                         تكتيك التفاوض المقترح <Handshake size={12} />
                       </h5>
-                      <p className="text-slate-800 text-sm md:text-base font-bold leading-relaxed">
+                      <p className="text-white text-sm md:text-base font-bold leading-relaxed">
                         "{insight.negotiationApproach}"
                       </p>
                     </div>

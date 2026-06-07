@@ -46,10 +46,11 @@ const GlobalStatBox = React.memo(({ label, value, color, icon: Icon, isPercent =
  <motion.div 
  initial={{ opacity: 0, y: 10 }} 
  animate={{ opacity: 1, y: 0 }} 
- whileTap={{ scale: 0.98 }}
+ whileHover={{ y: -4, scale: 1.02 }}
+ whileTap={{ scale: 0.96 }}
  transition={{ type:"spring", stiffness: 400, damping: 25 }} 
  className={cn(
-"p-3 md:p-3 lg:p-3 md:p-3 rounded-2xl border bg-white relative overflow-hidden group shadow-sm ring-1 ring-inset ring-slate-900/5 transition-all duration-300 cursor-pointer active:scale-[0.98]",
+"p-3 md:p-3 lg:p-3 md:p-3 rounded-2xl border bg-white relative overflow-hidden group shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer active:scale-95",
  getGradient(color)
 )}
  >
@@ -70,7 +71,7 @@ const GlobalStatBox = React.memo(({ label, value, color, icon: Icon, isPercent =
  <div className="text-right relative z-10">
  <div className="flex items-baseline justify-end gap-1 mb-1">
  <span className="text-[10px] font-bold opacity-40 uppercase tracking-tighter">{unit}</span>
- <div className="text-xl lg:text-3xl font-bold font-mono text-slate-800 tracking-tighter group-active:scale-[0.98] transition-transform origin-right">
+ <div className="text-xl lg:text-3xl font-bold text-slate-800 tracking-tighter group-hover:scale-105 transition-transform origin-right">
  {isPercent ? `${value.toFixed(1)}%` : Number(value).toLocaleString('en-GB', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
  </div>
  </div>
@@ -119,7 +120,7 @@ const SectionHeader = ({ title, icon: Icon, color ="indigo", subtitle }: { title
  animate={{ rotate: 0, scale: 1 }}
  transition={{ type:"spring", stiffness: 300, damping: 20 }}
  className={cn("p-3 md:p-3 rounded-[1.25rem] md:rounded-2xl shadow-xl ring-4 ring-opacity-20", 
- color ==="indigo" ?"bg-indigo-600 text-slate-800 ring-indigo-600 shadow-indigo-600/20" :"bg-amber-500 text-white ring-amber-500 shadow-amber-500/20"
+ color ==="indigo" ?"bg-indigo-600 text-white ring-indigo-600 shadow-indigo-600/20" :"bg-amber-500 text-white ring-amber-500 shadow-amber-500/20"
 )}>
  <Icon size={24} className="md:w-[28px] md:h-[28px]" strokeWidth={2.5} />
  </motion.div>
@@ -485,21 +486,21 @@ const {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-indigo-50 border border-indigo-100/60 text-indigo-800 p-3 rounded-[20px] flex flex-col sm:flex-row items-center justify-between gap-4 self-stretch xl:self-auto shadow-sm ring-1 ring-inset ring-indigo-900/5"
+            className="bg-indigo-50 border border-indigo-100 text-indigo-800 p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 self-stretch xl:self-auto"
           >
             <div className="flex items-center gap-3 text-right">
-              <div className="bg-white/80 p-2 rounded-xl text-indigo-600 shadow-sm border border-indigo-100/60">
+              <div className="bg-indigo-100 p-2 rounded-xl text-indigo-600">
                 <Bell size={20} className="animate-pulse" />
               </div>
               <div>
-                <h4 className="text-[12px] font-bold border-b border-indigo-200/50 pb-1 mb-1 inline-block tracking-tight">تفعيل الإشعارات</h4>
+                <h4 className="text-[12px] font-bold border-b border-indigo-200/50 pb-1 mb-1 inline-block">تفعيل الإشعارات</h4>
                 <p className="text-[10px] sm:text-[11px] font-bold text-indigo-600/80 mt-0.5">احصل على تنبيهات فورية عند وصول طلبات جديدة</p>
               </div>
             </div>
             
             <button
               onClick={() => setShowPushModal(true)}
-              className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-[0_4px_14px_rgba(79,70,229,0.3)] flex items-center justify-center gap-2 w-full sm:w-auto hover:bg-indigo-700 transition-colors active:scale-95"
+              className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 w-full sm:w-auto hover:bg-indigo-700 hover:scale-[0.98] transition-all active:scale-95"
             >
               <Bell size={14} /> تفعيل الآن
             </button>
@@ -510,9 +511,9 @@ const {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-rose-50 border border-rose-100/60 text-rose-600 p-3 rounded-[20px] flex items-center justify-between gap-4 self-stretch xl:self-auto shadow-sm ring-1 ring-inset ring-rose-900/5"
+            className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-2xl flex items-center justify-between gap-4 self-stretch xl:self-auto"
           >
-            <div className="flex items-center justify-between w-full h-full text-right text-[11px] font-bold tracking-tight">
+            <div className="flex items-center justify-between w-full h-full text-right text-[11px] font-bold">
                <span>الإشعارات موقوفة من إعدادات الجهاز</span>
             </div>
           </motion.div>
@@ -521,31 +522,30 @@ const {
 
         <AnimatePresence>
           {showPushModal && (
-            <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-50 border border-slate-200 text-slate-900/30 backdrop-blur-md">
+            <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
                 <motion.div
-                    initial={{ scale: 0.95, opacity: 0 }}
+                    initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.95, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                    className="bg-white rounded-[20px] p-6 shadow-xl ring-1 ring-black/5 max-w-sm w-full text-center"
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    className="bg-white rounded-3xl p-6 shadow-xl max-w-sm w-full text-center"
                 >
                     <div className="w-14 h-14 bg-indigo-50 border border-indigo-100/60 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm">
                         <Bell size={28} />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">فعّل الإشعارات</h3>
-                    <p className="text-slate-500 text-sm font-bold mb-6 leading-relaxed">لتصلك طلباتك الجديدة أول بأول حتى والتطبيق مغلق.</p>
+                    <h3 className="text-xl font-bold text-slate-800 mb-2">فعّل الإشعارات</h3>
+                    <p className="text-slate-600 text-sm font-bold mb-6">لتصلك طلباتك الجديدة أول بأول حتى والتطبيق مغلق.</p>
                     <div className="flex flex-col gap-3">
                         <button
                           onClick={handleEnablePush}
                           disabled={isActivatingPush}
-                          className="bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-[0_4px_14px_rgba(79,70,229,0.3)] hover:bg-indigo-700 transition-colors active:scale-95"
+                          className="bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 transition-colors"
                         >
                           {isActivatingPush ? 'نفعّلها...' : 'تفعيل الإشعارات الآن'}
                         </button>
                         <button
                           onClick={() => setShowPushModal(false)}
                           disabled={isActivatingPush}
-                          className="text-slate-500 py-3 rounded-xl border border-transparent text-xs font-bold hover:bg-slate-50 hover:text-slate-800 transition-colors active:scale-95"
+                          className="text-slate-500 py-2 text-xs font-bold hover:text-slate-800 transition-colors"
                         >
                           ليس الآن
                         </button>
@@ -568,7 +568,7 @@ const {
               ];
 
               return (
-                 <div className="partner-date-filter-elegant bg-white border border-slate-200 text-slate-900/78 border border-white/10 text-white backdrop-blur-3xl rounded-full py-0.5 px-1 flex items-center justify-between gap-0.5 pointer-events-auto w-[68%] max-w-[190px] h-7 shadow-[0_10px_24px_rgba(0,0,0,0.62),_inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-visible">
+                 <div className="partner-date-filter-elegant bg-slate-950/80 border border-white/5 text-white backdrop-blur-3xl rounded-full py-0.5 px-1 flex items-center justify-between gap-0.5 pointer-events-auto w-[68%] max-w-[190px] h-7 shadow-[0_12px_28px_rgba(0,0,0,0.85),_inset_0_1px_0_rgba(255,255,255,0.03)] relative overflow-visible">
                    
                    {options.map((opt) => {
                      const isActive = filter === opt.id;
@@ -587,13 +587,13 @@ const {
                              {/* Ultra-soft background capsule glow */}
                              <motion.div
                                layoutId="softCapsulePartner"
-                               className="absolute inset-[1px] bg-gradient-to-r from-amber-400/8 to-orange-500/6 border border-amber-400/12 rounded-full -z-10"
+                               className="absolute inset-[1px] bg-gradient-to-r from-amber-400/5 to-orange-500/5 border border-amber-400/10 rounded-full -z-10"
                                transition={{ type: "spring", stiffness: 450, damping: 30 }}
                              />
                              {/* Micro Laser Glowing Dot/Thread at bottom of option */}
                              <motion.span 
                                layoutId="microThreadPartner"
-                               className="absolute bottom-0 w-1.5 h-[1.5px] rounded-full bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_1px_3px_rgba(245,158,11,0.65)]"
+                               className="absolute bottom-0 w-1.5 h-[1.5px] rounded-full bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_1px_4px_rgba(245,158,11,0.8)]"
                                transition={{ type: "spring", stiffness: 450, damping: 30 }}
                              />
                            </>
@@ -639,7 +639,7 @@ const {
 
 
         {/* Stats Grid - Exactly like Admin */}
-        <motion.div layout className="mb-10 bg-white rounded-[20px] p-2 md:p-4 border border-slate-200/60 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 hover:-translate-y-[1px] transition-transform overflow-hidden relative z-10 active:scale-[0.995]">
+        <motion.div layout className="mb-12 bg-white rounded-3xl p-2 md:p-5 border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden relative z-10">
           <button 
             onClick={() => setShowFinancialStats(!showFinancialStats)}
             className="w-full flex items-center justify-between p-3 md:p-0 group outline-none"
@@ -739,16 +739,16 @@ const {
        animate={{ opacity: 1 }}
        exit={{ opacity: 0 }}
        onClick={() => setActiveWidget(null)}
-       className="absolute inset-0 bg-slate-50 border border-slate-200 text-slate-900/60 backdrop-blur-md"
+       className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
        />
        <motion.div 
        initial={{ scale: 0.95, opacity: 0, y: 20 }}
        animate={{ scale: 1, opacity: 1, y: 0 }}
        exit={{ scale: 0.95, opacity: 0, y: 20 }}
-       className="bg-slate-50 w-full max-w-5xl rounded-[20px] md:rounded-[24px] shadow-[0_2px_24px_rgba(15,23,42,0.08)] relative z-10 overflow-hidden border border-slate-200/60 ring-1 ring-inset ring-slate-900/5"
+       className="bg-slate-50 w-full max-w-5xl rounded-2xl md:rounded-2xl shadow-[0_0_100px_rgba(0,0,0,0.5)] relative z-10 overflow-hidden border border-white/10"
        >
-       <div className="p-3 md:p-4 md:p-3 bg-white border-b border-slate-200/60 flex items-center justify-between sticky top-0 z-20">
-       <h2 className="text-sm font-black text-slate-800 tracking-tight">
+       <div className="p-3 md:p-4 md:p-3 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-20">
+       <h2 className="text-xl md:text-2xl font-bold text-slate-800">
        {activeWidget === 'campaign' &&"مختبر الحملات التسويقية الذكي"}
        {activeWidget === 'forecast' &&"التنبؤ المستقبلي الخوارزمي"}
        {activeWidget === 'menu' &&"مصفوفة هندسة المنيو الذكية"}
@@ -774,9 +774,9 @@ const {
        </div>
        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
        {/* Stars */}
-       <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-[20px] p-4 md:p-5 relative overflow-hidden group hover:bg-emerald-50 transition-all font-mono">
+       <div className="bg-white/5 border border-emerald-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
        <div className="flex items-center justify-between mb-4">
-       <div className="flex items-center gap-2 text-emerald-600">
+       <div className="flex items-center gap-2 text-emerald-400">
        <Sparkles size={20} className="group-hover:animate-spin" />
        <h4 className="font-black text-emerald-800 text-lg">النجوم (Stars)</h4>
        </div>
@@ -785,16 +785,16 @@ const {
        <p className="text-xs text-emerald-700/80 leading-relaxed mb-4 font-sans font-medium">حافظ على الترويج لها ولا تغير جودتها، هي مصدر أرباحك الرئيسي وتقود سمعة المطعم.</p>
        <div className="flex flex-wrap gap-2">
        {menuEngineering.stars.slice(0, 5).map(s => (
-       <span key={s.product.id} className="text-xs font-bold text-emerald-800 bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-[0_2px_4px_rgba(16,185,129,0.05)] ring-1 ring-inset ring-emerald-900/5">{s.product.name}</span>
+       <span key={s.product.id} className="text-xs font-bold text-white bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/20 shadow-sm">{s.product.name}</span>
       ))}
-       {menuEngineering.stars.length === 0 && <span className="text-xs text-emerald-600/60 italic font-sans">ماكو أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.stars.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
       
        {/* Plowhorses */}
-       <div className="bg-amber-50/50 border border-amber-100/60 rounded-[20px] p-4 md:p-5 relative overflow-hidden group hover:bg-amber-50 transition-all font-mono">
+       <div className="bg-white/5 border border-amber-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
        <div className="flex items-center justify-between mb-4">
-       <div className="flex items-center gap-2 text-amber-600">
+       <div className="flex items-center gap-2 text-amber-400">
        <Zap size={20} className="group-hover:-translate-x-1 transition-transform" />
        <h4 className="font-black text-amber-800 text-lg">أحصنة الحرث (Plowhorses)</h4>
        </div>
@@ -803,16 +803,16 @@ const {
        <p className="text-xs text-amber-700/80 leading-relaxed mb-4 font-sans font-medium">منتجات محبوبة لكن أرباحها قليلة. ارفع سعرها تدريجياً أو أعد هندسة المكونات لتقليل تكلفتها.</p>
        <div className="flex flex-wrap gap-2">
        {menuEngineering.plowhorses.slice(0, 5).map(s => (
-       <span key={s.product.id} className="text-xs font-bold text-amber-800 bg-white px-3 py-1.5 rounded-lg border border-amber-200 shadow-[0_2px_4px_rgba(245,158,11,0.05)] ring-1 ring-inset ring-amber-900/5">{s.product.name}</span>
+       <span key={s.product.id} className="text-xs font-bold text-white bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/20 shadow-sm">{s.product.name}</span>
       ))}
-       {menuEngineering.plowhorses.length === 0 && <span className="text-xs text-amber-600/60 italic font-sans">ماكو أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.plowhorses.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
       
        {/* Puzzles */}
-       <div className="bg-indigo-50/50 border border-indigo-100/60 rounded-[20px] p-4 md:p-5 relative overflow-hidden group hover:bg-indigo-50 transition-all font-mono">
+       <div className="bg-white/5 border border-blue-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
        <div className="flex items-center justify-between mb-4">
-       <div className="flex items-center gap-2 text-indigo-600">
+       <div className="flex items-center gap-2 text-blue-400">
        <Search size={20} className="group-hover:scale-110 transition-transform" />
        <h4 className="font-black text-indigo-800 text-lg">الألغاز (Puzzles)</h4>
        </div>
@@ -821,16 +821,16 @@ const {
        <p className="text-xs text-indigo-700/80 leading-relaxed mb-4 font-sans font-medium">منتجات مربحة جداً لكن مبيعاتها نادرة. أعد صياغة وصفها وضعها في عروض لتنشيطها.</p>
        <div className="flex flex-wrap gap-2">
        {menuEngineering.puzzles.slice(0, 5).map(s => (
-       <span key={s.product.id} className="text-xs font-bold text-indigo-800 bg-white px-3 py-1.5 rounded-lg border border-indigo-200 shadow-[0_2px_4px_rgba(99,102,241,0.05)] ring-1 ring-inset ring-indigo-900/5">{s.product.name}</span>
+       <span key={s.product.id} className="text-xs font-bold text-white bg-blue-500/20 px-3 py-1.5 rounded-lg border border-blue-500/20 shadow-sm">{s.product.name}</span>
       ))}
-       {menuEngineering.puzzles.length === 0 && <span className="text-xs text-indigo-600/60 italic font-sans">ماكو أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.puzzles.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
       
        {/* Turtle */}
-       <div className="bg-rose-50/50 border border-rose-100/60 rounded-[20px] p-4 md:p-5 relative overflow-hidden group hover:bg-rose-50 transition-all font-mono">
+       <div className="bg-white/5 border border-rose-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
        <div className="flex items-center justify-between mb-4">
-       <div className="flex items-center gap-2 text-rose-600">
+       <div className="flex items-center gap-2 text-rose-400">
        <Turtle size={20} className="group-hover:rotate-12 transition-transform" />
        <h4 className="font-black text-rose-800 text-lg">سلحفاة (Turtles)</h4>
        </div>
@@ -839,9 +839,9 @@ const {
        <p className="text-xs text-rose-700/80 leading-relaxed mb-4 font-sans font-medium">تستنزف مساحة وجهداً بلا عائد. فكّر بإزالتها أو تقديمها بأسلوب مختلف كلياً.</p>
        <div className="flex flex-wrap gap-2">
        {menuEngineering.turtles.slice(0, 5).map(s => (
-       <span key={s.product.id} className="text-xs font-bold text-rose-800 bg-white px-3 py-1.5 rounded-lg border border-rose-200 shadow-[0_2px_4px_rgba(243,33,101,0.05)] ring-1 ring-inset ring-rose-900/5">{s.product.name}</span>
+       <span key={s.product.id} className="text-xs font-bold text-white bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/20 shadow-sm">{s.product.name}</span>
       ))}
-       {menuEngineering.turtles.length === 0 && <span className="text-xs text-rose-600/60 italic font-sans">ماكو أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.turtles.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
        </div>

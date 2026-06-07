@@ -310,7 +310,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
    {/* Header removed: page frame already shows العملاء والولاء */}
 
    {/* Stats Cards */}
-   <details className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4">
+   <details className="bg-white rounded-3xl border border-slate-200/60 shadow-sm p-4">
     <summary className="cursor-pointer list-none font-black text-slate-800 flex items-center justify-between">
       <span>مؤشرات العملاء</span>
       <span className="text-xs text-slate-500">اضغط للعرض</span>
@@ -355,7 +355,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
       <div className="md:col-span-3">
         <button 
           onClick={openAddModal}
-          className="w-full bg-primary hover:bg-primary-dark text-slate-800 px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-sm border border-slate-200 shadow-primary/20 transition-all active:scale-[0.98] text-sm"
+          className="w-full bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] text-sm"
         >
           <UserPlus size={18} />
           <span>إضافة عميل جديد</span>
@@ -402,7 +402,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
    </div>
 
    {/* Table */}
-   <div className="customers-ledger-table bg-white rounded-[2rem] border border-slate-200/60 shadow-sm border border-slate-200 overflow-hidden">
+   <div className="bg-white rounded-[2rem] border border-slate-200/60 shadow-xl overflow-hidden">
     <div className="overflow-x-auto">
     <table className="w-full text-right min-w-[800px]" dir="rtl">
      <thead>
@@ -538,7 +538,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
             <span>{sentiment.label}</span>
             
             {/* Extended Tooltip on hover - Centered Positioning to stay within frame */}
-            <div className="absolute opacity-0 group-hover/sent:opacity-100 transition-all duration-500 bg-white border border-slate-200 text-slate-900 text-white p-5 rounded-3xl text-sm whitespace-normal z-[100] bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 pointer-events-none shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 scale-90 group-hover/sent:scale-100 origin-bottom w-[280px] sm:w-[350px]">
+            <div className="absolute opacity-0 group-hover/sent:opacity-100 transition-all duration-500 bg-slate-950 text-white p-5 rounded-3xl text-sm whitespace-normal z-[100] bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 pointer-events-none shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 scale-90 group-hover/sent:scale-100 origin-bottom w-[280px] sm:w-[350px]">
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between border-b border-white/10 pb-2">
                   <span className="font-black text-indigo-400">تحليل التراث الذكي</span>
@@ -549,7 +549,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
                   <div className="bg-gradient-to-r from-indigo-500 to-rose-500 h-full transition-all duration-1000" style={{ width: `${sentiment.score}%` }} />
                 </div>
               </div>
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-50 border border-slate-200 text-slate-900 rotate-45 border-r border-b border-white/10"></div>
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-950 rotate-45 border-r border-b border-white/10"></div>
             </div>
           </div>
          </td>
@@ -577,8 +577,8 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
    {/* Create/Edit Modal */}
    <AnimatePresence>
     {showModal && (
-     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-50 border border-slate-200 text-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-white rounded-3xl w-full max-w-lg shadow-sm border border-slate-200 overflow-hidden flex flex-col max-h-[90dvh]">
+     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90dvh]">
        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
          <button onClick={closeModal} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X size={20}/></button>
          <h2 className="text-xl font-bold text-slate-800">{editingId ? 'تعديل عميل' : 'إضافة عميل'}</h2>
