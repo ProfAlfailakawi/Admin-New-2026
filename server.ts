@@ -163,7 +163,9 @@ function buildLocalMotionReelDataUrl({
   place,
   mood,
   imageContent,
-  mimeType
+  mimeType,
+  sceneLabel,
+  reelSceneContract
 }: any) {
   let cleanPrompt = String(prompt || "لقطة طلب كويتي واقعية");
   const match = cleanPrompt.match(/فكرة مختصرة:\s*([^.]+)/);
@@ -209,6 +211,9 @@ function buildLocalMotionReelDataUrl({
     jakhour: "جاخور",
     zowara: "زوارة",
     delivery: "توصيل",
+    towers: "أبراج الكويت",
+    mubarakiya: "المباركية",
+    bidaa: "شاطئ البدع",
   };
   const moodMap: Record<string, string> = {
     warm: "دافئ",
@@ -222,6 +227,42 @@ function buildLocalMotionReelDataUrl({
   const shotLabel = shotMap[shotType] || String(shotType || "اقتراب سينمائي").replace(/[-_]/g, " ");
   const placeLabel = placeMap[place] || String(place || "توصيل").replace(/[-_]/g, " ");
   const moodLabel = moodMap[mood] || String(mood || "دافئ");
+  const sceneText = `${sceneLabel || ""} ${reelSceneContract || ""} ${prompt || ""}`.toLowerCase();
+  const isTowers = String(place || "").includes("towers") || sceneText.includes("kuwait towers") || sceneText.includes("أبراج الكويت") || sceneText.includes("kuwait-towers");
+  const isMubarakiya = String(place || "").includes("mubarakiya") || sceneText.includes("mubarakiya") || sceneText.includes("المباركية");
+  const isBox = String(shotType || "").includes("box") || sceneText.includes("علبة") || sceneText.includes("box reveal");
+  const isTop = ["top-spread", "floor-spread-overhead"].includes(String(shotType || ""));
+  const isTexture = String(shotType || "").includes("texture") || String(shotType || "").includes("steam");
+  const backgroundScene = isTowers
+    ? `<g opacity=".68">
+        <path d="M0 390 C120 350 245 368 365 338 C510 302 610 320 720 286 L720 0 L0 0 Z" fill="#0b2235" opacity=".44"/>
+        <g transform="translate(438 118)" opacity=".78">
+          <line x1="0" y1="50" x2="0" y2="360" stroke="#e9f2f6" stroke-width="10" stroke-linecap="round"/>
+          <circle cx="0" cy="154" r="42" fill="#43c7d4" stroke="#eefcff" stroke-width="5"/>
+          <circle cx="0" cy="250" r="32" fill="#2aa8bd" stroke="#eefcff" stroke-width="4"/>
+          <line x1="82" y1="92" x2="82" y2="350" stroke="#e9f2f6" stroke-width="8" stroke-linecap="round"/>
+          <circle cx="82" cy="204" r="31" fill="#43c7d4" stroke="#eefcff" stroke-width="4"/>
+          <line x1="145" y1="128" x2="145" y2="354" stroke="#e9f2f6" stroke-width="7" stroke-linecap="round"/>
+        </g>
+      </g>`
+    : isMubarakiya
+      ? `<g opacity=".62">
+          <rect x="0" y="0" width="720" height="410" fill="#3a220f" opacity=".52"/>
+          <path d="M70 358 Q140 220 210 358" fill="none" stroke="#f0b75e" stroke-width="14" opacity=".48"/>
+          <path d="M255 358 Q330 205 405 358" fill="none" stroke="#f0b75e" stroke-width="14" opacity=".42"/>
+          <path d="M450 358 Q525 220 600 358" fill="none" stroke="#f0b75e" stroke-width="14" opacity=".38"/>
+          <circle cx="120" cy="170" r="42" fill="#f59e0b" opacity=".18"/>
+          <circle cx="520" cy="155" r="54" fill="#f59e0b" opacity=".14"/>
+        </g>`
+      : `<g opacity=".35"><path d="M0 360 C180 300 340 348 520 288 C610 258 670 270 720 246 L720 0 L0 0 Z" fill="#1f2937"/></g>`;
+
+  const motionCue = isBox
+    ? `<g opacity=".95"><rect x="145" y="622" width="430" height="210" rx="28" fill="#d8bd8b"/><path d="M145 622 L360 520 L575 622" fill="#c7a36d"/><path d="M360 520 L360 622" stroke="#8b6b3e" stroke-width="5" opacity=".55"/><text x="360" y="754" text-anchor="middle" fill="#5c3b18" font-family="Arial" font-size="24" font-weight="900">فتح علبة الطلب</text></g>`
+    : isTop
+      ? `<g opacity=".34"><ellipse cx="360" cy="622" rx="280" ry="205" fill="#f8e6b2"/><ellipse cx="360" cy="622" rx="212" ry="145" fill="#c3892f"/><circle cx="190" cy="475" r="42" fill="#fff7ed"/><circle cx="548" cy="770" r="42" fill="#fff7ed"/></g>`
+      : isTexture
+        ? `<g opacity=".22"><circle cx="360" cy="610" r="260" fill="#fff7ed"/><circle cx="312" cy="578" r="36" fill="#8b2f20"/><circle cx="426" cy="652" r="48" fill="#166534"/><circle cx="370" cy="540" r="26" fill="#d1a23a"/></g>`
+        : ``;
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280" viewBox="0 0 720 1280">
@@ -245,6 +286,7 @@ function buildLocalMotionReelDataUrl({
   <rect width="720" height="1280" fill="url(#glow)">
     <animate attributeName="opacity" values=".65;.95;.65" dur="${seconds}s" repeatCount="indefinite"/>
   </rect>
+  ${backgroundScene}
   <circle cx="112" cy="156" r="180" fill="#f6c35b" opacity=".18" filter="url(#soft)">
     <animate attributeName="cx" values="90;150;90" dur="${seconds}s" repeatCount="indefinite"/>
   </circle>
@@ -261,6 +303,7 @@ function buildLocalMotionReelDataUrl({
       <circle cx="300" cy="560" r="38" fill="#8a2d21"/>
       <circle cx="408" cy="610" r="46" fill="#174d32"/>`}
   </g>
+  ${motionCue}
   <rect x="72" y="210" width="576" height="790" rx="54" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="2"/>
   <path d="M90 1015 C220 968 502 968 630 1015" stroke="#f5c66b" stroke-opacity=".32" stroke-width="2" fill="none"/>
   <g>
@@ -6590,7 +6633,7 @@ ${studioDirectorPayload ? `\nتعليمات اختيار الاستوديو ال
         reelSceneContract ? `Reel scene contract: ${String(reelSceneContract)}` : ""
       ].filter(Boolean).join("\n");
       const localFallback = (reason: string) => res.json({
-        videoUrl: buildLocalMotionReelDataUrl({ prompt, imageContent, mimeType, duration: durationSeconds, shotType, place, mood }),
+        videoUrl: buildLocalMotionReelDataUrl({ prompt, imageContent, mimeType, duration: durationSeconds, shotType, place, mood, sceneLabel, reelSceneContract }),
         posterUrl: null,
         provider: "local-motion-reel",
         fallback: true,
@@ -6603,7 +6646,9 @@ SMART STUDIO REEL ENFORCEMENT:
 - Brand context: Kuwaiti home-order kitchen and delivery business, not a dine-in restaurant, not a cafe, not a coffee shop.
 - Food identity: rice dishes (ayoush/machboos/murabyan), seafood/fish, mahshi, grape leaves, and occasional grills.
 - Shot type: ${shotType || "hero-push"}. Shot behavior: ${selectedShotGuide}
+- CRITICAL: do not use the default zoom-on-plate pattern unless shotType is exactly hero-push. If the selected shot is box-open, table-pass, top-spread, floor-spread-overhead, steam-close, or texture-close, the reel must visibly use that motion and composition.
 - Place context: ${place || "delivery"}. Place behavior: ${selectedPlaceGuide}
+- CRITICAL: if the selected place/scene is Kuwait Towers, Mubarakiya, Bidaa, diwaniya, chalet, farm, jakhour, or zowara, that environment must be visible as a soft background cue. Do not output the same generic plate zoom for all scenes.
 ${studioDirectorPayload ? `- Selected studio scene lock:\n${studioDirectorPayload}` : ""}
 - Mood/light: ${mood || "warm"}. Use believable Kuwaiti home/delivery lighting, not fantasy studio CGI.
 - One coherent scene only; no random montage, no scene jumping, no objects appearing or disappearing.
@@ -6723,7 +6768,7 @@ Make viewers believe it was shot quickly by a real videographer in Kuwait for an
       }
       if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("durationSeconds") || errMsg.includes("INVALID_ARGUMENT")) {
         return res.json({
-          videoUrl: buildLocalMotionReelDataUrl({ prompt: req.body?.prompt, imageContent: req.body?.imageContent, mimeType: req.body?.mimeType, duration: Math.min(8, Math.max(4, Number(req.body?.duration) || 4)), shotType: req.body?.shotType, place: req.body?.place, mood: req.body?.mood }),
+          videoUrl: buildLocalMotionReelDataUrl({ prompt: req.body?.prompt, imageContent: req.body?.imageContent, mimeType: req.body?.mimeType, duration: Math.min(8, Math.max(4, Number(req.body?.duration) || 4)), shotType: req.body?.shotType, place: req.body?.place, mood: req.body?.mood, sceneLabel: req.body?.sceneLabel, reelSceneContract: req.body?.reelSceneContract }),
           posterUrl: null,
           provider: "local-motion-reel",
           fallback: true,
@@ -6731,7 +6776,7 @@ Make viewers believe it was shot quickly by a real videographer in Kuwait for an
         });
       }
       return res.json({
-        videoUrl: buildLocalMotionReelDataUrl({ prompt: req.body?.prompt, imageContent: req.body?.imageContent, mimeType: req.body?.mimeType, duration: Math.min(8, Math.max(4, Number(req.body?.duration) || 4)), shotType: req.body?.shotType, place: req.body?.place, mood: req.body?.mood }),
+        videoUrl: buildLocalMotionReelDataUrl({ prompt: req.body?.prompt, imageContent: req.body?.imageContent, mimeType: req.body?.mimeType, duration: Math.min(8, Math.max(4, Number(req.body?.duration) || 4)), shotType: req.body?.shotType, place: req.body?.place, mood: req.body?.mood, sceneLabel: req.body?.sceneLabel, reelSceneContract: req.body?.reelSceneContract }),
         posterUrl: null,
         provider: "local-motion-reel",
         fallback: true,

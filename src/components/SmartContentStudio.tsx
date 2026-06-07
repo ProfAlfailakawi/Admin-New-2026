@@ -781,29 +781,58 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   const activePulsePack = getKuwaitPulsePack(selectedPulseId);
   const activeStudioScene = studioSceneChoices.find((scene) => scene.id === selectedSceneId) || mergedScenes[0];
   const activeSceneSummary = activeStudioScene.label;
-  const KUWAIT_TOWERS_REAL_PHOTO_URL = 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Kuwait_towers_in_sunset.jpg';
-  const isKuwaitTowersScene = (scene: any) => scene?.id === 'kuwait-towers-evening' || scene?.background === 'kuwait-towers';
+  const isKuwaitTowersScene = (scene: any) => scene?.id === 'kuwait-towers-evening' || scene?.background === 'kuwait-towers' || scene?.place === 'towers';
+
+  const renderKuwaitTowersMark = (size: 'sm' | 'lg' = 'sm') => {
+    const isLarge = size === 'lg';
+    return (
+      <span
+        className={cn(
+          "relative overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-cyan-50 shadow-sm shrink-0 flex items-center justify-center",
+          isLarge ? "h-24 w-24 rounded-[2rem]" : "h-12 w-12"
+        )}
+        title="أبراج الكويت — رمز صحيح غير مبسط"
+        aria-label="أبراج الكويت"
+      >
+        <svg viewBox="0 0 120 120" className="h-full w-full" role="img" aria-hidden="true">
+          <defs>
+            <linearGradient id="ktSky" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#e0f2fe" />
+              <stop offset="100%" stopColor="#f8fafc" />
+            </linearGradient>
+            <linearGradient id="ktSphere" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#67e8f9" />
+              <stop offset="55%" stopColor="#0ea5e9" />
+              <stop offset="100%" stopColor="#155e75" />
+            </linearGradient>
+            <linearGradient id="ktTower" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#f8fafc" />
+              <stop offset="48%" stopColor="#cbd5e1" />
+              <stop offset="100%" stopColor="#f8fafc" />
+            </linearGradient>
+          </defs>
+          <rect width="120" height="120" fill="url(#ktSky)" />
+          <path d="M0 92 C26 86 44 98 70 91 C92 85 102 87 120 82 L120 120 L0 120 Z" fill="#bae6fd" opacity="0.55" />
+          <g transform="translate(10 4)">
+            <path d="M54 12 L58 12 L61 112 L49 112 Z" fill="url(#ktTower)" stroke="#94a3b8" strokeWidth="1" />
+            <ellipse cx="55" cy="45" rx="22" ry="17" fill="url(#ktSphere)" stroke="#075985" strokeWidth="1.2" />
+            <ellipse cx="55" cy="67" rx="16" ry="12" fill="url(#ktSphere)" stroke="#075985" strokeWidth="1.1" />
+            <path d="M25 35 L29 35 L32 112 L20 112 Z" fill="url(#ktTower)" stroke="#94a3b8" strokeWidth="1" />
+            <ellipse cx="26" cy="63" rx="15" ry="12" fill="url(#ktSphere)" stroke="#075985" strokeWidth="1" />
+            <path d="M86 24 L90 24 L94 112 L82 112 Z" fill="url(#ktTower)" stroke="#94a3b8" strokeWidth="1" />
+            <line x1="55" y1="12" x2="55" y2="3" stroke="#64748b" strokeWidth="1.2" strokeLinecap="round" />
+            <line x1="27" y1="35" x2="27" y2="24" stroke="#64748b" strokeWidth="1.2" strokeLinecap="round" />
+            <line x1="88" y1="24" x2="88" y2="13" stroke="#64748b" strokeWidth="1.2" strokeLinecap="round" />
+          </g>
+        </svg>
+      </span>
+    );
+  };
+
   const renderSceneBadge = (scene: any, size: 'sm' | 'lg' = 'sm') => {
     const isLarge = size === 'lg';
     if (isKuwaitTowersScene(scene)) {
-      return (
-        <span
-          className={cn(
-            "relative overflow-hidden rounded-2xl border border-sky-100 bg-sky-50 shadow-sm shrink-0",
-            isLarge ? "h-24 w-24 rounded-[2rem]" : "h-12 w-12"
-          )}
-          title="صورة حقيقية لأبراج الكويت"
-        >
-          <img
-            src={KUWAIT_TOWERS_REAL_PHOTO_URL}
-            alt="أبراج الكويت"
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            className="h-full w-full object-cover"
-          />
-          <span className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-white/10" />
-        </span>
-      );
+      return renderKuwaitTowersMark(size);
     }
     return (
       <span className={cn(
@@ -813,6 +842,11 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         {scene.icon}
       </span>
     );
+  };
+
+  const renderKuwaitPlaceIcon = (id: KuwaitOrderPlace, place: typeof KUWAIT_PLACES[KuwaitOrderPlace]) => {
+    if (id === 'towers') return renderKuwaitTowersMark('sm');
+    return <span className="text-xl">{place.icon}</span>;
   };
 
   const buildReelSceneContract = () => {
@@ -1895,7 +1929,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       jakhour: 'جاخور مرتب وحذر: طاولة عملية نظيفة وخلفية blur، بدون حيوانات أو تراب أو مخلفات أو فوضى.',
       zowara: 'زوارة عائلية داخل بيت: سفرة مرتبة ومحاشي/ورق عنب/أطباق عائلية، بدون وجوه أو عرس أو قهوة.'
     };
-    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي، نشاط مطبخ وتوصيل أكل كويتي وليس مطعم جلوس. فكرة مختصرة: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب على الطلب'} — ${shotGuide[reelShot] || shotGuide['hero-push']} ${shotDirectorLock(reelShot)}. المكان: ${place.label} — ${placeGuide[selectedOrderPlace] || placeGuide.delivery}. ${sceneDirectorLock(activeStudioScene)} ${buildReelSceneContract()} ${buildDirectorDirection(brain)} ${buildAdvancedStudioDirection(brain, { source: 'reel' })} ${buildNoRepeatDirection()} مدة ${Math.min(8, Math.max(4, reelDuration))} ثواني. المطلوب لقطة واحدة واقعية جداً، حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، لا يتغير شكل الطبق أو الكمية أو المكونات عبر الفيديو. حافظ على الطبق والتغليف كما هما إذا كان المصدر صورة. تكوين بصري نظيف وإضاءة شهية واقعية. ممنوع وجوه واضحة، شخص يتكلم، شفاه، نصوص، شعارات، دلة، قهوة، بخور، سدو، فوانيس، سيارة توصيل، مطعم جلوس، كافيه، كلينكس مستخدم، فوضى، صحون تظهر فجأة، صوص يطير، أو أي حركة غير منطقية. إضاءة ${selectedMood}. وصفة الريل الذكية حسب الطبق: ${brain.reelRecipe.join('، ')}. ${brain.promptGuard}`;
+    const sceneDifferentiationLock = `قفل اختلاف الريل: لا تستخدم نفس ريل الزوم والصحن الافتراضي لكل الخيارات. هذا الريل يجب أن يثبت اختيار المستخدم بصرياً: المشهد المختار=${activeStudioScene.label}، المكان=${place.label}، اللقطة=${shot?.label || 'اقتراب على الطلب'}. إذا كان المشهد أبراج الكويت يجب أن تظهر أبراج الكويت الحقيقية كخلفية بعيدة blur. إذا كان المشهد المباركية يجب أن تظهر أجواء سوق المباركية الدافئة blur. إذا كان فتح علبة الطلب يجب أن تظهر العلبة والغطاء. إذا كانت اللقطة من فوق أو سفرة أرضية يجب أن تتغير الزاوية فعلاً ولا تبقى زوم أمامي.`;
+    return `Reel عمودي 9:16 احترافي لمطبخ التراث الكويتي، نشاط مطبخ وتوصيل أكل كويتي وليس مطعم جلوس. فكرة مختصرة: ${idea}. نوع اللقطة: ${shot?.label || 'اقتراب على الطلب'} — ${shotGuide[reelShot] || shotGuide['hero-push']} ${shotDirectorLock(reelShot)}. المكان: ${place.label} — ${placeGuide[selectedOrderPlace] || placeGuide.delivery}. ${sceneDifferentiationLock} ${sceneDirectorLock(activeStudioScene)} ${buildReelSceneContract()} ${buildDirectorDirection(brain)} ${buildAdvancedStudioDirection(brain, { source: 'reel' })} ${buildNoRepeatDirection()} مدة ${Math.min(8, Math.max(4, reelDuration))} ثواني. المطلوب لقطة واحدة واقعية جداً، حركة كاميرا ناعمة وثابتة، الطعام واضح ومثبت في المنتصف، لا يتغير شكل الطبق أو الكمية أو المكونات عبر الفيديو. حافظ على الطبق والتغليف كما هما إذا كان المصدر صورة، لكن لا تلغِ المشهد المختار: البيئة المختارة تظهر كخلفية أو زاوية واضحة بدون أن تسرق المنتج. تكوين بصري نظيف وإضاءة شهية واقعية. ممنوع وجوه واضحة، شخص يتكلم، شفاه، نصوص، شعارات، دلة، قهوة، بخور، سدو، فوانيس، سيارة توصيل، مطعم جلوس، كافيه، كلينكس مستخدم، فوضى، صحون تظهر فجأة، صوص يطير، أو أي حركة غير منطقية. إضاءة ${selectedMood}. وصفة الريل الذكية حسب الطبق: ${brain.reelRecipe.join('، ')}. ${brain.promptGuard}`;
   };
 
   const buildReelSettingsText = (item?: Partial<StudioReelHistoryItem>) => {
@@ -2031,6 +2066,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         shotDirectorDirection: shotDirectorLock(reelShot),
         sceneProductionGuide: getSceneProductionGuide(activeStudioScene),
         reelSceneContract: buildReelSceneContract(),
+        visualVariationKey: `${activeStudioScene.id}-${reelShot}-${selectedOrderPlace}`,
+        forceSceneDifferentiation: true,
       };
       if (reelSource === 'image' && selectedImage) {
         const img = getDataImagePayload(selectedImage);
@@ -2378,7 +2415,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       >
         <span>
           <span className="block text-xs font-black text-slate-500">مشاهد واقعية جاهزة</span>
-          <span className="block text-sm font-black text-slate-950 mt-1">{KUWAIT_PLACES[selectedOrderPlace]?.icon} {KUWAIT_PLACES[selectedOrderPlace]?.label}</span>
+          <span className="mt-1 flex items-center justify-end gap-2 text-sm font-black text-slate-950"><span>{KUWAIT_PLACES[selectedOrderPlace]?.label}</span>{selectedOrderPlace === 'towers' ? renderKuwaitTowersMark('sm') : <span>{KUWAIT_PLACES[selectedOrderPlace]?.icon}</span>}</span>
         </span>
         <ChevronLeft className={cn("transition-transform text-slate-400", showPlaceLibrary ? "-rotate-90" : "")} size={20} />
       </button>
@@ -2386,7 +2423,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         <div className="grid grid-cols-2 gap-2">
           {(Object.entries(KUWAIT_PLACES) as [KuwaitOrderPlace, typeof KUWAIT_PLACES[KuwaitOrderPlace]][]).map(([id, place]) => (
             <button key={id} type="button" onClick={() => { setSelectedOrderPlace(id); setBackgroundPreset(place.background); setShowPlaceLibrary(false); }} className={cn("rounded-2xl border p-3 text-right transition-all min-h-[72px]", selectedOrderPlace === id ? "bg-slate-950 text-white border-slate-950 shadow-md" : "bg-white text-slate-600 border-slate-100 hover:bg-slate-50") }>
-              <span className="text-xl">{place.icon}</span>
+              <span className="mx-auto mb-1 inline-flex">{renderKuwaitPlaceIcon(id, place)}</span>
               <span className="block text-xs font-black mt-1">{place.label}</span>
             </button>
           ))}
@@ -2531,6 +2568,28 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     setMaxCreateStepReached(1);
     setStudioTab('home');
     toast.info('رجعناك لاختيار المسار', { description: 'اختر صورة مباشرة أو ريل مباشر بدون الخروج من الاستوديو.' });
+  };
+
+  const returnImageToSourceMenu = (message = 'رجعناك لاختيار مصدر الصورة') => {
+    closeOpenPanels();
+    resetGeneratedOutput();
+    resetStudioSourceDraft({ clearImage: true });
+    setImageDirectSource('menu');
+    setProductStep(1);
+    setMaxProductStepReached(1);
+    setStudioTab('product');
+    toast.info(message, { description: 'اختر من صورة أو من فكرة بضغطة واحدة، بدون الخروج من الاستوديو.' });
+  };
+
+  const returnReelToSourceMenu = (message = 'رجعناك لاختيار مصدر الريل') => {
+    closeOpenPanels();
+    resetGeneratedOutput();
+    resetStudioSourceDraft({ clearImage: true });
+    setReelDirectSource('menu');
+    setReelSource('idea');
+    setReelStep(1);
+    setStudioTab('reel');
+    toast.info(message, { description: 'اختر من صورة أو من فكرة داخل الريل، بدون الرجوع للمنيو الرئيسي.' });
   };
 
   const goCreateStep = (step: number) => {
@@ -2767,9 +2826,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         
         <div className="relative z-10 mt-5 flex items-center justify-between gap-3">
           {studioTab !== 'home' ? (
-            <button onClick={changeStudioPath} className="h-10 px-4 rounded-2xl text-xs sm:text-sm font-black bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10 flex items-center justify-center gap-2" title="العودة لاختيار المسار">
+            <button onClick={changeStudioPath} className="h-10 w-10 rounded-2xl text-xs sm:text-sm font-black bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10 flex items-center justify-center" title="العودة للمنيو الرئيسي" aria-label="العودة للمنيو الرئيسي">
               <ChevronLeft size={18} className="rotate-180" />
-              <span>تغيير المسار</span>
             </button>
           ) : <div />}
         </div>
@@ -2880,7 +2938,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             <div className="mb-5">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <p className="text-xs font-black text-violet-500">ريل قصير</p>
-                <button type="button" onClick={changeStudioPath} className="rounded-2xl border border-violet-100 bg-violet-50 px-3 py-2 text-[10px] font-black text-violet-700 hover:bg-violet-100 transition">تغيير المسار</button>
+                <button type="button" onClick={() => returnReelToSourceMenu()} className="rounded-2xl border border-violet-100 bg-violet-50 px-3 py-2 text-[10px] font-black text-violet-700 hover:bg-violet-100 transition">اختر مصدر</button>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">ريل مباشر — غرفة مونتاج مصغّرة</h2>
               <p className="text-sm font-bold text-slate-500 mt-2 leading-7">ابدأ من فكرة أو صورة، ثم اختر اللقطة والمدة داخل مسار واضح.</p>
@@ -3056,6 +3114,11 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 {reelDirectSource === 'idea' && studioProductPickMode !== 'manual' && (
                   <input type="text" placeholder="مثال: لقطة مجبوس حار يفتح الشهية لريلز إنستغرام..." value={customThemeQuery} onChange={(e) => handleStudioIdeaChange(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-200 bg-white text-sm text-right focus:outline-none focus:border-violet-500 transition-all duration-300 animate-in fade-in" />
                 )}
+                {(selectedImage || customThemeQuery.trim()) && (
+                  <button type="button" onClick={() => returnReelToSourceMenu()} className="w-full rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-xs font-black text-violet-700 hover:bg-violet-100 transition">
+                    تصفير المصدر واختيار من جديد
+                  </button>
+                )}
                 {reelDirectSource !== 'image' && renderAlturathBrainCard('reel')}
                 {reelDirectSource === 'image' && (
                   <div onClick={() => reelImageInputRef.current?.click()} className="rounded-3xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-5 cursor-pointer text-center">
@@ -3126,7 +3189,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
           <div className="studio-preview-card rounded-[2rem] sm:rounded-[2.2rem] bg-slate-950 p-3 sm:p-5 shadow-2xl border border-slate-900 min-h-[460px] sm:min-h-[640px] flex items-center justify-center relative overflow-hidden studio-preview-stage">
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
             {renderProductionDesk('reel')}
-            {!generatedReel && !isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-white/10 bg-white/10 text-5xl shadow-2xl"><Film size={46} /></div><h3 className="text-3xl font-black mb-3">معاينة الريل تظهر هنا</h3><p className="text-sm font-bold text-white/55 leading-7">إطار 9:16 · ريل عمودي واقعي · {reelDuration} ثواني</p></div>}
+            {!generatedReel && !isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem]">{renderSceneBadge(activeStudioScene, 'lg')}</div><h3 className="text-3xl font-black mb-3">معاينة الريل تظهر هنا</h3><p className="text-sm font-bold text-white/55 leading-7">{activeStudioScene.label} · إطار 9:16 · ريل عمودي واقعي · {reelDuration} ثواني</p></div>}
             {isGeneratingReel && <div className="relative z-10 text-center text-white p-8"><Loader2 className="mx-auto mb-5 animate-spin" size={46} /><p className="font-black">نحضّر اللقطة...</p><p className="mt-3 text-xs font-bold text-white/45">نختار زاوية التصوير ونضبط الإضاءة قبل الحركة</p></div>}
             {generatedReel && !isGeneratingReel && <div className="relative z-10 w-full max-w-[380px] space-y-4"><button type="button" onClick={() => setShowReelSettings((v) => !v)} className="w-full aspect-[9/16] rounded-[1.8rem] overflow-hidden bg-black border border-white/10 shadow-2xl relative group">{generatedReel.startsWith('data:image') ? <img src={generatedReel} className="w-full h-full object-contain bg-black" alt="ريل موشن" /> : <video src={generatedReel} className="w-full h-full object-contain bg-black" controls playsInline />}</button>{renderQualityAuditCard('reel')}{renderLiveStudioCard('reel')}{renderCampaignRecipe('reel')}{showReelSettings && <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-right text-white"><div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3"><div><p className="text-xs font-black text-white/75">إعدادات هذا الريل</p><p className="text-[11px] font-bold text-white/45 mt-1">انسخها وكرر نفس الحركة لاحقاً.</p></div><button type="button" onClick={() => copyReelSettings()} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-xs font-black flex items-center gap-1"><Copy size={14} /> نسخ</button></div><pre className="whitespace-pre-wrap rounded-2xl bg-black/20 border border-white/10 p-3 text-[11px] leading-6 font-bold text-white/80 text-right font-sans max-h-48 overflow-y-auto break-words">{buildReelSettingsText()}</pre></div>}<div className="flex items-center justify-center gap-2"><button onClick={downloadReel} title="تحميل" aria-label="تحميل" className="h-12 w-12 rounded-2xl bg-violet-500 text-white flex items-center justify-center"><Download size={18} /></button><button type="button" onClick={() => copyReelSettings()} title="نسخ الإعدادات" aria-label="نسخ الإعدادات" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Copy size={18} /></button><button type="button" onClick={() => { setGeneratedReel(null); setReelStep(4); }} title="إعادة بنفس الأسلوب" aria-label="إعادة بنفس الأسلوب" className="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><RotateCcw size={18} /></button></div></div>}
           </div>
@@ -3498,7 +3561,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">اختر مصدر الصورة</h2>
                     <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختر المسار: صورة منتج جاهزة، أو فكرة مكتوبة تتحول مباشرة إلى لقطة تسويقية.</p>
                   </div>
-                  <button type="button" onClick={changeStudioPath} className="shrink-0 rounded-2xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-700 hover:bg-indigo-100 transition">تغيير المسار</button>
+                  <button type="button" onClick={changeStudioPath} className="shrink-0 h-10 w-10 rounded-2xl border border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition flex items-center justify-center" title="العودة للمنيو الرئيسي" aria-label="العودة للمنيو الرئيسي"><ChevronLeft size={17} className="rotate-180" /></button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -3557,7 +3620,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">إخراج الصورة التسويقية</h2>
                     <p className="text-sm font-bold text-slate-500 mt-2 leading-7">خطوات قليلة وواضحة: مقاس، فكرة، مشهد، ثم إطلاق الصورة.</p>
                   </div>
-                  <button type="button" onClick={changeStudioPath} className="shrink-0 rounded-2xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-700 hover:bg-indigo-100 transition">تغيير المسار</button>
+                  <button type="button" onClick={() => returnImageToSourceMenu()} className="shrink-0 rounded-2xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-700 hover:bg-indigo-100 transition">اختر مصدر</button>
                 </div>
 
                 {renderStageProgress(productStep, goProductStep)}
@@ -3572,7 +3635,10 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                         </button>
                       ))}
                     </div>
-                    <button type="button" onClick={() => advanceProductStep(2)} className="w-full p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => returnImageToSourceMenu()} className="p-4 rounded-2xl bg-white border border-indigo-100 text-indigo-700 font-black hover:bg-indigo-50 transition-colors">اختيار مصدر آخر</button>
+                      <button type="button" onClick={() => advanceProductStep(2)} className="p-4 rounded-2xl bg-slate-950 text-white font-black shadow-lg">التالي</button>
+                    </div>
                   </div>
                 )}
 
