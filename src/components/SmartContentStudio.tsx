@@ -357,7 +357,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     { id: 'diwaniya-share', label: 'لقطة المشاركة', desc: 'طلب جماعي واضح للربع، المنتج بالوسط والخلفية حية بدون وجوه أو عناصر مشتتة', icon: '🤝', place: 'diwaniya', mode: 'human', background: 'diwaniya-table' },
     { id: 'gift-ready-order', label: 'طلب يبيض الوجه', desc: 'تغليف مرتب ولقطة فاخرة مقيدة مناسبة للهدايا والزوارات دون ديكور زائد', icon: '🎁', place: 'zowara', mode: 'finalBoss', background: 'zowara-spread' },
     { id: 'food-detail', label: 'تفاصيل الطبق', desc: 'لقطة قريبة للرز أو السمك أو اللحم أو ورق العنب مع ثبات كامل', icon: '🔎', place: 'delivery', mode: 'finalBoss', background: 'neutral-menu' },
-    { id: 'kuwait-towers-evening', label: 'أبراج الكويت', desc: 'الأبراج بالخلفية فقط كهوية كويتية راقية؛ المنتج يبقى البطل في المقدمة', icon: '🗼', place: 'towers', mode: 'luxury', background: 'kuwait-towers' },
+    { id: 'kuwait-towers-evening', label: 'أبراج الكويت', desc: 'خلفية كويتية راقية بعيدة فقط؛ بدون أيقونات أو شعارات داخل الكرت أو المشهد', icon: '🌆', place: 'towers', mode: 'luxury', background: 'kuwait-towers' },
     { id: 'mubarakiya-souk', label: 'سوق المباركية', desc: 'أجواء سوق كويتي شعبي blur بإضاءة دافئة؛ بدون زحمة وجوه أو لافتات مقروءة', icon: '🛍️', place: 'mubarakiya', mode: 'human', background: 'mubarakiya' },
     { id: 'bidaa-coast', label: 'شاطئ البدع', desc: 'طاولة طلب هادئة على ساحل البدع وقت الغروب؛ البحر خلفية ناعمة لا يسرق التركيز', icon: '🏖️', place: 'bidaa', mode: 'human', background: 'bidaa' },
   ];
@@ -495,10 +495,10 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       reel: 'للريل: texture-close أو slow push، حركة صغيرة جدًا على الملمس فقط.'
     },
     'kuwait-towers-evening': {
-      visual: 'أبراج الكويت: خلفية كويتية راقية فقط، الأبراج تظهر blur في العمق وقت الغروب أو السحر، والطلب/الطبق في المقدمة هو البطل.',
+      visual: 'أبراج الكويت: خلفية كويتية واقعية بعيدة فقط، تظهر كمعلم معماري حقيقي blur في العمق وقت الغروب أو السحر، والطلب/الطبق في المقدمة هو البطل. لا تستخدم أيقونة أو لوقو أو رسم صغير للأبراج.',
       composition: 'ضع الطعام على طاولة خارجية نظيفة أو سطح تقديم بسيط؛ الأبراج في الثلث الخلفي بعيدًا عن المنتج، مع عمق ميدان واقعي.',
       mustShow: 'يجب أن تظهر هوية الأبراج كخلفية واضحة لكن غير طاغية، ويجب أن يبقى المنتج حادًا ومركزيًا.',
-      avoid: 'ممنوع تحويلها لصورة سياحية للأبراج، ممنوع أعلام أو نصوص أو ناس واضحة، وممنوع أن تختفي الأكلة أمام المعلم.',
+      avoid: 'ممنوع تحويلها لصورة سياحية للأبراج، ممنوع وضع أي لوقو/أيقونة/ملصق صغير للأبراج داخل المشهد، ممنوع أعلام أو نصوص أو ناس واضحة، وممنوع أن تختفي الأكلة أمام المعلم.',
       reel: 'للريل: اقتراب على الطلب مع بقاء الأبراج blur في الخلف؛ الحركة على الطعام لا على المعلم السياحي.'
     },
     'mubarakiya-souk': {
@@ -2464,6 +2464,18 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     setStudioTab('home');
   };
 
+  const changeStudioPath = () => {
+    closeOpenPanels();
+    resetGeneratedOutput();
+    resetStudioSourceDraft({ clearImage: true });
+    setReelStep(1);
+    setProductStep(1);
+    setMaxProductStepReached(1);
+    setMaxCreateStepReached(1);
+    setStudioTab('home');
+    toast.info('رجعناك لاختيار المسار', { description: 'اختر صورة مباشرة أو ريل مباشر بدون الخروج من الاستوديو.' });
+  };
+
   const goCreateStep = (step: number) => {
     if (step > maxCreateStepReached) return;
     closeOpenPanels();
@@ -2698,9 +2710,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         
         <div className="relative z-10 mt-5 flex items-center justify-between gap-3">
           {studioTab !== 'home' ? (
-            <button onClick={goHome} className="h-10 w-10 md:w-auto md:px-4 rounded-2xl text-sm font-black bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10 flex items-center justify-center gap-2">
+            <button onClick={changeStudioPath} className="h-10 px-4 rounded-2xl text-xs sm:text-sm font-black bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10 flex items-center justify-center gap-2" title="العودة لاختيار المسار">
               <ChevronLeft size={18} className="rotate-180" />
-              <span className="hidden md:inline">رجوع</span>
+              <span>تغيير المسار</span>
             </button>
           ) : <div />}
         </div>
@@ -2809,7 +2821,10 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         <div className="studio-workbench-grid grid xl:grid-cols-[420px_minmax(0,1fr)] gap-4 sm:gap-6 items-start">
           <div className="studio-control-card rounded-[2rem] border border-slate-100 bg-white shadow-sm p-4 sm:p-5 text-right">
             <div className="mb-5">
-              <p className="text-xs font-black text-violet-500 mb-1">ريل قصير</p>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-xs font-black text-violet-500">ريل قصير</p>
+                <button type="button" onClick={changeStudioPath} className="rounded-2xl border border-violet-100 bg-violet-50 px-3 py-2 text-[10px] font-black text-violet-700 hover:bg-violet-100 transition">تغيير المسار</button>
+              </div>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">ريل مباشر — غرفة مونتاج مصغّرة</h2>
               <p className="text-sm font-bold text-slate-500 mt-2 leading-7">ابدأ من فكرة أو صورة، ثم اختر اللقطة والمدة داخل مسار واضح.</p>
             </div>
@@ -3428,6 +3443,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">اختر مصدر الصورة</h2>
                     <p className="text-sm font-bold text-slate-500 mt-2 leading-7">اختر المسار: صورة منتج جاهزة، أو فكرة مكتوبة تتحول مباشرة إلى لقطة تسويقية.</p>
                   </div>
+                  <button type="button" onClick={changeStudioPath} className="shrink-0 rounded-2xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-700 hover:bg-indigo-100 transition">تغيير المسار</button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -3486,6 +3502,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">إخراج الصورة التسويقية</h2>
                     <p className="text-sm font-bold text-slate-500 mt-2 leading-7">خطوات قليلة وواضحة: مقاس، فكرة، مشهد، ثم إطلاق الصورة.</p>
                   </div>
+                  <button type="button" onClick={changeStudioPath} className="shrink-0 rounded-2xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-700 hover:bg-indigo-100 transition">تغيير المسار</button>
                 </div>
 
                 {renderStageProgress(productStep, goProductStep)}

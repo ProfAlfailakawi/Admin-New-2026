@@ -3755,8 +3755,8 @@ const GeneralSettings: React.FC<Props> = ({
                           toast.info("فحص كأني عميل", { description: verdict });
                         };
                         return (
-                          <div className="space-y-4">
-                            <div className="rounded-[1.8rem] border border-white/10 bg-slate-950/50 p-4 md:p-5 text-white overflow-hidden relative">
+                          <div className="space-y-4 rounded-[2rem] bg-slate-950 p-3 sm:p-4 shadow-2xl border border-slate-900">
+                            <div className="rounded-[1.8rem] border border-emerald-300/15 bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 p-4 md:p-5 text-white shadow-xl overflow-hidden relative">
                               <div className="absolute -left-12 -top-12 h-36 w-36 rounded-full bg-emerald-400/20 blur-3xl" />
                               <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                 <div>
@@ -3802,7 +3802,7 @@ const GeneralSettings: React.FC<Props> = ({
                             </div>
 
                             <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-3">
-                              <div className="rounded-[1.8rem] border border-white/10 bg-white/10 p-4 text-white">
+                              <div className="rounded-[1.8rem] border border-white/10 bg-slate-900/85 p-4 text-white shadow-lg">
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                   <div>
                                     <div className="text-[10px] font-black text-emerald-200">رادار حياة الإشعار</div>
@@ -3867,7 +3867,7 @@ const GeneralSettings: React.FC<Props> = ({
                               </div>
                             </div>
 
-                            <div className="rounded-[1.8rem] border border-white/10 bg-white/10 p-4 text-white">
+                            <div className="rounded-[1.8rem] border border-white/10 bg-slate-900/85 p-4 text-white shadow-lg">
                               <div className="flex items-center justify-between gap-3 mb-3">
                                 <div>
                                   <div className="text-[10px] font-black text-white/40">خريطة الأجهزة الذكية</div>
@@ -4223,7 +4223,7 @@ const GeneralSettings: React.FC<Props> = ({
                             )}
 
                             {pushDeviceTab === "log" && (
-                              <div id="push-notification-log" className="rounded-[1.5rem] border border-white/10 bg-white/10 p-2.5 md:p-3 space-y-3 max-h-[70vh] overflow-y-auto overscroll-contain scroll-mt-24">
+                              <div id="push-notification-log" className="rounded-[1.5rem] border border-white/10 bg-slate-900/90 p-2.5 md:p-3 space-y-3 shadow-inner max-h-[70vh] overflow-y-auto overscroll-contain scroll-mt-24">
                                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                   <div>
                                     <div className="text-xs font-black text-white">السجل الذكي للإشعارات</div>
