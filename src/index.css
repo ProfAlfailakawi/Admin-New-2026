@@ -4393,3 +4393,128 @@ html body .login-brand-stage h1 {
 .bg-gradient-to-br.from-slate-950 .text-slate-600 {
   color: rgba(241, 245, 249, 0.82) !important;
 }
+
+/* Admin70 follow-up: supplier badges + full mobile typography audit. */
+.supplier-kind-badges span{
+  white-space:nowrap;
+  box-shadow:0 10px 24px rgba(15,23,42,.045);
+}
+
+@media (max-width: 760px) {
+  /* Keep all major Tailwind heading sizes sane on phones without changing desktop design. */
+  .text-9xl{font-size:clamp(2rem,13vw,3.35rem)!important;line-height:1.05!important;}
+  .text-8xl{font-size:clamp(1.9rem,12vw,3.1rem)!important;line-height:1.08!important;}
+  .text-7xl{font-size:clamp(1.8rem,10.5vw,2.85rem)!important;line-height:1.1!important;}
+  .text-6xl{font-size:clamp(1.65rem,9vw,2.55rem)!important;line-height:1.12!important;}
+  .text-5xl{font-size:clamp(1.45rem,7.6vw,2.25rem)!important;line-height:1.18!important;}
+  .text-4xl{font-size:clamp(1.25rem,6.3vw,1.9rem)!important;line-height:1.22!important;}
+  .text-3xl{font-size:clamp(1.1rem,5.4vw,1.55rem)!important;line-height:1.28!important;}
+
+  h1,h2,h3,h4,
+  .font-black,
+  .font-extrabold{
+    overflow-wrap:anywhere;
+    text-wrap:balance;
+  }
+
+  /* Prevent mobile cards and tables from forcing sideways movement. */
+  .admin-heritage-shell,
+  .admin-heritage-shell main,
+  .admin-content-polish,
+  .dashboard-content-shell,
+  .dashboard,
+  [class*="max-w-"]{
+    min-width:0!important;
+  }
+
+  .admin-heritage-shell main,
+  .admin-content-polish{
+    overflow-x:hidden!important;
+  }
+
+  /* Sidebar/menu: compact readable text on phone, no oversized labels. */
+  aside nav,
+  aside nav *{
+    min-width:0!important;
+  }
+  aside nav span,
+  aside nav button,
+  aside nav div[role="button"]{
+    font-size:11px!important;
+    line-height:1.45!important;
+    letter-spacing:.02em!important;
+  }
+  aside nav .tracking-\[0\.25em\]{
+    letter-spacing:.08em!important;
+  }
+  aside .text-xl{
+    font-size:1rem!important;
+    line-height:1.25!important;
+  }
+
+  /* Supplier cards: keep financial cards and badges aligned on small screens. */
+  .supplier-card-mobile-safe{
+    overflow:visible!important;
+    border-radius:22px!important;
+    padding:12px!important;
+  }
+  .supplier-card-mobile-safe h3{
+    font-size:1rem!important;
+    line-height:1.35!important;
+    max-width:100%;
+  }
+  .supplier-summary-row{
+    gap:7px!important;
+  }
+  .supplier-summary-row > div{
+    min-width:0!important;
+    padding:10px 6px!important;
+    border-radius:20px!important;
+  }
+  .supplier-summary-row .text-lg,
+  .supplier-summary-row .text-xl{
+    font-size:1.05rem!important;
+    line-height:1.1!important;
+  }
+  .supplier-summary-row .text-\[10px\]{
+    font-size:9px!important;
+    line-height:1.35!important;
+  }
+  .supplier-invoice-stats{
+    gap:7px!important;
+  }
+  .supplier-invoice-stats > div{
+    min-width:0!important;
+    padding:9px 5px!important;
+    border-radius:18px!important;
+  }
+  .supplier-kind-badges{
+    justify-content:flex-start!important;
+    direction:rtl;
+  }
+  .supplier-kind-badges span{
+    font-size:10px!important;
+    padding:7px 10px!important;
+    border-radius:14px!important;
+  }
+
+  /* Dark backgrounds: improve contrast for every muted label used in studio/notifications-like screens. */
+  .bg-slate-900 .text-slate-300,
+  .bg-slate-950 .text-slate-300,
+  .bg-gradient-to-br.from-slate-900 .text-slate-300,
+  .bg-gradient-to-br.from-slate-950 .text-slate-300{
+    color:rgba(248,250,252,.88)!important;
+  }
+  .bg-slate-900 .text-white\/40,
+  .bg-slate-950 .text-white\/40,
+  .bg-gradient-to-br.from-slate-900 .text-white\/40,
+  .bg-gradient-to-br.from-slate-950 .text-white\/40{
+    color:rgba(255,255,255,.68)!important;
+  }
+  .bg-slate-900 .text-white\/50,
+  .bg-slate-950 .text-white\/50,
+  .bg-gradient-to-br.from-slate-900 .text-white\/50,
+  .bg-gradient-to-br.from-slate-950 .text-white\/50{
+    color:rgba(255,255,255,.76)!important;
+  }
+}
