@@ -5565,12 +5565,9 @@ const [isPending, startTransition] = useTransition();
                               {c.totalOrders || 0} طلب
                             </div>
                           </div>
-                          <div className="text-left flex flex-col items-end shrink-0 pl-2 border-l border-slate-800/20">
-                            <div className="font-bold text-amber-400 text-sm">
-                              {Number(c.totalSpent || 0).toFixed(3)}
-                            </div>
-                            <div className="text-[10px] text-amber-500/50 font-bold uppercase">
-                              د.ك
+                          <div className="text-left shrink-0 pl-2 border-l border-slate-800/20 min-w-[92px]" dir="ltr">
+                            <div className="font-bold text-amber-400 text-sm whitespace-nowrap">
+                              {Number(c.totalSpent || 0).toFixed(3)} <span className="text-[10px] text-amber-500/70 font-black">د.ك</span>
                             </div>
                           </div>
                         </div>

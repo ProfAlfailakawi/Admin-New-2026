@@ -4305,3 +4305,30 @@ html body .login-brand-stage h1 {
 .push-health-pro code {
   color: #047857 !important;
 }
+
+
+/* Ahmad mobile polish: layout-only fixes, no data/payment/notification logic changes */
+.geo-heatmap-component *{min-width:0;}
+@media(max-width:640px){
+  .geo-heatmap-component{padding:16px!important;border-radius:28px!important;}
+  .geo-heatmap-component .grid.grid-cols-2.sm\:grid-cols-4{gap:10px!important;}
+}
+.ai-input-wrap{min-width:0!important;align-items:center!important;}
+.ai-input-wrap textarea{min-width:0!important;width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+@media(max-width:640px){
+  .ai-input-wrap{padding:8px!important;gap:8px!important;border-radius:20px!important;}
+  .ai-input-wrap textarea{font-size:13px!important;line-height:1.45!important;min-height:36px!important;}
+  .ai-input-wrap>svg{flex:0 0 auto!important;width:16px!important;}
+  .ai-input-wrap button{width:38px!important;height:38px!important;border-radius:14px!important;flex:0 0 auto!important;}
+}
+.supplier-transfer-modal{max-width:min(100vw - 24px,32rem)!important;}
+.supplier-transfer-modal input,.supplier-transfer-modal select,.supplier-transfer-modal textarea{max-width:100%!important;min-width:0!important;}
+@media(max-width:640px){
+  .supplier-transfer-modal{max-height:92dvh!important;border-radius:24px!important;}
+  .supplier-transfer-modal .grid{min-width:0!important;}
+  .supplier-transfer-modal .text-lg{font-size:1rem!important;}
+}
+.invoice-new-page input[type="date"]{min-width:0!important;}
+@media(max-width:640px){
+  .invoice-new-page input[type="date"]{padding-left:14px!important;padding-right:14px!important;text-align:center!important;}
+}

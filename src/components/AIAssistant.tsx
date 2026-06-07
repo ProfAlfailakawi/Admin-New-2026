@@ -620,7 +620,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
               handleSend(input);
             }
           }}
-          placeholder="اكتب سؤالك للمساعد التنفيذي..."
+          placeholder="اكتب سؤالك للمساعد..."
         />
         <button type="button" onClick={() => handleSend(null)} disabled={!input.trim() || isLoading}>
           <Send size={17} className="rotate-180" />

@@ -1299,9 +1299,9 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
               <Crown className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
             </div>
             <div>
-              <div className="text-sm font-black text-slate-800 flex items-center gap-2">
-                 شريط مستويات الدواوين 
-                <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+              <div className="text-sm font-black text-slate-800 flex flex-wrap items-center justify-end gap-2">
+                <span>شريط مستويات الدواوين</span>
+                <span className="inline-flex items-center whitespace-nowrap bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
                   {tiers.length} مستويات تتبع النقاط
                 </span>
               </div>
@@ -1773,13 +1773,13 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                 </div>
                               </td>
                             </tr>
-                            {expandedSquadId === s.id && s.membersList && (
+                            {expandedSquadId === s.id && (
                               <tr className="bg-slate-50/50 table-row">
                                 <td colSpan={7} className="p-0">
                                   <div className="p-4 pr-12 bg-blue-50/10 border-t border-b border-blue-100/50">
                                     <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">تفاصيل نقاط الأعضاء الفردية</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                      {s.membersList.map((member: any, i: number) => (
+                                      {(s.membersList && s.membersList.length ? s.membersList : [{ name: founderName, phone: founderPhone, points }]).map((member: any, i: number) => (
                                         <div key={i} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
                                           <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold flex items-center justify-center text-xs shrink-0">
                                             {(member.name || '?').charAt(0)}

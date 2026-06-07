@@ -409,9 +409,9 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
     ].map((item) => {
      const Icon = item.icon;
      return (
-      <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.06] p-3 text-right backdrop-blur-xl">
+      <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.06] p-3 text-right backdrop-blur-xl min-w-0">
        <div className="flex items-center justify-end gap-2 text-[10px] font-black text-slate-400"><span>{item.label}</span><Icon size={13} /></div>
-       <div className="mt-1 truncate text-sm font-black text-white">{item.value}</div>
+       <div className="mt-1 text-[13px] sm:text-sm font-black text-white leading-tight break-words whitespace-normal">{item.value}</div>
       </div>
      );
     })}
@@ -424,7 +424,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
       <div className="text-xs font-black text-white">أقوى المناطق الآن</div>
       <div className="text-[10px] font-bold text-slate-400">قائمة مختصرة؛ افتح المنطقة لمشاهدة التفاصيل بدون زحمة.</div>
      </div>
-     <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-slate-300">Top 3</span>
+     <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-slate-300 whitespace-nowrap">Top 3</span>
     </div>
     <div className="border-t border-white/10 divide-y divide-white/10">
      {areaData.markers.slice(0, 3).map((marker, index) => {
@@ -436,20 +436,20 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
          onClick={() => setActiveRegion(isOpen ? null : marker.name)}
          className={`w-full px-3 py-3 text-right transition-all flex items-center justify-between gap-3 ${isOpen ? 'bg-amber-300/10' : 'hover:bg-white/[0.04]'}`}
         >
-         <div className="flex items-center gap-3 min-w-0">
-          <span className="rounded-xl bg-white/10 px-2.5 py-2 text-[10px] font-black text-slate-300">#{index + 1}</span>
-          <div className="min-w-0">
+         <div className="flex items-center gap-3 min-w-0 flex-1 justify-end" dir="rtl">
+          <div className="min-w-0 flex-1 text-right">
            <div className="font-black text-white truncate">{marker.name}</div>
-           <div className="mt-0.5 text-[10px] font-bold text-slate-400 truncate">{fmtMoney(marker.revenue)} · {marker.count} طلب · {marker.persona}</div>
+           <div className="mt-0.5 text-[10px] font-bold text-slate-400 whitespace-normal leading-5">{fmtMoney(marker.revenue)} · {marker.count} طلب · {marker.persona}</div>
           </div>
+          <span className="rounded-xl bg-white/10 px-2.5 py-2 text-[10px] font-black text-slate-300 shrink-0">#{index + 1}</span>
          </div>
          <ChevronDown size={15} className={`shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
         {isOpen && (
          <div className="px-3 pb-3 grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">إيراد</div><div className="text-[11px] font-black text-amber-100 truncate">{fmtMoney(marker.revenue)}</div></div>
+          <div className="rounded-2xl bg-black/15 p-2 min-w-0"><div className="text-[9px] font-black text-slate-400">إيراد</div><div className="text-[10px] sm:text-[11px] font-black text-amber-100 whitespace-normal leading-4 break-words">{fmtMoney(marker.revenue)}</div></div>
           <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">طلبات</div><div className="text-[11px] font-black text-white">{marker.count}</div></div>
-          <div className="rounded-2xl bg-black/15 p-2"><div className="text-[9px] font-black text-slate-400">متوسط</div><div className="text-[11px] font-black text-white truncate">{fmtMoney(marker.avgOrder)}</div></div>
+          <div className="rounded-2xl bg-black/15 p-2 min-w-0"><div className="text-[9px] font-black text-slate-400">متوسط</div><div className="text-[10px] sm:text-[11px] font-black text-white whitespace-normal leading-4 break-words">{fmtMoney(marker.avgOrder)}</div></div>
           <div className="col-span-3 flex flex-wrap justify-end gap-2">
            <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-black text-emerald-200"><Sparkles size={11} className="inline ml-1" />{marker.persona}</span>
            <span className="rounded-full bg-rose-400/10 px-3 py-1 text-[10px] font-black text-rose-100"><ShieldCheck size={11} className="inline ml-1" />{marker.risk}</span>

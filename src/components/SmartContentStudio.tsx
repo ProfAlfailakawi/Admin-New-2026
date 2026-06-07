@@ -3386,17 +3386,20 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 {(() => {
                   const activeCampaign = seasonRadarCards.find(c => c.id === selectedSceneId) || seasonRadarCards[0];
                   return (
-                    <div className="p-4 rounded-2xl border border-rose-100 bg-rose-50/20 text-right space-y-3">
-                      <div>
+                    <details className="group rounded-2xl border border-rose-100 bg-rose-50/20 text-right overflow-hidden">
+                      <summary className="cursor-pointer list-none p-4 flex items-center justify-between gap-3 select-none">
+                        <span className="rounded-xl bg-white border border-rose-100 px-3 py-1 text-[10px] font-black text-rose-600 group-open:hidden">عرض التفاصيل</span>
+                        <span className="rounded-xl bg-white border border-rose-100 px-3 py-1 text-[10px] font-black text-rose-600 hidden group-open:inline-flex">إخفاء التفاصيل</span>
                         <h4 className="text-xs font-black text-slate-900 flex items-center gap-1">
                           <Sparkles size={14} className="text-rose-500 animate-pulse shrink-0" />
                           حملة: {activeCampaign.title}
                         </h4>
-                        <div className="text-[10px] font-bold text-slate-500 mt-1.5 leading-relaxed bg-white border border-rose-100/50 rounded-xl p-2.5">
+                      </summary>
+                      <div className="px-4 pb-4 space-y-3">
+                        <div className="text-[10px] font-bold text-slate-500 leading-relaxed bg-white border border-rose-100/50 rounded-xl p-2.5">
                           <span className="text-rose-600 font-black block text-[9px] mb-1">الخلفية والجو الذكي</span>
                           {activeCampaign.desc}
                         </div>
-                      </div>
 
                       <div className="bg-white border border-rose-100/50 rounded-xl p-2.5">
                         <span className="text-rose-600 font-black block text-[9px] mb-1">الإيقاع الصوتي والسمعي</span>
@@ -3444,6 +3447,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                         </button>
                       </div>
                     </div>
+                    </details>
                   );
                 })()}
               </div>
