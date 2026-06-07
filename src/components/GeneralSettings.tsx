@@ -290,7 +290,7 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
   });
 
   return (
-    <div className="relative w-[320px] h-[320px] rounded-full flex items-center justify-center select-none bg-slate-950/60 border border-amber-500/20 shadow-[0_15px_45px_-10px_rgba(0,0,0,0.85)] p-1" id="device-deera-compass">
+    <div className="relative w-[320px] h-[320px] rounded-full flex items-center justify-center select-none bg-white border border-slate-200 text-slate-900/60 border border-amber-500/20 shadow-[0_15px_45px_-10px_rgba(0,0,0,0.85)] p-1" id="device-deera-compass">
        {/* Scanning effect */}
        <motion.div
          className="absolute inset-0 pointer-events-none rounded-full z-0"
@@ -359,7 +359,7 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
            { x: 0, y: 150, label: 'الغرب' },
          ].map((dir) => (
            <foreignObject key={dir.label} x={dir.x} y={dir.y} width="68" height="24">
-             <div xmlns="http://www.w3.org/1999/xhtml" dir="rtl" style={{
+             <div dir="rtl" style={{
                width: '68px',
                height: '24px',
                display: 'flex',
@@ -380,7 +380,7 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
 
          {/* Compass center title */}
          <foreignObject x="106" y="210" width="108" height="26">
-           <div xmlns="http://www.w3.org/1999/xhtml" dir="rtl" style={{
+           <div  dir="rtl" style={{
              width: '108px',
              height: '26px',
              display: 'flex',
@@ -447,10 +447,10 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
 
        {/* Floating Detail Overlay inside the compass center when node hovered */}
        {hoveredCard ? (
-         <div className="absolute inset-x-6 top-[80px] bottom-[80px] mx-auto w-[220px] h-[150px] z-30 rounded-2xl bg-slate-950/95 border border-amber-400/40 p-3 shadow-[0_12px_48px_rgba(0,0,0,0.95)] shadow-amber-950/40 backdrop-blur-md flex flex-col justify-between text-right pointer-events-none">
+         <div className="absolute inset-x-6 top-[80px] bottom-[80px] mx-auto w-[220px] h-[150px] z-30 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900/95 border border-amber-400/40 p-3 shadow-[0_12px_48px_rgba(0,0,0,0.95)] shadow-amber-950/40 backdrop-blur-md flex flex-col justify-between text-right pointer-events-none">
            <div>
              <div className="flex items-center justify-between border-b border-white/10 pb-1.5 mb-1.5 min-w-0">
-               <span className="text-[8px] rounded-lg bg-white/10 px-1.5 py-0.5 text-white/75 font-black shrink-0">
+               <span className="text-[8px] rounded-lg bg-white/10 px-1.5 py-0.5 text-slate-800/75 font-black shrink-0">
                  {hoveredCard.identity.role === 'partner' ? 'شريك' : hoveredCard.identity.role === 'admin' ? 'مدير' : 'موظف'}
                </span>
                <strong className="text-[11px] font-black text-amber-300 truncate mr-2">
@@ -4046,8 +4046,8 @@ const GeneralSettings: React.FC<Props> = ({
                           toast.info("فحص كأني عميل", { description: verdict });
                         };
                         return (
-                          <div className="space-y-4 rounded-[2rem] bg-slate-950 p-3 sm:p-4 shadow-2xl border border-slate-900">
-                            <div className="rounded-[1.8rem] border border-emerald-300/15 bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 p-4 md:p-5 text-white shadow-xl overflow-hidden relative">
+                          <div className="space-y-4 rounded-[2rem] bg-slate-950 p-3 sm:p-4 shadow-sm border border-slate-200 border border-slate-900">
+                            <div className="rounded-[1.8rem] border border-emerald-300/15 bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 p-4 md:p-5 text-white shadow-sm border border-slate-200 overflow-hidden relative">
                               <div className="absolute -left-12 -top-12 h-36 w-36 rounded-full bg-emerald-400/20 blur-3xl" />
                               <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                 <div>
@@ -4083,7 +4083,7 @@ const GeneralSettings: React.FC<Props> = ({
                                     ['آخر قراءة', latestDeviceReadLabel],
                                     ['وصول مؤكد', `${deliveredCount}`],
                                   ].map(([label, value]) => (
-                                    <div key={label} className="rounded-xl bg-black/15 border border-white/10 p-2 min-w-0">
+                                    <div key={label} className="rounded-xl bg-slate-50 border border-slate-200 text-slate-800/15 border border-white/10 p-2 min-w-0">
                                       <div className="text-[9px] font-black text-white/35">{label}</div>
                                       <div className="mt-1 text-xs font-black text-white truncate">{value}</div>
                                     </div>
@@ -4093,7 +4093,7 @@ const GeneralSettings: React.FC<Props> = ({
                             </div>
 
                             <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-3">
-                              <div className="rounded-[1.8rem] border border-white/10 bg-slate-900/85 p-4 text-white shadow-lg">
+                              <div className="rounded-[1.8rem] border border-white/10 bg-slate-50 border border-slate-200 text-slate-900/85 p-4 text-white shadow-sm border border-slate-200">
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                   <div>
                                     <div className="text-[10px] font-black text-emerald-200">رادار حياة الإشعار</div>
@@ -4108,7 +4108,7 @@ const GeneralSettings: React.FC<Props> = ({
                                     ['وصل للجهاز', Boolean(latestNotification?.receivedByDevice || latestNotification?.receivedAt || latestNotification?.openedByEmployee || latestNotification?.clickedAt)],
                                     ['تم فتحه', Boolean(latestNotification?.openedByEmployee || latestNotification?.clickedAt)],
                                   ].map(([label, active], idx) => (
-                                    <div key={String(label)} className="relative rounded-2xl bg-black/15 border border-white/10 p-2 text-center min-h-[70px] flex flex-col items-center justify-center gap-2">
+                                    <div key={String(label)} className="relative rounded-2xl bg-slate-800/15 border border-white/10 p-2 text-center min-h-[70px] flex flex-col items-center justify-center gap-2">
                                       <span className={cn('relative h-3 w-3 rounded-full', active ? 'bg-emerald-300' : 'bg-white/20')}>
                                         {active && <span className="absolute inset-0 rounded-full bg-emerald-300/70 animate-ping" />}
                                       </span>
@@ -4188,7 +4188,7 @@ const GeneralSettings: React.FC<Props> = ({
                                       ['الأخضر', 'جهاز حديث جاهز للاستقبال', 'golden', 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/25 text-emerald-300'],
                                       ['الأصفر', 'جهاز صامت ينتظر تأكيد وصول/فتح', 'silent', 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/25 text-amber-300'],
                                       ['الأحمر', 'توكن قديم أو جهاز شبح', 'ghost', 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/25 text-rose-300'],
-                                      ['الأبيض', 'حساب بلا جهاز مفعّل', 'archived', 'bg-slate-800/40 hover:bg-slate-800/60 border-slate-700/50 text-slate-200'],
+                                      ['الأبيض', 'حساب بلا جهاز مفعّل', 'archived', 'bg-slate-800/40 hover:bg-slate-100/60 border-slate-700/50 text-slate-200'],
                                     ].map(([color, meaning, filter, cls]) => (
                                       <button
                                         key={color}
@@ -4539,7 +4539,7 @@ const GeneralSettings: React.FC<Props> = ({
                             )}
 
                             {pushDeviceTab === "log" && (
-                              <div id="push-notification-log" className="rounded-[1.5rem] border border-white/10 bg-slate-900/90 p-2.5 md:p-3 space-y-3 shadow-inner max-h-[70vh] overflow-y-auto overscroll-contain scroll-mt-24">
+                              <div id="push-notification-log" className="rounded-[1.5rem] border border-white/10 bg-slate-50 border border-slate-200 text-slate-900/90 p-2.5 md:p-3 space-y-3 shadow-inner max-h-[70vh] overflow-y-auto overscroll-contain scroll-mt-24">
                                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                   <div>
                                     <div className="text-xs font-black text-white">السجل الذكي للإشعارات</div>
@@ -5336,7 +5336,7 @@ const GeneralSettings: React.FC<Props> = ({
                       >
                         <DownloadCloud
                           size={18}
-                          className="transition-transform group-hover:-translate-y-1"
+                          className="transition-transform group-active:scale-[0.98]"
                         />
                         <div className="text-right">
                           <div className="text-xs font-bold">
@@ -5356,7 +5356,7 @@ const GeneralSettings: React.FC<Props> = ({
                       >
                         <Upload
                           size={18}
-                          className="transition-transform group-hover:-translate-y-1"
+                          className="transition-transform group-"
                         />
                         <div className="text-right">
                           <div className="text-xs font-bold">
@@ -5396,7 +5396,7 @@ const GeneralSettings: React.FC<Props> = ({
 
                   {/* Developer Info - Hidden as requested */}
                   {false && (
-                    <div className="mt-8 p-3 md:p-4 bg-slate-900 text-white rounded-3xl space-y-4 border border-slate-700 shadow-xl">
+                    <div className="mt-8 p-3 md:p-4 bg-indigo-600 text-white rounded-2xl space-y-4 border border-slate-700 shadow-xl">
                       {/* ... hidden content ... */}
                     </div>
                   )}

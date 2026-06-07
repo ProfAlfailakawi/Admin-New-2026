@@ -203,7 +203,7 @@ export default function TrackPage() {
  return (
  <div className="min-h-screen bg-slate-50 flex items-center justify-center p-3 md:p-4 arabic-font" dir="rtl">
  <Toaster position="top-center" richColors />
- <div className="bg-white rounded-3xl p-3 md:p-3 max-w-2xl w-full shadow-xl border border-slate-100">
+ <div className="bg-white rounded-2xl p-3 md:p-3 max-w-2xl w-full shadow-sm border border-slate-200 border border-slate-100">
  <div className="w-12 h-12 md:w-16 md:h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/20">
  <Search size={32} />
  </div>
@@ -229,7 +229,7 @@ export default function TrackPage() {
  type="submit"
  disabled={loading || !phoneNumber}
  className={cn(
-"w-full py-4 text-white font-bold rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2",
+"w-full py-4 text-slate-800 font-bold rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2",
  loading || !phoneNumber ?"bg-slate-300 shadow-none" :"bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20 hover:scale-[1.02] active:scale-95"
 )}
  >
@@ -267,7 +267,7 @@ export default function TrackPage() {
  {(isPending || isFailed) && order.paymentLink && !isCancelled && (
  <button 
  onClick={() => window.location.href = order.paymentLink}
- className="text-xs font-bold px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg active:scale-95"
+ className="text-xs font-bold px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm border border-slate-200 active:scale-95"
  >
  إعادة محاولة الدفع
  </button>

@@ -108,7 +108,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
   };
 
   return (
-    <div className="bg-white p-6 rounded-3xl border border-slate-200 mt-6 shadow-sm flex flex-col-reverse lg:flex-row gap-8 items-start">
+    <div className="bg-white p-6 rounded-2xl border border-slate-200 mt-6 shadow-sm flex flex-col-reverse lg:flex-row gap-8 items-start">
       <div className="w-full lg:w-[45%] flex flex-col gap-6">
         <div className="flex justify-between items-start">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -128,7 +128,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
               {history.slice(0, 8).map((item, idx) => (
                 <button key={idx} onClick={() => { setGeneratedBaseImage(item.url); setResultText(item.text); setTopic(item.topic); }} className="group rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm hover:shadow-md transition-all text-right">
                   {item.url ? (
-                  <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
+                  <img src={item.url} className="w-full aspect-square object-cover group-active:scale-[0.98] transition-transform" />
                   ) : (
                   <div className="w-full aspect-square bg-gradient-to-br from-rose-50 to-orange-50 flex items-center justify-center text-rose-400"><ImageIcon size={28} /></div>
                   )}
@@ -196,7 +196,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
           <button 
             onClick={() => generateTrend('custom', customEvent)}
             disabled={loading || !customEvent}
-            className="bg-slate-800 hover:bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+            className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-900 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
           >
             <Flame className="w-5 h-5 text-rose-500" />
             توليد فكرة للمناسبة
@@ -216,7 +216,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
              <div className="bg-rose-50/50 p-5 rounded-2xl shadow-sm text-slate-800 font-medium whitespace-pre-wrap leading-relaxed border border-rose-100/50 text-lg">
                {resultText}
              </div>
-             <button onClick={handleCopy} className="flex items-center justify-center gap-2 bg-rose-600 text-white w-full py-4 rounded-xl font-bold hover:bg-rose-700 transition-colors shadow-lg shadow-rose-200">
+             <button onClick={handleCopy} className="flex items-center justify-center gap-2 bg-rose-600 text-white w-full py-4 rounded-xl font-bold hover:bg-rose-700 transition-colors shadow-sm border border-slate-200 shadow-rose-200">
                {copying ? <Check size={18} /> : <Copy size={18} />}
                {copying ? 'تم النسخ!' : 'نسخ النص'}
              </button>

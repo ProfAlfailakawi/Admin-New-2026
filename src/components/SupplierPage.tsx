@@ -374,7 +374,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 )}
  </AnimatePresence>
 
- <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
+ <div className="bg-white rounded-2xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
  <div className="flex flex-col md:flex-row md:items-center gap-2 mb-8">
  <div className="relative flex-1">
  <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
@@ -395,7 +395,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
  <button 
  onClick={openAddModal}
- className="bg-slate-900 text-white px-4 md:px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95 shrink-0"
+ className="bg-slate-50 border border-slate-200 text-slate-900 px-4 md:px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-100 transition-all shadow-sm border border-slate-200 active:scale-95 shrink-0"
  >
  <Plus size={20} />
  <span>إضافة مورد جديد</span>
@@ -575,7 +575,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  initial={{ opacity: 0 }} 
  animate={{ opacity: 1 }} 
  exit={{ opacity: 0 }} 
- className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
+ className="fixed inset-0 bg-slate-50 border border-slate-200 text-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
  onClick={() => setProductsToShow(null)}
  >
  <motion.div 
@@ -608,7 +608,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="p-3 md:p-3 shrink-0 mt-auto border-t border-slate-100">
  <button 
  onClick={() => setProductsToShow(null)}
- className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl transition-all shadow-lg active:scale-95"
+ className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl transition-all shadow-sm border border-slate-200 active:scale-95"
  >
  إغلاق
  </button>
@@ -755,7 +755,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   initial={{ opacity: 0, scale: 0.95, y: 20 }}
   animate={{ opacity: 1, scale: 1, y: 0 }}
   exit={{ opacity: 0, scale: 0.95, y: 20 }}
-  className="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-2xl p-0 border border-slate-100 text-right flex flex-col max-h-[85dvh] overflow-hidden translate-y-6 sm:translate-y-12 shadow-black/20"
+  className="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-sm border border-slate-200 p-0 border border-slate-100 text-right flex flex-col max-h-[85dvh] overflow-hidden translate-y-6 sm:translate-y-12 shadow-black/20"
   onClick={e => e.stopPropagation()}
   >
   {(() => {

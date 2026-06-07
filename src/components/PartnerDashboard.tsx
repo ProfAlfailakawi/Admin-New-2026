@@ -46,11 +46,10 @@ const GlobalStatBox = React.memo(({ label, value, color, icon: Icon, isPercent =
  <motion.div 
  initial={{ opacity: 0, y: 10 }} 
  animate={{ opacity: 1, y: 0 }} 
- whileHover={{ y: -4, scale: 1.02 }}
- whileTap={{ scale: 0.96 }}
+ whileTap={{ scale: 0.98 }}
  transition={{ type:"spring", stiffness: 400, damping: 25 }} 
  className={cn(
-"p-3 md:p-3 lg:p-3 md:p-3 rounded-2xl border bg-white relative overflow-hidden group shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer active:scale-95",
+"p-3 md:p-3 lg:p-3 md:p-3 rounded-2xl border bg-white relative overflow-hidden group shadow-sm ring-1 ring-inset ring-slate-900/5 transition-all duration-300 cursor-pointer active:scale-[0.98]",
  getGradient(color)
 )}
  >
@@ -71,7 +70,7 @@ const GlobalStatBox = React.memo(({ label, value, color, icon: Icon, isPercent =
  <div className="text-right relative z-10">
  <div className="flex items-baseline justify-end gap-1 mb-1">
  <span className="text-[10px] font-bold opacity-40 uppercase tracking-tighter">{unit}</span>
- <div className="text-xl lg:text-3xl font-bold text-slate-800 tracking-tighter group-hover:scale-105 transition-transform origin-right">
+ <div className="text-xl lg:text-3xl font-bold font-mono text-slate-800 tracking-tighter group-active:scale-[0.98] transition-transform origin-right">
  {isPercent ? `${value.toFixed(1)}%` : Number(value).toLocaleString('en-GB', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
  </div>
  </div>
@@ -120,7 +119,7 @@ const SectionHeader = ({ title, icon: Icon, color ="indigo", subtitle }: { title
  animate={{ rotate: 0, scale: 1 }}
  transition={{ type:"spring", stiffness: 300, damping: 20 }}
  className={cn("p-3 md:p-3 rounded-[1.25rem] md:rounded-2xl shadow-xl ring-4 ring-opacity-20", 
- color ==="indigo" ?"bg-indigo-600 text-white ring-indigo-600 shadow-indigo-600/20" :"bg-amber-500 text-white ring-amber-500 shadow-amber-500/20"
+ color ==="indigo" ?"bg-indigo-600 text-slate-800 ring-indigo-600 shadow-indigo-600/20" :"bg-amber-500 text-white ring-amber-500 shadow-amber-500/20"
 )}>
  <Icon size={24} className="md:w-[28px] md:h-[28px]" strokeWidth={2.5} />
  </motion.div>
@@ -463,63 +462,44 @@ const {
 
  const getContextualGreeting = () => {
  const hour = now.getHours();
- const activeOrdersCount = data.orders?.filter(o => !['cancelled', 'delivered', 'تم التوصيل', 'تم الإلغاء', 'ملغي'].includes(o.status)).length || 0;
- 
- const yesterday = new Date();
- yesterday.setDate(yesterday.getDate() - 1);
- yesterday.setHours(0, 0, 0, 0);
- const yesterdayEnd = new Date(yesterday);
- yesterdayEnd.setHours(23, 59, 59, 999);
- 
- const validInvoices = data.invoices?.filter(inv => !inv.isDeleted) || [];
- const yesterdayInvoices = validInvoices.filter(inv => {
-   const d = new Date(inv.date).getTime();
-   return (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && d >= yesterday.getTime() && d <= yesterdayEnd.getTime();
- });
- 
- const yesterdaySales = yesterdayInvoices.reduce((acc, inv) => acc + computeInvoiceTotal(inv, data?.products || []), 0);
-
+ const activeOrdersCount = (data.orders || []).filter(o => !['cancelled', 'delivered', 'تم التوصيل', 'تم الإلغاء', 'ملغي'].includes(o.status || '')).length;
  if (hour >= 5 && hour < 12) {
-   if (yesterdaySales > 0) {
-     return { title: `صباح الخير، مبيعات أمس بلغت ${yesterdaySales.toFixed(3)} د.ك ☀️`, sub: 'بداية يوم موفق. التفاصيل كاملة في تقريرك.' };
-   } else {
-     return { title: 'صباح الخير، يوم جديد وفرص جديدة ☀️', sub: 'بانتظار وصول أول طلبات اليوم. بالتوفيق!' };
-   }
- } else if (hour >= 12 && hour < 17) {
- return { title: 'مرحباً، وقت ذروة الغداء! 🍽️', sub: `لدينا ${activeOrdersCount} طلب نشط حالياً، حافظ على هذا الزخم الممتاز.` };
- } else if (hour >= 17 && hour < 22) {
- return { title: 'مساء الخير، أداء استثنائي اليوم 🌙', sub: 'مبيعات العشاء تتصاعد، استمر في هذا الأداء الرائع.' };
- } else {
- return { title: 'تحية مسائية هادئة ☕', sub: 'النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.' };
- }
- };
- const greeting = getContextualGreeting();
+    return { title: 'صباح الخير، يوم جديد وفرص جديدة ☀️', sub: 'بانتظار وصول طلبات اليوم. بالتوفيق!' };
+  } else if (hour >= 12 && hour < 17) {
+  return { title: 'مرحباً، وقت ذروة الغداء! 🍽️', sub: `لدينا ${activeOrdersCount} طلب نشط حالياً، حافظ على هذا الزخم الممتاز.` };
+  } else if (hour >= 17 && hour < 22) {
+  return { title: 'مساء الخير، أداء استثنائي اليوم 🌙', sub: 'مبيعات العشاء تتصاعد، استمر في هذا الأداء الرائع.' };
+  } else {
+  return { title: 'تحية مسائية هادئة ☕', sub: 'النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.' };
+  }
+  };
+  const greeting = getContextualGreeting();
 
- const bentoCardStyle ="bg-[#fdfbf7] p-3 md:p-4 rounded-2xl2xl lg:rounded-2xl2xl md:rounded-2xl2xl border border-[#f0e6d2] shadow-[0_4px_20px_-10px_rgba(212,192,152,0.3)] text-right relative overflow-hidden flex flex-col h-full";
- 
- return (
- <div className="partner-clean-shell min-h-full bg-slate-50 p-3 pb-28 md:p-4 md:pb-28 animate-in fade-in duration-500 transition-colors" dir="rtl">
-    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex flex-col gap-3 mb-8">
+  const bentoCardStyle ="bg-white/95 p-3 md:p-4 rounded-xl lg:rounded-2xl border border-slate-200/60 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 text-right relative overflow-hidden flex flex-col h-full hover:-translate-y-[1px] transition-transform";
+  
+  return (
+    <div className="partner-clean-shell min-h-full bg-slate-50/50 p-3 pb-28 md:p-4 md:pb-28 animate-in fade-in duration-500 transition-colors" dir="rtl">
+       <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex flex-col gap-3 mb-8">
 
         {isPushSupported && !pushEnabled && !pushDenied && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-indigo-50 border border-indigo-100 text-indigo-800 p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 self-stretch xl:self-auto"
+            className="bg-indigo-50 border border-indigo-100/60 text-indigo-800 p-3 rounded-[20px] flex flex-col sm:flex-row items-center justify-between gap-4 self-stretch xl:self-auto shadow-sm ring-1 ring-inset ring-indigo-900/5"
           >
             <div className="flex items-center gap-3 text-right">
-              <div className="bg-indigo-100 p-2 rounded-xl text-indigo-600">
+              <div className="bg-white/80 p-2 rounded-xl text-indigo-600 shadow-sm border border-indigo-100/60">
                 <Bell size={20} className="animate-pulse" />
               </div>
               <div>
-                <h4 className="text-[12px] font-bold border-b border-indigo-200/50 pb-1 mb-1 inline-block">تفعيل الإشعارات</h4>
+                <h4 className="text-[12px] font-bold border-b border-indigo-200/50 pb-1 mb-1 inline-block tracking-tight">تفعيل الإشعارات</h4>
                 <p className="text-[10px] sm:text-[11px] font-bold text-indigo-600/80 mt-0.5">احصل على تنبيهات فورية عند وصول طلبات جديدة</p>
               </div>
             </div>
             
             <button
               onClick={() => setShowPushModal(true)}
-              className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 w-full sm:w-auto hover:bg-indigo-700 hover:scale-[0.98] transition-all active:scale-95"
+              className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-[0_4px_14px_rgba(79,70,229,0.3)] flex items-center justify-center gap-2 w-full sm:w-auto hover:bg-indigo-700 transition-colors active:scale-95"
             >
               <Bell size={14} /> تفعيل الآن
             </button>
@@ -530,9 +510,9 @@ const {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-2xl flex items-center justify-between gap-4 self-stretch xl:self-auto"
+            className="bg-rose-50 border border-rose-100/60 text-rose-600 p-3 rounded-[20px] flex items-center justify-between gap-4 self-stretch xl:self-auto shadow-sm ring-1 ring-inset ring-rose-900/5"
           >
-            <div className="flex items-center justify-between w-full h-full text-right text-[11px] font-bold">
+            <div className="flex items-center justify-between w-full h-full text-right text-[11px] font-bold tracking-tight">
                <span>الإشعارات موقوفة من إعدادات الجهاز</span>
             </div>
           </motion.div>
@@ -541,30 +521,31 @@ const {
 
         <AnimatePresence>
           {showPushModal && (
-            <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-50 border border-slate-200 text-slate-900/30 backdrop-blur-md">
                 <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
+                    initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.9, opacity: 0 }}
-                    className="bg-white rounded-3xl p-6 shadow-xl max-w-sm w-full text-center"
+                    exit={{ scale: 0.95, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    className="bg-white rounded-[20px] p-6 shadow-xl ring-1 ring-black/5 max-w-sm w-full text-center"
                 >
-                    <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Bell size={32} />
+                    <div className="w-14 h-14 bg-indigo-50 border border-indigo-100/60 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm">
+                        <Bell size={28} />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-800 mb-2">فعّل الإشعارات</h3>
-                    <p className="text-slate-600 text-sm font-bold mb-6">لتصلك طلباتك الجديدة أول بأول حتى والتطبيق مغلق.</p>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">فعّل الإشعارات</h3>
+                    <p className="text-slate-500 text-sm font-bold mb-6 leading-relaxed">لتصلك طلباتك الجديدة أول بأول حتى والتطبيق مغلق.</p>
                     <div className="flex flex-col gap-3">
                         <button
                           onClick={handleEnablePush}
                           disabled={isActivatingPush}
-                          className="bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 transition-colors"
+                          className="bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-[0_4px_14px_rgba(79,70,229,0.3)] hover:bg-indigo-700 transition-colors active:scale-95"
                         >
                           {isActivatingPush ? 'نفعّلها...' : 'تفعيل الإشعارات الآن'}
                         </button>
                         <button
                           onClick={() => setShowPushModal(false)}
                           disabled={isActivatingPush}
-                          className="text-slate-500 py-2 text-xs font-bold hover:text-slate-800 transition-colors"
+                          className="text-slate-500 py-3 rounded-xl border border-transparent text-xs font-bold hover:bg-slate-50 hover:text-slate-800 transition-colors active:scale-95"
                         >
                           ليس الآن
                         </button>
@@ -587,7 +568,7 @@ const {
               ];
 
               return (
-                 <div className="partner-date-filter-elegant bg-slate-950/78 border border-white/10 text-white backdrop-blur-3xl rounded-full py-0.5 px-1 flex items-center justify-between gap-0.5 pointer-events-auto w-[68%] max-w-[190px] h-7 shadow-[0_10px_24px_rgba(0,0,0,0.62),_inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-visible">
+                 <div className="partner-date-filter-elegant bg-white border border-slate-200 text-slate-900/78 border border-white/10 text-white backdrop-blur-3xl rounded-full py-0.5 px-1 flex items-center justify-between gap-0.5 pointer-events-auto w-[68%] max-w-[190px] h-7 shadow-[0_10px_24px_rgba(0,0,0,0.62),_inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-visible">
                    
                    {options.map((opt) => {
                      const isActive = filter === opt.id;
@@ -633,7 +614,7 @@ const {
               <button
                 type="button"
                 onClick={() => onNavigate('new-invoice')}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-950 text-white shadow-[0_6px_14px_rgba(15,23,42,0.16)] transition-transform hover:-translate-y-0.5 active:scale-95"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-white shadow-[0_6px_14px_rgba(15,23,42,0.16)] transition-transform active:scale-[0.98] active:scale-95"
                 aria-label="فاتورة جديدة"
                 title="فاتورة جديدة"
               >
@@ -642,7 +623,7 @@ const {
               <button
                 type="button"
                 onClick={() => onNavigate('invoices-list')}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100/95 text-slate-800 shadow-[0_5px_12px_rgba(15,23,42,0.08)] transition-transform hover:-translate-y-0.5 active:scale-95"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100/95 text-slate-800 shadow-[0_5px_12px_rgba(15,23,42,0.08)] transition-transform  active:scale-95"
                 aria-label="سجل الفواتير"
                 title="سجل الفواتير"
               >
@@ -658,7 +639,7 @@ const {
 
 
         {/* Stats Grid - Exactly like Admin */}
-        <motion.div layout className="mb-10 bg-white rounded-3xl p-2 md:p-4 border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden relative z-10">
+        <motion.div layout className="mb-10 bg-white rounded-[20px] p-2 md:p-4 border border-slate-200/60 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 hover:-translate-y-[1px] transition-transform overflow-hidden relative z-10 active:scale-[0.995]">
           <button 
             onClick={() => setShowFinancialStats(!showFinancialStats)}
             className="w-full flex items-center justify-between p-3 md:p-0 group outline-none"
@@ -712,30 +693,34 @@ const {
        أدوات الإدارة الذكية <Sparkles size={24} className="text-amber-500" />
        </h3>
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:p-4">
-       <button onClick={() => onNavigate('smart-studio')} className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 border border-indigo-500/20 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-xl relative overflow-hidden outline-none">
-       <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-indigo-600 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
-       <Camera size={32} className="text-indigo-400 mb-4 group-hover:-translate-y-1 transition-transform" />
-       <h3 className="text-lg font-bold text-white mb-2 tracking-tight">استوديو التراث الذكي</h3>
-       <p className="text-[10px] font-bold text-slate-500 leading-relaxed">حوّل صورك لمحتوى احترافى ذكى</p>
+       <button onClick={() => onNavigate('smart-studio')} className="bg-white border border-slate-200/60 p-3 md:p-4 rounded-[20px] text-right flex flex-col items-end group active:scale-[0.98] transition-transform shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 relative overflow-hidden outline-none active:scale-95">
+       <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-3">
+       <Camera size={28} className="group-hover:scale-110 transition-transform" />
+       </div>
+       <h3 className="text-sm font-black text-slate-800 mb-1 tracking-tight">الاستوديو الذكي</h3>
+       <p className="text-[10px] font-bold text-slate-500 leading-relaxed">توليد صور وإعلانات بالذكاء الاصطناعي</p>
        </button>
-       <button onClick={() => setActiveWidget('campaign')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-xl relative overflow-hidden outline-none">
-       <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-rose-500 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
-       <FlaskConical size={32} className="text-rose-400 mb-4 group-hover:-translate-y-1 transition-transform" />
-       <h3 className="text-lg font-bold text-white mb-2 tracking-tight">مختبر الحملات</h3>
+       <button onClick={() => setActiveWidget('campaign')} className="bg-white border border-slate-200/60 p-3 md:p-4 rounded-[20px] text-right flex flex-col items-end group  transition-transform shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 relative overflow-hidden outline-none active:scale-95">
+       <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center mb-3">
+       <FlaskConical size={28} className="group-hover:scale-110 transition-transform" />
+       </div>
+       <h3 className="text-sm font-black text-slate-800 mb-1 tracking-tight">مختبر الحملات</h3>
        <p className="text-[10px] font-bold text-slate-500 leading-relaxed">ابتكر حملات ذكية مبنية على أرصدتك</p>
        </button>
        
-       <button onClick={() => setActiveWidget('forecast')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-xl relative overflow-hidden outline-none">
-       <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-indigo-500 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
-       <LineChartIcon size={32} className="text-indigo-400 mb-4 group-hover:-translate-y-1 transition-transform" />
-       <h3 className="text-lg font-bold text-white mb-2 tracking-tight">التنبؤ المالي</h3>
+       <button onClick={() => setActiveWidget('forecast')} className="bg-white border border-slate-200/60 p-3 md:p-4 rounded-[20px] text-right flex flex-col items-end group hover:-translate-y-1 transition-transform shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 relative overflow-hidden outline-none active:scale-95">
+       <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-3">
+       <LineChartIcon size={28} className="group-hover:scale-110 transition-transform" />
+       </div>
+       <h3 className="text-sm font-black text-slate-800 mb-1 tracking-tight">التنبؤ المالي</h3>
        <p className="text-[10px] font-bold text-slate-500 leading-relaxed">رؤية مستقبلية دقيقة لأداء مبيعاتك</p>
        </button>
       
-       <button onClick={() => setActiveWidget('menu')} className="bg-gradient-to-br from-[#1a1a2e] to-slate-900 border border-slate-800 p-3 md:p-4 rounded-2xl text-right flex flex-col items-end group hover:scale-[1.02] transition-transform shadow-xl relative overflow-hidden outline-none">
-       <div className="absolute -top-3 md:p-4 -left-10 w-32 h-32 bg-emerald-500 opacity-20 blur-3xl group-hover:opacity-40 transition-opacity" />
-       <Layers size={32} className="text-emerald-400 mb-4 group-hover:-translate-y-1 transition-transform" />
-       <h3 className="text-lg font-bold text-white mb-2 tracking-tight">هندسة المنيو الذكية</h3>
+       <button onClick={() => setActiveWidget('menu')} className="bg-white border border-slate-200/60 p-3 md:p-4 rounded-[20px] text-right flex flex-col items-end group hover:-translate-y-1 transition-transform shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 relative overflow-hidden outline-none active:scale-95">
+       <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-3">
+       <Layers size={28} className="group-hover:scale-110 transition-transform" />
+       </div>
+       <h3 className="text-sm font-black text-slate-800 mb-1 tracking-tight">هندسة المنيو الذكية</h3>
        <p className="text-[10px] font-bold text-slate-500 leading-relaxed">تحليل ربحية وشعبية كل صنف</p>
        </button>
 
@@ -754,16 +739,16 @@ const {
        animate={{ opacity: 1 }}
        exit={{ opacity: 0 }}
        onClick={() => setActiveWidget(null)}
-       className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
+       className="absolute inset-0 bg-slate-50 border border-slate-200 text-slate-900/60 backdrop-blur-md"
        />
        <motion.div 
        initial={{ scale: 0.95, opacity: 0, y: 20 }}
        animate={{ scale: 1, opacity: 1, y: 0 }}
        exit={{ scale: 0.95, opacity: 0, y: 20 }}
-       className="bg-slate-50 w-full max-w-5xl rounded-2xl md:rounded-2xl shadow-[0_0_100px_rgba(0,0,0,0.5)] relative z-10 overflow-hidden border border-white/10"
+       className="bg-slate-50 w-full max-w-5xl rounded-[20px] md:rounded-[24px] shadow-[0_2px_24px_rgba(15,23,42,0.08)] relative z-10 overflow-hidden border border-slate-200/60 ring-1 ring-inset ring-slate-900/5"
        >
-       <div className="p-3 md:p-4 md:p-3 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-20">
-       <h2 className="text-xl md:text-2xl font-bold text-slate-800">
+       <div className="p-3 md:p-4 md:p-3 bg-white border-b border-slate-200/60 flex items-center justify-between sticky top-0 z-20">
+       <h2 className="text-sm font-black text-slate-800 tracking-tight">
        {activeWidget === 'campaign' &&"مختبر الحملات التسويقية الذكي"}
        {activeWidget === 'forecast' &&"التنبؤ المستقبلي الخوارزمي"}
        {activeWidget === 'menu' &&"مصفوفة هندسة المنيو الذكية"}
@@ -777,78 +762,86 @@ const {
        {activeWidget === 'campaign' && <MarketingLab data={data} />}
        {activeWidget === 'forecast' && <FutureForecast data={data} />}
        {activeWidget === 'menu' && (
-       <div id="products-matrix-section" className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl p-3 md:p-4 shadow-xl relative overflow-hidden" dir="rtl">
-       <div className="absolute top-0 right-0 w-full h-2 bg-gradient-to-l from-[#0f3460] via-[#e94560] to-[#0f3460]" />
+       <div id="products-matrix-section" className="bg-white rounded-[20px] p-4 md:p-6 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 border border-slate-200/60 relative overflow-hidden" dir="rtl">
+       <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
+       <div>
+       <div className="flex items-center gap-2 text-emerald-500 mb-2">
+       <Layers size={20} />
+       <h4 className="font-black text-xl">مصفوفة هندسة المنيو</h4>
+       </div>
+       <p className="text-slate-500 text-sm font-bold">تحليل ذكي لأصنافك حسب حجم المبيعات وهامش الربح.</p>
+       </div>
+       </div>
        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
        {/* Stars */}
-       <div className="bg-white/5 border border-emerald-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
+       <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-[20px] p-4 md:p-5 relative overflow-hidden group hover:bg-emerald-50 transition-all font-mono">
        <div className="flex items-center justify-between mb-4">
-       <div className="flex items-center gap-2 text-emerald-400">
+       <div className="flex items-center gap-2 text-emerald-600">
        <Sparkles size={20} className="group-hover:animate-spin" />
-       <h4 className="font-bold text-lg">النجوم (Stars)</h4>
+       <h4 className="font-black text-emerald-800 text-lg">النجوم (Stars)</h4>
        </div>
-       <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات عالي + ربح عالي</span>
+       <span className="text-[10px] text-emerald-600/80 font-bold bg-white px-2.5 py-1 rounded-md border border-emerald-100 shadow-sm block w-fit">ربح عالي</span>
        </div>
-       <p className="text-xs text-indigo-100/70 leading-relaxed mb-4">حافظ على الترويج لها ولا تغير جودتها، هي مصدر أرباحك الرئيسي وتقود سمعة المطعم.</p>
+       <p className="text-xs text-emerald-700/80 leading-relaxed mb-4 font-sans font-medium">حافظ على الترويج لها ولا تغير جودتها، هي مصدر أرباحك الرئيسي وتقود سمعة المطعم.</p>
        <div className="flex flex-wrap gap-2">
        {menuEngineering.stars.slice(0, 5).map(s => (
-       <span key={s.product.id} className="text-xs font-bold text-white bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/20 shadow-sm">{s.product.name}</span>
+       <span key={s.product.id} className="text-xs font-bold text-emerald-800 bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-[0_2px_4px_rgba(16,185,129,0.05)] ring-1 ring-inset ring-emerald-900/5">{s.product.name}</span>
       ))}
-       {menuEngineering.stars.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.stars.length === 0 && <span className="text-xs text-emerald-600/60 italic font-sans">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
       
        {/* Plowhorses */}
-       <div className="bg-white/5 border border-amber-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
+       <div className="bg-amber-50/50 border border-amber-100/60 rounded-[20px] p-4 md:p-5 relative overflow-hidden group hover:bg-amber-50 transition-all font-mono">
        <div className="flex items-center justify-between mb-4">
-       <div className="flex items-center gap-2 text-amber-400">
+       <div className="flex items-center gap-2 text-amber-600">
        <Zap size={20} className="group-hover:-translate-x-1 transition-transform" />
-       <h4 className="font-bold text-lg">أحصنة الحرث (Plowhorses)</h4>
+       <h4 className="font-black text-amber-800 text-lg">أحصنة الحرث (Plowhorses)</h4>
        </div>
-       <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات عالي + ربح منخفض</span>
+       <span className="text-[10px] text-amber-600/80 font-bold bg-white px-2.5 py-1 rounded-md border border-amber-100 shadow-sm block w-fit">مستقر</span>
        </div>
-       <p className="text-xs text-indigo-100/70 leading-relaxed mb-4">منتجات محبوبة لكن أرباحها قليلة. ارفع سعرها تدريجياً أو أعد هندسة المكونات لتقليل تكلفتها.</p>
+       <p className="text-xs text-amber-700/80 leading-relaxed mb-4 font-sans font-medium">منتجات محبوبة لكن أرباحها قليلة. ارفع سعرها تدريجياً أو أعد هندسة المكونات لتقليل تكلفتها.</p>
        <div className="flex flex-wrap gap-2">
        {menuEngineering.plowhorses.slice(0, 5).map(s => (
-       <span key={s.product.id} className="text-xs font-bold text-white bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/20 shadow-sm">{s.product.name}</span>
+       <span key={s.product.id} className="text-xs font-bold text-amber-800 bg-white px-3 py-1.5 rounded-lg border border-amber-200 shadow-[0_2px_4px_rgba(245,158,11,0.05)] ring-1 ring-inset ring-amber-900/5">{s.product.name}</span>
       ))}
-       {menuEngineering.plowhorses.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.plowhorses.length === 0 && <span className="text-xs text-amber-600/60 italic font-sans">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
       
        {/* Puzzles */}
-       <div className="bg-white/5 border border-blue-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
+       <div className="bg-indigo-50/50 border border-indigo-100/60 rounded-[20px] p-4 md:p-5 relative overflow-hidden group hover:bg-indigo-50 transition-all font-mono">
        <div className="flex items-center justify-between mb-4">
-       <div className="flex items-center gap-2 text-blue-400">
+       <div className="flex items-center gap-2 text-indigo-600">
        <Search size={20} className="group-hover:scale-110 transition-transform" />
-       <h4 className="font-bold text-lg">الألغاز (Puzzles)</h4>
+       <h4 className="font-black text-indigo-800 text-lg">الألغاز (Puzzles)</h4>
        </div>
-       <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات منخفض + ربح عالي</span>
+       <span className="text-[10px] text-indigo-600/80 font-bold bg-white px-2.5 py-1 rounded-md border border-indigo-100 shadow-sm block w-fit">عالي الربح</span>
        </div>
-       <p className="text-xs text-indigo-100/70 leading-relaxed mb-4">منتجات مربحة جداً لكن مبيعاتها نادرة. أعد صياغة وصفها وضعها في عروض لتنشيطها.</p>
+       <p className="text-xs text-indigo-700/80 leading-relaxed mb-4 font-sans font-medium">منتجات مربحة جداً لكن مبيعاتها نادرة. أعد صياغة وصفها وضعها في عروض لتنشيطها.</p>
        <div className="flex flex-wrap gap-2">
        {menuEngineering.puzzles.slice(0, 5).map(s => (
-       <span key={s.product.id} className="text-xs font-bold text-white bg-blue-500/20 px-3 py-1.5 rounded-lg border border-blue-500/20 shadow-sm">{s.product.name}</span>
+       <span key={s.product.id} className="text-xs font-bold text-indigo-800 bg-white px-3 py-1.5 rounded-lg border border-indigo-200 shadow-[0_2px_4px_rgba(99,102,241,0.05)] ring-1 ring-inset ring-indigo-900/5">{s.product.name}</span>
       ))}
-       {menuEngineering.puzzles.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.puzzles.length === 0 && <span className="text-xs text-indigo-600/60 italic font-sans">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
       
        {/* Turtle */}
-       <div className="bg-white/5 border border-rose-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
+       <div className="bg-rose-50/50 border border-rose-100/60 rounded-[20px] p-4 md:p-5 relative overflow-hidden group hover:bg-rose-50 transition-all font-mono">
        <div className="flex items-center justify-between mb-4">
-       <div className="flex items-center gap-2 text-rose-400">
+       <div className="flex items-center gap-2 text-rose-600">
        <Turtle size={20} className="group-hover:rotate-12 transition-transform" />
-       <h4 className="font-bold text-lg">سلحفاة (Turtles)</h4>
+       <h4 className="font-black text-rose-800 text-lg">سلحفاة (Turtles)</h4>
        </div>
-       <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">حجم مبيعات منخفض + ربح منخفض</span>
+       <span className="text-[10px] text-rose-600/80 font-bold bg-white px-2.5 py-1 rounded-md border border-rose-100 shadow-sm block w-fit">ميت</span>
        </div>
-       <p className="text-xs text-indigo-100/70 leading-relaxed mb-4">تستنزف مساحة وجهداً بلا عائد. فكّر بإزالتها أو تقديمها بأسلوب مختلف كلياً.</p>
+       <p className="text-xs text-rose-700/80 leading-relaxed mb-4 font-sans font-medium">تستنزف مساحة وجهداً بلا عائد. فكّر بإزالتها أو تقديمها بأسلوب مختلف كلياً.</p>
        <div className="flex flex-wrap gap-2">
        {menuEngineering.turtles.slice(0, 5).map(s => (
-       <span key={s.product.id} className="text-xs font-bold text-white bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/20 shadow-sm">{s.product.name}</span>
+       <span key={s.product.id} className="text-xs font-bold text-rose-800 bg-white px-3 py-1.5 rounded-lg border border-rose-200 shadow-[0_2px_4px_rgba(243,33,101,0.05)] ring-1 ring-inset ring-rose-900/5">{s.product.name}</span>
       ))}
-       {menuEngineering.turtles.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.turtles.length === 0 && <span className="text-xs text-rose-600/60 italic font-sans">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
        </div>

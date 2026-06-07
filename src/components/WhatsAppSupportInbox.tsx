@@ -100,7 +100,7 @@ const getConversationActionState = (c?: Conversation | null): ConversationAction
 
 const actionStateClass = (tone: ConversationActionState['tone'], active = false) => {
   if (active) {
-    if (tone === 'danger') return 'bg-rose-500 text-white';
+    if (tone === 'danger') return 'bg-rose-500 text-slate-800';
     if (tone === 'warning') return 'bg-amber-400 text-slate-950';
     if (tone === 'success') return 'bg-emerald-400 text-slate-950';
     if (tone === 'info') return 'bg-sky-400 text-slate-950';
@@ -887,7 +887,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       <div className="mb-4 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div />
         <div className="grid grid-cols-3 gap-3 min-w-[320px]">
-          <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-4"><div className="text-xs text-slate-400">المحادثات</div><div className="text-2xl font-black">{counts.all}</div></div>
+          <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-4"><div className="text-xs text-slate-400">المحادثات</div><div className="text-2xl font-black">{counts.all}</div></div>
           <div className="rounded-3xl bg-amber-50 border border-amber-100 shadow-sm p-4"><div className="text-xs text-amber-600">تحتاج دعم</div><div className="text-2xl font-black text-amber-700">{counts.support}</div></div>
           <div className="rounded-3xl bg-rose-50 border border-rose-100 shadow-sm p-4"><div className="text-xs text-rose-600">غير مقروء</div><div className="text-2xl font-black text-rose-700">{counts.unread}</div></div>
         </div>
@@ -896,7 +896,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       {notice && <div className={cn('mb-4 rounded-2xl border px-4 py-3 text-sm font-black flex items-center gap-2', notice.type === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : notice.type === 'error' ? 'border-rose-100 bg-rose-50 text-rose-700' : 'border-sky-100 bg-sky-50 text-sky-700')}><AlertCircle size={16} /> {notice.text}</div>}
       {error && <div className="mb-4 rounded-2xl border border-rose-100 bg-rose-50 text-rose-700 px-4 py-3 text-sm font-bold">{error}</div>}
       {topSmartDecision && (
-        <section className="mb-4 rounded-[1.7rem] border border-slate-900 bg-slate-950 text-white p-4 shadow-xl overflow-hidden relative">
+        <section className="mb-4 rounded-[1.7rem] border border-slate-900 bg-white border border-slate-200 text-slate-900 text-white p-4 shadow-sm border border-slate-200 overflow-hidden relative">
           <div className="absolute -left-16 -top-16 h-36 w-36 rounded-full bg-emerald-400/20 blur-3xl" />
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="text-right">
@@ -987,7 +987,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                   <div className="mt-2 line-clamp-2 text-xs font-bold leading-5 text-slate-500">{c.lastInboundText || c.lastMessageText || 'محادثة تحتاج متابعة'}</div>
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <span className="text-[10px] font-black text-slate-400">{item.waitingMinutes > 0 ? `ينتظر ${item.waitingMinutes} د` : 'الآن'}</span>
-                    <span className="rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-black text-white">رد جاهز</span>
+                    <span className="rounded-xl bg-slate-50 border border-slate-200 text-slate-900 px-3 py-1.5 text-[11px] font-black text-white">رد جاهز</span>
                   </div>
                 </button>
               );
@@ -1008,7 +1008,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               {[
                 ['all', 'الكل'], ['needs_support', 'دعم'], ['human', 'يدوي'], ['bot', 'بوت'], ['unread', 'جديد']
               ].map(([id, label]) => (
-                <button key={id} onClick={() => setFilter(id as any)} className={cn('rounded-xl px-2 py-2 transition', filter === id ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100')}>{label}</button>
+                <button key={id} onClick={() => setFilter(id as any)} className={cn('rounded-xl px-2 py-2 transition', filter === id ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100')}>{label}</button>
               ))}
             </div>
           </div>
@@ -1019,7 +1019,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               const active = selectedPhone === (c.phone || c.id);
               const slaInfo = getConversationSlaInfo(c, slaNowMs);
               return (
-              <button key={c.phone || c.id} onClick={() => setSelectedPhone(c.phone || c.id)} className={cn('w-full text-right rounded-2xl p-4 border transition group', selectedPhone === (c.phone || c.id) ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white hover:bg-slate-50 border-slate-100')}>
+              <button key={c.phone || c.id} onClick={() => setSelectedPhone(c.phone || c.id)} className={cn('w-full text-right rounded-2xl p-4 border transition group', selectedPhone === (c.phone || c.id) ? 'bg-slate-50 border border-slate-200 text-slate-900 text-white border-slate-900 shadow-md' : 'bg-white hover:bg-slate-50 border-slate-100')}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-black truncate flex items-center gap-2"><UserRound size={16} /> {c.customerName || c.phone}</div>
@@ -1100,7 +1100,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                     <button
                       type="button"
                       onClick={() => applySmartReply(selectedSmartReplies[0])}
-                      className="rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white hover:bg-slate-800 transition"
+                      className="rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 px-4 py-3 text-xs font-black text-white hover:bg-slate-100 transition"
                     >
                       اعتمد أقوى رد
                     </button>
@@ -1135,7 +1135,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                         <Search size={16} className="text-slate-400" />
                         <input value={quickReplySearch} onChange={(e) => setQuickReplySearch(e.target.value)} placeholder="بحث ذكي: دفع، تتبع، اعتذار..." className="bg-transparent outline-none flex-1 text-xs" />
                       </div>
-                      <button onClick={startNewQuickReply} className="shrink-0 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 text-xs font-black flex items-center gap-1"><Plus size={14} /> إضافة</button>
+                      <button onClick={startNewQuickReply} className="shrink-0 rounded-2xl bg-slate-900 hover:bg-slate-50 border border-slate-200 text-slate-800 text-white px-3 py-2 text-xs font-black flex items-center gap-1"><Plus size={14} /> إضافة</button>
                     </div>
                   </div>
 
@@ -1196,7 +1196,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                 </div>
                 <div className="flex flex-col md:flex-row items-stretch md:items-end gap-3">
                   <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply(); }} placeholder="اكتب ردك هنا... Ctrl/⌘ + Enter للإرسال" className="flex-1 min-h-[96px] max-h-56 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 text-sm leading-6" />
-                  <button onClick={() => sendReply()} disabled={sending || !replyText.trim()} className="h-14 md:h-[96px] px-7 rounded-3xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-black shadow-lg shadow-emerald-200 transition flex items-center justify-center gap-2"><Send size={18} /> إرسال</button>
+                  <button onClick={() => sendReply()} disabled={sending || !replyText.trim()} className="h-14 md:h-[96px] px-7 rounded-3xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-black shadow-sm border border-slate-200 shadow-emerald-200 transition flex items-center justify-center gap-2"><Send size={18} /> إرسال</button>
                 </div>
               </div>
             </>

@@ -806,7 +806,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
         }}
       />
 
-      <div className="bg-white border border-slate-200/70 rounded-3xl p-3 md:p-4 shadow-sm text-right">
+      <div className="bg-white border border-slate-200/70 rounded-2xl p-3 md:p-4 shadow-sm text-right">
         <button
           type="button"
           onClick={() => setOpenSmartPanel(openSmartPanel === 'productPulse' ? null : 'productPulse')}
@@ -834,7 +834,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
             {bestProducts.map((p) => (
               <div
                 key={p.id}
-                className="bg-white border border-amber-100/50 p-3 rounded-2xl flex items-center justify-between text-right shadow-sm hover:-translate-y-1 transition-all"
+                className="bg-white border border-amber-100/50 p-3 rounded-2xl flex items-center justify-between text-right shadow-sm active:scale-[0.98] transition-all"
               >
                   <div className="flex flex-col gap-1 w-full pl-2 items-end">
                    <h4 className="font-bold text-slate-800 text-[13px] sm:text-[14px] leading-tight text-right line-clamp-1">{p.name}</h4>
@@ -962,7 +962,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   <button
                     type="button"
                     onClick={addProductCategory}
-                    className="bg-primary text-white px-5 py-3 rounded-2xl font-black text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                    className="bg-primary text-slate-800 px-5 py-3 rounded-2xl font-black text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2"
                   >
                     <Plus size={16} /> إضافة
                   </button>
@@ -1081,7 +1081,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={openAddModal}
-              className="bg-slate-900 text-white px-4 md:px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95"
+              className="bg-slate-50 border border-slate-200 text-slate-900 text-white px-4 md:px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-100 transition-all shadow-sm border border-slate-200 active:scale-95"
             >
               <Plus size={20} />
               <span>إضافة منتج جديد</span>
@@ -1154,7 +1154,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     className={cn(
                       "flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-all text-right ceramic-glint relative overflow-hidden",
                       isOpen
-                        ? "bg-slate-900 text-amber-400 border-slate-950 shadow-lg shadow-slate-900/20"
+                        ? "bg-slate-50 border border-slate-200 text-slate-900 text-amber-400 border-slate-950 shadow-sm border border-slate-200 shadow-slate-200/50"
                         : "bg-slate-50 text-slate-700 border-slate-100/80 hover:border-primary/30 hover:bg-white",
                     )}
                   >
@@ -1204,7 +1204,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
               </p>
               <button
                 onClick={() => setShowModal(true)}
-                className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1"
+                className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-primary/20  transition-all active:scale-95 hover:rotate-1"
               >
                 <Plus size={24} />
                 <span>ابدأ رحلتك وضيف أول منتج الآن!</span>
@@ -1259,7 +1259,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 >
                   {/* FULLY CLIPPED IMAGE CONTAINER WITH SPOTLIGHT LUXURY CONTRAST OVERLAYS */}
                   <div 
-                    className="admin-product-media w-full h-[155px] overflow-hidden relative bg-slate-950 border-b border-slate-800 group/img isolate"
+                    className="admin-product-media w-full h-[155px] overflow-hidden relative bg-white border border-slate-200 text-slate-900 border-b border-slate-800 group/img isolate"
                     style={{ borderRadius: '24px 24px 0 0' }}
                   >
                     {/* Cinematic dark linear & radial gradient spotlight highlights */}
@@ -1322,7 +1322,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                          }}
                          className={cn(
                            "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[10px] font-bold w-8 h-8",
-                           product.isActive !== false ? "bg-slate-700 hover:bg-slate-800 border-slate-600 text-white" : "bg-amber-500 hover:bg-amber-600 border-amber-400 text-white"
+                           product.isActive !== false ? "bg-slate-700 hover:bg-slate-50 border border-slate-200 text-slate-800 border-slate-600 text-white" : "bg-amber-500 hover:bg-amber-600 border-amber-400 text-white"
                          )}
                        >
                          {product.isActive !== false ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -2296,7 +2296,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   disabled={uploading || isSaving}
                   onClick={() => handleSaveProduct(false)}
                   className={cn(
-                    "flex-1 py-4 bg-slate-900 text-white font-bold rounded-2xl transition-all shadow-lg shadow-slate-900/20 active:scale-95",
+                    "flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-slate-900/20 active:scale-95",
                     (uploading || isSaving) && "opacity-50 cursor-not-allowed",
                   )}
                 >

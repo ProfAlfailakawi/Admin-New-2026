@@ -205,7 +205,7 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode
 
   return (
     <section
-      className="w-full max-w-full overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_10px_28px_rgba(15,23,42,0.055)]"
+      className="w-full max-w-full overflow-hidden rounded-[20px] border border-slate-200/60 bg-white shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5"
       dir="rtl"
       aria-label="مركز القيادة"
     >
@@ -219,25 +219,25 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode
             setIsExpanded(!isExpanded);
           }
         }}
-        className="w-full max-w-full p-3.5 md:p-4 text-right flex flex-col gap-3.5 md:flex-row md:items-center md:justify-between bg-gradient-to-l from-white via-slate-50/80 to-amber-50/25 hover:from-slate-50 transition-colors cursor-pointer select-none"
+        className="w-full max-w-full p-3.5 md:p-4 text-right flex flex-col gap-3.5 md:flex-row md:items-center md:justify-between bg-gradient-to-l from-white to-slate-50/50 hover:bg-slate-50 transition-colors cursor-pointer select-none active:scale-[0.995]"
       >
         <div className="min-w-0 flex items-start gap-3 md:gap-4">
-          <div className="shrink-0 w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-700 flex items-center justify-center shadow-sm">
+          <div className="shrink-0 w-10 h-10 md:w-11 md:h-11 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 flex items-center justify-center shadow-sm">
             <Zap size={21} />
           </div>
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-1 text-[11px] font-bold text-slate-700">
                 <Sparkles size={12} /> مركز القيادة
               </span>
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+              <span className="rounded-full bg-slate-50 border border-slate-200/60 px-2.5 py-1 text-[11px] font-semibold text-slate-600 font-mono">
                 {dateFilter === 'day' ? 'اليوم' :
                  dateFilter === 'week' ? 'هذا الأسبوع' :
                  dateFilter === 'month' ? 'هذا الشهر' :
                  dateFilter === 'year' ? 'هذا العام' : 'كل الأوقات'}
               </span>
             </div>
-            <h2 className="text-base md:text-xl font-bold leading-snug text-slate-900 break-words">
+            <h2 className="text-base md:text-xl font-bold leading-snug text-slate-900 break-words tracking-tight">
               {greeting.title}
             </h2>
             <p className="text-xs md:text-sm font-medium leading-7 text-slate-500 break-words">
@@ -245,8 +245,8 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode
             </p>
             <div
               className={cn(
-                "mt-2.5 max-w-4xl rounded-2xl border border-slate-200/80 bg-white/88 px-3 py-2.5 text-right shadow-[0_6px_18px_rgba(15,23,42,0.04)]",
-                !partnerMode && onNavigate ? "cursor-pointer hover:bg-white transition-colors" : "cursor-default"
+                "mt-2.5 max-w-4xl rounded-xl border border-slate-200/60 bg-white/90 px-3 py-2.5 text-right shadow-[0_2px_8px_rgba(15,23,42,0.02)] ring-1 ring-inset ring-slate-900/5",
+                !partnerMode && onNavigate ? "cursor-pointer hover:bg-slate-50 transition-colors active:scale-[0.99]" : "cursor-default"
               )}
               role={!partnerMode && onNavigate ? 'button' : undefined}
               tabIndex={!partnerMode && onNavigate ? 0 : undefined}
@@ -265,71 +265,71 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode
             >
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 text-[11px] font-black text-amber-700">
+                  <div className="flex items-center gap-2 text-[11px] font-black text-slate-700">
                     <Target size={13} /> أولوية الآن
                   </div>
-                  <p className="mt-1 line-clamp-2 text-xs md:text-sm font-extrabold leading-6 text-slate-800">{qualityReport.decision || nowDecision.decision}</p>
+                  <p className="mt-1 line-clamp-2 text-xs md:text-sm font-extrabold leading-6 text-slate-900">{qualityReport.decision || nowDecision.decision}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600"><Gauge size={13} /> جودة المنيو {qualityReport.score}%</span>
-                  {!partnerMode && <span className="rounded-full bg-slate-950 px-3 py-1 text-[11px] font-black text-white">تفاصيل</span>}
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2.5 py-1 text-[11px] font-black text-slate-600 font-mono"><Gauge size={13} /> جودة المنيو {qualityReport.score}%</span>
+                  {!partnerMode && <span className="rounded-full bg-slate-50 border border-slate-200 text-slate-900 px-3 py-1 text-[11px] font-black text-slate-800 hover:bg-slate-100 transition-colors active:scale-95">تفاصيل</span>}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <span className="shrink-0 inline-flex items-center justify-center gap-2 rounded-full border border-slate-200/80 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm md:min-w-[92px]">
+        <span className="shrink-0 inline-flex items-center justify-center gap-2 rounded-full border border-slate-200/60 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm md:min-w-[92px] active:scale-95 transition-transform">
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           {isExpanded ? 'إغلاق' : 'فتح'}
         </span>
       </div>
 
       {isExpanded && (
-        <div className="w-full max-w-full overflow-hidden border-t border-slate-100 bg-slate-50/60 p-3 md:p-4">
-          <div className="mb-3 rounded-2xl border border-slate-200/80 bg-white p-3 md:p-4 shadow-[0_6px_18px_rgba(15,23,42,0.035)]">
+        <div className="w-full max-w-full overflow-hidden border-t border-slate-200/60 bg-slate-50/50 p-3 md:p-5 space-y-4">
+          <div className="rounded-xl border border-slate-200/60 bg-white p-3 md:p-4 shadow-[0_2px_8px_rgba(15,23,42,0.02)] ring-1 ring-inset ring-slate-900/5">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div className="min-w-0 xl:max-w-xl">
                 <div className="flex items-center gap-2 text-xs font-black text-slate-500"><Target size={15} /> الأهم الآن</div>
-                <h3 className="mt-1 text-base font-black text-slate-900 line-clamp-1">{qualityReport.title}</h3>
-                <p className="mt-1 text-sm font-bold leading-7 text-slate-700 line-clamp-2">{qualityReport.action}</p>
+                <h3 className="mt-1 text-base font-black text-slate-900 line-clamp-1 tracking-tight">{qualityReport.title}</h3>
+                <p className="mt-1 text-sm font-bold leading-7 text-slate-600 line-clamp-2">{qualityReport.action}</p>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:min-w-[300px]">
-                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
-                  <div className="text-[10px] font-black text-slate-400">فرصة</div>
+                <div className="rounded-xl bg-slate-50 border border-slate-200/60 p-3">
+                  <div className="text-[10px] font-black text-slate-500">فرصة</div>
                   <div className="mt-1 text-sm font-black text-slate-800 line-clamp-1">{qualityReport.opportunity?.title || 'لا توجد فرصة عاجلة'}</div>
                 </div>
-                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
-                  <div className="text-[10px] font-black text-slate-400">تنبيه</div>
+                <div className="rounded-xl bg-slate-50 border border-slate-200/60 p-3">
+                  <div className="text-[10px] font-black text-slate-500">تنبيه</div>
                   <div className="mt-1 text-sm font-black text-slate-800 line-clamp-1">{qualityReport.risk?.title || 'لا يوجد تنبيه مهم'}</div>
                 </div>
               </div>
               {partnerMode ? (
-                <span className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-[11px] font-black text-white">
+                <span className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-slate-50 border border-slate-200 text-slate-900 px-4 py-2 text-[11px] font-black text-white font-mono">
                   <Gauge size={13} /> جودة المنيو {qualityReport.score}%
                 </span>
               ) : (
                 <button
                   type="button"
                   onClick={() => onNavigate?.('products', { scrollTarget: 'product-quality-board' })}
-                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-[11px] font-black text-white hover:bg-slate-800 transition-colors"
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-[11px] font-black text-white hover:bg-slate-50 border border-slate-200 text-slate-800 transition-all active:scale-95 font-mono"
                 >
                   <Gauge size={13} /> جودة المنيو {qualityReport.score}%
                 </button>
               )}
             </div>
           </div>
-          <div className="grid w-full max-w-full grid-cols-1 gap-3 lg:grid-cols-2">
+          <div className="grid w-full max-w-full grid-cols-1 gap-4 lg:grid-cols-2">
             {brief.map((item, idx) => (
               <div
                 key={idx}
-                className="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-3 md:p-4 shadow-[0_5px_16px_rgba(15,23,42,0.03)]"
+                className="min-w-0 rounded-xl border border-slate-200/60 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.02)] ring-1 ring-inset ring-slate-900/5 hover:-translate-y-[1px] transition-transform"
               >
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className="shrink-0 w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center">
+                <div className="flex min-w-0 items-start gap-4">
+                  <div className="shrink-0 w-10 h-10 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center shadow-sm">
                     {item.icon}
                   </div>
-                  <p className="min-w-0 text-sm md:text-[15px] font-semibold leading-8 text-slate-700 break-words whitespace-normal">
+                  <p className="min-w-0 text-sm md:text-[15px] font-semibold leading-relaxed text-slate-700 break-words whitespace-normal tracking-tight">
                     {item.text}
                   </p>
                 </div>

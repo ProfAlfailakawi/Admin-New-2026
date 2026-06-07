@@ -168,7 +168,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
     { id: 1, name: 'شلة ديوانية', points: '0', label: 'بداية التجمع', color: 'from-orange-400 to-orange-600', bgClass: 'border-orange-200 bg-orange-50/50', iconType: 'Medal' },
     { id: 2, name: 'عزوة', points: '5,000', label: 'خصم 10% ثابت', color: 'from-slate-300 to-slate-500', bgClass: 'border-slate-300 bg-slate-50/50', iconType: 'Star' },
     { id: 3, name: 'نواخذة', points: '10,000', label: 'مقبلات مجانية مع طلبات الشلة', color: 'from-yellow-400 to-amber-600', bgClass: 'border-amber-300 bg-amber-50', iconType: 'Crown' },
-    { id: 4, name: 'شيوخ', points: '15,000', label: 'صينية ضيافة مجانية كل 10 طلبات', color: 'from-purple-500 to-fuchsia-700', bgClass: 'border-purple-300 bg-purple-50 shadow-lg', iconType: 'Trophy' },
+    { id: 4, name: 'شيوخ', points: '15,000', label: 'صينية ضيافة مجانية كل 10 طلبات', color: 'from-purple-500 to-fuchsia-700', bgClass: 'border-purple-300 bg-purple-50 shadow-sm border border-slate-200', iconType: 'Trophy' },
   ];
 
   const parseTierPoints = (value: any) => Number(String(value || '0').replace(/,/g, '')) || 0;
@@ -1185,7 +1185,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   return (
     <div className="space-y-6 pb-20" dir="rtl">
       {/* Header section */}
-      <div className="bg-slate-900 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden shadow-2xl border border-slate-800">
+      <div className="bg-slate-50 border border-slate-200 text-slate-900 rounded-2xl p-6 md:p-8 text-slate-800 relative overflow-hidden shadow-sm border border-slate-200 border border-slate-800">
         <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/20 blur-[100px] rounded-full pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/20 blur-[100px] rounded-full pointer-events-none" />
         
@@ -1392,14 +1392,14 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                        كلما طلبت مجموعة الديوانية أكثر، ارتقوا للمستوى التالي وفتحوا ميزات دائمة. هذا يضمن ولائهم التام وصعوبة انتقالهم لمنافس لأنهم سيفقدون امتيازاتهم التراكمية.
                     </p>
                   </div>
-                  <button onClick={addTier} className="p-2 bg-slate-900 border text-white font-bold rounded-xl text-sm flex items-center gap-2 hover:bg-slate-800 shrink-0">
+                  <button onClick={addTier} className="p-2 bg-slate-50 border border-slate-200 text-slate-900 border text-white font-bold rounded-xl text-sm flex items-center gap-2 hover:bg-slate-100 shrink-0">
                     <Plus size={16} /> إضافة مستوى
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {tiers.map((t, idx) => (
-                    <div id={`tier-${t.id}`} key={t.id} className={`relative p-5 rounded-3xl border-2 transition-all group ${editingTierId === t.id ? 'ring-2 ring-blue-500 border-transparent shadow-md' : 'hover:-translate-y-1'} ${t.bgClass || 'border-slate-200 bg-slate-50/50'}`}>
+                    <div id={`tier-${t.id}`} key={t.id} className={`relative p-5 rounded-3xl border-2 transition-all group ${editingTierId === t.id ? 'ring-2 ring-blue-500 border-transparent shadow-md' : 'active:scale-[0.98]'} ${t.bgClass || 'border-slate-200 bg-slate-50/50'}`}>
                        <div className="absolute top-2 left-2 flex gap-1 z-10">
                          {editingTierId === t.id ? (
                            <button onClick={saveEditTier} className="p-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors tooltip" title="حفظ">
@@ -1438,7 +1438,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                      </span>
                                      <ChevronDown size={14} className="text-slate-400 group-open:rotate-180 transition-transform shrink-0" />
                                    </summary>
-                                   <div className="relative z-[100] mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl p-2 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                                   <div className="relative z-[100] mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-sm border border-slate-200 p-2 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
                                      {tierIconOptions.map((icon) => (
                                        <button
                                          key={icon.value}
@@ -1543,7 +1543,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                     </div>
                     <button 
                       onClick={() => setShowAddSquad(!showAddSquad)} 
-                      className="px-5 py-3 bg-slate-900 text-white font-bold rounded-2xl text-xs hover:bg-slate-800 transition flex items-center justify-center gap-2 shrink-0 shadow-sm"
+                      className="px-5 py-3 bg-indigo-600 text-white font-bold rounded-2xl text-xs hover:bg-slate-50 border border-slate-200 text-slate-800 transition flex items-center justify-center gap-2 shrink-0 shadow-sm"
                     >
                       <Plus size={16} /> إضافة ديوانية
                     </button>
@@ -1814,7 +1814,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
         <AnimatePresence mode="wait">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="max-w-7xl mx-auto space-y-6 text-right">
-              <div className="relative overflow-hidden rounded-[32px] bg-slate-950 text-white border border-slate-800 shadow-2xl p-5 md:p-7">
+              <div className="relative overflow-hidden rounded-[32px] bg-white border border-slate-200 text-slate-900 text-white border border-slate-800 shadow-2xl p-5 md:p-7">
                 <div className="absolute -top-24 -right-24 w-80 h-80 bg-amber-500/20 rounded-full blur-3xl" />
                 <div className="absolute -bottom-28 -left-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
                 <div className="relative z-10 flex flex-col lg:flex-row gap-5 lg:items-center lg:justify-between">
@@ -1905,7 +1905,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       <div className="absolute right-3 top-14 z-[700] w-[150px] sm:w-[180px] rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-md shadow-sm p-2 text-right" dir="rtl">
                         <div className="mb-1.5 flex items-center justify-between gap-1">
                           <span className="text-[10px] font-black text-slate-500">بدون لوكيشن</span>
-                          <span className="rounded-full bg-slate-950 px-2 py-0.5 text-[9px] font-black text-white">{diwaniyaAdminRadar.missingLocation.length}</span>
+                          <span className="rounded-full bg-slate-50 border border-slate-200 text-slate-900 px-2 py-0.5 text-[9px] font-black text-white">{diwaniyaAdminRadar.missingLocation.length}</span>
                         </div>
                         <div className="max-h-[185px] overflow-auto space-y-1 pr-0.5">
                           {visibleMissingLocation.map((sq: any) => (

@@ -18,7 +18,7 @@ export default function LivingHeatmap({ invoices = [] }: { invoices?: any[] }) {
       <img
         src="/maps/kuwait-delivery-map.svg"
         alt="خريطة نبض الطلبات في الكويت"
-        className="w-full rounded-[28px] shadow-xl"
+        className="w-full rounded-[28px] shadow-sm border border-slate-200"
       />
 
       {/* Overlay uses same 1000x1000 viewBox as the SVG. */}

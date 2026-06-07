@@ -108,7 +108,7 @@ No markdown formatting, just pure JSON.`;
   };
 
   return (
-    <div className="bg-white p-6 rounded-3xl border border-slate-200 mt-6 shadow-sm">
+    <div className="bg-white p-6 rounded-2xl border border-slate-200 mt-6 shadow-sm">
       <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
         <Palette className="text-blue-500" />
         الهوية المتغيرة (Adaptive Branding)
@@ -124,7 +124,7 @@ No markdown formatting, just pure JSON.`;
           {activeTheme === 'morning' && (
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-300 blur-3xl opacity-20 rounded-full" />
           )}
-          <Sun className={`w-12 h-12 ml-4 shrink-0 transition-transform duration-700 ${activeTheme === 'morning' ? 'text-amber-500 scale-110' : 'text-slate-300 group-hover:scale-105 group-hover:text-amber-400'}`} />
+          <Sun className={`w-12 h-12 ml-4 shrink-0 transition-transform duration-700 ${activeTheme === 'morning' ? 'text-amber-500 scale-110' : 'text-slate-300 group-active:scale-[0.98] group-hover:text-amber-400'}`} />
           <div className="flex-1">
              <div className="flex justify-between items-center mb-1">
                 <h3 className={`text-lg font-bold ${activeTheme === 'morning' ? 'text-amber-800' : 'text-slate-600'}`}>هوية الصباح</h3>
@@ -137,7 +137,7 @@ No markdown formatting, just pure JSON.`;
         <button 
           disabled={isApplying}
           onClick={() => applyPresetTheme('night')}
-          className={`flex items-center text-right p-4 md:p-6 rounded-2xl border-2 transition-all duration-300 group overflow-hidden relative ${activeTheme === 'night' ? 'border-indigo-400 bg-slate-900 shadow-xl shadow-indigo-900/40' : 'border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50/50'}`}
+          className={`flex items-center text-right p-4 md:p-6 rounded-2xl border-2 transition-all duration-300 group overflow-hidden relative ${activeTheme === 'night' ? 'border-indigo-400 bg-slate-50 border border-slate-200 text-slate-900 shadow-sm border border-slate-200 shadow-indigo-900/40' : 'border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50/50'}`}
         >
           {activeTheme === 'night' && (
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500 blur-3xl opacity-20 rounded-full" />
@@ -145,7 +145,7 @@ No markdown formatting, just pure JSON.`;
           <Moon className={`w-12 h-12 ml-4 shrink-0 transition-transform duration-700 ${activeTheme === 'night' ? 'text-indigo-400 scale-110' : 'text-slate-300 group-hover:scale-105 group-hover:text-indigo-400'}`} />
           <div className="flex-1">
              <div className="flex justify-between items-center mb-1">
-               <h3 className={`text-lg font-bold ${activeTheme === 'night' ? 'text-white' : 'text-slate-600'}`}>هوية المساء</h3>
+               <h3 className={`text-lg font-bold ${activeTheme === 'night' ? 'text-slate-800' : 'text-slate-600'}`}>هوية المساء</h3>
                {activeTheme === 'night' && <div className="px-3 py-1 bg-indigo-500 text-white font-bold rounded-full text-[10px]">مفعل</div>}
              </div>
              <p className={`text-xs leading-relaxed ${activeTheme === 'night' ? 'text-slate-400' : 'text-slate-500'}`}>فخامة، أسود وذهبي، هدوء ورقي.</p>
@@ -254,7 +254,7 @@ No markdown formatting, just pure JSON.`;
                   <div className="flex h-16 rounded-2xl overflow-hidden shadow-inner border border-slate-200">
                     {generatedTheme.colors.map((color, idx) => (
                       <div key={idx} className="flex-1 flex flex-col items-center justify-center text-xs font-mono text-white/90 drop-shadow-md transition-transform hover:scale-110" style={{ backgroundColor: color }}>
-                        <span className="bg-black/20 px-2 py-1 rounded backdrop-blur-sm">{color}</span>
+                        <span className="bg-slate-50 border border-slate-200 text-slate-800/20 px-2 py-1 rounded backdrop-blur-sm">{color}</span>
                       </div>
                     ))}
                   </div>

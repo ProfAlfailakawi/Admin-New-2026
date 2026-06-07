@@ -85,7 +85,7 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  </div>
  <button 
  onClick={() => { resetForm(); setShowModal(true); }}
- className="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 hover:scale-[1.02] transition-all active:scale-95"
+ className="bg-emerald-600 text-slate-800 px-6 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-sm border border-slate-200 shadow-emerald-500/20 hover:scale-[1.02] transition-all active:scale-95"
  >
  <Plus size={20} />
  <span>إضافة تعليق جديد</span>
@@ -101,7 +101,7 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  placeholder="ابحث في محتوى التعليقات..."
  defaultValue={searchTerm}
  onChange={(e) => setSearchTerm(normalizeArabicNumerals(e.target.value))}
- className="w-full bg-white border border-slate-200/60 rounded-3xl py-6 pr-14 pl-6 text-right font-bold text-slate-700 shadow-sm focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all"
+ className="w-full bg-white border border-slate-200/60 rounded-2xl py-6 pr-14 pl-6 text-right font-bold text-slate-700 shadow-sm focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all"
  />
  </div>
  </div>
@@ -114,7 +114,7 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  initial={{ opacity: 0, scale: 0.9 }}
  animate={{ opacity: 1, scale: 1 }}
  exit={{ opacity: 0, scale: 0.9 }}
- className="bg-white p-3 md:p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl transition-all relative group overflow-hidden"
+ className="bg-white p-3 md:p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-sm border border-slate-200 transition-all relative group overflow-hidden"
  >
  <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-bl-[4rem] -z-10 group-hover:bg-emerald-50 transition-colors" />
  
@@ -196,7 +196,7 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  initial={{ opacity: 0 }} 
  animate={{ opacity: 1 }} 
  exit={{ opacity: 0 }} 
- className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-3"
+ className="fixed inset-0 bg-slate-50 border border-slate-200 text-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-3"
  onClick={() => setShowModal(false)}
  >
  <motion.div 
@@ -260,7 +260,7 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  <div className="flex gap-3 pt-4">
  <button 
  type="submit"
- className="flex-1 bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-emerald-600/20 hover:-translate-y-1 transition-all active:scale-95"
+ className="flex-1 bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-emerald-600/20 active:scale-[0.98] transition-all active:scale-95"
  >
  {editingId ? 'تحديث البيانات' : 'حفظ الثناء والأثر'}
  </button>

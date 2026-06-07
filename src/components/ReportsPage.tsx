@@ -150,7 +150,7 @@ const allocateSupplierPaidAmount = (supplyDue: number, deliveryDue: number, paid
 type ReportsDeliveryType = "company" | "standard" | "free" | "special";
 
 const REPORTS_DELIVERY_TYPE_OPTIONS: { id: ReportsDeliveryType; label: string; activeClass: string; badgeClass: string }[] = [
-  { id: "company", label: "توصيل شركة", activeClass: "bg-blue-500 border-blue-500 text-white shadow-blue-100", badgeClass: "bg-blue-50 text-blue-600" },
+  { id: "company", label: "توصيل شركة", activeClass: "bg-blue-500 border-blue-500 text-slate-800 shadow-blue-100", badgeClass: "bg-blue-50 text-blue-600" },
   { id: "standard", label: "توصيل بربح", activeClass: "bg-emerald-500 border-emerald-500 text-white shadow-emerald-100", badgeClass: "bg-emerald-50 text-emerald-600" },
   { id: "free", label: "توصيل مجاني", activeClass: "bg-amber-500 border-amber-500 text-white shadow-amber-100", badgeClass: "bg-amber-50 text-amber-600" },
   { id: "special", label: "توصيل خاص", activeClass: "bg-purple-500 border-purple-500 text-white shadow-purple-100", badgeClass: "bg-purple-50 text-purple-600" },
@@ -1065,7 +1065,7 @@ Alturath.kw`;
               </div>
 
 
-              <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
+              <div className="bg-white rounded-2xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
                 <div className="flex items-center justify-end mb-4 border-b border-slate-100 pb-3 px-1 md:px-2">
                   <span className="text-xs font-black text-slate-700">سجل المعاملات والفواتير</span>
                 </div>
@@ -1179,7 +1179,7 @@ Alturath.kw`;
                                   onClick={() => {
                                     if (onEditInvoice) onEditInvoice("new");
                                   }}
-                                  className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1 mx-auto"
+                                  className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-sm border border-slate-200 shadow-primary/20 active:scale-[0.98] transition-all active:scale-95 hover:rotate-1 mx-auto"
                                 >
                                   <Plus size={24} />
                                   <span>ابدأ رحلتك وضيف أول فاتورة الآن!</span>
@@ -1792,12 +1792,12 @@ Alturath.kw`;
               </div>
 
               {deliveryManagerInvoice && (
-                <div className="fixed inset-0 z-[120] bg-slate-950/45 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
+                <div className="fixed inset-0 z-[120] bg-white border border-slate-200 text-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
                   <motion.div
                     initial={{ opacity: 0, scale: 0.96, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.96, y: 20 }}
-                    className="w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden"
+                    className="w-full max-w-2xl bg-white rounded-[2rem] shadow-sm border border-slate-200 border border-slate-100 overflow-hidden"
                   >
                     <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-4">
                       <button
@@ -1862,7 +1862,7 @@ Alturath.kw`;
                       </button>
                       <button
                         onClick={saveDeliveryManager}
-                        className="h-14 rounded-2xl bg-emerald-600 text-white font-black hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+                        className="h-14 rounded-2xl bg-emerald-600 text-white font-black hover:bg-emerald-700 transition-all shadow-sm border border-slate-200 shadow-emerald-100"
                       >
                         حفظ إدارة التوصيل
                       </button>
