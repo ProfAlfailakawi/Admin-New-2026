@@ -33,6 +33,91 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
   
   const [particles, setParticles] = useState<Particle[]>([]);
   const [showReward, setShowReward] = useState(false);
+  const [saleAlerts, setSaleAlerts] = useState<{ id: number; x: number; y: number; amount: number }[]>([]);
+
+  // Track completed orders to trigger the Arabic sales shockwave
+  const getCompletedCountAndLastAmount = () => {
+    const completed = (data.orders || []).filter(
+      o => o.status === 'completed' || o.status === 'paid' || o.paymentStatus === 'paid' || o.status === 'delivered'
+    );
+    return {
+      count: completed.length,
+      lastAmount: completed[completed.length - 1]?.totalAmount || 0
+    };
+  };
+
+  const initialCompletedInfo = useRef(getCompletedCountAndLastAmount());
+
+  // Function to synthesize a warm, resonant Arabic chime / golden palace bell tone
+  const playArabicBell = () => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const now = ctx.currentTime;
+      
+      // Traditional Arabic modal micro-detuned warm bell harmonics (emphasizing major third key relationships: A, C#, E, G#)
+      const freqs = [329.63, 440.00, 554.37, 659.25, 880.00, 1109.00];
+      const gains = [0.35, 0.40, 0.30, 0.25, 0.15, 0.10];
+      const decays = [1.8, 1.4, 1.2, 0.9, 0.6, 0.4];
+
+      freqs.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        // Use a vintage warm mix of sine and triangle wave shapes
+        osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+        
+        // Dynamic pitch modulation (vibrato/warm detune)
+        osc.detune.setValueAtTime((Math.random() - 0.5) * 8, now);
+        
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(gains[idx] * 0.4, now + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + decays[idx]);
+        
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        osc.start(now);
+        osc.stop(now + decays[idx]);
+      });
+    } catch (e) {
+      console.warn("Failed to play dynamic Arabesque chime sound:", e);
+    }
+  };
+
+  const triggerSaleShockwave = (amount: number) => {
+    let x = window.innerWidth / 2;
+    let y = window.innerHeight / 2;
+    if (orbRef.current) {
+      const rect = orbRef.current.getBoundingClientRect();
+      x = rect.left + rect.width / 2;
+      y = rect.top + rect.height / 2;
+    }
+    
+    const newAlert = {
+      id: Date.now() + Math.random(),
+      x,
+      y,
+      amount
+    };
+    setSaleAlerts(prev => [...prev, newAlert]);
+    playArabicBell();
+    
+    setTimeout(() => {
+      setSaleAlerts(prev => prev.filter(a => a.id !== newAlert.id));
+    }, 5000);
+  };
+
+  useEffect(() => {
+    const currentCompleted = getCompletedCountAndLastAmount();
+    // Fire only if the count of completed/paid orders has actually increased
+    if (currentCompleted.count > initialCompletedInfo.current.count) {
+      triggerSaleShockwave(currentCompleted.lastAmount);
+    }
+    initialCompletedInfo.current = currentCompleted;
+  }, [data.orders]);
 
   useEffect(() => {
     if (showTooltip) {
@@ -278,6 +363,113 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
                 </div>
               </motion.div>
             )}
+          </AnimatePresence>
+
+          {/* Sale Alert Overlay with Shockwaves */}
+          <AnimatePresence>
+            {saleAlerts.map((alert) => (
+              <div key={alert.id} className="fixed inset-0 pointer-events-none z-[99999]">
+                {/* Wave 1: Golden-Amber Shockwave */}
+                <motion.div
+                  initial={{ x: alert.x, y: alert.y, scale: 0, opacity: 1 }}
+                  animate={{
+                    scale: 35,
+                    opacity: 0,
+                  }}
+                  transition={{ duration: 2.2, ease: "easeOut" }}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-amber-400 bg-radial-gradient from-amber-400/10 via-transparent to-transparent shadow-[0_0_80px_rgba(245,158,11,0.35)]"
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    left: alert.x,
+                    top: alert.y
+                  }}
+                />
+
+                {/* Wave 2: Purple-Cosmic Shockwave */}
+                <motion.div
+                  initial={{ x: alert.x, y: alert.y, scale: 0, opacity: 0.8 }}
+                  animate={{
+                    scale: 45,
+                    opacity: 0,
+                  }}
+                  transition={{ duration: 2.6, delay: 0.15, ease: "easeOut" }}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-[2px] border-purple-500 bg-radial-gradient from-purple-500/10 via-transparent to-transparent shadow-[0_0_65px_rgba(168,85,247,0.25)]"
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    left: alert.x,
+                    top: alert.y
+                  }}
+                />
+
+                {/* Wave 3: Inner golden ripple */}
+                <motion.div
+                  initial={{ x: alert.x, y: alert.y, scale: 0, opacity: 1 }}
+                  animate={{
+                    scale: 20,
+                    opacity: 0
+                  }}
+                  transition={{ duration: 1.3, ease: "easeOut" }}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-yellow-300 bg-transparent shadow-[0_0_30px_rgba(253,224,71,0.4)]"
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    left: alert.x,
+                    top: alert.y
+                  }}
+                />
+
+                {/* Ambient flash */}
+                <motion.div
+                  initial={{ opacity: 0.25 }}
+                  animate={{ opacity: 0 }}
+                  transition={{ duration: 1.2 }}
+                  className="absolute inset-0 bg-gradient-to-tr from-amber-400/5 via-purple-950/10 to-transparent backdrop-blur-[0.5px]"
+                />
+
+                {/* Floating Banner */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
+                  animate={{
+                    opacity: [0, 1, 1, 1, 0],
+                    y: ["-50%", "-50%", "-50%", "-50%", "-55%"],
+                    scale: [0.9, 1.05, 1, 1, 0.95]
+                  }}
+                  transition={{
+                    times: [0, 0.15, 0.25, 0.85, 1],
+                    duration: 4.5,
+                    ease: "easeInOut"
+                  }}
+                  style={{ left: "50%", top: "50%" }}
+                  className="absolute pointer-events-auto flex flex-col items-center justify-center p-8 rounded-3xl bg-slate-950/95 border-2 border-amber-400 shadow-[0_25px_80px_rgba(245,158,11,0.4)] backdrop-blur-2xl text-center min-w-[320px] max-w-sm"
+                >
+                  <div className="absolute -top-3.5 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-[10px] font-black px-6 py-1 rounded-full shadow-[0_8px_20px_rgba(245,158,11,0.3)] tracking-widest">
+                    ✦ مبيعات جديدة دخلت الخزينة ✦
+                  </div>
+
+                  <div className="w-14 h-14 rounded-full bg-amber-500/10 border-2 border-amber-400 flex items-center justify-center mb-3 mt-1 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                    <motion.span 
+                      animate={{ scale: [1, 1.2, 1] }} 
+                      transition={{ repeat: Infinity, duration: 1.5 }}
+                      className="text-2xl"
+                    >
+                      💰
+                    </motion.span>
+                  </div>
+
+                  <h3 className="text-sm font-black text-white/70 mb-0.5 animate-pulse">تفاصيل العملية الناجحة</h3>
+                  
+                  <div className="text-3xl font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent drop-shadow mb-1 font-mono" dir="rtl">
+                    {alert.amount.toLocaleString('en-US', { minimumFractionDigits: 3 })} د.ك
+                  </div>
+
+                  <p className="text-[10px] font-bold text-amber-200/80 leading-5">
+                    تم تحديث الخزينة بنجاح ونقش العملية الرقمية في قواميس التراث
+                  </p>
+                </motion.div>
+              </div>
+            ))}
           </AnimatePresence>
 
           {/* Tooltip */}

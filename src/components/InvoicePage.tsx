@@ -186,15 +186,24 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
 
     const [searchQuery, setSearchQuery] = useState("");
 
+    const isDeliveryCompanyEntity = (supplier: any) => supplier?.supplierType === 'delivery';
+    const isFoodSupplierDelivering = (supplier: any) => supplier?.supplierType !== 'delivery' && supplier?.deliverySettlement === 'supplier';
+    const getEligibleDeliveryEntities = () => (data?.suppliers || []).filter((s: any) => isDeliveryCompanyEntity(s) || isFoodSupplierDelivering(s));
+    const getDeliveryEntityLabel = (supplier: any) => isDeliveryCompanyEntity(supplier) ? 'شركة توصيل' : 'مورد يوصل طلباته';
+
+
     const applyDeliverySettlementFromSupplier = (supplier: any) => {
       if (!supplier) return;
-      setDeliveryType('company');
-      const supplierDelivers = supplier.supplierType !== 'delivery' && (supplier.deliverySettlement || 'delivery_company') === 'supplier';
-      if (supplierDelivers || supplier.supplierType === 'delivery') {
+      const supplierDelivers = isFoodSupplierDelivering(supplier);
+      if (supplierDelivers || isDeliveryCompanyEntity(supplier)) {
+        setDeliveryType('company');
         setDeliveryCompany(supplier.name || '');
         setDeliverySettlementSupplierId(String(supplier.id || ''));
-        setDeliverySettlementTarget(supplier.supplierType === 'delivery' ? 'delivery_company' : 'supplier');
-      } else if (!deliverySettlementSupplierId) {
+        setDeliverySettlementTarget(isDeliveryCompanyEntity(supplier) ? 'delivery_company' : 'supplier');
+        return;
+      }
+
+      if (!deliverySettlementSupplierId || String(deliverySettlementSupplierId) === String(supplier.id || '')) {
         setDeliveryCompany('');
         setDeliverySettlementSupplierId('');
         setDeliverySettlementTarget('delivery_company');
@@ -204,14 +213,22 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
     const pickDeliverySettlementEntity = (supplierId: string) => {
       const supplier = (data.suppliers || []).find((s: any) => String(s.id) === String(supplierId));
       if (!supplier) {
+        setDeliveryCompany('');
         setDeliverySettlementTarget('heritage');
         setDeliverySettlementSupplierId('');
+        return;
+      }
+      if (!isDeliveryCompanyEntity(supplier) && !isFoodSupplierDelivering(supplier)) {
+        toast.warning('هذا المورد لا يوصل', { description: 'اختر شركة توصيل أو مورداً مفعلاً له خيار التوصيل.' });
+        setDeliveryCompany('');
+        setDeliverySettlementSupplierId('');
+        setDeliverySettlementTarget('delivery_company');
         return;
       }
       setDeliveryType('company');
       setDeliveryCompany(supplier.name || '');
       setDeliverySettlementSupplierId(String(supplier.id || ''));
-      setDeliverySettlementTarget(supplier.supplierType === 'delivery' ? 'delivery_company' : 'supplier');
+      setDeliverySettlementTarget(isDeliveryCompanyEntity(supplier) ? 'delivery_company' : 'supplier');
     };
 
     const syncDeliveryCompanyFromCart = (nextCart: Record<string, any>) => {
@@ -806,6 +823,12 @@ Alturath.kw`;
         ? subtotal * (discountValue / 100)
         : discountValue;
     const totalValue = Math.max(0, subtotal + deliveryFee - discountAmount);
+    const selectedDeliveryEntity = (data?.suppliers || []).find((s: any) => String(s.id) === String(deliverySettlementSupplierId));
+    const cartSupplyCost = cartItems.reduce((sum, it) => sum + (Number(it.costAtTime || it.product?.cost || 0) * Number(it.qty || 1)), 0);
+    const deliverySettlementText = selectedDeliveryEntity
+      ? `${selectedDeliveryEntity.name} — ${getDeliveryEntityLabel(selectedDeliveryEntity)}`
+      : 'لم يتم اختيار جهة توصيل من الموردين';
+
 
     const handleCreateInvoice = async () => {
       if (isNewCustomer && normalizePhoneDigits(customerPhone).length !== 8) {
@@ -1513,14 +1536,28 @@ Alturath.kw`;
                     onChange={(e) => pickDeliverySettlementEntity(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-right text-xs font-bold focus:ring-2 focus:ring-primary/10 outline-none transition-all"
                   >
-                    <option value="">اختر شركة أو مورد التوصيل</option>
-                    {(data.suppliers || []).map((s: any) => (
+                    <option value="">اختر شركة توصيل أو مورداً يوصل</option>
+                    {getEligibleDeliveryEntities().map((s: any) => (
                       <option key={s.id} value={s.id}>
-                        {s.name} {s.supplierType === 'delivery' ? '— شركة توصيل' : '— مورد'}
+                        {s.name} — {getDeliveryEntityLabel(s)}
                       </option>
                     ))}
                   </select>
-                  <p className="mt-1 text-[10px] font-bold text-slate-400 leading-5 text-right">يظهر تلقائيًا اسم المورد إذا كان يوصل، وتقدر تبدله هنا عند الحاجة.</p>
+                  <p className="mt-1 text-[10px] font-bold text-slate-400 leading-5 text-right">لا يظهر هنا أي مورد تم تحديده بأنه لا يوصل. يظهر فقط: شركة توصيل، أو مورد أكل مفعّل له خيار التوصيل.</p>
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="bg-white border border-slate-100 rounded-2xl p-3 text-right shadow-sm">
+                      <div className="text-[9px] font-black text-slate-400 mb-1">توريد المنتجات</div>
+                      <div className="text-sm font-black text-slate-900" dir="ltr">{cartSupplyCost.toFixed(3)} د.ك</div>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-100 rounded-2xl p-3 text-right shadow-sm">
+                      <div className="text-[9px] font-black text-blue-500 mb-1">مبلغ التوصيل</div>
+                      <div className="text-sm font-black text-blue-700" dir="ltr">{Number(deliveryFee || 0).toFixed(3)} د.ك</div>
+                    </div>
+                    <div className="bg-slate-900 text-white rounded-2xl p-3 text-right shadow-sm">
+                      <div className="text-[9px] font-black text-white/60 mb-1">جهة التوصيل</div>
+                      <div className="text-[10px] font-black leading-5">{deliverySettlementText}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
               )}

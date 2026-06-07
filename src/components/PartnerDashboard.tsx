@@ -836,12 +836,12 @@ const {
        </AnimatePresence>
       
        {/* Partner Action Cards */}
-       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
        <motion.button
        type="button"
        whileHover={{ y: -4 }}
        whileTap={{ scale: 0.98 }}
-       className="partner-action-card partner-action-card-primary group"
+       className="partner-action-card partner-action-card-primary group hidden"
        onClick={() => onNavigate('orders')}
        >
          <div className="partner-action-icon bg-indigo-50 text-indigo-700 border-indigo-100">
