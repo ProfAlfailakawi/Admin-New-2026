@@ -4587,3 +4587,311 @@ html body .login-brand-stage h1 {
     margin-right: 0 !important;
   }
 }
+
+/* Final admin responsive audit layer: visual CSS only */
+.admin-heritage-shell,
+.admin-heritage-shell main,
+.admin-heritage-shell .admin-experience-stack,
+.admin-heritage-shell .admin-content-polish {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.admin-heritage-shell :is(p, span, strong, small, b, label, h1, h2, h3, h4, td, th, button) {
+  word-break: normal !important;
+  overflow-wrap: anywhere;
+  letter-spacing: 0 !important;
+}
+
+.admin-heritage-shell :is(button, a[role="button"], [role="button"]) {
+  min-height: 44px;
+}
+
+.admin-heritage-shell :is([class*="bg-slate-9"], [class*="bg-black"], [class*="from-slate-9"], [class*="to-slate-9"], .glass-dark, .cinematic-spotlight-card)
+  :is([class*="text-slate-500"], [class*="text-slate-400"], [class*="text-white/40"], [class*="text-white/50"], [class*="text-white/60"]) {
+  color: #dbeafe !important;
+}
+
+.admin-heritage-shell :is([class*="bg-slate-9"], [class*="bg-black"], [class*="from-slate-9"], [class*="to-slate-9"], .glass-dark, .cinematic-spotlight-card)
+  :is(p, span, small, label) {
+  text-shadow: none !important;
+}
+
+@media (max-width: 900px) {
+  .admin-heritage-shell .smart-notifications-popover {
+    position: fixed !important;
+    inset-inline: 0.65rem !important;
+    top: calc(3.75rem + env(safe-area-inset-top)) !important;
+    width: auto !important;
+    max-width: none !important;
+    transform-origin: top center !important;
+  }
+
+  .admin-heritage-shell main {
+    overflow-x: hidden !important;
+  }
+
+  .admin-heritage-shell main > div,
+  .admin-heritage-shell main [class*="px-4"],
+  .admin-heritage-shell main [class*="md:px-6"] {
+    max-width: 100% !important;
+  }
+
+  .admin-heritage-shell .admin-page-hero {
+    grid-template-columns: 1fr !important;
+    padding: 0.95rem !important;
+    border-radius: 1.35rem !important;
+  }
+
+  .admin-heritage-shell .admin-page-kicker {
+    max-width: 100%;
+    width: fit-content;
+    white-space: normal !important;
+    line-height: 1.5 !important;
+  }
+
+  .admin-heritage-shell .panel-head,
+  .admin-heritage-shell .smart-panel-toggle {
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+
+  .admin-heritage-shell .panel-head {
+    flex-wrap: wrap !important;
+  }
+
+  .admin-heritage-shell .smart-panel-toggle {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    width: 100% !important;
+  }
+
+  .admin-heritage-shell .toggle-pill,
+  .admin-heritage-shell .panel-head button {
+    min-width: 44px !important;
+    white-space: normal !important;
+    text-align: center !important;
+  }
+
+  .admin-heritage-shell .flex.overflow-x-auto:has(> [class*="min-w-[140px]"]) {
+    flex-wrap: wrap !important;
+    overflow-x: hidden !important;
+    margin-inline: 0 !important;
+    padding-inline: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .admin-heritage-shell [class*="min-w-[140px]"] {
+    min-width: calc(50% - 0.4rem) !important;
+    flex: 1 1 calc(50% - 0.4rem) !important;
+  }
+
+  .admin-heritage-shell [class*="min-w-[140px]"] > div {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .admin-heritage-shell .overflow-x-auto:has(table[class*="min-w-"]) {
+    overflow-x: visible !important;
+    max-width: 100% !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .admin-heritage-shell table[class*="min-w-"] {
+    min-width: 0 !important;
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 0.72rem !important;
+  }
+
+  .admin-heritage-shell table[class*="min-w-"] thead {
+    display: none !important;
+  }
+
+  .admin-heritage-shell table[class*="min-w-"] tbody {
+    display: grid !important;
+    gap: 0.72rem !important;
+    width: 100% !important;
+  }
+
+  .admin-heritage-shell table[class*="min-w-"] tr {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    padding: 0.78rem !important;
+    border: 1px solid rgba(226, 232, 240, 0.95) !important;
+    border-radius: 1.1rem !important;
+    background: #fff !important;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06) !important;
+  }
+
+  .admin-heritage-shell table[class*="min-w-"] td,
+  .admin-heritage-shell table[class*="min-w-"] th {
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.7rem !important;
+    padding: 0.45rem 0 !important;
+    text-align: right !important;
+    border: 0 !important;
+  }
+
+  .admin-heritage-shell table[class*="min-w-"] td > *,
+  .admin-heritage-shell table[class*="min-w-"] th > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .admin-heritage-shell table[class*="min-w-"] td :is(.flex, [class*="inline-flex"]) {
+    flex-wrap: wrap !important;
+  }
+
+  .admin-heritage-shell table[class*="min-w-"] button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-heritage-shell main {
+    padding-inline: 0.55rem !important;
+  }
+
+  .admin-heritage-shell main > div[class*="px-4"] {
+    padding-inline: 0.15rem !important;
+  }
+
+  .admin-heritage-shell header {
+    gap: 0.35rem !important;
+    padding-inline: 0.55rem !important;
+  }
+
+  .admin-heritage-shell header .flex {
+    min-width: 0 !important;
+  }
+
+  .admin-heritage-shell [class*="min-w-[140px]"] {
+    min-width: 100% !important;
+    flex-basis: 100% !important;
+  }
+
+  .admin-heritage-shell .customer-intel-card,
+  .admin-heritage-shell .supplier-radar-card,
+  .admin-heritage-shell .product-score-card,
+  .admin-heritage-shell .coupon-ticket {
+    grid-template-columns: 1fr !important;
+    align-items: flex-start !important;
+  }
+
+  .admin-heritage-shell .product-score-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-heritage-shell .ai-decision-deck {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0.55rem !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .admin-heritage-shell .ai-decision-deck button {
+    min-width: 0 !important;
+    width: 100% !important;
+    min-height: 68px !important;
+    padding: 0.75rem !important;
+  }
+
+  .admin-heritage-shell .ai-decision-deck strong {
+    -webkit-line-clamp: 3 !important;
+    white-space: normal !important;
+  }
+
+  .admin-heritage-shell .ai-mission-strip {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
+  }
+
+  .admin-heritage-shell .ai-mission-card {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .admin-heritage-shell .ai-mission-card div span {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
+  .admin-heritage-shell .ai-suggestion-grid,
+  .admin-heritage-shell .ai-action-row {
+    flex-wrap: wrap !important;
+    overflow-x: hidden !important;
+  }
+
+  .admin-heritage-shell .ai-suggestion-chip,
+  .admin-heritage-shell .ai-action-row button {
+    white-space: normal !important;
+    min-width: 0 !important;
+  }
+
+  .admin-heritage-shell .ai-executive-assistant-shell {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .admin-heritage-shell .ai-executive-console {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .admin-heritage-shell .ai-chat-row.is-assistant .ai-chat-bubble,
+  .admin-heritage-shell .ai-chat-row.is-user .ai-chat-bubble {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .admin-heritage-shell [class*="-right-24"],
+  .admin-heritage-shell [class*="-left-20"] {
+    max-width: 100% !important;
+    opacity: 0.45 !important;
+    pointer-events: none !important;
+  }
+
+  .admin-heritage-shell .admin-content-polish:has(.ai-executive-assistant-shell),
+  .admin-heritage-shell .admin-content-polish:has([class*="studio" i]) {
+    overflow: hidden !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-heritage-shell .ai-suggestion-grid,
+  .admin-heritage-shell .ai-action-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+  }
+
+  .admin-heritage-shell .ai-suggestion-chip,
+  .admin-heritage-shell .ai-action-row button {
+    white-space: normal !important;
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+  }
+
+  .admin-heritage-shell [class*="-right-24"][class*="blur-3xl"],
+  .admin-heritage-shell [class*="-left-20"][class*="blur-3xl"] {
+    display: none !important;
+  }
+}
