@@ -351,14 +351,51 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
            );
          })}
 
-         {/* Traditional Arabic cardinal titles with high contrast drop shadows */}
-         <text x="160" y="32" fill="url(#goldGradient)" fontSize="11" fontWeight="950" textAnchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.9))">الشمال</text>
-         <text x="160" y="296" fill="url(#goldGradient)" fontSize="11" fontWeight="950" textAnchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.9))">الجنوب</text>
-         <text x="286" y="164" fill="url(#goldGradient)" fontSize="11" fontWeight="950" textAnchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.9))">الشرق</text>
-         <text x="34" y="164" fill="url(#goldGradient)" fontSize="11" fontWeight="950" textAnchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.9))">الغرب</text>
+         {/* Traditional Arabic cardinal titles rendered with HTML to preserve Arabic shaping */}
+         {[
+           { x: 126, y: 18, label: 'الشمال' },
+           { x: 126, y: 282, label: 'الجنوب' },
+           { x: 252, y: 150, label: 'الشرق' },
+           { x: 0, y: 150, label: 'الغرب' },
+         ].map((dir) => (
+           <foreignObject key={dir.label} x={dir.x} y={dir.y} width="68" height="24">
+             <div xmlns="http://www.w3.org/1999/xhtml" dir="rtl" style={{
+               width: '68px',
+               height: '24px',
+               display: 'flex',
+               alignItems: 'center',
+               justifyContent: 'center',
+               color: '#d4af37',
+               fontSize: '11px',
+               fontWeight: 950,
+               lineHeight: 1,
+               textShadow: '0 2px 4px rgba(0,0,0,0.9)',
+               fontFamily: 'inherit',
+               whiteSpace: 'nowrap',
+             }}>
+               {dir.label}
+             </div>
+           </foreignObject>
+         ))}
 
          {/* Compass center title */}
-         <text x="160" y="222" fill="rgba(212, 175, 55, 0.25)" fontSize="10" fontWeight="bold" textAnchor="middle" letterSpacing="2">ديرة الأجهزة</text>
+         <foreignObject x="106" y="210" width="108" height="26">
+           <div xmlns="http://www.w3.org/1999/xhtml" dir="rtl" style={{
+             width: '108px',
+             height: '26px',
+             display: 'flex',
+             alignItems: 'center',
+             justifyContent: 'center',
+             color: 'rgba(212, 175, 55, 0.45)',
+             fontSize: '10px',
+             fontWeight: 900,
+             letterSpacing: '0px',
+             fontFamily: 'inherit',
+             whiteSpace: 'nowrap',
+           }}>
+             ديرة الأجهزة
+           </div>
+         </foreignObject>
        </svg>
 
        {/* Interactive Nodes */}

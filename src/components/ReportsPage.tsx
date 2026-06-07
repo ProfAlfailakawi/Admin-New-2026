@@ -103,6 +103,59 @@ const getInvoiceAddress = (inv: any, customerObj?: any): string => {
   return "";
 };
 
+const getSupplierDeliverySettlementAmountForReport = (inv: any, supplierId: string, data: AppState): number => {
+  const info = inv?.deliveryInfo || {};
+  const target = info.settlementTarget || inv?.deliverySettlementTarget;
+  const value = Number(info.cost ?? inv?.deliveryCost ?? info.finalPrice ?? inv?.deliveryFee ?? 0) || 0;
+  if (value <= 0) return 0;
+  const supplier = (data?.suppliers || []).find((s: any) => String(s.id) === String(supplierId));
+  if (!supplier) return 0;
+  const isDeliveryCompany = (supplier as any).supplierType === 'delivery';
+  const isFoodSupplierDelivering = !isDeliveryCompany && (supplier as any).deliverySettlement === 'supplier';
+  if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
+  const invoiceHasSupplierProduct = (inv?.items || []).some((item: any) => {
+    const product = (data?.products || []).find((p: any) => String(p.id) === String(item.productId));
+    return String(product?.supplierId || '') === String(supplierId);
+  });
+  const explicitSupplierId = String(info.settlementSupplierId || inv?.deliverySettlementSupplierId || '');
+  const supplierName = String(supplier?.name || '').trim();
+  const explicitName = String(info.settlementSupplierName || info.company || inv?.deliveryCompany || '').trim();
+  const matchesSupplier = explicitSupplierId === String(supplierId)
+    || (!!supplierName && explicitName === supplierName);
+  const hasNoExplicitSettlement = !target && !explicitSupplierId && !explicitName;
+  if (isDeliveryCompany) {
+    if (target && target !== 'delivery_company') return 0;
+    return matchesSupplier ? Math.round(value * 1000) / 1000 : 0;
+  }
+  if (isFoodSupplierDelivering) {
+    if (target && target !== 'supplier') return 0;
+    return (matchesSupplier || (hasNoExplicitSettlement && invoiceHasSupplierProduct)) ? Math.round(value * 1000) / 1000 : 0;
+  }
+  return 0;
+};
+
+const allocateSupplierPaidAmount = (supplyDue: number, deliveryDue: number, paid: number) => {
+  const safePaid = Math.max(0, Number(paid || 0));
+  const paidToSupply = Math.min(safePaid, Math.max(0, Number(supplyDue || 0)));
+  const paidToDelivery = Math.min(Math.max(safePaid - paidToSupply, 0), Math.max(0, Number(deliveryDue || 0)));
+  return {
+    paidToSupply,
+    paidToDelivery,
+    remainingSupply: Math.max(0, Number(supplyDue || 0) - paidToSupply),
+    remainingDelivery: Math.max(0, Number(deliveryDue || 0) - paidToDelivery),
+  };
+};
+
+
+type ReportsDeliveryType = "company" | "standard" | "free" | "special";
+
+const REPORTS_DELIVERY_TYPE_OPTIONS: { id: ReportsDeliveryType; label: string; activeClass: string; badgeClass: string }[] = [
+  { id: "company", label: "توصيل شركة", activeClass: "bg-blue-500 border-blue-500 text-white shadow-blue-100", badgeClass: "bg-blue-50 text-blue-600" },
+  { id: "standard", label: "توصيل بربح", activeClass: "bg-emerald-500 border-emerald-500 text-white shadow-emerald-100", badgeClass: "bg-emerald-50 text-emerald-600" },
+  { id: "free", label: "توصيل مجاني", activeClass: "bg-amber-500 border-amber-500 text-white shadow-amber-100", badgeClass: "bg-amber-50 text-amber-600" },
+  { id: "special", label: "توصيل خاص", activeClass: "bg-purple-500 border-purple-500 text-white shadow-purple-100", badgeClass: "bg-purple-50 text-purple-600" },
+];
+
 interface ReportsPageProps {
   data: AppState;
   setData: React.Dispatch<React.SetStateAction<AppState>>;
@@ -257,6 +310,9 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       null,
     );
     const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+    const [deliveryManagerInvoice, setDeliveryManagerInvoice] = useState<Invoice | null>(null);
+    const [deliveryManagerType, setDeliveryManagerType] = useState<ReportsDeliveryType>("company");
+    const [deliveryManagerSupplierId, setDeliveryManagerSupplierId] = useState("");
     const [timeFilter, setTimeFilter] = useState<
       "all" | "today" | "week" | "month" | "custom"
     >("all");
@@ -352,6 +408,111 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         return b.id.localeCompare(a.id);
       });
 
+    const supplierFinancialRows = React.useMemo(() => {
+      return (data?.suppliers || []).map((supplier: any) => {
+        let supplyDue = 0;
+        let deliveryDue = 0;
+        activeInvoices.forEach((inv: any) => {
+          (inv.items || []).forEach((item: any) => {
+            const product = (data?.products || []).find((p: any) => p.id === item.productId);
+            if (String(product?.supplierId || '') !== String(supplier.id)) return;
+            const qty = Number(item.quantity ?? item.qty ?? 1) || 1;
+            const cost = Number(item.costAtTime ?? product?.cost ?? 0) || 0;
+            supplyDue += cost * qty;
+          });
+          deliveryDue += getSupplierDeliverySettlementAmountForReport(inv, supplier.id, data);
+        });
+        const paid = (data?.supplierTransfers || [])
+          .filter((t: any) => String(t.supplierId) === String(supplier.id))
+          .reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
+        const allocation = allocateSupplierPaidAmount(supplyDue, deliveryDue, paid);
+        const totalDue = supplyDue + deliveryDue;
+        const balance = Math.max(0, totalDue - paid);
+        return { supplier, supplyDue, deliveryDue, totalDue, paid, balance, ...allocation };
+      }).filter((row: any) => row.totalDue > 0 || row.paid > 0 || row.balance > 0)
+        .sort((a: any, b: any) => b.balance - a.balance || b.totalDue - a.totalDue);
+    }, [data, activeInvoices]);
+
+    const supplierReportTotals = React.useMemo(() => supplierFinancialRows.reduce((acc: any, row: any) => ({
+      supplyDue: acc.supplyDue + row.supplyDue,
+      deliveryDue: acc.deliveryDue + row.deliveryDue,
+      totalDue: acc.totalDue + row.totalDue,
+      paid: acc.paid + row.paid,
+      balance: acc.balance + row.balance,
+    }), { supplyDue: 0, deliveryDue: 0, totalDue: 0, paid: 0, balance: 0 }), [supplierFinancialRows]);
+
+    const isDeliveryCompanyEntity = (supplier: any) => supplier?.supplierType === 'delivery';
+    const isFoodSupplierDelivering = (supplier: any) => supplier?.supplierType !== 'delivery' && supplier?.deliverySettlement === 'supplier';
+    const getEligibleDeliveryEntities = () => (data?.suppliers || []).filter((s: any) => isDeliveryCompanyEntity(s) || isFoodSupplierDelivering(s));
+    const getDeliveryEntityLabel = (supplier: any) => isDeliveryCompanyEntity(supplier) ? 'شركة توصيل فقط' : 'مورد يوصل طلباته';
+    const getDeliveryTypeMeta = (type?: string) => REPORTS_DELIVERY_TYPE_OPTIONS.find((x) => x.id === type) || REPORTS_DELIVERY_TYPE_OPTIONS[0];
+    const getInvoiceDeliveryEntityName = (invoice: any) => {
+      const explicitId = String(invoice?.deliveryInfo?.settlementSupplierId || invoice?.deliverySettlementSupplierId || '');
+      const byId = explicitId ? (data?.suppliers || []).find((s: any) => String(s.id) === explicitId) : null;
+      return String(byId?.name || invoice?.deliveryInfo?.settlementSupplierName || invoice?.deliveryInfo?.company || invoice?.deliveryCompany || '').trim();
+    };
+    const getInvoiceDeliveryCostValue = (invoice: any) => Number(invoice?.deliveryInfo?.cost ?? (invoice as any)?.deliveryCost ?? invoice?.deliveryInfo?.finalPrice ?? (invoice as any)?.deliveryFee ?? 0) || 0;
+    const getInvoiceSupplierEntities = (invoice: any) => {
+      const supplierIds = Array.from(new Set((invoice?.items || []).map((item: any) => {
+        const product = (data?.products || []).find((p: any) => String(p.id) === String(item.productId));
+        return String(product?.supplierId || '');
+      }).filter(Boolean)));
+      return supplierIds.map((id) => (data?.suppliers || []).find((s: any) => String(s.id) === String(id))).filter(Boolean);
+    };
+    const getDefaultDeliveryEntityId = (invoice: any) => {
+      const eligible = getEligibleDeliveryEntities();
+      const explicitId = String(invoice?.deliveryInfo?.settlementSupplierId || invoice?.deliverySettlementSupplierId || '');
+      if (explicitId && eligible.some((s: any) => String(s.id) === explicitId)) return explicitId;
+      const explicitName = String(invoice?.deliveryInfo?.settlementSupplierName || invoice?.deliveryInfo?.company || invoice?.deliveryCompany || '').trim();
+      const byName = eligible.find((s: any) => explicitName && String(s.name || '').trim() === explicitName);
+      if (byName) return String(byName.id || '');
+      const invoiceSuppliers = getInvoiceSupplierEntities(invoice);
+      const deliveringFoodSupplier = invoiceSuppliers.find((s: any) => isFoodSupplierDelivering(s));
+      if (deliveringFoodSupplier) return String((deliveringFoodSupplier as any).id || '');
+      const firstDeliveryCompany = eligible.find((s: any) => isDeliveryCompanyEntity(s));
+      return firstDeliveryCompany ? String(firstDeliveryCompany.id || '') : '';
+    };
+    const openDeliveryManager = (invoice: Invoice) => {
+      setDeliveryManagerInvoice(invoice);
+      setDeliveryManagerType(((invoice as any).deliveryType || 'company') as ReportsDeliveryType);
+      setDeliveryManagerSupplierId(getDefaultDeliveryEntityId(invoice));
+    };
+    const saveDeliveryManager = () => {
+      if (!deliveryManagerInvoice) return;
+      const selectedSupplier = (data?.suppliers || []).find((s: any) => String(s.id) === String(deliveryManagerSupplierId));
+      const settlementTarget = selectedSupplier
+        ? (isDeliveryCompanyEntity(selectedSupplier) ? 'delivery_company' : 'supplier')
+        : ((deliveryManagerInvoice as any).deliveryInfo?.settlementTarget || (deliveryManagerInvoice as any).deliverySettlementTarget || 'delivery_company');
+      const settlementName = selectedSupplier?.name || (deliveryManagerInvoice as any).deliveryInfo?.company || '';
+      setData((prev) => {
+        const apply = (inv: any) => {
+          const currentInfo = inv.deliveryInfo || {};
+          return {
+            ...inv,
+            deliveryType: deliveryManagerType,
+            deliveryInfo: {
+              ...currentInfo,
+              company: settlementName,
+              settlementTarget,
+              settlementSupplierId: deliveryManagerSupplierId,
+              settlementSupplierName: settlementName,
+            },
+            deliverySettlementTarget: settlementTarget,
+            deliverySettlementSupplierId: deliveryManagerSupplierId,
+          };
+        };
+        return {
+          ...prev,
+          invoices: (prev.invoices || []).map((inv: any) => String(inv.id) === String(deliveryManagerInvoice.id) ? apply(inv) : inv),
+          orders: (prev.orders || []).map((order: any) => (
+            String(order.id) === String(deliveryManagerInvoice.id) || String(order.linkedInvoiceId || '') === String(deliveryManagerInvoice.id)
+          ) ? apply(order) : order),
+        } as any;
+      });
+      toast.success('تم تحديث إدارة التوصيل', { description: 'تم تعديل طريقة التوصيل وجهتها داخليًا فقط دون تغيير إجمالي الفاتورة المدفوع.' });
+      setDeliveryManagerInvoice(null);
+    };
+
     const handleDeleteInvoice = (id: string) => {
       if (id.startsWith("ORD-")) {
         import("sonner").then((m) =>
@@ -434,6 +595,11 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       } else {
         alert("ميزة تعديل الفاتورة ستكون متوفرة من خلال الصفحة الرئيسية.");
       }
+    };
+
+
+    const handleManageDelivery = (invoice: Invoice) => {
+      openDeliveryManager(invoice);
     };
 
     const handleTogglePaymentStatus = (
@@ -898,20 +1064,11 @@ Alturath.kw`;
                 </div>
               </div>
 
+
               <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
-                {onEditInvoice && (
-                  <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3 px-1 md:px-2">
-                    <span className="text-xs font-black text-slate-700">سجل المعاملات والفواتير</span>
-                    <button
-                      onClick={() => onEditInvoice("new")}
-                      type="button"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-black shadow-sm hover:shadow active:scale-95 transition-all text-xs"
-                    >
-                      <Plus size={16} />
-                      <span>فاتورة جديدة</span>
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center justify-end mb-4 border-b border-slate-100 pb-3 px-1 md:px-2">
+                  <span className="text-xs font-black text-slate-700">سجل المعاملات والفواتير</span>
+                </div>
                 <div className="flex flex-col md:flex-row md:items-center gap-4 mb-8">
                   <div className="relative flex-1">
                     <Search
@@ -1112,26 +1269,18 @@ Alturath.kw`;
                                     >
                                       {formatKuwaitiTimeOnly(inv.date)}
                                     </span>
-                                    <span
-                                      className={cn(
-                                        "px-2 py-0.5 rounded-md font-bold text-[10px] uppercase",
-                                        inv.deliveryType === "standard"
-                                          ? "bg-emerald-50 text-emerald-500"
-                                          : inv.deliveryType === "special"
-                                            ? "bg-purple-50 text-purple-500"
-                                            : inv.deliveryType === "free"
-                                              ? "bg-amber-50 text-amber-500"
-                                              : "bg-blue-50 text-blue-500",
-                                      )}
-                                    >
-                                      {inv.deliveryType === "standard"
-                                        ? "ربح"
-                                        : inv.deliveryType === "special"
-                                          ? "خاص"
-                                          : inv.deliveryType === "free"
-                                            ? "مجاني"
-                                            : "شركة"}
-                                    </span>
+                                    {(() => {
+                                      const meta = getDeliveryTypeMeta((inv as any).deliveryType || "company");
+                                      const entityName = getInvoiceDeliveryEntityName(inv);
+                                      return (
+                                        <span
+                                          title={entityName || meta.label}
+                                          className={cn("px-3 py-1 rounded-lg text-[10px] font-bold w-fit", meta.badgeClass)}
+                                        >
+                                          {meta.label.replace("توصيل ", "")}
+                                        </span>
+                                      );
+                                    })()}
                                   </div>
                                 </td>
                                 <td className="p-3 md:p-3">
@@ -1279,6 +1428,18 @@ Alturath.kw`;
                                     >
                                       <Printer size={16} />
                                     </button>
+                                    {!isPartner && onEditInvoice && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleManageDelivery(inv);
+                                        }}
+                                        className="px-2.5 py-2 hover:bg-blue-50 rounded-lg text-slate-500 hover:text-blue-600 transition-colors text-[10px] font-black whitespace-nowrap"
+                                        title="إدارة التوصيل والمستحقات"
+                                      >
+                                        إدارة التوصيل
+                                      </button>
+                                    )}
                                     {!isPartner && (
                                       <>
                                         {!isPaidStatus(inv.paymentStatus) && !inv.id.startsWith("ORD") && (
@@ -1584,22 +1745,12 @@ Alturath.kw`;
                                                           </span>
                                                         </div>
                                                       )}
-                                                      <div className="flex justify-between text-xs font-bold">
-                                                        <span className="text-slate-500">
-                                                          رسوم التوصيل:
-                                                          {inv.deliveryInfo
-                                                            ?.zoneName
-                                                            ? ` (${inv.deliveryInfo.zoneName})`
-                                                            : ""}
-                                                        </span>
-                                                        <span className="text-slate-800">
-                                                          {Number(
-                                                            inv.deliveryFee ||
-                                                              0,
-                                                          ).toFixed(3)}{" "}
-                                                          د.ك
-                                                        </span>
-                                                      </div>
+                                                      {getInvoiceDeliveryCostValue(inv) > 0 && (
+                                                        <div className="flex justify-between text-xs font-bold text-blue-600">
+                                                          <span className="text-blue-400">تكلفة التوصيل:</span>
+                                                          <span>{getInvoiceDeliveryCostValue(inv).toFixed(3)} د.ك</span>
+                                                        </div>
+                                                      )}
                                                       <div className="flex justify-between text-lg font-black border-t border-slate-100 pt-3 mt-2 text-slate-900 bg-slate-50 -mx-4 px-4 py-2">
                                                         <span>
                                                           الإجمالي النهائي:
@@ -1639,6 +1790,86 @@ Alturath.kw`;
                   </table>
                 </div>
               </div>
+
+              {deliveryManagerInvoice && (
+                <div className="fixed inset-0 z-[120] bg-slate-950/45 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.96, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96, y: 20 }}
+                    className="w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden"
+                  >
+                    <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-4">
+                      <button
+                        onClick={() => setDeliveryManagerInvoice(null)}
+                        className="w-11 h-11 rounded-2xl bg-slate-50 hover:bg-slate-100 text-slate-400 flex items-center justify-center transition-colors"
+                      >
+                        <X size={20} />
+                      </button>
+                      <div className="text-right">
+                        <div className="text-xs font-black text-blue-500 mb-1">إدارة التوصيل والمستحقات</div>
+                        <h3 className="text-2xl font-black text-slate-900">فاتورة #{deliveryManagerInvoice.id}</h3>
+                        
+                      </div>
+                    </div>
+
+                    <div className="p-6 space-y-5">
+                      <div>
+                        <div className="text-[11px] font-black text-slate-500 mb-2 text-right">طريقة التوصيل</div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {REPORTS_DELIVERY_TYPE_OPTIONS.map((type) => (
+                            <button
+                              key={type.id}
+                              type="button"
+                              onClick={() => setDeliveryManagerType(type.id)}
+                              className={cn(
+                                "rounded-2xl border px-3 py-3 text-xs font-bold transition-all shadow-sm min-h-[54px] flex items-center justify-center text-center",
+                                deliveryManagerType === type.id
+                                  ? type.activeClass
+                                  : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                              )}
+                            >
+                              {type.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[11px] font-black text-slate-500 mb-2 text-right">اسم الشركة / جهة التوصيل</div>
+                        <select
+                          value={deliveryManagerSupplierId}
+                          onChange={(e) => setDeliveryManagerSupplierId(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-right text-sm font-black outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-300"
+                        >
+                          <option value="">تحديد تلقائي حسب الفاتورة</option>
+                          {getEligibleDeliveryEntities().map((s: any) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                        
+                      </div>
+                    </div>
+
+                    <div className="p-5 bg-slate-50 border-t border-slate-100 grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setDeliveryManagerInvoice(null)}
+                        className="h-14 rounded-2xl bg-white border border-slate-200 text-slate-500 font-black hover:bg-slate-100 transition-all"
+                      >
+                        إلغاء
+                      </button>
+                      <button
+                        onClick={saveDeliveryManager}
+                        className="h-14 rounded-2xl bg-emerald-600 text-white font-black hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+                      >
+                        حفظ إدارة التوصيل
+                      </button>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
 
               {invoiceToDelete && (
                 <ConfirmModal

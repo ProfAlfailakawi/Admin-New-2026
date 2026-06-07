@@ -885,13 +885,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   return (
     <div dir="rtl" className="min-h-[calc(100vh-120px)] text-slate-900">
       <div className="mb-4 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-100 px-4 py-2 text-emerald-700 text-xs font-bold mb-3">
-            <Sparkles size={14} /> مركز واتساب الذكي
-          </div>
-          <h1 className="text-3xl md:text-5xl font-black tracking-tight">مركز واتساب الذكي</h1>
-          
-        </div>
+        <div />
         <div className="grid grid-cols-3 gap-3 min-w-[320px]">
           <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-4"><div className="text-xs text-slate-400">المحادثات</div><div className="text-2xl font-black">{counts.all}</div></div>
           <div className="rounded-3xl bg-amber-50 border border-amber-100 shadow-sm p-4"><div className="text-xs text-amber-600">تحتاج دعم</div><div className="text-2xl font-black text-amber-700">{counts.support}</div></div>

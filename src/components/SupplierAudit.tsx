@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, History, DollarSign, Calendar, TrendingUp, CreditCard, FileText, CheckCircle2, Clock, Edit2, Trash2, ArrowUpRight, X } from 'lucide-react';
+import { Search, History, DollarSign, Calendar, TrendingUp, CreditCard, FileText, CheckCircle2, Clock, Edit2, Trash2, ArrowUpRight, X, Truck } from 'lucide-react';
 import { AppState, SupplierTransfer, PaymentMethod } from '../types';
 import { cn, normalizeArabic, normalizeArabicNumerals, formatKuwaitiDateOnly } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -23,18 +23,32 @@ const SUPPLIER_AUDIT_SEARCH_INPUT_ID = 'supplier-audit-search-input';
 const getInvoiceDeliverySettlement = (inv: any, supId: string, data: any) => {
   const info = inv?.deliveryInfo || {};
   const target = info.settlementTarget || inv?.deliverySettlementTarget;
-  const value = Number(inv?.deliveryFee ?? info.finalPrice ?? 0) || 0;
+  const value = Number(info.cost ?? inv?.deliveryCost ?? info.finalPrice ?? inv?.deliveryFee ?? 0) || 0;
   if (value <= 0) return 0;
   const supplier = (data?.suppliers || []).find((s: any) => String(s.id) === String(supId));
   if (!supplier) return 0;
-  const isDeliveryCompany = supplier.supplierType === 'delivery';
-  const isFoodSupplierDelivering = !isDeliveryCompany && supplier.deliverySettlement === 'supplier';
+  const isDeliveryCompany = (supplier as any).supplierType === 'delivery';
+  const isFoodSupplierDelivering = !isDeliveryCompany && (supplier as any).deliverySettlement === 'supplier';
   if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
-  if (isDeliveryCompany && target !== 'delivery_company') return 0;
-  if (isFoodSupplierDelivering && target !== 'supplier') return 0;
-  const matchesSupplier = String(info.settlementSupplierId || '') === String(supId)
-    || (!!supplier?.name && String(info.settlementSupplierName || info.company || '').trim() === String(supplier.name).trim());
-  return matchesSupplier ? value : 0;
+  const invoiceHasSupplierProduct = (inv?.items || []).some((item: any) => {
+    const product = (data?.products || []).find((p: any) => String(p.id) === String(item.productId));
+    return String(product?.supplierId || '') === String(supId);
+  });
+  const explicitSupplierId = String(info.settlementSupplierId || inv?.deliverySettlementSupplierId || '');
+  const supplierName = String(supplier?.name || '').trim();
+  const explicitName = String(info.settlementSupplierName || info.company || inv?.deliveryCompany || '').trim();
+  const matchesSupplier = explicitSupplierId === String(supId)
+    || (!!supplierName && explicitName === supplierName);
+  const hasNoExplicitSettlement = !target && !explicitSupplierId && !explicitName;
+  if (isDeliveryCompany) {
+    if (target && target !== 'delivery_company') return 0;
+    return matchesSupplier ? Math.round(value * 1000) / 1000 : 0;
+  }
+  if (isFoodSupplierDelivering) {
+    if (target && target !== 'supplier') return 0;
+    return (matchesSupplier || (hasNoExplicitSettlement && invoiceHasSupplierProduct)) ? Math.round(value * 1000) / 1000 : 0;
+  }
+  return 0;
 };
 
 const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSupplierId, autoOpenModal, onClearDeepLink, deepLinkData }) => {
@@ -138,16 +152,16 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  deliveryAmount,
  date: inv.date,
  type: 'invoice',
- displayType: deliveryAmount > 0 ? 'فاتورة (توريد + توصيل)' : 'فاتورة (توريد أصناف)',
+ displayType: amount > 0 && deliveryAmount > 0 ? 'فاتورة (توريد + توصيل)' : deliveryAmount > 0 ? 'فاتورة توصيل' : 'فاتورة توريد أصناف',
  method: inv.paymentMethod,
- notes: deliveryAmount > 0 ? `فاتورة رقم ${inv.id} · تشمل توصيل ${deliveryAmount.toFixed(3)} د.ك` : `فاتورة رقم ${inv.id}`,
+ notes: amount > 0 && deliveryAmount > 0 ? `فاتورة رقم ${inv.id} · تشمل توريد وتوصيل ${deliveryAmount.toFixed(3)} د.ك` : deliveryAmount > 0 ? `فاتورة رقم ${inv.id} · توصيل فقط ${deliveryAmount.toFixed(3)} د.ك` : `فاتورة رقم ${inv.id}`,
  refId: inv.id
  });
  });
  });
 
  return transactions;
- }, [data.supplierTransfers, data.invoices, data.products]);
+ }, [data.supplierTransfers, data.invoices, data.products, data.suppliers]);
 
  const filteredTransactions = allTransactions.filter(t => {
  const s = (data?.suppliers || []).find(sup => sup.id === t.supplierId);
@@ -160,8 +174,23 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  return new Date(b.date).getTime() - new Date(a.date).getTime();
  });
 
- const totalTransferred = (data?.supplierTransfers || []).reduce((acc, t) => acc + t.amount, 0);
+ const totalTransferred = (data?.supplierTransfers || []).reduce((acc, t) => acc + Number(t.amount || 0), 0);
  const totalOutstanding = (data?.suppliers || []).reduce((acc, s) => acc + (s.balance || 0), 0);
+ const totalSupplyDue = allTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.supplyAmount || 0), 0);
+ const totalDeliveryDue = allTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.deliveryAmount || 0), 0);
+ const selectedSupplierSummary = React.useMemo(() => {
+   if (!transferForm.supplierId) return null;
+   const supplierTransactions = allTransactions.filter(t => t.supplierId === transferForm.supplierId);
+   const supplyDue = supplierTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.supplyAmount || 0), 0);
+   const deliveryDue = supplierTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.deliveryAmount || 0), 0);
+   const paid = (data?.supplierTransfers || []).filter(t => t.supplierId === transferForm.supplierId).reduce((acc, t) => acc + Number(t.amount || 0), 0);
+   const paidToSupply = Math.min(paid, supplyDue);
+   const paidToDelivery = Math.min(Math.max(paid - paidToSupply, 0), deliveryDue);
+   const remainingSupply = Math.max(0, Math.round((supplyDue - paidToSupply) * 1000) / 1000);
+   const remainingDelivery = Math.max(0, Math.round((deliveryDue - paidToDelivery) * 1000) / 1000);
+   const balance = Math.max(0, Math.round((supplyDue + deliveryDue - paid) * 1000) / 1000);
+   return { supplyDue, deliveryDue, totalDue: supplyDue + deliveryDue, paid, paidToSupply, paidToDelivery, remainingSupply, remainingDelivery, balance };
+ }, [transferForm.supplierId, allTransactions, data?.supplierTransfers]);
  
  // Last movement logic
  const getLastMovement = (supId: string) => {
@@ -294,7 +323,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
      </button>
    </div>
 
- <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-right">
+ <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4 text-right">
  <div className="bg-emerald-600 p-3 md:p-4 rounded-[20px] md:rounded-3xl text-white shadow-xl shadow-emerald-600/20">
  <div className="text-[10px] font-bold uppercase opacity-60 mb-2">إجمالي المحول</div>
  <div className="text-2xl md:text-3xl font-bold">{Number(totalTransferred || 0).toFixed(3)} <span className="text-xs">د.ك</span></div>
@@ -302,6 +331,16 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <CheckCircle2 size={12} />
  عدد التحويلات: {(data?.supplierTransfers || []).length}
  </div>
+ </div>
+ <div className="bg-white p-3 md:p-4 rounded-[20px] md:rounded-3xl border border-slate-100 shadow-sm">
+ <div className="text-[10px] font-bold uppercase text-slate-400 mb-2">مستحقات التوريد</div>
+ <div className="text-2xl md:text-3xl font-black text-slate-900">{Number(totalSupplyDue || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
+ <div className="text-[10px] font-bold mt-3 text-slate-400">تكلفة المنتجات فقط بدون التوصيل</div>
+ </div>
+ <div className="bg-blue-50 p-3 md:p-4 rounded-[20px] md:rounded-3xl border border-blue-100 shadow-sm">
+ <div className="text-[10px] font-bold uppercase text-blue-400 mb-2">مستحقات التوصيل</div>
+ <div className="text-2xl md:text-3xl font-black text-blue-700">{Number(totalDeliveryDue || 0).toFixed(3)} <span className="text-xs text-blue-400">د.ك</span></div>
+ <div className="text-[10px] font-bold mt-3 text-blue-400">للموردين الذين يوصلون أو شركات التوصيل فقط</div>
  </div>
  <div className="bg-slate-900 p-3 md:p-4 rounded-[20px] md:rounded-3xl text-white shadow-xl shadow-slate-900/20 relative">
  <div className="text-[10px] font-bold uppercase opacity-40 mb-2">إجمالي المستحق</div>
@@ -376,7 +415,9 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-[10px] uppercase text-right">
  <th className="p-3 md:p-3">تاريخ الحركة</th>
  <th className="p-3 md:p-3">اسم المورد / نوع الحركة</th>
- <th className="p-3 md:p-3">المبلغ (د.ك)</th>
+ <th className="p-3 md:p-3">توريد</th>
+ <th className="p-3 md:p-3">توصيل</th>
+ <th className="p-3 md:p-3">الإجمالي</th>
  <th className="p-3 md:p-3">طريقة الدفع</th>
  <th className="p-3 md:p-3">حالة الرصيد</th>
  <th className="p-3 md:p-3">ملاحظات الحساب</th>
@@ -413,6 +454,12 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="text-[10px] font-bold text-slate-500">{transaction.displayType}</div>
  </div>
  </td>
+ <td className="p-3 md:p-3 font-black text-slate-700">
+ {isInvoice ? Number(transaction.supplyAmount || 0).toFixed(3) : '—'}
+ </td>
+ <td className="p-3 md:p-3 font-black text-blue-600">
+ {isInvoice ? Number(transaction.deliveryAmount || 0).toFixed(3) : '—'}
+ </td>
  <td className={cn("p-3 md:p-3 font-bold", isInvoice ?"text-red-500" :"text-emerald-600")}>
  {isInvoice ? '+' : '-'}{Number(transaction.rawAmount || 0).toFixed(3)} د.ك
  </td>
@@ -433,13 +480,24 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <td className="p-3 md:p-3">
  <div className="flex items-center gap-2">
  {isInvoice && (
+ <>
  <button 
  onClick={() => setViewingInvoiceId(transaction.refId)}
- className="p-2 bg-blue-50 rounded-lg text-blue-500 hover:bg-blue-100 transition-all active:scale-95 transition-all"
- title="عرض الفاتورة المسددة"
+ className="p-2 bg-blue-50 rounded-lg text-blue-500 hover:bg-blue-100 transition-all active:scale-95"
+ title="عرض الفاتورة"
  >
  <FileText size={16} />
  </button>
+ {Number(transaction.deliveryAmount || 0) > 0 && (
+ <button
+ onClick={() => setViewingInvoiceId(transaction.refId)}
+ className="p-2 bg-cyan-50 rounded-lg text-cyan-600 hover:bg-cyan-100 transition-all active:scale-95"
+ title="عرض تفاصيل التوصيل"
+ >
+ <Truck size={16} />
+ </button>
+ )}
+ </>
  )}
  {!isInvoice && (
  <>
@@ -481,7 +539,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  })}
  {filteredTransactions.length === 0 && (
  <tr key="empty-state" className="hover:bg-transparent">
- <td colSpan={8} className="p-16 text-center">
+ <td colSpan={9} className="p-16 text-center">
  <div className="flex flex-col items-center justify-center opacity-60">
  <div className="w-12 md:w-20 h-12 md:h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
  <History className="text-slate-500" size={32} />
@@ -558,6 +616,30 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  )}
  <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">مبلغ التحويل</label>
  </div>
+ {selectedSupplierSummary && !transferForm.id && (
+ <div className="bg-slate-50 border border-slate-100 rounded-3xl p-3 md:p-4 space-y-3">
+   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5">
+     <div className="bg-white rounded-2xl p-3 text-right border border-slate-100 min-w-0">
+       <div className="text-[10px] font-black text-slate-400 mb-1 whitespace-nowrap">توريد متبقّي</div>
+       <div className="text-lg font-black text-slate-900 whitespace-nowrap" dir="ltr">{selectedSupplierSummary.remainingSupply.toFixed(3)}</div>
+     </div>
+     {selectedSupplierSummary.remainingDelivery > 0 && (
+     <div className="bg-blue-50 rounded-2xl p-3 text-right border border-blue-100 min-w-0">
+       <div className="text-[10px] font-black text-blue-400 mb-1 whitespace-nowrap">توصيل متبقّي</div>
+       <div className="text-lg font-black text-blue-700 whitespace-nowrap" dir="ltr">{selectedSupplierSummary.remainingDelivery.toFixed(3)}</div>
+     </div>
+     )}
+     <div className="bg-emerald-50 rounded-2xl p-3 text-right border border-emerald-100 min-w-0">
+       <div className="text-[10px] font-black text-emerald-500 mb-1 whitespace-nowrap">مدفوع سابقاً</div>
+       <div className="text-lg font-black text-emerald-700 whitespace-nowrap" dir="ltr">{selectedSupplierSummary.paid.toFixed(3)}</div>
+     </div>
+     <div className="bg-slate-900 rounded-2xl p-3 text-right text-white min-w-0">
+       <div className="text-[10px] font-black text-white/50 mb-1 whitespace-nowrap">المتبقي</div>
+       <div className="text-lg font-black whitespace-nowrap" dir="ltr">{selectedSupplierSummary.balance.toFixed(3)}</div>
+     </div>
+   </div>
+ </div>
+ )}
  <input 
  type="number" 
  step="0.25"
@@ -646,6 +728,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  const inv = (data.invoices || []).find(i => i.id === viewingInvoiceId);
  if (!inv) return <div className="p-12 text-center font-bold text-slate-500">الفاتورة غير موجودة أو تم حذفها</div>;
  const customer = (data.customers || []).find(c => c.id === inv.customerId);
+ const invoiceDeliveryCost = Number((inv as any)?.deliveryInfo?.cost ?? (inv as any)?.deliveryCost ?? (inv as any)?.deliveryInfo?.finalPrice ?? (inv as any)?.deliveryFee ?? 0) || 0;
  
  return (
  <>
@@ -731,6 +814,12 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <span className="text-xs font-bold text-white/40 uppercase tracking-widest">تكلفة التوريد النهائية</span>
  <span className="font-black text-lg text-emerald-400">{(inv.totalCost || 0).toFixed(3)} <span className="text-[10px] opacity-40">د.ك</span></span>
  </div>
+ {invoiceDeliveryCost > 0 && (
+ <div className="flex justify-between items-center pb-4 border-b border-white/10">
+ <span className="text-xs font-bold text-white/40 uppercase tracking-widest">تكلفة التوصيل</span>
+ <span className="font-black text-lg text-blue-300">{invoiceDeliveryCost.toFixed(3)} <span className="text-[10px] opacity-40">د.ك</span></span>
+ </div>
+ )}
  <div className="flex justify-between items-center pt-2">
  <div className="flex flex-col">
  <span className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">صافي الربح الفعلي</span>

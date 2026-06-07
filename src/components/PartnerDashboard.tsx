@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
- ShoppingBag, TrendingUp, Handshake, DollarSign, Target, Sparkles, Activity, Puzzle,
- ChevronRight, Star, LineChart as LineChartIcon, FlaskConical, LayoutGrid, Filter, X, 
+ TrendingUp, Handshake, DollarSign, Target, Sparkles, Activity, Puzzle,
+ Star, LineChart as LineChartIcon, FlaskConical, LayoutGrid, Filter, X, PlusCircle, 
  Zap, ArrowUpRight, PieChart, Users, Truck, Briefcase, Cpu, Layers, Search, Bell, BellRing, ChevronDown, FileText, Package, Camera, CloudSun, CalendarDays, ThermometerSun
 } from 'lucide-react';
 import { AppState } from '../types';
@@ -626,9 +626,34 @@ const {
             })()}
           </div>
         )}
+
+        {!activeWidget && (
+          <div className="fixed bottom-16 left-0 right-0 z-[101] px-4 flex justify-center pointer-events-none fade-in animate-in slide-in-from-bottom-4 duration-500">
+            <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/90 px-2 py-1.5 shadow-[0_14px_35px_rgba(15,23,42,0.14)] backdrop-blur-2xl">
+              <button
+                type="button"
+                onClick={() => onNavigate('new-invoice')}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-950 text-white shadow-sm transition-transform active:scale-95"
+                aria-label="فاتورة جديدة"
+                title="فاتورة جديدة"
+              >
+                <PlusCircle size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate('invoices-list')}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-800 shadow-sm transition-transform active:scale-95"
+                aria-label="سجل الفواتير"
+                title="سجل الفواتير"
+              >
+                <FileText size={18} />
+              </button>
+            </div>
+          </div>
+        )}
       
        <div className="mb-8">
-         <CommandBrief data={data} dateFilter={filter} />
+         <CommandBrief data={data} dateFilter={filter} partnerMode />
        </div>
 
 
@@ -835,60 +860,7 @@ const {
       )}
        </AnimatePresence>
       
-       {/* Partner Action Cards */}
-       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-       <motion.button
-       type="button"
-       whileHover={{ y: -4 }}
-       whileTap={{ scale: 0.98 }}
-       className="partner-action-card partner-action-card-primary group hidden"
-       onClick={() => onNavigate('orders')}
-       >
-         <div className="partner-action-icon bg-indigo-50 text-indigo-700 border-indigo-100">
-           <ShoppingBag size={24} />
-           <span className="partner-action-badge">{totalOrdersCount}</span>
-         </div>
-         <div className="text-right flex-1">
-           <h3>طلبات التطبيق</h3>
-           <p>تابع الطلبات الواردة وحوّل الجاهز منها للفواتير.</p>
-         </div>
-         <ChevronRight size={22} className="rotate-180 text-slate-300 group-hover:text-indigo-600 group-hover:-translate-x-1 transition-all" />
-       </motion.button>
-
-       <motion.button
-       type="button"
-       whileHover={{ y: -4 }}
-       whileTap={{ scale: 0.98 }}
-       className="partner-action-card group"
-       onClick={() => onNavigate('invoices-list')}
-       >
-         <div className="partner-action-icon bg-slate-50 text-slate-700 border-slate-100">
-           <FileText size={24} />
-         </div>
-         <div className="text-right flex-1">
-           <h3>سجل الفواتير</h3>
-           <p>راجع الفواتير السابقة وحالاتها من مكان واحد.</p>
-         </div>
-         <ChevronRight size={22} className="rotate-180 text-slate-300 group-hover:text-slate-700 group-hover:-translate-x-1 transition-all" />
-       </motion.button>
-
-       <motion.button
-       type="button"
-       whileHover={{ y: -4 }}
-       whileTap={{ scale: 0.98 }}
-       className="partner-action-card group"
-       onClick={() => onNavigate('new-invoice')}
-       >
-         <div className="partner-action-icon bg-emerald-50 text-emerald-700 border-emerald-100">
-           <DollarSign size={24} />
-         </div>
-         <div className="text-right flex-1">
-           <h3>فاتورة جديدة</h3>
-           <p>أنشئ فاتورة بسرعة بدون خيارات إضافية مزعجة.</p>
-         </div>
-         <ChevronRight size={22} className="rotate-180 text-slate-300 group-hover:text-emerald-700 group-hover:-translate-x-1 transition-all" />
-       </motion.button>
-       </div>
+       {/* Partner quick invoice actions moved to the compact floating dock above the date filter. */}
     </motion.div>
   </div>
  );
