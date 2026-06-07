@@ -254,7 +254,8 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
   getPushDeviceConfidenceMeta
 }) => {
   const [hoveredCard, setHoveredCard] = useState<any | null>(null);
-  const compassSize = 280;
+  const isCompactCompass = typeof window !== "undefined" && window.innerWidth < 430;
+  const compassSize = isCompactCompass ? 236 : 280;
   const compassCenter = compassSize / 2;
   const compassScale = compassSize / 320;
 
@@ -294,9 +295,9 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
 
   return (
     <div
-      className="relative rounded-full flex items-center justify-center select-none bg-white border border-slate-200 text-slate-900/60 border-amber-500/20 shadow-[0_15px_45px_-10px_rgba(0,0,0,0.85)] p-1"
+      className="relative rounded-full flex items-center justify-center select-none bg-slate-950 border border-amber-300/40 text-white shadow-[0_18px_48px_-12px_rgba(0,0,0,0.9)] p-1 overflow-hidden"
       id="device-deera-compass"
-      style={{ width: compassSize, height: compassSize, maxWidth: 'calc(100vw - 56px)', maxHeight: 'calc(100vw - 56px)' }}
+      style={{ width: compassSize, height: compassSize, maxWidth: 'calc(100vw - 92px)', maxHeight: 'calc(100vw - 92px)' }}
     >
        {/* Scanning effect */}
        <motion.div
@@ -3648,7 +3649,7 @@ const GeneralSettings: React.FC<Props> = ({
                   )}
                 </div>
 
-                <div className="push-health-pro rounded-2xl border border-slate-200 bg-white p-4 md:p-5 text-slate-900 shadow-sm overflow-hidden relative">
+                <div className="push-health-pro rounded-2xl border border-slate-200 bg-white p-3 md:p-5 text-slate-900 shadow-sm overflow-hidden relative max-w-full">
                   <div className="relative z-10 space-y-4">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                       <div>
@@ -4010,13 +4011,13 @@ const GeneralSettings: React.FC<Props> = ({
                             setPushDeviceMapFilter(filter);
                             setPushUsersVisibleCount(12);
                           }
-                          setTimeout(() => document.getElementById("push-radar-list")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+                          setTimeout(() => document.getElementById("push-radar-list")?.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" }), 60);
                         };
                         const openPushNotificationLog = (notification?: any, statusFilter?: "all" | "delivered" | "opened" | "failed" | "waiting") => {
                           if (statusFilter) setPushLogStatusFilter(statusFilter);
                           if (notification?.id) setSelectedPushNotificationId(notification.id);
                           setPushDeviceTab("log");
-                          setTimeout(() => document.getElementById("push-notification-log")?.scrollIntoView({ behavior: "smooth", block: "start" }), 70);
+                          setTimeout(() => document.getElementById("push-notification-log")?.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" }), 70);
                         };
                         const latestCriticalIssue = rawNotificationLog.find((event) => event.success === false || String(event.status || event.type || "").toLowerCase().includes("notregistered") || String(event.message || "").toLowerCase().includes("notregistered"));
                         const oldTokenCount = ghostDevices.length;
@@ -4100,7 +4101,7 @@ const GeneralSettings: React.FC<Props> = ({
                             </div>
 
                             <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-3">
-                              <div className="rounded-[1.8rem] border border-white/10 bg-slate-900/85 p-4 text-white shadow-lg">
+                              <div className="rounded-[1.8rem] border border-slate-700/60 bg-slate-950 p-3 sm:p-4 text-white shadow-lg overflow-hidden max-w-full">
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                   <div>
                                     <div className="text-[10px] font-black text-emerald-200">رادار حياة الإشعار</div>
@@ -4165,16 +4166,16 @@ const GeneralSettings: React.FC<Props> = ({
                               </div>
                             </div>
 
-                            <div className="rounded-[1.8rem] border border-white/10 bg-slate-900/85 p-4 text-white shadow-lg">
+                            <div className="rounded-[1.8rem] border border-slate-700/60 bg-slate-950 p-3 sm:p-4 text-white shadow-lg overflow-hidden max-w-full">
                               <div className="flex items-center justify-between gap-3 mb-3">
                                 <div>
-                                  <div className="text-[10px] font-black text-white/40">خريطة الأجهزة الذكية</div>
-                                  <h4 className="text-sm font-black">اضغط على أي لون لفتح الأجهزة المعنية</h4>
+                                  <div className="text-[10px] font-black text-emerald-100/90">خريطة الأجهزة الذكية</div>
+                                  <h4 className="text-sm font-black text-white leading-6">اضغط على أي لون لفتح الأجهزة المعنية</h4>
                                 </div>
                                 <MonitorSmartphone size={18} className="text-emerald-200" />
                               </div>
 
-                              <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6 items-center">
+                              <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-4 lg:gap-6 items-center max-w-full overflow-hidden">
                                 {/* ديرة الأجهزة */}
                                 <div className="flex justify-center shrink-0">
                                   <DeviceCompass
@@ -4276,7 +4277,7 @@ const GeneralSettings: React.FC<Props> = ({
 
                             {pushHealthDetailsOpen && (
                               <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-3 space-y-2">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-w-full">
                                   {[
                                     ["Support", pushHealth.support],
                                     ["Permission", pushHealth.permission],
@@ -4364,10 +4365,10 @@ const GeneralSettings: React.FC<Props> = ({
                                   const firstDevice = card.bestDevice;
                                   const expanded = expandedPushDeviceId === card.key;
                                   return (
-                                    <div key={card.key} className={cn("rounded-[1.5rem] border p-3 md:p-4", card.state.className)}>
-                                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+                                    <div key={card.key} className={cn("rounded-[1.5rem] border p-3 md:p-4 overflow-hidden max-w-full", card.state.className)}>
+                                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 min-w-0 max-w-full">
                                         <div className="min-w-0 flex-1">
-                                          <div className="flex flex-wrap items-center gap-2">
+                                          <div className="flex flex-wrap items-center gap-2 min-w-0">
                                             <span className={cn("h-2.5 w-2.5 rounded-full", card.state.dot)} />
                                             <div className="min-w-0">
                                               <h4 className="text-base font-black truncate">{getPushPersonName(card.identity, card.identity.id)}</h4>
@@ -4402,7 +4403,7 @@ const GeneralSettings: React.FC<Props> = ({
                                             <div className="mb-2 rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/70">
                                               {getDeliveryHumanReason(card.latest, card.bestDevice)}
                                             </div>
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-w-full">
                                               {getDeliveryMilestones(card.latest).map((step) => (
                                                 <div
                                                   key={step.key}
@@ -4425,7 +4426,7 @@ const GeneralSettings: React.FC<Props> = ({
                                             </div>
                                           )}
                                         </div>
-                                        <div className="flex flex-row lg:flex-col gap-2 lg:w-40">
+                                        <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 lg:w-40 min-w-0">
                                           <button
                                             type="button"
                                             disabled={!firstDevice || sendingPushTestId === firstDevice.id || !firstDevice.token || firstDevice.token === "Not available"}
@@ -4435,7 +4436,7 @@ const GeneralSettings: React.FC<Props> = ({
                                                 void sendPushDeviceTestNotification(firstDevice, card.devices);
                                               }
                                             }}
-                                            className="flex-1 rounded-2xl bg-white text-slate-950 px-3 py-2.5 text-[11px] font-black hover:bg-emerald-50 disabled:opacity-45 transition flex items-center justify-center gap-2"
+                                            className="min-w-0 rounded-2xl bg-white text-slate-950 px-2.5 py-2.5 text-[10px] sm:text-[11px] font-black hover:bg-emerald-50 disabled:opacity-45 transition flex items-center justify-center gap-1.5"
                                           >
                                             {firstDevice && sendingPushTestId === firstDevice.id ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                                             اختبر أحدث جهاز
@@ -4443,7 +4444,7 @@ const GeneralSettings: React.FC<Props> = ({
                                           <button
                                             type="button"
                                             onClick={() => setExpandedPushDeviceId(expanded ? null : card.key)}
-                                            className="flex-1 rounded-2xl bg-white/10 border border-white/10 px-3 py-2.5 text-[11px] font-black text-white hover:bg-white/15 transition flex items-center justify-center gap-2"
+                                            className="min-w-0 rounded-2xl bg-white/10 border border-white/10 px-2.5 py-2.5 text-[10px] sm:text-[11px] font-black text-white hover:bg-white/15 transition flex items-center justify-center gap-1.5"
                                           >
                                             التفاصيل
                                             <ChevronDown size={13} className={cn("transition-transform", expanded ? "rotate-180" : "")} />
@@ -4451,15 +4452,15 @@ const GeneralSettings: React.FC<Props> = ({
                                         </div>
                                       </div>
                                       {expanded && (
-                                        <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/30 p-3 space-y-3">
-                                          <div className="grid md:grid-cols-2 gap-2">
+                                        <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/30 p-2.5 sm:p-3 space-y-3 overflow-hidden max-w-full">
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-w-full overflow-hidden">
                                             {(card.devices || []).map((device) => {
                                               const readiness = getPushReadinessVerdict(device);
                                               return (
-                                                <div key={device.id} className="rounded-2xl bg-white/10 border border-white/10 p-3 min-w-0">
-                                                  <div className="flex items-center justify-between gap-2">
-                                                    <strong className="truncate text-xs font-black">{device.label}</strong>
-                                                    <span className={cn("rounded-full border px-2 py-0.5 text-[9px] font-black", getPushDeviceConfidenceMeta(getPushDeviceConfidence(device)).className)}>{getPushDeviceConfidence(device)}%</span>
+                                                <div key={device.id} className="rounded-2xl bg-white/10 border border-white/10 p-3 min-w-0 overflow-hidden max-w-full">
+                                                  <div className="grid grid-cols-[1fr_auto] items-center gap-2 min-w-0">
+                                                    <strong className="block min-w-0 truncate text-xs font-black">{device.label}</strong>
+                                                    <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black", getPushDeviceConfidenceMeta(getPushDeviceConfidence(device)).className)}>{getPushDeviceConfidence(device)}%</span>
                                                   </div>
                                                   <p className="mt-2 text-[10px] font-bold leading-5 text-white/55">{readiness.detail}</p>
                                                   <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold text-white/55">
@@ -4496,8 +4497,8 @@ const GeneralSettings: React.FC<Props> = ({
                                                         className={cn(
                                                           "rounded-lg border px-2 py-1 text-[9px] font-black text-center",
                                                           step.done
-                                                            ? "border-emerald-300/20 bg-emerald-400/15 text-emerald-50"
-                                                            : "border-white/10 bg-white/5 text-white/30",
+                                                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                                            : "border-slate-200 bg-slate-50 text-slate-400",
                                                         )}
                                                       >
                                                         {step.done ? "✓ " : "— "}{step.label}
@@ -4517,7 +4518,7 @@ const GeneralSettings: React.FC<Props> = ({
                                     </div>
                                   );
                                 }) : archivedCards.length > 0 && !query && !pushArchiveAccountsOpen ? null : (
-                                  <div className="rounded-2xl border border-white/10 bg-white/10 p-5 text-center text-sm font-bold text-white/60">
+                                  <div className="rounded-2xl border border-white/10 bg-white/10 p-5 text-center text-sm font-bold text-slate-500">
                                     لا توجد نتائج مطابقة للبحث.
                                   </div>
                                 )}
@@ -4546,11 +4547,11 @@ const GeneralSettings: React.FC<Props> = ({
                             )}
 
                             {pushDeviceTab === "log" && (
-                              <div id="push-notification-log" className="rounded-[1.5rem] border border-white/10 bg-slate-50 border border-slate-200 text-slate-900/90 p-2.5 md:p-3 space-y-3 shadow-inner max-h-[70vh] overflow-y-auto overscroll-contain scroll-mt-24">
+                              <div id="push-notification-log" className="rounded-[1.5rem] border border-slate-200 bg-white text-slate-900 p-2.5 md:p-3 space-y-3 shadow-inner max-h-[70vh] overflow-y-auto overflow-x-hidden overscroll-contain scroll-mt-24 max-w-full">
                                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                   <div>
-                                    <div className="text-xs font-black text-white">السجل الذكي للإشعارات</div>
-                                    <div className="text-[10px] font-bold text-white/45 mt-1">يعرض {visibleNotificationLog.length} من {notificationLog.length} نتيجة. {focusedNotification ? "تم فتح الإشعار المحدد من الرادار." : "اختر أي إشعار لفتح تفاصيله."}</div>
+                                    <div className="text-xs font-black text-slate-950">السجل الذكي للإشعارات</div>
+                                    <div className="text-[10px] font-bold text-slate-500 mt-1">يعرض {visibleNotificationLog.length} من {notificationLog.length} نتيجة. {focusedNotification ? "تم فتح الإشعار المحدد من الرادار." : "اختر أي إشعار لفتح تفاصيله."}</div>
                                   </div>
                                   <div className="flex flex-wrap gap-1.5">
                                     {[
@@ -4560,7 +4561,7 @@ const GeneralSettings: React.FC<Props> = ({
                                       ['waiting', 'بانتظار تأكيد'],
                                       ['failed', 'فشل'],
                                     ].map(([id, label]) => (
-                                      <button key={id} type="button" onClick={() => { setPushLogStatusFilter(id as any); setPushLogVisibleCount(20); }} className={cn("rounded-xl px-3 py-2 text-[10px] font-black transition", pushLogStatusFilter === id ? "bg-white text-slate-950" : "bg-white/10 text-white/60 hover:bg-white/15")}>
+                                      <button key={id} type="button" onClick={() => { setPushLogStatusFilter(id as any); setPushLogVisibleCount(20); }} className={cn("rounded-xl px-3 py-2 text-[10px] font-black transition", pushLogStatusFilter === id ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>
                                         {label}
                                       </button>
                                     ))}
@@ -4571,43 +4572,43 @@ const GeneralSettings: React.FC<Props> = ({
                                   const recipient = getPushNotificationRecipientMeta(notification);
                                   const steps = getDeliveryMilestones(notification);
                                   return (
-                                    <div key={notification.id} className={cn("rounded-2xl border p-3 transition", selected ? "bg-emerald-400/15 border-emerald-300/30 ring-1 ring-emerald-200/25" : "bg-slate-950/35 border-white/10")}>
+                                    <div key={notification.id} className={cn("rounded-2xl border p-3 transition overflow-hidden max-w-full", selected ? "bg-emerald-50 border-emerald-200 ring-1 ring-emerald-100" : "bg-slate-50 border-slate-200")}>
                                       <button type="button" onClick={() => setSelectedPushNotificationId(selected ? null : notification.id)} className="w-full text-right flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                                         <div className="min-w-0">
                                           <div className="font-black text-sm truncate">{notification.title || "إشعار بدون عنوان"}</div>
-                                          <div className="mt-1 text-[11px] font-bold text-white/50 truncate">أُرسل إلى: {recipient.name} — {notification.message || "بدون نص"}</div>
+                                          <div className="mt-1 text-[11px] font-bold text-slate-500 truncate">أُرسل إلى: {recipient.name} — {notification.message || "بدون نص"}</div>
                                         </div>
                                         <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black shrink-0">
                                           <span className={cn("rounded-full px-2 py-1", notification.success === false ? "bg-rose-400/15 text-rose-100" : (notification.receivedByDevice || notification.receivedAt || notification.openedByEmployee || notification.clickedAt) ? "bg-emerald-400/15 text-emerald-100" : "bg-amber-400/15 text-amber-100")}>{notification.deliveryStage || getPushDeliveryStageLabel(notification)}</span>
-                                          <span className="rounded-full bg-white/10 px-2 py-1 text-white/40">{notification.date || "بلا وقت"}</span>
-                                          <span className="rounded-full bg-white/10 px-2 py-1 text-white/60">{selected ? "إخفاء" : "تفاصيل"}</span>
+                                          <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-500">{notification.date || "بلا وقت"}</span>
+                                          <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-700">{selected ? "إخفاء" : "تفاصيل"}</span>
                                         </div>
                                       </button>
                                       {selected && (
                                         <div className="mt-3 space-y-2">
-                                          <div className="grid sm:grid-cols-2 gap-1.5 text-[10px] font-bold text-white/55">
-                                            <span className="rounded-xl bg-black/20 border border-white/10 px-2 py-1 truncate">أُرسل إلى: {recipient.name}</span>
-                                            <span className="rounded-xl bg-black/20 border border-white/10 px-2 py-1 truncate">الجهاز: {recipient.deviceLabel}</span>
-                                            {recipient.subtitle && <span className="rounded-xl bg-black/20 border border-white/10 px-2 py-1 truncate">المعرّف: {recipient.subtitle}</span>}
-                                            <span className="rounded-xl bg-black/20 border border-white/10 px-2 py-1 truncate">التوكن: {recipient.tokenTail}</span>
+                                          <div className="grid sm:grid-cols-2 gap-1.5 text-[10px] font-bold text-slate-600">
+                                            <span className="rounded-xl bg-slate-100 border border-slate-200 px-2 py-1 truncate">أُرسل إلى: {recipient.name}</span>
+                                            <span className="rounded-xl bg-slate-100 border border-slate-200 px-2 py-1 truncate">الجهاز: {recipient.deviceLabel}</span>
+                                            {recipient.subtitle && <span className="rounded-xl bg-slate-100 border border-slate-200 px-2 py-1 truncate">المعرّف: {recipient.subtitle}</span>}
+                                            <span className="rounded-xl bg-slate-100 border border-slate-200 px-2 py-1 truncate">التوكن: {recipient.tokenTail}</span>
                                           </div>
                                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                                             {steps.map((step) => (
-                                              <span key={step.key} className={cn("rounded-lg border px-2 py-1 text-[9px] font-black text-center", step.done ? "border-emerald-300/20 bg-emerald-400/15 text-emerald-50" : "border-white/10 bg-white/5 text-white/30")}>
+                                              <span key={step.key} className={cn("rounded-lg border px-2 py-1 text-[9px] font-black text-center", step.done ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-400")}>
                                                 {step.done ? "✓ " : "— "}{step.label}
                                               </span>
                                             ))}
                                           </div>
-                                          <div className="rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/65">{getDeliveryHumanReason(notification, (notification as any).device)}</div>
+                                          <div className="rounded-xl bg-slate-100 border border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-700">{getDeliveryHumanReason(notification, (notification as any).device)}</div>
                                         </div>
                                       )}
                                     </div>
                                   );
                                 }) : (
-                                  <div className="p-5 text-center text-sm font-bold text-white/60">لا يوجد أرشيف إشعارات مسجل.</div>
+                                  <div className="p-5 text-center text-sm font-bold text-slate-500">لا يوجد أرشيف إشعارات مسجل.</div>
                                 )}
                                 {notificationLog.length > visibleNotificationLog.length && (
-                                  <button type="button" onClick={() => setPushLogVisibleCount((v) => v + 20)} className="w-full rounded-2xl bg-white/10 border border-white/10 px-4 py-3 text-[11px] font-black text-white hover:bg-white/15">
+                                  <button type="button" onClick={() => setPushLogVisibleCount((v) => v + 20)} className="w-full rounded-2xl bg-slate-100 border border-slate-200 px-4 py-3 text-[11px] font-black text-slate-700 hover:bg-slate-200">
                                     عرض المزيد من السجل
                                   </button>
                                 )}
