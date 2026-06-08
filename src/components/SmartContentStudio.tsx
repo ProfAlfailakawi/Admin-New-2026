@@ -15,6 +15,7 @@ import { buildStudioTastePrompt, loadStudioBackgroundLibrary, markStudioBackgrou
 import { KUWAIT_CONTENT_GOALS, KUWAIT_PLACES, KUWAIT_PULSE_PACKS, buildKuwaitCaptionFallback, buildKuwaitStudioTheme, getKuwaitPulsePack, type KuwaitContentGoal, type KuwaitOrderPlace } from '../lib/kuwaitContentPulse';
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
 import { analyzeAlturathStudioIdea, getAlturathDishProfile, getAlturathProductGroups, getAlturathProductName, getAlturathProductSuggestions, type AlturathStudioBrainResult } from '../lib/alturathStudioBrain';
+import { buildAITrainingContext, recordAITrainingSignal, runAISelfTrainingCycle } from '../lib/aiLearningCore';
 
 interface SmartContentStudioProps {
   data: any;
@@ -131,6 +132,8 @@ class StudioErrorBoundary extends React.Component<{ title: string; children: Rea
 }
 
 export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, setData, onNavigate }) => {
+  const studioLearningContext = buildAITrainingContext(data, 'studio').summary;
+  useEffect(() => { runAISelfTrainingCycle(data, 'studio-open'); }, [data]);
   const [studioTab, setStudioTab] = useState<'home' | 'create' | 'quick' | 'whatsapp' | 'occasions' | 'product' | 'reel' | 'library' | 'advanced' | 'campaigner' | 'storyboard'>('home');
   const [createSubTab, setCreateSubTab] = useState<'custom' | 'campaigner'>('custom');
   const [reelSubTab, setReelSubTab] = useState<'generate' | 'storyboard'>('generate');
@@ -1513,6 +1516,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
           shotDirectorDirection: shotDirectorLock(reelShot),
           sceneProductionGuide: getSceneProductionGuide(activeStudioScene),
           tasteProfile: buildStudioTastePrompt(),
+          aiLearningContext: studioLearningContext,
           speedTier: 'turbo' // Signal for faster generation logic if available
         })
       });
@@ -1546,6 +1550,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         addToHistory(branded, null, { mode: usedMode, background: usedBackground, theme: themeUsed, format: selectedFormat, source: 'image' });
         pushStudioMemory(buildStudioSignature(imageBrain.primaryProductName || selectedStudioProductName));
         recordStudioTasteChoice({ mode: usedMode, background: usedBackground, theme: themeUsed, format: selectedFormat, label: variantOverride?.label || STUDIO_REALITY_MODES[usedMode].label, source: 'generated-image', dishKey: imageBrain.primaryProductName || selectedStudioProductName || customThemeQuery, scene: activeStudioScene.label, shot: reelShot });
+        recordAITrainingSignal('studio', themeText, 'generated', { intent: 'image', mode: usedMode, background: usedBackground, format: selectedFormat });
         refreshStudioLearning();
         if (variantOverride?.label) {
           setRealityVariants(prev => [...prev, {
@@ -2149,6 +2154,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       setReelHistory(prev => [item, ...prev.filter(r => r.url !== item.url)].slice(0, 18));
       pushStudioMemory(buildStudioSignature(productBrain.primaryProductName || selectedStudioProductName));
       recordStudioTasteChoice({ mode: realityMode, background: backgroundPreset, theme: selectedTheme === 'مخصص' ? customThemeQuery : selectedTheme, format: '9:16', label: reelShot, source: 'generated-reel', dishKey: productBrain.primaryProductName || selectedStudioProductName || customThemeQuery, scene: activeStudioScene.label, shot: reelShot });
+      recordAITrainingSignal('studio', buildReelSettingsText(), 'generated', { intent: 'reel', mode: realityMode, background: backgroundPreset, format: '9:16' });
       toast.success('الريل جاهز وخفيف ومحفوظ في أرشيف الريلز');
     } catch (e: any) {
       toast.error(e?.message || 'ما قدرنا نولّد الريل الحين');

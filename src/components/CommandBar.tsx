@@ -6,6 +6,7 @@ import { hasProductImage } from '../lib/sharedBusinessContract';
 import { appendLocalLedgerEvent, createLedgerEvent } from '../lib/alturathLedger';
 import { cn, normalizeArabic, normalizeArabicNumerals, formatKuwaitiDateOnly } from '../lib/utils';
 import { getProductQualityReport } from '../lib/command-quality';
+import { getAISelfTrainingStatus, rankWithLearning, recordAITrainingSignal, runAISelfTrainingCycle } from '../lib/aiLearningCore';
 
 interface CommandBarProps {
   isOpen: boolean;
@@ -482,6 +483,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
           rec.onresult = (e: any) => {
             const transcript = e.results?.[0]?.[0]?.transcript || '';
             const smartQuery = buildVoiceSmartQuery(transcript);
+            try { recordAITrainingSignal('command', transcript, 'answered', { intent: 'voice', smartQuery }); } catch {}
             if (smartQuery) {
               setQuery(smartQuery);
             }
@@ -524,6 +526,17 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     const parsedQueryText = (deferredQuery.startsWith('@') || deferredQuery.startsWith('#') || deferredQuery.startsWith('$'))
       ? deferredQuery.slice(1)
       : deferredQuery;
+
+    if (includesAny(parsedQueryText, ['يتدرب', 'تدريب', 'ذاكرة الذكاء', 'ذكاء خارق', 'التعلم'])) {
+      const status = getAISelfTrainingStatus(data);
+      return {
+        title: 'حالة التعلم الذاتي المحلي',
+        value: 'نشط ويتطور',
+        subtitle: 'يتعلم محلياً من استخدامك، الأوامر، التحليلات، والاستوديو بدون قاعدة بيانات أو API إضافي.',
+        details: status.split('\n').slice(0, 2),
+        tone: 'blue'
+      };
+    }
 
     // 1. Direct Executive Action: Pay Supplier e.g. "سداد محمد 150"
     const parsedPay = parsePayCommand(parsedQueryText);
@@ -1697,12 +1710,13 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       );
     }
 
-    if (!q) return baseList;
-    return baseList
+    if (!q) return rankWithLearning<CommandItem>(baseList, (cmd) => cmd.id || cmd.label, 'command');
+    const filtered = baseList
       .map((cmd) => ({ cmd, score: commandScore(cmd, q) }))
       .filter(item => item.score > 0)
       .sort((a, b) => b.score - a.score)
       .map(item => item.cmd);
+    return rankWithLearning<CommandItem>(filtered, (cmd) => cmd.id || cmd.label, 'command');
   }, [commands, deferredQuery]);
 
   const visibleCommands = useMemo(() => instantAnswer ? filteredCommands.slice(0, 4) : filteredCommands, [filteredCommands, instantAnswer]);
@@ -1733,6 +1747,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
         return next;
       });
       appendLocalLedgerEvent(createLedgerEvent('UI_ACTION', { entityType: 'ui', actorRole: userRole, meta: { commandId: cmd.id, label: cmd.label, category: cmd.category } }));
+      recordAITrainingSignal('command', cmd.label, 'clicked', { intent: cmd.category, commandId: cmd.id, query });
       cmd.action();
     } catch (error) {
       console.error('CommandBar navigation failed:', error);
@@ -1749,6 +1764,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       setQuery('');
       setSelectedIndex(0);
       try {
+        runAISelfTrainingCycle(data, 'command-open');
         const stored = JSON.parse(localStorage.getItem('alturath_command_recent') || '[]');
         if (Array.isArray(stored)) setRecentCommandIds(stored.slice(0, 6));
       } catch {}

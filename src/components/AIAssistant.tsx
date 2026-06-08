@@ -22,6 +22,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { AppState } from '../types';
 import { getKitchenNowDecision } from '../lib/ai-engine';
+import { buildAITrainingContext, recordAITrainingSignal, runAISelfTrainingCycle } from '../lib/aiLearningCore';
 import { cn } from '../lib/utils';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
@@ -644,6 +645,8 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 	   missions: undefined,
 	 };
 	 const memorySnapshot = readMemory();
+	 const learningContext = buildAITrainingContext(data, 'assistant').summary;
+	 runAISelfTrainingCycle(data, 'assistant-turn');
 	
 	 const assistantResponse = await fetch('/api/ai/assistant', {
  method: 'POST',
@@ -690,6 +693,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 - ممنوع الزخرفة، المبالغة، الحشو، وتكرار الرموز. المطلوب: ترتيب فاخر، هدوء بصري، ووضوح تنفيذي.
 - قبل أي رد، افحص: هل عندي رقم/منتج/عميل/مورد يثبت كلامي؟ إذا لا، اطلب الناقص بوضوح.
 - استخدم ذاكرة التاجر المحلية المرسلة لك عشان ما تكرر نفس النصائح وتفهم أسلوبه.
+- استخدم ذاكرة التعلم المحلية learningContext لفهم أكثر الأوامر والنوايا تكراراً، وتحسين ترتيب الأولويات بدون اختراع بيانات.
 - ممنوع تذكر أنك نموذج أو نظام عام أو تعتذر بكثرة.
 - إذا كتب التاجر كلمة "ضبطها" فقط، افهمها حسب الصفحة الحالية والقرار المرسل لك، ولا تسأله شنو يقصد إلا إذا البيانات ناقصة.
 - إذا في مخاطرة، قلها بصراحة وبهدوء. إذا في فرصة، عطه خطوة قابلة للتنفيذ اليوم.
@@ -698,6 +702,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 - عند طلب رسالة واتساب: اكتب النص فقط مع سبب اختيار العميل/الحالة بسطر واحد.`,
 	 statsSummary,
 	 memorySnapshot,
+	 learningContext,
 	 conversationHistory: messages.slice(-6).map((m) => ({ role: m.role, content: m.content.slice(0, 900) }))
 	 })
  });
@@ -710,6 +715,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 
  const aiText = compactAssistantReply(assistantPayload?.text || 'تعطل الرد شوي. جرّب مرة ثانية.');
  rememberTurn(cleanMessage, aiText);
+ try { recordAITrainingSignal('assistant', cleanMessage, 'answered', { intent: intentKind, responsePreview: aiText.slice(0, 160) }); } catch {}
  setMessages(prev => [...prev, { 
  role: 'assistant', 
  content: aiText 

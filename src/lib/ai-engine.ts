@@ -2,6 +2,7 @@
 import { AppState, Customer, Invoice, Product, Supplier, AICampaign, RealProfitInsight, SupplierNegotiationInsight, SimulationResult, BusinessHealthScore } from '../types';
 import { isPaidStatus } from './status-utils';
 import { GoogleGenAI } from "@google/genai";
+import { recordAITrainingSignal, runAISelfTrainingCycle, buildAITrainingContext, rankWithLearning } from './aiLearningCore';
 
 export type PriorityResult = 'high' | 'medium' | 'low';
 export type InsightType = 'risk' | 'opportunity' | 'action';
@@ -54,11 +55,30 @@ function generateStateHash(data: AppState): string {
   return `${invLen}-${prodLen}-${custLen}-${summary}`;
 }
 
+
+function trainLocalAI(surface: string, data?: AppState | any, meta: Record<string, any> = {}) {
+  try {
+    runAISelfTrainingCycle(data, surface);
+    recordAITrainingSignal(surface, meta.input || 'data_snapshot', meta.outcome || 'computed', meta);
+  } catch {
+    // التعلم المحلي اختياري ولا يجب أن يعطل أي ميزة قائمة.
+  }
+}
+
+function learningContextLine(surface: string, data?: AppState | any) {
+  try {
+    return buildAITrainingContext(data, surface).summary;
+  } catch {
+    return '';
+  }
+}
+
 /**
  * Generate Quick Instagram Engagement Messages
  */
 
 export async function generateQuickInstagramMessages(data: AppState, category: 'motivation' | 'engagement' | 'promo' | 'contest' | 'trend', forceRefresh = false) {
+  trainLocalAI('marketing', data, { input: `quick-instagram-${category}`, intent: category, outcome: 'generated' });
   if (category === 'contest') {
     const products = (data?.products || []).filter((p: any) => !p.isDeleted);
     const invoices = (data?.invoices || []).filter((i: any) => !i.isDeleted);
@@ -222,6 +242,7 @@ export function simulateWhatIfScenario(
     newPrice?: number
   }
 ): SimulationResult {
+  trainLocalAI('forecast', data, { input: `what-if-${decision.type}`, intent: decision.type });
   const cacheKey = `simulate-${decision.type}-${decision.productId || 'all'}-${decision.percentChange || 0}-${decision.newCost || 0}-${decision.newPrice || 0}-${generateStateHash(data)}`;
   const cached = getCached<SimulationResult>(cacheKey);
   if (cached) return cached;
@@ -364,6 +385,7 @@ export function simulateWhatIfScenario(
  * Evaluates the business across 5 critical dimensions: Revenue, Profit, Customers, Suppliers, and Risks.
  */
 export function calculateBusinessHealthIndex(data: AppState): BusinessHealthScore {
+  trainLocalAI('analytics', data, { input: 'business-health-index', intent: 'analytics' });
   const cacheKey = `health-${generateStateHash(data)}`;
   const cached = getCached<BusinessHealthScore>(cacheKey);
   if (cached) return cached;
@@ -462,6 +484,7 @@ export function calculateBusinessHealthIndex(data: AppState): BusinessHealthScor
  * Analyzes supplier pricing trends to detect unfair pricing and suggest negotiation strategies.
  */
 export function generateSupplierNegotiationAnalysis(data: AppState): SupplierNegotiationInsight[] {
+  trainLocalAI('supplier', data, { input: 'supplier-negotiation-analysis', intent: 'supplier' });
   const cacheKey = `supplier-nego-${generateStateHash(data)}`;
   const cached = getCached<SupplierNegotiationInsight[]>(cacheKey);
   if (cached) return cached;
@@ -582,6 +605,7 @@ export function generateSupplierNegotiationAnalysis(data: AppState): SupplierNeg
  * Reveals true profitability by factoring in hidden costs like gateway fees and delivery deltas.
  */
 export function generateRealProfitAnalysis(data: AppState): RealProfitInsight[] {
+  trainLocalAI('analytics', data, { input: 'real-profit-analysis', intent: 'analytics' });
   const cacheKey = `real-profit-${generateStateHash(data)}`;
   const cached = getCached<RealProfitInsight[]>(cacheKey);
   if (cached) return cached;
@@ -740,6 +764,7 @@ export function generateRealProfitAnalysis(data: AppState): RealProfitInsight[] 
 }
 
 export async function generateMarketingCampaign(data: AppState, customPrompt?: string): Promise<AICampaign> {
+  trainLocalAI('marketing', data, { input: customPrompt || 'marketing-campaign', intent: 'marketing', outcome: 'generated' });
   const cacheKey = `marketing-camp-v4-${customPrompt || 'default'}-${generateStateHash(data)}`;
   const cached = getCached<AICampaign>(cacheKey);
   if (cached) return cached;
@@ -755,7 +780,8 @@ export async function generateMarketingCampaign(data: AppState, customPrompt?: s
           body: JSON.stringify({
               invoicesCount: invoices.length,
               bestProduct,
-              customPrompt
+              customPrompt,
+              learningContext: learningContextLine('marketing', data)
           })
       });
 
@@ -823,6 +849,7 @@ export function generateAIBusinessRecommendation(data: AppState): {
   iconType: 'stars' | 'target' | 'shield';
   fullStrategyIds?: string[];
 } {
+  trainLocalAI('analytics', data, { input: 'business-recommendation', intent: 'analytics' });
   const cacheKey = `ai-business-rec-${generateStateHash(data)}`;
   const cached = getCached<any>(cacheKey);
   if (cached) return cached;
@@ -885,6 +912,7 @@ export function generateAIBusinessRecommendation(data: AppState): {
 }
 
 export function generateStructuredCampaign(data: AppState, topic: string): AICampaign | null {
+  trainLocalAI('marketing', data, { input: topic || 'structured-campaign', intent: 'marketing', outcome: 'generated' });
   const products = (data?.products || []).filter(p => p.isActive !== false && p.price > 0);
   const invoices = (data?.invoices || []).filter(i => !i.isDeleted);
   
@@ -982,6 +1010,7 @@ export interface AILearningLog {
 }
 
 export function generateAILearningInsights(data: AppState): AILearningLog[] {
+  trainLocalAI('system', data, { input: 'ai-learning-insights', intent: 'learning' });
   const cacheKey = `ai-learn-${generateStateHash(data)}`;
   const cached = getCached<AILearningLog[]>(cacheKey);
   if (cached) return cached;
@@ -1027,6 +1056,7 @@ export function generateAILearningInsights(data: AppState): AILearningLog[] {
 }
 
 export function generateHiddenRisks(data: AppState): HiddenRisk[] {
+  trainLocalAI('analytics', data, { input: 'hidden-risks', intent: 'analytics' });
   const cacheKey = `hidden-risks-${generateStateHash(data)}`;
   const cached = getCached<HiddenRisk[]>(cacheKey);
   if (cached) return cached;
@@ -1167,6 +1197,7 @@ export function calculateCustomerSentiment(customer: Customer, invoices: Invoice
   color: string;
   reason: string;
 } {
+  try { recordAITrainingSignal('customer', customer?.name || customer?.phone || 'customer-sentiment', 'computed', { intent: 'customer' }); } catch {}
   const custInvoices = (invoices || []).filter(inv => inv.customerId === customer.id && !inv.isDeleted);
   const paidInvoices = custInvoices.filter(inv => isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined);
   
@@ -1246,6 +1277,7 @@ export function calculateCustomerSentiment(customer: Customer, invoices: Invoice
  * Generate a smart, personalized WhatsApp message for a customer based on their sentiment and activity.
  */
 export function generateCustomerSmartMessage(customer: Customer, invoices: Invoice[], products: any[] = []): string {
+  try { recordAITrainingSignal('customer', customer?.name || customer?.phone || 'customer-message', 'generated', { intent: 'customer' }); } catch {}
   const sentiment = calculateCustomerSentiment(customer, invoices);
   const firstName = customer.name.split(' ')[0];
   
@@ -1289,6 +1321,7 @@ export function generateBusinessInsights(data: AppState): {
   topAction: AIInsight | null;
   allInsights: AIInsight[];
 } {
+  trainLocalAI('analytics', data, { input: 'business-insights', intent: 'analytics' });
   const cacheKey = `bus-insights-${generateStateHash(data)}`;
   const cached = getCached<any>(cacheKey);
   if (cached) return cached;
@@ -1466,7 +1499,7 @@ export function generateBusinessInsights(data: AppState): {
     topRisk: risks.length > 0 ? risks[0] : null,
     topOpportunity: opps.length > 0 ? opps[0] : null,
     topAction: actions.length > 0 ? actions[0] : null,
-    allInsights: insights
+    allInsights: rankWithLearning(insights, (item) => item.type || item.id, 'analytics')
   };
   setCache(cacheKey, resultObj);
   return resultObj;
@@ -1490,6 +1523,7 @@ export interface AIStrategy {
 }
 
 export function generateAutoStrategies(data: AppState): AIStrategy[] {
+  trainLocalAI('analytics', data, { input: 'auto-strategies', intent: 'analytics' });
   const cacheKey = `auto-strat-${generateStateHash(data)}`;
   const cached = getCached<AIStrategy[]>(cacheKey);
   if (cached) return cached;
@@ -1644,10 +1678,12 @@ export function generateAutoStrategies(data: AppState): AIStrategy[] {
     });
   }
 
-  setCache(cacheKey, strategies);
-  return strategies;
+  const learnedStrategies = rankWithLearning(strategies, (item) => item.id || item.title, 'analytics');
+  setCache(cacheKey, learnedStrategies);
+  return learnedStrategies;
 }
 export function performArchiveAnalysis(data: AppState) {
+  trainLocalAI('analytics', data, { input: 'archive-analysis', intent: 'analytics' });
     const cacheKey = `archive-${generateStateHash(data)}`;
     const cached = getCached<any>(cacheKey);
     if (cached) return cached;
@@ -1853,6 +1889,7 @@ export interface KuwaitiSentimentResult {
 }
 
 export function analyzeKuwaitiSentiment(text: string): KuwaitiSentimentResult {
+  try { recordAITrainingSignal('customer', text, 'computed', { intent: 'sentiment' }); } catch {}
     const t = normalizeArabic(text.toLowerCase());
     
     // Better deterministic hash based on text content
@@ -2044,6 +2081,7 @@ function kProductRows(data: any) {
 }
 
 export function getProfitCamera(product: any, data: AppState) {
+  trainLocalAI('product', data, { input: product?.name || 'profit-camera', intent: 'product' });
   const rows = kProductRows(data);
   const row = rows.find((r: any) => String(r.product?.id) === String(product?.id)) || {
     name: product?.name || 'منتج',
@@ -2065,6 +2103,7 @@ export function getProfitCamera(product: any, data: AppState) {
 }
 
 export function getCouponProfitGuard(data: AppState, value: any, type: 'percentage' | 'fixed') {
+  trainLocalAI('analytics', data, { input: `coupon-${type}-${value}`, intent: 'analytics' });
   const val = Number(value || 0);
   if (!val || val <= 0) return null;
   const invoices = kPaidInvoices(data);
@@ -2098,6 +2137,7 @@ export function getCouponProfitGuard(data: AppState, value: any, type: 'percenta
 }
 
 export function getKuwaitiSeasonalMove(data: AppState) {
+  trainLocalAI('marketing', data, { input: 'kuwait-seasonal-move', intent: 'marketing' });
   const now = new Date();
   const day = now.getDay();
   const hour = now.getHours();
@@ -2112,6 +2152,7 @@ export function getKuwaitiSeasonalMove(data: AppState) {
 }
 
 export function getKitchenNowDecision(data: AppState, currentPage = 'dashboard') {
+  trainLocalAI('analytics', data, { input: `kitchen-now-${currentPage}`, intent: currentPage });
   const invoices = kPaidInvoices(data);
   const today = new Date();
   today.setHours(0,0,0,0);
@@ -2160,6 +2201,7 @@ export function getKitchenNowDecision(data: AppState, currentPage = 'dashboard')
 }
 
 export function buildSalesDrivenStoryIdeas(data: AppState) {
+  trainLocalAI('marketing', data, { input: 'sales-driven-story-ideas', intent: 'marketing', outcome: 'generated' });
   const rows = kProductRows(data);
   const seasonal = getKuwaitiSeasonalMove(data);
   const profitable = rows.filter((r: any) => r.margin > 20).sort((a: any,b: any) => (b.margin + b.qty) - (a.margin + a.qty))[0];
@@ -2223,5 +2265,14 @@ export const TuraathEngine = {
         getCouponProfitGuard,
         getKuwaitiSeasonalMove,
         getProfitCamera
+    },
+
+    /**
+     * Local self-learning layer: no APIs, no database writes, no sensitive integrations.
+     */
+    SelfLearning: {
+        recordAITrainingSignal,
+        runAISelfTrainingCycle,
+        buildAITrainingContext
     }
 };
