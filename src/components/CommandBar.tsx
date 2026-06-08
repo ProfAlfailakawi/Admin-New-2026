@@ -308,6 +308,152 @@ const parsePayCommand = (qText: string) => {
   return null;
 };
 
+const dateTime = (value: any) => {
+  if (!value) return 0;
+  if (typeof value?.toDate === 'function') {
+    const time = value.toDate().getTime();
+    return Number.isFinite(time) ? time : 0;
+  }
+  if (typeof value === 'object' && typeof value.seconds === 'number') {
+    return value.seconds * 1000;
+  }
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
+};
+
+const entityDateTime = (item: any) => Math.max(
+  dateTime(item?.date),
+  dateTime(item?.createdAt),
+  dateTime(item?.updatedAt),
+  dateTime(item?.lastOrderDate),
+  dateTime(item?.lastActive),
+  dateTime(item?.timestamp),
+  dateTime(item?.time)
+);
+
+const latestByDate = (items: any[]) => {
+  const list = safeArray(items).filter(Boolean);
+  if (!list.length) return null;
+  return [...list].sort((a: any, b: any) => {
+    const diff = entityDateTime(b) - entityDateTime(a);
+    if (diff) return diff;
+    return list.indexOf(b) - list.indexOf(a);
+  })[0] || null;
+};
+
+const hasLatestIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('اخر') || q.includes('آخر') || q.includes('اخير') || q.includes('أخير') || q.includes('احدث') || q.includes('أحدث') || q.includes('جديد') || q.includes('آخر شي') || q.includes('اخر شي');
+};
+
+const hasInvoiceIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('فاتوره') || q.includes('فاتورة') || q.includes('فواتير') || q.includes('الفاتوره') || q.includes('الفاتورة');
+};
+
+const hasCustomerIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('عميل') || q.includes('العميل') || q.includes('عملاء') || q.includes('زبون') || q.includes('زباين');
+};
+
+const hasOrderIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('طلب') || q.includes('طلبات') || q.includes('اوردر') || q.includes('أوردر');
+};
+
+
+const hasSupplierIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('مورد') || q.includes('موردين') || q.includes('المورد') || q.includes('الموردين');
+};
+
+const hasProductIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('منتج') || q.includes('منتجات') || q.includes('صنف') || q.includes('اصناف') || q.includes('أصناف') || q.includes('طبق') || q.includes('اكل') || q.includes('أكل');
+};
+
+const hasExpenseIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('مصروف') || q.includes('مصروفات') || q.includes('مصاريف') || q.includes('تكلفه') || q.includes('تكلفة');
+};
+
+const hasReportIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('تقرير') || q.includes('تقارير') || q.includes('احص') || q.includes('إحص') || q.includes('ملخص') || q.includes('اداء') || q.includes('أداء');
+};
+
+const hasTodayIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('اليوم') || q.includes('يومي') || q.includes('اليوميه') || q.includes('اليومية') || q.includes('الحين') || q.includes('الان') || q.includes('الآن');
+};
+
+const hasOpenIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('افتح') || q.includes('فتح') || q.includes('ودني') || q.includes('روح') || q.includes('اعرض') || q.includes('عرض') || q.includes('جيب') || q.includes('هات') || q.includes('طلع');
+};
+
+const hasCountIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('كم') || q.includes('عدد') || q.includes('احسب') || q.includes('إحسب') || q.includes('جم') || q.includes('شكثر');
+};
+
+const hasBalanceIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('رصيد') || q.includes('مديونيه') || q.includes('مديونية') || q.includes('مستحق') || q.includes('مستحقات') || q.includes('حساب');
+};
+
+const hasLowStockIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('ناقص') || q.includes('نقص') || q.includes('خلص') || q.includes('منتهي') || q.includes('قليل') || q.includes('مخزون') || q.includes('ستوك');
+};
+
+const commandStopWords = [
+  'افتح','فتح','اعرض','عرض','ودني','روح','جيب','هات','طلع','دور','ابحث','بحث','ابي','أبي','اريد','أريد','شوف','ورني','منو','من','شنو','ماذا','كم','عدد','آخر','اخر','احدث','أحدث','جديد','اليوم','الحين','الان','الآن','ل','عن','في','على','حق','مال','رقم','اسم','بيانات','تفاصيل','تقرير','ملخص'
+];
+
+const extractEntityTerm = (value: string, domainWords: string[] = []) => {
+  const wordsToRemove = [...commandStopWords, ...domainWords].map(clean).filter(Boolean);
+  let term = clean(normalizeArabicNumerals(value));
+  wordsToRemove.forEach((word) => {
+    term = term.replace(new RegExp(`(^|\\s)${word}(?=\\s|$)`, 'g'), ' ');
+  });
+  return term.replace(/\s+/g, ' ').trim();
+};
+
+const matchText = (item: any, fields: any[], term: string, digits = '') => {
+  const text = clean(fields.join(' '));
+  const textDigits = cleanDigits(fields.join(' '));
+  return (!!term && text.includes(clean(term))) || (!!digits && textDigits.includes(digits));
+};
+
+const productStock = (product: any) => num(product?.stock ?? product?.quantity ?? product?.qty ?? product?.availableQty ?? product?.inventory);
+const supplierBalance = (supplier: any) => num(supplier?.balance ?? supplier?.due ?? supplier?.outstanding ?? supplier?.payable ?? supplier?.totalDue);
+const expenseAmount = (expense: any) => num(expense?.amount ?? expense?.total ?? expense?.value);
+
+const inSameLocalDay = (value: any, date = new Date()) => {
+  const t = dateTime(value);
+  if (!t) return false;
+  return new Date(t).toDateString() === date.toDateString();
+};
+
+const buildVoiceSmartQuery = (value: string) => {
+  const text = normalizeArabicNumerals(String(value || '').trim());
+  const q = clean(text);
+  if (!q) return text;
+
+  // لا نخنق الصوت في أوامر قليلة. نحتفظ بجملة المستخدم، ونضيف فقط تصحيحًا خفيفًا
+  // للعبارات الكويتية الشائعة حتى يمر النص إلى طبقة الفهم الذكي العامة.
+  const replacements: Array<[RegExp, string]> = [
+    [/فواتير اخر عميل|فاتوره اخر عميل|فاتورة اخر عميل|فاتورة آخر عميل/g, 'آخر فاتورة لآخر عميل'],
+    [/كم فاتوره|كم فاتورة|جم فاتوره|جم فاتورة/g, 'كم فاتورة'],
+    [/موردين/g, 'موردين'],
+    [/زباين/g, 'عملاء'],
+    [/اوردرات|أوردرات|اوردر|أوردر/g, 'طلبات'],
+    [/ستوك/g, 'مخزون'],
+  ];
+  return replacements.reduce((next, [pattern, replacement]) => next.replace(pattern, replacement), text);
+};
+
 const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, data, userRole }) => {
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
@@ -334,9 +480,10 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
           };
 
           rec.onresult = (e: any) => {
-            const transcript = e.results[0][0].transcript;
-            if (transcript) {
-              setQuery(transcript);
+            const transcript = e.results?.[0]?.[0]?.transcript || '';
+            const smartQuery = buildVoiceSmartQuery(transcript);
+            if (smartQuery) {
+              setQuery(smartQuery);
             }
           };
 
@@ -460,6 +607,354 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       .filter((customer: any) => customer.idleDays >= 21 && num(customer.totalSpent) > 0)
       .sort((a: any, b: any) => (num(b.totalSpent) + b.idleDays) - (num(a.totalSpent) + a.idleDays))[0];
     const wantsStats = q.includes('احص') || q.includes('إحص') || q.includes('ملخص') || q.includes('تقرير') || q.includes('كم') || q.includes('عدد') || q.includes('عطني');
+    const latestInvoice = latestByDate(invoices);
+    const latestOrder = latestByDate(orders);
+    const latestCustomer = latestByDate(customers);
+    const wantsLatest = hasLatestIntent(q);
+    const wantsInvoice = hasInvoiceIntent(q);
+    const wantsCustomer = hasCustomerIntent(q);
+    const wantsOrder = hasOrderIntent(q);
+    const wantsSupplier = hasSupplierIntent(q);
+    const wantsProduct = hasProductIntent(q);
+    const wantsExpense = hasExpenseIntent(q);
+    const wantsReport = hasReportIntent(q);
+    const wantsToday = hasTodayIntent(q);
+    const wantsCount = hasCountIntent(q);
+    const wantsOpen = hasOpenIntent(q);
+    const wantsBalance = hasBalanceIntent(q);
+    const wantsLowStock = hasLowStockIntent(q);
+    const qDigits = cleanDigits(parsedQueryText);
+    const expenses = safeArray(data?.expenses);
+    const latestSupplier = latestByDate(suppliers);
+    const latestProduct = latestByDate(safeArray(data?.products));
+    const latestExpense = latestByDate(expenses);
+    const todayInvoices = invoices.filter((inv: any) => inSameLocalDay(inv?.date || inv?.createdAt));
+    const todayOrders = orders.filter((order: any) => inSameLocalDay(order?.createdAt || order?.date || order?.updatedAt));
+    const todayExpenses = expenses.filter((expense: any) => inSameLocalDay(expense?.date || expense?.createdAt || expense?.updatedAt));
+    const todaySales = todayInvoices.reduce((sum: number, inv: any) => sum + invoiceTotal(inv), 0);
+    const todayExpenseTotal = todayExpenses.reduce((sum: number, exp: any) => sum + expenseAmount(exp), 0);
+    const topExpense = [...expenses].sort((a: any, b: any) => expenseAmount(b) - expenseAmount(a))[0];
+    const lowStockProducts = safeArray(data?.products)
+      .filter((product: any) => product?.isActive !== false && productStock(product) <= 3)
+      .sort((a: any, b: any) => productStock(a) - productStock(b));
+    const customerTerm = extractEntityTerm(q, ['عميل','عملاء','العميل','زبون','زباين']);
+    const supplierTerm = extractEntityTerm(q, ['مورد','موردين','المورد','الموردين']);
+    const productTerm = extractEntityTerm(q, ['منتج','منتجات','صنف','اصناف','أصناف','طبق','اكل','أكل','مخزون']);
+    const orderTerm = extractEntityTerm(q, ['طلب','طلبات','اوردر','أوردر']);
+    const invoiceTerm = extractEntityTerm(q, ['فاتوره','فاتورة','فواتير','الفاتوره','الفاتورة']);
+    const expenseTerm = extractEntityTerm(q, ['مصروف','مصروفات','مصاريف','تكلفه','تكلفة']);
+    const matchedCustomer = customerTerm
+      ? customers.find((customer: any) => matchText(customer, [customer?.name, customer?.phone, customer?.email, customer?.area], customerTerm, qDigits))
+      : null;
+    const matchedSupplier = supplierTerm
+      ? suppliers.find((supplier: any) => matchText(supplier, [supplier?.name, supplier?.phone, supplier?.category, supplier?.notes], supplierTerm, qDigits))
+      : null;
+    const matchedProduct = productTerm
+      ? safeArray(data?.products).find((product: any) => matchText(product, [product?.name, product?.category, product?.description, product?.sku], productTerm, qDigits))
+      : null;
+    const matchedOrder = orderTerm
+      ? orders.find((order: any) => matchText(order, [order?.id, order?.orderNumber, order?.customerName, order?.customerPhone, order?.phone, order?.status, order?.paymentStatus], orderTerm, qDigits))
+      : null;
+    const matchedInvoice = invoiceTerm
+      ? invoices.find((inv: any) => matchText(inv, [inv?.id, inv?.customerName, inv?.customerPhone, inv?.phone, inv?.notes], invoiceTerm, qDigits))
+      : null;
+    const matchedExpense = expenseTerm
+      ? expenses.find((expense: any) => matchText(expense, [expense?.description, expense?.category, expense?.vendor, expense?.notes], expenseTerm, qDigits))
+      : null;
+
+    if (wantsToday && (q.includes('مبيعات') || wantsInvoice || wantsReport)) {
+      return {
+        title: 'مبيعات اليوم',
+        value: `${money(todaySales)} د.ك`,
+        subtitle: `${todayInvoices.length} فاتورة · ${todayOrders.length} طلب ظاهر اليوم`,
+        details: [
+          todayExpenseTotal > 0 ? `مصروفات اليوم: ${money(todayExpenseTotal)} د.ك` : 'لا توجد مصروفات يومية ظاهرة',
+          failedOrders ? `تنبيه: ${failedOrders} طلب فشل دفع` : pendingOrders ? `متابعة: ${pendingOrders} طلب بانتظار الدفع` : 'الدفع مستقر حسب البيانات الحالية'
+        ],
+        actionLabel: 'افتح التقارير',
+        action: () => onNavigate('reports'),
+        tone: failedOrders ? 'rose' : pendingOrders ? 'amber' : 'emerald',
+      };
+    }
+
+    if (wantsCustomer && matchedCustomer && !wantsLatest) {
+      return {
+        title: 'بطاقة العميل الذكية',
+        value: matchedCustomer.name || matchedCustomer.phone || 'عميل',
+        subtitle: `${money(matchedCustomer.totalSpent)} د.ك · ${matchedCustomer.totalOrders || 0} طلب`,
+        details: [
+          matchedCustomer.phone ? `الهاتف: ${matchedCustomer.phone}` : '',
+          matchedCustomer.lastOrderDate ? `آخر نشاط: ${formatKuwaitiDateOnly(matchedCustomer.lastOrderDate)}` : 'لا يوجد آخر نشاط واضح'
+        ].filter(Boolean),
+        actionLabel: 'افتح العميل',
+        action: () => onNavigate('customers', { exactId: matchedCustomer.id, search: matchedCustomer.name || matchedCustomer.phone || customerTerm }),
+        tone: 'blue',
+      };
+    }
+
+    if (wantsSupplier && matchedSupplier && !wantsLatest) {
+      return {
+        title: wantsBalance ? 'رصيد المورد' : 'بطاقة المورد الذكية',
+        value: matchedSupplier.name || 'مورد',
+        subtitle: `الرصيد: ${money(supplierBalance(matchedSupplier))} د.ك`,
+        details: [
+          matchedSupplier.phone ? `الهاتف: ${matchedSupplier.phone}` : '',
+          matchedSupplier.category ? `التصنيف: ${matchedSupplier.category}` : 'افتح المراجعة قبل أي قرار مالي'
+        ].filter(Boolean),
+        actionLabel: 'افتح المورد',
+        action: () => onNavigate('suppliers-audit', { supplierId: matchedSupplier.id, openModal: true, search: matchedSupplier.name || supplierTerm }),
+        tone: supplierBalance(matchedSupplier) > 1000 ? 'rose' : supplierBalance(matchedSupplier) > 0 ? 'amber' : 'emerald',
+      };
+    }
+
+    if (wantsProduct && matchedProduct && !wantsLatest && !wantsLowStock) {
+      const stock = productStock(matchedProduct);
+      return {
+        title: 'بطاقة المنتج الذكية',
+        value: matchedProduct.name || 'منتج',
+        subtitle: `${matchedProduct.category || 'منتج'} · المخزون ${stock}`,
+        details: [
+          matchedProduct.price || matchedProduct.salePrice ? `السعر: ${money(matchedProduct.price ?? matchedProduct.salePrice)} د.ك` : '',
+          hasProductImage(matchedProduct) ? 'الصورة موجودة' : 'تنبيه: المنتج بدون صورة واضحة'
+        ].filter(Boolean),
+        actionLabel: 'افتح المنتج',
+        action: () => onNavigate('products', { exactId: matchedProduct.id, search: matchedProduct.name || productTerm }),
+        tone: stock <= 0 ? 'rose' : stock <= 3 ? 'amber' : 'blue',
+      };
+    }
+
+    if (wantsOrder && matchedOrder && !wantsLatest) {
+      return {
+        title: 'بطاقة الطلب الذكية',
+        value: `${money(orderTotal(matchedOrder))} د.ك`,
+        subtitle: matchedOrder.customerName || matchedOrder.customerPhone || matchedOrder.phone || `طلب ${matchedOrder.orderNumber || matchedOrder.id || ''}`,
+        details: [
+          matchedOrder.paymentStatus || matchedOrder.status ? `الحالة: ${matchedOrder.paymentStatus || matchedOrder.status}` : '',
+          matchedOrder.date || matchedOrder.createdAt ? `التاريخ: ${formatKuwaitiDateOnly(matchedOrder.date || matchedOrder.createdAt)}` : ''
+        ].filter(Boolean),
+        actionLabel: 'افتح الطلب',
+        action: () => onNavigate('orders', { exactId: matchedOrder.id, search: matchedOrder.id || matchedOrder.orderNumber || orderTerm }),
+        tone: isFailedText(matchedOrder.paymentStatus || matchedOrder.status) ? 'rose' : isPendingText(matchedOrder.paymentStatus || matchedOrder.status) ? 'amber' : 'blue',
+      };
+    }
+
+    if (wantsInvoice && matchedInvoice && !wantsLatest) {
+      return {
+        title: 'بطاقة الفاتورة الذكية',
+        value: `${money(invoiceTotal(matchedInvoice))} د.ك`,
+        subtitle: matchedInvoice.customerName || matchedInvoice.customerPhone || matchedInvoice.phone || `فاتورة ${matchedInvoice.id || ''}`,
+        details: [
+          matchedInvoice.date || matchedInvoice.createdAt ? `التاريخ: ${formatKuwaitiDateOnly(matchedInvoice.date || matchedInvoice.createdAt)}` : '',
+          matchedInvoice.id ? `رقم الفاتورة: ${matchedInvoice.id}` : ''
+        ].filter(Boolean),
+        actionLabel: 'افتح الفاتورة',
+        action: () => onNavigate('invoices-list', { exactId: matchedInvoice.id, search: matchedInvoice.id || invoiceTerm }),
+        tone: 'emerald',
+      };
+    }
+
+    if (wantsExpense && matchedExpense && !wantsLatest) {
+      return {
+        title: 'بطاقة المصروف الذكية',
+        value: `${money(expenseAmount(matchedExpense))} د.ك`,
+        subtitle: matchedExpense.description || matchedExpense.category || matchedExpense.vendor || 'مصروف',
+        details: [
+          matchedExpense.category ? `التصنيف: ${matchedExpense.category}` : '',
+          matchedExpense.date || matchedExpense.createdAt ? `التاريخ: ${formatKuwaitiDateOnly(matchedExpense.date || matchedExpense.createdAt)}` : ''
+        ].filter(Boolean),
+        actionLabel: 'افتح المصروفات',
+        action: () => onNavigate('expenses', { exactId: matchedExpense.id, search: matchedExpense.description || expenseTerm }),
+        tone: 'amber',
+      };
+    }
+
+    if (wantsLatest && wantsSupplier) {
+      if (!latestSupplier) return { title: 'آخر مورد', value: 'لا توجد بيانات موردين كافية', subtitle: 'لم أجد موردًا صالحًا في البيانات الحالية.', tone: 'slate' };
+      return {
+        title: 'آخر مورد',
+        value: latestSupplier.name || 'مورد',
+        subtitle: `الرصيد: ${money(supplierBalance(latestSupplier))} د.ك`,
+        details: [latestSupplier.phone ? `الهاتف: ${latestSupplier.phone}` : '', latestSupplier.category ? `التصنيف: ${latestSupplier.category}` : ''].filter(Boolean),
+        actionLabel: 'افتح المورد',
+        action: () => onNavigate('suppliers-audit', { supplierId: latestSupplier.id, openModal: true, search: latestSupplier.name }),
+        tone: supplierBalance(latestSupplier) > 1000 ? 'rose' : supplierBalance(latestSupplier) > 0 ? 'amber' : 'emerald',
+      };
+    }
+
+    if (wantsLatest && wantsProduct) {
+      if (!latestProduct) return { title: 'آخر منتج', value: 'لا توجد منتجات كافية', subtitle: 'لم أجد منتجًا صالحًا في البيانات الحالية.', tone: 'slate' };
+      return {
+        title: 'آخر منتج',
+        value: latestProduct.name || 'منتج',
+        subtitle: `${latestProduct.category || 'منتج'} · المخزون ${productStock(latestProduct)}`,
+        details: [hasProductImage(latestProduct) ? 'الصورة موجودة' : 'تنبيه: بدون صورة واضحة'],
+        actionLabel: 'افتح المنتج',
+        action: () => onNavigate('products', { exactId: latestProduct.id, search: latestProduct.name }),
+        tone: productStock(latestProduct) <= 0 ? 'rose' : productStock(latestProduct) <= 3 ? 'amber' : 'blue',
+      };
+    }
+
+    if (wantsLatest && wantsExpense) {
+      if (!latestExpense) return { title: 'آخر مصروف', value: 'لا توجد مصروفات كافية', subtitle: 'لم أجد مصروفًا صالحًا في البيانات الحالية.', tone: 'slate' };
+      return {
+        title: 'آخر مصروف',
+        value: `${money(expenseAmount(latestExpense))} د.ك`,
+        subtitle: latestExpense.description || latestExpense.category || latestExpense.vendor || 'مصروف',
+        details: [latestExpense.date || latestExpense.createdAt ? `التاريخ: ${formatKuwaitiDateOnly(latestExpense.date || latestExpense.createdAt)}` : ''].filter(Boolean),
+        actionLabel: 'افتح المصروفات',
+        action: () => onNavigate('expenses', { exactId: latestExpense.id, search: latestExpense.description || latestExpense.category }),
+        tone: 'amber',
+      };
+    }
+
+    if (wantsCount && wantsSupplier) {
+      return {
+        title: 'عدد الموردين',
+        value: `${suppliers.length} مورد`,
+        subtitle: topSupplierDebt ? `أعلى رصيد: ${topSupplierDebt.name || 'مورد'} · ${money(supplierBalance(topSupplierDebt))} د.ك` : 'لا توجد مديونية واضحة',
+        details: ['القراءة من بيانات الأدمن الحالية فقط.'],
+        actionLabel: 'افتح الموردين',
+        action: () => onNavigate('suppliers-audit'),
+        tone: topSupplierDebt && supplierBalance(topSupplierDebt) > 1000 ? 'amber' : 'emerald',
+      };
+    }
+
+    if (wantsCount && wantsCustomer) {
+      return {
+        title: 'عدد العملاء',
+        value: `${customers.length} عميل`,
+        subtitle: customers[0] ? `أعلى عميل: ${customers[0].name || customers[0].phone} · ${money(customers[0].totalSpent)} د.ك` : 'لا توجد بيانات عملاء كافية',
+        details: [absentCustomer ? `متابعة مقترحة: ${absentCustomer.name || absentCustomer.phone}` : 'لا يوجد عميل غائب واضح'],
+        actionLabel: 'افتح العملاء',
+        action: () => onNavigate('customers'),
+        tone: 'blue',
+      };
+    }
+
+    if (wantsCount && wantsProduct) {
+      return {
+        title: 'عدد المنتجات',
+        value: `${safeArray(data?.products).length} منتج`,
+        subtitle: lowStockProducts.length ? `${lowStockProducts.length} منتج يحتاج مخزون/مراجعة` : 'المخزون لا يظهر فيه نقص حاد',
+        details: [products[0] ? `أقوى حركة: ${products[0].name}` : 'لا توجد حركة مبيعات كافية'],
+        actionLabel: lowStockProducts.length ? 'افتح النواقص' : 'افتح المنتجات',
+        action: () => onNavigate('products', { search: lowStockProducts[0]?.name || '' }),
+        tone: lowStockProducts.length ? 'amber' : 'emerald',
+      };
+    }
+
+    if (wantsLowStock && wantsProduct) {
+      const first = lowStockProducts[0];
+      return {
+        title: 'رادار المخزون',
+        value: lowStockProducts.length ? `${lowStockProducts.length} منتج يحتاج انتباه` : 'لا يوجد نقص واضح',
+        subtitle: first ? `ابدأ بـ: ${first.name} · المخزون ${productStock(first)}` : 'كل المنتجات الظاهرة فوق حد الخطر البسيط.',
+        details: ['الحد المحلي المستخدم: 3 وحدات أو أقل. لا يوجد تعديل على قاعدة البيانات.'],
+        actionLabel: first ? 'افتح أول منتج' : 'افتح المنتجات',
+        action: () => onNavigate('products', first ? { exactId: first.id, search: first.name } : {}),
+        tone: first ? 'amber' : 'emerald',
+      };
+    }
+
+    if (wantsReport || (wantsOpen && (q.includes('تقارير') || q.includes('تقرير')))) {
+      return {
+        title: 'ملخص تنفيذي سريع',
+        value: `${money(totalSales)} د.ك`,
+        subtitle: `إجمالي المبيعات المحسوبة · ${invoices.length} فاتورة · ${orders.length} طلب`,
+        details: [
+          todaySales > 0 ? `اليوم: ${money(todaySales)} د.ك` : 'لا توجد مبيعات يومية ظاهرة',
+          topExpense ? `أعلى مصروف: ${money(expenseAmount(topExpense))} د.ك` : 'لا توجد مصروفات واضحة'
+        ],
+        actionLabel: 'افتح التقارير',
+        action: () => onNavigate('reports'),
+        tone: failedOrders ? 'rose' : pendingOrders ? 'amber' : 'emerald',
+      };
+    }
+
+    if (wantsOpen && wantsSupplier && !supplierTerm) {
+      return { title: 'الموردين', value: `${suppliers.length} مورد`, subtitle: 'فتح صفحة مراجعة الموردين.', actionLabel: 'افتح الموردين', action: () => onNavigate('suppliers-audit'), tone: 'blue' };
+    }
+
+    if (wantsOpen && wantsCustomer && !customerTerm) {
+      return { title: 'العملاء', value: `${customers.length} عميل`, subtitle: 'فتح صفحة العملاء.', actionLabel: 'افتح العملاء', action: () => onNavigate('customers'), tone: 'blue' };
+    }
+
+    if (wantsOpen && wantsProduct && !productTerm) {
+      return { title: 'المنتجات', value: `${safeArray(data?.products).length} منتج`, subtitle: 'فتح إدارة المنتجات.', actionLabel: 'افتح المنتجات', action: () => onNavigate('products'), tone: 'blue' };
+    }
+
+    if (wantsOpen && wantsOrder && !orderTerm) {
+      return { title: 'الطلبات', value: `${orders.length} طلب`, subtitle: `${pendingOrders} بانتظار · ${failedOrders} فشل`, actionLabel: 'افتح الطلبات', action: () => onNavigate('orders'), tone: failedOrders ? 'rose' : pendingOrders ? 'amber' : 'blue' };
+    }
+
+    if (wantsOpen && wantsExpense && !expenseTerm) {
+      return { title: 'المصروفات', value: `${money(expenses.reduce((sum: number, expense: any) => sum + expenseAmount(expense), 0))} د.ك`, subtitle: `${expenses.length} مصروف ظاهر`, actionLabel: 'افتح المصروفات', action: () => onNavigate('expenses'), tone: 'amber' };
+    }
+
+    if (wantsLatest && wantsInvoice && wantsCustomer) {
+      if (!latestInvoice) return { title: 'آخر فاتورة لآخر عميل', value: 'لا توجد فواتير كافية', subtitle: 'لم أجد فاتورة صالحة في البيانات الحالية.', tone: 'slate' };
+      const customerName = latestInvoice.customerName || latestInvoice.customerPhone || latestInvoice.phone || 'عميل غير مسمى';
+      return {
+        title: 'آخر فاتورة لآخر عميل',
+        value: `${money(invoiceTotal(latestInvoice))} د.ك`,
+        subtitle: customerName,
+        details: [
+          latestInvoice.date || latestInvoice.createdAt ? `التاريخ: ${formatKuwaitiDateOnly(latestInvoice.date || latestInvoice.createdAt)}` : '',
+          latestInvoice.id ? `رقم الفاتورة: ${latestInvoice.id}` : ''
+        ].filter(Boolean),
+        actionLabel: 'افتح الفاتورة',
+        action: () => onNavigate('invoices-list', { exactId: latestInvoice.id, search: latestInvoice.id || customerName }),
+        tone: 'emerald',
+      };
+    }
+
+    if (wantsLatest && wantsInvoice) {
+      if (!latestInvoice) return { title: 'آخر فاتورة', value: 'لا توجد فواتير كافية', subtitle: 'لم أجد فاتورة صالحة في البيانات الحالية.', tone: 'slate' };
+      return {
+        title: 'آخر فاتورة',
+        value: `${money(invoiceTotal(latestInvoice))} د.ك`,
+        subtitle: latestInvoice.customerName || latestInvoice.customerPhone || latestInvoice.phone || `فاتورة ${latestInvoice.id || ''}`,
+        details: [
+          latestInvoice.date || latestInvoice.createdAt ? `التاريخ: ${formatKuwaitiDateOnly(latestInvoice.date || latestInvoice.createdAt)}` : '',
+          latestInvoice.id ? `رقم الفاتورة: ${latestInvoice.id}` : ''
+        ].filter(Boolean),
+        actionLabel: 'افتح الفاتورة',
+        action: () => onNavigate('invoices-list', { exactId: latestInvoice.id, search: latestInvoice.id }),
+        tone: 'emerald',
+      };
+    }
+
+    if (wantsLatest && wantsOrder) {
+      if (!latestOrder) return { title: 'آخر طلب', value: 'لا توجد طلبات كافية', subtitle: 'لم أجد طلبًا صالحًا في البيانات الحالية.', tone: 'slate' };
+      return {
+        title: 'آخر طلب',
+        value: `${money(orderTotal(latestOrder))} د.ك`,
+        subtitle: latestOrder.customerName || latestOrder.customerPhone || latestOrder.phone || `طلب ${latestOrder.orderNumber || latestOrder.id || ''}`,
+        details: [
+          latestOrder.date || latestOrder.createdAt ? `التاريخ: ${formatKuwaitiDateOnly(latestOrder.date || latestOrder.createdAt)}` : '',
+          latestOrder.paymentStatus || latestOrder.status ? `الحالة: ${latestOrder.paymentStatus || latestOrder.status}` : ''
+        ].filter(Boolean),
+        actionLabel: 'افتح الطلب',
+        action: () => onNavigate('orders', { exactId: latestOrder.id, search: latestOrder.id || latestOrder.orderNumber }),
+        tone: isFailedText(latestOrder.paymentStatus || latestOrder.status) ? 'rose' : isPendingText(latestOrder.paymentStatus || latestOrder.status) ? 'amber' : 'blue',
+      };
+    }
+
+    if (wantsLatest && wantsCustomer) {
+      if (!latestCustomer) return { title: 'آخر عميل', value: 'لا توجد بيانات عملاء كافية', subtitle: 'لم أجد عميلًا صالحًا في البيانات الحالية.', tone: 'slate' };
+      return {
+        title: 'آخر عميل',
+        value: latestCustomer.name || latestCustomer.phone || 'عميل',
+        subtitle: `${money(latestCustomer.totalSpent)} د.ك · ${latestCustomer.totalOrders || 0} طلب`,
+        details: [
+          latestCustomer.phone ? `الهاتف: ${latestCustomer.phone}` : '',
+          latestCustomer.lastOrderDate ? `آخر نشاط: ${formatKuwaitiDateOnly(latestCustomer.lastOrderDate)}` : ''
+        ].filter(Boolean),
+        actionLabel: 'افتح العميل',
+        action: () => onNavigate('customers', { exactId: latestCustomer.id, search: latestCustomer.name || latestCustomer.phone }),
+        tone: 'blue',
+      };
+    }
 
     if (q.includes('انقاذ') || q.includes('إنقاذ') || q.includes('خطة انقاذ') || q.includes('خطة إنقاذ')) {
       const details = buildRescuePlanDetails(data);
@@ -936,6 +1431,36 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       }
     }
 
+    if (hasLatestIntent(q) && hasInvoiceIntent(q)) {
+      const latestInvoice = latestByDate(safeArray(data?.invoices).filter((inv: any) => !inv?.isDeleted));
+      if (latestInvoice) {
+        smartActions.push({
+          id: 'smart-latest-invoice',
+          label: hasCustomerIntent(q) ? 'آخر فاتورة لآخر عميل' : 'آخر فاتورة',
+          hint: `${money(latestInvoice.totalAmount || latestInvoice.total || latestInvoice.amount)} د.ك · ${latestInvoice.customerName || latestInvoice.customerPhone || latestInvoice.id || ''}`,
+          icon: <FileText className="text-emerald-600" />,
+          category: 'إجراءات مالية ذكية',
+          action: () => onNavigate('invoices-list', { exactId: latestInvoice.id, search: latestInvoice.id || latestInvoice.customerName || latestInvoice.customerPhone }),
+          tags: ['آخر فاتورة','اخر فاتورة','فاتورة آخر عميل','فاتوره اخر عميل']
+        });
+      }
+    }
+
+    if (hasLatestIntent(q) && hasOrderIntent(q)) {
+      const latestOrder = latestByDate(safeArray(data?.orders));
+      if (latestOrder) {
+        smartActions.push({
+          id: 'smart-latest-order',
+          label: 'آخر طلب',
+          hint: `${money(latestOrder.total || latestOrder.totalAmount || latestOrder.amount)} د.ك · ${latestOrder.customerName || latestOrder.customerPhone || latestOrder.orderNumber || latestOrder.id || ''}`,
+          icon: <ShoppingBag className="text-blue-600" />,
+          category: 'إجراءات مالية ذكية',
+          action: () => onNavigate('orders', { exactId: latestOrder.id, search: latestOrder.id || latestOrder.orderNumber }),
+          tags: ['آخر طلب','اخر طلب','أحدث طلب']
+        });
+      }
+    }
+
     if (q.includes('فاشل') || q.includes('فاشله') || q.includes('فاشلة') || q.includes('فشل')) {
       smartActions.push({
         id: 'smart-failed-orders',
@@ -1107,7 +1632,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     const supplierMatches = safeArray(data?.suppliers)
       .filter((s: any) => clean([s.name, s.phone, s.category, s.notes].join(' ')).includes(q))
       .slice(0, 3)
-      .map((s: any) => ({ id: `supp-${s.id}`, label: `مورد: ${s.name}`, hint: 'مورد', icon: <Truck />, category: 'نتائج مباشرة', action: () => onNavigate('suppliers', { exactId: s.id, search: s.name }) }));
+      .map((s: any) => ({ id: `supp-${s.id}`, label: `مورد: ${s.name}`, hint: 'مورد', icon: <Truck />, category: 'نتائج مباشرة', action: () => onNavigate('suppliers-audit', { supplierId: s.id, openModal: true, search: s.name }) }));
 
     const expenseMatches = safeArray(data?.expenses)
       .filter((e: any) => clean([e.description, e.category, e.vendor].join(' ')).includes(q))
@@ -1283,7 +1808,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
               
               {/* Upgraded command search bar with scoped modifiers and voice input */}
               <div className="command-search-field relative flex items-center w-full focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-300/30">
-                <Search size={18} className="text-slate-400 shrink-0 ml-1.5" />
+                <Search size={18} className="command-search-main-icon text-slate-400 shrink-0 ml-1.5" />
                 
                 {/* Active Scoped Modifier Badge */}
                 <AnimatePresence>
@@ -1292,7 +1817,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
-                      className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ml-1.5 border border-emerald-200"
+                      className="command-scope-badge inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ml-1.5 border border-emerald-200"
                     >
                       <span>العملاء</span>
                       <Users size={10} />
@@ -1303,7 +1828,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
-                      className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ml-1.5 border border-amber-200"
+                      className="command-scope-badge inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ml-1.5 border border-amber-200"
                     >
                       <span>المنتجات</span>
                       <Package size={10} />
@@ -1314,7 +1839,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
-                      className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ml-1.5 border border-blue-200"
+                      className="command-scope-badge inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ml-1.5 border border-blue-200"
                     >
                       <span>المالية</span>
                       <Wallet size={10} />
@@ -1379,7 +1904,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                   type="button"
                   onClick={isListening ? stopListening : startListening}
                   className={cn(
-                    "flex items-center justify-center h-7 w-7 rounded-full text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all shrink-0 ml-1 relative",
+                    "command-voice-button flex items-center justify-center h-7 w-7 rounded-full text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all shrink-0 ml-1 relative",
                     isListening && "text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700"
                   )}
                   title={isListening ? "إيقاف الاستماع" : "البحث الصوتي الذكي (Speech-to-Search)"}
