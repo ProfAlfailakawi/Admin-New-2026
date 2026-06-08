@@ -2,10 +2,12 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import { installLocalStorageDataGuard } from './lib/dataGuard';
+import { installAISelfTrainingScheduler } from './lib/aiLearningCore';
 import App from './App.tsx';
 import './index.css';
 
 installLocalStorageDataGuard();
+installAISelfTrainingScheduler();
 
 // Clear previous IDB crash flag after 5 seconds of successful boot
 setTimeout(() => {
