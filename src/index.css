@@ -6188,3 +6188,21 @@ html body .login-brand-stage h1 {
 @media (prefers-reduced-motion:reduce){
   .dashboard-visual-refactor *, .dashboard-visual-refactor-content *{animation:none!important;transition:none!important;}
 }
+
+/* إصلاح تباين كرت مقترحات التراث الذكي فقط: يمنع قاعدة dashboard-glass-card العامة من تحويله إلى خلفية فاتحة. */
+.heritage-ai-suggestions-card{
+  background:
+    radial-gradient(circle at 18% 8%, rgba(129,140,248,.28), transparent 30%),
+    linear-gradient(135deg, rgba(49,46,129,.98) 0%, rgba(30,41,59,.99) 52%, rgba(15,23,42,.99) 100%) !important;
+  border-color: rgba(165,180,252,.42) !important;
+  color:#fff !important;
+  box-shadow: 0 26px 70px -46px rgba(15,23,42,.88) !important;
+}
+.heritage-ai-suggestions-card:before{
+  border-color: rgba(255,255,255,.18) !important;
+  opacity:.55 !important;
+}
+.heritage-ai-suggestions-card h3,
+.heritage-ai-suggestions-card p{
+  color: rgba(255,255,255,.94) !important;
+}
