@@ -2076,9 +2076,9 @@ const [isPending, startTransition] = useTransition();
     ].filter(Boolean);
 
     const bentoCardStyle =
-      "bg-[#fdfbf7] w-full max-w-full min-w-0 p-4 md:p-5 lg:p-6 rounded-3xl border border-[#f0e6d2] shadow-[0_4px_20px_-10px_rgba(212,192,152,0.3)] text-right relative overflow-hidden flex flex-col interactive-hover mb-6 [overflow-wrap:anywhere]";
+      "dashboard-bento-card bg-white/90 w-full max-w-full min-w-0 p-4 md:p-5 lg:p-6 rounded-[32px] border border-amber-200/45 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.65)] text-right relative overflow-hidden flex flex-col interactive-hover mb-6 [overflow-wrap:anywhere] backdrop-blur-xl";
     const glassCardStyle =
-      "bg-[#fdfbf7]/80 backdrop-blur-xl border border-white/50 shadow-xl p-3 md:p-4 rounded-2xl text-right relative overflow-hidden flex flex-col text-[#4a3f35] hover:shadow-indigo-500/10 transition-all duration-300 hover:opacity-90";
+      "dashboard-glass-card bg-white/85 backdrop-blur-2xl border border-amber-100/70 shadow-[0_22px_64px_-48px_rgba(15,23,42,0.72)] p-3 md:p-4 rounded-[28px] text-right relative overflow-hidden flex flex-col text-slate-800 hover:shadow-[0_32px_78px_-54px_rgba(15,23,42,0.78)] transition-all duration-300 hover:-translate-y-0.5";
 
     const isRewards = activeTab === "rewards";
     const intelligenceTabs: DashboardTab[] = ["intelligence", "intelligence-decisions", "intelligence-learning", "intelligence-risks", "intelligence-strategy"];
@@ -2604,11 +2604,11 @@ const [isPending, startTransition] = useTransition();
           </AnimatePresence>
 
           {/* TOP ROW: HEADER WITH INTEGRATED TAB BAR */}
-          <div className="dashboard-executive-shell flex flex-col gap-4 md:gap-6 w-full max-w-full min-w-0 overflow-hidden" dir="rtl">
-            <div className="flex items-center justify-between w-full">
+          <div className="dashboard-executive-shell dashboard-visual-refactor flex flex-col gap-4 md:gap-6 w-full max-w-full min-w-0 overflow-hidden" dir="rtl">
+            <div className="dashboard-command-header flex items-center justify-between w-full">
               <div className="flex items-center gap-3 text-right">
-                <div className="w-11 h-11 rounded-2xl bg-slate-950 text-amber-300 flex items-center justify-center shadow-lg shadow-slate-900/10 shrink-0">
-                  <Sparkles size={20} className="animate-pulse" />
+                <div className="dashboard-command-icon w-12 h-12 rounded-[22px] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-amber-300 flex items-center justify-center shadow-2xl shadow-slate-900/20 shrink-0 ring-1 ring-white/10">
+                  <Sparkles size={20} className="dashboard-header-spark" />
                 </div>
                 <div>
                   <p className="text-[10px] font-black tracking-[0.18em] text-amber-600 uppercase leading-none">مطبخ التراث العربي</p>
@@ -2617,14 +2617,14 @@ const [isPending, startTransition] = useTransition();
               </div>
 
               {!isExecutiveMode && (
-                <div className="text-left text-xs font-black text-indigo-600 bg-indigo-50/80 border border-indigo-100/40 px-3 py-1.5 rounded-xl hidden sm:block">
+                <div className="dashboard-active-section-badge text-left text-xs font-black text-amber-800 bg-amber-50/90 border border-amber-200/60 px-4 py-2 rounded-2xl hidden sm:block shadow-sm">
                   القسم النشط: {activeTabConfig?.label}
                 </div>
               )}
             </div>
 
             {/* Apple-style Premium Tab list */}
-            <div className="dashboard-tab-shell w-full max-w-full min-w-0 overflow-hidden rounded-3xl border border-slate-100 bg-white/70 p-2 shadow-sm" dir="rtl">
+            <div className="dashboard-tab-shell w-full max-w-full min-w-0 overflow-hidden rounded-[30px] border border-amber-200/45 bg-white/75 p-2.5 shadow-[0_20px_60px_-48px_rgba(15,23,42,0.65)] backdrop-blur-2xl" dir="rtl">
               <div className="flex w-full max-w-full min-w-0 items-center gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide py-1 snap-x" style={{ WebkitOverflowScrolling: 'touch' }}>
               {tabs.map((tab) => {
                 const isActive = activeGroupConfig.id === tab.id;
@@ -2637,10 +2637,10 @@ const [isPending, startTransition] = useTransition();
                       setActiveTab(firstTab);
                     })}
                     className={cn(
-                      "flex items-center justify-center gap-2 px-3.5 md:px-4 py-2 md:py-2.5 rounded-2xl text-[11px] md:text-xs font-black transition-all duration-300 outline-none whitespace-nowrap shrink-0 border relative snap-start",
+                      "dashboard-main-tab flex items-center justify-center gap-2 px-3.5 md:px-4 py-2 md:py-2.5 rounded-[20px] text-[11px] md:text-xs font-black transition-all duration-300 outline-none whitespace-nowrap shrink-0 border relative snap-start",
                       isActive
-                        ? "bg-slate-950 text-white border-slate-950 shadow-md scale-100 relative z-10"
-                        : "bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-900 border-slate-100/80"
+                        ? "dashboard-main-tab-active bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white border-slate-900 shadow-xl shadow-slate-900/20 scale-100 relative z-10 ring-1 ring-amber-300/25"
+                        : "dashboard-main-tab-idle bg-white/60 hover:bg-white text-slate-500 hover:text-slate-900 border-slate-200/70 hover:border-amber-200/80"
                     )}
                   >
                     {tab.icon && React.cloneElement(tab.icon as any, {
@@ -2651,7 +2651,7 @@ const [isPending, startTransition] = useTransition();
                     {isActive && (
                       <motion.div
                         layoutId="activeTabBadge"
-                        className="absolute -bottom-1 left-2 right-2 h-0.5 bg-amber-400 rounded-full"
+                        className="dashboard-active-tab-line absolute -bottom-1 left-2 right-2 h-0.5 bg-amber-400 rounded-full"
                         transition={{ type: "spring", stiffness: 380, damping: 30 }}
                       />
                     )}
@@ -2662,7 +2662,7 @@ const [isPending, startTransition] = useTransition();
             </div>
 
             {activeGroupConfig.tabs.length > 1 && (
-              <div className="dashboard-subtab-shell rounded-3xl border border-slate-100 bg-slate-50/80 p-2 shadow-inner max-w-full min-w-0 overflow-hidden" dir="rtl">
+              <div className="dashboard-subtab-shell rounded-[28px] border border-slate-200/75 bg-slate-50/70 p-2.5 shadow-inner max-w-full min-w-0 overflow-hidden backdrop-blur-xl" dir="rtl">
                 <div className="mb-2 flex items-center justify-between gap-3 px-2 text-right">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">المجموعة النشطة</p>
@@ -2683,10 +2683,10 @@ const [isPending, startTransition] = useTransition();
                         type="button"
                         onClick={() => startTransition(() => setActiveTab(tabId as DashboardTab))}
                         className={cn(
-                          "flex shrink-0 items-center gap-2 rounded-2xl border px-3 md:px-3.5 py-2 text-[10px] md:text-[11px] font-black transition-all",
+                          "dashboard-sub-tab flex shrink-0 items-center gap-2 rounded-[18px] border px-3 md:px-3.5 py-2 text-[10px] md:text-[11px] font-black transition-all",
                           isChildActive
-                            ? "bg-white text-slate-950 border-amber-200 shadow-sm"
-                            : "bg-transparent text-slate-500 border-transparent hover:bg-white/70 hover:text-slate-800"
+                            ? "dashboard-sub-tab-active bg-white text-slate-950 border-amber-200 shadow-md shadow-amber-900/5"
+                            : "dashboard-sub-tab-idle bg-transparent text-slate-500 border-transparent hover:bg-white/80 hover:text-slate-800"
                         )}
                       >
                         {childTab.icon && React.cloneElement(childTab.icon as any, {
@@ -2706,7 +2706,7 @@ const [isPending, startTransition] = useTransition();
         {/* 4) CONTENT - Full Width */}
         <div
           className={cn(
-            "dashboard-content-shell w-full max-w-none min-w-0 overflow-hidden flex flex-col transition-opacity duration-300 relative px-3 sm:px-4 lg:px-5 [overflow-wrap:anywhere] [&_h1]:leading-tight [&_h2]:leading-tight [&_h3]:leading-tight [&_p]:leading-relaxed [&_h1]:text-2xl md:[&_h1]:text-3xl xl:[&_h1]:text-4xl [&_h2]:text-xl md:[&_h2]:text-2xl xl:[&_h2]:text-3xl [&_h3]:text-base md:[&_h3]:text-xl [&_p]:text-sm md:[&_p]:text-base",
+            "dashboard-content-shell dashboard-visual-refactor-content w-full max-w-none min-w-0 overflow-hidden flex flex-col transition-opacity duration-300 relative px-3 sm:px-4 lg:px-5 [overflow-wrap:anywhere] [&_h1]:leading-tight [&_h2]:leading-tight [&_h3]:leading-tight [&_p]:leading-relaxed [&_h1]:text-2xl md:[&_h1]:text-3xl xl:[&_h1]:text-4xl [&_h2]:text-xl md:[&_h2]:text-2xl xl:[&_h2]:text-3xl [&_h3]:text-base md:[&_h3]:text-xl [&_p]:text-sm md:[&_p]:text-base",
             isPending ? "opacity-50" : "opacity-100",
             isExecutiveMode ? "py-12" : ""
           )}
@@ -2718,7 +2718,7 @@ const [isPending, startTransition] = useTransition();
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="w-full mb-4 md:mb-10 p-5 md:p-8 lg:p-10 bg-slate-950 rounded-2xl md:rounded-[40px] border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.5)] relative overflow-hidden"
+                className="dashboard-executive-pulse w-full mb-4 md:mb-10 p-5 md:p-8 lg:p-10 bg-slate-950 rounded-2xl md:rounded-[40px] border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.5)] relative overflow-hidden"
                 dir="rtl"
               >
                 {/* Decorative Elements */}
@@ -2790,9 +2790,9 @@ const [isPending, startTransition] = useTransition();
             {!isExecutiveMode && (
               <motion.div
                 key={activeTab}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
                 className="w-full"
               >
                 {activeTab === "orders" && (
