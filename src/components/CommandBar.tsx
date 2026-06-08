@@ -45,7 +45,7 @@ const clean = (value?: string) => {
 const cleanDigits = (value?: string) => String(value || '').replace(/\D/g, '');
 const splitWords = (value?: string) => clean(value).split(/\s+/).filter(Boolean);
 const spotlightKeywordGroups = {
-  invoices: ['فاتورة', 'فواتير', 'الفواتير', 'سجل'],
+  invoices: ['فاتورة', 'فواتير', 'الفواتير', 'سجل', 'مبيعات', 'المبيعات', 'بيع', 'ايراد', 'إيراد', 'دخل'],
   orders: ['طلب', 'طلبات', 'الطلبات'],
   failed: ['فاشل', 'فاشله', 'فاشلة', 'فشل', 'فاشلين'],
   supplierPay: ['سداد', 'دفع', 'حواله', 'حوالة', 'تحويل'],
@@ -347,6 +347,11 @@ const hasLatestIntent = (value: string) => {
   return q.includes('اخر') || q.includes('آخر') || q.includes('اخير') || q.includes('أخير') || q.includes('احدث') || q.includes('أحدث') || q.includes('جديد') || q.includes('آخر شي') || q.includes('اخر شي');
 };
 
+const hasSalesIntent = (value: string) => {
+  const q = clean(value);
+  return q.includes('مبيعات') || q.includes('المبيعات') || q.includes('بيع') || q.includes('البيع') || q.includes('ايراد') || q.includes('إيراد') || q.includes('ايرادات') || q.includes('إيرادات') || q.includes('دخل');
+};
+
 const hasInvoiceIntent = (value: string) => {
   const q = clean(value);
   return q.includes('فاتوره') || q.includes('فاتورة') || q.includes('فواتير') || q.includes('الفاتوره') || q.includes('الفاتورة');
@@ -354,12 +359,12 @@ const hasInvoiceIntent = (value: string) => {
 
 const hasCustomerIntent = (value: string) => {
   const q = clean(value);
-  return q.includes('عميل') || q.includes('العميل') || q.includes('عملاء') || q.includes('زبون') || q.includes('زباين');
+  return q.includes('عميل') || q.includes('العميل') || q.includes('عملاء') || q.includes('العملاء') || q.includes('زبون') || q.includes('زباين') || q.includes('زبائن');
 };
 
 const hasOrderIntent = (value: string) => {
   const q = clean(value);
-  return q.includes('طلب') || q.includes('طلبات') || q.includes('اوردر') || q.includes('أوردر');
+  return q.includes('طلب') || q.includes('طلبات') || q.includes('الطلبات') || q.includes('اوردر') || q.includes('أوردر') || q.includes('اوردرات') || q.includes('أوردرات');
 };
 
 
@@ -370,12 +375,12 @@ const hasSupplierIntent = (value: string) => {
 
 const hasProductIntent = (value: string) => {
   const q = clean(value);
-  return q.includes('منتج') || q.includes('منتجات') || q.includes('صنف') || q.includes('اصناف') || q.includes('أصناف') || q.includes('طبق') || q.includes('اكل') || q.includes('أكل');
+  return q.includes('منتج') || q.includes('منتجات') || q.includes('المنتجات') || q.includes('صنف') || q.includes('اصناف') || q.includes('أصناف') || q.includes('طبق') || q.includes('وجبه') || q.includes('وجبة') || q.includes('اكل') || q.includes('أكل');
 };
 
 const hasExpenseIntent = (value: string) => {
   const q = clean(value);
-  return q.includes('مصروف') || q.includes('مصروفات') || q.includes('مصاريف') || q.includes('تكلفه') || q.includes('تكلفة');
+  return q.includes('مصروف') || q.includes('مصروفات') || q.includes('المصروفات') || q.includes('مصاريف') || q.includes('تكلفه') || q.includes('تكلفة') || q.includes('نثريات');
 };
 
 const hasReportIntent = (value: string) => {
@@ -409,7 +414,7 @@ const hasLowStockIntent = (value: string) => {
 };
 
 const commandStopWords = [
-  'افتح','فتح','اعرض','عرض','ودني','روح','جيب','هات','طلع','دور','ابحث','بحث','ابي','أبي','اريد','أريد','شوف','ورني','منو','من','شنو','ماذا','كم','عدد','آخر','اخر','احدث','أحدث','جديد','اليوم','الحين','الان','الآن','ل','عن','في','على','حق','مال','رقم','اسم','بيانات','تفاصيل','تقرير','ملخص'
+  'افتح','فتح','اعرض','عرض','ودني','روح','جيب','هات','طلع','دور','ابحث','بحث','ابي','أبي','اريد','أريد','شوف','ورني','منو','من','شنو','ماذا','كم','عدد','كل','جميع','قائمة','صفحة','آخر','اخر','احدث','أحدث','جديد','اليوم','الحين','الان','الآن','ل','عن','في','على','حق','مال','رقم','اسم','بيانات','تفاصيل','تقرير','تقارير','ملخص','احصائية','إحصائية','احصائيات','إحصائيات'
 ];
 
 const extractEntityTerm = (value: string, domainWords: string[] = []) => {
@@ -446,10 +451,20 @@ const buildVoiceSmartQuery = (value: string) => {
   // للعبارات الكويتية الشائعة حتى يمر النص إلى طبقة الفهم الذكي العامة.
   const replacements: Array<[RegExp, string]> = [
     [/فواتير اخر عميل|فاتوره اخر عميل|فاتورة اخر عميل|فاتورة آخر عميل/g, 'آخر فاتورة لآخر عميل'],
+    [/اخر المبيعات|آخر المبيعات|اخر مبيعات|آخر مبيعات|احدث المبيعات|أحدث المبيعات/g, 'آخر فاتورة'],
+    [/كم المبيعات|جم المبيعات|عدد المبيعات|احصائية المبيعات|إحصائية المبيعات/g, 'ملخص المبيعات'],
+    [/مبيعات اليوم|بيع اليوم|ايراد اليوم|إيراد اليوم|دخل اليوم/g, 'مبيعات اليوم'],
+    [/افتح المبيعات|فتح المبيعات|ودني المبيعات|روح المبيعات/g, 'افتح المبيعات'],
     [/كم فاتوره|كم فاتورة|جم فاتوره|جم فاتورة/g, 'كم فاتورة'],
-    [/موردين/g, 'موردين'],
-    [/زباين/g, 'عملاء'],
+    [/الموردين|موردين/g, 'موردين'],
+    [/المورد/g, 'مورد'],
+    [/العملاء|زباين|زبائن/g, 'عملاء'],
+    [/العميل|زبون/g, 'عميل'],
     [/اوردرات|أوردرات|اوردر|أوردر/g, 'طلبات'],
+    [/الطلبات/g, 'طلبات'],
+    [/المنتجات|اصناف|أصناف/g, 'منتجات'],
+    [/الصنف|المنتج|طبق/g, 'منتج'],
+    [/المصاريف|مصروفات/g, 'مصروفات'],
     [/ستوك/g, 'مخزون'],
   ];
   return replacements.reduce((next, [pattern, replacement]) => next.replace(pattern, replacement), text);
@@ -624,7 +639,8 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     const latestOrder = latestByDate(orders);
     const latestCustomer = latestByDate(customers);
     const wantsLatest = hasLatestIntent(q);
-    const wantsInvoice = hasInvoiceIntent(q);
+    const wantsSales = hasSalesIntent(q);
+    const wantsInvoice = hasInvoiceIntent(q) || wantsSales;
     const wantsCustomer = hasCustomerIntent(q);
     const wantsOrder = hasOrderIntent(q);
     const wantsSupplier = hasSupplierIntent(q);
@@ -650,12 +666,12 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
     const lowStockProducts = safeArray(data?.products)
       .filter((product: any) => product?.isActive !== false && productStock(product) <= 3)
       .sort((a: any, b: any) => productStock(a) - productStock(b));
-    const customerTerm = extractEntityTerm(q, ['عميل','عملاء','العميل','زبون','زباين']);
+    const customerTerm = extractEntityTerm(q, ['عميل','عملاء','العميل','العملاء','زبون','زباين','زبائن']);
     const supplierTerm = extractEntityTerm(q, ['مورد','موردين','المورد','الموردين']);
-    const productTerm = extractEntityTerm(q, ['منتج','منتجات','صنف','اصناف','أصناف','طبق','اكل','أكل','مخزون']);
-    const orderTerm = extractEntityTerm(q, ['طلب','طلبات','اوردر','أوردر']);
-    const invoiceTerm = extractEntityTerm(q, ['فاتوره','فاتورة','فواتير','الفاتوره','الفاتورة']);
-    const expenseTerm = extractEntityTerm(q, ['مصروف','مصروفات','مصاريف','تكلفه','تكلفة']);
+    const productTerm = extractEntityTerm(q, ['منتج','منتجات','المنتجات','صنف','اصناف','أصناف','طبق','وجبه','وجبة','اكل','أكل','مخزون']);
+    const orderTerm = extractEntityTerm(q, ['طلب','طلبات','الطلبات','اوردر','أوردر','اوردرات','أوردرات']);
+    const invoiceTerm = extractEntityTerm(q, ['فاتوره','فاتورة','فواتير','الفاتوره','الفاتورة','مبيعات','المبيعات','بيع','البيع','ايراد','إيراد','ايرادات','إيرادات','دخل']);
+    const expenseTerm = extractEntityTerm(q, ['مصروف','مصروفات','المصروفات','مصاريف','تكلفه','تكلفة','نثريات']);
     const matchedCustomer = customerTerm
       ? customers.find((customer: any) => matchText(customer, [customer?.name, customer?.phone, customer?.email, customer?.area], customerTerm, qDigits))
       : null;
@@ -675,7 +691,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       ? expenses.find((expense: any) => matchText(expense, [expense?.description, expense?.category, expense?.vendor, expense?.notes], expenseTerm, qDigits))
       : null;
 
-    if (wantsToday && (q.includes('مبيعات') || wantsInvoice || wantsReport)) {
+    if (wantsToday && (wantsSales || wantsInvoice || wantsReport)) {
       return {
         title: 'مبيعات اليوم',
         value: `${money(todaySales)} د.ك`,
@@ -820,6 +836,42 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       };
     }
 
+    if (wantsCount && wantsInvoice && !wantsSales) {
+      return {
+        title: 'عدد الفواتير',
+        value: `${invoices.length} فاتورة`,
+        subtitle: `${paidInvoices.length} مدفوعة/محسوبة · إجمالي ${money(totalSales)} د.ك`,
+        details: [todayInvoices.length ? `فواتير اليوم: ${todayInvoices.length}` : 'لا توجد فواتير يومية ظاهرة'],
+        actionLabel: 'افتح الفواتير',
+        action: () => onNavigate('invoices-list'),
+        tone: 'emerald',
+      };
+    }
+
+    if (wantsCount && wantsOrder) {
+      return {
+        title: 'عدد الطلبات',
+        value: `${orders.length} طلب`,
+        subtitle: `${paidOrders} مدفوع · ${pendingOrders} بانتظار · ${failedOrders} فشل`,
+        details: [todayOrders.length ? `طلبات اليوم: ${todayOrders.length}` : 'لا توجد طلبات يومية ظاهرة'],
+        actionLabel: 'افتح الطلبات',
+        action: () => onNavigate('orders'),
+        tone: failedOrders ? 'rose' : pendingOrders ? 'amber' : 'blue',
+      };
+    }
+
+    if (wantsCount && wantsExpense) {
+      return {
+        title: 'عدد المصروفات',
+        value: `${expenses.length} مصروف`,
+        subtitle: `إجمالي ظاهر: ${money(expenses.reduce((sum: number, expense: any) => sum + expenseAmount(expense), 0))} د.ك`,
+        details: [todayExpenses.length ? `مصروفات اليوم: ${todayExpenses.length}` : 'لا توجد مصروفات يومية ظاهرة'],
+        actionLabel: 'افتح المصروفات',
+        action: () => onNavigate('expenses'),
+        tone: 'amber',
+      };
+    }
+
     if (wantsCount && wantsSupplier) {
       return {
         title: 'عدد الموردين',
@@ -866,6 +918,120 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
         actionLabel: first ? 'افتح أول منتج' : 'افتح المنتجات',
         action: () => onNavigate('products', first ? { exactId: first.id, search: first.name } : {}),
         tone: first ? 'amber' : 'emerald',
+      };
+    }
+
+    if (wantsCount && wantsSales) {
+      return {
+        title: 'ملخص المبيعات',
+        value: `${money(totalSales)} د.ك`,
+        subtitle: `${paidInvoices.length} فاتورة مدفوعة · ${invoices.length} فاتورة إجمالي · ${orders.length} طلب`,
+        details: [
+          todaySales > 0 ? `مبيعات اليوم: ${money(todaySales)} د.ك` : 'لا توجد مبيعات يومية ظاهرة',
+          topInvoice ? `أعلى فاتورة: ${money(invoiceTotal(topInvoice))} د.ك` : 'لا توجد فاتورة أعلى واضحة'
+        ],
+        actionLabel: 'افتح سجل المبيعات',
+        action: () => onNavigate('invoices-list'),
+        tone: failedOrders ? 'rose' : pendingOrders ? 'amber' : 'emerald',
+      };
+    }
+
+    if (wantsReport && wantsCustomer) {
+      return {
+        title: 'تقرير العملاء',
+        value: `${customers.length} عميل`,
+        subtitle: customers[0] ? `أعلى عميل: ${customers[0].name || customers[0].phone} · ${money(customers[0].totalSpent)} د.ك` : 'لا توجد بيانات عملاء كافية',
+        details: [
+          absentCustomer ? `متابعة مطلوبة: ${absentCustomer.name || absentCustomer.phone}` : 'لا يوجد عميل غائب واضح',
+          latestCustomer ? `آخر عميل: ${latestCustomer.name || latestCustomer.phone}` : 'لا يوجد آخر عميل واضح'
+        ],
+        actionLabel: 'افتح العملاء',
+        action: () => onNavigate('customers'),
+        tone: absentCustomer ? 'amber' : 'blue',
+      };
+    }
+
+    if (wantsReport && wantsSupplier) {
+      return {
+        title: 'تقرير الموردين',
+        value: `${suppliers.length} مورد`,
+        subtitle: topSupplierDebt ? `أعلى رصيد: ${topSupplierDebt.name || 'مورد'} · ${money(supplierBalance(topSupplierDebt))} د.ك` : 'لا توجد مديونية واضحة',
+        details: [
+          latestSupplier ? `آخر مورد: ${latestSupplier.name || 'مورد'}` : 'لا يوجد آخر مورد واضح',
+          topSupplierDebt && supplierBalance(topSupplierDebt) > 0 ? 'راجع المورد الأعلى رصيدًا قبل أي قرار سداد.' : 'أرصدة الموردين تحت السيطرة حسب البيانات الحالية.'
+        ],
+        actionLabel: 'افتح الموردين',
+        action: () => onNavigate('suppliers-audit'),
+        tone: topSupplierDebt && supplierBalance(topSupplierDebt) > 1000 ? 'rose' : topSupplierDebt && supplierBalance(topSupplierDebt) > 0 ? 'amber' : 'emerald',
+      };
+    }
+
+    if (wantsReport && wantsProduct) {
+      return {
+        title: 'تقرير المنتجات',
+        value: `${safeArray(data?.products).length} منتج`,
+        subtitle: products[0] ? `أقوى حركة: ${products[0].name} · ${Math.round(products[0].quantity || 0)} قطعة` : 'لا توجد حركة مبيعات كافية',
+        details: [
+          lowStockProducts.length ? `${lowStockProducts.length} منتج يحتاج مخزون/مراجعة` : 'لا يوجد نقص حاد ظاهر',
+          weakProduct ? `أضعف حركة: ${weakProduct.name}` : 'لا يوجد منتج ضعيف واضح'
+        ],
+        actionLabel: 'افتح المنتجات',
+        action: () => onNavigate('products'),
+        tone: lowStockProducts.length ? 'amber' : 'blue',
+      };
+    }
+
+    if (wantsReport && wantsOrder) {
+      return {
+        title: 'تقرير الطلبات',
+        value: `${orders.length} طلب`,
+        subtitle: `${paidOrders} مدفوع · ${pendingOrders} بانتظار · ${failedOrders} فشل`,
+        details: [
+          latestOrder ? `آخر طلب: ${latestOrder.orderNumber || latestOrder.id || 'بدون رقم واضح'}` : 'لا يوجد آخر طلب واضح',
+          topInvoice ? `أعلى قيمة مرتبطة بالفواتير: ${money(invoiceTotal(topInvoice))} د.ك` : 'لا توجد فاتورة أعلى واضحة'
+        ],
+        actionLabel: 'افتح الطلبات',
+        action: () => onNavigate('orders'),
+        tone: failedOrders ? 'rose' : pendingOrders ? 'amber' : 'blue',
+      };
+    }
+
+    if (wantsReport && wantsExpense) {
+      return {
+        title: 'تقرير المصروفات',
+        value: `${money(expenses.reduce((sum: number, expense: any) => sum + expenseAmount(expense), 0))} د.ك`,
+        subtitle: `${expenses.length} مصروف ظاهر`,
+        details: [
+          todayExpenseTotal > 0 ? `مصروفات اليوم: ${money(todayExpenseTotal)} د.ك` : 'لا توجد مصروفات يومية ظاهرة',
+          topExpense ? `أعلى مصروف: ${money(expenseAmount(topExpense))} د.ك` : 'لا توجد مصروفات واضحة'
+        ],
+        actionLabel: 'افتح المصروفات',
+        action: () => onNavigate('expenses'),
+        tone: 'amber',
+      };
+    }
+
+    if (wantsOpen && wantsInvoice && !wantsSales && !invoiceTerm) {
+      return {
+        title: 'الفواتير',
+        value: `${invoices.length} فاتورة`,
+        subtitle: 'فتح سجل الفواتير.',
+        details: [`إجمالي المبيعات المحسوبة: ${money(totalSales)} د.ك`],
+        actionLabel: 'افتح الفواتير',
+        action: () => onNavigate('invoices-list'),
+        tone: 'emerald',
+      };
+    }
+
+    if (wantsOpen && wantsSales && !invoiceTerm) {
+      return {
+        title: 'المبيعات',
+        value: `${money(totalSales)} د.ك`,
+        subtitle: 'فتح سجل الفواتير والمبيعات.',
+        details: [`${invoices.length} فاتورة ظاهرة`, todaySales > 0 ? `اليوم: ${money(todaySales)} د.ك` : 'لا توجد مبيعات يومية ظاهرة'],
+        actionLabel: 'افتح سجل المبيعات',
+        action: () => onNavigate('invoices-list'),
+        tone: 'emerald',
       };
     }
 
@@ -1197,7 +1363,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       };
     }
 
-    if (hasLow && (q.includes('فاتوره') || q.includes('فاتورة') || q.includes('مبيعات'))) {
+    if (hasLow && (wantsInvoice || wantsSales)) {
       if (!lowInvoice) return { title: 'أقل فاتورة', value: 'لا توجد فواتير كافية', subtitle: 'ما لقيت قيمة فاتورة صالحة للمقارنة.', tone: 'slate' };
       return {
         title: 'أقل فاتورة بقيمة محسوبة',
@@ -1210,7 +1376,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       };
     }
 
-    if (hasTop && (q.includes('فاتوره') || q.includes('فاتورة') || q.includes('مبيعات') || q.includes('اغلى') || q.includes('أغلى'))) {
+    if (hasTop && (wantsInvoice || wantsSales || q.includes('اغلى') || q.includes('أغلى'))) {
       if (!topInvoice) return { title: 'أغلى فاتورة', value: 'لا توجد فواتير كافية', subtitle: 'ما لقيت فاتورة صالحة للمقارنة.', tone: 'slate' };
       return {
         title: 'أغلى فاتورة',
@@ -1303,8 +1469,10 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
         `مبيعات محسوبة: ${money(totalSales)} د.ك`,
         `طلبات: ${orders.length} · عملاء: ${customers.length} · منتجات: ${products.length}`
       ],
-      actionLabel: q.includes('عميل') ? 'افتح العملاء' : q.includes('منتج') || q.includes('صنف') ? 'افتح المنتجات' : 'افتح الطلبات',
-      action: () => q.includes('عميل')
+      actionLabel: wantsSales ? 'افتح سجل المبيعات' : q.includes('عميل') ? 'افتح العملاء' : q.includes('منتج') || q.includes('صنف') ? 'افتح المنتجات' : 'افتح الطلبات',
+      action: () => wantsSales
+        ? onNavigate('invoices-list', { search: bestSignal.actionSearch || q })
+        : q.includes('عميل')
         ? onNavigate('customers', { search: bestSignal.actionSearch || q })
         : q.includes('منتج') || q.includes('صنف')
           ? onNavigate('products', { search: bestSignal.actionSearch || q })
@@ -1335,7 +1503,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       { id: 'invoices-list', label: 'سجل الفواتير', hint: 'فواتير وتقارير', icon: <FileText />, category: 'التشغيل اليومي', tags: ['فاتورة','فواتير','سجل','مبيعات'], action: () => onNavigate('invoices-list', {}), roles: ['partner', 'admin'] },
       { id: 'new-invoice', label: 'فاتورة جديدة', hint: 'إنشاء سريع', icon: <PlusCircle />, category: 'التشغيل اليومي', tags: ['فاتورة','جديدة','بيع','نقطة البيع'], action: () => onNavigate('new-invoice', {}), roles: ['admin', 'partner'] },
       { id: 'orders', label: 'طلبات الموقع', hint: 'حالات الدفع', icon: <ShoppingBag />, category: 'التشغيل اليومي', tags: ['طلب','طلبات','موقع','دفع'], action: () => onNavigate('orders', {}), roles: ['partner', 'admin'] },
-      { id: 'reports', label: 'التقارير التنفيذية', hint: 'تفصيل مالي للأداء والمبيعات', icon: <PieChart />, category: 'التشغيل اليومي', action: () => onNavigate('reports', {}), roles: ['admin'] },
+      { id: 'reports', label: 'التقارير التنفيذية', hint: 'تفصيل مالي للأداء والمبيعات', icon: <PieChart />, category: 'التشغيل اليومي', tags: ['تقرير','تقارير','ملخص','احصائية','مبيعات','عملاء','موردين','منتجات','طلبات','مصروفات'], action: () => onNavigate('reports', {}), roles: ['admin'] },
 
       { id: 'smart-studio', label: 'استوديو التراث الذكي', hint: 'رسائل الدعاية والتسويق', icon: <Zap />, category: 'النمو والمحتوى', action: () => onNavigate('smart-studio', {}), roles: ['admin', 'partner'] },
       { id: 'dashboard-rewards', label: 'نظام المكافآت والخصومات', hint: 'إدارة الولاء، الكوبونات، وقياس الربح', icon: <Sparkles />, category: 'العملاء والولاء', action: () => onNavigate('dashboard', { exactId: 'rewards' }), roles: ['admin'] },
