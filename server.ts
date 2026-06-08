@@ -6418,6 +6418,12 @@ ${JSON.stringify(allComments)}
   });
 
   const extractSmartStudioImageDataUrl = (response: any): string | null => {
+    const generatedImage = response?.generatedImages?.[0]?.image || response?.images?.[0] || null;
+    const generatedBytes = generatedImage?.imageBytes || generatedImage?.bytesBase64Encoded || generatedImage?.data;
+    if (generatedBytes) {
+      return `data:${generatedImage?.mimeType || generatedImage?.mime_type || "image/png"};base64,${generatedBytes}`;
+    }
+
     const parts = response?.parts || response?.candidates?.[0]?.content?.parts || response?.response?.candidates?.[0]?.content?.parts || [];
     for (const part of parts) {
       const inlineData = part?.inlineData || part?.inline_data;
@@ -6835,7 +6841,11 @@ Make viewers believe it was shot quickly by a real videographer in Kuwait for an
 
       for (let i = 0; i < 300 && operation && !operation.done; i++) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        operation = await (ai as any).operations.getVideosOperation({ operation });
+        if ((ai as any).operations?.get) {
+          operation = await (ai as any).operations.get({ operation });
+        } else {
+          operation = await (ai as any).operations.getVideosOperation({ operation });
+        }
       }
 
       const generated = operation?.response?.generatedVideos?.[0];

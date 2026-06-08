@@ -2030,7 +2030,7 @@ const [isPending, startTransition] = useTransition();
       {
         id: "system-brain",
         label: "عقل النظام",
-        description: "5 أقسام خفيفة بدل صفحة واحدة مزدحمة",
+        description: "",
         icon: <BrainCircuit size={14} />,
         tabs: ["intelligence", "intelligence-decisions", "intelligence-learning", "intelligence-risks", "intelligence-strategy"],
       },
@@ -2076,7 +2076,7 @@ const [isPending, startTransition] = useTransition();
     ].filter(Boolean);
 
     const bentoCardStyle =
-      "dashboard-bento-card bg-white/90 w-full max-w-full min-w-0 p-4 md:p-5 lg:p-6 rounded-[32px] border border-amber-200/45 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.65)] text-right relative overflow-hidden flex flex-col interactive-hover mb-6 [overflow-wrap:anywhere] backdrop-blur-xl";
+      "dashboard-bento-card bg-white/90 w-full max-w-full min-w-0 p-4 md:p-5 lg:p-6 rounded-[32px] border border-amber-200/45 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.65)] text-right text-slate-800 relative overflow-hidden flex flex-col interactive-hover mb-6 [overflow-wrap:anywhere] backdrop-blur-xl";
     const glassCardStyle =
       "dashboard-glass-card bg-white/85 backdrop-blur-2xl border border-amber-100/70 shadow-[0_22px_64px_-48px_rgba(15,23,42,0.72)] p-3 md:p-4 rounded-[28px] text-right relative overflow-hidden flex flex-col text-slate-800 hover:shadow-[0_32px_78px_-54px_rgba(15,23,42,0.78)] transition-all duration-300 hover:-translate-y-0.5";
 
