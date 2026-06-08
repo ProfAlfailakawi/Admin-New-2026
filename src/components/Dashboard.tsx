@@ -2030,7 +2030,6 @@ const [isPending, startTransition] = useTransition();
       {
         id: "system-brain",
         label: "عقل النظام",
-        description: "",
         icon: <BrainCircuit size={14} />,
         tabs: ["intelligence", "intelligence-decisions", "intelligence-learning", "intelligence-risks", "intelligence-strategy"],
       },
@@ -2076,7 +2075,7 @@ const [isPending, startTransition] = useTransition();
     ].filter(Boolean);
 
     const bentoCardStyle =
-      "dashboard-bento-card bg-white/90 w-full max-w-full min-w-0 p-4 md:p-5 lg:p-6 rounded-[32px] border border-amber-200/45 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.65)] text-right text-slate-800 relative overflow-hidden flex flex-col interactive-hover mb-6 [overflow-wrap:anywhere] backdrop-blur-xl";
+      "dashboard-bento-card bg-white/90 w-full max-w-full min-w-0 p-4 md:p-5 lg:p-6 rounded-[32px] border border-amber-200/45 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.65)] text-right relative overflow-hidden flex flex-col interactive-hover mb-6 [overflow-wrap:anywhere] backdrop-blur-xl";
     const glassCardStyle =
       "dashboard-glass-card bg-white/85 backdrop-blur-2xl border border-amber-100/70 shadow-[0_22px_64px_-48px_rgba(15,23,42,0.72)] p-3 md:p-4 rounded-[28px] text-right relative overflow-hidden flex flex-col text-slate-800 hover:shadow-[0_32px_78px_-54px_rgba(15,23,42,0.78)] transition-all duration-300 hover:-translate-y-0.5";
 
@@ -5150,9 +5149,12 @@ const [isPending, startTransition] = useTransition();
                   <div className="flex flex-col w-full ">
                     <div
                       className={cn(
-                        glassCardStyle,
-                        "lg:col-span-1 bg-gradient-to-br from-indigo-900 to-slate-900 border-indigo-500/30 text-white shadow-xl",
+                        "dashboard-glass-card heritage-ai-suggestions-card lg:col-span-1 w-full max-w-full min-w-0 p-3 md:p-4 rounded-[28px] text-right relative overflow-hidden flex flex-col border border-indigo-500/30 text-white shadow-xl transition-all duration-300 hover:-translate-y-0.5",
                       )}
+                      style={{
+                        background:
+                          "linear-gradient(135deg, rgba(49, 46, 129, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%)",
+                      }}
                     >
                       <div className="flex items-center gap-3 mb-6 relative z-10 flex-row-reverse">
                         <button
@@ -5175,22 +5177,22 @@ const [isPending, startTransition] = useTransition();
                       </div>
                       <div className="space-y-3 relative z-10 text-right">
                         {!ltv || !cac ? (
-                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 text-center">
-                            <p className="text-xs text-white/50 font-bold">
+                          <div className="bg-white/10 p-3 rounded-xl border border-white/15 text-center">
+                            <p className="text-xs text-white/75 font-bold">
                               لا توجد بيانات كافية لإصدار توصية تخص النمو
                             </p>
                           </div>
                         ) : (
-                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                          <div className="bg-white/10 p-3 rounded-xl border border-white/15 group hover:bg-white/10 transition-all">
                             <div className="flex justify-between items-center mb-1 flex-row-reverse">
-                              <div className="text-[10px] text-indigo-300 font-bold">
+                              <div className="text-[10px] text-indigo-200 font-bold">
                                 النمو الاستراتيجي
                               </div>
-                              <span className="text-[10px] text-white/30 font-bold italic">
+                              <span className="text-[10px] text-white/65 font-bold italic">
                                 LTV:CAC = {ltvCacRatio.toFixed(1)}
                               </span>
                             </div>
-                            <p className="text-xs font-medium leading-relaxed">
+                            <p className="text-xs font-semibold leading-relaxed text-white/90">
                               {ltvCacRatio >= 3
                                 ? `بناءً على LTV:CAC = ${ltvCacRatio.toFixed(1)} (أعلى من الحد المثالي 3.0)، نوصي بمضاعفة ميزانية التسويق بأمان لجذب شريحة أكبر نظراً لارتفاع كفاءة الاستحواذ.`
                                 : ltvCacRatio < 1
@@ -5201,22 +5203,22 @@ const [isPending, startTransition] = useTransition();
                         )}
 
                         {totalGatewayFees === 0 ? (
-                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 text-center">
-                            <p className="text-xs text-white/50 font-bold">
+                          <div className="bg-white/10 p-3 rounded-xl border border-white/15 text-center">
+                            <p className="text-xs text-white/75 font-bold">
                               لا توجد رسوم بوابات الدفع لإصدار توصية
                             </p>
                           </div>
                         ) : (
-                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                          <div className="bg-white/10 p-3 rounded-xl border border-white/15 group hover:bg-white/10 transition-all">
                             <div className="flex justify-between items-center mb-1 flex-row-reverse">
-                              <div className="text-[10px] text-indigo-300 font-bold">
+                              <div className="text-[10px] text-indigo-200 font-bold">
                                 كفاءة التكاليف
                               </div>
-                              <span className="text-[10px] text-white/30 font-bold italic">
+                              <span className="text-[10px] text-white/65 font-bold italic">
                                 الرسوم = {totalGatewayFees.toFixed(3)} د.ك
                               </span>
                             </div>
-                            <p className="text-xs font-medium leading-relaxed">
+                            <p className="text-xs font-semibold leading-relaxed text-white/90">
                               {totalGatewayFees > 10
                                 ? `بناءً على التراكم العالي لرسوم الدفع والذي وصل (${totalGatewayFees.toFixed(3)} د.ك)، نوصي بتشجيع الدفع النقدي أو التحويل البنكي المباشر للطلبات الكبيرة لتقليل استنزاف الأرباح.`
                                 : `بناءً على رسوم الدفع الحالية (${totalGatewayFees.toFixed(3)} د.ك)، يعتبر نظام التحصيل ممتازا وذو تكلفة منخفضة. يمكنك مواصلة استقبال الطلبات عبر الدفع الإلكتروني.`}
@@ -5225,22 +5227,22 @@ const [isPending, startTransition] = useTransition();
                         )}
 
                         {profitMargin === 0 && totalSalesVal === 0 ? (
-                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 text-center">
-                            <p className="text-xs text-white/50 font-bold">
+                          <div className="bg-white/10 p-3 rounded-xl border border-white/15 text-center">
+                            <p className="text-xs text-white/75 font-bold">
                               لا توجد مبيعات كافية لتحليل الأرباح
                             </p>
                           </div>
                         ) : (
-                          <div className="bg-white/5 p-3 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                          <div className="bg-white/10 p-3 rounded-xl border border-white/15 group hover:bg-white/10 transition-all">
                             <div className="flex justify-between items-center mb-1 flex-row-reverse">
-                              <div className="text-[10px] text-indigo-300 font-bold">
+                              <div className="text-[10px] text-indigo-200 font-bold">
                                 الصحة المالية
                               </div>
-                              <span className="text-[10px] text-white/30 font-bold italic">
+                              <span className="text-[10px] text-white/65 font-bold italic">
                                 هامش الربح = {profitMargin.toFixed(1)}%
                               </span>
                             </div>
-                            <p className="text-xs font-medium leading-relaxed">
+                            <p className="text-xs font-semibold leading-relaxed text-white/90">
                               {profitMargin > 20
                                 ? `بناءً على هامش الربح الإجمالي البالغ ${profitMargin.toFixed(1)}% (أعلى من 20%)، نوصي باستثمار الفوائض في توسيع قائمة المنتجات أو تحسين التغليف لزيادة القيمة المضافة.`
                                 : profitMargin < 10
