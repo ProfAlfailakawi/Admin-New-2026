@@ -3011,7 +3011,7 @@ const MainApp: React.FC = () => {
             }}
           />
         );
-        case 'ai':
+        case 'ai': return <AIAssistant data={data} currentPage={currentPage} />;
         case 'diwaniya':
           return <div className="partner-clean-shell"><PartnerDashboard data={data} onNavigate={setCurrentPage} onLogout={handleLogout} deepLinkData={deepLinkData} /></div>;
         case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
@@ -3091,8 +3091,8 @@ const MainApp: React.FC = () => {
   const showExecutiveFloatingTools = currentPage === 'dashboard' && dashboardTab === 'pulse';
   const floatingToolRole = appMode === 'local' ? 'local' : userRole;
   
-  // Instagram Wand: For admin/local -> only on dashboard pulse. For partner -> only on dashboard pulse.
-  const showInstagramFloatingTool = showExecutiveFloatingTools;
+  // Instagram Wand: admin/local stays limited to dashboard pulse; partner gets it on the partner dashboard.
+  const showInstagramFloatingTool = showExecutiveFloatingTools || (floatingToolRole === 'partner' && currentPage === 'dashboard');
 
   // Second Tool (Radar/Search): Admin/local -> only on pulse. Partner -> hide completely.
   const showSecondFloatingTools = (floatingToolRole === 'admin' || floatingToolRole === 'local') && showExecutiveFloatingTools;
