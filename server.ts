@@ -6498,6 +6498,16 @@ ${JSON.stringify(allComments)}
         "mubarakiya": "خلفية طراز سوق المباركية الكويتي التراثي العريق مبني بشكل مدمج ضبابي ناعم بالخلفية كأجواء شعبية دافئة مع إضاءة دقيقة للطلب.",
         "bidaa": "خلفية رمال ساحل شاطئ البدع المعتدلة وقت العصر والغروب الذهبي، مع طاولة خشبية هادئة ممتدة وظل واقعي صحيح ينعكس عليها.",
       };
+      const alturathSuperRealityLock = `
+ALTURATH SUPER REALITY LOCK 1000X:
+- This must look like a real final production photograph from Kuwait, not AI art, CGI, a render, or a luxury mockup.
+- Dish fingerprint is sacred: same vessel, portion logic, protein/food identity, texture, garnish logic, sauce behavior, and serving credibility.
+- Truth beats beauty: ordinary Kuwaiti home-order/delivery/gathering surface, practical indoor/outdoor light, grounded contact shadows, natural 35mm/50mm lens behavior, realistic scale.
+- Use only believable Kuwaiti order contexts: home table, diwaniya, chalet, farm, jakhour, zowara, delivery packaging, prep counter, or clean menu setup. Never cafe, coffee concept, palace, luxury lounge, or dine-in restaurant.
+- Remove AI tells completely: no plastic food, no warped utensils, no repeated patterns, no impossible shine, no fake smoke, no floating objects, no fantasy decor, no decorative clutter.
+- No generated text at all: no letters, words, logos, signatures, stamps, menus, labels, watermarks, or readable packaging.
+- Publication gate target is 95/100 or higher. If any part feels below that, simplify the scene and make it more human, grounded, and believable.
+`;
       const chosenMode = realityModeMap[realityMode || "restaurant"] || realityModeMap.restaurant;
       const chosenBackground = backgroundMap[backgroundPreset || "wood-table"] || backgroundMap["wood-table"];
       const sceneGuideText = sceneProductionGuide
@@ -6525,7 +6535,8 @@ ${strictPlateLock !== false ? '- قفل صارم للهوية فقط: لا تب�
 - استخدم عناصر طلب كويتي قابلة للتصديق فقط: سفرة بيتية، ديوانية، شاليه، طاولة مزرعة/جاخور، كاونتر تجهيز، جدار محايد، زجاج، مطبخ ستانلس، منديل، كوب ماء بسيط، تغليف plain.
 - أضف عيوب تصوير بشرية بسيطة: منظور 35mm/50mm، نعومة عدسة خفيفة، ظل صحيح، scale منطقي، انعكاسات قليلة، عدم تماثل مثالي.
 - اترك مساحة هادئة للهوية/النص لاحقاً، لكن لا تضع أي نص داخل الصورة.
-${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كويتياً عادياً ومقنعاً قبل أن يكون جميلاً؛ تجنب اللمعان الزائد، الخلفية الفارغة الفاخرة، العمق غير المنطقي، والديكور المثالي. أضف عيوب تصوير بشرية صغيرة وظلال تلامس حقيقية.\n' : ''}${tasteProfile ? `- ذاكرة ذوق المستخدم: ${String(tasteProfile).slice(0, 900)}\n` : ''}${correctionHint ? `- طلب تحسين إضافي من المستخدم: ${correctionHint}\n` : ''}
+${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كويتياً عادياً ومقنعاً قبل أن يكون جميلاً؛ تجنب اللمعان الزائد، الخلفية الفارغة الفاخرة، العمق غير المنطقي، والديكور المثالي. أضف عيوب تصوير بشرية صغيرة وظلال تلامس حقيقية.\n' : ''}${alturathSuperRealityLock}
+${tasteProfile ? `- ذاكرة ذوق المستخدم: ${String(tasteProfile).slice(0, 900)}\n` : ''}${correctionHint ? `- طلب تحسين إضافي من المستخدم: ${correctionHint}\n` : ''}
 
 الاختيارات الحالية:
 - الثيم: ${theme || 'طلب كويتي واقعي'}.
@@ -6533,6 +6544,8 @@ ${realityBoost ? '- تفعيل Reality Final Boss: اجعل المكان كوي�
 - وضع الواقع: ${chosenMode}
 - مكتبة الخلفية: ${chosenBackground}
 ${studioDirectorPayload ? `\nتعليمات اختيار الاستوديو الحالية لا يجوز تجاهلها:\n${studioDirectorPayload}\n` : ''}
+طبقة الواقعية النهائية غير قابلة للتجاهل:
+${alturathSuperRealityLock}
 حظر صارم جداً:
 - ممنوع دلة، دلال، قهوة عربية، قهوة، فناجين، أكواب قهوة، حبوب قهوة، مبخر، بخور، عود، سدو، فوانيس، قصر، دخان مصطنع، زخارف تراثية، نيون مبالغ، أدوات غير مرتبطة، لافتات أو كلمات، وممنوع كلينكس مستخدم أو مناديل مستخدمة أو متسخة أو مكرمشة أو طاولة وصخة أو بقايا أكل أو فتات أو مخلفات ورقية.
 - IMPORTANT: ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO SIGNATURES, NO LOGOS, NO WATERMARKS ANYWHERE IN THE IMAGE.
@@ -6673,9 +6686,18 @@ ${studioDirectorPayload ? `\nتعليمات اختيار الاستوديو ال
         reelSceneContract ? `Reel scene contract: ${String(reelSceneContract)}` : ""
       ].filter(Boolean).join("\n");
 
+      const alturathSuperRealityLock = `
+ALTURATH SUPER REALITY LOCK 1000X:
+- Final output must look like a real Kuwaiti production photograph, not AI art, CGI, or a render.
+- Ordinary believable location before beauty: home table, diwaniya, chalet, farm, jakhour, zowara, delivery packaging, prep counter, or clean menu setup.
+- Natural 35mm/50mm lens behavior, grounded contact shadows, practical light, realistic scale, and small human-camera imperfections.
+- No plastic food, warped utensils, repeated patterns, impossible shine, fake smoke, floating props, fantasy decor, decorative clutter, text, logos, labels, or watermarks.
+- Target publish quality is 95/100 or higher; simplify anything that feels less believable.
+`;
+
       const response = await generateSmartStudioImage(ai, {
         contents: {
-          parts: [{ text: `${prompt || ""}\n\nSERVER REALITY ENFORCEMENT: Every smart-studio text image must look like a real human Kuwaiti home-order or gathering photograph for a kitchen focused on rice dishes, fish/seafood, mahshi, grape leaves, and occasional grills; never a dine-in restaurant, cafe, or coffee concept. Use a believable Kuwaiti order background from: home table, diwaniya table, chalet setup, farm gathering, jakhour setup, zowara spread, delivery packaging, prep counter, or neutral menu setup. Make it ordinary and physically plausible before making it beautiful: realistic scale, grounded shadows, natural lens softness, small human-camera imperfections. No dallah, no Arabic coffee, no coffee cups, no coffee beans, no incense, no sadu, no lanterns, no cafe props, no fantasy decor, no palace, no CGI, no text/logos/watermarks, no used tissue, no dirty napkin, no stained napkin, no crumpled kleenex, no table trash, no paper scraps, no dirty table, no leftover crumbs, no leftover mess. ${tasteProfile ? `USER TASTE MEMORY: ${String(tasteProfile).slice(0, 900)} ` : ""}${realityBoost ? "FINAL BOSS: remove any AI tells; make viewers believe this was photographed on location." : ""}` }]
+          parts: [{ text: `${prompt || ""}\n\nSERVER REALITY ENFORCEMENT: Every smart-studio text image must look like a real human Kuwaiti home-order or gathering photograph for a kitchen focused on rice dishes, fish/seafood, mahshi, grape leaves, and occasional grills; never a dine-in restaurant, cafe, or coffee concept. Use a believable Kuwaiti order background from: home table, diwaniya table, chalet setup, farm gathering, jakhour setup, zowara spread, delivery packaging, prep counter, or neutral menu setup. Make it ordinary and physically plausible before making it beautiful: realistic scale, grounded shadows, natural lens softness, small human-camera imperfections. No dallah, no Arabic coffee, no coffee cups, no coffee beans, no incense, no sadu, no lanterns, no cafe props, no fantasy decor, no palace, no CGI, no text/logos/watermarks, no used tissue, no dirty napkin, no stained napkin, no crumpled kleenex, no table trash, no paper scraps, no dirty table, no leftover crumbs, no leftover mess. ${alturathSuperRealityLock} ${tasteProfile ? `USER TASTE MEMORY: ${String(tasteProfile).slice(0, 900)} ` : ""}${realityBoost ? "FINAL BOSS: remove any AI tells; make viewers believe this was photographed on location." : ""}` }]
         },
         config: buildSmartStudioImageConfig(ar)
       });
@@ -6759,6 +6781,7 @@ SMART STUDIO REEL ENFORCEMENT:
 - KUWAIT TOWERS STRICT LOCK: if Kuwait Towers are selected or mentioned, obey this exactly: ${KUWAIT_TOWERS_STRICT_REFERENCE_LOCK}
 ${studioDirectorPayload ? `- Selected studio scene lock:\n${studioDirectorPayload}` : ""}
 - Mood/light: ${mood || "warm"}. Use believable Kuwaiti home/delivery lighting, not fantasy studio CGI.
+- ALTURATH SUPER REALITY REEL LOCK: make the reel look like it was filmed by a real videographer in Kuwait, with practical light, grounded shadows, stable dish identity, no AI morphing, no generated text, no fantasy decor, and publication quality target 95/100.
 - One coherent scene only; no random montage, no scene jumping, no objects appearing or disappearing.
 - Preserve the uploaded food/plate/box: same dish, ingredients, quantity, shape, color, plate/box edges, and serving style.
 - Keep food centered, sharp, stable and physically plausible across frames; no morphing food, no melting plates, no warped hands.
@@ -6932,7 +6955,7 @@ Make viewers believe it was shot quickly by a real videographer in Kuwait for an
 
       const auditPrompt = `قيّم هذه الصورة كمدقق جودة نهائي لطلب كويتي/يمعة كويتية${publishGate ? " قبل التحميل أو الحفظ" : ""}. أرجع JSON فقط بدون markdown بالشكل التالي:
 {"score": number, "publishReady": boolean, "dishLocked": boolean, "hasTextOrLogo": boolean, "instagramReady": boolean, "subscores": {"dishLock": number, "realism": number, "textSafety": number, "instagramFit": number, "appetite": number}, "verdict": "...", "notes": ["...", "...", "..."], "fixHint": "..."}
-المعايير: هل الطبق/الصحن حافظ على هويته؟ هل تبدو مصورة بشرياً لطلب كويتي حقيقي في بيت/ديوانية/شاليه/توصيل؟ هل الخلفية مقنعة؟ هل الظلال والscale صحيح؟ هل يوجد شكل CGI أو ديكور خيالي أو نصوص/شعارات/Watermark داخل الصورة؟ هل تصلح لإنستغرام/ستوري؟ هل يوجد دلة/قهوة/فناجين/بخور/سدو/فوانيس؟ اجعل الملاحظات قصيرة بالعربية.
+المعايير الصارمة: هل الطبق/الصحن حافظ على هويته؟ هل تبدو مصورة بشرياً لطلب كويتي حقيقي في بيت/ديوانية/شاليه/توصيل؟ هل الخلفية مقنعة؟ هل الظلال والscale صحيح؟ هل يوجد شكل CGI أو ديكور خيالي أو نصوص/شعارات/Watermark داخل الصورة؟ هل تصلح لإنستغرام/ستوري؟ هل يوجد دلة/قهوة/فناجين/بخور/سدو/فوانيس؟ لا تعتبر الصورة publishReady إلا إذا كانت score >= 95 وكل subscores الأساسية >= 92 ولا يوجد أي نص أو شعار. اجعل الملاحظات قصيرة بالعربية.
 ${sourcePrompt ? `إعدادات الصورة: ${String(sourcePrompt).slice(0, 1200)}` : ""}`;
 
       const response = await ai.models.generateContent({
@@ -6950,7 +6973,7 @@ ${sourcePrompt ? `إعدادات الصورة: ${String(sourcePrompt).slice(0, 1
       try { parsed = JSON.parse(cleaned); } catch { parsed = { score: 88, publishReady: true, dishLocked: true, hasTextOrLogo: false, instagramReady: true, subscores: { dishLock: 88, realism: 86, textSafety: 95, instagramFit: 88, appetite: 86 }, verdict: "الصورة واقعية غالباً", notes: [cleaned.slice(0, 180)], fixHint: "اجعل الخلفية أبسط والظلال أكثر طبيعية" }; }
       res.json({
         score: Math.max(0, Math.min(100, Number(parsed.score || 0) || 88)),
-        publishReady: parsed.publishReady !== false,
+        publishReady: parsed.publishReady !== false && Number(parsed.score || 0) >= 95 && parsed.hasTextOrLogo !== true,
         dishLocked: parsed.dishLocked !== false,
         hasTextOrLogo: parsed.hasTextOrLogo === true,
         instagramReady: parsed.instagramReady !== false,
