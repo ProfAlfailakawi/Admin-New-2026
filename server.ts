@@ -3292,8 +3292,8 @@ app.post("/api/push/test-device", async (req, res) => {
           notification: {
             title: notificationTitle,
             body: notificationBody,
-            icon: "/icons/icon-192.png",
-            badge: "/icons/icon-192.png",
+            icon: "/ios-icon-192-v6.png",
+            badge: "/ios-icon-192-v6.png",
             tag: eventId,
             renotify: true,
             requireInteraction: true,
@@ -4235,6 +4235,16 @@ function smartNotificationTag(alertType: string, url: string, fallbackEventId: s
   return `payment-final-state-${invoiceMatch ? "invoice" : "order"}-${id}`;
 }
 
+function shouldRenotifyPush(alertType: string) {
+  const type = String(alertType || "").toLowerCase();
+  return (
+    type.includes("paid") ||
+    type.includes("captured") ||
+    type.includes("success") ||
+    type.includes("failed")
+  );
+}
+
 
 type PushTokenRecordForArchive = {
   token: string;
@@ -4442,6 +4452,7 @@ async function sendSmartAlertPushNotification({
     const normalizedAlertType = String(alertType || "general");
     const normalizedUrl = String(url);
     const normalizedNotificationTag = String(notificationTag || smartNotificationTag(normalizedAlertType, normalizedUrl, normalizedEventId));
+    const shouldRenotify = shouldRenotifyPush(normalizedAlertType);
     const effectiveTtlSeconds = Number.isFinite(Number(ttlSeconds))
       ? Math.max(10, Math.min(86400, Number(ttlSeconds)))
       : (
@@ -4478,10 +4489,10 @@ async function sendSmartAlertPushNotification({
         notification: {
           title: String(title || "تنبيه"),
           body: String(body || ""),
-          icon: "/icons/icon-192.png",
-          badge: "/icons/icon-192.png",
+          icon: "/ios-icon-192-v6.png",
+          badge: "/ios-icon-192-v6.png",
           tag: normalizedNotificationTag,
-          renotify: false,
+          renotify: shouldRenotify,
           requireInteraction: Boolean(requireInteraction),
           data: {
             url: normalizedUrl,
@@ -4622,8 +4633,8 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
           notification: {
             title: notificationTitle,
             body: notificationBody,
-            icon: "/icons/icon-192x192.png",
-            badge: "/icons/icon-192x192.png",
+            icon: "/ios-icon-192-v6.png",
+            badge: "/ios-icon-192-v6.png",
             requireInteraction: true,
             data: {
               url: String(url),

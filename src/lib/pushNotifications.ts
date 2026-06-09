@@ -54,6 +54,16 @@ function paymentNotificationTag(alertType: string, url: string, eventId: string)
   return id ? `payment-final-state-${invoiceMatch ? "invoice" : "order"}-${id}` : eventId;
 }
 
+function shouldRenotifyPush(alertType: string) {
+  const type = String(alertType || "").toLowerCase();
+  return (
+    type.includes("paid") ||
+    type.includes("captured") ||
+    type.includes("success") ||
+    type.includes("failed")
+  );
+}
+
 function pushAckUrl() {
   try {
     return new URL("/api/push/ack", window.location.origin).toString();
@@ -108,10 +118,10 @@ function startForegroundPushListener(messaging: Messaging) {
 
     const notification = new Notification(title, {
       body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
+      icon: "/ios-icon-192-v6.png",
+      badge: "/ios-icon-192-v6.png",
       tag: notificationTag,
-      renotify: false,
+      renotify: shouldRenotifyPush(alertType),
       requireInteraction: true,
       data: { url, eventId, alertType, notificationTag },
     } as NotificationOptions);
