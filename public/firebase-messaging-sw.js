@@ -94,6 +94,16 @@ function paymentNotificationTag(alertType, url, eventId) {
   return id ? `payment-final-state-${invoiceMatch ? "invoice" : "order"}-${id}` : eventId;
 }
 
+function shouldRenotifyPush(alertType) {
+  const type = String(alertType || "").toLowerCase();
+  return (
+    type.includes("paid") ||
+    type.includes("captured") ||
+    type.includes("success") ||
+    type.includes("failed")
+  );
+}
+
 self.addEventListener("push", (event) => {
   let payload = {};
 
@@ -160,10 +170,10 @@ self.addEventListener("push", (event) => {
 
     await self.registration.showNotification(title, {
       body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
+      icon: "/ios-icon-192-v6.png",
+      badge: "/ios-icon-192-v6.png",
       tag: notificationTag,
-      renotify: false,
+      renotify: shouldRenotifyPush(alertType),
       requireInteraction: true,
       data: notificationData,
     });
