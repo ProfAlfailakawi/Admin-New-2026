@@ -157,9 +157,21 @@ export const REALITY_FINAL_BOSS_POLICY = `
 REALITY FINAL BOSS OVERRIDE:
 - Make the result boringly believable before making it beautiful. Real Kuwaiti order/gathering first, advertisement second.
 - Avoid the common synthetic tells: over-perfect lighting, glossy fake tabletops, unreal depth blur, empty luxury halls, decorative clutter, duplicated objects, floating props, and cinematic smoke.
-- Use one specific ordinary location: a real dine-in table, pickup counter, window booth, open kitchen pass, delivery counter, or clean menu table.
+- Use one specific ordinary location: home table, diwaniya table, chalet serving surface, farm gathering table, jakhour setup, zowara spread, delivery counter, prep counter, or clean menu table.
 - Add tiny human-camera imperfections: slight off-axis angle, real contact shadows, uneven napkin/cup placement, realistic table wear, practical indoor light.
 - If unsure, choose a simpler real background rather than a dramatic one.
+`;
+
+export const ALTURATH_SUPER_REALITY_POLICY = `
+ALTURATH SUPER REALITY LOCK 1000X:
+- Treat this as a final production photograph, not an illustration. It must survive a strict human reality inspection at first glance and after zooming.
+- The dish fingerprint is sacred: same food category, vessel, portion logic, protein, rice/grain texture, sauce behavior, garnish logic, edges, and serving credibility.
+- Prefer truth over beauty every time: ordinary Kuwaiti surface, practical light, believable distance, natural color temperature, grounded contact shadows, and human lens softness.
+- Add only micro-imperfections that make sense: tiny off-center framing, slight table wear, small non-distracting surface variation, normal indoor shadow falloff, realistic reflection level.
+- Ban AI tells completely: no plastic food, no melted ingredients, no repeated grains/patterns, no impossible shine, no warped utensils, no fake smoke, no decorative overload, no fantasy heritage props.
+- Keep the scene Kuwaiti home-order/delivery/gathering only: home, diwaniya, chalet, farm, jakhour, zowara, delivery packaging, or prep counter. Never cafe, coffee concept, palace, lounge, or dine-in restaurant.
+- No generated text of any kind. Leave empty clean space for later overlay, but do not create letters, logos, stamps, signatures, menus, labels, or watermarks.
+- Publication gate target: if the image would score below 95/100 for realism, dish lock, text safety, and Instagram readiness, simplify the scene and make it more believable.
 `;
 
 export const STRICT_PLATE_LOCK_POLICY = `
@@ -178,10 +190,10 @@ Return concise Arabic notes and a 0-100 realism score.
 export const buildProductRealityPrompt = ({ theme, mood, mode, background }: { theme?: string; mood?: string; mode?: StudioRealityMode; background?: StudioBackgroundPresetId }) => {
   const modePrompt = STUDIO_REALITY_MODES[mode || 'restaurant']?.prompt || STUDIO_REALITY_MODES.restaurant.prompt;
   const backgroundPrompt = REAL_RESTAURANT_BACKGROUNDS[background || 'wood-table']?.prompt || REAL_RESTAURANT_BACKGROUNDS['wood-table'].prompt;
-  return `${PRODUCT_LOCK_POLICY}\n${STRICT_PLATE_LOCK_POLICY}\n${RESTAURANT_MENU_IDENTITY}\n${RESTAURANT_REALITY_POLICY}\n${REALITY_FINAL_BOSS_POLICY}\n${modePrompt}\n${backgroundPrompt}\nUser theme: ${theme || 'طلب كويتي واقعي'}. Mood: ${mood || 'دافئ'}.\n${STUDIO_REALITY_NEGATIVE_PROMPT}`;
+  return `${PRODUCT_LOCK_POLICY}\n${STRICT_PLATE_LOCK_POLICY}\n${RESTAURANT_MENU_IDENTITY}\n${RESTAURANT_REALITY_POLICY}\n${REALITY_FINAL_BOSS_POLICY}\n${ALTURATH_SUPER_REALITY_POLICY}\n${modePrompt}\n${backgroundPrompt}\nUser theme: ${theme || 'طلب كويتي واقعي'}. Mood: ${mood || 'دافئ'}.\n${STUDIO_REALITY_NEGATIVE_PROMPT}`;
 };
 
-export const buildTextRealityPrompt = (purpose: string, subject: string, formatHint = '') => `${RESTAURANT_MENU_IDENTITY}\n${RESTAURANT_REALITY_POLICY}\n${REALITY_FINAL_BOSS_POLICY}\nPurpose: ${purpose}.\nSubject: ${subject}.\n${formatHint}\nChoose one believable Kuwaiti order/gathering location from the internal library: home table, diwaniya, chalet, farm, jakhour, zowara, delivery packaging, prep counter, or clean menu setup. Build the image as a plausible human photo in Kuwait for home orders and delivery: ordinary surfaces, natural scale, practical lighting, no fake event props, no dine-in restaurant implication. The final image must make viewers ask who photographed it, not which engine made it.\n${STUDIO_REALITY_NEGATIVE_PROMPT}`;
+export const buildTextRealityPrompt = (purpose: string, subject: string, formatHint = '') => `${RESTAURANT_MENU_IDENTITY}\n${RESTAURANT_REALITY_POLICY}\n${REALITY_FINAL_BOSS_POLICY}\n${ALTURATH_SUPER_REALITY_POLICY}\nPurpose: ${purpose}.\nSubject: ${subject}.\n${formatHint}\nChoose one believable Kuwaiti order/gathering location from the internal library: home table, diwaniya, chalet, farm, jakhour, zowara, delivery packaging, prep counter, or clean menu setup. Build the image as a plausible human photo in Kuwait for home orders and delivery: ordinary surfaces, natural scale, practical lighting, no fake event props, no dine-in restaurant implication. The final image must make viewers ask who photographed it, not which engine made it.\n${STUDIO_REALITY_NEGATIVE_PROMPT}`;
 
 
 export const ALTURATH_ADVANCED_REALISM_POLICY = `

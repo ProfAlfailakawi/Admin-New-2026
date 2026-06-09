@@ -2030,6 +2030,7 @@ const [isPending, startTransition] = useTransition();
       {
         id: "system-brain",
         label: "عقل النظام",
+        description: "قرارات وتوقعات عقل النظام الذكي، تحليل المخاطر والاستراتيجيات",
         icon: <BrainCircuit size={14} />,
         tabs: ["intelligence", "intelligence-decisions", "intelligence-learning", "intelligence-risks", "intelligence-strategy"],
       },

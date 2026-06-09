@@ -1667,10 +1667,14 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     setRealityVariants([]);
     setRealityAudit(null);
     const candidatePlan: { label: string; mode: StudioRealityMode; background: StudioBackgroundPresetId }[] = [
-      { label: 'محاولة ذكية 1', mode: 'finalBoss', background: backgroundPreset || 'home-table' },
-      { label: 'محاولة ذكية 2', mode: 'human', background: selectedOrderPlace === 'delivery' ? 'delivery-packaging' : 'home-table' },
-      { label: 'محاولة ذكية 3', mode: 'menu', background: backgroundPreset === 'floor-spread' ? 'floor-spread' : 'neutral-menu' },
+      { label: 'فوق الكمال 1 / قفل الطبق', mode: 'finalBoss', background: backgroundPreset || 'home-table' },
+      { label: 'فوق الكمال 2 / بيت كويتي', mode: 'finalBoss', background: 'home-table' },
+      { label: 'فوق الكمال 3 / ديوانية', mode: 'finalBoss', background: 'diwaniya-table' },
+      { label: 'فوق الكمال 4 / توصيل واقعي', mode: 'human', background: selectedOrderPlace === 'delivery' ? 'delivery-packaging' : 'home-table' },
+      { label: 'فوق الكمال 5 / منيو نظيف', mode: 'menu', background: backgroundPreset === 'floor-spread' ? 'floor-spread' : 'neutral-menu' },
+      { label: 'فوق الكمال 6 / زوارة', mode: 'finalBoss', background: 'zowara-spread' },
     ];
+    const SUPER_REALITY_TARGET_SCORE = 96;
     const previousImage = generatedImage;
     const previousAiImage = aiImage;
     let best: { url: string; score: number; audit: RealityAuditResult; label: string; mode: StudioRealityMode; background: StudioBackgroundPresetId } | null = null;
@@ -1686,7 +1690,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         });
         const audit = await response.json().catch(() => null) as RealityAuditResult | null;
         const score = Number(audit?.score || 0);
-        if (!best || score > best.score) best = { url: current, score, audit: audit || {}, label: candidate.label, mode: candidate.mode, background: candidate.background };
+        const safe = audit?.hasTextOrLogo !== true && audit?.dishLocked !== false && audit?.instagramReady !== false;
+        if (!best || (safe && score > best.score) || (!best && score > 0)) best = { url: current, score, audit: audit || {}, label: candidate.label, mode: candidate.mode, background: candidate.background };
+        if (safe && score >= SUPER_REALITY_TARGET_SCORE) break;
       }
       if (best) {
         setAiImage(best.url);
@@ -1731,7 +1737,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   const ensureImagePublishQuality = async () => {
     const source = aiImage || generatedImage;
     if (!source) return false;
-    if (realityAudit?.publishReady === true || (Number(realityAudit?.score || 0) >= 84 && realityAudit?.hasTextOrLogo !== true)) return true;
+    if (realityAudit?.publishReady === true && Number(realityAudit?.score || 0) >= 95 && realityAudit?.hasTextOrLogo !== true) return true;
     setIsAuditingReality(true);
     try {
       const payload = getDataImagePayload(source);
@@ -1743,7 +1749,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       if (!response.ok) throw new Error('ما قدرنا نفحص جودة الصورة');
       const result = await response.json();
       setRealityAudit(result);
-      const ready = result?.publishReady !== false && Number(result?.score || 0) >= 82 && result?.hasTextOrLogo !== true;
+      const ready = result?.publishReady === true && Number(result?.score || 0) >= 95 && result?.hasTextOrLogo !== true && result?.dishLocked !== false;
       if (!ready) {
         toast.error(result?.fixHint || 'الصورة تحتاج إعادة أصدق قبل التحميل.');
       }
@@ -1807,9 +1813,9 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
   const ensureReelPublishQuality = async () => {
     if (!generatedReel) return false;
-    if (reelAudit?.publishReady === true || (Number(reelAudit?.score || 0) >= 84 && reelAudit?.hasTextOrLogo !== true)) return true;
+    if (reelAudit?.publishReady === true && Number(reelAudit?.score || 0) >= 92 && reelAudit?.hasTextOrLogo !== true) return true;
     const result = await auditReelQuality();
-    const ready = result?.publishReady !== false && Number(result?.score || 0) >= 82 && result?.hasTextOrLogo !== true;
+    const ready = result?.publishReady === true && Number(result?.score || 0) >= 92 && result?.hasTextOrLogo !== true;
     if (!ready) toast.error(result?.fixHint || 'الريل يحتاج إعادة أصدق قبل التحميل.');
     return ready;
   };
@@ -1818,7 +1824,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     const sourceImage = selectedImage || aiImage || generatedImage;
     if (!sourceImage || isGenerating || isGeneratingVariants) return;
     setRealityMode('finalBoss');
-    const hint = realityAudit?.fixHint || 'أصدق من أجمل: حافظ على هوية الطبق والكمية والملمس أولاً، خفف الزخرفة، اجعل الخلفية أبسط وأكثر بشرية وكويتية، ظلال صحيحة، إضاءة أقل مثالية، لا لمعان زائد، لا عمق مبالغ، لا ديكور وهمي.';
+    const hint = realityAudit?.fixHint || 'فوق الكمال: حافظ على بصمة الطبق والكمية والملمس والصحن أولاً، اجعل المشهد كأنه تصوير آيفون/كاميرا حقيقي في الكويت، خلفية أبسط وأكثر بشرية، ظلال تلامس دقيقة، scale صحيح، لا لمعان زائد، لا عمق مبالغ، لا ديكور وهمي، لا أي نص أو شعار.';
     await generateContent({ mode: 'finalBoss', background: backgroundPreset || 'wood-table', label: `أصدق بصرياً: ${hint}`, sourceImage });
   };
 
@@ -2522,7 +2528,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     const isBusy = kind === 'image' ? isAuditingReality : isAuditingReel;
     const runAudit = kind === 'image' ? auditReality : auditReelQuality;
     const score = Math.round(Number(audit?.score || 0));
-    const ready = audit ? audit.publishReady !== false && score >= 82 && audit.hasTextOrLogo !== true : false;
+    const ready = audit ? audit.publishReady === true && score >= 95 && audit.hasTextOrLogo !== true : false;
     const subscores = audit?.subscores ? [
       ['ثبات الطبق', audit.subscores.dishLock],
       ['الواقعية', audit.subscores.realism],
