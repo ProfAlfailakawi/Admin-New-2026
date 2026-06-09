@@ -5827,7 +5827,22 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
           const shardData = shardSnap.exists ? (shardSnap.data() || {}) : {};
           const shardItems = Array.isArray(shardData.items) ? shardData.items : (Array.isArray(shardData[key]) ? shardData[key] : []);
           if (shardItems.length > 0) {
-            data[key] = shardItems;
+            const rootItems = Array.isArray(data[key]) ? data[key] : [];
+            const mergedMap = new Map<string, any>();
+            const keyForItem = (item: any, idx: number) => String(
+              item?.id ||
+              item?.orderId ||
+              item?.orderNumber ||
+              item?.invoiceId ||
+              item?.invoiceNo ||
+              item?.invoiceNumber ||
+              item?.linkedInvoiceId ||
+              `idx-${idx}`
+            );
+            [...rootItems, ...shardItems].forEach((item: any, idx: number) => {
+              if (item && typeof item === "object") mergedMap.set(keyForItem(item, idx), item);
+            });
+            data[key] = Array.from(mergedMap.values());
           } else if (!Array.isArray(data[key])) {
             data[key] = [];
           }
