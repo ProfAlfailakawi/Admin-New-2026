@@ -3469,33 +3469,49 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         }
 
         if (!order) {
-          // Fallback: some app orders/invoices are stored inside appData/shared_company_data arrays
-          const appDataSnap = await db.collection("appData").doc("shared_company_data").get();
+          // Fallback: some app orders/invoices are stored inside appData/shared_company_data arrays or shards.
+          const appDataRef = db.collection("appData").doc("shared_company_data");
+          const appDataSnap = await appDataRef.get();
+          const candidateLists: any[] = [];
 
           if (appDataSnap.exists) {
             const appData = appDataSnap.data() || {};
+            for (const value of Object.values(appData)) {
+              if (Array.isArray(value)) candidateLists.push(value);
+            }
+          }
 
-            for (const [key, value] of Object.entries(appData)) {
-              if (!Array.isArray(value)) continue;
-
-              const found = value.find((item: any) => {
-                if (!item || typeof item !== "object") return false;
-
-                return (
-                  item.id === orderId ||
-                  item.orderId === orderId ||
-                  item.orderNumber === orderId ||
-                  item.invoiceNo === orderId ||
-                  item.invoiceNumber === orderId ||
-                  item.linkedInvoiceId === orderId
-                );
-              });
-
-              if (found) {
-                order = found;
-                resolvedOrderId = found.id || found.orderId || found.orderNumber || orderId;
-                break;
+          for (const key of ["orders", "invoices"] as const) {
+            try {
+              const shardSnap = await appDataRef.collection("shards").doc(key).get();
+              const shardData = shardSnap.exists ? (shardSnap.data() || {}) : {};
+              const shardItems = Array.isArray(shardData.items) ? shardData.items : (Array.isArray(shardData[key]) ? shardData[key] : []);
+              if (shardItems.length > 0) candidateLists.push(shardItems);
+            } catch (shardError: any) {
+              if (!String(shardError?.message || shardError).includes("PERMISSION_DENIED")) {
+                console.warn(`[order-created-alert] Failed to load ${key} shard:`, shardError?.message || shardError);
               }
+            }
+          }
+
+          for (const value of candidateLists) {
+            const found = value.find((item: any) => {
+              if (!item || typeof item !== "object") return false;
+
+              return (
+                item.id === orderId ||
+                item.orderId === orderId ||
+                item.orderNumber === orderId ||
+                item.invoiceNo === orderId ||
+                item.invoiceNumber === orderId ||
+                item.linkedInvoiceId === orderId
+              );
+            });
+
+            if (found) {
+              order = found;
+              resolvedOrderId = found.id || found.orderId || found.orderNumber || found.invoiceNo || found.invoiceNumber || orderId;
+              break;
             }
           }
         }
@@ -5796,16 +5812,41 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   }
 
   async function alertsLoadSharedData() {
+    const empty = { orders: [], invoices: [] } as any;
     try {
-      const snap = await db.collection("appData").doc("shared_company_data").get();
-      return snap.data() || {};
+      const ref = db.collection("appData").doc("shared_company_data");
+      const snap = await ref.get();
+      const shared = snap.data() || {};
+      const data: any = { ...shared };
+
+      // Delivery-only fix: the order app stores large orders/invoices arrays in shards.
+      // Keep the existing payment/waiting logic exactly the same; only make the alert worker read the live arrays.
+      for (const key of ["orders", "invoices"] as const) {
+        try {
+          const shardSnap = await ref.collection("shards").doc(key).get();
+          const shardData = shardSnap.exists ? (shardSnap.data() || {}) : {};
+          const shardItems = Array.isArray(shardData.items) ? shardData.items : (Array.isArray(shardData[key]) ? shardData[key] : []);
+          if (shardItems.length > 0) {
+            data[key] = shardItems;
+          } else if (!Array.isArray(data[key])) {
+            data[key] = [];
+          }
+        } catch (shardError: any) {
+          if (!String(shardError?.message || shardError).includes("PERMISSION_DENIED")) {
+            console.warn(`[ALERTS] Failed to load ${key} shard:`, shardError?.message || shardError);
+          }
+          if (!Array.isArray(data[key])) data[key] = [];
+        }
+      }
+
+      return data;
     } catch (e: any) {
       if (e.message && e.message.includes("PERMISSION_DENIED")) {
           console.log("[ALERTS] Failed to load shared_company_data: Error: 7 PERMISSION_DENIED: Missing or insufficient permissions. (Continuing safely without ADC)");
       } else {
           console.error("[ALERTS] Failed to load shared_company_data:", e);
       }
-      return {};
+      return empty;
     }
   }
 
@@ -5936,7 +5977,7 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
     try {
       const tokenSnap = await db.collection("pushTokens").where("active", "==", true).get();
       const sharedSnap = await db.collection("appData").doc("shared_company_data").get();
-      const shared = sharedSnap.data() || {};
+      const shared = await alertsLoadSharedData();
       res.json({ ok: true, activePushTokens: tokenSnap.docs.filter((d: any) => Boolean(d.data()?.token)).length, hasSharedCompanyData: sharedSnap.exists, invoicesCount: Array.isArray(shared.invoices) ? shared.invoices.length : 0, ordersCount: Array.isArray(shared.orders) ? shared.orders.length : 0, lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN });
     } catch (e: any) { res.status(500).json({ ok: false, error: e?.message || String(e) }); }
   });
