@@ -8,6 +8,7 @@ import { MagneticButton } from './ui/MagneticButton';
 import { toast } from 'sonner';
 
 import { playMetallicSettlementChime } from '../lib/sonic';
+import { getSupplierLedgerForState, getSupplierLiveBalanceForState, getInvoiceDeliverySettlementForSupplier } from '../lib/business-logic';
 
 interface SupplierAuditProps {
  data: AppState;
@@ -20,37 +21,8 @@ interface SupplierAuditProps {
 
 const SUPPLIER_AUDIT_SEARCH_INPUT_ID = 'supplier-audit-search-input';
 
-const getInvoiceDeliverySettlement = (inv: any, supId: string, data: any) => {
-  const info = inv?.deliveryInfo || {};
-  const target = info.settlementTarget || inv?.deliverySettlementTarget;
-  const valueCandidates = [info.cost, inv?.deliveryCost, info.finalPrice, inv?.deliveryFee];
-  const value = Number(valueCandidates.find((candidate) => Number(candidate || 0) > 0) || 0) || 0;
-  if (value <= 0) return 0;
-  const supplier = (data?.suppliers || []).find((s: any) => String(s.id) === String(supId));
-  if (!supplier) return 0;
-  const isDeliveryCompany = (supplier as any).supplierType === 'delivery';
-  const isFoodSupplierDelivering = !isDeliveryCompany && (supplier as any).deliverySettlement === 'supplier';
-  if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
-  const invoiceHasSupplierProduct = (inv?.items || []).some((item: any) => {
-    const product = (data?.products || []).find((p: any) => String(p.id) === String(item.productId));
-    return String(product?.supplierId || '') === String(supId);
-  });
-  const explicitSupplierId = String(info.settlementSupplierId || inv?.deliverySettlementSupplierId || '');
-  const supplierName = String(supplier?.name || '').trim();
-  const explicitName = String(info.settlementSupplierName || info.company || inv?.deliveryCompany || '').trim();
-  const matchesSupplier = explicitSupplierId === String(supId)
-    || (!!supplierName && explicitName === supplierName);
-  const hasNoExplicitSettlement = !target && !explicitSupplierId && !explicitName;
-  if (isDeliveryCompany) {
-    if (target && target !== 'delivery_company') return 0;
-    return matchesSupplier ? Math.round(value * 1000) / 1000 : 0;
-  }
-  if (isFoodSupplierDelivering) {
-    if (target && target !== 'supplier') return 0;
-    return (matchesSupplier || (hasNoExplicitSettlement && invoiceHasSupplierProduct)) ? Math.round(value * 1000) / 1000 : 0;
-  }
-  return 0;
-};
+const getInvoiceDeliverySettlement = (inv: any, supId: string, data: any) => { return getInvoiceDeliverySettlementForSupplier(inv, supId, data); };
+const getInvoiceDeliverySettlement_old = () => 0;
 
 const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSupplierId, autoOpenModal, onClearDeepLink, deepLinkData }) => {
  const [search, setSearch] = useState('');
@@ -81,58 +53,44 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  }, [deepLinkData?.search, onClearDeepLink]);
 
  const allTransactions = React.useMemo(() => {
- const transactions: any[] = [];
- 
- // 1. Add Transfers (Payments)
- (data?.supplierTransfers || []).forEach(t => {
- transactions.push({
- ...t,
- type: 'transfer',
- displayType: 'تحويل مالي (سداد)',
- amount: -Math.abs(t.amount), // Payments are negative in balance terms but we display positive
- rawAmount: t.amount,
- remaining: t.remainingAmount
- });
- });
+    const transactions: any[] = [];
+    (data?.suppliers || []).forEach(supplier => {
+      const ledger = getSupplierLedgerForState(supplier.id, data);
+      ledger.forEach(t => {
+        if (t.type === 'transfer') {
+          transactions.push({
+            id: t.refId,
+            supplierId: supplier.id,
+            date: t.date,
+            type: 'transfer',
+            displayType: 'تحويل مالي (سداد)',
+            amount: t.amount, // t.amount is negative for transfers in ledger
+            rawAmount: Math.abs(t.amount),
+            notes: t.label || 'تحويل مالي (سداد)',
+            method: t.method
+          });
+        } else {
+          transactions.push({
+            id: `${t.refId}-${supplier.id}`,
+            supplierId: supplier.id,
+            date: t.date,
+            type: 'invoice',
+            displayType: t.supplyAmount > 0 && t.deliveryAmount > 0 ? 'فاتورة (توريد + توصيل)' : t.deliveryAmount > 0 ? 'فاتورة توصيل' : 'فاتورة توريد أصناف',
+            amount: t.amount,
+            rawAmount: t.amount,
+            supplyAmount: t.supplyAmount,
+            deliveryAmount: t.deliveryAmount,
+            notes: t.supplyAmount > 0 && t.deliveryAmount > 0 ? `فاتورة رقم ${t.refId} · تشمل توريد وتوصيل ${t.deliveryAmount.toFixed(3)} د.ك` : t.deliveryAmount > 0 ? `فاتورة رقم ${t.refId} · توصيل فقط ${t.deliveryAmount.toFixed(3)} د.ك` : `فاتورة رقم ${t.refId}`,
+            refId: t.refId,
+            method: t.method
+          });
+        }
+      });
+    });
+    return transactions;
+  }, [data.supplierTransfers, data.invoices, data.products, data.suppliers]);
 
- // 2. Add Inbound Obligations (Invoices)
- (data?.invoices || []).forEach(inv => {
- if (inv.isDeleted) return;
- 
- const supplierTotals: Record<string, number> = {};
- (inv.items || []).forEach(item => {
- const product = (data.products || []).find(p => p.id === item.productId);
- if (product?.supplierId) {
- const cost = (item.costAtTime || product.cost || 0) * (item.quantity || 1);
- supplierTotals[product.supplierId] = (supplierTotals[product.supplierId] || 0) + cost;
- }
- });
 
- const settlementId = inv?.deliveryInfo?.settlementSupplierId || inv?.deliverySettlementSupplierId;
- if (settlementId && !supplierTotals[settlementId]) supplierTotals[settlementId] = 0;
- Object.entries(supplierTotals).forEach(([supplierId, amount]) => {
- const deliveryAmount = getInvoiceDeliverySettlement(inv, supplierId, data);
- const dueAmount = Math.round((amount + deliveryAmount) * 1000) / 1000;
- if (dueAmount <= 0) return;
- transactions.push({
- id: `${inv.id}-${supplierId}`,
- supplierId,
- amount: dueAmount, // Positive (Obligation)
- rawAmount: dueAmount,
- supplyAmount: amount,
- deliveryAmount,
- date: inv.date,
- type: 'invoice',
- displayType: amount > 0 && deliveryAmount > 0 ? 'فاتورة (توريد + توصيل)' : deliveryAmount > 0 ? 'فاتورة توصيل' : 'فاتورة توريد أصناف',
- method: inv.paymentMethod,
- notes: amount > 0 && deliveryAmount > 0 ? `فاتورة رقم ${inv.id} · تشمل توريد وتوصيل ${deliveryAmount.toFixed(3)} د.ك` : deliveryAmount > 0 ? `فاتورة رقم ${inv.id} · توصيل فقط ${deliveryAmount.toFixed(3)} د.ك` : `فاتورة رقم ${inv.id}`,
- refId: inv.id
- });
- });
- });
-
- return transactions;
- }, [data.supplierTransfers, data.invoices, data.products, data.suppliers]);
 
  const filteredTransactions = allTransactions.filter(t => {
  const s = (data?.suppliers || []).find(sup => sup.id === t.supplierId);
