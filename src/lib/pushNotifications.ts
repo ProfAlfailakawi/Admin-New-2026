@@ -39,7 +39,23 @@ function readPayloadText(payload: any) {
     payload?.data?.notificationTag ||
     paymentNotificationTag(alertType, url, eventId);
 
-  return { title, body, url, eventId, alertType, notificationTag };
+  const image =
+    payload?.notification?.image ||
+    payload?.data?.image ||
+    payload?.data?.imageUrl ||
+    "";
+
+  const icon =
+    payload?.notification?.icon ||
+    payload?.data?.icon ||
+    "/ios-icon-192-v6.png";
+
+  const badge =
+    payload?.notification?.badge ||
+    payload?.data?.badge ||
+    "/ios-icon-192-v6.png";
+
+  return { title, body, url, eventId, alertType, notificationTag, image, icon, badge };
 }
 
 function paymentNotificationTag(alertType: string, url: string, eventId: string) {
@@ -107,7 +123,7 @@ function startForegroundPushListener(messaging: Messaging) {
   onMessage(messaging, (payload) => {
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
 
-    const { title, body, url, eventId, alertType, notificationTag } = readPayloadText(payload);
+    const { title, body, url, eventId, alertType, notificationTag, image, icon, badge } = readPayloadText(payload);
     const dedupeKey = `foreground_push_${eventId}`;
     const lastShown = Number(sessionStorage.getItem(dedupeKey) || "0");
 
@@ -116,15 +132,21 @@ function startForegroundPushListener(messaging: Messaging) {
     sessionStorage.setItem(dedupeKey, String(Date.now()));
     void sendForegroundPushReceiptAck({ eventId, notificationTag, alertType, url }, "received");
 
-    const notification = new Notification(title, {
+    const notificationOptions: NotificationOptions = {
       body,
-      icon: "/ios-icon-192-v6.png",
-      badge: "/ios-icon-192-v6.png",
+      icon,
+      badge,
       tag: notificationTag,
       renotify: shouldRenotifyPush(alertType),
       requireInteraction: true,
-      data: { url, eventId, alertType, notificationTag },
-    } as NotificationOptions);
+      data: { url, eventId, alertType, notificationTag, image },
+    };
+
+    if (image) {
+      (notificationOptions as any).image = image;
+    }
+
+    const notification = new Notification(title, notificationOptions);
 
     notification.onclick = () => {
       notification.close();
