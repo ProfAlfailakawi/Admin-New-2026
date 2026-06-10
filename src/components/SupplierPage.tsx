@@ -232,10 +232,6 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
  const normalizedSearch = normalizeArabic(search);
 
- const filteredSuppliers = (data?.suppliers || [])
- .filter(s => normalizeArabic(s.name || '').includes(normalizedSearch) || (s.phone || '').includes(search))
- .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
-
  const getSupplierLiveBalance = (supId: string) => {
    const ledger = getSupplierLedger(supId);
    const due = ledger
@@ -246,6 +242,18 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
      .reduce((acc: number, item: any) => acc + Math.max(0, Math.abs(Number(item.amount || 0))), 0);
    return Math.max(0, Math.round((due - paid) * 1000) / 1000);
  };
+
+ const filteredSuppliers = (data?.suppliers || [])
+ .filter(s => normalizeArabic(s.name || '').includes(normalizedSearch) || (s.phone || '').includes(search))
+ .sort((a, b) => {
+   const balanceA = getSupplierLiveBalance(a.id);
+   const balanceB = getSupplierLiveBalance(b.id);
+   const hasBalanceA = balanceA > 0 ? 1 : 0;
+   const hasBalanceB = balanceB > 0 ? 1 : 0;
+   if (hasBalanceA !== hasBalanceB) return hasBalanceB - hasBalanceA;
+   if (hasBalanceA && balanceA !== balanceB) return balanceB - balanceA;
+   return (a.name || '').localeCompare(b.name || '', 'ar');
+ });
 
  const totalOutstanding = (data?.suppliers || []).reduce((acc, s) => acc + getSupplierLiveBalance(s.id), 0);
  const suppliersWithBalances = (data?.suppliers || []).filter(s => getSupplierLiveBalance(s.id) > 0).length;
