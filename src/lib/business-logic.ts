@@ -1,6 +1,47 @@
 import { AppState } from '../types';
 import { isPaidStatus } from './status-utils';
 
+
+const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 1000;
+
+const getInvoiceDeliverySettlementForSupplier = (inv: any, supId: string, state: AppState): number => {
+  const info = inv?.deliveryInfo || {};
+  const target = info.settlementTarget || inv?.deliverySettlementTarget;
+  const valueCandidates = [info.cost, inv?.deliveryCost, info.finalPrice, inv?.deliveryFee];
+  const value = Number(valueCandidates.find((candidate) => Number(candidate || 0) > 0) || 0) || 0;
+  if (value <= 0) return 0;
+
+  const supplier = (state?.suppliers || []).find((s: any) => String(s.id) === String(supId));
+  if (!supplier) return 0;
+
+  const isDeliveryCompany = (supplier as any).supplierType === 'delivery';
+  const isFoodSupplierDelivering = !isDeliveryCompany && (supplier as any).deliverySettlement === 'supplier';
+  if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
+
+  const invoiceHasSupplierProduct = (inv?.items || []).some((item: any) => {
+    const product = (state?.products || []).find((p: any) => String(p.id) === String(item.productId));
+    return String(product?.supplierId || '') === String(supId);
+  });
+
+  const explicitSupplierId = String(info.settlementSupplierId || inv?.deliverySettlementSupplierId || '');
+  const supplierName = String((supplier as any)?.name || '').trim();
+  const explicitName = String(info.settlementSupplierName || info.company || inv?.deliveryCompany || '').trim();
+  const matchesSupplier = explicitSupplierId === String(supId) || (!!supplierName && explicitName === supplierName);
+  const hasNoExplicitSettlement = !target && !explicitSupplierId && !explicitName;
+
+  if (isDeliveryCompany) {
+    if (target && target !== 'delivery_company') return 0;
+    return matchesSupplier ? roundKwd(value) : 0;
+  }
+
+  if (isFoodSupplierDelivering) {
+    if (target && target !== 'supplier') return 0;
+    return (matchesSupplier || (hasNoExplicitSettlement && invoiceHasSupplierProduct)) ? roundKwd(value) : 0;
+  }
+
+  return 0;
+};
+
 /**
  * Recalculates all derived balances in the application state to ensure consistency.
  * 1. Supplier Balances = Sum(Invoice Item Costs) - Sum(Supplier Transfers)
@@ -19,17 +60,30 @@ export function recalculateStateBalances(state: AppState): AppState {
   (newState.invoices || []).forEach(inv => {
     if (inv.isDeleted) return;
 
+    const touchedSupplierIds = new Set<string>();
+
     (inv.items || []).forEach(item => {
       const product = (newState.products || []).find(p => p.id === item.productId);
       if (product?.supplierId) {
+        touchedSupplierIds.add(String(product.supplierId));
         // Use cost from items (costAtTime) * quantity, as designed for accurate historical costs
         const itemCost = item.costAtTime !== undefined ? item.costAtTime : (product.cost || 0);
         const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
         const cost = itemCost * qty;
         const currentTotal = supplierBalances[product.supplierId] || 0;
-        supplierBalances[product.supplierId] = Math.round((currentTotal + cost) * 1000) / 1000;
+        supplierBalances[product.supplierId] = roundKwd(currentTotal + cost);
       } else {
       }
+    });
+
+    const settlementSupplierId = inv?.deliveryInfo?.settlementSupplierId || (inv as any)?.deliverySettlementSupplierId;
+    if (settlementSupplierId) touchedSupplierIds.add(String(settlementSupplierId));
+
+    touchedSupplierIds.forEach((supplierId) => {
+      const deliverySettlement = getInvoiceDeliverySettlementForSupplier(inv, supplierId, newState);
+      if (deliverySettlement <= 0) return;
+      const currentTotal = supplierBalances[supplierId] || 0;
+      supplierBalances[supplierId] = roundKwd(currentTotal + deliverySettlement);
     });
   });
 
@@ -37,14 +91,14 @@ export function recalculateStateBalances(state: AppState): AppState {
   (newState.supplierTransfers || []).forEach(t => {
     if (supplierBalances[t.supplierId] !== undefined) {
       const currentTotal = supplierBalances[t.supplierId];
-      supplierBalances[t.supplierId] = Math.round((currentTotal - (t.amount || 0)) * 1000) / 1000;
+      supplierBalances[t.supplierId] = roundKwd(currentTotal - (t.amount || 0));
     }
   });
 
   // Update suppliers
   newState.suppliers = (newState.suppliers || []).map(s => ({
     ...s,
-    balance: Math.max(0, Math.round((supplierBalances[s.id] || 0) * 1000) / 1000)
+    balance: Math.max(0, roundKwd(supplierBalances[s.id] || 0))
   }));
 
   // 2. Recalculate Customer Stats
