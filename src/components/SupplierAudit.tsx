@@ -80,45 +80,6 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  }
  }, [deepLinkData?.search, onClearDeepLink]);
 
- // Deep Link logic
- const consumedPaymentDeepLinkRef = React.useRef<string>('');
- React.useEffect(() => {
- if (!autoOpenModal) return;
-
- const deepLinkKey = `${initialSupplierId || ''}-${deepLinkData?._t || ''}`;
- if (consumedPaymentDeepLinkRef.current === deepLinkKey) return;
- consumedPaymentDeepLinkRef.current = deepLinkKey;
-
- if (initialSupplierId) {
- const supplier = (data?.suppliers || []).find(s => s.id === initialSupplierId);
- const initialBalance = supplier ? Math.max(0, Math.round((Number(supplier.balance || 0)) * 1000) / 1000) : 0;
-
- if (!supplier || initialBalance <= 0) {
-   toast.success('لا يوجد مستحق مالي على هذا المورد', {
-     description: 'المورد مسدد بالكامل، لذلك لم يتم فتح شاشة تسجيل دفعة.',
-     position: 'bottom-right'
-   });
-   if (onClearDeepLink) onClearDeepLink();
-   return;
- }
-
- setSelectedSupplier(initialSupplierId); // Filter the list too
- setTransferForm(prev => ({ 
- ...prev, 
- supplierId: initialSupplierId,
- amount: initialBalance
- }));
- }
- 
- // Delay modal to ensure mounting state is stable
- const timer = setTimeout(() => {
- setShowAddModal(true);
- if (onClearDeepLink) onClearDeepLink();
- }, 100);
- 
- return () => clearTimeout(timer);
- }, [initialSupplierId, autoOpenModal, deepLinkData?._t, data?.suppliers]);
-
  const allTransactions = React.useMemo(() => {
  const transactions: any[] = [];
  
@@ -210,6 +171,44 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
    return supplierOutstandingMap[transferForm.supplierId] || null;
  }, [transferForm.supplierId, supplierOutstandingMap]);
 
+ // Deep Link logic
+ const consumedPaymentDeepLinkRef = React.useRef<string>('');
+ React.useEffect(() => {
+ if (!autoOpenModal) return;
+
+ const deepLinkKey = `${initialSupplierId || ''}-${deepLinkData?._t || ''}`;
+ if (consumedPaymentDeepLinkRef.current === deepLinkKey) return;
+ consumedPaymentDeepLinkRef.current = deepLinkKey;
+
+ if (initialSupplierId) {
+ const supplier = (data?.suppliers || []).find(s => s.id === initialSupplierId);
+ const initialBalance = supplier ? Math.max(0, Math.round(Number(supplierOutstandingMap[initialSupplierId]?.balance || 0) * 1000) / 1000) : 0;
+
+ if (!supplier || initialBalance <= 0) {
+   toast.success('لا يوجد مستحق مالي على هذا المورد', {
+     description: 'المورد مسدد بالكامل، لذلك لم يتم فتح شاشة تسجيل دفعة.',
+     position: 'bottom-right'
+   });
+   if (onClearDeepLink) onClearDeepLink();
+   return;
+ }
+
+ setSelectedSupplier(initialSupplierId);
+ setTransferForm(prev => ({ 
+ ...prev, 
+ supplierId: initialSupplierId,
+ amount: initialBalance
+ }));
+ }
+ 
+ const timer = setTimeout(() => {
+ setShowAddModal(true);
+ if (onClearDeepLink) onClearDeepLink();
+ }, 100);
+ 
+ return () => clearTimeout(timer);
+ }, [initialSupplierId, autoOpenModal, deepLinkData?._t, data?.suppliers, supplierOutstandingMap, onClearDeepLink]);
+
  React.useEffect(() => {
    if (!transferForm.supplierId || transferForm.id) return;
    const nextBalance = supplierOutstandingMap[transferForm.supplierId]?.balance ?? 0;
@@ -230,7 +229,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
 
  const handleAddTransfer = () => {
  const supplier = (data?.suppliers || []).find(s => s.id === transferForm.supplierId);
- const currentBalance = supplierOutstandingMap[transferForm.supplierId]?.balance ?? (supplier ? (supplier.balance || 0) : 0);
+ const currentBalance = supplierOutstandingMap[transferForm.supplierId]?.balance ?? 0;
 
  if (!transferForm.supplierId || transferForm.amount <= 0) return;
 
@@ -289,7 +288,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  const id = Math.random().toString(36).substr(2, 9);
  const supplier = (data?.suppliers || []).find(s => s.id === transferForm.supplierId);
  const amount = Math.round(transferForm.amount * 1000) / 1000;
- const sourceBalance = supplierOutstandingMap[transferForm.supplierId]?.balance ?? (supplier?.balance || 0);
+ const sourceBalance = supplierOutstandingMap[transferForm.supplierId]?.balance ?? 0;
  const newRemaining = Math.max(0, Math.round((sourceBalance - amount) * 1000) / 1000);
 
  setData(prev => ({
@@ -379,7 +378,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  className="flex items-center gap-2 text-[10px] font-bold mt-3 text-slate-500 cursor-pointer hover:text-white transition-colors p-1 -ml-1 rounded"
  >
  <Clock size={12} />
- موردين بالانتظار: {(data?.suppliers || []).filter(s => s.balance > 0).length}
+ موردين بالانتظار: {(data?.suppliers || []).filter(s => (supplierOutstandingMap[s.id]?.balance || 0) > 0).length}
  </button>
  <AnimatePresence>
  {showWaitingList && (
@@ -389,14 +388,14 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  exit={{ opacity: 0, y: 5 }}
  className="absolute top-full mt-2 w-full left-0 bg-white border border-slate-200/60 rounded-2xl shadow-xl z-50 p-2"
  >
- {data?.suppliers && (data?.suppliers || []).filter(s => s.balance > 0).length === 0 ? (
+ {data?.suppliers && (data?.suppliers || []).filter(s => (supplierOutstandingMap[s.id]?.balance || 0) > 0).length === 0 ? (
  <div className="text-slate-500 text-xs text-center py-4 font-bold">لا يوجد موردين بالانتظار الحمدلله 🎉</div>
 ) : (
  <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
- {(data?.suppliers || []).filter(s => s.balance > 0).map(s => (
+ {(data?.suppliers || []).filter(s => (supplierOutstandingMap[s.id]?.balance || 0) > 0).map(s => (
  <div key={s.id} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl">
  <span className="text-xs font-bold text-slate-700 truncate">{s.name}</span>
- <span className="text-xs font-bold text-red-500 whitespace-nowrap">{Number(s.balance).toFixed(3)} د.ك</span>
+ <span className="text-xs font-bold text-red-500 whitespace-nowrap">{Number(supplierOutstandingMap[s.id]?.balance || 0).toFixed(3)} د.ك</span>
  </div>
 ))}
  </div>
@@ -547,7 +546,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </button>
  </>
 )}
- {s && (s.balance || 0) > 0 && (
+ {s && (supplierOutstandingMap[s.id]?.balance || 0) > 0 && (
  <button 
  onClick={() => {
  setTransferForm({ id: '', supplierId: transaction.supplierId, amount: 0, method: 'BankTransfer', notes: '', date: new Date().toISOString() });
@@ -625,8 +624,8 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  }}
  >
  <option value="">اختر مورد...</option>
- {(data?.suppliers || []).filter(s => transferForm.id || ((supplierOutstandingMap[s.id]?.balance ?? Number(s.balance || 0)) > 0)).map(s => (
- <option key={s.id} value={s.id}>{s.name} (المستحق: {Number(supplierOutstandingMap[s.id]?.balance ?? Number(s.balance || 0)).toFixed(3)})</option>
+ {(data?.suppliers || []).filter(s => transferForm.id || ((supplierOutstandingMap[s.id]?.balance ?? 0) > 0)).map(s => (
+ <option key={s.id} value={s.id}>{s.name} (المستحق: {Number(supplierOutstandingMap[s.id]?.balance ?? 0).toFixed(3)})</option>
 ))}
  </select>
  </div>
