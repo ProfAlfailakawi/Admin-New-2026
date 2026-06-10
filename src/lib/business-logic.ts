@@ -4,7 +4,7 @@ import { isPaidStatus } from './status-utils';
 
 const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 1000;
 
-const getInvoiceDeliverySettlementForSupplier = (inv: any, supId: string, state: AppState): number => {
+export const getInvoiceDeliverySettlementForSupplier = (inv: any, supId: string, state: AppState): number => {
   const info = inv?.deliveryInfo || {};
   const target = info.settlementTarget || inv?.deliverySettlementTarget;
   const valueCandidates = [info.cost, inv?.deliveryCost, info.finalPrice, inv?.deliveryFee];
@@ -43,62 +43,100 @@ const getInvoiceDeliverySettlementForSupplier = (inv: any, supId: string, state:
 };
 
 /**
+ * Centrally calculates the detailed financial ledger (invoices and payments) for a supplier.
+ */
+export function getSupplierLedgerForState(supId: string, state: AppState): any[] {
+  const transactions: any[] = [];
+  
+  const supplierProductIds = new Set(
+    (state.products || [])
+      .filter(p => String(p.supplierId) === String(supId))
+      .map(p => p.id)
+  );
+
+  // 1. Invoices
+  (state.invoices || []).filter(inv => !inv.isDeleted).forEach(inv => {
+    // Collect products of this supplier in the invoice
+    const itemsForThisSupplier = (inv.items || []).filter(item => {
+      const product = (state.products || []).find(p => p.id === item.productId);
+      return product && String(product.supplierId) === String(supId) && supplierProductIds.has(item.productId);
+    }).map(item => {
+      const product = (state.products || []).find(p => p.id === item.productId);
+      const cost = item.costAtTime !== undefined ? item.costAtTime : (product?.cost || 0);
+      const price = item.priceAtTime !== undefined ? item.priceAtTime : (product?.price || 0);
+      const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
+      return {
+        productId: item.productId,
+        name: product?.name || 'منتج غير معروف',
+        quantity: qty,
+        cost,
+        price,
+        totalCost: roundKwd(cost * qty),
+        totalPrice: roundKwd(price * qty)
+      };
+    });
+
+    const supplierCost = itemsForThisSupplier.reduce((acc, item) => acc + item.totalCost, 0);
+    const supplierRevenue = itemsForThisSupplier.reduce((acc, item) => acc + item.totalPrice, 0);
+    const supplierDelivery = getInvoiceDeliverySettlementForSupplier(inv, supId, state);
+    const supplierDue = roundKwd(supplierCost + supplierDelivery);
+
+    if (supplierDue > 0) {
+      transactions.push({
+        id: `inv-${inv.id}`,
+        supplierId: supId,
+        date: inv.date,
+        type: 'invoice',
+        amount: supplierDue, // Positive (Obligation)
+        supplyAmount: supplierCost,
+        deliveryAmount: supplierDelivery,
+        revenue: supplierRevenue,
+        refId: inv.id,
+        label: supplierCost > 0 ? `فاتورة توريد #${inv.id}` : `فاتورة توصيل #${inv.id}`,
+        items: itemsForThisSupplier
+      });
+    }
+  });
+
+  // 2. Transfers
+  (state.supplierTransfers || []).filter(t => String(t.supplierId) === String(supId)).forEach(t => {
+    transactions.push({
+      id: `tr-${t.id}`,
+      supplierId: supId,
+      date: t.date,
+      type: 'transfer',
+      amount: -t.amount, // Payments are negative in balance terms but positive in rawAmount/transfers
+      refId: t.id,
+      label: t.notes || 'تحويل مالي (سداد)',
+      method: t.method
+    });
+  });
+
+  return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+/**
+ * Centrally calculates the net outstanding/due balance for a supplier.
+ */
+export function getSupplierLiveBalanceForState(supId: string, state: AppState): number {
+  const ledger = getSupplierLedgerForState(supId, state);
+  const due = ledger.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const paid = Math.abs(ledger.filter(t => t.type === 'transfer').reduce((acc, t) => acc + Number(t.amount || 0), 0));
+  return Math.max(0, roundKwd(due - paid));
+}
+
+/**
  * Recalculates all derived balances in the application state to ensure consistency.
- * 1. Supplier Balances = Sum(Invoice Item Costs) - Sum(Supplier Transfers)
+ * 1. Supplier Balances = Centrally calculated using unified getSupplierLiveBalanceForState
  * 2. Customer Stats = Sum(Invoice Amounts) & Count(Invoices)
  */
 export function recalculateStateBalances(state: AppState): AppState {
   const newState = { ...state };
   
-  // 1. Reset Supplier Balances
-  const supplierBalances: Record<string, number> = {};
-  (newState.suppliers || []).forEach(s => {
-    supplierBalances[s.id] = 0;
-  });
-
-  // Calculate costs from active invoices
-  (newState.invoices || []).forEach(inv => {
-    if (inv.isDeleted) return;
-
-    const touchedSupplierIds = new Set<string>();
-
-    (inv.items || []).forEach(item => {
-      const product = (newState.products || []).find(p => p.id === item.productId);
-      if (product?.supplierId) {
-        touchedSupplierIds.add(String(product.supplierId));
-        // Use cost from items (costAtTime) * quantity, as designed for accurate historical costs
-        const itemCost = item.costAtTime !== undefined ? item.costAtTime : (product.cost || 0);
-        const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
-        const cost = itemCost * qty;
-        const currentTotal = supplierBalances[product.supplierId] || 0;
-        supplierBalances[product.supplierId] = roundKwd(currentTotal + cost);
-      } else {
-      }
-    });
-
-    const settlementSupplierId = inv?.deliveryInfo?.settlementSupplierId || (inv as any)?.deliverySettlementSupplierId;
-    if (settlementSupplierId) touchedSupplierIds.add(String(settlementSupplierId));
-
-    touchedSupplierIds.forEach((supplierId) => {
-      const deliverySettlement = getInvoiceDeliverySettlementForSupplier(inv, supplierId, newState);
-      if (deliverySettlement <= 0) return;
-      const currentTotal = supplierBalances[supplierId] || 0;
-      supplierBalances[supplierId] = roundKwd(currentTotal + deliverySettlement);
-    });
-  });
-
-  // Subtract transfers
-  (newState.supplierTransfers || []).forEach(t => {
-    if (supplierBalances[t.supplierId] !== undefined) {
-      const currentTotal = supplierBalances[t.supplierId];
-      supplierBalances[t.supplierId] = roundKwd(currentTotal - (t.amount || 0));
-    }
-  });
-
-  // Update suppliers
+  // 1. Synchronize Supplier Balances using the central calculation engine
   newState.suppliers = (newState.suppliers || []).map(s => ({
     ...s,
-    balance: Math.max(0, roundKwd(supplierBalances[s.id] || 0))
+    balance: getSupplierLiveBalanceForState(s.id, newState)
   }));
 
   // 2. Recalculate Customer Stats

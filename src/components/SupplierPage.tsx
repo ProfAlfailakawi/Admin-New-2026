@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import { toast } from 'sonner';
 import { NumericInput } from './ui/NumericInput';
+import { getSupplierLedgerForState, getSupplierLiveBalanceForState, getInvoiceDeliverySettlementForSupplier } from '../lib/business-logic';
 
 interface SupplierPageProps {
  data: AppState;
@@ -66,7 +67,9 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  const [expandedLedgerId, setExpandedLedgerId] = useState<string | null>(null);
 
 
- const getInvoiceDeliverySettlement = (inv: any, supId: string) => {
+ const getInvoiceDeliverySettlement = (inv: any, supId: string) => { return getInvoiceDeliverySettlementForSupplier(inv, supId, data); };
+  const getInvoiceDeliverySettlement_old = (inv: any, supId: string) => { return 0; };
+  const _unused_deleted_1 = (inv?: any, supId?: any) => {
    const info = inv?.deliveryInfo || {};
    const target = info.settlementTarget || inv?.deliverySettlementTarget;
    const valueCandidates = [info.cost, inv?.deliveryCost, info.finalPrice, inv?.deliveryFee];
@@ -100,7 +103,9 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
  const getSupplierProducts = (supId: string) => (data?.products || []).filter(p => p.supplierId === supId);
 
- const getSupplierLedger = (supId: string) => {
+ const getSupplierLedger = (supId: string) => { return getSupplierLedgerForState(supId, data); };
+  const getSupplierLedger_old = (supId: string) => { return []; };
+  const _unused_deleted_2 = (supId?: any) => {
    const transactions: any[] = [];
    const supplierProductIds = new Set(
      (data?.products || [])

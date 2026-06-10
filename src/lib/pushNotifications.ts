@@ -132,7 +132,7 @@ function startForegroundPushListener(messaging: Messaging) {
     sessionStorage.setItem(dedupeKey, String(Date.now()));
     void sendForegroundPushReceiptAck({ eventId, notificationTag, alertType, url }, "received");
 
-    const notificationOptions: NotificationOptions = {
+    const notificationOptions: any = {
       body,
       icon,
       badge,
