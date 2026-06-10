@@ -1009,13 +1009,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     return (
       <details className="group rounded-3xl border border-slate-800 bg-slate-950 text-right text-white shadow-sm overflow-hidden">
         <summary className="cursor-pointer list-none p-4 flex items-center justify-between gap-3 select-none">
-          <div>
+          <div className="min-w-0">
             <div className="text-[10px] font-black text-emerald-200 uppercase tracking-[0.2em]">الاستوديو الحي</div>
-            <h4 className="mt-1 text-base font-black">مخرج تسويق ذكي بعد الإنتاج</h4>
-            <p className="mt-1 text-[11px] font-bold text-white/45">يفتح بعد الناتج فقط ويقترح الخطوة التالية حسب الصورة أو الريل.</p>
+            <h4 className="mt-1 text-sm sm:text-base font-black leading-7">مخرج تسويق ذكي بعد الإنتاج</h4>
+            <p className="mt-1 text-[11px] font-bold text-white/45 leading-5">يفتح بعد الناتج فقط ويقترح الخطوة التالية حسب الصورة أو الريل.</p>
           </div>
-          <span className="rounded-2xl bg-emerald-300 text-slate-950 px-3 py-1 text-[10px] font-black group-open:hidden">فتح</span>
-          <span className="rounded-2xl bg-white/10 text-white px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
+          <span className="shrink-0 whitespace-nowrap min-w-fit rounded-2xl bg-emerald-300 text-slate-950 px-3 py-1 text-[10px] font-black group-open:hidden">فتح</span>
+          <span className="shrink-0 whitespace-nowrap min-w-fit rounded-2xl bg-white/10 text-white px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
         </summary>
         <div className="px-4 pb-4 space-y-3">
           <div className="grid sm:grid-cols-2 gap-2 text-[11px] font-bold text-white/65">
@@ -3286,14 +3286,14 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <div className="space-y-4">
                 {renderFineTools()}
                 <details className="group rounded-3xl bg-slate-950 text-white overflow-hidden">
-                  <summary className="cursor-pointer list-none p-5 flex items-center justify-between gap-3 select-none">
-                    <div><div className="text-[11px] font-black text-white/45 mb-1">آخر مرحلة</div><div className="text-lg font-black">جاهز للتوليد</div></div>
-                    <span className="rounded-2xl bg-white/10 px-3 py-1 text-[10px] font-black group-open:hidden">تفاصيل</span>
-                    <span className="rounded-2xl bg-white/10 px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
+                  <summary className="cursor-pointer list-none p-4 sm:p-5 flex items-center justify-between gap-3 select-none">
+                    <div className="min-w-0"><div className="text-[11px] font-black text-white/45 mb-1">آخر مرحلة</div><div className="text-base sm:text-lg font-black leading-7">جاهز للتوليد</div></div>
+                    <span className="shrink-0 whitespace-nowrap min-w-fit rounded-2xl bg-white/10 px-3 py-1 text-[10px] font-black group-open:hidden">تفاصيل</span>
+                    <span className="shrink-0 whitespace-nowrap min-w-fit rounded-2xl bg-white/10 px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
                   </summary>
                   <div className="px-5 pb-5"><div className="text-lg font-black">{customThemeQuery.trim() || selectedStudioProductName || `${reelShots.find(s => s.id === reelShot)?.icon} ${reelShots.find(s => s.id === reelShot)?.label}`}</div><div className="mt-2 text-sm font-bold text-white/60">{reelShots.find(s => s.id === reelShot)?.label} · 9:16 · {reelDuration} ثواني · {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>{!hasValidReelSource() && <div className="mt-3 rounded-2xl border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-[11px] font-black text-amber-100">ناقص فقط: اختر صورة أو اكتب فكرة. زر التوليد سيرجعك مباشرة للبداية بدون ضياع.</div>}{reelSource === 'image' && selectedImage && <img src={selectedImage} alt="مصدر الريل" className="mt-4 h-28 w-full rounded-2xl object-cover border border-white/10" />}</div>
                 </details>
-                <div className="grid grid-cols-2 gap-2"><button type="button" onClick={goBackFromReelFinalStep} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button><button type="button" onClick={generateReel} disabled={isGeneratingReel} className="p-4 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white font-black shadow-lg flex items-center justify-center gap-2 disabled:opacity-50">{isGeneratingReel ? <Loader2 className="animate-spin" size={18} /> : <PlayCircle size={18} />} أطلق الإبداع</button></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2"><button type="button" onClick={goBackFromReelFinalStep} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button><button type="button" onClick={generateReel} disabled={isGeneratingReel} className="p-4 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white font-black shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 whitespace-nowrap">{isGeneratingReel ? <Loader2 className="animate-spin shrink-0" size={18} /> : <PlayCircle className="shrink-0" size={18} />} أطلق الإبداع</button></div>
               </div>
             )}
             </>)}
@@ -3877,13 +3877,13 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 {productStep === 6 && (
                   <div className="space-y-4">
                     <details className="group rounded-3xl bg-slate-950 text-white overflow-hidden">
-                      <summary className="cursor-pointer list-none p-5 flex items-center justify-between gap-3 select-none">
-                        <div>
+                      <summary className="cursor-pointer list-none p-4 sm:p-5 flex items-center justify-between gap-3 select-none">
+                        <div className="min-w-0">
                           <div className="text-[11px] font-black text-white/45 mb-1">آخر مرحلة</div>
-                          <div className="text-lg font-black leading-8 whitespace-normal [word-break:keep-all]">جاهز لتوليد الصورة</div>
+                          <div className="text-base sm:text-lg font-black leading-7 sm:leading-8 whitespace-normal [word-break:keep-all]">جاهز لتوليد الصورة</div>
                         </div>
-                        <span className="rounded-2xl bg-white/10 px-3 py-1 text-[10px] font-black group-open:hidden">تفاصيل</span>
-                        <span className="rounded-2xl bg-white/10 px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
+                        <span className="shrink-0 whitespace-nowrap min-w-fit rounded-2xl bg-white/10 px-3 py-1 text-[10px] font-black group-open:hidden">تفاصيل</span>
+                        <span className="shrink-0 whitespace-nowrap min-w-fit rounded-2xl bg-white/10 px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
                       </summary>
                       <div className="px-5 pb-5">
                       <div className="text-lg font-black leading-8 whitespace-normal [word-break:keep-all]">{customThemeQuery.trim() || activeStudioScene.label}</div>
@@ -3896,10 +3896,10 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       </div>
                       </div>
                     </details>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <button type="button" onClick={() => goProductStep(5)} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button>
-                      <button onClick={() => generateContent()} disabled={isGenerating || isGeneratingVariants} className="p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-slate-200/50 transition-all disabled:opacity-50">
-                        {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+                      <button onClick={() => generateContent()} disabled={isGenerating || isGeneratingVariants} className="p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-slate-200/50 transition-all disabled:opacity-50 whitespace-nowrap">
+                        {isGenerating ? <Loader2 className="animate-spin shrink-0" size={20} /> : <Sparkles className="shrink-0" size={20} />}
                         أطلق الإبداع
                       </button>
                     </div>
