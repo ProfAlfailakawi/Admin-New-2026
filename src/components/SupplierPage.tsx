@@ -331,8 +331,9 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  return;
  }
 
- if (supplier.balance > 0) {
- const errorMsg = `ما يصير نحذف المورد "${supplier.name}" قبل سداد مستحقاته (${Number(supplier.balance || 0).toFixed(3)} د.ك).`;
+ const supplierLiveBalance = getSupplierLiveBalance(supplier.id);
+ if (supplierLiveBalance > 0) {
+ const errorMsg = `ما يصير نحذف المورد "${supplier.name}" قبل سداد مستحقاته (${Number(supplierLiveBalance || 0).toFixed(3)} د.ك).`;
  toast.error("مديونية معلقة", { 
  description: errorMsg,
  duration: 6000,
