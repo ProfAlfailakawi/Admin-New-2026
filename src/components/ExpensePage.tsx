@@ -301,14 +301,14 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  </div>
  </div>
 
- <div className="space-y-2">
+ <div className="space-y-2 w-full min-w-0 overflow-hidden">
  <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">تاريخ المصروف</label>
  <input 
  type="date" 
  lang="en-GB" dir="ltr"
  value={expenseForm.date.split('T')[0]}
  onChange={(e) => setExpenseForm({ ...expenseForm, date: new Date(e.target.value).toISOString() })}
- className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right"
+ className="block w-full min-w-0 max-w-full box-border appearance-none bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right"
  />
  </div>
  </div>
