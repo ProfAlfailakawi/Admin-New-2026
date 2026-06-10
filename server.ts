@@ -4549,8 +4549,7 @@ async function sendSmartAlertPushNotification({
             const errorCode = resp.error?.code;
             if (
               errorCode === "messaging/registration-token-not-registered" ||
-              errorCode === "messaging/invalid-registration-token" ||
-              errorCode === "messaging/invalid-argument"
+              errorCode === "messaging/invalid-registration-token"
             ) {
               const failedRecord = batchRecords[idx];
               if (failedRecord?.tokenDocId) {
@@ -4688,8 +4687,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
             if (!resp.success) {
               const errorCode = resp.error?.code;
               if (errorCode === "messaging/registration-token-not-registered" || 
-                  errorCode === "messaging/invalid-registration-token" ||
-                  errorCode === "messaging/invalid-argument") {
+                  errorCode === "messaging/invalid-registration-token") {
                 const failedRecord = batchRecords[idx];
                 if (failedRecord?.tokenDocId) failedTokens.push(failedRecord.tokenDocId);
               }

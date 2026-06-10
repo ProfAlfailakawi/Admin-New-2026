@@ -104,6 +104,14 @@ function shouldRenotifyPush(alertType) {
   );
 }
 
+
+function normalizeAssetUrl(url, fallback = "") {
+  const value = String(url || "").trim();
+  if (!value) return fallback;
+  if (value.startsWith("http")) return value;
+  return value.startsWith("/") ? value : `/${value}`;
+}
+
 self.addEventListener("push", (event) => {
   let payload = {};
 
@@ -155,6 +163,16 @@ self.addEventListener("push", (event) => {
     payload.notificationTag ||
     paymentNotificationTag(alertType, url, eventId);
 
+  const image = normalizeAssetUrl(
+    payload.notification?.image ||
+    payload.data?.image ||
+    payload.data?.imageUrl ||
+    payload.image ||
+    ""
+  );
+  const icon = normalizeAssetUrl(payload.notification?.icon || payload.data?.icon || "/ios-icon-192-v6.png", "/ios-icon-192-v6.png");
+  const badge = normalizeAssetUrl(payload.notification?.badge || payload.data?.badge || "/ios-icon-192-v6.png", "/ios-icon-192-v6.png");
+
   event.waitUntil((async () => {
     const alreadyShown = await Promise.race([
       wasPushAlreadyShown(eventId),
@@ -168,15 +186,19 @@ self.addEventListener("push", (event) => {
 
     const notificationData = { url, eventId, parentEventId: eventId, alertType, notificationTag };
 
-    await self.registration.showNotification(title, {
+    const notificationOptions = {
       body,
-      icon: "/ios-icon-192-v6.png",
-      badge: "/ios-icon-192-v6.png",
+      icon,
+      badge,
       tag: notificationTag,
       renotify: shouldRenotifyPush(alertType),
       requireInteraction: true,
-      data: notificationData,
-    });
+      data: { ...notificationData, image },
+    };
+
+    if (image) notificationOptions.image = image;
+
+    await self.registration.showNotification(title, notificationOptions);
 
     await sendPushReceiptAck(notificationData, "received");
   })());
