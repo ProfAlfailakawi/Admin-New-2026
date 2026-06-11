@@ -1724,7 +1724,7 @@ const [isPending, startTransition] = useTransition();
         cac: cacVal,
         ltvCacRatio: ltvCac,
         currentSupplierBalance: suppBalance,
-        cashFlowForecast: expectedBankBalance,
+        cashFlowForecast: cumulativeBankBalance,
         expectedBankBalance,
         allSupplierPayments,
         cumulativeBankBalance,
