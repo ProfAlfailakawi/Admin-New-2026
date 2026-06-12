@@ -5,7 +5,7 @@ function enforceEnglishNumbers(val: string) {
   );
 }
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   ShoppingCart,
   Trash2,
@@ -144,10 +144,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
     const [supplierFilter, setSupplierFilter] = useState<string>("all");
     const [activeInvoiceCategory, setActiveInvoiceCategory] = useState<string | null>(null);
     const [promoCodeInput, setPromoCodeInput] = useState("");
-    const activeZones = React.useMemo(
-      () => (data.zones || []).filter((z) => z.isActive !== false),
-      [data.zones],
-    );
+    const activeZones = useMemo(() => (data.zones || []).filter((z: any) => z?.isActive !== false), [data.zones]);
 
     const [appliedPromoCode, setAppliedPromoCode] = useState<PromoCode | null>(
       null,
@@ -432,7 +429,7 @@ Alturath.kw`;
             setDeliveryCompany(inv.deliveryInfo.company || "");
             setDeliverySettlementTarget((inv.deliveryInfo as any).settlementTarget || (inv as any).deliverySettlementTarget || "heritage");
             setDeliverySettlementSupplierId((inv.deliveryInfo as any).settlementSupplierId || (inv as any).deliverySettlementSupplierId || "");
-            const matchedZone = (data.zones || []).find(
+            const matchedZone = activeZones.find(
               (z) => z.name === inv.deliveryInfo?.zoneName,
             );
             if (matchedZone) {
@@ -504,7 +501,7 @@ Alturath.kw`;
       const val = e.target.value;
       setIsManualDelivery(false);
       setSelectedZoneId(val);
-      const zone = (data.zones || []).find((z) => z.id === val);
+      const zone = activeZones.find((z) => z.id === val);
 
       if (zone) {
         const breakdown = computeDeliveryBreakdown(zone, deliveryType);
@@ -515,14 +512,14 @@ Alturath.kw`;
     };
 
     useEffect(() => {
-      const zone = (data.zones || []).find((z) => z.id === selectedZoneId);
+      const zone = activeZones.find((z) => z.id === selectedZoneId);
       if (zone) {
         const breakdown = computeDeliveryBreakdown(zone, deliveryType);
         setDeliveryCost(breakdown.deliveryCost);
         setDeliveryProfit(breakdown.deliveryProfit);
         setDeliveryFee(breakdown.deliveryFee);
       }
-    }, [deliveryType, selectedZoneId, data.zones]);
+    }, [deliveryType, selectedZoneId, activeZones]);
     // ADMIN_PARTNER_FORCE_COMPANY_DELIVERY
     // الشريك لا يختار طريقة التوصيل؛ التوصيل يكون شركة افتراضيًا بدون تغيير منطق الفاتورة.
     useEffect(() => {
@@ -549,7 +546,7 @@ Alturath.kw`;
               floor: addr.floor || "",
               apartment: addr.apartment || "",
             });
-            const matchedZone = (data.zones || []).find(
+            const matchedZone = activeZones.find(
               (z) => z.name === addr.region,
             );
             if (matchedZone) setSelectedZoneId(matchedZone.id);
@@ -858,10 +855,6 @@ Alturath.kw`;
       if (!targetId) {
         return toast.error("يرجى اختيار عميل أولاً!");
       }
-      const selectedActiveZone = activeZones.find((z) => z.id === selectedZoneId);
-      if (!selectedActiveZone) {
-        return toast.error("اختار منطقة صحيحة من القائمة");
-      }
       if (
         !addressDetails.block ||
         !addressDetails.street ||
@@ -873,8 +866,8 @@ Alturath.kw`;
       setLoading(true);
       const invoiceId =
         editingInvoiceId || generateNextInvoiceId(data.invoices);
-      const zone = selectedActiveZone;
-      const regionName = zone.name;
+      const zone = activeZones.find((z) => z.id === selectedZoneId);
+      const regionName = zone ? zone.name : "غير محدد";
       const customer = (data.customers || []).find((c) => c.id === targetId);
 
       const existingInvoice = editingInvoiceId ? data.invoices.find((i) => i.id === editingInvoiceId) : null;
