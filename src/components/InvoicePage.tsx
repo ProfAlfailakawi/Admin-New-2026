@@ -144,6 +144,10 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
     const [supplierFilter, setSupplierFilter] = useState<string>("all");
     const [activeInvoiceCategory, setActiveInvoiceCategory] = useState<string | null>(null);
     const [promoCodeInput, setPromoCodeInput] = useState("");
+    const activeZones = React.useMemo(
+      () => (data.zones || []).filter((z) => z.isActive !== false),
+      [data.zones],
+    );
 
     const [appliedPromoCode, setAppliedPromoCode] = useState<PromoCode | null>(
       null,
@@ -854,6 +858,10 @@ Alturath.kw`;
       if (!targetId) {
         return toast.error("يرجى اختيار عميل أولاً!");
       }
+      const selectedActiveZone = activeZones.find((z) => z.id === selectedZoneId);
+      if (!selectedActiveZone) {
+        return toast.error("اختار منطقة صحيحة من القائمة");
+      }
       if (
         !addressDetails.block ||
         !addressDetails.street ||
@@ -865,8 +873,8 @@ Alturath.kw`;
       setLoading(true);
       const invoiceId =
         editingInvoiceId || generateNextInvoiceId(data.invoices);
-      const zone = (data.zones || []).find((z) => z.id === selectedZoneId);
-      const regionName = zone ? zone.name : "غير محدد";
+      const zone = selectedActiveZone;
+      const regionName = zone.name;
       const customer = (data.customers || []).find((c) => c.id === targetId);
 
       const existingInvoice = editingInvoiceId ? data.invoices.find((i) => i.id === editingInvoiceId) : null;
@@ -1468,7 +1476,7 @@ Alturath.kw`;
               className="w-full bg-slate-50 border rounded-2xl p-4 text-right font-bold appearance-none outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
             >
               <option value="">-- اختر المنطقة --</option>
-              {data.zones.map((z) => (
+              {activeZones.map((z) => (
                 <option key={z.id} value={z.id}>
                   {z.name}
                 </option>
