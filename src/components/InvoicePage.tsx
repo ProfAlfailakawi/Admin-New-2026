@@ -1537,7 +1537,6 @@ Alturath.kw`;
                       </option>
                     ))}
                   </select>
-                  <p className="mt-1 text-[10px] font-bold text-slate-400 leading-5 text-right">يظهر تلقائيًا اسم المورد إذا كان يوصل، وتقدر تبدله هنا عند الحاجة.</p>
                 </div>
               </div>
               )}
