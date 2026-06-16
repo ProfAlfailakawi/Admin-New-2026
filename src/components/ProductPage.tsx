@@ -1737,11 +1737,13 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right"
                     >
                       <option value="">— اختر مورد —</option>
-                      {(data?.suppliers || []).map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
+                      {(data?.suppliers || [])
+                        .filter((s: any) => s?.supplierType !== "delivery")
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
                     </select>
                   </div>
                 </div>
