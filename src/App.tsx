@@ -762,12 +762,12 @@ const CloudConnectionGate: React.FC<{
   const title = isOffline ? 'لا يوجد اتصال بالسحابة' : 'جاري الاتصال بالسحابة…';
   const subtitle = isOffline
     ? 'يرجى الاتصال بالإنترنت حتى نمنع إدخال أي بيانات قبل المزامنة الآمنة.'
-    : 'يرجى الانتظار حتى تكتمل المزامنة، لا تُدخل أي بيانات الآن.';
+    : '';
   const detail = isOffline
     ? 'سيبقى النظام مقفلاً مؤقتًا لحماية الطلبات والفواتير من أي تضارب.'
     : phase === 'auth'
       ? 'نتأكد من جلسة الدخول ونجهّز قناة الاتصال الآمنة.'
-      : 'نحمّل آخر نسخة آمنة من بيانات السحابة، وسيُفتح النظام تلقائيًا.';
+      : '';
 
   const steps = [
     { label: 'جلسة الدخول', active: phase === 'auth', done: phase === 'sync' },
@@ -812,8 +812,12 @@ const CloudConnectionGate: React.FC<{
         </div>
 
         <h1 className="text-3xl font-black leading-tight text-white md:text-5xl">{title}</h1>
-        <p className="mx-auto mt-4 max-w-[590px] text-sm font-bold leading-7 text-slate-300 md:text-base">{subtitle}</p>
-        <p className="mx-auto mt-2 max-w-[560px] text-xs font-bold leading-6 text-slate-400 md:text-sm">{detail}</p>
+        {subtitle && (
+          <p className="mx-auto mt-4 max-w-[590px] text-sm font-bold leading-7 text-slate-300 md:text-base">{subtitle}</p>
+        )}
+        {detail && (
+          <p className="mx-auto mt-2 max-w-[560px] text-xs font-bold leading-6 text-slate-400 md:text-sm">{detail}</p>
+        )}
 
         <div className="mx-auto mt-7 grid max-w-[620px] grid-cols-3 gap-2 md:gap-3">
           {steps.map((step, index) => (
