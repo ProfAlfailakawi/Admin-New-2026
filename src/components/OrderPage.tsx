@@ -1298,7 +1298,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
             }
           });
         }
-        } return `${p?.name || "منتج غير معروف"}\n   الكمية: ${item.quantity || 1}\n   السعر الفردي: ${Number(displayPrice).toFixed(3)} د.ك\n   إجمالي المنتج: ${(Number(displayPrice) * Number(item.quantity || 1)).toFixed(3)} د.ك${addonsLines.length > 0 ? "\n\n   الإضافات:\n" + addonsLines.join("\n") : ""}`;
+        } return `${p?.name || (item as any).name || (item as any).productName || "منتج غير معروف"}\n   الكمية: ${item.quantity || 1}\n   السعر الفردي: ${Number(displayPrice).toFixed(3)} د.ك\n   إجمالي المنتج: ${(Number(displayPrice) * Number(item.quantity || 1)).toFixed(3)} د.ك${addonsLines.length > 0 ? "\n\n   الإضافات:\n" + addonsLines.join("\n") : ""}`;
       })
       .join("\n");
 
@@ -1788,6 +1788,8 @@ Alturath.kw`;
                                         <div className="min-w-0 flex-1">
                                           <div className="font-black text-slate-800 truncate">
                                             {hiddenProduct?.name ||
+                                              (hiddenItem as any).name ||
+                                              (hiddenItem as any).productName ||
                                               "منتج غير معروف"}
                                           </div>
                                           {prepInstructions && (

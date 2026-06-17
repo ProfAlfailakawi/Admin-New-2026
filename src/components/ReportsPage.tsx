@@ -835,7 +835,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
             });
           }
 
-          return `${p?.name || "منتج غير معروف"}\n   الكمية: ${item.quantity || 1}\n   السعر الفردي: ${price.toFixed(3)} د.ك\n   إجمالي المنتج: ${itemProductTotal.toFixed(3)} د.ك${addonsLines.length > 0 ? "\n\n   الإضافات:\n" + addonsLines.join("\n") : ""}`;
+          return `${p?.name || item.name || item.productName || "منتج غير معروف"}\n   الكمية: ${item.quantity || 1}\n   السعر الفردي: ${price.toFixed(3)} د.ك\n   إجمالي المنتج: ${itemProductTotal.toFixed(3)} د.ك${addonsLines.length > 0 ? "\n\n   الإضافات:\n" + addonsLines.join("\n") : ""}`;
         })
         .join("\n");
 
@@ -1512,6 +1512,8 @@ Alturath.kw`;
                                                         <div className="flex flex-col">
                                                           <span className="font-bold text-sm">
                                                             {product?.name ||
+                                                              item.name ||
+                                                              item.productName ||
                                                               "منتج غير معروف"}
                                                           </span>
                                                           {product?.supplierId && (
