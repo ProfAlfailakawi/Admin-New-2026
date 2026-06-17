@@ -3906,18 +3906,37 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
       let appDataOrders: any[] = [];
 
-      const sharedDataSnap = await db.collection("appData").doc("shared_company_data").get();
+      const appDataRef = db.collection("appData").doc("shared_company_data");
+      const sharedDataSnap = await appDataRef.get();
+
+      let sharedOrders: any[] = [];
 
       if (sharedDataSnap.exists) {
         const sharedData = sharedDataSnap.data() || {};
-        const sharedOrders = Array.isArray(sharedData.orders) ? sharedData.orders : [];
-
-        appDataOrders = sharedOrders.map((order: any) => ({
-          ...order,
-          id: order.id || order.orderId || order.orderNumber,
-          __source: "appData_orders",
-        }));
+        sharedOrders = Array.isArray(sharedData.orders) ? sharedData.orders : [];
       }
+
+      // "orders" مخزّن بنظام تجزيء (shards): الحقل المباشر في المستند الرئيسي
+      // يُترك فارغًا عمدًا، والبيانات الحقيقية في appData/shared_company_data/shards/orders.
+      // نقرأ من هناك عند فراغ الحقل المباشر، بنفس الطريقة المستخدمة في باقي هذا الملف.
+      if (sharedOrders.length === 0) {
+        try {
+          const ordersShardSnap = await appDataRef.collection("shards").doc("orders").get();
+          if (ordersShardSnap.exists) {
+            sharedOrders = readArrayFromShardData("orders", ordersShardSnap.data() || {});
+          }
+        } catch (shardError: any) {
+          if (!String(shardError?.message || shardError).includes("PERMISSION_DENIED")) {
+            console.warn("[ALERTS] Failed to load orders shard:", shardError?.message || shardError);
+          }
+        }
+      }
+
+      appDataOrders = sharedOrders.map((order: any) => ({
+        ...order,
+        id: order.id || order.orderId || order.orderNumber,
+        __source: "appData_orders",
+      }));
 
       const ordersMap = new Map<string, any>();
 
