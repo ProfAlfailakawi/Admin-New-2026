@@ -757,99 +757,141 @@ const CloudConnectionGate: React.FC<{
   name?: string;
   phase: 'auth' | 'sync' | 'offline';
   onRetry?: () => void;
-}> = ({ logo, name, phase, onRetry }) => {
+}> = ({ name, phase, onRetry }) => {
   const isOffline = phase === 'offline';
   const title = isOffline ? 'لا يوجد اتصال بالسحابة' : 'جاري الاتصال بالسحابة…';
-  const subtitle = isOffline
-    ? 'يرجى الاتصال بالإنترنت حتى نمنع إدخال أي بيانات قبل المزامنة الآمنة.'
-    : '';
-  const detail = isOffline
-    ? 'سيبقى النظام مقفلاً مؤقتًا لحماية الطلبات والفواتير من أي تضارب.'
-    : phase === 'auth'
-      ? 'نتأكد من جلسة الدخول ونجهّز قناة الاتصال الآمنة.'
-      : '';
-
-  const steps = [
-    { label: 'جلسة الدخول', active: phase === 'auth', done: phase === 'sync' },
-    { label: 'السحابة', active: phase === 'sync', done: false },
-    { label: 'فتح النظام', active: false, done: false },
-  ];
+  const statusLabel = isOffline ? 'الاتصال متوقف' : phase === 'auth' ? 'تثبيت الجلسة' : 'بوابة السحابة';
+  const orbitItems = isOffline
+    ? [ShieldAlert, RefreshCw, Database]
+    : [BadgeCheck, DownloadCloud, Database];
 
   return (
-    <div className="fixed inset-0 z-[99998] flex items-center justify-center overflow-hidden bg-[#070b10] px-5 arabic-font" dir="rtl">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_22%,rgba(245,184,74,.24),transparent_30%),radial-gradient(circle_at_15%_88%,rgba(16,185,129,.16),transparent_34%),linear-gradient(135deg,#05070b_0%,#111827_54%,#071015_100%)]" />
-      <div className="absolute inset-0 opacity-[0.075] [background-image:linear-gradient(rgba(255,255,255,.5)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:46px_46px]" />
-      <div className="absolute -top-24 -right-24 h-80 w-80 rounded-full bg-amber-400/20 blur-[105px]" />
-      <div className="absolute -bottom-28 -left-24 h-96 w-96 rounded-full bg-emerald-400/14 blur-[115px]" />
+    <div className="fixed inset-0 z-[99998] flex items-center justify-center overflow-hidden bg-[#06110f] px-5 arabic-font" dir="rtl">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(16,185,129,.22),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(245,184,74,.16),transparent_28%),linear-gradient(145deg,#030706_0%,#0b1714_46%,#12110a_100%)]" />
+      <div className="absolute inset-0 opacity-[0.06] [background-image:radial-gradient(circle_at_center,rgba(255,255,255,.82)_1px,transparent_1px)] [background-size:28px_28px]" />
+      <motion.div
+        className="absolute h-[520px] w-[520px] rounded-full border border-emerald-200/10"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 26, repeat: Infinity, ease: 'linear' }}
+      />
+      <motion.div
+        className="absolute h-[390px] w-[390px] rounded-full border border-amber-200/10"
+        animate={{ rotate: -360 }}
+        transition={{ duration: 32, repeat: Infinity, ease: 'linear' }}
+      />
+      <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-300/16 blur-[105px]" />
+      <div className="absolute -bottom-24 right-12 h-72 w-72 rounded-full bg-amber-300/14 blur-[110px]" />
 
       <motion.div
-        initial={{ y: 18, opacity: 0, scale: 0.985 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-[760px] overflow-hidden rounded-[2.35rem] border border-white/12 bg-white/[0.075] p-6 text-center shadow-[0_34px_110px_rgba(0,0,0,.48)] backdrop-blur-2xl md:p-8"
+        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-[560px] text-center"
       >
-        <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-l from-transparent via-amber-200/80 to-transparent" />
-        <div className="absolute inset-x-10 bottom-0 h-px bg-gradient-to-l from-transparent via-emerald-200/40 to-transparent" />
+        <div className="relative mx-auto flex h-[310px] w-[310px] items-center justify-center sm:h-[360px] sm:w-[360px]">
+          <motion.div
+            className={`absolute inset-0 rounded-full border ${isOffline ? 'border-rose-200/16' : 'border-emerald-200/16'} bg-white/[0.035] shadow-[inset_0_0_70px_rgba(255,255,255,.05),0_28px_95px_rgba(0,0,0,.42)] backdrop-blur-xl`}
+            animate={{ scale: isOffline ? [1, 1.012, 1] : [1, 1.025, 1] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <div className="absolute inset-8 rounded-full border border-white/10 bg-slate-950/30" />
+          <motion.div
+            className="absolute inset-12 rounded-full border border-dashed border-white/12"
+            animate={{ rotate: isOffline ? 0 : 360 }}
+            transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+          />
 
-        <div className="relative mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-[2rem] border border-amber-100/25 bg-gradient-to-br from-[#f8f1df] via-[#efe1bd] to-[#cfb36e] shadow-[0_18px_58px_rgba(245,184,74,.22)] md:h-32 md:w-32">
           {!isOffline && (
-            <motion.span
-              className="absolute inset-[-18px] rounded-[2.75rem] border border-emerald-300/25"
-              animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.06, 0.4] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-            />
+            <>
+              <motion.span
+                className="absolute h-3 w-3 rounded-full bg-emerald-200 shadow-[0_0_24px_rgba(110,231,183,.9)]"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2.8, repeat: Infinity, ease: 'linear' }}
+                style={{ transformOrigin: '0px 128px' }}
+              />
+              <motion.span
+                className="absolute h-2.5 w-2.5 rounded-full bg-amber-200 shadow-[0_0_22px_rgba(252,211,77,.82)]"
+                animate={{ rotate: -360 }}
+                transition={{ duration: 4.2, repeat: Infinity, ease: 'linear' }}
+                style={{ transformOrigin: '0px 92px' }}
+              />
+            </>
           )}
-          <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="relative z-10 h-20 w-20 drop-shadow-xl md:h-24 md:w-24" />
-          <div className="absolute -bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-slate-950/80 px-3 py-1.5 text-[10px] font-black text-amber-100 shadow-xl backdrop-blur-xl">
-            {isOffline ? <ShieldAlert size={13} /> : <Loader2 className="animate-spin" size={13} />}
-            <span>{isOffline ? 'محمي' : 'مزامنة'}</span>
-          </div>
-        </div>
 
-        <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-4 py-2 text-[11px] font-black text-slate-200 shadow-inner shadow-white/5">
-          <span className={`h-2 w-2 rounded-full ${isOffline ? 'bg-rose-300 shadow-[0_0_14px_rgba(253,164,175,.85)]' : 'bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.85)]'}`} />
-          {name || 'شركة مطبخ التراث الكويتي'}
-        </div>
-
-        <h1 className="text-3xl font-black leading-tight text-white md:text-5xl">{title}</h1>
-        {subtitle && (
-          <p className="mx-auto mt-4 max-w-[590px] text-sm font-bold leading-7 text-slate-300 md:text-base">{subtitle}</p>
-        )}
-        {detail && (
-          <p className="mx-auto mt-2 max-w-[560px] text-xs font-bold leading-6 text-slate-400 md:text-sm">{detail}</p>
-        )}
-
-        <div className="mx-auto mt-7 grid max-w-[620px] grid-cols-3 gap-2 md:gap-3">
-          {steps.map((step, index) => (
-            <div key={step.label} className="rounded-2xl border border-white/10 bg-white/[0.065] px-2 py-3 text-center shadow-inner shadow-white/5">
-              <div className={`mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl ${step.done ? 'bg-emerald-300/15 text-emerald-200' : step.active ? 'bg-amber-300/15 text-amber-100' : 'bg-white/[0.08] text-slate-400'}`}>
-                {step.done ? <CheckCircle2 size={18} /> : index === 0 ? <BadgeCheck size={18} /> : index === 1 ? <Database size={18} /> : <Command size={18} />}
-              </div>
-              <p className="text-[10px] font-black text-slate-300 md:text-xs">{step.label}</p>
-              <p className="mt-1 text-[10px] font-bold text-slate-500">{step.done ? 'تم' : step.active ? 'جاري الآن' : 'ينتظر'}</p>
-            </div>
-          ))}
-        </div>
-
-        {!isOffline ? (
-          <div className="mt-7 h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div className={`relative flex h-36 w-36 items-center justify-center rounded-[2.35rem] border ${isOffline ? 'border-rose-200/25 bg-rose-950/28 text-rose-100' : 'border-emerald-100/20 bg-emerald-950/24 text-emerald-50'} shadow-[0_22px_70px_rgba(0,0,0,.42)] backdrop-blur-2xl sm:h-40 sm:w-40`}>
             <motion.div
-              className="h-full rounded-full bg-gradient-to-l from-emerald-300 via-amber-300 to-white shadow-[0_0_24px_rgba(245,184,74,.42)]"
-              initial={{ x: '92%', width: '18%' }}
-              animate={{ x: ['92%', '-12%', '92%'] }}
-              transition={{ duration: 1.65, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute inset-[-18px] rounded-[2.9rem] border border-white/10"
+              animate={{ opacity: [0.18, 0.55, 0.18], scale: [0.96, 1.05, 0.96] }}
+              transition={{ duration: 2.1, repeat: Infinity, ease: 'easeInOut' }}
             />
+            {isOffline ? (
+              <ShieldAlert size={54} strokeWidth={1.65} />
+            ) : (
+              <DownloadCloud size={60} strokeWidth={1.55} />
+            )}
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={onRetry}
-            className="mt-7 inline-flex items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15 active:scale-95"
-          >
-            <RefreshCw size={16} />
-            إعادة فحص الاتصال
-          </button>
-        )}
+
+          <div className="absolute inset-x-0 bottom-9 flex items-center justify-center gap-3">
+            {orbitItems.map((Icon, index) => (
+              <motion.div
+                key={index}
+                className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${isOffline ? 'border-rose-100/14 bg-rose-950/24 text-rose-100' : 'border-white/12 bg-white/[0.07] text-amber-100'} shadow-lg backdrop-blur-xl`}
+                animate={{ y: isOffline ? 0 : [0, -6, 0], opacity: isOffline ? 0.72 : [0.72, 1, 0.72] }}
+                transition={{ duration: 1.45, repeat: Infinity, delay: index * 0.18, ease: 'easeInOut' }}
+              >
+                <Icon size={18} />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.5 }}
+          className="relative -mt-4 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.075] px-6 py-6 shadow-[0_26px_90px_rgba(0,0,0,.38)] backdrop-blur-2xl"
+        >
+          <div className={`mx-auto mb-4 inline-flex items-center gap-2 rounded-full border ${isOffline ? 'border-rose-100/18 bg-rose-400/10 text-rose-100' : 'border-emerald-100/18 bg-emerald-300/10 text-emerald-100'} px-4 py-2 text-[11px] font-black`}>
+            <motion.span
+              className={`h-2 w-2 rounded-full ${isOffline ? 'bg-rose-300' : 'bg-emerald-300'}`}
+              animate={{ opacity: [0.35, 1, 0.35], scale: [0.88, 1.18, 0.88] }}
+              transition={{ duration: 1.25, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            {statusLabel}
+          </div>
+
+          <h1 className="text-3xl font-black leading-tight text-white sm:text-4xl">{title}</h1>
+
+          {isOffline ? (
+            <p className="mx-auto mt-4 max-w-[420px] text-sm font-bold leading-7 text-slate-300">
+              يرجى الاتصال بالإنترنت ثم إعادة فحص الاتصال.
+            </p>
+          ) : (
+            <div className="mx-auto mt-6 flex w-full max-w-[330px] items-center justify-center gap-2" aria-label="cloud-connection-loader">
+              {[0, 1, 2, 3, 4].map((item) => (
+                <motion.span
+                  key={item}
+                  className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-emerald-200 to-amber-200 shadow-[0_0_18px_rgba(245,184,74,.34)]"
+                  animate={{ y: [0, -9, 0], opacity: [0.35, 1, 0.35], scale: [0.86, 1.18, 0.86] }}
+                  transition={{ duration: 1.05, repeat: Infinity, delay: item * 0.11, ease: 'easeInOut' }}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="mt-5 text-xs font-black text-slate-500">{name || 'شركة مطبخ التراث الكويتي'}</div>
+
+          {isOffline && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15 active:scale-95"
+            >
+              <RefreshCw size={16} />
+              إعادة فحص الاتصال
+            </button>
+          )}
+        </motion.div>
       </motion.div>
     </div>
   );
