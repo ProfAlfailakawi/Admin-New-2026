@@ -763,7 +763,7 @@ const CloudConnectionGate: React.FC<{
   const statusLabel = isOffline ? 'الاتصال متوقف' : phase === 'auth' ? 'تثبيت الجلسة' : 'بوابة السحابة';
   const orbitItems = isOffline
     ? [ShieldAlert, RefreshCw, Database]
-    : [BadgeCheck, DownloadCloud, Database];
+    : [BadgeCheck, Zap, Database];
 
   return (
     <div className="fixed inset-0 z-[99998] flex items-center justify-center overflow-hidden bg-[#06110f] px-5 arabic-font" dir="rtl">
