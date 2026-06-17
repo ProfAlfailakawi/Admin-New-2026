@@ -803,18 +803,20 @@ const CloudConnectionGate: React.FC<{
 
           {!isOffline && (
             <>
-              <motion.span
-                className="absolute h-3 w-3 rounded-full bg-emerald-200 shadow-[0_0_24px_rgba(110,231,183,.9)]"
+              <motion.div
+                className="absolute inset-12 pointer-events-none"
                 animate={{ rotate: 360 }}
-                transition={{ duration: 2.8, repeat: Infinity, ease: 'linear' }}
-                style={{ transformOrigin: '0px 128px' }}
-              />
-              <motion.span
-                className="absolute h-2.5 w-2.5 rounded-full bg-amber-200 shadow-[0_0_22px_rgba(252,211,77,.82)]"
+                transition={{ duration: 4.5, repeat: Infinity, ease: 'linear' }}
+              >
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-emerald-200 shadow-[0_0_24px_rgba(110,231,183,.9)]" />
+              </motion.div>
+              <motion.div
+                className="absolute inset-8 pointer-events-none"
                 animate={{ rotate: -360 }}
-                transition={{ duration: 4.2, repeat: Infinity, ease: 'linear' }}
-                style={{ transformOrigin: '0px 92px' }}
-              />
+                transition={{ duration: 6.2, repeat: Infinity, ease: 'linear' }}
+              >
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-amber-200 shadow-[0_0_22px_rgba(252,211,77,.82)]" />
+              </motion.div>
             </>
           )}
 
