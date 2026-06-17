@@ -751,6 +751,106 @@ const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => (
   </AnimatePresence>
 );
 
+
+const CloudConnectionGate: React.FC<{
+  logo?: string;
+  name?: string;
+  phase: 'auth' | 'sync' | 'offline';
+  onRetry?: () => void;
+}> = ({ logo, name, phase, onRetry }) => {
+  const isOffline = phase === 'offline';
+  const title = isOffline ? 'لا يوجد اتصال بالسحابة' : 'جاري الاتصال بالسحابة…';
+  const subtitle = isOffline
+    ? 'يرجى الاتصال بالإنترنت حتى نمنع إدخال أي بيانات قبل المزامنة الآمنة.'
+    : 'يرجى الانتظار حتى تكتمل المزامنة، لا تُدخل أي بيانات الآن.';
+  const detail = isOffline
+    ? 'سيبقى النظام مقفلاً مؤقتًا لحماية الطلبات والفواتير من أي تضارب.'
+    : phase === 'auth'
+      ? 'نتأكد من جلسة الدخول ونجهّز قناة الاتصال الآمنة.'
+      : 'نحمّل آخر نسخة آمنة من بيانات السحابة، وسيُفتح النظام تلقائيًا.';
+
+  const steps = [
+    { label: 'جلسة الدخول', active: phase === 'auth', done: phase === 'sync' },
+    { label: 'السحابة', active: phase === 'sync', done: false },
+    { label: 'فتح النظام', active: false, done: false },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[99998] flex items-center justify-center overflow-hidden bg-[#070b10] px-5 arabic-font" dir="rtl">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_22%,rgba(245,184,74,.24),transparent_30%),radial-gradient(circle_at_15%_88%,rgba(16,185,129,.16),transparent_34%),linear-gradient(135deg,#05070b_0%,#111827_54%,#071015_100%)]" />
+      <div className="absolute inset-0 opacity-[0.075] [background-image:linear-gradient(rgba(255,255,255,.5)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:46px_46px]" />
+      <div className="absolute -top-24 -right-24 h-80 w-80 rounded-full bg-amber-400/20 blur-[105px]" />
+      <div className="absolute -bottom-28 -left-24 h-96 w-96 rounded-full bg-emerald-400/14 blur-[115px]" />
+
+      <motion.div
+        initial={{ y: 18, opacity: 0, scale: 0.985 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-[760px] overflow-hidden rounded-[2.35rem] border border-white/12 bg-white/[0.075] p-6 text-center shadow-[0_34px_110px_rgba(0,0,0,.48)] backdrop-blur-2xl md:p-8"
+      >
+        <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-l from-transparent via-amber-200/80 to-transparent" />
+        <div className="absolute inset-x-10 bottom-0 h-px bg-gradient-to-l from-transparent via-emerald-200/40 to-transparent" />
+
+        <div className="relative mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-[2rem] border border-amber-100/25 bg-gradient-to-br from-[#f8f1df] via-[#efe1bd] to-[#cfb36e] shadow-[0_18px_58px_rgba(245,184,74,.22)] md:h-32 md:w-32">
+          {!isOffline && (
+            <motion.span
+              className="absolute inset-[-18px] rounded-[2.75rem] border border-emerald-300/25"
+              animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.06, 0.4] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          )}
+          <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="relative z-10 h-20 w-20 drop-shadow-xl md:h-24 md:w-24" />
+          <div className="absolute -bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-slate-950/80 px-3 py-1.5 text-[10px] font-black text-amber-100 shadow-xl backdrop-blur-xl">
+            {isOffline ? <ShieldAlert size={13} /> : <Loader2 className="animate-spin" size={13} />}
+            <span>{isOffline ? 'محمي' : 'مزامنة'}</span>
+          </div>
+        </div>
+
+        <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-4 py-2 text-[11px] font-black text-slate-200 shadow-inner shadow-white/5">
+          <span className={`h-2 w-2 rounded-full ${isOffline ? 'bg-rose-300 shadow-[0_0_14px_rgba(253,164,175,.85)]' : 'bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.85)]'}`} />
+          {name || 'شركة مطبخ التراث الكويتي'}
+        </div>
+
+        <h1 className="text-3xl font-black leading-tight text-white md:text-5xl">{title}</h1>
+        <p className="mx-auto mt-4 max-w-[590px] text-sm font-bold leading-7 text-slate-300 md:text-base">{subtitle}</p>
+        <p className="mx-auto mt-2 max-w-[560px] text-xs font-bold leading-6 text-slate-400 md:text-sm">{detail}</p>
+
+        <div className="mx-auto mt-7 grid max-w-[620px] grid-cols-3 gap-2 md:gap-3">
+          {steps.map((step, index) => (
+            <div key={step.label} className="rounded-2xl border border-white/10 bg-white/[0.065] px-2 py-3 text-center shadow-inner shadow-white/5">
+              <div className={`mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl ${step.done ? 'bg-emerald-300/15 text-emerald-200' : step.active ? 'bg-amber-300/15 text-amber-100' : 'bg-white/[0.08] text-slate-400'}`}>
+                {step.done ? <CheckCircle2 size={18} /> : index === 0 ? <BadgeCheck size={18} /> : index === 1 ? <Database size={18} /> : <Command size={18} />}
+              </div>
+              <p className="text-[10px] font-black text-slate-300 md:text-xs">{step.label}</p>
+              <p className="mt-1 text-[10px] font-bold text-slate-500">{step.done ? 'تم' : step.active ? 'جاري الآن' : 'ينتظر'}</p>
+            </div>
+          ))}
+        </div>
+
+        {!isOffline ? (
+          <div className="mt-7 h-1.5 overflow-hidden rounded-full bg-white/10">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-l from-emerald-300 via-amber-300 to-white shadow-[0_0_24px_rgba(245,184,74,.42)]"
+              initial={{ x: '92%', width: '18%' }}
+              animate={{ x: ['92%', '-12%', '92%'] }}
+              transition={{ duration: 1.65, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-7 inline-flex items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15 active:scale-95"
+          >
+            <RefreshCw size={16} />
+            إعادة فحص الاتصال
+          </button>
+        )}
+      </motion.div>
+    </div>
+  );
+};
+
 const getMoneyValue = (item: any) => Number(item?.total || item?.totalAmount || item?.amount || item?.price || 0) || 0;
 const getItemName = (item: any, fallback = 'بدون اسم') => item?.name || item?.customerName || item?.title || item?.code || item?.id || fallback;
 const getAdminPageMeta = (page: string) => {
@@ -2846,10 +2946,15 @@ const MainApp: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div className="h-[100dvh] w-full flex flex-col items-center justify-center bg-slate-50 gap-4 arabic-font">
-        <Loader2 className="animate-spin text-primary" size={48} />
-        <p className="text-slate-500 font-bold">نحمّل طال عمرك...</p>
-      </div>
+      <>
+        <CloudConnectionGate
+          logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
+          name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
+          phase={isOnline ? 'auth' : 'offline'}
+          onRetry={() => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine)}
+        />
+        <Toaster richColors position="bottom-right" closeButton />
+      </>
     );
   }
 
@@ -2952,6 +3057,24 @@ const MainApp: React.FC = () => {
       </div>
     );
   };
+
+  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && (!isOnline || (dataLoading && !hasLoadedDataRef.current));
+
+  if (shouldHoldCloudEntry) {
+    return (
+      <>
+        {renderAuthError()}
+        {renderQuotaError()}
+        <CloudConnectionGate
+          logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
+          name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
+          phase={!isOnline ? 'offline' : 'sync'}
+          onRetry={() => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine)}
+        />
+        <Toaster richColors position="bottom-right" closeButton />
+      </>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
