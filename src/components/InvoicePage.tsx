@@ -830,12 +830,13 @@ Alturath.kw`;
         return;
       }
       let targetId = selectedCustomerId;
+      let newCustomerObj: Customer | null = null;
 
       if (isNewCustomer) {
         if (!newCustomerName || !customerPhone)
           return toast.error("اكتب اسم ورقم تلفون العميل الجديد");
         targetId = `cust-${Date.now()}`;
-        const newCust: Customer = {
+        newCustomerObj = {
           id: targetId,
           name: newCustomerName,
           phone: customerPhone,
@@ -843,10 +844,6 @@ Alturath.kw`;
           totalOrders: 0,
           totalSpent: 0,
         };
-        setData((prev) => ({
-          ...prev,
-          customers: [...prev.customers, newCust],
-        }));
       }
 
       if (cartItems.length === 0) {
@@ -868,7 +865,7 @@ Alturath.kw`;
         editingInvoiceId || generateNextInvoiceId(data.invoices);
       const zone = activeZones.find((z) => z.id === selectedZoneId);
       const regionName = zone ? zone.name : "غير محدد";
-      const customer = (data.customers || []).find((c) => c.id === targetId);
+      const customer = newCustomerObj || (data.customers || []).find((c) => c.id === targetId);
 
       const existingInvoice = editingInvoiceId ? data.invoices.find((i) => i.id === editingInvoiceId) : null;
 
@@ -1003,6 +1000,8 @@ Alturath.kw`;
         ...(existingInvoice || {}),
         id: invoiceId,
         customerId: targetId,
+        customerName: customer?.name || newCustomerName || "",
+        customerPhone: customer?.phone || customerPhone || "",
         address: { ...(existingInvoice?.address || {}), region: regionName, ...addressDetails },
         area: regionName,
         block: addressDetails.block,
@@ -1016,6 +1015,8 @@ Alturath.kw`;
         items: cartItems.map((it) => ({
           ...it,
           productId: it.product!.id,
+          name: it.product!.name,
+          productName: it.product!.name,
           quantity: it.qty,
         })),
         deliveryFee,
@@ -1054,6 +1055,12 @@ Alturath.kw`;
       };
 
       setData((prev) => {
+        let baseCustomers = [...(prev.customers || [])];
+        if (newCustomerObj) {
+          if (!baseCustomers.some((c) => c.id === newCustomerObj!.id)) {
+            baseCustomers.push(newCustomerObj);
+          }
+        }
         const nextState = {
           ...prev,
           invoices: editingInvoiceId
@@ -1061,7 +1068,7 @@ Alturath.kw`;
                 i.id === editingInvoiceId ? newInvoice : i,
               )
             : [...prev.invoices, newInvoice],
-          customers: prev.customers.map((c) =>
+          customers: baseCustomers.map((c) =>
             c.id === targetId
               ? {
                   ...c,

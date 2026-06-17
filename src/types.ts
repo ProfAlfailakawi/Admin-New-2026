@@ -162,6 +162,8 @@ export interface SelectedAddon {
 
 export interface InvoiceItem {
   productId: string;
+  name?: string;
+  productName?: string;
   quantity: number;
   priceAtTime: number;
   costAtTime: number;
@@ -194,6 +196,8 @@ export type DeliveryType = 'standard' | 'company' | 'special' | 'free';
 export interface Invoice {
   id: string;
   customerId: string;
+  customerName?: string;
+  customerPhone?: string;
   address?: any;
   notes?: string;
   items: InvoiceItem[];

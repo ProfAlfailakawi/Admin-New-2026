@@ -67,7 +67,7 @@ export function getSupplierLedgerForState(supId: string, state: AppState): any[]
       const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
       return {
         productId: item.productId,
-        name: product?.name || 'منتج غير معروف',
+        name: product?.name || (item as any).name || (item as any).productName || 'منتج غير معروف',
         quantity: qty,
         cost,
         price,

@@ -124,7 +124,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
        const price = item.priceAtTime || product?.price || 0;
        return {
          productId: item.productId,
-         name: product?.name || 'منتج غير معروف',
+         name: product?.name || (item as any).name || (item as any).productName || 'منتج غير معروف',
          quantity: item.quantity || 1,
          cost,
          price,
