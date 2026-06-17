@@ -829,7 +829,37 @@ const CloudConnectionGate: React.FC<{
             {isOffline ? (
               <ShieldAlert size={54} strokeWidth={1.65} />
             ) : (
-              <DownloadCloud size={60} strokeWidth={1.55} />
+              <svg
+                width="66"
+                height="66"
+                viewBox="0 0 66 66"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+                className="drop-shadow-[0_0_18px_rgba(255,255,255,.22)]"
+              >
+                <path
+                  d="M22.2 39.6H19.8C14.7 39.6 10.56 35.46 10.56 30.36C10.56 25.59 14.19 21.66 18.84 21.18C20.67 13.95 27.24 8.58 35.04 8.58C44.1 8.58 51.48 15.78 51.78 24.78C55.95 25.74 59.04 29.46 59.04 33.9C59.04 39 54.9 43.14 49.8 43.14H44.64"
+                  stroke="currentColor"
+                  strokeWidth="4.1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M33 28.38V54.12"
+                  stroke="currentColor"
+                  strokeWidth="4.1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M22.77 43.89L33 54.12L43.23 43.89"
+                  stroke="currentColor"
+                  strokeWidth="4.1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             )}
           </div>
 
