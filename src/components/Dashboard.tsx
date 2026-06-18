@@ -4,7 +4,8 @@ import {
     computeInvoiceTotal, computeInvoiceSubtotal, 
     computeInvoiceCost, 
     computeInvoiceProfit, 
-    computeInvoiceAddonsTotal 
+    computeInvoiceAddonsTotal,
+    computeInvoiceGatewayFee
 } from '../lib/invoice-calculations';
 import React, {
   useState,
@@ -1581,7 +1582,7 @@ const [isPending, startTransition] = useTransition();
           0,
         ) || 0;
       const gatewayFees = invoices.reduce(
-        (acc, inv) => acc + (inv.gatewayFee || 0),
+        (acc, inv) => acc + computeInvoiceGatewayFee(inv),
         0,
       );
       const deliveryInvs = invoices.filter((inv) => inv.deliveryInfo);
@@ -1696,7 +1697,7 @@ const [isPending, startTransition] = useTransition();
       ) || 0;
 
       const allTimeGatewayFees = allTimePaidInvoices.reduce(
-        (acc, inv) => acc + (inv.gatewayFee || 0),
+        (acc, inv) => acc + computeInvoiceGatewayFee(inv),
         0,
       );
 
