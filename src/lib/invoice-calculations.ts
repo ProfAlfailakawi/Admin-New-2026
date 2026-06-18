@@ -131,24 +131,39 @@ export const computeAddonRevenue = (addon: any, item: any, products: any[] = [])
  */
 export const computeAddonCost = (addon: any, item: any, products: any[] = []): number => {
     addon = mergeAddonWithCatalog(addon, item, products);
+    if (addon?.selected === false || addon?.enabled === false || addon?.isSelected === false) return 0;
+
+    const directTotal = safeParsePrice(
+        addon?.totalCost ??
+        addon?.costTotal ??
+        addon?.lineCost ??
+        addon?.addonCostTotal ??
+        addon?.addonsCostTotal ??
+        addon?.supplierCostTotal ??
+        addon?.costAmount
+    );
+    if (directTotal > 0) return directTotal;
+
     const itemQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
     const qty = Math.max(1, itemQty);
-    const threshold = Math.max(1, Number(addon.xItemsThreshold || addon.threshold || 1));
-    const cost = safeParsePrice(addon.cost || addon.addonCost || addon.unitCost || 0);
+    const cost = safeParsePrice(addon.cost ?? addon.addonCost ?? addon.unitCost ?? addon.supplierCost ?? 0);
+    if (cost <= 0) return 0;
 
-    const mult = Number(addon.quantity !== undefined ? addon.quantity : (addon.qty !== undefined ? addon.qty : 1));
-    const free = Math.max(0, Number(addon.freeQuantity || 0));
+    const selectedQty = computeAddonSelectedQuantity(addon);
+    const hasExplicitQty = addon?.quantity !== undefined || addon?.qty !== undefined || addon?.count !== undefined || addon?.selectedQuantity !== undefined || addon?.value !== undefined;
+    if (hasExplicitQty && selectedQty <= 0) return 0;
+
+    const mult = hasExplicitQty ? selectedQty : 1;
+    const free = Math.max(0, Number(addon.freeQuantity || addon.freeQty || 0));
 
     let units = 0;
     if (addon.calculationType === 'fixed') {
-        // Fixed addons cost the multiplier regardless of item quantity
         units = mult;
     } else if (isCoverageRangeAddon(addon)) {
         units = Math.max(mult, getCoverageUnits(addon, qty));
     } else if (addon.calculationType === 'per_x_items') {
-        units = getPerXUnits(addon, qty) * mult;
+        units = hasExplicitQty ? mult : getPerXUnits(addon, qty);
     } else {
-        // per_item cost is proportional to item quantity
         units = qty * mult;
     }
 
