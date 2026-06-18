@@ -4491,7 +4491,7 @@ async function sendSmartAlertPushNotification({
     const effectiveTtlSeconds = Number.isFinite(Number(ttlSeconds))
       ? Math.max(10, Math.min(86400, Number(ttlSeconds)))
       : (
-          normalizedAlertType.includes("paid") || normalizedAlertType.includes("payment") || normalizedAlertType.includes("invoice") ? 300 :
+          normalizedAlertType.includes("paid") || normalizedAlertType.includes("payment") || normalizedAlertType.includes("invoice") ? 86400 :
           normalizedAlertType.includes("pending_10min") ? 900 :
           normalizedAlertType.includes("pending_immediate") ? 900 :
           normalizedAlertType.includes("failed") ? 1800 :

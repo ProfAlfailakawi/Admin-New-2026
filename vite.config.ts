@@ -20,6 +20,23 @@ export default defineConfig({
     cssCodeSplit: true,
     target: 'es2020',
     chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        // Split heavy vendor libs into separate cached chunks
+        // Browser downloads them in parallel and caches each independently
+        manualChunks: {
+          'chunk-react':    ['react', 'react-dom'],
+          'chunk-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage', 'firebase/messaging'],
+          'chunk-motion':   ['motion'],
+          'chunk-charts':   ['recharts'],
+          'chunk-xlsx':     ['xlsx'],
+          'chunk-ai':       ['@google/genai'],
+          'chunk-markdown': ['react-markdown'],
+          'chunk-icons':    ['lucide-react'],
+          'chunk-lz':       ['lz-string'],
+        },
+      },
+    },
   },
   server: {
     port: 3000,
