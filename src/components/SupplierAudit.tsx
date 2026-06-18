@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 import { playMetallicSettlementChime } from '../lib/sonic';
 import { getSupplierLedgerForState, getSupplierLiveBalanceForState, getInvoiceDeliverySettlementForSupplier } from '../lib/business-logic';
-import { computeAddonCost, getInvoiceItemAddons } from '../lib/invoice-calculations';
+import { computeAddonCost, computeAddonRevenue, computeInvoiceCost, computeInvoiceProfit, computeInvoiceTotal, getInvoiceItemAddons } from '../lib/invoice-calculations';
 
 interface SupplierAuditProps {
  data: AppState;
@@ -737,6 +737,9 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  if (!inv) return <div className="p-12 text-center font-bold text-slate-500">الفاتورة غير موجودة أو تم حذفها</div>;
  const customer = (data.customers || []).find(c => c.id === inv.customerId);
  const invoiceDeliveryCost = Number((inv as any)?.deliveryInfo?.cost ?? (inv as any)?.deliveryCost ?? (inv as any)?.deliveryInfo?.finalPrice ?? (inv as any)?.deliveryFee ?? 0) || 0;
+ const liveInvoiceTotal = computeInvoiceTotal(inv, data.products || []);
+ const liveInvoiceCost = computeInvoiceCost(inv, data.products || []);
+ const liveInvoiceProfit = computeInvoiceProfit(inv, data.products || []);
  
  return (
  <>
@@ -788,29 +791,46 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="space-y-3">
  {(inv.items || []).map((item, idx) => {
  const p = (data.products || []).find(prod => prod.id === item.productId);
+ const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
+ const itemPrice = item.priceAtTime !== undefined ? item.priceAtTime : (p?.price || 0);
+ const itemCost = item.costAtTime !== undefined ? item.costAtTime : (p?.cost || 0);
+ const itemAddons = getInvoiceItemAddons(item).filter((addon: any) => !(addon.selected === false || addon.isSelected === false || addon.enabled === false || addon.checked === false));
+ const addonsRevenue = itemAddons.reduce((acc: number, addon: any) => acc + computeAddonRevenue(addon, item, data.products || []), 0);
+ const addonsCost = itemAddons.reduce((acc: number, addon: any) => acc + computeAddonCost(addon, item, data.products || []), 0);
+ const itemRevenueTotal = (Number(qty || 0) * Number(itemPrice || 0)) + addonsRevenue;
+ const supplierShareTotal = (Number(qty || 0) * Number(itemCost || 0)) + addonsCost;
  return (
- <div key={idx} className="flex justify-between items-center p-4 border border-slate-100 rounded-3xl transition-all hover:shadow-lg hover:border-blue-100 bg-white group">
+ <div key={idx} className="p-4 border border-slate-100 rounded-3xl transition-all hover:shadow-lg hover:border-blue-100 bg-white group">
+ <div className="flex justify-between items-center gap-3">
  <div className="text-left">
- <div className="font-black text-slate-900 group-hover:text-blue-600 transition-colors">{(item.quantity * (item.priceAtTime || 0)).toFixed(3)} <span className="text-[10px]">د.ك</span></div>
- <div className="text-[10px] text-slate-400 font-bold tracking-tight">{item.quantity} وحدة × {(item.priceAtTime || 0).toFixed(3)}</div>
+ <div className="font-black text-slate-900 group-hover:text-blue-600 transition-colors">{itemRevenueTotal.toFixed(3)} <span className="text-[10px]">د.ك</span></div>
+ <div className="text-[10px] text-slate-400 font-bold tracking-tight">{qty} وحدة × {Number(itemPrice || 0).toFixed(3)}</div>
+ {addonsRevenue > 0 && <div className="text-[10px] text-amber-600 font-black mt-1">يشمل إضافات {addonsRevenue.toFixed(3)} د.ك</div>}
  </div>
  <div className="text-right">
  <div className="font-bold text-slate-800 leading-tight">{p?.name || item.productId}</div>
  <div className="text-[10px] font-black text-emerald-600 mt-1 flex items-center gap-1 justify-end">
  <DollarSign size={10} />
- حصة المورد: {(() => {
-    let addonsCost = 0;
-    const itemAddons = getInvoiceItemAddons(item);
-    itemAddons.forEach((addon: any) => {
-      if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
-      addonsCost += computeAddonCost(addon, item, data.products || []);
-    });
-    const itemCost = item.costAtTime !== undefined ? item.costAtTime : (p?.cost || 0);
-    const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
-    return ((itemCost * qty) + addonsCost).toFixed(3);
-  })()} د.ك
+ حصة المورد: {supplierShareTotal.toFixed(3)} د.ك
+ </div>
+ {addonsCost > 0 && <div className="text-[10px] font-black text-amber-600 mt-1">منها إضافات المورد: {addonsCost.toFixed(3)} د.ك</div>}
  </div>
  </div>
+ {addonsCost > 0 && (
+ <div className="mt-3 pt-3 border-t border-amber-100/70 space-y-1">
+ {itemAddons.map((addon: any, addonIdx: number) => {
+   const addonCost = computeAddonCost(addon, item, data.products || []);
+   if (addonCost <= 0) return null;
+   const qtyLabel = addon.quantity ?? addon.qty ?? addon.count ?? addon.selectedQuantity ?? addon.selectedQty ?? addon.selectedCount ?? addon.addonQuantity;
+   return (
+     <div key={`${idx}-addon-${addonIdx}`} className="flex justify-between items-center gap-2 text-[10px] bg-amber-50/80 border border-amber-100 rounded-xl px-2 py-1">
+       <span className="font-black text-amber-700 text-right">إضافة: {addon.name || addon.title || addon.label || 'إضافة'}{qtyLabel !== undefined ? ` × ${qtyLabel}` : ''}</span>
+       <span className="font-black text-amber-700 whitespace-nowrap" dir="ltr">{addonCost.toFixed(3)} د.ك</span>
+     </div>
+   );
+ })}
+ </div>
+ )}
  </div>
  );
  })}
@@ -826,11 +846,11 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="relative z-10 space-y-4">
  <div className="flex justify-between items-center pb-4 border-b border-white/10">
  <span className="text-xs font-bold text-white/40 uppercase tracking-widest">إجمالي المبيعات</span>
- <span className="font-black text-lg">{(inv.totalAmount || 0).toFixed(3)} <span className="text-[10px] opacity-40">د.ك</span></span>
+ <span className="font-black text-lg">{liveInvoiceTotal.toFixed(3)} <span className="text-[10px] opacity-40">د.ك</span></span>
  </div>
  <div className="flex justify-between items-center pb-4 border-b border-white/10">
  <span className="text-xs font-bold text-white/40 uppercase tracking-widest">تكلفة التوريد النهائية</span>
- <span className="font-black text-lg text-emerald-400">{(inv.totalCost || 0).toFixed(3)} <span className="text-[10px] opacity-40">د.ك</span></span>
+ <span className="font-black text-lg text-emerald-400">{liveInvoiceCost.toFixed(3)} <span className="text-[10px] opacity-40">د.ك</span></span>
  </div>
  {invoiceDeliveryCost > 0 && (
  <div className="flex justify-between items-center pb-4 border-b border-white/10">
@@ -842,7 +862,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="flex flex-col">
  <span className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">صافي الربح الفعلي</span>
  <span className="text-3xl font-black bg-gradient-to-l from-white to-white/60 bg-clip-text text-transparent italic">
- {(inv.profit || 0).toFixed(3)} <span className="text-xs">د.ك</span>
+ {liveInvoiceProfit.toFixed(3)} <span className="text-xs">د.ك</span>
  </span>
  </div>
  <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/5">
