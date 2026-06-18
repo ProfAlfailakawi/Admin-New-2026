@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 import { playMetallicSettlementChime } from '../lib/sonic';
 import { getSupplierLedgerForState, getSupplierLiveBalanceForState, getInvoiceDeliverySettlementForSupplier } from '../lib/business-logic';
+import { computeAddonCost, normalizeAddonList } from '../lib/invoice-calculations';
 
 interface SupplierAuditProps {
  data: AppState;
@@ -778,7 +779,17 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="font-bold text-slate-800 leading-tight">{p?.name || item.productId}</div>
  <div className="text-[10px] font-black text-emerald-600 mt-1 flex items-center gap-1 justify-end">
  <DollarSign size={10} />
- حصة المورد: {(item.costAtTime || p?.cost || 0).toFixed(3)} د.ك
+ حصة المورد: {(() => {
+    let addonsCost = 0;
+    const itemAddons = normalizeAddonList(item.addons || (item as any).selectedAddons || (item as any).addOns || (item as any).extras || (item as any).addonSelections || (item as any).selectedExtras || []);
+    itemAddons.forEach((addon: any) => {
+      if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
+      addonsCost += computeAddonCost(addon, item, data.products || []);
+    });
+    const itemCost = item.costAtTime !== undefined ? item.costAtTime : (p?.cost || 0);
+    const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
+    return ((itemCost * qty) + addonsCost).toFixed(3);
+  })()} د.ك
  </div>
  </div>
  </div>

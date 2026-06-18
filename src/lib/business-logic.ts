@@ -1,6 +1,6 @@
 import { AppState } from '../types';
 import { isPaidStatus } from './status-utils';
-import { computeAddonCost, computeAddonRevenue } from './invoice-calculations';
+import { computeAddonCost, computeAddonRevenue, normalizeAddonList } from './invoice-calculations';
 
 
 const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 1000;
@@ -69,14 +69,12 @@ export function getSupplierLedgerForState(supId: string, state: AppState): any[]
       
       let addonsCostTotal = 0;
       let addonsPriceTotal = 0;
-      const itemAddons = item.addons || (item as any).selectedAddons || (item as any).addOns || (item as any).extras || (item as any).addonSelections || (item as any).selectedExtras || [];
-      if (Array.isArray(itemAddons)) {
-        itemAddons.forEach((addon: any) => {
-          if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
-          addonsCostTotal += computeAddonCost(addon, item, state.products || []);
-          addonsPriceTotal += computeAddonRevenue(addon, item, state.products || []);
-        });
-      }
+      const itemAddons = normalizeAddonList(item.addons || (item as any).selectedAddons || (item as any).addOns || (item as any).extras || (item as any).addonSelections || (item as any).selectedExtras || []);
+      itemAddons.forEach((addon: any) => {
+        if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
+        addonsCostTotal += computeAddonCost(addon, item, state.products || []);
+        addonsPriceTotal += computeAddonRevenue(addon, item, state.products || []);
+      });
 
       return {
         productId: item.productId,
