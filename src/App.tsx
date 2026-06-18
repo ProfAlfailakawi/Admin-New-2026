@@ -114,12 +114,28 @@ const getVisibleAdminNotifications = (notifications?: AdminNotification[]) =>
 
 const SMART_NOTIFICATION_READ_STORAGE_KEY = 'alturath_admin_smart_notification_read_ids_v1';
 
+const getNotificationReadKeys = (notification: any): string[] => {
+  const id = String(notification?.id || '').trim();
+  const title = String(notification?.title || '').trim().replace(/\s+/g, ' ');
+  const message = String(notification?.message || '').trim().replace(/\s+/g, ' ');
+  const insightType = String(notification?.insightType || notification?.type || '').trim();
+  const recommendedAction = String(notification?.recommendedAction || '').trim().replace(/\s+/g, ' ');
+  const keys = [];
+
+  if (id) keys.push(`id:${id}`);
+  if (title || message) keys.push(`content:${title}|${message}|${insightType}`);
+  if (title && recommendedAction) keys.push(`action:${title}|${recommendedAction}|${insightType}`);
+
+  return Array.from(new Set(keys));
+};
+
 const getStoredReadNotificationIds = (): Set<string> => {
   if (typeof window === 'undefined') return new Set();
   try {
     const raw = window.localStorage.getItem(SMART_NOTIFICATION_READ_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return new Set(Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : []);
+    const keys = Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
+    return new Set(keys.flatMap((key) => key.includes(':') ? [key] : [key, `id:${key}`]));
   } catch {
     return new Set();
   }
@@ -127,19 +143,31 @@ const getStoredReadNotificationIds = (): Set<string> => {
 
 const storeReadNotificationIds = (ids: Array<string | undefined | null>) => {
   if (typeof window === 'undefined') return;
-  const cleanIds = ids.map((id) => String(id || '').trim()).filter(Boolean);
+  const cleanIds = ids.map((id) => String(id || '').trim()).filter(Boolean).map((id) => id.includes(':') ? id : `id:${id}`);
   if (!cleanIds.length) return;
   try {
     const current = getStoredReadNotificationIds();
     cleanIds.forEach((id) => current.add(id));
-    window.localStorage.setItem(SMART_NOTIFICATION_READ_STORAGE_KEY, JSON.stringify(Array.from(current).slice(-500)));
+    window.localStorage.setItem(SMART_NOTIFICATION_READ_STORAGE_KEY, JSON.stringify(Array.from(current).slice(-1000)));
   } catch {}
+};
+
+const storeReadNotifications = (notifications: any[]) => {
+  const keys = notifications.flatMap(getNotificationReadKeys);
+  storeReadNotificationIds(keys);
 };
 
 const isNotificationReadForUi = (notification: any): boolean => {
   if (notification?.read) return true;
-  const id = String(notification?.id || '').trim();
-  return Boolean(id && getStoredReadNotificationIds().has(id));
+  const storedKeys = getStoredReadNotificationIds();
+  return getNotificationReadKeys(notification).some((key) => storedKeys.has(key));
+};
+
+const applyStoredNotificationReadState = <T extends { read?: boolean }>(notifications?: T[]): T[] | undefined => {
+  if (!Array.isArray(notifications)) return notifications;
+  return notifications.map((notification) => (
+    isNotificationReadForUi(notification) ? { ...notification, read: true } : notification
+  ));
 };
 
 
@@ -1829,12 +1857,9 @@ const MainApp: React.FC = () => {
            let hasAdded = false;
            let hasUpdates = false;
            
-           const locallyReadIds = getStoredReadNotificationIds();
-           
            // Ensure existing memory notifications are in sync with localStorage read IDs
            const updatedNotifs = (prev?.notifications || []).map(n => {
-               const id = String(n.id || '').trim();
-               if (id && locallyReadIds.has(id) && !n.read) {
+               if (isNotificationReadForUi(n) && !n.read) {
                    hasUpdates = true;
                    return { ...n, read: true };
                }
@@ -1842,8 +1867,7 @@ const MainApp: React.FC = () => {
            });
            
            newNotifications.forEach(newNotif => {
-               const newId = String(newNotif.id || '').trim();
-               const notificationToStore = newId && locallyReadIds.has(newId) ? { ...newNotif, read: true } : newNotif;
+               const notificationToStore = isNotificationReadForUi(newNotif) ? { ...newNotif, read: true } : newNotif;
                if (!updatedNotifs.some(n => n.id === newNotif.id)) {
                    updatedNotifs.push(notificationToStore);
                    hasAdded = true;
@@ -2536,6 +2560,7 @@ const MainApp: React.FC = () => {
             
             // Recalculate derived state (like supplier balances) upon load
             const finalProcessedState = recalculateStateBalances(loadedState);
+            finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
 
             setData(finalProcessedState);
             lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
@@ -2711,17 +2736,8 @@ const MainApp: React.FC = () => {
         // Recalculate derived state (like supplier balances) upon load
         const finalProcessedState = recalculateStateBalances(loadedState);
 
-        // Sync read state from localStorage to ensure read status is kept fundamentally
-        const initialLocallyReadIds = getStoredReadNotificationIds();
-        if (finalProcessedState.notifications) {
-          finalProcessedState.notifications = finalProcessedState.notifications.map(n => {
-            const id = String(n.id || '').trim();
-            if (id && initialLocallyReadIds.has(id)) {
-              return { ...n, read: true };
-            }
-            return n;
-          });
-        }
+        // Sync read state from localStorage to ensure read status is kept fundamentally.
+        finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
 
         setData(finalProcessedState);
         lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
@@ -3676,7 +3692,7 @@ const MainApp: React.FC = () => {
                            <button 
                              onClick={(e) => {
                                  e.stopPropagation();
-                                 storeReadNotificationIds((data?.notifications || []).map(n => n.id));
+                                 storeReadNotifications(data?.notifications || []);
                                  setData(prev => ({
                                      ...prev,
                                      notifications: (prev?.notifications || []).map(n => ({ ...n, read: true }))
@@ -3695,10 +3711,10 @@ const MainApp: React.FC = () => {
                             key={notif.id} 
                             onClick={(e) => {
                                 e.stopPropagation();
-                                storeReadNotificationIds([notif.id]);
+                                storeReadNotifications([notif]);
                                 setData(prev => ({
                                     ...prev,
-                                    notifications: (prev?.notifications || []).map(n => n.id === notif.id ? { ...n, read: true } : n)
+                                    notifications: (prev?.notifications || []).map(n => n.id === notif.id || getNotificationReadKeys(n).some(key => getNotificationReadKeys(notif).includes(key)) ? { ...n, read: true } : n)
                                 }));
                                 setNotifOpen(false);
                                 
@@ -3830,14 +3846,16 @@ const MainApp: React.FC = () => {
                 notifications={(data.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج'))} 
                 isNotificationRead={isNotificationReadForUi}
                 onMarkAsRead={(id) => {
-                   storeReadNotificationIds([id]);
+                   const target = (data?.notifications || []).find(n => n.id === id);
+                   if (target) storeReadNotifications([target]);
+                   else storeReadNotificationIds([id]);
                    setData(prev => ({
                        ...prev,
-                       notifications: (prev?.notifications || []).map(n => n.id === id ? { ...n, read: true } : n)
+                       notifications: (prev?.notifications || []).map(n => n.id === id || (target && getNotificationReadKeys(n).some(key => getNotificationReadKeys(target).includes(key))) ? { ...n, read: true } : n)
                    }));
                 }} 
                 onMarkAllAsRead={() => {
-                   storeReadNotificationIds((data?.notifications || []).filter(n => n.insightType).map(n => n.id));
+                   storeReadNotifications((data?.notifications || []).filter(n => n.insightType));
                    setData(prev => ({
                        ...prev,
                        notifications: (prev?.notifications || []).map(n => n.insightType ? { ...n, read: true } : n)
