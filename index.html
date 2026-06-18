@@ -8,6 +8,15 @@
     />
     <title>شركة مطبخ التراث الكويتي</title>
 
+    <!-- Preconnect to critical origins to cut down handshake latency on first paint -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://firestore.googleapis.com" />
+    <link rel="preconnect" href="https://www.googleapis.com" />
+    <link rel="preconnect" href="https://securetoken.googleapis.com" />
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
+    <link rel="dns-prefetch" href="https://firebaseinstallations.googleapis.com" />
+
     <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json?v=6.0.0" />
     <link rel="icon" type="image/png" sizes="192x192" href="/ios-icon-192-v6.png?v=6.0.0" />
@@ -43,16 +52,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    
     <script>
-      // Aggressive Service Worker Cleanup
+      // Service Worker Cleanup: only unregister the OLD generic sw.js
+      // (firebase-messaging-sw.js stays untouched for push notifications)
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
           for (let registration of registrations) {
-            // Unregister old generic sw.js
             if (registration.active && registration.active.scriptURL.includes('sw.js') && !registration.active.scriptURL.includes('firebase-messaging-sw.js')) {
               registration.unregister();
               console.log("Unregistered old SW:", registration);
@@ -60,15 +65,8 @@
           }
         });
       }
-      
-      // Clear older caches
-      if ("caches" in window) {
-        caches.keys().then(function (names) {
-          for (let name of names) {
-            caches.delete(name);
-          }
-        });
-      }
+      // Note: version-aware cache cleanup runs inside App.tsx after a real version change,
+      // so we no longer wipe browser caches on every page load (that was killing performance).
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </head>
