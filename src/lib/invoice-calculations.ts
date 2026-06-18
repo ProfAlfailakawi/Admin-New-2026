@@ -209,7 +209,15 @@ export const computeAddonCost = (addon: any, item: any, products: any[] = []): n
     if (directCostTotal > 0) return directCostTotal;
 
     const itemQty = Math.max(1, Number(item?.quantity !== undefined ? item.quantity : (item?.qty !== undefined ? item.qty : 1)) || 1);
-    const cost = safeParsePrice(addon?.cost ?? addon?.addonCost ?? addon?.unitCost ?? addon?.supplierCost ?? addon?.supplyCost ?? addon?.purchaseCost ?? addon?.baseCost ?? addon?.costPrice ?? addon?.purchasePrice ?? addon?.supplierPrice ?? 0);
+    const costFields = [addon?.cost, addon?.addonCost, addon?.unitCost, addon?.supplierCost, addon?.supplyCost, addon?.purchaseCost, addon?.baseCost, addon?.costPrice, addon?.purchasePrice, addon?.supplierPrice];
+    const explicitCost = costFields.some((value) => value !== undefined && value !== null && value !== '');
+    let cost = safeParsePrice(costFields.find((value) => value !== undefined && value !== null && value !== '') ?? 0);
+
+    // Older invoices/add-ons sometimes saved only the add-on selling price, without a supplier-cost snapshot.
+    // For supplier ledgers, the safest operational fallback is to include the add-on amount instead of dropping it to zero.
+    if (cost <= 0 && !explicitCost) {
+        cost = safeParsePrice(addon?.price ?? addon?.addonPrice ?? addon?.amount ?? addon?.unitPrice ?? addon?.sellingPrice ?? addon?.salePrice ?? 0);
+    }
     if (cost <= 0) return 0;
 
     const selectedQty = computeAddonSelectedQuantity(addon);
