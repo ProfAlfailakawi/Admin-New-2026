@@ -1632,7 +1632,7 @@ const MainApp: React.FC = () => {
   useEffect(() => {
     if (dataLoading) return;
 
-    // Debounce the alert generation to once per 2 seconds to avoid CPU spikes
+    // Debounce the alert generation to once per 20 seconds to avoid CPU spikes
     const debounceTimer = setTimeout(() => {
       const newNotifications: AdminNotification[] = [];
       const todayStr = new Date().toISOString().split('T')[0];
@@ -1886,7 +1886,7 @@ const MainApp: React.FC = () => {
            return { ...prev, notifications: updatedNotifs };
         });
     }
-    }, 2000);
+    }, 20000); // 20 second debounce — alerts are non-urgent, heavy computation deferred
 
     return () => clearTimeout(debounceTimer);
   }, [dataLoading, data.invoices, data.suppliers, data.customers, data.products, data.testimonials]);
@@ -2951,7 +2951,7 @@ const MainApp: React.FC = () => {
           }
         }
       }
-    }, 2000); // 2 second debounce for sharded saving
+    }, 8000); // 8 second debounce for sharded saving — reduces stableStringify + Firestore write pressure
 
     return () => clearTimeout(timeoutId);
   }, [data, user, appMode]);
