@@ -7,7 +7,7 @@ import ConfirmModal from './ui/ConfirmModal';
 import { toast } from 'sonner';
 import { NumericInput } from './ui/NumericInput';
 import { getSupplierLedgerForState, getSupplierLiveBalanceForState, getInvoiceDeliverySettlementForSupplier } from '../lib/business-logic';
-import { computeAddonCost } from '../lib/invoice-calculations';
+import { computeAddonCost, normalizeAddonList } from '../lib/invoice-calculations';
 
 interface SupplierPageProps {
  data: AppState;
@@ -185,14 +185,12 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  const product = (data?.products || []).find(p => p.id === item.productId);
  if (!product || product.supplierId !== supId || !supplierProductIds.has(item.productId)) return total;
  const itemCost = item.costAtTime !== undefined ? item.costAtTime : (product.cost || 0);
-  const itemAddons = item.addons || (item as any).selectedAddons || (item as any).addOns || (item as any).extras || (item as any).addonSelections || (item as any).selectedExtras || [];
+  const itemAddons = normalizeAddonList(item.addons || (item as any).selectedAddons || (item as any).addOns || (item as any).extras || (item as any).addonSelections || (item as any).selectedExtras || []);
   let addonsCost = 0;
-  if (Array.isArray(itemAddons)) {
-    itemAddons.forEach((addon: any) => {
-      if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
-      addonsCost += computeAddonCost(addon, item, data?.products || []);
-    });
-  }
+  itemAddons.forEach((addon: any) => {
+    if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
+    addonsCost += computeAddonCost(addon, item, data?.products || []);
+  });
  const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
  return total + (itemCost * qty) + addonsCost;
  }, 0);
@@ -961,7 +959,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
             </div>
             <div className="text-right border-r border-slate-100 px-4">
               <div className="text-[10px] font-black text-slate-400 uppercase mb-1">تكلفة التوريد (Supply Cost)</div>
-              <div className="text-lg font-black text-rose-500 whitespace-nowrap" dir="ltr">{item.amount.toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
+              <div className="text-lg font-black text-rose-500 whitespace-nowrap" dir="ltr">{(item.supplyAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
             </div>
             {Number(item.deliveryAmount || 0) > 0 && (
             <div className="text-right border-r border-slate-100 px-3">
@@ -985,7 +983,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
                     </div>
                   </div>
                   <div className="text-left shrink-0">
-                    <div className="text-sm font-black text-slate-900 whitespace-nowrap" dir="ltr">{prod.cost.toFixed(3)} <span className="text-[10px]">د.ك</span></div>
+                    <div className="text-sm font-black text-slate-900 whitespace-nowrap" dir="ltr">{(prod.totalCost || prod.cost || 0).toFixed(3)} <span className="text-[10px]">د.ك</span></div>
                     <div className="text-[9px] font-bold text-emerald-500">حصة المورد</div>
                   </div>
                 </div>
