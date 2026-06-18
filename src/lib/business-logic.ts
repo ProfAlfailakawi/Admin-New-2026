@@ -1,6 +1,6 @@
 import { AppState } from '../types';
 import { isPaidStatus } from './status-utils';
-import { computeAddonCost, computeAddonRevenue, getInvoiceItemAddons } from './invoice-calculations';
+import { computeAddonCost, computeAddonRevenue, getInvoiceItemAddons, safeParsePrice } from './invoice-calculations';
 
 
 const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 1000;
@@ -69,7 +69,8 @@ export function getSupplierLedgerForState(supId: string, state: AppState): any[]
       
       let addonsCostTotal = 0;
       let addonsPriceTotal = 0;
-      const addonLines = getInvoiceItemAddons(item).map((addon: any) => {
+      const itemAddons = getInvoiceItemAddons(item);
+      const addonLines = itemAddons.map((addon: any) => {
         if (addon.selected === false || addon.isSelected === false || addon.enabled === false || addon.checked === false) return null;
         const costTotal = roundKwd(computeAddonCost(addon, item, state.products || []));
         const priceTotal = roundKwd(computeAddonRevenue(addon, item, state.products || []));
@@ -77,13 +78,18 @@ export function getSupplierLedgerForState(supId: string, state: AppState): any[]
         addonsCostTotal += costTotal;
         addonsPriceTotal += priceTotal;
         return {
-          id: addon.id || addon.addonId || addon.name,
-          name: addon.name || addon.title || 'إضافة',
-          quantity: addon.quantity ?? addon.qty ?? addon.count ?? addon.selectedQuantity ?? addon.selectedQty ?? undefined,
+          id: addon.id || addon.addonId || addon.key || addon.name,
+          name: addon.name || addon.title || addon.label || 'إضافة',
+          quantity: addon.quantity ?? addon.qty ?? addon.count ?? addon.selectedQuantity ?? addon.selectedQty ?? addon.selectedCount ?? addon.addonQuantity ?? undefined,
           costTotal,
           priceTotal,
         };
       }).filter(Boolean);
+
+      const directItemAddonsCost = roundKwd(safeParsePrice((item as any)?.addonsCost ?? (item as any)?.addOnsCost ?? (item as any)?.extrasCost ?? (item as any)?.addonsSupplyAmount ?? (item as any)?.addonsSupplierCost ?? (item as any)?.addonCostTotal ?? (item as any)?.addonsCostTotal));
+      if (addonsCostTotal <= 0 && directItemAddonsCost > 0) {
+        addonsCostTotal = directItemAddonsCost;
+      }
 
       return {
         productId: item.productId,

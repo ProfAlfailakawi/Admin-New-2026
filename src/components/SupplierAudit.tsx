@@ -80,8 +80,16 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
             amount: t.amount,
             rawAmount: t.amount,
             supplyAmount: t.supplyAmount,
+            productsSupplyAmount: (t as any).productsSupplyAmount,
+            addonsSupplyAmount: (t as any).addonsSupplyAmount,
             deliveryAmount: t.deliveryAmount,
-            notes: t.supplyAmount > 0 && t.deliveryAmount > 0 ? `فاتورة رقم ${t.refId} · تشمل توريد وتوصيل ${t.deliveryAmount.toFixed(3)} د.ك` : t.deliveryAmount > 0 ? `فاتورة رقم ${t.refId} · توصيل فقط ${t.deliveryAmount.toFixed(3)} د.ك` : `فاتورة رقم ${t.refId}`,
+            notes: (() => {
+              const parts = [`فاتورة رقم ${t.refId}`];
+              if (Number((t as any).productsSupplyAmount || 0) > 0) parts.push(`منتجات ${Number((t as any).productsSupplyAmount || 0).toFixed(3)} د.ك`);
+              if (Number((t as any).addonsSupplyAmount || 0) > 0) parts.push(`إضافات ${Number((t as any).addonsSupplyAmount || 0).toFixed(3)} د.ك`);
+              if (Number(t.deliveryAmount || 0) > 0) parts.push(`توصيل ${Number(t.deliveryAmount || 0).toFixed(3)} د.ك`);
+              return parts.join(' · ');
+            })(),
             refId: t.refId,
             method: t.method
           });
@@ -106,12 +114,14 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
 
  const totalTransferred = (data?.supplierTransfers || []).reduce((acc, t) => acc + Number(t.amount || 0), 0);
  const totalSupplyDue = allTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.supplyAmount || 0), 0);
+ const totalAddonsDue = allTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number((t as any).addonsSupplyAmount || 0), 0);
  const totalDeliveryDue = allTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.deliveryAmount || 0), 0);
  const supplierOutstandingMap = React.useMemo(() => {
-   const map: Record<string, { remainingSupply: number; remainingDelivery: number; balance: number; paid: number; supplyDue: number; deliveryDue: number; totalDue: number; paidToSupply: number; paidToDelivery: number; }> = {};
+   const map: Record<string, { remainingSupply: number; remainingDelivery: number; balance: number; paid: number; supplyDue: number; addonsDue: number; deliveryDue: number; totalDue: number; paidToSupply: number; paidToDelivery: number; }> = {};
    (data?.suppliers || []).forEach((supplier) => {
      const supplierTransactions = allTransactions.filter(t => t.supplierId === supplier.id);
      const supplyDue = supplierTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.supplyAmount || 0), 0);
+     const addonsDue = supplierTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number((t as any).addonsSupplyAmount || 0), 0);
      const deliveryDue = supplierTransactions.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.deliveryAmount || 0), 0);
      const paid = (data?.supplierTransfers || []).filter(t => t.supplierId === supplier.id).reduce((acc, t) => acc + Number(t.amount || 0), 0);
      const paidToSupply = Math.min(paid, supplyDue);
@@ -120,11 +130,11 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
      const remainingDelivery = Math.max(0, Math.round((deliveryDue - paidToDelivery) * 1000) / 1000);
      const totalDue = Math.round((supplyDue + deliveryDue) * 1000) / 1000;
      const balance = Math.max(0, Math.round((totalDue - paid) * 1000) / 1000);
-     map[supplier.id] = { remainingSupply, remainingDelivery, balance, paid, supplyDue, deliveryDue, totalDue, paidToSupply, paidToDelivery };
+     map[supplier.id] = { remainingSupply, remainingDelivery, balance, paid, supplyDue, addonsDue, deliveryDue, totalDue, paidToSupply, paidToDelivery };
    });
    return map;
  }, [allTransactions, data?.supplierTransfers, data?.suppliers]);
- const totalOutstanding = Object.values(supplierOutstandingMap).reduce((acc, s) => acc + (s.balance || 0), 0);
+ const totalOutstanding = Object.values(supplierOutstandingMap).reduce((acc, s: any) => acc + (s.balance || 0), 0);
  const selectedSupplierSummary = React.useMemo(() => {
    if (!transferForm.supplierId) return null;
    return supplierOutstandingMap[transferForm.supplierId] || null;
@@ -440,7 +450,16 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </div>
  </td>
  <td className="p-3 md:p-3 font-black text-slate-700">
- {isInvoice ? Number(transaction.supplyAmount || 0).toFixed(3) : '—'}
+ {isInvoice ? (
+   <div className="space-y-1">
+     <div>{Number(transaction.supplyAmount || 0).toFixed(3)}</div>
+     {Number((transaction as any).addonsSupplyAmount || 0) > 0 && (
+       <div className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-2 py-1 inline-block">
+         منتجات {Number((transaction as any).productsSupplyAmount || Math.max(0, Number(transaction.supplyAmount || 0) - Number((transaction as any).addonsSupplyAmount || 0))).toFixed(3)} + إضافات {Number((transaction as any).addonsSupplyAmount || 0).toFixed(3)}
+       </div>
+     )}
+   </div>
+ ) : '—'}
  </td>
  <td className="p-3 md:p-3 font-black text-blue-600">
  {isInvoice ? Number(transaction.deliveryAmount || 0).toFixed(3) : '—'}

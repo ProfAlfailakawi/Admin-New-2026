@@ -74,6 +74,17 @@ export const normalizeAddonList = (addons: any): any[] => {
     return [];
 };
 
+const getAddonIdentity = (addon: any): string => {
+    return String(addon?.id || addon?.addonId || addon?.key || addon?.name || addon?.title || addon?.label || '').trim();
+};
+
+const addonHasPositiveSelection = (addon: any): boolean => {
+    if (!addon || addon.selected === false || addon.enabled === false || addon.isSelected === false || addon.checked === false) return false;
+    const raw = addon?.quantity ?? addon?.qty ?? addon?.count ?? addon?.selectedQuantity ?? addon?.selectedQty ?? addon?.value ?? addon?.selectedCount ?? addon?.addonQuantity;
+    if (raw !== undefined && raw !== null && raw !== '') return Number(raw) > 0 || raw === true || raw === 'true';
+    return addon?.selected === true || addon?.isSelected === true || addon?.checked === true || addon?.enabled === true || addon?.isRequired === true || addon?.quantityRule?.mode === 'required' || addon?.quantityRule?.mode === 'auto';
+};
+
 export const getInvoiceItemAddons = (item: any): any[] => {
     const lists = [
         item?.addons,
@@ -87,11 +98,30 @@ export const getInvoiceItemAddons = (item: any): any[] => {
         item?.options,
         item?.modifiers,
     ];
-    for (const list of lists) {
-        const normalized = normalizeAddonList(list);
-        if (normalized.length > 0) return normalized;
-    }
-    return [];
+
+    const merged = new Map<string, any>();
+    const anonymous: any[] = [];
+
+    lists.forEach((list) => {
+        normalizeAddonList(list).forEach((addon: any, index: number) => {
+            const key = getAddonIdentity(addon);
+            if (!key) {
+                anonymous.push(addon);
+                return;
+            }
+            const existing = merged.get(key);
+            if (!existing) {
+                merged.set(key, addon);
+                return;
+            }
+            const existingSelected = addonHasPositiveSelection(existing);
+            const nextSelected = addonHasPositiveSelection(addon);
+            // Keep catalog cost/price fields, but let the actually selected invoice line win for quantity/status.
+            merged.set(key, nextSelected || !existingSelected ? { ...existing, ...addon } : { ...addon, ...existing });
+        });
+    });
+
+    return [...Array.from(merged.values()), ...anonymous];
 };
 
 export const getInvoiceLevelAddons = (inv: any): any[] => {
@@ -126,7 +156,7 @@ const mergeAddonWithCatalog = (addon: any, item: any, products: any[] = []) => {
 
 export const computeAddonSelectedQuantity = (addon: any): number => {
     if (addon?.selected === false || addon?.enabled === false || addon?.isSelected === false || addon?.checked === false) return 0;
-    const raw = addon?.quantity ?? addon?.qty ?? addon?.count ?? addon?.selectedQuantity ?? addon?.value ?? addon?.selectedQty;
+    const raw = addon?.quantity ?? addon?.qty ?? addon?.count ?? addon?.selectedQuantity ?? addon?.value ?? addon?.selectedQty ?? addon?.selectedCount ?? addon?.addonQuantity;
     if (raw !== undefined && raw !== null && raw !== '') {
         if (raw === true || raw === 'true') return 1;
         return Math.max(0, Number(raw) || 0);
@@ -140,12 +170,12 @@ export const computeAddonSelectedQuantity = (addon: any): number => {
  */
 export const computeAddonRevenue = (addon: any, item: any, products: any[] = []): number => {
     addon = mergeAddonWithCatalog(addon, item, products);
-    const directTotal = safeParsePrice(addon?.total ?? addon?.totalPrice ?? addon?.lineTotal ?? addon?.revenue ?? addon?.amountTotal);
+    const directTotal = safeParsePrice(addon?.total ?? addon?.totalPrice ?? addon?.lineTotal ?? addon?.revenue ?? addon?.amountTotal ?? addon?.addonTotal ?? addon?.addonsTotal);
     if (directTotal > 0) return directTotal;
 
     const itemQty = Math.max(1, Number(item?.quantity !== undefined ? item.quantity : (item?.qty !== undefined ? item.qty : 1)) || 1);
     const threshold = Math.max(1, Number(addon?.xItemsThreshold || addon?.threshold || addon?.maxProductQtyPerAddon || 1));
-    const price = safeParsePrice(addon?.price ?? addon?.addonPrice ?? addon?.amount ?? addon?.unitPrice ?? addon?.sellingPrice ?? 0);
+    const price = safeParsePrice(addon?.price ?? addon?.addonPrice ?? addon?.amount ?? addon?.unitPrice ?? addon?.sellingPrice ?? addon?.salePrice ?? 0);
     if (price <= 0) return 0;
 
     const selectedQty = computeAddonSelectedQuantity(addon);
@@ -175,15 +205,15 @@ export const computeAddonCost = (addon: any, item: any, products: any[] = []): n
     addon = mergeAddonWithCatalog(addon, item, products);
     if (addon?.selected === false || addon?.enabled === false || addon?.isSelected === false || addon?.checked === false) return 0;
 
-    const directCostTotal = safeParsePrice(addon?.totalCost ?? addon?.costTotal ?? addon?.lineCost ?? addon?.supplierTotal ?? addon?.supplyTotal ?? addon?.purchaseTotal ?? addon?.addonCostTotal ?? addon?.addonsCostTotal);
+    const directCostTotal = safeParsePrice(addon?.totalCost ?? addon?.costTotal ?? addon?.lineCost ?? addon?.supplierTotal ?? addon?.supplyTotal ?? addon?.purchaseTotal ?? addon?.addonCostTotal ?? addon?.addonsCostTotal ?? addon?.supplierCostTotal ?? addon?.totalSupplierCost);
     if (directCostTotal > 0) return directCostTotal;
 
     const itemQty = Math.max(1, Number(item?.quantity !== undefined ? item.quantity : (item?.qty !== undefined ? item.qty : 1)) || 1);
-    const cost = safeParsePrice(addon?.cost ?? addon?.addonCost ?? addon?.unitCost ?? addon?.supplierCost ?? addon?.supplyCost ?? addon?.purchaseCost ?? addon?.baseCost ?? addon?.costPrice ?? 0);
+    const cost = safeParsePrice(addon?.cost ?? addon?.addonCost ?? addon?.unitCost ?? addon?.supplierCost ?? addon?.supplyCost ?? addon?.purchaseCost ?? addon?.baseCost ?? addon?.costPrice ?? addon?.purchasePrice ?? addon?.supplierPrice ?? 0);
     if (cost <= 0) return 0;
 
     const selectedQty = computeAddonSelectedQuantity(addon);
-    const hasExplicitQty = addon?.quantity !== undefined || addon?.qty !== undefined || addon?.count !== undefined || addon?.selectedQuantity !== undefined || addon?.selectedQty !== undefined || addon?.value !== undefined;
+    const hasExplicitQty = addon?.quantity !== undefined || addon?.qty !== undefined || addon?.count !== undefined || addon?.selectedQuantity !== undefined || addon?.selectedQty !== undefined || addon?.selectedCount !== undefined || addon?.addonQuantity !== undefined || addon?.value !== undefined;
     if (hasExplicitQty && selectedQty <= 0) return 0;
 
     let units = 0;
@@ -253,12 +283,20 @@ export const computeInvoiceAddonsTotal = (inv: any, products: any[] = []): numbe
 export const computeInvoiceAddonsTotalCost = (inv: any, products: any[] = []): number => {
     let total = 0;
     const processedFixedAddons = new Set<string>();
+    let foundItemAddons = false;
 
     (inv.items || []).forEach((item: any) => {
+        const directItemAddonsCost = safeParsePrice(item?.addonsCost ?? item?.addOnsCost ?? item?.extrasCost ?? item?.addonsSupplyAmount ?? item?.addonsSupplierCost ?? item?.addonCostTotal ?? item?.addonsCostTotal);
         const itemAddons = getInvoiceItemAddons(item);
+        if (directItemAddonsCost > 0 && itemAddons.length === 0) {
+            total += directItemAddonsCost;
+            foundItemAddons = true;
+            return;
+        }
+        if (itemAddons.length > 0) foundItemAddons = true;
         itemAddons.forEach((addon: any) => {
             if (addon.calculationType === 'fixed') {
-                const key = `${addon.id || addon.name}-${addon.name || ''}`;
+                const key = `${addon.id || addon.addonId || addon.name}-${addon.name || addon.title || ''}`;
                 if (!processedFixedAddons.has(key)) {
                     total += computeAddonCost(addon, item, products);
                     processedFixedAddons.add(key);
@@ -268,7 +306,9 @@ export const computeInvoiceAddonsTotalCost = (inv: any, products: any[] = []): n
             }
         });
     });
-    return total;
+
+    const directInvoiceCost = safeParsePrice(inv?.addonsCost ?? inv?.addOnsCost ?? inv?.extrasCost ?? inv?.addonsSupplyAmount ?? inv?.addonsSupplierCost ?? inv?.addonCostTotal ?? inv?.addonsCostTotal);
+    return total > 0 || foundItemAddons ? total : directInvoiceCost;
 };
 
 

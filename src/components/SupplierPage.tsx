@@ -172,38 +172,15 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  };
 
  const getSupplierInvoiceStats = (supId: string) => {
- const supplierProductIds = new Set(
- (data?.products || [])
- .filter(p => p.supplierId === supId)
- .map(p => p.id)
- );
-
- const supplierInvoices = (data?.invoices || [])
- .filter(inv => !inv.isDeleted)
- .map(inv => {
- const supplyCost = (inv.items || []).reduce((total, item) => {
- const product = (data?.products || []).find(p => p.id === item.productId);
- if (!product || product.supplierId !== supId || !supplierProductIds.has(item.productId)) return total;
- const itemCost = item.costAtTime !== undefined ? item.costAtTime : (product.cost || 0);
-  const itemAddons = normalizeAddonList(item.addons || (item as any).selectedAddons || (item as any).addOns || (item as any).extras || (item as any).addonSelections || (item as any).selectedExtras || []);
-  let addonsCost = 0;
-  itemAddons.forEach((addon: any) => {
-    if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
-    addonsCost += computeAddonCost(addon, item, data?.products || []);
-  });
- const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
- return total + (itemCost * qty) + addonsCost;
- }, 0);
- const supplierCost = supplyCost + getInvoiceDeliverySettlement(inv, supId);
-
- return {
- id: inv.id,
- date: inv.date,
- supplierCost: Math.round(supplierCost * 1000) / 1000
- };
- })
- .filter(inv => inv.supplierCost > 0)
- .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+ const supplierInvoices = getSupplierLedger(supId)
+ .filter((item: any) => item.type === 'invoice')
+ .map((item: any) => ({
+ id: item.refId,
+ date: item.date,
+ supplierCost: Math.round(Number(item.amount || 0) * 1000) / 1000
+ }))
+ .filter((inv: any) => inv.supplierCost > 0)
+ .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
  let supplierPaidAmount = (data?.supplierTransfers || [])
  .filter(t => t.supplierId === supId)
@@ -212,7 +189,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  let paidInvoices = 0;
  let partiallyPaidInvoices = 0;
 
- supplierInvoices.forEach(inv => {
+ supplierInvoices.forEach((inv: any) => {
  if (supplierPaidAmount >= inv.supplierCost - 0.001) {
  paidInvoices += 1;
  supplierPaidAmount -= inv.supplierCost;
@@ -826,7 +803,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   const paidToDelivery = Math.min(Math.max(totalPaid - totalSupplyDue, 0), totalDeliveryDue);
   const remainingSupply = Math.max(0, totalSupplyDue - paidToSupply);
   const remainingDelivery = Math.max(0, totalDeliveryDue - paidToDelivery);
-  const currentBalance = Number(supplier?.balance || 0);
+  const currentBalance = getSupplierLiveBalance(showLedgerSupplierId);
   const isDeliveryOnlySupplier = (supplier as any)?.supplierType === 'delivery';
   const showSupplySummary = !isDeliveryOnlySupplier && totalSupplyDue > 0;
   const showAddonsSummary = !isDeliveryOnlySupplier && totalAddonsDue > 0;
