@@ -7,6 +7,7 @@ import ConfirmModal from './ui/ConfirmModal';
 import { toast } from 'sonner';
 import { NumericInput } from './ui/NumericInput';
 import { getSupplierLedgerForState, getSupplierLiveBalanceForState, getInvoiceDeliverySettlementForSupplier } from '../lib/business-logic';
+import { computeAddonCost } from '../lib/invoice-calculations';
 
 interface SupplierPageProps {
  data: AppState;
@@ -184,8 +185,16 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  const product = (data?.products || []).find(p => p.id === item.productId);
  if (!product || product.supplierId !== supId || !supplierProductIds.has(item.productId)) return total;
  const itemCost = item.costAtTime !== undefined ? item.costAtTime : (product.cost || 0);
+  const itemAddons = item.addons || (item as any).selectedAddons || (item as any).addOns || (item as any).extras || (item as any).addonSelections || (item as any).selectedExtras || [];
+  let addonsCost = 0;
+  if (Array.isArray(itemAddons)) {
+    itemAddons.forEach((addon: any) => {
+      if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
+      addonsCost += computeAddonCost(addon, item, data?.products || []);
+    });
+  }
  const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
- return total + (itemCost * qty);
+ return total + (itemCost * qty) + addonsCost;
  }, 0);
  const supplierCost = supplyCost + getInvoiceDeliverySettlement(inv, supId);
 

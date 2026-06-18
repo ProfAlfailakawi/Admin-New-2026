@@ -78,6 +78,7 @@ import {
   computeInvoiceSubtotal,
   computeAddonQuantity,
   computeAddonRevenue,
+  computeAddonCost,
 } from "../lib/invoice-calculations";
 import OrderPage from "./OrderPage";
 
@@ -419,7 +420,15 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
             if (String(product?.supplierId || '') !== String(supplier.id)) return;
             const qty = Number(item.quantity ?? item.qty ?? 1) || 1;
             const cost = Number(item.costAtTime ?? product?.cost ?? 0) || 0;
-            supplyDue += cost * qty;
+            let addonsCost = 0;
+            const itemAddons = item.addons || item.selectedAddons || item.addOns || item.extras || item.addonSelections || item.selectedExtras || [];
+            if (Array.isArray(itemAddons)) {
+              itemAddons.forEach((addon: any) => {
+                if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
+                addonsCost += computeAddonCost(addon, item, data?.products || []);
+              });
+            }
+            supplyDue += (cost * qty) + addonsCost;
           });
           deliveryDue += getSupplierDeliverySettlementAmountForReport(inv, supplier.id, data);
         });

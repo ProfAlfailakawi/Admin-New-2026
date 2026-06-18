@@ -1,5 +1,6 @@
 import { AppState } from '../types';
 import { isPaidStatus } from './status-utils';
+import { computeAddonCost, computeAddonRevenue } from './invoice-calculations';
 
 
 const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 1000;
@@ -65,14 +66,26 @@ export function getSupplierLedgerForState(supId: string, state: AppState): any[]
       const cost = item.costAtTime !== undefined ? item.costAtTime : (product?.cost || 0);
       const price = item.priceAtTime !== undefined ? item.priceAtTime : (product?.price || 0);
       const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
+      
+      let addonsCostTotal = 0;
+      let addonsPriceTotal = 0;
+      const itemAddons = item.addons || (item as any).selectedAddons || (item as any).addOns || (item as any).extras || (item as any).addonSelections || (item as any).selectedExtras || [];
+      if (Array.isArray(itemAddons)) {
+        itemAddons.forEach((addon: any) => {
+          if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
+          addonsCostTotal += computeAddonCost(addon, item, state.products || []);
+          addonsPriceTotal += computeAddonRevenue(addon, item, state.products || []);
+        });
+      }
+
       return {
         productId: item.productId,
         name: product?.name || (item as any).name || (item as any).productName || 'منتج غير معروف',
         quantity: qty,
         cost,
         price,
-        totalCost: roundKwd(cost * qty),
-        totalPrice: roundKwd(price * qty)
+        totalCost: roundKwd((cost * qty) + addonsCostTotal),
+        totalPrice: roundKwd((price * qty) + addonsPriceTotal)
       };
     });
 
