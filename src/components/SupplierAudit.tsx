@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 import { playMetallicSettlementChime } from '../lib/sonic';
 import { getSupplierLedgerForState, getSupplierLiveBalanceForState, getInvoiceDeliverySettlementForSupplier } from '../lib/business-logic';
-import { computeAddonCost, computeAddonRevenue, computeInvoiceCost, computeInvoiceProfit, computeInvoiceTotal, getInvoiceItemAddons } from '../lib/invoice-calculations';
+import { computeAddonCost, computeAddonRevenue, computeInvoiceCost, computeInvoiceItemBaseCost, computeInvoiceProfit, computeInvoiceTotal, getInvoiceItemAddons } from '../lib/invoice-calculations';
 
 interface SupplierAuditProps {
  data: AppState;
@@ -793,7 +793,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  const p = (data.products || []).find(prod => prod.id === item.productId);
  const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
  const itemPrice = item.priceAtTime !== undefined ? item.priceAtTime : (p?.price || 0);
- const itemCost = item.costAtTime !== undefined ? item.costAtTime : (p?.cost || 0);
+ const itemCost = computeInvoiceItemBaseCost(item, data.products || []);
  const itemAddons = getInvoiceItemAddons(item).filter((addon: any) => !(addon.selected === false || addon.isSelected === false || addon.enabled === false || addon.checked === false));
  const addonsRevenue = itemAddons.reduce((acc: number, addon: any) => acc + computeAddonRevenue(addon, item, data.products || []), 0);
  const addonsCost = itemAddons.reduce((acc: number, addon: any) => acc + computeAddonCost(addon, item, data.products || []), 0);
