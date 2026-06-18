@@ -143,15 +143,39 @@ export const getInvoiceLevelAddons = (inv: any): any[] => {
     return [];
 };
 
-const mergeAddonWithCatalog = (addon: any, item: any, products: any[] = []) => {
-    if (!addon || typeof addon !== 'object') return addon;
+const findCatalogAddonMatch = (addon: any, item: any, products: any[] = []) => {
+    if (!addon || typeof addon !== 'object') return null;
     const product = products.find((p: any) => p.id === item?.productId || p.name === item?.productName || p.name === item?.name);
-    const catalog = normalizeAddonList(product?.addons).find((a: any) =>
+    return normalizeAddonList(product?.addons).find((a: any) =>
         (addon.id && a.id === addon.id) ||
         (addon.name && a.name === addon.name) ||
         (addon.addonId && a.id === addon.addonId)
-    );
+    ) || null;
+};
+
+const mergeAddonWithCatalog = (addon: any, item: any, products: any[] = []) => {
+    if (!addon || typeof addon !== 'object') return addon;
+    const catalog = findCatalogAddonMatch(addon, item, products);
     return catalog ? { ...catalog, ...addon } : addon;
+};
+
+// Field names that may hold the supplier's cost for an addon, in priority order.
+const ADDON_COST_FIELD_NAMES = ['cost', 'addonCost', 'unitCost', 'supplierCost', 'supplyCost', 'purchaseCost', 'baseCost', 'costPrice', 'purchasePrice', 'supplierPrice'];
+
+// Reads the first POSITIVE cost value from an addon-like object.
+// Note: in this app, a stored value of 0 in these fields means "not entered" (see ProductPage.tsx
+// addon form, which renders 0 as an empty input), not a deliberate zero-cost decision. So unlike a
+// plain "is this field defined" check, this only treats a field as usable once it is greater than 0,
+// letting us keep searching other fields / the product catalog instead of locking in a stale zero.
+const getFirstPositiveCost = (obj: any): number | null => {
+    if (!obj) return null;
+    for (const field of ADDON_COST_FIELD_NAMES) {
+        const raw = obj[field];
+        if (raw === undefined || raw === null || raw === '') continue;
+        const parsed = safeParsePrice(raw);
+        if (parsed > 0) return parsed;
+    }
+    return null;
 };
 
 export const computeAddonSelectedQuantity = (addon: any): number => {
@@ -202,6 +226,9 @@ export const computeAddonRevenue = (addon: any, item: any, products: any[] = [])
  * Calculates the total cost for a single addon.
  */
 export const computeAddonCost = (addon: any, item: any, products: any[] = []): number => {
+    // Keep the catalog match separately (before the snapshot fields override it) so a stale
+    // zero/missing cost saved on the invoice item can still fall back to the live catalog cost.
+    const catalogAddon = findCatalogAddonMatch(addon, item, products);
     addon = mergeAddonWithCatalog(addon, item, products);
     if (addon?.selected === false || addon?.enabled === false || addon?.isSelected === false || addon?.checked === false) return 0;
 
@@ -209,9 +236,12 @@ export const computeAddonCost = (addon: any, item: any, products: any[] = []): n
     if (directCostTotal > 0) return directCostTotal;
 
     const itemQty = Math.max(1, Number(item?.quantity !== undefined ? item.quantity : (item?.qty !== undefined ? item.qty : 1)) || 1);
-    const costFields = [addon?.cost, addon?.addonCost, addon?.unitCost, addon?.supplierCost, addon?.supplyCost, addon?.purchaseCost, addon?.baseCost, addon?.costPrice, addon?.purchasePrice, addon?.supplierPrice];
-    const explicitCost = costFields.some((value) => value !== undefined && value !== null && value !== '');
-    let cost = safeParsePrice(costFields.find((value) => value !== undefined && value !== null && value !== '') ?? 0);
+    // 1) A real (greater-than-zero) cost saved on the invoice item itself.
+    // 2) Otherwise, a real cost currently set on the product's addon catalog entry.
+    // A stored 0 in any of these fields means "not entered" in this app (see ProductPage.tsx),
+    // so it must not block falling through to the catalog or the final price-based fallback below.
+    let cost = getFirstPositiveCost(addon) ?? getFirstPositiveCost(catalogAddon) ?? 0;
+    const explicitCost = cost > 0;
 
     // Older invoices/add-ons sometimes saved only the add-on selling price, without a supplier-cost snapshot.
     // For supplier ledgers, the safest operational fallback is to include the add-on amount instead of dropping it to zero.
