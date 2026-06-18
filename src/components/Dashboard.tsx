@@ -105,9 +105,15 @@ const PromoCodePage = React.lazy(() =>
   import("./PromoCodePage").then((m) => ({ default: m.PromoCodePage })),
 );
 const OrderPage = React.lazy(() => import("./OrderPage"));
-import { MarketingLab } from "./MarketingLab";
-import { DiwaniyaTournaments } from "./DiwaniyaTournaments";
-import { SmartContentStudio } from "./SmartContentStudio";
+const MarketingLab = React.lazy(() =>
+  import("./MarketingLab").then((m) => ({ default: m.MarketingLab })),
+);
+const DiwaniyaTournaments = React.lazy(() =>
+  import("./DiwaniyaTournaments").then((m) => ({ default: m.DiwaniyaTournaments })),
+);
+const SmartContentStudio = React.lazy(() =>
+  import("./SmartContentStudio").then((m) => ({ default: m.SmartContentStudio })),
+);
 import { GoalManager } from "./GoalManager";
 const KuwaitSeasonalCalendar = React.lazy(() =>
   import("./KuwaitSeasonalCalendar").then((m) => ({
@@ -4094,13 +4100,25 @@ const [isPending, startTransition] = useTransition();
 
             {activeTab === "contentStudio" && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700" dir="rtl">
-                <SmartContentStudio data={data} setData={onUpdateData} onNavigate={onNavigate!} />
+                <React.Suspense
+                  fallback={
+                    <div className="h-64 animate-pulse bg-slate-100 rounded-2xl" />
+                  }
+                >
+                  <SmartContentStudio data={data} setData={onUpdateData} onNavigate={onNavigate!} />
+                </React.Suspense>
               </div>
             )}
 
             {activeTab === "diwaniya" && (
               <div className="space-y-6" dir="rtl">
-                <DiwaniyaTournaments data={data} setData={onUpdateData} />
+                <React.Suspense
+                  fallback={
+                    <div className="h-64 animate-pulse bg-slate-100 rounded-2xl" />
+                  }
+                >
+                  <DiwaniyaTournaments data={data} setData={onUpdateData} />
+                </React.Suspense>
               </div>
             )}
 
