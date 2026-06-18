@@ -1,6 +1,6 @@
 import { AppState } from '../types';
 import { isPaidStatus } from './status-utils';
-import { computeAddonCost, computeAddonRevenue, normalizeAddonList } from './invoice-calculations';
+import { computeAddonCost, computeAddonRevenue, getInvoiceItemAddons } from './invoice-calculations';
 
 
 const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 1000;
@@ -69,12 +69,21 @@ export function getSupplierLedgerForState(supId: string, state: AppState): any[]
       
       let addonsCostTotal = 0;
       let addonsPriceTotal = 0;
-      const itemAddons = normalizeAddonList(item.addons || (item as any).selectedAddons || (item as any).addOns || (item as any).extras || (item as any).addonSelections || (item as any).selectedExtras || []);
-      itemAddons.forEach((addon: any) => {
-        if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
-        addonsCostTotal += computeAddonCost(addon, item, state.products || []);
-        addonsPriceTotal += computeAddonRevenue(addon, item, state.products || []);
-      });
+      const addonLines = getInvoiceItemAddons(item).map((addon: any) => {
+        if (addon.selected === false || addon.isSelected === false || addon.enabled === false || addon.checked === false) return null;
+        const costTotal = roundKwd(computeAddonCost(addon, item, state.products || []));
+        const priceTotal = roundKwd(computeAddonRevenue(addon, item, state.products || []));
+        if (costTotal <= 0 && priceTotal <= 0) return null;
+        addonsCostTotal += costTotal;
+        addonsPriceTotal += priceTotal;
+        return {
+          id: addon.id || addon.addonId || addon.name,
+          name: addon.name || addon.title || 'إضافة',
+          quantity: addon.quantity ?? addon.qty ?? addon.count ?? addon.selectedQuantity ?? addon.selectedQty ?? undefined,
+          costTotal,
+          priceTotal,
+        };
+      }).filter(Boolean);
 
       return {
         productId: item.productId,
@@ -82,13 +91,17 @@ export function getSupplierLedgerForState(supId: string, state: AppState): any[]
         quantity: qty,
         cost,
         price,
+        addonsCost: roundKwd(addonsCostTotal),
+        addonsRevenue: roundKwd(addonsPriceTotal),
+        addons: addonLines,
         totalCost: roundKwd((cost * qty) + addonsCostTotal),
         totalPrice: roundKwd((price * qty) + addonsPriceTotal)
       };
     });
 
-    const supplierCost = itemsForThisSupplier.reduce((acc, item) => acc + item.totalCost, 0);
-    const supplierRevenue = itemsForThisSupplier.reduce((acc, item) => acc + item.totalPrice, 0);
+    const supplierCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + item.totalCost, 0));
+    const supplierAddonsCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + Number(item.addonsCost || 0), 0));
+    const supplierRevenue = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + item.totalPrice, 0));
     const supplierDelivery = getInvoiceDeliverySettlementForSupplier(inv, supId, state);
     const supplierDue = roundKwd(supplierCost + supplierDelivery);
 
@@ -100,6 +113,8 @@ export function getSupplierLedgerForState(supId: string, state: AppState): any[]
         type: 'invoice',
         amount: supplierDue, // Positive (Obligation)
         supplyAmount: supplierCost,
+        addonsSupplyAmount: supplierAddonsCost,
+        productsSupplyAmount: roundKwd(supplierCost - supplierAddonsCost),
         deliveryAmount: supplierDelivery,
         revenue: supplierRevenue,
         refId: inv.id,

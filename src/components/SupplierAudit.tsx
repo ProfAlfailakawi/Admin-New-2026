@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 import { playMetallicSettlementChime } from '../lib/sonic';
 import { getSupplierLedgerForState, getSupplierLiveBalanceForState, getInvoiceDeliverySettlementForSupplier } from '../lib/business-logic';
-import { computeAddonCost, normalizeAddonList } from '../lib/invoice-calculations';
+import { computeAddonCost, getInvoiceItemAddons } from '../lib/invoice-calculations';
 
 interface SupplierAuditProps {
  data: AppState;
@@ -781,7 +781,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <DollarSign size={10} />
  حصة المورد: {(() => {
     let addonsCost = 0;
-    const itemAddons = normalizeAddonList(item.addons || (item as any).selectedAddons || (item as any).addOns || (item as any).extras || (item as any).addonSelections || (item as any).selectedExtras || []);
+    const itemAddons = getInvoiceItemAddons(item);
     itemAddons.forEach((addon: any) => {
       if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
       addonsCost += computeAddonCost(addon, item, data.products || []);

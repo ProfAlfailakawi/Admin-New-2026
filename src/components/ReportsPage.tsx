@@ -61,7 +61,7 @@ import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import ConfirmModal from "./ui/ConfirmModal";
 import { toast } from "sonner";
-import { recalculateStateBalances } from "../lib/business-logic";
+import { recalculateStateBalances, getSupplierLedgerForState } from "../lib/business-logic";
 import {
   isPaidStatus,
   isPendingStatus,
@@ -78,8 +78,7 @@ import {
   computeInvoiceSubtotal,
   computeAddonQuantity,
   computeAddonRevenue,
-  computeAddonCost,
-  normalizeAddonList,
+  getInvoiceItemAddons,
 } from "../lib/invoice-calculations";
 import OrderPage from "./OrderPage";
 
@@ -412,32 +411,20 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       });
 
     const supplierFinancialRows = React.useMemo(() => {
+      const activeInvoiceIds = new Set(activeInvoices.map((inv: any) => String(inv.id)));
       return (data?.suppliers || []).map((supplier: any) => {
-        let supplyDue = 0;
-        let deliveryDue = 0;
-        activeInvoices.forEach((inv: any) => {
-          (inv.items || []).forEach((item: any) => {
-            const product = (data?.products || []).find((p: any) => p.id === item.productId);
-            if (String(product?.supplierId || '') !== String(supplier.id)) return;
-            const qty = Number(item.quantity ?? item.qty ?? 1) || 1;
-            const cost = Number(item.costAtTime ?? product?.cost ?? 0) || 0;
-            let addonsCost = 0;
-            const itemAddons = normalizeAddonList(item.addons || item.selectedAddons || item.addOns || item.extras || item.addonSelections || item.selectedExtras || []);
-            itemAddons.forEach((addon: any) => {
-              if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
-              addonsCost += computeAddonCost(addon, item, data?.products || []);
-            });
-            supplyDue += (cost * qty) + addonsCost;
-          });
-          deliveryDue += getSupplierDeliverySettlementAmountForReport(inv, supplier.id, data);
-        });
+        const invoiceLedger = getSupplierLedgerForState(supplier.id, data)
+          .filter((t: any) => t.type === 'invoice' && activeInvoiceIds.has(String(t.refId)));
+        const supplyDue = invoiceLedger.reduce((acc: number, t: any) => acc + Number(t.supplyAmount || 0), 0);
+        const deliveryDue = invoiceLedger.reduce((acc: number, t: any) => acc + Number(t.deliveryAmount || 0), 0);
+        const addonsDue = invoiceLedger.reduce((acc: number, t: any) => acc + Number(t.addonsSupplyAmount || 0), 0);
         const paid = (data?.supplierTransfers || [])
           .filter((t: any) => String(t.supplierId) === String(supplier.id))
           .reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
         const allocation = allocateSupplierPaidAmount(supplyDue, deliveryDue, paid);
         const totalDue = supplyDue + deliveryDue;
         const balance = Math.max(0, totalDue - paid);
-        return { supplier, supplyDue, deliveryDue, totalDue, paid, balance, ...allocation };
+        return { supplier, supplyDue, deliveryDue, addonsDue, totalDue, paid, balance, ...allocation };
       }).filter((row: any) => row.totalDue > 0 || row.paid > 0 || row.balance > 0)
         .sort((a: any, b: any) => b.balance - a.balance || b.totalDue - a.totalDue);
     }, [data, activeInvoices]);
@@ -828,8 +815,9 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           productsSubtotal += itemProductTotal;
 
           let addonsLines: string[] = [];
-          if (Array.isArray(item.addons) && item.addons.length > 0) {
-            item.addons.forEach((addon: any) => {
+          const itemAddons = getInvoiceItemAddons(item);
+          if (itemAddons.length > 0) {
+            itemAddons.forEach((addon: any) => {
               if (addon.selected === false || addon.isSelected === false || addon.enabled === false) return;
               const addonQty = computeAddonQuantity(addon, item);
               if (addonQty > 0) {
@@ -1682,47 +1670,9 @@ Alturath.kw`;
                                                       pTotal +=
                                                         price *
                                                         (item.quantity || 1);
-                                                      (Array.isArray(
-                                                        item.addons,
-                                                      )
-                                                        ? item.addons
-                                                        : []
-                                                      ).forEach((a: any) => {
-                                                        if (a.selected === false || a.isSelected === false || a.enabled === false) return; aTotalSum += computeAddonRevenue(a, item, data?.products || []); return; let aQty = 0;
-                                                        if (
-                                                          a.calculationType ===
-                                                          "fixed"
-                                                        )
-                                                          aQty = 1;
-                                                        else if (
-                                                          a.calculationType ===
-                                                          "per_x_items"
-                                                        )
-                                                          aQty = Math.ceil(
-                                                            (item.quantity ||
-                                                              1) /
-                                                              (a.xItemsThreshold ||
-                                                                1),
-                                                          );
-                                                        else
-                                                          aQty =
-                                                            item.quantity || 1;
-                                                        aQty = Math.max(
-                                                          a.minQuantity || 0,
-                                                          Math.min(
-                                                            aQty,
-                                                            a.maxQuantity ||
-                                                              aQty,
-                                                          ),
-                                                        );
-                                                        aTotalSum +=
-                                                          Number(a.price || 0) *
-                                                          Math.max(
-                                                            0,
-                                                            aQty -
-                                                              (a.freeQuantity ||
-                                                                0),
-                                                          );
+                                                      getInvoiceItemAddons(item).forEach((a: any) => {
+                                                        if (a.selected === false || a.isSelected === false || a.enabled === false || a.checked === false) return;
+                                                        aTotalSum += computeAddonRevenue(a, item, data?.products || []);
                                                       });
                                                     },
                                                   );
@@ -1738,6 +1688,16 @@ Alturath.kw`;
                                                           د.ك
                                                         </span>
                                                       </div>
+                                                      {aTotalSum > 0 && (
+                                                        <div className="flex justify-between text-xs font-bold text-amber-600">
+                                                          <span className="text-amber-500">
+                                                            مجموع الإضافات:
+                                                          </span>
+                                                          <span>
+                                                            {aTotalSum.toFixed(3)} د.ك
+                                                          </span>
+                                                        </div>
+                                                      )}
                                                       {(inv.discount || 0) >
                                                         0 && (
                                                         <div className="flex justify-between text-xs font-bold text-rose-600">
