@@ -817,6 +817,8 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   const supplier = (data?.suppliers || []).find(s => s.id === showLedgerSupplierId);
   const ledger = getSupplierLedger(showLedgerSupplierId);
   const totalSupplyDue = ledger.filter(l => l.type === 'invoice').reduce((acc, l) => acc + Number(l.supplyAmount || 0), 0);
+  const totalAddonsDue = ledger.filter(l => l.type === 'invoice').reduce((acc, l) => acc + Number((l as any).addonsSupplyAmount || 0), 0);
+  const totalProductsDue = Math.max(0, totalSupplyDue - totalAddonsDue);
   const totalDeliveryDue = ledger.filter(l => l.type === 'invoice').reduce((acc, l) => acc + Number(l.deliveryAmount || 0), 0);
   const totalInvoiced = totalSupplyDue + totalDeliveryDue;
   const totalPaid = Math.abs(ledger.filter(l => l.type === 'transfer').reduce((acc, l) => acc + l.amount, 0));
@@ -827,6 +829,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   const currentBalance = Number(supplier?.balance || 0);
   const isDeliveryOnlySupplier = (supplier as any)?.supplierType === 'delivery';
   const showSupplySummary = !isDeliveryOnlySupplier && totalSupplyDue > 0;
+  const showAddonsSummary = !isDeliveryOnlySupplier && totalAddonsDue > 0;
   const showDeliverySummary = totalDeliveryDue > 0 || isDeliveryOnlySupplier || ((supplier as any)?.deliverySettlement === 'supplier');
 
   return (
@@ -847,13 +850,21 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   </div>
   </div>
 
-  <div className={cn("grid grid-cols-2 gap-3", showSupplySummary && showDeliverySummary ? "md:grid-cols-5" : "md:grid-cols-4")}>
+  <div className={cn("grid grid-cols-2 gap-3", showSupplySummary && showAddonsSummary && showDeliverySummary ? "md:grid-cols-6" : showSupplySummary && showDeliverySummary ? "md:grid-cols-5" : "md:grid-cols-4")}>
   {showSupplySummary && (
   <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
   <div className="absolute top-0 right-0 w-16 h-16 bg-slate-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
   <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">توريد المنتجات</div>
-  <div className="text-base font-black text-slate-900 text-center relative z-10">{totalSupplyDue.toFixed(3)}</div>
-  <div className="text-[9px] font-black text-slate-400 mt-1 text-center">متبقي {remainingSupply.toFixed(3)}</div>
+  <div className="text-base font-black text-slate-900 text-center relative z-10">{totalProductsDue.toFixed(3)}</div>
+  <div className="text-[9px] font-black text-slate-400 mt-1 text-center">إجمالي التوريد {totalSupplyDue.toFixed(3)}</div>
+  </div>
+  )}
+  {showAddonsSummary && (
+  <div className="bg-amber-50 p-3 rounded-2xl border border-amber-100 shadow-sm relative overflow-hidden group">
+  <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
+  <div className="text-[10px] font-black text-amber-500 uppercase mb-1 text-center relative z-10">إضافات المورد</div>
+  <div className="text-base font-black text-amber-700 text-center relative z-10">{totalAddonsDue.toFixed(3)}</div>
+  <div className="text-[9px] font-black text-amber-500 mt-1 text-center">مضافة ضمن المستحق</div>
   </div>
   )}
   {showDeliverySummary && (
@@ -922,9 +933,14 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
     )}
   </div>
   <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">{formatKuwaitiDateOnly(item.date)}</div>
-  {item.type === 'invoice' && item.deliveryAmount > 0 && (
-    <div className="mt-1 text-[10px] font-black text-blue-500 bg-blue-50 rounded-xl px-2 py-1 inline-block">يشمل توصيل مورد {Number(item.deliveryAmount || 0).toFixed(3)} د.ك</div>
+  <div className="mt-1 flex flex-wrap justify-end gap-1">
+  {item.type === 'invoice' && Number((item as any).addonsSupplyAmount || 0) > 0 && (
+    <div className="text-[10px] font-black text-amber-600 bg-amber-50 rounded-xl px-2 py-1 inline-block">يشمل إضافات {Number((item as any).addonsSupplyAmount || 0).toFixed(3)} د.ك</div>
   )}
+  {item.type === 'invoice' && item.deliveryAmount > 0 && (
+    <div className="text-[10px] font-black text-blue-500 bg-blue-50 rounded-xl px-2 py-1 inline-block">يشمل توصيل مورد {Number(item.deliveryAmount || 0).toFixed(3)} د.ك</div>
+  )}
+  </div>
   </div>
   </div>
   <div className="order-2 text-left">
@@ -961,6 +977,12 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
               <div className="text-[10px] font-black text-slate-400 uppercase mb-1">تكلفة التوريد (Supply Cost)</div>
               <div className="text-lg font-black text-rose-500 whitespace-nowrap" dir="ltr">{(item.supplyAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
             </div>
+            {Number((item as any).addonsSupplyAmount || 0) > 0 && (
+            <div className="text-right border-r border-slate-100 px-3">
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إضافات المورد</div>
+              <div className="text-base font-black text-amber-600 whitespace-nowrap" dir="ltr">{Number((item as any).addonsSupplyAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
+            </div>
+            )}
             {Number(item.deliveryAmount || 0) > 0 && (
             <div className="text-right border-r border-slate-100 px-3">
               <div className="text-[10px] font-black text-slate-400 uppercase mb-1">توصيل المورد</div>
@@ -986,6 +1008,16 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
                     <div className="text-sm font-black text-slate-900 whitespace-nowrap" dir="ltr">{(prod.totalCost || prod.cost || 0).toFixed(3)} <span className="text-[10px]">د.ك</span></div>
                     <div className="text-[9px] font-bold text-emerald-500">حصة المورد</div>
                   </div>
+                  {Array.isArray((prod as any).addons) && (prod as any).addons.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-amber-100/70 w-full space-y-1">
+                      {((prod as any).addons || []).map((addon: any, aIdx: number) => (
+                        <div key={`${item.id}-${pIdx}-addon-${aIdx}`} className="flex justify-between items-center gap-2 text-[10px] bg-amber-50/80 border border-amber-100 rounded-xl px-2 py-1">
+                          <span className="font-black text-amber-700 text-right">إضافة: {addon.name}{addon.quantity !== undefined ? ` × ${addon.quantity}` : ''}</span>
+                          <span className="font-black text-amber-700 whitespace-nowrap" dir="ltr">{Number(addon.costTotal || 0).toFixed(3)} د.ك</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
