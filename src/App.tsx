@@ -1043,7 +1043,6 @@ const MainApp: React.FC = () => {
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
-  const [hasInstantCloudSnapshot, setHasInstantCloudSnapshot] = useState(false);
   const [deferredChromeReady, setDeferredChromeReady] = useState(false);
   const [triggerSyncReload, setTriggerSyncReload] = useState(0);
   const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
@@ -2395,7 +2394,6 @@ const MainApp: React.FC = () => {
     const startDataSync = async () => {
       // If mode is 'local', load from Local Storage 
       if (appMode === 'local') {
-          setHasInstantCloudSnapshot(false);
           let savedDataStr = getProtectedStorageItem('ktk_local_accounting_data');
           if (!savedDataStr) {
               // Legacy migration
@@ -2444,19 +2442,17 @@ const MainApp: React.FC = () => {
 
       // Mode is 'cloud', wait for user authentication
       if (!user) {
-        setHasInstantCloudSnapshot(false);
         setDataLoading(false);
         return;
       }
 
 	      setDataLoading(true);
-	      setHasInstantCloudSnapshot(false);
 	      hasLoadedDataRef.current = false;
 	      cloudRootExistsRef.current = false;
 	      loadedCloudShardKeysRef.current = new Set();
 	      lastRemoteKeysRef.current = {};
       authoritativeDataWrittenAtRef.current = 0;
-      // عرض آخر نسخة موثوقة فوراً حتى لا يجلس المستخدم ينتظر شاشة "جارٍ تحديث بيانات السحابة".
+      // جهّز آخر نسخة موثوقة خلف بوابة السحابة، لكن لا تفتح واجهة العمل قبل اكتمال تحميل السحابة.
       // لا نفعّل auto-save هنا لأن dataLoading ما زال true و isCloudSyncApplyingRef سيمنع أي كتابة عكسية.
       try {
         const instantSnapshot = parseStoredState(
@@ -2465,7 +2461,6 @@ const MainApp: React.FC = () => {
         if (instantSnapshot) {
           setData(instantSnapshot);
           lastRemoteSnapshotRef.current = JSON.stringify(instantSnapshot);
-          setHasInstantCloudSnapshot(true);
         }
       } catch {}
 
@@ -2589,7 +2584,6 @@ const MainApp: React.FC = () => {
             }
             isCloudSyncApplyingRef.current = false;
             hasLoadedDataRef.current = true;
-            setHasInstantCloudSnapshot(false);
             setDataLoading(false);
             return;
           }
@@ -2754,7 +2748,6 @@ const MainApp: React.FC = () => {
       } finally {
         isCloudSyncApplyingRef.current = false;
         hasLoadedDataRef.current = true;
-        setHasInstantCloudSnapshot(false);
         setDataLoading(false);
       }
 
@@ -3164,7 +3157,7 @@ const MainApp: React.FC = () => {
     );
   };
 
-  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && (!isOnline || (dataLoading && !hasLoadedDataRef.current && !hasInstantCloudSnapshot));
+  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && (!isOnline || (dataLoading && !hasLoadedDataRef.current));
 
   if (shouldHoldCloudEntry) {
     return (
