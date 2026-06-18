@@ -437,13 +437,27 @@ export const computeInvoiceCost = (inv: any, dataProducts: any[]) => {
     return cost + computeInvoiceAddonsTotalCost(inv, dataProducts);
 };
 
+// Gateway fees only apply to payments that actually pass through a payment gateway/bank rail.
+// Cash is handed directly to the courier/restaurant and never incurs this fee.
+const GATEWAY_FEE_PAYMENT_METHODS = new Set(['KNet', 'Link', 'BankTransfer']);
+
+/**
+ * Calculates the gateway fee that should actually be attributed to an invoice, based on its
+ * payment method. Cash payments never incur a gateway fee, regardless of what may have been
+ * stored on the invoice (older/legacy invoices sometimes saved a fee amount unconditionally).
+ */
+export const computeInvoiceGatewayFee = (inv: any): number => {
+    if (!GATEWAY_FEE_PAYMENT_METHODS.has(inv?.paymentMethod)) return 0;
+    return safeParsePrice(inv?.gatewayFee);
+};
+
 /**
  * Calculates the net profit of an invoice.
  */
 export const computeInvoiceProfit = (inv: any, dataProducts: any[]) => {
     const subtotal = computeInvoiceSubtotal(inv, dataProducts);
     const cost = computeInvoiceCost(inv, dataProducts);
-    const gatewayFee = Number(inv.gatewayFee || 0);
+    const gatewayFee = computeInvoiceGatewayFee(inv);
     const discount = Number(inv.discount || 0);
     const deliveryType = inv.deliveryType || 'company';
     const storedDeliveryProfit = Number(inv?.deliveryInfo?.profit ?? inv?.deliveryProfit ?? 0);
