@@ -2558,25 +2558,16 @@ const MainApp: React.FC = () => {
             });
             lastRemoteKeysRef.current['__root__'] = stableStringify(rootDataOnly);
             
-            // Show data immediately so menu is interactive — defer heavy balance recalculation
-            loadedState.notifications = applyStoredNotificationReadState(loadedState.notifications) || loadedState.notifications;
-            setData(loadedState);
-            isCloudSyncApplyingRef.current = false;
-            hasLoadedDataRef.current = true;
-            setDataLoading(false);
+            // Recalculate derived state (like supplier balances) upon load
+            const finalProcessedState = recalculateStateBalances(loadedState);
+            finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
 
-            // Recalculate supplier balances & customer stats in background (non-blocking)
-            setTimeout(() => {
-              setData(prev => {
-                const recalculated = recalculateStateBalances(prev);
-                lastRemoteSnapshotRef.current = JSON.stringify(recalculated);
-                try {
-                  setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
-                  setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
-                } catch {}
-                return recalculated;
-              });
-            }, 80);
+            setData(finalProcessedState);
+            lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
+            try {
+              setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
+              setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
+            } catch {}
 
             const deferredKeys = Array.isArray(fastPayload.deferredShardKeys)
               ? fastPayload.deferredShardKeys.filter((key: string) => BOOT_DEFERRED_SHARDED_KEYS.includes(key))
@@ -2616,6 +2607,9 @@ const MainApp: React.FC = () => {
                 }
               }, 0);
             }
+            isCloudSyncApplyingRef.current = false;
+            hasLoadedDataRef.current = true;
+            setDataLoading(false);
             return;
           }
         }
@@ -2739,24 +2733,18 @@ const MainApp: React.FC = () => {
           }
         }
 
-        // Show data immediately — defer heavy balance recalculation to unblock menu
-        // Sync notification read state (lightweight, safe to do now)
-        loadedState.notifications = applyStoredNotificationReadState(loadedState.notifications) || loadedState.notifications;
-        setData(loadedState);
+        // Recalculate derived state (like supplier balances) upon load
+        const finalProcessedState = recalculateStateBalances(loadedState);
 
-        // Recalculate supplier balances & customer stats in background (non-blocking)
-        setTimeout(() => {
-          setData(prev => {
-            const recalculated = recalculateStateBalances(prev);
-            lastRemoteSnapshotRef.current = JSON.stringify(recalculated);
-            try {
-              setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
-              setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
-            } catch {}
-            return recalculated;
-          });
-        }, 80);
-	        
+        // Sync read state from localStorage to ensure read status is kept fundamentally.
+        finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
+
+        setData(finalProcessedState);
+        lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
+        try {
+          setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
+          setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
+	        } catch {}
       } catch (err) {
         if (String(err).includes("Missing or insufficient permissions") || String(err).includes("permission-denied")) {
           console.warn("Cloud read permission denied for this account/role:", err);
