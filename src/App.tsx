@@ -1112,6 +1112,58 @@ const MainApp: React.FC = () => {
     const timer = window.setTimeout(markReady, 450);
     return () => window.clearTimeout(timer);
   }, [isAuthenticated]);
+
+  // ADMIN_MENU_PREFETCH: silently warm up the chunks for top-used menu pages
+  // during browser idle time, so the first click on each menu item feels instant.
+  // This only triggers the same dynamic imports that lazy() already uses; it does
+  // not change any logic, does not run on partner role, and does not touch payment,
+  // notifications, AI, WhatsApp, auth, or database code paths.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (userRole === 'partner') return; // partners use a different surface
+    let cancelled = false;
+    const scheduleIdle = (window as any).requestIdleCallback;
+    const cancelIdle = (window as any).cancelIdleCallback;
+
+    const warmups: Array<() => Promise<any>> = [
+      // Ordered by user's stated priority (most-used first)
+      () => import('./components/InvoicePage'),
+      () => import('./components/ReportsPage'),
+      () => import('./components/CustomerPage'),
+      () => import('./components/SupplierPage'),
+      () => import('./components/ProductPage'),
+      () => import('./components/OrderPage'),
+      () => import('./components/ExpensePage'),
+    ];
+
+    const runNext = (i: number) => {
+      if (cancelled || i >= warmups.length) return;
+      warmups[i]().catch(() => {}).finally(() => {
+        if (cancelled) return;
+        if (typeof scheduleIdle === 'function') {
+          scheduleIdle(() => runNext(i + 1), { timeout: 2500 });
+        } else {
+          window.setTimeout(() => runNext(i + 1), 250);
+        }
+      });
+    };
+
+    let kickoffId: any;
+    if (typeof scheduleIdle === 'function') {
+      kickoffId = scheduleIdle(() => runNext(0), { timeout: 2500 });
+    } else {
+      kickoffId = window.setTimeout(() => runNext(0), 1500);
+    }
+
+    return () => {
+      cancelled = true;
+      if (typeof scheduleIdle === 'function' && typeof cancelIdle === 'function') {
+        try { cancelIdle(kickoffId); } catch {}
+      } else {
+        try { window.clearTimeout(kickoffId); } catch {}
+      }
+    };
+  }, [isAuthenticated, userRole]);
   
   // App mode & standalone
   const [isStandalone, setIsStandalone] = useState(false);
@@ -3872,11 +3924,11 @@ const MainApp: React.FC = () => {
           <AnimatePresence>
             <motion.div
               key={currentPage}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ 
-                duration: 0.2, 
+                duration: 0.12, 
                 ease: "easeOut"
               }}
               className="w-full min-h-full relative z-10 px-4 md:px-6"
