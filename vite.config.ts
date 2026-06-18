@@ -19,23 +19,7 @@ export default defineConfig({
     reportCompressedSize: false,
     cssCodeSplit: true,
     target: 'es2020',
-    chunkSizeWarningLimit: 1200,
-    modulePreload: { polyfill: false },
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return undefined;
-          if (id.includes('firebase/')) return 'vendor-firebase';
-          if (id.includes('@google/genai')) return 'vendor-ai';
-          if (id.includes('recharts')) return 'vendor-charts';
-          if (id.includes('xlsx')) return 'vendor-export';
-          if (id.includes('motion')) return 'vendor-motion';
-          if (id.includes('lucide-react')) return 'vendor-icons';
-          if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) return 'vendor-react';
-          return 'vendor-misc';
-        },
-      },
-    },
+    chunkSizeWarningLimit: 2000,
   },
   server: {
     port: 3000,
