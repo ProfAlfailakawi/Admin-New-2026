@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import * as XLSX from 'xlsx';
 import LZString from 'lz-string';
 import { 
   ArrowUp,
@@ -59,7 +58,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { heritageMotion } from './lib/heritageMotion';
 import { cn, normalizeArabic, formatKuwaitiDateOnly } from './lib/utils';
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
-import SystemPulseOrb from './components/SystemPulseOrb';
+const SystemPulseOrb = React.lazy(() => import('./components/SystemPulseOrb'));
 import LogoEngine from './components/ui/LogoEngine';
 const InvoicePage = React.lazy(() => import('./components/InvoicePage'));
 const CustomerPage = React.lazy(() => import('./components/CustomerPage'));
@@ -71,10 +70,10 @@ const OrderPage = React.lazy(() => import('./components/OrderPage'));
 import { isPendingStatus, isFailedStatus, isPaidStatus } from './lib/status-utils';
 const TrackPage = React.lazy(() => import('./components/TrackPage'));
 const AIAssistant = React.lazy(() => import('./components/AIAssistant'));
-import { SmartContentStudio } from './components/SmartContentStudio';
-import { DiwaniyaTournaments } from './components/DiwaniyaTournaments';
+const SmartContentStudio = React.lazy(() => import('./components/SmartContentStudio').then(m => ({ default: m.SmartContentStudio })));
+const DiwaniyaTournaments = React.lazy(() => import('./components/DiwaniyaTournaments').then(m => ({ default: m.DiwaniyaTournaments })));
 const PartnerDashboard = React.lazy(() => import('./components/PartnerDashboard'));
-import { CommandBrief } from './components/CommandBrief';
+const CommandBrief = React.lazy(() => import('./components/CommandBrief').then(m => ({ default: m.CommandBrief })));
 import Login from './components/Login';
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
 const SupplierAudit = React.lazy(() => import('./components/SupplierAudit'));
@@ -84,11 +83,10 @@ const WhatIfSimulator = React.lazy(() => import('./components/WhatIfSimulator').
 const RealProfitGuard = React.lazy(() => import('./components/RealProfitGuard'));
 const WhatsAppSupportInbox = React.lazy(() => import('./components/WhatsAppSupportInbox'));
 
-import CommandBar from './components/CommandBar';
-import ProactiveAlerts from './components/ProactiveAlerts';
-import InstallPrompt from './components/InstallPrompt';
-import CloudStatus from './components/CloudStatus';
-import { InstagramMagicWand } from './components/InstagramMagicWand';
+const CommandBar = React.lazy(() => import('./components/CommandBar'));
+const ProactiveAlerts = React.lazy(() => import('./components/ProactiveAlerts'));
+const InstallPrompt = React.lazy(() => import('./components/InstallPrompt'));
+const InstagramMagicWand = React.lazy(() => import('./components/InstagramMagicWand').then(m => ({ default: m.InstagramMagicWand })));
 import { recalculateStateBalances } from './lib/business-logic';
 import { INITIAL_DATA, GET_DEMO_DATA, DEFAULT_SQUADS } from './data';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from './constants';
@@ -1045,6 +1043,8 @@ const MainApp: React.FC = () => {
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
+  const [hasInstantCloudSnapshot, setHasInstantCloudSnapshot] = useState(false);
+  const [deferredChromeReady, setDeferredChromeReady] = useState(false);
   const [triggerSyncReload, setTriggerSyncReload] = useState(0);
   const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
 
@@ -1063,6 +1063,28 @@ const MainApp: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('isAuthenticated') === 'true';
   });
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setDeferredChromeReady(false);
+      return;
+    }
+
+    setDeferredChromeReady(false);
+    const scheduleIdle = (window as any).requestIdleCallback;
+    const cancelIdle = (window as any).cancelIdleCallback;
+    const markReady = () => setDeferredChromeReady(true);
+
+    if (typeof scheduleIdle === 'function') {
+      const idleId = scheduleIdle(markReady, { timeout: 1200 });
+      return () => {
+        if (typeof cancelIdle === 'function') cancelIdle(idleId);
+      };
+    }
+
+    const timer = window.setTimeout(markReady, 450);
+    return () => window.clearTimeout(timer);
+  }, [isAuthenticated]);
   
   // App mode & standalone
   const [isStandalone, setIsStandalone] = useState(false);
@@ -2373,6 +2395,7 @@ const MainApp: React.FC = () => {
     const startDataSync = async () => {
       // If mode is 'local', load from Local Storage 
       if (appMode === 'local') {
+          setHasInstantCloudSnapshot(false);
           let savedDataStr = getProtectedStorageItem('ktk_local_accounting_data');
           if (!savedDataStr) {
               // Legacy migration
@@ -2421,11 +2444,13 @@ const MainApp: React.FC = () => {
 
       // Mode is 'cloud', wait for user authentication
       if (!user) {
+        setHasInstantCloudSnapshot(false);
         setDataLoading(false);
         return;
       }
 
 	      setDataLoading(true);
+	      setHasInstantCloudSnapshot(false);
 	      hasLoadedDataRef.current = false;
 	      cloudRootExistsRef.current = false;
 	      loadedCloudShardKeysRef.current = new Set();
@@ -2440,6 +2465,7 @@ const MainApp: React.FC = () => {
         if (instantSnapshot) {
           setData(instantSnapshot);
           lastRemoteSnapshotRef.current = JSON.stringify(instantSnapshot);
+          setHasInstantCloudSnapshot(true);
         }
       } catch {}
 
@@ -2563,6 +2589,7 @@ const MainApp: React.FC = () => {
             }
             isCloudSyncApplyingRef.current = false;
             hasLoadedDataRef.current = true;
+            setHasInstantCloudSnapshot(false);
             setDataLoading(false);
             return;
           }
@@ -2727,6 +2754,7 @@ const MainApp: React.FC = () => {
       } finally {
         isCloudSyncApplyingRef.current = false;
         hasLoadedDataRef.current = true;
+        setHasInstantCloudSnapshot(false);
         setDataLoading(false);
       }
 
@@ -3136,7 +3164,7 @@ const MainApp: React.FC = () => {
     );
   };
 
-  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && (!isOnline || (dataLoading && !hasLoadedDataRef.current));
+  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && (!isOnline || (dataLoading && !hasLoadedDataRef.current && !hasInstantCloudSnapshot));
 
   if (shouldHoldCloudEntry) {
     return (
@@ -3555,7 +3583,11 @@ const MainApp: React.FC = () => {
               )}
             </div>
             
-            <SystemPulseOrb data={data} />
+            {deferredChromeReady && (
+              <React.Suspense fallback={null}>
+                <SystemPulseOrb data={data} />
+              </React.Suspense>
+            )}
           </div>
 
           <div className="flex items-center gap-3 lg:gap-4 md:p-6 shrink-0">
@@ -3792,31 +3824,39 @@ const MainApp: React.FC = () => {
           {/* Global Background Accents - Removed for performance */}
           <div className="fixed inset-0 pointer-events-none z-0">
           </div>
-          <InstallPrompt />
-          {showSecondFloatingTools && (
-            <ProactiveAlerts 
-              userRole={userRole}
-              currentPage={currentPage}
-              notifications={(data.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج'))} 
-              isNotificationRead={isNotificationReadForUi}
-              onMarkAsRead={(id) => {
-                 storeReadNotificationIds([id]);
-                 setData(prev => ({
-                     ...prev,
-                     notifications: (prev?.notifications || []).map(n => n.id === id ? { ...n, read: true } : n)
-                 }));
-              }} 
-              onMarkAllAsRead={() => {
-                 storeReadNotificationIds((data?.notifications || []).filter(n => n.insightType).map(n => n.id));
-                 setData(prev => ({
-                     ...prev,
-                     notifications: (prev?.notifications || []).map(n => n.insightType ? { ...n, read: true } : n)
-                 }));
-              }}
-            />
+          {deferredChromeReady && (
+            <React.Suspense fallback={null}>
+              <InstallPrompt />
+            </React.Suspense>
           )}
-          {userRole !== 'partner' && currentPage === 'dashboard' && (
-            <CommandBrief data={data} dateFilter="day" onNavigate={navigateAdminPage} />
+          {deferredChromeReady && showSecondFloatingTools && (
+            <React.Suspense fallback={null}>
+              <ProactiveAlerts 
+                userRole={userRole}
+                currentPage={currentPage}
+                notifications={(data.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج'))} 
+                isNotificationRead={isNotificationReadForUi}
+                onMarkAsRead={(id) => {
+                   storeReadNotificationIds([id]);
+                   setData(prev => ({
+                       ...prev,
+                       notifications: (prev?.notifications || []).map(n => n.id === id ? { ...n, read: true } : n)
+                   }));
+                }} 
+                onMarkAllAsRead={() => {
+                   storeReadNotificationIds((data?.notifications || []).filter(n => n.insightType).map(n => n.id));
+                   setData(prev => ({
+                       ...prev,
+                       notifications: (prev?.notifications || []).map(n => n.insightType ? { ...n, read: true } : n)
+                   }));
+                }}
+              />
+            </React.Suspense>
+          )}
+          {deferredChromeReady && userRole !== 'partner' && currentPage === 'dashboard' && (
+            <React.Suspense fallback={null}>
+              <CommandBrief data={data} dateFilter="day" onNavigate={navigateAdminPage} />
+            </React.Suspense>
           )}
           <AnimatePresence>
             <motion.div
@@ -3842,15 +3882,19 @@ const MainApp: React.FC = () => {
         </main>
       </div>
       
-      <CommandBar 
-        isOpen={commandBarOpen} 
-        onClose={() => setCommandBarOpen(false)} 
-        onNavigate={(page, payload) => {
-           navigateAdminPage(page, payload);
-        }}
-        data={data}
-        userRole={userRole}
-      />
+      {commandBarOpen && (
+        <React.Suspense fallback={null}>
+          <CommandBar 
+            isOpen={commandBarOpen} 
+            onClose={() => setCommandBarOpen(false)} 
+            onNavigate={(page, payload) => {
+               navigateAdminPage(page, payload);
+            }}
+            data={data}
+            userRole={userRole}
+          />
+        </React.Suspense>
+      )}
 
       {/* Global Scroll Progress + Back to Top */}
       <AnimatePresence>
@@ -3964,7 +4008,11 @@ const MainApp: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {(isAuthenticated || appMode === 'local') && showInstagramFloatingTool && <InstagramMagicWand data={data} currentPage={currentPage} userRole={floatingToolRole} />}
+      {deferredChromeReady && (isAuthenticated || appMode === 'local') && showInstagramFloatingTool && (
+        <React.Suspense fallback={null}>
+          <InstagramMagicWand data={data} currentPage={currentPage} userRole={floatingToolRole} />
+        </React.Suspense>
+      )}
       <Toaster richColors position="bottom-right" closeButton />
       
 
