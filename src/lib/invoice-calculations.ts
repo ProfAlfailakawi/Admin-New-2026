@@ -236,18 +236,12 @@ export const computeAddonCost = (addon: any, item: any, products: any[] = []): n
     if (directCostTotal > 0) return directCostTotal;
 
     const itemQty = Math.max(1, Number(item?.quantity !== undefined ? item.quantity : (item?.qty !== undefined ? item.qty : 1)) || 1);
-    // 1) A real (greater-than-zero) cost saved on the invoice item itself.
-    // 2) Otherwise, a real cost currently set on the product's addon catalog entry.
-    // A stored 0 in any of these fields means "not entered" in this app (see ProductPage.tsx),
-    // so it must not block falling through to the catalog or the final price-based fallback below.
-    let cost = getFirstPositiveCost(addon) ?? getFirstPositiveCost(catalogAddon) ?? 0;
-    const explicitCost = cost > 0;
-
-    // Older invoices/add-ons sometimes saved only the add-on selling price, without a supplier-cost snapshot.
-    // For supplier ledgers, the safest operational fallback is to include the add-on amount instead of dropping it to zero.
-    if (cost <= 0 && !explicitCost) {
-        cost = safeParsePrice(addon?.price ?? addon?.addonPrice ?? addon?.amount ?? addon?.unitPrice ?? addon?.sellingPrice ?? addon?.salePrice ?? 0);
-    }
+    // Cost must always come from a real recorded cost — first a real (greater-than-zero) cost saved
+    // on the invoice item itself, otherwise the cost currently set on the product's addon catalog entry.
+    // A stored 0 in any of these fields means "not entered" in this app (see ProductPage.tsx, where the
+    // addon form renders 0 as an empty input). We never fall back to the selling price as a stand-in for
+    // cost, since the selling price includes our profit margin and must not be attributed to the supplier.
+    const cost = getFirstPositiveCost(addon) ?? getFirstPositiveCost(catalogAddon) ?? 0;
     if (cost <= 0) return 0;
 
     const selectedQty = computeAddonSelectedQuantity(addon);
@@ -382,6 +376,21 @@ export const computeInvoiceItemBasePrice = (item: any, dataProducts: any[]) => {
 };
 
 /**
+ * Calculates a single item's base COST (what the supplier is owed for the product itself).
+ * Prefers a real (greater-than-zero) cost snapshot saved on the invoice item, otherwise falls back
+ * to the product's current cost in the catalog. A stored 0 in costAtTime means "not entered" in this
+ * app (see ProductPage.tsx, where the cost form field renders 0 as an empty input), so it must not
+ * lock in a stale zero when the product now has a real cost. Never falls back to the selling price,
+ * since that includes our profit margin and must not be attributed to the supplier as their cost.
+ */
+export const computeInvoiceItemBaseCost = (item: any, dataProducts: any[]) => {
+    const snapshotCost = safeParsePrice((item as any)?.costAtTime);
+    if (snapshotCost > 0) return snapshotCost;
+    const product = (dataProducts || []).find((p: any) => p.id === item.productId);
+    return safeParsePrice(product?.cost);
+};
+
+/**
  * Calculates a single item's total (including its addons).
  */
 export const computeInvoiceItemTotal = (item: any, dataProducts: any[]) => {
@@ -421,8 +430,7 @@ export const computeInvoiceTotal = (inv: any, dataProducts: any[]) => {
 export const computeInvoiceCost = (inv: any, dataProducts: any[]) => {
     let cost = 0;
     (inv.items || []).forEach((item: any) => {
-        const product = (dataProducts || []).find((p: any) => p.id === item.productId);
-        const itemCost = item.costAtTime !== undefined ? Number(item.costAtTime) : Number(product?.cost || 0);
+        const itemCost = computeInvoiceItemBaseCost(item, dataProducts);
         const qty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
         cost += itemCost * qty;
     });

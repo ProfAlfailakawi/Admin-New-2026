@@ -1,6 +1,6 @@
 import { AppState } from '../types';
 import { isPaidStatus } from './status-utils';
-import { computeAddonCost, computeAddonRevenue, getInvoiceItemAddons, safeParsePrice } from './invoice-calculations';
+import { computeAddonCost, computeAddonRevenue, computeInvoiceItemBaseCost, getInvoiceItemAddons, safeParsePrice } from './invoice-calculations';
 
 
 const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 1000;
@@ -63,7 +63,7 @@ export function getSupplierLedgerForState(supId: string, state: AppState): any[]
       return product && String(product.supplierId) === String(supId) && supplierProductIds.has(item.productId);
     }).map(item => {
       const product = (state.products || []).find(p => p.id === item.productId);
-      const cost = item.costAtTime !== undefined ? item.costAtTime : (product?.cost || 0);
+      const cost = computeInvoiceItemBaseCost(item, state.products || []);
       const price = item.priceAtTime !== undefined ? item.priceAtTime : (product?.price || 0);
       const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
       
