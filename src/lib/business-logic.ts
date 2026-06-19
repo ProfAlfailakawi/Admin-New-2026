@@ -5,14 +5,20 @@ import { computeAddonCost, computeAddonRevenue, computeInvoiceItemBaseCost, getI
 
 const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 1000;
 
-export const getInvoiceDeliverySettlementForSupplier = (inv: any, supId: string, state: AppState): number => {
+export const getInvoiceDeliverySettlementForSupplier = (
+  inv: any, 
+  supId: string, 
+  state: AppState,
+  productMap?: Map<string, any>,
+  supplierMap?: Map<string, any>
+): number => {
   const info = inv?.deliveryInfo || {};
   const target = info.settlementTarget || inv?.deliverySettlementTarget;
   const valueCandidates = [info.cost, inv?.deliveryCost, info.finalPrice, inv?.deliveryFee];
   const value = Number(valueCandidates.find((candidate) => Number(candidate || 0) > 0) || 0) || 0;
   if (value <= 0) return 0;
 
-  const supplier = (state?.suppliers || []).find((s: any) => String(s.id) === String(supId));
+  const supplier = supplierMap ? supplierMap.get(String(supId)) : (state?.suppliers || []).find((s: any) => String(s.id) === String(supId));
   if (!supplier) return 0;
 
   const isDeliveryCompany = (supplier as any).supplierType === 'delivery';
@@ -20,7 +26,7 @@ export const getInvoiceDeliverySettlementForSupplier = (inv: any, supId: string,
   if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
 
   const invoiceHasSupplierProduct = (inv?.items || []).some((item: any) => {
-    const product = (state?.products || []).find((p: any) => String(p.id) === String(item.productId));
+    const product = productMap ? productMap.get(String(item.productId)) : (state?.products || []).find((p: any) => String(p.id) === String(item.productId));
     return String(product?.supplierId || '') === String(supId);
   });
 
@@ -46,24 +52,37 @@ export const getInvoiceDeliverySettlementForSupplier = (inv: any, supId: string,
 /**
  * Centrally calculates the detailed financial ledger (invoices and payments) for a supplier.
  */
-export function getSupplierLedgerForState(supId: string, state: AppState): any[] {
+export function getSupplierLedgerForState(
+  supId: string, 
+  state: AppState,
+  productMap?: Map<string, any>,
+  supplierMap?: Map<string, any>,
+  invoicesBySupplierMap?: Map<string, any[]>
+): any[] {
   const transactions: any[] = [];
   
+  const pMap = productMap || new Map((state.products || []).map(p => [String(p.id), p]));
+  const sMap = supplierMap || new Map((state.suppliers || []).map(s => [String(s.id), s]));
+
   const supplierProductIds = new Set(
     (state.products || [])
-      .filter(p => String(p.supplierId) === String(supId))
+      .filter(p => p && p.id && String(p.supplierId) === String(supId))
       .map(p => p.id)
   );
 
+  const invoicesSource = invoicesBySupplierMap 
+    ? (invoicesBySupplierMap.get(String(supId)) || [])
+    : (state.invoices || []).filter(inv => !inv.isDeleted);
+
   // 1. Invoices
-  (state.invoices || []).filter(inv => !inv.isDeleted).forEach(inv => {
+  invoicesSource.forEach(inv => {
     // Collect products of this supplier in the invoice
     const itemsForThisSupplier = (inv.items || []).filter(item => {
-      const product = (state.products || []).find(p => p.id === item.productId);
+      const product = pMap.get(String(item.productId));
       return product && String(product.supplierId) === String(supId) && supplierProductIds.has(item.productId);
     }).map(item => {
-      const product = (state.products || []).find(p => p.id === item.productId);
-      const cost = computeInvoiceItemBaseCost(item, state.products || []);
+      const product = pMap.get(String(item.productId));
+      const cost = computeInvoiceItemBaseCost(item, pMap);
       const price = item.priceAtTime !== undefined ? item.priceAtTime : (product?.price || 0);
       const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
       
@@ -72,8 +91,8 @@ export function getSupplierLedgerForState(supId: string, state: AppState): any[]
       const itemAddons = getInvoiceItemAddons(item);
       const addonLines = itemAddons.map((addon: any) => {
         if (!addonHasPositiveSelection(addon)) return null;
-        const costTotal = roundKwd(computeAddonCost(addon, item, state.products || []));
-        const priceTotal = roundKwd(computeAddonRevenue(addon, item, state.products || []));
+        const costTotal = roundKwd(computeAddonCost(addon, item, pMap));
+        const priceTotal = roundKwd(computeAddonRevenue(addon, item, pMap));
         if (costTotal <= 0 && priceTotal <= 0) return null;
         addonsCostTotal += costTotal;
         addonsPriceTotal += priceTotal;
@@ -108,7 +127,7 @@ export function getSupplierLedgerForState(supId: string, state: AppState): any[]
     const supplierCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + item.totalCost, 0));
     const supplierAddonsCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + Number(item.addonsCost || 0), 0));
     const supplierRevenue = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + item.totalPrice, 0));
-    const supplierDelivery = getInvoiceDeliverySettlementForSupplier(inv, supId, state);
+    const supplierDelivery = getInvoiceDeliverySettlementForSupplier(inv, supId, state, pMap, sMap);
     const supplierDue = roundKwd(supplierCost + supplierDelivery);
 
     if (supplierDue > 0) {
@@ -150,8 +169,14 @@ export function getSupplierLedgerForState(supId: string, state: AppState): any[]
 /**
  * Centrally calculates the net outstanding/due balance for a supplier.
  */
-export function getSupplierLiveBalanceForState(supId: string, state: AppState): number {
-  const ledger = getSupplierLedgerForState(supId, state);
+export function getSupplierLiveBalanceForState(
+  supId: string, 
+  state: AppState,
+  productMap?: Map<string, any>,
+  supplierMap?: Map<string, any>,
+  invoicesBySupplierMap?: Map<string, any[]>
+): number {
+  const ledger = getSupplierLedgerForState(supId, state, productMap, supplierMap, invoicesBySupplierMap);
   const due = ledger.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const paid = Math.abs(ledger.filter(t => t.type === 'transfer').reduce((acc, t) => acc + Number(t.amount || 0), 0));
   return Math.max(0, roundKwd(due - paid));
@@ -165,13 +190,45 @@ export function getSupplierLiveBalanceForState(supId: string, state: AppState): 
 export function recalculateStateBalances(state: AppState): AppState {
   const newState = { ...state };
   
+  const productMap = new Map((newState.products || []).map(p => [String(p.id), p]));
+  const supplierMap = new Map((newState.suppliers || []).map(s => [String(s.id), s]));
+
+  // Build a pre-index of invoices by supplier to avoid O(N * M) loops
+  const invoicesBySupplierMap = new Map<string, any[]>();
+  (newState.invoices || []).forEach(inv => {
+    if (inv.isDeleted) return;
+    const seenSuppliers = new Set<string>();
+    (inv.items || []).forEach((item: any) => {
+      const prod = productMap.get(String(item.productId));
+      if (prod && prod.supplierId) {
+        seenSuppliers.add(String(prod.supplierId));
+      }
+    });
+    
+    // Also check delivery settlement supplier if any
+    const info = (inv?.deliveryInfo || {}) as any;
+    const deliverySupId = info.settlementSupplierId || inv?.deliverySettlementSupplierId;
+    if (deliverySupId) {
+      seenSuppliers.add(String(deliverySupId));
+    }
+
+    seenSuppliers.forEach(supId => {
+      let list = invoicesBySupplierMap.get(supId);
+      if (!list) {
+        list = [];
+        invoicesBySupplierMap.set(supId, list);
+      }
+      list.push(inv);
+    });
+  });
+
   // 1. Synchronize Supplier Balances using the central calculation engine
   newState.suppliers = (newState.suppliers || []).map(s => ({
     ...s,
-    balance: getSupplierLiveBalanceForState(s.id, newState)
+    balance: getSupplierLiveBalanceForState(s.id, newState, productMap, supplierMap, invoicesBySupplierMap)
   }));
 
-  // 2. Recalculate Customer Stats
+  // 2. Recalculate Customer Stats (O(C + M) - string date comparison instead of Slow Date objects)
   const customerStats: Record<string, { totalSpent: number, totalOrders: number, lastOrderDate: string }> = {};
   (newState.customers || []).forEach(c => {
     customerStats[c.id] = { totalSpent: 0, totalOrders: 0, lastOrderDate: c.lastOrderDate || '' };
@@ -183,13 +240,15 @@ export function recalculateStateBalances(state: AppState): AppState {
     const isPaid = isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined;
     if (!isPaid) return;
 
-    if (customerStats[inv.customerId]) {
-      customerStats[inv.customerId].totalSpent += (inv.totalAmount || 0);
-      customerStats[inv.customerId].totalOrders += 1;
-      
-      if (!customerStats[inv.customerId].lastOrderDate || new Date(inv.date) > new Date(customerStats[inv.customerId].lastOrderDate)) {
-        customerStats[inv.customerId].lastOrderDate = inv.date;
-      }
+    if (!customerStats[inv.customerId]) {
+      customerStats[inv.customerId] = { totalSpent: 0, totalOrders: 0, lastOrderDate: '' };
+    }
+
+    customerStats[inv.customerId].totalSpent += (inv.totalAmount || 0);
+    customerStats[inv.customerId].totalOrders += 1;
+    
+    if (!customerStats[inv.customerId].lastOrderDate || inv.date > customerStats[inv.customerId].lastOrderDate) {
+      customerStats[inv.customerId].lastOrderDate = inv.date;
     }
   });
 

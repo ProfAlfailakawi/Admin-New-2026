@@ -143,9 +143,22 @@ export const getInvoiceLevelAddons = (inv: any): any[] => {
     return [];
 };
 
-const findCatalogAddonMatch = (addon: any, item: any, products: any[] = []) => {
+const findCatalogAddonMatch = (addon: any, item: any, products: any[] | Map<string, any> = []) => {
     if (!addon || typeof addon !== 'object') return null;
-    const product = products.find((p: any) => p.id === item?.productId || p.name === item?.productName || p.name === item?.name);
+    let product: any = null;
+    if (products instanceof Map) {
+        product = products.get(String(item?.productId));
+        if (!product) {
+            for (const p of products.values()) {
+                if (p.name === item?.productName || p.name === item?.name) {
+                    product = p;
+                    break;
+                }
+            }
+        }
+    } else {
+        product = (products || []).find((p: any) => p.id === item?.productId || p.name === item?.productName || p.name === item?.name);
+    }
     return normalizeAddonList(product?.addons).find((a: any) =>
         (addon.id && a.id === addon.id) ||
         (addon.name && a.name === addon.name) ||
@@ -153,7 +166,7 @@ const findCatalogAddonMatch = (addon: any, item: any, products: any[] = []) => {
     ) || null;
 };
 
-const mergeAddonWithCatalog = (addon: any, item: any, products: any[] = []) => {
+const mergeAddonWithCatalog = (addon: any, item: any, products: any[] | Map<string, any> = []) => {
     if (!addon || typeof addon !== 'object') return addon;
     const catalog = findCatalogAddonMatch(addon, item, products);
     return catalog ? { ...catalog, ...addon } : addon;
@@ -192,7 +205,7 @@ export const computeAddonSelectedQuantity = (addon: any): number => {
 /**
  * Calculates the total revenue for a single addon.
  */
-export const computeAddonRevenue = (addon: any, item: any, products: any[] = []): number => {
+export const computeAddonRevenue = (addon: any, item: any, products: any[] | Map<string, any> = []): number => {
     addon = mergeAddonWithCatalog(addon, item, products);
     if (!addonHasPositiveSelection(addon)) return 0;
     const directTotal = safeParsePrice(addon?.total ?? addon?.totalPrice ?? addon?.lineTotal ?? addon?.revenue ?? addon?.amountTotal ?? addon?.addonTotal ?? addon?.addonsTotal);
@@ -226,7 +239,7 @@ export const computeAddonRevenue = (addon: any, item: any, products: any[] = [])
 /**
  * Calculates the total cost for a single addon.
  */
-export const computeAddonCost = (addon: any, item: any, products: any[] = []): number => {
+export const computeAddonCost = (addon: any, item: any, products: any[] | Map<string, any> = []): number => {
     // Keep the catalog match separately (before the snapshot fields override it) so a stale
     // zero/missing cost saved on the invoice item can still fall back to the live catalog cost.
     const catalogAddon = findCatalogAddonMatch(addon, item, products);
@@ -369,10 +382,12 @@ export const getInvoiceBaseItemsTotal = (inv: any, dataProducts: any[] = []) => 
 /**
  * Calculates a single item's base price (SNAPSHOT preference).
  */
-export const computeInvoiceItemBasePrice = (item: any, dataProducts: any[]) => {
+export const computeInvoiceItemBasePrice = (item: any, dataProducts: any[] | Map<string, any>) => {
     if (item.priceAtTime !== undefined) return Number(item.priceAtTime);
     if ((item as any).price !== undefined) return Number((item as any).price);
-    const product = (dataProducts || []).find((p: any) => p.id === item.productId);
+    const product = dataProducts instanceof Map
+        ? dataProducts.get(String(item.productId))
+        : (dataProducts || []).find((p: any) => p.id === item.productId);
     return Number(product?.price || 0);
 };
 
@@ -384,10 +399,12 @@ export const computeInvoiceItemBasePrice = (item: any, dataProducts: any[]) => {
  * lock in a stale zero when the product now has a real cost. Never falls back to the selling price,
  * since that includes our profit margin and must not be attributed to the supplier as their cost.
  */
-export const computeInvoiceItemBaseCost = (item: any, dataProducts: any[]) => {
+export const computeInvoiceItemBaseCost = (item: any, dataProducts: any[] | Map<string, any>) => {
     const snapshotCost = safeParsePrice((item as any)?.costAtTime);
     if (snapshotCost > 0) return snapshotCost;
-    const product = (dataProducts || []).find((p: any) => p.id === item.productId);
+    const product = dataProducts instanceof Map
+        ? dataProducts.get(String(item.productId))
+        : (dataProducts || []).find((p: any) => p.id === item.productId);
     return safeParsePrice(product?.cost);
 };
 
