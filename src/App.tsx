@@ -102,6 +102,39 @@ import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils'
 import { refreshPushRegistrationIfAlreadyAllowed } from './lib/pushNotifications';
 import { getProtectedStorageItem, hasMeaningfulData, safeMergeData, setProtectedStorageItem } from './lib/dataGuard';
 
+const ADMIN_PRIORITY_PAGES = [
+  'new-invoice',
+  'invoices-list',
+  'customers',
+  'suppliers',
+  'products',
+  'orders',
+  'expenses',
+] as const;
+
+type AdminPriorityPage = typeof ADMIN_PRIORITY_PAGES[number];
+
+const ADMIN_PAGE_PRELOADERS: Record<AdminPriorityPage, () => Promise<any>> = {
+  'new-invoice': () => import('./components/InvoicePage'),
+  'invoices-list': () => import('./components/ReportsPage'),
+  customers: () => import('./components/CustomerPage'),
+  suppliers: () => import('./components/SupplierPage'),
+  products: () => import('./components/ProductPage'),
+  orders: () => import('./components/OrderPage'),
+  expenses: () => import('./components/ExpensePage'),
+};
+
+const preloadedAdminPages = new Set<string>();
+
+const preloadAdminPage = (page: string) => {
+  const loader = ADMIN_PAGE_PRELOADERS[page as AdminPriorityPage];
+  if (!loader || preloadedAdminPages.has(page)) return;
+  preloadedAdminPages.add(page);
+  void loader().catch(() => {
+    preloadedAdminPages.delete(page);
+  });
+};
+
 type AdminNotification = AppState['notifications'][number];
 
 const isVisibleAdminNotification = (notification: AdminNotification) => {
@@ -1125,34 +1158,25 @@ const MainApp: React.FC = () => {
     const scheduleIdle = (window as any).requestIdleCallback;
     const cancelIdle = (window as any).cancelIdleCallback;
 
-    const warmups: Array<() => Promise<any>> = [
-      // Ordered by user's stated priority (most-used first)
-      () => import('./components/InvoicePage'),
-      () => import('./components/ReportsPage'),
-      () => import('./components/CustomerPage'),
-      () => import('./components/SupplierPage'),
-      () => import('./components/ProductPage'),
-      () => import('./components/OrderPage'),
-      () => import('./components/ExpensePage'),
-    ];
-
     const runNext = (i: number) => {
-      if (cancelled || i >= warmups.length) return;
-      warmups[i]().catch(() => {}).finally(() => {
+      if (cancelled || i >= ADMIN_PRIORITY_PAGES.length) return;
+      preloadAdminPage(ADMIN_PRIORITY_PAGES[i]);
+      const scheduleNext = () => {
         if (cancelled) return;
         if (typeof scheduleIdle === 'function') {
-          scheduleIdle(() => runNext(i + 1), { timeout: 2500 });
+          scheduleIdle(() => runNext(i + 1), { timeout: 900 });
         } else {
-          window.setTimeout(() => runNext(i + 1), 250);
+          window.setTimeout(() => runNext(i + 1), 120);
         }
-      });
+      };
+      window.setTimeout(scheduleNext, i === 0 ? 60 : 0);
     };
 
     let kickoffId: any;
     if (typeof scheduleIdle === 'function') {
-      kickoffId = scheduleIdle(() => runNext(0), { timeout: 2500 });
+      kickoffId = scheduleIdle(() => runNext(0), { timeout: 700 });
     } else {
-      kickoffId = window.setTimeout(() => runNext(0), 1500);
+      kickoffId = window.setTimeout(() => runNext(0), 350);
     }
 
     return () => {
@@ -3470,6 +3494,9 @@ const MainApp: React.FC = () => {
                <div 
                  role="button"
                  onClick={() => {
+                    preloadAdminPage('new-invoice');
+                    preloadAdminPage('invoices-list');
+                    preloadAdminPage('customers');
                     if (!sidebarOpen && !isMobile) {
                       setSidebarOpen(true);
                       openMenu('invoices');
@@ -3507,18 +3534,21 @@ const MainApp: React.FC = () => {
                         label="فاتورة جديدة"
                         icon={<PlusCircle size={16} />}
                         active={currentPage === 'new-invoice'} 
+                        preloadPage="new-invoice"
                         onClick={() => { setCurrentPage('new-invoice'); setEditingInvoiceId(null); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
                         label="سجل الفواتير"
                         icon={<Receipt size={16} />}
                         active={currentPage === 'invoices-list'} 
+                        preloadPage="invoices-list"
                         onClick={() => { setCurrentPage('invoices-list'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
                         label="قائمة العملاء"
                         icon={<Users size={16} />}
                         active={currentPage === 'customers'} 
+                        preloadPage="customers"
                         onClick={() => { setCurrentPage('customers'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
@@ -3536,6 +3566,9 @@ const MainApp: React.FC = () => {
                <div 
                  role="button"
                  onClick={() => {
+                    preloadAdminPage('products');
+                    preloadAdminPage('expenses');
+                    preloadAdminPage('suppliers');
                     if (!sidebarOpen && !isMobile) {
                       setSidebarOpen(true);
                       openMenu('operations');
@@ -3573,18 +3606,21 @@ const MainApp: React.FC = () => {
                         label="قائمة المنتجات"
                         icon={<Package size={16} />}
                         active={currentPage === 'products'} 
+                        preloadPage="products"
                         onClick={() => { setCurrentPage('products'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
                         label="المصروفات العامة"
                         icon={<CircleDollarSign size={16} />}
                         active={currentPage === 'expenses'} 
+                        preloadPage="expenses"
                         onClick={() => { setCurrentPage('expenses'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
                         label="الموردين والمراجعة"
                         icon={<HandCoins size={16} />}
                         active={currentPage === 'suppliers' || currentPage === 'suppliers-audit'} 
+                        preloadPage="suppliers"
                         onClick={() => { setCurrentPage('suppliers'); setSidebarOpen(false); }}
                       />
                   </motion.div>
@@ -3672,6 +3708,9 @@ const MainApp: React.FC = () => {
               {/* Removed isStandalone button from header */}
 
               <button 
+                onMouseEnter={() => preloadAdminPage('new-invoice')}
+                onFocus={() => preloadAdminPage('new-invoice')}
+                onTouchStart={() => preloadAdminPage('new-invoice')}
                 onClick={() => {
                   setEditingInvoiceId(null);
                   setCurrentPage('new-invoice');
@@ -4110,8 +4149,11 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick, highlig
   </button>
 );
 
-const SubNavItem: React.FC<{ label: string; icon: React.ReactNode; active?: boolean; onClick: () => void }> = ({ label, icon, active, onClick }) => (
+const SubNavItem: React.FC<{ label: string; icon: React.ReactNode; active?: boolean; preloadPage?: string; onClick: () => void }> = ({ label, icon, active, preloadPage, onClick }) => (
   <button 
+    onMouseEnter={() => preloadPage && preloadAdminPage(preloadPage)}
+    onFocus={() => preloadPage && preloadAdminPage(preloadPage)}
+    onTouchStart={() => preloadPage && preloadAdminPage(preloadPage)}
     onClick={onClick}
     className={cn(
       "w-full flex items-center gap-3 text-right p-3.5 text-[12px] font-bold rounded-2xl transition-all active:scale-95 mb-0.5",
