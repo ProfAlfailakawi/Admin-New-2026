@@ -1109,7 +1109,7 @@ const MainApp: React.FC = () => {
       const raw = getProtectedStorageItem('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItem('ktk_cloud_offline_snapshot');
       if (raw) {
         const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-        return Boolean(parsed && parsed.invoices && parsed.invoices.length > 0);
+        return hasMeaningfulData(parsed);
       }
     } catch {}
     return false;
@@ -1377,8 +1377,6 @@ const MainApp: React.FC = () => {
       }
 
       const CLOUD_STALE_KEYS = [
-        'ktk_cloud_offline_snapshot',
-        'ktk_cloud_offline_snapshot_last_good',
         'ktk_last_cloud_snapshot',
         'ktk_cloud_import_snapshot',
         'ktk_cloud_cache',
@@ -1391,6 +1389,9 @@ const MainApp: React.FC = () => {
       });
 
       Object.keys(localStorage).forEach(key => {
+        const isTrustedCloudSnapshot =
+          key === 'ktk_cloud_offline_snapshot' ||
+          key === 'ktk_cloud_offline_snapshot_last_good';
         const shouldRemove =
           key.includes('cloud_offline_snapshot') ||
           key.includes('cloud_snapshot') ||
@@ -1398,7 +1399,7 @@ const MainApp: React.FC = () => {
           key.includes('last_good_cloud');
 
         // Do not delete local/demo data or auth/session preferences.
-        if (shouldRemove && key !== 'ktk_local_accounting_data' && key !== 'ktk_accounting_data') {
+        if (shouldRemove && !isTrustedCloudSnapshot && key !== 'ktk_local_accounting_data' && key !== 'ktk_accounting_data') {
           try { localStorage.removeItem(key); } catch {}
         }
       });
@@ -2047,7 +2048,7 @@ const MainApp: React.FC = () => {
         const raw = getProtectedStorageItem('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItem('ktk_cloud_offline_snapshot');
         if (raw) {
           const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-          setHasInstantCloudSnapshot(Boolean(parsed && parsed.invoices && parsed.invoices.length > 0));
+          setHasInstantCloudSnapshot(hasMeaningfulData(parsed));
         } else {
           setHasInstantCloudSnapshot(false);
         }
@@ -2161,7 +2162,7 @@ const MainApp: React.FC = () => {
   const authoritativeDataWrittenAtRef = useRef<number>(0);
 
   const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
-  const BOOT_DEFERRED_SHARDED_KEYS = ['pulseAnalysisHistory', 'pulseReviews', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
+  const BOOT_DEFERRED_SHARDED_KEYS = ['testimonials', 'campaigns', 'pulseAnalysisHistory', 'pulseReviews', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
 
   // Google/Looker Studio was originally reading the root appData/shared_company_data document.
   // The app now uses shards for speed and to avoid Firestore document-size limits, but Studio
@@ -2586,8 +2587,7 @@ const MainApp: React.FC = () => {
         if (instantSnapshot) {
           setData(instantSnapshot);
           lastRemoteSnapshotRef.current = JSON.stringify(instantSnapshot);
-          const hasData = Boolean(instantSnapshot.invoices && instantSnapshot.invoices.length > 0);
-          setHasInstantCloudSnapshot(hasData);
+          setHasInstantCloudSnapshot(hasMeaningfulData(instantSnapshot));
         } else {
           setHasInstantCloudSnapshot(false);
         }
