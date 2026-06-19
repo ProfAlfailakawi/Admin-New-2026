@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
 import LZString from 'lz-string';
 import { 
   ArrowUp,
@@ -2669,7 +2669,8 @@ const MainApp: React.FC = () => {
             const finalProcessedState = recalculateStateBalances(loadedState);
             finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
 
-            setData(finalProcessedState);
+            // حقن البيانات كـ transition: تبقى الواجهة قابلة للنقر فوراً أثناء الرسم بدل تجميد الـ main-thread.
+            startTransition(() => setData(finalProcessedState));
             lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
             setHasInstantCloudSnapshot(true);
             try {
@@ -2697,7 +2698,7 @@ const MainApp: React.FC = () => {
                     }
                   });
                   if (Object.keys(deferredPatch).length === 0) return;
-                  setData(prev => {
+                  startTransition(() => setData(prev => {
                     const metaPatch: any = {};
                     if (fullState.__adminDataGenerationId) metaPatch.__adminDataGenerationId = fullState.__adminDataGenerationId;
                     if (fullState.__adminLastAuthoritativeWriteAt) metaPatch.__adminLastAuthoritativeWriteAt = fullState.__adminLastAuthoritativeWriteAt;
@@ -2709,7 +2710,7 @@ const MainApp: React.FC = () => {
                       setProtectedStorageItem('ktk_cloud_offline_snapshot', mergedSnapshot);
                     } catch {}
                     return merged;
-                  });
+                  }));
                 } catch (backgroundLoadErr) {
                   console.warn('[FAST_APPDATA] Deferred shard background load failed:', backgroundLoadErr);
                 }
@@ -2847,7 +2848,8 @@ const MainApp: React.FC = () => {
         // Sync read state from localStorage to ensure read status is kept fundamentally.
         finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
 
-        setData(finalProcessedState);
+        // حقن البيانات كـ transition: واجهة قابلة للنقر فوراً أثناء الرسم.
+        startTransition(() => setData(finalProcessedState));
         lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
         setHasInstantCloudSnapshot(true);
         try {
@@ -3283,10 +3285,7 @@ const MainApp: React.FC = () => {
     );
   };
 
-  // عرض الواجهة فوراً عند الاتصال، وتُحدَّث بيانات السحابة في الخلفية (إشعار DataRefreshNotice غير الحاجب).
-  // لا نحجب الواجهة بانتظار اكتمال أول جلب سحابي. نحجب فقط عند انقطاع الاتصال الفعلي بلا أي بيانات متاحة.
-  // ملاحظة: الحفظ التلقائي محمي بـ hasLoadedDataRef، لذا الظهور المبكر لا يكتب/يمسح أي بيانات سحابية.
-  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && !hasInstantCloudSnapshot && !isOnline;
+  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && !hasInstantCloudSnapshot && (!isOnline || (dataLoading && !hasLoadedDataRef.current));
 
   if (shouldHoldCloudEntry) {
     return (
