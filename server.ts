@@ -58,6 +58,8 @@ try {
     const testSnap = await db.collection('pushTokens').limit(1).get();
     firebaseInitialized = true;
     console.log(`[ADMIN020] Firebase Admin verified. Access to database '${dbId || "(default)"}' confirmed.`);
+    // Start warm-up / active real-time caching of the full appdata database
+    initAppDataCache().catch(console.error);
   } catch (err: any) {
     console.error(`[ADMIN020] Firebase Admin connectivity check FAILED for database '${dbId || "(default)"}':`, err.message);
     if (err.message && err.message.includes("PERMISSION_DENIED")) {
@@ -1571,6 +1573,85 @@ function decodeFullAppDataShard(key: string, shardData: any) {
   return [];
 }
 
+interface CacheStore {
+  rootData: any;
+  shards: Record<string, any>;
+  initialized: boolean;
+}
+
+const appDataCache: CacheStore = {
+  rootData: {},
+  shards: {},
+  initialized: false
+};
+
+let cachePromise: Promise<void> | null = null;
+
+async function initAppDataCache() {
+  if (appDataCache.initialized) return;
+  if (cachePromise) return cachePromise;
+
+  cachePromise = (async () => {
+    try {
+      if (!db) {
+        console.warn("[CACHE] Cannot initialize cache yet: Firebase Admin DB is not ready.");
+        cachePromise = null;
+        return;
+      }
+      console.log("[CACHE] Initializing Real-time Full AppData Server-side Cache...");
+      
+      const rootRef = db.collection("appData").doc("shared_company_data");
+      
+      // 1. Initial manual preload
+      const rootSnap = await rootRef.get();
+      if (rootSnap.exists) {
+        appDataCache.rootData = rootSnap.data() || {};
+      }
+
+      const shardsColl = rootRef.collection("shards");
+      const shardsSnap = await shardsColl.get();
+      shardsSnap.forEach((doc: any) => {
+        const key = doc.id;
+        const decoded = decodeFullAppDataShard(key, doc.data() || {});
+        appDataCache.shards[key] = decoded;
+      });
+
+      console.log(`[CACHE] Initial cache preloaded with ${Object.keys(appDataCache.shards).length} shards.`);
+
+      // 2. Setup Real-time Live Sync listeners
+      rootRef.onSnapshot((snap: any) => {
+        if (snap && snap.exists) {
+          appDataCache.rootData = snap.data() || {};
+          console.log("[CACHE] Root document updated in real-time from Firestore.");
+        }
+      }, (err: any) => {
+        console.error("[CACHE] Root real-time sync error:", err);
+      });
+
+      shardsColl.onSnapshot((querySnap: any) => {
+        if (!querySnap) return;
+        querySnap.forEach((doc: any) => {
+          const key = doc.id;
+          const decoded = decodeFullAppDataShard(key, doc.data() || {});
+          appDataCache.shards[key] = decoded;
+        });
+        console.log(`[CACHE] Live shards snapshot sync received. Total tracked: ${Object.keys(appDataCache.shards).length}`);
+      }, (err: any) => {
+        console.error("[CACHE] Shards real-time sync error:", err);
+      });
+
+      appDataCache.initialized = true;
+      console.log("[CACHE] Real-time server-side cache is hot and fully synchronized!");
+    } catch (err: any) {
+      console.error("[CACHE] Real-time cache initialization failed:", err);
+      appDataCache.initialized = false;
+      cachePromise = null;
+    }
+  })();
+
+  return cachePromise;
+}
+
 
 // ALTURATH_WHATSAPP_CLOUD_API_START
 // Independent WhatsApp Cloud API layer. It only reads shared data and sends WhatsApp replies.
@@ -2508,44 +2589,37 @@ app.get("/api/appdata/full", async (_req, res) => {
       return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
     }
 
-    const rootRef = db.collection("appData").doc("shared_company_data");
-    const rootSnap = await rootRef.get();
-    const rootData = rootSnap.exists ? (rootSnap.data() || {}) : {};
+    // Lazy initialization safeguard in case background startup failed or is still running
+    if (!appDataCache.initialized) {
+      await initAppDataCache();
+    }
+
     const profile = String((_req.query?.profile || _req.query?.mode || "") as string).toLowerCase();
     const shardKeys = profile === "boot"
       ? FULL_APPDATA_SHARD_KEYS.filter((key) => !BOOT_DEFERRED_APPDATA_SHARD_KEYS.has(key))
       : FULL_APPDATA_SHARD_KEYS;
 
-    const shardSnaps = await Promise.all(
-      shardKeys.map(async (key) => {
-        try {
-          const snap = await rootRef.collection("shards").doc(key).get();
-          return { key, snap };
-        } catch (error: any) {
-          console.warn(`[api/appdata/full] shard read failed for ${key}:`, error?.message || error);
-          return { key, snap: null };
-        }
-      })
-    );
-
-    const data: any = { ...rootData };
+    const data: any = { ...appDataCache.rootData };
     const shardCounts: Record<string, number> = {};
-    for (const { key, snap } of shardSnaps) {
-      if (!snap || !snap.exists) continue;
-      const value = decodeFullAppDataShard(key, snap.data() || {});
-      if (Array.isArray(value) && value.length > 0) {
-        data[key] = value;
-        shardCounts[key] = value.length;
+
+    for (const key of shardKeys) {
+      const decodedValue = appDataCache.shards[key] || [];
+      if (decodedValue && (!Array.isArray(decodedValue) || decodedValue.length > 0)) {
+        data[key] = decodedValue;
+        shardCounts[key] = Array.isArray(decodedValue) ? decodedValue.length : 1;
       }
     }
+
+    const durationMs = Date.now() - startedAt;
+    console.log(`[FAST_API] /api/appdata/full served instantly in ${durationMs}ms (profile: ${profile || "full"})`);
 
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     return res.json({
       success: true,
-      source: "admin-server-firestore-full-appdata",
+      source: "admin-server-firestore-cache-full-appdata",
       profile: profile === "boot" ? "boot" : "full",
       deferredShardKeys: profile === "boot" ? Array.from(BOOT_DEFERRED_APPDATA_SHARD_KEYS) : [],
-      durationMs: Date.now() - startedAt,
+      durationMs,
       shardCounts,
       data,
     });
