@@ -59,7 +59,7 @@ try {
     firebaseInitialized = true;
     console.log(`[ADMIN020] Firebase Admin verified. Access to database '${dbId || "(default)"}' confirmed.`);
     // Start warm-up / active real-time caching of the full appdata database
-    initAppDataCache().catch(console.error);
+    initBootCache().catch(console.error);
   } catch (err: any) {
     console.error(`[ADMIN020] Firebase Admin connectivity check FAILED for database '${dbId || "(default)"}':`, err.message);
     if (err.message && err.message.includes("PERMISSION_DENIED")) {
@@ -1576,49 +1576,66 @@ function decodeFullAppDataShard(key: string, shardData: any) {
 interface CacheStore {
   rootData: any;
   shards: Record<string, any>;
-  initialized: boolean;
+  bootInitialized: boolean;
+  fullInitialized: boolean;
 }
 
 const appDataCache: CacheStore = {
   rootData: {},
   shards: {},
-  initialized: false
+  bootInitialized: false,
+  fullInitialized: false
 };
 
-let cachePromise: Promise<void> | null = null;
+let bootCachePromise: Promise<void> | null = null;
+let deferredCachePromise: Promise<void> | null = null;
 
-async function initAppDataCache() {
-  if (appDataCache.initialized) return;
-  if (cachePromise) return cachePromise;
+async function initBootCache() {
+  if (appDataCache.bootInitialized) return;
+  if (bootCachePromise) return bootCachePromise;
 
-  cachePromise = (async () => {
+  bootCachePromise = (async () => {
     try {
       if (!db) {
-        console.warn("[CACHE] Cannot initialize cache yet: Firebase Admin DB is not ready.");
-        cachePromise = null;
+        console.warn("[CACHE] Cannot initialize boot cache yet: Firebase Admin DB is not ready.");
+        bootCachePromise = null;
         return;
       }
-      console.log("[CACHE] Initializing Real-time Full AppData Server-side Cache...");
+      console.log("[CACHE] Initializing stage-1 boot cache (Essential keys only)...");
+      const startedAt = Date.now();
       
       const rootRef = db.collection("appData").doc("shared_company_data");
+      const bootKeys = FULL_APPDATA_SHARD_KEYS.filter(key => !BOOT_DEFERRED_APPDATA_SHARD_KEYS.has(key));
       
-      // 1. Initial manual preload
-      const rootSnap = await rootRef.get();
+      const [rootSnap, ...shardSnaps] = await Promise.all([
+        rootRef.get(),
+        ...bootKeys.map(key => rootRef.collection("shards").doc(key).get().catch(err => {
+          console.error(`[CACHE] Failed to get shard doc ${key}:`, err);
+          return { exists: false, data: () => null };
+        }))
+      ]);
+
       if (rootSnap.exists) {
         appDataCache.rootData = rootSnap.data() || {};
       }
 
-      const shardsColl = rootRef.collection("shards");
-      const shardsSnap = await shardsColl.get();
-      shardsSnap.forEach((doc: any) => {
-        const key = doc.id;
-        const decoded = decodeFullAppDataShard(key, doc.data() || {});
-        appDataCache.shards[key] = decoded;
+      shardSnaps.forEach((doc: any, index: number) => {
+        const key = bootKeys[index];
+        if (doc && doc.exists) {
+          appDataCache.shards[key] = decodeFullAppDataShard(key, doc.data() || {});
+        } else {
+          appDataCache.shards[key] = [];
+        }
       });
 
-      console.log(`[CACHE] Initial cache preloaded with ${Object.keys(appDataCache.shards).length} shards.`);
+      appDataCache.bootInitialized = true;
+      const elapsed = Date.now() - startedAt;
+      console.log(`[CACHE] Stage-1 boot cache hot in ${elapsed}ms! Loaded ${bootKeys.length} essential shards.`);
 
-      // 2. Setup Real-time Live Sync listeners
+      // Fire off Stage-2 deferred cache in the background right away without stalling the boot
+      initDeferredCache().catch(console.error);
+
+      // Real-time synchronization listeners to keep the cache fully fresh
       rootRef.onSnapshot((snap: any) => {
         if (snap && snap.exists) {
           appDataCache.rootData = snap.data() || {};
@@ -1628,28 +1645,83 @@ async function initAppDataCache() {
         console.error("[CACHE] Root real-time sync error:", err);
       });
 
-      shardsColl.onSnapshot((querySnap: any) => {
-        if (!querySnap) return;
-        querySnap.forEach((doc: any) => {
-          const key = doc.id;
-          const decoded = decodeFullAppDataShard(key, doc.data() || {});
-          appDataCache.shards[key] = decoded;
+      bootKeys.forEach(key => {
+        rootRef.collection("shards").doc(key).onSnapshot((doc: any) => {
+          if (doc && doc.exists) {
+            appDataCache.shards[key] = decodeFullAppDataShard(key, doc.data() || {});
+            console.log(`[CACHE] Live sync: Boot shard ${key} updated.`);
+          }
+        }, (err: any) => {
+          console.error(`[CACHE] Real-time sync error for boot key ${key}:`, err);
         });
-        console.log(`[CACHE] Live shards snapshot sync received. Total tracked: ${Object.keys(appDataCache.shards).length}`);
-      }, (err: any) => {
-        console.error("[CACHE] Shards real-time sync error:", err);
       });
 
-      appDataCache.initialized = true;
-      console.log("[CACHE] Real-time server-side cache is hot and fully synchronized!");
     } catch (err: any) {
-      console.error("[CACHE] Real-time cache initialization failed:", err);
-      appDataCache.initialized = false;
-      cachePromise = null;
+      console.error("[CACHE] Stage-1 boot cache initialization failed:", err);
+      appDataCache.bootInitialized = false;
+      bootCachePromise = null;
     }
   })();
 
-  return cachePromise;
+  return bootCachePromise;
+}
+
+async function initDeferredCache() {
+  if (appDataCache.fullInitialized) return;
+  if (deferredCachePromise) return deferredCachePromise;
+
+  deferredCachePromise = (async () => {
+    try {
+      if (!db) {
+        console.warn("[CACHE] Cannot initialize deferred cache: Firebase Admin DB is not ready.");
+        deferredCachePromise = null;
+        return;
+      }
+      console.log("[CACHE] Initializing stage-2 deferred cache (Large history keys in background)...");
+      const startedAt = Date.now();
+
+      const rootRef = db.collection("appData").doc("shared_company_data");
+      const deferredKeys = Array.from(BOOT_DEFERRED_APPDATA_SHARD_KEYS);
+
+      const shardSnaps = await Promise.all(
+        deferredKeys.map(key => rootRef.collection("shards").doc(key).get().catch(err => {
+          console.error(`[CACHE] Failed to get deferred shard doc ${key}:`, err);
+          return { exists: false, data: () => null };
+        }))
+      );
+
+      shardSnaps.forEach((doc: any, index: number) => {
+        const key = deferredKeys[index];
+        if (doc && doc.exists) {
+          appDataCache.shards[key] = decodeFullAppDataShard(key, doc.data() || {});
+        } else {
+          appDataCache.shards[key] = [];
+        }
+      });
+
+      appDataCache.fullInitialized = true;
+      const elapsed = Date.now() - startedAt;
+      console.log(`[CACHE] Stage-2 deferred cache hot in ${elapsed}ms! Loaded ${deferredKeys.length} background shards.`);
+
+      deferredKeys.forEach(key => {
+        rootRef.collection("shards").doc(key).onSnapshot((doc: any) => {
+          if (doc && doc.exists) {
+            appDataCache.shards[key] = decodeFullAppDataShard(key, doc.data() || {});
+            console.log(`[CACHE] Live sync: Deferred shard ${key} updated.`);
+          }
+        }, (err: any) => {
+          console.error(`[CACHE] Real-time sync error for deferred key ${key}:`, err);
+        });
+      });
+
+    } catch (err: any) {
+      console.error("[CACHE] Stage-2 deferred cache initialization failed:", err);
+      appDataCache.fullInitialized = false;
+      deferredCachePromise = null;
+    }
+  })();
+
+  return deferredCachePromise;
 }
 
 
@@ -2589,12 +2661,22 @@ app.get("/api/appdata/full", async (_req, res) => {
       return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
     }
 
-    // Lazy initialization safeguard in case background startup failed or is still running
-    if (!appDataCache.initialized) {
-      await initAppDataCache();
+    const profile = String((_req.query?.profile || _req.query?.mode || "") as string).toLowerCase();
+
+    // Lazy initialization safeguard depending on the requested profile
+    if (profile === "boot") {
+      if (!appDataCache.bootInitialized) {
+        await initBootCache();
+      }
+    } else {
+      if (!appDataCache.bootInitialized) {
+        await initBootCache();
+      }
+      if (!appDataCache.fullInitialized) {
+        await initDeferredCache();
+      }
     }
 
-    const profile = String((_req.query?.profile || _req.query?.mode || "") as string).toLowerCase();
     const shardKeys = profile === "boot"
       ? FULL_APPDATA_SHARD_KEYS.filter((key) => !BOOT_DEFERRED_APPDATA_SHARD_KEYS.has(key))
       : FULL_APPDATA_SHARD_KEYS;
