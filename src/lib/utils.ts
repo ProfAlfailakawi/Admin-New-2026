@@ -180,12 +180,17 @@ export function splitProductsForDatabase(data: any): any {
   };
 }
 
+const joinProductsCache = new WeakMap<any, any>();
+
 /**
  * Recombines principal products and supplier copies from the database
  * back into a single products array for the Admin app's local state.
  */
 export function joinProductsFromDatabase(data: any): any {
   if (!data) return data;
+  if (joinProductsCache.has(data)) {
+    return joinProductsCache.get(data);
+  }
   const result = { ...data };
   if (result.supplierCopies && Array.isArray(result.supplierCopies)) {
       const combined = [...(result.products || []), ...result.supplierCopies];
@@ -201,10 +206,18 @@ export function joinProductsFromDatabase(data: any): any {
       result.products = unique;
       delete result.supplierCopies;
   }
+  joinProductsCache.set(data, result);
   return result;
 }
 
+const unifiedInvoicesCache = new WeakMap<any, any[]>();
+
 export function getUnifiedInvoices(data: any): any[] {
+  if (!data) return [];
+  if (unifiedInvoicesCache.has(data)) {
+    return unifiedInvoicesCache.get(data)!;
+  }
+
   const invs = Array.isArray(data?.invoices) ? data.invoices.map((i: any) => {
     // Fix for older invoices that incorrectly got 'standard' default from orders
     if (i.deliveryType === 'standard' && (i.linkedOrderId?.startsWith('ORD-') || (i as any).isConvertedFromWebsite) && !i.manuallyModifiedDeliveryType) {
@@ -270,6 +283,8 @@ export function getUnifiedInvoices(data: any): any[] {
       unique.push(item);
     }
   }
+  
+  unifiedInvoicesCache.set(data, unique);
   return unique;
 }
 

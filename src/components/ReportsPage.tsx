@@ -26,7 +26,7 @@ const isSuccessfulPayerForDisplay = (payer: any) => {
 };
 
 import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly, formatKuwaitiTimeOnly } from '../lib/utils';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   FileText,
   Search,
@@ -187,6 +187,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
     setDeepLinkData,
     isPartner = false,
   }) => {
+    const unifiedInvoices = useMemo(() => getUnifiedInvoices(data), [data]);
     const [activeTab, setActiveTab] = useState<
       "invoices" | "tax" | "pnl" | "orders"
     >(defaultTab as any);
@@ -340,9 +341,9 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         )
         .map((o) => o.linkedInvoiceId as string),
     );
-    const activeInvoices = getUnifiedInvoices(data).filter(
+    const activeInvoices = useMemo(() => unifiedInvoices.filter(
       (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
-    );
+    ), [unifiedInvoices, cancelledOrderInvoiceIds]);
 
     const filteredInvoices = activeInvoices
       .filter((inv) => {
@@ -523,7 +524,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         );
         return;
       }
-      const invoiceToDeleteObj = getUnifiedInvoices(data).find(
+      const invoiceToDeleteObj = unifiedInvoices.find(
         (inv) => inv.id === id,
       );
       if (!invoiceToDeleteObj) return;

@@ -316,7 +316,8 @@ const getSupplierPriceIndicator = (s: any) => {
 };
 
 const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
-  const cancelledOrderInvoiceIds = new Set(
+  const unifiedInvoices = useMemo(() => getUnifiedInvoices(data), [data]);
+  const cancelledOrderInvoiceIds = useMemo(() => new Set(
     (data?.orders || [])
       .filter(
         (o) =>
@@ -325,10 +326,10 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
           o.linkedInvoiceId,
       )
       .map((o) => o.linkedInvoiceId),
-  );
-  const activeInvoices = getUnifiedInvoices(data).filter(
+  ), [data?.orders]);
+  const activeInvoices = useMemo(() => unifiedInvoices.filter(
     (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
-  );
+  ), [unifiedInvoices, cancelledOrderInvoiceIds]);
   const paidInvoices = activeInvoices.filter(
     (inv) => (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending',
   );
@@ -492,7 +493,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
               label: "نبض",
               color: "text-rose-400",
               angle: 225,
-              val: getUnifiedInvoices(data)?.length || 0,
+              val: unifiedInvoices?.length || 0,
             },
             {
               icon: <Zap />,
@@ -589,7 +590,8 @@ const BusinessStatusMirror: React.FC<{
   setActiveTab: (tab: any) => void;
   setDeepLinkData?: (data: any) => void;
 }> = ({ data, setActiveTab, setDeepLinkData }) => {
-  const cancelledOrderInvoiceIds = new Set(
+  const unifiedInvoices = useMemo(() => getUnifiedInvoices(data), [data]);
+  const cancelledOrderInvoiceIds = useMemo(() => new Set(
     (data?.orders || [])
       .filter(
         (o) =>
@@ -598,10 +600,10 @@ const BusinessStatusMirror: React.FC<{
           o.linkedInvoiceId,
       )
       .map((o) => o.linkedInvoiceId),
-  );
-  const activeInvoices = getUnifiedInvoices(data).filter(
+  ), [data?.orders]);
+  const activeInvoices = useMemo(() => unifiedInvoices.filter(
     (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
-  );
+  ), [unifiedInvoices, cancelledOrderInvoiceIds]);
   const paidInvoices = activeInvoices.filter(
     (inv) => (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && !String(inv.status).includes('تجميع القطية') && inv.paymentStatus !== 'split_pending' && inv.status !== 'split_pending',
   );
@@ -959,6 +961,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
   }) => {
     
     const data = rawData;
+    const unifiedInvoices = useMemo(() => getUnifiedInvoices(data), [data]);
   
 const [isPending, startTransition] = useTransition();
     const [isExecutiveMode, setIsExecutiveMode] = useState(false);
@@ -1452,7 +1455,7 @@ const [isPending, startTransition] = useTransition();
           )
           .map((o) => o.linkedInvoiceId),
       );
-      const invs = getUnifiedInvoices(data).filter(
+      const invs = unifiedInvoices.filter(
         (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
       );
       if (dateFilter === "all") return invs;
@@ -1473,7 +1476,7 @@ const [isPending, startTransition] = useTransition();
         const d = new Date(inv.date).getTime();
         return now - d <= threshold;
       });
-    }, [getUnifiedInvoices(data), dateFilter]);
+    }, [unifiedInvoices, dateFilter]);
 
     // Derived Financial Metrics
     const {
@@ -1654,7 +1657,7 @@ const [isPending, startTransition] = useTransition();
           .map((o) => o.linkedInvoiceId),
       );
       
-      const allTimeActiveInvs = getUnifiedInvoices(data).filter(
+      const allTimeActiveInvs = unifiedInvoices.filter(
         (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
       );
 
@@ -1881,7 +1884,7 @@ const [isPending, startTransition] = useTransition();
       const allOrdersOriginal = data?.orders || [];
       const linkedInvoiceIds = new Set(allOrdersOriginal.map(o => o.linkedInvoiceId).filter(Boolean));
       
-      const combined = getUnifiedInvoices(data)
+      const combined = unifiedInvoices
         .filter(i => !i.isDeleted && !linkedInvoiceIds.has(i.id))
         .map(i => ({ ...i, _type: i.id?.startsWith('ORD-') ? 'order' : 'invoice' }));
       
@@ -1915,7 +1918,7 @@ const [isPending, startTransition] = useTransition();
       return combined
         .sort((a, b) => getTimestamp(b) - getTimestamp(a))
         .slice(0, 5);
-    }, [data?.orders, getUnifiedInvoices(data)]);
+    }, [data?.orders, unifiedInvoices]);
 
     const getOrderSubtotal = (order: any) => {
       const amount =
@@ -2420,7 +2423,7 @@ const [isPending, startTransition] = useTransition();
     let tRev = 0;
     let yRev = 0;
     
-    getUnifiedInvoices(data)?.forEach(inv => {
+    unifiedInvoices?.forEach(inv => {
       // paymentStatus can be under 'status' in some models
       const status = inv.paymentStatus || (inv as any).status;
       if (status !== 'paid' && status !== 'partial' && status !== 'completed' && inv.paymentStatus !== undefined) return;
@@ -4964,7 +4967,7 @@ const [isPending, startTransition] = useTransition();
                         </div>
                         <p className="text-xs text-slate-300 font-medium leading-relaxed mb-6">
                           يقوم التراث الذكي الآن بمسح شامل لـ{" "}
-                          {getUnifiedInvoices(data).length} فاتورة و{" "}
+                          {unifiedInvoices.length} فاتورة و{" "}
                           {reviews.length} تعليق عميل لاستخراج الأنماط الخفية.
                         </p>
                       </div>
