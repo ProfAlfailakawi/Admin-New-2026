@@ -35,6 +35,7 @@ interface CustomerPageProps {
 const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, deepLinkData, onClearDeepLink }) => {
  const [search, setSearch] = useState('');
  const [selectedCustomerInvoices, setSelectedCustomerInvoices] = useState<{name: string, invoices: any[]} | null>(null);
+ const [visibleCount, setVisibleCount] = useState(30);
 
  React.useEffect(() => {
   if (deepLinkData?.search) {
@@ -78,68 +79,112 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
  const [analyzingCustomer, setAnalyzingCustomer] = useState<Customer | null>(null);
 
- const cancelledOrderInvoiceIds = new Set((data.orders || []).filter(o => o.status === 'cancelled' && o.isConvertedToInvoice && o.linkedInvoiceId).map(o => o.linkedInvoiceId));
- const activeInvoices = (data?.invoices || []).filter(inv => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id) && (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined));
+ React.useEffect(() => {
+  setVisibleCount(30);
+ }, [search, filterType, sentimentFilter]);
 
- const getCustomerStats = (customerId: string) => {
-  const customerInvoices = activeInvoices.filter(inv => inv.customerId === customerId);
-  return {
-   totalOrders: customerInvoices.length,
-   totalSpent: customerInvoices.reduce((acc, inv) => acc + (inv.totalAmount || 0), 0)
-  };
- };
+ const cancelledOrderInvoiceIds = React.useMemo(() => {
+  return new Set((data.orders || []).filter(o => o.status === 'cancelled' && o.isConvertedToInvoice && o.linkedInvoiceId).map(o => o.linkedInvoiceId));
+ }, [data.orders]);
 
- const now = new Date();
- const normalizedSearch = normalizeArabic(search);
- 
- const filteredCustomers = (data?.customers || []).filter(c => {
-  const matchesSearch = normalizeArabic(c.name || '').includes(normalizedSearch) || 
-  (c.phone || '').includes(search);
-  
-  let matchesStatus = true;
-  if (filterType !== 'all') {
-   const diff = c.lastOrderDate ? (now.getTime() - new Date(c.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24) : 999;
-   if (filterType === 'inactive') matchesStatus = diff > 90;
-   if (filterType === 'slow') matchesStatus = diff > 30 && diff <= 90;
-   if (filterType === 'active') matchesStatus = diff <= 30;
+ const activeInvoices = React.useMemo(() => {
+  return (data?.invoices || []).filter(inv => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id) && (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined));
+ }, [data?.invoices, cancelledOrderInvoiceIds]);
+
+ const invoicesByCustomerMap = React.useMemo(() => {
+  const map = new Map<string, any[]>();
+  activeInvoices.forEach(inv => {
+    let list = map.get(String(inv.customerId));
+    if (!list) {
+      list = [];
+      map.set(String(inv.customerId), list);
+    }
+    list.push(inv);
+  });
+  return map;
+ }, [activeInvoices]);
+
+ const customerStatsMap = React.useMemo(() => {
+  const stats = new Map<string, { totalOrders: number, totalSpent: number }>();
+  (data?.customers || []).forEach(c => {
+    stats.set(String(c.id), { totalOrders: 0, totalSpent: 0 });
+  });
+  activeInvoices.forEach(inv => {
+    let current = stats.get(String(inv.customerId));
+    if (!current) {
+      current = { totalOrders: 0, totalSpent: 0 };
+      stats.set(String(inv.customerId), current);
+    }
+    current.totalOrders += 1;
+    current.totalSpent += (inv.totalAmount || 0);
+  });
+  return stats;
+ }, [activeInvoices, data?.customers]);
+
+ const getCustomerStats = React.useCallback((customerId: string) => {
+  return customerStatsMap.get(String(customerId)) || { totalOrders: 0, totalSpent: 0 };
+ }, [customerStatsMap]);
+
+ const now = React.useMemo(() => new Date(), []);
+ const normalizedSearch = React.useMemo(() => normalizeArabic(search), [search]);
+
+ const filteredCustomers = React.useMemo(() => {
+  return (data?.customers || []).filter(c => {
+   const matchesSearch = normalizeArabic(c.name || '').includes(normalizedSearch) || 
+   (c.phone || '').includes(search);
    
-   if (filterType === 'vip') {
-    const stats = getCustomerStats(c.id);
-    matchesStatus = stats.totalSpent >= 800 || stats.totalOrders >= 20;
+   let matchesStatus = true;
+   if (filterType !== 'all') {
+    const diff = c.lastOrderDate ? (now.getTime() - new Date(c.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24) : 999;
+    if (filterType === 'inactive') matchesStatus = diff > 90;
+    if (filterType === 'slow') matchesStatus = diff > 30 && diff <= 90;
+    if (filterType === 'active') matchesStatus = diff <= 30;
+    
+    if (filterType === 'vip') {
+     const stats = getCustomerStats(c.id);
+     matchesStatus = stats.totalSpent >= 800 || stats.totalOrders >= 20;
+    }
    }
-  }
 
-  let matchesSentiment = true;
-  if (sentimentFilter !== 'all') {
-   matchesSentiment = (() => {
-    const sentiment = calculateCustomerSentiment(c, data.invoices || []);
-    if (sentimentFilter === 'positive') return sentiment.score >= 70;
-    if (sentimentFilter === 'neutral') return sentiment.score >= 45 && sentiment.score < 70;
-    if (sentimentFilter === 'negative') return sentiment.score < 45;
-    return true;
-   })();
-  }
+   let matchesSentiment = true;
+   if (sentimentFilter !== 'all') {
+    matchesSentiment = (() => {
+     const custInvs = invoicesByCustomerMap.get(String(c.id)) || [];
+     const sentiment = calculateCustomerSentiment(c, custInvs);
+     if (sentimentFilter === 'positive') return sentiment.score >= 70;
+     if (sentimentFilter === 'neutral') return sentiment.score >= 45 && sentiment.score < 70;
+     if (sentimentFilter === 'negative') return sentiment.score < 45;
+     return true;
+    })();
+   }
 
-  return matchesSearch && matchesStatus && matchesSentiment;
- }).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
+   return matchesSearch && matchesStatus && matchesSentiment;
+  }).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
+ }, [data?.customers, normalizedSearch, search, filterType, sentimentFilter, now, getCustomerStats, invoicesByCustomerMap]);
 
  const totalCustomers = (data?.customers || []).length;
- const vipCustomers = (data?.customers || []).filter(c => {
-  const stats = getCustomerStats(c.id);
-  return stats.totalSpent >= 800 || stats.totalOrders >= 20;
- }).length;
+ const vipCustomers = React.useMemo(() => {
+  return (data?.customers || []).filter(c => {
+   const stats = getCustomerStats(c.id);
+   return stats.totalSpent >= 800 || stats.totalOrders >= 20;
+  }).length;
+ }, [data?.customers, getCustomerStats]);
 
- const slowCustomers = (data?.customers || []).filter(c => {
-  if (!c.lastOrderDate) return false;
-  const diff = (now.getTime() - new Date(c.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24);
-  return diff > 30 && diff <= 90;
- }).length;
+ const slowCustomers = React.useMemo(() => {
+  return (data?.customers || []).filter(c => {
+   if (!c.lastOrderDate) return false;
+   const diff = (now.getTime() - new Date(c.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24);
+   return diff > 30 && diff <= 90;
+  }).length;
+ }, [data?.customers, now]);
 
- const inactiveCustomers = (data?.customers || []).filter(c => {
-  if (!c.lastOrderDate) return true;
-  const diff = (now.getTime() - new Date(c.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24);
-  return diff > 90;
- }).length;
+ const inactiveCustomers = React.useMemo(() => {
+  return (data?.customers || []).filter(c => {
+   if (!c.lastOrderDate) return true;
+   const diff = (now.getTime() - new Date(c.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24);
+   return diff > 90;
+  }).length;
+ }, [data?.customers, now]);
 
  const handleSaveCustomer = () => {
     if (!customerForm.name || !customerForm.phone) {
@@ -419,10 +464,11 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
      </thead>
      <tbody className="divide-y divide-slate-100">
       {filteredCustomers.length === 0 ? (
-       <tr><td colSpan={6} className="p-32 text-center text-slate-400 font-bold">لا يوجد عملاء يطابقون البحث حالياً</td></tr>
-      ) : filteredCustomers.map(customer => {
+       <tr><td colSpan={8} className="p-32 text-center text-slate-400 font-bold">لا يوجد عملاء يطابقون البحث حالياً</td></tr>
+      ) : filteredCustomers.slice(0, visibleCount).map(customer => {
        const stats = getCustomerStats(customer.id);
-       const sentiment = calculateCustomerSentiment(customer, data.invoices || []);
+       const custInvs = invoicesByCustomerMap.get(String(customer.id)) || [];
+       const sentiment = calculateCustomerSentiment(customer, custInvs);
        return (
         <tr key={customer.id} className="hover:bg-indigo-50/30 transition-all group cursor-default">
          <td className="p-6">
@@ -491,7 +537,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
                       </span>
                     </div>
                   </div>
-                );
+               );
               }
 
               if (matchedSquads.length > 0) {
@@ -572,6 +618,16 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
      </tbody>
     </table>
     </div>
+    {filteredCustomers.length > visibleCount && (
+     <div className="flex justify-center p-6 border-t border-slate-100 bg-slate-50/30">
+      <button 
+        onClick={() => setVisibleCount(c => c + 50)}
+        className="px-6 py-3 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-indigo-600 hover:text-indigo-700 font-black rounded-2xl shadow-sm transition-all text-xs active:scale-95 cursor-pointer flex items-center gap-2"
+      >
+        <span>عرض المزيد ({filteredCustomers.length - visibleCount} عملاء متبقين...)</span>
+      </button>
+     </div>
+    )}
    </div>
 
    {/* Create/Edit Modal */}

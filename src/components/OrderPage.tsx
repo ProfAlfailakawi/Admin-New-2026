@@ -233,6 +233,11 @@ const OrderPage: React.FC<OrderPageProps> = ({
   const [orderZoneId, setOrderZoneId] = useState<string>("");
   const [isMarkedAsPaid, setIsMarkedAsPaid] = useState<boolean>(false);
   const [isConfirmingCancel, setIsConfirmingCancel] = useState<boolean>(false);
+  const [visibleCount, setVisibleCount] = useState(30);
+
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [searchTerm, filterStatus]);
 
   const isReadOnly =
     selectedOrder?.isConvertedToInvoice ||
@@ -1623,8 +1628,9 @@ Alturath.kw`;
             )}
           </motion.div>
         ) : (
-          <div className="grid grid flex-col md:grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 space-y-3 md:space-y-0 gap-3 md:p-4 lg:gap-4 md:p-3">
-            {filteredOrders.map((order) => {
+          <>
+            <div className="grid grid flex-col md:grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 space-y-3 md:space-y-0 gap-3 md:p-4 lg:gap-4 md:p-3">
+              {filteredOrders.slice(0, visibleCount).map((order) => {
               const isPending =
                 isPendingStatus(order.status as string) ||
                 isFailedStatus(order.status as string);
@@ -1845,7 +1851,18 @@ Alturath.kw`;
                 </motion.div>
               );
             })}
-          </div>
+            </div>
+            {filteredOrders.length > visibleCount && (
+              <div className="flex justify-center p-6 mt-4 w-full col-span-full">
+                <button 
+                  onClick={() => setVisibleCount(c => c + 50)}
+                  className="px-6 py-3 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 font-bold rounded-2xl shadow-sm transition-all text-sm active:scale-95 cursor-pointer flex items-center gap-2"
+                >
+                  <span>عرض المزيد ({filteredOrders.length - visibleCount} طلبات متبقية...)</span>
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
