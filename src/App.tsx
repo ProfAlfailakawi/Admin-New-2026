@@ -102,6 +102,35 @@ import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils'
 import { refreshPushRegistrationIfAlreadyAllowed } from './lib/pushNotifications';
 import { getProtectedStorageItem, hasMeaningfulData, safeMergeData, setProtectedStorageItem } from './lib/dataGuard';
 
+// ── أداء الإقلاع: حفظ مرآة السحابة المحلية بدون تجميد الواجهة ──────────────────────
+// نسخة الـ snapshot مجرد مرآة قابلة للاستبدال لبيانات السحابة (عرض فوري عند الفتح + عمل دون إنترنت).
+// المشكلة: setProtectedStorageItem للمفاتيح الكبيرة يقوم — بشكل متزامن — بفكّ ضغط + JSON.parse +
+// دمج عميق + JSON.stringify + عدة عمليات LZString.compress لنص بحجم ميغابايتات، فيجمّد الـ main-thread
+// ثوانٍ طويلة عند كل تحميل سحابي. الحل: ضغط مرة واحدة + استبدال مباشر، ومؤجّل لوقت الخمول حتى لا يحجب
+// أي تفاعل. السحابة هي مصدر الحقيقة، لذلك الاستبدال المباشر (بلا دمج/نسخ احتياطية) آمن تماماً.
+let __pendingCloudSnapshot: string | null = null;
+let __cloudSnapshotFlushQueued = false;
+const saveCloudSnapshotMirror = (snapshotStr: string | null | undefined) => {
+  if (!snapshotStr) return;
+  __pendingCloudSnapshot = snapshotStr; // احتفظ دائماً بالأحدث فقط (coalescing)
+  if (__cloudSnapshotFlushQueued) return; // حفظ مجدول بالفعل سيلتقط الأحدث
+  __cloudSnapshotFlushQueued = true;
+  const runFlush = () => {
+    __cloudSnapshotFlushQueued = false;
+    const latest = __pendingCloudSnapshot;
+    __pendingCloudSnapshot = null;
+    if (!latest) return;
+    try {
+      const compressed = 'lz64:' + LZString.compressToBase64(latest);
+      try { localStorage.setItem('ktk_cloud_offline_snapshot_last_good', compressed); } catch {}
+      try { localStorage.setItem('ktk_cloud_offline_snapshot', compressed); } catch {}
+    } catch {}
+  };
+  const ric = (typeof window !== 'undefined' && (window as any).requestIdleCallback) || null;
+  if (ric) ric(runFlush, { timeout: 2000 });
+  else setTimeout(runFlush, 300);
+};
+
 const ADMIN_PRIORITY_PAGES = [
   'new-invoice',
   'invoices-list',
@@ -2407,8 +2436,7 @@ const MainApp: React.FC = () => {
         authoritativeDataWrittenAtRef.current = authoritativeWriteAt;
         
         try {
-          setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', newFullStateStr);
-          setProtectedStorageItem('ktk_cloud_offline_snapshot', newFullStateStr);
+          saveCloudSnapshotMirror(newFullStateStr);
         } catch (err) {
           console.warn("localStorage sync skipped during cloud import:", err);
         }
@@ -2644,9 +2672,11 @@ const MainApp: React.FC = () => {
       // This avoids slow browser Firestore shard reads on first entry and keeps Admin/Order on the same source.
       try {
         isCloudSyncApplyingRef.current = true;
+        const __perfT0 = performance.now();
         const fastRes = await fetch('/api/appdata/full?profile=boot', { cache: 'no-store' });
         if (fastRes.ok) {
           const fastPayload = await fastRes.json();
+          const __perfNet = performance.now();
           if (fastPayload?.success && fastPayload?.data) {
             let loadedState: any = joinProductsFromDatabase({ ...INITIAL_DATA, ...fastPayload.data });
             const rootWrittenAt = new Date(loadedState.__adminLastAuthoritativeWriteAt || '').getTime();
@@ -2674,8 +2704,11 @@ const MainApp: React.FC = () => {
             lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
             setHasInstantCloudSnapshot(true);
             try {
-              setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
-              setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
+              saveCloudSnapshotMirror(lastRemoteSnapshotRef.current);
+            } catch {}
+
+            try {
+              console.log('[PERF] appdata boot — server+network: ' + (__perfNet - __perfT0).toFixed(0) + 'ms | client sync-process: ' + (performance.now() - __perfNet).toFixed(0) + 'ms | server-reported: ' + (fastPayload?.durationMs ?? '?') + 'ms');
             } catch {}
 
             const deferredKeys = Array.isArray(fastPayload.deferredShardKeys)
@@ -2706,8 +2739,7 @@ const MainApp: React.FC = () => {
                     const mergedSnapshot = JSON.stringify(merged);
                     lastRemoteSnapshotRef.current = mergedSnapshot;
                     try {
-                      setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', mergedSnapshot);
-                      setProtectedStorageItem('ktk_cloud_offline_snapshot', mergedSnapshot);
+                      saveCloudSnapshotMirror(mergedSnapshot);
                     } catch {}
                     return merged;
                   }));
@@ -2853,8 +2885,7 @@ const MainApp: React.FC = () => {
         lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
         setHasInstantCloudSnapshot(true);
         try {
-          setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
-          setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
+          saveCloudSnapshotMirror(lastRemoteSnapshotRef.current);
 	        } catch {}
       } catch (err) {
         if (String(err).includes("Missing or insufficient permissions") || String(err).includes("permission-denied")) {
@@ -2912,8 +2943,7 @@ const MainApp: React.FC = () => {
 	          const sanitizedDataStr = JSON.stringify(data);
 	          if (!sanitizedDataStr || sanitizedDataStr === '{}' || !hasMeaningfulData(data)) return;
 	          try { 
-	            setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', sanitizedDataStr); 
-	            setProtectedStorageItem('ktk_cloud_offline_snapshot', sanitizedDataStr); 
+	            saveCloudSnapshotMirror(sanitizedDataStr); 
 	          } catch {}
           
           // Deduplication: prevent writing back what we just read
