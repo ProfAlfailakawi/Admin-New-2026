@@ -78,7 +78,7 @@ const getAddonIdentity = (addon: any): string => {
     return String(addon?.id || addon?.addonId || addon?.key || addon?.name || addon?.title || addon?.label || '').trim();
 };
 
-const addonHasPositiveSelection = (addon: any): boolean => {
+export const addonHasPositiveSelection = (addon: any): boolean => {
     if (!addon || addon.selected === false || addon.enabled === false || addon.isSelected === false || addon.checked === false) return false;
     const raw = addon?.quantity ?? addon?.qty ?? addon?.count ?? addon?.selectedQuantity ?? addon?.selectedQty ?? addon?.value ?? addon?.selectedCount ?? addon?.addonQuantity;
     if (raw !== undefined && raw !== null && raw !== '') return Number(raw) > 0 || raw === true || raw === 'true';
@@ -194,6 +194,7 @@ export const computeAddonSelectedQuantity = (addon: any): number => {
  */
 export const computeAddonRevenue = (addon: any, item: any, products: any[] = []): number => {
     addon = mergeAddonWithCatalog(addon, item, products);
+    if (!addonHasPositiveSelection(addon)) return 0;
     const directTotal = safeParsePrice(addon?.total ?? addon?.totalPrice ?? addon?.lineTotal ?? addon?.revenue ?? addon?.amountTotal ?? addon?.addonTotal ?? addon?.addonsTotal);
     if (directTotal > 0) return directTotal;
 
@@ -230,7 +231,7 @@ export const computeAddonCost = (addon: any, item: any, products: any[] = []): n
     // zero/missing cost saved on the invoice item can still fall back to the live catalog cost.
     const catalogAddon = findCatalogAddonMatch(addon, item, products);
     addon = mergeAddonWithCatalog(addon, item, products);
-    if (addon?.selected === false || addon?.enabled === false || addon?.isSelected === false || addon?.checked === false) return 0;
+    if (!addonHasPositiveSelection(addon)) return 0;
 
     const directCostTotal = safeParsePrice(addon?.totalCost ?? addon?.costTotal ?? addon?.lineCost ?? addon?.supplierTotal ?? addon?.supplyTotal ?? addon?.purchaseTotal ?? addon?.addonCostTotal ?? addon?.addonsCostTotal ?? addon?.supplierCostTotal ?? addon?.totalSupplierCost);
     if (directCostTotal > 0) return directCostTotal;
