@@ -1104,6 +1104,16 @@ const MainApp: React.FC = () => {
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
+  const [hasInstantCloudSnapshot, setHasInstantCloudSnapshot] = useState(() => {
+    try {
+      const raw = getProtectedStorageItem('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItem('ktk_cloud_offline_snapshot');
+      if (raw) {
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        return Boolean(parsed && parsed.invoices && parsed.invoices.length > 0);
+      }
+    } catch {}
+    return false;
+  });
   const [deferredChromeReady, setDeferredChromeReady] = useState(false);
   const [triggerSyncReload, setTriggerSyncReload] = useState(0);
   const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
@@ -2029,6 +2039,22 @@ const MainApp: React.FC = () => {
     
     // Reset to initial data to clear cross-mode leakage
     setData(INITIAL_DATA); 
+
+    if (newMode === 'local') {
+      setHasInstantCloudSnapshot(false);
+    } else {
+      try {
+        const raw = getProtectedStorageItem('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItem('ktk_cloud_offline_snapshot');
+        if (raw) {
+          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          setHasInstantCloudSnapshot(Boolean(parsed && parsed.invoices && parsed.invoices.length > 0));
+        } else {
+          setHasInstantCloudSnapshot(false);
+        }
+      } catch {
+        setHasInstantCloudSnapshot(false);
+      }
+    }
     
     addToast("تبديل الوضع", `تم الانتقال إلى وضع ${newMode === 'cloud' ? 'التزامن السحابي' : 'التخزين المحلي'}`, "info");
   };
@@ -2552,8 +2578,7 @@ const MainApp: React.FC = () => {
 	      loadedCloudShardKeysRef.current = new Set();
 	      lastRemoteKeysRef.current = {};
       authoritativeDataWrittenAtRef.current = 0;
-      // جهّز آخر نسخة موثوقة خلف بوابة السحابة، لكن لا تفتح واجهة العمل قبل اكتمال تحميل السحابة.
-      // لا نفعّل auto-save هنا لأن dataLoading ما زال true و isCloudSyncApplyingRef سيمنع أي كتابة عكسية.
+      // جهّز آخر نسخة موثوقة خلف بوابة السحابة. لا نفعّل auto-save هنا لأن dataLoading ما زال true و isCloudSyncApplyingRef سيمنع أي كتابة عكسية.
       try {
         const instantSnapshot = parseStoredState(
           getProtectedStorageItem('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItem('ktk_cloud_offline_snapshot')
@@ -2561,8 +2586,14 @@ const MainApp: React.FC = () => {
         if (instantSnapshot) {
           setData(instantSnapshot);
           lastRemoteSnapshotRef.current = JSON.stringify(instantSnapshot);
+          const hasData = Boolean(instantSnapshot.invoices && instantSnapshot.invoices.length > 0);
+          setHasInstantCloudSnapshot(hasData);
+        } else {
+          setHasInstantCloudSnapshot(false);
         }
-      } catch {}
+      } catch {
+        setHasInstantCloudSnapshot(false);
+      }
 
       // 1. Sync orders independently (Legacy/Customer App)
       try {
@@ -2640,6 +2671,7 @@ const MainApp: React.FC = () => {
 
             setData(finalProcessedState);
             lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
+            setHasInstantCloudSnapshot(true);
             try {
               setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
               setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
@@ -2817,6 +2849,7 @@ const MainApp: React.FC = () => {
 
         setData(finalProcessedState);
         lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
+        setHasInstantCloudSnapshot(true);
         try {
           setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
           setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
@@ -3057,6 +3090,7 @@ const MainApp: React.FC = () => {
   const handleLogout = async () => {
     const prevMode = appMode;
 
+    setHasInstantCloudSnapshot(false);
     sessionStorage.removeItem('hideSampleDataPrompt');
     await logout();
     setIsAuthenticated(false);
@@ -3249,7 +3283,7 @@ const MainApp: React.FC = () => {
     );
   };
 
-  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && (!isOnline || (dataLoading && !hasLoadedDataRef.current));
+  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && !hasInstantCloudSnapshot && (!isOnline || (dataLoading && !hasLoadedDataRef.current));
 
   if (shouldHoldCloudEntry) {
     return (

@@ -1,6 +1,6 @@
 import { AppState } from '../types';
 import { isPaidStatus } from './status-utils';
-import { computeAddonCost, computeAddonRevenue, computeInvoiceItemBaseCost, getInvoiceItemAddons, safeParsePrice } from './invoice-calculations';
+import { computeAddonCost, computeAddonRevenue, computeInvoiceItemBaseCost, getInvoiceItemAddons, safeParsePrice, addonHasPositiveSelection } from './invoice-calculations';
 
 
 const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 1000;
@@ -71,7 +71,7 @@ export function getSupplierLedgerForState(supId: string, state: AppState): any[]
       let addonsPriceTotal = 0;
       const itemAddons = getInvoiceItemAddons(item);
       const addonLines = itemAddons.map((addon: any) => {
-        if (addon.selected === false || addon.isSelected === false || addon.enabled === false || addon.checked === false) return null;
+        if (!addonHasPositiveSelection(addon)) return null;
         const costTotal = roundKwd(computeAddonCost(addon, item, state.products || []));
         const priceTotal = roundKwd(computeAddonRevenue(addon, item, state.products || []));
         if (costTotal <= 0 && priceTotal <= 0) return null;
