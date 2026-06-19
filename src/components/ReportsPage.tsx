@@ -324,6 +324,11 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
     const [endDate, setEndDate] = useState(
       new Date().toISOString().split("T")[0],
     );
+    const [visibleCount, setVisibleCount] = useState(30);
+
+    useEffect(() => {
+      setVisibleCount(30);
+    }, [search, timeFilter, startDate, endDate]);
 
     const cancelledOrderInvoiceIds = new Set(
       (data?.orders || [])
@@ -1186,7 +1191,7 @@ Alturath.kw`;
                           </td>
                         </tr>
                       ) : (
-                        (filteredInvoices || []).map((inv) => {
+                        (filteredInvoices || []).slice(0, visibleCount).map((inv) => {
                           const customer = (data?.customers || []).find(
                             (c) => c.id === inv.customerId,
                           );
@@ -1747,6 +1752,18 @@ Alturath.kw`;
                             </React.Fragment>
                           );
                         })
+                      )}
+                      {filteredInvoices.length > visibleCount && (
+                        <tr>
+                          <td colSpan={10} className="p-4 text-center bg-slate-50/30">
+                            <button
+                              onClick={() => setVisibleCount((c) => c + 50)}
+                              className="px-6 py-3 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-indigo-600 hover:text-indigo-700 font-extrabold rounded-2xl shadow-sm transition-all text-sm active:scale-95 cursor-pointer inline-flex items-center gap-2"
+                            >
+                              <span>عرض المزيد ({filteredInvoices.length - visibleCount} فواتير متبقية...)</span>
+                            </button>
+                          </td>
+                        </tr>
                       )}
                       {filteredInvoices.length === 0 && (
                         <tr>
