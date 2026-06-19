@@ -64,8 +64,13 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  });
  const [deleteError, setDeleteError] = useState<string | null>(null);
  const [shakingId, setShakingId] = useState<string | null>(null);
- const [showLedgerSupplierId, setShowLedgerSupplierId] = useState<string | null>(null);
- const [expandedLedgerId, setExpandedLedgerId] = useState<string | null>(null);
+  const [showLedgerSupplierId, setShowLedgerSupplierId] = useState<string | null>(null);
+  const [visibleLedgerCount, setVisibleLedgerCount] = useState(30);
+  const [expandedLedgerId, setExpandedLedgerId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setVisibleLedgerCount(30);
+  }, [showLedgerSupplierId]);
 
 
  const getInvoiceDeliverySettlement = (inv: any, supId: string) => { return getInvoiceDeliverySettlementForSupplier(inv, supId, data); };
@@ -872,7 +877,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
   <div className="flex-1 overflow-y-auto custom-scrollbar p-6 min-h-0 bg-slate-50/20">
   <div className="space-y-4">
-  {ledger.map((item, idx) => (
+  {ledger.slice(0, visibleLedgerCount).map((item, idx) => (
   <motion.div 
   key={item.id}
   initial={{ opacity: 0, y: 10 }}
@@ -1005,6 +1010,16 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   </AnimatePresence>
   </motion.div>
   ))}
+  {ledger.length > visibleLedgerCount && (
+    <div className="flex justify-center p-4">
+      <button 
+        onClick={() => setVisibleLedgerCount(c => c + 50)}
+        className="px-6 py-3 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 font-bold rounded-2xl shadow-sm transition-all text-sm active:scale-95 cursor-pointer flex items-center gap-2"
+      >
+        <span>عرض المزيد ({ledger.length - visibleLedgerCount} عمليات متبقية...)</span>
+      </button>
+    </div>
+  )}
   {ledger.length === 0 && (
   <div className="py-24 text-center">
   <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 grayscale opacity-40">
