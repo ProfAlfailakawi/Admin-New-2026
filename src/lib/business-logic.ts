@@ -57,18 +57,22 @@ export function getSupplierLedgerForState(
   state: AppState,
   productMap?: Map<string, any>,
   supplierMap?: Map<string, any>,
-  invoicesBySupplierMap?: Map<string, any[]>
+  invoicesBySupplierMap?: Map<string, any[]>,
+  supplierProductsMap?: Map<string, Set<string>>,
+  transfersBySupplierMap?: Map<string, any[]>
 ): any[] {
   const transactions: any[] = [];
   
   const pMap = productMap || new Map((state.products || []).map(p => [String(p.id), p]));
   const sMap = supplierMap || new Map((state.suppliers || []).map(s => [String(s.id), s]));
 
-  const supplierProductIds = new Set(
-    (state.products || [])
-      .filter(p => p && p.id && String(p.supplierId) === String(supId))
-      .map(p => p.id)
-  );
+  const supplierProductIds = supplierProductsMap
+    ? (supplierProductsMap.get(String(supId)) || new Set<string>())
+    : new Set(
+        (state.products || [])
+          .filter(p => p && p.id && String(p.supplierId) === String(supId))
+          .map(p => p.id)
+      );
 
   const invoicesSource = invoicesBySupplierMap 
     ? (invoicesBySupplierMap.get(String(supId)) || [])
@@ -150,7 +154,11 @@ export function getSupplierLedgerForState(
   });
 
   // 2. Transfers
-  (state.supplierTransfers || []).filter(t => String(t.supplierId) === String(supId)).forEach(t => {
+  const transfers = transfersBySupplierMap
+    ? (transfersBySupplierMap.get(String(supId)) || [])
+    : (state.supplierTransfers || []).filter(t => t && String(t.supplierId) === String(supId));
+
+  transfers.forEach(t => {
     transactions.push({
       id: `tr-${t.id}`,
       supplierId: supId,
@@ -174,13 +182,26 @@ export function getSupplierLiveBalanceForState(
   state: AppState,
   productMap?: Map<string, any>,
   supplierMap?: Map<string, any>,
-  invoicesBySupplierMap?: Map<string, any[]>
+  invoicesBySupplierMap?: Map<string, any[]>,
+  supplierProductsMap?: Map<string, Set<string>>,
+  transfersBySupplierMap?: Map<string, any[]>
 ): number {
-  const ledger = getSupplierLedgerForState(supId, state, productMap, supplierMap, invoicesBySupplierMap);
+  const ledger = getSupplierLedgerForState(
+    supId, 
+    state, 
+    productMap, 
+    supplierMap, 
+    invoicesBySupplierMap, 
+    supplierProductsMap, 
+    transfersBySupplierMap
+  );
   const due = ledger.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const paid = Math.abs(ledger.filter(t => t.type === 'transfer').reduce((acc, t) => acc + Number(t.amount || 0), 0));
   return Math.max(0, roundKwd(due - paid));
 }
+
+const recalculateCache = new WeakMap<any, any>();
+const recalculatedMarker = new WeakSet<any>();
 
 /**
  * Recalculates all derived balances in the application state to ensure consistency.
@@ -188,6 +209,14 @@ export function getSupplierLiveBalanceForState(
  * 2. Customer Stats = Sum(Invoice Amounts) & Count(Invoices)
  */
 export function recalculateStateBalances(state: AppState): AppState {
+  if (!state) return state;
+  if (recalculatedMarker.has(state)) {
+    return state;
+  }
+  if (recalculateCache.has(state)) {
+    return recalculateCache.get(state);
+  }
+
   const newState = { ...state };
   
   const productMap = new Map((newState.products || []).map(p => [String(p.id), p]));
@@ -222,10 +251,46 @@ export function recalculateStateBalances(state: AppState): AppState {
     });
   });
 
+  // Pre-index product IDs by supplier to avoid costly array filter scans
+  const supplierProductsMap = new Map<string, Set<string>>();
+  (newState.products || []).forEach(p => {
+    if (p && p.id && p.supplierId) {
+      const sId = String(p.supplierId);
+      let set = supplierProductsMap.get(sId);
+      if (!set) {
+        set = new Set();
+        supplierProductsMap.set(sId, set);
+      }
+      set.add(p.id);
+    }
+  });
+
+  // Pre-index transfers by supplier to avoid costly array filter scans
+  const transfersBySupplierMap = new Map<string, any[]>();
+  (newState.supplierTransfers || []).forEach(t => {
+    if (t && t.supplierId) {
+      const sId = String(t.supplierId);
+      let list = transfersBySupplierMap.get(sId);
+      if (!list) {
+        list = [];
+        transfersBySupplierMap.set(sId, list);
+      }
+      list.push(t);
+    }
+  });
+
   // 1. Synchronize Supplier Balances using the central calculation engine
   newState.suppliers = (newState.suppliers || []).map(s => ({
     ...s,
-    balance: getSupplierLiveBalanceForState(s.id, newState, productMap, supplierMap, invoicesBySupplierMap)
+    balance: getSupplierLiveBalanceForState(
+      s.id, 
+      newState, 
+      productMap, 
+      supplierMap, 
+      invoicesBySupplierMap, 
+      supplierProductsMap, 
+      transfersBySupplierMap
+    )
   }));
 
   // 2. Recalculate Customer Stats (O(C + M) - string date comparison instead of Slow Date objects)
@@ -272,6 +337,8 @@ export function recalculateStateBalances(state: AppState): AppState {
     }
   }
 
+  recalculateCache.set(state, newState);
+  recalculatedMarker.add(newState);
   return newState;
 }
 
