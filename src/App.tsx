@@ -3283,7 +3283,10 @@ const MainApp: React.FC = () => {
     );
   };
 
-  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && !hasInstantCloudSnapshot && (!isOnline || (dataLoading && !hasLoadedDataRef.current));
+  // عرض الواجهة فوراً عند الاتصال، وتُحدَّث بيانات السحابة في الخلفية (إشعار DataRefreshNotice غير الحاجب).
+  // لا نحجب الواجهة بانتظار اكتمال أول جلب سحابي. نحجب فقط عند انقطاع الاتصال الفعلي بلا أي بيانات متاحة.
+  // ملاحظة: الحفظ التلقائي محمي بـ hasLoadedDataRef، لذا الظهور المبكر لا يكتب/يمسح أي بيانات سحابية.
+  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && !hasInstantCloudSnapshot && !isOnline;
 
   if (shouldHoldCloudEntry) {
     return (
