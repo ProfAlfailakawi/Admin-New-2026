@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
 import LZString from 'lz-string';
+import { compressToBase64ViaWorker } from './lib/snapshotCompressor';
 import { 
   ArrowUp,
   BarChart3, 
@@ -110,25 +111,62 @@ import { getProtectedStorageItem, getProtectedStorageItemFast, hasMeaningfulData
 // أي تفاعل. السحابة هي مصدر الحقيقة، لذلك الاستبدال المباشر (بلا دمج/نسخ احتياطية) آمن تماماً.
 let __pendingCloudSnapshot: string | null = null;
 let __cloudSnapshotFlushQueued = false;
+let __cloudSnapshotBusy = false; // يمنع إطلاق عدة عمليات ضغط ثقيلة متوازية
+const __persistCloudSnapshot = (compressed: string) => {
+  try { localStorage.setItem('ktk_cloud_offline_snapshot_last_good', compressed); } catch {}
+  try { localStorage.setItem('ktk_cloud_offline_snapshot', compressed); } catch {}
+};
 const saveCloudSnapshotMirror = (snapshotStr: string | null | undefined) => {
   if (!snapshotStr) return;
   __pendingCloudSnapshot = snapshotStr; // احتفظ دائماً بالأحدث فقط (coalescing)
-  if (__cloudSnapshotFlushQueued) return; // حفظ مجدول بالفعل سيلتقط الأحدث
+  if (__cloudSnapshotFlushQueued || __cloudSnapshotBusy) return; // مجدول/قيد التنفيذ بالفعل سيلتقط الأحدث
   __cloudSnapshotFlushQueued = true;
   const runFlush = () => {
     __cloudSnapshotFlushQueued = false;
     const latest = __pendingCloudSnapshot;
     __pendingCloudSnapshot = null;
     if (!latest) return;
-    try {
-      const compressed = 'lz64:' + LZString.compressToBase64(latest);
-      try { localStorage.setItem('ktk_cloud_offline_snapshot_last_good', compressed); } catch {}
-      try { localStorage.setItem('ktk_cloud_offline_snapshot', compressed); } catch {}
-    } catch {}
+    __cloudSnapshotBusy = true;
+    const finish = () => {
+      __cloudSnapshotBusy = false;
+      // لو وصلت لقطة أحدث أثناء الضغط، جدول جولة جديدة لها.
+      if (__pendingCloudSnapshot) saveCloudSnapshotMirror(__pendingCloudSnapshot);
+    };
+    // الضغط الثقيل (~14 ثانية على بيانات ضخمة) يجري داخل Web Worker حتى لا يتجمّد الخيط الرئيسي
+    // فتبقى الواجهة (القائمة/الفاتورة الجديدة) سريعة فوراً. عند تعذّر الـWorker نرجع للمسار
+    // المتزامن السابق نفسه دون أي تغيير في السلوك.
+    compressToBase64ViaWorker(latest)
+      .then((b64) => {
+        if (b64) {
+          __persistCloudSnapshot('lz64:' + b64);
+        } else {
+          try { __persistCloudSnapshot('lz64:' + LZString.compressToBase64(latest)); } catch {}
+        }
+        finish();
+      })
+      .catch(() => {
+        try { __persistCloudSnapshot('lz64:' + LZString.compressToBase64(latest)); } catch {}
+        finish();
+      });
   };
   const ric = (typeof window !== 'undefined' && (window as any).requestIdleCallback) || null;
   if (ric) ric(runFlush, { timeout: 2000 });
   else setTimeout(runFlush, 300);
+};
+
+// يبني محتوى الـshard المُرسَل للسحابة بنفس الصيغة تماماً ({ compressedData, isCompressed: true }
+// للحمولات الكبيرة، أو { [key], isCompressed: false } للصغيرة). الفرق الوحيد: الضغط الثقيل
+// (LZString) يجري داخل Web Worker خارج الخيط الرئيسي حتى لا تتجمّد الواجهة عند حفظ تعديل ضخم.
+// عند تعذّر الـWorker نرجع للضغط المتزامن السابق نفسه — فلا تغيير في البيانات المكتوبة إطلاقاً.
+const COMPRESS_SHARD_THRESHOLD = 500000;
+const buildShardContentAsync = async (key: string, value: any): Promise<any> => {
+  const payloadStr = JSON.stringify(value);
+  if (payloadStr.length > COMPRESS_SHARD_THRESHOLD) {
+    let compressed = await compressToBase64ViaWorker(payloadStr);
+    if (!compressed) compressed = LZString.compressToBase64(payloadStr); // مسار احتياطي مطابق
+    return { compressedData: compressed, isCompressed: true };
+  }
+  return JSON.parse(JSON.stringify({ [key]: value, isCompressed: false }));
 };
 
 const ADMIN_PRIORITY_PAGES = [
@@ -2172,21 +2210,14 @@ const MainApp: React.FC = () => {
       const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
       const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
       
-      SHARDED_KEYS.forEach(key => {
+      for (const key of SHARDED_KEYS) {
 	         if (shardedPayloads[key]) {
-            if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) return;
+            if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) continue;
 	            const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-            const payloadStr = JSON.stringify(shardedPayloads[key]);
-            let shardContent;
-            if (payloadStr.length > 500000) {
-                const compressed = LZString.compressToBase64(payloadStr);
-                shardContent = { compressedData: compressed, isCompressed: true };
-            } else {
-                shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloads[key], isCompressed: false }));
-            }
+            const shardContent = await buildShardContentAsync(key, shardedPayloads[key]);
             savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
          }
-      });
+      }
       
       await Promise.all(savePromises);
       addToast("تمت المزامنة ✨", "تم حفظ كافة البيانات في السحابة بنجاح.", "success");
@@ -2394,23 +2425,14 @@ const MainApp: React.FC = () => {
 	        const serializedRootCurrent = stableStringify(sanitizedRoot);
 	        const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: false })];
         
-	        SHARDED_KEYS.forEach(key => {
+	        for (const key of SHARDED_KEYS) {
 	           if (shardedPayloads[key] !== undefined) {
-              if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) return;
+              if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) continue;
 	              const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-              const payloadStr = JSON.stringify(shardedPayloads[key]);
-              let shardContent;
-              
-              if (payloadStr.length > 500000) {
-                  const compressed = LZString.compressToBase64(payloadStr);
-                  shardContent = { compressedData: compressed, isCompressed: true };
-                  console.log(`Cloud Import: Compressed shard '${key}' from ${payloadStr.length} to ${compressed.length} chars.`);
-              } else {
-                  shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloads[key], isCompressed: false }));
-              }
+              const shardContent = await buildShardContentAsync(key, shardedPayloads[key]);
 	              savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
 	           }
-	        });
+	        }
 
 	        try {
 	          const squadsSnap = await getDocs(collection(db, 'squads'));
@@ -3094,19 +3116,11 @@ const MainApp: React.FC = () => {
           }
 
           // 4. Save Shards (only for changed parts)
-          Object.keys(shardedPayloadsToSave).forEach(key => {
+          for (const key of Object.keys(shardedPayloadsToSave)) {
              const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-             
-             const payloadStr = JSON.stringify(shardedPayloadsToSave[key]);
-             let shardContent;
-             if (payloadStr.length > 500000) {
-                 const compressed = LZString.compressToBase64(payloadStr);
-                 shardContent = { compressedData: compressed, isCompressed: true };
-                 console.log(`Compressed shard '${key}' from ${payloadStr.length} chars to ${compressed.length} chars...`);
-             } else {
-                 shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloadsToSave[key], isCompressed: false }));
-             }
-             
+
+             const shardContent = await buildShardContentAsync(key, shardedPayloadsToSave[key]);
+
              console.log(`Saving modified shard '${key}' to Firestore...`);
              // merge: false so old uncompressed arrays don't linger if transitioning
              savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
@@ -3155,7 +3169,7 @@ const MainApp: React.FC = () => {
                  console.warn('[MIRROR] Error parsing previous squads for deletion check:', parseErr);
                }
              }
-          });
+          }
 
           await Promise.all(savePromises);
 
