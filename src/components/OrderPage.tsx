@@ -224,6 +224,30 @@ const OrderPage: React.FC<OrderPageProps> = ({
     });
   }, [data.orders]);
 
+  const customersByIdMap = React.useMemo(() => {
+    const map = new Map<string, any>();
+    (data?.customers || []).forEach((c) => {
+      if (c && c.id) map.set(String(c.id), c);
+    });
+    return map;
+  }, [data?.customers]);
+
+  const customersByPhoneMap = React.useMemo(() => {
+    const map = new Map<string, any>();
+    (data?.customers || []).forEach((c) => {
+      if (c && c.phone) map.set(String(c.phone), c);
+    });
+    return map;
+  }, [data?.customers]);
+
+  const productsMap = React.useMemo(() => {
+    const map = new Map<string, any>();
+    (data?.products || []).forEach((p) => {
+      if (p && p.id) map.set(String(p.id), p);
+    });
+    return map;
+  }, [data?.products]);
+
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -331,13 +355,11 @@ const OrderPage: React.FC<OrderPageProps> = ({
 
   const getOrderCustomerName = (order: Order) => {
     if (order.customerId) {
-      const c = (data?.customers || []).find((c) => c.id === order.customerId);
+      const c = customersByIdMap.get(String(order.customerId));
       if (c && c.name) return c.name;
     }
     if (order.customerPhone) {
-      const c = (data?.customers || []).find(
-        (c) => c.phone === order.customerPhone,
-      );
+      const c = customersByPhoneMap.get(String(order.customerPhone));
       if (c && c.name) return c.name;
     }
     return order.customerName;
@@ -1394,7 +1416,7 @@ Alturath.kw`;
 
     const phoneUsed =
       order.customerPhone ||
-      (data?.customers || []).find((c) => c.id === order.customerId)?.phone ||
+      customersByIdMap.get(String(order.customerId))?.phone ||
       "";
 
     let finalMessage = message;
