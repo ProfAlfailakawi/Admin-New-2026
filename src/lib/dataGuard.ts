@@ -327,8 +327,11 @@ export const installLocalStorageDataGuard = () => {
   if (!rawStorage || (window as any).__ktkDataGuardInstalled) return;
   (window as any).__ktkDataGuardInstalled = true;
 
-  // Proactive run optimization at start to free up any clogged space
-  optimizeAndShrinkStorage();
+  // Defer storage housekeeping so React can paint first. The prototype guards below
+  // are what protect data at boot; this cleanup can safely run during idle time.
+  const ric = (typeof window !== 'undefined' && (window as any).requestIdleCallback) || null;
+  if (ric) ric(() => optimizeAndShrinkStorage(), { timeout: 6000 });
+  else setTimeout(() => optimizeAndShrinkStorage(), 3000);
 
   const guardedSetItem = function (key: string, value: string) {
     const storageKey = String(key);
