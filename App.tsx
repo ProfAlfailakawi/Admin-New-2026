@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import * as XLSX from 'xlsx';
+import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
 import LZString from 'lz-string';
 import { 
   ArrowUp,
@@ -58,23 +57,23 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { heritageMotion } from './lib/heritageMotion';
 import { cn, normalizeArabic, formatKuwaitiDateOnly } from './lib/utils';
-import Dashboard from './components/Dashboard';
-import SystemPulseOrb from './components/SystemPulseOrb';
+const Dashboard = React.lazy(() => import('./components/Dashboard'));
+const SystemPulseOrb = React.lazy(() => import('./components/SystemPulseOrb'));
 import LogoEngine from './components/ui/LogoEngine';
 const InvoicePage = React.lazy(() => import('./components/InvoicePage'));
 const CustomerPage = React.lazy(() => import('./components/CustomerPage'));
 const ProductPage = React.lazy(() => import('./components/ProductPage'));
 const SupplierPage = React.lazy(() => import('./components/SupplierPage'));
 const ExpensePage = React.lazy(() => import('./components/ExpensePage'));
-import ReportsPage from './components/ReportsPage';
-import OrderPage from './components/OrderPage';
+const ReportsPage = React.lazy(() => import('./components/ReportsPage'));
+const OrderPage = React.lazy(() => import('./components/OrderPage'));
 import { isPendingStatus, isFailedStatus, isPaidStatus } from './lib/status-utils';
 const TrackPage = React.lazy(() => import('./components/TrackPage'));
 const AIAssistant = React.lazy(() => import('./components/AIAssistant'));
-import { SmartContentStudio } from './components/SmartContentStudio';
-import { DiwaniyaTournaments } from './components/DiwaniyaTournaments';
-import PartnerDashboard from './components/PartnerDashboard';
-import { CommandBrief } from './components/CommandBrief';
+const SmartContentStudio = React.lazy(() => import('./components/SmartContentStudio').then(m => ({ default: m.SmartContentStudio })));
+const DiwaniyaTournaments = React.lazy(() => import('./components/DiwaniyaTournaments').then(m => ({ default: m.DiwaniyaTournaments })));
+const PartnerDashboard = React.lazy(() => import('./components/PartnerDashboard'));
+const CommandBrief = React.lazy(() => import('./components/CommandBrief').then(m => ({ default: m.CommandBrief })));
 import Login from './components/Login';
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
 const SupplierAudit = React.lazy(() => import('./components/SupplierAudit'));
@@ -84,11 +83,10 @@ const WhatIfSimulator = React.lazy(() => import('./components/WhatIfSimulator').
 const RealProfitGuard = React.lazy(() => import('./components/RealProfitGuard'));
 const WhatsAppSupportInbox = React.lazy(() => import('./components/WhatsAppSupportInbox'));
 
-import CommandBar from './components/CommandBar';
-import ProactiveAlerts from './components/ProactiveAlerts';
-import InstallPrompt from './components/InstallPrompt';
-import CloudStatus from './components/CloudStatus';
-import { InstagramMagicWand } from './components/InstagramMagicWand';
+const CommandBar = React.lazy(() => import('./components/CommandBar'));
+const ProactiveAlerts = React.lazy(() => import('./components/ProactiveAlerts'));
+const InstallPrompt = React.lazy(() => import('./components/InstallPrompt'));
+const InstagramMagicWand = React.lazy(() => import('./components/InstagramMagicWand').then(m => ({ default: m.InstagramMagicWand })));
 import { recalculateStateBalances } from './lib/business-logic';
 import { INITIAL_DATA, GET_DEMO_DATA, DEFAULT_SQUADS } from './data';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from './constants';
@@ -102,7 +100,69 @@ import { Toaster, toast } from 'sonner';
 import { playNewOrderAlert } from './lib/sounds';
 import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils';
 import { refreshPushRegistrationIfAlreadyAllowed } from './lib/pushNotifications';
-import { getProtectedStorageItem, hasMeaningfulData, safeMergeData, setProtectedStorageItem } from './lib/dataGuard';
+import { getProtectedStorageItem, getProtectedStorageItemFast, hasMeaningfulData, safeMergeData, setProtectedStorageItem } from './lib/dataGuard';
+
+// ── أداء الإقلاع: حفظ مرآة السحابة المحلية بدون تجميد الواجهة ──────────────────────
+// نسخة الـ snapshot مجرد مرآة قابلة للاستبدال لبيانات السحابة (عرض فوري عند الفتح + عمل دون إنترنت).
+// المشكلة: setProtectedStorageItem للمفاتيح الكبيرة يقوم — بشكل متزامن — بفكّ ضغط + JSON.parse +
+// دمج عميق + JSON.stringify + عدة عمليات LZString.compress لنص بحجم ميغابايتات، فيجمّد الـ main-thread
+// ثوانٍ طويلة عند كل تحميل سحابي. الحل: ضغط مرة واحدة + استبدال مباشر، ومؤجّل لوقت الخمول حتى لا يحجب
+// أي تفاعل. السحابة هي مصدر الحقيقة، لذلك الاستبدال المباشر (بلا دمج/نسخ احتياطية) آمن تماماً.
+let __pendingCloudSnapshot: string | null = null;
+let __cloudSnapshotFlushQueued = false;
+const saveCloudSnapshotMirror = (snapshotStr: string | null | undefined) => {
+  if (!snapshotStr) return;
+  __pendingCloudSnapshot = snapshotStr; // احتفظ دائماً بالأحدث فقط (coalescing)
+  if (__cloudSnapshotFlushQueued) return; // حفظ مجدول بالفعل سيلتقط الأحدث
+  __cloudSnapshotFlushQueued = true;
+  const runFlush = () => {
+    __cloudSnapshotFlushQueued = false;
+    const latest = __pendingCloudSnapshot;
+    __pendingCloudSnapshot = null;
+    if (!latest) return;
+    try {
+      const compressed = 'lz64:' + LZString.compressToBase64(latest);
+      try { localStorage.setItem('ktk_cloud_offline_snapshot_last_good', compressed); } catch {}
+      try { localStorage.setItem('ktk_cloud_offline_snapshot', compressed); } catch {}
+    } catch {}
+  };
+  const ric = (typeof window !== 'undefined' && (window as any).requestIdleCallback) || null;
+  if (ric) ric(runFlush, { timeout: 2000 });
+  else setTimeout(runFlush, 300);
+};
+
+const ADMIN_PRIORITY_PAGES = [
+  'new-invoice',
+  'invoices-list',
+  'customers',
+  'suppliers',
+  'products',
+  'orders',
+  'expenses',
+] as const;
+
+type AdminPriorityPage = typeof ADMIN_PRIORITY_PAGES[number];
+
+const ADMIN_PAGE_PRELOADERS: Record<AdminPriorityPage, () => Promise<any>> = {
+  'new-invoice': () => import('./components/InvoicePage'),
+  'invoices-list': () => import('./components/ReportsPage'),
+  customers: () => import('./components/CustomerPage'),
+  suppliers: () => import('./components/SupplierPage'),
+  products: () => import('./components/ProductPage'),
+  orders: () => import('./components/OrderPage'),
+  expenses: () => import('./components/ExpensePage'),
+};
+
+const preloadedAdminPages = new Set<string>();
+
+const preloadAdminPage = (page: string) => {
+  const loader = ADMIN_PAGE_PRELOADERS[page as AdminPriorityPage];
+  if (!loader || preloadedAdminPages.has(page)) return;
+  preloadedAdminPages.add(page);
+  void loader().catch(() => {
+    preloadedAdminPages.delete(page);
+  });
+};
 
 type AdminNotification = AppState['notifications'][number];
 
@@ -113,6 +173,65 @@ const isVisibleAdminNotification = (notification: AdminNotification) => {
 
 const getVisibleAdminNotifications = (notifications?: AdminNotification[]) =>
   (notifications || []).filter(isVisibleAdminNotification);
+
+const SMART_NOTIFICATION_READ_STORAGE_KEY = 'alturath_admin_smart_notification_read_ids_v1';
+
+const getNotificationReadKeys = (notification: any): string[] => {
+  const id = String(notification?.id || '').trim();
+  const title = String(notification?.title || '').trim().replace(/\s+/g, ' ');
+  const message = String(notification?.message || '').trim().replace(/\s+/g, ' ');
+  const insightType = String(notification?.insightType || notification?.type || '').trim();
+  const recommendedAction = String(notification?.recommendedAction || '').trim().replace(/\s+/g, ' ');
+  const keys = [];
+
+  if (id) keys.push(`id:${id}`);
+  if (title || message) keys.push(`content:${title}|${message}|${insightType}`);
+  if (title && recommendedAction) keys.push(`action:${title}|${recommendedAction}|${insightType}`);
+
+  return Array.from(new Set(keys));
+};
+
+const getStoredReadNotificationIds = (): Set<string> => {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(SMART_NOTIFICATION_READ_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    const keys = Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
+    return new Set(keys.flatMap((key) => key.includes(':') ? [key] : [key, `id:${key}`]));
+  } catch {
+    return new Set();
+  }
+};
+
+const storeReadNotificationIds = (ids: Array<string | undefined | null>) => {
+  if (typeof window === 'undefined') return;
+  const cleanIds = ids.map((id) => String(id || '').trim()).filter(Boolean).map((id) => id.includes(':') ? id : `id:${id}`);
+  if (!cleanIds.length) return;
+  try {
+    const current = getStoredReadNotificationIds();
+    cleanIds.forEach((id) => current.add(id));
+    window.localStorage.setItem(SMART_NOTIFICATION_READ_STORAGE_KEY, JSON.stringify(Array.from(current).slice(-1000)));
+  } catch {}
+};
+
+const storeReadNotifications = (notifications: any[]) => {
+  const keys = notifications.flatMap(getNotificationReadKeys);
+  storeReadNotificationIds(keys);
+};
+
+const isNotificationReadForUi = (notification: any): boolean => {
+  if (notification?.read) return true;
+  const storedKeys = getStoredReadNotificationIds();
+  return getNotificationReadKeys(notification).some((key) => storedKeys.has(key));
+};
+
+const applyStoredNotificationReadState = <T extends { read?: boolean }>(notifications?: T[]): T[] | undefined => {
+  if (!Array.isArray(notifications)) return notifications;
+  return notifications.map((notification) => (
+    isNotificationReadForUi(notification) ? { ...notification, read: true } : notification
+  ));
+};
+
 
 const getAdminNotificationDeepLink = () => {
   const params = new URLSearchParams(window.location.search);
@@ -140,6 +259,22 @@ const hasAdminNotificationDeepLink = () => Boolean(getAdminNotificationDeepLink(
 const getInitialPushDeepLink = () => {
   const params = new URLSearchParams(window.location.search);
   const path = window.location.pathname;
+  const page = params.get('page');
+
+  if (page === 'whatsapp-support') {
+    const payload = {
+      page: 'whatsapp-support',
+      phone: params.get('phone') || '',
+      source: 'push',
+      pushNotificationDeepLinkHandled: true
+    };
+
+    try {
+      sessionStorage.setItem('adminPushDeepLink', JSON.stringify(payload));
+    } catch {}
+
+    return payload;
+  }
 
   const targetId =
     params.get('invoice') ||
@@ -173,6 +308,12 @@ const getInitialPushDeepLink = () => {
 };
 
 const hasInitialPushDeepLink = () => Boolean(getInitialPushDeepLink());
+const getInitialPageFromDeepLink = () => {
+  const link = getInitialPushDeepLink();
+  if (link?.page === 'whatsapp-support') return 'whatsapp-support';
+  if (link?.search) return 'invoices-list';
+  return 'dashboard';
+};
 
 
 
@@ -212,7 +353,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
             // Since we use window.location.pathname for routing, we need to force a re-render
             // or just trigger the URL sync logic.
             window.location.reload(); 
-        }, 2500);
+        }, 120);
     };
 
     if (isExplicitFail) {
@@ -248,9 +389,10 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
        }
 
        if (!isExplicitFail) {
-         fetch('/api/invoice/confirm', {
-             method: 'POST',
-             signal: AbortSignal.timeout(10000), // 10s timeout
+	         fetch('/api/invoice/confirm', {
+	             method: 'POST',
+	             cache: 'no-store',
+	             signal: AbortSignal.timeout(10000), // 10s timeout
              headers: { 'Content-Type': 'application/json' },
              body: JSON.stringify({
                paymentId: actualPaymentId || actualTrackId || actualGatewayOrderId || 'check_by_invoice',
@@ -697,6 +839,184 @@ const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => (
   </AnimatePresence>
 );
 
+
+const CloudConnectionGate: React.FC<{
+  logo?: string;
+  name?: string;
+  phase: 'auth' | 'sync' | 'offline';
+  onRetry?: () => void;
+}> = ({ name, phase, onRetry }) => {
+  const isOffline = phase === 'offline';
+  const title = isOffline ? 'لا يوجد اتصال بالسحابة' : 'جاري الاتصال بالسحابة…';
+  const statusLabel = isOffline ? 'الاتصال متوقف' : phase === 'auth' ? 'تثبيت الجلسة' : 'بوابة السحابة';
+  const orbitItems = isOffline
+    ? [ShieldAlert, RefreshCw, Database]
+    : [BadgeCheck, Zap, Database];
+
+  return (
+    <div className="fixed inset-0 z-[99998] flex items-center justify-center overflow-hidden bg-[#06110f] px-5 arabic-font" dir="rtl">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(16,185,129,.22),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(245,184,74,.16),transparent_28%),linear-gradient(145deg,#030706_0%,#0b1714_46%,#12110a_100%)]" />
+      <div className="absolute inset-0 opacity-[0.06] [background-image:radial-gradient(circle_at_center,rgba(255,255,255,.82)_1px,transparent_1px)] [background-size:28px_28px]" />
+      <motion.div
+        className="absolute h-[520px] w-[520px] rounded-full border border-emerald-200/10"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 26, repeat: Infinity, ease: 'linear' }}
+      />
+      <motion.div
+        className="absolute h-[390px] w-[390px] rounded-full border border-amber-200/10"
+        animate={{ rotate: -360 }}
+        transition={{ duration: 32, repeat: Infinity, ease: 'linear' }}
+      />
+      <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-300/16 blur-[105px]" />
+      <div className="absolute -bottom-24 right-12 h-72 w-72 rounded-full bg-amber-300/14 blur-[110px]" />
+
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-[560px] text-center"
+      >
+        <div className="relative mx-auto flex h-[310px] w-[310px] items-center justify-center sm:h-[360px] sm:w-[360px]">
+          <motion.div
+            className={`absolute inset-0 rounded-full border ${isOffline ? 'border-rose-200/16' : 'border-emerald-200/16'} bg-white/[0.035] shadow-[inset_0_0_70px_rgba(255,255,255,.05),0_28px_95px_rgba(0,0,0,.42)] backdrop-blur-xl`}
+            animate={{ scale: isOffline ? [1, 1.012, 1] : [1, 1.025, 1] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <div className="absolute inset-8 rounded-full border border-white/10 bg-slate-950/30" />
+          <motion.div
+            className="absolute inset-12 rounded-full border border-dashed border-white/12"
+            animate={{ rotate: isOffline ? 0 : 360 }}
+            transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+          />
+
+          {!isOffline && (
+            <>
+              <motion.div
+                className="absolute inset-12 pointer-events-none"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 4.5, repeat: Infinity, ease: 'linear' }}
+              >
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-emerald-200 shadow-[0_0_24px_rgba(110,231,183,.9)]" />
+              </motion.div>
+              <motion.div
+                className="absolute inset-8 pointer-events-none"
+                animate={{ rotate: -360 }}
+                transition={{ duration: 6.2, repeat: Infinity, ease: 'linear' }}
+              >
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-amber-200 shadow-[0_0_22px_rgba(252,211,77,.82)]" />
+              </motion.div>
+            </>
+          )}
+
+          <div className={`relative flex h-36 w-36 items-center justify-center rounded-[2.35rem] border ${isOffline ? 'border-rose-200/25 bg-rose-950/28 text-rose-100' : 'border-emerald-100/20 bg-emerald-950/24 text-emerald-50'} shadow-[0_22px_70px_rgba(0,0,0,.42)] backdrop-blur-2xl sm:h-40 sm:w-40`}>
+            <motion.div
+              className="absolute inset-[-18px] rounded-[2.9rem] border border-white/10"
+              animate={{ opacity: [0.18, 0.55, 0.18], scale: [0.96, 1.05, 0.96] }}
+              transition={{ duration: 2.1, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            {isOffline ? (
+              <ShieldAlert size={54} strokeWidth={1.65} />
+            ) : (
+              <svg
+                width="66"
+                height="66"
+                viewBox="0 0 66 66"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+                className="drop-shadow-[0_0_18px_rgba(255,255,255,.22)]"
+              >
+                <path
+                  d="M22.2 39.6H19.8C14.7 39.6 10.56 35.46 10.56 30.36C10.56 25.59 14.19 21.66 18.84 21.18C20.67 13.95 27.24 8.58 35.04 8.58C44.1 8.58 51.48 15.78 51.78 24.78C55.95 25.74 59.04 29.46 59.04 33.9C59.04 39 54.9 43.14 49.8 43.14H44.64"
+                  stroke="currentColor"
+                  strokeWidth="4.1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M33 28.38V54.12"
+                  stroke="currentColor"
+                  strokeWidth="4.1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M22.77 43.89L33 54.12L43.23 43.89"
+                  stroke="currentColor"
+                  strokeWidth="4.1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )}
+          </div>
+
+          <div className="absolute inset-x-0 bottom-9 flex items-center justify-center gap-3">
+            {orbitItems.map((Icon, index) => (
+              <motion.div
+                key={index}
+                className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${isOffline ? 'border-rose-100/14 bg-rose-950/24 text-rose-100' : 'border-white/12 bg-white/[0.07] text-amber-100'} shadow-lg backdrop-blur-xl`}
+                animate={{ y: isOffline ? 0 : [0, -6, 0], opacity: isOffline ? 0.72 : [0.72, 1, 0.72] }}
+                transition={{ duration: 1.45, repeat: Infinity, delay: index * 0.18, ease: 'easeInOut' }}
+              >
+                <Icon size={18} />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.5 }}
+          className="relative -mt-4 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.075] px-6 py-6 shadow-[0_26px_90px_rgba(0,0,0,.38)] backdrop-blur-2xl"
+        >
+          <div className={`mx-auto mb-4 inline-flex items-center gap-2 rounded-full border ${isOffline ? 'border-rose-100/18 bg-rose-400/10 text-rose-100' : 'border-emerald-100/18 bg-emerald-300/10 text-emerald-100'} px-4 py-2 text-[11px] font-black`}>
+            <motion.span
+              className={`h-2 w-2 rounded-full ${isOffline ? 'bg-rose-300' : 'bg-emerald-300'}`}
+              animate={{ opacity: [0.35, 1, 0.35], scale: [0.88, 1.18, 0.88] }}
+              transition={{ duration: 1.25, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            {statusLabel}
+          </div>
+
+          <h1 className="text-3xl font-black leading-tight text-white sm:text-4xl">{title}</h1>
+
+          {isOffline ? (
+            <p className="mx-auto mt-4 max-w-[420px] text-sm font-bold leading-7 text-slate-300">
+              يرجى الاتصال بالإنترنت ثم إعادة فحص الاتصال.
+            </p>
+          ) : (
+            <div className="mx-auto mt-6 flex w-full max-w-[330px] items-center justify-center gap-2" aria-label="cloud-connection-loader">
+              {[0, 1, 2, 3, 4].map((item) => (
+                <motion.span
+                  key={item}
+                  className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-emerald-200 to-amber-200 shadow-[0_0_18px_rgba(245,184,74,.34)]"
+                  animate={{ y: [0, -9, 0], opacity: [0.35, 1, 0.35], scale: [0.86, 1.18, 0.86] }}
+                  transition={{ duration: 1.05, repeat: Infinity, delay: item * 0.11, ease: 'easeInOut' }}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="mt-5 text-xs font-black text-slate-500">{name || 'شركة مطبخ التراث الكويتي'}</div>
+
+          {isOffline && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15 active:scale-95"
+            >
+              <RefreshCw size={16} />
+              إعادة فحص الاتصال
+            </button>
+          )}
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+};
+
 const getMoneyValue = (item: any) => Number(item?.total || item?.totalAmount || item?.amount || item?.price || 0) || 0;
 const getItemName = (item: any, fallback = 'بدون اسم') => item?.name || item?.customerName || item?.title || item?.code || item?.id || fallback;
 const getAdminPageMeta = (page: string) => {
@@ -719,6 +1039,7 @@ const getAdminPageMeta = (page: string) => {
     'growth-simulator': { title: 'محاكي النمو والتسويق', subtitle: 'سيناريوهات ماذا لو للمبيعات والربح والمخاطر.', tag: 'Growth Simulator Pro' },
     'profit-guard': { title: 'المالية وحماية الأرباح', subtitle: 'درع الربح: المبيعات، المصروفات، الهامش، النزيف، والفرص.', tag: 'Profit Shield' },
     diwaniya: { title: 'بطولات الديوانية', subtitle: 'لوحة بطولات ناعمة للترتيب والنقاط والجوائز.', tag: 'Tournament Board' },
+    'whatsapp-support': { title: 'مركز واتساب الذكي', subtitle: '', tag: 'WhatsApp Center' },
     settings: { title: 'الإعدادات العامة', subtitle: 'هوية المتجر، التشغيل، التوصيل، النظام، والحساب في بطاقات هادئة.', tag: 'General Settings' },
   };
   return map[page] || { title: 'مركز الإدارة', subtitle: 'واجهة موحدة وقرارات واضحة.', tag: 'Admin System' };
@@ -812,6 +1133,21 @@ const MainApp: React.FC = () => {
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
+  // cloudGateForceRelease: if the server doesn't respond within 5s, release the gate anyway.
+  // Data continues loading in background; DataRefreshNotice shows the sync banner.
+  // Auto-save guards (isCloudSyncApplyingRef, hasLoadedDataRef) prevent premature writes.
+  const [cloudGateForceRelease, setCloudGateForceRelease] = useState(false);
+  const [hasInstantCloudSnapshot, setHasInstantCloudSnapshot] = useState(() => {
+    try {
+      // Fast length-check only — no LZString decompression on the initial render.
+      // Full validation runs in startDataSync(); false positives are safe (gate stays open).
+      const raw = window.localStorage.getItem('ktk_cloud_offline_snapshot_last_good')
+               || window.localStorage.getItem('ktk_cloud_offline_snapshot');
+      return Boolean(raw && raw.length > 200);
+    } catch {}
+    return false;
+  });
+  const [deferredChromeReady, setDeferredChromeReady] = useState(false);
   const [triggerSyncReload, setTriggerSyncReload] = useState(0);
   const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
 
@@ -830,6 +1166,71 @@ const MainApp: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('isAuthenticated') === 'true';
   });
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setDeferredChromeReady(false);
+      return;
+    }
+
+    setDeferredChromeReady(false);
+    const scheduleIdle = (window as any).requestIdleCallback;
+    const cancelIdle = (window as any).cancelIdleCallback;
+    const markReady = () => setDeferredChromeReady(true);
+
+    if (typeof scheduleIdle === 'function') {
+      const idleId = scheduleIdle(markReady, { timeout: 1200 });
+      return () => {
+        if (typeof cancelIdle === 'function') cancelIdle(idleId);
+      };
+    }
+
+    const timer = window.setTimeout(markReady, 450);
+    return () => window.clearTimeout(timer);
+  }, [isAuthenticated]);
+
+  // ADMIN_MENU_PREFETCH: silently warm up the chunks for top-used menu pages
+  // during browser idle time, so the first click on each menu item feels instant.
+  // This only triggers the same dynamic imports that lazy() already uses; it does
+  // not change any logic, does not run on partner role, and does not touch payment,
+  // notifications, AI, WhatsApp, auth, or database code paths.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (userRole === 'partner') return; // partners use a different surface
+    let cancelled = false;
+    const scheduleIdle = (window as any).requestIdleCallback;
+    const cancelIdle = (window as any).cancelIdleCallback;
+
+    const runNext = (i: number) => {
+      if (cancelled || i >= ADMIN_PRIORITY_PAGES.length) return;
+      preloadAdminPage(ADMIN_PRIORITY_PAGES[i]);
+      const scheduleNext = () => {
+        if (cancelled) return;
+        if (typeof scheduleIdle === 'function') {
+          scheduleIdle(() => runNext(i + 1), { timeout: 900 });
+        } else {
+          window.setTimeout(() => runNext(i + 1), 120);
+        }
+      };
+      window.setTimeout(scheduleNext, i === 0 ? 60 : 0);
+    };
+
+    let kickoffId: any;
+    if (typeof scheduleIdle === 'function') {
+      kickoffId = scheduleIdle(() => runNext(0), { timeout: 700 });
+    } else {
+      kickoffId = window.setTimeout(() => runNext(0), 350);
+    }
+
+    return () => {
+      cancelled = true;
+      if (typeof scheduleIdle === 'function' && typeof cancelIdle === 'function') {
+        try { cancelIdle(kickoffId); } catch {}
+      } else {
+        try { window.clearTimeout(kickoffId); } catch {}
+      }
+    };
+  }, [isAuthenticated, userRole]);
   
   // App mode & standalone
   const [isStandalone, setIsStandalone] = useState(false);
@@ -846,6 +1247,15 @@ const MainApp: React.FC = () => {
 
   const onboardingRole: 'admin' | 'partner' | 'demo' = appMode === 'local' ? 'demo' : (userRole === 'partner' ? 'partner' : 'admin');
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+
+  // Release the CloudConnectionGate after 5 seconds max — prevents indefinite blocking
+  // when the server is cold-starting (Cloud Run scale-to-zero). The data keeps loading
+  // in background and DataRefreshNotice shows the sync status to the user.
+  useEffect(() => {
+    if (!isAuthenticated || appMode !== 'cloud' || hasInstantCloudSnapshot || cloudGateForceRelease) return;
+    const timer = setTimeout(() => setCloudGateForceRelease(true), 3000);
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, appMode, hasInstantCloudSnapshot, cloudGateForceRelease]);
 
   useEffect(() => {
     if (!isAuthenticated || authLoading || dataLoading) return;
@@ -904,7 +1314,7 @@ const MainApp: React.FC = () => {
   }, [isAuthenticated, user, userRole]);
 
 
-  const [currentPage, setCurrentPage] = useState(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+  const [currentPage, setCurrentPage] = useState(getInitialPageFromDeepLink());
   const [dashboardTab, setDashboardTab] = useState<string>('pulse');
 
   const navigateAdminPage = (page: string, payload?: any) => {
@@ -920,7 +1330,7 @@ const MainApp: React.FC = () => {
   // CRITICAL: Ensure app always returns to dashboard on logout and clear any stale navigation state
   useEffect(() => {
     if (!isAuthenticated) {
-      setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+      setCurrentPage(getInitialPageFromDeepLink());
       // Reset any other transient states if needed
       setEditingInvoiceId(null);
       setDeepLinkData({});
@@ -958,6 +1368,15 @@ const MainApp: React.FC = () => {
   // Old /track?tracked_order=... links are also supported.
   useEffect(() => {
     const saved = getInitialPushDeepLink();
+    if (!saved) return;
+
+    if (saved?.page === 'whatsapp-support') {
+      setDeepLinkData(saved);
+      setCurrentPage('whatsapp-support');
+      window.history.replaceState({}, '', '/');
+      return;
+    }
+
     if (!saved?.search) return;
 
     setDeepLinkData(saved);
@@ -1000,8 +1419,6 @@ const MainApp: React.FC = () => {
       }
 
       const CLOUD_STALE_KEYS = [
-        'ktk_cloud_offline_snapshot',
-        'ktk_cloud_offline_snapshot_last_good',
         'ktk_last_cloud_snapshot',
         'ktk_cloud_import_snapshot',
         'ktk_cloud_cache',
@@ -1014,6 +1431,9 @@ const MainApp: React.FC = () => {
       });
 
       Object.keys(localStorage).forEach(key => {
+        const isTrustedCloudSnapshot =
+          key === 'ktk_cloud_offline_snapshot' ||
+          key === 'ktk_cloud_offline_snapshot_last_good';
         const shouldRemove =
           key.includes('cloud_offline_snapshot') ||
           key.includes('cloud_snapshot') ||
@@ -1021,7 +1441,7 @@ const MainApp: React.FC = () => {
           key.includes('last_good_cloud');
 
         // Do not delete local/demo data or auth/session preferences.
-        if (shouldRemove && key !== 'ktk_local_accounting_data' && key !== 'ktk_accounting_data') {
+        if (shouldRemove && !isTrustedCloudSnapshot && key !== 'ktk_local_accounting_data' && key !== 'ktk_accounting_data') {
           try { localStorage.removeItem(key); } catch {}
         }
       });
@@ -1111,7 +1531,7 @@ const MainApp: React.FC = () => {
     [data?.notifications]
   );
   const hasUnreadVisibleNotifications = useMemo(
-    () => visibleNotifications.some(n => !n.read),
+    () => visibleNotifications.some(n => !isNotificationReadForUi(n)),
     [visibleNotifications]
   );
   const [hasRunMigration, setHasRunMigration] = useState(false);
@@ -1122,13 +1542,18 @@ const MainApp: React.FC = () => {
   useEffect(() => {
      if (data?.orders && data?.customers && hasLoadedDataRef.current && !hasRunMigration) {
         let migrationNeeded = false;
+        // Pre-index customers by id and phone to avoid an O(orders × customers) scan
+        // (.find inside .map). Same matching logic, just constant-time lookups.
+        const customersForIndex = data.customers || [];
+        const custById = new Map(customersForIndex.map(c => [c.id, c] as const));
+        const custByPhone = new Map(customersForIndex.map(c => [c.phone, c] as const));
         const normalizedOrders = data.orders.map(o => {
             let correctName = o.customerName;
             if (o.customerId) {
-                const c = (data?.customers || []).find(c => c.id === o.customerId);
+                const c = custById.get(o.customerId);
                 if (c && c.name && c.name !== o.customerName) { correctName = c.name; }
             } else if (o.customerPhone) {
-                const c = (data?.customers || []).find(c => c.phone === o.customerPhone);
+                const c = custByPhone.get(o.customerPhone);
                 if (c && c.name && c.name !== o.customerName) { correctName = c.name; }
             }
             if (correctName && correctName !== o.customerName) {
@@ -1168,7 +1593,7 @@ const MainApp: React.FC = () => {
         const id = String(inv.id || inv.invoiceId || inv.invoiceNo || '');
         if (!id) return false;
         const lastCheckedAt = pendingPaymentCheckRef.current[id] || 0;
-        return nowMs - lastCheckedAt > 60000;
+        return nowMs - lastCheckedAt > 10000;
       }).slice(0, 12);
       if (pendingInvoices.length === 0) return;
       
@@ -1198,9 +1623,10 @@ const MainApp: React.FC = () => {
           let failed = false;
           let verificationData: any = null;
 
-          const res = await fetch('/api/invoice/confirm', {
-            method: 'POST',
-            signal: AbortSignal.timeout(10000),
+	          const res = await fetch('/api/invoice/confirm', {
+	            method: 'POST',
+	            cache: 'no-store',
+	            signal: AbortSignal.timeout(10000),
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
@@ -1323,9 +1749,9 @@ const MainApp: React.FC = () => {
       }
     };
 
-    const intervalId = setInterval(checkPendingPayments, 20000);
+    const intervalId = setInterval(checkPendingPayments, 8000);
     // Also run once shortly after mount/auth.
-    const timeoutId = setTimeout(checkPendingPayments, 2500);
+    const timeoutId = setTimeout(checkPendingPayments, 800);
     
     return () => {
       clearInterval(intervalId);
@@ -1340,7 +1766,7 @@ const MainApp: React.FC = () => {
   useEffect(() => {
     if (dataLoading) return;
 
-    // Debounce the alert generation to once per 2 seconds to avoid CPU spikes
+    // Debounce the alert generation to once per 20 seconds to avoid CPU spikes
     const debounceTimer = setTimeout(() => {
       const newNotifications: AdminNotification[] = [];
       const todayStr = new Date().toISOString().split('T')[0];
@@ -1563,11 +1989,21 @@ const MainApp: React.FC = () => {
     if (newNotifications.length > 0) {
         setData(prev => {
            let hasAdded = false;
-           const updatedNotifs = [...(prev?.notifications || [])];
+           let hasUpdates = false;
+           
+           // Ensure existing memory notifications are in sync with localStorage read IDs
+           const updatedNotifs = (prev?.notifications || []).map(n => {
+               if (isNotificationReadForUi(n) && !n.read) {
+                   hasUpdates = true;
+                   return { ...n, read: true };
+               }
+               return n;
+           });
            
            newNotifications.forEach(newNotif => {
+               const notificationToStore = isNotificationReadForUi(newNotif) ? { ...newNotif, read: true } : newNotif;
                if (!updatedNotifs.some(n => n.id === newNotif.id)) {
-                   updatedNotifs.push(newNotif);
+                   updatedNotifs.push(notificationToStore);
                    hasAdded = true;
                    
                    // Real-time toast for high-priority Profit Guard alert
@@ -1580,11 +2016,11 @@ const MainApp: React.FC = () => {
                }
            });
            
-           if (!hasAdded) return prev;
+           if (!hasAdded && !hasUpdates) return prev;
            return { ...prev, notifications: updatedNotifs };
         });
     }
-    }, 2000);
+    }, 20000); // 20 second debounce — alerts are non-urgent, heavy computation deferred
 
     return () => clearTimeout(debounceTimer);
   }, [dataLoading, data.invoices, data.suppliers, data.customers, data.products, data.testimonials]);
@@ -1645,12 +2081,29 @@ const MainApp: React.FC = () => {
     // Reset data loading flags first to prevent premature auto-saving
     hasLoadedDataRef.current = false;
     setDataLoading(true);
+    setCloudGateForceRelease(false);
     
     setAppMode(newMode);
     localStorage.setItem('appMode', newMode);
     
     // Reset to initial data to clear cross-mode leakage
     setData(INITIAL_DATA); 
+
+    if (newMode === 'local') {
+      setHasInstantCloudSnapshot(false);
+    } else {
+      try {
+        const raw = getProtectedStorageItem('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItem('ktk_cloud_offline_snapshot');
+        if (raw) {
+          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          setHasInstantCloudSnapshot(hasMeaningfulData(parsed));
+        } else {
+          setHasInstantCloudSnapshot(false);
+        }
+      } catch {
+        setHasInstantCloudSnapshot(false);
+      }
+    }
     
     addToast("تبديل الوضع", `تم الانتقال إلى وضع ${newMode === 'cloud' ? 'التزامن السحابي' : 'التخزين المحلي'}`, "info");
   };
@@ -1757,6 +2210,7 @@ const MainApp: React.FC = () => {
   const authoritativeDataWrittenAtRef = useRef<number>(0);
 
   const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
+  const BOOT_DEFERRED_SHARDED_KEYS = ['testimonials', 'campaigns', 'pulseAnalysisHistory', 'pulseReviews', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
 
   // Google/Looker Studio was originally reading the root appData/shared_company_data document.
   // The app now uses shards for speed and to avoid Firestore document-size limits, but Studio
@@ -2001,8 +2455,7 @@ const MainApp: React.FC = () => {
         authoritativeDataWrittenAtRef.current = authoritativeWriteAt;
         
         try {
-          setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', newFullStateStr);
-          setProtectedStorageItem('ktk_cloud_offline_snapshot', newFullStateStr);
+          saveCloudSnapshotMirror(newFullStateStr);
         } catch (err) {
           console.warn("localStorage sync skipped during cloud import:", err);
         }
@@ -2081,7 +2534,7 @@ const MainApp: React.FC = () => {
             setUserRole(isAuthorized ? 'admin' : 'partner');
             setIsAuthenticated(true);
             localStorage.setItem('isAuthenticated', 'true');
-            setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+            setCurrentPage(getInitialPageFromDeepLink());
           } else {
             // Demo/local mode is isolated: local data only, admin experience, no cloud role.
             setUser(null);
@@ -2173,17 +2626,32 @@ const MainApp: React.FC = () => {
 	      loadedCloudShardKeysRef.current = new Set();
 	      lastRemoteKeysRef.current = {};
       authoritativeDataWrittenAtRef.current = 0;
-      // عرض آخر نسخة موثوقة فوراً حتى لا يجلس المستخدم ينتظر شاشة "جارٍ تحديث بيانات السحابة".
-      // لا نفعّل auto-save هنا لأن dataLoading ما زال true و isCloudSyncApplyingRef سيمنع أي كتابة عكسية.
+      // Yield one paint frame before heavy LZString decompress + JSON.parse.
+      // Guarantees the browser renders the loading/gate state first so the UI
+      // never appears frozen — the brief (~16ms) yield is invisible to the user.
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      // جهّز آخر نسخة موثوقة خلف بوابة السحابة. لا نفعّل auto-save هنا لأن dataLoading ما زال true و isCloudSyncApplyingRef سيمنع أي كتابة عكسية.
       try {
         const instantSnapshot = parseStoredState(
-          getProtectedStorageItem('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItem('ktk_cloud_offline_snapshot')
+          getProtectedStorageItemFast('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItemFast('ktk_cloud_offline_snapshot')
         );
         if (instantSnapshot) {
-          setData(instantSnapshot);
-          lastRemoteSnapshotRef.current = JSON.stringify(instantSnapshot);
+          // Show cached data immediately so the UI is clickable right away.
+          startTransition(() => setData(instantSnapshot));
+          setHasInstantCloudSnapshot(hasMeaningfulData(instantSnapshot));
+          // Defer the heavy JSON.stringify (used only for dedup) to idle — it would
+          // otherwise block the main thread for up to ~2s on huge datasets right here.
+          const _snap = instantSnapshot;
+          const _ric = (window as any).requestIdleCallback;
+          const _work = () => { try { lastRemoteSnapshotRef.current = JSON.stringify(_snap); } catch {} };
+          if (typeof _ric === 'function') _ric(_work, { timeout: 3000 });
+          else setTimeout(_work, 60);
+        } else {
+          setHasInstantCloudSnapshot(false);
         }
-      } catch {}
+      } catch {
+        setHasInstantCloudSnapshot(false);
+      }
 
       // 1. Sync orders independently (Legacy/Customer App)
       try {
@@ -2234,9 +2702,11 @@ const MainApp: React.FC = () => {
       // This avoids slow browser Firestore shard reads on first entry and keeps Admin/Order on the same source.
       try {
         isCloudSyncApplyingRef.current = true;
-        const fastRes = await fetch('/api/appdata/full', { cache: 'no-store' });
+        const __perfT0 = performance.now();
+        const fastRes = await fetch('/api/appdata/full?profile=boot', { cache: 'no-store' });
         if (fastRes.ok) {
           const fastPayload = await fastRes.json();
+          const __perfNet = performance.now();
           if (fastPayload?.success && fastPayload?.data) {
             let loadedState: any = joinProductsFromDatabase({ ...INITIAL_DATA, ...fastPayload.data });
             const rootWrittenAt = new Date(loadedState.__adminLastAuthoritativeWriteAt || '').getTime();
@@ -2246,24 +2716,102 @@ const MainApp: React.FC = () => {
             SHARDED_KEYS.forEach(key => {
               if ((loadedState as any)[key] !== undefined) {
                 loadedCloudShardKeysRef.current.add(key);
-                lastRemoteKeysRef.current[key] = stableStringify((loadedState as any)[key]);
+                // stableStringify deferred to idle — auto-save fires 8s later, plenty of time
               }
             });
             const rootDataOnly = { ...loadedState };
             SHARDED_KEYS.forEach(k => {
               if (k !== 'products') delete rootDataOnly[k];
             });
-            lastRemoteKeysRef.current['__root__'] = stableStringify(rootDataOnly);
             
             // Recalculate derived state (like supplier balances) upon load
             const finalProcessedState = recalculateStateBalances(loadedState);
+            finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
 
-            setData(finalProcessedState);
-            lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
+            // حقن البيانات كـ transition: تبقى الواجهة قابلة للنقر فوراً أثناء الرسم بدل تجميد الـ main-thread.
+            startTransition(() => setData(finalProcessedState));
+            setHasInstantCloudSnapshot(true);
+
+            // Defer ALL heavy stableStringify/JSON.stringify to idle frames.
+            // This eliminates the 10-30s UI freeze caused by serializing 16 shards synchronously.
+            // Auto-save fires 8 seconds later — plenty of time to complete during idle.
+            const _bootState = loadedState;
+            const _bootRoot = rootDataOnly;
+            const _bootProcessed = finalProcessedState;
+            const _scheduleBootShard = (i: number) => {
+              const _ric = (window as any).requestIdleCallback;
+              const _work = () => {
+                const key = SHARDED_KEYS[i];
+                if (key && (_bootState as any)[key] !== undefined) {
+                  lastRemoteKeysRef.current[key] = stableStringify((_bootState as any)[key]);
+                }
+                if (i + 1 < SHARDED_KEYS.length) {
+                  _scheduleBootShard(i + 1);
+                } else {
+                  lastRemoteKeysRef.current['__root__'] = stableStringify(_bootRoot);
+                  const snap = JSON.stringify(_bootProcessed);
+                  lastRemoteSnapshotRef.current = snap;
+                  try { saveCloudSnapshotMirror(snap); } catch {}
+                }
+              };
+              if (typeof _ric === 'function') _ric(_work, { timeout: 4000 });
+              else setTimeout(_work, 80 + i * 50);
+            };
+            _scheduleBootShard(0);
+
             try {
-              setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
-              setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
+              console.log('[PERF] appdata boot — server+network: ' + (__perfNet - __perfT0).toFixed(0) + 'ms | client sync-process: ' + (performance.now() - __perfNet).toFixed(0) + 'ms | server-reported: ' + (fastPayload?.durationMs ?? '?') + 'ms');
             } catch {}
+
+            const deferredKeys = Array.isArray(fastPayload.deferredShardKeys)
+              ? fastPayload.deferredShardKeys.filter((key: string) => BOOT_DEFERRED_SHARDED_KEYS.includes(key))
+              : [];
+            if (deferredKeys.length > 0) {
+              window.setTimeout(async () => {
+                try {
+                  const fullRes = await fetch('/api/appdata/full?profile=full', { cache: 'no-store' });
+                  if (!fullRes.ok) return;
+                  const fullPayload = await fullRes.json();
+                  if (!fullPayload?.success || !fullPayload?.data) return;
+                  const fullState: any = joinProductsFromDatabase({ ...INITIAL_DATA, ...fullPayload.data });
+                  const deferredPatch: any = {};
+                  deferredKeys.forEach((key: string) => {
+                    if ((fullState as any)[key] !== undefined) {
+                      deferredPatch[key] = (fullState as any)[key];
+                      loadedCloudShardKeysRef.current.add(key);
+                      // stableStringify deferred to idle below
+                    }
+                  });
+                  if (Object.keys(deferredPatch).length === 0) return;
+                  startTransition(() => setData(prev => {
+                    const metaPatch: any = {};
+                    if (fullState.__adminDataGenerationId) metaPatch.__adminDataGenerationId = fullState.__adminDataGenerationId;
+                    if (fullState.__adminLastAuthoritativeWriteAt) metaPatch.__adminLastAuthoritativeWriteAt = fullState.__adminLastAuthoritativeWriteAt;
+                    const merged = recalculateStateBalances({ ...prev, ...deferredPatch, ...metaPatch });
+                    // Defer heavy JSON.stringify + stableStringify to idle — keeps UI responsive
+                    const _deferKeys = [...deferredKeys];
+                    const _deferFull = fullState;
+                    const _deferMerged = merged;
+                    const _deferRic = (window as any).requestIdleCallback;
+                    const _deferWork = () => {
+                      _deferKeys.forEach((key: string) => {
+                        if ((_deferFull as any)[key] !== undefined) {
+                          lastRemoteKeysRef.current[key] = stableStringify((_deferFull as any)[key]);
+                        }
+                      });
+                      const snap = JSON.stringify(_deferMerged);
+                      lastRemoteSnapshotRef.current = snap;
+                      try { saveCloudSnapshotMirror(snap); } catch {}
+                    };
+                    if (typeof _deferRic === 'function') _deferRic(_deferWork, { timeout: 4000 });
+                    else setTimeout(_deferWork, 200);
+                    return merged;
+                  }));
+                } catch (backgroundLoadErr) {
+                  console.warn('[FAST_APPDATA] Deferred shard background load failed:', backgroundLoadErr);
+                }
+              }, 0);
+            }
             isCloudSyncApplyingRef.current = false;
             hasLoadedDataRef.current = true;
             setDataLoading(false);
@@ -2338,9 +2886,9 @@ const MainApp: React.FC = () => {
           if (exists) loadedCloudShardKeysRef.current.add(key);
           if (value !== undefined) {
             loadedState[key] = value;
-            lastRemoteKeysRef.current[key] = stableStringify(value);
+            // stableStringify deferred to idle below — avoids blocking on 16 shards
           } else {
-            lastRemoteKeysRef.current[key] = stableStringify((loadedState as any)[key] ?? []);
+            // keep existing value as-is for undefined shards
           }
         });
 
@@ -2393,12 +2941,35 @@ const MainApp: React.FC = () => {
         // Recalculate derived state (like supplier balances) upon load
         const finalProcessedState = recalculateStateBalances(loadedState);
 
-        setData(finalProcessedState);
-        lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
-        try {
-          setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', lastRemoteSnapshotRef.current);
-          setProtectedStorageItem('ktk_cloud_offline_snapshot', lastRemoteSnapshotRef.current);
-	        } catch {}
+        // Sync read state from localStorage to ensure read status is kept fundamentally.
+        finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
+
+        // حقن البيانات كـ transition: واجهة قابلة للنقر فوراً أثناء الرسم.
+        startTransition(() => setData(finalProcessedState));
+        setHasInstantCloudSnapshot(true);
+        // Defer ALL heavy stableStringify/JSON.stringify to idle — eliminates UI freeze
+        const _fbState = loadedState;
+        const _fbProcessed = finalProcessedState;
+        const _fbSchedule = (i: number) => {
+          const _ric = (window as any).requestIdleCallback;
+          const _work = () => {
+            const key = SHARDED_KEYS[i];
+            if (key) {
+              const val = (_fbState as any)[key];
+              lastRemoteKeysRef.current[key] = stableStringify(val !== undefined ? val : []);
+            }
+            if (i + 1 < SHARDED_KEYS.length) {
+              _fbSchedule(i + 1);
+            } else {
+              const snap = JSON.stringify(_fbProcessed);
+              lastRemoteSnapshotRef.current = snap;
+              try { saveCloudSnapshotMirror(snap); } catch {}
+            }
+          };
+          if (typeof _ric === 'function') _ric(_work, { timeout: 4000 });
+          else setTimeout(_work, 80 + i * 50);
+        };
+        _fbSchedule(0);
       } catch (err) {
         if (String(err).includes("Missing or insufficient permissions") || String(err).includes("permission-denied")) {
           console.warn("Cloud read permission denied for this account/role:", err);
@@ -2455,14 +3026,24 @@ const MainApp: React.FC = () => {
 	          const sanitizedDataStr = JSON.stringify(data);
 	          if (!sanitizedDataStr || sanitizedDataStr === '{}' || !hasMeaningfulData(data)) return;
 	          try { 
-	            setProtectedStorageItem('ktk_cloud_offline_snapshot_last_good', sanitizedDataStr); 
-	            setProtectedStorageItem('ktk_cloud_offline_snapshot', sanitizedDataStr); 
+	            saveCloudSnapshotMirror(sanitizedDataStr); 
 	          } catch {}
           
           // Deduplication: prevent writing back what we just read
           if (sanitizedDataStr === lastRemoteSnapshotRef.current) {
              return;
           }
+
+          // Yield to the browser before the heavy stableStringify work so UI stays responsive.
+          // The actual Firestore writes happen after this yield — logic is unchanged.
+          await new Promise<void>(resolve => {
+            const _ric = (window as any).requestIdleCallback;
+            if (typeof _ric === 'function') _ric(() => resolve(), { timeout: 8000 });
+            else setTimeout(resolve, 0);
+          });
+
+          // Re-check after idle yield in case state changed or sync is in progress
+          if (!hasLoadedDataRef.current || isCloudSyncApplyingRef.current) return;
 
           // لا نحدّث آخر لقطة إلا بعد نجاح الحفظ، حتى لا نخسر محاولة لاحقة.
           
@@ -2495,7 +3076,6 @@ const MainApp: React.FC = () => {
                   shardedPayloadsToSave[key] = currentVal;
                 } else if (dangerousEmptyOverwrite) {
                   console.warn(`[DATA_GUARD] Prevented empty overwrite for shard '${key}'. Keeping existing cloud data safe.`);
-                  toast.warning('تم منع حفظ قائمة فارغة حتى لا تُحذف البيانات بالخطأ.');
                 }
               }
             }
@@ -2606,7 +3186,7 @@ const MainApp: React.FC = () => {
           }
         }
       }
-    }, 2000); // 2 second debounce for sharded saving
+    }, 8000); // 8 second debounce for sharded saving — reduces stableStringify + Firestore write pressure
 
     return () => clearTimeout(timeoutId);
   }, [data, user, appMode]);
@@ -2636,6 +3216,8 @@ const MainApp: React.FC = () => {
   const handleLogout = async () => {
     const prevMode = appMode;
 
+    setHasInstantCloudSnapshot(false);
+    setCloudGateForceRelease(false);
     sessionStorage.removeItem('hideSampleDataPrompt');
     await logout();
     setIsAuthenticated(false);
@@ -2716,10 +3298,15 @@ const MainApp: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div className="h-[100dvh] w-full flex flex-col items-center justify-center bg-slate-50 gap-4 arabic-font">
-        <Loader2 className="animate-spin text-primary" size={48} />
-        <p className="text-slate-500 font-bold">نحمّل طال عمرك...</p>
-      </div>
+      <>
+        <CloudConnectionGate
+          logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
+          name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
+          phase={isOnline ? 'auth' : 'offline'}
+          onRetry={() => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine)}
+        />
+        <Toaster richColors position="bottom-right" closeButton />
+      </>
     );
   }
 
@@ -2823,6 +3410,24 @@ const MainApp: React.FC = () => {
     );
   };
 
+  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && !hasInstantCloudSnapshot && !cloudGateForceRelease && (!isOnline || (dataLoading && !hasLoadedDataRef.current));
+
+  if (shouldHoldCloudEntry) {
+    return (
+      <>
+        {renderAuthError()}
+        {renderQuotaError()}
+        <CloudConnectionGate
+          logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
+          name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
+          phase={!isOnline ? 'offline' : 'sync'}
+          onRetry={() => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine)}
+        />
+        <Toaster richColors position="bottom-right" closeButton />
+      </>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <>
@@ -2846,7 +3451,7 @@ const MainApp: React.FC = () => {
             }
             setIsAuthenticated(true);
             localStorage.setItem('isAuthenticated', 'true');
-            setCurrentPage(hasInitialPushDeepLink() ? 'invoices-list' : 'dashboard');
+            setCurrentPage(getInitialPageFromDeepLink());
           }} 
         />
         <Toaster richColors position="bottom-right" closeButton />
@@ -2942,7 +3547,7 @@ const MainApp: React.FC = () => {
       case 'ai': return <AIAssistant data={data} currentPage={currentPage} />;
       case 'smart-studio': return <SmartContentStudio data={data} setData={setData} onNavigate={setCurrentPage} />;
       case 'diwaniya': return <DiwaniyaTournaments data={data} setData={setData} onNavigate={setCurrentPage} />;
-      case 'whatsapp-support': return <WhatsAppSupportInbox />;
+      case 'whatsapp-support': return <WhatsAppSupportInbox data={data} />;
       case 'settings': return <GeneralSettings data={data} setData={setData} appMode={appMode} switchMode={switchMode} addToast={addToast} onCloudImport={onCloudImport} />;
       case 'suppliers-audit': return (
         <SupplierAudit 
@@ -2961,8 +3566,8 @@ const MainApp: React.FC = () => {
   const showExecutiveFloatingTools = currentPage === 'dashboard' && dashboardTab === 'pulse';
   const floatingToolRole = appMode === 'local' ? 'local' : userRole;
   
-  // Instagram Wand: For admin/local -> only on dashboard pulse. For partner -> only on dashboard pulse.
-  const showInstagramFloatingTool = showExecutiveFloatingTools;
+  // Instagram Wand: admin/local stays limited to dashboard pulse; partner gets it on the partner dashboard.
+  const showInstagramFloatingTool = showExecutiveFloatingTools || (floatingToolRole === 'partner' && currentPage === 'dashboard');
 
   // Second Tool (Radar/Search): Admin/local -> only on pulse. Partner -> hide completely.
   const showSecondFloatingTools = (floatingToolRole === 'admin' || floatingToolRole === 'local') && showExecutiveFloatingTools;
@@ -3050,6 +3655,9 @@ const MainApp: React.FC = () => {
                <div 
                  role="button"
                  onClick={() => {
+                    preloadAdminPage('new-invoice');
+                    preloadAdminPage('invoices-list');
+                    preloadAdminPage('customers');
                     if (!sidebarOpen && !isMobile) {
                       setSidebarOpen(true);
                       openMenu('invoices');
@@ -3087,22 +3695,25 @@ const MainApp: React.FC = () => {
                         label="فاتورة جديدة"
                         icon={<PlusCircle size={16} />}
                         active={currentPage === 'new-invoice'} 
+                        preloadPage="new-invoice"
                         onClick={() => { setCurrentPage('new-invoice'); setEditingInvoiceId(null); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
                         label="سجل الفواتير"
                         icon={<Receipt size={16} />}
                         active={currentPage === 'invoices-list'} 
+                        preloadPage="invoices-list"
                         onClick={() => { setCurrentPage('invoices-list'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
                         label="قائمة العملاء"
                         icon={<Users size={16} />}
                         active={currentPage === 'customers'} 
+                        preloadPage="customers"
                         onClick={() => { setCurrentPage('customers'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
-                        label="دعم واتساب"
+                        label="مركز واتساب الذكي"
                         icon={<MessageSquare size={16} />}
                         active={currentPage === 'whatsapp-support'} 
                         onClick={() => { setCurrentPage('whatsapp-support'); setSidebarOpen(false); }}
@@ -3116,6 +3727,9 @@ const MainApp: React.FC = () => {
                <div 
                  role="button"
                  onClick={() => {
+                    preloadAdminPage('products');
+                    preloadAdminPage('expenses');
+                    preloadAdminPage('suppliers');
                     if (!sidebarOpen && !isMobile) {
                       setSidebarOpen(true);
                       openMenu('operations');
@@ -3153,18 +3767,21 @@ const MainApp: React.FC = () => {
                         label="قائمة المنتجات"
                         icon={<Package size={16} />}
                         active={currentPage === 'products'} 
+                        preloadPage="products"
                         onClick={() => { setCurrentPage('products'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
                         label="المصروفات العامة"
                         icon={<CircleDollarSign size={16} />}
                         active={currentPage === 'expenses'} 
+                        preloadPage="expenses"
                         onClick={() => { setCurrentPage('expenses'); setSidebarOpen(false); }}
                       />
                       <SubNavItem 
                         label="الموردين والمراجعة"
                         icon={<HandCoins size={16} />}
                         active={currentPage === 'suppliers' || currentPage === 'suppliers-audit'} 
+                        preloadPage="suppliers"
                         onClick={() => { setCurrentPage('suppliers'); setSidebarOpen(false); }}
                       />
                   </motion.div>
@@ -3224,7 +3841,11 @@ const MainApp: React.FC = () => {
               )}
             </div>
             
-            <SystemPulseOrb data={data} />
+            {deferredChromeReady && (
+              <React.Suspense fallback={null}>
+                <SystemPulseOrb data={data} />
+              </React.Suspense>
+            )}
           </div>
 
           <div className="flex items-center gap-3 lg:gap-4 md:p-6 shrink-0">
@@ -3248,6 +3869,9 @@ const MainApp: React.FC = () => {
               {/* Removed isStandalone button from header */}
 
               <button 
+                onMouseEnter={() => preloadAdminPage('new-invoice')}
+                onFocus={() => preloadAdminPage('new-invoice')}
+                onTouchStart={() => preloadAdminPage('new-invoice')}
                 onClick={() => {
                   setEditingInvoiceId(null);
                   setCurrentPage('new-invoice');
@@ -3320,6 +3944,7 @@ const MainApp: React.FC = () => {
                            <button 
                              onClick={(e) => {
                                  e.stopPropagation();
+                                 storeReadNotifications(data?.notifications || []);
                                  setData(prev => ({
                                      ...prev,
                                      notifications: (prev?.notifications || []).map(n => ({ ...n, read: true }))
@@ -3338,9 +3963,10 @@ const MainApp: React.FC = () => {
                             key={notif.id} 
                             onClick={(e) => {
                                 e.stopPropagation();
+                                storeReadNotifications([notif]);
                                 setData(prev => ({
                                     ...prev,
-                                    notifications: (prev?.notifications || []).map(n => n.id === notif.id ? { ...n, read: true } : n)
+                                    notifications: (prev?.notifications || []).map(n => n.id === notif.id || getNotificationReadKeys(n).some(key => getNotificationReadKeys(notif).includes(key)) ? { ...n, read: true } : n)
                                 }));
                                 setNotifOpen(false);
                                 
@@ -3369,7 +3995,7 @@ const MainApp: React.FC = () => {
                             }}
                             className={cn(
                                 "p-3 rounded-xl mb-1 transition-all cursor-pointer hover:bg-slate-50 border border-transparent",
-                                notif.read ? "opacity-60 bg-white" : "bg-primary/5 border-primary/10 shadow-sm"
+                                isNotificationReadForUi(notif) ? "opacity-60 bg-white" : "bg-primary/5 border-primary/10 shadow-sm"
                             )}
                           >
                             <div className="flex items-start gap-3">
@@ -3389,7 +4015,7 @@ const MainApp: React.FC = () => {
                                   {formatKuwaitiDateOnly(notif.date)}
                                 </div>
                               </div>
-                              {!notif.read && (
+                              {!isNotificationReadForUi(notif) && (
                                 <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0 mt-1 animate-pulse" />
                               )}
                             </div>
@@ -3459,37 +4085,50 @@ const MainApp: React.FC = () => {
           {/* Global Background Accents - Removed for performance */}
           <div className="fixed inset-0 pointer-events-none z-0">
           </div>
-          <InstallPrompt />
-          {showSecondFloatingTools && (
-            <ProactiveAlerts 
-              userRole={userRole}
-              currentPage={currentPage}
-              notifications={data.notifications || []} 
-              onMarkAsRead={(id) => {
-                 setData(prev => ({
-                     ...prev,
-                     notifications: (prev?.notifications || []).map(n => n.id === id ? { ...n, read: true } : n)
-                 }));
-              }} 
-              onMarkAllAsRead={() => {
-                 setData(prev => ({
-                     ...prev,
-                     notifications: (prev?.notifications || []).map(n => n.insightType ? { ...n, read: true } : n)
-                 }));
-              }}
-            />
+          {deferredChromeReady && (
+            <React.Suspense fallback={null}>
+              <InstallPrompt />
+            </React.Suspense>
           )}
-          {userRole !== 'partner' && currentPage === 'dashboard' && (
-            <CommandBrief data={data} dateFilter="day" onNavigate={navigateAdminPage} />
+          {deferredChromeReady && showSecondFloatingTools && (
+            <React.Suspense fallback={null}>
+              <ProactiveAlerts 
+                userRole={userRole}
+                currentPage={currentPage}
+                notifications={(data.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج'))} 
+                isNotificationRead={isNotificationReadForUi}
+                onMarkAsRead={(id) => {
+                   const target = (data?.notifications || []).find(n => n.id === id);
+                   if (target) storeReadNotifications([target]);
+                   else storeReadNotificationIds([id]);
+                   setData(prev => ({
+                       ...prev,
+                       notifications: (prev?.notifications || []).map(n => n.id === id || (target && getNotificationReadKeys(n).some(key => getNotificationReadKeys(target).includes(key))) ? { ...n, read: true } : n)
+                   }));
+                }} 
+                onMarkAllAsRead={() => {
+                   storeReadNotifications((data?.notifications || []).filter(n => n.insightType));
+                   setData(prev => ({
+                       ...prev,
+                       notifications: (prev?.notifications || []).map(n => n.insightType ? { ...n, read: true } : n)
+                   }));
+                }}
+              />
+            </React.Suspense>
+          )}
+          {deferredChromeReady && userRole !== 'partner' && currentPage === 'dashboard' && (
+            <React.Suspense fallback={null}>
+              <CommandBrief data={data} dateFilter="day" onNavigate={navigateAdminPage} />
+            </React.Suspense>
           )}
           <AnimatePresence>
             <motion.div
               key={currentPage}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ 
-                duration: 0.2, 
+                duration: 0.12, 
                 ease: "easeOut"
               }}
               className="w-full min-h-full relative z-10 px-4 md:px-6"
@@ -3506,15 +4145,19 @@ const MainApp: React.FC = () => {
         </main>
       </div>
       
-      <CommandBar 
-        isOpen={commandBarOpen} 
-        onClose={() => setCommandBarOpen(false)} 
-        onNavigate={(page, payload) => {
-           navigateAdminPage(page, payload);
-        }}
-        data={data}
-        userRole={userRole}
-      />
+      {commandBarOpen && (
+        <React.Suspense fallback={null}>
+          <CommandBar 
+            isOpen={commandBarOpen} 
+            onClose={() => setCommandBarOpen(false)} 
+            onNavigate={(page, payload) => {
+               navigateAdminPage(page, payload);
+            }}
+            data={data}
+            userRole={userRole}
+          />
+        </React.Suspense>
+      )}
 
       {/* Global Scroll Progress + Back to Top */}
       <AnimatePresence>
@@ -3628,7 +4271,11 @@ const MainApp: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {(isAuthenticated || appMode === 'local') && showInstagramFloatingTool && <InstagramMagicWand data={data} currentPage={currentPage} userRole={floatingToolRole} />}
+      {deferredChromeReady && (isAuthenticated || appMode === 'local') && showInstagramFloatingTool && (
+        <React.Suspense fallback={null}>
+          <InstagramMagicWand data={data} currentPage={currentPage} userRole={floatingToolRole} />
+        </React.Suspense>
+      )}
       <Toaster richColors position="bottom-right" closeButton />
       
 
@@ -3663,8 +4310,11 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick, highlig
   </button>
 );
 
-const SubNavItem: React.FC<{ label: string; icon: React.ReactNode; active?: boolean; onClick: () => void }> = ({ label, icon, active, onClick }) => (
+const SubNavItem: React.FC<{ label: string; icon: React.ReactNode; active?: boolean; preloadPage?: string; onClick: () => void }> = ({ label, icon, active, preloadPage, onClick }) => (
   <button 
+    onMouseEnter={() => preloadPage && preloadAdminPage(preloadPage)}
+    onFocus={() => preloadPage && preloadAdminPage(preloadPage)}
+    onTouchStart={() => preloadPage && preloadAdminPage(preloadPage)}
     onClick={onClick}
     className={cn(
       "w-full flex items-center gap-3 text-right p-3.5 text-[12px] font-bold rounded-2xl transition-all active:scale-95 mb-0.5",
@@ -3788,7 +4438,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
                 className="h-full rounded-full bg-gradient-to-l from-emerald-300 via-amber-300 to-white shadow-[0_0_24px_rgba(245,184,74,.42)]"
                 initial={{ width: '12%' }}
                 animate={{ width: ['12%', '58%', '92%'] }}
-                transition={{ duration: 1.85, ease: 'easeInOut' }}
+                transition={{ duration: 1.2, ease: 'easeInOut' }}
               />
             </div>
           </motion.div>
@@ -3804,22 +4454,15 @@ const App: React.FC = () => {
    const [name, setName] = useState('شركة مطبخ التراث الكويتي');
 
    useEffect(() => {
-     try {
-	       const currentMode = localStorage.getItem('appMode') || 'local';
-	       const key = currentMode === 'cloud' ? 'ktk_cloud_offline_snapshot' : 'ktk_local_accounting_data';
-	       let raw = getProtectedStorageItem(key);
-	       if (!raw && currentMode === 'local') {
-	         raw = getProtectedStorageItem('ktk_accounting_data');
-	       }
-       if (raw) {
-         const parsed = JSON.parse(raw);
-         if (parsed?.settings?.companyLogo) setLogo(parsed.settings.companyLogo);
-         if (parsed?.settings?.companyName) setName(parsed.settings.companyName);
-       }
-     } catch(e) {}
+     // Warm up the server cache silently while the user reads the splash screen.
+     // This eliminates the Cloud Run cold-start delay before they even click login.
+     fetch('/api/appdata/full?profile=boot', { cache: 'no-store' }).catch(() => {});
+     // Logo/name parsing removed: was doing full LZString decompress + double JSON.parse
+     // of the entire data state (potentially MB+) just to show values during a short splash.
+     // Default values are perfectly fine for 900ms. Actual values appear after data loads.
      const timer = setTimeout(() => {
        setShowSplash(false);
-     }, 2350);
+     }, 900);
      return () => clearTimeout(timer);
    }, []);
 
