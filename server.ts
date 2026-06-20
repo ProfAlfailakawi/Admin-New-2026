@@ -3920,7 +3920,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         return __alertsOrdersCache.docs;
     }
     try {
-        const snap = await db.collection("orders").limit(limit).get();
+        const snap = await db.collection("orders").orderBy("date", "desc").limit(limit).get();
         __alertsOrdersCache.time = now;
         __alertsOrdersCache.docs = snap.docs;
         return snap.docs;
@@ -4052,7 +4052,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       // Fetch recent orders from both sources:
       // 1) Root collection: orders
       // 2) appData/shared_company_data.orders array
-      const ordersDocs = await getRecentOrdersCached(50);
+      const ordersDocs = await getRecentOrdersCached(200);
 
       const rootOrders = ordersDocs.map((doc: any) => ({
         id: doc.id,
@@ -4188,6 +4188,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       // حساب طلبات ومبيعات اليوم
       const todayOrders = orders.filter((order: any) => {
         const d =
+          getDateValue(order.date) ||
           getDateValue(order.createdAt) ||
           getDateValue(order.orderDate) ||
           getDateValue(order.timestamp) ||
@@ -4213,8 +4214,8 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       }, 0);
 
       // 2) ملخص اليوم الساعة 11 مساءً
-      // حتى لا يرسل قبل 11:00 مساءً
-      if (kuwaitHour >= 23) {
+      // حتى لا يرسل قبل 11:00 مساءً، ولا يرسل إذا لم تكن هناك طلبات أو مبيعات اليوم
+      if (kuwaitHour >= 23 && todayOrders.length > 0 && todaySales > 0) {
         const eventId = `daily-summary-${todayKey}`;
 
         if (!(await alreadySent(eventId))) {
