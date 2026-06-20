@@ -1253,7 +1253,7 @@ const MainApp: React.FC = () => {
   // in background and DataRefreshNotice shows the sync status to the user.
   useEffect(() => {
     if (!isAuthenticated || appMode !== 'cloud' || hasInstantCloudSnapshot || cloudGateForceRelease) return;
-    const timer = setTimeout(() => setCloudGateForceRelease(true), 5000);
+    const timer = setTimeout(() => setCloudGateForceRelease(true), 3000);
     return () => clearTimeout(timer);
   }, [isAuthenticated, appMode, hasInstantCloudSnapshot, cloudGateForceRelease]);
 
@@ -2626,6 +2626,7 @@ const MainApp: React.FC = () => {
 	      loadedCloudShardKeysRef.current = new Set();
 	      lastRemoteKeysRef.current = {};
       authoritativeDataWrittenAtRef.current = 0;
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
       // جهّز آخر نسخة موثوقة خلف بوابة السحابة. لا نفعّل auto-save هنا لأن dataLoading ما زال true و isCloudSyncApplyingRef سيمنع أي كتابة عكسية.
       try {
         const instantSnapshot = parseStoredState(
@@ -4453,22 +4454,9 @@ const App: React.FC = () => {
      // Warm up the server cache silently while the user reads the splash screen.
      // This eliminates the Cloud Run cold-start delay before they even click login.
      fetch('/api/appdata/full?profile=boot', { cache: 'no-store' }).catch(() => {});
-     try {
-	       const currentMode = localStorage.getItem('appMode') || 'local';
-	       const key = currentMode === 'cloud' ? 'ktk_cloud_offline_snapshot' : 'ktk_local_accounting_data';
-	       let raw = getProtectedStorageItem(key);
-	       if (!raw && currentMode === 'local') {
-	         raw = getProtectedStorageItem('ktk_accounting_data');
-	       }
-       if (raw) {
-         const parsed = JSON.parse(raw);
-         if (parsed?.settings?.companyLogo) setLogo(parsed.settings.companyLogo);
-         if (parsed?.settings?.companyName) setName(parsed.settings.companyName);
-       }
-     } catch(e) {}
      const timer = setTimeout(() => {
        setShowSplash(false);
-     }, 1500);
+     }, 900);
      return () => clearTimeout(timer);
    }, []);
 
