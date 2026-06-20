@@ -1133,13 +1133,17 @@ const MainApp: React.FC = () => {
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
+  // cloudGateForceRelease: if the server doesn't respond within 5s, release the gate anyway.
+  // Data continues loading in background; DataRefreshNotice shows the sync banner.
+  // Auto-save guards (isCloudSyncApplyingRef, hasLoadedDataRef) prevent premature writes.
+  const [cloudGateForceRelease, setCloudGateForceRelease] = useState(false);
   const [hasInstantCloudSnapshot, setHasInstantCloudSnapshot] = useState(() => {
     try {
-      const raw = getProtectedStorageItem('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItem('ktk_cloud_offline_snapshot');
-      if (raw) {
-        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-        return hasMeaningfulData(parsed);
-      }
+      // Fast length-check only — no LZString decompression on the initial render.
+      // Full validation runs in startDataSync(); false positives are safe (gate stays open).
+      const raw = window.localStorage.getItem('ktk_cloud_offline_snapshot_last_good')
+               || window.localStorage.getItem('ktk_cloud_offline_snapshot');
+      return Boolean(raw && raw.length > 200);
     } catch {}
     return false;
   });
@@ -1243,6 +1247,15 @@ const MainApp: React.FC = () => {
 
   const onboardingRole: 'admin' | 'partner' | 'demo' = appMode === 'local' ? 'demo' : (userRole === 'partner' ? 'partner' : 'admin');
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+
+  // Release the CloudConnectionGate after 5 seconds max — prevents indefinite blocking
+  // when the server is cold-starting (Cloud Run scale-to-zero). The data keeps loading
+  // in background and DataRefreshNotice shows the sync status to the user.
+  useEffect(() => {
+    if (!isAuthenticated || appMode !== 'cloud' || hasInstantCloudSnapshot || cloudGateForceRelease) return;
+    const timer = setTimeout(() => setCloudGateForceRelease(true), 5000);
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, appMode, hasInstantCloudSnapshot, cloudGateForceRelease]);
 
   useEffect(() => {
     if (!isAuthenticated || authLoading || dataLoading) return;
@@ -2063,6 +2076,7 @@ const MainApp: React.FC = () => {
     // Reset data loading flags first to prevent premature auto-saving
     hasLoadedDataRef.current = false;
     setDataLoading(true);
+    setCloudGateForceRelease(false);
     
     setAppMode(newMode);
     localStorage.setItem('appMode', newMode);
@@ -3123,6 +3137,7 @@ const MainApp: React.FC = () => {
     const prevMode = appMode;
 
     setHasInstantCloudSnapshot(false);
+    setCloudGateForceRelease(false);
     sessionStorage.removeItem('hideSampleDataPrompt');
     await logout();
     setIsAuthenticated(false);
@@ -3315,7 +3330,7 @@ const MainApp: React.FC = () => {
     );
   };
 
-  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && !hasInstantCloudSnapshot && (!isOnline || (dataLoading && !hasLoadedDataRef.current));
+  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && !hasInstantCloudSnapshot && !cloudGateForceRelease && (!isOnline || (dataLoading && !hasLoadedDataRef.current));
 
   if (shouldHoldCloudEntry) {
     return (
@@ -4343,7 +4358,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
                 className="h-full rounded-full bg-gradient-to-l from-emerald-300 via-amber-300 to-white shadow-[0_0_24px_rgba(245,184,74,.42)]"
                 initial={{ width: '12%' }}
                 animate={{ width: ['12%', '58%', '92%'] }}
-                transition={{ duration: 1.85, ease: 'easeInOut' }}
+                transition={{ duration: 1.2, ease: 'easeInOut' }}
               />
             </div>
           </motion.div>
@@ -4359,6 +4374,9 @@ const App: React.FC = () => {
    const [name, setName] = useState('شركة مطبخ التراث الكويتي');
 
    useEffect(() => {
+     // Warm up the server cache silently while the user reads the splash screen.
+     // This eliminates the Cloud Run cold-start delay before they even click login.
+     fetch('/api/appdata/full?profile=boot', { cache: 'no-store' }).catch(() => {});
      try {
 	       const currentMode = localStorage.getItem('appMode') || 'local';
 	       const key = currentMode === 'cloud' ? 'ktk_cloud_offline_snapshot' : 'ktk_local_accounting_data';
@@ -4374,7 +4392,7 @@ const App: React.FC = () => {
      } catch(e) {}
      const timer = setTimeout(() => {
        setShowSplash(false);
-     }, 2350);
+     }, 1500);
      return () => clearTimeout(timer);
    }, []);
 
