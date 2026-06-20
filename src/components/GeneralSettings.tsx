@@ -52,7 +52,7 @@ import {
   AICampaign,
   SupplierTransfer,
 } from "../types";
-import { GET_DEMO_DATA } from "../data";
+import { GET_DEMO_DATA, GENERATE_PERFORMANCE_SIMULATION_DATA } from "../data";
 import {
   cn,
   formatFullAddress,
@@ -5290,6 +5290,32 @@ const GeneralSettings: React.FC<Props> = ({
                           <div className="text-[10px] opacity-80">
                             ملء النظام بالبيانات الترويجية والمبيعات الكاملة
                             فوراً
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          const simulationData = GENERATE_PERFORMANCE_SIMULATION_DATA();
+                          setData(simulationData);
+                          addToast(
+                            "تم بدء محاكاة الأداء العالي 🚀",
+                            "تم تحميل 10,000 فاتورة و5,000 عميل محلياً بأمان وبدون أي تأثير على قاعدة بيانتك السحابية!",
+                            "success",
+                          );
+                        }}
+                        className="w-full flex items-center justify-between p-3 border rounded-2xl group transition-all shadow-sm bg-amber-50/50 border-amber-200 hover:bg-amber-100/75 text-amber-900 active:scale-[0.98]"
+                      >
+                        <Sparkles
+                          size={18}
+                          className="group-hover:scale-110 transition-transform text-amber-600 font-bold"
+                        />
+                        <div className="text-right">
+                          <div className="text-xs font-bold font-sans">
+                            محاكاة الأداء الأقصى (الآمنة) ⚡️
+                          </div>
+                          <div className="text-[10px] opacity-80">
+                            تحميل 10,000 طلب و5,000 عميل محلياً لاختبار سرعة واستجابة النظام
                           </div>
                         </div>
                       </button>

@@ -188,6 +188,22 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
     isPartner = false,
   }) => {
     const unifiedInvoices = useMemo(() => getUnifiedInvoices(data), [data]);
+    const customersMap = useMemo(() => {
+      const map = new Map<string, any>();
+      (data?.customers || []).forEach((c) => {
+        if (c && c.id) map.set(String(c.id), c);
+      });
+      return map;
+    }, [data?.customers]);
+
+    const productsMap = useMemo(() => {
+      const map = new Map<string, any>();
+      (data?.products || []).forEach((p) => {
+        if (p && p.id) map.set(String(p.id), p);
+      });
+      return map;
+    }, [data?.products]);
+
     const [activeTab, setActiveTab] = useState<
       "invoices" | "tax" | "pnl" | "orders"
     >(defaultTab as any);
@@ -347,9 +363,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
 
     const filteredInvoices = activeInvoices
       .filter((inv) => {
-        const customer = (data?.customers || []).find(
-          (c) => c.id === inv.customerId,
-        );
+        const customer = customersMap.get(String(inv.customerId));
         const noteValue =
           inv.notes ||
           (inv as any).customerNotes ||
@@ -365,9 +379,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
 
         const productNames = (inv.items || [])
           .map((item: any) => {
-            const p = (data?.products || []).find(
-              (prod: any) => prod.id === item.productId,
-            );
+            const p = productsMap.get(String(item.productId));
             return (p?.name || "").toLowerCase();
           })
           .join(" ");
@@ -642,9 +654,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
     };
 
     const handleRegeneratePayment = async (invoice: Invoice) => {
-      const customer = (data.customers || []).find(
-        (c) => c.id === invoice.customerId,
-      );
+      const customer = customersMap.get(String(invoice.customerId));
       const invoiceId = invoice.id;
       const loadingToast = toast.loading("نجهز رابط دفع جديد...");
       try {
@@ -784,9 +794,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
     };
 
     const getWhatsAppLink = (invoice: Invoice) => {
-      const customer = (data?.customers || []).find(
-        (c) => c.id === invoice.customerId,
-      );
+      const customer = customersMap.get(String(invoice.customerId));
       const order = (data?.orders || []).find(
         (o) =>
           o.linkedInvoiceId === invoice.id ||
@@ -1193,9 +1201,7 @@ Alturath.kw`;
                         </tr>
                       ) : (
                         (filteredInvoices || []).slice(0, visibleCount).map((inv) => {
-                          const customer = (data?.customers || []).find(
-                            (c) => c.id === inv.customerId,
-                          );
+                          const customer = customersMap.get(String(inv.customerId));
                           const isExpanded = expandedInvoiceId === inv.id;
                           return (
                             <React.Fragment key={inv.id}>
