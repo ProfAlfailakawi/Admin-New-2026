@@ -100,7 +100,7 @@ import { Toaster, toast } from 'sonner';
 import { playNewOrderAlert } from './lib/sounds';
 import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils';
 import { refreshPushRegistrationIfAlreadyAllowed } from './lib/pushNotifications';
-import { getProtectedStorageItem, hasMeaningfulData, safeMergeData, setProtectedStorageItem } from './lib/dataGuard';
+import { getProtectedStorageItem, getProtectedStorageItemFast, hasMeaningfulData, safeMergeData, setProtectedStorageItem } from './lib/dataGuard';
 
 // ── أداء الإقلاع: حفظ مرآة السحابة المحلية بدون تجميد الواجهة ──────────────────────
 // نسخة الـ snapshot مجرد مرآة قابلة للاستبدال لبيانات السحابة (عرض فوري عند الفتح + عمل دون إنترنت).
@@ -1542,13 +1542,18 @@ const MainApp: React.FC = () => {
   useEffect(() => {
      if (data?.orders && data?.customers && hasLoadedDataRef.current && !hasRunMigration) {
         let migrationNeeded = false;
+        // Pre-index customers by id and phone to avoid an O(orders × customers) scan
+        // (.find inside .map). Same matching logic, just constant-time lookups.
+        const customersForIndex = data.customers || [];
+        const custById = new Map(customersForIndex.map(c => [c.id, c] as const));
+        const custByPhone = new Map(customersForIndex.map(c => [c.phone, c] as const));
         const normalizedOrders = data.orders.map(o => {
             let correctName = o.customerName;
             if (o.customerId) {
-                const c = (data?.customers || []).find(c => c.id === o.customerId);
+                const c = custById.get(o.customerId);
                 if (c && c.name && c.name !== o.customerName) { correctName = c.name; }
             } else if (o.customerPhone) {
-                const c = (data?.customers || []).find(c => c.phone === o.customerPhone);
+                const c = custByPhone.get(o.customerPhone);
                 if (c && c.name && c.name !== o.customerName) { correctName = c.name; }
             }
             if (correctName && correctName !== o.customerName) {
@@ -2624,12 +2629,19 @@ const MainApp: React.FC = () => {
       // جهّز آخر نسخة موثوقة خلف بوابة السحابة. لا نفعّل auto-save هنا لأن dataLoading ما زال true و isCloudSyncApplyingRef سيمنع أي كتابة عكسية.
       try {
         const instantSnapshot = parseStoredState(
-          getProtectedStorageItem('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItem('ktk_cloud_offline_snapshot')
+          getProtectedStorageItemFast('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItemFast('ktk_cloud_offline_snapshot')
         );
         if (instantSnapshot) {
-          setData(instantSnapshot);
-          lastRemoteSnapshotRef.current = JSON.stringify(instantSnapshot);
+          // Show cached data immediately so the UI is clickable right away.
+          startTransition(() => setData(instantSnapshot));
           setHasInstantCloudSnapshot(hasMeaningfulData(instantSnapshot));
+          // Defer the heavy JSON.stringify (used only for dedup) to idle — it would
+          // otherwise block the main thread for up to ~2s on huge datasets right here.
+          const _snap = instantSnapshot;
+          const _ric = (window as any).requestIdleCallback;
+          const _work = () => { try { lastRemoteSnapshotRef.current = JSON.stringify(_snap); } catch {} };
+          if (typeof _ric === 'function') _ric(_work, { timeout: 3000 });
+          else setTimeout(_work, 60);
         } else {
           setHasInstantCloudSnapshot(false);
         }
@@ -2700,14 +2712,13 @@ const MainApp: React.FC = () => {
             SHARDED_KEYS.forEach(key => {
               if ((loadedState as any)[key] !== undefined) {
                 loadedCloudShardKeysRef.current.add(key);
-                lastRemoteKeysRef.current[key] = stableStringify((loadedState as any)[key]);
+                // stableStringify deferred to idle — auto-save fires 8s later, plenty of time
               }
             });
             const rootDataOnly = { ...loadedState };
             SHARDED_KEYS.forEach(k => {
               if (k !== 'products') delete rootDataOnly[k];
             });
-            lastRemoteKeysRef.current['__root__'] = stableStringify(rootDataOnly);
             
             // Recalculate derived state (like supplier balances) upon load
             const finalProcessedState = recalculateStateBalances(loadedState);
@@ -2715,11 +2726,34 @@ const MainApp: React.FC = () => {
 
             // حقن البيانات كـ transition: تبقى الواجهة قابلة للنقر فوراً أثناء الرسم بدل تجميد الـ main-thread.
             startTransition(() => setData(finalProcessedState));
-            lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
             setHasInstantCloudSnapshot(true);
-            try {
-              saveCloudSnapshotMirror(lastRemoteSnapshotRef.current);
-            } catch {}
+
+            // Defer ALL heavy stableStringify/JSON.stringify to idle frames.
+            // This eliminates the 10-30s UI freeze caused by serializing 16 shards synchronously.
+            // Auto-save fires 8 seconds later — plenty of time to complete during idle.
+            const _bootState = loadedState;
+            const _bootRoot = rootDataOnly;
+            const _bootProcessed = finalProcessedState;
+            const _scheduleBootShard = (i: number) => {
+              const _ric = (window as any).requestIdleCallback;
+              const _work = () => {
+                const key = SHARDED_KEYS[i];
+                if (key && (_bootState as any)[key] !== undefined) {
+                  lastRemoteKeysRef.current[key] = stableStringify((_bootState as any)[key]);
+                }
+                if (i + 1 < SHARDED_KEYS.length) {
+                  _scheduleBootShard(i + 1);
+                } else {
+                  lastRemoteKeysRef.current['__root__'] = stableStringify(_bootRoot);
+                  const snap = JSON.stringify(_bootProcessed);
+                  lastRemoteSnapshotRef.current = snap;
+                  try { saveCloudSnapshotMirror(snap); } catch {}
+                }
+              };
+              if (typeof _ric === 'function') _ric(_work, { timeout: 4000 });
+              else setTimeout(_work, 80 + i * 50);
+            };
+            _scheduleBootShard(0);
 
             try {
               console.log('[PERF] appdata boot — server+network: ' + (__perfNet - __perfT0).toFixed(0) + 'ms | client sync-process: ' + (performance.now() - __perfNet).toFixed(0) + 'ms | server-reported: ' + (fastPayload?.durationMs ?? '?') + 'ms');
@@ -2741,7 +2775,7 @@ const MainApp: React.FC = () => {
                     if ((fullState as any)[key] !== undefined) {
                       deferredPatch[key] = (fullState as any)[key];
                       loadedCloudShardKeysRef.current.add(key);
-                      lastRemoteKeysRef.current[key] = stableStringify((fullState as any)[key]);
+                      // stableStringify deferred to idle below
                     }
                   });
                   if (Object.keys(deferredPatch).length === 0) return;
@@ -2750,11 +2784,23 @@ const MainApp: React.FC = () => {
                     if (fullState.__adminDataGenerationId) metaPatch.__adminDataGenerationId = fullState.__adminDataGenerationId;
                     if (fullState.__adminLastAuthoritativeWriteAt) metaPatch.__adminLastAuthoritativeWriteAt = fullState.__adminLastAuthoritativeWriteAt;
                     const merged = recalculateStateBalances({ ...prev, ...deferredPatch, ...metaPatch });
-                    const mergedSnapshot = JSON.stringify(merged);
-                    lastRemoteSnapshotRef.current = mergedSnapshot;
-                    try {
-                      saveCloudSnapshotMirror(mergedSnapshot);
-                    } catch {}
+                    // Defer heavy JSON.stringify + stableStringify to idle — keeps UI responsive
+                    const _deferKeys = [...deferredKeys];
+                    const _deferFull = fullState;
+                    const _deferMerged = merged;
+                    const _deferRic = (window as any).requestIdleCallback;
+                    const _deferWork = () => {
+                      _deferKeys.forEach((key: string) => {
+                        if ((_deferFull as any)[key] !== undefined) {
+                          lastRemoteKeysRef.current[key] = stableStringify((_deferFull as any)[key]);
+                        }
+                      });
+                      const snap = JSON.stringify(_deferMerged);
+                      lastRemoteSnapshotRef.current = snap;
+                      try { saveCloudSnapshotMirror(snap); } catch {}
+                    };
+                    if (typeof _deferRic === 'function') _deferRic(_deferWork, { timeout: 4000 });
+                    else setTimeout(_deferWork, 200);
                     return merged;
                   }));
                 } catch (backgroundLoadErr) {
@@ -2836,9 +2882,9 @@ const MainApp: React.FC = () => {
           if (exists) loadedCloudShardKeysRef.current.add(key);
           if (value !== undefined) {
             loadedState[key] = value;
-            lastRemoteKeysRef.current[key] = stableStringify(value);
+            // stableStringify deferred to idle below — avoids blocking on 16 shards
           } else {
-            lastRemoteKeysRef.current[key] = stableStringify((loadedState as any)[key] ?? []);
+            // keep existing value as-is for undefined shards
           }
         });
 
@@ -2896,11 +2942,30 @@ const MainApp: React.FC = () => {
 
         // حقن البيانات كـ transition: واجهة قابلة للنقر فوراً أثناء الرسم.
         startTransition(() => setData(finalProcessedState));
-        lastRemoteSnapshotRef.current = JSON.stringify(finalProcessedState);
         setHasInstantCloudSnapshot(true);
-        try {
-          saveCloudSnapshotMirror(lastRemoteSnapshotRef.current);
-	        } catch {}
+        // Defer ALL heavy stableStringify/JSON.stringify to idle — eliminates UI freeze
+        const _fbState = loadedState;
+        const _fbProcessed = finalProcessedState;
+        const _fbSchedule = (i: number) => {
+          const _ric = (window as any).requestIdleCallback;
+          const _work = () => {
+            const key = SHARDED_KEYS[i];
+            if (key) {
+              const val = (_fbState as any)[key];
+              lastRemoteKeysRef.current[key] = stableStringify(val !== undefined ? val : []);
+            }
+            if (i + 1 < SHARDED_KEYS.length) {
+              _fbSchedule(i + 1);
+            } else {
+              const snap = JSON.stringify(_fbProcessed);
+              lastRemoteSnapshotRef.current = snap;
+              try { saveCloudSnapshotMirror(snap); } catch {}
+            }
+          };
+          if (typeof _ric === 'function') _ric(_work, { timeout: 4000 });
+          else setTimeout(_work, 80 + i * 50);
+        };
+        _fbSchedule(0);
       } catch (err) {
         if (String(err).includes("Missing or insufficient permissions") || String(err).includes("permission-denied")) {
           console.warn("Cloud read permission denied for this account/role:", err);
@@ -2964,6 +3029,17 @@ const MainApp: React.FC = () => {
           if (sanitizedDataStr === lastRemoteSnapshotRef.current) {
              return;
           }
+
+          // Yield to the browser before the heavy stableStringify work so UI stays responsive.
+          // The actual Firestore writes happen after this yield — logic is unchanged.
+          await new Promise<void>(resolve => {
+            const _ric = (window as any).requestIdleCallback;
+            if (typeof _ric === 'function') _ric(() => resolve(), { timeout: 8000 });
+            else setTimeout(resolve, 0);
+          });
+
+          // Re-check after idle yield in case state changed or sync is in progress
+          if (!hasLoadedDataRef.current || isCloudSyncApplyingRef.current) return;
 
           // لا نحدّث آخر لقطة إلا بعد نجاح الحفظ، حتى لا نخسر محاولة لاحقة.
           

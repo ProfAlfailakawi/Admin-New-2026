@@ -259,6 +259,26 @@ export const getProtectedStorageItem = (key: string): string | null => {
   return hasMeaningfulData(parseMaybeJson(fallback)) ? fallback : current;
 };
 
+// Fast variant for large boot snapshots: returns the decompressed string and checks
+// emptiness WITHOUT a full JSON.parse (uses a cheap length/marker heuristic). This avoids
+// parsing a multi-megabyte snapshot twice at boot (once here, once at the call site).
+// Safe because the caller (parseStoredState) parses + validates with hasMeaningfulData anyway;
+// a false "looks non-empty" here just defers to that real check.
+export const getProtectedStorageItemFast = (key: string): string | null => {
+  if (!rawStorage) return null;
+  const looksEmpty = (s: string | null): boolean => {
+    if (!s) return true;
+    const t = s.trim();
+    if (t.length < 40) return true;        // too small to hold real collections
+    if (t === '{}' || t === '[]' || t === 'null') return true;
+    return false;
+  };
+  const current = decompressValueIfNeeded(rawStorage.getItem(key));
+  if (!looksEmpty(current)) return current;
+  const fallback = readLastGoodStorageValue(key);
+  return !looksEmpty(fallback) ? fallback : current;
+};
+
 export const setProtectedStorageItem = (key: string, value: string): boolean => {
   if (!rawStorage) return false;
   if (!isProtectedStorageKey(key) || isBackupKey(key)) {
