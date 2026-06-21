@@ -1188,6 +1188,132 @@ const MainApp: React.FC = () => {
   const [deferredChromeReady, setDeferredChromeReady] = useState(false);
   const [triggerSyncReload, setTriggerSyncReload] = useState(0);
   const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
+  const [dismissedOfflineModal, setDismissedOfflineModal] = useState(false);
+  const [retryingOffline, setRetryingOffline] = useState(false);
+
+  useEffect(() => {
+    if (isOnline) {
+      setDismissedOfflineModal(false);
+    }
+  }, [isOnline]);
+
+  const handleManualRetryOffline = async () => {
+    setRetryingOffline(true);
+    try {
+      const isActuallyOnlineState = typeof navigator === 'undefined' ? true : navigator.onLine;
+      if (isActuallyOnlineState) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        await fetch('/api/health', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        setIsOnline(true);
+        toast.success("تم الاتصال بنجاح ✨", {
+          description: "أنت متصل بالإنترنت مجدداً وتم تفعيل وضع الكتابة والحفظ.",
+          position: 'bottom-right',
+          className: 'arabic-font'
+        });
+      } else {
+        toast.warning("ما زلت غير متصل", {
+          description: "يرجى التحقق من اتصال الواي فاي أو شبكة البيانات الخاصة بك.",
+          position: 'bottom-right',
+          className: 'arabic-font'
+        });
+        setIsOnline(false);
+      }
+    } catch {
+      toast.warning("تعذر الاتصال بالمزود", {
+        description: "يوجد اتصال بالشبكة المحلية ولكن يتعذر الوصول لخادم السحاب حالياً.",
+        position: 'bottom-right',
+        className: 'arabic-font'
+      });
+      setIsOnline(false);
+    } finally {
+      setRetryingOffline(false);
+    }
+  };
+
+  const renderBeautifulOfflineModal = () => {
+    if (isOnline || dismissedOfflineModal || !isAuthenticated) return null;
+    return (
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[200000] flex items-center justify-center p-4 md:p-6 text-center google-sans" dir="rtl">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 30 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 30 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-sm w-full shadow-2xl relative border border-slate-100 flex flex-col items-center justify-center"
+        >
+          <div className="bg-slate-50 text-slate-400 p-5 rounded-3xl mx-auto mb-6 w-20 h-20 flex items-center justify-center border border-slate-100/80">
+            <svg
+              width="42"
+              height="42"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-slate-400"
+            >
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+              <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.5"></path>
+              <path d="M5 12.5a10.94 10.94 0 0 1 5.17-2.39"></path>
+              <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+              <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+              <line x1="12" y1="20" x2="12.01" y2="20"></line>
+            </svg>
+          </div>
+
+          <h3 className="text-[22px] font-extrabold text-slate-900 mb-2 leading-tight tracking-tight">
+            لا يوجد اتصال بالإنترنت
+          </h3>
+          <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
+            سنعيد الاتصال تلقائياً فور عودة الشبكة.
+          </p>
+
+          <button
+            onClick={handleManualRetryOffline}
+            disabled={retryingOffline}
+            className="w-full py-4 px-6 bg-gradient-to-r from-indigo-700 via-indigo-600 to-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/10 hover:shadow-indigo-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 text-base cursor-pointer"
+          >
+            {retryingOffline ? (
+              <Loader2 className="animate-spin animate-duration-1000" size={18} />
+            ) : (
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" />
+              </svg>
+            )}
+            <span>إعادة المحاولة</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setDismissedOfflineModal(true);
+              toast.info("تم تفعيل تصفح القراءة فقط 👁️", {
+                description: "يمكنك استخدام وتصفح التطبيق ولكن لا يمكنك إضافة أو تعديل البيانات.",
+                position: 'bottom-right',
+                className: 'arabic-font',
+                duration: 4000
+              });
+            }}
+            className="mt-5 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider cursor-pointer"
+          >
+            تصفح البرنامج (للقراءة فقط) 👁️
+          </button>
+        </motion.div>
+      </div>
+    );
+  };
 
   useEffect(() => {
     const updateOnline = () => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine);
@@ -1563,7 +1689,38 @@ const MainApp: React.FC = () => {
     settings: false
   });
   
-  const [data, setData] = useState<AppState>(INITIAL_DATA);
+  const [data, setRawData] = useState<AppState>(INITIAL_DATA);
+
+  const setData = React.useCallback((valueOrUpdater: AppState | ((prev: AppState) => AppState)) => {
+    if (!isOnline && hasLoadedDataRef.current && !isCloudSyncApplyingRef.current) {
+      let nextData: AppState;
+      if (typeof valueOrUpdater === 'function') {
+        nextData = valueOrUpdater(data);
+      } else {
+        nextData = valueOrUpdater;
+      }
+      
+      const collections: (keyof AppState)[] = ['orders', 'invoices', 'customers', 'products', 'expenses', 'suppliers', 'settings', 'squads'];
+      let isActuallyWrite = false;
+      for (const col of collections) {
+        if (nextData[col] !== data[col]) {
+          isActuallyWrite = true;
+          break;
+        }
+      }
+      
+      if (isActuallyWrite) {
+        toast.error("يتعذر التعديل دون اتصال ⚠️", {
+          description: "البرنامج يعمل حالياً بالوضع للقراءة فقط بسبب انقطاع الإنترنت. لا يمكن إدخال أو تعديل البيانات.",
+          position: 'bottom-right',
+          className: 'arabic-font',
+          duration: 4000
+        });
+        return;
+      }
+    }
+    setRawData(valueOrUpdater);
+  }, [data, isOnline]);
   const visibleNotifications = useMemo(
     () => getVisibleAdminNotifications(data?.notifications || []),
     [data?.notifications]
@@ -3810,6 +3967,24 @@ const MainApp: React.FC = () => {
       <div className={cn(
         "flex-1 flex flex-col relative overflow-hidden transition-colors duration-1000"
       )}>
+        {!isOnline && (
+          <div className="bg-rose-50 border-b border-rose-100 text-rose-700 py-3 px-4 text-center text-xs sm:text-sm font-bold flex items-center justify-center gap-2 relative z-[101]" dir="rtl">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
+            <span>وضع المعاينة للقراءة فقط 👁️ (لا يوجد اتصال بالإنترنت حالياً)</span>
+            <button
+              onClick={handleManualRetryOffline}
+              disabled={retryingOffline}
+              className="mr-3 py-1 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full text-[10px] sm:text-xs transition-colors flex items-center gap-1 cursor-pointer active:scale-95 shrink-0"
+            >
+              {retryingOffline ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" /></svg>
+              )}
+              <span>إعادة المحاولة</span>
+            </button>
+          </div>
+        )}
         {/* Top Header */}
         <header 
           onClick={closeAllMenus}
@@ -4288,6 +4463,7 @@ const MainApp: React.FC = () => {
         </React.Suspense>
       )}
       <Toaster richColors position="bottom-right" closeButton />
+      {renderBeautifulOfflineModal()}
       
 
     </div>
