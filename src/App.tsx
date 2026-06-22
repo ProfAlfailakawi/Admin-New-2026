@@ -3968,20 +3968,20 @@ const MainApp: React.FC = () => {
         "flex-1 flex flex-col relative overflow-hidden transition-colors duration-1000"
       )}>
         {!isOnline && (
-          <div className="bg-rose-50 border-b border-rose-100 text-rose-700 py-3 px-4 text-center text-xs sm:text-sm font-bold flex items-center justify-center gap-2 relative z-[101]" dir="rtl">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-            <span>وضع المعاينة للقراءة فقط 👁️ (لا يوجد اتصال بالإنترنت حالياً)</span>
+          <div className="bg-rose-50 border-b border-rose-100 text-rose-700 py-1.5 px-3 text-center text-[10px] sm:text-xs font-bold flex items-center justify-center gap-2 relative z-[101]" dir="rtl">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
+            <span>غير متصل / للقراءة فقط</span>
             <button
               onClick={handleManualRetryOffline}
               disabled={retryingOffline}
-              className="mr-3 py-1 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full text-[10px] sm:text-xs transition-colors flex items-center gap-1 cursor-pointer active:scale-95 shrink-0"
+              className="p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full transition-colors cursor-pointer active:scale-95 shrink-0"
+              title="إعادة المحاولة"
             >
               {retryingOffline ? (
                 <Loader2 size={12} className="animate-spin" />
               ) : (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" /></svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" /></svg>
               )}
-              <span>إعادة المحاولة</span>
             </button>
           </div>
         )}
@@ -4017,19 +4017,19 @@ const MainApp: React.FC = () => {
               <Home size={18} className="group-hover:scale-110 transition-transform" />
             </button>
             
-            <div className="flex items-center gap-2 py-1.5 px-3 rounded-full bg-slate-50 border border-slate-100 shrink-0 shadow-sm" title={appMode === 'cloud' ? "تم الاتصال بالسحابة بنجاح" : "تعمل بوضع غير متصل"}>
+            <div className="flex items-center gap-1.5 shrink-0" title={appMode === 'cloud' ? "متصل بالسحابة" : "غير متصل"}>
               {dataLoading ? (
-                 <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping" />
+                 <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping" />
               ) : (
-                <div className="relative flex items-center justify-center">
-                   <div className={cn("w-2 h-2 rounded-full", appMode === 'cloud' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse-slow" : "bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]")} />
-                </div>
+                 <div className={cn("w-1.5 h-1.5 rounded-full", appMode === 'cloud' ? "bg-emerald-500" : "bg-red-500")} />
               )}
             </div>
             
             {deferredChromeReady && (
               <React.Suspense fallback={null}>
-                <SystemPulseOrb data={data} />
+                <div className="scale-75 origin-left">
+                  <SystemPulseOrb data={data} />
+                </div>
               </React.Suspense>
             )}
           </div>
