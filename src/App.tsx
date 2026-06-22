@@ -1237,7 +1237,18 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
 const MainApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  // CLOUD CONNECTION SPEEDUP: On warm reloads (returning users), skip the
+  // "Connecting to cloud" gate entirely. Firebase still validates the session
+  // in the background via onAuthStateChanged; if it ever returns a null user
+  // or rejects authorization, the existing handler will toast and log out.
+  // This eliminates the 1–5s cold-start flash users were seeing on every open.
+  const [authLoading, setAuthLoading] = useState(() => {
+    try {
+      return localStorage.getItem('isAuthenticated') !== 'true';
+    } catch {
+      return true;
+    }
+  });
   const [dataLoading, setDataLoading] = useState(false);
   // cloudGateForceRelease: if the server doesn't respond within 5s, release the gate anyway.
   // Data continues loading in background; DataRefreshNotice shows the sync banner.
@@ -1480,14 +1491,25 @@ const MainApp: React.FC = () => {
   const onboardingRole: 'admin' | 'partner' | 'demo' = appMode === 'local' ? 'demo' : (userRole === 'partner' ? 'partner' : 'admin');
   const [onboardingOpen, setOnboardingOpen] = useState(false);
 
-  // Release the CloudConnectionGate after 5 seconds max — prevents indefinite blocking
-  // when the server is cold-starting (Cloud Run scale-to-zero). The data keeps loading
-  // in background and DataRefreshNotice shows the sync status to the user.
+  // Release the CloudConnectionGate quickly — prevents the user staring at the
+  // splash while data continues to stream in the background. The auto-save
+  // guards (isCloudSyncApplyingRef, hasLoadedDataRef) still prevent premature
+  // writes, and DataRefreshNotice shows the live sync status.
   useEffect(() => {
     if (!isAuthenticated || appMode !== 'cloud' || hasInstantCloudSnapshot || cloudGateForceRelease) return;
-    const timer = setTimeout(() => setCloudGateForceRelease(true), 3000);
+    const timer = setTimeout(() => setCloudGateForceRelease(true), 700);
     return () => clearTimeout(timer);
   }, [isAuthenticated, appMode, hasInstantCloudSnapshot, cloudGateForceRelease]);
+
+  // Safety net for the auth gate: if Firebase's onAuthStateChanged is unusually
+  // slow to fire (rare cold-start, ad blocker interference, flaky Wi-Fi), we
+  // never want the user trapped on the "Connecting…" splash. Firebase will
+  // still update state when it eventually responds.
+  useEffect(() => {
+    if (!authLoading) return;
+    const t = setTimeout(() => setAuthLoading(false), 700);
+    return () => clearTimeout(t);
+  }, [authLoading]);
 
   useEffect(() => {
     if (!isAuthenticated || authLoading || dataLoading) return;
@@ -2873,7 +2895,10 @@ const MainApp: React.FC = () => {
 	      loadedCloudShardKeysRef.current = new Set();
 	      lastRemoteKeysRef.current = {};
       authoritativeDataWrittenAtRef.current = 0;
-      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      // Removed the rAF stall: with hasInstantCloudSnapshot the user already
+      // skips the gate, so the extra frame just delayed the snapshot paint by
+      // ~16ms without any UX benefit. Setting state in a single batch lets the
+      // first paint already show the cached data.
       // جهّز آخر نسخة موثوقة خلف بوابة السحابة. لا نفعّل auto-save هنا لأن dataLoading ما زال true و isCloudSyncApplyingRef سيمنع أي كتابة عكسية.
       try {
         const instantSnapshot = parseStoredState(
