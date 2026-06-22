@@ -169,6 +169,66 @@ const buildShardContentAsync = async (key: string, value: any): Promise<any> => 
   return JSON.parse(JSON.stringify({ [key]: value, isCompressed: false }));
 };
 
+// ── Cloud boot pre-warm ────────────────────────────────────────────────────────
+// Cloud Run scales to zero, so the first request after idle pays a 3-10s cold-start
+// penalty. Without protection, that cost lands on the user right when they finish
+// Google sign-in — and a hanging fetch (no timeout) forces them to retry manually.
+//
+// This helper fires /api/appdata/full?profile=boot the moment the app shell loads,
+// so by the time auth completes, the boot payload is already in memory. It also
+// adds a per-attempt timeout and a single retry — the second attempt almost always
+// hits a now-warm instance.
+const BOOT_PREWARM_TTL_MS = 30_000;
+const BOOT_PREWARM_TIMEOUT_MS = 4_500;
+let __bootPrewarmPromise: Promise<any> | null = null;
+let __bootPrewarmFiredAt = 0;
+
+async function fetchBootPayload(timeoutMs: number): Promise<any> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch('/api/appdata/full?profile=boot', {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function prewarmCloudBoot(): Promise<any> {
+  const now = Date.now();
+  if (__bootPrewarmPromise && now - __bootPrewarmFiredAt < BOOT_PREWARM_TTL_MS) {
+    return __bootPrewarmPromise;
+  }
+  __bootPrewarmFiredAt = now;
+  __bootPrewarmPromise = (async () => {
+    try {
+      return await fetchBootPayload(BOOT_PREWARM_TIMEOUT_MS);
+    } catch (firstErr) {
+      try {
+        return await fetchBootPayload(BOOT_PREWARM_TIMEOUT_MS);
+      } catch (secondErr) {
+        __bootPrewarmPromise = null;
+        __bootPrewarmFiredAt = 0;
+        throw secondErr;
+      }
+    }
+  })();
+  return __bootPrewarmPromise;
+}
+
+// Fire as soon as this module evaluates — earliest possible warm-up point.
+// Safe to call without a user: the endpoint serves the shared admin dataset.
+if (typeof window !== 'undefined') {
+  try {
+    const mode = window.localStorage.getItem('appMode');
+    if (mode !== 'local') prewarmCloudBoot().catch(() => {});
+  } catch {}
+}
+
 const ADMIN_PRIORITY_PAGES = [
   'new-invoice',
   'invoices-list',
@@ -2876,12 +2936,20 @@ const MainApp: React.FC = () => {
       
       // 2. Fast path: load the full shared database through the Admin server.
       // This avoids slow browser Firestore shard reads on first entry and keeps Admin/Order on the same source.
+      // Uses prewarmCloudBoot(): the request was fired the moment the app shell loaded,
+      // so by the time we reach here it has usually already resolved — masking Cloud Run cold-starts.
+      // The helper also enforces a per-attempt timeout and one retry so a hung request can never
+      // strand the user (the previous code had no timeout and required a manual page reload).
       try {
         isCloudSyncApplyingRef.current = true;
         const __perfT0 = performance.now();
-        const fastRes = await fetch('/api/appdata/full?profile=boot', { cache: 'no-store' });
-        if (fastRes.ok) {
-          const fastPayload = await fastRes.json();
+        let fastPayload: any = null;
+        try {
+          fastPayload = await prewarmCloudBoot();
+        } catch (prewarmErr) {
+          console.warn('[FAST_APPDATA] prewarm failed; falling back to direct Firestore reads.', prewarmErr);
+        }
+        if (fastPayload) {
           const __perfNet = performance.now();
           if (fastPayload?.success && fastPayload?.data) {
             let loadedState: any = joinProductsFromDatabase({ ...INITIAL_DATA, ...fastPayload.data });
