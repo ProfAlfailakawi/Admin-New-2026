@@ -203,6 +203,32 @@ function prewarmCloudBoot(): Promise<any> {
   if (__bootPrewarmPromise && now - __bootPrewarmFiredAt < BOOT_PREWARM_TTL_MS) {
     return __bootPrewarmPromise;
   }
+
+  // First: try to adopt the inline <head> prefetch from index.html.
+  // That request started before the JS bundle even downloaded — hundreds of milliseconds
+  // earlier than anything this module could do. Reusing it skips a second network round-trip.
+  if (typeof window !== 'undefined') {
+    const inflight: Promise<any> | undefined = (window as any).__bootPrefetchPromise;
+    const firedAt: number | undefined = (window as any).__bootPrefetchAt;
+    if (inflight && firedAt && now - firedAt < BOOT_PREWARM_TTL_MS) {
+      __bootPrewarmFiredAt = firedAt;
+      __bootPrewarmPromise = inflight.then((payload) => {
+        if (payload) return payload;
+        // The head prefetch returned null (network blip / cold-start abort).
+        // Fall back to a fresh attempt with retry — never strand the user.
+        return fetchBootPayload(BOOT_PREWARM_TIMEOUT_MS)
+          .catch(() => fetchBootPayload(BOOT_PREWARM_TIMEOUT_MS));
+      }).catch(async () => {
+        __bootPrewarmPromise = null;
+        __bootPrewarmFiredAt = 0;
+        throw new Error('boot prefetch failed');
+      });
+      // Consume the global so a later remount triggers a fresh fetch instead of reusing a stale promise.
+      try { delete (window as any).__bootPrefetchPromise; } catch {}
+      return __bootPrewarmPromise;
+    }
+  }
+
   __bootPrewarmFiredAt = now;
   __bootPrewarmPromise = (async () => {
     try {

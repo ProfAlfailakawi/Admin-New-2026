@@ -53,6 +53,29 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     
     <script>
+      // Cloud boot pre-fetch — fired before the JS bundle even downloads.
+      // The browser starts the HTTP request to /api/appdata/full?profile=boot at HTML-parse time,
+      // so by the time React mounts and the user finishes Google sign-in, the payload is already in flight
+      // (and often complete). This warms Cloud Run cold-starts under the cover of normal page load.
+      // App.tsx's prewarmCloudBoot() picks up window.__bootPrefetchPromise instead of issuing its own fetch.
+      try {
+        var __mode = null;
+        try { __mode = localStorage.getItem('appMode'); } catch (e) {}
+        if (__mode !== 'local') {
+          var __ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+          var __timer = setTimeout(function(){ if (__ctrl) __ctrl.abort(); }, 4500);
+          window.__bootPrefetchAt = Date.now();
+          window.__bootPrefetchPromise = fetch('/api/appdata/full?profile=boot', {
+            cache: 'no-store',
+            credentials: 'same-origin',
+            signal: __ctrl ? __ctrl.signal : undefined
+          })
+            .then(function(r){ clearTimeout(__timer); return r && r.ok ? r.json() : null; })
+            .catch(function(){ clearTimeout(__timer); return null; });
+        }
+      } catch (e) {}
+    </script>
+    <script>
       // Service Worker Cleanup: only unregister the OLD generic sw.js
       // (firebase-messaging-sw.js stays untouched for push notifications)
       if ("serviceWorker" in navigator) {
