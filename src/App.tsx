@@ -943,25 +943,7 @@ const DataRefreshNotice: React.FC<{ show: boolean; mode: 'cloud' | 'local' }> = 
   </AnimatePresence>
 );
 
-const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => (
-  <AnimatePresence>
-    {!online && (
-      <motion.div
-        className="admin-offline-toast"
-        dir="rtl"
-        initial={{ opacity: 0, y: -12, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -12, scale: 0.96 }}
-      >
-        <span className="offline-dot" />
-        <div>
-          <strong>انقطع الاتصال…</strong>
-          <span>نحاول نرجع بيانات مركز القيادة بهدوء.</span>
-        </div>
-      </motion.div>
-    )}
-  </AnimatePresence>
-);
+const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => null;
 
 
 const CloudConnectionGate: React.FC<{
@@ -4053,7 +4035,31 @@ const MainApp: React.FC = () => {
           </nav>
         )}
 
-        <div className="p-4 md:p-6 border-t border-white/5 space-y-4 relative z-10">
+        <div className="p-4 border-t border-white/5 mt-auto relative z-10 flex flex-col gap-2 shrink-0">
+          <div className="flex items-center gap-3">
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full border border-white/10 shrink-0" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center font-bold text-white text-xs shrink-0">
+                {user?.displayName?.charAt(0) || 'أ'}
+              </div>
+            )}
+            {(sidebarOpen || isMobile) && (
+              <div className="text-right overflow-hidden flex-1 leading-tight">
+                <div className="text-xs font-bold text-white truncate">{user?.displayName || 'أحمد الفيلكاوي'}</div>
+                <div className="text-[10px] text-white/55 truncate">{user?.email || 'مدير النظام'}</div>
+              </div>
+            )}
+          </div>
+          {(sidebarOpen || isMobile) && (
+            <button 
+              onClick={handleLogout}
+              className="w-full mt-1 py-1.5 px-3 bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 hover:text-rose-300 rounded-xl transition-all font-bold text-[11px] flex items-center justify-center gap-2 border border-rose-500/10 active:scale-95 cursor-pointer"
+            >
+              <LogOut size={12} />
+              <span>تسجيل الخروج</span>
+            </button>
+          )}
         </div>
       </motion.aside>
 
@@ -4062,19 +4068,19 @@ const MainApp: React.FC = () => {
         "flex-1 flex flex-col relative overflow-hidden transition-colors duration-1000"
       )}>
         {!isOnline && (
-          <div className="bg-rose-50 border-b border-rose-100 text-rose-700 py-1.5 px-3 text-center text-[10px] sm:text-xs font-bold flex items-center justify-center gap-2 relative z-[101]" dir="rtl">
+          <div className="bg-rose-50 border-b border-rose-150 text-rose-700 py-2 px-3 text-center text-[10px] sm:text-xs font-bold flex items-center justify-center gap-2 relative z-[101] overflow-hidden shrink-0" dir="rtl">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-            <span>غير متصل / للقراءة فقط</span>
+            <span className="truncate">لا يوجد اتصال بالإنترنت... وضع القراءة فقط</span>
             <button
               onClick={handleManualRetryOffline}
               disabled={retryingOffline}
-              className="p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full transition-colors cursor-pointer active:scale-95 shrink-0"
+              className="mr-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full transition-all flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
               title="إعادة المحاولة"
             >
               {retryingOffline ? (
-                <Loader2 size={12} className="animate-spin" />
+                <Loader2 size={11} className="animate-spin" />
               ) : (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" /></svg>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" /></svg>
               )}
             </button>
           </div>
@@ -4082,15 +4088,16 @@ const MainApp: React.FC = () => {
         {/* Top Header */}
         <header 
           onClick={closeAllMenus}
-          className="h-12 md:h-20 glass-surface border-b border-slate-200/60/50 flex items-center justify-between px-4 lg:px-10 z-[100] sticky top-0 shadow-sm"
+          className="h-16 md:h-20 glass-surface border-b border-slate-200/60 flex items-center justify-between px-3 xs:px-4 lg:px-10 z-[100] sticky top-0 shadow-sm shrink-0"
         >
-          <div className="flex items-center gap-2 sm:gap-4 lg:gap-4 md:p-8 shrink min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink min-w-0">
             {userRole !== 'partner' && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setSidebarOpen(!sidebarOpen); }}
-                className="p-2.5 sm:p-3 hover:bg-slate-900 group rounded-[1.2rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0"
+                className="p-2 hover:bg-slate-900 group rounded-[0.8rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0"
+                title="القائمة الجانبية"
               >
-                <Menu size={20} className="group-hover:rotate-180 transition-transform duration-500" />
+                <Menu size={18} className="group-hover:rotate-180 transition-transform duration-500" />
               </button>
             )}
             {userRole !== 'partner' && <div className="hidden sm:block h-4 w-[1px] bg-slate-200" />}
@@ -4104,11 +4111,11 @@ const MainApp: React.FC = () => {
               }}
               title="العودة للصفحة الرئيسية"
               className={cn(
-                "flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-[1rem] sm:rounded-2xl transition-all group shrink-0",
+                "flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11 rounded-[0.8rem] sm:rounded-2xl transition-all group shrink-0",
                 currentPage === 'dashboard' ? "bg-slate-900 text-white shadow-xl shadow-slate-200" : "bg-slate-100/50 hover:bg-slate-200 text-slate-600"
               )}
             >
-              <Home size={18} className="group-hover:scale-110 transition-transform" />
+              <Home size={16} className="group-hover:scale-110 transition-transform" />
             </button>
             
             <div className="flex items-center gap-1.5 shrink-0" title={appMode === 'cloud' ? "متصل بالسحابة" : "غير متصل"}>
@@ -4121,14 +4128,14 @@ const MainApp: React.FC = () => {
             
             {deferredChromeReady && (
               <React.Suspense fallback={null}>
-                <div className="scale-75 origin-left">
+                <div className="hidden xs:block scale-75 origin-left">
                   <SystemPulseOrb data={data} />
                 </div>
               </React.Suspense>
             )}
           </div>
 
-          <div className="flex items-center gap-3 lg:gap-4 md:p-6 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink-0">
              {/* Magic Command Bar Trigger */}
              {userRole !== 'partner' && (
               <button 
@@ -4158,7 +4165,7 @@ const MainApp: React.FC = () => {
                   setSidebarOpen(false);
                 }}
                 title="إنشاء فاتورة جديدة"
-                className="hidden sm:flex items-center justify-center w-12 h-12 bg-slate-900 text-white rounded-[1rem] sm:rounded-2xl font-bold shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all transform hover:scale-105 active:scale-95 group"
+                className="hidden sm:flex items-center justify-center w-12 h-12 bg-slate-900 text-white rounded-[1rem] sm:rounded-2xl font-bold shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all transform hover:scale-105 active:scale-95 group shrink-0"
               >
                 <Plus size={20} className="group-hover:rotate-90 transition-transform" />
               </button>
@@ -4167,18 +4174,18 @@ const MainApp: React.FC = () => {
                 onClick={() => { try { localStorage.setItem('ai_context_page', currentPage); } catch {} setCurrentPage('ai'); setSidebarOpen(false); }}
                 title="مساعد التراث الذكي"
                 className={cn(
-                  "flex w-12 h-12 rounded-[1rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden",
+                  "flex w-9 h-9 sm:w-11 sm:h-11 rounded-[0.8rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden shrink-0",
                   currentPage === 'ai' ? "bg-slate-900 text-white shadow-xl scale-105" : "bg-slate-100/50 text-slate-500 hover:bg-white hover:shadow-lg border border-transparent hover:border-amber-200/40"
                 )}
               >
-                <Bot size={22} className={cn("transition-all relative z-10", currentPage === 'ai' ? "text-amber-400" : "group-hover:text-amber-500 group-hover:scale-110")} />
+                <Bot size={18} className={cn("transition-all relative z-10", currentPage === 'ai' ? "text-amber-400" : "group-hover:text-amber-500 group-hover:scale-110")} />
                 {currentPage === 'ai' && (
                   <motion.div 
                     layoutId="aiActiveHeader"
                     className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-950"
                   />
                 )}
-                <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping border border-white z-20" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full animate-ping border border-white z-20" />
               </button>
 
             {/* Notifications */}
@@ -4186,15 +4193,15 @@ const MainApp: React.FC = () => {
               <button 
                 onClick={(e) => { e.stopPropagation(); setNotifOpen(!notifOpen); }}
                 className={cn(
-                  "p-2 rounded-full transition-colors relative z-50",
-                  notifOpen ? "bg-slate-100" : "hover:bg-slate-100"
+                  "flex w-9 h-9 sm:w-11 sm:h-11 rounded-[0.8rem] sm:rounded-2xl items-center justify-center transition-all relative z-50",
+                  notifOpen ? "bg-slate-200 text-slate-800 animate-none" : "bg-slate-100/50 hover:bg-slate-200 text-slate-600"
                 )}
                 title="عرض التنبيهات"
                 aria-label="تنبيهات"
               >
-                <Bell size={20} className={cn("transition-colors", notifOpen ? "text-primary" : "text-slate-600")} />
+                <Bell size={18} className={cn("transition-colors", notifOpen ? "text-primary" : "text-slate-600")} />
                 {hasUnreadVisibleNotifications && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-white" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-white animate-pulse" />
                 )}
               </button>
               
@@ -4209,11 +4216,11 @@ const MainApp: React.FC = () => {
                       className="fixed inset-0 bg-black/15 z-[9998]"
                     />
                       <motion.div 
-                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                       transition={{ duration: 0.2 }}
-                       className="absolute left-0 mt-3 w-[290px] xs:w-[320px] sm:w-[380px] md:w-[420px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200/60 z-[9999] overflow-hidden origin-top-left"
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute left-0 mt-3 w-[290px] xs:w-[320px] sm:w-[380px] md:w-[420px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200/60 z-[9999] overflow-hidden origin-top-left"
                       >
                       <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white">
                         <span className="font-bold text-slate-800 text-sm sm:text-base">التنبيهات الذكية</span>
@@ -4325,10 +4332,10 @@ const MainApp: React.FC = () => {
                 }
                 setCurrentPage('settings');
               }}
-              className={cn("flex items-center gap-2 sm:gap-3 pl-2 p-1.5 rounded-2xl transition-colors max-w-[120px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent", userRole === 'partner' ? "cursor-default opacity-80" : "cursor-pointer hover:bg-slate-100 hover:border-slate-200/60")}
+              className={cn("flex items-center gap-1.5 sm:gap-3 pl-1 sm:pl-2 p-1 rounded-2xl transition-all max-w-[120px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent cursor-pointer hover:bg-slate-100/50 hover:scale-105 active:scale-95")}
             >
-              <div className="text-left hidden xs:block overflow-hidden">
-                <div className="text-sm font-bold truncate text-slate-800">{user?.displayName || 'أحمد الفيلكاوي'}</div>
+              <div className="text-left hidden md:block overflow-hidden leading-tight">
+                <div className="text-xs sm:text-sm font-bold truncate text-slate-800">{user?.displayName || 'أحمد الفيلكاوي'}</div>
                 <div className="text-[10px] text-slate-500 truncate">{user?.email || 'مدير النظام'}</div>
               </div>
               {user?.photoURL ? (
@@ -4342,10 +4349,10 @@ const MainApp: React.FC = () => {
 
           <button 
             onClick={handleLogout}
-            className="p-2.5 sm:p-3 bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white rounded-[1.2rem] sm:rounded-2xl transition-all shadow-sm group active:scale-95 border border-rose-100/50"
+            className="hidden sm:flex p-2.5 sm:p-3 bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white rounded-[0.8rem] sm:rounded-2xl transition-all shadow-sm group active:scale-95 border border-rose-100/50 shrink-0 cursor-pointer"
             title="تسجيل الخروج"
           >
-            <LogOut size={20} className="transition-transform group-hover:scale-110 group-hover:rotate-12" />
+            <LogOut size={16} className="transition-transform group-hover:scale-110 group-hover:rotate-12" />
           </button>
           
           <div className="h-6 w-[1px] bg-slate-200 ml-1 mr-1 hidden lg:block" />
