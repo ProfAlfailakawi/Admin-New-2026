@@ -175,15 +175,33 @@ const buildShardContentAsync = async (key: string, value: any): Promise<any> => 
 // Google sign-in — and a hanging fetch (no timeout) forces them to retry manually.
 //
 // This helper fires /api/appdata/full?profile=boot the moment the app shell loads,
-// so by the time auth completes, the boot payload is already in memory. It also
-// adds a per-attempt timeout and a single retry — the second attempt almost always
-// hits a now-warm instance.
+// so by the time auth completes, the boot payload is already in memory.
+//
+// COLD-START STRATEGY (root cause of the "2s sometimes, 2min sometimes" symptom):
+// Cloud Run scales the Admin server to zero when idle. The next request pays a cold
+// start (container boot + Firebase Admin init + Firestore boot-cache read) that can
+// take 10–40s. A single short timeout GUARANTEES failure during that window — it
+// aborts the very request that is warming the instance and dumps the user into the
+// slow, unbounded browser-Firestore fallback (the 2-minute hang).
+//
+// Instead we stay on the fast server path and RETRY it with an escalating, bounded
+// budget. Because the boot endpoint serves from an in-memory cache once warm, the
+// second or third attempt after a cold start returns in milliseconds. Net effect:
+// the worst case collapses from "minutes on the browser fallback" to "~10–20s on a
+// warming server", and the common warm case is unchanged (resolves on attempt #1).
 const BOOT_PREWARM_TTL_MS = 30_000;
-const BOOT_PREWARM_TIMEOUT_MS = 4_500;
+// First attempt is short: a warm instance answers in <1s, so we don't want to wait
+// long before deciding a cold start is underway. Retry attempts are patient: once
+// the instance is booting, we must give its boot-cache read room to finish.
+const BOOT_FIRST_ATTEMPT_TIMEOUT_MS = 7_000;
+const BOOT_RETRY_ATTEMPT_TIMEOUT_MS = 12_000;
+const BOOT_PREWARM_MAX_ATTEMPTS = 6;
+const BOOT_PREWARM_TOTAL_BUDGET_MS = 60_000;
+const BOOT_PREWARM_BACKOFF_MS = 600;
 let __bootPrewarmPromise: Promise<any> | null = null;
 let __bootPrewarmFiredAt = 0;
 
-async function fetchBootPayload(timeoutMs: number): Promise<any> {
+async function fetchBootPayloadOnce(timeoutMs: number): Promise<any> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -196,6 +214,33 @@ async function fetchBootPayload(timeoutMs: number): Promise<any> {
   } finally {
     clearTimeout(timer);
   }
+}
+
+// Retries the boot endpoint through a cold start instead of giving up after one short
+// timeout. Aborting an attempt does NOT cancel the server's boot-cache work (it is not
+// tied to the request), so a fresh attempt simply rides the now-in-flight warm-up —
+// no wasted work, no restart. Resolves the moment any attempt returns a payload.
+async function fetchBootPayloadResilient(): Promise<any> {
+  const deadline = Date.now() + BOOT_PREWARM_TOTAL_BUDGET_MS;
+  let lastErr: any = null;
+  for (let attempt = 0; attempt < BOOT_PREWARM_MAX_ATTEMPTS; attempt++) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    const base = attempt === 0 ? BOOT_FIRST_ATTEMPT_TIMEOUT_MS : BOOT_RETRY_ATTEMPT_TIMEOUT_MS;
+    const timeoutMs = Math.max(2_000, Math.min(base, remaining));
+    try {
+      const payload = await fetchBootPayloadOnce(timeoutMs);
+      if (payload) return payload;
+      lastErr = new Error('empty boot payload');
+    } catch (err) {
+      lastErr = err;
+    }
+    const backoff = Math.min(BOOT_PREWARM_BACKOFF_MS * (attempt + 1), 2_500);
+    if (Date.now() + backoff < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, backoff));
+    }
+  }
+  throw lastErr || new Error('boot prewarm exhausted');
 }
 
 function prewarmCloudBoot(): Promise<any> {
@@ -214,10 +259,9 @@ function prewarmCloudBoot(): Promise<any> {
       __bootPrewarmFiredAt = firedAt;
       __bootPrewarmPromise = inflight.then((payload) => {
         if (payload) return payload;
-        // The head prefetch returned null (network blip / cold-start abort).
-        // Fall back to a fresh attempt with retry — never strand the user.
-        return fetchBootPayload(BOOT_PREWARM_TIMEOUT_MS)
-          .catch(() => fetchBootPayload(BOOT_PREWARM_TIMEOUT_MS));
+        // The head prefetch returned null (cold-start abort / network blip).
+        // Switch to the resilient retry — never strand the user on the slow fallback.
+        return fetchBootPayloadResilient();
       }).catch(async () => {
         __bootPrewarmPromise = null;
         __bootPrewarmFiredAt = 0;
@@ -232,15 +276,11 @@ function prewarmCloudBoot(): Promise<any> {
   __bootPrewarmFiredAt = now;
   __bootPrewarmPromise = (async () => {
     try {
-      return await fetchBootPayload(BOOT_PREWARM_TIMEOUT_MS);
-    } catch (firstErr) {
-      try {
-        return await fetchBootPayload(BOOT_PREWARM_TIMEOUT_MS);
-      } catch (secondErr) {
-        __bootPrewarmPromise = null;
-        __bootPrewarmFiredAt = 0;
-        throw secondErr;
-      }
+      return await fetchBootPayloadResilient();
+    } catch (err) {
+      __bootPrewarmPromise = null;
+      __bootPrewarmFiredAt = 0;
+      throw err;
     }
   })();
   return __bootPrewarmPromise;
@@ -1250,9 +1290,12 @@ const MainApp: React.FC = () => {
     }
   });
   const [dataLoading, setDataLoading] = useState(false);
-  // cloudGateForceRelease: if the server doesn't respond within 5s, release the gate anyway.
-  // Data continues loading in background; DataRefreshNotice shows the sync banner.
-  // Auto-save guards (isCloudSyncApplyingRef, hasLoadedDataRef) prevent premature writes.
+  // cloudGateForceRelease: SAFETY NET ONLY. The cloud splash deliberately blocks ALL
+  // interaction until real cloud data is loaded — employees must never edit on top of a
+  // stale snapshot, because those edits get clobbered by the incoming sync ("nothing
+  // uploaded"). This flag exists only so a genuinely hung load (server unreachable AND the
+  // browser fallback stalled) can't trap the user forever; it fires after a long window,
+  // never as a fast cosmetic release.
   const [cloudGateForceRelease, setCloudGateForceRelease] = useState(false);
   const [hasInstantCloudSnapshot, setHasInstantCloudSnapshot] = useState(() => {
     try {
@@ -1491,15 +1534,33 @@ const MainApp: React.FC = () => {
   const onboardingRole: 'admin' | 'partner' | 'demo' = appMode === 'local' ? 'demo' : (userRole === 'partner' ? 'partner' : 'admin');
   const [onboardingOpen, setOnboardingOpen] = useState(false);
 
-  // Release the CloudConnectionGate quickly — prevents the user staring at the
-  // splash while data continues to stream in the background. The auto-save
-  // guards (isCloudSyncApplyingRef, hasLoadedDataRef) still prevent premature
-  // writes, and DataRefreshNotice shows the live sync status.
+  // Safety net for the cloud splash. On a HEALTHY connection the gate releases the instant
+  // real data is loaded (see shouldHoldCloudEntry, keyed on hasLoadedDataRef) — with the
+  // warmed server that is ~1–2s. This timer only covers the pathological case where the
+  // load never terminates (server unreachable for the whole fetch budget AND the browser
+  // fallback hangs): rather than locking the user out forever, it releases after a long
+  // window so they can at least see cached data and retry. NOT a fast cosmetic release.
   useEffect(() => {
-    if (!isAuthenticated || appMode !== 'cloud' || hasInstantCloudSnapshot || cloudGateForceRelease) return;
-    const timer = setTimeout(() => setCloudGateForceRelease(true), 700);
+    if (!isAuthenticated || appMode !== 'cloud' || cloudGateForceRelease) return;
+    const timer = setTimeout(() => setCloudGateForceRelease(true), 90_000);
     return () => clearTimeout(timer);
-  }, [isAuthenticated, appMode, hasInstantCloudSnapshot, cloudGateForceRelease]);
+  }, [isAuthenticated, appMode, cloudGateForceRelease]);
+
+  // Keep the Cloud Run instance warm across PWA resumes. When the installed app is
+  // reopened (or the tab is refocused) after a while, the backing instance may have
+  // scaled to zero. A cheap, fire-and-forget /api/warmup ping starts the boot cache
+  // BEFORE the user signs in, so the real data fetch lands on an already-warm instance
+  // instead of paying the cold start at the worst possible moment. Touches no Firestore.
+  useEffect(() => {
+    if (appMode === 'local') return;
+    const warm = () => {
+      if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
+      try { fetch('/api/warmup', { cache: 'no-store', keepalive: true }).catch(() => {}); } catch {}
+    };
+    warm();
+    document.addEventListener('visibilitychange', warm);
+    return () => document.removeEventListener('visibilitychange', warm);
+  }, [appMode]);
 
   // Safety net for the auth gate: if Firebase's onAuthStateChanged is unusually
   // slow to fire (rare cold-start, ad blocker interference, flaky Wi-Fi), we
@@ -3679,7 +3740,12 @@ const MainApp: React.FC = () => {
     );
   };
 
-  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && !hasInstantCloudSnapshot && !cloudGateForceRelease && (!isOnline || (dataLoading && !hasLoadedDataRef.current));
+  // Hold the cloud splash until real data is genuinely loaded (write-safe) — NOT merely
+  // because a cached snapshot exists. Letting an employee edit on top of a stale snapshot
+  // before the sync lands is exactly how their work gets clobbered ("nothing uploaded").
+  // The gate blocks all interaction until hasLoadedDataRef flips true (fast on a warm
+  // server), with cloudGateForceRelease as a long-timeout safety valve against a hung load.
+  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && !cloudGateForceRelease && (!isOnline || dataLoading || !hasLoadedDataRef.current);
 
   if (shouldHoldCloudEntry) {
     return (

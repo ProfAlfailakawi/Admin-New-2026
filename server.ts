@@ -2654,6 +2654,43 @@ app.get("/api/whatsapp/health", (_req, res) => {
 });
 // ALTURATH_WHATSAPP_CLOUD_API_END
 
+// Lightweight liveness probe. Touches NO Firestore, so it answers in well under a
+// millisecond even on a brand-new instance. Two jobs:
+//   1) The client's manual-retry / offline-recovery check (App.tsx) pings this.
+//   2) A keep-warm pinger (Cloud Scheduler) hits it on an interval — the request
+//      itself resets Cloud Run's idle timer, keeping the instance from scaling to
+//      zero, which is what eliminates the cold-start latency spikes.
+app.get("/api/health", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.json({
+    success: true,
+    service: "alturath-admin",
+    firebaseReady: Boolean(firebaseInitialized && db),
+    bootCacheReady: appDataCache.bootInitialized,
+    fullCacheReady: appDataCache.fullInitialized,
+    uptimeSec: Math.round(process.uptime()),
+    ts: Date.now(),
+  });
+});
+
+// Proactive warm-up: kick the boot cache without blocking the caller. The client
+// fires this the moment the PWA regains focus, and a keep-warm pinger can hit it too,
+// so the heavy Firestore boot read happens BEFORE the user reaches /api/appdata/full.
+app.get("/api/warmup", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const alreadyHot = appDataCache.bootInitialized;
+  const canWarm = Boolean(firebaseInitialized && db);
+  if (!alreadyHot && canWarm) {
+    initBootCache().catch(() => {});
+  }
+  res.json({
+    success: true,
+    warmed: alreadyHot,
+    triggered: !alreadyHot && canWarm,
+    ts: Date.now(),
+  });
+});
+
 app.get("/api/appdata/full", async (_req, res) => {
   const startedAt = Date.now();
   try {
