@@ -4060,32 +4060,7 @@ const MainApp: React.FC = () => {
           </nav>
         )}
 
-        <div className="p-4 border-t border-white/5 mt-auto relative z-10 flex flex-col gap-2 shrink-0">
-          <div className="flex items-center gap-3">
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full border border-white/10 shrink-0" referrerPolicy="no-referrer" />
-            ) : (
-              <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center font-bold text-white text-xs shrink-0">
-                {user?.displayName?.charAt(0) || 'أ'}
-              </div>
-            )}
-            {(sidebarOpen || isMobile) && (
-              <div className="text-right overflow-hidden flex-1 leading-tight">
-                <div className="text-xs font-bold text-white truncate">{user?.displayName || 'أحمد الفيلكاوي'}</div>
-                <div className="text-[10px] text-white/55 truncate">{user?.email || 'مدير النظام'}</div>
-              </div>
-            )}
-          </div>
-          {(sidebarOpen || isMobile) && (
-            <button 
-              onClick={handleLogout}
-              className="w-full mt-1 py-1.5 px-3 bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 hover:text-rose-300 rounded-xl transition-all font-bold text-[11px] flex items-center justify-center gap-2 border border-rose-500/10 active:scale-95 cursor-pointer"
-            >
-              <LogOut size={12} />
-              <span>تسجيل الخروج</span>
-            </button>
-          )}
-        </div>
+
       </motion.aside>
 
       {/* Main Content Area */}
@@ -4190,9 +4165,9 @@ const MainApp: React.FC = () => {
                   setSidebarOpen(false);
                 }}
                 title="إنشاء فاتورة جديدة"
-                className="hidden sm:flex items-center justify-center w-12 h-12 bg-slate-900 text-white rounded-[1rem] sm:rounded-2xl font-bold shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all transform hover:scale-105 active:scale-95 group shrink-0"
+                className="flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11 bg-slate-900 text-white rounded-[0.8rem] sm:rounded-2xl font-bold shadow-md sm:shadow-xl hover:bg-slate-800 transition-all transform hover:scale-105 active:scale-95 group shrink-0"
               >
-                <Plus size={20} className="group-hover:rotate-90 transition-transform" />
+                <Plus size={16} className="sm:size-5 group-hover:rotate-90 transition-transform" />
               </button>
 
               <button 
@@ -4357,14 +4332,14 @@ const MainApp: React.FC = () => {
                 }
                 setCurrentPage('settings');
               }}
-              className={cn("flex items-center gap-1.5 sm:gap-3 pl-1 sm:pl-2 p-1 rounded-2xl transition-all max-w-[120px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent cursor-pointer hover:bg-slate-100/50 hover:scale-105 active:scale-95")}
+              className={cn("flex items-center gap-1.5 sm:gap-2.5 pl-1 sm:pl-2 p-1 rounded-2xl transition-all max-w-[150px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent cursor-pointer hover:bg-slate-100/50 hover:scale-105 active:scale-95")}
             >
-              <div className="text-left hidden md:block overflow-hidden leading-tight">
-                <div className="text-xs sm:text-sm font-bold truncate text-slate-800">{user?.displayName || 'أحمد الفيلكاوي'}</div>
-                <div className="text-[10px] text-slate-500 truncate">{user?.email || 'مدير النظام'}</div>
+              <div className="text-right hidden md:flex flex-col overflow-hidden leading-tight min-w-0">
+                <div className="text-[11px] sm:text-xs font-bold truncate text-slate-800">{user?.displayName || 'د. أحمد الفيلكاوي'}</div>
+                <div className="text-[9px] text-slate-500 truncate">{user?.email || 'volcanokw@gmail.com'}</div>
               </div>
               {user?.photoURL ? (
-                <img src={user.photoURL} alt="User" className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-primary/20 shrink-0 shadow-sm" referrerPolicy="no-referrer" />
+                <img src={user.photoURL} alt="User" className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-250 shrink-0 shadow-sm" referrerPolicy="no-referrer" />
               ) : (
                 <div className="w-8 h-8 sm:w-9 sm:h-9 bg-primary/10 rounded-full border-2 border-primary/20 flex items-center justify-center font-bold text-primary text-xs shrink-0 shadow-sm">
                   {user?.displayName?.charAt(0) || 'أ'}
@@ -4374,7 +4349,7 @@ const MainApp: React.FC = () => {
 
           <button 
             onClick={handleLogout}
-            className="hidden sm:flex p-2.5 sm:p-3 bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white rounded-[0.8rem] sm:rounded-2xl transition-all shadow-sm group active:scale-95 border border-rose-100/50 shrink-0 cursor-pointer"
+            className="flex p-2 sm:p-2.5 bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white rounded-[0.8rem] sm:rounded-2xl transition-all shadow-sm group active:scale-95 border border-rose-100/50 shrink-0 cursor-pointer w-9 h-9 sm:w-11 sm:h-11 items-center justify-center"
             title="تسجيل الخروج"
           >
             <LogOut size={16} className="transition-transform group-hover:scale-110 group-hover:rotate-12" />
