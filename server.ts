@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import cors from 'cors';
+import compression from 'compression';
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import fsSync from 'fs';
@@ -1480,6 +1481,13 @@ async function rememberPushEvent(eventId: string, payload: any, result: any) {
 
 
 const app = express();
+
+// gzip/brotli every response. The boot payload (orders / invoices / customers / products
+// JSON) is the heaviest thing on the cloud-connect path, and it travels Kuwait↔Frankfurt
+// on every load. Compression cuts that transfer ~80–90%, which is the single biggest speed
+// win on a WARM instance (cold starts are handled separately by the in-memory cache + the
+// client's resilient retry). Registered first so it wraps all downstream responses.
+app.use(compression());
 
 // ADMIN020_FORCE_CORS
 app.use((req, res, next) => {
