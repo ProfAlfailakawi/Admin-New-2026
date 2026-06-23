@@ -68,7 +68,10 @@
         try { __mode = localStorage.getItem('appMode'); } catch (e) {}
         if (__mode !== 'local') {
           var __ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-          var __timer = setTimeout(function(){ if (__ctrl) __ctrl.abort(); }, 4500);
+          // 9s (was 4.5s): a cold Cloud Run instance needs ~10–40s, so a short abort here
+          // killed the very request that was warming it. App.tsx's prewarmCloudBoot() picks
+          // up the resilient retry if this one still times out, so we lose nothing by waiting.
+          var __timer = setTimeout(function(){ if (__ctrl) __ctrl.abort(); }, 9000);
           window.__bootPrefetchAt = Date.now();
           window.__bootPrefetchPromise = fetch('/api/appdata/full?profile=boot', {
             cache: 'no-store',
