@@ -711,7 +711,7 @@ Alturath.kw`;
       
       setCart((prev) => {
         const existing = prev[productId];
-        const nextQuantity = (existing ? existing.quantity : 0) + 1;
+        const nextQuantity = existing ? existing.quantity + 1 : Math.max(1, product.minOrderQty || 1);
         return {
           ...prev,
           [productId]: {
@@ -728,8 +728,10 @@ Alturath.kw`;
       setCart((prev) => {
         const existing = prev[productId];
         if (!existing) return prev;
-        if (existing.quantity > 1) {
-          const product = (data.products || []).find((p) => p.id === productId);
+        const product = (data.products || []).find((p) => p.id === productId);
+        const minAllowed = product ? Math.max(1, product.minOrderQty || 1) : 1;
+        
+        if (existing.quantity > minAllowed) {
           const nextQuantity = existing.quantity - 1;
           return {
             ...prev,
@@ -741,7 +743,7 @@ Alturath.kw`;
           };
         } else {
           toast.info(
-            "الحد الأدنى للكمية هو 1. استخدم علامة (X) لحذف المنتج نهائياً.",
+            `الحد الأدنى للكمية هو ${minAllowed}. استخدم علامة (X) لحذف المنتج نهائياً.`
           );
           return prev;
         }

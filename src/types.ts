@@ -92,6 +92,7 @@ export interface Product {
   price: number;
   category: string;
   supplierId: string;
+  minOrderQty?: number;
   createdAt?: string;
   lastSaleDate?: string;
   matrixCategory?: 'star' | 'puzzle' | 'horse' | 'dog';
