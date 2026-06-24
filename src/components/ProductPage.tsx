@@ -143,6 +143,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
     name: string;
     price: number;
     cost: number;
+    minOrderQty?: number;
     category: string;
     supplierId: string;
     imageUrl: string;
@@ -156,6 +157,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
     name: "",
     price: 0,
     cost: 0,
+    minOrderQty: 1,
     category: "عام",
     supplierId: "",
     imageUrl: "",
@@ -645,6 +647,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
           ...productForm,
           price: parsedPrice,
           cost: parsedCost,
+          minOrderQty: Math.max(1, Number(productForm.minOrderQty || 1)),
           isMenuFeatured: !!(productForm as any).isMenuFeatured,
           featuredRank: (productForm as any).isMenuFeatured ? Math.max(1, Number((productForm as any).featuredRank || 99)) : undefined,
         };
@@ -721,6 +724,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       name: "",
       price: 0,
       cost: 0,
+      minOrderQty: 1,
       category: productCategories[0] || "الولائم",
       supplierId: "",
       imageUrl: "",
@@ -741,6 +745,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       name: product.name,
       price: product.price,
       cost: product.cost,
+      minOrderQty: product.minOrderQty || 1,
       category: product.category || "عام",
       supplierId: product.supplierId,
       imageUrl: product.imageUrl || "",
@@ -1679,7 +1684,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:p-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:p-3">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">
                       سعر البيع للعميل
@@ -1704,6 +1709,20 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       }
                       className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right"
                       placeholder="0.000"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">
+                      الحد الأدنى للطلب
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={productForm.minOrderQty || 1}
+                      onChange={(e) =>
+                        setProductForm({ ...productForm, minOrderQty: parseInt(e.target.value) || 1 })
+                      }
+                      className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-slate-800 text-right"
                     />
                   </div>
                 </div>
