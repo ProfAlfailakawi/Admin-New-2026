@@ -74,6 +74,8 @@ import {
 } from "../lib/business-logic";
 import { isPaidStatus } from "../lib/status-utils";
 import { toast } from "sonner";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase";
 
 // Default product categories shown in the invoice form.  The categories
 // "المشويات" and "المشروبات" were removed based on new requirements.  If
@@ -1001,6 +1003,9 @@ Alturath.kw`;
       const newInvoice: Invoice = {
         ...(existingInvoice || {}),
         id: invoiceId,
+        createdAt: (existingInvoice as any)?.createdAt || finalInvoiceDate,
+        updatedAt: new Date().toISOString(),
+        ledgerVisible: true,
         customerId: targetId,
         customerName: customer?.name || newCustomerName || "",
         customerPhone: customer?.phone || customerPhone || "",
@@ -1054,7 +1059,7 @@ Alturath.kw`;
         gateway_order_id: createdGatewayOrderId,
         gatewayFee: data.settings.gatewayFeeAmount || 0,
         notes: notesText || "---",
-      };
+      } as any;
 
       setData((prev) => {
         let baseCustomers = [...(prev.customers || [])];
@@ -1082,6 +1087,27 @@ Alturath.kw`;
         };
         return recalculateStateBalances(nextState);
       });
+
+      // Durable ledger mirror: keep newly sent admin/partner invoices visible in the ledger
+      // while the main sharded cloud save catches up. This does not alter payment, webhook,
+      // notification, or WhatsApp logic; it only mirrors the same invoice object to the
+      // lightweight invoices collection so pending invoices cannot vanish from the UI.
+      try {
+        const firestoreInvoice = JSON.parse(JSON.stringify({
+          ...newInvoice,
+          updatedAt: new Date().toISOString(),
+          ledgerVisible: true,
+          source: (newInvoice as any).source || (isPartner ? "partner_invoice" : "admin_invoice"),
+        }));
+        setDoc(doc(db, "invoices", String(invoiceId)), {
+          ...firestoreInvoice,
+          updatedAtServer: serverTimestamp(),
+        }, { merge: true }).catch((err) => {
+          console.warn("Invoice ledger mirror save failed:", err);
+        });
+      } catch (mirrorErr) {
+        console.warn("Invoice ledger mirror payload failed:", mirrorErr);
+      }
 
       // Safe notification nudge for new admin invoices (INV-...).
       // This uses the existing push endpoint and does not change notification delivery logic.

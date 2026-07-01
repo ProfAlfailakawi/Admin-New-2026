@@ -6206,3 +6206,43 @@ html body .login-brand-stage h1 {
 .heritage-ai-suggestions-card p{
   color: rgba(255,255,255,.94) !important;
 }
+
+
+/* Ahmad hotfix 2026-07-01: stabilize New Invoice catalog in admin/partner without touching business logic. */
+@media (min-width: 1024px) {
+  .invoice-new-page {
+    grid-template-columns: minmax(0, 1.9fr) minmax(360px, .9fr) !important;
+    align-items: start !important;
+  }
+  .invoice-new-page .invoice-mobile-products,
+  .invoice-new-page .invoice-mobile-cart,
+  .invoice-new-page .invoice-mobile-products > *,
+  .invoice-new-page .invoice-mobile-cart > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .invoice-new-page .invoice-products-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(220px, 1fr)) !important;
+    grid-auto-rows: 1fr !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    contain: none !important;
+  }
+  .invoice-new-page .invoice-product-card {
+    width: 100% !important;
+    min-height: 128px !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+  .invoice-new-page .invoice-product-card-title {
+    min-height: 38px !important;
+    max-width: calc(100% - 38px) !important;
+    margin-bottom: 8px !important;
+  }
+}
+@media (min-width: 1536px) {
+  .invoice-new-page .invoice-products-grid {
+    grid-template-columns: repeat(3, minmax(210px, 1fr)) !important;
+  }
+}
