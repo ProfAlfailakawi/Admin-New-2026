@@ -3027,6 +3027,60 @@ const MainApp: React.FC = () => {
                console.error("Failed to sync orders collection:", e);
           }
       }
+
+      // 1b. Sync the lightweight invoices collection as a ledger safety mirror.
+      // Some admin-created payment links exist in the payment/session database before
+      // the large appData invoice shard finishes saving. Merging this collection keeps
+      // pending invoices visible in سجل الفواتير; paid status still follows the same
+      // existing webhook/auto-reconcile logic.
+      try {
+         const qInvoices = query(collection(db, 'invoices'), orderBy('date', 'desc'), limit(120));
+         invoicesUnsubscribe = onSnapshot(qInvoices, (snap) => {
+            const externalInvoices = snap.docs
+              .map(d => ({ id: d.id, ...d.data() }))
+              .filter((invoice: any) => {
+                if (!invoice || invoice.isDeleted) return false;
+                const cutoff = authoritativeDataWrittenAtRef.current;
+                if (!cutoff) return true;
+                const invoiceTime = getRecordTime(invoice);
+                return !invoiceTime || invoiceTime >= cutoff || String(invoice.id || '').startsWith('INV-');
+              });
+            if (externalInvoices.length === 0) return;
+            setData(prev => {
+                const prevInvoices = prev.invoices || [];
+                let changed = false;
+                const combined = [...prevInvoices];
+                externalInvoices.forEach((ei: any) => {
+                     const idx = combined.findIndex((inv: any) => String(inv.id || inv.invoiceId || inv.invoiceNo) === String(ei.id || ei.invoiceId || ei.invoiceNo));
+                     if (idx === -1) {
+                         combined.push(ei);
+                         changed = true;
+                     } else {
+                         const current = combined[idx] as any;
+                         const statusChanged = current.status !== ei.status || current.paymentStatus !== ei.paymentStatus || current.payment_id !== ei.payment_id || current.paymentId !== ei.paymentId;
+                         const linkMissing = !current.paymentLink && !!ei.paymentLink;
+                         if (statusChanged || linkMissing) {
+                             combined[idx] = { ...current, ...ei };
+                             changed = true;
+                         }
+                     }
+                });
+                if (changed) {
+                    combined.sort((a: any, b: any) => getRecordTime(b) - getRecordTime(a));
+                    return { ...prev, invoices: combined };
+                }
+                return prev;
+            });
+         }, (err) => {
+            if (!String(err).includes("Missing or insufficient permissions")) {
+               console.error("invoices sync error: ", err);
+            }
+         });
+      } catch (e: any) {
+          if (!String(e).includes("Missing or insufficient permissions")) {
+               console.error("Failed to sync invoices collection:", e);
+          }
+      }
       
       // 2. Fast path: load the full shared database through the Admin server.
       // This avoids slow browser Firestore shard reads on first entry and keeps Admin/Order on the same source.
@@ -3337,6 +3391,7 @@ const MainApp: React.FC = () => {
     return () => {
       if (syncUnsubscribe) syncUnsubscribe();
       if (ordersUnsubscribe) ordersUnsubscribe();
+      if (invoicesUnsubscribe) invoicesUnsubscribe();
     };
   }, [user, appMode, triggerSyncReload]);
 
