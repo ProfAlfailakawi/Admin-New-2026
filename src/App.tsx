@@ -3052,15 +3052,47 @@ const MainApp: React.FC = () => {
                 const combined = [...prevInvoices];
                 externalInvoices.forEach((ei: any) => {
                      const idx = combined.findIndex((inv: any) => String(inv.id || inv.invoiceId || inv.invoiceNo) === String(ei.id || ei.invoiceId || ei.invoiceNo));
+                     const externalIsPaid = isPaidStatus(ei.paymentStatus) || isPaidStatus(ei.payment_status) || isPaidStatus(ei.status) || ei.paid === true;
+                     const externalIsFailed = isFailedStatus(ei.paymentStatus) || isFailedStatus(ei.payment_status) || isFailedStatus(ei.status) || ei.failed === true;
                      if (idx === -1) {
                          combined.push(ei);
                          changed = true;
                      } else {
                          const current = combined[idx] as any;
-                         const statusChanged = current.status !== ei.status || current.paymentStatus !== ei.paymentStatus || current.payment_id !== ei.payment_id || current.paymentId !== ei.paymentId;
+                         const currentIsPaid = isPaidStatus(current.paymentStatus) || isPaidStatus(current.payment_status) || isPaidStatus(current.status) || current.paid === true;
+                         const currentIsFailed = isFailedStatus(current.paymentStatus) || isFailedStatus(current.payment_status) || isFailedStatus(current.status) || current.failed === true;
+                         const currentIsFinal = currentIsPaid || currentIsFailed;
+                         const externalIsFinal = externalIsPaid || externalIsFailed;
+
+                         // The invoices collection is only a visibility mirror. Never let an older
+                         // pending mirror snapshot downgrade a locally/webhook-confirmed paid invoice.
+                         if (currentIsFinal && !externalIsFinal) {
+                             const safePatch: any = {};
+                             if (!current.paymentLink && ei.paymentLink) safePatch.paymentLink = ei.paymentLink;
+                             if (!current.paymentUrl && ei.paymentUrl) safePatch.paymentUrl = ei.paymentUrl;
+                             if (!current.paymentURL && ei.paymentURL) safePatch.paymentURL = ei.paymentURL;
+                             if (!current.payment_id && ei.payment_id) safePatch.payment_id = ei.payment_id;
+                             if (!current.paymentId && ei.paymentId) safePatch.paymentId = ei.paymentId;
+                             if (Object.keys(safePatch).length > 0) {
+                                 combined[idx] = { ...current, ...safePatch };
+                                 changed = true;
+                             }
+                             return;
+                         }
+
+                         const statusChanged = current.status !== ei.status || current.paymentStatus !== ei.paymentStatus || current.payment_status !== ei.payment_status || current.payment_id !== ei.payment_id || current.paymentId !== ei.paymentId || current.paid !== ei.paid || current.failed !== ei.failed;
                          const linkMissing = !current.paymentLink && !!ei.paymentLink;
                          if (statusChanged || linkMissing) {
-                             combined[idx] = { ...current, ...ei };
+                             const merged = { ...current, ...ei } as any;
+                             if (currentIsPaid || externalIsPaid) {
+                                 merged.paymentStatus = 'paid';
+                                 merged.payment_status = 'paid';
+                                 merged.status = isPaidStatus(merged.status) ? merged.status : 'تم الدفع بنجاح';
+                                 merged.paid = true;
+                                 merged.failed = false;
+                                 merged.canPay = false;
+                             }
+                             combined[idx] = merged;
                              changed = true;
                          }
                      }
