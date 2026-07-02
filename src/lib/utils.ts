@@ -162,7 +162,21 @@ export function splitProductsForDatabase(data: any): any {
   const copies: any[] = [];
   const principals: any[] = [];
   
-  for (const p of data.products) {
+  const normalizePersistedProductImage = (product: any) => {
+      const normalized = { ...product };
+      const removedAt = normalized?.imageRemovedAt ? new Date(normalized.imageRemovedAt).getTime() : 0;
+      const updatedAt = normalized?.imageUpdatedAt ? new Date(normalized.imageUpdatedAt).getTime() : 0;
+      if (Number.isFinite(removedAt) && removedAt > 0 && (!Number.isFinite(updatedAt) || removedAt >= updatedAt)) {
+          normalized.imageUrl = '';
+          delete normalized.image;
+          delete normalized.photo;
+          delete normalized.images;
+      }
+      return normalized;
+  };
+
+  for (const rawProduct of data.products) {
+      const p = normalizePersistedProductImage(rawProduct);
       if (!p || !p.name) continue;
       const key = robustNormalize(p.name);
       if (!principalMap.has(key)) {
@@ -194,13 +208,36 @@ export function joinProductsFromDatabase(data: any): any {
   const result = { ...data };
   if (result.supplierCopies && Array.isArray(result.supplierCopies)) {
       const combined = [...(result.products || []), ...result.supplierCopies];
-      const unique = [];
-      const seen = new Set();
+      const unique: any[] = [];
+      const seenIndex = new Map<string, number>();
+      const imageEventTime = (value: any) => {
+          const raw = value?.imageRemovedAt || value?.imageUpdatedAt || value?.updatedAt || value?.createdAt;
+          const time = raw ? new Date(raw).getTime() : 0;
+          return Number.isFinite(time) ? time : 0;
+      };
+      const mergeProductRecords = (current: any, incoming: any) => {
+          const currentTime = imageEventTime(current);
+          const incomingTime = imageEventTime(incoming);
+          const merged = incomingTime >= currentTime ? { ...current, ...incoming } : { ...incoming, ...current };
+          const removedAt = merged?.imageRemovedAt ? new Date(merged.imageRemovedAt).getTime() : 0;
+          const updatedAt = merged?.imageUpdatedAt ? new Date(merged.imageUpdatedAt).getTime() : 0;
+          if (Number.isFinite(removedAt) && removedAt > 0 && (!Number.isFinite(updatedAt) || removedAt >= updatedAt)) {
+              merged.imageUrl = '';
+              delete merged.image;
+              delete merged.photo;
+              delete merged.images;
+          }
+          return merged;
+      };
       for (const p of combined) {
           if (!p || !p.id) { unique.push(p); continue; }
-          if (!seen.has(p.id)) {
-              seen.add(p.id);
+          const id = String(p.id);
+          if (!seenIndex.has(id)) {
+              seenIndex.set(id, unique.length);
               unique.push(p);
+          } else {
+              const index = seenIndex.get(id)!;
+              unique[index] = mergeProductRecords(unique[index], p);
           }
       }
       result.products = unique;
