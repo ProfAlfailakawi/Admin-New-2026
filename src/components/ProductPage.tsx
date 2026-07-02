@@ -147,6 +147,8 @@ const ProductPage: React.FC<ProductPageProps> = ({
     category: string;
     supplierId: string;
     imageUrl: string;
+    imageRemovedAt?: string;
+    imageUpdatedAt?: string;
     isActive: boolean;
     isOutOfStock: boolean;
     preparationInstructions: string;
@@ -161,6 +163,8 @@ const ProductPage: React.FC<ProductPageProps> = ({
     category: "عام",
     supplierId: "",
     imageUrl: "",
+    imageRemovedAt: undefined,
+    imageUpdatedAt: undefined,
     isActive: true,
     isOutOfStock: false,
     preparationInstructions: "",
@@ -556,7 +560,13 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
               // Compress more aggressively for cloud storage efficiency
               const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-              setProductForm((prev) => ({ ...prev, imageUrl: dataUrl }));
+              const imageUpdatedAt = new Date().toISOString();
+              setProductForm((prev) => ({
+                ...prev,
+                imageUrl: dataUrl,
+                imageUpdatedAt,
+                imageRemovedAt: undefined,
+              }));
               toast.success("تم رفع الصورة وضبط حجمها تلقائياً ✅");
               setUploading(false);
             } catch (err: any) {
@@ -643,14 +653,26 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
       setIsSaving(true);
       try {
-        const finalProductData = {
+        const savedAt = new Date().toISOString();
+        const imageWasRemoved = !String((productForm as any).imageUrl || '').trim() && Boolean((productForm as any).imageRemovedAt);
+        const finalProductData: any = {
           ...productForm,
+          imageUrl: imageWasRemoved ? "" : String((productForm as any).imageUrl || ""),
+          imageRemovedAt: imageWasRemoved ? ((productForm as any).imageRemovedAt || savedAt) : undefined,
+          imageUpdatedAt: imageWasRemoved ? undefined : ((productForm as any).imageUpdatedAt || (productForm.imageUrl ? savedAt : undefined)),
           price: parsedPrice,
           cost: parsedCost,
           minOrderQty: Math.max(1, Number(productForm.minOrderQty || 1)),
           isMenuFeatured: !!(productForm as any).isMenuFeatured,
           featuredRank: (productForm as any).isMenuFeatured ? Math.max(1, Number((productForm as any).featuredRank || 99)) : undefined,
+          updatedAt: savedAt,
         };
+
+        if (imageWasRemoved) {
+          delete finalProductData.image;
+          delete finalProductData.photo;
+          delete finalProductData.images;
+        }
 
         // record this mapping so we can suggest it faster/better next time.
         const normalizedInput = normalizeArabic(productForm.name);
@@ -667,9 +689,17 @@ const ProductPage: React.FC<ProductPageProps> = ({
         if (editingId) {
           setData((prev) => ({
             ...prev,
-            products: (prev?.products || []).map((p) =>
-              p.id === editingId ? { ...p, ...finalProductData } : p,
-            ),
+            products: (prev?.products || []).map((p) => {
+              if (p.id !== editingId) return p;
+              const merged: any = { ...p, ...finalProductData };
+              if (imageWasRemoved) {
+                merged.imageUrl = "";
+                delete merged.image;
+                delete merged.photo;
+                delete merged.images;
+              }
+              return merged;
+            }),
             nameMatchMemory: updatedMemory,
           }));
         } else {
@@ -728,6 +758,8 @@ const ProductPage: React.FC<ProductPageProps> = ({
       category: productCategories[0] || "الولائم",
       supplierId: "",
       imageUrl: "",
+      imageRemovedAt: undefined,
+      imageUpdatedAt: undefined,
       isActive: true,
       isOutOfStock: false,
       preparationInstructions: "",
@@ -748,7 +780,9 @@ const ProductPage: React.FC<ProductPageProps> = ({
       minOrderQty: product.minOrderQty || 1,
       category: product.category || "عام",
       supplierId: product.supplierId,
-      imageUrl: product.imageUrl || "",
+      imageUrl: (product as any).imageRemovedAt ? "" : product.imageUrl || "",
+      imageRemovedAt: (product as any).imageRemovedAt || undefined,
+      imageUpdatedAt: (product as any).imageUpdatedAt || undefined,
       isActive: product.isActive !== false,
       isOutOfStock: !!product.isOutOfStock,
       preparationInstructions: product.preparationInstructions || "",
@@ -1668,11 +1702,17 @@ const ProductPage: React.FC<ProductPageProps> = ({
                           className="w-full h-full object-contain bg-slate-50 border border-slate-100 p-1 rounded-xl"
                         />
                         <button
+                          type="button"
+                          aria-label="حذف صورة المنتج"
                           onClick={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
+                            const imageRemovedAt = new Date().toISOString();
                             setProductForm((prev) => ({
                               ...prev,
                               imageUrl: "",
+                              imageRemovedAt,
+                              imageUpdatedAt: undefined,
                             }));
                           }}
                           className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
