@@ -977,7 +977,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right pr-2">الأصناف المشمولة</div>
             <div className="space-y-1">
               {(item.items || []).map((prod: any, pIdx: number) => (
-                <div key={`${item.id}-${pIdx}`} className="bg-white/80 border border-slate-100/50 rounded-2xl p-3 flex justify-between items-center text-right group/item hover:bg-white transition-all">
+                <div key={`${item.id}-${pIdx}`} className="bg-white/80 border border-slate-100/50 rounded-2xl p-3 flex flex-wrap justify-between items-center text-right group/item hover:bg-white transition-all">
                   <div className="flex-1">
                     <div className="font-bold text-slate-800 text-sm">{prod.name}</div>
                     <div className="text-[10px] font-black text-slate-400 flex items-center gap-2 mt-0.5">

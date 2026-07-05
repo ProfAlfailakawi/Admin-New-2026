@@ -143,6 +143,45 @@ export const getInvoiceLevelAddons = (inv: any): any[] => {
     return [];
 };
 
+const normalizeLookupText = (value: any): string => String(value || '')
+    .trim()
+    .replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
+    .replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString())
+    .replace(/[إأآا]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/ـ/g, '')
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+
+const getAddonLookupKeys = (addon: any): string[] => {
+    if (!addon || typeof addon !== 'object') return [];
+    return [
+        addon.id,
+        addon.addonId,
+        addon.addOnId,
+        addon.key,
+        addon.optionId,
+        addon.modifierId,
+        addon.productAddonId,
+        addon.name,
+        addon.title,
+        addon.label,
+    ].map((value) => normalizeLookupText(value)).filter(Boolean);
+};
+
+const getProductAddonCandidates = (product: any): any[] => {
+    if (!product) return [];
+    return [
+        ...normalizeAddonList(product?.addons),
+        ...normalizeAddonList(product?.addOns),
+        ...normalizeAddonList(product?.extras),
+        ...normalizeAddonList(product?.options),
+        ...normalizeAddonList(product?.modifiers),
+        ...normalizeAddonList(product?.addonSelections),
+    ];
+};
+
 const findCatalogAddonMatch = (addon: any, item: any, products: any[] | Map<string, any> = []) => {
     if (!addon || typeof addon !== 'object') return null;
     let product: any = null;
@@ -150,20 +189,26 @@ const findCatalogAddonMatch = (addon: any, item: any, products: any[] | Map<stri
         product = products.get(String(item?.productId));
         if (!product) {
             for (const p of products.values()) {
-                if (p.name === item?.productName || p.name === item?.name) {
+                if (normalizeLookupText(p.name) === normalizeLookupText(item?.productName || item?.name)) {
                     product = p;
                     break;
                 }
             }
         }
     } else {
-        product = (products || []).find((p: any) => p.id === item?.productId || p.name === item?.productName || p.name === item?.name);
+        product = (products || []).find((p: any) =>
+            String(p.id) === String(item?.productId) ||
+            normalizeLookupText(p.name) === normalizeLookupText(item?.productName || item?.name)
+        );
     }
-    return normalizeAddonList(product?.addons).find((a: any) =>
-        (addon.id && a.id === addon.id) ||
-        (addon.name && a.name === addon.name) ||
-        (addon.addonId && a.id === addon.addonId)
-    ) || null;
+
+    const selectedKeys = getAddonLookupKeys(addon);
+    if (!selectedKeys.length) return null;
+
+    return getProductAddonCandidates(product).find((candidate: any) => {
+        const catalogKeys = getAddonLookupKeys(candidate);
+        return catalogKeys.some((key) => selectedKeys.includes(key));
+    }) || null;
 };
 
 const mergeAddonWithCatalog = (addon: any, item: any, products: any[] | Map<string, any> = []) => {
@@ -173,7 +218,7 @@ const mergeAddonWithCatalog = (addon: any, item: any, products: any[] | Map<stri
 };
 
 // Field names that may hold the supplier's cost for an addon, in priority order.
-const ADDON_COST_FIELD_NAMES = ['cost', 'addonCost', 'unitCost', 'supplierCost', 'supplyCost', 'purchaseCost', 'baseCost', 'costPrice', 'purchasePrice', 'supplierPrice'];
+const ADDON_COST_FIELD_NAMES = ['cost', 'addonCost', 'unitCost', 'supplierCost', 'supplyCost', 'purchaseCost', 'baseCost', 'costPrice', 'purchasePrice', 'supplierPrice', 'costAtTime', 'addonCostAtTime', 'supplierPriceAtTime', 'supplierUnitCost', 'supplyUnitCost', 'purchaseUnitCost', 'addonSupplierCost', 'supplierAmount', 'supplyAmount'];
 
 // Reads the first POSITIVE cost value from an addon-like object.
 // Note: in this app, a stored value of 0 in these fields means "not entered" (see ProductPage.tsx
@@ -246,7 +291,7 @@ export const computeAddonCost = (addon: any, item: any, products: any[] | Map<st
     addon = mergeAddonWithCatalog(addon, item, products);
     if (!addonHasPositiveSelection(addon)) return 0;
 
-    const directCostTotal = safeParsePrice(addon?.totalCost ?? addon?.costTotal ?? addon?.lineCost ?? addon?.supplierTotal ?? addon?.supplyTotal ?? addon?.purchaseTotal ?? addon?.addonCostTotal ?? addon?.addonsCostTotal ?? addon?.supplierCostTotal ?? addon?.totalSupplierCost);
+    const directCostTotal = safeParsePrice(addon?.totalCost ?? addon?.costTotal ?? addon?.lineCost ?? addon?.supplierTotal ?? addon?.supplyTotal ?? addon?.purchaseTotal ?? addon?.addonCostTotal ?? addon?.addonsCostTotal ?? addon?.supplierCostTotal ?? addon?.totalSupplierCost ?? addon?.costTotalAtTime ?? addon?.supplierAmount ?? addon?.supplyAmount);
     if (directCostTotal > 0) return directCostTotal;
 
     const itemQty = Math.max(1, Number(item?.quantity !== undefined ? item.quantity : (item?.qty !== undefined ? item.qty : 1)) || 1);
