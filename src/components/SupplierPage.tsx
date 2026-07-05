@@ -987,12 +987,12 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
                     </div>
                   </div>
                   <div className="text-left shrink-0">
-                    <div className="text-sm font-black text-slate-900 whitespace-nowrap" dir="ltr">{(prod.totalCost || prod.cost || 0).toFixed(3)} <span className="text-[10px]">د.ك</span></div>
+                    <div className="text-sm font-black text-slate-900 whitespace-nowrap" dir="ltr">{Number(prod.baseCostTotal ?? ((Number(prod.cost || 0) * Number(prod.quantity || 1)) || 0)).toFixed(3)} <span className="text-[10px]">د.ك</span></div>
                     <div className="text-[9px] font-bold text-emerald-500">حصة المورد</div>
                   </div>
                   {Array.isArray((prod as any).addons) && (prod as any).addons.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-amber-100/70 w-full space-y-1">
-                      {((prod as any).addons || []).map((addon: any, aIdx: number) => (
+                      {((prod as any).addons || []).filter((addon: any) => Number(addon.costTotal || 0) > 0).map((addon: any, aIdx: number) => (
                         <div key={`${item.id}-${pIdx}-addon-${aIdx}`} className="flex justify-between items-center gap-2 text-[10px] bg-amber-50/80 border border-amber-100 rounded-xl px-2 py-1">
                           <span className="font-black text-amber-700 text-right">إضافة: {addon.name}{addon.quantity !== undefined ? ` × ${addon.quantity}` : ''}</span>
                           <span className="font-black text-amber-700 whitespace-nowrap" dir="ltr">{Number(addon.costTotal || 0).toFixed(3)} د.ك</span>
