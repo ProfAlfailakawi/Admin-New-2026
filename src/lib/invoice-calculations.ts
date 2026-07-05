@@ -43,7 +43,7 @@ export const computeAddonQuantity = (addon: any, item: any): number => {
     if (addon?.selected === false || addon?.enabled === false || addon?.isSelected === false) return 0;
     const itemQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1));
     const qty = Math.max(1, itemQty);
-    const hasExplicitQty = addon?.quantity !== undefined || addon?.qty !== undefined || addon?.count !== undefined || addon?.selectedQuantity !== undefined || addon?.value !== undefined;
+    const hasExplicitQty = addon?.quantity !== undefined || addon?.qty !== undefined || addon?.count !== undefined || addon?.selectedQuantity !== undefined || addon?.value !== undefined || addon?.units !== undefined || addon?.selectedUnits !== undefined;
     const selectedQty = computeAddonSelectedQuantity(addon);
     const multiplier = hasExplicitQty ? selectedQty : Number(addon.quantity !== undefined ? addon.quantity : (addon.qty !== undefined ? addon.qty : 1));
 
@@ -80,7 +80,7 @@ const getAddonIdentity = (addon: any): string => {
 
 export const addonHasPositiveSelection = (addon: any): boolean => {
     if (!addon || addon.selected === false || addon.enabled === false || addon.isSelected === false || addon.checked === false) return false;
-    const raw = addon?.quantity ?? addon?.qty ?? addon?.count ?? addon?.selectedQuantity ?? addon?.selectedQty ?? addon?.value ?? addon?.selectedCount ?? addon?.addonQuantity;
+    const raw = addon?.quantity ?? addon?.qty ?? addon?.count ?? addon?.selectedQuantity ?? addon?.selectedQty ?? addon?.value ?? addon?.selectedCount ?? addon?.addonQuantity ?? addon?.units ?? addon?.selectedUnits;
     if (raw !== undefined && raw !== null && raw !== '') return Number(raw) > 0 || raw === true || raw === 'true';
     return addon?.selected === true || addon?.isSelected === true || addon?.checked === true || addon?.enabled === true || addon?.isRequired === true || addon?.quantityRule?.mode === 'required' || addon?.quantityRule?.mode === 'auto';
 };
@@ -182,6 +182,21 @@ const getProductAddonCandidates = (product: any): any[] => {
     ];
 };
 
+const getItemProductSnapshot = (item: any): any => {
+    return item?.product || item?.productSnapshot || item?.productData || item?.productAtTime || null;
+};
+
+const buildAddonCandidateList = (product: any, item: any): any[] => {
+    const snapshot = getItemProductSnapshot(item);
+    return [
+        ...getProductAddonCandidates(product),
+        ...getProductAddonCandidates(snapshot),
+        ...normalizeAddonList(item?.productAddons),
+        ...normalizeAddonList(item?.addonsCatalog),
+        ...normalizeAddonList(item?.availableAddons),
+    ].filter(Boolean);
+};
+
 const findCatalogAddonMatch = (addon: any, item: any, products: any[] | Map<string, any> = []) => {
     if (!addon || typeof addon !== 'object') return null;
     let product: any = null;
@@ -205,9 +220,17 @@ const findCatalogAddonMatch = (addon: any, item: any, products: any[] | Map<stri
     const selectedKeys = getAddonLookupKeys(addon);
     if (!selectedKeys.length) return null;
 
-    return getProductAddonCandidates(product).find((candidate: any) => {
+    const candidates = buildAddonCandidateList(product, item);
+    return candidates.find((candidate: any) => {
         const catalogKeys = getAddonLookupKeys(candidate);
         return catalogKeys.some((key) => selectedKeys.includes(key));
+    }) || candidates.find((candidate: any) => {
+        // Older invoices sometimes stored only the visible Arabic label while the catalog entry had a prefix/suffix.
+        // Use a conservative normalized contains match so add-ons like "صينية" still pick up their supplier cost.
+        const catalogKeys = getAddonLookupKeys(candidate);
+        return catalogKeys.some((key) => selectedKeys.some((selected) =>
+            selected.length >= 3 && key.length >= 3 && (key.includes(selected) || selected.includes(key))
+        ));
     }) || null;
 };
 
@@ -218,7 +241,13 @@ const mergeAddonWithCatalog = (addon: any, item: any, products: any[] | Map<stri
 };
 
 // Field names that may hold the supplier's cost for an addon, in priority order.
-const ADDON_COST_FIELD_NAMES = ['cost', 'addonCost', 'unitCost', 'supplierCost', 'supplyCost', 'purchaseCost', 'baseCost', 'costPrice', 'purchasePrice', 'supplierPrice', 'costAtTime', 'addonCostAtTime', 'supplierPriceAtTime', 'supplierUnitCost', 'supplyUnitCost', 'purchaseUnitCost', 'addonSupplierCost', 'supplierAmount', 'supplyAmount'];
+const ADDON_COST_FIELD_NAMES = [
+    'cost', 'addonCost', 'unitCost', 'supplierCost', 'supplyCost', 'purchaseCost', 'baseCost',
+    'costPrice', 'purchasePrice', 'supplierPrice', 'costAtTime', 'addonCostAtTime', 'supplierPriceAtTime',
+    'supplierUnitCost', 'supplyUnitCost', 'purchaseUnitCost', 'addonSupplierCost', 'supplierAmount', 'supplyAmount',
+    // Packaging / tray aliases used by older snapshots and imports.
+    'trayCost', 'traySupplierCost', 'packagingCost', 'containerCost', 'boxCost', 'supplierShare', 'supplierShareCost'
+];
 
 // Reads the first POSITIVE cost value from an addon-like object.
 // Note: in this app, a stored value of 0 in these fields means "not entered" (see ProductPage.tsx
@@ -238,7 +267,7 @@ const getFirstPositiveCost = (obj: any): number | null => {
 
 export const computeAddonSelectedQuantity = (addon: any): number => {
     if (addon?.selected === false || addon?.enabled === false || addon?.isSelected === false || addon?.checked === false) return 0;
-    const raw = addon?.quantity ?? addon?.qty ?? addon?.count ?? addon?.selectedQuantity ?? addon?.value ?? addon?.selectedQty ?? addon?.selectedCount ?? addon?.addonQuantity;
+    const raw = addon?.quantity ?? addon?.qty ?? addon?.count ?? addon?.selectedQuantity ?? addon?.value ?? addon?.selectedQty ?? addon?.selectedCount ?? addon?.addonQuantity ?? addon?.units ?? addon?.selectedUnits;
     if (raw !== undefined && raw !== null && raw !== '') {
         if (raw === true || raw === 'true') return 1;
         return Math.max(0, Number(raw) || 0);
@@ -262,7 +291,7 @@ export const computeAddonRevenue = (addon: any, item: any, products: any[] | Map
     if (price <= 0) return 0;
 
     const selectedQty = computeAddonSelectedQuantity(addon);
-    const hasExplicitQty = addon?.quantity !== undefined || addon?.qty !== undefined || addon?.count !== undefined || addon?.selectedQuantity !== undefined || addon?.value !== undefined;
+    const hasExplicitQty = addon?.quantity !== undefined || addon?.qty !== undefined || addon?.count !== undefined || addon?.selectedQuantity !== undefined || addon?.value !== undefined || addon?.units !== undefined || addon?.selectedUnits !== undefined;
     if (hasExplicitQty && selectedQty <= 0) return 0;
 
     let units = 0;
@@ -304,7 +333,7 @@ export const computeAddonCost = (addon: any, item: any, products: any[] | Map<st
     if (cost <= 0) return 0;
 
     const selectedQty = computeAddonSelectedQuantity(addon);
-    const hasExplicitQty = addon?.quantity !== undefined || addon?.qty !== undefined || addon?.count !== undefined || addon?.selectedQuantity !== undefined || addon?.selectedQty !== undefined || addon?.selectedCount !== undefined || addon?.addonQuantity !== undefined || addon?.value !== undefined;
+    const hasExplicitQty = addon?.quantity !== undefined || addon?.qty !== undefined || addon?.count !== undefined || addon?.selectedQuantity !== undefined || addon?.selectedQty !== undefined || addon?.selectedCount !== undefined || addon?.addonQuantity !== undefined || addon?.value !== undefined || addon?.units !== undefined || addon?.selectedUnits !== undefined;
     if (hasExplicitQty && selectedQty <= 0) return 0;
 
     let units = 0;

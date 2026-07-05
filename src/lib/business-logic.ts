@@ -123,16 +123,21 @@ export function getSupplierLedgerForState(
         addonsCost: roundKwd(addonsCostTotal),
         addonsRevenue: roundKwd(addonsPriceTotal),
         addons: addonLines,
+        baseCostTotal: roundKwd(cost * qty),
         totalCost: roundKwd((cost * qty) + addonsCostTotal),
         totalPrice: roundKwd((price * qty) + addonsPriceTotal)
       };
     });
 
-    const supplierCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + item.totalCost, 0));
+    // Keep product supply and supplier add-ons as two separate buckets.
+    // This prevents supplier invoice details from hiding packaging/add-on costs inside the product cost,
+    // and lets entries like "صينية" appear in "إضافات المورد" instead of staying at 0.000.
+    const supplierProductsCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + Number(item.baseCostTotal || (Number(item.cost || 0) * Number(item.quantity || 1)) || 0), 0));
     const supplierAddonsCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + Number(item.addonsCost || 0), 0));
+    const supplierCost = roundKwd(supplierProductsCost + supplierAddonsCost);
     const supplierRevenue = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + item.totalPrice, 0));
     const supplierDelivery = getInvoiceDeliverySettlementForSupplier(inv, supId, state, pMap, sMap);
-    const supplierDue = roundKwd(supplierCost + supplierDelivery);
+    const supplierDue = roundKwd(supplierProductsCost + supplierAddonsCost + supplierDelivery);
 
     if (supplierDue > 0) {
       transactions.push({
@@ -141,9 +146,10 @@ export function getSupplierLedgerForState(
         date: inv.date,
         type: 'invoice',
         amount: supplierDue, // Positive (Obligation)
-        supplyAmount: supplierCost,
+        supplyAmount: supplierProductsCost,
         addonsSupplyAmount: supplierAddonsCost,
-        productsSupplyAmount: roundKwd(supplierCost - supplierAddonsCost),
+        productsSupplyAmount: supplierProductsCost,
+        totalSupplyAmount: supplierCost,
         deliveryAmount: supplierDelivery,
         revenue: supplierRevenue,
         refId: inv.id,
