@@ -1,6 +1,6 @@
 import { AppState } from '../types';
 import { isPaidStatus } from './status-utils';
-import { computeAddonCost, computeAddonRevenue, computeInvoiceItemBaseCost, getInvoiceItemAddons, safeParsePrice, addonHasPositiveSelection } from './invoice-calculations';
+import { computeAddonCost, computeAddonRevenue, computeAddonQuantity, computeInvoiceItemBaseCost, getInvoiceItemAddons, safeParsePrice, addonHasPositiveSelection } from './invoice-calculations';
 
 
 const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 1000;
@@ -71,7 +71,7 @@ export function getSupplierLedgerForState(
     : new Set(
         (state.products || [])
           .filter(p => p && p.id && String(p.supplierId) === String(supId))
-          .map(p => p.id)
+          .map(p => String(p.id))
       );
 
   const invoicesSource = invoicesBySupplierMap 
@@ -83,7 +83,7 @@ export function getSupplierLedgerForState(
     // Collect products of this supplier in the invoice
     const itemsForThisSupplier = (inv.items || []).filter(item => {
       const product = pMap.get(String(item.productId));
-      return product && String(product.supplierId) === String(supId) && supplierProductIds.has(item.productId);
+      return product && String(product.supplierId) === String(supId) && supplierProductIds.has(String(item.productId));
     }).map(item => {
       const product = pMap.get(String(item.productId));
       const cost = computeInvoiceItemBaseCost(item, pMap);
@@ -95,23 +95,44 @@ export function getSupplierLedgerForState(
       const itemAddons = getInvoiceItemAddons(item);
       const addonLines = itemAddons.map((addon: any) => {
         if (!addonHasPositiveSelection(addon)) return null;
-        const costTotal = roundKwd(computeAddonCost(addon, item, pMap));
+
         const priceTotal = roundKwd(computeAddonRevenue(addon, item, pMap));
-        if (costTotal <= 0 && priceTotal <= 0) return null;
+        const supplierCostTotal = roundKwd(computeAddonCost(addon, item, pMap));
+
+        // كشف المورد يجب أن يعكس الإضافات كما تظهر في الفاتورة تماماً.
+        // إذا لم تكن تكلفة المورد محفوظة للإضافة القديمة، نرجع لقيمة الإضافة المحسوبة في الفاتورة
+        // بدلاً من إسقاطها أو تركها خارج المستحقات.
+        const costTotal = supplierCostTotal > 0 ? supplierCostTotal : priceTotal;
+        const calculatedQty = computeAddonQuantity(addon, item);
+        const displayQty = addon.quantity ?? addon.qty ?? addon.count ?? addon.selectedQuantity ?? addon.selectedQty ?? addon.selectedCount ?? addon.addonQuantity ?? (calculatedQty > 0 ? calculatedQty : undefined);
+        const addonName = addon.name || addon.title || addon.label || 'إضافة';
+
+        // لا نسقط الإضافات المجانية/الصفرية؛ ظهورها في كشف المورد مهم حتى يطابق تفاصيل الفاتورة.
+        if (costTotal <= 0 && priceTotal <= 0 && !addonName) return null;
+
         addonsCostTotal += costTotal;
         addonsPriceTotal += priceTotal;
         return {
           id: addon.id || addon.addonId || addon.key || addon.name,
-          name: addon.name || addon.title || addon.label || 'إضافة',
-          quantity: addon.quantity ?? addon.qty ?? addon.count ?? addon.selectedQuantity ?? addon.selectedQty ?? addon.selectedCount ?? addon.addonQuantity ?? undefined,
+          name: addonName,
+          quantity: displayQty,
           costTotal,
           priceTotal,
+          supplierCostTotal,
         };
       }).filter(Boolean);
 
       const directItemAddonsCost = roundKwd(safeParsePrice((item as any)?.addonsCost ?? (item as any)?.addOnsCost ?? (item as any)?.extrasCost ?? (item as any)?.addonsSupplyAmount ?? (item as any)?.addonsSupplierCost ?? (item as any)?.addonCostTotal ?? (item as any)?.addonsCostTotal));
-      if (addonsCostTotal <= 0 && directItemAddonsCost > 0) {
-        addonsCostTotal = directItemAddonsCost;
+      const directItemAddonsRevenue = roundKwd(safeParsePrice((item as any)?.addonsTotal ?? (item as any)?.addOnsTotal ?? (item as any)?.extrasTotal ?? (item as any)?.addonsRevenue ?? (item as any)?.addonsAmount));
+      if (addonsCostTotal <= 0) {
+        if (directItemAddonsCost > 0) {
+          addonsCostTotal = directItemAddonsCost;
+        } else if (directItemAddonsRevenue > 0) {
+          addonsCostTotal = directItemAddonsRevenue;
+        }
+      }
+      if (addonsPriceTotal <= 0 && directItemAddonsRevenue > 0) {
+        addonsPriceTotal = directItemAddonsRevenue;
       }
 
       return {
@@ -123,21 +144,16 @@ export function getSupplierLedgerForState(
         addonsCost: roundKwd(addonsCostTotal),
         addonsRevenue: roundKwd(addonsPriceTotal),
         addons: addonLines,
-        baseCostTotal: roundKwd(cost * qty),
         totalCost: roundKwd((cost * qty) + addonsCostTotal),
         totalPrice: roundKwd((price * qty) + addonsPriceTotal)
       };
     });
 
-    // Keep product supply and supplier add-ons as two separate buckets.
-    // This prevents supplier invoice details from hiding packaging/add-on costs inside the product cost,
-    // and lets entries like "صينية" appear in "إضافات المورد" instead of staying at 0.000.
-    const supplierProductsCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + Number(item.baseCostTotal || (Number(item.cost || 0) * Number(item.quantity || 1)) || 0), 0));
+    const supplierCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + item.totalCost, 0));
     const supplierAddonsCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + Number(item.addonsCost || 0), 0));
-    const supplierCost = roundKwd(supplierProductsCost + supplierAddonsCost);
     const supplierRevenue = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + item.totalPrice, 0));
     const supplierDelivery = getInvoiceDeliverySettlementForSupplier(inv, supId, state, pMap, sMap);
-    const supplierDue = roundKwd(supplierProductsCost + supplierAddonsCost + supplierDelivery);
+    const supplierDue = roundKwd(supplierCost + supplierDelivery);
 
     if (supplierDue > 0) {
       transactions.push({
@@ -146,10 +162,9 @@ export function getSupplierLedgerForState(
         date: inv.date,
         type: 'invoice',
         amount: supplierDue, // Positive (Obligation)
-        supplyAmount: supplierProductsCost,
+        supplyAmount: supplierCost,
         addonsSupplyAmount: supplierAddonsCost,
-        productsSupplyAmount: supplierProductsCost,
-        totalSupplyAmount: supplierCost,
+        productsSupplyAmount: roundKwd(supplierCost - supplierAddonsCost),
         deliveryAmount: supplierDelivery,
         revenue: supplierRevenue,
         refId: inv.id,
