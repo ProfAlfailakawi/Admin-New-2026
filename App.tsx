@@ -2209,7 +2209,7 @@ const MainApp: React.FC = () => {
   const lastRemoteKeysRef = useRef<Record<string, string>>({});
   const authoritativeDataWrittenAtRef = useRef<number>(0);
 
-  const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
+  const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'supplierTransfers', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
   const BOOT_DEFERRED_SHARDED_KEYS = ['testimonials', 'campaigns', 'pulseAnalysisHistory', 'pulseReviews', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
 
   // Google/Looker Studio was originally reading the root appData/shared_company_data document.
@@ -2226,6 +2226,7 @@ const MainApp: React.FC = () => {
     campaigns: 200,
     promocodes: 200,
     products: 200,
+    supplierTransfers: 500,
     squads: 200,
   };
 
@@ -2273,7 +2274,7 @@ const MainApp: React.FC = () => {
   const makeFirestoreSafeRootDocument = (rootValue: any) => {
     const safe = JSON.parse(JSON.stringify(rootValue || {}));
     const maxBytes = 900000;
-    const shrinkableKeys = ['orders', 'invoices', 'customers', 'expenses', 'supplierCopies', 'testimonials', 'campaigns', 'promocodes', 'products', 'squads'];
+    const shrinkableKeys = ['orders', 'invoices', 'customers', 'expenses', 'supplierCopies', 'supplierTransfers', 'testimonials', 'campaigns', 'promocodes', 'products', 'squads'];
 
     let guard = 0;
     while (getFirestoreDocumentByteSize(safe) > maxBytes && guard < 80) {
