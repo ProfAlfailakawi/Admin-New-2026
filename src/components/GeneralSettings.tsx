@@ -2166,6 +2166,7 @@ const GeneralSettings: React.FC<Props> = ({
             "testimonials",
             "products",
             "supplierCopies",
+            "supplierTransfers",
             "pulseAnalysisHistory",
             "pulseReviews",
             "campaigns",

@@ -1536,6 +1536,7 @@ const FULL_APPDATA_SHARD_KEYS = [
   "testimonials",
   "products",
   "supplierCopies",
+  "supplierTransfers",
   "pulseAnalysisHistory",
   "pulseReviews",
   "campaigns",
@@ -2731,7 +2732,8 @@ app.get("/api/appdata/full", async (_req, res) => {
 
     for (const key of shardKeys) {
       const decodedValue = appDataCache.shards[key] || [];
-      if (decodedValue && (!Array.isArray(decodedValue) || decodedValue.length > 0)) {
+      const shouldApplyShardValue = key === "supplierTransfers" || (decodedValue && (!Array.isArray(decodedValue) || decodedValue.length > 0));
+      if (shouldApplyShardValue) {
         data[key] = decodedValue;
         shardCounts[key] = Array.isArray(decodedValue) ? decodedValue.length : 1;
       }

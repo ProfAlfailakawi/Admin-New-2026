@@ -2547,8 +2547,9 @@ const MainApp: React.FC = () => {
   const isCloudSyncApplyingRef = useRef(false);
   const lastRemoteKeysRef = useRef<Record<string, string>>({});
   const authoritativeDataWrittenAtRef = useRef<number>(0);
+  const lastSupplierTransfersFastSaveRef = useRef<string | null>(null);
 
-  const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
+  const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'supplierTransfers', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
   const BOOT_DEFERRED_SHARDED_KEYS = ['testimonials', 'campaigns', 'pulseAnalysisHistory', 'pulseReviews', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
 
   // Google/Looker Studio was originally reading the root appData/shared_company_data document.
@@ -2565,6 +2566,7 @@ const MainApp: React.FC = () => {
     campaigns: 200,
     promocodes: 200,
     products: 200,
+    supplierTransfers: 500,
     squads: 200,
   };
 
@@ -2612,7 +2614,7 @@ const MainApp: React.FC = () => {
   const makeFirestoreSafeRootDocument = (rootValue: any) => {
     const safe = JSON.parse(JSON.stringify(rootValue || {}));
     const maxBytes = 900000;
-    const shrinkableKeys = ['orders', 'invoices', 'customers', 'expenses', 'supplierCopies', 'testimonials', 'campaigns', 'promocodes', 'products', 'squads'];
+    const shrinkableKeys = ['orders', 'invoices', 'customers', 'expenses', 'supplierCopies', 'supplierTransfers', 'testimonials', 'campaigns', 'promocodes', 'products', 'squads'];
 
     let guard = 0;
     while (getFirestoreDocumentByteSize(safe) > maxBytes && guard < 80) {
@@ -3426,6 +3428,47 @@ const MainApp: React.FC = () => {
       if (invoicesUnsubscribe) invoicesUnsubscribe();
     };
   }, [user, appMode, triggerSyncReload]);
+
+  // Supplier payments are accounting-critical: persist them quickly so a paid supplier
+  // does not appear unpaid again if the page/app is closed before the normal large-data debounce.
+  useEffect(() => {
+    if (!hasLoadedDataRef.current || isCloudSyncApplyingRef.current) return;
+
+    const supplierTransfersSnapshot = stableStringify(data?.supplierTransfers || []);
+    if (lastSupplierTransfersFastSaveRef.current === null) {
+      lastSupplierTransfersFastSaveRef.current = supplierTransfersSnapshot;
+      return;
+    }
+    if (supplierTransfersSnapshot === lastSupplierTransfersFastSaveRef.current) return;
+
+    const timeoutId = setTimeout(async () => {
+      if (!hasLoadedDataRef.current || isCloudSyncApplyingRef.current) return;
+
+      try {
+        if (appMode === 'local') {
+          const localDataStr = JSON.stringify(data);
+          if (localDataStr && localDataStr !== '{}' && hasMeaningfulData(data)) {
+            setProtectedStorageItem('ktk_local_accounting_data_last_good', localDataStr);
+            setProtectedStorageItem('ktk_local_accounting_data', localDataStr);
+          }
+        }
+
+        if (user && appMode === 'cloud') {
+          const shardRef = getSmartDoc('appData', user.uid, user.email, 'shards/supplierTransfers');
+          const shardContent = await buildShardContentAsync('supplierTransfers', data?.supplierTransfers || []);
+          await setDoc(shardRef, shardContent, { merge: false });
+          lastRemoteKeysRef.current['supplierTransfers'] = supplierTransfersSnapshot;
+          loadedCloudShardKeysRef.current.add('supplierTransfers');
+        }
+
+        lastSupplierTransfersFastSaveRef.current = supplierTransfersSnapshot;
+      } catch (e) {
+        console.error('Supplier transfers fast-save error', e);
+      }
+    }, 600);
+
+    return () => clearTimeout(timeoutId);
+  }, [data?.supplierTransfers, data, user, appMode]);
 
   // Auto-save: Handle Local and Cloud separately with debounce for performance
   useEffect(() => {
