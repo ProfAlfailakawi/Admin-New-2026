@@ -6241,7 +6241,8 @@ html body .login-brand-stage h1 {
   .invoice-new-page .invoice-products-grid {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(220px, 1fr)) !important;
-    grid-auto-rows: 1fr !important;
+    grid-auto-rows: auto !important;
+    align-content: start !important;
     align-items: stretch !important;
     gap: 12px !important;
     contain: none !important;
@@ -6249,7 +6250,7 @@ html body .login-brand-stage h1 {
   .invoice-new-page .invoice-product-card {
     width: 100% !important;
     min-height: 128px !important;
-    height: 100% !important;
+    height: auto !important;
     overflow: hidden !important;
   }
   .invoice-new-page .invoice-product-card-title {
