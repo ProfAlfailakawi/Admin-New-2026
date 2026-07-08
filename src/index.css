@@ -3285,6 +3285,15 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
   .invoice-new-page .invoice-products-grid{grid-template-columns:minmax(0,1fr)!important;grid-auto-rows:minmax(118px,auto)!important;}
   .invoice-new-page .invoice-product-card{min-height:118px!important;}
 }
+@media(min-width:641px){
+  /* Desktop fix: size product cards to their content so the price/+ footer and the
+     hidden badge are never clipped by the card's overflow (cards were over-stretched). */
+  .invoice-new-page .invoice-products-grid{
+    align-items:start!important;
+    grid-auto-rows:auto!important;
+    contain:none!important;
+  }
+}
 
 
 /* clearer executive assistant output */
