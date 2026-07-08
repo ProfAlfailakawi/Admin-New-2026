@@ -464,12 +464,6 @@ const OrderPage: React.FC<OrderPageProps> = ({
       );
       return supplierOptions.length > 1 && !(item as any).supplierSelected;
     });
-    console.log(
-      "DEBUG: hasUnselectedSuppliers for order",
-      order.id,
-      ":",
-      unresolved,
-    );
     return unresolved;
   };
 
@@ -488,10 +482,6 @@ const OrderPage: React.FC<OrderPageProps> = ({
         hasUnselectedSuppliers(order) &&
         !isVerifiedPaid;
       if (needsSupplier) {
-        console.log(
-          "DEBUG: Badge showing needs supplier alert for order",
-          order?.id,
-        );
         return "مدفوع – يحتاج اختيار المورد";
       }
       return "تم الدفع بنجاح";
