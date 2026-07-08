@@ -275,7 +275,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
           o.linkedInvoiceId === invoice.id ||
           o.id === (invoice as any).linkedOrderId,
       );
-      const phone = customer?.phone || (order as any)?.customerPhone || "";
+      const phone = customer?.phone || (order as any)?.customerPhone || (invoice as any)?.customerPhone || "";
 
       if (!phone) return "#";
 
