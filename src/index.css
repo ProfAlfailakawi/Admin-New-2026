@@ -3286,12 +3286,20 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
   .invoice-new-page .invoice-product-card{min-height:118px!important;}
 }
 @media(min-width:641px){
-  /* Desktop fix: size product cards to their content so the price/+ footer and the
-     hidden badge are never clipped by the card's overflow (cards were over-stretched). */
+  /* Desktop fix: size product cards to their content (not stretched to the grid
+     height) so the price/+ footer stays visible. align-content is the key: the
+     default (stretch) was inflating rows when the grid had spare height. */
   .invoice-new-page .invoice-products-grid{
+    align-content:start!important;
     align-items:start!important;
     grid-auto-rows:auto!important;
     contain:none!important;
+  }
+  /* Desktop fix: let the "hidden" badge flow above the title instead of overlapping it. */
+  .invoice-new-page .invoice-hidden-badge{
+    position:static!important;
+    align-self:flex-start!important;
+    margin:0 0 .25rem 0!important;
   }
 }
 
