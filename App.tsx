@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
 import LZString from 'lz-string';
-import { compressToBase64ViaWorker } from './lib/snapshotCompressor';
 import { 
   ArrowUp,
   BarChart3, 
@@ -111,191 +110,26 @@ import { getProtectedStorageItem, getProtectedStorageItemFast, hasMeaningfulData
 // أي تفاعل. السحابة هي مصدر الحقيقة، لذلك الاستبدال المباشر (بلا دمج/نسخ احتياطية) آمن تماماً.
 let __pendingCloudSnapshot: string | null = null;
 let __cloudSnapshotFlushQueued = false;
-let __cloudSnapshotBusy = false; // يمنع إطلاق عدة عمليات ضغط ثقيلة متوازية
-const __persistCloudSnapshot = (compressed: string) => {
-  try { localStorage.setItem('ktk_cloud_offline_snapshot_last_good', compressed); } catch {}
-  try { localStorage.setItem('ktk_cloud_offline_snapshot', compressed); } catch {}
-};
 const saveCloudSnapshotMirror = (snapshotStr: string | null | undefined) => {
   if (!snapshotStr) return;
   __pendingCloudSnapshot = snapshotStr; // احتفظ دائماً بالأحدث فقط (coalescing)
-  if (__cloudSnapshotFlushQueued || __cloudSnapshotBusy) return; // مجدول/قيد التنفيذ بالفعل سيلتقط الأحدث
+  if (__cloudSnapshotFlushQueued) return; // حفظ مجدول بالفعل سيلتقط الأحدث
   __cloudSnapshotFlushQueued = true;
   const runFlush = () => {
     __cloudSnapshotFlushQueued = false;
     const latest = __pendingCloudSnapshot;
     __pendingCloudSnapshot = null;
     if (!latest) return;
-    __cloudSnapshotBusy = true;
-    const finish = () => {
-      __cloudSnapshotBusy = false;
-      // لو وصلت لقطة أحدث أثناء الضغط، جدول جولة جديدة لها.
-      if (__pendingCloudSnapshot) saveCloudSnapshotMirror(__pendingCloudSnapshot);
-    };
-    // الضغط الثقيل (~14 ثانية على بيانات ضخمة) يجري داخل Web Worker حتى لا يتجمّد الخيط الرئيسي
-    // فتبقى الواجهة (القائمة/الفاتورة الجديدة) سريعة فوراً. عند تعذّر الـWorker نرجع للمسار
-    // المتزامن السابق نفسه دون أي تغيير في السلوك.
-    compressToBase64ViaWorker(latest)
-      .then((b64) => {
-        if (b64) {
-          __persistCloudSnapshot('lz64:' + b64);
-        } else {
-          try { __persistCloudSnapshot('lz64:' + LZString.compressToBase64(latest)); } catch {}
-        }
-        finish();
-      })
-      .catch(() => {
-        try { __persistCloudSnapshot('lz64:' + LZString.compressToBase64(latest)); } catch {}
-        finish();
-      });
+    try {
+      const compressed = 'lz64:' + LZString.compressToBase64(latest);
+      try { localStorage.setItem('ktk_cloud_offline_snapshot_last_good', compressed); } catch {}
+      try { localStorage.setItem('ktk_cloud_offline_snapshot', compressed); } catch {}
+    } catch {}
   };
   const ric = (typeof window !== 'undefined' && (window as any).requestIdleCallback) || null;
   if (ric) ric(runFlush, { timeout: 2000 });
   else setTimeout(runFlush, 300);
 };
-
-// يبني محتوى الـshard المُرسَل للسحابة بنفس الصيغة تماماً ({ compressedData, isCompressed: true }
-// للحمولات الكبيرة، أو { [key], isCompressed: false } للصغيرة). الفرق الوحيد: الضغط الثقيل
-// (LZString) يجري داخل Web Worker خارج الخيط الرئيسي حتى لا تتجمّد الواجهة عند حفظ تعديل ضخم.
-// عند تعذّر الـWorker نرجع للضغط المتزامن السابق نفسه — فلا تغيير في البيانات المكتوبة إطلاقاً.
-const COMPRESS_SHARD_THRESHOLD = 500000;
-const buildShardContentAsync = async (key: string, value: any): Promise<any> => {
-  const payloadStr = JSON.stringify(value);
-  if (payloadStr.length > COMPRESS_SHARD_THRESHOLD) {
-    let compressed = await compressToBase64ViaWorker(payloadStr);
-    if (!compressed) compressed = LZString.compressToBase64(payloadStr); // مسار احتياطي مطابق
-    return { compressedData: compressed, isCompressed: true };
-  }
-  return JSON.parse(JSON.stringify({ [key]: value, isCompressed: false }));
-};
-
-// ── Cloud boot pre-warm ────────────────────────────────────────────────────────
-// Cloud Run scales to zero, so the first request after idle pays a 3-10s cold-start
-// penalty. Without protection, that cost lands on the user right when they finish
-// Google sign-in — and a hanging fetch (no timeout) forces them to retry manually.
-//
-// This helper fires /api/appdata/full?profile=boot the moment the app shell loads,
-// so by the time auth completes, the boot payload is already in memory.
-//
-// COLD-START STRATEGY (root cause of the "2s sometimes, 2min sometimes" symptom):
-// Cloud Run scales the Admin server to zero when idle. The next request pays a cold
-// start (container boot + Firebase Admin init + Firestore boot-cache read) that can
-// take 10–40s. A single short timeout GUARANTEES failure during that window — it
-// aborts the very request that is warming the instance and dumps the user into the
-// slow, unbounded browser-Firestore fallback (the 2-minute hang).
-//
-// Instead we stay on the fast server path and RETRY it with an escalating, bounded
-// budget. Because the boot endpoint serves from an in-memory cache once warm, the
-// second or third attempt after a cold start returns in milliseconds. Net effect:
-// the worst case collapses from "minutes on the browser fallback" to "~10–20s on a
-// warming server", and the common warm case is unchanged (resolves on attempt #1).
-const BOOT_PREWARM_TTL_MS = 30_000;
-const ADMIN_RESET_EXPECTED_GENERATION_KEY =
-  'ktk_expected_admin_reset_generation_id';
-// First attempt is short: a warm instance answers in <1s, so we don't want to wait
-// long before deciding a cold start is underway. Retry attempts are patient: once
-// the instance is booting, we must give its boot-cache read room to finish.
-const BOOT_FIRST_ATTEMPT_TIMEOUT_MS = 7_000;
-const BOOT_RETRY_ATTEMPT_TIMEOUT_MS = 12_000;
-const BOOT_PREWARM_MAX_ATTEMPTS = 6;
-const BOOT_PREWARM_TOTAL_BUDGET_MS = 60_000;
-const BOOT_PREWARM_BACKOFF_MS = 600;
-let __bootPrewarmPromise: Promise<any> | null = null;
-let __bootPrewarmFiredAt = 0;
-
-async function fetchBootPayloadOnce(timeoutMs: number): Promise<any> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch('/api/appdata/full?profile=boot', {
-      cache: 'no-store',
-      signal: controller.signal,
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-// Retries the boot endpoint through a cold start instead of giving up after one short
-// timeout. Aborting an attempt does NOT cancel the server's boot-cache work (it is not
-// tied to the request), so a fresh attempt simply rides the now-in-flight warm-up —
-// no wasted work, no restart. Resolves the moment any attempt returns a payload.
-async function fetchBootPayloadResilient(): Promise<any> {
-  const deadline = Date.now() + BOOT_PREWARM_TOTAL_BUDGET_MS;
-  let lastErr: any = null;
-  for (let attempt = 0; attempt < BOOT_PREWARM_MAX_ATTEMPTS; attempt++) {
-    const remaining = deadline - Date.now();
-    if (remaining <= 0) break;
-    const base = attempt === 0 ? BOOT_FIRST_ATTEMPT_TIMEOUT_MS : BOOT_RETRY_ATTEMPT_TIMEOUT_MS;
-    const timeoutMs = Math.max(2_000, Math.min(base, remaining));
-    try {
-      const payload = await fetchBootPayloadOnce(timeoutMs);
-      if (payload) return payload;
-      lastErr = new Error('empty boot payload');
-    } catch (err) {
-      lastErr = err;
-    }
-    const backoff = Math.min(BOOT_PREWARM_BACKOFF_MS * (attempt + 1), 2_500);
-    if (Date.now() + backoff < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, backoff));
-    }
-  }
-  throw lastErr || new Error('boot prewarm exhausted');
-}
-
-function prewarmCloudBoot(): Promise<any> {
-  const now = Date.now();
-  if (__bootPrewarmPromise && now - __bootPrewarmFiredAt < BOOT_PREWARM_TTL_MS) {
-    return __bootPrewarmPromise;
-  }
-
-  // First: try to adopt the inline <head> prefetch from index.html.
-  // That request started before the JS bundle even downloaded — hundreds of milliseconds
-  // earlier than anything this module could do. Reusing it skips a second network round-trip.
-  if (typeof window !== 'undefined') {
-    const inflight: Promise<any> | undefined = (window as any).__bootPrefetchPromise;
-    const firedAt: number | undefined = (window as any).__bootPrefetchAt;
-    if (inflight && firedAt && now - firedAt < BOOT_PREWARM_TTL_MS) {
-      __bootPrewarmFiredAt = firedAt;
-      __bootPrewarmPromise = inflight.then((payload) => {
-        if (payload) return payload;
-        // The head prefetch returned null (cold-start abort / network blip).
-        // Switch to the resilient retry — never strand the user on the slow fallback.
-        return fetchBootPayloadResilient();
-      }).catch(async () => {
-        __bootPrewarmPromise = null;
-        __bootPrewarmFiredAt = 0;
-        throw new Error('boot prefetch failed');
-      });
-      // Consume the global so a later remount triggers a fresh fetch instead of reusing a stale promise.
-      try { delete (window as any).__bootPrefetchPromise; } catch {}
-      return __bootPrewarmPromise;
-    }
-  }
-
-  __bootPrewarmFiredAt = now;
-  __bootPrewarmPromise = (async () => {
-    try {
-      return await fetchBootPayloadResilient();
-    } catch (err) {
-      __bootPrewarmPromise = null;
-      __bootPrewarmFiredAt = 0;
-      throw err;
-    }
-  })();
-  return __bootPrewarmPromise;
-}
-
-// Fire as soon as this module evaluates — earliest possible warm-up point.
-// Safe to call without a user: the endpoint serves the shared admin dataset.
-if (typeof window !== 'undefined') {
-  try {
-    const mode = window.localStorage.getItem('appMode');
-    if (mode !== 'local') prewarmCloudBoot().catch(() => {});
-  } catch {}
-}
 
 const ADMIN_PRIORITY_PAGES = [
   'new-invoice',
@@ -985,7 +819,25 @@ const DataRefreshNotice: React.FC<{ show: boolean; mode: 'cloud' | 'local' }> = 
   </AnimatePresence>
 );
 
-const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => null;
+const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => (
+  <AnimatePresence>
+    {!online && (
+      <motion.div
+        className="admin-offline-toast"
+        dir="rtl"
+        initial={{ opacity: 0, y: -12, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -12, scale: 0.96 }}
+      >
+        <span className="offline-dot" />
+        <div>
+          <strong>انقطع الاتصال…</strong>
+          <span>نحاول نرجع بيانات مركز القيادة بهدوء.</span>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
 
 
 const CloudConnectionGate: React.FC<{
@@ -1279,25 +1131,11 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
 const MainApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
-  // CLOUD CONNECTION SPEEDUP: On warm reloads (returning users), skip the
-  // "Connecting to cloud" gate entirely. Firebase still validates the session
-  // in the background via onAuthStateChanged; if it ever returns a null user
-  // or rejects authorization, the existing handler will toast and log out.
-  // This eliminates the 1–5s cold-start flash users were seeing on every open.
-  const [authLoading, setAuthLoading] = useState(() => {
-    try {
-      return localStorage.getItem('isAuthenticated') !== 'true';
-    } catch {
-      return true;
-    }
-  });
+  const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
-  // cloudGateForceRelease: SAFETY NET ONLY. The cloud splash deliberately blocks ALL
-  // interaction until real cloud data is loaded — employees must never edit on top of a
-  // stale snapshot, because those edits get clobbered by the incoming sync ("nothing
-  // uploaded"). This flag exists only so a genuinely hung load (server unreachable AND the
-  // browser fallback stalled) can't trap the user forever; it fires after a long window,
-  // never as a fast cosmetic release.
+  // cloudGateForceRelease: if the server doesn't respond within 5s, release the gate anyway.
+  // Data continues loading in background; DataRefreshNotice shows the sync banner.
+  // Auto-save guards (isCloudSyncApplyingRef, hasLoadedDataRef) prevent premature writes.
   const [cloudGateForceRelease, setCloudGateForceRelease] = useState(false);
   const [hasInstantCloudSnapshot, setHasInstantCloudSnapshot] = useState(() => {
     try {
@@ -1312,132 +1150,6 @@ const MainApp: React.FC = () => {
   const [deferredChromeReady, setDeferredChromeReady] = useState(false);
   const [triggerSyncReload, setTriggerSyncReload] = useState(0);
   const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
-  const [dismissedOfflineModal, setDismissedOfflineModal] = useState(false);
-  const [retryingOffline, setRetryingOffline] = useState(false);
-
-  useEffect(() => {
-    if (isOnline) {
-      setDismissedOfflineModal(false);
-    }
-  }, [isOnline]);
-
-  const handleManualRetryOffline = async () => {
-    setRetryingOffline(true);
-    try {
-      const isActuallyOnlineState = typeof navigator === 'undefined' ? true : navigator.onLine;
-      if (isActuallyOnlineState) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
-        await fetch('/api/health', { signal: controller.signal });
-        clearTimeout(timeoutId);
-        setIsOnline(true);
-        toast.success("تم الاتصال بنجاح ✨", {
-          description: "أنت متصل بالإنترنت مجدداً وتم تفعيل وضع الكتابة والحفظ.",
-          position: 'bottom-right',
-          className: 'arabic-font'
-        });
-      } else {
-        toast.warning("ما زلت غير متصل", {
-          description: "يرجى التحقق من اتصال الواي فاي أو شبكة البيانات الخاصة بك.",
-          position: 'bottom-right',
-          className: 'arabic-font'
-        });
-        setIsOnline(false);
-      }
-    } catch {
-      toast.warning("تعذر الاتصال بالمزود", {
-        description: "يوجد اتصال بالشبكة المحلية ولكن يتعذر الوصول لخادم السحاب حالياً.",
-        position: 'bottom-right',
-        className: 'arabic-font'
-      });
-      setIsOnline(false);
-    } finally {
-      setRetryingOffline(false);
-    }
-  };
-
-  const renderBeautifulOfflineModal = () => {
-    if (isOnline || dismissedOfflineModal || !isAuthenticated) return null;
-    return (
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[200000] flex items-center justify-center p-4 md:p-6 text-center google-sans" dir="rtl">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 30 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 30 }}
-          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-sm w-full shadow-2xl relative border border-slate-100 flex flex-col items-center justify-center"
-        >
-          <div className="bg-slate-50 text-slate-400 p-5 rounded-3xl mx-auto mb-6 w-20 h-20 flex items-center justify-center border border-slate-100/80">
-            <svg
-              width="42"
-              height="42"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-slate-400"
-            >
-              <line x1="1" y1="1" x2="23" y2="23"></line>
-              <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.5"></path>
-              <path d="M5 12.5a10.94 10.94 0 0 1 5.17-2.39"></path>
-              <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
-              <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
-              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-              <line x1="12" y1="20" x2="12.01" y2="20"></line>
-            </svg>
-          </div>
-
-          <h3 className="text-[22px] font-extrabold text-slate-900 mb-2 leading-tight tracking-tight">
-            لا يوجد اتصال بالإنترنت
-          </h3>
-          <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
-            سنعيد الاتصال تلقائياً فور عودة الشبكة.
-          </p>
-
-          <button
-            onClick={handleManualRetryOffline}
-            disabled={retryingOffline}
-            className="w-full py-4 px-6 bg-gradient-to-r from-indigo-700 via-indigo-600 to-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/10 hover:shadow-indigo-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 text-base cursor-pointer"
-          >
-            {retryingOffline ? (
-              <Loader2 className="animate-spin animate-duration-1000" size={18} />
-            ) : (
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" />
-              </svg>
-            )}
-            <span>إعادة المحاولة</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setDismissedOfflineModal(true);
-              toast.info("تم تفعيل تصفح القراءة فقط 👁️", {
-                description: "يمكنك استخدام وتصفح التطبيق ولكن لا يمكنك إضافة أو تعديل البيانات.",
-                position: 'bottom-right',
-                className: 'arabic-font',
-                duration: 4000
-              });
-            }}
-            className="mt-5 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider cursor-pointer"
-          >
-            تصفح البرنامج (للقراءة فقط) 👁️
-          </button>
-        </motion.div>
-      </div>
-    );
-  };
 
   useEffect(() => {
     const updateOnline = () => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine);
@@ -1536,43 +1248,14 @@ const MainApp: React.FC = () => {
   const onboardingRole: 'admin' | 'partner' | 'demo' = appMode === 'local' ? 'demo' : (userRole === 'partner' ? 'partner' : 'admin');
   const [onboardingOpen, setOnboardingOpen] = useState(false);
 
-  // Safety net for the cloud splash. On a HEALTHY connection the gate releases the instant
-  // real data is loaded (see shouldHoldCloudEntry, keyed on hasLoadedDataRef) — with the
-  // warmed server that is ~1–2s. This timer only covers the pathological case where the
-  // load never terminates (server unreachable for the whole fetch budget AND the browser
-  // fallback hangs): rather than locking the user out forever, it releases after a long
-  // window so they can at least see cached data and retry. NOT a fast cosmetic release.
+  // Release the CloudConnectionGate after 5 seconds max — prevents indefinite blocking
+  // when the server is cold-starting (Cloud Run scale-to-zero). The data keeps loading
+  // in background and DataRefreshNotice shows the sync status to the user.
   useEffect(() => {
-    if (!isAuthenticated || appMode !== 'cloud' || cloudGateForceRelease) return;
-    const timer = setTimeout(() => setCloudGateForceRelease(true), 90_000);
+    if (!isAuthenticated || appMode !== 'cloud' || hasInstantCloudSnapshot || cloudGateForceRelease) return;
+    const timer = setTimeout(() => setCloudGateForceRelease(true), 3000);
     return () => clearTimeout(timer);
-  }, [isAuthenticated, appMode, cloudGateForceRelease]);
-
-  // Keep the Cloud Run instance warm across PWA resumes. When the installed app is
-  // reopened (or the tab is refocused) after a while, the backing instance may have
-  // scaled to zero. A cheap, fire-and-forget /api/warmup ping starts the boot cache
-  // BEFORE the user signs in, so the real data fetch lands on an already-warm instance
-  // instead of paying the cold start at the worst possible moment. Touches no Firestore.
-  useEffect(() => {
-    if (appMode === 'local') return;
-    const warm = () => {
-      if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
-      try { fetch('/api/warmup', { cache: 'no-store', keepalive: true }).catch(() => {}); } catch {}
-    };
-    warm();
-    document.addEventListener('visibilitychange', warm);
-    return () => document.removeEventListener('visibilitychange', warm);
-  }, [appMode]);
-
-  // Safety net for the auth gate: if Firebase's onAuthStateChanged is unusually
-  // slow to fire (rare cold-start, ad blocker interference, flaky Wi-Fi), we
-  // never want the user trapped on the "Connecting…" splash. Firebase will
-  // still update state when it eventually responds.
-  useEffect(() => {
-    if (!authLoading) return;
-    const t = setTimeout(() => setAuthLoading(false), 700);
-    return () => clearTimeout(t);
-  }, [authLoading]);
+  }, [isAuthenticated, appMode, hasInstantCloudSnapshot, cloudGateForceRelease]);
 
   useEffect(() => {
     if (!isAuthenticated || authLoading || dataLoading) return;
@@ -1842,38 +1525,7 @@ const MainApp: React.FC = () => {
     settings: false
   });
   
-  const [data, setRawData] = useState<AppState>(INITIAL_DATA);
-
-  const setData = React.useCallback((valueOrUpdater: AppState | ((prev: AppState) => AppState)) => {
-    if (!isOnline && hasLoadedDataRef.current && !isCloudSyncApplyingRef.current) {
-      let nextData: AppState;
-      if (typeof valueOrUpdater === 'function') {
-        nextData = valueOrUpdater(data);
-      } else {
-        nextData = valueOrUpdater;
-      }
-      
-      const collections: (keyof AppState)[] = ['orders', 'invoices', 'customers', 'products', 'expenses', 'suppliers', 'settings', 'squads'];
-      let isActuallyWrite = false;
-      for (const col of collections) {
-        if (nextData[col] !== data[col]) {
-          isActuallyWrite = true;
-          break;
-        }
-      }
-      
-      if (isActuallyWrite) {
-        toast.error("يتعذر التعديل دون اتصال ⚠️", {
-          description: "البرنامج يعمل حالياً بالوضع للقراءة فقط بسبب انقطاع الإنترنت. لا يمكن إدخال أو تعديل البيانات.",
-          position: 'bottom-right',
-          className: 'arabic-font',
-          duration: 4000
-        });
-        return;
-      }
-    }
-    setRawData(valueOrUpdater);
-  }, [data, isOnline]);
+  const [data, setData] = useState<AppState>(INITIAL_DATA);
   const visibleNotifications = useMemo(
     () => getVisibleAdminNotifications(data?.notifications || []),
     [data?.notifications]
@@ -2520,14 +2172,21 @@ const MainApp: React.FC = () => {
       const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
       const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
       
-      for (const key of SHARDED_KEYS) {
+      SHARDED_KEYS.forEach(key => {
 	         if (shardedPayloads[key]) {
-            if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) continue;
+            if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) return;
 	            const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-            const shardContent = await buildShardContentAsync(key, shardedPayloads[key]);
+            const payloadStr = JSON.stringify(shardedPayloads[key]);
+            let shardContent;
+            if (payloadStr.length > 500000) {
+                const compressed = LZString.compressToBase64(payloadStr);
+                shardContent = { compressedData: compressed, isCompressed: true };
+            } else {
+                shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloads[key], isCompressed: false }));
+            }
             savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
          }
-      }
+      });
       
       await Promise.all(savePromises);
       addToast("تمت المزامنة ✨", "تم حفظ كافة البيانات في السحابة بنجاح.", "success");
@@ -2549,7 +2208,6 @@ const MainApp: React.FC = () => {
   const isCloudSyncApplyingRef = useRef(false);
   const lastRemoteKeysRef = useRef<Record<string, string>>({});
   const authoritativeDataWrittenAtRef = useRef<number>(0);
-  const lastSupplierTransfersFastSaveRef = useRef<string | null>(null);
 
   const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'supplierTransfers', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
   const BOOT_DEFERRED_SHARDED_KEYS = ['testimonials', 'campaigns', 'pulseAnalysisHistory', 'pulseReviews', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
@@ -2737,14 +2395,23 @@ const MainApp: React.FC = () => {
 	        const serializedRootCurrent = stableStringify(sanitizedRoot);
 	        const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: false })];
         
-	        for (const key of SHARDED_KEYS) {
+	        SHARDED_KEYS.forEach(key => {
 	           if (shardedPayloads[key] !== undefined) {
-              if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) continue;
+              if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) return;
 	              const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-              const shardContent = await buildShardContentAsync(key, shardedPayloads[key]);
+              const payloadStr = JSON.stringify(shardedPayloads[key]);
+              let shardContent;
+              
+              if (payloadStr.length > 500000) {
+                  const compressed = LZString.compressToBase64(payloadStr);
+                  shardContent = { compressedData: compressed, isCompressed: true };
+                  console.log(`Cloud Import: Compressed shard '${key}' from ${payloadStr.length} to ${compressed.length} chars.`);
+              } else {
+                  shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloads[key], isCompressed: false }));
+              }
 	              savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
 	           }
-	        }
+	        });
 
 	        try {
 	          const squadsSnap = await getDocs(collection(db, 'squads'));
@@ -2960,10 +2627,10 @@ const MainApp: React.FC = () => {
 	      loadedCloudShardKeysRef.current = new Set();
 	      lastRemoteKeysRef.current = {};
       authoritativeDataWrittenAtRef.current = 0;
-      // Removed the rAF stall: with hasInstantCloudSnapshot the user already
-      // skips the gate, so the extra frame just delayed the snapshot paint by
-      // ~16ms without any UX benefit. Setting state in a single batch lets the
-      // first paint already show the cached data.
+      // Yield one paint frame before heavy LZString decompress + JSON.parse.
+      // Guarantees the browser renders the loading/gate state first so the UI
+      // never appears frozen — the brief (~16ms) yield is invisible to the user.
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
       // جهّز آخر نسخة موثوقة خلف بوابة السحابة. لا نفعّل auto-save هنا لأن dataLoading ما زال true و isCloudSyncApplyingRef سيمنع أي كتابة عكسية.
       try {
         const instantSnapshot = parseStoredState(
@@ -3031,137 +2698,17 @@ const MainApp: React.FC = () => {
                console.error("Failed to sync orders collection:", e);
           }
       }
-
-      // 1b. Sync the lightweight invoices collection as a ledger safety mirror.
-      // Some admin-created payment links exist in the payment/session database before
-      // the large appData invoice shard finishes saving. Merging this collection keeps
-      // pending invoices visible in سجل الفواتير; paid status still follows the same
-      // existing webhook/auto-reconcile logic.
-      try {
-         const qInvoices = query(collection(db, 'invoices'), orderBy('date', 'desc'), limit(120));
-         invoicesUnsubscribe = onSnapshot(qInvoices, (snap) => {
-            const externalInvoices = snap.docs
-              .map(d => ({ id: d.id, ...d.data() }))
-              .filter((invoice: any) => {
-                if (!invoice || invoice.isDeleted) return false;
-                const cutoff = authoritativeDataWrittenAtRef.current;
-                if (!cutoff) return true;
-                const invoiceTime = getRecordTime(invoice);
-                return !invoiceTime || invoiceTime >= cutoff || String(invoice.id || '').startsWith('INV-');
-              });
-            if (externalInvoices.length === 0) return;
-            setData(prev => {
-                const prevInvoices = prev.invoices || [];
-                let changed = false;
-                const combined = [...prevInvoices];
-                externalInvoices.forEach((ei: any) => {
-                     const idx = combined.findIndex((inv: any) => String(inv.id || inv.invoiceId || inv.invoiceNo) === String(ei.id || ei.invoiceId || ei.invoiceNo));
-                     const externalIsPaid = isPaidStatus(ei.paymentStatus) || isPaidStatus(ei.payment_status) || isPaidStatus(ei.status) || ei.paid === true;
-                     const externalIsFailed = isFailedStatus(ei.paymentStatus) || isFailedStatus(ei.payment_status) || isFailedStatus(ei.status) || ei.failed === true;
-                     if (idx === -1) {
-                         combined.push(ei);
-                         changed = true;
-                     } else {
-                         const current = combined[idx] as any;
-                         const currentIsPaid = isPaidStatus(current.paymentStatus) || isPaidStatus(current.payment_status) || isPaidStatus(current.status) || current.paid === true;
-                         const currentIsFailed = isFailedStatus(current.paymentStatus) || isFailedStatus(current.payment_status) || isFailedStatus(current.status) || current.failed === true;
-                         const currentIsFinal = currentIsPaid || currentIsFailed;
-                         const externalIsFinal = externalIsPaid || externalIsFailed;
-
-                         // The invoices collection is only a visibility mirror. Never let an older
-                         // pending mirror snapshot downgrade a locally/webhook-confirmed paid invoice.
-                         if (currentIsFinal && !externalIsFinal) {
-                             const safePatch: any = {};
-                             if (!current.paymentLink && ei.paymentLink) safePatch.paymentLink = ei.paymentLink;
-                             if (!current.paymentUrl && ei.paymentUrl) safePatch.paymentUrl = ei.paymentUrl;
-                             if (!current.paymentURL && ei.paymentURL) safePatch.paymentURL = ei.paymentURL;
-                             if (!current.payment_id && ei.payment_id) safePatch.payment_id = ei.payment_id;
-                             if (!current.paymentId && ei.paymentId) safePatch.paymentId = ei.paymentId;
-                             if (Object.keys(safePatch).length > 0) {
-                                 combined[idx] = { ...current, ...safePatch };
-                                 changed = true;
-                             }
-                             return;
-                         }
-
-                         const statusChanged = current.status !== ei.status || current.paymentStatus !== ei.paymentStatus || current.payment_status !== ei.payment_status || current.payment_id !== ei.payment_id || current.paymentId !== ei.paymentId || current.paid !== ei.paid || current.failed !== ei.failed;
-                         const linkMissing = !current.paymentLink && !!ei.paymentLink;
-                         if (statusChanged || linkMissing) {
-                             const merged = { ...current, ...ei } as any;
-                             if (currentIsPaid || externalIsPaid) {
-                                 merged.paymentStatus = 'paid';
-                                 merged.payment_status = 'paid';
-                                 merged.status = isPaidStatus(merged.status) ? merged.status : 'تم الدفع بنجاح';
-                                 merged.paid = true;
-                                 merged.failed = false;
-                                 merged.canPay = false;
-                             }
-                             combined[idx] = merged;
-                             changed = true;
-                         }
-                     }
-                });
-                if (changed) {
-                    combined.sort((a: any, b: any) => getRecordTime(b) - getRecordTime(a));
-                    return { ...prev, invoices: combined };
-                }
-                return prev;
-            });
-         }, (err) => {
-            if (!String(err).includes("Missing or insufficient permissions")) {
-               console.error("invoices sync error: ", err);
-            }
-         });
-      } catch (e: any) {
-          if (!String(e).includes("Missing or insufficient permissions")) {
-               console.error("Failed to sync invoices collection:", e);
-          }
-      }
       
       // 2. Fast path: load the full shared database through the Admin server.
       // This avoids slow browser Firestore shard reads on first entry and keeps Admin/Order on the same source.
-      // Uses prewarmCloudBoot(): the request was fired the moment the app shell loaded,
-      // so by the time we reach here it has usually already resolved — masking Cloud Run cold-starts.
-      // The helper also enforces a per-attempt timeout and one retry so a hung request can never
-      // strand the user (the previous code had no timeout and required a manual page reload).
       try {
         isCloudSyncApplyingRef.current = true;
         const __perfT0 = performance.now();
-        let fastPayload: any = null;
-        try {
-          fastPayload = await prewarmCloudBoot();
-        } catch (prewarmErr) {
-          console.warn('[FAST_APPDATA] prewarm failed; falling back to direct Firestore reads.', prewarmErr);
-        }
-        if (fastPayload) {
+        const fastRes = await fetch('/api/appdata/full?profile=boot', { cache: 'no-store' });
+        if (fastRes.ok) {
+          const fastPayload = await fastRes.json();
           const __perfNet = performance.now();
           if (fastPayload?.success && fastPayload?.data) {
-            const expectedResetGenerationId = (() => {
-              try {
-                return localStorage.getItem(ADMIN_RESET_EXPECTED_GENERATION_KEY) || '';
-              } catch {
-                return '';
-              }
-            })();
-            const fastPayloadGenerationId = String(
-              fastPayload.data.__adminDataGenerationId || '',
-            );
-
-            // Immediately after a full reset, the Cloud Run in-memory cache can need
-            // a brief moment to receive Firestore snapshots. Never accept its older
-            // generation, because doing so would paint old data and auto-save it back.
-            if (
-              expectedResetGenerationId &&
-              fastPayloadGenerationId !== expectedResetGenerationId
-            ) {
-              throw new Error('STALE_FAST_APPDATA_AFTER_ADMIN_RESET');
-            }
-            if (expectedResetGenerationId) {
-              try {
-                localStorage.removeItem(ADMIN_RESET_EXPECTED_GENERATION_KEY);
-              } catch {}
-            }
-
             let loadedState: any = joinProductsFromDatabase({ ...INITIAL_DATA, ...fastPayload.data });
             const rootWrittenAt = new Date(loadedState.__adminLastAuthoritativeWriteAt || '').getTime();
             authoritativeDataWrittenAtRef.current = Number.isFinite(rootWrittenAt) ? rootWrittenAt : 0;
@@ -3291,17 +2838,6 @@ const MainApp: React.FC = () => {
         if (rootSnap.exists()) {
           cloudRootExistsRef.current = true;
 	          const rawRootData = rootSnap.data() as any;
-          try {
-            const expectedResetGenerationId =
-              localStorage.getItem(ADMIN_RESET_EXPECTED_GENERATION_KEY) || '';
-            if (
-              expectedResetGenerationId &&
-              String(rawRootData.__adminDataGenerationId || '') ===
-                expectedResetGenerationId
-            ) {
-              localStorage.removeItem(ADMIN_RESET_EXPECTED_GENERATION_KEY);
-            }
-          } catch {}
           const rootWrittenAt = new Date(rawRootData.__adminLastAuthoritativeWriteAt || '').getTime();
           authoritativeDataWrittenAtRef.current = Number.isFinite(rootWrittenAt) ? rootWrittenAt : 0;
           const rootDataOnly = { ...rawRootData };
@@ -3464,75 +3000,17 @@ const MainApp: React.FC = () => {
     return () => {
       if (syncUnsubscribe) syncUnsubscribe();
       if (ordersUnsubscribe) ordersUnsubscribe();
-      if (invoicesUnsubscribe) invoicesUnsubscribe();
     };
   }, [user, appMode, triggerSyncReload]);
-
-  // Supplier payments are accounting-critical: persist them quickly so a paid supplier
-  // does not appear unpaid again if the page/app is closed before the normal large-data debounce.
-  useEffect(() => {
-    if (
-      !hasLoadedDataRef.current ||
-      isCloudSyncApplyingRef.current ||
-      (window as any).__ktkAdminResetInProgress
-    ) return;
-
-    const supplierTransfersSnapshot = stableStringify(data?.supplierTransfers || []);
-    if (lastSupplierTransfersFastSaveRef.current === null) {
-      lastSupplierTransfersFastSaveRef.current = supplierTransfersSnapshot;
-      return;
-    }
-    if (supplierTransfersSnapshot === lastSupplierTransfersFastSaveRef.current) return;
-
-    const timeoutId = setTimeout(async () => {
-      if (
-        !hasLoadedDataRef.current ||
-        isCloudSyncApplyingRef.current ||
-        (window as any).__ktkAdminResetInProgress
-      ) return;
-
-      try {
-        if (appMode === 'local') {
-          const localDataStr = JSON.stringify(data);
-          if (localDataStr && localDataStr !== '{}' && hasMeaningfulData(data)) {
-            setProtectedStorageItem('ktk_local_accounting_data_last_good', localDataStr);
-            setProtectedStorageItem('ktk_local_accounting_data', localDataStr);
-          }
-        }
-
-        if (user && appMode === 'cloud') {
-          const shardRef = getSmartDoc('appData', user.uid, user.email, 'shards/supplierTransfers');
-          const shardContent = await buildShardContentAsync('supplierTransfers', data?.supplierTransfers || []);
-          await setDoc(shardRef, shardContent, { merge: false });
-          lastRemoteKeysRef.current['supplierTransfers'] = supplierTransfersSnapshot;
-          loadedCloudShardKeysRef.current.add('supplierTransfers');
-        }
-
-        lastSupplierTransfersFastSaveRef.current = supplierTransfersSnapshot;
-      } catch (e) {
-        console.error('Supplier transfers fast-save error', e);
-      }
-    }, 600);
-
-    return () => clearTimeout(timeoutId);
-  }, [data?.supplierTransfers, data, user, appMode]);
 
   // Auto-save: Handle Local and Cloud separately with debounce for performance
   useEffect(() => {
     // Strictly prevent auto-saving INITIAL_DATA or cloud snapshots while loading/applying remote data.
-    if (
-      !hasLoadedDataRef.current ||
-      isCloudSyncApplyingRef.current ||
-      (window as any).__ktkAdminResetInProgress
-    ) return;
+    if (!hasLoadedDataRef.current || isCloudSyncApplyingRef.current) return;
 
     const timeoutId = setTimeout(async () => {
       // Re-check refs inside timeout to prevent saving right after mode transition
-      if (
-        !hasLoadedDataRef.current ||
-        isCloudSyncApplyingRef.current ||
-        (window as any).__ktkAdminResetInProgress
-      ) return;
+      if (!hasLoadedDataRef.current || isCloudSyncApplyingRef.current) return;
 
       // Save to Local Storage if explicitly in local mode
       if (appMode === 'local') {
@@ -3566,11 +3044,7 @@ const MainApp: React.FC = () => {
           });
 
           // Re-check after idle yield in case state changed or sync is in progress
-          if (
-            !hasLoadedDataRef.current ||
-            isCloudSyncApplyingRef.current ||
-            (window as any).__ktkAdminResetInProgress
-          ) return;
+          if (!hasLoadedDataRef.current || isCloudSyncApplyingRef.current) return;
 
           // لا نحدّث آخر لقطة إلا بعد نجاح الحفظ، حتى لا نخسر محاولة لاحقة.
           
@@ -3624,11 +3098,19 @@ const MainApp: React.FC = () => {
           }
 
           // 4. Save Shards (only for changed parts)
-          for (const key of Object.keys(shardedPayloadsToSave)) {
+          Object.keys(shardedPayloadsToSave).forEach(key => {
              const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-
-             const shardContent = await buildShardContentAsync(key, shardedPayloadsToSave[key]);
-
+             
+             const payloadStr = JSON.stringify(shardedPayloadsToSave[key]);
+             let shardContent;
+             if (payloadStr.length > 500000) {
+                 const compressed = LZString.compressToBase64(payloadStr);
+                 shardContent = { compressedData: compressed, isCompressed: true };
+                 console.log(`Compressed shard '${key}' from ${payloadStr.length} chars to ${compressed.length} chars...`);
+             } else {
+                 shardContent = JSON.parse(JSON.stringify({ [key]: shardedPayloadsToSave[key], isCompressed: false }));
+             }
+             
              console.log(`Saving modified shard '${key}' to Firestore...`);
              // merge: false so old uncompressed arrays don't linger if transitioning
              savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
@@ -3677,7 +3159,7 @@ const MainApp: React.FC = () => {
                  console.warn('[MIRROR] Error parsing previous squads for deletion check:', parseErr);
                }
              }
-          }
+          });
 
           await Promise.all(savePromises);
 
@@ -3929,12 +3411,7 @@ const MainApp: React.FC = () => {
     );
   };
 
-  // Hold the cloud splash until real data is genuinely loaded (write-safe) — NOT merely
-  // because a cached snapshot exists. Letting an employee edit on top of a stale snapshot
-  // before the sync lands is exactly how their work gets clobbered ("nothing uploaded").
-  // The gate blocks all interaction until hasLoadedDataRef flips true (fast on a warm
-  // server), with cloudGateForceRelease as a long-timeout safety valve against a hung load.
-  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && !cloudGateForceRelease && (!isOnline || dataLoading || !hasLoadedDataRef.current);
+  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && !hasInstantCloudSnapshot && !cloudGateForceRelease && (!isOnline || (dataLoading && !hasLoadedDataRef.current));
 
   if (shouldHoldCloudEntry) {
     return (
@@ -4315,44 +3792,26 @@ const MainApp: React.FC = () => {
           </nav>
         )}
 
-
+        <div className="p-4 md:p-6 border-t border-white/5 space-y-4 relative z-10">
+        </div>
       </motion.aside>
 
       {/* Main Content Area */}
       <div className={cn(
         "flex-1 flex flex-col relative overflow-hidden transition-colors duration-1000"
       )}>
-        {!isOnline && (
-          <div className="bg-rose-50 border-b border-rose-150 text-rose-700 py-2 px-3 text-center text-[10px] sm:text-xs font-bold flex items-center justify-center gap-2 relative z-[101] overflow-hidden shrink-0" dir="rtl">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-            <span className="truncate">لا يوجد اتصال بالإنترنت... وضع القراءة فقط</span>
-            <button
-              onClick={handleManualRetryOffline}
-              disabled={retryingOffline}
-              className="mr-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full transition-all flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
-              title="إعادة المحاولة"
-            >
-              {retryingOffline ? (
-                <Loader2 size={11} className="animate-spin" />
-              ) : (
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" /></svg>
-              )}
-            </button>
-          </div>
-        )}
         {/* Top Header */}
         <header 
           onClick={closeAllMenus}
-          className="h-16 md:h-20 glass-surface border-b border-slate-200/60 flex items-center justify-between px-3 xs:px-4 lg:px-10 z-[100] sticky top-0 shadow-sm shrink-0"
+          className="h-12 md:h-20 glass-surface border-b border-slate-200/60/50 flex items-center justify-between px-4 lg:px-10 z-[100] sticky top-0 shadow-sm"
         >
-          <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink min-w-0">
+          <div className="flex items-center gap-2 sm:gap-4 lg:gap-4 md:p-8 shrink min-w-0">
             {userRole !== 'partner' && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setSidebarOpen(!sidebarOpen); }}
-                className="p-2 hover:bg-slate-900 group rounded-[0.8rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0"
-                title="القائمة الجانبية"
+                className="p-2.5 sm:p-3 hover:bg-slate-900 group rounded-[1.2rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0"
               >
-                <Menu size={18} className="group-hover:rotate-180 transition-transform duration-500" />
+                <Menu size={20} className="group-hover:rotate-180 transition-transform duration-500" />
               </button>
             )}
             {userRole !== 'partner' && <div className="hidden sm:block h-4 w-[1px] bg-slate-200" />}
@@ -4366,31 +3825,31 @@ const MainApp: React.FC = () => {
               }}
               title="العودة للصفحة الرئيسية"
               className={cn(
-                "flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11 rounded-[0.8rem] sm:rounded-2xl transition-all group shrink-0",
+                "flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-[1rem] sm:rounded-2xl transition-all group shrink-0",
                 currentPage === 'dashboard' ? "bg-slate-900 text-white shadow-xl shadow-slate-200" : "bg-slate-100/50 hover:bg-slate-200 text-slate-600"
               )}
             >
-              <Home size={16} className="group-hover:scale-110 transition-transform" />
+              <Home size={18} className="group-hover:scale-110 transition-transform" />
             </button>
             
-            <div className="flex items-center gap-1.5 shrink-0" title={appMode === 'cloud' ? "متصل بالسحابة" : "غير متصل"}>
+            <div className="flex items-center gap-2 py-1.5 px-3 rounded-full bg-slate-50 border border-slate-100 shrink-0 shadow-sm" title={appMode === 'cloud' ? "تم الاتصال بالسحابة بنجاح" : "تعمل بوضع غير متصل"}>
               {dataLoading ? (
-                 <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping" />
+                 <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping" />
               ) : (
-                 <div className={cn("w-1.5 h-1.5 rounded-full", appMode === 'cloud' ? "bg-emerald-500" : "bg-red-500")} />
+                <div className="relative flex items-center justify-center">
+                   <div className={cn("w-2 h-2 rounded-full", appMode === 'cloud' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse-slow" : "bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]")} />
+                </div>
               )}
             </div>
             
             {deferredChromeReady && (
               <React.Suspense fallback={null}>
-                <div className="hidden xs:block scale-75 origin-left">
-                  <SystemPulseOrb data={data} />
-                </div>
+                <SystemPulseOrb data={data} />
               </React.Suspense>
             )}
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink-0">
+          <div className="flex items-center gap-3 lg:gap-4 md:p-6 shrink-0">
              {/* Magic Command Bar Trigger */}
              {userRole !== 'partner' && (
               <button 
@@ -4420,27 +3879,27 @@ const MainApp: React.FC = () => {
                   setSidebarOpen(false);
                 }}
                 title="إنشاء فاتورة جديدة"
-                className="flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11 bg-slate-900 text-white rounded-[0.8rem] sm:rounded-2xl font-bold shadow-md sm:shadow-xl hover:bg-slate-800 transition-all transform hover:scale-105 active:scale-95 group shrink-0"
+                className="hidden sm:flex items-center justify-center w-12 h-12 bg-slate-900 text-white rounded-[1rem] sm:rounded-2xl font-bold shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all transform hover:scale-105 active:scale-95 group"
               >
-                <Plus size={16} className="sm:size-5 group-hover:rotate-90 transition-transform" />
+                <Plus size={20} className="group-hover:rotate-90 transition-transform" />
               </button>
 
               <button 
                 onClick={() => { try { localStorage.setItem('ai_context_page', currentPage); } catch {} setCurrentPage('ai'); setSidebarOpen(false); }}
                 title="مساعد التراث الذكي"
                 className={cn(
-                  "flex w-9 h-9 sm:w-11 sm:h-11 rounded-[0.8rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden shrink-0",
+                  "flex w-12 h-12 rounded-[1rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden",
                   currentPage === 'ai' ? "bg-slate-900 text-white shadow-xl scale-105" : "bg-slate-100/50 text-slate-500 hover:bg-white hover:shadow-lg border border-transparent hover:border-amber-200/40"
                 )}
               >
-                <Bot size={18} className={cn("transition-all relative z-10", currentPage === 'ai' ? "text-amber-400" : "group-hover:text-amber-500 group-hover:scale-110")} />
+                <Bot size={22} className={cn("transition-all relative z-10", currentPage === 'ai' ? "text-amber-400" : "group-hover:text-amber-500 group-hover:scale-110")} />
                 {currentPage === 'ai' && (
                   <motion.div 
                     layoutId="aiActiveHeader"
                     className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-950"
                   />
                 )}
-                <span className="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full animate-ping border border-white z-20" />
+                <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping border border-white z-20" />
               </button>
 
             {/* Notifications */}
@@ -4448,15 +3907,15 @@ const MainApp: React.FC = () => {
               <button 
                 onClick={(e) => { e.stopPropagation(); setNotifOpen(!notifOpen); }}
                 className={cn(
-                  "flex w-9 h-9 sm:w-11 sm:h-11 rounded-[0.8rem] sm:rounded-2xl items-center justify-center transition-all relative z-50",
-                  notifOpen ? "bg-slate-200 text-slate-800 animate-none" : "bg-slate-100/50 hover:bg-slate-200 text-slate-600"
+                  "p-2 rounded-full transition-colors relative z-50",
+                  notifOpen ? "bg-slate-100" : "hover:bg-slate-100"
                 )}
                 title="عرض التنبيهات"
                 aria-label="تنبيهات"
               >
-                <Bell size={18} className={cn("transition-colors", notifOpen ? "text-primary" : "text-slate-600")} />
+                <Bell size={20} className={cn("transition-colors", notifOpen ? "text-primary" : "text-slate-600")} />
                 {hasUnreadVisibleNotifications && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-white animate-pulse" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-white" />
                 )}
               </button>
               
@@ -4471,11 +3930,11 @@ const MainApp: React.FC = () => {
                       className="fixed inset-0 bg-black/15 z-[9998]"
                     />
                       <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute left-0 mt-3 w-[290px] xs:w-[320px] sm:w-[380px] md:w-[420px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200/60 z-[9999] overflow-hidden origin-top-left"
+                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                       animate={{ opacity: 1, y: 0, scale: 1 }}
+                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                       transition={{ duration: 0.2 }}
+                       className="absolute left-0 mt-3 w-[290px] xs:w-[320px] sm:w-[380px] md:w-[420px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200/60 z-[9999] overflow-hidden origin-top-left"
                       >
                       <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white">
                         <span className="font-bold text-slate-800 text-sm sm:text-base">التنبيهات الذكية</span>
@@ -4587,14 +4046,14 @@ const MainApp: React.FC = () => {
                 }
                 setCurrentPage('settings');
               }}
-              className={cn("flex items-center gap-1.5 sm:gap-2.5 pl-1 sm:pl-2 p-1 rounded-2xl transition-all max-w-[150px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent cursor-pointer hover:bg-slate-100/50 hover:scale-105 active:scale-95")}
+              className={cn("flex items-center gap-2 sm:gap-3 pl-2 p-1.5 rounded-2xl transition-colors max-w-[120px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent", userRole === 'partner' ? "cursor-default opacity-80" : "cursor-pointer hover:bg-slate-100 hover:border-slate-200/60")}
             >
-              <div className="text-right hidden md:flex flex-col overflow-hidden leading-tight min-w-0">
-                <div className="text-[11px] sm:text-xs font-bold truncate text-slate-800">{user?.displayName || 'د. أحمد الفيلكاوي'}</div>
-                <div className="text-[9px] text-slate-500 truncate">{user?.email || 'volcanokw@gmail.com'}</div>
+              <div className="text-left hidden xs:block overflow-hidden">
+                <div className="text-sm font-bold truncate text-slate-800">{user?.displayName || 'أحمد الفيلكاوي'}</div>
+                <div className="text-[10px] text-slate-500 truncate">{user?.email || 'مدير النظام'}</div>
               </div>
               {user?.photoURL ? (
-                <img src={user.photoURL} alt="User" className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-250 shrink-0 shadow-sm" referrerPolicy="no-referrer" />
+                <img src={user.photoURL} alt="User" className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-primary/20 shrink-0 shadow-sm" referrerPolicy="no-referrer" />
               ) : (
                 <div className="w-8 h-8 sm:w-9 sm:h-9 bg-primary/10 rounded-full border-2 border-primary/20 flex items-center justify-center font-bold text-primary text-xs shrink-0 shadow-sm">
                   {user?.displayName?.charAt(0) || 'أ'}
@@ -4604,10 +4063,10 @@ const MainApp: React.FC = () => {
 
           <button 
             onClick={handleLogout}
-            className="flex p-2 sm:p-2.5 bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white rounded-[0.8rem] sm:rounded-2xl transition-all shadow-sm group active:scale-95 border border-rose-100/50 shrink-0 cursor-pointer w-9 h-9 sm:w-11 sm:h-11 items-center justify-center"
+            className="p-2.5 sm:p-3 bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white rounded-[1.2rem] sm:rounded-2xl transition-all shadow-sm group active:scale-95 border border-rose-100/50"
             title="تسجيل الخروج"
           >
-            <LogOut size={16} className="transition-transform group-hover:scale-110 group-hover:rotate-12" />
+            <LogOut size={20} className="transition-transform group-hover:scale-110 group-hover:rotate-12" />
           </button>
           
           <div className="h-6 w-[1px] bg-slate-200 ml-1 mr-1 hidden lg:block" />
@@ -4819,7 +4278,6 @@ const MainApp: React.FC = () => {
         </React.Suspense>
       )}
       <Toaster richColors position="bottom-right" closeButton />
-      {renderBeautifulOfflineModal()}
       
 
     </div>
@@ -5000,6 +4458,9 @@ const App: React.FC = () => {
      // Warm up the server cache silently while the user reads the splash screen.
      // This eliminates the Cloud Run cold-start delay before they even click login.
      fetch('/api/appdata/full?profile=boot', { cache: 'no-store' }).catch(() => {});
+     // Logo/name parsing removed: was doing full LZString decompress + double JSON.parse
+     // of the entire data state (potentially MB+) just to show values during a short splash.
+     // Default values are perfectly fine for 900ms. Actual values appear after data loads.
      const timer = setTimeout(() => {
        setShowSplash(false);
      }, 900);

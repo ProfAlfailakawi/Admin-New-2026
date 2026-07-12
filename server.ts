@@ -6113,8 +6113,6 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     for (const inv of invoices) {
       const invoiceId = alertsBusinessIdFor(inv, "INV-");
       if (!invoiceId || !alertsInWindow(inv, now)) continue;
-      // Deleted invoices must never trigger alerts (matches the !isDeleted convention used across the app)
-      if (inv?.isDeleted === true || inv?.deleted === true) continue;
       const st = alertsStatusFor(inv);
       if (failedInvoiceIds.has(invoiceId) || alertsIsFailed(st)) {
         const d = alertsBestDate(inv) || now;
@@ -6138,8 +6136,6 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     for (const order of orders) {
       const orderId = alertsBusinessIdFor(order, "ORD-");
       if (!orderId || !alertsInWindow(order, now)) continue;
-      // Deleted orders must never trigger alerts (matches the !isDeleted convention used across the app)
-      if (order?.isDeleted === true || order?.deleted === true) continue;
       const st = alertsStatusFor(order);
       const qatia = alertsIsQatiaLike(order, st);
       if (qatia && alertsIsPaid(st) && !alertsIsQatiaExpired(st)) { await alertsSendOnce(results, `safe-worker-qatia-completed-${orderId}`, { title: "✅ اكتملت القطية", body: `اكتملت القطية للطلب ${orderId} — تم الدفع بنجاح${alertsAmountText(order)}`, alertType: "qatia_completed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
