@@ -3285,23 +3285,6 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
   .invoice-new-page .invoice-products-grid{grid-template-columns:minmax(0,1fr)!important;grid-auto-rows:minmax(118px,auto)!important;}
   .invoice-new-page .invoice-product-card{min-height:118px!important;}
 }
-@media(min-width:641px){
-  /* Desktop fix: size product cards to their content (not stretched to the grid
-     height) so the price/+ footer stays visible. align-content is the key: the
-     default (stretch) was inflating rows when the grid had spare height. */
-  .invoice-new-page .invoice-products-grid{
-    align-content:start!important;
-    align-items:start!important;
-    grid-auto-rows:auto!important;
-    contain:none!important;
-  }
-  /* Desktop fix: let the "hidden" badge flow above the title instead of overlapping it. */
-  .invoice-new-page .invoice-hidden-badge{
-    position:static!important;
-    align-self:flex-start!important;
-    margin:0 0 .25rem 0!important;
-  }
-}
 
 
 /* clearer executive assistant output */
@@ -6241,8 +6224,7 @@ html body .login-brand-stage h1 {
   .invoice-new-page .invoice-products-grid {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(220px, 1fr)) !important;
-    grid-auto-rows: auto !important;
-    align-content: start !important;
+    grid-auto-rows: 1fr !important;
     align-items: stretch !important;
     gap: 12px !important;
     contain: none !important;
@@ -6250,7 +6232,7 @@ html body .login-brand-stage h1 {
   .invoice-new-page .invoice-product-card {
     width: 100% !important;
     min-height: 128px !important;
-    height: auto !important;
+    height: 100% !important;
     overflow: hidden !important;
   }
   .invoice-new-page .invoice-product-card-title {

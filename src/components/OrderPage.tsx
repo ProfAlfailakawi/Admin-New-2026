@@ -464,6 +464,12 @@ const OrderPage: React.FC<OrderPageProps> = ({
       );
       return supplierOptions.length > 1 && !(item as any).supplierSelected;
     });
+    console.log(
+      "DEBUG: hasUnselectedSuppliers for order",
+      order.id,
+      ":",
+      unresolved,
+    );
     return unresolved;
   };
 
@@ -482,6 +488,10 @@ const OrderPage: React.FC<OrderPageProps> = ({
         hasUnselectedSuppliers(order) &&
         !isVerifiedPaid;
       if (needsSupplier) {
+        console.log(
+          "DEBUG: Badge showing needs supplier alert for order",
+          order?.id,
+        );
         return "مدفوع – يحتاج اختيار المورد";
       }
       return "تم الدفع بنجاح";
@@ -1331,6 +1341,14 @@ const OrderPage: React.FC<OrderPageProps> = ({
     const linkedInvoice = order.linkedInvoiceId
       ? (data?.invoices || []).find((inv) => inv.id === order.linkedInvoiceId)
       : undefined;
+    console.log(
+      "DEBUG: Order:",
+      order.id,
+      "linkedInvoiceId:",
+      order.linkedInvoiceId,
+      "linkedInvoice:",
+      linkedInvoice,
+    );
     const paymentLink =
       linkedInvoice?.paymentLink ||
       (linkedInvoice as any)?.paymentUrl ||
@@ -1341,6 +1359,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
       (order as any).url ||
       (order as any).link ||
       (linkedInvoice as any)?.splitLink;
+    console.log("DEBUG: Found paymentLink:", paymentLink);
 
     const invoiceNumber = linkedInvoice?.id || `INV-${order.id.slice(-6)}`;
     const isPaidNow =
@@ -2287,6 +2306,22 @@ Alturath.kw`;
                                                           .supplierSelected
                                                       );
                                                     });
+
+                                                  console.log(
+                                                    "DEBUG: Auto-conversion check:",
+                                                    {
+                                                      stillNeedsSelection,
+                                                      isPaidStatusNew:
+                                                        isPaidStatus(
+                                                          newOrder.status,
+                                                        ),
+                                                      isMarkedAsPaid,
+                                                      status: newOrder.status,
+                                                      paymentStatus: (
+                                                        newOrder as any
+                                                      ).paymentStatus,
+                                                    },
+                                                  );
 
                                                   if (
                                                     !stillNeedsSelection &&

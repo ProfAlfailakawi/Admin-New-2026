@@ -65,6 +65,8 @@ import {
   collection,
   doc,
   getDocs,
+  limit,
+  query,
   setDoc,
   writeBatch,
 } from "firebase/firestore";
@@ -107,6 +109,8 @@ interface Props {
 
 const WHATSAPP_QUICK_REPLIES_STORAGE_KEY = "alturath_whatsapp_quick_replies_v1";
 const WHATSAPP_QUICK_REPLIES_SHEET = "WhatsAppQuickReplies";
+const ADMIN_RESET_EXPECTED_GENERATION_KEY =
+  "ktk_expected_admin_reset_generation_id";
 
 type PushDeviceSnapshot = {
   id: string;
@@ -2132,6 +2136,9 @@ const GeneralSettings: React.FC<Props> = ({
   const handleResetData = async () => {
     if (isResetting) return;
     setIsResetting(true);
+    try {
+      (window as any).__ktkAdminResetInProgress = true;
+    } catch {}
     addToast("جاري التصفير", "يتم حفظ نسخة أمان ثم تنظيف البيانات.", "info");
     try {
       const hasRealData =
@@ -2213,19 +2220,36 @@ const GeneralSettings: React.FC<Props> = ({
             }),
           );
 
-          const squadsSnap = await getDocs(collection(db, "squads"));
-          let batch = writeBatch(db);
-          let batchCount = 0;
-          for (const squadDoc of squadsSnap.docs) {
-            batch.delete(squadDoc.ref);
-            batchCount += 1;
-            if (batchCount >= 450) {
+          const deleteCollectionInBatches = async (collectionName: string) => {
+            while (true) {
+              const snapshot = await getDocs(
+                query(collection(db, collectionName), limit(450)),
+              );
+              if (snapshot.empty) break;
+
+              const batch = writeBatch(db);
+              snapshot.docs.forEach((documentSnapshot) => {
+                batch.delete(documentSnapshot.ref);
+              });
               await batch.commit();
-              batch = writeBatch(db);
-              batchCount = 0;
             }
+          };
+
+          // These live collections are merged back into the admin state by realtime
+          // listeners. They must be cleared with the main appData shards, otherwise
+          // old orders/invoices reappear immediately after a successful reset.
+          for (const collectionName of ["orders", "invoices", "squads"]) {
+            await deleteCollectionInBatches(collectionName);
           }
-          if (batchCount > 0) await batch.commit();
+
+          // Arm the next boot check only after every authoritative delete succeeds.
+          // This prevents a stale server cache from restoring the just-deleted data.
+          try {
+            localStorage.setItem(
+              ADMIN_RESET_EXPECTED_GENERATION_KEY,
+              generationId,
+            );
+          } catch {}
         } catch (cloudErr) {
           console.error("Cloud reset failed:", cloudErr);
           if (
@@ -2286,6 +2310,9 @@ const GeneralSettings: React.FC<Props> = ({
         "warning",
       );
     } finally {
+      try {
+        (window as any).__ktkAdminResetInProgress = false;
+      } catch {}
       setIsResetting(false);
     }
   };

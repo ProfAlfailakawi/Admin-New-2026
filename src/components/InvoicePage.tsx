@@ -275,7 +275,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
           o.linkedInvoiceId === invoice.id ||
           o.id === (invoice as any).linkedOrderId,
       );
-      const phone = customer?.phone || (order as any)?.customerPhone || (invoice as any)?.customerPhone || "";
+      const phone = customer?.phone || (order as any)?.customerPhone || "";
 
       if (!phone) return "#";
 
@@ -1206,7 +1206,7 @@ Alturath.kw`;
                   )}
                 >
                   {p.isActive === false && (
-                    <div className="invoice-hidden-badge absolute top-2 right-2 text-amber-700 bg-gradient-to-br from-amber-500/10 to-amber-600/15 border border-amber-500/30 px-2 py-0.5 rounded-lg shadow-sm font-black text-[10px] flex items-center gap-1 z-10 select-none animate-pulse">
+                    <div className="absolute top-2 right-2 text-amber-700 bg-gradient-to-br from-amber-500/10 to-amber-600/15 border border-amber-500/30 px-2 py-0.5 rounded-lg shadow-sm font-black text-[10px] flex items-center gap-1 z-10 select-none animate-pulse">
                       <span>مخفي 👁️✖️</span>
                     </div>
                   )}
