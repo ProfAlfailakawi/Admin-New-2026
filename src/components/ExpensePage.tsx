@@ -61,19 +61,22 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  if (!expenseForm.description || isNaN(rawAmount) || rawAmount <= 0) return;
  
  const cleanAmount = Math.abs(rawAmount);
+ const now = new Date().toISOString();
 
  if (editingId) {
  setData(prev => ({
  ...prev,
  expenses: prev.expenses.map(e => 
- e.id === editingId ? { ...e, ...expenseForm, amount: cleanAmount } : e
+ e.id === editingId ? { ...e, ...expenseForm, amount: cleanAmount, updatedAt: now } : e
 )
  }));
  } else {
- const id = Math.random().toString(36).substr(2, 9);
+ const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+ ? `EXP-${Date.now()}-${crypto.randomUUID()}`
+ : `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
  setData(prev => ({
  ...prev,
- expenses: [...prev.expenses, { ...expenseForm, id, amount: cleanAmount }]
+ expenses: [...prev.expenses, { ...expenseForm, id, amount: cleanAmount, createdAt: now, updatedAt: now }]
  }));
  }
  closeModal();

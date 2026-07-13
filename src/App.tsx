@@ -1843,25 +1843,28 @@ const MainApp: React.FC = () => {
   });
   
   const [data, setRawData] = useState<AppState>(INITIAL_DATA);
+  // Keep an immediate, synchronous pointer to the newest accepted state. Firestore shard
+  // compression/writes are asynchronous and can outlive the render that started them; this
+  // pointer plus the monotonic revision below lets every persistence path reject stale work.
+  const latestDataRef = useRef<AppState>(INITIAL_DATA);
+  const dataRevisionRef = useRef(0);
 
   const setData = React.useCallback((valueOrUpdater: AppState | ((prev: AppState) => AppState)) => {
+    const currentData = latestDataRef.current;
+    const nextData = typeof valueOrUpdater === 'function'
+      ? valueOrUpdater(currentData)
+      : valueOrUpdater;
+
     if (!isOnline && hasLoadedDataRef.current && !isCloudSyncApplyingRef.current) {
-      let nextData: AppState;
-      if (typeof valueOrUpdater === 'function') {
-        nextData = valueOrUpdater(data);
-      } else {
-        nextData = valueOrUpdater;
-      }
-      
       const collections: (keyof AppState)[] = ['orders', 'invoices', 'customers', 'products', 'expenses', 'suppliers', 'settings', 'squads'];
       let isActuallyWrite = false;
       for (const col of collections) {
-        if (nextData[col] !== data[col]) {
+        if (nextData[col] !== currentData[col]) {
           isActuallyWrite = true;
           break;
         }
       }
-      
+
       if (isActuallyWrite) {
         toast.error("يتعذر التعديل دون اتصال ⚠️", {
           description: "البرنامج يعمل حالياً بالوضع للقراءة فقط بسبب انقطاع الإنترنت. لا يمكن إدخال أو تعديل البيانات.",
@@ -1872,8 +1875,12 @@ const MainApp: React.FC = () => {
         return;
       }
     }
-    setRawData(valueOrUpdater);
-  }, [data, isOnline]);
+
+    if (nextData === currentData) return;
+    latestDataRef.current = nextData;
+    dataRevisionRef.current += 1;
+    setRawData(nextData);
+  }, [isOnline]);
   const visibleNotifications = useMemo(
     () => getVisibleAdminNotifications(data?.notifications || []),
     [data?.notifications]
@@ -2518,15 +2525,26 @@ const MainApp: React.FC = () => {
       
       const rootForStudioAndApp = withGoogleStudioRootMirror(rootDocDataWithMeta, splitData);
       const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
-      const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: true })];
+      const preparedShardContents: Record<string, any> = {};
       
       for (const key of SHARDED_KEYS) {
 	         if (shardedPayloads[key]) {
             if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) continue;
-	            const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-            const shardContent = await buildShardContentAsync(key, shardedPayloads[key]);
-            savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
+            preparedShardContents[key] = await buildShardContentAsync(key, shardedPayloads[key]);
          }
+      }
+
+      const savePromises: Promise<any>[] = [
+        enqueuePersistenceWrite('root', async () => {
+          await setDoc(rootDataRef, sanitizedRoot, { merge: true });
+        })
+      ];
+
+      for (const key of Object.keys(preparedShardContents)) {
+        savePromises.push(enqueuePersistenceWrite(`shard:${key}`, async () => {
+          const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+          await setDoc(shardRef, preparedShardContents[key], { merge: false });
+        }));
       }
       
       await Promise.all(savePromises);
@@ -2549,7 +2567,24 @@ const MainApp: React.FC = () => {
   const isCloudSyncApplyingRef = useRef(false);
   const lastRemoteKeysRef = useRef<Record<string, string>>({});
   const authoritativeDataWrittenAtRef = useRef<number>(0);
-  const lastSupplierTransfersFastSaveRef = useRef<string | null>(null);
+  const lastFinancialFastSaveRef = useRef<Record<'expenses' | 'supplierTransfers', string | null>>({
+    expenses: null,
+    supplierTransfers: null,
+  });
+  const financialFastSaveContextRef = useRef('');
+  const persistenceWriteChainsRef = useRef<Record<string, Promise<void>>>({});
+
+  const enqueuePersistenceWrite = (key: string, task: () => Promise<void>): Promise<void> => {
+    const previous = persistenceWriteChainsRef.current[key] || Promise.resolve();
+    const next = previous.catch(() => {}).then(task);
+    persistenceWriteChainsRef.current[key] = next;
+    next.finally(() => {
+      if (persistenceWriteChainsRef.current[key] === next) {
+        delete persistenceWriteChainsRef.current[key];
+      }
+    }).catch(() => {});
+    return next;
+  };
 
   const SHARDED_KEYS = ['invoices', 'orders', 'customers', 'expenses', 'testimonials', 'products', 'supplierCopies', 'supplierTransfers', 'pulseAnalysisHistory', 'pulseReviews', 'campaigns', 'squads', 'promocodes', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
   const BOOT_DEFERRED_SHARDED_KEYS = ['testimonials', 'campaigns', 'pulseAnalysisHistory', 'pulseReviews', 'aiLearningMemory', 'pulseArchiveAnalysis', 'deepArchiveAnalysis', 'nameMatchMemory'];
@@ -3468,56 +3503,108 @@ const MainApp: React.FC = () => {
     };
   }, [user, appMode, triggerSyncReload]);
 
-  // Supplier payments are accounting-critical: persist them quickly so a paid supplier
-  // does not appear unpaid again if the page/app is closed before the normal large-data debounce.
+  // Financial records are accounting-critical. Persist expenses and supplier payments quickly,
+  // independently of the large 8-second full-state save. The previous supplier-only effect also
+  // missed the first change after boot when its baseline had not been initialized yet.
   useEffect(() => {
+    const persistenceContext = `${appMode}:${user?.uid || 'local'}`;
+    if (financialFastSaveContextRef.current !== persistenceContext) {
+      financialFastSaveContextRef.current = persistenceContext;
+      lastFinancialFastSaveRef.current = { expenses: null, supplierTransfers: null };
+    }
+
     if (
+      dataLoading ||
       !hasLoadedDataRef.current ||
       isCloudSyncApplyingRef.current ||
       (window as any).__ktkAdminResetInProgress
     ) return;
 
-    const supplierTransfersSnapshot = stableStringify(data?.supplierTransfers || []);
-    if (lastSupplierTransfersFastSaveRef.current === null) {
-      lastSupplierTransfersFastSaveRef.current = supplierTransfersSnapshot;
+    const snapshots = {
+      expenses: stableStringify(data?.expenses || []),
+      supplierTransfers: stableStringify(data?.supplierTransfers || []),
+    };
+
+    const baselines = lastFinancialFastSaveRef.current;
+    if (baselines.expenses === null || baselines.supplierTransfers === null) {
+      baselines.expenses = snapshots.expenses;
+      baselines.supplierTransfers = snapshots.supplierTransfers;
       return;
     }
-    if (supplierTransfersSnapshot === lastSupplierTransfersFastSaveRef.current) return;
 
-    const timeoutId = setTimeout(async () => {
-      if (
-        !hasLoadedDataRef.current ||
-        isCloudSyncApplyingRef.current ||
-        (window as any).__ktkAdminResetInProgress
-      ) return;
+    const changedKeys = (['expenses', 'supplierTransfers'] as const).filter(
+      key => snapshots[key] !== baselines[key]
+    );
+    if (changedKeys.length === 0) return;
 
-      try {
-        if (appMode === 'local') {
-          const localDataStr = JSON.stringify(data);
-          if (localDataStr && localDataStr !== '{}' && hasMeaningfulData(data)) {
-            setProtectedStorageItem('ktk_local_accounting_data_last_good', localDataStr);
-            setProtectedStorageItem('ktk_local_accounting_data', localDataStr);
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      const run = async () => {
+        if (
+          cancelled ||
+          !hasLoadedDataRef.current ||
+          isCloudSyncApplyingRef.current ||
+          (window as any).__ktkAdminResetInProgress
+        ) return;
+
+        try {
+          if (appMode === 'local') {
+            const latestLocalData = latestDataRef.current;
+            const localDataStr = JSON.stringify(latestLocalData);
+            if (localDataStr && localDataStr !== '{}' && hasMeaningfulData(latestLocalData)) {
+              setProtectedStorageItem('ktk_local_accounting_data_last_good', localDataStr);
+              setProtectedStorageItem('ktk_local_accounting_data', localDataStr);
+              changedKeys.forEach(key => {
+                const latestSnapshot = stableStringify((latestLocalData as any)?.[key] || []);
+                if (latestSnapshot === snapshots[key]) baselines[key] = latestSnapshot;
+              });
+            }
+            return;
           }
-        }
 
-        if (user && appMode === 'cloud') {
-          const shardRef = getSmartDoc('appData', user.uid, user.email, 'shards/supplierTransfers');
-          const shardContent = await buildShardContentAsync('supplierTransfers', data?.supplierTransfers || []);
-          await setDoc(shardRef, shardContent, { merge: false });
-          lastRemoteKeysRef.current['supplierTransfers'] = supplierTransfersSnapshot;
-          loadedCloudShardKeysRef.current.add('supplierTransfers');
-        }
+          if (!user || appMode !== 'cloud') return;
 
-        lastSupplierTransfersFastSaveRef.current = supplierTransfersSnapshot;
-      } catch (e) {
-        console.error('Supplier transfers fast-save error', e);
-      }
+          for (const key of changedKeys) {
+            if (cancelled) return;
+            await enqueuePersistenceWrite(`shard:${key}`, async () => {
+              if (cancelled) return;
+
+              const latestValue = (latestDataRef.current as any)?.[key] || [];
+              const latestSnapshot = stableStringify(latestValue);
+              if (latestSnapshot !== snapshots[key]) return;
+
+              const shardContent = await buildShardContentAsync(key, latestValue);
+              if (cancelled) return;
+
+              const newestValue = (latestDataRef.current as any)?.[key] || [];
+              const newestSnapshot = stableStringify(newestValue);
+              if (newestSnapshot !== latestSnapshot) return;
+
+              const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+              await setDoc(shardRef, shardContent, { merge: false });
+
+              lastRemoteKeysRef.current[key] = latestSnapshot;
+              loadedCloudShardKeysRef.current.add(key);
+              baselines[key] = latestSnapshot;
+            });
+          }
+        } catch (e) {
+          console.error('Financial fast-save error', e);
+        }
+      };
+
+      void run();
     }, 600);
 
-    return () => clearTimeout(timeoutId);
-  }, [data?.supplierTransfers, data, user, appMode]);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [data?.expenses, data?.supplierTransfers, dataLoading, user, appMode]);
 
-  // Auto-save: Handle Local and Cloud separately with debounce for performance
+  // Auto-save: Handle Local and Cloud separately with debounce for performance.
+  // Every run carries the state revision that created it. If any newer state arrives while
+  // waiting, compressing, or preparing shards, the older run is cancelled before it can write.
   useEffect(() => {
     // Strictly prevent auto-saving INITIAL_DATA or cloud snapshots while loading/applying remote data.
     if (
@@ -3526,188 +3613,192 @@ const MainApp: React.FC = () => {
       (window as any).__ktkAdminResetInProgress
     ) return;
 
-    const timeoutId = setTimeout(async () => {
-      // Re-check refs inside timeout to prevent saving right after mode transition
-      if (
-        !hasLoadedDataRef.current ||
-        isCloudSyncApplyingRef.current ||
-        (window as any).__ktkAdminResetInProgress
-      ) return;
+    let cancelled = false;
+    const scheduledRevision = dataRevisionRef.current;
+    const isStaleRun = () => (
+      cancelled ||
+      scheduledRevision !== dataRevisionRef.current ||
+      !hasLoadedDataRef.current ||
+      isCloudSyncApplyingRef.current ||
+      (window as any).__ktkAdminResetInProgress
+    );
 
-      // Save to Local Storage if explicitly in local mode
+    const timeoutId = setTimeout(async () => {
+      if (isStaleRun()) return;
+
+      // Save to Local Storage if explicitly in local mode.
       if (appMode === 'local') {
-	          const localDataStr = JSON.stringify(data);
-	          if (localDataStr && localDataStr !== '{}' && hasMeaningfulData(data)) {
-	            setProtectedStorageItem('ktk_local_accounting_data_last_good', localDataStr);
-	            setProtectedStorageItem('ktk_local_accounting_data', localDataStr);
-	          }
-	      }
-      
-      // Auto-save to Cloud if in cloud mode and authenticated
+        const localDataStr = JSON.stringify(data);
+        if (!isStaleRun() && localDataStr && localDataStr !== '{}' && hasMeaningfulData(data)) {
+          setProtectedStorageItem('ktk_local_accounting_data_last_good', localDataStr);
+          setProtectedStorageItem('ktk_local_accounting_data', localDataStr);
+        }
+        return;
+      }
+
+      // Auto-save to Cloud if in cloud mode and authenticated.
       if (user && appMode === 'cloud') {
         try {
-	          const sanitizedDataStr = JSON.stringify(data);
-	          if (!sanitizedDataStr || sanitizedDataStr === '{}' || !hasMeaningfulData(data)) return;
-	          try { 
-	            saveCloudSnapshotMirror(sanitizedDataStr); 
-	          } catch {}
-          
-          // Deduplication: prevent writing back what we just read
-          if (sanitizedDataStr === lastRemoteSnapshotRef.current) {
-             return;
-          }
+          const sanitizedDataStr = JSON.stringify(data);
+          if (!sanitizedDataStr || sanitizedDataStr === '{}' || !hasMeaningfulData(data)) return;
 
-          // Yield to the browser before the heavy stableStringify work so UI stays responsive.
-          // The actual Firestore writes happen after this yield — logic is unchanged.
+          // Deduplication: prevent writing back what we just read.
+          if (sanitizedDataStr === lastRemoteSnapshotRef.current) return;
+
+          // Yield before heavy stableStringify work, but reject this run if a newer edit lands.
           await new Promise<void>(resolve => {
             const _ric = (window as any).requestIdleCallback;
             if (typeof _ric === 'function') _ric(() => resolve(), { timeout: 8000 });
             else setTimeout(resolve, 0);
           });
+          if (isStaleRun()) return;
 
-          // Re-check after idle yield in case state changed or sync is in progress
-          if (
-            !hasLoadedDataRef.current ||
-            isCloudSyncApplyingRef.current ||
-            (window as any).__ktkAdminResetInProgress
-          ) return;
+          const rootDataRef = getSmartDoc('appData', user.uid, user.email);
+          const splitData = splitProductsForDatabase(data);
 
-          // لا نحدّث آخر لقطة إلا بعد نجاح الحفظ، حتى لا نخسر محاولة لاحقة.
-          
-          // --- SHARDED AUTO-SAVE LOGIC ---
-	        const rootDataRef = getSmartDoc('appData', user.uid, user.email);
-	        const splitData = splitProductsForDatabase(data);
-	          // 1. Detect if the root document visible to Google/Looker Studio has changed.
-	          // Keep a recent-row mirror in root, while full data stays in shards.
-	          const rootDocData = withGoogleStudioRootMirror(
-	            withAuthoritativeSharedMeta({ ...splitData }),
-	            splitData
-	          );
+          // 1. Detect whether the root Google/Looker Studio mirror changed.
+          const rootDocData = withGoogleStudioRootMirror(
+            withAuthoritativeSharedMeta({ ...splitData }),
+            splitData
+          );
           const sanitizedRootPreview = makeFirestoreSafeRootDocument(rootDocData);
           const serializedRootCurrent = stableStringify(sanitizedRootPreview);
           const serializedRootLast = lastRemoteKeysRef.current['__root__'];
           const hasRootChanged = serializedRootCurrent !== serializedRootLast;
 
-          // 2. Detect exactly which sharded collections have changed
-          const shardedPayloadsToSave: any = {};
+          // 2. Detect exactly which authoritative shards changed.
+          const shardedPayloadsToSave: Record<string, any> = {};
           SHARDED_KEYS.forEach(key => {
             const currentVal = splitData[key];
-            if (currentVal !== undefined) {
-              const serializedCurrent = stableStringify(currentVal);
-              const serializedLast = lastRemoteKeysRef.current[key];
-              
-              if (serializedCurrent !== serializedLast) {
-                const shouldPersistShard = loadedCloudShardKeysRef.current.has(key) || hasMeaningfulValue(currentVal);
-                const dangerousEmptyOverwrite = isDangerousEmptyOverwrite(key, currentVal);
-                if (shouldPersistShard && !dangerousEmptyOverwrite) {
-                  shardedPayloadsToSave[key] = currentVal;
-                } else if (dangerousEmptyOverwrite) {
-                  console.warn(`[DATA_GUARD] Prevented empty overwrite for shard '${key}'. Keeping existing cloud data safe.`);
-                }
-              }
+            if (currentVal === undefined) return;
+
+            const serializedCurrent = stableStringify(currentVal);
+            const serializedLast = lastRemoteKeysRef.current[key];
+            if (serializedCurrent === serializedLast) return;
+
+            const shouldPersistShard = loadedCloudShardKeysRef.current.has(key) || hasMeaningfulValue(currentVal);
+            const dangerousEmptyOverwrite = isDangerousEmptyOverwrite(key, currentVal);
+            if (shouldPersistShard && !dangerousEmptyOverwrite) {
+              shardedPayloadsToSave[key] = currentVal;
+            } else if (dangerousEmptyOverwrite) {
+              console.warn(`[DATA_GUARD] Prevented empty overwrite for shard '${key}'. Keeping existing cloud data safe.`);
             }
           });
 
-          // Check if there is absolutely any work to do
           const needsAnyWrite = hasRootChanged || !cloudRootExistsRef.current || Object.keys(shardedPayloadsToSave).length > 0;
-          if (!needsAnyWrite) {
-             return;
-          }
+          if (!needsAnyWrite || isStaleRun()) return;
 
-          const savePromises = [];
-          
-          // 3. Save Root (only if modified or doesn't exist yet)
-          if (hasRootChanged || !cloudRootExistsRef.current) {
-             const sanitizedRoot = sanitizedRootPreview;
-             console.log("Saving root modifications to Firestore with Google Studio mirror...");
-	            savePromises.push(setDoc(rootDataRef, sanitizedRoot, { merge: false }));
-          }
-
-          // 4. Save Shards (only for changed parts)
+          // 3. Prepare every shard fully before starting any Firestore write. Previously writes
+          // began while later shards were still compressing, allowing an older run to finish last.
+          const preparedShardContents: Record<string, any> = {};
           for (const key of Object.keys(shardedPayloadsToSave)) {
-             const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+            if (isStaleRun()) return;
+            preparedShardContents[key] = await buildShardContentAsync(key, shardedPayloadsToSave[key]);
+            if (isStaleRun()) return;
+          }
 
-             const shardContent = await buildShardContentAsync(key, shardedPayloadsToSave[key]);
+          if (isStaleRun()) return;
+          const savePromises: Promise<any>[] = [];
 
-             console.log(`Saving modified shard '${key}' to Firestore...`);
-             // merge: false so old uncompressed arrays don't linger if transitioning
-             savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
+          if (hasRootChanged || !cloudRootExistsRef.current) {
+            console.log('Saving root modifications to Firestore with Google Studio mirror...');
+            savePromises.push(enqueuePersistenceWrite('root', async () => {
+              if (isStaleRun()) return;
+              await setDoc(rootDataRef, sanitizedRootPreview, { merge: false });
+            }));
+          }
 
-             // Realtime Mirror: Synchronize 'squads' (diwaniyas) changes directly to the shared, root-level 'squads' collection in Firestore.
-             // This ensures `/api/admin-dashboard-data` queries always match the actual admin actions instantly.
-             if (key === 'squads' && Array.isArray(shardedPayloadsToSave['squads'])) {
-               const currentSquads = shardedPayloadsToSave['squads'];
-               console.log(`[MIRROR] Mirroring ${currentSquads.length} diwaniyas/squads to root-level Firestore collection 'squads'...`);
-               const sharedDataRef = doc(db, 'appData', 'shared_company_data');
-               const sharedSquadsPayload = JSON.parse(JSON.stringify({
-                 squads: currentSquads,
-                 __adminSyncedSquadsAt: new Date().toISOString(),
-               }));
-               savePromises.push(setDoc(sharedDataRef, sharedSquadsPayload, { merge: true }));
-               
-               currentSquads.forEach((sq: any) => {
-                 if (sq && sq.id !== undefined) {
-	                   const squadDocRef = doc(db, 'squads', String(sq.id));
-	                   const sanitizedsq = JSON.parse(JSON.stringify({
-	                     ...sq,
-	                     __adminDataGenerationId: getAdminDataGenerationId(),
-	                     __adminSyncedFromSharedCompanyDataAt: new Date().toISOString(),
-	                   }));
-	                   savePromises.push(setDoc(squadDocRef, sanitizedsq, { merge: true }));
-                 }
-               });
+          for (const key of Object.keys(shardedPayloadsToSave)) {
+            console.log(`Saving modified shard '${key}' to Firestore...`);
+            savePromises.push(enqueuePersistenceWrite(`shard:${key}`, async () => {
+              if (isStaleRun()) return;
 
-               // Detect deletions
-               try {
-                 const prevSquadsVal = lastRemoteKeysRef.current['squads'];
-                 if (prevSquadsVal) {
-                   const prevSquadsList = JSON.parse(prevSquadsVal);
-                   if (Array.isArray(prevSquadsList)) {
-                     const currentIds = new Set(currentSquads.map((sq: any) => String(sq.id)));
-                     prevSquadsList.forEach((oldSq: any) => {
-                       const oldId = String(oldSq?.id || '');
-                       if (oldId && !currentIds.has(oldId)) {
-                         console.log(`[MIRROR] Detected deletion of squad ${oldId}. Deleting document from Firestore 'squads' collection...`);
-                         savePromises.push(deleteDoc(doc(db, 'squads', oldId)));
-                       }
-                     });
-                   }
-                 }
-               } catch (parseErr) {
-                 console.warn('[MIRROR] Error parsing previous squads for deletion check:', parseErr);
-               }
-             }
+              const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
+              await setDoc(shardRef, preparedShardContents[key], { merge: false });
+
+              // Realtime mirror for diwaniyas/squads is serialized with the authoritative shard.
+              if (key === 'squads' && Array.isArray(shardedPayloadsToSave.squads)) {
+                if (isStaleRun()) return;
+                const currentSquads = shardedPayloadsToSave.squads;
+                console.log(`[MIRROR] Mirroring ${currentSquads.length} diwaniyas/squads to root-level Firestore collection 'squads'...`);
+                const mirrorPromises: Promise<any>[] = [];
+                const sharedDataRef = doc(db, 'appData', 'shared_company_data');
+                const sharedSquadsPayload = JSON.parse(JSON.stringify({
+                  squads: currentSquads,
+                  __adminSyncedSquadsAt: new Date().toISOString(),
+                }));
+                mirrorPromises.push(setDoc(sharedDataRef, sharedSquadsPayload, { merge: true }));
+
+                currentSquads.forEach((sq: any) => {
+                  if (sq && sq.id !== undefined) {
+                    const squadDocRef = doc(db, 'squads', String(sq.id));
+                    const sanitizedsq = JSON.parse(JSON.stringify({
+                      ...sq,
+                      __adminDataGenerationId: getAdminDataGenerationId(),
+                      __adminSyncedFromSharedCompanyDataAt: new Date().toISOString(),
+                    }));
+                    mirrorPromises.push(setDoc(squadDocRef, sanitizedsq, { merge: true }));
+                  }
+                });
+
+                try {
+                  const prevSquadsVal = lastRemoteKeysRef.current.squads;
+                  if (prevSquadsVal) {
+                    const prevSquadsList = JSON.parse(prevSquadsVal);
+                    if (Array.isArray(prevSquadsList)) {
+                      const currentIds = new Set(currentSquads.map((sq: any) => String(sq.id)));
+                      prevSquadsList.forEach((oldSq: any) => {
+                        const oldId = String(oldSq?.id || '');
+                        if (oldId && !currentIds.has(oldId)) {
+                          console.log(`[MIRROR] Detected deletion of squad ${oldId}. Deleting document from Firestore 'squads' collection...`);
+                          mirrorPromises.push(deleteDoc(doc(db, 'squads', oldId)));
+                        }
+                      });
+                    }
+                  }
+                } catch (parseErr) {
+                  console.warn('[MIRROR] Error parsing previous squads for deletion check:', parseErr);
+                }
+
+                await Promise.all(mirrorPromises);
+              }
+            }));
           }
 
           await Promise.all(savePromises);
 
-          // Update sync refs upon successful writes to avoid self-save loops
+          // If a newer edit arrived after the network writes started, do not mark this old state
+          // as the current baseline. The newer effect remains responsible for the final write.
+          if (isStaleRun()) return;
+
           if (hasRootChanged || !cloudRootExistsRef.current) {
-             lastRemoteKeysRef.current['__root__'] = serializedRootCurrent;
-             cloudRootExistsRef.current = true;
+            lastRemoteKeysRef.current.__root__ = serializedRootCurrent;
+            cloudRootExistsRef.current = true;
           }
           Object.keys(shardedPayloadsToSave).forEach(key => {
-             lastRemoteKeysRef.current[key] = stableStringify(shardedPayloadsToSave[key]);
-             loadedCloudShardKeysRef.current.add(key);
+            lastRemoteKeysRef.current[key] = stableStringify(shardedPayloadsToSave[key]);
+            loadedCloudShardKeysRef.current.add(key);
           });
 
           lastRemoteSnapshotRef.current = sanitizedDataStr;
+          saveCloudSnapshotMirror(sanitizedDataStr);
           console.log(`Sharded auto-save successful. Saved blocks: ${hasRootChanged ? 'Root ' : ''}[${Object.keys(shardedPayloadsToSave).join(', ')}]`);
-          
         } catch (e) {
-          const isPermissionError = String(e).includes("Missing or insufficient permissions") || String(e).includes("PERMISSION_DENIED");
-          if (!isPermissionError) console.error("Firestore auto-save error", e);
-          
-          // Only show error if it's NOT a permission issue (common during sign-out)
-          if (user && !isPermissionError) {
-             const errorMsg = e instanceof Error ? e.message : String(e);
-             toast.error(`تعذر الحفظ السحابي. الخطأ: ${errorMsg}. تم الاحتفاظ بآخر نسخة سليمة محلياً.`);
+          const isPermissionError = String(e).includes('Missing or insufficient permissions') || String(e).includes('PERMISSION_DENIED');
+          if (!isPermissionError) console.error('Firestore auto-save error', e);
+
+          if (user && !isPermissionError && !cancelled) {
+            const errorMsg = e instanceof Error ? e.message : String(e);
+            toast.error(`تعذر الحفظ السحابي. الخطأ: ${errorMsg}. تم الاحتفاظ بآخر نسخة سليمة محلياً.`);
           }
         }
       }
-    }, 8000); // 8 second debounce for sharded saving — reduces stableStringify + Firestore write pressure
+    }, 8000);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
   }, [data, user, appMode]);
 
   // Deduplication handling logic below here

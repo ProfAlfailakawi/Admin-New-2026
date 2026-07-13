@@ -253,6 +253,8 @@ export interface Expense {
   amount: number;
   paymentMethod: PaymentMethod;
   date: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AppSettings {
