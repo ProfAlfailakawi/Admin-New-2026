@@ -102,6 +102,7 @@ import { playNewOrderAlert } from './lib/sounds';
 import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils';
 import { refreshPushRegistrationIfAlreadyAllowed } from './lib/pushNotifications';
 import { getProtectedStorageItem, getProtectedStorageItemFast, hasMeaningfulData, safeMergeData, setProtectedStorageItem } from './lib/dataGuard';
+import { useLiveFaviconStatus } from './lib/faviconStatus';
 
 // ── أداء الإقلاع: حفظ مرآة السحابة المحلية بدون تجميد الواجهة ──────────────────────
 // نسخة الـ snapshot مجرد مرآة قابلة للاستبدال لبيانات السحابة (عرض فوري عند الفتح + عمل دون إنترنت).
@@ -1292,6 +1293,7 @@ const MainApp: React.FC = () => {
     }
   });
   const [dataLoading, setDataLoading] = useState(false);
+  const [activePersistenceWrites, setActivePersistenceWrites] = useState(0);
   // cloudGateForceRelease: SAFETY NET ONLY. The cloud splash deliberately blocks ALL
   // interaction until real cloud data is loaded — employees must never edit on top of a
   // stale snapshot, because those edits get clobbered by the incoming sync ("nothing
@@ -1889,6 +1891,12 @@ const MainApp: React.FC = () => {
     () => visibleNotifications.some(n => !isNotificationReadForUi(n)),
     [visibleNotifications]
   );
+
+  useLiveFaviconStatus({
+    enabled: isAuthenticated,
+    syncing: authLoading || dataLoading || activePersistenceWrites > 0,
+    attention: !isOnline || hasUnreadVisibleNotifications,
+  });
   const [hasRunMigration, setHasRunMigration] = useState(false);
 
   // MIGRATION: Ensure old orders have the correct customer names matching the DB.
@@ -2576,7 +2584,14 @@ const MainApp: React.FC = () => {
 
   const enqueuePersistenceWrite = (key: string, task: () => Promise<void>): Promise<void> => {
     const previous = persistenceWriteChainsRef.current[key] || Promise.resolve();
-    const next = previous.catch(() => {}).then(task);
+    const next = previous.catch(() => {}).then(async () => {
+      setActivePersistenceWrites(count => count + 1);
+      try {
+        await task();
+      } finally {
+        setActivePersistenceWrites(count => Math.max(0, count - 1));
+      }
+    });
     persistenceWriteChainsRef.current[key] = next;
     next.finally(() => {
       if (persistenceWriteChainsRef.current[key] === next) {
