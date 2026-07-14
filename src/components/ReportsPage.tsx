@@ -26,6 +26,8 @@ const isSuccessfulPayerForDisplay = (payer: any) => {
 };
 
 import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly, formatKuwaitiTimeOnly } from '../lib/utils';
+import { db } from '../firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 import React, { useState, useEffect, useMemo } from "react";
 import {
   FileText,
@@ -187,7 +189,88 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
     setDeepLinkData,
     isPartner = false,
   }) => {
-    const unifiedInvoices = useMemo(() => getUnifiedInvoices(data), [data]);
+    const baseUnifiedInvoices = useMemo(() => getUnifiedInvoices(data), [data]);
+    const [liveLedgerInvoices, setLiveLedgerInvoices] = useState<any[]>([]);
+
+    // The main cloud shard is the complete historical archive, while newly created
+    // invoices are mirrored immediately to the lightweight `invoices` collection.
+    // Read that collection only while this screen is open, then merge it locally for
+    // display. Nothing here writes data or changes payment / notification behavior.
+    useEffect(() => {
+      const unsubscribe = onSnapshot(
+        collection(db, "invoices"),
+        (snapshot) => {
+          const rows = snapshot.docs.map((invoiceDoc) => {
+            const raw: any = invoiceDoc.data() || {};
+            const rawDate = raw.date || raw.createdAt || raw.updatedAt || raw.updatedAtServer;
+            let normalizedDate = rawDate;
+
+            if (rawDate && typeof rawDate.toDate === "function") {
+              normalizedDate = rawDate.toDate().toISOString();
+            } else if (rawDate && typeof rawDate.seconds === "number") {
+              normalizedDate = new Date(rawDate.seconds * 1000).toISOString();
+            }
+
+            return {
+              ...raw,
+              id: String(raw.id || raw.invoiceId || raw.invoiceNo || invoiceDoc.id),
+              date: normalizedDate || new Date(0).toISOString(),
+            };
+          });
+          setLiveLedgerInvoices(rows);
+        },
+        (error) => {
+          // Keep the already loaded full archive visible if the direct mirror is
+          // temporarily unavailable. This is deliberately display-only.
+          console.warn("Invoice ledger live read failed:", error);
+        },
+      );
+
+      return () => unsubscribe();
+    }, []);
+
+    const unifiedInvoices = useMemo(() => {
+      const merged = new Map<string, any>();
+      const withoutId: any[] = [];
+
+      const recordTime = (item: any) => {
+        const raw = item?.updatedAtServer || item?.updatedAt || item?.createdAt || item?.date;
+        if (!raw) return 0;
+        if (typeof raw?.toDate === "function") return raw.toDate().getTime();
+        if (typeof raw?.seconds === "number") return raw.seconds * 1000;
+        const parsed = new Date(raw).getTime();
+        return Number.isFinite(parsed) ? parsed : 0;
+      };
+
+      const mergeInvoice = (incoming: any) => {
+        if (!incoming) return;
+        const id = String(incoming.id || incoming.invoiceId || incoming.invoiceNo || "").trim();
+        if (!id) {
+          withoutId.push(incoming);
+          return;
+        }
+
+        const existing = merged.get(id);
+        if (!existing) {
+          merged.set(id, { ...incoming, id });
+          return;
+        }
+
+        // Preserve the richer historical record, but let the freshest mirror fields
+        // win so today's invoices and latest payment status appear immediately.
+        if (recordTime(incoming) >= recordTime(existing)) {
+          merged.set(id, { ...existing, ...incoming, id });
+        } else {
+          merged.set(id, { ...incoming, ...existing, id });
+        }
+      };
+
+      baseUnifiedInvoices.forEach(mergeInvoice);
+      liveLedgerInvoices.forEach(mergeInvoice);
+
+      return [...merged.values(), ...withoutId];
+    }, [baseUnifiedInvoices, liveLedgerInvoices]);
+
     const customersMap = useMemo(() => {
       const map = new Map<string, any>();
       (data?.customers || []).forEach((c) => {
