@@ -1747,6 +1747,56 @@ const WHATSAPP_GRAPH_VERSION = String(process.env.WHATSAPP_GRAPH_VERSION || "v24
 const WHATSAPP_ACCESS_TOKEN = () => String(process.env.WHATSAPP_ACCESS_TOKEN || "").trim();
 const WHATSAPP_PHONE_NUMBER_ID = () => String(process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim();
 const WHATSAPP_TEST_SECRET = () => String(process.env.WHATSAPP_TEST_SECRET || process.env.ADMIN_TEST_SECRET || "").trim();
+
+// Identities allowed to use the WhatsApp console. Mirrors isAdmin()/isPartner() in firestore.rules.
+const WA_CONSOLE_ALLOWED_UIDS = new Set([
+  "2KVrKwyvmVaKQYc9iiw87xoztrA3",
+  "abi4lzKo4VfiLkrBAkYfK8NjtLS2",
+  "L4qKc2PsZXamk96nvGTqPLjYhI03",
+  "0v30UI3SYyfzuGO15i5qRqejif62",
+  "2qUU5RXByXPkQASR1mJR9krryPd2",
+]);
+const WA_CONSOLE_ALLOWED_EMAILS = new Set([
+  "volcanokw@gmail.com",
+  "dr.ahmad.alfailakawi@gmail.com",
+  "alfailakawidrahmad@gmail.com",
+  "mfq241188@gmail.com",
+  "omaralawadhi67@gmail.com",
+]);
+// Extra owner-managed identities, comma separated, without redeploying code.
+const WA_CONSOLE_EXTRA_EMAILS = String(process.env.WHATSAPP_CONSOLE_EMAILS || "")
+  .split(",")
+  .map((x) => x.trim().toLowerCase())
+  .filter(Boolean);
+
+function waConsoleIdentityAllowed(uid: string, email: string) {
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  if (uid && WA_CONSOLE_ALLOWED_UIDS.has(uid)) return true;
+  if (cleanEmail && WA_CONSOLE_ALLOWED_EMAILS.has(cleanEmail)) return true;
+  if (cleanEmail && WA_CONSOLE_EXTRA_EMAILS.includes(cleanEmail)) return true;
+  return false;
+}
+
+// Gate for the admin-facing WhatsApp console. Customer conversations contain phone numbers and
+// message content, and /reply can send WhatsApp as the business, so these must never be public.
+// The webhook (Meta calls it) and the bridge (machine-to-machine) are excluded and keep their own checks.
+async function waRequireConsoleAuth(req: any, res: any, next: any) {
+  try {
+    const header = String(req.headers?.authorization || "");
+    const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+    if (!token) return res.status(401).json({ success: false, error: "Unauthorized: sign in as admin" });
+    const decoded: any = await admin.auth().verifyIdToken(token);
+    const uid = String(decoded?.uid || "");
+    const email = String(decoded?.email || "");
+    if (!waConsoleIdentityAllowed(uid, email)) {
+      return res.status(403).json({ success: false, error: "Forbidden: not an authorized account" });
+    }
+    req.waConsoleUser = { uid, email };
+    return next();
+  } catch {
+    return res.status(401).json({ success: false, error: "Unauthorized: invalid or expired session" });
+  }
+}
 const WHATSAPP_TRANSPORT = () => {
   const value = String(process.env.WHATSAPP_TRANSPORT || "cloud").trim().toLowerCase();
   return value === "web_bridge" ? "web_bridge" : "cloud";
@@ -2181,7 +2231,7 @@ const WA_DEFAULT_AUTO_REPLY_RULES: any[] = [
     action: "human",
     matchMode: "any",
     keywords: ["وليمة", "ولائم", "ذبيحة", "ذبايح", "عزيمة", "مناسبة", "عرس", "بوفيه", "كمية", "قوزي", "تجهيز"],
-    response: "هلا والله بطلبات الولائم 🇰🇼\nهذي طلبات نجهزها لك بعناية خاصة.\nخلّني أحوّلك لموظف المبيعات يرتب لك كل شي بالتفصيل.",
+    response: "هلا والله 🇰🇼\nخلّني أحوّلك لأحد موظفينا يرتب لك الطلب بالتفصيل.",
   },
   {
     id: "cancel-order",
@@ -2202,22 +2252,25 @@ const WA_DEFAULT_AUTO_REPLY_RULES: any[] = [
     response: "حياك الله 🤍\nتقدر تتابع طلبك لحظة بلحظة من هنا:\n{track_link}\n\nأو أرسل لنا رقم الطلب/الفاتورة ونجيبه لك على طول.",
   },
   {
+    // action:"products" answers from the live product list (real names + real prices),
+    // and falls back to the real short menu. No invented content.
     id: "menu",
-    title: "المنيو والطلب",
+    title: "المنيو والأصناف",
     priority: 600,
-    action: "reply",
+    action: "products",
     matchMode: "any",
     keywords: ["منيو", "المنيو", "قائمة", "الاصناف", "شنو عندكم", "وش عندكم", "الاكل", "اطلب", "menu"],
-    response: "ياهلا فيك 🇰🇼\nهذا المنيو والطلب المباشر:\n{menu_link}\n\nتختار، تدفع بأمان، ويوصلك 🤍\nوإذا تبي ترشيح، اكتب لنا عدد الأشخاص أو الصنف اللي بخاطرك.",
+    response: "",
   },
   {
+    // Real prices come from the live product list, not from text written here.
     id: "prices",
     title: "الأسعار",
     priority: 590,
-    action: "reply",
+    action: "products",
     matchMode: "any",
-    keywords: ["سعر", "الاسعار", "بكم", "بجم", "كم سعر", "كم يكلف", "التكلفة"],
-    response: "كل الأسعار محدّثة ومكتوبة جنب كل صنف في المنيو 🤍\n{menu_link}\n\nوإذا تبي عرض سعر لوليمة أو كمية، قل لنا وبنرتبها لك.",
+    keywords: ["سعر", "الاسعار", "بكم", "بجم", "كم سعر", "كم يكلف", "التكلفة", "بكم الذبيحة", "بكم القوزي"],
+    response: "",
   },
   {
     id: "delivery",
@@ -2226,7 +2279,7 @@ const WA_DEFAULT_AUTO_REPLY_RULES: any[] = [
     action: "reply",
     matchMode: "any",
     keywords: ["توصيل", "دليفري", "توصلون", "كم التوصيل", "رسوم التوصيل", "delivery", "متى توصلون"],
-    response: "نوصلك لين باب بيتك 🚗🤍\nرسوم التوصيل تظهر لك تلقائياً حسب منطقتك عند إتمام الطلب:\n{order_link}\n\nوفي مناطق يكون التوصيل مجاني عند حد معيّن — بيبيّن لك بالسلة.",
+    response: "حياك الله 🤍\nرسوم التوصيل تبيّن لك حسب منطقتك عند إتمام الطلب من الموقع:\n{order_link}",
   },
   {
     id: "areas",
@@ -2235,7 +2288,7 @@ const WA_DEFAULT_AUTO_REPLY_RULES: any[] = [
     action: "reply",
     matchMode: "any",
     keywords: ["مناطق", "وين توصلون", "توصلون منطقة", "تغطون", "منطقتي"],
-    response: "نغطي مناطق الكويت 🇰🇼\nاختر منطقتك بصفحة الطلب وبيطلع لك التوصيل والرسوم على طول:\n{order_link}\n\nوإذا ما لقيت منطقتك، قل لنا ونشوف لك حل.",
+    response: "حياك الله 🤍\nاختر منطقتك بصفحة الطلب وبيبيّن لك التوصيل ورسومه:\n{order_link}\n\nوإذا ما لقيت منطقتك، اكتب لنا ونحوّلك لموظف.",
   },
   {
     id: "hours",
@@ -2244,7 +2297,7 @@ const WA_DEFAULT_AUTO_REPLY_RULES: any[] = [
     action: "reply",
     matchMode: "any",
     keywords: ["دوام", "متى تفتحون", "مفتوح", "ساعات العمل", "وقت الدوام", "مسكرين", "مفتوحين"],
-    response: "حياك الله 🤍\nأوقات استقبال الطلبات تلقاها محدّثة بصفحة الطلب:\n{order_link}\n\nإذا الموقع يستقبل طلبك، فإحنا جاهزين لك 👨‍🍳",
+    response: "حياك الله 🤍\nحالة استقبال الطلبات تبيّن لك مباشرة بصفحة الطلب:\n{order_link}",
   },
   {
     id: "payment",
@@ -2253,7 +2306,7 @@ const WA_DEFAULT_AUTO_REPLY_RULES: any[] = [
     action: "reply",
     matchMode: "any",
     keywords: ["دفع", "كي نت", "كنت", "knet", "فيزا", "ماستر", "كاش", "طرق الدفع", "ادفع", "رابط الدفع"],
-    response: "الدفع عندنا إلكتروني وآمن 🔒\nبعد ما تختار أصنافك بيطلع لك رابط الدفع مباشرة من الموقع:\n{order_link}\n\nما نطلب منك أبداً بيانات بطاقتك بالواتساب 🤍",
+    response: "حياك الله 🤍\nبعد ما تختار أصنافك من الموقع بيطلع لك رابط الدفع مباشرة:\n{order_link}",
   },
   {
     id: "offers",
@@ -2262,25 +2315,25 @@ const WA_DEFAULT_AUTO_REPLY_RULES: any[] = [
     action: "reply",
     matchMode: "any",
     keywords: ["عرض", "عروض", "خصم", "كوبون", "برومو", "تخفيض", "بروموكود"],
-    response: "عروضنا وأكوادنا تتجدد 🎁\nتلقاها بصفحة الطلب، وتقدر تدخل كود الخصم عند الدفع:\n{order_link}",
+    response: "حياك الله 🤍\nإذا عندك كود خصم تقدر تدخله عند إتمام الطلب:\n{order_link}",
   },
   {
     id: "location",
     title: "الموقع والفروع",
     priority: 530,
-    action: "reply",
+    action: "human",
     matchMode: "any",
     keywords: ["وين مكانكم", "الموقع", "العنوان", "فرع", "فروع", "لوكيشن", "وينكم"],
-    response: "إحنا مطبخ سحابي نجهز طلبك ونوصله لك مباشرة 🚗\nما تحتاج تجي — اطلب وهو يوصلك:\n{order_link}\n\nوإذا تبي تفاصيل أكثر، خلّنا نحوّلك لموظف.",
+    response: "حياك الله 🤍\nخلّني أحوّلك لأحد موظفينا يعطيك التفاصيل.",
   },
   {
-    id: "halal-ingredients",
-    title: "حلال ومكونات وحساسية",
+    id: "ingredients-allergy",
+    title: "مكونات وحساسية ومصدر اللحم",
     priority: 520,
-    action: "reply",
+    action: "human",
     matchMode: "any",
-    keywords: ["حلال", "مكونات", "حساسية", "نباتي", "جلوتين", "لحم", "مصدر"],
-    response: "كل لحومنا حلال ومصادرها موثوقة 🤍\nتفاصيل كل صنف ومكوناته موجودة بصفحته في المنيو:\n{menu_link}\n\nوإذا عندك حساسية معيّنة، قل لنا بالطلب أو خلّنا نحوّلك لموظف يتأكد لك.",
+    keywords: ["حلال", "مكونات", "حساسية", "نباتي", "جلوتين", "مصدر اللحم", "مصدر"],
+    response: "سؤال مهم 🤍\nخلّني أحوّلك لأحد موظفينا يعطيك الجواب الدقيق.",
   },
   {
     id: "thanks",
@@ -3436,6 +3489,16 @@ async function waProcessInboundMessage({
 
   return { handled: true, replyQueued: Boolean(reply), sendResults };
 }
+
+// Everything under /api/whatsapp now requires an authorized admin/partner session.
+// Excluded: the Meta webhook (verified by hub.verify_token + signature) and the bridge
+// (already guarded by waBridgeRequestAuthorized). This closes public access to customer
+// phone numbers, conversation content, and the ability to send WhatsApp as the business.
+app.use("/api/whatsapp", (req, res, next) => {
+  const subPath = String(req.path || "");
+  if (subPath.startsWith("/webhook") || subPath.startsWith("/bridge")) return next();
+  return waRequireConsoleAuth(req, res, next);
+});
 
 app.get("/api/whatsapp/webhook", (req, res) => {
   const mode = waString(req.query["hub.mode"]);
