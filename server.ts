@@ -1740,7 +1740,8 @@ async function initDeferredCache() {
 // It does not change payment, notification, AI, auth, or database write logic.
 const ALTURATH_CUSTOMER_BASE_URL = String(process.env.ALTURATH_CUSTOMER_BASE_URL || "https://alturathkw.shop").replace(/\/$/, "");
 const ALTURATH_ADMIN_BASE_URL = String(process.env.ALTURATH_ADMIN_BASE_URL || "https://admin.alturathkw.shop").replace(/\/$/, "");
-const ALTURATH_TRACK_BASE_URL = String(process.env.ALTURATH_TRACK_BASE_URL || ALTURATH_ADMIN_BASE_URL || ALTURATH_CUSTOMER_BASE_URL).replace(/\/$/, "");
+// Customers track on the customer site, never on the admin domain.
+const ALTURATH_TRACK_BASE_URL = String(process.env.ALTURATH_TRACK_BASE_URL || ALTURATH_CUSTOMER_BASE_URL || ALTURATH_ADMIN_BASE_URL).replace(/\/$/, "");
 const WHATSAPP_VERIFY_TOKEN = String(process.env.WHATSAPP_VERIFY_TOKEN || "alturath_whatsapp_verify_2026");
 const WHATSAPP_GRAPH_VERSION = String(process.env.WHATSAPP_GRAPH_VERSION || "v24.0");
 const WHATSAPP_ACCESS_TOKEN = () => String(process.env.WHATSAPP_ACCESS_TOKEN || "").trim();
