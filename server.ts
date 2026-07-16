@@ -1525,7 +1525,17 @@ app.use((req, res, next) => {
   const PORT = Number(process.env.PORT) || 3000;
 
   app.use(cors());
-  app.use(express.json({ limit: "30mb" }));
+  app.use(express.json({
+    limit: "30mb",
+    // Meta signs the exact bytes it sent, so the WhatsApp webhook needs the raw body
+    // to verify the signature. Kept to that one path: buffering every request would
+    // hold a copy of uploads up to the 30mb limit for no reason.
+    verify: (req: any, _res, buf) => {
+      if (String(req.originalUrl || req.url || "").startsWith("/api/whatsapp/webhook")) {
+        req.rawBody = buf;
+      }
+    },
+  }));
 
 app.use(express.urlencoded({ extended: true }));
 
@@ -3179,9 +3189,12 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
   if (waLooksLikeTrackIntent(messageText)) {
     const byPhone = await waFindLatestByPhone(fromPhone);
     if (byPhone) return waOrderReply(byPhone);
+    // Reached only when the sender's own number has no order on it. Asking them to
+    // type "a phone number" here is noise — we already searched theirs.
     return [
-      "للمتابعة أرسل رقم الطلب/الفاتورة كما هو ظاهر في الرسالة أو الفاتورة.",
-      "أو رقم الهاتف بصيغة 8 أرقام مثل: 97424400",
+      "ما لقيت طلب مرتبط برقمك 🤔",
+      "",
+      "أرسل رقم الطلب أو الفاتورة كما هو في رسالة التأكيد،",
       "أو افتح صفحة التتبع:",
       waTrackHomeUrl(),
       "",
@@ -3204,6 +3217,62 @@ function waExtractMessageText(message: any) {
     return waString(message?.interactive?.button_reply?.title || message?.interactive?.button_reply?.id || message?.interactive?.list_reply?.title || message?.interactive?.list_reply?.id);
   }
   return "";
+}
+
+// Meta signs every webhook POST with an HMAC-SHA256 of the raw body, keyed by the
+// app secret. Without checking it, anyone who learns the URL can post fake inbound
+// messages: they would land in the inbox as real customers and make the bot send
+// WhatsApp messages to numbers of their choosing, which risks the number itself.
+//
+// Deliberately permissive while WHATSAPP_APP_SECRET is unset, so adding this cannot
+// take the live bot down. Set the secret to turn enforcement on.
+const WHATSAPP_APP_SECRET = () => String(process.env.WHATSAPP_APP_SECRET || "").trim();
+
+function waWebhookSignatureValid(req: any) {
+  const secret = WHATSAPP_APP_SECRET();
+  if (!secret) return true;
+
+  const raw = req?.rawBody;
+  if (!Buffer.isBuffer(raw) || !raw.length) return false;
+
+  const received = waString(req?.headers?.["x-hub-signature-256"]);
+  if (!received.startsWith("sha256=")) return false;
+
+  const expected = `sha256=${crypto.createHmac("sha256", secret).update(raw).digest("hex")}`;
+  const a = Buffer.from(received);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// Anything whose meaning lives outside the text: a photo of a dish, a voice note,
+// a location pin, or a link to Instagram/YouTube/another shop. waExtractMessageText
+// returns "" for these, and the bot used to answer with a generic menu blurb —
+// which reads as if nobody looked. A human takes them instead.
+const WA_HUMAN_EYES_TYPES = new Set(["image", "video", "audio", "voice", "document", "sticker", "location", "contacts"]);
+const WA_EXTERNAL_LINK_PATTERN = /(https?:\/\/|www\.|instagram\.com|youtu\.?be|tiktok\.com|snapchat\.com|twitter\.com|x\.com|facebook\.com|pinterest\.)/i;
+
+function waNeedsHumanEyes(type: string, text: string) {
+  if (WA_HUMAN_EYES_TYPES.has(waString(type).toLowerCase())) return true;
+  const body = waString(text);
+  if (!WA_EXTERNAL_LINK_PATTERN.test(body)) return false;
+  // Our own links are not a question for a human: the track/order intents read them.
+  const ourHost = waString(ALTURATH_CUSTOMER_BASE_URL).replace(/^https?:\/\//, "").split("/")[0];
+  if (ourHost && body.includes(ourHost)) return false;
+  const trackHost = waString(ALTURATH_TRACK_BASE_URL).replace(/^https?:\/\//, "").split("/")[0];
+  if (trackHost && body.includes(trackHost)) return false;
+  return true;
+}
+
+function waMediaReceivedReply(type: string) {
+  const clean = waString(type).toLowerCase();
+  const what = /image|sticker/.test(clean)
+    ? "صورتك"
+    : /audio|voice/.test(clean)
+      ? "رسالتك الصوتية"
+      : /location/.test(clean)
+        ? "موقعك"
+        : "رسالتك";
+  return [`💚 وصلت ${what} ❤️`, "", "موظفنا بيشوفها ويرد عليك بنفسه بعد قليل 👌"].join("\n");
 }
 
 function waBridgeRequestAuthorized(req: any) {
@@ -3431,6 +3500,25 @@ async function waProcessInboundMessage({
     });
     sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "support_requested", ...(pushResult || {}) });
     reply = waSupportReply();
+  } else if (waNeedsHumanEyes(cleanType, cleanText)) {
+    await waUpsertConversation(cleanFrom, {
+      mode: "human",
+      status: "needs_support",
+      priority: "high",
+      supportRequestedAt: waNowIso(),
+      botPausedAt: waNowIso(),
+      autoResumeAt: waHumanAutoResumeAt(),
+      tags: waUnique([...(waAsArray(conversation?.tags)), "media", "support"]),
+    });
+    const pushResult = await waSendHumanSupportPush({
+      phone: cleanFrom,
+      text: cleanText || `[${cleanType}]`,
+      contactName,
+      messageId,
+      reason: "media_or_link",
+    });
+    sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "media_or_link", ...(pushResult || {}) });
+    reply = waMediaReceivedReply(cleanType);
   } else if (conversation?.mode === "human") {
     await waUpsertConversation(cleanFrom, {
       status: "needs_support",
@@ -3474,14 +3562,10 @@ async function waProcessInboundMessage({
       reply = customRule.reply;
       sendResults.push({ to: cleanFrom, channel: "custom_auto_reply", ruleId: customRule.ruleId, ruleTitle: customRule.title });
     } else {
+      // Text-less types are routed to a human above; this covers anything unknown.
       reply = cleanText
         ? await waBuildAutoReply(cleanText, cleanFrom)
-        : [
-            "وصلت رسالتك، لكن أقدر أتعامل حاليًا مع الرسائل النصية فقط.",
-            "اكتب: طلب جديد",
-            "أو أرسل رقم الطلب/الفاتورة",
-            "أو رقم الهاتف 8 أرقام مثل: 97424400",
-          ].join("\n");
+        : waMediaReceivedReply(cleanType);
     }
   }
 
@@ -3544,6 +3628,11 @@ app.get("/api/whatsapp/webhook", (req, res) => {
 });
 
 app.post("/api/whatsapp/webhook", async (req, res) => {
+  if (!waWebhookSignatureValid(req)) {
+    console.warn("[WHATSAPP] Rejected a webhook call with a missing or invalid signature.");
+    return res.status(401).json({ success: false, error: "Invalid signature" });
+  }
+
   // Meta expects a fast 200 response. We still wait for the reply attempt here because
   // some serverless environments throttle CPU immediately after the response is sent.
   let handledMessages = 0;
