@@ -3181,7 +3181,8 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
     if (byPhone) return waOrderReply(byPhone);
     return [
       "للمتابعة أرسل رقم الطلب/الفاتورة كما هو ظاهر في الرسالة أو الفاتورة.",
-      "أو رقم الهاتف بصيغة 8 أرقام مثل: 97424400",
+      // Never put a real phone number here: this text is sent to every customer.
+      "أو أرسل رقم هاتفك الكويتي (8 أرقام).",
       "أو افتح صفحة التتبع:",
       waTrackHomeUrl(),
       "",
@@ -3480,7 +3481,8 @@ async function waProcessInboundMessage({
             "وصلت رسالتك، لكن أقدر أتعامل حاليًا مع الرسائل النصية فقط.",
             "اكتب: طلب جديد",
             "أو أرسل رقم الطلب/الفاتورة",
-            "أو رقم الهاتف 8 أرقام مثل: 97424400",
+            // Never put a real phone number here: this text is sent to every customer.
+            "أو أرسل رقم هاتفك الكويتي (8 أرقام).",
           ].join("\n");
     }
   }
