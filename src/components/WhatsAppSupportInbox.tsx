@@ -4,6 +4,21 @@ import { AlertCircle, Bot, CheckCircle2, Clock, Headphones, Loader2, MessageCirc
 import { cn } from '../lib/utils';
 import type { AppState, Customer, Product } from '../types';
 import { isPaidStatus } from '../lib/status-utils';
+import { auth } from '../firebase';
+
+// The WhatsApp console endpoints are protected server-side: customer phone numbers,
+// conversation content, and "send as the business" must never be publicly reachable.
+// Every console call therefore carries the signed-in admin/partner Firebase ID token.
+async function waAuthFetch(input: string, init: RequestInit = {}) {
+  const headers = new Headers(init.headers || {});
+  try {
+    const token = await auth.currentUser?.getIdToken();
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+  } catch {
+    // No token: the server replies 401 and the UI surfaces the message.
+  }
+  return fetch(input, { ...init, headers });
+}
 
 type Conversation = {
   id: string;
@@ -593,7 +608,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   const loadConversations = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
-      const res = await fetch('/api/whatsapp/conversations?limit=80', { cache: 'no-store' });
+      const res = await waAuthFetch('/api/whatsapp/conversations?limit=80', { cache: 'no-store' });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'تعذر تحميل المحادثات');
       setConversations(json.conversations || []);
@@ -610,13 +625,13 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     if (!phone) return;
     const cleanedPhone = cleanPhone(phone);
     try {
-      const res = await fetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(phone))}/messages`, { cache: 'no-store' });
+      const res = await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(phone))}/messages`, { cache: 'no-store' });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'تعذر تحميل الرسائل');
       setSelected(json.conversation || null);
       setMessages(json.messages || []);
       setQuickReplies(json.quickReplies || []);
-      void fetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(phone))}/read`, { method: 'POST' }).catch(() => {});
+      void waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(phone))}/read`, { method: 'POST' }).catch(() => {});
       if (scrollToEnd) setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' }), 20);
     } catch (e: any) {
       setError(e?.message || 'تعذر تحميل المحادثة');
@@ -625,7 +640,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
 
   const loadAutoReplyRules = async () => {
     try {
-      const res = await fetch('/api/whatsapp/auto-replies', { cache: 'no-store' });
+      const res = await waAuthFetch('/api/whatsapp/auto-replies', { cache: 'no-store' });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'تعذر تحميل قواعد الرد التلقائي');
       setAutoReplyRules(json.rules || []);
@@ -637,7 +652,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   // Installs the starter rule pack. Rules the owner already has are skipped, never overwritten.
   const seedDefaultAutoReplyRules = async () => {
     try {
-      const res = await fetch('/api/whatsapp/auto-replies/seed', {
+      const res = await waAuthFetch('/api/whatsapp/auto-replies/seed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -918,7 +933,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       return;
     }
     try {
-      const res = await fetch('/api/whatsapp/auto-replies', {
+      const res = await waAuthFetch('/api/whatsapp/auto-replies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -945,7 +960,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
 
   const toggleAutoReplyRule = async (rule: AutoReplyRule) => {
     try {
-      const res = await fetch('/api/whatsapp/auto-replies', {
+      const res = await waAuthFetch('/api/whatsapp/auto-replies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...rule, enabled: rule.enabled === false }),
@@ -963,7 +978,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     const confirmed = typeof window === 'undefined' ? true : window.confirm(`حذف قاعدة الرد: ${rule.title}؟`);
     if (!confirmed) return;
     try {
-      const res = await fetch(`/api/whatsapp/auto-replies/${encodeURIComponent(rule.id)}`, { method: 'DELETE' });
+      const res = await waAuthFetch(`/api/whatsapp/auto-replies/${encodeURIComponent(rule.id)}`, { method: 'DELETE' });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'تعذر حذف القاعدة');
       await loadAutoReplyRules();
@@ -1001,7 +1016,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     setSending(true);
     showNotice('info', 'جارٍ إرسال الرد عبر واتساب...');
     try {
-      const res = await fetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/reply`, {
+      const res = await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: body, sentBy: 'admin' }),
@@ -1023,7 +1038,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
 
   const setMode = async (mode: 'bot' | 'human') => {
     if (!selectedPhone) return;
-    await fetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/mode`, {
+    await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/mode`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode })
     }).catch(() => {});
     await loadMessages(selectedPhone, false);
@@ -1033,7 +1048,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
 
   const closeConversation = async () => {
     if (!selectedPhone) return;
-    await fetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/close`, { method: 'POST' }).catch(() => {});
+    await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/close`, { method: 'POST' }).catch(() => {});
     await loadMessages(selectedPhone, false);
     await loadConversations(true);
     showNotice('success', 'تم إغلاق المحادثة.');
