@@ -19,6 +19,37 @@ steps:
         npm install -g firebase-tools
         firebase deploy --project=gen-lang-client-0200723670 --only hosting
 
+  # ---------------------------------------------------------------------------
+  # Deploy the API/server container to Cloud Run.
+  #
+  # Why: firebase.json routes /api/** and /run-alerts to the Cloud Run service
+  # "service" (europe-west3). Deploying only hosting shipped the UI but left
+  # server.ts running old code, so server-side changes never went live.
+  #
+  # These steps run AFTER the hosting deploy on purpose: if they fail (for
+  # example missing IAM roles), hosting has already shipped.
+  # ---------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/alturath-admin-api:$BUILD_ID', '.']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/alturath-admin-api:$BUILD_ID']
+
+  # Only the image is replaced. Existing env vars, secrets, scaling and traffic
+  # settings on the service are preserved by Cloud Run.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'service'
+      - '--image=gcr.io/$PROJECT_ID/alturath-admin-api:$BUILD_ID'
+      - '--region=europe-west3'
+      - '--platform=managed'
+      - '--quiet'
+
+timeout: '1800s'
+
 availableSecrets:
   secretManager:
     - versionName: projects/gen-lang-client-0200723670/secrets/GEMINI_API_KEY/versions/latest
