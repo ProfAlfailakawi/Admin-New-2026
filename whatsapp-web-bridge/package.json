@@ -1,0 +1,20 @@
+{
+  "name": "alturath-whatsapp-web-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated local WhatsApp Web bridge for Alturath customer support.",
+  "scripts": {
+    "start": "node index.mjs",
+    "check": "node check-connection.mjs",
+    "generate-secret": "node generate-secret.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "17.2.3",
+    "qrcode-terminal": "0.12.0",
+    "whatsapp-web.js": "1.34.7"
+  }
+}

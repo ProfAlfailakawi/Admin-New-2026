@@ -1744,6 +1744,12 @@ const WHATSAPP_GRAPH_VERSION = String(process.env.WHATSAPP_GRAPH_VERSION || "v24
 const WHATSAPP_ACCESS_TOKEN = () => String(process.env.WHATSAPP_ACCESS_TOKEN || "").trim();
 const WHATSAPP_PHONE_NUMBER_ID = () => String(process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim();
 const WHATSAPP_TEST_SECRET = () => String(process.env.WHATSAPP_TEST_SECRET || process.env.ADMIN_TEST_SECRET || "").trim();
+const WHATSAPP_TRANSPORT = () => {
+  const value = String(process.env.WHATSAPP_TRANSPORT || "cloud").trim().toLowerCase();
+  return value === "web_bridge" ? "web_bridge" : "cloud";
+};
+const WHATSAPP_BRIDGE_SECRET = () => String(process.env.WHATSAPP_BRIDGE_SECRET || "").trim();
+const WHATSAPP_BRIDGE_LEASE_SECONDS = Math.max(20, Math.min(300, Number(process.env.WHATSAPP_BRIDGE_LEASE_SECONDS || 60)));
 
 type WhatsAppLookupResult = {
   kind: "order" | "invoice";
@@ -2359,12 +2365,18 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
 
   const phone8 = waExtractKuwaitPhone8(messageText);
   if (phone8) {
-    const byPhone = await waFindLatestByPhone(phone8);
+    const senderPhone8 = waNormalizeKuwaitPhone8(fromPhone);
+    if (!senderPhone8 || phone8 !== senderPhone8) {
+      return [
+        "حفاظاً على خصوصية عملائنا، أقدر أبحث تلقائياً فقط برقم الواتساب اللي تراسلنا منه.",
+        "أرسل رقم الطلب/الفاتورة، أو اكتب: موظف، ونتابع معك مباشرة.",
+      ].join("\n");
+    }
+    const byPhone = await waFindLatestByPhone(senderPhone8);
     if (byPhone) return waOrderReply(byPhone);
     return [
-      `ما حصلت طلب مرتبط بالرقم ${phone8} حالياً.`,
-      "تأكد من رقم الهاتف بصيغة 8 أرقام مثل: 97424400",
-      "أو أرسل رقم الطلب/الفاتورة كما هو ظاهر في الرسالة أو الفاتورة.",
+      `ما حصلت طلب مرتبط برقم الواتساب هذا حالياً.`,
+      "أرسل رقم الطلب/الفاتورة كما هو ظاهر في الرسالة أو الفاتورة.",
       "",
       "ولطلب جديد:",
       waNewOrderUrl(),
@@ -2403,7 +2415,64 @@ function waExtractMessageText(message: any) {
   return "";
 }
 
+function waBridgeRequestAuthorized(req: any) {
+  const expected = WHATSAPP_BRIDGE_SECRET();
+  if (!expected) return false;
+  const received = waString(req.headers?.["x-whatsapp-bridge-secret"] || req.query?.secret || req.body?.secret);
+  return received.length > 0 && received === expected;
+}
+
+function waBridgeDocId(source: string, messageId: string) {
+  const raw = `${source}:${messageId}`;
+  return Buffer.from(raw, "utf8").toString("base64url").slice(0, 700);
+}
+
+async function waClaimInboundMessage(source: string, messageId: string) {
+  const cleanId = waString(messageId);
+  if (!cleanId || !db || !firebaseInitialized) return true;
+  const ref = db.collection("whatsappInboundEvents").doc(waBridgeDocId(source, cleanId));
+  try {
+    await ref.create({ source, messageId: cleanId, createdAt: waNowIso() });
+    return true;
+  } catch (error: any) {
+    const code = Number(error?.code);
+    if (code === 6 || String(error?.message || "").toLowerCase().includes("already exists")) return false;
+    console.warn("[WHATSAPP] Inbound dedupe check failed; processing safely:", error?.message || error);
+    return true;
+  }
+}
+
+async function waQueueBridgeText(to: string, body: string) {
+  if (!db || !firebaseInitialized) {
+    return { ok: false, status: 503, skipped: true, reason: "firestore_not_ready" };
+  }
+  if (!WHATSAPP_BRIDGE_SECRET()) {
+    return { ok: false, status: 503, skipped: true, reason: "missing_bridge_secret" };
+  }
+  const cleanTo = waDigits(to);
+  const cleanBody = waString(body).slice(0, 3500);
+  if (!cleanTo || !cleanBody) return { ok: false, status: 400, reason: "missing_to_or_body" };
+
+  const ref = db.collection("whatsappBridgeOutbox").doc();
+  const payload = {
+    id: ref.id,
+    to: cleanTo,
+    body: cleanBody,
+    status: "pending",
+    attempts: 0,
+    transport: "web_bridge",
+    createdAt: waNowIso(),
+    updatedAt: waNowIso(),
+  };
+  await ref.set(payload);
+  return { ok: true, status: 202, payload: { queued: true, transport: "web_bridge", outboxId: ref.id } };
+}
+
 async function waSendText(to: string, body: string) {
+  if (WHATSAPP_TRANSPORT() === "web_bridge") {
+    return waQueueBridgeText(to, body);
+  }
+
   const token = WHATSAPP_ACCESS_TOKEN();
   const phoneNumberId = WHATSAPP_PHONE_NUMBER_ID();
   if (!token || !phoneNumberId) {
@@ -2431,6 +2500,127 @@ async function waSendText(to: string, body: string) {
     console.warn("[WHATSAPP] Send failed:", response.status, JSON.stringify(payload).slice(0, 1000));
   }
   return { ok: response.ok, status: response.status, payload };
+}
+
+async function waProcessInboundMessage({
+  from,
+  text,
+  type = "text",
+  contactName = "",
+  messageId = "",
+  raw,
+  source = "unknown",
+}: {
+  from: string;
+  text?: string;
+  type?: string;
+  contactName?: string;
+  messageId?: string;
+  raw?: any;
+  source?: string;
+}) {
+  const cleanFrom = waDigits(from);
+  const cleanText = waString(text);
+  const cleanType = waString(type || "unknown") || "unknown";
+  if (!cleanFrom) return { handled: false, reason: "missing_from", sendResults: [] as any[] };
+
+  const claimed = await waClaimInboundMessage(source, messageId);
+  if (!claimed) {
+    console.log(`[WHATSAPP] Duplicate inbound skipped source=${source} id=${waEscapeForLog(messageId)}`);
+    return { handled: false, duplicate: true, sendResults: [] as any[] };
+  }
+
+  const sendResults: any[] = [];
+  console.log(`[WHATSAPP] Incoming source=${source} type=${cleanType} from ${cleanFrom}: ${waEscapeForLog(cleanText)}`);
+
+  await waUpsertConversation(cleanFrom, {
+    customerName: contactName || undefined,
+    status: "open",
+    lastInboundText: cleanText || `[${cleanType}]`,
+    lastMessageText: cleanText || `[${cleanType}]`,
+    lastMessageDirection: "inbound",
+  });
+  await waAppendConversationMessage(cleanFrom, {
+    direction: "inbound",
+    type: cleanType,
+    text: cleanText || `[${cleanType}]`,
+    waMessageId: messageId,
+    raw,
+  });
+  await waIncrementUnread(cleanFrom);
+
+  const conversation = await waGetConversation(cleanFrom);
+  let reply = "";
+
+  if (cleanText && waLooksLikeBackToBotIntent(cleanText)) {
+    await waUpsertConversation(cleanFrom, { mode: "bot", status: "open", botResumedAt: waNowIso(), unreadCount: 0 });
+    reply = waHelpReply();
+  } else if (cleanText && waLooksLikeSupportIntent(cleanText)) {
+    await waUpsertConversation(cleanFrom, {
+      mode: "human",
+      status: "needs_support",
+      priority: "high",
+      supportRequestedAt: waNowIso(),
+      botPausedAt: waNowIso(),
+      tags: waUnique([...(waAsArray(conversation?.tags)), "support"]),
+    });
+    const pushResult = await waSendHumanSupportPush({
+      phone: cleanFrom,
+      text: cleanText || `[${cleanType}]`,
+      contactName,
+      messageId,
+      reason: "support_requested",
+    });
+    sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "support_requested", ...(pushResult || {}) });
+    reply = waSupportReply();
+  } else if (conversation?.mode === "human") {
+    await waUpsertConversation(cleanFrom, {
+      status: "needs_support",
+      priority: conversation?.priority || "high",
+      supportRequestedAt: conversation?.supportRequestedAt || waNowIso(),
+    });
+    const pushResult = await waSendHumanSupportPush({
+      phone: cleanFrom,
+      text: cleanText || `[${cleanType}]`,
+      contactName,
+      messageId,
+      reason: "already_human",
+    });
+    sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", ...(pushResult || {}) });
+    console.log(`[WHATSAPP] Conversation ${cleanFrom} is in human support mode. Auto-reply skipped.`);
+  } else {
+    reply = cleanText
+      ? await waBuildAutoReply(cleanText, cleanFrom)
+      : [
+          "وصلت رسالتك، لكن أقدر أتعامل حاليًا مع الرسائل النصية فقط.",
+          "اكتب: طلب جديد",
+          "أو أرسل رقم الطلب/الفاتورة",
+          "أو رقم الهاتف 8 أرقام مثل: 97424400",
+        ].join("\n");
+  }
+
+  if (reply) {
+    const result: any = await waSendText(cleanFrom, reply);
+    sendResults.push({
+      to: cleanFrom,
+      ok: result.ok,
+      status: result.status,
+      reason: result.reason || result.payload?.error?.message || null,
+      transport: WHATSAPP_TRANSPORT(),
+    });
+    await waAppendConversationMessage(cleanFrom, {
+      direction: "outbound",
+      type: "text",
+      text: reply,
+      sentBy: "bot",
+      status: result.ok ? (result.status === 202 ? "queued" : "sent") : "failed",
+      raw: result.payload,
+    });
+    await waUpsertConversation(cleanFrom, { lastOutboundText: reply, lastMessageText: reply, lastMessageDirection: "outbound" });
+    console.log(`[WHATSAPP] Reply result to ${cleanFrom}: ${JSON.stringify(sendResults[sendResults.length - 1]).slice(0, 700)}`);
+  }
+
+  return { handled: true, replyQueued: Boolean(reply), sendResults };
 }
 
 app.get("/api/whatsapp/webhook", (req, res) => {
@@ -2469,77 +2659,16 @@ app.post("/api/whatsapp/webhook", async (req, res) => {
 
           handledMessages += 1;
           const contactName = waString(value?.contacts?.[0]?.profile?.name || "");
-          console.log(`[WHATSAPP] Incoming type=${type} from ${from}: ${waEscapeForLog(text)}`);
-
-          await waUpsertConversation(from, {
-            customerName: contactName || undefined,
-            status: "open",
-            lastInboundText: text || `[${type}]`,
-            lastMessageText: text || `[${type}]`,
-            lastMessageDirection: "inbound",
+          const processed = await waProcessInboundMessage({
+            from,
+            text,
+            type,
+            contactName,
+            messageId: waString(message?.id),
+            raw: message,
+            source: "cloud_api",
           });
-          await waAppendConversationMessage(from, { direction: "inbound", type, text: text || `[${type}]`, waMessageId: message?.id, raw: message });
-          await waIncrementUnread(from);
-
-          const conversation = await waGetConversation(from);
-          let reply = "";
-          let sender = "bot";
-
-          if (text && waLooksLikeBackToBotIntent(text)) {
-            await waUpsertConversation(from, { mode: "bot", status: "open", botResumedAt: waNowIso(), unreadCount: 0 });
-            reply = waHelpReply();
-          } else if (text && waLooksLikeSupportIntent(text)) {
-            await waUpsertConversation(from, {
-              mode: "human",
-              status: "needs_support",
-              priority: "high",
-              supportRequestedAt: waNowIso(),
-              botPausedAt: waNowIso(),
-              tags: waUnique([...(waAsArray(conversation?.tags)), "support"]),
-            });
-            const pushResult = await waSendHumanSupportPush({
-              phone: from,
-              text: text || `[${type}]`,
-              contactName,
-              messageId: message?.id,
-              reason: "support_requested",
-            });
-            sendResults.push({ to: from, channel: "admin_push", reason: "support_requested", ...(pushResult || {}) });
-            reply = waSupportReply();
-          } else if (conversation?.mode === "human") {
-            // A human is expected to continue from the admin inbox. Avoid noisy repeated bot replies.
-            await waUpsertConversation(from, {
-              status: "needs_support",
-              priority: conversation?.priority || "high",
-              supportRequestedAt: conversation?.supportRequestedAt || waNowIso(),
-            });
-            const pushResult = await waSendHumanSupportPush({
-              phone: from,
-              text: text || `[${type}]`,
-              contactName,
-              messageId: message?.id,
-              reason: "already_human",
-            });
-            sendResults.push({ to: from, channel: "admin_push", reason: "already_human", ...(pushResult || {}) });
-            console.log(`[WHATSAPP] Conversation ${from} is in human support mode. Auto-reply skipped.`);
-          } else {
-            reply = text
-              ? await waBuildAutoReply(text, from)
-              : [
-                  "وصلت رسالتك، لكن أقدر أتعامل حاليًا مع الرسائل النصية فقط.",
-                  "اكتب: طلب جديد",
-                  "أو أرسل رقم الطلب/الفاتورة",
-                  "أو رقم الهاتف 8 أرقام مثل: 97424400",
-                ].join("\n");
-          }
-
-          if (reply) {
-            const result = await waSendText(from, reply);
-            sendResults.push({ to: from, ok: result.ok, status: result.status, reason: result.reason || result.payload?.error?.message || null });
-            await waAppendConversationMessage(from, { direction: "outbound", type: "text", text: reply, sentBy: sender, status: result.ok ? "sent" : "failed", raw: result.payload });
-            await waUpsertConversation(from, { lastOutboundText: reply, lastMessageText: reply, lastMessageDirection: "outbound" });
-            console.log(`[WHATSAPP] Reply result to ${from}: ${JSON.stringify(sendResults[sendResults.length - 1]).slice(0, 700)}`);
-          }
+          sendResults.push(...waAsArray(processed?.sendResults));
         }
       }
     }
@@ -2548,6 +2677,124 @@ app.post("/api/whatsapp/webhook", async (req, res) => {
   } catch (error: any) {
     console.error("[WHATSAPP] Webhook processing failed:", error?.message || error);
     return res.status(200).json({ success: false, error: error?.message || String(error), handledMessages, sendResults });
+  }
+});
+
+
+app.post("/api/whatsapp/bridge/inbound", async (req, res) => {
+  if (!waBridgeRequestAuthorized(req)) return res.status(401).json({ success: false, error: "Unauthorized bridge" });
+  if (WHATSAPP_TRANSPORT() !== "web_bridge") {
+    return res.status(409).json({ success: false, error: "WHATSAPP_TRANSPORT is not web_bridge" });
+  }
+
+  try {
+    const from = waDigits(req.body?.from);
+    const text = waString(req.body?.text);
+    const type = waString(req.body?.type || "text") || "text";
+    const contactName = waString(req.body?.contactName);
+    const messageId = waString(req.body?.messageId);
+    if (!from) return res.status(400).json({ success: false, error: "Missing sender phone" });
+
+    const processed = await waProcessInboundMessage({
+      from,
+      text,
+      type,
+      contactName,
+      messageId,
+      raw: req.body?.raw,
+      source: "web_bridge",
+    });
+    return res.status(200).json({ success: true, ...processed });
+  } catch (error: any) {
+    console.error("[WHATSAPP-BRIDGE] Inbound processing failed:", error?.message || error);
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+app.get("/api/whatsapp/bridge/outbox/next", async (req, res) => {
+  if (!waBridgeRequestAuthorized(req)) return res.status(401).json({ success: false, error: "Unauthorized bridge" });
+  if (WHATSAPP_TRANSPORT() !== "web_bridge") return res.status(409).json({ success: false, error: "Bridge mode is disabled" });
+  if (!db || !firebaseInitialized) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+
+  try {
+    const snap = await db.collection("whatsappBridgeOutbox").where("status", "in", ["pending", "processing"]).limit(40).get();
+    const now = Date.now();
+    const candidates = snap.docs
+      .map((doc: any) => ({ ref: doc.ref, id: doc.id, ...(doc.data() || {}) }))
+      .filter((item: any) => item.status === "pending" || !item.leaseUntil || new Date(item.leaseUntil).getTime() <= now)
+      .sort((a: any, b: any) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+
+    for (const candidate of candidates) {
+      const claimed = await db.runTransaction(async (tx: any) => {
+        const currentSnap = await tx.get(candidate.ref);
+        if (!currentSnap.exists) return null;
+        const current = currentSnap.data() || {};
+        const leaseExpired = !current.leaseUntil || new Date(current.leaseUntil).getTime() <= Date.now();
+        if (current.status !== "pending" && !(current.status === "processing" && leaseExpired)) return null;
+        const leaseUntil = new Date(Date.now() + WHATSAPP_BRIDGE_LEASE_SECONDS * 1000).toISOString();
+        tx.set(candidate.ref, {
+          status: "processing",
+          leaseUntil,
+          claimedAt: waNowIso(),
+          updatedAt: waNowIso(),
+          attempts: Number(current.attempts || 0) + 1,
+        }, { merge: true });
+        return { id: candidate.id, ...current, status: "processing", leaseUntil, attempts: Number(current.attempts || 0) + 1 };
+      });
+      if (claimed) return res.status(200).json({ success: true, message: claimed });
+    }
+
+    return res.status(204).send();
+  } catch (error: any) {
+    console.error("[WHATSAPP-BRIDGE] Outbox claim failed:", error?.message || error);
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+app.post("/api/whatsapp/bridge/outbox/:id/ack", async (req, res) => {
+  if (!waBridgeRequestAuthorized(req)) return res.status(401).json({ success: false, error: "Unauthorized bridge" });
+  if (!db || !firebaseInitialized) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+
+  try {
+    const id = waString(req.params.id);
+    if (!id) return res.status(400).json({ success: false, error: "Missing outbox id" });
+    const ok = req.body?.ok === true;
+    const ref = db.collection("whatsappBridgeOutbox").doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ success: false, error: "Outbox message not found" });
+    const current = snap.data() || {};
+    const retry = !ok && req.body?.retry === true && Number(current.attempts || 0) < 5;
+    await ref.set(removeUndefinedDeep({
+      status: ok ? "sent" : retry ? "pending" : "failed",
+      sentAt: ok ? waNowIso() : undefined,
+      failedAt: !ok && !retry ? waNowIso() : undefined,
+      lastError: !ok ? waString(req.body?.error).slice(0, 1000) : "",
+      waMessageId: ok ? waString(req.body?.waMessageId) : undefined,
+      leaseUntil: "",
+      updatedAt: waNowIso(),
+    }), { merge: true });
+    return res.json({ success: true, status: ok ? "sent" : retry ? "pending" : "failed" });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+app.post("/api/whatsapp/bridge/heartbeat", async (req, res) => {
+  if (!waBridgeRequestAuthorized(req)) return res.status(401).json({ success: false, error: "Unauthorized bridge" });
+  if (!db || !firebaseInitialized) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+  try {
+    const deviceId = waString(req.body?.deviceId || "alturath-mac").replace(/[^a-zA-Z0-9_.-]/g, "-").slice(0, 100) || "alturath-mac";
+    await db.collection("whatsappBridgeDevices").doc(deviceId).set(removeUndefinedDeep({
+      deviceId,
+      state: waString(req.body?.state || "online"),
+      account: waDigits(req.body?.account),
+      clientVersion: waString(req.body?.clientVersion).slice(0, 80),
+      lastSeenAt: waNowIso(),
+      updatedAt: waNowIso(),
+    }), { merge: true });
+    return res.json({ success: true, serverTime: waNowIso() });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
   }
 });
 
@@ -2587,7 +2834,7 @@ app.post("/api/whatsapp/conversations/:phone/reply", async (req, res) => {
     if (!phone || !text) return res.status(400).json({ success: false, error: "Missing phone or text" });
     await waUpsertConversation(phone, { mode: "human", status: "open", unreadCount: 0, lastOutboundText: text, lastMessageText: text, lastMessageDirection: "outbound" });
     const result = await waSendText(phone, text);
-    await waAppendConversationMessage(phone, { direction: "outbound", type: "text", text, sentBy, status: result.ok ? "sent" : "failed", raw: result.payload });
+    await waAppendConversationMessage(phone, { direction: "outbound", type: "text", text, sentBy, status: result.ok ? (result.status === 202 ? "queued" : "sent") : "failed", raw: result.payload });
     res.status(result.ok ? 200 : 502).json({ success: result.ok, result });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error?.message || String(error) });
@@ -2635,7 +2882,7 @@ app.get("/api/whatsapp/quick-replies", (_req, res) => {
 app.post("/api/whatsapp/send-test", async (req, res) => {
   const expected = WHATSAPP_TEST_SECRET();
   const received = waString(req.headers["x-admin-secret"] || req.query.secret || req.body?.secret);
-  if (expected && received !== expected) return res.status(401).json({ success: false, error: "Unauthorized" });
+  if (!expected || received !== expected) return res.status(401).json({ success: false, error: "Unauthorized" });
 
   const to = waDigits(req.body?.to || req.query.to);
   const text = waString(req.body?.text || req.query.text || "تجربة واتساب من نظام التراث ✅");
@@ -2652,12 +2899,14 @@ app.post("/api/whatsapp/send-test", async (req, res) => {
 app.get("/api/whatsapp/health", (_req, res) => {
   res.json({
     success: true,
-    service: "alturath-whatsapp-cloud-api",
+    service: "alturath-whatsapp",
+    transport: WHATSAPP_TRANSPORT(),
     customerBaseUrl: ALTURATH_CUSTOMER_BASE_URL,
     adminBaseUrl: ALTURATH_ADMIN_BASE_URL,
     hasAccessToken: Boolean(WHATSAPP_ACCESS_TOKEN()),
     hasPhoneNumberId: Boolean(WHATSAPP_PHONE_NUMBER_ID()),
     hasVerifyToken: Boolean(WHATSAPP_VERIFY_TOKEN),
+    bridgeConfigured: Boolean(WHATSAPP_BRIDGE_SECRET()),
     firebaseReady: Boolean(firebaseInitialized && db),
   });
 });
