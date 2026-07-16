@@ -634,6 +634,26 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     }
   };
 
+  // Installs the starter rule pack. Rules the owner already has are skipped, never overwritten.
+  const seedDefaultAutoReplyRules = async () => {
+    try {
+      const res = await fetch('/api/whatsapp/auto-replies/seed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر تركيب القواعد الجاهزة');
+      showNotice(
+        'success',
+        `تم تركيب ${json.created} قاعدة جاهزة${json.skipped ? ` · ${json.skipped} موجودة عندك وما تغيّرت` : ''}`,
+      );
+      await loadAutoReplyRules();
+    } catch (e: any) {
+      showNotice('error', e?.message || 'تعذر تركيب القواعد الجاهزة');
+    }
+  };
+
   useEffect(() => {
     loadConversations();
     loadAutoReplyRules();
@@ -1138,9 +1158,19 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             <div className="font-black text-slate-900 flex items-center gap-2"><Bot size={18} className="text-emerald-600" /> قواعد الرد التلقائي</div>
             <div className="mt-1 text-[11px] font-bold text-slate-400">تشتغل قبل الردود الافتراضية، ويمكن تعطيلها أو حذفها بأي وقت</div>
           </div>
-          <button type="button" onClick={startNewAutoReply} className="rounded-2xl bg-slate-900 px-4 py-2.5 text-xs font-black text-white hover:bg-slate-800 flex items-center justify-center gap-2">
-            <Plus size={14} /> إضافة قاعدة
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={seedDefaultAutoReplyRules}
+              title="يركّب باقة قواعد جاهزة. أي قاعدة عندك ما تتغيّر."
+              className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-black text-emerald-700 hover:bg-emerald-100 flex items-center justify-center gap-2"
+            >
+              ✨ القواعد الجاهزة
+            </button>
+            <button type="button" onClick={startNewAutoReply} className="rounded-2xl bg-slate-900 px-4 py-2.5 text-xs font-black text-white hover:bg-slate-800 flex items-center justify-center gap-2">
+              <Plus size={14} /> إضافة قاعدة
+            </button>
+          </div>
         </div>
 
         {autoReplyEditorOpen && (
@@ -1227,8 +1257,18 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               </div>
             </div>
           )) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-xs font-bold text-slate-400">
-              لا توجد قواعد مخصصة. سيستخدم البوت الردود الافتراضية الذكية.
+            <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/40 p-5 text-center lg:col-span-2 2xl:col-span-3">
+              <div className="text-sm font-black text-slate-800">ما عندك أي قاعدة رد تلقائي بعد</div>
+              <div className="mx-auto mt-1.5 max-w-md text-xs font-bold leading-5 text-slate-500">
+                ركّب الباقة الجاهزة بضغطة: ترحيب، منيو، تتبع الطلب، التوصيل، الأسعار، أوقات الدوام، الدفع، العروض، الولائم، والشكاوى — وكلها تتعدّل وتتحذف براحتك بعدها.
+              </div>
+              <button
+                type="button"
+                onClick={seedDefaultAutoReplyRules}
+                className="mt-3 rounded-2xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:bg-emerald-700"
+              >
+                ✨ ركّب القواعد الجاهزة
+              </button>
             </div>
           )}
         </div>
