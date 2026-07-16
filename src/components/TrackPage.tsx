@@ -12,6 +12,18 @@ export default function TrackPage() {
  const [orders, setOrders] = useState<any[]>([]);
  const [hasSearched, setHasSearched] = useState(false);
 
+ const cleanPhoneDigits = (value: any) => String(value || '').replace(/\D/g, '').slice(-8);
+ const phoneLooksSame = (a: any, b: any) => {
+ const aa = cleanPhoneDigits(a);
+ const bb = cleanPhoneDigits(b);
+ return aa.length >= 8 && bb.length >= 8 && aa === bb;
+ };
+ const maskPhoneForCustomer = (value: any) => {
+ const digits = cleanPhoneDigits(value);
+ if (digits.length < 8) return 'مخفي للخصوصية';
+ return `${digits.slice(0, 2)}***${digits.slice(-2)}`;
+ };
+
   useEffect(() => {
     let orderIdToSearch = null;
     let paymentStatus = null;
@@ -80,6 +92,8 @@ export default function TrackPage() {
  const handleSearch = async (e?: React.FormEvent, directSearch?: string) => {
  if (e) e.preventDefault();
  const queryStr = String(directSearch || phoneNumber || '').trim();
+ const queryDigits = cleanPhoneDigits(queryStr);
+ const isFullPhoneSearch = queryDigits.length >= 8 && /^\+?\d[\d\s-]*$/.test(queryStr);
  if (!queryStr) return;
  
  setLoading(true);
@@ -87,16 +101,22 @@ export default function TrackPage() {
  setOrders([]);
 
  try {
- // 1. Try to fetch by phone number
- let q = query(collection(db, 'orders'), where('customerPhone', '==', queryStr), limit(20));
+ let userOrders: any[] = [];
+ let q: any;
+ let snapshot: any;
+
+ // 1. Try to fetch by full phone number only. Partial phone matches are not safe on a public tracking page.
+ if (isFullPhoneSearch) {
+ let q = query(collection(db, 'orders'), where('customerPhone', '==', queryDigits), limit(20));
  let snapshot = await getDocs(q);
- let userOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+ userOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
  // 1b. Try to fetch by mobile field if exists (fallback for other apps)
  if (userOrders.length === 0) {
-  q = query(collection(db, 'orders'), where('mobile', '==', queryStr), limit(20));
+  q = query(collection(db, 'orders'), where('mobile', '==', queryDigits), limit(20));
   snapshot = await getDocs(q);
   userOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+ }
  }
 
  // 2. If nothing found, try by linkedInvoiceId
@@ -124,12 +144,12 @@ export default function TrackPage() {
  const allSnap = await getDocs(allQ);
  allSnap.docs.forEach((docSnap) => {
  const data = docSnap.data();
- const isParticipantMatch = 
- (Array.isArray(data.participantPhones) && data.participantPhones.some((p: string) => String(p).includes(queryStr))) ||
- (Array.isArray(data.splitPayments) && data.splitPayments.some((sp: any) => String(sp.phone || '').includes(queryStr))) ||
- (Array.isArray(data.splitParticipants) && data.splitParticipants.some((sp: any) => String(typeof sp === 'object' ? sp.phone : sp || '').includes(queryStr))) ||
- (data.customerPhone && data.customerPhone.includes(queryStr)) ||
- (data.mobile && data.mobile.includes(queryStr));
+ const isParticipantMatch = isFullPhoneSearch && (
+ (Array.isArray(data.participantPhones) && data.participantPhones.some((p: string) => phoneLooksSame(p, queryDigits))) ||
+ (Array.isArray(data.splitPayments) && data.splitPayments.some((sp: any) => phoneLooksSame(sp.phone, queryDigits))) ||
+ (Array.isArray(data.splitParticipants) && data.splitParticipants.some((sp: any) => phoneLooksSame(typeof sp === 'object' ? sp.phone : sp, queryDigits))) ||
+ phoneLooksSame(data.customerPhone, queryDigits) ||
+ phoneLooksSame(data.mobile, queryDigits));
  
  if ((docSnap.id.endsWith(queryStr) || docSnap.id.includes(queryStr) || isParticipantMatch) && !userOrders.find(u => u.id === docSnap.id)) {
  userOrders.push({ id: docSnap.id, ...data });
@@ -156,13 +176,15 @@ export default function TrackPage() {
  }
 
  // Search invoices by phone number properly
- const invPhoneQ = query(collection(db, 'invoices'), where('customerPhone', '==', queryStr), limit(20));
+ if (isFullPhoneSearch) {
+ const invPhoneQ = query(collection(db, 'invoices'), where('customerPhone', '==', queryDigits), limit(20));
  const invPhoneSnap = await getDocs(invPhoneQ);
  invPhoneSnap.docs.forEach(docSnap => {
  if (!userOrders.find(u => u.id === docSnap.id)) {
  userOrders.push({ id: docSnap.id, ...docSnap.data() });
  }
  });
+ }
 
  if (userOrders.length === 0 && queryStr.length >= 4) {
  // Try suffix match on invoices
@@ -170,10 +192,10 @@ export default function TrackPage() {
  const invSnap = await getDocs(invQ);
  invSnap.docs.forEach((docSnap) => {
  const data = docSnap.data();
- const isPhoneMatch = (data.customerPhone && data.customerPhone.includes(queryStr)) || (data.mobile && data.mobile.includes(queryStr)) ||
- (Array.isArray(data.participantPhones) && data.participantPhones.some((p: string) => String(p).includes(queryStr))) ||
- (Array.isArray(data.splitPayments) && data.splitPayments.some((sp: any) => String(sp.phone || '').includes(queryStr))) ||
- (Array.isArray(data.splitParticipants) && data.splitParticipants.some((sp: any) => String(typeof sp === 'object' ? sp.phone : sp || '').includes(queryStr)));
+ const isPhoneMatch = isFullPhoneSearch && (phoneLooksSame(data.customerPhone, queryDigits) || phoneLooksSame(data.mobile, queryDigits) ||
+ (Array.isArray(data.participantPhones) && data.participantPhones.some((p: string) => phoneLooksSame(p, queryDigits))) ||
+ (Array.isArray(data.splitPayments) && data.splitPayments.some((sp: any) => phoneLooksSame(sp.phone, queryDigits))) ||
+ (Array.isArray(data.splitParticipants) && data.splitParticipants.some((sp: any) => phoneLooksSame(typeof sp === 'object' ? sp.phone : sp, queryDigits))));
  
  if ((docSnap.id.endsWith(queryStr) || docSnap.id.includes(queryStr) || isPhoneMatch) && !userOrders.find(o => o.id === docSnap.id)) {
  userOrders.push({ id: docSnap.id, ...data });
@@ -335,7 +357,7 @@ export default function TrackPage() {
  {order.customerPhone && (
  <div className="flex justify-between">
  <span>رقم التواصل:</span>
- <span dir="ltr">{order.customerPhone}</span>
+ <span dir="ltr">{maskPhoneForCustomer(order.customerPhone)}</span>
  </div>
 )}
  {order.address && (

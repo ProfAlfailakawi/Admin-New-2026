@@ -32,6 +32,16 @@ type ChatMessage = {
 };
 
 type QuickReply = { id: string; title: string; text: string };
+type AutoReplyRule = {
+  id: string;
+  title: string;
+  enabled?: boolean;
+  priority?: number;
+  keywords: string[];
+  matchMode: 'any' | 'all' | 'exact';
+  action: 'reply' | 'products' | 'human';
+  response: string;
+};
 type SmartReply = { id: string; title: string; meta: string; text: string; tone: 'vip' | 'retention' | 'loyalty' | 'support'; score?: number };
 type WhatsAppSupportInboxProps = { data?: Partial<AppState> | null };
 
@@ -539,6 +549,21 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [managedQuickReplies, setManagedQuickReplies] = useState<QuickReply[]>(() => loadSavedQuickReplies());
+  const [autoReplyRules, setAutoReplyRules] = useState<AutoReplyRule[]>([]);
+  const [autoReplyEditorOpen, setAutoReplyEditorOpen] = useState(false);
+  const [editingAutoReplyId, setEditingAutoReplyId] = useState<string | null>(null);
+  const [autoReplyForm, setAutoReplyForm] = useState<AutoReplyRule>({
+    id: '',
+    title: '',
+    enabled: true,
+    priority: 100,
+    keywords: [],
+    matchMode: 'any',
+    action: 'reply',
+    response: '',
+  });
+  const [autoReplyKeywordsText, setAutoReplyKeywordsText] = useState('');
+  const [autoReplyFormError, setAutoReplyFormError] = useState('');
   const [quickReplySearch, setQuickReplySearch] = useState('');
   const [activeSmartReplyId, setActiveSmartReplyId] = useState<string | null>(null);
   const [activeSmartReplySnapshot, setActiveSmartReplySnapshot] = useState<SmartReply | null>(null);
@@ -557,6 +582,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   const endRef = useRef<HTMLDivElement | null>(null);
   const quickReplyEditorRef = useRef<HTMLDivElement | null>(null);
   const quickReplyTitleInputRef = useRef<HTMLInputElement | null>(null);
+  const autoReplyEditorRef = useRef<HTMLDivElement | null>(null);
   const deepLinkConsumedRef = useRef(false);
 
   const showNotice = (type: 'info' | 'success' | 'error', text: string) => {
@@ -597,8 +623,20 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     }
   };
 
+  const loadAutoReplyRules = async () => {
+    try {
+      const res = await fetch('/api/whatsapp/auto-replies', { cache: 'no-store' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر تحميل قواعد الرد التلقائي');
+      setAutoReplyRules(json.rules || []);
+    } catch (e: any) {
+      showNotice('error', e?.message || 'تعذر تحميل قواعد الرد التلقائي');
+    }
+  };
+
   useEffect(() => {
     loadConversations();
+    loadAutoReplyRules();
     const timer = window.setInterval(() => loadConversations(true), 1200);
     return () => window.clearInterval(timer);
   }, []);
@@ -816,6 +854,105 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     showNotice('success', 'تم حذف الرد السريع.');
   };
 
+  const resetAutoReplyForm = () => {
+    setEditingAutoReplyId(null);
+    setAutoReplyForm({
+      id: '',
+      title: '',
+      enabled: true,
+      priority: 100,
+      keywords: [],
+      matchMode: 'any',
+      action: 'reply',
+      response: '',
+    });
+    setAutoReplyKeywordsText('');
+    setAutoReplyFormError('');
+  };
+
+  const startNewAutoReply = () => {
+    resetAutoReplyForm();
+    setAutoReplyEditorOpen(true);
+    window.setTimeout(() => autoReplyEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
+  };
+
+  const startEditAutoReply = (rule: AutoReplyRule) => {
+    setEditingAutoReplyId(rule.id);
+    setAutoReplyForm({ ...rule, keywords: Array.isArray(rule.keywords) ? rule.keywords : [] });
+    setAutoReplyKeywordsText((Array.isArray(rule.keywords) ? rule.keywords : []).join('\n'));
+    setAutoReplyFormError('');
+    setAutoReplyEditorOpen(true);
+    window.setTimeout(() => autoReplyEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
+  };
+
+  const saveAutoReplyRule = async () => {
+    const title = autoReplyForm.title.trim();
+    const response = autoReplyForm.response.trim();
+    const keywords = autoReplyKeywordsText.split(/[\n,،]+/).map((item) => item.trim()).filter(Boolean);
+    if (!title || !keywords.length || (autoReplyForm.action !== 'products' && !response)) {
+      const message = autoReplyForm.action === 'products'
+        ? 'اكتب اسم القاعدة والكلمات المفتاحية.'
+        : 'اكتب اسم القاعدة والكلمات المفتاحية ونص الرد.';
+      setAutoReplyFormError(message);
+      showNotice('error', message);
+      return;
+    }
+    try {
+      const res = await fetch('/api/whatsapp/auto-replies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...autoReplyForm,
+          id: editingAutoReplyId || autoReplyForm.id,
+          title,
+          response,
+          keywords,
+          priority: Number(autoReplyForm.priority || 100),
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر حفظ قاعدة الرد');
+      await loadAutoReplyRules();
+      setAutoReplyEditorOpen(false);
+      resetAutoReplyForm();
+      showNotice('success', 'تم حفظ قاعدة الرد التلقائي.');
+    } catch (e: any) {
+      const message = e?.message || 'تعذر حفظ قاعدة الرد';
+      setAutoReplyFormError(message);
+      showNotice('error', message);
+    }
+  };
+
+  const toggleAutoReplyRule = async (rule: AutoReplyRule) => {
+    try {
+      const res = await fetch('/api/whatsapp/auto-replies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...rule, enabled: rule.enabled === false }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر تحديث القاعدة');
+      await loadAutoReplyRules();
+      showNotice('success', rule.enabled === false ? 'تم تفعيل القاعدة.' : 'تم تعطيل القاعدة.');
+    } catch (e: any) {
+      showNotice('error', e?.message || 'تعذر تحديث القاعدة');
+    }
+  };
+
+  const deleteAutoReplyRule = async (rule: AutoReplyRule) => {
+    const confirmed = typeof window === 'undefined' ? true : window.confirm(`حذف قاعدة الرد: ${rule.title}؟`);
+    if (!confirmed) return;
+    try {
+      const res = await fetch(`/api/whatsapp/auto-replies/${encodeURIComponent(rule.id)}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر حذف القاعدة');
+      await loadAutoReplyRules();
+      showNotice('success', 'تم حذف قاعدة الرد التلقائي.');
+    } catch (e: any) {
+      showNotice('error', e?.message || 'تعذر حذف القاعدة');
+    }
+  };
+
   const toggleSmartReply = (item: SmartReply) => {
     const same = activeSmartReplyId === item.id;
     setActiveSmartReplyId(same ? null : item.id);
@@ -994,6 +1131,107 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           </div>
           </div>
         )}
+      </section>
+      <section className="mb-4 rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <div className="font-black text-slate-900 flex items-center gap-2"><Bot size={18} className="text-emerald-600" /> قواعد الرد التلقائي</div>
+            <div className="mt-1 text-[11px] font-bold text-slate-400">تشتغل قبل الردود الافتراضية، ويمكن تعطيلها أو حذفها بأي وقت</div>
+          </div>
+          <button type="button" onClick={startNewAutoReply} className="rounded-2xl bg-slate-900 px-4 py-2.5 text-xs font-black text-white hover:bg-slate-800 flex items-center justify-center gap-2">
+            <Plus size={14} /> إضافة قاعدة
+          </button>
+        </div>
+
+        {autoReplyEditorOpen && (
+          <div ref={autoReplyEditorRef} className="mb-3 rounded-3xl border border-emerald-100 bg-emerald-50/40 p-3 space-y-3">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px_150px_150px] gap-2">
+              <input
+                value={autoReplyForm.title}
+                onChange={(e) => { setAutoReplyForm((prev) => ({ ...prev, title: e.target.value })); setAutoReplyFormError(''); }}
+                placeholder="اسم القاعدة: أسعار المجبوس"
+                className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+              <input
+                type="number"
+                value={autoReplyForm.priority || 100}
+                onChange={(e) => setAutoReplyForm((prev) => ({ ...prev, priority: Number(e.target.value || 100) }))}
+                placeholder="الأولوية"
+                className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+              <select
+                value={autoReplyForm.matchMode}
+                onChange={(e) => setAutoReplyForm((prev) => ({ ...prev, matchMode: e.target.value as AutoReplyRule['matchMode'] }))}
+                className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20"
+              >
+                <option value="any">أي كلمة</option>
+                <option value="all">كل الكلمات</option>
+                <option value="exact">تطابق كامل</option>
+              </select>
+              <select
+                value={autoReplyForm.action}
+                onChange={(e) => setAutoReplyForm((prev) => ({ ...prev, action: e.target.value as AutoReplyRule['action'] }))}
+                className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20"
+              >
+                <option value="reply">يرد تلقائي</option>
+                <option value="products">يرد من المنتجات</option>
+                <option value="human">يحوّل للموظف</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-2">
+              <textarea
+                value={autoReplyKeywordsText}
+                onChange={(e) => { setAutoReplyKeywordsText(e.target.value); setAutoReplyFormError(''); }}
+                placeholder={'كلمات مفتاحية، كل كلمة بسطر\nمجبوس\nللمجبوس\nاسعار المجبوس'}
+                className="min-h-[120px] rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm leading-6 outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+              <textarea
+                value={autoReplyForm.response}
+                onChange={(e) => { setAutoReplyForm((prev) => ({ ...prev, response: e.target.value })); setAutoReplyFormError(''); }}
+                placeholder={autoReplyForm.action === 'products'
+                  ? 'اختياري: نص احتياطي إذا ما لقى صنف مطابق. الرد الأساسي سيطلع من قائمة المنتجات الحالية.'
+                  : 'نص الرد. تقدر تستخدم: {menu_link} أو {track_link}\nمثال: حياك الله، أسعار المجبوس حسب المنيو الحالي هنا:\n{menu_link}'}
+                className="min-h-[120px] rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm leading-6 outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+            {autoReplyFormError && <div className="rounded-2xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700">{autoReplyFormError}</div>}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="inline-flex items-center gap-2 text-xs font-black text-slate-600">
+                <input type="checkbox" checked={autoReplyForm.enabled !== false} onChange={(e) => setAutoReplyForm((prev) => ({ ...prev, enabled: e.target.checked }))} />
+                مفعّلة
+              </label>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => { setAutoReplyEditorOpen(false); resetAutoReplyForm(); }} className="rounded-2xl bg-white border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50">إلغاء</button>
+                <button type="button" onClick={saveAutoReplyRule} className="rounded-2xl bg-emerald-600 px-3 py-2 text-xs font-black text-white hover:bg-emerald-700 flex items-center gap-1"><Save size={14} /> حفظ القاعدة</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-2">
+          {autoReplyRules.length ? autoReplyRules.map((rule) => (
+            <div key={rule.id} className={cn('rounded-2xl border p-3', rule.enabled === false ? 'border-slate-100 bg-slate-50 opacity-70' : 'border-emerald-100 bg-white')}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-black text-slate-900 truncate">{rule.title}</div>
+                  <div className="mt-1 text-[10px] font-bold text-slate-400">{rule.action === 'human' ? 'تحويل للموظف' : rule.action === 'products' ? 'من قائمة المنتجات' : 'رد تلقائي'} · أولوية {rule.priority || 100}</div>
+                </div>
+                <span className={cn('rounded-full px-2 py-1 text-[10px] font-black', rule.enabled === false ? 'bg-slate-200 text-slate-500' : 'bg-emerald-50 text-emerald-700')}>{rule.enabled === false ? 'متوقفة' : 'مفعلة'}</span>
+              </div>
+              <div className="mt-2 line-clamp-2 text-xs font-bold leading-5 text-slate-500">{(rule.keywords || []).join('، ')}</div>
+              <div className="mt-2 line-clamp-2 text-xs leading-5 text-slate-600">{rule.action === 'products' && !rule.response ? 'يقرأ الرد مباشرة من قائمة المنتجات الحالية.' : rule.response}</div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <button type="button" onClick={() => toggleAutoReplyRule(rule)} className="rounded-xl bg-slate-100 px-2.5 py-1.5 text-[11px] font-black text-slate-700 hover:bg-slate-200">{rule.enabled === false ? 'تفعيل' : 'تعطيل'}</button>
+                <button type="button" onClick={() => startEditAutoReply(rule)} className="rounded-xl bg-white border border-slate-200 px-2.5 py-1.5 text-[11px] font-black text-slate-700 hover:bg-slate-50">تعديل</button>
+                <button type="button" onClick={() => deleteAutoReplyRule(rule)} className="rounded-xl bg-rose-50 px-2.5 py-1.5 text-[11px] font-black text-rose-700 hover:bg-rose-100">حذف</button>
+              </div>
+            </div>
+          )) : (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-xs font-bold text-slate-400">
+              لا توجد قواعد مخصصة. سيستخدم البوت الردود الافتراضية الذكية.
+            </div>
+          )}
+        </div>
       </section>
       <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-4 h-auto xl:h-[calc(100vh-146px)] min-h-0 xl:min-h-[820px] whatsapp-support-workspace">
         <section className="rounded-[1.5rem] bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[320px] max-h-[440px] xl:min-h-[820px] xl:max-h-none">

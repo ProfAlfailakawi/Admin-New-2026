@@ -28,6 +28,12 @@ const normalizeDigits = (value: any): string => {
   return String(value || "").replace(/\D/g, "");
 };
 
+const maskPhoneForCustomer = (value: any): string => {
+  const digits = normalizeDigits(value).slice(-8);
+  if (digits.length < 8) return "مخفي للخصوصية";
+  return `${digits.slice(0, 2)}***${digits.slice(-2)}`;
+};
+
 const redirectToPayment = (url: string): string => {
   if (url) {
     window.location.href = url;
@@ -165,7 +171,7 @@ const isDiwaniyaQatyaOrder = (order: any): boolean => {
 export default function OrderPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialPhone = searchParams.get("phone") || "";
+  const initialPhone = "";
   const [urlPayment, setUrlPayment] = useState(searchParams.get("payment"));
   const [urlOrderId, setUrlOrderId] = useState(
     searchParams.get("order_id") || searchParams.get("tracked_order"),
@@ -203,7 +209,7 @@ export default function OrderPage() {
     // 1. Handle order handoff via URL param for automatic open, or localStorage prefill
     const urlOrderSearch =
       searchParams.get("order_id") || searchParams.get("tracked_order");
-    let lsPhone = searchParams.get("phone") || window.name || "";
+    let lsPhone = "";
     let lsTargetOrderId = urlOrderSearch;
 
     try {
@@ -254,7 +260,6 @@ export default function OrderPage() {
         const newParams = new URLSearchParams(searchParams);
         newParams.delete("order_id");
         newParams.delete("tracked_order");
-        // Keep phone for better UX
         setSearchParams(newParams, { replace: true });
       }
     } else if (lsPhone && lsPhone.length >= 8) {
@@ -399,17 +404,10 @@ export default function OrderPage() {
           try {
             phoneToKeep = localStorage.getItem("customer_phone_track") || "";
           } catch (err) {}
-          phoneToKeep =
-            phoneToKeep ||
-            window.name ||
-            new URLSearchParams(window.location.search).get("phone") ||
-            phone ||
-            "";
           setSearchParams(
             {
               order_id: data.orderId,
               payment: data.payment,
-              phone: phoneToKeep,
             },
             { replace: true },
           );
@@ -2219,7 +2217,7 @@ export default function OrderPage() {
                                       </span>
                                       {p.phone && (
                                         <span className="text-[9px] text-stone-400 font-mono">
-                                          {p.phone}
+                                          {maskPhoneForCustomer(p.phone)}
                                         </span>
                                       )}
                                     </div>
@@ -2250,7 +2248,7 @@ export default function OrderPage() {
                                         </span>
                                         {p.phone && (
                                           <span className="text-[9px] text-stone-400 font-mono">
-                                            {p.phone}
+                                            {maskPhoneForCustomer(p.phone)}
                                           </span>
                                         )}
                                       </div>
@@ -2516,8 +2514,8 @@ export default function OrderPage() {
                               dir="ltr"
                               className="text-stone-500 font-mono text-xs"
                             >
-                              {selectedOrder.customerPhone ||
-                                (selectedOrder as any).phone}
+                              {maskPhoneForCustomer(selectedOrder.customerPhone ||
+                                (selectedOrder as any).phone)}
                             </span>
                           </div>
 

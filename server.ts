@@ -6,6 +6,7 @@ import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import fsSync from 'fs';
 import os from 'os';
+import crypto from 'crypto';
 import 'dotenv/config';
 import { GoogleGenAI } from "@google/genai";
 import LZString from "lz-string";
@@ -1739,6 +1740,7 @@ async function initDeferredCache() {
 // It does not change payment, notification, AI, auth, or database write logic.
 const ALTURATH_CUSTOMER_BASE_URL = String(process.env.ALTURATH_CUSTOMER_BASE_URL || "https://alturathkw.shop").replace(/\/$/, "");
 const ALTURATH_ADMIN_BASE_URL = String(process.env.ALTURATH_ADMIN_BASE_URL || "https://admin.alturathkw.shop").replace(/\/$/, "");
+const ALTURATH_TRACK_BASE_URL = String(process.env.ALTURATH_TRACK_BASE_URL || ALTURATH_ADMIN_BASE_URL || ALTURATH_CUSTOMER_BASE_URL).replace(/\/$/, "");
 const WHATSAPP_VERIFY_TOKEN = String(process.env.WHATSAPP_VERIFY_TOKEN || "alturath_whatsapp_verify_2026");
 const WHATSAPP_GRAPH_VERSION = String(process.env.WHATSAPP_GRAPH_VERSION || "v24.0");
 const WHATSAPP_ACCESS_TOKEN = () => String(process.env.WHATSAPP_ACCESS_TOKEN || "").trim();
@@ -1750,6 +1752,7 @@ const WHATSAPP_TRANSPORT = () => {
 };
 const WHATSAPP_BRIDGE_SECRET = () => String(process.env.WHATSAPP_BRIDGE_SECRET || "").trim();
 const WHATSAPP_BRIDGE_LEASE_SECONDS = Math.max(20, Math.min(300, Number(process.env.WHATSAPP_BRIDGE_LEASE_SECONDS || 60)));
+const WHATSAPP_HUMAN_AUTO_RESUME_MINUTES = 30;
 
 type WhatsAppLookupResult = {
   kind: "order" | "invoice";
@@ -1763,19 +1766,80 @@ function waString(value: any) {
 }
 
 function waDigits(value: any) {
-  return waString(value).replace(/\D/g, "");
+  return waString(value)
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+    .replace(/\D/g, "");
+}
+
+function waMaskPhone(value: any) {
+  const clean = waDigits(value);
+  if (!clean) return "";
+  if (clean.length <= 4) return "***";
+  return `${clean.slice(0, 3)}***${clean.slice(-2)}`;
+}
+
+function waLogToken(value: any) {
+  const clean = waString(value);
+  if (!clean) return "";
+  return crypto.createHash("sha256").update(clean).digest("hex").slice(0, 12);
+}
+
+function waHashText(value: any) {
+  return crypto.createHash("sha256").update(waString(value)).digest("hex").slice(0, 24);
+}
+
+function waHashPhone(value: any) {
+  const clean = waDigits(value);
+  return clean ? crypto.createHash("sha256").update(clean).digest("hex").slice(0, 16) : "";
+}
+
+function waBridgeSecretReady() {
+  return WHATSAPP_BRIDGE_SECRET().length >= 64;
 }
 
 function waNormalizeArabic(value: any) {
   return waString(value)
     .toLowerCase()
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
     .replace(/[إأآا]/g, "ا")
+    .replace(/[ؤئ]/g, "ء")
+    .replace(/[ی]/g, "ي")
+    .replace(/[کگ]/g, "ك")
+    .replace(/چ/g, "ج")
     .replace(/ى/g, "ي")
     .replace(/ة/g, "ه")
     .replace(/[ًٌٍَُِّْـ]/g, "")
     .replace(/[^\p{L}\p{N}\s\-]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function waCompactIntentText(value: any) {
+  return waNormalizeArabic(value).replace(/\s+/g, "");
+}
+
+function waIntentMatches(text: string, phrases: string[]) {
+  const s = waNormalizeArabic(text);
+  if (!s) return false;
+  const compact = waCompactIntentText(s);
+  return phrases.some((phrase) => {
+    const p = waNormalizeArabic(phrase);
+    if (!p) return false;
+    const pc = waCompactIntentText(p);
+    if (s === p || s.includes(p) || compact.includes(pc)) return true;
+    const tokens = p.split(" ").filter((token) => token.length >= 2);
+    return tokens.length >= 2 && tokens.every((token) => s.includes(token));
+  });
+}
+
+function waIntentTokens(value: any) {
+  return waNormalizeArabic(value)
+    .split(" ")
+    .map((word) => word.replace(/^(?:لل|ل|بال|ب|وال|و|ال)(?=.{3,})/u, ""))
+    .map((word) => word.replace(/^(?:لل|ل|بال|ب|وال|و|ال)(?=.{3,})/u, ""))
+    .filter(Boolean);
 }
 
 function waEscapeForLog(value: any) {
@@ -1873,16 +1937,93 @@ function waExtractKuwaitPhone8(text: string) {
 }
 
 function waTrackUrl(id: string) {
-  return `${ALTURATH_CUSTOMER_BASE_URL}/track?order_id=${encodeURIComponent(id)}`;
+  return `${waTrackHomeUrl()}?order_id=${encodeURIComponent(id)}`;
+}
+
+function waTrackHomeUrl() {
+  return `${ALTURATH_TRACK_BASE_URL}/track`;
 }
 
 function waNewOrderUrl() {
   return ALTURATH_CUSTOMER_BASE_URL;
 }
 
+function waHttpsUrl(value: any) {
+  const text = waString(value);
+  return /^https:\/\/[^\s<>"']+$/i.test(text) ? text : "";
+}
+
+function waPaymentLinkFor(item: any): string {
+  if (!item) return "";
+  const direct = [
+    item?.paymentLink,
+    item?.paymentUrl,
+    item?.paymentURL,
+    item?.payment_url,
+    item?.payLink,
+    item?.payUrl,
+    item?.checkoutUrl,
+    item?.checkout_url,
+    item?.paymentData?.paymentLink,
+    item?.paymentData?.paymentUrl,
+    item?.paymentData?.paymentURL,
+    item?.paymentData?.payment_url,
+    item?.paymentData?.url,
+    item?.paymentData?.link,
+    item?.paymentData?.data?.paymentLink,
+    item?.paymentData?.data?.paymentUrl,
+    item?.paymentData?.data?.paymentURL,
+    item?.paymentData?.data?.payment_url,
+    item?.paymentData?.data?.url,
+    item?.paymentData?.data?.link,
+    item?.upaymentsResponse?.paymentLink,
+    item?.upaymentsResponse?.paymentUrl,
+    item?.upaymentsResponse?.paymentURL,
+    item?.upaymentsResponse?.payment_url,
+    item?.upaymentsResponse?.url,
+    item?.upaymentsResponse?.link,
+    item?.upaymentsResponse?.data?.paymentLink,
+    item?.upaymentsResponse?.data?.paymentUrl,
+    item?.upaymentsResponse?.data?.paymentURL,
+    item?.upaymentsResponse?.data?.payment_url,
+    item?.upaymentsResponse?.data?.url,
+    item?.upaymentsResponse?.data?.link,
+  ].map(waHttpsUrl).find(Boolean);
+  return direct || "";
+}
+
+function waShouldShowPaymentLink(item: any) {
+  if (!waPaymentLinkFor(item)) return false;
+  if (waIsPaidStatus(item?.paymentStatus || item?.payment_status || item?.status) || item?.paid === true) return false;
+  return true;
+}
+
 
 function waNowIso() {
   return new Date().toISOString();
+}
+
+function waMinutesFromNow(minutes: number) {
+  return new Date(Date.now() + Math.max(1, minutes) * 60 * 1000).toISOString();
+}
+
+function waDateMs(value: any) {
+  const text = waString(value);
+  if (!text) return 0;
+  const ms = new Date(text).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function waHumanAutoResumeAt() {
+  return waMinutesFromNow(WHATSAPP_HUMAN_AUTO_RESUME_MINUTES);
+}
+
+function waHumanModeExpired(conversation: any) {
+  if (!conversation || conversation?.mode !== "human") return false;
+  const resumeAt = waDateMs(conversation?.autoResumeAt);
+  if (resumeAt > 0) return resumeAt <= Date.now();
+  const pausedAt = waDateMs(conversation?.humanLastReplyAt || conversation?.botPausedAt || conversation?.supportRequestedAt);
+  return pausedAt > 0 && Date.now() - pausedAt >= WHATSAPP_HUMAN_AUTO_RESUME_MINUTES * 60 * 1000;
 }
 
 function waConversationDoc(phone: string) {
@@ -1927,6 +2068,9 @@ async function waUpsertConversation(phone: string, patch: any = {}) {
     supportRequestedAt: patch.supportRequestedAt,
     botPausedAt: patch.botPausedAt,
     botResumedAt: patch.botResumedAt,
+    humanLastReplyAt: patch.humanLastReplyAt,
+    autoResumeAt: patch.autoResumeAt,
+    botAutoResumedAt: patch.botAutoResumedAt,
   });
   try {
     const snap = await ref.get();
@@ -1977,28 +2121,117 @@ async function waAppendConversationMessage(phone: string, message: any) {
 }
 
 function waLooksLikeSupportIntent(text: string) {
-  const s = waNormalizeArabic(text);
-  return [
-    "4", "دعم", "الدعم", "فريق الدعم", "موظف", "اكلم موظف", "ابي اكلم", "خدمه العملاء", "خدمة العملاء",
-    "مشكله", "مشكلة", "شكوى", "استفسار خاص", "تواصل", "support", "agent", "human", "help desk", "customer service"
-  ].some((phrase) => s === waNormalizeArabic(phrase) || s.includes(waNormalizeArabic(phrase)));
+  return waIntentMatches(text, [
+    "4", "دعم", "الدعم", "فريق الدعم", "موظف", "الموظف", "اكلم موظف", "ابي اكلم", "ابي احد", "ابي انسان",
+    "كلموني", "اتصلوا", "اتصال", "خدمه العملاء", "خدمة العملاء", "مسؤول", "المسؤول", "اداره", "الاداره",
+    "مشكله", "مشكلة", "عندي مشكله", "شكوى", "اشتكي", "زعلان", "معصب", "مو راضي", "سيء", "غلط", "ناقص",
+    "طلب ناقص", "وصل غلط", "الاكل بارد", "تأخير", "تاخير", "تاخر", "تأخر", "وينكم", "ما وصل", "ماوصل",
+    "ابي اعدل", "تعديل الطلب", "غير الطلب", "اغير الطلب", "الغاء", "الغي", "إلغاء", "كنسل", "cancel",
+    "شالحل", "وش الحل", "وش السواه", "شنسوي", "ابي حل", "تكفون", "افزعوا", "فزعتكم", "لحقوا", "مابي الطلب",
+    "ردوا علي", "ماحد رد", "ما احد رد", "منو المسؤول", "ابي المسؤول", "ابي اكلم الاداره", "ترى الطلب غلط",
+    "support", "agent", "human", "help desk", "customer service", "complaint", "problem", "wrong", "late", "cancel",
+  ]);
 }
 
 function waLooksLikeBackToBotIntent(text: string) {
-  const s = waNormalizeArabic(text);
-  return ["القائمه", "القائمة", "منيو", "menu", "bot", "رجوع", "ابدأ", "start"].some((phrase) => s === waNormalizeArabic(phrase) || s.includes(waNormalizeArabic(phrase)));
+  return waIntentMatches(text, ["القائمه", "القائمة", "منيو", "menu", "bot", "رجوع", "ابدأ", "start", "البوت", "رد الي"]);
 }
 
 function waQuickReplies() {
   return [
     { id: "welcome", title: "ترحيب", text: "ياهلا ومرحبا في التراث 🇰🇼\nشلون نقدر نخدمك؟" },
-    { id: "tracking", title: "طلب رقم التتبع", text: "حياك الله 🤍\nأرسل رقم الطلب/الفاتورة أو رقم الهاتف الكويتي 8 أرقام، وبنشيك لك مباشرة." },
-    { id: "new_order", title: "رابط طلب جديد", text: `لطلب جديد تفضل من موقع التراث:\n${waNewOrderUrl()}` },
-    { id: "payment", title: "الدفع", text: "حياك الله، إذا عندك رابط دفع افتحه وتأكد من إتمام العملية. وإذا واجهتك مشكلة أرسل رقم الطلب/الفاتورة ونساعدك فورًا." },
-    { id: "delivery", title: "التوصيل", text: "طلباتكم تهمنا 🤍\nأرسل رقم الطلب/الفاتورة أو رقم الهاتف، وبنراجع حالة التوصيل لك." },
+    { id: "menu", title: "المنيو", text: `حياك الله 🤍\nهذا رابط المنيو والطلب المباشر:\n${waNewOrderUrl()}\n\nإذا تبي ترشيح سريع، اكتب اسم الصنف أو عدد الأشخاص.` },
+    { id: "tracking", title: "طلب رقم التتبع", text: `حياك الله 🤍\nأرسل رقم الطلب/الفاتورة، أو افتح رابط التتبع:\n${waTrackHomeUrl()}` },
+    { id: "new_order", title: "رابط طلب جديد", text: `لطلب جديد تفضل من موقع التراث:\n${waNewOrderUrl()}\n\nبعد اختيار الأصناف بيطلع لك رابط الدفع الآمن من الموقع.` },
+    { id: "payment", title: "الدفع", text: "حياك الله، أرسل رقم الطلب/الفاتورة ونرسل لك رابط الدفع المحفوظ إذا كان الطلب بانتظار الدفع." },
+    { id: "delivery", title: "التوصيل", text: "طلباتكم تهمنا 🤍\nأرسل رقم الطلب/الفاتورة، وبنراجع حالة التوصيل لك." },
+    { id: "privacy", title: "خصوصية الطلبات", text: "حفاظاً على الخصوصية، نراجع الطلب تلقائياً برقم الواتساب نفسه أو برقم الطلب/الفاتورة فقط." },
     { id: "handoff", title: "استلام المحادثة", text: "معك فريق التراث الآن 🤍\nاكتب لنا التفاصيل وبنساعدك مباشرة." },
     { id: "closing", title: "إغلاق راقٍ", text: "تشرفنا بخدمتك 🤍\nإذا احتجت أي شيء اكتب لنا بأي وقت." },
   ];
+}
+
+function waAutoReplyRulesCollection() {
+  if (!db || !firebaseInitialized) return null;
+  return db.collection("whatsappAutoReplyRules");
+}
+
+function waCleanAutoReplyKeywords(value: any) {
+  const raw = Array.isArray(value)
+    ? value
+    : waString(value).split(/[\n,،]+/);
+  return waUnique(raw.map((item: any) => waString(item).slice(0, 80)).filter(Boolean)).slice(0, 30);
+}
+
+function waNormalizeAutoReplyRule(raw: any, id = "") {
+  const actionRaw = waString(raw?.action);
+  const action = actionRaw === "human" ? "human" : actionRaw === "products" ? "products" : "reply";
+  const matchModeRaw = waString(raw?.matchMode || "any");
+  const matchMode = ["any", "all", "exact"].includes(matchModeRaw) ? matchModeRaw : "any";
+  return removeUndefinedDeep({
+    id: waString(raw?.id || id).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 120),
+    title: waString(raw?.title || "رد تلقائي").slice(0, 80),
+    enabled: raw?.enabled !== false,
+    priority: Math.max(0, Math.min(999, Number(raw?.priority || 100))),
+    keywords: waCleanAutoReplyKeywords(raw?.keywords),
+    matchMode,
+    action,
+    response: waString(raw?.response).slice(0, 3500),
+    createdAt: raw?.createdAt,
+    updatedAt: raw?.updatedAt,
+  });
+}
+
+async function waLoadAutoReplyRules() {
+  const collection = waAutoReplyRulesCollection();
+  if (!collection) return [];
+  try {
+    const snap = await collection.orderBy("priority", "desc").limit(200).get();
+    return snap.docs
+      .map((doc: any) => waNormalizeAutoReplyRule(doc.data() || {}, doc.id))
+      .filter((rule: any) => rule.id && rule.enabled !== false && (rule.response || rule.action === "products") && waAsArray(rule.keywords).length);
+  } catch (error: any) {
+    console.warn("[WHATSAPP] Could not load auto reply rules:", error?.message || error);
+    return [];
+  }
+}
+
+function waAutoReplyRuleMatches(rule: any, text: string) {
+  const keywords = waAsArray(rule?.keywords).map(waString).filter(Boolean);
+  if (!keywords.length) return false;
+  const normalizedText = waNormalizeArabic(text);
+  if (!normalizedText) return false;
+  if (rule?.matchMode === "exact") {
+    return keywords.some((keyword) => normalizedText === waNormalizeArabic(keyword));
+  }
+  if (rule?.matchMode === "all") {
+    return keywords.every((keyword) => waIntentMatches(normalizedText, [keyword]));
+  }
+  return keywords.some((keyword) => waIntentMatches(normalizedText, [keyword]));
+}
+
+function waRenderAutoReplyTemplate(template: string, context: any = {}) {
+  const trackLink = context?.orderId ? waTrackUrl(context.orderId) : waTrackHomeUrl();
+  return waString(template)
+    .replace(/\{menu_link\}/g, waNewOrderUrl())
+    .replace(/\{order_link\}/g, waNewOrderUrl())
+    .replace(/\{track_link\}/g, trackLink)
+    .replace(/\{customer_phone\}/g, waMaskPhone(context?.phone || ""))
+    .slice(0, 3500);
+}
+
+async function waFindCustomAutoReply(text: string, phone: string) {
+  const rules = await waLoadAutoReplyRules();
+  for (const rule of rules) {
+    if (!waAutoReplyRuleMatches(rule, text)) continue;
+    return {
+      ruleId: rule.id,
+      title: rule.title,
+      action: rule.action === "human" ? "human" : rule.action === "products" ? "products" : "reply",
+      reply: waRenderAutoReplyTemplate(rule.response, { phone }),
+    };
+  }
+  return null;
 }
 
 async function waReadSharedShard(key: string) {
@@ -2142,12 +2375,18 @@ function waOrderReply(result: WhatsAppLookupResult) {
   const label = result.kind === "invoice" ? "الفاتورة" : "الطلب";
   const amount = waAmountText(result.data);
   const status = waStatusText(result.data);
+  const paymentLink = waShouldShowPaymentLink(result.data) ? waPaymentLinkFor(result.data) : "";
   const lines = [
     `ياهلا فيك من التراث 🇰🇼`,
     `${label}: ${id}`,
     `الحالة: ${status}`,
   ];
   if (amount) lines.push(`المبلغ: ${amount}`);
+  if (paymentLink) {
+    lines.push("");
+    lines.push("رابط الدفع الآمن:");
+    lines.push(paymentLink);
+  }
   lines.push(`تقدر تتابع التفاصيل من هنا:`);
   lines.push(waTrackUrl(id));
   lines.push(``);
@@ -2162,7 +2401,9 @@ function waNewOrderReply() {
     "لطلب جديد تفضل من موقعنا:",
     waNewOrderUrl(),
     "",
-    "تقدر تختار المنتجات وتحدد موقع التوصيل وتكمل الطلب مباشرة.",
+    "تقدر تختار المنتجات، تحدد موقع التوصيل، وتكمل الدفع الآمن مباشرة من الموقع.",
+    "إذا تبي المنيو المختصر اكتب: منيو",
+    "وإذا تبي سعر صنف معيّن اكتب اسمه.",
     "",
     "ولمتابعة طلب سابق، أرسل رقم الطلب/الفاتورة أو رقم هاتفك الكويتي 8 أرقام.",
   ].join("\n");
@@ -2233,6 +2474,7 @@ async function waSendHumanSupportPush({
       ttlSeconds: 86400,
       requireInteraction: true,
       notificationTag: `whatsapp-support-${cleanPhone}`,
+      targetRoles: ["admin"],
     });
   } catch (error: any) {
     console.warn("[WHATSAPP] Human support push failed:", error?.message || error);
@@ -2254,6 +2496,29 @@ function waHelpReply() {
   ].join("\n");
 }
 
+function waDeliveryInfoReply() {
+  return [
+    "حياك الله 🤍",
+    "التوصيل ومواعيده تظهر لك أثناء الطلب حسب المنطقة والضغط الحالي.",
+    "",
+    "للطلب:",
+    waNewOrderUrl(),
+    "",
+    "إذا تسأل عن طلب موجود اكتب: وين طلبي؟",
+    "أو أرسل رقم الطلب/الفاتورة.",
+  ].join("\n");
+}
+
+function waThanksReply() {
+  return [
+    "العفو، حياك الله بأي وقت 🤍",
+    "لطلب جديد:",
+    waNewOrderUrl(),
+    "",
+    `ولتتبع طلب سابق: ${waTrackHomeUrl()}`,
+  ].join("\n");
+}
+
 function waGreetingReply() {
   return [
     "ياهلا ومرحبا في التراث 🇰🇼",
@@ -2263,73 +2528,335 @@ function waGreetingReply() {
     "2) تتبع طلب أو فاتورة",
     "3) الاستفسار عن المنتجات",
     "4) الدعم",
+    "",
+    "تقدر تكتب: منيو، وين طلبي؟، رابط الدفع، أو موظف.",
   ].join("\n");
+}
+
+async function waMenuReply() {
+  const shared = await waLoadSharedData(["products"]);
+  const products = waAsArray(shared.products)
+    .filter((p: any) => p?.isActive !== false && p?.active !== false && p?.isOutOfStock !== true && p?.outOfStock !== true)
+    .map((p: any) => ({
+      name: waString(p?.name || p?.productName || p?.title),
+      category: waString(p?.category || p?.categoryName || p?.type),
+      price: Number(p?.price ?? p?.salePrice ?? p?.amount),
+      sort: Number(p?.sortOrder ?? p?.order ?? p?.priority ?? 9999),
+    }))
+    .filter((p: any) => p.name)
+    .sort((a: any, b: any) => a.sort - b.sort || a.name.localeCompare(b.name, "ar"))
+    .slice(0, 12);
+
+  const lines = [
+    "هذا منيو التراث المختصر 🇰🇼",
+    "",
+  ];
+  if (products.length) {
+    for (const product of products) {
+      const price = Number.isFinite(product.price) && product.price > 0 ? ` — ${product.price.toFixed(product.price % 1 ? 3 : 0)} د.ك` : "";
+      const category = product.category ? ` (${product.category})` : "";
+      lines.push(`• ${product.name}${category}${price}`);
+    }
+    lines.push("");
+  } else {
+    lines.push("المنيو الكامل والتوفر الحالي موجودان في الرابط:");
+  }
+  lines.push("للطلب والدفع الآمن:");
+  lines.push(waNewOrderUrl());
+  lines.push("");
+  lines.push("اكتب اسم أي صنف لمعرفة أقرب الخيارات والأسعار.");
+  return lines.join("\n");
+}
+
+function waProductName(product: any) {
+  return waString(product?.name || product?.productName || product?.title);
+}
+
+function waProductPriceText(product: any) {
+  const price = Number(product?.price ?? product?.salePrice ?? product?.amount);
+  return Number.isFinite(price) && price > 0 ? `${price.toFixed(price % 1 ? 3 : 0)} د.ك` : "";
+}
+
+function waProductAvailable(product: any) {
+  if (!product) return false;
+  if (product?.isActive === false || product?.active === false) return false;
+  if (product?.isOutOfStock === true || product?.outOfStock === true) return false;
+  const stock = Number(product?.stock);
+  if (Number.isFinite(stock) && stock <= 0) return false;
+  return true;
+}
+
+function waProductAvailabilityText(product: any) {
+  if (waProductAvailable(product)) return "متوفر اليوم حسب المنيو الحالي";
+  return "غير متوفر حالياً في المنيو";
+}
+
+function waProductInfoText(product: any) {
+  return [
+    product?.description,
+    product?.preparationInstructions,
+    product?.details,
+    product?.notes,
+    product?.servingInfo,
+    product?.portionInfo,
+    product?.packageInfo,
+    product?.name,
+  ].map(waString).filter(Boolean).join(" ");
+}
+
+function waProductSearchText(product: any) {
+  return [
+    product?.name,
+    product?.productName,
+    product?.title,
+    product?.category,
+    product?.categoryName,
+    product?.type,
+    product?.description,
+    product?.preparationInstructions,
+    product?.details,
+    product?.notes,
+    product?.servingInfo,
+    product?.portionInfo,
+    product?.packageInfo,
+  ].filter(Boolean).join(" ");
+}
+
+function waProductTermVariants(term: string) {
+  const normalized = waNormalizeArabic(term);
+  const variants = new Set<string>([normalized]);
+  const groups = [
+    ["مجبوس", "مكبوس"],
+    ["دجاج", "دياي", "ديياي", "فراخ"],
+    ["سمك", "سمج", "زبيدي", "هامور"],
+    ["روبيان", "ربيان"],
+    ["ارز", "رز", "عيش"],
+    ["محشي", "محاشي", "دولمه", "دولمة", "ورق عنب"],
+    ["لحم", "غنم", "نعيمي", "حاشي"],
+    ["مرق", "مرقه", "صالونه", "صالونة"],
+    ["لقيمات", "لقمه", "لقمة"],
+  ];
+  for (const group of groups) {
+    if (group.some((item) => normalized.includes(waNormalizeArabic(item)))) {
+      group.forEach((item) => variants.add(waNormalizeArabic(item)));
+    }
+  }
+  return Array.from(variants).filter(Boolean);
+}
+
+function waFirstInfoValue(product: any, fields: string[]) {
+  for (const field of fields) {
+    const value = product?.[field];
+    if (value === undefined || value === null || value === "") continue;
+    if (typeof value === "number" && Number.isFinite(value) && value > 0) return String(value);
+    const text = waString(value);
+    if (text) return text;
+  }
+  return "";
+}
+
+function waProductPiecesText(product: any) {
+  const direct = waFirstInfoValue(product, [
+    "piecesCount", "pieceCount", "pieces", "pieceQty", "piecesQty", "numberOfPieces", "countPieces",
+    "unitCount", "unitsCount", "countPerBox", "quantityPerOrder", "qtyPerOrder", "packagePieces",
+  ]);
+  if (direct) return /^\d+(\.\d+)?$/.test(direct) ? `${direct} حبة تقريباً` : direct;
+
+  const info = waProductInfoText(product);
+  const match = info.match(/(\d+(?:\.\d+)?)\s*(?:حبه|حبات|قطعه|قطع|رول|رولات|ورقه|ورقات|محشيه|محاشي|كبه|كبات)/i);
+  if (match?.[1]) return `${match[1]} حبة تقريباً`;
+  return "";
+}
+
+function waProductServesText(product: any) {
+  const min = Number(product?.servesMin ?? product?.minPersons ?? product?.minPeople);
+  const max = Number(product?.servesMax ?? product?.maxPersons ?? product?.maxPeople);
+  if (Number.isFinite(min) && min > 0 && Number.isFinite(max) && max >= min) return `${min}${max > min ? ` إلى ${max}` : ""} أشخاص تقريباً`;
+
+  const direct = waFirstInfoValue(product, [
+    "serves", "servesCount", "servingSize", "servings", "persons", "people", "personCount", "peopleCount",
+    "portion", "portionSize", "mealFor",
+  ]);
+  if (direct) return /^\d+(\.\d+)?$/.test(direct) ? `${direct} أشخاص تقريباً` : direct;
+
+  const info = waProductInfoText(product);
+  const range = info.match(/(?:يكفي|تكفي|حق|لـ?|الى|إلى)\s*(\d+)\s*(?:-|الى|إلى|ل)\s*(\d+)\s*(?:شخص|اشخاص|أشخاص|افراد|أفراد|نفر)/i);
+  if (range?.[1] && range?.[2]) return `${range[1]} إلى ${range[2]} أشخاص تقريباً`;
+  const single = info.match(/(?:يكفي|تكفي|حق|لـ?|ل)\s*(\d+)\s*(?:شخص|اشخاص|أشخاص|افراد|أفراد|نفر)/i);
+  if (single?.[1]) return `${single[1]} أشخاص تقريباً`;
+  return "";
+}
+
+function waLooksLikeAvailabilityIntent(text: string) {
+  return waIntentMatches(text, [
+    "متوفر", "متوفر اليوم", "موجود", "موجود اليوم", "فيه اليوم", "عندكم اليوم", "جاهز اليوم", "متاح",
+    "available", "in stock", "today",
+  ]);
+}
+
+function waLooksLikePiecesIntent(text: string) {
+  return waIntentMatches(text, [
+    "كم حبه", "جم حبه", "كم حبة", "جم حبة", "كم قطعه", "كم قطعة", "عدد الحبات", "عدد القطع", "حباته",
+    "داخله", "داخلة", "كم داخل", "شنو داخل", "كم رول", "كم ورقه", "كم ورقة", "pieces", "how many pieces",
+  ]);
+}
+
+function waLooksLikeServesIntent(text: string) {
+  return waIntentMatches(text, [
+    "يكفي كم", "يكفي حق كم", "حق كم شخص", "كم شخص", "كم نفر", "كم واحد", "لجم شخص", "لـ كم شخص",
+    "حق كم نفر", "يكفي عايله", "يكفي عائلة", "يكفي ديوانيه", "يكفي ديوانية", "serves", "how many people",
+  ]);
 }
 
 async function waProductReply(messageText: string) {
   const shared = await waLoadSharedData(["products"]);
-  const terms = waNormalizeArabic(messageText)
-    .split(" ")
-    .filter((word) => word.length >= 3 && !["عندكم", "ابي", "ابغي", "ابغى", "ابا", "اريد", "اطلب", "طلب", "منتج", "سعر", "جم", "كم", "هل", "في", "فيه", "شنو", "وش", "what", "price", "product", "menu", "order", "new", "hello", "hi"].includes(word));
+  const asksAvailability = waLooksLikeAvailabilityIntent(messageText);
+  const asksPieces = waLooksLikePiecesIntent(messageText);
+  const asksServes = waLooksLikeServesIntent(messageText);
+  const terms = waIntentTokens(messageText)
+    .filter((word) => word.length >= 3 && ![
+      "عندكم", "ابي", "ابغي", "ابغى", "ابا", "اريد", "نبي", "ودي", "ودنا", "اطلب", "طلب", "منتج",
+      "سعر", "اسعار", "الاسعار", "كم", "جم", "بكم", "بجم", "هل", "في", "فيه", "شنو", "وش", "اش", "متوفر",
+      "موجود", "اليوم", "جاهز", "حبه", "حبة", "حبات", "قطعه", "قطعة", "قطع", "داخله", "داخلة",
+      "يكفي", "شخص", "اشخاص", "افراد", "نفر", "تقريبا", "تقريباً", "حق", "what", "price", "product",
+      "menu", "order", "new", "hello", "hi", "available", "today", "pieces", "serves", "people",
+    ].includes(word))
+    .flatMap(waProductTermVariants);
+  const uniqueTerms = waUnique(terms);
 
-  if (!terms.length) return "";
+  if (!uniqueTerms.length) {
+    if (asksAvailability) {
+      return [
+        "إيه، الطلب متاح اليوم من المنيو الحالي حسب التوفر المباشر 🤍",
+        "تقدر تشوف الأصناف وتكمل الطلب والدفع من هنا:",
+        waNewOrderUrl(),
+        "",
+        "إذا تقصد صنف معيّن، اكتب اسمه مثل: مجبوس دجاج أو ورق عنب.",
+      ].join("\n");
+    }
+    return "";
+  }
   const products = waAsArray(shared.products)
-    .filter((p: any) => p?.isActive !== false && p?.active !== false && p?.isOutOfStock !== true && p?.outOfStock !== true)
     .map((p: any) => ({
       raw: p,
-      name: waString(p?.name || p?.productName || p?.title),
-      haystack: waNormalizeArabic([p?.name, p?.productName, p?.title, p?.category, p?.description].filter(Boolean).join(" ")),
+      name: waProductName(p),
+      haystack: waNormalizeArabic(waProductSearchText(p)),
     }))
     .filter((p: any) => p.name);
 
   const matches = products
-    .map((p: any) => ({ ...p, score: terms.reduce((acc, term) => acc + (p.haystack.includes(term) ? 1 : 0), 0) }))
+    .map((p: any) => ({ ...p, score: uniqueTerms.reduce((acc, term) => acc + (p.haystack.includes(term) ? 1 : 0), 0) }))
     .filter((p: any) => p.score > 0)
     .sort((a: any, b: any) => b.score - a.score)
     .slice(0, 5);
 
   if (!matches.length) return "";
 
-  const lines = ["هذه أقرب المنتجات الموجودة عندنا حالياً:"];
+  const oneDetailed = matches.length === 1 || asksAvailability || asksPieces || asksServes;
+  const lines = oneDetailed ? ["هذا أقرب صنف حسب سؤالك:"] : ["هذه أقرب المنتجات الموجودة عندنا حالياً:"];
   matches.forEach((p: any, index: number) => {
-    const price = Number(p.raw?.price ?? p.raw?.salePrice ?? p.raw?.amount);
-    lines.push(`${index + 1}. ${p.name}${Number.isFinite(price) && price > 0 ? ` — ${price.toFixed(price % 1 ? 3 : 0)} د.ك` : ""}`);
+    const price = waProductPriceText(p.raw);
+    const availability = waProductAvailabilityText(p.raw);
+    const pieces = waProductPiecesText(p.raw);
+    const serves = waProductServesText(p.raw);
+    const prefix = oneDetailed ? `• ${p.name}` : `${index + 1}. ${p.name}`;
+    const details = [price, availability].filter(Boolean).join(" — ");
+    lines.push(`${prefix}${details ? ` — ${details}` : ""}`);
+    if (oneDetailed) {
+      if (asksPieces) lines.push(pieces ? `عدد الحبات/القطع: ${pieces}` : "عدد الحبات غير محفوظ لهذا الصنف حالياً، يقدر الموظف يؤكده لك قبل الطلب.");
+      if (asksServes) lines.push(serves ? `يكفي تقريباً: ${serves}` : "عدد الأشخاص غير محفوظ لهذا الصنف حالياً، اكتب: موظف، ونؤكده لك قبل الطلب.");
+      if (!asksPieces && !asksServes && pieces) lines.push(`عدد الحبات/القطع: ${pieces}`);
+      if (!asksPieces && !asksServes && serves) lines.push(`يكفي تقريباً: ${serves}`);
+    }
   });
   lines.push("");
-  lines.push("للطلب من الموقع:");
+  lines.push("للطلب والدفع الآمن من الموقع:");
   lines.push(waNewOrderUrl());
+  if (asksPieces || asksServes) {
+    lines.push("");
+    lines.push("إذا تبي تأكيد نهائي قبل الطلب اكتب: موظف.");
+  }
   return lines.join("\n");
 }
 
 function waLooksLikeNewOrderIntent(text: string) {
-  const s = waNormalizeArabic(text);
-  return [
-    "طلب جديد", "ابي اطلب", "ابغى اطلب", "ابغي اطلب", "ابا اطلب", "اريد اطلب", "اطلب", "اطلب منكم", "اطلب الحين",
-    "منيو", "المنيو", "قائمه", "قائمة", "القائمة", "المنيوهات", "المنتجات", "منتجات", "اشتري", "شراء",
-    "menu", "new order", "order now", "order", "make order", "place order", "buy", "shop", "catalog", "products",
-  ].some((phrase) => s.includes(waNormalizeArabic(phrase)));
+  return waIntentMatches(text, [
+    "طلب جديد", "ابي اطلب", "أبي اطلب", "ابغى اطلب", "ابغي اطلب", "ابا اطلب", "اريد اطلب", "نبي نطلب",
+    "اطلب", "اطلب منكم", "اطلب الحين", "اطلب اونلاين", "ابي اوردر", "اوردر", "طلب", "اشتري", "شراء",
+    "ودنا نطلب", "ودّي اطلب", "ودي اطلب", "بغيت اطلب", "نبي غدا", "نبي عشا", "ابي غدا", "ابي عشا",
+    "جهزوا لنا", "عطنا طلب", "خل نسوي طلب", "بسوي طلب", "عطني رابط الطلب", "طرش رابط الطلب", "دز رابط الطلب",
+    "سلة", "السله", "السلة", "new order", "order now", "order", "make order", "place order", "buy", "shop",
+  ]);
+}
+
+function waLooksLikeMenuIntent(text: string) {
+  return waIntentMatches(text, [
+    "منيو", "المنيو", "قائمه", "قائمة", "القائمة", "المنيوهات", "المنتجات", "منتجات", "اصناف", "الأصناف", "الاصناف",
+    "شنو عندكم", "اش عندكم", "وش عندكم", "عندكم شنو", "عندكم شي", "الاسعار", "الأسعار", "اسعاركم", "سعر", "كم السعر", "جم السعر",
+    "ابي اشوف", "بشوف", "ابي المنيو", "ارسل المنيو", "دز المنيو", "دزلي المنيو", "لينك المنيو", "رابط المنيو",
+    "طرش المنيو", "طرشلي المنيو", "عطني المنيو", "عطنا المنيو", "بجم", "بكم", "جم", "كم", "وش الاسعار", "شنهي الاصناف",
+    "شنو الموجود", "وش الموجود", "شنو متوفر", "وش متوفر", "عندكم عيش", "عندكم سمج", "عندكم ورق عنب", "عندكم محاشي",
+    "menu", "catalog", "products", "items", "prices", "price list",
+  ]);
 }
 
 function waLooksLikeTrackIntent(text: string) {
-  const s = waNormalizeArabic(text);
-  return [
+  return waIntentMatches(text, [
     "تتبع", "تتبع الطلب", "تتبع طلبي", "طلبي", "طلبى", "وين طلبي", "وين الطلب", "حاله", "حالة", "حالة الطلب",
-    "فاتوره", "فاتورة", "فواتير", "رقم الفاتوره", "رقم الفاتورة", "دفعت", "الدفع", "وصل", "التوصيل",
-    "invoice", "track", "tracking", "status", "my order", "where is my order", "delivery", "payment",
-  ].some((phrase) => s.includes(waNormalizeArabic(phrase)));
+    "وين وصل", "وصل طلبي", "متى يوصل", "متى الوصول", "متى التوصيل", "التتبع", "رابط التتبع",
+    "فاتوره", "فاتورة", "فواتير", "رقم الفاتوره", "رقم الفاتورة", "دفعت", "تم الدفع", "خلصت دفع", "وصلني", "وصل",
+    "وينه", "وينه طلبي", "وينها", "متى ياصل", "متى يوصلني", "متى يجي", "متى تجون", "ياصلنا متى", "ابي اعرف طلبي",
+    "شيك على طلبي", "شيكلي على طلبي", "طمني على الطلب", "دور طلبي", "شوف طلبي", "طلبي وين", "الحاله",
+    "invoice", "track", "tracking", "status", "my order", "where is my order", "paid", "payment done",
+  ]);
+}
+
+function waLooksLikePaymentIntent(text: string) {
+  return waIntentMatches(text, [
+    "رابط الدفع", "الدفع", "ادفع", "دفع", "ابي ادفع", "شلون ادفع", "كيف ادفع", "كي نت", "knet",
+    "لينك الدفع", "دز رابط الدفع", "ارسل رابط الدفع", "ما وصل رابط الدفع", "لم يصل رابط الدفع", "الرابط", "رابط كي نت",
+    "طرش رابط الدفع", "طرشلي رابط الدفع", "دزلي رابط الدفع", "عطني رابط الدفع", "عطنا رابط الدفع", "ابي الرابط",
+    "وين رابط الدفع", "ما وصلني الرابط", "ابي كي نت", "ابي ادفع كي نت", "دفع كي نت", "خلص الدفع", "سددت",
+    "payment link", "payment", "pay link", "pay", "checkout", "k-net",
+  ]);
+}
+
+function waLooksLikePaymentDoneIntent(text: string) {
+  return waIntentMatches(text, [
+    "دفعت", "تم الدفع", "خلصت دفع", "خلص الدفع", "سددت", "دافع", "دفعت خلاص", "تم السداد",
+    "paid", "payment done", "i paid", "paid already",
+  ]);
 }
 
 function waLooksLikeGreeting(text: string) {
   const s = waNormalizeArabic(text);
-  return [
+  return waIntentMatches(s, [
     "هلا", "ياهلا", "مرحبا", "السلام", "السلام عليكم", "صباح الخير", "مساء الخير", "هاي", "الو", "اهلا", "اهلين",
+    "حياكم", "حياك", "حي الله", "حيالله", "مساكم الله بالخير", "صبحكم الله بالخير", "هلا والله", "يا مرحبا",
     "hi", "hello", "hey", "salam", "good morning", "good evening",
-  ].some((phrase) => s === waNormalizeArabic(phrase) || s.includes(waNormalizeArabic(phrase)));
+  ]);
 }
 
 function waLooksLikeHelpIntent(text: string) {
+  return waIntentMatches(text, ["مساعده", "مساعدة", "ساعدني", "خدمه", "خدمة", "اختيارات", "الخيارات", "الاوامر", "اوامر", "help", "support", "options", "commands"]);
+}
+
+function waLooksLikeDeliveryInfoIntent(text: string) {
+  return waIntentMatches(text, [
+    "توصيل", "التوصيل", "مناطق التوصيل", "توصلون", "توصلون لنا", "وين توصلون", "كم التوصيل", "رسوم التوصيل",
+    "دليفري", "الدليفري", "توصلون الديره", "توصلون الجهراء", "توصلون الاحمدي", "توصلون صباح الاحمد",
+    "تجون البيت", "توصلون للبيت", "كم ياخذ توصيل", "متى تفتحون", "اوقاتكم", "وقتكم",
+    "الدليفري", "دليفري", "delivery", "delivery fee", "deliver",
+  ]);
+}
+
+function waLooksLikeThanksIntent(text: string) {
   const s = waNormalizeArabic(text);
-  return ["مساعده", "مساعدة", "ساعدني", "خدمه", "خدمة", "اختيارات", "الخيارات", "help", "support", "options", "commands"].some((phrase) => s.includes(waNormalizeArabic(phrase)));
+  return waIntentMatches(s, [
+    "شكرا", "مشكور", "يعطيك العافيه", "يعطيكم العافيه", "تمام", "اوكي", "بيض الله وجهك", "بيض الله وجيهكم",
+    "تسلم", "تسلمون", "ما قصرت", "ماقصرت", "كفو", "جزاك الله خير", "عساكم عالقوه", "عساكم عالقوة",
+    "ok", "thanks", "thank you",
+  ]) && s.length <= 50;
 }
 
 async function waBuildAutoReply(messageText: string, fromPhone: string) {
@@ -2342,12 +2869,14 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
     return [
       "أرسل رقم الطلب/الفاتورة أو رقم الهاتف الكويتي 8 أرقام، وبشيك لك مباشرة.",
       "",
-      `رابط التتبع: ${ALTURATH_CUSTOMER_BASE_URL}/track`,
+      `رابط التتبع: ${waTrackHomeUrl()}`,
     ].join("\n");
   }
-  if (clean === "3") return "اكتب اسم المنتج الذي تبحث عنه، وسأبحث لك في المنيو المتاح.";
+  if (clean === "3") return waMenuReply();
   if (waLooksLikeHelpIntent(messageText)) return waHelpReply();
-  if (waLooksLikeGreeting(messageText)) return waGreetingReply();
+  const earlyProductReply = await waProductReply(messageText);
+  if (earlyProductReply) return earlyProductReply;
+  if (waLooksLikeMenuIntent(messageText)) return waMenuReply();
 
   const businessId = waExtractBusinessId(messageText);
   if (businessId) {
@@ -2356,12 +2885,47 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
     return [
       `ما حصلت هذا الرقم حالياً.`,
       "تأكد من رقم الطلب/الفاتورة أو جرّب رابط التتبع:",
-      `${ALTURATH_CUSTOMER_BASE_URL}/track`,
+      waTrackHomeUrl(),
       "",
       "ولطلب جديد:",
       waNewOrderUrl(),
     ].join("\n");
   }
+
+  if (waLooksLikePaymentDoneIntent(messageText)) {
+    const byPhone = await waFindLatestByPhone(fromPhone);
+    if (byPhone) return waOrderReply(byPhone);
+    return [
+      "يعطيك العافية 🤍",
+      "إذا تم الدفع، أرسل رقم الطلب/الفاتورة حتى أفتح لك التتبع مباشرة.",
+      "",
+      `رابط التتبع: ${waTrackHomeUrl()}`,
+    ].join("\n");
+  }
+
+  if (waLooksLikePaymentIntent(messageText)) {
+    const byPhone = await waFindLatestByPhone(fromPhone);
+    if (byPhone) {
+      const paymentLink = waShouldShowPaymentLink(byPhone.data) ? waPaymentLinkFor(byPhone.data) : "";
+      if (paymentLink) {
+        return [
+          "هذا رابط الدفع الآمن لآخر طلب مرتبط برقم الواتساب:",
+          paymentLink,
+          "",
+          "وبعد الدفع تقدر تتابع الطلب من هنا:",
+          waTrackUrl(byPhone.id),
+        ].join("\n");
+      }
+      return waOrderReply(byPhone);
+    }
+    return [
+      "أرسل رقم الطلب/الفاتورة حتى أرسل لك رابط الدفع المحفوظ إذا كان الطلب بانتظار الدفع.",
+      "",
+      `أو افتح صفحة التتبع: ${waTrackHomeUrl()}`,
+    ].join("\n");
+  }
+
+  if (waLooksLikeDeliveryInfoIntent(messageText)) return waDeliveryInfoReply();
 
   const phone8 = waExtractKuwaitPhone8(messageText);
   if (phone8) {
@@ -2392,15 +2956,15 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
       "للمتابعة أرسل رقم الطلب/الفاتورة كما هو ظاهر في الرسالة أو الفاتورة.",
       "أو رقم الهاتف بصيغة 8 أرقام مثل: 97424400",
       "أو افتح صفحة التتبع:",
-      `${ALTURATH_CUSTOMER_BASE_URL}/track`,
+      waTrackHomeUrl(),
       "",
       "ولطلب جديد:",
       waNewOrderUrl(),
     ].join("\n");
   }
 
-  const productReply = await waProductReply(messageText);
-  if (productReply) return productReply;
+  if (waLooksLikeThanksIntent(messageText)) return waThanksReply();
+  if (waLooksLikeGreeting(messageText)) return waGreetingReply();
 
   return waHelpReply();
 }
@@ -2417,9 +2981,15 @@ function waExtractMessageText(message: any) {
 
 function waBridgeRequestAuthorized(req: any) {
   const expected = WHATSAPP_BRIDGE_SECRET();
-  if (!expected) return false;
-  const received = waString(req.headers?.["x-whatsapp-bridge-secret"] || req.query?.secret || req.body?.secret);
-  return received.length > 0 && received === expected;
+  if (!waBridgeSecretReady()) return false;
+  const forwardedProto = waString(req.headers?.["x-forwarded-proto"]).split(",")[0]?.trim().toLowerCase();
+  const secure = req.secure === true || forwardedProto === "https";
+  if (!secure) return false;
+  const received = waString(req.headers?.["x-whatsapp-bridge-secret"]);
+  if (!received) return false;
+  const expectedBuffer = Buffer.from(expected);
+  const receivedBuffer = Buffer.from(received);
+  return expectedBuffer.length === receivedBuffer.length && crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
 }
 
 function waBridgeDocId(source: string, messageId: string) {
@@ -2442,35 +3012,84 @@ async function waClaimInboundMessage(source: string, messageId: string) {
   }
 }
 
-async function waQueueBridgeText(to: string, body: string) {
+async function waQueueBridgeText(to: string, body: string, options: any = {}) {
   if (!db || !firebaseInitialized) {
     return { ok: false, status: 503, skipped: true, reason: "firestore_not_ready" };
   }
-  if (!WHATSAPP_BRIDGE_SECRET()) {
+  if (!waBridgeSecretReady()) {
     return { ok: false, status: 503, skipped: true, reason: "missing_bridge_secret" };
   }
   const cleanTo = waDigits(to);
   const cleanBody = waString(body).slice(0, 3500);
   if (!cleanTo || !cleanBody) return { ok: false, status: 400, reason: "missing_to_or_body" };
 
-  const ref = db.collection("whatsappBridgeOutbox").doc();
+  const providedKey = waString(options?.idempotencyKey);
+  const fallbackBucket = Math.floor(Date.now() / 10000);
+  const idempotencyKey = providedKey || `reply:${cleanTo}:${waHashText(cleanBody)}:${fallbackBucket}`;
+  const outboxId = waBridgeDocId("outbox", idempotencyKey);
+  const ref = db.collection("whatsappBridgeOutbox").doc(outboxId);
   const payload = {
-    id: ref.id,
+    id: outboxId,
     to: cleanTo,
     body: cleanBody,
     status: "pending",
     attempts: 0,
     transport: "web_bridge",
+    sentBy: waString(options?.sentBy || "bot").slice(0, 40),
+    source: waString(options?.source || "whatsapp").slice(0, 80),
+    phoneHash: waHashPhone(cleanTo),
+    idempotencyKey: waHashText(idempotencyKey),
     createdAt: waNowIso(),
     updatedAt: waNowIso(),
   };
-  await ref.set(payload);
-  return { ok: true, status: 202, payload: { queued: true, transport: "web_bridge", outboxId: ref.id } };
+  try {
+    await ref.create(payload);
+    return { ok: true, status: 202, payload: { queued: true, transport: "web_bridge", outboxId } };
+  } catch (error: any) {
+    const code = Number(error?.code);
+    if (code === 6 || String(error?.message || "").toLowerCase().includes("already exists")) {
+      return { ok: true, status: 202, payload: { queued: false, duplicate: true, transport: "web_bridge", outboxId } };
+    }
+    throw error;
+  }
 }
 
-async function waSendText(to: string, body: string) {
+async function waCancelPendingBotOutbox(to: string, reason = "human_reply") {
+  if (!db || !firebaseInitialized) return { cancelled: 0 };
+  const cleanTo = waDigits(to);
+  if (!cleanTo) return { cancelled: 0 };
+  try {
+    const snap = await db.collection("whatsappBridgeOutbox")
+      .where("status", "in", ["pending", "processing"])
+      .limit(80)
+      .get();
+    const batch = db.batch();
+    let cancelled = 0;
+    snap.docs.forEach((doc: any) => {
+      const data = doc.data() || {};
+      if (waDigits(data.to) !== cleanTo) return;
+      const sentBy = waString(data.sentBy || data.source || "bot").toLowerCase();
+      if (sentBy && sentBy !== "bot" && sentBy !== "auto" && sentBy !== "whatsapp") return;
+      batch.set(doc.ref, removeUndefinedDeep({
+        status: "cancelled",
+        cancelledAt: waNowIso(),
+        cancelReason: reason,
+        leaseUntil: "",
+        updatedAt: waNowIso(),
+      }), { merge: true });
+      cancelled += 1;
+    });
+    if (cancelled > 0) await batch.commit();
+    return { cancelled };
+  } catch (error: any) {
+    console.warn("[WHATSAPP] Could not cancel pending bot outbox:", error?.message || error);
+    return { cancelled: 0, error: error?.message || String(error) };
+  }
+}
+
+async function waSendText(to: string, body: string, options: any = {}) {
   if (WHATSAPP_TRANSPORT() === "web_bridge") {
-    return waQueueBridgeText(to, body);
+    return waQueueBridgeText(to, body, options);
   }
 
   const token = WHATSAPP_ACCESS_TOKEN();
@@ -2526,12 +3145,12 @@ async function waProcessInboundMessage({
 
   const claimed = await waClaimInboundMessage(source, messageId);
   if (!claimed) {
-    console.log(`[WHATSAPP] Duplicate inbound skipped source=${source} id=${waEscapeForLog(messageId)}`);
+    console.log(`[WHATSAPP] Duplicate inbound skipped source=${source} idHash=${waLogToken(messageId)}`);
     return { handled: false, duplicate: true, sendResults: [] as any[] };
   }
 
   const sendResults: any[] = [];
-  console.log(`[WHATSAPP] Incoming source=${source} type=${cleanType} from ${cleanFrom}: ${waEscapeForLog(cleanText)}`);
+  console.log(`[WHATSAPP] Incoming source=${source} type=${cleanType} from=${waMaskPhone(cleanFrom)} textLength=${cleanText.length}`);
 
   await waUpsertConversation(cleanFrom, {
     customerName: contactName || undefined,
@@ -2549,11 +3168,22 @@ async function waProcessInboundMessage({
   });
   await waIncrementUnread(cleanFrom);
 
-  const conversation = await waGetConversation(cleanFrom);
+  let conversation = await waGetConversation(cleanFrom);
+  if (waHumanModeExpired(conversation)) {
+    await waUpsertConversation(cleanFrom, {
+      mode: "bot",
+      status: "open",
+      botAutoResumedAt: waNowIso(),
+      botResumedAt: waNowIso(),
+      autoResumeAt: "",
+    });
+    conversation = { ...(conversation || {}), mode: "bot", status: "open", autoResumeAt: "" };
+    console.log(`[WHATSAPP] Conversation ${waMaskPhone(cleanFrom)} auto-resumed after human idle window.`);
+  }
   let reply = "";
 
   if (cleanText && waLooksLikeBackToBotIntent(cleanText)) {
-    await waUpsertConversation(cleanFrom, { mode: "bot", status: "open", botResumedAt: waNowIso(), unreadCount: 0 });
+    await waUpsertConversation(cleanFrom, { mode: "bot", status: "open", botResumedAt: waNowIso(), autoResumeAt: "", unreadCount: 0 });
     reply = waHelpReply();
   } else if (cleanText && waLooksLikeSupportIntent(cleanText)) {
     await waUpsertConversation(cleanFrom, {
@@ -2562,6 +3192,7 @@ async function waProcessInboundMessage({
       priority: "high",
       supportRequestedAt: waNowIso(),
       botPausedAt: waNowIso(),
+      autoResumeAt: waHumanAutoResumeAt(),
       tags: waUnique([...(waAsArray(conversation?.tags)), "support"]),
     });
     const pushResult = await waSendHumanSupportPush({
@@ -2587,20 +3218,51 @@ async function waProcessInboundMessage({
       reason: "already_human",
     });
     sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", ...(pushResult || {}) });
-    console.log(`[WHATSAPP] Conversation ${cleanFrom} is in human support mode. Auto-reply skipped.`);
+    console.log(`[WHATSAPP] Conversation ${waMaskPhone(cleanFrom)} is in human support mode. Auto-reply skipped.`);
   } else {
-    reply = cleanText
-      ? await waBuildAutoReply(cleanText, cleanFrom)
-      : [
-          "وصلت رسالتك، لكن أقدر أتعامل حاليًا مع الرسائل النصية فقط.",
-          "اكتب: طلب جديد",
-          "أو أرسل رقم الطلب/الفاتورة",
-          "أو رقم الهاتف 8 أرقام مثل: 97424400",
-        ].join("\n");
+    const customRule = cleanText ? await waFindCustomAutoReply(cleanText, cleanFrom) : null;
+    if (customRule?.action === "human") {
+      await waUpsertConversation(cleanFrom, {
+        mode: "human",
+        status: "needs_support",
+        priority: "high",
+        supportRequestedAt: waNowIso(),
+        botPausedAt: waNowIso(),
+        autoResumeAt: waHumanAutoResumeAt(),
+        tags: waUnique([...(waAsArray(conversation?.tags)), "custom-rule", "support"]),
+      });
+      const pushResult = await waSendHumanSupportPush({
+        phone: cleanFrom,
+        text: cleanText || `[${cleanType}]`,
+        contactName,
+        messageId,
+        reason: "custom_rule_handoff",
+      });
+      sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "custom_rule_handoff", ruleId: customRule.ruleId, ...(pushResult || {}) });
+      reply = customRule.reply || waSupportReply();
+    } else if (customRule?.action === "products") {
+      reply = (cleanText ? await waProductReply(cleanText) : "") || customRule.reply || await waMenuReply();
+      sendResults.push({ to: cleanFrom, channel: "custom_product_reply", ruleId: customRule.ruleId, ruleTitle: customRule.title });
+    } else if (customRule?.reply) {
+      reply = customRule.reply;
+      sendResults.push({ to: cleanFrom, channel: "custom_auto_reply", ruleId: customRule.ruleId, ruleTitle: customRule.title });
+    } else {
+      reply = cleanText
+        ? await waBuildAutoReply(cleanText, cleanFrom)
+        : [
+            "وصلت رسالتك، لكن أقدر أتعامل حاليًا مع الرسائل النصية فقط.",
+            "اكتب: طلب جديد",
+            "أو أرسل رقم الطلب/الفاتورة",
+            "أو رقم الهاتف 8 أرقام مثل: 97424400",
+          ].join("\n");
+    }
   }
 
   if (reply) {
-    const result: any = await waSendText(cleanFrom, reply);
+    const replyKeySource = messageId
+      ? `auto:${source}:${messageId}`
+      : `auto:${source}:${cleanFrom}:${waHashText(cleanText)}:${Math.floor(Date.now() / 10000)}`;
+    const result: any = await waSendText(cleanFrom, reply, { idempotencyKey: replyKeySource, sentBy: "bot", source: "auto_reply" });
     sendResults.push({
       to: cleanFrom,
       ok: result.ok,
@@ -2617,7 +3279,8 @@ async function waProcessInboundMessage({
       raw: result.payload,
     });
     await waUpsertConversation(cleanFrom, { lastOutboundText: reply, lastMessageText: reply, lastMessageDirection: "outbound" });
-    console.log(`[WHATSAPP] Reply result to ${cleanFrom}: ${JSON.stringify(sendResults[sendResults.length - 1]).slice(0, 700)}`);
+    const latestResult = { ...sendResults[sendResults.length - 1], to: waMaskPhone(cleanFrom) };
+    console.log(`[WHATSAPP] Reply result: ${JSON.stringify(latestResult).slice(0, 700)}`);
   }
 
   return { handled: true, replyQueued: Boolean(reply), sendResults };
@@ -2832,10 +3495,26 @@ app.post("/api/whatsapp/conversations/:phone/reply", async (req, res) => {
     const text = waString(req.body?.text || req.query.text);
     const sentBy = waString(req.body?.sentBy || "admin") || "admin";
     if (!phone || !text) return res.status(400).json({ success: false, error: "Missing phone or text" });
-    await waUpsertConversation(phone, { mode: "human", status: "open", unreadCount: 0, lastOutboundText: text, lastMessageText: text, lastMessageDirection: "outbound" });
-    const result = await waSendText(phone, text);
+    const cancelledBotReplies = await waCancelPendingBotOutbox(phone, "human_reply_started");
+    await waUpsertConversation(phone, {
+      mode: "human",
+      status: "open",
+      unreadCount: 0,
+      botPausedAt: waNowIso(),
+      humanLastReplyAt: waNowIso(),
+      autoResumeAt: waHumanAutoResumeAt(),
+      lastOutboundText: text,
+      lastMessageText: text,
+      lastMessageDirection: "outbound",
+    });
+    const requestKey = waString(req.headers["x-idempotency-key"] || req.body?.idempotencyKey || req.query.idempotencyKey);
+    const result = await waSendText(phone, text, {
+      idempotencyKey: requestKey || `manual:${phone}:${waHashText(text)}:${Math.floor(Date.now() / 10000)}`,
+      sentBy,
+      source: "manual_reply",
+    });
     await waAppendConversationMessage(phone, { direction: "outbound", type: "text", text, sentBy, status: result.ok ? (result.status === 202 ? "queued" : "sent") : "failed", raw: result.payload });
-    res.status(result.ok ? 200 : 502).json({ success: result.ok, result });
+    res.status(result.ok ? 200 : 502).json({ success: result.ok, result, cancelledBotReplies });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error?.message || String(error) });
   }
@@ -2846,8 +3525,8 @@ app.post("/api/whatsapp/conversations/:phone/mode", async (req, res) => {
     const phone = waDigits(req.params.phone);
     const mode = waString(req.body?.mode || req.query.mode) === "bot" ? "bot" : "human";
     const patch = mode === "bot"
-      ? { mode, status: "open", botResumedAt: waNowIso(), unreadCount: 0 }
-      : { mode, status: "needs_support", botPausedAt: waNowIso() };
+      ? { mode, status: "open", botResumedAt: waNowIso(), autoResumeAt: "", unreadCount: 0 }
+      : { mode, status: "needs_support", botPausedAt: waNowIso(), autoResumeAt: waHumanAutoResumeAt() };
     await waUpsertConversation(phone, patch);
     res.json({ success: true, mode });
   } catch (error: any) {
@@ -2879,6 +3558,56 @@ app.get("/api/whatsapp/quick-replies", (_req, res) => {
   res.json({ success: true, quickReplies: waQuickReplies() });
 });
 
+app.get("/api/whatsapp/auto-replies", async (_req, res) => {
+  try {
+    const collection = waAutoReplyRulesCollection();
+    if (!collection) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+    const snap = await collection.orderBy("priority", "desc").limit(200).get();
+    const rules = snap.docs.map((doc: any) => waNormalizeAutoReplyRule(doc.data() || {}, doc.id));
+    return res.json({ success: true, rules });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+app.post("/api/whatsapp/auto-replies", async (req, res) => {
+  try {
+    const collection = waAutoReplyRulesCollection();
+    if (!collection) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+    const requestedId = waString(req.body?.id).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 120);
+    const id = requestedId || `rule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const existingSnap = await collection.doc(id).get().catch(() => null);
+    const existing = existingSnap?.exists ? (existingSnap.data() || {}) : {};
+    const rule = waNormalizeAutoReplyRule({
+      ...existing,
+      ...req.body,
+      id,
+      createdAt: existing?.createdAt || waNowIso(),
+      updatedAt: waNowIso(),
+    }, id);
+    if (!rule.title || !waAsArray(rule.keywords).length || (!rule.response && rule.action !== "products")) {
+      return res.status(400).json({ success: false, error: "Missing title, keywords, or response" });
+    }
+    await collection.doc(id).set(rule, { merge: true });
+    return res.json({ success: true, rule });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+app.delete("/api/whatsapp/auto-replies/:id", async (req, res) => {
+  try {
+    const collection = waAutoReplyRulesCollection();
+    if (!collection) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+    const id = waString(req.params.id).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 120);
+    if (!id) return res.status(400).json({ success: false, error: "Missing rule id" });
+    await collection.doc(id).delete();
+    return res.json({ success: true });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
 app.post("/api/whatsapp/send-test", async (req, res) => {
   const expected = WHATSAPP_TEST_SECRET();
   const received = waString(req.headers["x-admin-secret"] || req.query.secret || req.body?.secret);
@@ -2889,7 +3618,9 @@ app.post("/api/whatsapp/send-test", async (req, res) => {
   if (!to) return res.status(400).json({ success: false, error: "Missing recipient phone number" });
 
   try {
-    const result = await waSendText(to, text);
+    const result = await waSendText(to, text, {
+      idempotencyKey: `send-test:${to}:${waHashText(text)}:${Math.floor(Date.now() / 10000)}`,
+    });
     return res.status(result.ok ? 200 : 502).json({ success: result.ok, result });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error?.message || String(error) });
@@ -2906,7 +3637,7 @@ app.get("/api/whatsapp/health", (_req, res) => {
     hasAccessToken: Boolean(WHATSAPP_ACCESS_TOKEN()),
     hasPhoneNumberId: Boolean(WHATSAPP_PHONE_NUMBER_ID()),
     hasVerifyToken: Boolean(WHATSAPP_VERIFY_TOKEN),
-    bridgeConfigured: Boolean(WHATSAPP_BRIDGE_SECRET()),
+    bridgeConfigured: waBridgeSecretReady(),
     firebaseReady: Boolean(firebaseInitialized && db),
   });
 });
@@ -4773,6 +5504,18 @@ function normalizePushTokenRecord(doc: any): PushTokenRecordForArchive | null {
   };
 }
 
+function pushRecordMatchesTargetRoles(record: PushTokenRecordForArchive, targetRoles?: string[]) {
+  const roles = (targetRoles || []).map((role) => String(role || "").trim().toLowerCase()).filter(Boolean);
+  if (!roles.length) return true;
+  const recordRole = String(record.userRole || "").trim().toLowerCase();
+  if (roles.includes(recordRole)) return true;
+  if (roles.includes("admin")) {
+    const identity = [record.userId, record.userName, record.userEmail, record.tokenDocId].filter(Boolean).join(" ").toLowerCase();
+    return recordRole.includes("admin") || /\badmin\b/.test(identity) || identity.includes("ahmad") || identity.includes("alfailakawi");
+  }
+  return false;
+}
+
 function pushArchiveDocId(eventId: string, token: string, index: number) {
   const safeEvent = String(eventId || `push-${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 90);
   const safeToken = Buffer.from(String(token || "").slice(0, 64)).toString("base64").replace(/[^a-zA-Z0-9]/g, "").slice(0, 36);
@@ -4900,6 +5643,7 @@ async function sendSmartAlertPushNotification({
   ttlSeconds,
   requireInteraction = true,
   notificationTag,
+  targetRoles,
 }: {
   title: string;
   body: string;
@@ -4909,6 +5653,7 @@ async function sendSmartAlertPushNotification({
   ttlSeconds?: number;
   requireInteraction?: boolean;
   notificationTag?: string;
+  targetRoles?: string[];
 }) {
   try {
     if (!firebaseInitialized || !db) {
@@ -4923,15 +5668,18 @@ async function sendSmartAlertPushNotification({
       .where("active", "==", true)
       .get();
 
-    const tokenRecords = snap.docs
+    const allTokenRecords = snap.docs
       .map((doc: any) => normalizePushTokenRecord(doc))
       .filter(Boolean) as PushTokenRecordForArchive[];
+    const tokenRecords = allTokenRecords.filter((record) => pushRecordMatchesTargetRoles(record, targetRoles));
     const tokens = tokenRecords.map(record => record.token);
 
     if (tokens.length === 0) {
       return {
         success: false,
         tokensCount: 0,
+        totalActiveTokens: allTokenRecords.length,
+        targetRoles: targetRoles || [],
         error: "No active push tokens",
       };
     }
