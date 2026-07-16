@@ -122,7 +122,7 @@ const DEMO_MESSAGES: Record<string, ChatMessage[]> = {
   '96550000002': [
     { id: 'demo-track-1', direction: 'inbound', text: 'وين طلبي؟', createdAt: new Date(Date.now() - 1000 * 60 * 38).toISOString() },
     { id: 'demo-track-2', direction: 'outbound', sentBy: 'bot', text: 'أرسل رقم الطلب أو الفاتورة، أو رقم هاتفك المكوّن من 8 أرقام، وسأبحث لك مباشرة.', createdAt: new Date(Date.now() - 1000 * 60 * 37).toISOString() },
-    { id: 'demo-track-3', direction: 'inbound', text: '5XXXXXXX', createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString() },
+    { id: 'demo-track-3', direction: 'inbound', text: '97424400', createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString() },
     { id: 'demo-track-4', direction: 'outbound', sentBy: 'bot', text: 'وجدت لك آخر طلب مرتبط بهذا الرقم.\n\nالحالة: تم الدفع بنجاح\nرابط التتبع:\nhttps://alturathkw.shop/track', createdAt: new Date(Date.now() - 1000 * 60 * 32).toISOString() },
   ],
   '96550000003': [
