@@ -6,6 +6,7 @@
   "description": "Isolated local WhatsApp Web bridge for Alturath customer support.",
   "scripts": {
     "start": "node index.mjs",
+    "service": "node service-runner.mjs",
     "check": "node check-connection.mjs",
     "generate-secret": "node generate-secret.mjs"
   },

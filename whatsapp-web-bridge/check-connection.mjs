@@ -3,8 +3,8 @@ import 'dotenv/config';
 const baseUrl = String(process.env.ALTURATH_BRIDGE_BASE_URL || '').replace(/\/$/, '');
 const secret = String(process.env.WHATSAPP_BRIDGE_SECRET || '').trim();
 
-if (!baseUrl || !secret) {
-  console.error('❌ عدّل ملف .env أولاً: ALTURATH_BRIDGE_BASE_URL و WHATSAPP_BRIDGE_SECRET');
+if (!baseUrl.startsWith('https://') || secret.length < 64) {
+  console.error('❌ عدّل ملف .env أولاً: ALTURATH_BRIDGE_BASE_URL يجب أن يكون HTTPS والسر 64 حرفاً على الأقل');
   process.exit(1);
 }
 
