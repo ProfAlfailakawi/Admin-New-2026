@@ -2336,6 +2336,17 @@ const WA_DEFAULT_AUTO_REPLY_RULES: any[] = [
     response: "سؤال مهم 🤍\nخلّني أحوّلك لأحد موظفينا يعطيك الجواب الدقيق.",
   },
   {
+    // Without this, "كيف الحال" matched nothing and fell back to the long help text —
+    // right after the long welcome. Short, human, and it points to the next step.
+    id: "small-talk",
+    title: "دردشة (كيف الحال / شلونك)",
+    priority: 150,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["كيف الحال", "كيفك", "شلونك", "شلونكم", "شخبارك", "اخبارك", "عساك طيب", "عساكم طيبين"],
+    response: "بخير والله ونعم 🤍\nوأنت شلونك؟\n\nقل لي وش تحتاج: منيو · تتبع طلبي · موظف",
+  },
+  {
     id: "thanks",
     title: "شكر",
     priority: 200,
@@ -2684,6 +2695,18 @@ async function waSendHumanSupportPush({
     console.warn("[WHATSAPP] Human support push failed:", error?.message || error);
     return { success: false, error: error?.message || String(error) };
   }
+}
+
+// Sent instead of repeating an identical reply. Saying the same long message twice in a
+// row (e.g. "السلام عليكم" then "كيف الحال") makes the bot look broken.
+function waRepeatNudgeReply() {
+  return [
+    "إحنا معك 🤍",
+    "قل لي وش تحتاج بالضبط وأخدمك على طول:",
+    "• منيو",
+    "• تتبع طلبي",
+    "• موظف",
+  ].join("\n");
 }
 
 function waHelpReply() {
@@ -3460,6 +3483,12 @@ async function waProcessInboundMessage({
             "أو رقم الهاتف 8 أرقام مثل: 97424400",
           ].join("\n");
     }
+  }
+
+  // Never repeat the exact same auto-reply to the same person twice in a row. Saying the long
+  // welcome again (e.g. "السلام عليكم" then "كيف الحال") is what makes the bot feel broken.
+  if (reply && waString(conversation?.lastOutboundText || "").trim() === waString(reply).trim()) {
+    reply = waRepeatNudgeReply();
   }
 
   if (reply) {
