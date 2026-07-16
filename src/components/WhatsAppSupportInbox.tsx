@@ -169,28 +169,26 @@ const slaClass = (level?: string, active = false) => {
 type UrgentReplyKind = 'anger' | 'payment' | 'delivery' | 'waiting';
 
 const urgentReplyInfo: Record<UrgentReplyKind, { label: string; className: string; reply: string; weight: number }> = {
-  // Labels describe what the CUSTOMER is asking about — not the order state.
-  // "دفع" alone read as "the customer paid", which was misleading.
   anger: {
-    label: 'شكوى',
+    label: 'غضب',
     className: 'bg-rose-50 text-rose-700 border-rose-100',
     weight: 400,
     reply: 'حقك علينا، أنا استلمت الموضوع الآن وبراجع التفاصيل فورًا. عطيني دقيقة وأرجع لك بحل واضح.',
   },
   payment: {
-    label: 'سؤال عن الدفع',
+    label: 'دفع',
     className: 'bg-emerald-50 text-emerald-700 border-emerald-100',
     weight: 300,
-    reply: 'حياك الله، أراجع حالة الدفع والفاتورة الآن وأرجع لك بالتحديث.',
+    reply: 'حياك الله، أراجع حالة الدفع والفاتورة الآن. إذا الدفع تم، بنثبتها لك مباشرة ونحدث الطلب.',
   },
   delivery: {
-    label: 'سؤال عن التوصيل',
+    label: 'توصيل',
     className: 'bg-sky-50 text-sky-700 border-sky-100',
     weight: 200,
     reply: 'أبشر، أتابع حالة التوصيل الآن وأرجع لك بالتحديث الصحيح بأسرع وقت.',
   },
   waiting: {
-    label: 'بانتظار رد',
+    label: 'انتظار',
     className: 'bg-amber-50 text-amber-700 border-amber-100',
     weight: 100,
     reply: 'حياك الله، أنا معك الآن. شفت رسالتك وبراجعها لك فورًا.',
@@ -198,18 +196,14 @@ const urgentReplyInfo: Record<UrgentReplyKind, { label: string; className: strin
 };
 
 const classifyUrgentReply = (c: Conversation, nowMs: number) => {
-  // Classify from what the CUSTOMER said. lastMessageText is often the bot's own reply, and
-  // those replies mention links/tracking, which used to tag price questions as "دفع".
-  const inboundText = c.lastInboundText || (c.lastMessageDirection === 'inbound' ? c.lastMessageText : '');
-  const text = normalizeArabicSearch([inboundText, c.priority, ...(Array.isArray(c.tags) ? c.tags : [])].filter(Boolean).join(' '));
+  const text = normalizeArabicSearch([c.lastMessageText, c.lastInboundText, c.priority, ...(Array.isArray(c.tags) ? c.tags : [])].filter(Boolean).join(' '));
   const hasAny = (words: string[]) => words.some((word) => text.includes(normalizeArabicSearch(word)));
   const sla = getConversationSlaInfo(c, nowMs);
   const unread = Number(c.unreadCount || 0);
   const inboundLast = c.lastMessageDirection === 'inbound';
   let kind: UrgentReplyKind | null = null;
   if (hasAny(['زعل', 'غضب', 'غاضب', 'مشكلة', 'شكوى', 'تأخير', 'حرام', 'سيء', 'غلط', 'ما يصير', 'تعبت'])) kind = 'anger';
-  // "رابط" was removed: it matched every reply that contains a link, not a payment question.
-  else if (hasAny(['دفع', 'ادفع', 'فاتورة', 'مدفوع', 'كي نت', 'knet', 'payment', 'paid', 'رابط الدفع'])) kind = 'payment';
+  else if (hasAny(['دفع', 'فاتورة', 'مدفوع', 'كي نت', 'كي نت', 'knet', 'payment', 'paid', 'رابط'])) kind = 'payment';
   else if (hasAny(['توصيل', 'وصل', 'مندوب', 'عنوان', 'delivery', 'driver', 'تأخر الطلب'])) kind = 'delivery';
   else if (sla || unread > 0 || inboundLast) kind = 'waiting';
   if (!kind) return null;

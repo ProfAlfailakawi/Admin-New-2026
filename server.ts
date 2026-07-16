@@ -2234,81 +2234,6 @@ const WA_DEFAULT_AUTO_REPLY_RULES: any[] = [
     response: "هلا والله 🇰🇼\nخلّني أحوّلك لأحد موظفينا يرتب لك الطلب بالتفصيل.",
   },
   {
-    // Money problems must reach a human before anything else the bot might say.
-    id: "payment-problem",
-    title: "مشكلة في الدفع",
-    priority: 850,
-    action: "human",
-    matchMode: "any",
-    keywords: ["الدفع ما نجح", "ما قدرت ادفع", "مشكلة بالدفع", "مشكلة في الدفع", "خصم مني", "انخصم", "دفعت وما", "الرابط ما يفتح", "فشل الدفع", "دفعت مرتين"],
-    response: "لا يهمك، هذا أهم شي عندنا 🤍\nخلّني أحوّلك لأحد موظفينا حالاً يتأكد لك من العملية.",
-  },
-  {
-    // Prep/delivery time is business data the bot cannot verify.
-    id: "order-timing",
-    title: "وقت التحضير والتوصيل",
-    priority: 720,
-    action: "human",
-    matchMode: "any",
-    keywords: ["متى يجهز", "كم ياخذ وقت", "كم ياخذ", "وقت التحضير", "متى يوصلني", "كم اتوقع", "بيتأخر"],
-    response: "حياك الله 🤍\nخلّني أحوّلك لأحد موظفينا يعطيك الوقت الدقيق حسب طلبك.",
-  },
-  {
-    id: "change-address",
-    title: "تغيير العنوان أو بيانات الطلب",
-    priority: 780,
-    action: "human",
-    matchMode: "any",
-    keywords: ["اغير العنوان", "أغير العنوان", "غلط بالعنوان", "تعديل العنوان", "غير الرقم", "بيانات غلط"],
-    response: "تم 🤍\nعشان نعدّلها لك صح وبسرعة، راح أحوّلك لموظف حالاً.",
-  },
-  {
-    id: "advance-order",
-    title: "طلب مسبق أو حجز موعد",
-    priority: 770,
-    action: "human",
-    matchMode: "any",
-    keywords: ["ابي اطلب لبكرة", "طلب مسبق", "حجز", "احجز", "لبكرة", "بعد بكرة", "طلب مقدم", "موعد"],
-    response: "هلا والله 🤍\nخلّني أحوّلك لأحد موظفينا يرتب لك الموعد والتفاصيل.",
-  },
-  {
-    // Cash / on-delivery policy is not something the bot can verify from the data.
-    id: "cash-payment",
-    title: "الدفع كاش أو عند الاستلام",
-    priority: 545,
-    action: "human",
-    matchMode: "any",
-    keywords: ["كاش", "نقدا", "عند الاستلام", "ادفع عند", "كاش عند"],
-    response: "حياك الله 🤍\nخلّني أحوّلك لأحد موظفينا يأكد لك طريقة الدفع المناسبة.",
-  },
-  {
-    id: "loyalty-points",
-    title: "نقاط الولاء",
-    priority: 560,
-    action: "human",
-    matchMode: "any",
-    keywords: ["نقاطي", "كم نقطة", "النقاط", "نقاط الولاء", "رصيد نقاطي", "كيف اجمع نقاط"],
-    response: "حياك الله 🤍\nخلّني أحوّلك لأحد موظفينا يشيك لك على رصيد نقاطك بالضبط.",
-  },
-  {
-    id: "minimum-order",
-    title: "الحد الأدنى للطلب",
-    priority: 575,
-    action: "human",
-    matchMode: "any",
-    keywords: ["الحد الادنى", "اقل طلب", "اقل مبلغ", "حد ادنى"],
-    response: "حياك الله 🤍\nخلّني أحوّلك لأحد موظفينا يعطيك التفاصيل بدقة.",
-  },
-  {
-    id: "how-to-order",
-    title: "كيف أطلب؟",
-    priority: 610,
-    action: "reply",
-    matchMode: "any",
-    keywords: ["كيف اطلب", "شلون اطلب", "كيف الطلب", "طريقة الطلب", "ابي اطلب شلون"],
-    response: "سهلة 🤍\n١) افتح المنيو: {menu_link}\n٢) اختر أصنافك وحدد منطقتك\n٣) بيطلع لك رابط الدفع مباشرة\n\nوبعدها تتابع طلبك من: {track_link}",
-  },
-  {
     id: "cancel-order",
     title: "إلغاء أو تعديل طلب",
     priority: 790,
@@ -3256,8 +3181,7 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
     if (byPhone) return waOrderReply(byPhone);
     return [
       "للمتابعة أرسل رقم الطلب/الفاتورة كما هو ظاهر في الرسالة أو الفاتورة.",
-      // Never put a real phone number here: this text is sent to every customer.
-      "أو أرسل رقم هاتفك الكويتي (8 أرقام).",
+      "أو رقم الهاتف بصيغة 8 أرقام مثل: 97424400",
       "أو افتح صفحة التتبع:",
       waTrackHomeUrl(),
       "",
@@ -3556,8 +3480,7 @@ async function waProcessInboundMessage({
             "وصلت رسالتك، لكن أقدر أتعامل حاليًا مع الرسائل النصية فقط.",
             "اكتب: طلب جديد",
             "أو أرسل رقم الطلب/الفاتورة",
-            // Never put a real phone number here: this text is sent to every customer.
-            "أو أرسل رقم هاتفك الكويتي (8 أرقام).",
+            "أو رقم الهاتف 8 أرقام مثل: 97424400",
           ].join("\n");
     }
   }
