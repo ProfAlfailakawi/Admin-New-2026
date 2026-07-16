@@ -2760,14 +2760,6 @@ function waGreetingReply() {
   ].join("\n");
 }
 
-// Menu display only. Invoices and payments keep the 3-decimal KWD precision;
-// here trailing zeros are trimmed so a menu reads "3.5 د.ك", not "3.500 د.ك".
-function waMenuPrice(value: number) {
-  return String(Number(value.toFixed(3)));
-}
-
-const WA_MENU_MAX_ITEMS = 30;
-
 async function waMenuReply() {
   const shared = await waLoadSharedData(["products"]);
   const products = waAsArray(shared.products)
@@ -2778,49 +2770,28 @@ async function waMenuReply() {
       price: Number(p?.price ?? p?.salePrice ?? p?.amount),
       sort: Number(p?.sortOrder ?? p?.order ?? p?.priority ?? 9999),
     }))
-    .filter((p: any) => p.name);
+    .filter((p: any) => p.name)
+    .sort((a: any, b: any) => a.sort - b.sort || a.name.localeCompare(b.name, "ar"))
+    .slice(0, 12);
 
-  if (!products.length) {
-    return [
-      "💚 هلا والله ومرحبا ❤️",
-      "",
-      "المنيو الكامل والتوفر الحالي هني:",
-      waNewOrderUrl(),
-    ].join("\n");
-  }
-
-  // Group by each product's own category. The flat list repeated "(التصنيف)"
-  // on every line; a real menu prints the category once as a heading.
-  const groups = new Map<string, any[]>();
-  for (const product of products) {
-    const key = product.category || "أصناف أخرى";
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(product);
-  }
-
-  const lines: string[] = [
-    "💚 هلا والله ومرحبا ❤️",
+  const lines = [
+    "هذا منيو التراث المختصر 🇰🇼",
     "",
-    "هذا منيو التراث — اختار اللي يعجبك ونجهزه لك بحب ❤️",
   ];
-
-  let shown = 0;
-  for (const [category, items] of groups) {
-    if (shown >= WA_MENU_MAX_ITEMS) break;
-    items.sort((a: any, b: any) => a.sort - b.sort || a.name.localeCompare(b.name, "ar"));
-    lines.push("", `▪️ ${category}`, "—————————");
-    for (const item of items) {
-      if (shown >= WA_MENU_MAX_ITEMS) break;
-      const price = Number.isFinite(item.price) && item.price > 0 ? ` — ${waMenuPrice(item.price)} د.ك` : "";
-      lines.push(`• ${item.name}${price}`);
-      shown += 1;
+  if (products.length) {
+    for (const product of products) {
+      const price = Number.isFinite(product.price) && product.price > 0 ? ` — ${product.price.toFixed(product.price % 1 ? 3 : 0)} د.ك` : "";
+      const category = product.category ? ` (${product.category})` : "";
+      lines.push(`• ${product.name}${category}${price}`);
     }
+    lines.push("");
+  } else {
+    lines.push("المنيو الكامل والتوفر الحالي موجودان في الرابط:");
   }
-  if (products.length > shown) {
-    lines.push("", `➕ و${products.length - shown} صنف ثاني تلقاهم بالموقع`);
-  }
-
-  lines.push("", "🛒 للطلب والدفع الآمن:", waNewOrderUrl(), "", "اكتب اسم أي صنف وأعطيك سعره 👌");
+  lines.push("للطلب والدفع الآمن:");
+  lines.push(waNewOrderUrl());
+  lines.push("");
+  lines.push("اكتب اسم أي صنف لمعرفة أقرب الخيارات والأسعار.");
   return lines.join("\n");
 }
 
