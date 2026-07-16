@@ -2152,6 +2152,156 @@ function waQuickReplies() {
   ];
 }
 
+// Starter auto-reply rules. They are only written to Firestore when the owner asks
+// (POST /api/whatsapp/auto-replies/seed), so they stay fully editable/deletable afterwards.
+// Higher priority wins: complaints and high-value catering reach a human before anything else.
+const WA_DEFAULT_AUTO_REPLY_RULES: any[] = [
+  {
+    id: "complaint",
+    title: "شكوى أو ملاحظة",
+    priority: 900,
+    action: "human",
+    matchMode: "any",
+    keywords: ["شكوى", "اشتكي", "زعلان", "زعلانه", "سيء", "ما عجبني", "مو حلو", "متأخر", "تأخر", "بارد", "ناقص", "غلط", "مشكلة", "استرجاع", "ارجاع"],
+    response: "أسفين منك من قلب 🤍\nملاحظتك وصلت، ورضاك أهم شي عندنا.\nخلّني أحوّلك لأحد موظفينا يخدمك حالاً.",
+  },
+  {
+    id: "human-agent",
+    title: "طلب موظف بشري",
+    priority: 890,
+    action: "human",
+    matchMode: "any",
+    keywords: ["موظف", "بشري", "ابي اكلم", "أبي أكلم", "احد يرد", "خدمة العملاء", "تكلم معي", "مسؤول"],
+    response: "حاضرين 🤍\nجاري تحويلك لأحد موظفينا، لحظات من فضلك.",
+  },
+  {
+    id: "catering",
+    title: "ولائم وذبايح ومناسبات",
+    priority: 800,
+    action: "human",
+    matchMode: "any",
+    keywords: ["وليمة", "ولائم", "ذبيحة", "ذبايح", "عزيمة", "مناسبة", "عرس", "بوفيه", "كمية", "قوزي", "تجهيز"],
+    response: "هلا والله بطلبات الولائم 🇰🇼\nهذي طلبات نجهزها لك بعناية خاصة.\nخلّني أحوّلك لموظف المبيعات يرتب لك كل شي بالتفصيل.",
+  },
+  {
+    id: "cancel-order",
+    title: "إلغاء أو تعديل طلب",
+    priority: 790,
+    action: "human",
+    matchMode: "any",
+    keywords: ["الغاء", "إلغاء", "ابي الغي", "الغي طلبي", "كنسل", "عدل طلبي", "اغير طلبي"],
+    response: "تم 🤍\nعشان نتصرف بسرعة وبدون خطأ، راح أحوّلك لموظف يساعدك بطلبك حالاً.",
+  },
+  {
+    id: "track-order",
+    title: "تتبع الطلب",
+    priority: 700,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["وين طلبي", "تتبع", "حالة الطلب", "طلبي", "وصل الطلب", "متى يوصل", "فاتورتي", "رقم الطلب", "الفاتورة"],
+    response: "حياك الله 🤍\nتقدر تتابع طلبك لحظة بلحظة من هنا:\n{track_link}\n\nأو أرسل لنا رقم الطلب/الفاتورة ونجيبه لك على طول.",
+  },
+  {
+    id: "menu",
+    title: "المنيو والطلب",
+    priority: 600,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["منيو", "المنيو", "قائمة", "الاصناف", "شنو عندكم", "وش عندكم", "الاكل", "اطلب", "menu"],
+    response: "ياهلا فيك 🇰🇼\nهذا المنيو والطلب المباشر:\n{menu_link}\n\nتختار، تدفع بأمان، ويوصلك 🤍\nوإذا تبي ترشيح، اكتب لنا عدد الأشخاص أو الصنف اللي بخاطرك.",
+  },
+  {
+    id: "prices",
+    title: "الأسعار",
+    priority: 590,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["سعر", "الاسعار", "بكم", "بجم", "كم سعر", "كم يكلف", "التكلفة"],
+    response: "كل الأسعار محدّثة ومكتوبة جنب كل صنف في المنيو 🤍\n{menu_link}\n\nوإذا تبي عرض سعر لوليمة أو كمية، قل لنا وبنرتبها لك.",
+  },
+  {
+    id: "delivery",
+    title: "التوصيل والرسوم",
+    priority: 580,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["توصيل", "دليفري", "توصلون", "كم التوصيل", "رسوم التوصيل", "delivery", "متى توصلون"],
+    response: "نوصلك لين باب بيتك 🚗🤍\nرسوم التوصيل تظهر لك تلقائياً حسب منطقتك عند إتمام الطلب:\n{order_link}\n\nوفي مناطق يكون التوصيل مجاني عند حد معيّن — بيبيّن لك بالسلة.",
+  },
+  {
+    id: "areas",
+    title: "مناطق التوصيل",
+    priority: 570,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["مناطق", "وين توصلون", "توصلون منطقة", "تغطون", "منطقتي"],
+    response: "نغطي مناطق الكويت 🇰🇼\nاختر منطقتك بصفحة الطلب وبيطلع لك التوصيل والرسوم على طول:\n{order_link}\n\nوإذا ما لقيت منطقتك، قل لنا ونشوف لك حل.",
+  },
+  {
+    id: "hours",
+    title: "أوقات العمل",
+    priority: 560,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["دوام", "متى تفتحون", "مفتوح", "ساعات العمل", "وقت الدوام", "مسكرين", "مفتوحين"],
+    response: "حياك الله 🤍\nأوقات استقبال الطلبات تلقاها محدّثة بصفحة الطلب:\n{order_link}\n\nإذا الموقع يستقبل طلبك، فإحنا جاهزين لك 👨‍🍳",
+  },
+  {
+    id: "payment",
+    title: "طرق الدفع",
+    priority: 550,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["دفع", "كي نت", "كنت", "knet", "فيزا", "ماستر", "كاش", "طرق الدفع", "ادفع", "رابط الدفع"],
+    response: "الدفع عندنا إلكتروني وآمن 🔒\nبعد ما تختار أصنافك بيطلع لك رابط الدفع مباشرة من الموقع:\n{order_link}\n\nما نطلب منك أبداً بيانات بطاقتك بالواتساب 🤍",
+  },
+  {
+    id: "offers",
+    title: "العروض والخصومات",
+    priority: 540,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["عرض", "عروض", "خصم", "كوبون", "برومو", "تخفيض", "بروموكود"],
+    response: "عروضنا وأكوادنا تتجدد 🎁\nتلقاها بصفحة الطلب، وتقدر تدخل كود الخصم عند الدفع:\n{order_link}",
+  },
+  {
+    id: "location",
+    title: "الموقع والفروع",
+    priority: 530,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["وين مكانكم", "الموقع", "العنوان", "فرع", "فروع", "لوكيشن", "وينكم"],
+    response: "إحنا مطبخ سحابي نجهز طلبك ونوصله لك مباشرة 🚗\nما تحتاج تجي — اطلب وهو يوصلك:\n{order_link}\n\nوإذا تبي تفاصيل أكثر، خلّنا نحوّلك لموظف.",
+  },
+  {
+    id: "halal-ingredients",
+    title: "حلال ومكونات وحساسية",
+    priority: 520,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["حلال", "مكونات", "حساسية", "نباتي", "جلوتين", "لحم", "مصدر"],
+    response: "كل لحومنا حلال ومصادرها موثوقة 🤍\nتفاصيل كل صنف ومكوناته موجودة بصفحته في المنيو:\n{menu_link}\n\nوإذا عندك حساسية معيّنة، قل لنا بالطلب أو خلّنا نحوّلك لموظف يتأكد لك.",
+  },
+  {
+    id: "thanks",
+    title: "شكر",
+    priority: 200,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["شكرا", "مشكور", "يعطيك العافية", "تسلم", "ماقصرت", "ما قصرت", "الله يعطيك العافية"],
+    response: "الله يسلمك ويعافيك 🤍\nهذا واجبنا، ونتشرف بخدمتك دايماً 🇰🇼",
+  },
+  {
+    id: "welcome",
+    title: "ترحيب",
+    priority: 100,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["سلام", "السلام عليكم", "هلا", "هلو", "مرحبا", "هاي", "صباح الخير", "مساء الخير", "hi", "hello"],
+    response: "ياهلا ومرحبا في التراث 🇰🇼🤍\nشلون نقدر نخدمك؟\n\n• للمنيو والطلب: {menu_link}\n• لتتبع طلبك: {track_link}\n\nأو اكتب لنا وش تحتاج وإحنا في الخدمة.",
+  },
+];
+
 function waAutoReplyRulesCollection() {
   if (!db || !firebaseInitialized) return null;
   return db.collection("whatsappAutoReplyRules");
@@ -3482,8 +3632,10 @@ app.get("/api/whatsapp/conversations/:phone/messages", async (req, res) => {
     if (!db || !firebaseInitialized) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
     const phone = waDigits(req.params.phone);
     const conv = await waGetConversation(phone);
-    const snap = await db.collection("whatsappConversations").doc(phone).collection("messages").orderBy("createdAt", "asc").limit(200).get();
-    const messages = snap.docs.map((d: any) => ({ id: d.id, ...(d.data() || {}) }));
+    // Newest 200 (was "asc", which returned the OLDEST 200 and hid recent messages in long
+    // conversations), then flipped back to chronological order for the UI.
+    const snap = await db.collection("whatsappConversations").doc(phone).collection("messages").orderBy("createdAt", "desc").limit(200).get();
+    const messages = snap.docs.map((d: any) => ({ id: d.id, ...(d.data() || {}) })).reverse();
     res.json({ success: true, conversation: conv, messages, quickReplies: waQuickReplies() });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error?.message || String(error) });
@@ -3565,7 +3717,37 @@ app.get("/api/whatsapp/auto-replies", async (_req, res) => {
     if (!collection) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
     const snap = await collection.orderBy("priority", "desc").limit(200).get();
     const rules = snap.docs.map((doc: any) => waNormalizeAutoReplyRule(doc.data() || {}, doc.id));
-    return res.json({ success: true, rules });
+    return res.json({ success: true, rules, defaultsAvailable: WA_DEFAULT_AUTO_REPLY_RULES.length });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+// Install the starter rule pack. A rule the owner already has is skipped (never overwritten)
+// unless force=1 is sent, so personal edits are safe.
+app.post("/api/whatsapp/auto-replies/seed", async (req, res) => {
+  try {
+    const collection = waAutoReplyRulesCollection();
+    if (!collection) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+    const force = waString(req.body?.force || req.query?.force) === "1";
+    let created = 0;
+    let skipped = 0;
+    for (const template of WA_DEFAULT_AUTO_REPLY_RULES) {
+      const id = waString(template.id);
+      if (!id) continue;
+      const existingSnap = await collection.doc(id).get().catch(() => null);
+      if (existingSnap?.exists && !force) {
+        skipped += 1;
+        continue;
+      }
+      const rule = waNormalizeAutoReplyRule(
+        { ...template, createdAt: existingSnap?.exists ? (existingSnap.data() || {}).createdAt || waNowIso() : waNowIso(), updatedAt: waNowIso() },
+        id,
+      );
+      await collection.doc(id).set(rule, { merge: true });
+      created += 1;
+    }
+    return res.json({ success: true, created, skipped, total: WA_DEFAULT_AUTO_REPLY_RULES.length });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error?.message || String(error) });
   }
