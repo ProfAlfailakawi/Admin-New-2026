@@ -2235,6 +2235,83 @@ const WA_DEFAULT_AUTO_REPLY_RULES: any[] = [
     response: "حاضرين 🤍\nجاري تحويلك لأحد موظفينا، لحظات من فضلك.",
   },
   {
+    // Money first: a customer who paid and is unsure never waits on a bot.
+    id: "payment-problem",
+    title: "مشكلة في الدفع",
+    priority: 850,
+    action: "human",
+    matchMode: "any",
+    keywords: ["ما نجح الدفع", "الدفع ما نجح", "فشل الدفع", "خصم مرتين", "انخصم مرتين", "انخصمت", "خصموا", "ما وصل الرابط", "رابط الدفع", "الدفع معلق", "دفعت وما", "دفعت بس", "ما تم الدفع", "الفيزا", "الكي نت", "كي نت"],
+    response: "خلّني أتأكد لك حالاً 🤍\nجاري تحويلك لأحد موظفينا يراجع الدفع معك.",
+  },
+  {
+    id: "change-address",
+    title: "تغيير العنوان أو الوقت",
+    priority: 780,
+    action: "human",
+    matchMode: "any",
+    keywords: ["اغير العنوان", "أغير العنوان", "تغيير العنوان", "غلط بالعنوان", "العنوان غلط", "اغير الوقت", "أغير الوقت", "اخر الطلب", "قدم الطلب", "بدل العنوان"],
+    response: "أبشر 🤍\nخلّني أحوّلك لأحد موظفينا يعدّلها لك.",
+  },
+  {
+    id: "advance-order",
+    title: "طلب مقدّم أو حجز",
+    priority: 770,
+    action: "human",
+    matchMode: "any",
+    keywords: ["احجز", "أحجز", "حجز", "طلب مقدم", "بكرة", "باچر", "بعد يومين", "الاسبوع الجاي", "الأسبوع الجاي", "اطلب مقدما", "قبل بيوم"],
+    response: "هلا والله 🤍\nخلّني أحوّلك لأحد موظفينا يرتب لك الحجز.",
+  },
+  {
+    id: "order-timing",
+    title: "وقت التجهيز أو التوصيل",
+    priority: 720,
+    action: "human",
+    matchMode: "any",
+    keywords: ["كم ياخذ", "جم ياخذ", "متى يوصل", "متى يجهز", "كم بيصير", "وقت التجهيز", "بيتأخر", "طويل", "استعجال", "مستعجل", "بسرعة"],
+    response: "خلّني أتأكد لك من الوقت بالضبط 🤍\nجاري تحويلك لأحد موظفينا.",
+  },
+  {
+    id: "how-to-order",
+    title: "كيف أطلب؟",
+    priority: 610,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["كيف اطلب", "شلون اطلب", "جيف اطلب", "وش اسوي", "شنسوي", "طريقة الطلب", "ابي اطلب", "أبي أطلب", "كيف الطلب", "من وين اطلب"],
+    response: "سهلة والله 🤍\n\n1️⃣ افتح الرابط: {menu_link}\n2️⃣ اختر اللي يعجبك وحدد عنوانك\n3️⃣ ادفع بأمان وبيوصلك\n\n📦 وتتابع طلبك من هني: {track_link}",
+  },
+  {
+    id: "minimum-order",
+    title: "أقل طلب",
+    priority: 575,
+    action: "human",
+    matchMode: "any",
+    keywords: ["اقل طلب", "أقل طلب", "الحد الادنى", "الحد الأدنى", "minimum", "اقل مبلغ", "أقل مبلغ"],
+    response: "خلّني أتأكد لك 🤍\nجاري تحويلك لأحد موظفينا.",
+  },
+  {
+    // The blank response is deliberate. A filled-in one would win over the lookup and
+    // answer every customer with the same canned text; leaving it empty lets the reply
+    // fall through to waAccountReply, which reads this customer's real loyaltyPoints.
+    // Type a response here only if you want to stop reporting real balances.
+    id: "loyalty-points",
+    title: "النقاط والولاء (يقرأ رصيد العميل الحقيقي)",
+    priority: 560,
+    action: "reply",
+    matchMode: "any",
+    keywords: ["نقاطي", "نقاط", "النقاط", "رصيدي", "نقاط الولاء", "كم نقاطي", "جم نقاطي", "بياناتي", "حسابي", "عنواني"],
+    response: "",
+  },
+  {
+    id: "cash-payment",
+    title: "الدفع كاش",
+    priority: 545,
+    action: "human",
+    matchMode: "any",
+    keywords: ["كاش", "نقدا", "نقداً", "عند الاستلام", "الدفع عند", "كاش عند الباب", "ادفع كاش"],
+    response: "خلّني أتأكد لك 🤍\nجاري تحويلك لأحد موظفينا.",
+  },
+  {
     id: "catering",
     title: "ولائم وذبايح ومناسبات",
     priority: 800,
@@ -2635,9 +2712,10 @@ function waNewOrderReply() {
 }
 
 function waSupportReply() {
+  // Where the message lands is our plumbing, not the customer's business.
   return [
     "يسعدنا نخدمك 🤍",
-    "اكتب رسالتك الآن، وستظهر مباشرة لفريق الدعم داخل لوحة التراث.",
+    "اكتب رسالتك الآن وموظفنا بيرد عليك بنفسه بعد قليل.",
     "",
     "للرجوع للقائمة في أي وقت اكتب: القائمة",
   ].join("\n");
@@ -2770,38 +2848,122 @@ function waGreetingReply() {
   ].join("\n");
 }
 
+// Menu display only. Invoices and payments keep the 3-decimal KWD precision;
+// here trailing zeros are trimmed so a menu reads "3.5 د.ك", not "3.500 د.ك".
+function waMenuPrice(value: number) {
+  return String(Number(value.toFixed(3)));
+}
+
+const WA_MENU_MAX_ITEMS = 30;
+
 async function waMenuReply() {
   const shared = await waLoadSharedData(["products"]);
-  const products = waAsArray(shared.products)
+  const all = waAsArray(shared.products);
+  const products = all
     .filter((p: any) => p?.isActive !== false && p?.active !== false && p?.isOutOfStock !== true && p?.outOfStock !== true)
     .map((p: any) => ({
       name: waString(p?.name || p?.productName || p?.title),
       category: waString(p?.category || p?.categoryName || p?.type),
       price: Number(p?.price ?? p?.salePrice ?? p?.amount),
+      featured: p?.isMenuFeatured === true,
+      rank: Number(p?.featuredRank ?? 9999),
       sort: Number(p?.sortOrder ?? p?.order ?? p?.priority ?? 9999),
     }))
-    .filter((p: any) => p.name)
-    .sort((a: any, b: any) => a.sort - b.sort || a.name.localeCompare(b.name, "ar"))
-    .slice(0, 12);
+    .filter((p: any) => p.name);
 
-  const lines = [
-    "هذا منيو التراث المختصر 🇰🇼",
-    "",
-  ];
-  if (products.length) {
-    for (const product of products) {
-      const price = Number.isFinite(product.price) && product.price > 0 ? ` — ${product.price.toFixed(product.price % 1 ? 3 : 0)} د.ك` : "";
-      const category = product.category ? ` (${product.category})` : "";
-      lines.push(`• ${product.name}${category}${price}`);
-    }
-    lines.push("");
-  } else {
-    lines.push("المنيو الكامل والتوفر الحالي موجودان في الرابط:");
+  // Loud on purpose: an empty menu means the bot cannot see the product list, and
+  // that silence is what makes "اكتب منيو" look broken to a customer.
+  if (!products.length) {
+    console.warn(`[WHATSAPP] Menu requested but no products are visible (raw=${all.length}). Check appData/shared_company_data.`);
+    return [
+      "💚 هلا والله ومرحبا ❤️",
+      "",
+      "المنيو الكامل والتوفر الحالي هني:",
+      waNewOrderUrl(),
+    ].join("\n");
   }
-  lines.push("للطلب والدفع الآمن:");
-  lines.push(waNewOrderUrl());
-  lines.push("");
-  lines.push("اكتب اسم أي صنف لمعرفة أقرب الخيارات والأسعار.");
+
+  // Group by each product's own category. The flat list repeated "(التصنيف)" on
+  // every line; a real menu prints the category once, as a heading.
+  const groups = new Map<string, any[]>();
+  for (const product of products) {
+    const key = product.category || "أصناف أخرى";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(product);
+  }
+
+  const lines: string[] = [
+    "💚 هلا والله ومرحبا ❤️",
+    "",
+    "هذا منيو التراث — اختار اللي يعجبك ونجهزه لك بحب ❤️",
+  ];
+
+  let shown = 0;
+  for (const [category, items] of groups) {
+    if (shown >= WA_MENU_MAX_ITEMS) break;
+    items.sort((a: any, b: any) =>
+      Number(b.featured) - Number(a.featured) || a.rank - b.rank || a.sort - b.sort || a.name.localeCompare(b.name, "ar"));
+    lines.push("", `▪️ ${category}`, "—————————");
+    for (const item of items) {
+      if (shown >= WA_MENU_MAX_ITEMS) break;
+      const price = Number.isFinite(item.price) && item.price > 0 ? ` — ${waMenuPrice(item.price)} د.ك` : "";
+      lines.push(`${item.featured ? "⭐" : "•"} ${item.name}${price}`);
+      shown += 1;
+    }
+  }
+  if (products.length > shown) {
+    lines.push("", `➕ و${products.length - shown} صنف ثاني تلقاهم بالموقع`);
+  }
+
+  lines.push("", "🛒 للطلب والدفع الآمن:", waNewOrderUrl(), "", "اكتب اسم أي صنف وأعطيك سعره 👌");
+  return lines.join("\n");
+}
+
+// Fields below come from the Customer interface in src/types.ts. Nothing is guessed:
+// a value the record does not carry is simply left out of the reply.
+async function waCustomerByPhone(phone: string) {
+  const last8 = waNormalizeKuwaitPhone8(phone);
+  if (!last8) return null;
+  const shared = await waLoadSharedData(["customers"]);
+  for (const customer of waAsArray(shared.customers)) {
+    const stored = waDigits(waString(customer?.phone));
+    if (stored && stored.slice(-8) === last8) return customer;
+  }
+  return null;
+}
+
+function waFormatCustomerAddress(address: any, area: string) {
+  if (!address) return waString(area);
+  if (typeof address === "string") return waString(address) || waString(area);
+  // DetailedAddress: region / block / street / jaddah / building / floor / apartment.
+  return [
+    waString(address?.region) || waString(area),
+    waString(address?.block) ? `قطعة ${waString(address.block)}` : "",
+    waString(address?.street) ? `شارع ${waString(address.street)}` : "",
+    waString(address?.jaddah) ? `جادة ${waString(address.jaddah)}` : "",
+    waString(address?.building) ? `منزل ${waString(address.building)}` : "",
+    waString(address?.floor) ? `دور ${waString(address.floor)}` : "",
+    waString(address?.apartment) ? `شقة ${waString(address.apartment)}` : "",
+  ].filter(Boolean).join("، ");
+}
+
+// Only ever sent to the number the record belongs to, and only when it is asked for.
+// Returns "" when there is no record, so the caller can hand off to a human instead
+// of telling a real customer they do not exist.
+async function waAccountReply(phone: string) {
+  const customer = await waCustomerByPhone(phone);
+  if (!customer) return "";
+
+  const name = waString(customer?.name);
+  const points = Number(customer?.loyaltyPoints ?? 0);
+  const orders = Number(customer?.totalOrders ?? 0);
+  const address = waFormatCustomerAddress(customer?.address, waString(customer?.area));
+
+  const lines = [name ? `💚 هلا ${name} ❤️` : "💚 هلا والله ❤️", ""];
+  lines.push(`⭐ نقاطك: ${Math.max(0, Math.round(Number.isFinite(points) ? points : 0))}`);
+  if (Number.isFinite(orders) && orders > 0) lines.push(`🧾 عدد طلباتك: ${Math.round(orders)}`);
+  if (address) lines.push(`📍 عنوانك المحفوظ: ${address}`);
+  lines.push("", "لتعديل أي معلومة اكتب: موظف", "", "🛒 للطلب:", waNewOrderUrl());
   return lines.join("\n");
 }
 
@@ -3096,9 +3258,25 @@ function waLooksLikeThanksIntent(text: string) {
   ]) && s.length <= 50;
 }
 
+// Account details are never volunteered. They are sent only when the customer asks
+// for them in so many words, and only back to their own verified number.
+function waLooksLikePointsIntent(text: string) {
+  return waIntentMatches(text, [
+    "نقاطي", "نقاط", "النقاط", "كم نقاطي", "شكم نقاطي", "جم نقاطي", "رصيدي", "رصيد النقاط",
+    "نقاط الولاء", "الولاء", "بياناتي", "معلوماتي", "حسابي", "عنواني", "العنوان المحفوظ",
+    "عنواني المحفوظ", "كم عندي نقاط", "عندي كم نقطه", "عندي كم نقطة", "وش نقاطي", "شنو نقاطي",
+  ]);
+}
+
 async function waBuildAutoReply(messageText: string, fromPhone: string) {
   const clean = waNormalizeArabic(messageText);
   if (waLooksLikeSupportIntent(messageText)) return waSupportReply();
+  if (waLooksLikePointsIntent(messageText)) {
+    const account = await waAccountReply(fromPhone);
+    // No record on this number is not something to announce; a human checks it.
+    if (account) return account;
+    return waSupportReply();
+  }
   if (clean === "1") return waNewOrderReply();
   if (clean === "2") {
     const byPhone = await waFindLatestByPhone(fromPhone);
@@ -3613,6 +3791,39 @@ app.use("/api/whatsapp", (req, res, next) => {
   return waRequireConsoleAuth(req, res, next);
 });
 
+// "اكتب منيو" returning nothing and a phone lookup finding nothing are the same
+// failure wearing two masks: the bot cannot see appData/shared_company_data. This
+// reports exactly what it can read, so the answer stops being a guess.
+// Behind the console auth gate: it describes the data, it does not expose it.
+app.get("/api/whatsapp/diagnostics", async (_req, res) => {
+  try {
+    const shared = await waLoadSharedData(["products", "orders", "invoices", "customers"]);
+    const products = waAsArray(shared.products);
+    const sellable = products.filter((p: any) =>
+      p?.isActive !== false && p?.active !== false && p?.isOutOfStock !== true && p?.outOfStock !== true && waString(p?.name || p?.productName || p?.title));
+
+    return res.json({
+      success: true,
+      firebaseInitialized,
+      databaseId: process.env.FIRESTORE_DATABASE_ID || "(from firebase-applet-config.json)",
+      visibleToBot: {
+        products: products.length,
+        productsShownInMenu: sellable.length,
+        orders: waAsArray(shared.orders).length,
+        invoices: waAsArray(shared.invoices).length,
+        customers: waAsArray(shared.customers).length,
+      },
+      // Field names only — never values.
+      sampleProductFields: products.length ? Object.keys(products[0] || {}).slice(0, 25) : [],
+      sampleCustomerFields: waAsArray(shared.customers).length ? Object.keys(waAsArray(shared.customers)[0] || {}).slice(0, 25) : [],
+      menuWouldSay: sellable.length ? "قائمة المنتجات الحقيقية" : "رابط الموقع فقط (البوت لا يرى المنتجات)",
+      whatsappAppSecretSet: Boolean(WHATSAPP_APP_SECRET()),
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
 app.get("/api/whatsapp/webhook", (req, res) => {
   const mode = waString(req.query["hub.mode"]);
   const token = waString(req.query["hub.verify_token"]);
@@ -3645,6 +3856,45 @@ app.post("/api/whatsapp/webhook", async (req, res) => {
         const value = change?.value || {};
         if (waAsArray(value?.statuses).length) {
           console.log(`[WHATSAPP] Status event received: ${waAsArray(value.statuses).length}`);
+        }
+
+        // Replies your team sends from the WhatsApp app itself land here, not in
+        // value.messages — which is why they were missing from the console while the
+        // customer's side showed fine. Requires "message_echoes" to be ticked in the
+        // Meta app's webhook fields; without that subscription this array never comes.
+        for (const echo of waAsArray(value?.message_echoes)) {
+          const to = waDigits(echo?.to);
+          if (!to) continue;
+          const body = waExtractMessageText(echo);
+          const echoType = waString(echo?.type || "text");
+
+          // Our own API sends echo back too. Skipping the text we just sent keeps the
+          // bot from pausing itself and from logging every reply twice.
+          const existing = await waGetConversation(to);
+          if (body && waString(existing?.lastOutboundText || "").trim() === body.trim()) continue;
+          if (!(await waClaimInboundMessage("echo", waString(echo?.id)))) continue;
+
+          await waAppendConversationMessage(to, {
+            direction: "outbound",
+            type: echoType,
+            text: body || `[${echoType}]`,
+            waMessageId: waString(echo?.id),
+            sentBy: "human",
+            raw: echo,
+          });
+          // A teammate answered by hand, so the bot steps back exactly as it does
+          // when they reply from the console.
+          await waCancelPendingBotOutbox(to, "human_reply_echo");
+          await waUpsertConversation(to, {
+            mode: "human",
+            lastMessageText: body || `[${echoType}]`,
+            lastMessageDirection: "outbound",
+            lastOutboundText: body,
+            humanLastReplyAt: waNowIso(),
+            botPausedAt: waNowIso(),
+            autoResumeAt: waHumanAutoResumeAt(),
+          });
+          console.log(`[WHATSAPP] Recorded a teammate's reply to ${waMaskPhone(to)} sent outside the console.`);
         }
         for (const message of waAsArray(value?.messages)) {
           const from = waDigits(message?.from);
