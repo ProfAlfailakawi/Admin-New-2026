@@ -1197,6 +1197,25 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     showNotice('success', 'تم إغلاق المحادثة.');
   };
 
+  const [requestingRating, setRequestingRating] = useState(false);
+  // Owner presses this once they know the order was delivered — the only honest trigger,
+  // since there's no delivery-tracking signal. Sends the 1/2/3 rating question.
+  const requestRating = async () => {
+    if (!selectedPhone || requestingRating) return;
+    setRequestingRating(true);
+    try {
+      const res = await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/request-rating`, { method: 'POST' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر إرسال طلب التقييم');
+      await loadMessages(selectedPhone, true);
+      showNotice('success', 'انرسل طلب التقييم للعميل ⭐');
+    } catch (e: any) {
+      showNotice('error', e?.message || 'تعذر إرسال طلب التقييم');
+    } finally {
+      setRequestingRating(false);
+    }
+  };
+
   return (
     <div dir="rtl" className="min-h-[calc(100vh-120px)] text-slate-900">
       <div className="mb-4 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
@@ -1563,8 +1582,12 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {botTexts.map((t) => {
-              const current = botTextEdits[t.key] ?? t.value;
-              const overridden = current.trim() && current.trim() !== t.defaultText.trim();
+              // Pre-fill the box with real, editable text — the saved override if there is
+              // one, otherwise the default. Showing the default only as a placeholder made
+              // it look present but un-selectable ("ما أقدر أحدد ولا شي"). "معدّل" still means
+              // the text differs from the default; saving default-equal text stores nothing.
+              const current = botTextEdits[t.key] ?? (t.value || t.defaultText);
+              const overridden = current.trim() !== t.defaultText.trim();
               return (
                 <div key={t.key} className={cn('rounded-2xl border p-3', overridden ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-100 bg-slate-50/40')}>
                   <div className="flex items-center justify-between gap-2 mb-2">
@@ -1576,7 +1599,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                       {overridden && (
                         <button
                           type="button"
-                          onClick={() => setBotTextEdits((prev) => ({ ...prev, [t.key]: '' }))}
+                          onClick={() => setBotTextEdits((prev) => ({ ...prev, [t.key]: t.defaultText }))}
                           className="text-[10px] font-black text-rose-500 hover:text-rose-700"
                           title="الرجوع للنص الافتراضي"
                         >
@@ -1688,6 +1711,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                 <div className="flex items-center gap-2 flex-wrap">
                   <button onClick={() => setMode('human')} className={cn('px-4 py-2 rounded-2xl text-sm font-bold border transition', selected.mode === 'human' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white hover:bg-amber-50 border-slate-200 text-slate-600')}><Headphones size={16} className="inline ml-1" /> استلام يدوي</button>
                   <button onClick={() => setMode('bot')} className={cn('px-4 py-2 rounded-2xl text-sm font-bold border transition', selected.mode !== 'human' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white hover:bg-emerald-50 border-slate-200 text-slate-600')}><Bot size={16} className="inline ml-1" /> إرجاع للبوت</button>
+                  <button onClick={requestRating} disabled={requestingRating} title="أرسله بعد ما يوصل الطلب، والعميل يقيّم برد 1/2/3" className="px-4 py-2 rounded-2xl text-sm font-bold border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 disabled:opacity-50">{requestingRating ? <Loader2 size={16} className="inline ml-1 animate-spin" /> : '⭐'} اطلب تقييم</button>
                   <button onClick={closeConversation} className="px-4 py-2 rounded-2xl text-sm font-bold border border-slate-200 bg-white hover:bg-slate-50 text-slate-600"><CheckCircle2 size={16} className="inline ml-1" /> إغلاق</button>
                 </div>
               </div>

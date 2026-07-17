@@ -2570,6 +2570,24 @@ const WA_BOT_TEXT_DEFS: Array<{ key: string; label: string; hint: string; def: s
     def: "💚 وصلت {what} ❤️\n\nموظفنا بيشوفها ويرد عليك بنفسه بعد قليل 👌",
   },
   {
+    key: "rating_request",
+    label: "طلب التقييم (يُرسل يدويًا بعد التوصيل)",
+    hint: "{name} = اسم العميل إن وجد",
+    def: "💚 هلا {name} ❤️\nوصلك طلبك من التراث؟ قيّم تجربتك برد واحد:\n\n1️⃣ ممتاز\n2️⃣ جيد\n3️⃣ يحتاج تحسين",
+  },
+  {
+    key: "rating_thanks_good",
+    label: "رد التقييم — ممتاز/جيد",
+    hint: "",
+    def: "يسعدنا هالكلام 🤍 نورتنا، ونشوفك على خير قريب 🇰🇼",
+  },
+  {
+    key: "rating_thanks_bad",
+    label: "رد التقييم — يحتاج تحسين",
+    hint: "",
+    def: "شكرًا لصراحتك 🤍 رأيك يهمنا، وبيتواصل معك أحد موظفينا يعوّضك.",
+  },
+  {
     key: "menu_header",
     label: "المنيو — المقدمة",
     hint: "",
@@ -3342,6 +3360,35 @@ function waLooksLikeThanksIntent(text: string) {
 
 // Account details are never volunteered. They are sent only when the customer asks
 // for them in so many words, and only back to their own verified number.
+// Maps a rating reply to 1(bad) / 2(ok) / 3(good). Accepts the digits we send and the
+// common words, in Arabic and English. Returns 0 when it is clearly not a rating, so a
+// normal message after a delivered order is never swallowed as a score.
+function waParseRatingReply(text: string): 0 | 1 | 2 | 3 {
+  const t = waNormalizeArabic(text).trim();
+  if (/^3\b|ممتاز|رائع|حلو|زين|روعه|روعة|excellent|great|good\b/.test(t)) return 3;
+  if (/^2\b|جيد|كويس|مقبول|عادي|ماشي|ok|okay/.test(t)) return 2;
+  if (/^1\b|سيء|سيئ|يحتاج تحسين|مو حلو|مو زين|ما عجب|زفت|bad|poor/.test(t)) return 1;
+  return 0;
+}
+
+// Appends to a simple ratings ledger the console reads. Best-effort: a write failure
+// must never break the customer's reply.
+async function waRecordRating(phone: string, score: number, name?: string) {
+  if (!db || !firebaseInitialized) return;
+  try {
+    await db.collection("whatsappRatings").add({
+      phone: waDigits(phone),
+      phoneMasked: waMaskPhone(phone),
+      customerName: waString(name || ""),
+      score,
+      label: score >= 3 ? "ممتاز" : score === 2 ? "جيد" : "يحتاج تحسين",
+      createdAt: waNowIso(),
+    });
+  } catch (error: any) {
+    console.warn("[WHATSAPP] Could not record rating:", error?.message || error);
+  }
+}
+
 function waLooksLikePointsIntent(text: string) {
   return waIntentMatches(text, [
     "نقاطي", "نقاط", "النقاط", "كم نقاطي", "شكم نقاطي", "جم نقاطي", "رصيدي", "رصيد النقاط",
@@ -3741,6 +3788,44 @@ async function waProcessInboundMessage({
     console.log(`[WHATSAPP] Conversation ${waMaskPhone(cleanFrom)} auto-resumed after human idle window.`);
   }
   let reply = "";
+
+  // If we just asked this person to rate, read their next reply as the rating — before
+  // any other branch, so "1" is a star and not the "new order" menu option. Only active
+  // within 24h of the request, and only when a rating is actually pending.
+  const ratingPendingMs = waDateMs(conversation?.ratingPendingAt);
+  if (cleanText && ratingPendingMs > 0 && Date.now() - ratingPendingMs < 24 * 60 * 60 * 1000) {
+    const score = waParseRatingReply(cleanText);
+    if (score) {
+      await waUpsertConversation(cleanFrom, {
+        ratingPendingAt: "",
+        lastRating: score,
+        lastRatedAt: waNowIso(),
+        tags: waUnique([...(waAsArray(conversation?.tags)), score <= 2 ? "تقييم-سيء" : "تقييم-جيد"]),
+      });
+      await waRecordRating(cleanFrom, score, conversation?.customerName);
+      if (score <= 2) {
+        // A poor rating is a save-the-customer moment: hand to a human and ping admins.
+        await waUpsertConversation(cleanFrom, { mode: "human", status: "needs_support", priority: "high", supportRequestedAt: waNowIso(), botPausedAt: waNowIso(), autoResumeAt: waHumanAutoResumeAt() });
+        const pushResult = await waSendHumanSupportPush({ phone: cleanFrom, text: `تقييم منخفض: ${cleanText}`, contactName, messageId, reason: "low_rating" });
+        sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "low_rating", ...(pushResult || {}) });
+        reply = waBotText("rating_thanks_bad");
+      } else {
+        reply = waBotText("rating_thanks_good");
+      }
+      // Fall through to the shared send block below.
+      if (reply) {
+        const rk = messageId ? `rating:${source}:${messageId}` : `rating:${cleanFrom}:${Math.floor(Date.now() / 10000)}`;
+        const rr: any = await waSendText(cleanFrom, reply, { idempotencyKey: rk, sentBy: "bot", source: "rating_reply" });
+        sendResults.push({ to: cleanFrom, ok: rr.ok, status: rr.status, channel: "rating_reply", score });
+        await waAppendConversationMessage(cleanFrom, { direction: "outbound", type: "text", text: reply, sentBy: "bot", status: rr.ok ? (rr.status === 202 ? "queued" : "sent") : "failed", raw: rr.payload });
+        await waUpsertConversation(cleanFrom, { lastOutboundText: reply });
+      }
+      return { handled: true, rating: score, sendResults };
+    }
+    // Not a rating answer → drop the pending flag and treat it as a normal message.
+    await waUpsertConversation(cleanFrom, { ratingPendingAt: "" });
+    conversation = { ...(conversation || {}), ratingPendingAt: "" };
+  }
 
   if (cleanText && waLooksLikeBackToBotIntent(cleanText)) {
     await waUpsertConversation(cleanFrom, { mode: "bot", status: "open", botResumedAt: waNowIso(), autoResumeAt: "", unreadCount: 0 });
@@ -4271,6 +4356,40 @@ app.post("/api/whatsapp/conversations/:phone/reply", async (req, res) => {
     res.status(result.ok ? 200 : 502).json({ success: result.ok, result, cancelledBotReplies });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+// The owner presses this from the console once they know a delivery landed — there is
+// no delivery-tracking signal to automate from, and pressing it is the honest trigger.
+// It only sends a message and flags the conversation as awaiting a rating reply; it
+// never reads payment state and never touches FCM.
+app.post("/api/whatsapp/conversations/:phone/request-rating", async (req, res) => {
+  try {
+    const phone = waDigits(req.params.phone);
+    if (!phone) return res.status(400).json({ success: false, error: "Missing phone" });
+    await waRefreshBotTexts();
+
+    let name = "";
+    try { name = waString((await waCustomerByPhone(phone))?.name).trim(); } catch { /* name is optional */ }
+    const text = waBotText("rating_request", { name: name || "" }).replace(/\s{2,}/g, " ").replace(" ❤️", " ❤️");
+
+    const result = await waSendText(phone, text, {
+      idempotencyKey: `rating-req:${phone}:${Math.floor(Date.now() / 3600000)}`,
+      sentBy: "system",
+      source: "rating_request",
+    });
+    if (result.ok) {
+      await waUpsertConversation(phone, {
+        ratingPendingAt: waNowIso(),
+        lastOutboundText: text,
+        lastMessageText: text,
+        lastMessageDirection: "outbound",
+      });
+      await waAppendConversationMessage(phone, { direction: "outbound", type: "text", text, sentBy: "system", status: result.status === 202 ? "queued" : "sent", raw: result.payload });
+    }
+    return res.status(result.ok ? 200 : 502).json({ success: result.ok, result });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
   }
 });
 
