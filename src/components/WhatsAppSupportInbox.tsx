@@ -716,11 +716,24 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     }
   };
 
+  // Polling a hidden tab is spend with no reader: a console left open in a background
+  // tab all day was billing ~72k Firestore reads for a screen nobody was looking at.
+  // While visible, the cadence is unchanged; on return we refresh once so the first
+  // thing you see is current, never stale.
   useEffect(() => {
     loadConversations();
     loadAutoReplyRules();
-    const timer = window.setInterval(() => loadConversations(true), 1200);
-    return () => window.clearInterval(timer);
+    let timer = 0;
+    const start = () => { if (!timer) timer = window.setInterval(() => loadConversations(true), 1200); };
+    const stop = () => { if (timer) { window.clearInterval(timer); timer = 0; } };
+    const onVisibility = () => {
+      if (document.hidden) { stop(); return; }
+      loadConversations(true);
+      start();
+    };
+    if (!document.hidden) start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
   }, []);
 
   useEffect(() => {
@@ -745,11 +758,22 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     } catch {}
   }, [conversations]);
 
+  // Same rule for the open thread: a conversation nobody is watching does not need to
+  // be re-fetched every second. Coming back refreshes it before the timer restarts.
   useEffect(() => {
     if (!selectedPhone) return;
     loadMessages(selectedPhone, true);
-    const timer = window.setInterval(() => loadMessages(selectedPhone, false), 1000);
-    return () => window.clearInterval(timer);
+    let timer = 0;
+    const start = () => { if (!timer) timer = window.setInterval(() => loadMessages(selectedPhone, false), 1000); };
+    const stop = () => { if (timer) { window.clearInterval(timer); timer = 0; } };
+    const onVisibility = () => {
+      if (document.hidden) { stop(); return; }
+      loadMessages(selectedPhone, false);
+      start();
+    };
+    if (!document.hidden) start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
   }, [selectedPhone]);
 
   useEffect(() => {
