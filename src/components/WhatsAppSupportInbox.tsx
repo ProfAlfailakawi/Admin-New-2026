@@ -589,6 +589,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   // past it. These two tabs only choose what is on screen; nothing else changes.
   const [centerTab, setCenterTab] = useState<'chats' | 'rules'>('chats');
   const [dataCheck, setDataCheck] = useState<{ loading: boolean; result: any }>({ loading: false, result: null });
+  const [bridge, setBridge] = useState<any>(null);
   const [autoReplyEditorOpen, setAutoReplyEditorOpen] = useState(false);
   const [editingAutoReplyId, setEditingAutoReplyId] = useState<string | null>(null);
   const [autoReplyForm, setAutoReplyForm] = useState<AutoReplyRule>({
@@ -715,6 +716,25 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       showNotice('error', e?.message || 'تعذر فحص البيانات');
     }
   };
+
+  // The bot can queue a perfect reply and still deliver nothing if the Mac bridge is
+  // down — that failure is silent by nature, so the console has to say it out loud.
+  // Once a minute is enough: the bridge heartbeats every minute anyway.
+  useEffect(() => {
+    let alive = true;
+    const check = async () => {
+      try {
+        const res = await waAuthFetch('/api/whatsapp/bridge-status');
+        const json = await res.json();
+        if (alive && json?.success) setBridge({ ...json.bridge, transport: json.transport });
+      } catch {
+        // A failed check is not proof the bridge is down; leave the last known state.
+      }
+    };
+    check();
+    const timer = window.setInterval(() => { if (!document.hidden) check(); }, 60000);
+    return () => { alive = false; window.clearInterval(timer); };
+  }, []);
 
   // Polling a hidden tab is spend with no reader: a console left open in a background
   // tab all day was billing ~72k Firestore reads for a screen nobody was looking at.
@@ -1244,6 +1264,34 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           </div>
         )}
       </section>
+      {bridge && bridge.transport === 'web_bridge' && bridge.connected === false && (
+        <div role="alert" className="mb-4 rounded-[1.5rem] border-2 border-rose-300 bg-rose-50 p-4 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <div className="font-black text-rose-800 flex items-center gap-2">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600" />
+                </span>
+                جهاز الواتساب مفصول — البوت لا يرسل شيئًا الآن
+              </div>
+              <div className="mt-1.5 text-[12px] font-bold text-rose-700">
+                {bridge.reason === 'never_seen'
+                  ? 'ما وصلت أي نبضة من الجهاز إطلاقًا.'
+                  : `آخر نبضة قبل ${bridge.minutesSinceSeen} دقيقة.`}
+                {' '}الردود تتجمّع في الطابور ولا تصل الزبائن.
+              </div>
+              <div className="mt-1 text-[11px] font-bold text-rose-600">
+                الحل: على الماك افتح مجلد whatsapp-web-bridge ثم شغّل start-mac.command
+              </div>
+            </div>
+            <div className="text-[11px] font-black text-rose-700 bg-white/70 rounded-2xl px-3 py-2 whitespace-nowrap">
+              🔴 متوقف
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-4 flex items-center gap-1.5 rounded-[1.5rem] border border-slate-100 bg-white p-1.5 shadow-sm w-fit">
         {([
           { id: 'chats', label: 'المحادثات', icon: '💬', badge: tabCounts.needs_support || 0, tone: 'rose' },

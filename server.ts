@@ -3814,7 +3814,10 @@ async function waProcessInboundMessage({
 // phone numbers, conversation content, and the ability to send WhatsApp as the business.
 app.use("/api/whatsapp", (req, res, next) => {
   const subPath = String(req.path || "");
-  if (subPath.startsWith("/webhook") || subPath.startsWith("/bridge")) return next();
+  // /webhook is Meta's, /bridge is the Mac bridge's (both carry their own auth), and
+  // /health must answer without a login: it is what the bridge's own check script and
+  // any uptime probe call, and it reports liveness only — no customer data.
+  if (subPath.startsWith("/webhook") || subPath.startsWith("/bridge") || subPath.startsWith("/health")) return next();
   return waRequireConsoleAuth(req, res, next);
 });
 
@@ -3822,6 +3825,46 @@ app.use("/api/whatsapp", (req, res, next) => {
 // failure wearing two masks: the bot cannot see appData/shared_company_data. This
 // reports exactly what it can read, so the answer stops being a guess.
 // Behind the console auth gate: it describes the data, it does not expose it.
+// The bridge on the Mac heartbeats every minute. When it stops, the bot keeps
+// queueing replies that nobody sends: on 2026-07-17 three customers waited ~15 hours
+// on answers that were written and stuck. The server already knew — it just never
+// said so. Stale after 3 minutes: long enough to ride out a blip, short enough that
+// a dead bridge is caught in minutes instead of a working day.
+const WA_BRIDGE_STALE_MS = 3 * 60 * 1000;
+
+async function waBridgeStatus() {
+  if (!db || !firebaseInitialized) return { connected: false, reason: "firestore_unavailable" as const };
+  try {
+    const snap = await db.collection("whatsappBridgeDevices").get();
+    const devices = snap.docs.map((d) => d.data() || {});
+    if (!devices.length) return { connected: false, reason: "never_seen" as const, minutesSinceSeen: null as number | null };
+
+    const freshest = devices
+      .map((d: any) => ({ ...d, seenMs: waDateMs(d?.lastSeenAt) || 0 }))
+      .sort((a: any, b: any) => b.seenMs - a.seenMs)[0];
+
+    const ageMs = Date.now() - Number(freshest.seenMs || 0);
+    const minutesSinceSeen = Math.max(0, Math.round(ageMs / 60000));
+    const online = waString(freshest.state || "").toLowerCase() !== "offline";
+    return {
+      connected: online && ageMs <= WA_BRIDGE_STALE_MS,
+      reason: !online ? ("reported_offline" as const) : ageMs > WA_BRIDGE_STALE_MS ? ("stale" as const) : ("ok" as const),
+      minutesSinceSeen,
+      deviceId: waString(freshest.deviceId),
+      account: waMaskPhone(waString(freshest.account)),
+    };
+  } catch (error: any) {
+    return { connected: false, reason: "error" as const, error: error?.message || String(error) };
+  }
+}
+
+// Polled by the console. Deliberately tiny and separate from /diagnostics so it can
+// run often without dragging the whole product list along behind it.
+app.get("/api/whatsapp/bridge-status", async (_req, res) => {
+  const bridge = await waBridgeStatus();
+  return res.json({ success: true, bridge, transport: WHATSAPP_TRANSPORT() });
+});
+
 app.get("/api/whatsapp/diagnostics", async (_req, res) => {
   try {
     const shared = await waLoadSharedData(["products", "orders", "invoices", "customers"]);
@@ -3845,6 +3888,9 @@ app.get("/api/whatsapp/diagnostics", async (_req, res) => {
       sampleCustomerFields: waAsArray(shared.customers).length ? Object.keys(waAsArray(shared.customers)[0] || {}).slice(0, 25) : [],
       menuWouldSay: sellable.length ? "قائمة المنتجات الحقيقية" : "رابط الموقع فقط (البوت لا يرى المنتجات)",
       whatsappAppSecretSet: Boolean(WHATSAPP_APP_SECRET()),
+      // Reading the data is only half the job; this is the half that actually delivers.
+      transport: WHATSAPP_TRANSPORT(),
+      bridge: await waBridgeStatus(),
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error?.message || String(error) });
