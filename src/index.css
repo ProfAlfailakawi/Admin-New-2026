@@ -6224,15 +6224,21 @@ html body .login-brand-stage h1 {
   .invoice-new-page .invoice-products-grid {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(220px, 1fr)) !important;
-    grid-auto-rows: 1fr !important;
-    align-items: stretch !important;
+    /* auto, not 1fr: 1fr stretched every row to the tallest card in the whole grid,
+       so a single long product name left every other card with a big empty gap — and
+       on some screens pushed the price + add button out past overflow:hidden. Rows now
+       size to their own content; align-items:start stops short cards from stretching. */
+    grid-auto-rows: auto !important;
+    align-items: start !important;
     gap: 12px !important;
     contain: none !important;
   }
   .invoice-new-page .invoice-product-card {
     width: 100% !important;
+    /* min-height keeps a tidy floor; height:auto lets the card grow to fit the footer
+       instead of being clamped to the row and clipping it. */
     min-height: 128px !important;
-    height: 100% !important;
+    height: auto !important;
     overflow: hidden !important;
   }
   .invoice-new-page .invoice-product-card-title {
