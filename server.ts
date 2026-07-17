@@ -2577,9 +2577,9 @@ const WA_BOT_TEXT_DEFS: Array<{ key: string; label: string; hint: string; def: s
   },
   {
     key: "menu_more",
-    label: "المنيو — سطر الأصناف الإضافية",
-    hint: "{count} = عدد الأصناف الباقية",
-    def: "➕ وأكثر من {count} صنف ثاني تلقاهم بالموقع",
+    label: "المنيو — سطر الأصناف الإضافية (يظهر فقط لو المنيو أطول من الرسالة)",
+    hint: "{count} = إجمالي الأصناف تقريبًا",
+    def: "➕ عندنا أكثر من {count} صنف تلقاهم كلهم بالموقع",
   },
   {
     key: "menu_footer",
@@ -2918,7 +2918,11 @@ function waMenuPrice(value: number) {
   return String(Number(value.toFixed(3)));
 }
 
-const WA_MENU_MAX_ITEMS = 30;
+// High enough that today's full menu (~53 items) prints complete. The old cap of 30
+// cut the list mid-way, so whole categories (الدجاج وما بعده) simply vanished — a
+// customer reading that menu concluded they were not sold at all. The cap only
+// exists as a guard against a someday-huge catalog producing an absurd message.
+const WA_MENU_MAX_ITEMS = 60;
 
 async function waMenuReply() {
   const shared = await waLoadSharedData(["products"]);
@@ -2987,7 +2991,10 @@ async function waMenuReply() {
     }
   }
   if (products.length > shown) {
-    lines.push("", waBotText("menu_more", { count: String(products.length - shown) }));
+    // "أكثر من X" has to stay literally true, so the total is rounded down before
+    // it is claimed (53 items → "أكثر من 50").
+    const roundedTotal = Math.max(5, Math.floor((products.length - 1) / 5) * 5);
+    lines.push("", waBotText("menu_more", { count: String(roundedTotal) }));
   }
 
   lines.push("", waBotText("menu_footer"));
