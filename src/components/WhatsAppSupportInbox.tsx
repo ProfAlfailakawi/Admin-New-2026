@@ -89,6 +89,25 @@ type ConversationActionState = {
   hint: string;
 };
 
+// At five conversations the tabs are decoration; at a hundred they are the whole
+// screen. Each one carries its own count and colour so the eye lands on the queue
+// that is actually waiting on a person, without reading a single row.
+const WA_INBOX_TABS = [
+  { id: 'all', label: 'الكل', activeClass: 'bg-slate-800', countClass: 'text-slate-500', hint: 'كل المحادثات' },
+  { id: 'needs_support', label: 'دعم', activeClass: 'bg-rose-600', countClass: 'text-rose-600', hint: 'تنتظر رد موظف' },
+  { id: 'human', label: 'يدوي', activeClass: 'bg-amber-500', countClass: 'text-amber-600', hint: 'موظف يتابعها والبوت متوقف' },
+  { id: 'bot', label: 'بوت', activeClass: 'bg-emerald-600', countClass: 'text-emerald-600', hint: 'البوت يرد تلقائيًا' },
+  { id: 'unread', label: 'جديد', activeClass: 'bg-indigo-600', countClass: 'text-indigo-600', hint: 'رسائل لم تُقرأ بعد' },
+] as const;
+
+type WaInboxTabId = typeof WA_INBOX_TABS[number]['id'];
+
+function matchesTab(c: { status?: string; mode?: string; unreadCount?: number }, id: string) {
+  if (id === 'all') return true;
+  if (id === 'unread') return Number(c.unreadCount || 0) > 0;
+  return c.status === id || c.mode === id;
+}
+
 type CustomerTemperature = {
   label: 'بارد' | 'مستعجل' | 'غاضب' | 'VIP';
   className: string;
@@ -565,6 +584,11 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [managedQuickReplies, setManagedQuickReplies] = useState<QuickReply[]>(() => loadSavedQuickReplies());
   const [autoReplyRules, setAutoReplyRules] = useState<AutoReplyRule[]>([]);
+  // The rules panel is 160 lines of configuration you touch once a month, and it sat
+  // above the conversations you answer all day — so every reply started with a scroll
+  // past it. These two tabs only choose what is on screen; nothing else changes.
+  const [centerTab, setCenterTab] = useState<'chats' | 'rules'>('chats');
+  const [dataCheck, setDataCheck] = useState<{ loading: boolean; result: any }>({ loading: false, result: null });
   const [autoReplyEditorOpen, setAutoReplyEditorOpen] = useState(false);
   const [editingAutoReplyId, setEditingAutoReplyId] = useState<string | null>(null);
   const [autoReplyForm, setAutoReplyForm] = useState<AutoReplyRule>({
@@ -669,6 +693,29 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     }
   };
 
+  // "اكتب منيو" answering with a bare link and a phone lookup finding nothing are one
+  // fault wearing two masks: the bot cannot read the product list. This asks the server
+  // what it can actually see, so the answer is a number instead of a theory.
+  const runDataCheck = async () => {
+    setDataCheck({ loading: true, result: null });
+    try {
+      const res = await waAuthFetch('/api/whatsapp/diagnostics');
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر فحص البيانات');
+      setDataCheck({ loading: false, result: json });
+      const menuOk = Number(json?.visibleToBot?.productsShownInMenu || 0) > 0;
+      showNotice(
+        menuOk ? 'success' : 'error',
+        menuOk
+          ? `البوت يشوف ${json.visibleToBot.productsShownInMenu} صنف — المنيو سليم ✅`
+          : 'البوت لا يرى أي منتج — هذا سبب عطل المنيو 🔴',
+      );
+    } catch (e: any) {
+      setDataCheck({ loading: false, result: null });
+      showNotice('error', e?.message || 'تعذر فحص البيانات');
+    }
+  };
+
   useEffect(() => {
     loadConversations();
     loadAutoReplyRules();
@@ -713,13 +760,19 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return conversations.filter((c) => {
-      const matchesFilter =
-        filter === 'all' ||
-        (filter === 'unread' ? Number(c.unreadCount || 0) > 0 : c.status === filter || c.mode === filter);
       const matchesSearch = !q || [c.phone, c.customerName, c.lastMessageText, c.lastInboundText].filter(Boolean).join(' ').toLowerCase().includes(q);
-      return matchesFilter && matchesSearch;
+      return matchesTab(c, filter) && matchesSearch;
     });
   }, [conversations, query, filter]);
+
+  // Same predicate the list uses, so a tab's badge can never disagree with the
+  // number of rows it opens. Counts ignore the search box on purpose: they answer
+  // "where is the work?", which must not move while you type.
+  const tabCounts = useMemo(() => {
+    const totals: Record<string, number> = {};
+    for (const tab of WA_INBOX_TABS) totals[tab.id] = conversations.filter((c) => matchesTab(c, tab.id)).length;
+    return totals;
+  }, [conversations]);
 
   const counts = useMemo(() => ({
     all: conversations.length,
@@ -1167,11 +1220,70 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           </div>
         )}
       </section>
+      <div className="mb-4 flex items-center gap-1.5 rounded-[1.5rem] border border-slate-100 bg-white p-1.5 shadow-sm w-fit">
+        {([
+          { id: 'chats', label: 'المحادثات', icon: '💬', badge: tabCounts.needs_support || 0, tone: 'rose' },
+          { id: 'rules', label: 'قواعد الرد', icon: '🤖', badge: autoReplyRules.length, tone: 'slate' },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setCenterTab(t.id)}
+            aria-pressed={centerTab === t.id}
+            className={cn(
+              'rounded-2xl px-5 py-2.5 text-xs font-black transition flex items-center gap-2',
+              centerTab === t.id ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50',
+            )}
+          >
+            <span>{t.icon}</span>
+            <span>{t.label}</span>
+            {t.badge > 0 && (
+              <span className={cn(
+                'rounded-full px-2 py-0.5 text-[10px] tabular-nums',
+                centerTab === t.id ? 'bg-white/20 text-white'
+                  : t.tone === 'rose' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500',
+              )}>{t.badge}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {centerTab === 'rules' && (
       <section className="mb-4 rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm">
         <div className="mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <div className="font-black text-slate-900 flex items-center gap-2"><Bot size={18} className="text-emerald-600" /> قواعد الرد التلقائي</div>
             <div className="mt-1 text-[11px] font-bold text-slate-400">تشتغل قبل الردود الافتراضية، ويمكن تعطيلها أو حذفها بأي وقت</div>
+            {dataCheck.result && (
+              <div className="mt-3 rounded-2xl border border-sky-100 bg-sky-50/60 p-3">
+                <div className="text-[11px] font-black text-sky-900 mb-2">🔍 ما يراه البوت من بياناتك</div>
+                <div className="flex flex-wrap gap-2 text-[11px] font-bold">
+                  {[
+                    { label: 'أصناف تظهر بالمنيو', value: dataCheck.result?.visibleToBot?.productsShownInMenu, critical: true },
+                    { label: 'منتجات', value: dataCheck.result?.visibleToBot?.products },
+                    { label: 'عملاء', value: dataCheck.result?.visibleToBot?.customers },
+                    { label: 'طلبات', value: dataCheck.result?.visibleToBot?.orders },
+                    { label: 'فواتير', value: dataCheck.result?.visibleToBot?.invoices },
+                  ].map((row) => {
+                    const n = Number(row.value || 0);
+                    const bad = row.critical && n === 0;
+                    return (
+                      <span key={row.label} className={cn('rounded-xl px-2.5 py-1.5 border', bad ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-white border-slate-200 text-slate-600')}>
+                        {row.label}: <b className="tabular-nums">{n}</b>{bad ? ' 🔴' : ''}
+                      </span>
+                    );
+                  })}
+                  <span className={cn('rounded-xl px-2.5 py-1.5 border', dataCheck.result?.whatsappAppSecretSet ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-amber-50 border-amber-200 text-amber-700')}>
+                    توقيع ميتا: <b>{dataCheck.result?.whatsappAppSecretSet ? 'مفعّل ✅' : 'غير مفعّل'}</b>
+                  </span>
+                </div>
+                {Number(dataCheck.result?.visibleToBot?.productsShownInMenu || 0) === 0 && (
+                  <div className="mt-2 text-[11px] font-bold text-rose-700">
+                    البوت لا يرى أي منتج، فـ«اكتب منيو» يرد برابط الموقع فقط والبحث برقم الهاتف لا يجد شيئًا. هذا سبب العطل.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -1181,6 +1293,15 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-black text-emerald-700 hover:bg-emerald-100 flex items-center justify-center gap-2"
             >
               ✨ القواعد الجاهزة
+            </button>
+            <button
+              type="button"
+              onClick={runDataCheck}
+              disabled={dataCheck.loading}
+              title="يسأل البوت: كم منتج وعميل وطلب تشوف فعلاً؟"
+              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-xs font-black text-sky-700 hover:bg-sky-100 disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {dataCheck.loading ? <Loader2 size={14} className="animate-spin" /> : '🔍'} فحص البيانات
             </button>
             <button type="button" onClick={startNewAutoReply} className="rounded-2xl bg-slate-900 px-4 py-2.5 text-xs font-black text-white hover:bg-slate-800 flex items-center justify-center gap-2">
               <Plus size={14} /> إضافة قاعدة
@@ -1288,7 +1409,11 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           )}
         </div>
       </section>
-      <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-4 h-auto xl:h-[calc(100vh-146px)] min-h-0 xl:min-h-[820px] whatsapp-support-workspace">
+      )}
+      <div className={cn(
+        'grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-4 h-auto xl:h-[calc(100vh-146px)] min-h-0 xl:min-h-[820px] whatsapp-support-workspace',
+        centerTab !== 'chats' && 'hidden',
+      )}>
         <section className="rounded-[1.5rem] bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[320px] max-h-[440px] xl:min-h-[820px] xl:max-h-none">
           <div className="p-4 border-b border-slate-100 space-y-3">
             <div className="flex items-center gap-2 rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2">
@@ -1297,11 +1422,29 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               <button onClick={() => loadConversations()} className="p-1.5 rounded-xl hover:bg-white text-slate-500"><RefreshCw size={16} /></button>
             </div>
             <div className="grid grid-cols-5 gap-1 text-[11px] font-bold">
-              {[
-                ['all', 'الكل'], ['needs_support', 'دعم'], ['human', 'يدوي'], ['bot', 'بوت'], ['unread', 'جديد']
-              ].map(([id, label]) => (
-                <button key={id} onClick={() => setFilter(id as any)} className={cn('rounded-xl px-2 py-2 transition', filter === id ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100')}>{label}</button>
-              ))}
+              {WA_INBOX_TABS.map((tab) => {
+                const total = tabCounts[tab.id] ?? 0;
+                const active = filter === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setFilter(tab.id as any)}
+                    title={tab.hint}
+                    aria-pressed={active}
+                    aria-label={`${tab.label}: ${total}`}
+                    className={cn(
+                      'rounded-xl px-2 py-1.5 transition flex flex-col items-center justify-center gap-0.5 leading-none',
+                      active ? `${tab.activeClass} text-white shadow-sm` : 'bg-slate-50 text-slate-500 hover:bg-slate-100',
+                    )}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={cn(
+                      'text-[13px] tabular-nums font-extrabold',
+                      active ? 'text-white' : total ? tab.countClass : 'text-slate-300',
+                    )}>{total}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
