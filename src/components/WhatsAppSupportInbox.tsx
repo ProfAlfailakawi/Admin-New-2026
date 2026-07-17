@@ -587,7 +587,10 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   // The rules panel is 160 lines of configuration you touch once a month, and it sat
   // above the conversations you answer all day — so every reply started with a scroll
   // past it. These two tabs only choose what is on screen; nothing else changes.
-  const [centerTab, setCenterTab] = useState<'chats' | 'rules'>('chats');
+  const [centerTab, setCenterTab] = useState<'chats' | 'rules' | 'texts'>('chats');
+  const [botTexts, setBotTexts] = useState<Array<{ key: string; label: string; hint: string; defaultText: string; value: string }>>([]);
+  const [botTextEdits, setBotTextEdits] = useState<Record<string, string>>({});
+  const [botTextsBusy, setBotTextsBusy] = useState(false);
   const [dataCheck, setDataCheck] = useState<{ loading: boolean; result: any }>({ loading: false, result: null });
   const [bridge, setBridge] = useState<any>(null);
   const [autoReplyEditorOpen, setAutoReplyEditorOpen] = useState(false);
@@ -697,6 +700,49 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   // "اكتب منيو" answering with a bare link and a phone lookup finding nothing are one
   // fault wearing two masks: the bot cannot read the product list. This asks the server
   // what it can actually see, so the answer is a number instead of a theory.
+  // Every fixed sentence the bot says, editable in place. Saving writes the whole
+  // set; blanks fall back to the built-in default, so clearing a box is always safe.
+  const loadBotTexts = async () => {
+    setBotTextsBusy(true);
+    try {
+      const res = await waAuthFetch('/api/whatsapp/bot-texts');
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر تحميل نصوص البوت');
+      setBotTexts(json.texts || []);
+      setBotTextEdits({});
+    } catch (e: any) {
+      showNotice('error', e?.message || 'تعذر تحميل نصوص البوت');
+    } finally {
+      setBotTextsBusy(false);
+    }
+  };
+
+  const saveBotTexts = async () => {
+    setBotTextsBusy(true);
+    try {
+      const values: Record<string, string> = {};
+      for (const t of botTexts) values[t.key] = botTextEdits[t.key] ?? t.value;
+      const res = await waAuthFetch('/api/whatsapp/bot-texts', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر حفظ النصوص');
+      showNotice('success', 'انحفظت النصوص — البوت بيستخدمها خلال دقيقة');
+      await loadBotTexts();
+    } catch (e: any) {
+      showNotice('error', e?.message || 'تعذر حفظ النصوص');
+    } finally {
+      setBotTextsBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (centerTab === 'texts' && !botTexts.length && !botTextsBusy) loadBotTexts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centerTab]);
+
   const runDataCheck = async () => {
     setDataCheck({ loading: true, result: null });
     try {
@@ -1296,6 +1342,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
         {([
           { id: 'chats', label: 'المحادثات', icon: '💬', badge: tabCounts.needs_support || 0, tone: 'rose' },
           { id: 'rules', label: 'قواعد الرد', icon: '🤖', badge: autoReplyRules.length, tone: 'slate' },
+          { id: 'texts', label: 'نصوص البوت', icon: '📝', badge: botTexts.filter((t) => (botTextEdits[t.key] ?? t.value).trim()).length, tone: 'slate' },
         ] as const).map((t) => (
           <button
             key={t.id}
@@ -1482,6 +1529,79 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
         </div>
       </section>
       )}
+
+      {centerTab === 'texts' && (
+      <section className="mb-4 rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <div className="font-black text-slate-900 flex items-center gap-2">📝 نصوص البوت</div>
+            <div className="mt-1 text-[11px] font-bold text-slate-400">
+              عدّل صياغة أي رسالة يرسلها البوت. اترك الخانة فاضية ليرجع للنص الافتراضي — البوت ما يسكت أبدًا.
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={loadBotTexts}
+              disabled={botTextsBusy}
+              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-black text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+            >
+              تحديث
+            </button>
+            <button
+              type="button"
+              onClick={saveBotTexts}
+              disabled={botTextsBusy || !botTexts.length}
+              className="rounded-2xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-60 flex items-center gap-2"
+            >
+              {botTextsBusy ? <Loader2 size={14} className="animate-spin" /> : '💾'} حفظ الكل
+            </button>
+          </div>
+        </div>
+        {botTextsBusy && !botTexts.length ? (
+          <div className="p-10 flex items-center justify-center text-slate-400"><Loader2 className="animate-spin" /></div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {botTexts.map((t) => {
+              const current = botTextEdits[t.key] ?? t.value;
+              const overridden = current.trim() && current.trim() !== t.defaultText.trim();
+              return (
+                <div key={t.key} className={cn('rounded-2xl border p-3', overridden ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-100 bg-slate-50/40')}>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="text-[12px] font-black text-slate-700">{t.label}</div>
+                    <div className="flex items-center gap-2">
+                      <span className={cn('text-[10px] font-black rounded-lg px-2 py-0.5', overridden ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400')}>
+                        {overridden ? 'معدّل' : 'افتراضي'}
+                      </span>
+                      {overridden && (
+                        <button
+                          type="button"
+                          onClick={() => setBotTextEdits((prev) => ({ ...prev, [t.key]: '' }))}
+                          className="text-[10px] font-black text-rose-500 hover:text-rose-700"
+                          title="الرجوع للنص الافتراضي"
+                        >
+                          استرجاع
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {t.hint && <div className="mb-2 text-[10px] font-bold text-sky-600">{t.hint}</div>}
+                  <textarea
+                    dir="rtl"
+                    value={current}
+                    placeholder={t.defaultText}
+                    onChange={(e) => setBotTextEdits((prev) => ({ ...prev, [t.key]: e.target.value }))}
+                    rows={5}
+                    className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-[12px] font-bold leading-relaxed outline-none focus:border-emerald-400 resize-y"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+      )}
+
       <div className={cn(
         'grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-4 h-auto xl:h-[calc(100vh-146px)] min-h-0 xl:min-h-[820px] whatsapp-support-workspace',
         centerTab !== 'chats' && 'hidden',

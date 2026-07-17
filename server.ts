@@ -2522,6 +2522,97 @@ function waRenderAutoReplyTemplate(template: string, context: any = {}) {
     .slice(0, 3500);
 }
 
+// ─── Editable bot texts ─────────────────────────────────────────────────────
+// Every fixed sentence the bot says lives here, so the owner can rewrite the
+// wording from the console instead of asking for a code change. An empty saved
+// value falls back to the default — clearing a box can never mute the bot.
+const WA_BOT_TEXT_DEFS: Array<{ key: string; label: string; hint: string; def: string }> = [
+  {
+    key: "greeting_known",
+    label: "الترحيب — عميل معروف (يظهر اسمه)",
+    hint: "{name} = اسم العميل من بياناتك",
+    def: "ياهلا {name} 💚 نورت التراث 🇰🇼\nشلون أقدر أخدمك؟\n\n1) طلب جديد\n2) تتبع طلب أو فاتورة\n3) الاستفسار عن المنتجات\n4) الدعم\n\nتقدر تكتب: منيو، وين طلبي؟، رابط الدفع، أو موظف.",
+  },
+  {
+    key: "greeting_new",
+    label: "الترحيب — عميل جديد",
+    hint: "",
+    def: "ياهلا ومرحبا في التراث 🇰🇼\nشلون أقدر أخدمك؟\n\n1) طلب جديد\n2) تتبع طلب أو فاتورة\n3) الاستفسار عن المنتجات\n4) الدعم\n\nتقدر تكتب: منيو، وين طلبي؟، رابط الدفع، أو موظف.",
+  },
+  {
+    key: "help",
+    label: "القائمة الرئيسية (خيارات 1-4)",
+    hint: "",
+    def: "مرحبًا بك في التراث 👋\nاختر الخدمة المناسبة:\n\n1) طلب جديد\n2) تتبع طلب أو فاتورة\n3) الاستفسار عن المنتجات\n4) الدعم\n\nاكتب رقم الخيار أو اكتب طلبك مباشرة.",
+  },
+  {
+    key: "nudge",
+    label: "رد عدم التكرار (بدل إعادة نفس الرسالة)",
+    hint: "",
+    def: "إحنا معك 🤍\nقل لي وش تحتاج بالضبط وأخدمك على طول:\n• منيو\n• تتبع طلبي\n• موظف",
+  },
+  {
+    key: "support",
+    label: "التحويل لموظف",
+    hint: "",
+    def: "يسعدنا نخدمك 🤍\nاكتب رسالتك الآن وموظفنا بيرد عليك بنفسه بعد قليل.\n\nللرجوع للقائمة في أي وقت اكتب: القائمة",
+  },
+  {
+    key: "thanks",
+    label: "رد الشكر",
+    hint: "{order_link} و {track_link} روابط تلقائية",
+    def: "العفو، حياك الله بأي وقت 🤍\nلطلب جديد:\n{order_link}\n\nولتتبع طلب سابق: {track_link}",
+  },
+  {
+    key: "media_received",
+    label: "استلام صورة / صوت / موقع",
+    hint: "{what} = صورتك / رسالتك الصوتية / موقعك",
+    def: "💚 وصلت {what} ❤️\n\nموظفنا بيشوفها ويرد عليك بنفسه بعد قليل 👌",
+  },
+  {
+    key: "menu_header",
+    label: "المنيو — المقدمة",
+    hint: "",
+    def: "💚 هلا والله ومرحبا ❤️\n\nهذا منيو التراث — اختار اللي يعجبك ونجهزه لك بحب ❤️",
+  },
+  {
+    key: "menu_more",
+    label: "المنيو — سطر الأصناف الإضافية",
+    hint: "{count} = عدد الأصناف الباقية",
+    def: "➕ وأكثر من {count} صنف ثاني تلقاهم بالموقع",
+  },
+  {
+    key: "menu_footer",
+    label: "المنيو — الخاتمة",
+    hint: "{order_link} رابط الطلب التلقائي",
+    def: "🛒 للطلب والدفع الآمن:\n{order_link}\n\nاكتب اسم أي صنف وأعطيك سعره 👌",
+  },
+];
+
+let waBotTextCache: { values: Record<string, string>; at: number } = { values: {}, at: 0 };
+
+async function waRefreshBotTexts(force = false) {
+  if (!db || !firebaseInitialized) return;
+  if (!force && Date.now() - waBotTextCache.at < 60_000) return;
+  try {
+    const snap = await db.collection("whatsappSettings").doc("botTexts").get();
+    waBotTextCache = { values: (snap.exists ? (snap.data()?.values || {}) : {}) as Record<string, string>, at: Date.now() };
+  } catch (error: any) {
+    // Keep whatever we had; a Firestore blip must not change what the bot says.
+    waBotTextCache.at = Date.now();
+    console.warn("[WHATSAPP] Could not refresh bot texts:", error?.message || error);
+  }
+}
+
+function waBotText(key: string, vars: Record<string, string> = {}) {
+  const def = WA_BOT_TEXT_DEFS.find((d) => d.key === key)?.def || "";
+  let text = waString(waBotTextCache.values[key] || "").trim() || def;
+  for (const [name, value] of Object.entries(vars)) {
+    text = text.split(`{${name}}`).join(value);
+  }
+  return waRenderAutoReplyTemplate(text);
+}
+
 async function waFindCustomAutoReply(text: string, phone: string) {
   const rules = await waLoadAutoReplyRules();
   for (const rule of rules) {
@@ -2712,13 +2803,7 @@ function waNewOrderReply() {
 }
 
 function waSupportReply() {
-  // Where the message lands is our plumbing, not the customer's business.
-  return [
-    "يسعدنا نخدمك 🤍",
-    "اكتب رسالتك الآن وموظفنا بيرد عليك بنفسه بعد قليل.",
-    "",
-    "للرجوع للقائمة في أي وقت اكتب: القائمة",
-  ].join("\n");
+  return waBotText("support");
 }
 
 function waHumanModeNoticeReply() {
@@ -2788,27 +2873,11 @@ async function waSendHumanSupportPush({
 // Sent instead of repeating an identical reply. Saying the same long message twice in a
 // row (e.g. "السلام عليكم" then "كيف الحال") makes the bot look broken.
 function waRepeatNudgeReply() {
-  return [
-    "إحنا معك 🤍",
-    "قل لي وش تحتاج بالضبط وأخدمك على طول:",
-    "• منيو",
-    "• تتبع طلبي",
-    "• موظف",
-  ].join("\n");
+  return waBotText("nudge");
 }
 
 function waHelpReply() {
-  return [
-    "مرحبًا بك في Alturath 👋",
-    "اختر الخدمة المناسبة:",
-    "",
-    "1) طلب جديد",
-    "2) تتبع طلب أو فاتورة",
-    "3) الاستفسار عن المنتجات",
-    "4) الدعم",
-    "",
-    "اكتب رقم الخيار أو اكتب طلبك مباشرة.",
-  ].join("\n");
+  return waBotText("help");
 }
 
 function waDeliveryInfoReply() {
@@ -2825,39 +2894,22 @@ function waDeliveryInfoReply() {
 }
 
 function waThanksReply() {
-  return [
-    "العفو، حياك الله بأي وقت 🤍",
-    "لطلب جديد:",
-    waNewOrderUrl(),
-    "",
-    `ولتتبع طلب سابق: ${waTrackHomeUrl()}`,
-  ].join("\n");
+  return waBotText("thanks");
 }
 
 // Greets a known customer by the name already on their record. Falls back to the
 // plain greeting for anyone we do not have, so a stranger is never told we looked.
 // The name is warmth, not data disclosure: balances and addresses still require asking.
 async function waGreetingReply(fromPhone = "") {
-  let hello = "ياهلا ومرحبا في التراث 🇰🇼";
+  let name = "";
   try {
     const customer = fromPhone ? await waCustomerByPhone(fromPhone) : null;
-    const name = waString(customer?.name).trim();
-    if (name) hello = `ياهلا ${name} 💚 نورت التراث 🇰🇼`;
+    name = waString(customer?.name).trim();
   } catch (error: any) {
     // A lookup problem must never cost the customer their greeting.
     console.warn("[WHATSAPP] Greeting name lookup failed; using the default:", error?.message || error);
   }
-  return [
-    hello,
-    "شلون أقدر أخدمك؟",
-    "",
-    "1) طلب جديد",
-    "2) تتبع طلب أو فاتورة",
-    "3) الاستفسار عن المنتجات",
-    "4) الدعم",
-    "",
-    "تقدر تكتب: منيو، وين طلبي؟، رابط الدفع، أو موظف.",
-  ].join("\n");
+  return name ? waBotText("greeting_known", { name }) : waBotText("greeting_new");
 }
 
 // Menu display only. Invoices and payments keep the 3-decimal KWD precision;
@@ -2913,11 +2965,7 @@ async function waMenuReply() {
     groups.get(key)!.push(product);
   }
 
-  const lines: string[] = [
-    "💚 هلا والله ومرحبا ❤️",
-    "",
-    "هذا منيو التراث — اختار اللي يعجبك ونجهزه لك بحب ❤️",
-  ];
+  const lines: string[] = [waBotText("menu_header")];
 
   let shown = 0;
   for (const [category, items] of groups) {
@@ -2939,10 +2987,10 @@ async function waMenuReply() {
     }
   }
   if (products.length > shown) {
-    lines.push("", `➕ و${products.length - shown} صنف ثاني تلقاهم بالموقع`);
+    lines.push("", waBotText("menu_more", { count: String(products.length - shown) }));
   }
 
-  lines.push("", "🛒 للطلب والدفع الآمن:", waNewOrderUrl(), "", "اكتب اسم أي صنف وأعطيك سعره 👌");
+  lines.push("", waBotText("menu_footer"));
   return lines.join("\n");
 }
 
@@ -3477,7 +3525,7 @@ function waMediaReceivedReply(type: string) {
       : /location/.test(clean)
         ? "موقعك"
         : "رسالتك";
-  return [`💚 وصلت ${what} ❤️`, "", "موظفنا بيشوفها ويرد عليك بنفسه بعد قليل 👌"].join("\n");
+  return waBotText("media_received", { what });
 }
 
 function waBridgeRequestAuthorized(req: any) {
@@ -3653,6 +3701,10 @@ async function waProcessInboundMessage({
   const sendResults: any[] = [];
   console.log(`[WHATSAPP] Incoming source=${source} type=${cleanType} from=${waMaskPhone(cleanFrom)} textLength=${cleanText.length}`);
 
+  // Owner-edited wording, 60s TTL — so a save in the console reaches the very next
+  // customer message without a redeploy.
+  await waRefreshBotTexts();
+
   await waUpsertConversation(cleanFrom, {
     customerName: contactName || undefined,
     status: "open",
@@ -3685,7 +3737,11 @@ async function waProcessInboundMessage({
 
   if (cleanText && waLooksLikeBackToBotIntent(cleanText)) {
     await waUpsertConversation(cleanFrom, { mode: "bot", status: "open", botResumedAt: waNowIso(), autoResumeAt: "", unreadCount: 0 });
-    reply = waHelpReply();
+    // "منيو" sits in the back-to-bot keywords so a customer stuck in human mode can
+    // always wake the bot with it — but answering it with the options list instead of
+    // the actual menu read as a bug to the owner. Food words get the food menu;
+    // "القائمة" and the rest keep the options list, as the support reply promises.
+    reply = waIntentMatches(cleanText, ["منيو", "المنيو", "menu"]) ? await waMenuReply() : waHelpReply();
   } else if (cleanText && waLooksLikeSupportIntent(cleanText)) {
     await waUpsertConversation(cleanFrom, {
       mode: "human",
@@ -3863,6 +3919,40 @@ async function waBridgeStatus() {
 app.get("/api/whatsapp/bridge-status", async (_req, res) => {
   const bridge = await waBridgeStatus();
   return res.json({ success: true, bridge, transport: WHATSAPP_TRANSPORT() });
+});
+
+// Console-only (the /api/whatsapp gate applies): read and edit every fixed sentence
+// the bot says. Saving an empty value falls back to the default text.
+app.get("/api/whatsapp/bot-texts", async (_req, res) => {
+  await waRefreshBotTexts(true);
+  return res.json({
+    success: true,
+    texts: WA_BOT_TEXT_DEFS.map((d) => ({
+      key: d.key,
+      label: d.label,
+      hint: d.hint,
+      defaultText: d.def,
+      value: waString(waBotTextCache.values[d.key] || ""),
+    })),
+  });
+});
+
+app.put("/api/whatsapp/bot-texts", async (req, res) => {
+  if (!db || !firebaseInitialized) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+  try {
+    const incoming = req.body?.values || {};
+    const clean: Record<string, string> = {};
+    // Only known keys are stored, and blanks are dropped so they resolve to defaults.
+    for (const d of WA_BOT_TEXT_DEFS) {
+      const value = typeof incoming[d.key] === "string" ? String(incoming[d.key]).slice(0, 3500) : "";
+      if (value.trim() && value.trim() !== d.def.trim()) clean[d.key] = value;
+    }
+    await db.collection("whatsappSettings").doc("botTexts").set({ values: clean, updatedAt: waNowIso() });
+    waBotTextCache = { values: clean, at: Date.now() };
+    return res.json({ success: true, overridden: Object.keys(clean).length });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
 });
 
 app.get("/api/whatsapp/diagnostics", async (_req, res) => {
