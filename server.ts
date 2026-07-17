@@ -2834,9 +2834,21 @@ function waThanksReply() {
   ].join("\n");
 }
 
-function waGreetingReply() {
+// Greets a known customer by the name already on their record. Falls back to the
+// plain greeting for anyone we do not have, so a stranger is never told we looked.
+// The name is warmth, not data disclosure: balances and addresses still require asking.
+async function waGreetingReply(fromPhone = "") {
+  let hello = "ياهلا ومرحبا في التراث 🇰🇼";
+  try {
+    const customer = fromPhone ? await waCustomerByPhone(fromPhone) : null;
+    const name = waString(customer?.name).trim();
+    if (name) hello = `ياهلا ${name} 💚 نورت التراث 🇰🇼`;
+  } catch (error: any) {
+    // A lookup problem must never cost the customer their greeting.
+    console.warn("[WHATSAPP] Greeting name lookup failed; using the default:", error?.message || error);
+  }
   return [
-    "ياهلا ومرحبا في التراث 🇰🇼",
+    hello,
     "شلون أقدر أخدمك؟",
     "",
     "1) طلب جديد",
@@ -2868,6 +2880,15 @@ async function waMenuReply() {
       featured: p?.isMenuFeatured === true,
       rank: Number(p?.featuredRank ?? 9999),
       sort: Number(p?.sortOrder ?? p?.order ?? p?.priority ?? 9999),
+      addons: waAsArray(p?.addons)
+        .filter((a: any) => a?.isActive !== false && waString(a?.name))
+        .map((a: any) => ({
+          name: waString(a?.name),
+          price: Number(a?.price ?? 0),
+          // ProductAddon.isHiddenPrice means the price is not shown to the customer.
+          // Printing it here would contradict the site the order is placed on.
+          hidePrice: a?.isHiddenPrice === true,
+        })),
     }))
     .filter((p: any) => p.name);
 
@@ -2908,6 +2929,12 @@ async function waMenuReply() {
       if (shown >= WA_MENU_MAX_ITEMS) break;
       const price = Number.isFinite(item.price) && item.price > 0 ? ` — ${waMenuPrice(item.price)} د.ك` : "";
       lines.push(`${item.featured ? "⭐" : "•"} ${item.name}${price}`);
+      // Kept to four so a dish with a long addon list cannot bury the next category.
+      const addons = waAsArray(item.addons).slice(0, 4).map((a: any) => {
+        const extra = !a.hidePrice && Number.isFinite(a.price) && a.price > 0 ? ` +${waMenuPrice(a.price)}` : "";
+        return `${a.name}${extra}`;
+      });
+      if (addons.length) lines.push(`   ➕ ${addons.join(" · ")}`);
       shown += 1;
     }
   }
@@ -3382,7 +3409,7 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
   }
 
   if (waLooksLikeThanksIntent(messageText)) return waThanksReply();
-  if (waLooksLikeGreeting(messageText)) return waGreetingReply();
+  if (waLooksLikeGreeting(messageText)) return waGreetingReply(fromPhone);
 
   return waHelpReply();
 }
