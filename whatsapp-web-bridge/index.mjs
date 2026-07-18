@@ -529,7 +529,33 @@ async function warmPhoneAliasesFromRecentChats() {
 }
 
 async function handleInboundMessage(message, ingestSource = 'event') {
-  if (!ready || shuttingDown || message?.fromMe) return;
+  if (!ready || shuttingDown) return;
+
+  // A reply typed on this phone (fromMe) used to be dropped here, so the server never
+  // knew the owner had answered and the bot kept replying alongside them. Forward it
+  // flagged as fromMe; the server records it and pauses the bot. The server also
+  // ignores echoes of the bot's own sends by comparing against its last outbound text.
+  if (message?.fromMe) {
+    const to = String(message.to || '');
+    if (!to.endsWith('@c.us')) return;
+    const peer = to.replace(/\D+/g, '');
+    if (!peer || peer === accountDigits) return;
+    const echoId = String(message?.id?._serialized || message?.id?.id || '').trim();
+    if (rememberInbound(echoId)) return;
+    const echoTimeMs = Number(message.timestamp || 0) * 1000;
+    if (echoTimeMs && echoTimeMs < startedAt - startupHistoryGraceMs) return;
+    const echoText = String(message.body || '').trim();
+    if (!echoText) return;
+    await postInbound({
+      from: peer,
+      text: echoText,
+      type: String(message.type || 'chat'),
+      fromMe: true,
+      messageId: echoId,
+      raw: { timestamp: message.timestamp, type: message.type, ingestSource: `${ingestSource}:fromMe` },
+    });
+    return;
+  }
   if (ignoreStatus && (message.isStatus || message.from === 'status@broadcast')) return;
   if (ignoreGroups && String(message.from || '').endsWith('@g.us')) return;
   if (ignoredInboundTypes.has(String(message.type || '').toLowerCase())) return;
