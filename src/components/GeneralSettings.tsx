@@ -2378,7 +2378,50 @@ const GeneralSettings: React.FC<Props> = ({
 
   // removed handleSave
 
-  const handleDownload = () => {
+  // WhatsApp rules, bot texts, ratings and conversations live server-side, not in
+  // appData — so the backup has to ask the API for them. Every fetch is fail-soft:
+  // a WhatsApp hiccup writes a note row instead of killing the whole export.
+  const fetchWhatsAppBackupRows = async (path: string, pick: (json: any) => any[]) => {
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return [{ note: "لم يتم الجلب — سجّل دخولك ثم أعد التصدير" }];
+      const res = await fetch(path, { headers: { Authorization: `Bearer ${token}` } });
+      const jsonBody = await res.json();
+      if (!jsonBody?.success) throw new Error(jsonBody?.error || `HTTP ${res.status}`);
+      const rows = pick(jsonBody);
+      return rows.length ? rows : [{ note: "لا توجد بيانات بعد" }];
+    } catch (e: any) {
+      return [{ note: `تعذر الجلب: ${e?.message || e}` }];
+    }
+  };
+
+  const handleDownload = async () => {
+    // Fetched before the workbook is assembled so the sheets below are synchronous.
+    const [waRules, waBotTexts, waRatings, waConversations] = await Promise.all([
+      fetchWhatsAppBackupRows("/api/whatsapp/auto-replies", (j) =>
+        (j.rules || []).map((r: any) => ({
+          id: r.id, title: r.title, enabled: r.enabled === false ? "لا" : "نعم",
+          priority: r.priority, matchMode: r.matchMode, action: r.action,
+          keywords: (r.keywords || []).join(" | "), response: r.response,
+        }))),
+      fetchWhatsAppBackupRows("/api/whatsapp/bot-texts", (j) =>
+        (j.texts || []).map((t: any) => ({
+          key: t.key, label: t.label,
+          state: t.value ? "معدّل" : "افتراضي",
+          savedText: t.value || "", defaultText: t.defaultText,
+        }))),
+      fetchWhatsAppBackupRows("/api/whatsapp/ratings?days=365&all=1", (j) =>
+        (j.recent || []).map((r: any) => ({
+          name: r.name, phone: r.phoneMasked, score: r.score, label: r.label, createdAt: r.createdAt,
+        }))),
+      fetchWhatsAppBackupRows("/api/whatsapp/conversations", (j) =>
+        (j.conversations || []).map((c: any) => ({
+          phone: c.phone, name: c.customerName || "", mode: c.mode || "", status: c.status || "",
+          lastMessage: (c.lastMessageText || "").slice(0, 300), lastRating: c.lastRating || "",
+          updatedAt: c.updatedAt || "",
+        }))),
+    ]);
+
     const wb = XLSX.utils.book_new();
     const safe = (v: any) => (v === undefined || v === null ? "" : v);
     const json = (v: any) => {
@@ -2746,6 +2789,12 @@ const GeneralSettings: React.FC<Props> = ({
       XLSX.utils.json_to_sheet(whatsappQuickRepliesForBackup),
       WHATSAPP_QUICK_REPLIES_SHEET,
     );
+    // The WhatsApp brain: rules, wording, ratings, conversation states. Without these
+    // a restore would bring back the numbers but lose how the bot talks.
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(waRules), "WhatsAppRules");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(waBotTexts), "WhatsAppBotTexts");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(waRatings), "WhatsAppRatings");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(waConversations), "WhatsAppConversations");
     XLSX.utils.book_append_sheet(
       wb,
       XLSX.utils.json_to_sheet([(data as any)?.loyaltySettings || {}]),
