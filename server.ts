@@ -4047,6 +4047,153 @@ app.put("/api/whatsapp/bot-texts", async (req, res) => {
   }
 });
 
+// Yesterday's numbers, computed from data we already store. Returns null when the day
+// was empty so the caller can stay silent — no "0 conversations" ping at dawn.
+async function waBuildDailySummary() {
+  if (!db || !firebaseInitialized) return null;
+  const dayMs = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const sinceMs = now - dayMs;
+
+  // Ratings in the last 24h.
+  let ratingCount = 0, ratingSum = 0, ratingBad = 0;
+  try {
+    const rs = await db.collection("whatsappRatings").orderBy("createdAt", "desc").limit(200).get();
+    for (const doc of rs.docs) {
+      const r = doc.data() || {};
+      if ((waDateMs(r?.createdAt) || 0) < sinceMs) continue;
+      ratingCount += 1; ratingSum += Number(r?.score) || 0;
+      if (Number(r?.score) <= 1) ratingBad += 1;
+    }
+  } catch { /* ratings are optional in the summary */ }
+
+  // Conversations touched, and how many still wait on a person.
+  let convCount = 0, needsReply = 0;
+  try {
+    const cs = await db.collection("whatsappConversations").orderBy("updatedAt", "desc").limit(300).get();
+    for (const doc of cs.docs) {
+      const c = doc.data() || {};
+      if ((waDateMs(c?.updatedAt) || 0) >= sinceMs) convCount += 1;
+      if (c?.status === "needs_support" || c?.mode === "human") needsReply += 1;
+    }
+  } catch { /* conversations are optional in the summary */ }
+
+  // Most-ordered item yesterday, from real order/invoice line items.
+  let topProduct = "";
+  try {
+    const shared = await waLoadSharedData(["orders", "invoices"]);
+    const tally = new Map<string, number>();
+    for (const key of ["orders", "invoices"] as const) {
+      for (const doc of waAsArray(shared[key])) {
+        if ((waDateMs(doc?.createdAt || doc?.date) || 0) < sinceMs) continue;
+        for (const item of waAsArray(doc?.items)) {
+          const name = waString(item?.name || item?.productName);
+          if (!name) continue;
+          tally.set(name, (tally.get(name) || 0) + (Number(item?.quantity) || 1));
+        }
+      }
+    }
+    topProduct = [...tally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+  } catch { /* top product is optional */ }
+
+  // Nothing happened → no message. This is the "لا تزعجني" guarantee.
+  if (convCount === 0 && ratingCount === 0 && !topProduct) return null;
+
+  const lines = ["☀️ صباح الخير، ملخص أمس:"];
+  if (ratingCount > 0) {
+    const avg = Math.round((ratingSum / ratingCount) * 10) / 10;
+    lines.push(`• ${ratingCount} تقييم — متوسط ${avg} ⭐${ratingBad ? ` (${ratingBad} يحتاج متابعة 🔴)` : ""}`);
+  }
+  if (convCount > 0) lines.push(`• ${convCount} محادثة${needsReply ? ` · ${needsReply} تنتظر ردك` : ""}`);
+  if (topProduct) lines.push(`• أكثر صنف مطلوب: ${topProduct}`);
+  return { text: lines.join("\n"), convCount, ratingCount, topProduct };
+}
+
+// Sends the summary once per calendar day, to admins and partners. State is a single
+// Firestore doc so multiple Cloud Run instances never double-send.
+async function waMaybeSendDailySummary() {
+  if (!db || !firebaseInitialized) return;
+  // Kuwait is UTC+3; send in the 7–10am local window.
+  const kuwaitHour = (new Date().getUTCHours() + 3) % 24;
+  if (kuwaitHour < 7 || kuwaitHour >= 10) return;
+
+  const todayKey = new Date(now2KuwaitDateOnly()).toISOString().slice(0, 10);
+  const stateRef = db.collection("whatsappSettings").doc("dailySummaryState");
+  try {
+    const state = await stateRef.get();
+    if (waString(state.data()?.lastSentDay) === todayKey) return; // already sent today
+
+    const summary = await waBuildDailySummary();
+    if (!summary) { await stateRef.set({ lastSentDay: todayKey, skipped: true, at: waNowIso() }); return; }
+
+    await sendSmartAlertPushNotification({
+      title: "☀️ ملخص التراث اليومي",
+      body: summary.text,
+      alertType: "daily_summary",
+      url: waAdminSupportInboxUrl(""),
+      eventId: `daily-summary-${todayKey}`,
+      ttlSeconds: 43200,
+      notificationTag: "daily-summary",
+      targetRoles: ["admin", "partner"],
+    });
+    await stateRef.set({ lastSentDay: todayKey, sent: true, at: waNowIso(), preview: summary.text.slice(0, 200) });
+    console.log(`[SUMMARY] Daily summary sent for ${todayKey}.`);
+  } catch (error: any) {
+    console.warn("[SUMMARY] Daily summary failed:", error?.message || error);
+  }
+}
+
+function now2KuwaitDateOnly() {
+  return Date.now() + 3 * 60 * 60 * 1000; // shift to Kuwait so the date rolls at local midnight
+}
+
+// Reads back the ratings we collect. Without this the whole rating feature was
+// write-only: customers rated, nothing showed. Returns a summary plus the recent list.
+async function waRatingsSummary(days = 30) {
+  const empty = { count: 0, average: 0, good: 0, ok: 0, bad: 0, recent: [] as any[], topProduct: "" };
+  if (!db || !firebaseInitialized) return empty;
+  try {
+    const sinceMs = Date.now() - days * 24 * 60 * 60 * 1000;
+    const snap = await db.collection("whatsappRatings").orderBy("createdAt", "desc").limit(500).get();
+    const rows = snap.docs
+      .map((d) => d.data() || {})
+      .filter((r: any) => (waDateMs(r?.createdAt) || 0) >= sinceMs);
+    if (!rows.length) return empty;
+    const sum = rows.reduce((a: number, r: any) => a + (Number(r?.score) || 0), 0);
+    return {
+      count: rows.length,
+      average: Math.round((sum / rows.length) * 10) / 10,
+      good: rows.filter((r: any) => Number(r?.score) >= 3).length,
+      ok: rows.filter((r: any) => Number(r?.score) === 2).length,
+      bad: rows.filter((r: any) => Number(r?.score) <= 1).length,
+      recent: rows.slice(0, 25).map((r: any) => ({
+        name: waString(r?.customerName) || waString(r?.phoneMasked),
+        phoneMasked: waString(r?.phoneMasked),
+        score: Number(r?.score) || 0,
+        label: waString(r?.label),
+        createdAt: waString(r?.createdAt),
+      })),
+      topProduct: "",
+    };
+  } catch (error: any) {
+    console.warn("[WHATSAPP] Ratings summary failed:", error?.message || error);
+    return empty;
+  }
+}
+
+app.get("/api/whatsapp/ratings", async (req, res) => {
+  const days = Math.min(365, Math.max(1, Number(req.query.days) || 30));
+  const summary = await waRatingsSummary(days);
+  return res.json({ success: true, days, ...summary });
+});
+
+// Preview yesterday's summary text on demand (does not send). Lets the owner see
+// exactly what the morning message will say.
+app.get("/api/whatsapp/daily-summary/preview", async (_req, res) => {
+  const summary = await waBuildDailySummary();
+  return res.json({ success: true, willSend: Boolean(summary), text: summary?.text || "لا يوجد نشاط أمس — ما راح تنرسل رسالة." });
+});
+
 app.get("/api/whatsapp/diagnostics", async (_req, res) => {
   try {
     const shared = await waLoadSharedData(["products", "orders", "invoices", "customers"]);
@@ -8085,6 +8232,9 @@ function startPaymentAlertsAutoRunner() {
 
   const runAlertsPass = async () => {
     if (!firebaseInitialized || !db) return; // Silent if not ready
+    // Piggy-backs on the existing alerts cadence; it self-limits to once per day in the
+    // morning window, so running it every pass is cheap and safe.
+    waMaybeSendDailySummary().catch(() => {});
     try {
       const { meta } = await alertsReconcile({ dryRun: false });
 

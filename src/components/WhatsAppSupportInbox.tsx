@@ -587,7 +587,9 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   // The rules panel is 160 lines of configuration you touch once a month, and it sat
   // above the conversations you answer all day — so every reply started with a scroll
   // past it. These two tabs only choose what is on screen; nothing else changes.
-  const [centerTab, setCenterTab] = useState<'chats' | 'rules' | 'texts'>('chats');
+  const [centerTab, setCenterTab] = useState<'chats' | 'rules' | 'texts' | 'ratings'>('chats');
+  const [ratings, setRatings] = useState<any>(null);
+  const [ratingsBusy, setRatingsBusy] = useState(false);
   const [botTexts, setBotTexts] = useState<Array<{ key: string; label: string; hint: string; defaultText: string; value: string }>>([]);
   const [botTextEdits, setBotTextEdits] = useState<Record<string, string>>({});
   const [botTextsBusy, setBotTextsBusy] = useState(false);
@@ -738,8 +740,23 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     }
   };
 
+  const loadRatings = async () => {
+    setRatingsBusy(true);
+    try {
+      const res = await waAuthFetch('/api/whatsapp/ratings?days=30');
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر تحميل التقييمات');
+      setRatings(json);
+    } catch (e: any) {
+      showNotice('error', e?.message || 'تعذر تحميل التقييمات');
+    } finally {
+      setRatingsBusy(false);
+    }
+  };
+
   useEffect(() => {
     if (centerTab === 'texts' && !botTexts.length && !botTextsBusy) loadBotTexts();
+    if (centerTab === 'ratings' && !ratings && !ratingsBusy) loadRatings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [centerTab]);
 
@@ -1362,6 +1379,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           { id: 'chats', label: 'المحادثات', icon: '💬', badge: tabCounts.needs_support || 0, tone: 'rose' },
           { id: 'rules', label: 'قواعد الرد', icon: '🤖', badge: autoReplyRules.length, tone: 'slate' },
           { id: 'texts', label: 'نصوص البوت', icon: '📝', badge: botTexts.filter((t) => (botTextEdits[t.key] ?? t.value).trim()).length, tone: 'slate' },
+          { id: 'ratings', label: 'التقييمات', icon: '⭐', badge: Number(ratings?.count || 0), tone: 'slate' },
         ] as const).map((t) => (
           <button
             key={t.id}
@@ -1621,6 +1639,57 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               );
             })}
           </div>
+        )}
+      </section>
+      )}
+
+      {centerTab === 'ratings' && (
+      <section className="mb-4 rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <div className="font-black text-slate-900 flex items-center gap-2">⭐ تقييمات العملاء</div>
+            <div className="mt-1 text-[11px] font-bold text-slate-400">آخر 30 يوم — من ردود العملاء على طلب التقييم</div>
+          </div>
+          <button type="button" onClick={loadRatings} disabled={ratingsBusy} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-black text-slate-600 hover:bg-slate-100 disabled:opacity-60">
+            {ratingsBusy ? <Loader2 size={14} className="inline animate-spin" /> : '↻'} تحديث
+          </button>
+        </div>
+
+        {ratingsBusy && !ratings ? (
+          <div className="p-10 flex items-center justify-center text-slate-400"><Loader2 className="animate-spin" /></div>
+        ) : !ratings || ratings.count === 0 ? (
+          <div className="p-10 text-center text-slate-400 font-bold border border-dashed rounded-2xl">
+            ما فيه تقييمات بعد. افتح محادثة واضغط «⭐ اطلب تقييم» بعد ما يوصل الطلب.
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              {[
+                { label: 'المتوسط', value: `${ratings.average} / 3`, cls: 'bg-amber-50 border-amber-200 text-amber-700' },
+                { label: 'ممتاز', value: ratings.good, cls: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+                { label: 'جيد', value: ratings.ok, cls: 'bg-sky-50 border-sky-200 text-sky-700' },
+                { label: 'يحتاج تحسين', value: ratings.bad, cls: 'bg-rose-50 border-rose-200 text-rose-700' },
+              ].map((k) => (
+                <div key={k.label} className={cn('rounded-2xl border p-3 text-center', k.cls)}>
+                  <div className="text-2xl font-black tabular-nums">{k.value}</div>
+                  <div className="text-[11px] font-bold mt-1">{k.label}</div>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2 max-h-[52vh] overflow-y-auto pr-1">
+              {ratings.recent.map((r: any, i: number) => (
+                <div key={i} className={cn('flex items-center justify-between gap-3 rounded-2xl border p-3', r.score <= 1 ? 'border-rose-200 bg-rose-50/50' : 'border-slate-100 bg-slate-50/40')}>
+                  <div className="min-w-0">
+                    <div className="font-black text-slate-800 text-[13px] truncate">{r.name || 'عميل'}</div>
+                    <div className="text-[10px] font-bold text-slate-400">{r.createdAt ? new Date(r.createdAt).toLocaleString('ar-KW', { dateStyle: 'short', timeStyle: 'short' }) : ''}</div>
+                  </div>
+                  <span className={cn('shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-black border', r.score >= 3 ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : r.score === 2 ? 'bg-sky-100 text-sky-700 border-sky-200' : 'bg-rose-100 text-rose-700 border-rose-200')}>
+                    {r.score >= 3 ? '⭐ ممتاز' : r.score === 2 ? '👍 جيد' : '🔴 يحتاج تحسين'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </section>
       )}
