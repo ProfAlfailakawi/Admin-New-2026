@@ -2557,7 +2557,7 @@ const WA_BOT_TEXT_DEFS: Array<{ key: string; label: string; hint: string; def: s
     key: "support",
     label: "التحويل لموظف",
     hint: "",
-    def: "يسعدنا نخدمك 🤍\nاكتب رسالتك الآن وموظفنا بيرد عليك بنفسه بعد قليل.\n\nللرجوع للقائمة في أي وقت اكتب: القائمة",
+    def: "يسعدنا نخدمك 🤍\nاكتب رسالتك الآن وموظفنا بيرد عليك بنفسه بعد قليل.",
   },
   {
     key: "thanks",
@@ -3748,12 +3748,28 @@ async function waProcessInboundMessage({
     conversation = { ...(conversation || {}), ratingPendingAt: "" };
   }
 
-  if (cleanText && waLooksLikeBackToBotIntent(cleanText)) {
+  // A human is actively handling this conversation (the 30-minute window is checked
+  // and auto-expired above). While it lasts, the bot says NOTHING — not even for
+  // "منيو": the owner's wife answered a customer, he typed منيو, and the bot barged
+  // in. When a person is talking, the bot's only job is to notify, never to speak.
+  if (conversation?.mode === "human") {
+    await waUpsertConversation(cleanFrom, {
+      status: "needs_support",
+      priority: conversation?.priority || "high",
+      supportRequestedAt: conversation?.supportRequestedAt || waNowIso(),
+    });
+    const pushResult = await waSendHumanSupportPush({
+      phone: cleanFrom,
+      text: cleanText || `[${cleanType}]`,
+      contactName,
+      messageId,
+      reason: "already_human",
+    });
+    sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", ...(pushResult || {}) });
+    console.log(`[WHATSAPP] Conversation ${waMaskPhone(cleanFrom)} is in human support mode. Auto-reply skipped.`);
+  } else if (cleanText && waLooksLikeBackToBotIntent(cleanText)) {
     await waUpsertConversation(cleanFrom, { mode: "bot", status: "open", botResumedAt: waNowIso(), autoResumeAt: "", unreadCount: 0 });
-    // "منيو" sits in the back-to-bot keywords so a customer stuck in human mode can
-    // always wake the bot with it — but answering it with the options list instead of
-    // the actual menu read as a bug to the owner. Food words get the food menu;
-    // "القائمة" and the rest keep the options list, as the support reply promises.
+    // Food words get the food menu; "القائمة" and the rest get the options list.
     reply = waIntentMatches(cleanText, ["منيو", "المنيو", "menu"]) ? await waMenuReply() : waHelpReply();
   } else if (cleanText && waLooksLikeSupportIntent(cleanText)) {
     await waUpsertConversation(cleanFrom, {
@@ -3793,21 +3809,6 @@ async function waProcessInboundMessage({
     });
     sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "media_or_link", ...(pushResult || {}) });
     reply = waMediaReceivedReply(cleanType);
-  } else if (conversation?.mode === "human") {
-    await waUpsertConversation(cleanFrom, {
-      status: "needs_support",
-      priority: conversation?.priority || "high",
-      supportRequestedAt: conversation?.supportRequestedAt || waNowIso(),
-    });
-    const pushResult = await waSendHumanSupportPush({
-      phone: cleanFrom,
-      text: cleanText || `[${cleanType}]`,
-      contactName,
-      messageId,
-      reason: "already_human",
-    });
-    sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", ...(pushResult || {}) });
-    console.log(`[WHATSAPP] Conversation ${waMaskPhone(cleanFrom)} is in human support mode. Auto-reply skipped.`);
   } else {
     const customRule = cleanText ? await waFindCustomAutoReply(cleanText, cleanFrom) : null;
     if (customRule?.action === "human") {

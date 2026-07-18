@@ -543,9 +543,12 @@ async function handleInboundMessage(message, ingestSource = 'event') {
   // flagged as fromMe; the server records it and pauses the bot. The server also
   // ignores echoes of the bot's own sends by comparing against its last outbound text.
   if (message?.fromMe) {
-    const to = String(message.to || '');
-    if (!to.endsWith('@c.us')) return;
-    const peer = to.replace(/\D+/g, '');
+    // The chat id may be a plain number (@c.us) or WhatsApp's internal @lid alias —
+    // the owner's own chats often use @lid, and the first version of this branch
+    // silently dropped those, so manual replies never reached the server.
+    const rawTo = String(message.to || '');
+    let peer = phoneFromChatId(rawTo);
+    if (!peer && rawTo.endsWith('@lid')) peer = await phoneFromLidChatId(rawTo).catch(() => '');
     if (!peer || peer === accountDigits) return;
     const echoId = String(message?.id?._serialized || message?.id?.id || '').trim();
     if (rememberInbound(echoId)) return;
@@ -553,6 +556,7 @@ async function handleInboundMessage(message, ingestSource = 'event') {
     if (echoTimeMs && echoTimeMs < startedAt - startupHistoryGraceMs) return;
     const echoText = String(message.body || '').trim();
     if (!echoText) return;
+    console.log(`📤 رد يدوي من جهاز المطعم إلى ${maskPhone(peer)} — تسجيل وإيقاف البوت مؤقتًا.`);
     await postInbound({
       from: peer,
       text: echoText,
