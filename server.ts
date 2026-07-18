@@ -4017,15 +4017,15 @@ async function waBuildDailySummary() {
     topProduct = [...tally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
   } catch { /* top product is optional */ }
 
-  // Nothing happened → no message. This is the "لا تزعجني" guarantee.
-  if (convCount === 0 && ratingCount === 0 && !topProduct) return null;
+  // The owner fixed the format: ratings and the top item only. The conversations line
+  // was added uninvited and got cut on request — keep it out.
+  if (ratingCount === 0 && !topProduct) return null;
 
   const lines = ["☀️ صباح الخير، ملخص أمس:"];
   if (ratingCount > 0) {
     const avg = Math.round((ratingSum / ratingCount) * 10) / 10;
     lines.push(`• ${ratingCount} تقييم — متوسط ${avg} ⭐${ratingBad ? ` (${ratingBad} يحتاج متابعة 🔴)` : ""}`);
   }
-  if (convCount > 0) lines.push(`• ${convCount} محادثة${needsReply ? ` · ${needsReply} تنتظر ردك` : ""}`);
   if (topProduct) lines.push(`• أكثر صنف مطلوب: ${topProduct}`);
   return { text: lines.join("\n"), convCount, ratingCount, topProduct };
 }
