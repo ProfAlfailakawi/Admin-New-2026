@@ -704,7 +704,7 @@ client.on('disconnected', async (reason) => {
   }
 });
 
-async function shutdown(signal) {
+async function shutdown(signal, exitCode = 0) {
   if (shuttingDown) return;
   shuttingDown = true;
   ready = false;
@@ -715,7 +715,7 @@ async function shutdown(signal) {
   await sendHeartbeat('offline');
   await client.destroy().catch(() => {});
   releaseSingleInstanceLock();
-  process.exit(0);
+  process.exit(exitCode);
 }
 
 process.on('SIGINT', () => void shutdown('SIGINT'));
@@ -723,11 +723,11 @@ process.on('SIGTERM', () => void shutdown('SIGTERM'));
 process.on('exit', () => releaseSingleInstanceLock());
 process.on('uncaughtException', (error) => {
   console.error('خطأ غير متوقع:', error);
-  releaseSingleInstanceLock();
-  process.exitCode = 1;
+  void shutdown('uncaughtException', 1);
 });
 process.on('unhandledRejection', (error) => {
   console.error('Promise غير معالج:', error);
+  void shutdown('unhandledRejection', 1);
 });
 
 console.log('تشغيل جسر واتساب التراث المعزول...');
