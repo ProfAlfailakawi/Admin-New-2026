@@ -2378,51 +2378,130 @@ const GeneralSettings: React.FC<Props> = ({
 
   // removed handleSave
 
-  // WhatsApp rules, bot texts, ratings and conversations live server-side, not in
-  // appData — so the backup has to ask the API for them. Every fetch is fail-soft:
-  // a WhatsApp hiccup writes a note row instead of killing the whole export.
-  const fetchWhatsAppBackupRows = async (path: string, pick: (json: any) => any[]) => {
+  // WhatsApp data lives server-side, not in appData. The dedicated endpoint returns
+  // one consistent snapshot and omits credentials, sessions and raw provider payloads.
+  const fetchWhatsAppBackup = async () => {
     try {
       const token = await auth.currentUser?.getIdToken();
-      if (!token) return [{ note: "لم يتم الجلب — سجّل دخولك ثم أعد التصدير" }];
-      const res = await fetch(path, { headers: { Authorization: `Bearer ${token}` } });
+      if (!token) throw new Error("سجّل دخولك ثم أعد التصدير");
+      const res = await fetch("/api/whatsapp/backup", {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
       const jsonBody = await res.json();
-      if (!jsonBody?.success) throw new Error(jsonBody?.error || `HTTP ${res.status}`);
-      const rows = pick(jsonBody);
-      return rows.length ? rows : [{ note: "لا توجد بيانات بعد" }];
+      if (!res.ok || !jsonBody?.success) {
+        throw new Error(jsonBody?.error || `HTTP ${res.status}`);
+      }
+      return jsonBody;
     } catch (e: any) {
-      return [{ note: `تعذر الجلب: ${e?.message || e}` }];
+      const note = `تعذر جلب بيانات واتساب: ${e?.message || e}`;
+      return {
+        success: false,
+        settings: { note },
+        counts: {},
+        rules: [{ note }],
+        ruleTemplates: [{ note }],
+        botTexts: [{ note }],
+        ratings: [{ note }],
+        conversations: [{ note }],
+        messages: [{ note }],
+        systemQuickReplies: [{ note }],
+      };
     }
   };
 
   const handleDownload = async () => {
-    // Fetched before the workbook is assembled so the sheets below are synchronous.
-    const [waRules, waBotTexts, waRatings, waConversations] = await Promise.all([
-      fetchWhatsAppBackupRows("/api/whatsapp/auto-replies", (j) =>
-        (j.rules || []).map((r: any) => ({
-          id: r.id, title: r.title, enabled: r.enabled === false ? "لا" : "نعم",
-          priority: r.priority, matchMode: r.matchMode, action: r.action,
-          keywords: (r.keywords || []).join(" | "), response: r.response,
-        }))),
-      fetchWhatsAppBackupRows("/api/whatsapp/bot-texts", (j) =>
-        (j.texts || []).map((t: any) => ({
-          key: t.key, label: t.label,
-          state: t.value ? "معدّل" : "افتراضي",
-          savedText: t.value || "", defaultText: t.defaultText,
-        }))),
-      fetchWhatsAppBackupRows("/api/whatsapp/ratings?days=365&all=1", (j) =>
-        (j.recent || []).map((r: any) => ({
-          name: r.name, phone: r.phoneMasked, score: r.score, label: r.label, createdAt: r.createdAt,
-        }))),
-      fetchWhatsAppBackupRows("/api/whatsapp/conversations", (j) =>
-        (j.conversations || []).map((c: any) => ({
-          phone: c.phone, name: c.customerName || "", mode: c.mode || "", status: c.status || "",
-          lastMessage: (c.lastMessageText || "").slice(0, 300), lastRating: c.lastRating || "",
-          updatedAt: c.updatedAt || "",
-        }))),
-    ]);
+    // Fetched before the workbook is assembled so every WhatsApp sheet belongs to
+    // the same point-in-time snapshot.
+    const waBackup = await fetchWhatsAppBackup();
+    const excelSafeText = (value: any) => {
+      const text = value === undefined || value === null ? "" : String(value);
+      return /^[=+\-@]/.test(text) ? `'${text}` : text;
+    };
+    const waRules = (waBackup.rules || []).map((rule: any) => ({
+      ...rule,
+      title: excelSafeText(rule.title),
+      enabled: rule.enabled === false ? "لا" : rule.enabled === true ? "نعم" : "",
+      keywords: Array.isArray(rule.keywords)
+        ? rule.keywords.map(excelSafeText).join(" | ")
+        : excelSafeText(rule.keywords),
+      response: excelSafeText(rule.response),
+    }));
+    const waRuleTemplates = (waBackup.ruleTemplates || []).map((rule: any) => ({
+      ...rule,
+      title: excelSafeText(rule.title),
+      enabled: rule.enabled === false ? "لا" : rule.enabled === true ? "نعم" : "",
+      keywords: Array.isArray(rule.keywords)
+        ? rule.keywords.map(excelSafeText).join(" | ")
+        : excelSafeText(rule.keywords),
+      response: excelSafeText(rule.response),
+    }));
+    const waBotTexts = (waBackup.botTexts || []).map((text: any) => ({
+      ...text,
+      label: excelSafeText(text.label),
+      hint: excelSafeText(text.hint),
+      state: text.state === "custom" ? "معدّل" : text.state === "default" ? "افتراضي" : text.state,
+      savedText: excelSafeText(text.savedText),
+      defaultText: excelSafeText(text.defaultText),
+      effectiveText: excelSafeText(text.effectiveText),
+    }));
+    const waRatings = (waBackup.ratings || []).map((rating: any) => ({
+      ...rating,
+      phone: excelSafeText(rating.phone),
+      phoneMasked: excelSafeText(rating.phoneMasked),
+      customerName: excelSafeText(rating.customerName),
+      label: excelSafeText(rating.label),
+    }));
+    const waConversations = (waBackup.conversations || []).map((conversation: any) => ({
+      ...conversation,
+      phone: excelSafeText(conversation.phone),
+      customerName: excelSafeText(conversation.customerName),
+      lastInboundText: excelSafeText(conversation.lastInboundText),
+      lastOutboundText: excelSafeText(conversation.lastOutboundText),
+      lastMessageText: excelSafeText(conversation.lastMessageText),
+      tags: Array.isArray(conversation.tags)
+        ? conversation.tags.map(excelSafeText).join(" | ")
+        : excelSafeText(conversation.tags),
+      assignedTo: excelSafeText(conversation.assignedTo),
+    }));
+    const waMessages = (waBackup.messages || []).map((message: any) => ({
+      ...message,
+      phone: excelSafeText(message.phone),
+      text: excelSafeText(message.text),
+      waMessageId: excelSafeText(message.waMessageId),
+    }));
+    const waSystemQuickReplies = (waBackup.systemQuickReplies || []).map((reply: any) => ({
+      ...reply,
+      title: excelSafeText(reply.title),
+      text: excelSafeText(reply.text),
+    }));
+    const waSettings = [{
+      ...(waBackup.settings || {}),
+      ...(waBackup.counts || {}),
+      securityExclusions: Array.isArray(waBackup.settings?.securityExclusions)
+        ? waBackup.settings.securityExclusions.join(" | ")
+        : waBackup.settings?.securityExclusions || "",
+    }];
 
     const wb = XLSX.utils.book_new();
+    const appendWhatsAppRows = (name: string, rows: any[], widths: number[]) => {
+      const normalizedRows = Array.isArray(rows) && rows.length
+        ? rows
+        : [{ note: "لا توجد بيانات بعد" }];
+      const maxRowsPerSheet = 1_000_000;
+      for (let offset = 0; offset < normalizedRows.length; offset += maxRowsPerSheet) {
+        const part = Math.floor(offset / maxRowsPerSheet) + 1;
+        const partName = part === 1
+          ? name
+          : `${name.slice(0, 27)}-${part}`;
+        const sheet = XLSX.utils.json_to_sheet(
+          normalizedRows.slice(offset, offset + maxRowsPerSheet),
+        );
+        sheet["!cols"] = widths.map((wch) => ({ wch }));
+        if (sheet["!ref"]) sheet["!autofilter"] = { ref: sheet["!ref"] };
+        XLSX.utils.book_append_sheet(wb, sheet, partName);
+      }
+    };
     const safe = (v: any) => (v === undefined || v === null ? "" : v);
     const json = (v: any) => {
       if (v === undefined || v === null) return "";
@@ -2789,12 +2868,16 @@ const GeneralSettings: React.FC<Props> = ({
       XLSX.utils.json_to_sheet(whatsappQuickRepliesForBackup),
       WHATSAPP_QUICK_REPLIES_SHEET,
     );
-    // The WhatsApp brain: rules, wording, ratings, conversation states. Without these
-    // a restore would bring back the numbers but lose how the bot talks.
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(waRules), "WhatsAppRules");
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(waBotTexts), "WhatsAppBotTexts");
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(waRatings), "WhatsAppRatings");
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(waConversations), "WhatsAppConversations");
+    // The complete readable WhatsApp snapshot. Secrets, sessions and raw provider
+    // payloads are excluded by the server and never reach the browser or workbook.
+    appendWhatsAppRows("WhatsAppRules", waRules, [20, 30, 10, 12, 14, 14, 55, 80, 24, 24]);
+    appendWhatsAppRows("WhatsAppRuleTemplates", waRuleTemplates, [20, 30, 10, 12, 14, 14, 55, 80]);
+    appendWhatsAppRows("WhatsAppBotTexts", waBotTexts, [22, 38, 36, 12, 75, 75, 75]);
+    appendWhatsAppRows("WhatsAppRatings", waRatings, [24, 18, 18, 28, 10, 20, 24]);
+    appendWhatsAppRows("WhatsAppConversations", waConversations, [24, 18, 28, 12, 14, 12, 12, 70, 70, 70, 15, 30, 24, 24, 24, 24, 24, 24, 24, 24, 24]);
+    appendWhatsAppRows("WhatsAppMessages", waMessages, [24, 24, 18, 12, 12, 90, 14, 18, 28, 24]);
+    appendWhatsAppRows("WhatsAppSystemReplies", waSystemQuickReplies, [24, 32, 90, 10]);
+    appendWhatsAppRows("WhatsAppSettings", waSettings, [16, 25, 20, 20, 20, 18, 18, 18, 18, 18, 18, 90]);
     XLSX.utils.book_append_sheet(
       wb,
       XLSX.utils.json_to_sheet([(data as any)?.loyaltySettings || {}]),
@@ -2850,6 +2933,14 @@ const GeneralSettings: React.FC<Props> = ({
           suppliers: (data?.suppliers || []).length,
           expenses: (data?.expenses || []).length,
           whatsappQuickReplies: whatsappQuickRepliesForBackup.length,
+          whatsappRules: Number(waBackup.counts?.rules ?? waRules.length),
+          whatsappRuleTemplates: Number(waBackup.counts?.ruleTemplates ?? waRuleTemplates.length),
+          whatsappBotTexts: Number(waBackup.counts?.botTexts ?? waBotTexts.length),
+          whatsappRatings: Number(waBackup.counts?.ratings ?? waRatings.length),
+          whatsappConversations: Number(waBackup.counts?.conversations ?? waConversations.length),
+          whatsappMessages: Number(waBackup.counts?.messages ?? waMessages.length),
+          whatsappSystemReplies: Number(waBackup.counts?.systemQuickReplies ?? waSystemQuickReplies.length),
+          whatsappSensitiveDataExcluded: "نعم — الأسرار والجلسات وبيانات الجهاز والـ raw payloads غير مصدّرة",
           exportedSheets: (Array.isArray(wb.SheetNames)
             ? wb.SheetNames
             : []

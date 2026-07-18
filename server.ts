@@ -3969,6 +3969,202 @@ app.put("/api/whatsapp/bot-texts", async (req, res) => {
   }
 });
 
+function waBackupIso(value: any) {
+  if (!value) return "";
+  try {
+    if (value instanceof Date) return value.toISOString();
+    if (typeof value?.toDate === "function") return value.toDate().toISOString();
+  } catch { /* Keep the original printable value below. */ }
+  return waString(value);
+}
+
+// One console-only snapshot for Excel. It deliberately exports the WhatsApp brain and
+// its readable history, while omitting bridge credentials, device account details,
+// sessions, raw webhook payloads and raw provider responses.
+app.get("/api/whatsapp/backup", async (_req, res) => {
+  if (!db || !firebaseInitialized) {
+    return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+  }
+
+  try {
+    await waRefreshBotTexts(true);
+    const rulesCollection = waAutoReplyRulesCollection();
+    if (!rulesCollection) {
+      return res.status(503).json({ success: false, error: "WhatsApp rules are not ready" });
+    }
+
+    const [rulesSnap, ratingsSnap, conversationsSnap, bridge] = await Promise.all([
+      rulesCollection.get(),
+      db.collection("whatsappRatings").get(),
+      db.collection("whatsappConversations").get(),
+      waBridgeStatus(),
+    ]);
+
+    const rules = rulesSnap.docs
+      .map((doc: any) => {
+        const rule = waNormalizeAutoReplyRule(doc.data() || {}, doc.id);
+        return {
+          id: rule.id,
+          title: rule.title,
+          enabled: rule.enabled !== false,
+          priority: Number(rule.priority) || 0,
+          matchMode: rule.matchMode,
+          action: rule.action,
+          keywords: waAsArray(rule.keywords).map(waString).filter(Boolean),
+          response: waString(rule.response),
+          createdAt: waBackupIso((doc.data() || {}).createdAt),
+          updatedAt: waBackupIso((doc.data() || {}).updatedAt),
+        };
+      })
+      .sort((a: any, b: any) => b.priority - a.priority || a.title.localeCompare(b.title));
+
+    const ruleTemplates = WA_DEFAULT_AUTO_REPLY_RULES.map((template: any) => ({
+      id: waString(template.id),
+      title: waString(template.title),
+      enabled: template.enabled !== false,
+      priority: Number(template.priority) || 0,
+      matchMode: waString(template.matchMode || "any"),
+      action: waString(template.action || "reply"),
+      keywords: waAsArray(template.keywords).map(waString).filter(Boolean),
+      response: waString(template.response),
+    })).sort((a: any, b: any) => b.priority - a.priority || a.title.localeCompare(b.title));
+
+    const botTexts = WA_BOT_TEXT_DEFS.map((definition) => {
+      const savedText = waString(waBotTextCache.values[definition.key] || "");
+      return {
+        key: definition.key,
+        label: definition.label,
+        hint: definition.hint,
+        state: savedText ? "custom" : "default",
+        savedText,
+        defaultText: definition.def,
+        effectiveText: savedText || definition.def,
+      };
+    });
+
+    const ratings = ratingsSnap.docs
+      .map((doc: any) => {
+        const rating = doc.data() || {};
+        return {
+          id: doc.id,
+          phone: waDigits(rating.phone),
+          phoneMasked: waString(rating.phoneMasked) || waMaskPhone(rating.phone),
+          customerName: waString(rating.customerName),
+          score: Number(rating.score) || 0,
+          label: waString(rating.label),
+          createdAt: waBackupIso(rating.createdAt),
+        };
+      })
+      .sort((a: any, b: any) => waDateMs(b.createdAt) - waDateMs(a.createdAt));
+
+    const conversationDocs = conversationsSnap.docs;
+    const conversations = conversationDocs
+      .map((doc: any) => {
+        const conversation = doc.data() || {};
+        return {
+          id: doc.id,
+          phone: waDigits(conversation.phone || doc.id),
+          customerName: waString(conversation.customerName),
+          mode: waString(conversation.mode),
+          status: waString(conversation.status),
+          priority: waString(conversation.priority),
+          unreadCount: Number(conversation.unreadCount) || 0,
+          lastInboundText: waString(conversation.lastInboundText),
+          lastOutboundText: waString(conversation.lastOutboundText),
+          lastMessageText: waString(conversation.lastMessageText),
+          lastMessageDirection: waString(conversation.lastMessageDirection),
+          tags: waAsArray(conversation.tags).map(waString).filter(Boolean),
+          assignedTo: waString(conversation.assignedTo),
+          supportRequestedAt: waBackupIso(conversation.supportRequestedAt),
+          botPausedAt: waBackupIso(conversation.botPausedAt),
+          botResumedAt: waBackupIso(conversation.botResumedAt),
+          humanLastReplyAt: waBackupIso(conversation.humanLastReplyAt),
+          autoResumeAt: waBackupIso(conversation.autoResumeAt),
+          botAutoResumedAt: waBackupIso(conversation.botAutoResumedAt),
+          lastMessageAt: waBackupIso(conversation.lastMessageAt),
+          createdAt: waBackupIso(conversation.createdAt),
+          updatedAt: waBackupIso(conversation.updatedAt),
+        };
+      })
+      .sort((a: any, b: any) => waDateMs(b.lastMessageAt) - waDateMs(a.lastMessageAt));
+
+    const messages: any[] = [];
+    // Small batches avoid opening hundreds of Firestore reads at once on a large inbox.
+    for (let index = 0; index < conversationDocs.length; index += 12) {
+      const batch = conversationDocs.slice(index, index + 12);
+      const groups = await Promise.all(batch.map(async (conversationDoc: any) => {
+        const phone = waDigits((conversationDoc.data() || {}).phone || conversationDoc.id);
+        const snapshot = await conversationDoc.ref.collection("messages").get();
+        return snapshot.docs.map((messageDoc: any) => {
+          const message = messageDoc.data() || {};
+          return {
+            id: messageDoc.id,
+            conversationId: conversationDoc.id,
+            phone,
+            direction: waString(message.direction),
+            type: waString(message.type),
+            text: waString(message.text),
+            status: waString(message.status),
+            sentBy: waString(message.sentBy),
+            waMessageId: waString(message.waMessageId),
+            createdAt: waBackupIso(message.createdAt),
+          };
+        });
+      }));
+      messages.push(...groups.flat());
+    }
+    messages.sort((a: any, b: any) => waDateMs(a.createdAt) - waDateMs(b.createdAt));
+
+    const systemQuickReplies = waQuickReplies().map((reply: any, index: number) => ({
+      id: waString(reply.id),
+      title: waString(reply.title),
+      text: waString(reply.text),
+      order: index + 1,
+    }));
+
+    const settings = {
+      schemaVersion: 1,
+      exportedAt: waNowIso(),
+      transport: WHATSAPP_TRANSPORT(),
+      humanAutoResumeMinutes: WHATSAPP_HUMAN_AUTO_RESUME_MINUTES,
+      bridgeConnected: bridge.connected === true,
+      bridgeReason: waString(bridge.reason),
+      bridgeMinutesSinceSeen: typeof bridge.minutesSinceSeen === "number" ? bridge.minutesSinceSeen : "",
+      securityExclusions: [
+        "bridge secrets",
+        "WhatsApp session files",
+        "device account details",
+        "raw webhook payloads",
+        "raw provider responses",
+      ],
+    };
+
+    return res.json({
+      success: true,
+      settings,
+      rules,
+      ruleTemplates,
+      botTexts,
+      ratings,
+      conversations,
+      messages,
+      systemQuickReplies,
+      counts: {
+        rules: rules.length,
+        ruleTemplates: ruleTemplates.length,
+        botTexts: botTexts.length,
+        ratings: ratings.length,
+        conversations: conversations.length,
+        messages: messages.length,
+        systemQuickReplies: systemQuickReplies.length,
+      },
+    });
+  } catch (error: any) {
+    console.error("[WHATSAPP] Backup export failed:", error?.message || error);
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
 // Yesterday's numbers, computed from data we already store. Returns null when the day
 // was empty so the caller can stay silent — no "0 conversations" ping at dawn.
 async function waBuildDailySummary() {
