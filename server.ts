@@ -2528,22 +2528,24 @@ function waRenderAutoReplyTemplate(template: string, context: any = {}) {
 // value falls back to the default — clearing a box can never mute the bot.
 const WA_BOT_TEXT_DEFS: Array<{ key: string; label: string; hint: string; def: string }> = [
   {
+    // One short message, three plain words. The old numbered 1-4 menu read like a call
+    // centre and doubled the length; typed numbers still work for anyone who uses them.
     key: "greeting_known",
     label: "الترحيب — عميل معروف (يظهر اسمه)",
     hint: "{name} = اسم العميل من بياناتك",
-    def: "ياهلا {name} 💚 نورت التراث 🇰🇼\nشلون أقدر أخدمك؟\n\n1) طلب جديد\n2) تتبع طلب أو فاتورة\n3) الاستفسار عن المنتجات\n4) الدعم\n\nتقدر تكتب: منيو، وين طلبي؟، رابط الدفع، أو موظف.",
+    def: "ياهلا {name} 💚 نورت التراث 🇰🇼\nاطلب مباشرة من هني:\n{menu_link}\n\nوإذا تحتاج شي اكتب: منيو · وين طلبي · موظف",
   },
   {
     key: "greeting_new",
     label: "الترحيب — عميل جديد",
     hint: "",
-    def: "ياهلا ومرحبا في التراث 🇰🇼\nشلون أقدر أخدمك؟\n\n1) طلب جديد\n2) تتبع طلب أو فاتورة\n3) الاستفسار عن المنتجات\n4) الدعم\n\nتقدر تكتب: منيو، وين طلبي؟، رابط الدفع، أو موظف.",
+    def: "ياهلا ومرحبا في التراث 🇰🇼\nاطلب مباشرة من هني:\n{menu_link}\n\nوإذا تحتاج شي اكتب: منيو · وين طلبي · موظف",
   },
   {
     key: "help",
-    label: "القائمة الرئيسية (خيارات 1-4)",
+    label: "القائمة الرئيسية",
     hint: "",
-    def: "مرحبًا بك في التراث 👋\nاختر الخدمة المناسبة:\n\n1) طلب جديد\n2) تتبع طلب أو فاتورة\n3) الاستفسار عن المنتجات\n4) الدعم\n\nاكتب رقم الخيار أو اكتب طلبك مباشرة.",
+    def: "حياك الله 🤍 اكتب:\n• منيو — الأصناف والأسعار\n• وين طلبي — تتبع طلبك\n• موظف — نكلمك بنفسنا",
   },
   {
     key: "nudge",
@@ -2588,22 +2590,10 @@ const WA_BOT_TEXT_DEFS: Array<{ key: string; label: string; hint: string; def: s
     def: "شكرًا لصراحتك 🤍 رأيك يهمنا، وبيتواصل معك أحد موظفينا يعوّضك.",
   },
   {
-    key: "menu_header",
-    label: "المنيو — المقدمة",
-    hint: "",
-    def: "💚 هلا والله ومرحبا ❤️\n\nهذا منيو التراث — اختار اللي يعجبك ونجهزه لك بحب ❤️",
-  },
-  {
-    key: "menu_more",
-    label: "المنيو — سطر الأصناف الإضافية (يظهر فقط لو المنيو أطول من الرسالة)",
-    hint: "{count} = إجمالي الأصناف تقريبًا",
-    def: "➕ عندنا أكثر من {count} صنف تلقاهم كلهم بالموقع",
-  },
-  {
-    key: "menu_footer",
-    label: "المنيو — الخاتمة",
-    hint: "{order_link} رابط الطلب التلقائي",
-    def: "🛒 للطلب والدفع الآمن:\n{order_link}\n\nاكتب اسم أي صنف وأعطيك سعره 👌",
+    key: "menu",
+    label: "رد «منيو» — رسالة لطيفة + الرابط",
+    hint: "{menu_link} = رابط المنيو التلقائي",
+    def: "💚 هلا والله ❤️\nمنيونا كامل بالصور والأسعار هني:\n{menu_link}\n\nواكتب اسم أي صنف وأعطيك سعره 👌",
   },
 ];
 
@@ -2930,93 +2920,22 @@ async function waGreetingReply(fromPhone = "") {
   return name ? waBotText("greeting_known", { name }) : waBotText("greeting_new");
 }
 
-// Menu display only. Invoices and payments keep the 3-decimal KWD precision;
-// here trailing zeros are trimmed so a menu reads "3.5 د.ك", not "3.500 د.ك".
-function waMenuPrice(value: number) {
-  return String(Number(value.toFixed(3)));
+
+// One place decides what a customer may be shown. Hidden and out-of-stock items must
+// never leak through the bot: not in the menu reply, not in item search.
+function waSellableProducts(list: any[]) {
+  return waAsArray(list).filter((p: any) =>
+    p?.isActive !== false && p?.active !== false &&
+    p?.isHidden !== true && p?.hidden !== true && p?.visible !== false && p?.showInMenu !== false &&
+    p?.isOutOfStock !== true && p?.outOfStock !== true &&
+    !(typeof p?.stock === "number" && p.stock <= 0));
 }
 
-// High enough that today's full menu (~53 items) prints complete. The old cap of 30
-// cut the list mid-way, so whole categories (الدجاج وما بعده) simply vanished — a
-// customer reading that menu concluded they were not sold at all. The cap only
-// exists as a guard against a someday-huge catalog producing an absurd message.
-const WA_MENU_MAX_ITEMS = 60;
-
+// The owner's call: "منيو" answers with a warm line and the site link, nothing else.
+// The full item list lives on the site (photos, addons, live availability) — printing
+// it here duplicated that badly and made the chat feel heavy.
 async function waMenuReply() {
-  const shared = await waLoadSharedData(["products"]);
-  const all = waAsArray(shared.products);
-  const products = all
-    .filter((p: any) => p?.isActive !== false && p?.active !== false && p?.isOutOfStock !== true && p?.outOfStock !== true)
-    .map((p: any) => ({
-      name: waString(p?.name || p?.productName || p?.title),
-      category: waString(p?.category || p?.categoryName || p?.type),
-      price: Number(p?.price ?? p?.salePrice ?? p?.amount),
-      featured: p?.isMenuFeatured === true,
-      rank: Number(p?.featuredRank ?? 9999),
-      sort: Number(p?.sortOrder ?? p?.order ?? p?.priority ?? 9999),
-      addons: waAsArray(p?.addons)
-        .filter((a: any) => a?.isActive !== false && waString(a?.name))
-        .map((a: any) => ({
-          name: waString(a?.name),
-          price: Number(a?.price ?? 0),
-          // ProductAddon.isHiddenPrice means the price is not shown to the customer.
-          // Printing it here would contradict the site the order is placed on.
-          hidePrice: a?.isHiddenPrice === true,
-        })),
-    }))
-    .filter((p: any) => p.name);
-
-  // Loud on purpose: an empty menu means the bot cannot see the product list, and
-  // that silence is what makes "اكتب منيو" look broken to a customer.
-  if (!products.length) {
-    console.warn(`[WHATSAPP] Menu requested but no products are visible (raw=${all.length}). Check appData/shared_company_data.`);
-    return [
-      "💚 هلا والله ومرحبا ❤️",
-      "",
-      "المنيو الكامل والتوفر الحالي هني:",
-      waNewOrderUrl(),
-    ].join("\n");
-  }
-
-  // Group by each product's own category. The flat list repeated "(التصنيف)" on
-  // every line; a real menu prints the category once, as a heading.
-  const groups = new Map<string, any[]>();
-  for (const product of products) {
-    const key = product.category || "أصناف أخرى";
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(product);
-  }
-
-  const lines: string[] = [waBotText("menu_header")];
-
-  let shown = 0;
-  for (const [category, items] of groups) {
-    if (shown >= WA_MENU_MAX_ITEMS) break;
-    items.sort((a: any, b: any) =>
-      Number(b.featured) - Number(a.featured) || a.rank - b.rank || a.sort - b.sort || a.name.localeCompare(b.name, "ar"));
-    lines.push("", `▪️ ${category}`, "—————————");
-    for (const item of items) {
-      if (shown >= WA_MENU_MAX_ITEMS) break;
-      const price = Number.isFinite(item.price) && item.price > 0 ? ` — ${waMenuPrice(item.price)} د.ك` : "";
-      lines.push(`${item.featured ? "⭐" : "•"} ${item.name}${price}`);
-      // Kept to four so a dish with a long addon list cannot bury the next category.
-      const addons = waAsArray(item.addons).slice(0, 4).map((a: any) => {
-        const extra = !a.hidePrice && Number.isFinite(a.price) && a.price > 0 ? ` +${waMenuPrice(a.price)}` : "";
-        return `${a.name}${extra}`;
-      });
-      if (addons.length) lines.push(`   ➕ ${addons.join(" · ")}`);
-      shown += 1;
-    }
-  }
-  if (products.length > shown) {
-    // "أكثر من X" has to stay literally true, so the total is rounded down before
-    // it is claimed (53 items → "أكثر من 50").
-    const roundedTotal = Math.max(5, Math.floor((products.length - 1) / 5) * 5);
-    lines.push("", waBotText("menu_more", { count: String(roundedTotal) }));
-  }
-
-  lines.push("", waBotText("menu_footer"));
-  return lines.join("\n");
+  return waBotText("menu");
 }
 
 // Fields below come from the Customer interface in src/types.ts. Nothing is guessed:
@@ -3235,7 +3154,9 @@ async function waProductReply(messageText: string) {
     }
     return "";
   }
-  const products = waAsArray(shared.products)
+  // Sellable only: a hidden or out-of-stock item quoted here reads as a promise the
+  // kitchen can't keep.
+  const products = waSellableProducts(shared.products)
     .map((p: any) => ({
       raw: p,
       name: waProductName(p),
@@ -4341,6 +4262,35 @@ app.post("/api/whatsapp/bridge/inbound", async (req, res) => {
     const contactName = waString(req.body?.contactName);
     const messageId = waString(req.body?.messageId);
     if (!from) return res.status(400).json({ success: false, error: "Missing sender phone" });
+
+    // A reply typed on the restaurant's own phone. Before this, the bridge dropped
+    // these silently, so the server thought nobody had answered and the bot kept
+    // replying alongside the owner. Record it, hush the bot for the human window,
+    // and never auto-respond to it.
+    if (req.body?.fromMe === true) {
+      const existing = await waGetConversation(from);
+      // Our own bot/console sends echo back through the phone too — skip those.
+      if (text && waString(existing?.lastOutboundText || "").trim() === text.trim()) {
+        return res.status(200).json({ success: true, echoOfOurSend: true });
+      }
+      if (!(await waClaimInboundMessage("bridge_echo", messageId))) {
+        return res.status(200).json({ success: true, duplicate: true });
+      }
+      await waAppendConversationMessage(from, { direction: "outbound", type, text: text || `[${type}]`, waMessageId: messageId, sentBy: "human", raw: req.body?.raw });
+      await waCancelPendingBotOutbox(from, "human_reply_phone");
+      await waUpsertConversation(from, {
+        mode: "human",
+        status: "open",
+        lastMessageText: text || `[${type}]`,
+        lastMessageDirection: "outbound",
+        lastOutboundText: text,
+        humanLastReplyAt: waNowIso(),
+        botPausedAt: waNowIso(),
+        autoResumeAt: waHumanAutoResumeAt(),
+      });
+      console.log(`[WHATSAPP] Phone reply recorded for ${waMaskPhone(from)}; bot paused for the human window.`);
+      return res.status(200).json({ success: true, humanEcho: true });
+    }
 
     const processed = await waProcessInboundMessage({
       from,
