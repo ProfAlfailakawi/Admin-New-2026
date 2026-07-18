@@ -4389,7 +4389,32 @@ app.post("/api/whatsapp/bridge/heartbeat", async (req, res) => {
       lastSeenAt: waNowIso(),
       updatedAt: waNowIso(),
     }), { merge: true });
-    return res.json({ success: true, serverTime: waNowIso() });
+
+    // The console's "restart bridge" button sets a flag; the very next heartbeat
+    // (≤30s) carries it back, the bridge exits cleanly, and systemd revives it.
+    // No new endpoint, no SSH — the owner fixes a stuck bridge from the dashboard.
+    let restartRequested = false;
+    try {
+      const ctl = await db.collection("whatsappSettings").doc("bridgeControl").get();
+      if (ctl.exists && waString(ctl.data()?.restartRequestedAt)) {
+        restartRequested = true;
+        await db.collection("whatsappSettings").doc("bridgeControl").set({ restartRequestedAt: "", servedAt: waNowIso() });
+      }
+    } catch { /* a control read failure must never break the heartbeat */ }
+
+    return res.json({ success: true, serverTime: waNowIso(), restartRequested });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+// Console-gated (the /api/whatsapp gate applies — the path deliberately does NOT
+// start with /bridge, which would bypass it). Queues one restart for the bridge.
+app.post("/api/whatsapp/restart-bridge", async (_req, res) => {
+  if (!db || !firebaseInitialized) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+  try {
+    await db.collection("whatsappSettings").doc("bridgeControl").set({ restartRequestedAt: waNowIso() });
+    return res.json({ success: true, note: "سيعاد تشغيل جهاز الواتساب خلال دقيقة تقريبًا" });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error?.message || String(error) });
   }
