@@ -333,11 +333,18 @@ async function bridgeFetch(route, options = {}) {
 
 async function sendHeartbeat(state = 'online') {
   try {
-    await bridgeFetch('/api/whatsapp/bridge/heartbeat', {
+    const response = await bridgeFetch('/api/whatsapp/bridge/heartbeat', {
       method: 'POST',
       body: JSON.stringify({ deviceId, state, account: accountDigits, clientVersion: VERSION }),
       timeoutMs: 12000,
     });
+    // The dashboard's restart button rides back on the heartbeat reply. Exit cleanly
+    // and let systemd/service-runner start a fresh process.
+    const payload = await response.json().catch(() => ({}));
+    if (payload?.restartRequested && !shuttingDown) {
+      console.log('🔄 وصل طلب إعادة تشغيل من لوحة التحكم — إعادة تشغيل الجسر الآن.');
+      setTimeout(() => process.exit(0), 500);
+    }
   } catch (error) {
     if (!shuttingDown) console.warn('⚠️ تعذر إرسال نبضة الاتصال:', error?.message || error);
   }

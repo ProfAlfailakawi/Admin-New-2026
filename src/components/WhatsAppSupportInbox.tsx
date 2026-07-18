@@ -760,6 +760,24 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [centerTab]);
 
+  const [restartingBridge, setRestartingBridge] = useState(false);
+  // One click replaces the old "SSH into the VM" ritual: the flag rides back on the
+  // bridge's next heartbeat (≤30s) and systemd starts it fresh.
+  const restartBridge = async () => {
+    if (restartingBridge) return;
+    setRestartingBridge(true);
+    try {
+      const res = await waAuthFetch('/api/whatsapp/restart-bridge', { method: 'POST' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر طلب إعادة التشغيل');
+      showNotice('success', 'انطلب إعادة التشغيل — خلال دقيقة يرجع الجهاز، وبعدها بدقيقتين يكون جاهزًا يرد');
+    } catch (e: any) {
+      showNotice('error', e?.message || 'تعذر طلب إعادة التشغيل');
+    } finally {
+      setRestartingBridge(false);
+    }
+  };
+
   const runDataCheck = async () => {
     setDataCheck({ loading: true, result: null });
     try {
@@ -1367,8 +1385,18 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                 الحل: على الماك افتح مجلد whatsapp-web-bridge ثم شغّل start-mac.command
               </div>
             </div>
-            <div className="text-[11px] font-black text-rose-700 bg-white/70 rounded-2xl px-3 py-2 whitespace-nowrap">
-              🔴 متوقف
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={restartBridge}
+                disabled={restartingBridge}
+                className="rounded-2xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-700 disabled:opacity-60 whitespace-nowrap"
+              >
+                {restartingBridge ? <Loader2 size={14} className="inline animate-spin" /> : '🔄'} إعادة تشغيل الجهاز
+              </button>
+              <div className="text-[11px] font-black text-rose-700 bg-white/70 rounded-2xl px-3 py-2 whitespace-nowrap">
+                🔴 متوقف
+              </div>
             </div>
           </div>
         </div>
@@ -1458,6 +1486,15 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-xs font-black text-sky-700 hover:bg-sky-100 disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {dataCheck.loading ? <Loader2 size={14} className="animate-spin" /> : '🔍'} فحص البيانات
+            </button>
+            <button
+              type="button"
+              onClick={restartBridge}
+              disabled={restartingBridge}
+              title="لو البوت واقف أو ما يرد: يعيد تشغيل جهاز الواتساب خلال دقيقة"
+              className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-black text-rose-700 hover:bg-rose-100 disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {restartingBridge ? <Loader2 size={14} className="animate-spin" /> : '🔄'} إعادة تشغيل الواتساب
             </button>
             <button type="button" onClick={startNewAutoReply} className="rounded-2xl bg-slate-900 px-4 py-2.5 text-xs font-black text-white hover:bg-slate-800 flex items-center justify-center gap-2">
               <Plus size={14} /> إضافة قاعدة
