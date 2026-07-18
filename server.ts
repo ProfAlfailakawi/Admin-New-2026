@@ -4071,7 +4071,7 @@ function now2KuwaitDateOnly() {
 
 // Reads back the ratings we collect. Without this the whole rating feature was
 // write-only: customers rated, nothing showed. Returns a summary plus the recent list.
-async function waRatingsSummary(days = 30) {
+async function waRatingsSummary(days = 30, maxRecent = 25) {
   const empty = { count: 0, average: 0, good: 0, ok: 0, bad: 0, recent: [] as any[], topProduct: "" };
   if (!db || !firebaseInitialized) return empty;
   try {
@@ -4088,7 +4088,7 @@ async function waRatingsSummary(days = 30) {
       good: rows.filter((r: any) => Number(r?.score) >= 3).length,
       ok: rows.filter((r: any) => Number(r?.score) === 2).length,
       bad: rows.filter((r: any) => Number(r?.score) <= 1).length,
-      recent: rows.slice(0, 25).map((r: any) => ({
+      recent: rows.slice(0, maxRecent).map((r: any) => ({
         name: waString(r?.customerName) || waString(r?.phoneMasked),
         phoneMasked: waString(r?.phoneMasked),
         score: Number(r?.score) || 0,
@@ -4105,7 +4105,9 @@ async function waRatingsSummary(days = 30) {
 
 app.get("/api/whatsapp/ratings", async (req, res) => {
   const days = Math.min(365, Math.max(1, Number(req.query.days) || 30));
-  const summary = await waRatingsSummary(days);
+  // all=1 is the Excel backup asking for the complete ledger, not just the console's 25.
+  const maxRecent = req.query.all ? 500 : 25;
+  const summary = await waRatingsSummary(days, maxRecent);
   return res.json({ success: true, days, ...summary });
 });
 
