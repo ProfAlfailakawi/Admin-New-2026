@@ -2484,6 +2484,38 @@ const GeneralSettings: React.FC<Props> = ({
     }];
 
     const wb = XLSX.utils.book_new();
+    const normalizeExcelRows = (rows: any[]) =>
+      (Array.isArray(rows) ? rows : []).map((row: any) => {
+        const source = row && typeof row === "object" && !Array.isArray(row)
+          ? row
+          : { value: row };
+        const normalized: Record<string, any> = {};
+        Object.entries(source).forEach(([key, rawValue]) => {
+          let value: any = rawValue;
+          if (value instanceof Date) value = value.toISOString();
+          else if (value && typeof value === "object") {
+            try {
+              value = JSON.stringify(value);
+            } catch {
+              value = String(value);
+            }
+          }
+
+          if (typeof value !== "string") {
+            normalized[key] = value === undefined || value === null ? "" : value;
+            return;
+          }
+
+          const parts = value.match(/[\s\S]{1,30000}/g) || [""];
+          parts.forEach((part, index) => {
+            const partKey = index === 0 ? key : `${key}_part_${index + 1}`;
+            normalized[partKey] = excelSafeText(part);
+          });
+        });
+        return normalized;
+      });
+    const toExcelSheet = (rows: any[]) =>
+      XLSX.utils.json_to_sheet(normalizeExcelRows(rows));
     const appendWhatsAppRows = (name: string, rows: any[], widths: number[]) => {
       const normalizedRows = Array.isArray(rows) && rows.length
         ? rows
@@ -2494,7 +2526,7 @@ const GeneralSettings: React.FC<Props> = ({
         const partName = part === 1
           ? name
           : `${name.slice(0, 27)}-${part}`;
-        const sheet = XLSX.utils.json_to_sheet(
+        const sheet = toExcelSheet(
           normalizedRows.slice(offset, offset + maxRowsPerSheet),
         );
         sheet["!cols"] = widths.map((wch) => ({ wch }));
@@ -2505,13 +2537,12 @@ const GeneralSettings: React.FC<Props> = ({
     const safe = (v: any) => (v === undefined || v === null ? "" : v);
     const json = (v: any) => {
       if (v === undefined || v === null) return "";
-      const str = JSON.stringify(v);
-      return str.length > 32000 ? str.slice(0, 32000) + "... (truncated)" : str;
+      return JSON.stringify(v);
     };
     const createChunkedSheet = (val: any) => {
       const s = val === undefined || val === null ? "" : JSON.stringify(val);
       const chunks = s.match(/[\s\S]{1,30000}/g) || [""];
-      return XLSX.utils.json_to_sheet(
+      return toExcelSheet(
         chunks.map((chunk, index) => ({ part: index + 1, chunk })),
       );
     };
@@ -2626,7 +2657,7 @@ const GeneralSettings: React.FC<Props> = ({
     });
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(invoiceRows),
+      toExcelSheet(invoiceRows),
       "Invoices",
     );
 
@@ -2651,7 +2682,7 @@ const GeneralSettings: React.FC<Props> = ({
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(invoiceItems),
+      toExcelSheet(invoiceItems),
       "InvoiceItems",
     );
 
@@ -2683,7 +2714,7 @@ const GeneralSettings: React.FC<Props> = ({
     });
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(payerRows),
+      toExcelSheet(payerRows),
       "Payers",
     );
 
@@ -2746,7 +2777,7 @@ const GeneralSettings: React.FC<Props> = ({
     });
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(orderRows),
+      toExcelSheet(orderRows),
       "Orders",
     );
 
@@ -2770,20 +2801,20 @@ const GeneralSettings: React.FC<Props> = ({
     });
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(customerRows),
+      toExcelSheet(customerRows),
       "Customers",
     );
 
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(
+      toExcelSheet(
         (data?.products || []).map(normalizeExportProduct),
       ),
       "Products",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(
+      toExcelSheet(
         (
           (data as any)?.productCategories ||
           (data as any)?.settings?.productCategories ||
@@ -2794,78 +2825,78 @@ const GeneralSettings: React.FC<Props> = ({
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(data?.suppliers || []),
+      toExcelSheet(data?.suppliers || []),
       "Suppliers",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(data?.supplierTransfers || []),
+      toExcelSheet(data?.supplierTransfers || []),
       "SupplierTransfers",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(data?.zones || []),
+      toExcelSheet(data?.zones || []),
       "Zones",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(data?.expenses || []),
+      toExcelSheet(data?.expenses || []),
       "Expenses",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(data?.testimonials || []),
+      toExcelSheet(data?.testimonials || []),
       "Testimonials",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(data?.pulseAnalysisHistory || []),
+      toExcelSheet(data?.pulseAnalysisHistory || []),
       "PulseHistory",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(data?.pulseReviews || []),
+      toExcelSheet(data?.pulseReviews || []),
       "QuickPulse",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(data?.campaigns || []),
+      toExcelSheet(data?.campaigns || []),
       "SmartCampaigns",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(data?.squads || []),
+      toExcelSheet(data?.squads || []),
       "Diwaniyas",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet((data as any)?.promocodes || []),
+      toExcelSheet((data as any)?.promocodes || []),
       "PromoCodes",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet((data as any)?.squadTiers || []),
+      toExcelSheet((data as any)?.squadTiers || []),
       "SquadTiers",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet((data as any)?.diwaniyaTiers || []),
+      toExcelSheet((data as any)?.diwaniyaTiers || []),
       "DiwaniyaTiers",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet((data as any)?.aiLearningMemory || []),
+      toExcelSheet((data as any)?.aiLearningMemory || []),
       "SmartLearningMemory",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet((data as any)?.notifications || []),
+      toExcelSheet((data as any)?.notifications || []),
       "Notifications",
     );
     const whatsappQuickRepliesForBackup = readWhatsAppQuickRepliesForBackup();
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(whatsappQuickRepliesForBackup),
+      toExcelSheet(whatsappQuickRepliesForBackup),
       WHATSAPP_QUICK_REPLIES_SHEET,
     );
     // The complete readable WhatsApp snapshot. Secrets, sessions and raw provider
@@ -2880,17 +2911,17 @@ const GeneralSettings: React.FC<Props> = ({
     appendWhatsAppRows("WhatsAppSettings", waSettings, [16, 25, 20, 20, 20, 18, 18, 18, 18, 18, 18, 90]);
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet([(data as any)?.loyaltySettings || {}]),
+      toExcelSheet([(data as any)?.loyaltySettings || {}]),
       "LoyaltySettings",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet([(data as any)?.activeGoal || {}]),
+      toExcelSheet([(data as any)?.activeGoal || {}]),
       "ActiveGoal",
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet([(data as any)?.settings || {}]),
+      toExcelSheet([(data as any)?.settings || {}]),
       "Settings",
     );
     XLSX.utils.book_append_sheet(
@@ -2913,7 +2944,7 @@ const GeneralSettings: React.FC<Props> = ({
     const fullStateChunks = fullStateJson.match(/[\s\S]{1,30000}/g) || ["{}"];
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(
+      toExcelSheet(
         fullStateChunks.map((chunk, index) => ({ part: index + 1, chunk })),
       ),
       "FullState",
@@ -2921,7 +2952,7 @@ const GeneralSettings: React.FC<Props> = ({
 
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet([
+      toExcelSheet([
         {
           exportedAt: new Date().toISOString(),
           invoices: invoiceRows.length,
