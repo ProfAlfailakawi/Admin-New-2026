@@ -4028,9 +4028,14 @@ async function invoiceAlertRows(limit = 40) {
   for (const doc of eventsSnap.docs) {
     const match = doc.id.match(/invoice-paid-(INV-[A-Za-z0-9]+)/);
     if (!match) continue;
-    const status = waString((doc.data() || {}).status);
+    const data: any = doc.data() || {};
     const list = byInvoice.get(match[1]) || [];
+    const status = waString(data.status);
     if (status) list.push(status);
+    // The service-worker receipt sets these fields but leaves `status` alone, so a
+    // status-only check would report a delivered push as merely "sent".
+    if (data.receivedByDevice === true || data.receivedAt) list.push("received_by_device");
+    if (data.openedByEmployee === true || data.clickedAt) list.push("received_by_device");
     byInvoice.set(match[1], list);
   }
 
@@ -5771,6 +5776,21 @@ app.post("/api/push/ack", async (req, res) => {
 
       if (eventSnap.exists) {
         await eventRef.set(receiptPayload, { merge: true });
+        // Also stamp the per-device archive rows for this event. The receipt used to
+        // land only on the claim doc (`<eventId>`), while the radar and the invoice
+        // log read the per-device rows (`<eventId>_<index>_<token>`) — so a push that
+        // genuinely arrived still showed "وصل للجهاز" as not reached. Best-effort: a
+        // failure here must never fail the receipt itself.
+        try {
+          const siblings = await db.collection("pushEvents")
+            .where(admin.firestore.FieldPath.documentId(), ">", `${safeEventId}_`)
+            .where(admin.firestore.FieldPath.documentId(), "<", `${safeEventId}_`)
+            .limit(25)
+            .get();
+          await Promise.all(siblings.docs.map((doc) => doc.ref.set(receiptPayload, { merge: true })));
+        } catch (error: any) {
+          console.warn("[PUSH_ACK] Could not propagate receipt to device rows:", error?.message || error);
+        }
         return res.json({ success: true, linked: true, eventId: safeEventId, status: receiptStatus });
       }
 
