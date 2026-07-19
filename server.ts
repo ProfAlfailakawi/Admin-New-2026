@@ -1163,6 +1163,70 @@ async function syncSharedCompanyPaymentData(identifiers: PaymentSyncIdentifiers,
   return result;
 }
 
+// Announces a confirmed payment the moment the gateway confirms it.
+//
+// Why this exists: the alerts worker only ever looks at invoices already mirrored into
+// appData/shared_company_data. An invoice paid within minutes of being created is
+// usually not mirrored yet — INV-5078 was paid, sat in the `invoices` collection, and
+// was absent from shared data, so it received no alert at all — while an invoice that
+// stayed unpaid long enough to be mirrored alerted normally. That is exactly the
+// reported symptom: fast payments were silent, slow ones were not.
+//
+// It reuses the worker's own event id, so the existing pushEvents claim guarantees the
+// owner is notified exactly once no matter which side gets there first. Fire-and-forget
+// and fully guarded: payment syncing must never fail because of a notification.
+async function announcePaidInvoiceInstantly(identifiers: PaymentSyncIdentifiers, syncMeta: any) {
+  try {
+    if (!db || !firebaseInitialized) return;
+
+    const fromGatewayOrderId = (value: any) => {
+      const text = String(value || "");
+      return text.startsWith("INV-") ? text.split("_")[0] : "";
+    };
+    const invoiceId =
+      fromGatewayOrderId(syncMeta?.gatewayOrderId) ||
+      (identifiers.targetIds || []).map(String).find((id) => id.startsWith("INV-")) ||
+      (identifiers.gatewayOrderIds || []).map(fromGatewayOrderId).find(Boolean) ||
+      "";
+    if (!invoiceId) return;
+
+    const eventId = `safe-worker-invoice-paid-${invoiceId}`;
+    try {
+      // create() fails when the doc already exists, which is precisely the
+      // "worker already sent this" case. Same claim shape the worker writes.
+      await db.collection("pushEvents").doc(eventId).create({
+        eventId,
+        source: "payment-confirm-instant",
+        status: "claimed",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch {
+      return;
+    }
+
+    // Best-effort amount so the wording matches the worker's message.
+    let amountText = "";
+    try {
+      const snap = await db.collection("invoices").where("id", "==", invoiceId).limit(1).get();
+      const inv: any = snap.docs[0]?.data();
+      const n = Number(inv?.totalAmount ?? inv?.total ?? inv?.amount ?? 0);
+      if (Number.isFinite(n) && n > 0) amountText = ` — القيمة ${n.toFixed(3)} د.ك`;
+    } catch { /* the alert is worth sending without the amount */ }
+
+    await sendSmartAlertPushNotification({
+      title: "✅ تم دفع فاتورة",
+      body: `تم دفع الفاتورة ${invoiceId}${amountText}`,
+      alertType: "invoice_paid",
+      url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}`,
+      eventId,
+    });
+    console.log(`[PAYMENT_ALERT] Instant paid alert sent for ${invoiceId}.`);
+  } catch (error: any) {
+    console.warn("[PAYMENT_ALERT] Instant paid alert skipped:", error?.message || error);
+  }
+}
+
 async function syncPaymentStatusEverywhere(rawIdentifiers: PaymentSyncIdentifiers, state: PaymentSyncState, meta: any = {}) {
   const { identifiersAlreadyResolved, ...metaForSync } = meta || {};
   const identifiers = identifiersAlreadyResolved ? rawIdentifiers : await resolvePaymentSessionTargets(rawIdentifiers);
@@ -1189,6 +1253,9 @@ async function syncPaymentStatusEverywhere(rawIdentifiers: PaymentSyncIdentifier
     syncSharedCompanyPaymentData(identifiers, state, syncMeta),
   ]);
   void markPaymentSessionsSynced(identifiers, state, syncMeta);
+  // Fire-and-forget, exactly like markPaymentSessionsSynced above: the payment result
+  // is already committed and must not depend on a notification succeeding.
+  if (state === "paid") void announcePaidInvoiceInstantly(identifiers, syncMeta);
 
   return { identifiers, root, shared };
 }
