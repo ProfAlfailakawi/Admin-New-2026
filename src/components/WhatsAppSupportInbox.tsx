@@ -817,9 +817,13 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     }
   };
 
-  // The bot can queue a perfect reply and still deliver nothing if the Mac bridge is
-  // down — that failure is silent by nature, so the console has to say it out loud.
-  // Once a minute is enough: the bridge heartbeats every minute anyway.
+  // The bot can queue a perfect reply and still deliver nothing if the bridge is down —
+  // that failure is silent by nature, so the console has to say it out loud.
+  //
+  // Polling every 60s lagged badly on recovery: the bridge heartbeats every 30s, so a
+  // device that came back could sit behind a red "متوقف" banner for up to a minute, and
+  // only a page reload cleared it. Checking every 15s, plus immediately on returning to
+  // the tab, makes the banner follow reality instead of a stale snapshot.
   useEffect(() => {
     let alive = true;
     const check = async () => {
@@ -832,8 +836,15 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       }
     };
     check();
-    const timer = window.setInterval(() => { if (!document.hidden) check(); }, 60000);
-    return () => { alive = false; window.clearInterval(timer); };
+    const timer = window.setInterval(() => { if (!document.hidden) check(); }, 15000);
+    // Coming back to the tab is exactly when a stale banner is most visible.
+    const onVisible = () => { if (!document.hidden) check(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   // Polling a hidden tab is spend with no reader: a console left open in a background
