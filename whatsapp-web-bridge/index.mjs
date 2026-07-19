@@ -46,9 +46,14 @@ let shuttingDown = false;
 let needsAuthScan = false;   // WhatsApp is asking for a QR scan
 let pollFailures = 0;        // consecutive reply-queue read failures
 let lastPollOkAt = 0;        // last time the reply queue was read successfully
+let pendingQr = '';          // latest pairing code, forwarded for the console to draw
+let pendingQrAt = 0;         // when it arrived — codes expire fast
+let pendingQrArt = '';       // block-character rendering the console draws as-is
+let startingSince = 0;       // when this process began waiting to become ready
 let pollTimer = null;
 let heartbeatTimer = null;
 let inboundPollTimer = null;
+let watchdogTimer = null;
 let accountDigits = '';
 let startedAt = Date.now();
 let polling = false;
@@ -349,6 +354,11 @@ async function sendHeartbeat(state = 'online') {
         needsAuthScan,
         pollFailures,
         lastPollOkAt: lastPollOkAt ? new Date(lastPollOkAt).toISOString() : '',
+        // Only while a scan is actually pending, and only while the code is still
+        // young — a stale pairing code is worse than none.
+        qr: needsAuthScan && pendingQr && Date.now() - pendingQrAt < 90_000 ? pendingQr : '',
+        qrArt: needsAuthScan && pendingQrArt && Date.now() - pendingQrAt < 90_000 ? pendingQrArt : '',
+        qrAt: pendingQr && needsAuthScan ? new Date(pendingQrAt).toISOString() : '',
         account: accountDigits,
         clientVersion: VERSION,
       }),
@@ -357,6 +367,19 @@ async function sendHeartbeat(state = 'online') {
     // The dashboard's restart button rides back on the heartbeat reply. Exit cleanly
     // and let systemd/service-runner start a fresh process.
     const payload = await response.json().catch(() => ({}));
+    // A re-link wipes the saved session, so the next start has nothing to resume from
+    // and WhatsApp issues a fresh pairing code.
+    if (payload?.relinkRequested && !shuttingDown) {
+      console.warn('🔑 وصل طلب إعادة ربط من لوحة التحكم — مسح الجلسة وطلب رمز جديد.');
+      try {
+        const authDir = path.join(sessionPath, `session-${deviceId}`);
+        fs.rmSync(authDir, { recursive: true, force: true });
+      } catch (error) {
+        console.warn('⚠️ تعذر مسح مجلد الجلسة:', error?.message || error);
+      }
+      setTimeout(() => process.exit(0), 500);
+      return;
+    }
     if (payload?.restartRequested && !shuttingDown) {
       console.log('🔄 وصل طلب إعادة تشغيل من لوحة التحكم — إعادة تشغيل الجسر الآن.');
       setTimeout(() => process.exit(0), 500);
@@ -651,12 +674,37 @@ async function pollRecentInboundChats() {
   }
 }
 
+// Restarts a process that is alive but not working. On 2026-07-19 the bridge sat
+// authenticated-but-never-ready for 25 hours: the process existed, systemd saw nothing
+// wrong, and every reply queued unsent. A stuck process should recover on its own
+// instead of waiting to be noticed.
+const SELF_HEAL_START_TIMEOUT_MS = 5 * 60 * 1000;  // never reached "ready"
+const SELF_HEAL_POLL_FAILURES = 20;                // ~queue unreachable for minutes
+
+function watchdogTick() {
+  if (shuttingDown) return;
+  // A pending QR scan is a human problem; restarting would only rotate the code.
+  if (needsAuthScan) return;
+
+  if (!ready && startingSince && Date.now() - startingSince > SELF_HEAL_START_TIMEOUT_MS) {
+    console.warn('🔁 لم يكتمل التشغيل خلال 5 دقائق — إعادة تشغيل ذاتية.');
+    setTimeout(() => process.exit(0), 500);   // service-runner/systemd starts a fresh one
+    return;
+  }
+  if (pollFailures >= SELF_HEAL_POLL_FAILURES) {
+    console.warn(`🔁 تعذّر قراءة الطابور ${pollFailures} مرة — إعادة تشغيل ذاتية.`);
+    setTimeout(() => process.exit(0), 500);
+  }
+}
+
 function startWorkers() {
   clearInterval(pollTimer);
   clearInterval(heartbeatTimer);
   clearInterval(inboundPollTimer);
+  clearInterval(watchdogTimer);
   pollTimer = setInterval(() => void pollOutbox(), pollIntervalMs);
   heartbeatTimer = setInterval(() => void sendHeartbeat('online'), 30000);
+  watchdogTimer = setInterval(watchdogTick, 30000);
   if (pollRecentChats) inboundPollTimer = setInterval(() => void pollRecentInboundChats(), 5000);
   void pollOutbox();
   if (pollRecentChats) void pollRecentInboundChats();
@@ -679,6 +727,14 @@ client.on('qr', (qr) => {
   // Surfaces in the dashboard as "needs a QR scan" — the one failure a restart
   // cannot fix, and which previously left the owner guessing.
   needsAuthScan = true;
+  // The raw pairing string rides along on the next heartbeat so the console can draw
+  // the code. Without it the owner had to reach the cloud VM's log to re-link.
+  pendingQr = String(qr || '');
+  pendingQrAt = Date.now();
+  // Also keep a block-character rendering. The console draws this directly, so the
+  // pairing code never has to reach an external QR image service — it stays inside
+  // our own infrastructure, which for a WhatsApp session key is the whole point.
+  qrcode.generate(pendingQr, { small: true }, (art) => { pendingQrArt = String(art || ''); });
   console.log('\nامسح رمز QR من واتساب > الإعدادات > الأجهزة المرتبطة > ربط جهاز\n');
   qrcode.generate(qr, { small: true }, (qrText) => {
     console.log(qrText);
@@ -700,6 +756,10 @@ client.on('ready', async () => {
   pollFailures = 0;
   lastPollOkAt = Date.now();
   startedAt = Date.now();
+  startingSince = 0;   // reached ready: the watchdog's start timer is done
+  pendingQr = '';      // linked — the pairing code must not linger anywhere
+  pendingQrArt = '';
+  pendingQrAt = 0;
   accountDigits = digits(client?.info?.wid?._serialized || client?.info?.wid?.user || '');
   console.log(`\n✅ بوت التراث جاهز. الرقم المرتبط: ${maskPhone(accountDigits) || 'تم الربط'}\n`);
   await warmPhoneAliasesFromRecentChats();
@@ -761,4 +821,5 @@ console.log('تشغيل جسر واتساب التراث المعزول...');
 console.log(`السيرفر: ${baseUrl}`);
 console.log(`مجلد الجلسة: ${sessionPath}`);
 acquireSingleInstanceLock();
+startingSince = Date.now();   // watchdog starts counting toward "never became ready"
 await client.initialize();

@@ -587,7 +587,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   // The rules panel is 160 lines of configuration you touch once a month, and it sat
   // above the conversations you answer all day — so every reply started with a scroll
   // past it. These two tabs only choose what is on screen; nothing else changes.
-  const [centerTab, setCenterTab] = useState<'chats' | 'rules' | 'texts' | 'ratings'>('chats');
+  const [centerTab, setCenterTab] = useState<'chats' | 'rules' | 'texts' | 'ratings' | 'device'>('chats');
   const [ratings, setRatings] = useState<any>(null);
   const [ratingsBusy, setRatingsBusy] = useState(false);
   const [botTexts, setBotTexts] = useState<Array<{ key: string; label: string; hint: string; defaultText: string; value: string }>>([]);
@@ -775,6 +775,25 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       showNotice('error', e?.message || 'تعذر طلب إعادة التشغيل');
     } finally {
       setRestartingBridge(false);
+    }
+  };
+
+  const [relinkingBridge, setRelinkingBridge] = useState(false);
+  // Deliberately destructive: drops the WhatsApp session so a fresh QR is issued. Used
+  // when the link is misbehaving but not yet broken enough to ask for a scan on its own.
+  const relinkBridge = async () => {
+    if (relinkingBridge) return;
+    if (!window.confirm('سيتم فصل جلسة واتساب وطلب رمز QR جديد. البوت يتوقف حتى تمسح الرمز. متأكد؟')) return;
+    setRelinkingBridge(true);
+    try {
+      const res = await waAuthFetch('/api/whatsapp/relink-bridge', { method: 'POST' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر طلب إعادة الربط');
+      showNotice('success', 'انطلبت إعادة الربط — الرمز يظهر هنا خلال دقيقة تقريبًا');
+    } catch (e: any) {
+      showNotice('error', e?.message || 'تعذر طلب إعادة الربط');
+    } finally {
+      setRelinkingBridge(false);
     }
   };
 
@@ -1432,6 +1451,9 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           { id: 'rules', label: 'قواعد الرد', icon: '🤖', badge: autoReplyRules.length, tone: 'slate' },
           { id: 'texts', label: 'نصوص البوت', icon: '📝', badge: botTexts.filter((t) => (botTextEdits[t.key] ?? t.value).trim()).length, tone: 'slate' },
           { id: 'ratings', label: 'التقييمات', icon: '⭐', badge: Number(ratings?.count || 0), tone: 'slate' },
+          // Everything about the bridge's health lives here, so a stuck bot is fixed
+          // from one place instead of hunting across the console.
+          { id: 'device', label: 'جهاز الواتساب', icon: bridge?.connected === false ? '🔴' : '📱', badge: 0, tone: 'rose' },
         ] as const).map((t) => (
           <button
             key={t.id}
@@ -1701,6 +1723,93 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             })}
           </div>
         )}
+      </section>
+      )}
+
+      {centerTab === 'device' && (
+      <section className="mb-4 rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <div className="font-black text-slate-900 flex items-center gap-2">📱 جهاز الواتساب</div>
+            <div className="mt-1 text-[11px] font-bold text-slate-400">حالة الجهاز · إعادة التشغيل · إعادة الربط — كل شي من هنا</div>
+          </div>
+          <span className={cn(
+            'rounded-2xl px-4 py-2 text-xs font-black border',
+            bridge?.connected ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+              : bridge?.reason === 'needs_auth' ? 'bg-amber-50 border-amber-200 text-amber-700'
+              : 'bg-rose-50 border-rose-200 text-rose-700',
+          )}>
+            {bridge?.connected ? '🟢 يعمل'
+              : bridge?.reason === 'needs_auth' ? '🔑 يحتاج ربط'
+              : bridge?.reason === 'starting' ? '🟡 يشتغل'
+              : bridge?.reason === 'queue_stuck' ? '🔴 الطابور متعثّر'
+              : bridge ? '🔴 مفصول' : '…'}
+          </span>
+        </div>
+
+        {/* The pairing code, drawn from block characters the bridge sent. It never
+            passes through an external QR service — a WhatsApp session key stays ours. */}
+        {bridge?.qrArt ? (
+          <div className="rounded-2xl border-2 border-amber-300 bg-amber-50/60 p-4 mb-4">
+            <div className="text-[12px] font-black text-amber-800 mb-3">
+              🔑 امسح الرمز من واتساب المطعم: الإعدادات ← الأجهزة المرتبطة ← ربط جهاز
+            </div>
+            <div className="flex justify-center">
+              <pre
+                dir="ltr"
+                className="inline-block bg-white text-black p-4 rounded-xl border border-slate-200 select-all"
+                style={{ fontFamily: 'Menlo, Monaco, monospace', fontSize: '9px', lineHeight: '0.9', letterSpacing: 0 }}
+              >{bridge.qrArt}</pre>
+            </div>
+            <div className="mt-3 text-[11px] font-bold text-amber-700 text-center">
+              الرمز يتجدد تلقائيًا كل ~20 ثانية · اضغط تحديث لو ما نجح المسح
+            </div>
+          </div>
+        ) : bridge?.reason === 'needs_auth' ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-6 text-center mb-4">
+            <div className="text-[12px] font-black text-amber-800">🔑 الجهاز يحتاج ربط — جاري إحضار الرمز…</div>
+            <div className="mt-1 text-[11px] font-bold text-amber-600">يظهر خلال ثوانٍ. اضغط تحديث لو تأخر.</div>
+          </div>
+        ) : null}
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+          {[
+            { label: 'آخر نبضة', value: bridge ? `${bridge.minutesSinceSeen} د` : '—' },
+            { label: 'الرقم', value: bridge?.account || '—' },
+            { label: 'فشل الطابور', value: String(bridge?.pollFailures ?? 0) },
+            { label: 'الإصلاح الذاتي', value: 'مفعّل' },
+          ].map((k) => (
+            <div key={k.label} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-3 text-center">
+              <div className="text-[13px] font-black text-slate-800 tabular-nums">{k.value}</div>
+              <div className="text-[10px] font-bold text-slate-400 mt-0.5">{k.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={restartBridge}
+            disabled={restartingBridge}
+            title="لو البوت واقف أو ما يرد"
+            className="rounded-2xl bg-rose-600 px-5 py-2.5 text-xs font-black text-white hover:bg-rose-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {restartingBridge ? <Loader2 size={14} className="animate-spin" /> : '🔄'} إعادة تشغيل الجهاز
+          </button>
+          <button
+            type="button"
+            onClick={relinkBridge}
+            disabled={relinkingBridge}
+            title="يفصل الجلسة ويطلب رمز QR جديد"
+            className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-2.5 text-xs font-black text-amber-800 hover:bg-amber-100 disabled:opacity-50 flex items-center gap-2"
+          >
+            {relinkingBridge ? <Loader2 size={14} className="animate-spin" /> : '🔑'} إعادة ربط (QR جديد)
+          </button>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50/40 p-3 text-[11px] font-bold text-slate-500 leading-6">
+          الجهاز يصلّح نفسه تلقائيًا لو تعلّق، ويوصلك إشعار لو احتاج ربطًا. أغلب الأعطال تُحل بدون تدخلك.
+        </div>
       </section>
       )}
 

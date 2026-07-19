@@ -4254,6 +4254,11 @@ async function waBridgeStatus() {
       // A restart cannot fix a missing QR scan; the console says so instead of
       // offering a button that would do nothing.
       restartCanFix: reason !== "needs_auth",
+      // Pairing code, only while a scan is genuinely pending and only while fresh.
+      // WhatsApp rotates these every ~20s, so an old one would simply fail to scan.
+      qr: needsAuthScan && waDateMs(freshest.qrAt) > Date.now() - 120_000 ? waString(freshest.qr) : "",
+      qrArt: needsAuthScan && waDateMs(freshest.qrAt) > Date.now() - 120_000 ? waString(freshest.qrArt) : "",
+      qrAgeSeconds: freshest.qrAt ? Math.max(0, Math.round((Date.now() - waDateMs(freshest.qrAt)) / 1000)) : null,
       deviceId: waString(freshest.deviceId),
       account: waMaskPhone(waString(freshest.account)),
     };
@@ -4364,6 +4369,18 @@ app.post("/api/push/invoice-alerts/resend", waRequireConsoleAuth, async (req, re
       eventId,
     });
     return res.json({ success: true, result });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+// Console-gated like restart-bridge. Queues a full re-link: the bridge clears its
+// session and WhatsApp issues a fresh QR, which the console then draws.
+app.post("/api/whatsapp/relink-bridge", async (_req, res) => {
+  if (!db || !firebaseInitialized) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+  try {
+    await db.collection("whatsappSettings").doc("bridgeControl").set({ relinkRequestedAt: waNowIso() }, { merge: true });
+    return res.json({ success: true, note: "سيطلب الجهاز رمز QR جديد خلال دقيقة تقريبًا" });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error?.message || String(error) });
   }
@@ -5029,25 +5046,66 @@ app.post("/api/whatsapp/bridge/heartbeat", async (req, res) => {
       needsAuthScan: req.body?.needsAuthScan === true,
       pollFailures: Number(req.body?.pollFailures) || 0,
       lastPollOkAt: waString(req.body?.lastPollOkAt),
+      // The pairing code, held only while a scan is pending so the console can draw it.
+      // Cleared the moment the bridge links, and never written to a log.
+      qr: req.body?.needsAuthScan === true ? waString(req.body?.qr).slice(0, 4000) : "",
+      qrArt: req.body?.needsAuthScan === true ? waString(req.body?.qrArt).slice(0, 12000) : "",
+      qrAt: req.body?.needsAuthScan === true ? waString(req.body?.qrAt) : "",
       account: waDigits(req.body?.account),
       clientVersion: waString(req.body?.clientVersion).slice(0, 80),
       lastSeenAt: waNowIso(),
       updatedAt: waNowIso(),
     }), { merge: true });
 
+    // A QR scan is the one fault nothing can self-heal, and it silences the bot until
+    // a person acts. Ping the owner once per outage instead of letting it wait to be
+    // noticed — the 25-hour silence on 2026-07-19 is exactly this failure mode.
+    if (req.body?.needsAuthScan === true) {
+      void (async () => {
+        try {
+          const ref = db!.collection("whatsappSettings").doc("bridgeAuthAlert");
+          const snap = await ref.get();
+          const lastAt = waDateMs(snap.data()?.notifiedAt);
+          // One alert per hour: enough to be heard, not enough to become noise.
+          if (lastAt > 0 && Date.now() - lastAt < 60 * 60 * 1000) return;
+          await ref.set({ notifiedAt: waNowIso() });
+          await sendSmartAlertPushNotification({
+            title: "🔑 واتساب يحتاج إعادة ربط",
+            body: "البوت متوقف عن الرد. افتح مركز الواتساب وامسح رمز QR.",
+            alertType: "whatsapp_needs_auth",
+            url: waAdminSupportInboxUrl(""),
+            eventId: `wa-needs-auth-${Math.floor(Date.now() / (60 * 60 * 1000))}`,
+            ttlSeconds: 86400,
+            requireInteraction: true,
+            notificationTag: "wa-needs-auth",
+            targetRoles: ["admin"],
+          });
+          console.log("[WHATSAPP] Sent needs-auth alert to admins.");
+        } catch (error: any) {
+          console.warn("[WHATSAPP] needs-auth alert skipped:", error?.message || error);
+        }
+      })();
+    }
+
     // The console's "restart bridge" button sets a flag; the very next heartbeat
     // (≤30s) carries it back, the bridge exits cleanly, and systemd revives it.
     // No new endpoint, no SSH — the owner fixes a stuck bridge from the dashboard.
     let restartRequested = false;
+    // Wipes the stored session so WhatsApp issues a new pairing code.
+    let relinkRequested = false;
     try {
       const ctl = await db.collection("whatsappSettings").doc("bridgeControl").get();
+      if (ctl.exists && waString(ctl.data()?.relinkRequestedAt)) {
+        relinkRequested = true;
+        await db.collection("whatsappSettings").doc("bridgeControl").set({ relinkRequestedAt: "", relinkServedAt: waNowIso() }, { merge: true });
+      }
       if (ctl.exists && waString(ctl.data()?.restartRequestedAt)) {
         restartRequested = true;
-        await db.collection("whatsappSettings").doc("bridgeControl").set({ restartRequestedAt: "", servedAt: waNowIso() });
+        await db.collection("whatsappSettings").doc("bridgeControl").set({ restartRequestedAt: "", servedAt: waNowIso() }, { merge: true });
       }
     } catch { /* a control read failure must never break the heartbeat */ }
 
-    return res.json({ success: true, serverTime: waNowIso(), restartRequested });
+    return res.json({ success: true, serverTime: waNowIso(), restartRequested, relinkRequested });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error?.message || String(error) });
   }
@@ -5058,7 +5116,7 @@ app.post("/api/whatsapp/bridge/heartbeat", async (req, res) => {
 app.post("/api/whatsapp/restart-bridge", async (_req, res) => {
   if (!db || !firebaseInitialized) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
   try {
-    await db.collection("whatsappSettings").doc("bridgeControl").set({ restartRequestedAt: waNowIso() });
+    await db.collection("whatsappSettings").doc("bridgeControl").set({ restartRequestedAt: waNowIso() }, { merge: true });
     return res.json({ success: true, note: "سيعاد تشغيل جهاز الواتساب خلال دقيقة تقريبًا" });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error?.message || String(error) });
