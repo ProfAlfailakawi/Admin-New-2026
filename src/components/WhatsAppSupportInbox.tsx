@@ -846,13 +846,34 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     saveQuickReplies(managedQuickReplies);
   }, [managedQuickReplies]);
 
+  // Opens the chat behind a tapped notification — but only that once, and only if the
+  // tap just happened. Previously the link was read and never cleared, so it stayed in
+  // sessionStorage and dragged the owner into the same conversation every single time
+  // they opened the console. Opening the app should inform, not hijack.
   useEffect(() => {
     if (deepLinkConsumedRef.current || !conversations.length) return;
     try {
-      const saved = JSON.parse(sessionStorage.getItem('adminPushDeepLink') || 'null');
-      const phone = cleanPhone(saved?.page === 'whatsapp-support' ? saved?.phone : '');
-      if (!phone) return;
+      const raw = sessionStorage.getItem('adminPushDeepLink');
+      if (!raw) return;
+      const saved = JSON.parse(raw || 'null');
+      if (saved?.page !== 'whatsapp-support') return;
+
+      // Consume it no matter what happens next, so it can never fire twice.
       deepLinkConsumedRef.current = true;
+      sessionStorage.removeItem('adminPushDeepLink');
+
+      const phone = cleanPhone(saved?.phone);
+      if (!phone) return;
+
+      // Links older than two minutes are stale: the owner is opening the console on
+      // their own, not following a notification they just tapped.
+      const age = Date.now() - Number(saved?.createdAt || 0);
+      if (saved?.createdAt && age > 2 * 60 * 1000) {
+        showNotice('info', 'عندك محادثة تحتاج متابعة في قائمة الدعم.');
+        setFilter('needs_support');
+        return;
+      }
+
       setFilter('needs_support');
       setSelectedPhone(phone);
       showNotice('info', 'تم فتح محادثة واتساب التي تحتاج متابعة.');

@@ -433,6 +433,9 @@ const getInitialPushDeepLink = () => {
       page: 'whatsapp-support',
       phone: params.get('phone') || '',
       source: 'push',
+      // Stamped so a link can expire. Without it, an old link stayed valid for the
+      // whole browser session and re-opened the same chat on every visit.
+      createdAt: Date.now(),
       pushNotificationDeepLinkHandled: true
     };
 
