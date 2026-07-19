@@ -2186,6 +2186,9 @@ async function waUpsertConversation(phone: string, patch: any = {}) {
     unreadCount: patch.unreadCount,
     lastInboundText: patch.lastInboundText,
     lastOutboundText: patch.lastOutboundText,
+    // When that last reply went out. Repeat-suppression needs it: without a clock it
+    // compared against a reply from any point in the past.
+    lastOutboundAt: patch.lastOutboundAt,
     lastMessageText: patch.lastMessageText,
     lastMessageDirection: patch.lastMessageDirection,
     lastMessageAt: patch.lastMessageAt || waNowIso(),
@@ -2947,6 +2950,14 @@ async function waSendHumanSupportPush({
 
 // Sent instead of repeating an identical reply. Saying the same long message twice in a
 // row (e.g. "السلام عليكم" then "كيف الحال") makes the bot look broken.
+// How long two messages count as one continuous conversation. Inside it, an identical
+// reply is a repeat; outside it, the customer is starting fresh and gets the full
+// greeting again.
+const WA_SAME_EXCHANGE_MS = Math.max(
+  60_000,
+  Number(process.env.WHATSAPP_SAME_EXCHANGE_MINUTES || 60) * 60 * 1000,
+);
+
 function waRepeatNudgeReply() {
   return waBotText("nudge");
 }
@@ -3911,9 +3922,19 @@ async function waProcessInboundMessage({
     }
   }
 
-  // Never repeat the exact same auto-reply to the same person twice in a row. Saying the long
-  // welcome again (e.g. "السلام عليكم" then "كيف الحال") is what makes the bot feel broken.
-  if (reply && waString(conversation?.lastOutboundText || "").trim() === waString(reply).trim()) {
+  // Don't say the same thing twice in a row inside one conversation — "السلام عليكم"
+  // followed by "كيف الحال" answered with the identical long welcome is what makes the
+  // bot feel broken. But this only holds for a live exchange: someone coming back hours
+  // later is starting a new conversation and should be greeted properly, not handed a
+  // terse nudge because of something the bot said last week.
+  const lastOutboundMs = waDateMs(conversation?.lastOutboundAt);
+  const withinSameExchange =
+    lastOutboundMs > 0
+      ? Date.now() - lastOutboundMs <= WA_SAME_EXCHANGE_MS
+      // Conversations from before this field existed: keep the old behaviour rather
+      // than risk double-sending a long welcome.
+      : true;
+  if (reply && withinSameExchange && waString(conversation?.lastOutboundText || "").trim() === waString(reply).trim()) {
     reply = waRepeatNudgeReply();
   }
 
@@ -3937,7 +3958,7 @@ async function waProcessInboundMessage({
       status: result.ok ? (result.status === 202 ? "queued" : "sent") : "failed",
       raw: result.payload,
     });
-    await waUpsertConversation(cleanFrom, { lastOutboundText: reply, lastMessageText: reply, lastMessageDirection: "outbound" });
+    await waUpsertConversation(cleanFrom, { lastOutboundText: reply, lastOutboundAt: waNowIso(), lastMessageText: reply, lastMessageDirection: "outbound" });
     const latestResult = { ...sendResults[sendResults.length - 1], to: waMaskPhone(cleanFrom) };
     console.log(`[WHATSAPP] Reply result: ${JSON.stringify(latestResult).slice(0, 700)}`);
   }
