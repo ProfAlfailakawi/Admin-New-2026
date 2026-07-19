@@ -1383,23 +1383,37 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600" />
                 </span>
-                جهاز الواتساب مفصول — البوت لا يرسل شيئًا الآن
+                {bridge.reason === 'needs_auth'
+                  ? 'واتساب يطلب إعادة ربط الجهاز — امسح رمز QR'
+                  : bridge.reason === 'queue_stuck'
+                    ? 'الردود تتجهّز ولا تُرسل — الاتصال بالسيرفر متعثّر'
+                    : bridge.reason === 'starting'
+                      ? 'الجهاز يشتغل ولم يكتمل بعد'
+                      : 'جهاز الواتساب مفصول — البوت لا يرسل شيئًا الآن'}
               </div>
               <div className="mt-1.5 text-[12px] font-bold text-rose-700">
                 {bridge.reason === 'never_seen'
                   ? 'ما وصلت أي نبضة من الجهاز إطلاقًا.'
-                  : `آخر نبضة قبل ${bridge.minutesSinceSeen} دقيقة.`}
+                  : bridge.reason === 'queue_stuck'
+                    ? `فشل قراءة الطابور ${bridge.pollFailures} مرات متتالية.`
+                    : bridge.reason === 'starting'
+                      ? 'وصلت نبضة، لكن الجهاز لم يبلّغ بأنه جاهز للرد.'
+                      : `آخر نبضة قبل ${bridge.minutesSinceSeen} دقيقة.`}
                 {' '}الردود تتجمّع في الطابور ولا تصل الزبائن.
               </div>
               <div className="mt-1 text-[11px] font-bold text-rose-600">
-                الحل: على الماك افتح مجلد whatsapp-web-bridge ثم شغّل start-mac.command
+                {/* A restart cannot re-link WhatsApp; saying so beats a button that
+                    looks like it should work and does not. */}
+                {bridge.restartCanFix === false
+                  ? 'إعادة التشغيل ما تكفي هنا — لازم مسح رمز QR من واتساب الجوال.'
+                  : 'اضغط «إعادة تشغيل الجهاز» — يرجع خلال دقيقة تقريبًا.'}
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={restartBridge}
-                disabled={restartingBridge}
+                disabled={restartingBridge || bridge.restartCanFix === false}
                 className="rounded-2xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-700 disabled:opacity-60 whitespace-nowrap"
               >
                 {restartingBridge ? <Loader2 size={14} className="inline animate-spin" /> : '🔄'} إعادة تشغيل الجهاز

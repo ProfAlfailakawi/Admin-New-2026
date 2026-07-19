@@ -40,6 +40,12 @@ if (!baseUrl.startsWith('https://') || !secret || secret.length < 64) {
 
 let ready = false;
 let shuttingDown = false;
+// Health the heartbeat reports, so the dashboard can tell "process alive" apart from
+// "actually working". A bridge that authenticated but never finished starting, or that
+// cannot reach the reply queue, used to look perfectly green while sending nothing.
+let needsAuthScan = false;   // WhatsApp is asking for a QR scan
+let pollFailures = 0;        // consecutive reply-queue read failures
+let lastPollOkAt = 0;        // last time the reply queue was read successfully
 let pollTimer = null;
 let heartbeatTimer = null;
 let inboundPollTimer = null;
@@ -335,7 +341,17 @@ async function sendHeartbeat(state = 'online') {
   try {
     const response = await bridgeFetch('/api/whatsapp/bridge/heartbeat', {
       method: 'POST',
-      body: JSON.stringify({ deviceId, state, account: accountDigits, clientVersion: VERSION }),
+      body: JSON.stringify({
+        deviceId,
+        // Report what the bridge is really doing, not just that the process exists.
+        state: shuttingDown ? 'offline' : needsAuthScan ? 'needs_auth' : ready ? 'online' : 'starting',
+        ready,
+        needsAuthScan,
+        pollFailures,
+        lastPollOkAt: lastPollOkAt ? new Date(lastPollOkAt).toISOString() : '',
+        account: accountDigits,
+        clientVersion: VERSION,
+      }),
       timeoutMs: 12000,
     });
     // The dashboard's restart button rides back on the heartbeat reply. Exit cleanly
@@ -463,10 +479,15 @@ async function pollOutbox() {
   try {
     for (let i = 0; i < 10 && ready && !shuttingDown; i += 1) {
       const item = await getNextOutbound();
+      pollFailures = 0;
+      lastPollOkAt = Date.now();
       if (!item) break;
       await deliverOutbound(item);
     }
   } catch (error) {
+    // Counted, not just logged: repeated failures here mean replies are piling up
+    // unsent, which the dashboard must be able to see.
+    pollFailures += 1;
     console.warn('⚠️ تعذر قراءة طابور الردود:', error?.message || error);
   } finally {
     polling = false;
@@ -655,6 +676,9 @@ const client = new Client({
 });
 
 client.on('qr', (qr) => {
+  // Surfaces in the dashboard as "needs a QR scan" — the one failure a restart
+  // cannot fix, and which previously left the owner guessing.
+  needsAuthScan = true;
   console.log('\nامسح رمز QR من واتساب > الإعدادات > الأجهزة المرتبطة > ربط جهاز\n');
   qrcode.generate(qr, { small: true }, (qrText) => {
     console.log(qrText);
@@ -672,6 +696,9 @@ client.on('auth_failure', (message) => {
 
 client.on('ready', async () => {
   ready = true;
+  needsAuthScan = false;
+  pollFailures = 0;
+  lastPollOkAt = Date.now();
   startedAt = Date.now();
   accountDigits = digits(client?.info?.wid?._serialized || client?.info?.wid?.user || '');
   console.log(`\n✅ بوت التراث جاهز. الرقم المرتبط: ${maskPhone(accountDigits) || 'تم الربط'}\n`);

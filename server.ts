@@ -3982,11 +3982,33 @@ async function waBridgeStatus() {
 
     const ageMs = Date.now() - Number(freshest.seenMs || 0);
     const minutesSinceSeen = Math.max(0, Math.round(ageMs / 60000));
-    const online = waString(freshest.state || "").toLowerCase() !== "offline";
+    const state = waString(freshest.state || "").toLowerCase();
+    const online = state !== "offline";
+    const heartbeatFresh = ageMs <= WA_BRIDGE_STALE_MS;
+    const needsAuthScan = freshest.needsAuthScan === true || state === "needs_auth";
+    const pollFailures = Number(freshest.pollFailures) || 0;
+    // Older bridges do not send `ready`; treat their heartbeat as proof of health so
+    // this never reports a false alarm before the new bridge is deployed.
+    const reportsReady = freshest.ready === undefined ? true : freshest.ready === true;
+    // Three consecutive failures is a real outage, not one flaky request.
+    const queueStuck = pollFailures >= 3;
+
+    const reason = !online ? ("reported_offline" as const)
+      : !heartbeatFresh ? ("stale" as const)
+      : needsAuthScan ? ("needs_auth" as const)          // only a QR scan fixes this
+      : !reportsReady ? ("starting" as const)            // alive but never finished starting
+      : queueStuck ? ("queue_stuck" as const)            // replies are piling up unsent
+      : ("ok" as const);
+
     return {
-      connected: online && ageMs <= WA_BRIDGE_STALE_MS,
-      reason: !online ? ("reported_offline" as const) : ageMs > WA_BRIDGE_STALE_MS ? ("stale" as const) : ("ok" as const),
+      connected: reason === "ok",
+      reason,
       minutesSinceSeen,
+      needsAuthScan,
+      pollFailures,
+      // A restart cannot fix a missing QR scan; the console says so instead of
+      // offering a button that would do nothing.
+      restartCanFix: reason !== "needs_auth",
       deviceId: waString(freshest.deviceId),
       account: waMaskPhone(waString(freshest.account)),
     };
@@ -4755,6 +4777,13 @@ app.post("/api/whatsapp/bridge/heartbeat", async (req, res) => {
     await db.collection("whatsappBridgeDevices").doc(deviceId).set(removeUndefinedDeep({
       deviceId,
       state: waString(req.body?.state || "online"),
+      // Real health, not just liveness. A bridge can be running and heartbeating while
+      // it never finished starting, or while every reply-queue read fails — both of
+      // which used to show as a healthy green bridge that quietly sent nothing.
+      ready: req.body?.ready === true,
+      needsAuthScan: req.body?.needsAuthScan === true,
+      pollFailures: Number(req.body?.pollFailures) || 0,
+      lastPollOkAt: waString(req.body?.lastPollOkAt),
       account: waDigits(req.body?.account),
       clientVersion: waString(req.body?.clientVersion).slice(0, 80),
       lastSeenAt: waNowIso(),

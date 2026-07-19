@@ -864,6 +864,21 @@ Alturath.kw`;
         return toast.error("كمل تفاصيل العنوان");
       if (!validateCartAddons()) return;
 
+      // Safari only allows a popup while the click that triggered it is still "active".
+      // Opening WhatsApp after the invoice save (several awaits later) fell outside that
+      // window, so Safari silently blocked it and the user landed on the invoice ledger
+      // instead — intermittently, depending on how fast the save finished. Claiming the
+      // tab here, inside the gesture, and pointing it at WhatsApp once the link exists
+      // makes it deterministic. Nothing about saving, payment or notifications changes.
+      let waWindow: Window | null = null;
+      try {
+        waWindow = window.open("", "_blank");
+      } catch {
+        waWindow = null;
+      }
+      // Any early return past this point must not leave a blank tab behind.
+      const closeWaWindowIfUnused = () => { try { waWindow?.close(); } catch { /* already gone */ } };
+
       setLoading(true);
       const invoiceId =
         editingInvoiceId || generateNextInvoiceId(data.invoices);
@@ -950,16 +965,19 @@ Alturath.kw`;
               detailMsg,
             );
             setLoading(false);
+            closeWaWindowIfUnused();
             return toast.error(`لم يتم إنشاء رابط الدفع: ${detailMsg}`);
           }
         } catch (err: any) {
           console.error("Payment API Error:", err);
           setLoading(false);
+          closeWaWindowIfUnused();
           return toast.error(`ما قدرنا نوصل لخدمة الدفع: ${err?.message || String(err)}`);
         }
 
         if (!createdLink) {
           setLoading(false);
+          closeWaWindowIfUnused();
           return toast.error("لم يتم إنشاء رابط الدفع، لن يتم فتح الواتساب بدون الرابط");
         }
       }
@@ -1133,7 +1151,12 @@ Alturath.kw`;
 
       const waLink = getWhatsAppLink(newInvoice);
       if (waLink && waLink !== "#") {
-        window.open(waLink, "_blank");
+        // Point the tab we already claimed during the click; fall back to a fresh
+        // open if the browser never gave us one.
+        if (waWindow && !waWindow.closed) waWindow.location.href = waLink;
+        else window.open(waLink, "_blank");
+      } else {
+        closeWaWindowIfUnused();
       }
 
       if (onFinished) onFinished();
