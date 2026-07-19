@@ -2725,7 +2725,10 @@ async function waLoadSharedData(keys: string[] = ["orders", "invoices", "product
     const rootSnap = await db.collection("appData").doc("shared_company_data").get();
     const root = rootSnap.exists ? (rootSnap.data() || {}) : {};
     for (const key of keys) {
-      data[key] = waAsArray(root?.[key]);
+      const value = root?.[key];
+      // `settings` is a plain object, not a list. Forcing it through waAsArray turned
+      // it into [] and silently hid the opening-hours schedule.
+      data[key] = value && !Array.isArray(value) && typeof value === "object" ? value : waAsArray(value);
     }
   } catch (error: any) {
     console.warn("[WHATSAPP] Could not read shared_company_data root:", error?.message || error);
@@ -3018,6 +3021,120 @@ async function waMenuReply() {
 
 // Fields below come from the Customer interface in src/types.ts. Nothing is guessed:
 // a value the record does not carry is simply left out of the reply.
+// ─── Delivery zones and opening hours, straight from the owner's own settings ──
+// Both were previously answered with "check the site", even though the data is right
+// here: 122 priced zones and a scheduled opening-hours table. Everything below is read,
+// never inferred — when a value is missing the bot says so instead of guessing.
+
+async function waDeliveryZones() {
+  const shared = await waLoadSharedData(["zones"]);
+  return waAsArray((shared as any).zones)
+    .map((z: any) => ({
+      name: waString(z?.name).trim(),
+      price: Number(z?.finalPrice ?? z?.cost ?? z?.price),
+      active: z?.isActive !== false,
+    }))
+    .filter((z: any) => z.name && z.active && Number.isFinite(z.price));
+}
+
+// Matches the customer's wording against a zone name. Arabic attaches prefixes to the
+// article, so a plain "includes" missed the common cases: the zone is stored as
+// "الفنطاس" while people write "فنطاس" or "للفنطاس". Both sides are stripped of a
+// leading ال/لل/بال/وال before comparing.
+function waStripArabicArticle(value: string) {
+  return waNormalizeArabic(value).replace(/^(?:وال|بال|فال|كال|لل|ال)/, "").trim();
+}
+
+function waFindZoneByText(zones: any[], text: string) {
+  const clean = waNormalizeArabic(text);
+  if (!clean) return null;
+  // Compare word by word so "فنطاس" inside a sentence still matches.
+  const words = clean.split(/[\s،,.؟?!]+/).map(waStripArabicArticle).filter((w) => w.length >= 3);
+  if (!words.length) return null;
+
+  const hit = zones
+    .filter((z) => {
+      const bare = waStripArabicArticle(z.name);
+      if (bare.length < 3) return false;
+      // Multi-word zone names ("أبو حليفة") are matched against the whole sentence.
+      return bare.includes(" ") ? clean.includes(bare) : words.some((w) => w === bare || w.includes(bare));
+    })
+    .sort((a, b) => b.name.length - a.name.length)[0];
+  return hit || null;
+}
+
+async function waDeliveryReply(messageText: string) {
+  const zones = await waDeliveryZones();
+  if (!zones.length) return "";
+
+  const zone = waFindZoneByText(zones, messageText);
+  if (zone) {
+    return [
+      "حياك الله 🤍",
+      `توصيل ${zone.name}: ${waMoneyText(zone.price)} د.ك`,
+      "",
+      "🛒 للطلب:",
+      waNewOrderUrl(),
+    ].join("\n");
+  }
+
+  const prices = [...new Set(zones.map((z: any) => z.price))].sort((a: number, b: number) => a - b);
+  const common = prices
+    .map((p: number) => ({ p, n: zones.filter((z: any) => z.price === p).length }))
+    .sort((a, b) => b.n - a.n)[0];
+
+  return [
+    "حياك الله 🤍",
+    `التوصيل يبدأ من ${waMoneyText(prices[0])} د.ك${prices.length > 1 ? ` ويوصل ${waMoneyText(prices[prices.length - 1])} د.ك حسب المنطقة` : ""}.`,
+    common ? `ومعظم المناطق ${waMoneyText(common.p)} د.ك.` : "",
+    "",
+    "اكتب اسم منطقتك وأعطيك سعرها بالضبط 👌",
+  ].filter(Boolean).join("\n");
+}
+
+// Trims a stored price for display without inventing precision: 2.5 stays 2.5.
+function waMoneyText(value: number) {
+  return String(Number(Number(value).toFixed(3)));
+}
+
+const WA_WEEK_DAYS: Array<{ keys: string[]; label: string }> = [
+  { keys: ["sunday", "sun", "الاحد", "الأحد"], label: "الأحد" },
+  { keys: ["monday", "mon", "الاثنين", "الإثنين"], label: "الاثنين" },
+  { keys: ["tuesday", "tue", "الثلاثاء"], label: "الثلاثاء" },
+  { keys: ["wednesday", "wed", "الاربعاء", "الأربعاء"], label: "الأربعاء" },
+  { keys: ["thursday", "thu", "الخميس"], label: "الخميس" },
+  { keys: ["friday", "fri", "الجمعة"], label: "الجمعة" },
+  { keys: ["saturday", "sat", "السبت"], label: "السبت" },
+];
+
+async function waHoursReply() {
+  const shared = await waLoadSharedData(["settings"]);
+  const store: any = (shared as any).settings?.storeStatus;
+  const hours: any = store?.openingHours;
+  if (!hours || typeof hours !== "object") return ""; // not configured → caller falls back
+
+  const rows: string[] = [];
+  for (const day of WA_WEEK_DAYS) {
+    const entryKey = day.keys.find((k) => hours[k] !== undefined);
+    if (!entryKey) continue;
+    const entry = hours[entryKey] || {};
+    if (entry?.enabled === false) { rows.push(`• ${day.label}: مغلق`); continue; }
+    const open = waString(entry?.open), close = waString(entry?.close);
+    if (open && close) rows.push(`• ${day.label}: ${open} - ${close}`);
+  }
+  if (!rows.length) return "";
+
+  // Collapse an identical schedule instead of printing the same line seven times.
+  const uniqueTimes = [...new Set(rows.map((r) => r.split(": ")[1]))];
+  const body = uniqueTimes.length === 1 && rows.length === WA_WEEK_DAYS.length
+    ? `كل أيام الأسبوع: ${uniqueTimes[0]}`
+    : rows.join("\n");
+
+  const closedNow = store?.manualClose === true || store?.isOpen === false;
+  return ["حياك الله 🤍", "أوقات العمل:", body, closedNow ? "\nحالياً الاستقبال مقفل مؤقتاً." : "", "", "🛒 للطلب:", waNewOrderUrl()]
+    .filter(Boolean).join("\n");
+}
+
 async function waCustomerByPhone(phone: string) {
   const last8 = waNormalizeKuwaitPhone8(phone);
   if (!last8) return null;
@@ -3052,14 +3169,21 @@ async function waAccountReply(phone: string) {
   if (!customer) return "";
 
   const name = waString(customer?.name);
-  const points = Number(customer?.loyaltyPoints ?? 0);
   const orders = Number(customer?.totalOrders ?? 0);
   const address = waFormatCustomerAddress(customer?.address, waString(customer?.area));
+  // Only 1 of 48 customer records actually carries loyaltyPoints. Defaulting the rest
+  // to 0 announced a balance the system never tracked for them — the same mistake as
+  // claiming a dish was "available today". A missing field means we say nothing.
+  const rawPoints = customer?.loyaltyPoints;
+  const hasPoints = rawPoints !== undefined && rawPoints !== null && Number.isFinite(Number(rawPoints));
 
   const lines = [name ? `💚 هلا ${name} ❤️` : "💚 هلا والله ❤️", ""];
-  lines.push(`⭐ نقاطك: ${Math.max(0, Math.round(Number.isFinite(points) ? points : 0))}`);
+  if (hasPoints) lines.push(`⭐ نقاطك: ${Math.max(0, Math.round(Number(rawPoints)))}`);
   if (Number.isFinite(orders) && orders > 0) lines.push(`🧾 عدد طلباتك: ${Math.round(orders)}`);
   if (address) lines.push(`📍 عنوانك المحفوظ: ${address}`);
+  // Nothing beyond the greeting means we have no detail worth reporting; hand over
+  // rather than send a hollow card.
+  if (lines.length <= 2) return "";
   lines.push("", "لتعديل أي معلومة اكتب: موظف", "", "🛒 للطلب:", waNewOrderUrl());
   return lines.join("\n");
 }
@@ -3274,6 +3398,25 @@ async function waProductReply(messageText: string) {
       if (asksServes) lines.push(serves ? `يكفي تقريباً: ${serves}` : "عدد الأشخاص غير محفوظ لهذا الصنف حالياً، اكتب: موظف، ونؤكده لك قبل الطلب.");
       if (!asksPieces && !asksServes && pieces) lines.push(`عدد الحبات/القطع: ${pieces}`);
       if (!asksPieces && !asksServes && serves) lines.push(`يكفي تقريباً: ${serves}`);
+
+      // Minimum order quantity. Nine items require 100 units and the bot never said so,
+      // so a customer could ask for one box and only find out at checkout.
+      const minQty = Number(p.raw?.minOrderQty);
+      if (Number.isFinite(minQty) && minQty > 1) lines.push(`⚠️ أقل كمية للطلب: ${Math.round(minQty)}`);
+
+      // Real add-ons live in `addons`; the `addOns`/`extras` fields hold broken "["
+      // strings on 60 records and are deliberately ignored.
+      const addons = waAsArray(p.raw?.addons)
+        .filter((a: any) => a?.isActive !== false && waString(a?.name).trim())
+        .map((a: any) => {
+          const name = waString(a.name).trim();
+          const value = Number(a?.price);
+          // isHiddenPrice means the site does not show the price; repeating it here
+          // would contradict the page the order is placed on.
+          const showPrice = a?.isHiddenPrice !== true && Number.isFinite(value) && value > 0;
+          return `${name}${showPrice ? ` +${waMoneyText(value)}` : ""}`;
+        });
+      if (addons.length) lines.push(`➕ الإضافات: ${addons.slice(0, 6).join(" · ")}`);
     }
   });
   lines.push("");
@@ -3405,9 +3548,41 @@ function waLooksLikePointsIntent(text: string) {
   ]);
 }
 
+// Returned instead of a reply when the bot genuinely has no answer. The caller turns it
+// into a human handoff rather than sending it to the customer.
+const WA_HANDOFF_MARKER = "__WA_HANDOFF__";
+
+function waLooksLikeDeliveryIntent(text: string) {
+  return waIntentMatches(text, [
+    "توصيل", "التوصيل", "رسوم التوصيل", "سعر التوصيل", "كم التوصيل", "جم التوصيل",
+    "الدليفري", "دليفري", "توصلون", "توصلولي", "يوصل عندي", "منطقتي", "المنطقه", "المنطقة",
+    "مناطق", "المناطق", "تغطون", "تغطي", "delivery",
+  ]);
+}
+
+function waLooksLikeHoursIntent(text: string) {
+  return waIntentMatches(text, [
+    "دوام", "الدوام", "متى تفتحون", "متى تسكرون", "وقت الدوام", "اوقات العمل", "أوقات العمل",
+    "ساعات العمل", "متى تفتح", "متى تسكر", "مفتوح", "مفتوحين", "شغالين", "تشتغلون",
+    "الى متى", "إلى متى", "من متى", "opening", "hours", "open",
+  ]);
+}
+
 async function waBuildAutoReply(messageText: string, fromPhone: string) {
   const clean = waNormalizeArabic(messageText);
   if (waLooksLikeSupportIntent(messageText)) return waSupportReply();
+
+  // Answered from the owner's own zone table and opening-hours schedule. Each helper
+  // returns "" when its data is missing, so we simply fall through to the existing
+  // rules rather than invent an answer.
+  if (waLooksLikeDeliveryIntent(messageText)) {
+    const delivery = await waDeliveryReply(messageText);
+    if (delivery) return delivery;
+  }
+  if (waLooksLikeHoursIntent(messageText)) {
+    const hours = await waHoursReply();
+    if (hours) return hours;
+  }
   if (waLooksLikePointsIntent(messageText)) {
     const account = await waAccountReply(fromPhone);
     // No record on this number is not something to announce; a human checks it.
@@ -3521,7 +3696,11 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
   if (waLooksLikeThanksIntent(messageText)) return waThanksReply();
   if (waLooksLikeGreeting(messageText)) return waGreetingReply(fromPhone);
 
-  return waHelpReply();
+  // Nothing matched. Repeating the options list at someone who already asked something
+  // specific reads as "I didn't understand you" dressed up as help. A person takes it
+  // from here — the caller sees this marker, switches the thread to human mode and
+  // notifies the team.
+  return WA_HANDOFF_MARKER;
 }
 
 function waExtractMessageText(message: any) {
@@ -3928,6 +4107,30 @@ async function waProcessInboundMessage({
       reply = cleanText
         ? await waBuildAutoReply(cleanText, cleanFrom)
         : waMediaReceivedReply(cleanType);
+
+      // The bot had no grounded answer. Hand the thread to a person and tell the team,
+      // exactly as an explicit "أبي أكلم موظف" would — a real question deserves a real
+      // answer, not the options list served as a stand-in.
+      if (reply === WA_HANDOFF_MARKER) {
+        await waUpsertConversation(cleanFrom, {
+          mode: "human",
+          status: "needs_support",
+          priority: "high",
+          supportRequestedAt: waNowIso(),
+          botPausedAt: waNowIso(),
+          autoResumeAt: waHumanAutoResumeAt(),
+          tags: waUnique([...(waAsArray(conversation?.tags)), "no-match", "support"]),
+        });
+        const pushResult = await waSendHumanSupportPush({
+          phone: cleanFrom,
+          text: cleanText,
+          contactName,
+          messageId,
+          reason: "no_match_handoff",
+        });
+        sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "no_match_handoff", ...(pushResult || {}) });
+        reply = waSupportReply();
+      }
     }
   }
 
