@@ -4076,8 +4076,20 @@ async function waProcessInboundMessage({
     sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "media_or_link", ...(pushResult || {}) });
     reply = waMediaReceivedReply(cleanType);
   } else {
-    const customRule = cleanText ? await waFindCustomAutoReply(cleanText, cleanFrom) : null;
-    if (customRule?.action === "human") {
+    // A real number from the owner's own zone table beats a canned "check the site"
+    // rule every time. "توصيل مبارك الكبير؟" used to hit the generic delivery rule and
+    // send the customer to the website, even though 2.5 د.ك is right here in the data —
+    // so these two run before the rule lookup. Each returns "" when its data is
+    // missing, and the rules take over exactly as before.
+    let groundedReply = "";
+    if (cleanText && waLooksLikeDeliveryIntent(cleanText)) groundedReply = await waDeliveryReply(cleanText);
+    if (!groundedReply && cleanText && waLooksLikeHoursIntent(cleanText)) groundedReply = await waHoursReply();
+
+    const customRule = groundedReply ? null : (cleanText ? await waFindCustomAutoReply(cleanText, cleanFrom) : null);
+    if (groundedReply) {
+      reply = groundedReply;
+      sendResults.push({ to: cleanFrom, channel: "grounded_reply" });
+    } else if (customRule?.action === "human") {
       await waUpsertConversation(cleanFrom, {
         mode: "human",
         status: "needs_support",
