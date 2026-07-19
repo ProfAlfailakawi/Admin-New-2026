@@ -4021,28 +4021,32 @@ async function invoiceAlertRows(limit = 40) {
   const snap = await db.collection("invoices").orderBy("createdAt", "desc").limit(limit).get();
   const invoices = snap.docs.map((d) => ({ docId: d.id, ...(d.data() || {}) as any }));
 
-  // One pass over the recent push archive, then match by invoice id — far cheaper
-  // than a per-invoice query.
-  const eventsSnap = await db.collection("pushEvents").orderBy("createdAt", "desc").limit(600).get();
-  const byInvoice = new Map<string, string[]>();
-  for (const doc of eventsSnap.docs) {
-    const match = doc.id.match(/invoice-paid-(INV-[A-Za-z0-9]+)/);
-    if (!match) continue;
-    const data: any = doc.data() || {};
-    const list = byInvoice.get(match[1]) || [];
-    const status = waString(data.status);
-    if (status) list.push(status);
-    // The service-worker receipt sets these fields but leaves `status` alone, so a
-    // status-only check would report a delivered push as merely "sent".
-    if (data.receivedByDevice === true || data.receivedAt) list.push("received_by_device");
-    if (data.openedByEmployee === true || data.clickedAt) list.push("received_by_device");
-    byInvoice.set(match[1], list);
+  // Look each invoice's alert up by its exact document id. Scanning "the most recent
+  // N events" instead looked cheaper but was wrong: INV-5077 had been alerted, yet its
+  // event had aged out of the window, so the panel reported it as never notified.
+  // A direct batch read cannot drift like that no matter how old the invoice is.
+  const ids = invoices.map((inv: any) => waString(inv.id) || waString(inv.invoiceNumber) || inv.docId);
+  const refs = ids.filter(Boolean).map((id: string) => db!.collection("pushEvents").doc(`safe-worker-invoice-paid-${id}`));
+  const eventById = new Map<string, any>();
+  if (refs.length) {
+    const docs = await db.getAll(...refs);
+    for (const doc of docs) if (doc.exists) eventById.set(doc.id, doc.data() || {});
   }
 
-  return invoices.map((inv: any) => {
-    const invoiceId = waString(inv.id) || waString(inv.invoiceNumber) || inv.docId;
+  return invoices.map((inv: any, index: number) => {
+    const invoiceId = ids[index];
     const paid = waIsPaidStatus(inv.status || inv.paymentStatus) || inv.paid === true;
-    const statuses = byInvoice.get(invoiceId) || [];
+    const event: any = eventById.get(`safe-worker-invoice-paid-${invoiceId}`);
+    const statuses: string[] = [];
+    if (event) {
+      const status = waString(event.status);
+      if (status) statuses.push(status);
+      // The service-worker receipt sets these fields but leaves `status` alone, so a
+      // status-only check would report a delivered push as merely "sent".
+      if (event.receivedByDevice === true || event.receivedAt) statuses.push("received_by_device");
+      if (event.openedByEmployee === true || event.clickedAt) statuses.push("received_by_device");
+      if (!statuses.length) statuses.push("accepted_by_fcm");
+    }
     return {
       invoiceId,
       amount: Number(inv.totalAmount ?? inv.total ?? inv.amount ?? 0) || 0,
@@ -4072,7 +4076,11 @@ app.post("/api/push/invoice-alerts/resend", waRequireConsoleAuth, async (req, re
     const invoiceId = waString(req.body?.invoiceId);
     if (!/^INV-[A-Za-z0-9]+$/.test(invoiceId)) return res.status(400).json({ success: false, error: "Invalid invoiceId" });
 
-    const eventId = `resend-invoice-paid-${invoiceId}-${Date.now()}`;
+    // Reuse the canonical event id and reset it first. A unique resend id would send
+    // fine but park the delivery receipt on a document the panel never reads, so the
+    // row would stay red even after the push arrived.
+    const eventId = `safe-worker-invoice-paid-${invoiceId}`;
+    await db.collection("pushEvents").doc(eventId).delete().catch(() => {});
     let amountText = "";
     try {
       const snap = await db.collection("invoices").where("id", "==", invoiceId).limit(1).get();
