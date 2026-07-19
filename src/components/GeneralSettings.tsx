@@ -584,6 +584,11 @@ const GeneralSettings: React.FC<Props> = ({
   >(null);
   const [pushHealthDetailsOpen, setPushHealthDetailsOpen] = useState(false);
   const [pushDevicesPanelOpen, setPushDevicesPanelOpen] = useState(false);
+  // Invoice → notification delivery log. Answers "was I actually told about this
+  // payment?", which nothing in the app could show before.
+  const [invoiceAlerts, setInvoiceAlerts] = useState<any[] | null>(null);
+  const [invoiceAlertsBusy, setInvoiceAlertsBusy] = useState(false);
+  const [resendingInvoice, setResendingInvoice] = useState("");
   const [pushDeviceTab, setPushDeviceTab] = useState<
     "users" | "devices" | "log" | "investigate" | "advanced"
   >("users");
@@ -1240,6 +1245,41 @@ const GeneralSettings: React.FC<Props> = ({
     toast.info("تقرير الموظف جاهز للنسخ", {
       description: report.slice(0, 140),
     });
+  };
+
+  const loadInvoiceAlerts = async () => {
+    setInvoiceAlertsBusy(true);
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch("/api/push/invoice-alerts?limit=40", { headers: { Authorization: `Bearer ${token}` } });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "تعذر القراءة");
+      setInvoiceAlerts(json.rows || []);
+    } catch (e: any) {
+      toast.error(e?.message || "تعذر قراءة سجل الإشعارات");
+    } finally {
+      setInvoiceAlertsBusy(false);
+    }
+  };
+
+  const resendInvoiceAlert = async (invoiceId: string) => {
+    setResendingInvoice(invoiceId);
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch("/api/push/invoice-alerts/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ invoiceId }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "تعذر الإرسال");
+      toast.success(`أُرسل إشعار ${invoiceId}`);
+      await loadInvoiceAlerts();
+    } catch (e: any) {
+      toast.error(e?.message || "تعذر إعادة الإرسال");
+    } finally {
+      setResendingInvoice("");
+    }
   };
 
   const downloadPushDevicesCsv = (devices: PushDeviceSnapshot[]) => {
@@ -4308,7 +4348,11 @@ const GeneralSettings: React.FC<Props> = ({
                                   </div>
                                   <button type="button" onClick={() => openPushNotificationLog(latestNotification)} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">عرض آخر الإشعارات</button>
                                 </div>
-                                <div className="grid grid-cols-4 gap-1.5">
+                                {/* 2-up until there is real room for 4. Forcing four
+                                    columns inside this narrow side column squeezed each
+                                    one to ~45px, which broke Arabic labels mid-word
+                                    ("وصل للسيرفر" rendered one letter per line). */}
+                                <div className="grid grid-cols-2 xl:grid-cols-4 gap-1.5">
                                   {[
                                     ['تم إنشاؤه', true],
                                     ['وصل للسيرفر', Boolean(latestNotification?.success || latestNotification)],
@@ -4319,8 +4363,9 @@ const GeneralSettings: React.FC<Props> = ({
                                       <span className={cn('relative h-3 w-3 rounded-full', active ? 'bg-emerald-300' : 'bg-white/20')}>
                                         {active && <span className="absolute inset-0 rounded-full bg-emerald-300/70 animate-ping" />}
                                       </span>
-                                      <span className="text-[9px] font-black text-white/65">{label}</span>
-                                      {idx < 3 && <span className="hidden md:block absolute -left-2 top-1/2 h-px w-4 bg-white/15" />}
+                                      {/* Wrap between words, never inside one. */}
+                                      <span className="text-[9px] font-black text-white/65 text-center leading-4 [word-break:keep-all]">{label}</span>
+                                      {idx < 3 && <span className="hidden xl:block absolute -left-2 top-1/2 h-px w-4 bg-white/15" />}
                                     </div>
                                   ))}
                                 </div>
@@ -4390,7 +4435,11 @@ const GeneralSettings: React.FC<Props> = ({
 
                                 {/* أزرار التحكم والإحصائيات */}
                                 <div className="flex flex-col gap-4 w-full">
-                                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 text-[10px] font-bold text-white/60">
+                                  {/* This column shares its row with the compass, so at lg
+                                      it is far narrower than the page — four columns here
+                                      shrank each label to ~45px and split Arabic words
+                                      letter by letter. Four only once there is room. */}
+                                  <div className="grid grid-cols-2 2xl:grid-cols-4 gap-1.5 text-[10px] font-bold text-white/60">
                                     {[
                                       ['الأخضر', 'جهاز حديث جاهز للاستقبال', 'golden', 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/25 text-emerald-300'],
                                       ['الأصفر', 'جهاز صامت ينتظر تأكيد وصول/فتح', 'silent', 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/25 text-amber-300'],
@@ -4403,13 +4452,13 @@ const GeneralSettings: React.FC<Props> = ({
                                         onClick={() => { setPushDeviceSearch(''); openPushRadarArea('users', filter as any); }}
                                         className={cn("rounded-xl border px-2 py-1.5 text-right transition focus:outline-none", cls)}
                                       >
-                                        <span className="block font-black text-[11px] mb-0.5">{color}</span>
+                                        <span className="block font-black text-[11px] mb-0.5 whitespace-nowrap">{color}</span>
                                         <span className="block opacity-75 truncate text-[9px] font-medium leading-4">{meaning}</span>
                                       </button>
                                     ))}
                                   </div>
 
-                                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                  <div className="grid grid-cols-2 2xl:grid-cols-4 gap-2">
                                     {[
                                       ['أجهزة ذهبية', `${goldenDevices.length}`, 'حديثة وتستقبل غالباً', 'bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-300 border-emerald-500/20', 'golden'],
                                       ['أجهزة صامتة', `${silentDevices.length}`, 'محاولات إرسال بلا فتح مؤكد', 'bg-amber-500/10 hover:bg-amber-500/15 text-amber-300 border-amber-500/20', 'silent'],
@@ -4417,9 +4466,11 @@ const GeneralSettings: React.FC<Props> = ({
                                       ['حسابات بلا جهاز', `${archivedCards.length}`, 'حساب محفوظ بلا جهاز مفعّل', 'bg-slate-800/40 hover:bg-slate-800/50 text-slate-300 border-slate-700/30', 'archived'],
                                     ].map(([label, value, hint, cls, filter]) => (
                                       <button type="button" key={label} onClick={() => { setPushDeviceSearch(''); openPushRadarArea('users', filter as any); }} className={cn("rounded-2xl border p-3 text-right hover:scale-[1.01] transition focus:outline-none", cls, pushDeviceMapFilter === filter ? "ring-2 ring-amber-400 border-amber-300" : "")}>
-                                        <div className="text-[10px] font-black opacity-80">{label}</div>
-                                        <div className="mt-1 text-2xl font-black">{value}</div>
-                                        <div className="mt-1 text-[10px] font-bold opacity-75 leading-5">{hint}</div>
+                                        {/* Keep-all stops Arabic labels splitting mid-word
+                                            when the card is narrow. */}
+                                        <div className="text-[10px] font-black opacity-80 [word-break:keep-all]">{label}</div>
+                                        <div className="mt-1 text-2xl font-black tabular-nums">{value}</div>
+                                        <div className="mt-1 text-[10px] font-bold opacity-75 leading-5 [word-break:keep-all]">{hint}</div>
                                       </button>
                                     ))}
                                   </div>
@@ -4500,6 +4551,103 @@ const GeneralSettings: React.FC<Props> = ({
                                 </div>
                               </div>
                             )}
+
+                            {/* Its own card, deliberately outside the radar cluster and in
+                                a different visual key (light, indigo) so it never reads as
+                                part of "رادار حياة الإشعار". Status is colour + icon only,
+                                per the owner's ask for no clutter; meaning lives in
+                                tooltips, not labels. */}
+                            <details
+                              className="rounded-[1.8rem] border border-indigo-900/10 bg-gradient-to-br from-indigo-50 to-white p-4 text-slate-900 overflow-hidden shadow-[0_16px_34px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]"
+                              onToggle={(e) => { if ((e.currentTarget as HTMLDetailsElement).open && !invoiceAlerts && !invoiceAlertsBusy) loadInvoiceAlerts(); }}
+                            >
+                              <summary className="cursor-pointer list-none flex items-center justify-between gap-3 select-none">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="rounded-2xl bg-indigo-600/10 border border-indigo-900/10 p-2 text-indigo-700"><Bell size={16} /></span>
+                                  {invoiceAlerts ? (
+                                    <span className="flex items-center gap-1.5">
+                                      <span className={cn(
+                                        "inline-flex h-2.5 w-2.5 rounded-full",
+                                        invoiceAlerts.some((r: any) => r.alertState === "missing") ? "bg-rose-500 animate-pulse" : "bg-emerald-500",
+                                      )} />
+                                      <span className="text-sm font-black tabular-nums leading-6 text-slate-900">
+                                        {invoiceAlerts.filter((r: any) => r.alertState === "missing").length || ""}
+                                      </span>
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <span className="rounded-2xl bg-white border border-indigo-900/10 p-2 text-slate-600 shadow-sm"><ChevronDown size={14} /></span>
+                              </summary>
+
+                              <div className="mt-3">
+                                {invoiceAlertsBusy && !invoiceAlerts ? (
+                                  <div className="py-8 flex justify-center"><Loader2 size={18} className="animate-spin text-indigo-400" /></div>
+                                ) : !invoiceAlerts?.length ? (
+                                  <div className="py-8 flex justify-center text-slate-300"><Archive size={20} /></div>
+                                ) : (
+                                  <div className="space-y-1 max-h-[320px] overflow-y-auto pr-1">
+                                    {invoiceAlerts.map((r: any) => {
+                                      const tone =
+                                        r.alertState === "delivered" ? "text-emerald-600"
+                                        : r.alertState === "sent" ? "text-amber-500"
+                                        : r.alertState === "failed" ? "text-rose-600"
+                                        : r.alertState === "missing" ? "text-rose-600"
+                                        : "text-slate-300";
+                                      const hint =
+                                        r.alertState === "delivered" ? "وصل جهازك"
+                                        : r.alertState === "sent" ? "خرج للجوال — بانتظار التأكيد"
+                                        : r.alertState === "failed" ? "فشل الإرسال"
+                                        : r.alertState === "missing" ? "ما انرسل إشعار"
+                                        : "غير مدفوعة";
+                                      return (
+                                        <div
+                                          key={r.invoiceId}
+                                          className={cn(
+                                            "flex items-center gap-3 rounded-xl px-3 py-2 border",
+                                            r.alertState === "missing" ? "border-rose-300 bg-rose-50" : "border-slate-200/70 bg-white",
+                                          )}
+                                        >
+                                          <span title={hint} className={cn("shrink-0", tone)}>
+                                            {r.alertState === "delivered" ? <CheckCircle2 size={16} />
+                                              : r.alertState === "sent" || r.alertState === "none" ? <Clock size={16} />
+                                              : <AlertTriangle size={16} />}
+                                          </span>
+                                          <span className="font-black text-[12px] tabular-nums text-slate-900 shrink-0">{String(r.invoiceId).replace("INV-", "")}</span>
+                                          <span className="flex-1 text-left text-[12px] font-bold tabular-nums text-slate-500">
+                                            {r.amount > 0 ? r.amount.toFixed(3) : ""}
+                                          </span>
+                                          <span title={r.paid ? "مدفوعة" : "غير مدفوعة"} className={cn("shrink-0", r.paid ? "text-emerald-600" : "text-slate-300")}>
+                                            <CreditCard size={14} />
+                                          </span>
+                                          {r.paid && r.alertState !== "delivered" ? (
+                                            <button
+                                              type="button"
+                                              title="إعادة إرسال الإشعار"
+                                              onClick={() => resendInvoiceAlert(r.invoiceId)}
+                                              disabled={resendingInvoice === r.invoiceId}
+                                              className="shrink-0 rounded-lg bg-indigo-600 hover:bg-indigo-700 p-1.5 text-white shadow-sm disabled:opacity-40"
+                                            >
+                                              {resendingInvoice === r.invoiceId ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                                            </button>
+                                          ) : <span className="w-[29px] shrink-0" />}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                <div className="mt-3 flex justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={loadInvoiceAlerts}
+                                    disabled={invoiceAlertsBusy}
+                                    title="تحديث"
+                                    className="rounded-2xl bg-white border border-indigo-900/10 p-2 text-slate-600 shadow-sm disabled:opacity-40"
+                                  >
+                                    <RefreshCw size={14} className={cn(invoiceAlertsBusy && "animate-spin")} />
+                                  </button>
+                                </div>
+                              </div>
+                            </details>
 
                             <div id="push-radar-list" className="push-radar-list-clean flex flex-col lg:flex-row gap-2 lg:items-start lg:justify-between scroll-mt-24">
                               <details className="rounded-2xl bg-white/10 border border-white/10 p-1 overflow-hidden">
