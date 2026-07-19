@@ -3997,6 +3997,98 @@ async function waBridgeStatus() {
 
 // Polled by the console. Deliberately tiny and separate from /diagnostics so it can
 // run often without dragging the whole product list along behind it.
+// ─── Invoice notification log (admin only) ──────────────────────────────────
+// Answers one question the owner could not previously ask: "was I actually told
+// about this payment?" It reads invoices from the LIVE `invoices` collection —
+// not appData/shared_company_data, which lags and is exactly why INV-5078's paid
+// alert never fired — and joins each one to its delivery trail in pushEvents.
+//
+// Delivery states, from the archive docs written per device:
+//   delivered = a device confirmed receipt      (received_by_device)
+//   sent      = FCM accepted it, no receipt yet (accepted_by_fcm)
+//   failed    = FCM rejected it                 (failed_by_fcm)
+//   missing   = no alert was ever created       ← the silent failure
+function invoiceAlertStateFrom(statuses: string[]): "delivered" | "sent" | "failed" | "missing" {
+  if (!statuses.length) return "missing";
+  if (statuses.some((s) => s === "received_by_device")) return "delivered";
+  if (statuses.some((s) => s === "accepted_by_fcm")) return "sent";
+  if (statuses.some((s) => s.startsWith("failed"))) return "failed";
+  return "sent";
+}
+
+async function invoiceAlertRows(limit = 40) {
+  if (!db || !firebaseInitialized) return [];
+  const snap = await db.collection("invoices").orderBy("createdAt", "desc").limit(limit).get();
+  const invoices = snap.docs.map((d) => ({ docId: d.id, ...(d.data() || {}) as any }));
+
+  // One pass over the recent push archive, then match by invoice id — far cheaper
+  // than a per-invoice query.
+  const eventsSnap = await db.collection("pushEvents").orderBy("createdAt", "desc").limit(600).get();
+  const byInvoice = new Map<string, string[]>();
+  for (const doc of eventsSnap.docs) {
+    const match = doc.id.match(/invoice-paid-(INV-[A-Za-z0-9]+)/);
+    if (!match) continue;
+    const status = waString((doc.data() || {}).status);
+    const list = byInvoice.get(match[1]) || [];
+    if (status) list.push(status);
+    byInvoice.set(match[1], list);
+  }
+
+  return invoices.map((inv: any) => {
+    const invoiceId = waString(inv.id) || waString(inv.invoiceNumber) || inv.docId;
+    const paid = waIsPaidStatus(inv.status || inv.paymentStatus) || inv.paid === true;
+    const statuses = byInvoice.get(invoiceId) || [];
+    return {
+      invoiceId,
+      amount: Number(inv.totalAmount ?? inv.total ?? inv.amount ?? 0) || 0,
+      paid,
+      createdAt: waString(inv.createdAt) || waString(inv.date),
+      // Only paid invoices are expected to have a paid alert; unpaid ones are "—".
+      alertState: paid ? invoiceAlertStateFrom(statuses) : "none",
+    };
+  });
+}
+
+app.get("/api/push/invoice-alerts", waRequireConsoleAuth, async (req, res) => {
+  try {
+    const limit = Math.min(100, Math.max(5, Number(req.query.limit) || 40));
+    const rows = await invoiceAlertRows(limit);
+    return res.json({ success: true, rows, missing: rows.filter((r) => r.alertState === "missing").length });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+// Re-sends the paid alert for one invoice. It clears the old claim first, otherwise
+// the shared dedupe would silently swallow the retry.
+app.post("/api/push/invoice-alerts/resend", waRequireConsoleAuth, async (req, res) => {
+  try {
+    if (!db || !firebaseInitialized) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+    const invoiceId = waString(req.body?.invoiceId);
+    if (!/^INV-[A-Za-z0-9]+$/.test(invoiceId)) return res.status(400).json({ success: false, error: "Invalid invoiceId" });
+
+    const eventId = `resend-invoice-paid-${invoiceId}-${Date.now()}`;
+    let amountText = "";
+    try {
+      const snap = await db.collection("invoices").where("id", "==", invoiceId).limit(1).get();
+      const inv: any = snap.docs[0]?.data();
+      const n = Number(inv?.totalAmount ?? inv?.total ?? inv?.amount ?? 0);
+      if (Number.isFinite(n) && n > 0) amountText = ` — القيمة ${n.toFixed(3)} د.ك`;
+    } catch { /* send without the amount rather than not at all */ }
+
+    const result = await sendSmartAlertPushNotification({
+      title: "✅ تم دفع فاتورة",
+      body: `تم دفع الفاتورة ${invoiceId}${amountText}`,
+      alertType: "invoice_paid",
+      url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}`,
+      eventId,
+    });
+    return res.json({ success: true, result });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
 app.get("/api/whatsapp/bridge-status", async (_req, res) => {
   const bridge = await waBridgeStatus();
   return res.json({ success: true, bridge, transport: WHATSAPP_TRANSPORT() });
