@@ -3082,9 +3082,16 @@ function waProductAvailable(product: any) {
   return true;
 }
 
+// Never claims same-day availability. "متوفر اليوم حسب المنيو الحالي" was invented by
+// this function: being listed and in stock says nothing about when a dish can be ready,
+// and most of these are marked "الطلب قبلها بيوم" in the product record. Only the
+// owner's own note is repeated back; when there is none, the line is simply left out.
 function waProductAvailabilityText(product: any) {
-  if (waProductAvailable(product)) return "متوفر اليوم حسب المنيو الحالي";
-  return "غير متوفر حالياً في المنيو";
+  if (!waProductAvailable(product)) return "غير متوفر حالياً في المنيو";
+  const note = waString(product?.preparationInstructions).trim();
+  // Some records use this field for a label rather than a real instruction (e.g. the
+  // brand name); only sentences that actually say something about timing are shown.
+  return /قبل|يوم|ساعة|ساعات|مسبق|حجز|تجهيز/.test(note) ? note : "";
 }
 
 function waProductInfoText(product: any) {
@@ -3223,11 +3230,13 @@ async function waProductReply(messageText: string) {
   if (!uniqueTerms.length) {
     if (asksAvailability) {
       return [
-        "إيه، الطلب متاح اليوم من المنيو الحالي حسب التوفر المباشر 🤍",
-        "تقدر تشوف الأصناف وتكمل الطلب والدفع من هنا:",
+        // Answering "yes, available today" is a promise the data cannot back: many
+        // dishes carry "الطلب قبلها بيوم" in their own record.
+        "حياك الله 🤍",
+        "الأصناف وأسعارها والتوفر تلقاها هني:",
         waNewOrderUrl(),
         "",
-        "إذا تقصد صنف معيّن، اكتب اسمه مثل: مجبوس دجاج أو ورق عنب.",
+        "وإذا تقصد صنف معيّن اكتب اسمه وأعطيك تفاصيله.",
       ].join("\n");
     }
     return "";
