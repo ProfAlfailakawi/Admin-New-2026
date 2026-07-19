@@ -846,10 +846,10 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     saveQuickReplies(managedQuickReplies);
   }, [managedQuickReplies]);
 
-  // Opens the chat behind a tapped notification — but only that once, and only if the
-  // tap just happened. Previously the link was read and never cleared, so it stayed in
-  // sessionStorage and dragged the owner into the same conversation every single time
-  // they opened the console. Opening the app should inform, not hijack.
+  // A tapped notification only ever announces itself here — it never opens the chat and
+  // never changes the current filter. Before, the saved link was read but never cleared,
+  // so it re-opened the same conversation on every single visit; the owner asked for a
+  // notice and nothing more. Which chat to open stays their decision.
   useEffect(() => {
     if (deepLinkConsumedRef.current || !conversations.length) return;
     try {
@@ -858,25 +858,14 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       const saved = JSON.parse(raw || 'null');
       if (saved?.page !== 'whatsapp-support') return;
 
-      // Consume it no matter what happens next, so it can never fire twice.
+      // Consumed once, always cleared — it can never fire a second time.
       deepLinkConsumedRef.current = true;
       sessionStorage.removeItem('adminPushDeepLink');
 
       const phone = cleanPhone(saved?.phone);
-      if (!phone) return;
-
-      // Links older than two minutes are stale: the owner is opening the console on
-      // their own, not following a notification they just tapped.
-      const age = Date.now() - Number(saved?.createdAt || 0);
-      if (saved?.createdAt && age > 2 * 60 * 1000) {
-        showNotice('info', 'عندك محادثة تحتاج متابعة في قائمة الدعم.');
-        setFilter('needs_support');
-        return;
-      }
-
-      setFilter('needs_support');
-      setSelectedPhone(phone);
-      showNotice('info', 'تم فتح محادثة واتساب التي تحتاج متابعة.');
+      showNotice('info', phone
+        ? `عندك محادثة تحتاج متابعة تنتهي بـ${phone.slice(-4)} — افتحها وقت ما تحب.`
+        : 'عندك محادثة تحتاج متابعة في قائمة الدعم.');
     } catch {}
   }, [conversations]);
 
