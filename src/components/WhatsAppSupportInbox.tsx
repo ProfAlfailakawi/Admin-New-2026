@@ -595,6 +595,9 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   const [botTextsBusy, setBotTextsBusy] = useState(false);
   const [dataCheck, setDataCheck] = useState<{ loading: boolean; result: any }>({ loading: false, result: null });
   const [bridge, setBridge] = useState<any>(null);
+  // The banner waits for a fault to repeat before it appears — see the polling effect.
+  const [bridgeFaultConfirmed, setBridgeFaultConfirmed] = useState(false);
+  const badReadings = useRef(0);
   const [autoReplyEditorOpen, setAutoReplyEditorOpen] = useState(false);
   const [editingAutoReplyId, setEditingAutoReplyId] = useState<string | null>(null);
   const [autoReplyForm, setAutoReplyForm] = useState<AutoReplyRule>({
@@ -830,7 +833,17 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       try {
         const res = await waAuthFetch('/api/whatsapp/bridge-status');
         const json = await res.json();
-        if (alive && json?.success) setBridge({ ...json.bridge, transport: json.transport });
+        if (!alive || !json?.success) return;
+        setBridge({ ...json.bridge, transport: json.transport });
+        // A healthy reading clears the alarm at once; a bad one has to repeat before it
+        // is believed. Recovery stays instant, false alarms never reach the screen.
+        if (json.bridge?.connected === false) {
+          badReadings.current += 1;
+          if (badReadings.current >= 2) setBridgeFaultConfirmed(true);
+        } else {
+          badReadings.current = 0;
+          setBridgeFaultConfirmed(false);
+        }
       } catch {
         // A failed check is not proof the bridge is down; leave the last known state.
       }
@@ -1404,7 +1417,10 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           </div>
         )}
       </section>
-      {bridge && bridge.transport === 'web_bridge' && bridge.connected === false && (
+      {/* Only after the fault has held for two consecutive checks. A single bad reading —
+          a heartbeat landing mid-write, one slow request — used to flash a full-width red
+          alarm at a bridge that was replying normally, then vanish seconds later. */}
+      {bridge && bridge.transport === 'web_bridge' && bridge.connected === false && bridgeFaultConfirmed && (
         <div role="alert" className="mb-4 rounded-[1.5rem] border-2 border-rose-300 bg-rose-50 p-4 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
@@ -1456,7 +1472,10 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
         </div>
       )}
 
-      <div className="mb-4 flex items-center gap-1.5 rounded-[1.5rem] border border-slate-100 bg-white p-1.5 shadow-sm w-fit">
+      {/* Five tabs no longer fit a phone. w-fit let the bar grow past the viewport with
+          no way to reach the last ones, so "نصوص البوت" and "جهاز الواتساب" were simply
+          unreachable on mobile. Scroll horizontally instead, and keep each tab whole. */}
+      <div className="mb-4 flex items-center gap-1.5 rounded-[1.5rem] border border-slate-100 bg-white p-1.5 shadow-sm w-full lg:w-fit overflow-x-auto whatsapp-tabs-scroll">
         {([
           { id: 'chats', label: 'المحادثات', icon: '💬', badge: tabCounts.needs_support || 0, tone: 'rose' },
           { id: 'rules', label: 'قواعد الرد', icon: '🤖', badge: autoReplyRules.length, tone: 'slate' },
@@ -1472,7 +1491,9 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             onClick={() => setCenterTab(t.id)}
             aria-pressed={centerTab === t.id}
             className={cn(
-              'rounded-2xl px-5 py-2.5 text-xs font-black transition flex items-center gap-2',
+              // shrink-0 + nowrap: without them flex squeezes the tabs instead of
+              // letting the row scroll, and Arabic labels break mid-word.
+              'shrink-0 whitespace-nowrap rounded-2xl px-4 sm:px-5 py-2.5 text-xs font-black transition flex items-center gap-2',
               centerTab === t.id ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50',
             )}
           >

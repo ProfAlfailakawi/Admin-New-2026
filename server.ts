@@ -4218,7 +4218,13 @@ async function waBridgeStatus() {
   if (!db || !firebaseInitialized) return { connected: false, reason: "firestore_unavailable" as const };
   try {
     const snap = await db.collection("whatsappBridgeDevices").get();
-    const devices = snap.docs.map((d) => d.data() || {});
+    // Diagnostic rows (e.g. an "authorized-test" probe) live in this collection too.
+    // They never report `ready`, so whenever one happened to be the most recent record
+    // the console flashed "الجهاز يشتغل ولم يكتمل" at a bridge that was working fine.
+    // Only rows from a real bridge — one that reports its readiness — are considered.
+    const devices = snap.docs
+      .map((d) => d.data() || {})
+      .filter((d: any) => d?.ready !== undefined || waString(d?.clientVersion));
     if (!devices.length) return { connected: false, reason: "never_seen" as const, minutesSinceSeen: null as number | null };
 
     const freshest = devices

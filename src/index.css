@@ -6252,3 +6252,14 @@ html body .login-brand-stage h1 {
     grid-template-columns: repeat(3, minmax(210px, 1fr)) !important;
   }
 }
+
+/* WhatsApp centre tabs: five of them overflow a phone, so the row scrolls sideways.
+   The scrollbar itself is hidden — on touch the swipe is the affordance, and a visible
+   bar would only crowd an already tight strip. */
+.whatsapp-tabs-scroll {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+}
+.whatsapp-tabs-scroll::-webkit-scrollbar { display: none; }
