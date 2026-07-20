@@ -7383,6 +7383,42 @@ async function archivePushDeliveryAttempts({
   }
 }
 
+// One notification per person per device — not per stale registration.
+//
+// The owner was getting every alert three times: their email carried three active
+// tokens (iPhone + web + web). The system had sent once; FCM simply delivered to three
+// registrations. Two of those web tokens were the same browser re-registering (a new
+// service-worker install mints a fresh token without retiring the old one).
+//
+// Grouping by person+platform and keeping the newest kills the duplicate registration
+// while never silencing a genuinely different device: a phone and a laptop stay two
+// separate groups, so nobody loses an alert they were meant to receive. Records with no
+// owner or no timestamp are passed through untouched rather than guessed at.
+function dedupePushTokensPerDevice(records: PushTokenRecordForArchive[]) {
+  const newestByDevice = new Map<string, any>();
+  const passthrough: any[] = [];
+
+  for (const record of records as any[]) {
+    const owner = String(record?.userEmail || record?.userId || record?.userName || "").trim().toLowerCase();
+    const platform = String(record?.platform || record?.deviceType || "").trim().toLowerCase();
+    if (!owner || !platform) { passthrough.push(record); continue; }
+
+    const key = `${owner}::${platform}`;
+    const seenMs = Date.parse(String(record?.updatedAt || record?.createdAt || "")) || 0;
+    const current = newestByDevice.get(key);
+    // No timestamp on either side: keep the first and let the rest go, rather than
+    // dropping the wrong one at random.
+    if (!current || seenMs > (current.__seenMs || 0)) {
+      newestByDevice.set(key, { ...record, __seenMs: seenMs });
+    }
+  }
+
+  const deduped = [...newestByDevice.values(), ...passthrough];
+  const removed = records.length - deduped.length;
+  if (removed > 0) console.log(`[PUSH] Skipped ${removed} duplicate device registration(s).`);
+  return deduped as PushTokenRecordForArchive[];
+}
+
 async function sendSmartAlertPushNotification({
   title,
   body,
@@ -7420,7 +7456,9 @@ async function sendSmartAlertPushNotification({
     const allTokenRecords = snap.docs
       .map((doc: any) => normalizePushTokenRecord(doc))
       .filter(Boolean) as PushTokenRecordForArchive[];
-    const tokenRecords = allTokenRecords.filter((record) => pushRecordMatchesTargetRoles(record, targetRoles));
+    const tokenRecords = dedupePushTokensPerDevice(
+      allTokenRecords.filter((record) => pushRecordMatchesTargetRoles(record, targetRoles)),
+    );
     const tokens = tokenRecords.map(record => record.token);
 
     if (tokens.length === 0) {
