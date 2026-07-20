@@ -7488,11 +7488,17 @@ async function sendSmartAlertPushNotification({
           3600
         );
 
+    // Data-only on purpose — no top-level `notification`, no `webpush.notification`.
+    //
+    // Carrying either one makes the browser display the alert itself, while the service
+    // worker's `push` handler displays it again: one send, two banners on a single
+    // device. That is why accounts with a single registered device still saw every
+    // pending-payment alert twice.
+    //
+    // The service worker is now the only thing that draws a notification, so the dedupe
+    // it already performs (by eventId) actually holds. Everything the display needs —
+    // title, body, url, icon, tag — is in `data`, which the worker reads.
     const baseMessage = {
-      notification: {
-        title: String(title || "تنبيه"),
-        body: String(body || ""),
-      },
       data: {
         type: "smart_alert",
         alertType: normalizedAlertType,
@@ -7503,28 +7509,18 @@ async function sendSmartAlertPushNotification({
         click_action: normalizedUrl,
         title: String(title || "تنبيه"),
         body: String(body || ""),
+        icon: "/ios-icon-192-v6.png",
+        badge: "/ios-icon-192-v6.png",
+        renotify: String(Boolean(shouldRenotify)),
+        requireInteraction: String(Boolean(requireInteraction)),
       },
       webpush: {
         headers: {
           Urgency: "high",
           TTL: String(effectiveTtlSeconds),
         },
-        notification: {
-          title: String(title || "تنبيه"),
-          body: String(body || ""),
-          icon: "/ios-icon-192-v6.png",
-          badge: "/ios-icon-192-v6.png",
-          tag: normalizedNotificationTag,
-          renotify: shouldRenotify,
-          requireInteraction: Boolean(requireInteraction),
-          data: {
-            url: normalizedUrl,
-            eventId: normalizedEventId,
-            parentEventId: normalizedEventId,
-            notificationTag: normalizedNotificationTag,
-            alertType: normalizedAlertType,
-          },
-        },
+        // No webpush.notification here either — same reason as above. The values it
+        // used to carry are passed through `data` so the service worker can apply them.
         fcmOptions: {
           link: normalizedUrl,
         },
