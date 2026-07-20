@@ -3188,6 +3188,53 @@ async function waAccountReply(phone: string) {
   return lines.join("\n");
 }
 
+// A warm line under the price, the way the website reads instead of a bare price list.
+//
+// Grounded on purpose: the phrase is chosen from the product's own category and its
+// preparationInstructions — the only two things the data actually states. Nothing here
+// asserts a fact the record does not carry (no "fresh today", no cooking method for a
+// dish whose record says nothing). Products in a category with no phrase get no line.
+//
+// The pick is stable per product (same dish always reads the same) but varies across a
+// category, so a list of five items does not repeat one sentence five times.
+const WA_PRODUCT_TONE: Record<string, string[]> = {
+  "الولائم": [
+    "نجهزها لك بحب وعلى مهل، عشان تطلع كما تتمنى 🤍",
+    "مناسبتك تستاهل، ونحرص عليها من أول خطوة 🇰🇼",
+  ],
+  "اللحوم": [
+    "نطبخها على نار هادية وننطرها تتشرب عدل 😋",
+    "ننتقيها بعناية ونجهزها لك طازجة 🤍",
+  ],
+  "الدجاج": [
+    "نجهزه لك طازج وقت طلبك، مو مسبقاً 😋",
+    "على نار هادية عشان يطلع بأحلى طعم 🤍",
+  ],
+  "البحري": [
+    "من سوق السمج، ونجهزه لك طازج 🐟",
+    "نختاره لك بنفسنا يوم طلبك 🤍",
+  ],
+  "المقبلات": [
+    "لمّة حلوة تكمّل السفرة 🤍",
+    "نلفّها لك وحدة وحدة بصبر ❤️",
+  ],
+  "وجبات التوفير": [
+    "وجبة كاملة بسعر مريح 🤍",
+    "تكفيك وتوفّر عليك ❤️",
+  ],
+};
+
+function waProductToneLine(product: any) {
+  const category = waString(product?.category || product?.productCategory).trim();
+  const options = WA_PRODUCT_TONE[category];
+  if (!options?.length) return "";
+  // Stable per product: hash the id so the same dish keeps the same line.
+  const id = waString(product?.id || product?.name);
+  let sum = 0;
+  for (let i = 0; i < id.length; i += 1) sum = (sum + id.charCodeAt(i)) % 997;
+  return options[sum % options.length];
+}
+
 function waProductName(product: any) {
   return waString(product?.name || product?.productName || product?.title);
 }
@@ -3417,6 +3464,11 @@ async function waProductReply(messageText: string) {
           return `${name}${showPrice ? ` +${waMoneyText(value)}` : ""}`;
         });
       if (addons.length) lines.push(`➕ الإضافات: ${addons.slice(0, 6).join(" · ")}`);
+
+      // The site's warmth, carried into the chat. Only on the detailed single-item
+      // answer — repeating it under every row of a five-item list would be noise.
+      const tone = waProductToneLine(p.raw);
+      if (tone) lines.push(tone);
     }
   });
   lines.push("");
