@@ -3070,7 +3070,10 @@ const MainApp: React.FC = () => {
                 });
                 if (changed) {
                     combined.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                    return { ...prev, orders: combined };
+                    // Payment callbacks update ORD records through Firestore. Recalculate the
+                    // supplier ledger immediately after merging the paid order so ORD invoices
+                    // create the same supplier dues as paid INV invoices without waiting for a reload.
+                    return recalculateStateBalances({ ...prev, orders: combined });
                 }
                 return prev;
             });
@@ -3156,7 +3159,9 @@ const MainApp: React.FC = () => {
                 });
                 if (changed) {
                     combined.sort((a: any, b: any) => getRecordTime(b) - getRecordTime(a));
-                    return { ...prev, invoices: combined };
+                    // Keep supplier balances in sync when the lightweight invoice mirror
+                    // receives a final payment status from the gateway.
+                    return recalculateStateBalances({ ...prev, invoices: combined });
                 }
                 return prev;
             });
