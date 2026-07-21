@@ -715,11 +715,11 @@ const OrderPage: React.FC<OrderPageProps> = ({
               }
             : o,
         );
-        return {
+        return recalculateStateBalances({
           ...prev,
           orders: updatedOrders,
           invoices: updatedInvoices,
-        };
+        });
       });
       toast.success("تم تحديث حالة الطلب");
       if (selectedOrder?.id === orderId) {
