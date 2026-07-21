@@ -1,6 +1,7 @@
 import { AppState } from '../types';
 import { isPaidStatus } from './status-utils';
 import { computeAddonCost, computeAddonRevenue, computeAddonQuantity, computeInvoiceItemBaseCost, getInvoiceItemAddons, safeParsePrice, addonHasPositiveSelection } from './invoice-calculations';
+import { getUnifiedInvoices } from './utils';
 
 
 const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 1000;
@@ -74,59 +75,16 @@ export function getSupplierLedgerForState(
           .map(p => String(p.id))
       );
 
-  const storedInvoices = (state.invoices || []).filter(inv => !inv.isDeleted);
+  const storedInvoices = getUnifiedInvoices(state).filter(inv => {
+    if (!inv || inv.isDeleted) return false;
+    if (String(inv.id).startsWith('INV-')) return true;
+    return inv.paymentStatus === 'paid';
+  });
   const invoiceSource = invoicesBySupplierMap
     ? (invoicesBySupplierMap.get(String(supId)) || [])
     : storedInvoices;
 
-  // Website purchases are stored first in `orders`. The supplier ledger historically
-  // read only `invoices`, so a successfully paid customer order could be visible in
-  // orders while remaining completely absent from supplier dues. Include paid orders
-  // as a ledger-only fallback until/if a real linked invoice exists. This does not
-  // modify payment, invoice, notification, stock, or order records.
-  const invoiceIdentityKeys = new Set<string>();
-  storedInvoices.forEach((inv: any) => {
-    [
-      inv?.id,
-      inv?.invoiceId,
-      inv?.invoiceNo,
-      inv?.invoiceNumber,
-      inv?.linkedOrderId,
-      inv?.sourceOrderId,
-      inv?.orderId,
-    ].forEach((value) => {
-      const key = String(value || '').trim();
-      if (key) invoiceIdentityKeys.add(key);
-    });
-  });
-
-  const paidOrderFallbacks = (state.orders || [])
-    .filter((order: any) => {
-      if (!order || order.isDeleted) return false;
-      const status = String(order.status || '').trim();
-      if (status.toLowerCase().includes('cancel') || status.includes('ملغي')) return false;
-
-      const paid = order.paid === true
-        || isPaidStatus(order.paymentStatus)
-        || isPaidStatus(order.payment_status)
-        || isPaidStatus(order.status);
-      if (!paid) return false;
-
-      const orderId = String(order.id || order.orderId || order.orderNo || '').trim();
-      const linkedInvoiceId = String(order.linkedInvoiceId || order.invoiceId || order.invoiceNo || '').trim();
-
-      // Once the actual invoice is present, it remains the single source of supplier dues.
-      if (orderId && invoiceIdentityKeys.has(orderId)) return false;
-      if (linkedInvoiceId && invoiceIdentityKeys.has(linkedInvoiceId)) return false;
-      return Array.isArray(order.items) && order.items.length > 0;
-    })
-    .map((order: any) => ({
-      ...order,
-      date: order.date || order.createdAt || order.updatedAt || new Date().toISOString(),
-      __supplierLedgerSource: 'paid_order',
-    }));
-
-  const invoicesSource = [...invoiceSource, ...paidOrderFallbacks];
+  const invoicesSource = invoiceSource;
 
   // 1. Invoices and paid website orders awaiting an invoice mirror
   invoicesSource.forEach(inv => {
@@ -206,7 +164,7 @@ export function getSupplierLedgerForState(
     const supplierDue = roundKwd(supplierCost + supplierDelivery);
 
     if (supplierDue > 0) {
-      const isPaidOrderFallback = (inv as any).__supplierLedgerSource === 'paid_order';
+      const isPaidOrderFallback = (inv as any).__supplierLedgerSource === 'paid_order' || String(inv.id).startsWith('ORD-') || (inv as any).isORDOrder === true;
       const referenceId = String((inv as any).id || (inv as any).orderId || (inv as any).invoiceId || '');
       transactions.push({
         id: `${isPaidOrderFallback ? 'order' : 'inv'}-${referenceId}`,
@@ -300,8 +258,13 @@ export function recalculateStateBalances(state: AppState): AppState {
 
   // Build a pre-index of invoices by supplier to avoid O(N * M) loops
   const invoicesBySupplierMap = new Map<string, any[]>();
-  (newState.invoices || []).forEach(inv => {
-    if (inv.isDeleted) return;
+  const unifiedInvoices = getUnifiedInvoices(newState).filter(inv => {
+    if (!inv || inv.isDeleted) return false;
+    if (String(inv.id).startsWith('INV-')) return true;
+    return inv.paymentStatus === 'paid';
+  });
+
+  unifiedInvoices.forEach(inv => {
     const seenSuppliers = new Set<string>();
     (inv.items || []).forEach((item: any) => {
       const prod = productMap.get(String(item.productId));
