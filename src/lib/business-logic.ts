@@ -74,11 +74,61 @@ export function getSupplierLedgerForState(
           .map(p => String(p.id))
       );
 
-  const invoicesSource = invoicesBySupplierMap 
+  const storedInvoices = (state.invoices || []).filter(inv => !inv.isDeleted);
+  const invoiceSource = invoicesBySupplierMap
     ? (invoicesBySupplierMap.get(String(supId)) || [])
-    : (state.invoices || []).filter(inv => !inv.isDeleted);
+    : storedInvoices;
 
-  // 1. Invoices
+  // Website purchases are stored first in `orders`. The supplier ledger historically
+  // read only `invoices`, so a successfully paid customer order could be visible in
+  // orders while remaining completely absent from supplier dues. Include paid orders
+  // as a ledger-only fallback until/if a real linked invoice exists. This does not
+  // modify payment, invoice, notification, stock, or order records.
+  const invoiceIdentityKeys = new Set<string>();
+  storedInvoices.forEach((inv: any) => {
+    [
+      inv?.id,
+      inv?.invoiceId,
+      inv?.invoiceNo,
+      inv?.invoiceNumber,
+      inv?.linkedOrderId,
+      inv?.sourceOrderId,
+      inv?.orderId,
+    ].forEach((value) => {
+      const key = String(value || '').trim();
+      if (key) invoiceIdentityKeys.add(key);
+    });
+  });
+
+  const paidOrderFallbacks = (state.orders || [])
+    .filter((order: any) => {
+      if (!order || order.isDeleted) return false;
+      const status = String(order.status || '').trim();
+      if (status.toLowerCase().includes('cancel') || status.includes('ملغي')) return false;
+
+      const paid = order.paid === true
+        || isPaidStatus(order.paymentStatus)
+        || isPaidStatus(order.payment_status)
+        || isPaidStatus(order.status);
+      if (!paid) return false;
+
+      const orderId = String(order.id || order.orderId || order.orderNo || '').trim();
+      const linkedInvoiceId = String(order.linkedInvoiceId || order.invoiceId || order.invoiceNo || '').trim();
+
+      // Once the actual invoice is present, it remains the single source of supplier dues.
+      if (orderId && invoiceIdentityKeys.has(orderId)) return false;
+      if (linkedInvoiceId && invoiceIdentityKeys.has(linkedInvoiceId)) return false;
+      return Array.isArray(order.items) && order.items.length > 0;
+    })
+    .map((order: any) => ({
+      ...order,
+      date: order.date || order.createdAt || order.updatedAt || new Date().toISOString(),
+      __supplierLedgerSource: 'paid_order',
+    }));
+
+  const invoicesSource = [...invoiceSource, ...paidOrderFallbacks];
+
+  // 1. Invoices and paid website orders awaiting an invoice mirror
   invoicesSource.forEach(inv => {
     // Collect products of this supplier in the invoice
     const itemsForThisSupplier = (inv.items || []).filter(item => {
@@ -156,19 +206,24 @@ export function getSupplierLedgerForState(
     const supplierDue = roundKwd(supplierCost + supplierDelivery);
 
     if (supplierDue > 0) {
+      const isPaidOrderFallback = (inv as any).__supplierLedgerSource === 'paid_order';
+      const referenceId = String((inv as any).id || (inv as any).orderId || (inv as any).invoiceId || '');
       transactions.push({
-        id: `inv-${inv.id}`,
+        id: `${isPaidOrderFallback ? 'order' : 'inv'}-${referenceId}`,
         supplierId: supId,
         date: inv.date,
         type: 'invoice',
+        sourceType: isPaidOrderFallback ? 'paid_order' : 'invoice',
         amount: supplierDue, // Positive (Obligation)
         supplyAmount: supplierCost,
         addonsSupplyAmount: supplierAddonsCost,
         productsSupplyAmount: roundKwd(supplierCost - supplierAddonsCost),
         deliveryAmount: supplierDelivery,
         revenue: supplierRevenue,
-        refId: inv.id,
-        label: supplierCost > 0 ? `فاتورة توريد #${inv.id}` : `فاتورة توصيل #${inv.id}`,
+        refId: referenceId,
+        label: supplierCost > 0
+          ? `${isPaidOrderFallback ? 'طلب' : 'فاتورة'} توريد #${referenceId}`
+          : `${isPaidOrderFallback ? 'طلب' : 'فاتورة'} توصيل #${referenceId}`,
         items: itemsForThisSupplier
       });
     }
