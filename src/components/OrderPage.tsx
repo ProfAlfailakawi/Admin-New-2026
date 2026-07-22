@@ -1897,32 +1897,32 @@ Alturath.kw`;
       {/* Order Details Modal */}
       <AnimatePresence>
         {selectedOrder && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-3 md:p-4 admin-order-details-modal">
+          <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto admin-order-details-modal">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedOrder(null)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-5xl rounded-2xl md:rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] relative overflow-hidden flex flex-col max-h-[95dvh] md:max-h-[90dvh] border border-white/10 mx-auto"
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl relative overflow-hidden flex flex-col my-auto max-h-[85vh] md:max-h-[88vh] border border-slate-200 z-10"
             >
               {/* Modal Header */}
-              <div className="p-3 md:p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="px-4 py-3 md:px-5 md:py-3.5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0 sticky top-0 z-20 shadow-xs">
                 <div>
-                  <h2 className="text-lg md:text-xl font-bold text-slate-900">
+                  <h2 className="text-base md:text-lg font-bold text-slate-900">
                     تفاصيل الطلب #{selectedOrder.id.slice(-6)}
                   </h2>
                 </div>
                 <button
                   onClick={() => setSelectedOrder(null)}
-                  className="p-2 hover:bg-slate-100 rounded-xl transition-all"
+                  className="p-1.5 hover:bg-slate-100 rounded-xl transition-all text-slate-500 hover:text-slate-800 cursor-pointer"
                 >
-                  <XCircle className="text-slate-500" size={24} />
+                  <XCircle size={22} />
                 </button>
               </div>
 
@@ -2894,7 +2894,6 @@ Alturath.kw`;
                                   );
                                 }
 
-                                // If there's a selectedOrder.createdAt or date, show the time alongside the address
                                 if (!timeStr) {
                                   let dateObj = null;
                                   const ca = (selectedOrder as any).createdAt;
@@ -2909,7 +2908,6 @@ Alturath.kw`;
                                     timeStr = formatKuwaitiDate(dateObj).full;
                                   }
                                 } else {
-                                  // If timeStr came from addr.time, append the date if possible
                                   let dateObj = null;
                                   const ca = (selectedOrder as any).createdAt;
                                   if (ca) {
@@ -2950,6 +2948,56 @@ Alturath.kw`;
                               })()}
                             </div>
                           </div>
+
+                          {/* Requested Delivery Date & Time (Admin Editable) */}
+                          <div className="mt-3 bg-amber-500/15 border border-amber-400/40 rounded-xl p-3 space-y-2">
+                            <div className="flex items-center justify-between text-amber-300 font-bold text-xs">
+                              <span className="flex items-center gap-1.5">
+                                <Clock size={14} className="text-amber-400" />
+                                <span>موعد التوصيل المطلوب للعميل</span>
+                              </span>
+                              {(orderDeliveryDate || orderDeliveryTime) && (
+                                <span className="bg-amber-400/20 text-amber-200 text-[9px] px-2 py-0.5 rounded-full font-bold">
+                                  محدد
+                                </span>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 pt-1">
+                              <div>
+                                <span className="block text-[10px] text-white/70 font-bold mb-1">تاريخ التوصيل</span>
+                                <input
+                                  type="date"
+                                  lang="en-GB" dir="ltr"
+                                  value={orderDeliveryDate}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setOrderDeliveryDate(val);
+                                    if (selectedOrder) {
+                                      updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryDate: val });
+                                    }
+                                  }}
+                                  className="w-full bg-slate-800/90 border border-amber-400/40 text-white rounded-lg px-2.5 py-1.5 text-center font-bold text-xs outline-none focus:ring-2 focus:ring-amber-400/50 [color-scheme:dark]"
+                                />
+                              </div>
+                              <div>
+                                <span className="block text-[10px] text-white/70 font-bold mb-1">وقت التوصيل</span>
+                                <input
+                                  type="time"
+                                  lang="en-GB" dir="ltr"
+                                  value={orderDeliveryTime}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setOrderDeliveryTime(val);
+                                    if (selectedOrder) {
+                                      updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: val });
+                                    }
+                                  }}
+                                  className="w-full bg-slate-800/90 border border-amber-400/40 text-white rounded-lg px-2.5 py-1.5 text-center font-bold text-xs outline-none focus:ring-2 focus:ring-amber-400/50 [color-scheme:dark]"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
                           {!isReadOnly && !isPartner && (
                             <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-white/10 space-y-2 md:space-y-3">
                               <label className="text-white/50 font-bold text-[10px] md:text-[11px] uppercase block">
@@ -2987,47 +3035,6 @@ Alturath.kw`;
                                     {type.label}
                                   </button>
                                 ))}
-                              </div>
-
-                              <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
-                                <label className="text-amber-300 font-bold text-[10px] md:text-[11px] flex items-center gap-1">
-                                  <Clock size={13} className="text-amber-400" />
-                                  <span>موعد التوصيل المطلوب (اختياري للإدارة)</span>
-                                </label>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div>
-                                    <span className="block text-[9px] text-white/50 mb-1">تاريخ التوصيل</span>
-                                    <input
-                                      type="date"
-                                      lang="en-GB" dir="ltr"
-                                      value={orderDeliveryDate}
-                                      onChange={(e) => {
-                                        const val = e.target.value;
-                                        setOrderDeliveryDate(val);
-                                        if (selectedOrder) {
-                                          updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryDate: val });
-                                        }
-                                      }}
-                                      className="w-full bg-white/10 border border-white/15 text-white rounded-lg px-2 py-1.5 text-center font-bold text-xs outline-none focus:border-amber-400 [color-scheme:dark]"
-                                    />
-                                  </div>
-                                  <div>
-                                    <span className="block text-[9px] text-white/50 mb-1">وقت التوصيل</span>
-                                    <input
-                                      type="time"
-                                      lang="en-GB" dir="ltr"
-                                      value={orderDeliveryTime}
-                                      onChange={(e) => {
-                                        const val = e.target.value;
-                                        setOrderDeliveryTime(val);
-                                        if (selectedOrder) {
-                                          updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: val });
-                                        }
-                                      }}
-                                      className="w-full bg-white/10 border border-white/15 text-white rounded-lg px-2 py-1.5 text-center font-bold text-xs outline-none focus:border-amber-400 [color-scheme:dark]"
-                                    />
-                                  </div>
-                                </div>
                               </div>
                             </div>
                           )}
