@@ -163,15 +163,25 @@ export function formatDeliveryTimeDisplay(timeStr?: string): string {
   if (!timeStr) return '';
   const trimmed = String(timeStr).trim();
   if (!trimmed) return '';
-  if (trimmed.includes('م') || trimmed.includes('ص') || trimmed.toLowerCase().includes('pm') || trimmed.toLowerCase().includes('am')) {
+
+  // If already contains Arabic morning/evening indicator
+  if (trimmed.includes('م') || trimmed.includes('ص')) {
     return trimmed;
   }
+
+  // Handle AM/PM
+  if (trimmed.toLowerCase().includes('pm') || trimmed.toLowerCase().includes('am')) {
+    const isPm = trimmed.toLowerCase().includes('pm');
+    const cleanTime = trimmed.replace(/pm|am/gi, '').trim();
+    return `${cleanTime} ${isPm ? 'م' : 'ص'}`;
+  }
+
   const parts = trimmed.split(':');
   if (parts.length >= 2) {
     let hours = parseInt(parts[0], 10);
     const minutes = parts[1].slice(0, 2);
     if (!isNaN(hours)) {
-      const period = hours >= 12 ? 'مساءً' : 'صباحاً';
+      const period = hours >= 12 ? 'م' : 'ص';
       hours = hours % 12;
       if (hours === 0) hours = 12;
       const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;

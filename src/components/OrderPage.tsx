@@ -1762,6 +1762,27 @@ Alturath.kw`;
                           })()}
                         </span>
                       </div>
+                      {(() => {
+                        const delDateRaw = (order as any).deliveryDate || (order as any).deliveryDateKey;
+                        const delTimeRaw = (order as any).deliveryTime;
+                        const delDateFormatted = formatDeliveryDateDisplay(delDateRaw);
+                        const delTimeFormatted = formatDeliveryTimeDisplay(delTimeRaw);
+
+                        if (!delDateFormatted && !delTimeFormatted) return null;
+
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5 text-[10px] md:text-[11px] text-amber-900 bg-amber-500/15 border border-amber-400/40 px-2 py-1 rounded-lg font-bold my-1 w-fit">
+                            <Clock size={11} className="text-amber-600 shrink-0" />
+                            <span>وقت التوصيل:</span>
+                            {delDateFormatted && <span dir="ltr" className="text-slate-900 font-black">{delDateFormatted}</span>}
+                            {delTimeFormatted && (
+                              <span dir="ltr" className="bg-amber-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 whitespace-nowrap">
+                                {delTimeFormatted}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="space-y-1.5 border-t border-slate-50 pt-2 opacity-80">
@@ -1897,7 +1918,7 @@ Alturath.kw`;
       {/* Order Details Modal */}
       <AnimatePresence>
         {selectedOrder && (
-          <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto admin-order-details-modal">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-y-auto admin-order-details-modal">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1909,20 +1930,21 @@ Alturath.kw`;
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl relative overflow-hidden flex flex-col my-auto max-h-[85vh] md:max-h-[88vh] border border-slate-200 z-10"
+              className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl relative overflow-hidden flex flex-col my-auto max-h-[88vh] border border-slate-200 z-10"
             >
               {/* Modal Header */}
-              <div className="px-4 py-3 md:px-5 md:py-3.5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0 sticky top-0 z-20 shadow-xs">
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0 sticky top-0 z-20">
                 <div>
-                  <h2 className="text-base md:text-lg font-bold text-slate-900">
+                  <h2 className="text-base md:text-lg font-black text-slate-900">
                     تفاصيل الطلب #{selectedOrder.id.slice(-6)}
                   </h2>
                 </div>
                 <button
                   onClick={() => setSelectedOrder(null)}
-                  className="p-1.5 hover:bg-slate-100 rounded-xl transition-all text-slate-500 hover:text-slate-800 cursor-pointer"
+                  className="p-1.5 hover:bg-slate-200/80 rounded-xl transition-all text-slate-500 hover:text-slate-800 cursor-pointer"
+                  title="إغلاق"
                 >
-                  <XCircle size={22} />
+                  <XCircle size={24} />
                 </button>
               </div>
 
