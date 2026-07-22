@@ -74,6 +74,7 @@ import { db, auth, getSmartDoc } from "../firebase";
 import { Toggle } from "./ui/Toggle";
 import { INITIAL_DATA } from "../data";
 import { readLogicalAppDataShard, writeLogicalAppDataShard } from "../lib/firestoreShardStorage";
+import { isFailedStatus, isPaidStatus } from "../lib/status-utils";
 
 import { EnableNotificationsButton } from "./EnableNotificationsButton";
 import {
@@ -3117,7 +3118,8 @@ const GeneralSettings: React.FC<Props> = ({
                 "info",
               );
               onCloudImport(validatedData)
-                .then(() => {
+                .then((saved) => {
+                  if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
                   addToast(
                     "تمت العملية",
                     "تم استيراد النسخة ومزامنتها سحابياً بنجاح ✨",
@@ -3134,11 +3136,10 @@ const GeneralSettings: React.FC<Props> = ({
                   );
                 });
             } else {
-              setData(validatedData);
               addToast(
-                "تمت العملية",
-                "تم استيراد البيانات والتحليلات محلياً بنجاح",
-                "success",
+                "السحابة مطلوبة",
+                "لا يمكن استيراد البيانات دون اتصال سحابي موثّق.",
+                "warning",
               );
             }
           } else {
@@ -3528,10 +3529,52 @@ const GeneralSettings: React.FC<Props> = ({
               ) {
                 throw new Error(`INVALID_RAW_INVOICE_BACKUP_ROW:${invoiceIndex + 2}`);
               }
+              // rawInvoice is only a completeness fallback. The visible Excel columns are
+              // authoritative because they contain the latest reviewed payment/status values.
+              const explicitInvoiceColumns = Object.fromEntries(
+                Object.entries(inv).filter(([, value]) => value !== "" && value !== null && value !== undefined),
+              );
               const merged =
                 rawInvoice && typeof rawInvoice === "object" && !Array.isArray(rawInvoice)
-                  ? { ...rawInvoice }
-                  : { ...inv };
+                  ? { ...rawInvoice, ...explicitInvoiceColumns }
+                  : { ...explicitInvoiceColumns };
+
+              // Resolve payment state generically from the latest explicit Excel fields,
+              // with rawInvoice used only as a fallback for missing details. This prevents
+              // stale nested snapshots from downgrading a paid invoice without hardcoding IDs.
+              const resolvedAsPaid =
+                isPaidStatus(merged.paymentStatus) ||
+                isPaidStatus(merged.payment_status) ||
+                isPaidStatus(merged.status) ||
+                merged.paid === true;
+              const resolvedAsFailed =
+                !resolvedAsPaid &&
+                (
+                  isFailedStatus(merged.paymentStatus) ||
+                  isFailedStatus(merged.payment_status) ||
+                  isFailedStatus(merged.status) ||
+                  merged.failed === true
+                );
+
+              if (resolvedAsPaid) {
+                merged.paymentStatus = "paid";
+                merged.payment_status = "paid";
+                merged.status = isPaidStatus(merged.status)
+                  ? merged.status
+                  : "تم الدفع بنجاح";
+                merged.paid = true;
+                merged.failed = false;
+                merged.canPay = false;
+              } else if (resolvedAsFailed) {
+                merged.paymentStatus = "failed";
+                merged.payment_status = "failed";
+                merged.status = isFailedStatus(merged.status)
+                  ? merged.status
+                  : "فشلت عملية الدفع";
+                merged.paid = false;
+                merged.failed = true;
+                merged.canPay = true;
+              }
 
               const isDeleted =
                 merged.isDeleted === true ||
@@ -3609,10 +3652,13 @@ const GeneralSettings: React.FC<Props> = ({
               ) {
                 throw new Error(`INVALID_RAW_ORDER_BACKUP_ROW:${orderIndex + 2}`);
               }
+              const explicitOrderColumns = Object.fromEntries(
+                Object.entries(o).filter(([, value]) => value !== "" && value !== null && value !== undefined),
+              );
               const merged =
                 rawOrder && typeof rawOrder === "object" && !Array.isArray(rawOrder)
-                  ? { ...rawOrder }
-                  : { ...o };
+                  ? { ...rawOrder, ...explicitOrderColumns }
+                  : { ...explicitOrderColumns };
               const parsedItems = parseSafeJson(merged.items, true);
               const parsedAddress =
                 parseSafeJson(merged.address, false) ||
@@ -3663,7 +3709,8 @@ const GeneralSettings: React.FC<Props> = ({
                   "info",
                 );
                 onCloudImport(finalizedState)
-                  .then(() => {
+                  .then((saved) => {
+                    if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
                     addToast(
                       "تمت العملية",
                       `تم استيراد ${importIntegrity.invoiceRows} فاتورة و${importIntegrity.invoiceItemRows} بند و${importIntegrity.orderRows} طلب، ثم التحقق من حفظها سحابياً بنجاح ✨${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ""}`,
@@ -3672,36 +3719,18 @@ const GeneralSettings: React.FC<Props> = ({
                   })
                   .catch((err) => {
                     console.error("Cloud Excel import failed:", err);
-                    // Keep the imported file visible locally without overwriting another cloud account.
-                    setData(finalizedState);
-                    try {
-                      setProtectedStorageItem(
-                        "ktk_cloud_offline_snapshot_last_good",
-                        JSON.stringify(finalizedState),
-                      );
-                      setProtectedStorageItem(
-                        "ktk_cloud_offline_snapshot",
-                        JSON.stringify(finalizedState),
-                      );
-                    } catch (storageErr) {
-                      console.warn(
-                        "Could not keep imported cloud fallback locally:",
-                        storageErr,
-                      );
-                    }
                     addToast(
-                      "فشل الحفظ السحابي",
-                      "تم إبقاء الاستيراد محلياً داخل هذا المتصفح، لكن Firestore رفض الحفظ: " +
+                      "لم يُعتمد الاستيراد",
+                      "رفضت السحابة الحفظ، لذلك لم يتم تطبيق البيانات داخل النظام ولم تُحفظ نسخة تشغيل محلية. أعد المحاولة بعد عودة الاتصال: " +
                         (err instanceof Error ? err.message : String(err)),
                       "warning",
                     );
                   });
               } else {
-                setData(finalizedState);
                 addToast(
-                  "تمت العملية",
-                  `تم استيراد ${importIntegrity.invoiceRows} فاتورة و${importIntegrity.invoiceItemRows} بند و${importIntegrity.orderRows} طلب، ومزامنة الأرصدة محلياً بنجاح${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ""}`,
-                  "success",
+                  "السحابة مطلوبة",
+                  "لا يمكن استيراد أو تشغيل البيانات دون اتصال سحابي موثّق.",
+                  "warning",
                 );
               }
             } catch (renderError) {

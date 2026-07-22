@@ -14,8 +14,7 @@ import {
   getDocFromServer,
   deleteDoc,
   setLogLevel,
-  persistentLocalCache,
-  persistentMultipleTabManager
+  memoryLocalCache
 } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { toast } from 'sonner';
@@ -37,11 +36,11 @@ export const storage = getStorage(app);
 
 console.log("Firebase App Initialized with project:", activeConfig.projectId);
 
-// PERFORMANCE: Using persistentLocalCache (IndexedDB) for fast startup.
-// Data is served instantly from disk on every open, and Firestore syncs only the delta (changes).
-// This replaces memoryLocalCache which forced a full network fetch on every single app open.
-export const db = initializeFirestore(app, { 
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+// CLOUD-ONLY DATA POLICY: keep Firestore data in memory only.
+// No IndexedDB persistence and no offline write queue survive a reload. The application
+// blocks all interaction whenever the live cloud connection is not confirmed.
+export const db = initializeFirestore(app, {
+  localCache: memoryLocalCache()
 }, (firebaseConfig as any).firestoreDatabaseId);
 console.log("Firestore initialized with DB ID:", (firebaseConfig as any).firestoreDatabaseId);
 
