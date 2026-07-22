@@ -23,7 +23,7 @@ import {
   Dices,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { cn, normalizeArabic, robustNormalize, normalizeArabicNumerals, formatKuwaitiDate, formatKuwaitiDateOnly } from '../lib/utils';
+import { cn, normalizeArabic, robustNormalize, normalizeArabicNumerals, formatKuwaitiDate, formatKuwaitiDateOnly, formatDeliveryDateDisplay, formatDeliveryTimeDisplay, parseTimeTo24h } from '../lib/utils';
 import {
   recalculateStateBalances,
   generateNextInvoiceId,
@@ -1742,23 +1742,31 @@ Alturath.kw`;
                           })()}
                         </span>
                       </div>
-                      <div className="flex items-start text-[10px] md:text-[11px] text-slate-500 font-bold gap-1.5 md:gap-2">
+                      <div className="flex items-start text-[10px] md:text-[11px] text-slate-700 font-extrabold gap-1.5 md:gap-2 bg-slate-100/70 border border-slate-200/50 px-2 py-1 rounded-lg my-1 w-full">
                         <MapPin
-                          size={10}
-                          className="md:w-[12px] opacity-40 shrink-0 mt-0.5"
+                          size={12}
+                          className="text-slate-500 shrink-0 mt-0.5"
                         />
-                        <span className="line-clamp-1">
+                        <span className="line-clamp-2">
                           {(() => {
                             const addr = (order as any).address;
-                            let parts = [];
-                            if (addr && typeof addr === "object") {
-                              if (addr.region) parts.push(addr.region);
-                              if (addr.block) parts.push(`ق${addr.block}`);
-                              if (addr.street) parts.push(`ش${addr.street}`);
+                            if (!addr) {
+                              return order.regionId || "غير محدد";
                             }
-                            return parts.length > 0
-                              ? parts.join(" - ")
-                              : order.regionId || "غير محدد";
+                            if (typeof addr === "string") {
+                              return addr;
+                            }
+                            if (typeof addr === "object") {
+                              let parts = [];
+                              if (addr.region) parts.push(addr.region);
+                              if (addr.block) parts.push(`قطعة ${addr.block}`);
+                              if (addr.street) parts.push(`شارع ${addr.street}`);
+                              if (addr.house || addr.building) parts.push(`منزل ${addr.house || addr.building}`);
+                              if (addr.floor) parts.push(`دور ${addr.floor}`);
+                              if (addr.apartment) parts.push(`شقة ${addr.apartment}`);
+                              if (parts.length > 0) return parts.join(" - ");
+                            }
+                            return order.regionId || "غير محدد";
                           })()}
                         </span>
                       </div>
@@ -1771,12 +1779,12 @@ Alturath.kw`;
                         if (!delDateFormatted && !delTimeFormatted) return null;
 
                         return (
-                          <div className="flex flex-wrap items-center gap-1.5 text-[10px] md:text-[11px] text-amber-900 bg-amber-500/15 border border-amber-400/40 px-2 py-1 rounded-lg font-bold my-1 w-fit">
-                            <Clock size={11} className="text-amber-600 shrink-0" />
-                            <span>وقت التوصيل:</span>
-                            {delDateFormatted && <span dir="ltr" className="text-slate-900 font-black">{delDateFormatted}</span>}
+                          <div className="flex flex-wrap items-center gap-1.5 text-[10px] md:text-[11px] text-amber-900 bg-amber-500/15 border border-amber-400/40 px-2.5 py-1.5 rounded-lg font-bold my-1 w-full">
+                            <Clock size={12} className="text-amber-600 shrink-0" />
+                            <span className="font-bold">التوصيل المطلوب:</span>
+                            {delDateFormatted && <span dir="ltr" className="text-slate-900 font-black bg-white/60 px-1 py-0.5 rounded">{delDateFormatted}</span>}
                             {delTimeFormatted && (
-                              <span dir="ltr" className="bg-amber-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 whitespace-nowrap">
+                              <span dir="ltr" className="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded font-black shrink-0 whitespace-nowrap">
                                 {delTimeFormatted}
                               </span>
                             )}
@@ -3006,12 +3014,13 @@ Alturath.kw`;
                                 <input
                                   type="time"
                                   lang="en-GB" dir="ltr"
-                                  value={orderDeliveryTime}
+                                  value={parseTimeTo24h(orderDeliveryTime)}
                                   onChange={(e) => {
                                     const val = e.target.value;
-                                    setOrderDeliveryTime(val);
+                                    const formattedVal = val ? formatDeliveryTimeDisplay(val) : "";
+                                    setOrderDeliveryTime(formattedVal);
                                     if (selectedOrder) {
-                                      updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: val });
+                                      updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: formattedVal });
                                     }
                                   }}
                                   className="w-full bg-slate-800/90 border border-amber-400/40 text-white rounded-lg px-2.5 py-1.5 text-center font-bold text-xs outline-none focus:ring-2 focus:ring-amber-400/50 [color-scheme:dark]"

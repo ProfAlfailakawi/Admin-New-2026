@@ -57,6 +57,8 @@ import {
   getKuwaitDateInputValue,
   mergeKuwaitDateWithTime,
   resolveInvoiceDisplayDate,
+  parseTimeTo24h,
+  formatDeliveryTimeDisplay,
 } from "../lib/utils";
 import {
   computeInvoiceTotal,
@@ -1484,8 +1486,11 @@ Alturath.kw`;
                     <input
                       type="time"
                       lang="en-GB" dir="ltr"
-                      value={deliveryTime}
-                      onChange={(e) => setDeliveryTime(e.target.value)}
+                      value={parseTimeTo24h(deliveryTime)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setDeliveryTime(val ? formatDeliveryTimeDisplay(val) : "");
+                      }}
                       className="w-full bg-white border border-amber-200/90 rounded-xl px-2 py-2 text-center font-bold text-xs outline-none transition-all focus:ring-2 focus:ring-amber-500/30 [color-scheme:light]"
                     />
                   </div>
