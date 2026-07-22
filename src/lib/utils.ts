@@ -5,10 +5,139 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const coerceDateValue = (dateVal: any): Date | null => {
+  if (!dateVal) return null;
+  try {
+    if (dateVal instanceof Date) {
+      return Number.isFinite(dateVal.getTime()) ? dateVal : null;
+    }
+    if (typeof dateVal?.toDate === 'function') {
+      const converted = dateVal.toDate();
+      return converted instanceof Date && Number.isFinite(converted.getTime()) ? converted : null;
+    }
+    if (typeof dateVal?.seconds === 'number') {
+      const converted = new Date(dateVal.seconds * 1000 + Number(dateVal.nanoseconds || 0) / 1_000_000);
+      return Number.isFinite(converted.getTime()) ? converted : null;
+    }
+    if (typeof dateVal === 'string') {
+      const trimmed = dateVal.trim();
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (typeof parsed?.seconds === 'number') {
+            const converted = new Date(parsed.seconds * 1000 + Number(parsed.nanoseconds || 0) / 1_000_000);
+            return Number.isFinite(converted.getTime()) ? converted : null;
+          }
+        } catch {
+          // Fall through to the native date parser for ordinary date strings.
+        }
+      }
+    }
+    const converted = new Date(dateVal);
+    return Number.isFinite(converted.getTime()) ? converted : null;
+  } catch {
+    return null;
+  }
+};
+
+const getKuwaitDateParts = (dateVal: any) => {
+  const date = coerceDateValue(dateVal) || new Date();
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kuwait',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const getPart = (type: string) => parts.find((part) => part.type === type)?.value || '';
+  return {
+    year: getPart('year'),
+    month: getPart('month'),
+    day: getPart('day'),
+    hour: getPart('hour'),
+    minute: getPart('minute'),
+    second: getPart('second'),
+  };
+};
+
+/** Returns the calendar date currently shown in Kuwait, never the UTC date. */
+export const getKuwaitDateInputValue = (dateVal: any = new Date()): string => {
+  const parts = getKuwaitDateParts(dateVal);
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
+
+/**
+ * Combines a selected Kuwait calendar day with the current Kuwait clock time.
+ * Kuwait is UTC+03:00 year-round, so this avoids the after-midnight UTC rollback
+ * that previously stored a new invoice under the previous day.
+ */
+export const mergeKuwaitDateWithTime = (dateKey: string, timeSource: any = new Date()): string => {
+  const match = String(dateKey || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const time = coerceDateValue(timeSource) || new Date();
+  if (!match) return time.toISOString();
+
+  const clock = getKuwaitDateParts(time);
+  const [, year, month, day] = match;
+  const utcMillis = Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(clock.hour) - 3,
+    Number(clock.minute),
+    Number(clock.second),
+    time.getUTCMilliseconds(),
+  );
+  return new Date(utcMillis).toISOString();
+};
+
+export const getKuwaitDayRange = (dateKey: string): { start: number; end: number } | null => {
+  const match = String(dateKey || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const [, year, month, day] = match;
+  const start = Date.UTC(Number(year), Number(month) - 1, Number(day), -3, 0, 0, 0);
+  return { start, end: start + 24 * 60 * 60 * 1000 - 1 };
+};
+
+/**
+ * Repairs only the recognizable legacy after-midnight timestamp signature for display.
+ * It is data-driven and applies to every invoice with the same signature; no invoice ID
+ * or payment state is special-cased. New invoices carry invoiceDateKey and never need it.
+ */
+export const resolveInvoiceDisplayDate = (invoice: any): any => {
+  const primary = invoice?.date || invoice?.invoiceDate || invoice?.createdAt || invoice?.issuedAt || invoice?.updatedAtServer || invoice?.updatedAt;
+  const primaryDate = coerceDateValue(primary);
+  if (!primaryDate) return primary;
+  if (invoice?.invoiceDateKey) return primary;
+
+  const updatedRaw = invoice?.issuedAt || invoice?.updatedAtServer || invoice?.updatedAt;
+  const updatedDate = coerceDateValue(updatedRaw);
+  const createdDate = coerceDateValue(invoice?.createdAt);
+  if (!updatedDate || updatedDate <= primaryDate) return primary;
+
+  const delta = updatedDate.getTime() - primaryDate.getTime();
+  const oneDaySignature = delta >= 23.75 * 60 * 60 * 1000 && delta <= 24.25 * 60 * 60 * 1000;
+  const createdMatchesPrimary = !createdDate || Math.abs(createdDate.getTime() - primaryDate.getTime()) < 60_000;
+  const primaryClock = getKuwaitDateParts(primaryDate);
+  const updatedClock = getKuwaitDateParts(updatedDate);
+  const sameClock = primaryClock.hour === updatedClock.hour && Math.abs(Number(primaryClock.minute) - Number(updatedClock.minute)) <= 2;
+  const occurredAfterMidnight = Number(updatedClock.hour) < 3;
+
+  return oneDaySignature && createdMatchesPrimary && sameClock && occurredAfterMidnight
+    ? updatedRaw
+    : primary;
+};
+
+export const getInvoiceSortTimestamp = (invoice: any): number => {
+  const resolved = coerceDateValue(resolveInvoiceDisplayDate(invoice));
+  return resolved?.getTime() || 0;
+};
+
 export const formatKuwaitiDate = (dateVal: any): { date: string; time: string; full: string } => {
-  if (!dateVal) return { date: '', time: '', full: '' };
-  const d = new Date(dateVal);
-  if (isNaN(d.getTime())) return { date: '', time: '', full: '' };
+  const d = coerceDateValue(dateVal);
+  if (!d) return { date: '', time: '', full: '' };
 
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Asia/Kuwait',
@@ -22,7 +151,7 @@ export const formatKuwaitiDate = (dateVal: any): { date: string; time: string; f
 
   const getPart = (type: string) => parts.find((part) => part.type === type)?.value || '';
   const date = `${getPart('day')}/${getPart('month')}/${getPart('year')}`;
-  const time = `${getPart('hour')}.${getPart('minute')}${getPart('dayPeriod').toUpperCase()}`;
+  const time = `${getPart('hour')}:${getPart('minute')} ${getPart('dayPeriod').toUpperCase()}`;
 
   return { date, time, full: `${date} ${time}` };
 };
@@ -330,7 +459,17 @@ export function getUnifiedInvoices(data: any): any[] {
 
 export const normalizePhoneDigits = (value: any): string => {
   const normalized = normalizeArabicNumerals(String(value ?? ''));
-  return normalized.replace(/\D/g, '').slice(0, 8);
+  let digits = normalized.replace(/\D/g, '');
+  if (digits.startsWith('00965')) digits = digits.slice(5);
+  else if (digits.length > 8 && digits.startsWith('965')) digits = digits.slice(3);
+  if (digits.length > 8) digits = digits.slice(-8);
+  return digits.slice(0, 8);
+};
+
+export const phonesMatch = (left: any, right: any): boolean => {
+  const a = normalizePhoneDigits(left);
+  const b = normalizePhoneDigits(right);
+  return a.length === 8 && b.length === 8 && a === b;
 };
 
 export const normalizeAddressNumber = (value: any): string => {

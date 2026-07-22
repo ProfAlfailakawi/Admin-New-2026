@@ -25,7 +25,7 @@ const isSuccessfulPayerForDisplay = (payer: any) => {
   );
 };
 
-import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly, formatKuwaitiTimeOnly } from '../lib/utils';
+import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly, formatKuwaitiTimeOnly, resolveInvoiceDisplayDate, getInvoiceSortTimestamp, coerceDateValue, getKuwaitDateInputValue, getKuwaitDayRange } from '../lib/utils';
 import { db } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import React, { useState, useEffect, useMemo } from "react";
@@ -473,36 +473,34 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           normalizeArabic(noteStr).includes(normSearch);
 
         if (timeFilter === "all") return matchesSearch;
-        const invDate = new Date(inv.date);
+        const invDate = coerceDateValue(resolveInvoiceDisplayDate(inv));
+        if (!invDate) return false;
+        const invTime = invDate.getTime();
         const now = new Date();
-        if (timeFilter === "today")
-          return matchesSearch && invDate.toDateString() === now.toDateString();
+        if (timeFilter === "today") {
+          return matchesSearch && getKuwaitDateInputValue(invDate) === getKuwaitDateInputValue(now);
+        }
         if (timeFilter === "week") {
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          return matchesSearch && invDate >= weekAgo;
+          const weekAgo = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+          return matchesSearch && invTime >= weekAgo;
         }
         if (timeFilter === "month") {
-          const monthAgo = new Date(
-            now.getFullYear(),
-            now.getMonth() - 1,
-            now.getDate(),
-          );
-          return matchesSearch && invDate >= monthAgo;
+          const monthAgo = now.getTime() - 31 * 24 * 60 * 60 * 1000;
+          return matchesSearch && invTime >= monthAgo;
         }
         if (timeFilter === "custom") {
-          const start = new Date(startDate);
-          start.setHours(0, 0, 0, 0);
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          return matchesSearch && invDate >= start && invDate <= end;
+          const startRange = getKuwaitDayRange(startDate);
+          const endRange = getKuwaitDayRange(endDate);
+          if (!startRange || !endRange) return false;
+          return matchesSearch && invTime >= startRange.start && invTime <= endRange.end;
         }
         return matchesSearch;
       })
       .sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
+        const dateA = getInvoiceSortTimestamp(a);
+        const dateB = getInvoiceSortTimestamp(b);
         if (dateB !== dateA) return dateB - dateA;
-        return b.id.localeCompare(a.id);
+        return String(b.id || "").localeCompare(String(a.id || ""), "en", { numeric: true });
       });
 
     const supplierFinancialRows = React.useMemo(() => {
@@ -1347,13 +1345,13 @@ Alturath.kw`;
                                 <td className="p-3 md:p-3 text-slate-500 text-xs font-bold">
                                   <div className="flex flex-col gap-1 items-start">
                                     <span>
-                                      {formatKuwaitiDateOnly(inv.date)}
+                                      {formatKuwaitiDateOnly(resolveInvoiceDisplayDate(inv))}
                                     </span>
                                     <span
                                       dir="ltr"
                                       className="text-[10px] font-medium text-slate-500 m-0 p-0 leading-none inline-block text-left"
                                     >
-                                      {formatKuwaitiTimeOnly(inv.date)}
+                                      {formatKuwaitiTimeOnly(resolveInvoiceDisplayDate(inv))}
                                     </span>
                                     {(() => {
                                       const meta = getDeliveryTypeMeta((inv as any).deliveryType || "company");

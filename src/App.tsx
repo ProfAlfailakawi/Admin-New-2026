@@ -1726,6 +1726,16 @@ const MainApp: React.FC = () => {
     brand: false,
     settings: false
   });
+
+  useEffect(() => {
+    const invoicePages = new Set(['new-invoice', 'invoices-list', 'customers', 'whatsapp-support']);
+    const operationPages = new Set(['products', 'expenses', 'suppliers', 'suppliers-audit']);
+    if (invoicePages.has(currentPage)) {
+      setExpandedMenus(prev => prev.invoices ? prev : { ...prev, invoices: true, operations: false });
+    } else if (operationPages.has(currentPage)) {
+      setExpandedMenus(prev => prev.operations ? prev : { ...prev, operations: true, invoices: false });
+    }
+  }, [currentPage]);
   
   const [data, setRawData] = useState<AppState>(INITIAL_DATA);
   // Keep an immediate, synchronous pointer to the newest accepted state. Firestore shard
@@ -3661,6 +3671,17 @@ const MainApp: React.FC = () => {
     });
   };
 
+  const navigateFromSidebar = (page: string, options?: { resetInvoice?: boolean }) => {
+    preloadAdminPage(page);
+    if (options?.resetInvoice) setEditingInvoiceId(null);
+    setCurrentPage(page);
+    setNotifOpen(false);
+    setCommandBarOpen(false);
+    // On desktop the navigation stays open and stable. On phones it closes
+    // after selection so the destination screen is immediately visible.
+    if (isMobile) setSidebarOpen(false);
+  };
+
   const handleLogout = async () => {
     setHasInstantCloudSnapshot(false);
     sessionStorage.removeItem('hideSampleDataPrompt');
@@ -4084,8 +4105,9 @@ const MainApp: React.FC = () => {
         {userRole !== 'partner' && (
           <nav className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar overflow-x-hidden relative z-10">
             <div className="pt-2">
-               <div 
-                 role="button"
+               <button
+                 type="button"
+                 aria-expanded={expandedMenus.invoices}
                  onClick={() => {
                     preloadAdminPage('new-invoice');
                     preloadAdminPage('invoices-list');
@@ -4098,7 +4120,7 @@ const MainApp: React.FC = () => {
                     }
                  }}
                  className={cn(
-                   "flex items-center justify-between text-white/40 px-3 mb-3 cursor-pointer hover:text-white transition-all group",
+                   "w-full border-0 bg-transparent flex items-center justify-between text-white/40 px-3 mb-3 cursor-pointer hover:text-white transition-all group",
                    (!sidebarOpen && !isMobile) && "justify-center px-0 opacity-50"
                  )}
                >
@@ -4113,7 +4135,7 @@ const MainApp: React.FC = () => {
                       <ChevronDown size={14} className="opacity-40" />
                     </motion.div>
                   )}
-               </div>
+               </button>
                
                <AnimatePresence>
                 {expandedMenus.invoices && (sidebarOpen || isMobile) && (
@@ -4128,27 +4150,27 @@ const MainApp: React.FC = () => {
                         icon={<PlusCircle size={16} />}
                         active={currentPage === 'new-invoice'} 
                         preloadPage="new-invoice"
-                        onClick={() => { setCurrentPage('new-invoice'); setEditingInvoiceId(null); setSidebarOpen(false); }}
+                        onClick={() => navigateFromSidebar('new-invoice', { resetInvoice: true })}
                       />
                       <SubNavItem 
                         label="سجل الفواتير"
                         icon={<Receipt size={16} />}
                         active={currentPage === 'invoices-list'} 
                         preloadPage="invoices-list"
-                        onClick={() => { setCurrentPage('invoices-list'); setSidebarOpen(false); }}
+                        onClick={() => navigateFromSidebar('invoices-list')}
                       />
                       <SubNavItem 
                         label="قائمة العملاء"
                         icon={<Users size={16} />}
                         active={currentPage === 'customers'} 
                         preloadPage="customers"
-                        onClick={() => { setCurrentPage('customers'); setSidebarOpen(false); }}
+                        onClick={() => navigateFromSidebar('customers')}
                       />
                       <SubNavItem 
                         label="مركز واتساب الذكي"
                         icon={<MessageSquare size={16} />}
                         active={currentPage === 'whatsapp-support'} 
-                        onClick={() => { setCurrentPage('whatsapp-support'); setSidebarOpen(false); }}
+                        onClick={() => navigateFromSidebar('whatsapp-support')}
                       />
                   </motion.div>
                 )}
@@ -4156,8 +4178,9 @@ const MainApp: React.FC = () => {
             </div>
 
             <div className="pt-2">
-               <div 
-                 role="button"
+               <button
+                 type="button"
+                 aria-expanded={expandedMenus.operations}
                  onClick={() => {
                     preloadAdminPage('products');
                     preloadAdminPage('expenses');
@@ -4170,7 +4193,7 @@ const MainApp: React.FC = () => {
                     }
                  }}
                  className={cn(
-                   "flex items-center justify-between text-white/40 px-3 mb-3 cursor-pointer hover:text-white transition-all group",
+                   "w-full border-0 bg-transparent flex items-center justify-between text-white/40 px-3 mb-3 cursor-pointer hover:text-white transition-all group",
                    (!sidebarOpen && !isMobile) && "justify-center px-0 opacity-50"
                  )}
                >
@@ -4185,7 +4208,7 @@ const MainApp: React.FC = () => {
                       <ChevronDown size={14} className="opacity-40" />
                     </motion.div>
                   )}
-               </div>
+               </button>
                
                <AnimatePresence>
                 {expandedMenus.operations && (sidebarOpen || isMobile) && (
@@ -4200,21 +4223,21 @@ const MainApp: React.FC = () => {
                         icon={<Package size={16} />}
                         active={currentPage === 'products'} 
                         preloadPage="products"
-                        onClick={() => { setCurrentPage('products'); setSidebarOpen(false); }}
+                        onClick={() => navigateFromSidebar('products')}
                       />
                       <SubNavItem 
                         label="المصروفات العامة"
                         icon={<CircleDollarSign size={16} />}
                         active={currentPage === 'expenses'} 
                         preloadPage="expenses"
-                        onClick={() => { setCurrentPage('expenses'); setSidebarOpen(false); }}
+                        onClick={() => navigateFromSidebar('expenses')}
                       />
                       <SubNavItem 
                         label="الموردين والمراجعة"
                         icon={<HandCoins size={16} />}
                         active={currentPage === 'suppliers' || currentPage === 'suppliers-audit'} 
                         preloadPage="suppliers"
-                        onClick={() => { setCurrentPage('suppliers'); setSidebarOpen(false); }}
+                        onClick={() => navigateFromSidebar('suppliers')}
                       />
                   </motion.div>
                 )}

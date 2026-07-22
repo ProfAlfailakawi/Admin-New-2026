@@ -5,7 +5,7 @@ function enforceEnglishNumbers(val: string) {
   );
 }
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   ShoppingCart,
   Trash2,
@@ -51,6 +51,11 @@ import {
   robustNormalize,
   normalizePhoneDigits,
   normalizeAddressNumber,
+  phonesMatch,
+  formatFullAddress,
+  getKuwaitDateInputValue,
+  mergeKuwaitDateWithTime,
+  resolveInvoiceDisplayDate,
 } from "../lib/utils";
 import {
   computeInvoiceTotal,
@@ -99,22 +104,6 @@ const getSharedProductCategories = (source: any, productList: any[] = []) => {
   return Array.from(new Set([...configuredNames, ...DEFAULT_PRODUCT_CATEGORIES, ...productNames]));
 };
 
-/**
- * Merges a YYYY-MM-DD date string with the current time to avoid 00:00:00 issues.
- */
-function mergeDateWithCurrentTime(dateStr: string): string {
-  if (!dateStr) return new Date().toISOString();
-
-  const fullDate = new Date();
-
-  const [year, month, day] = dateStr.split("T")[0].split("-").map(Number);
-  if (year && month && day) {
-    fullDate.setFullYear(year, month - 1, day);
-  }
-
-  return fullDate.toISOString();
-}
-
 interface InvoicePageProps {
   data: AppState;
   setData: React.Dispatch<React.SetStateAction<AppState>>;
@@ -132,6 +121,70 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
     const [loading, setLoading] = useState(false);
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [customerPhone, setCustomerPhone] = useState("");
+    const customerPickerRef = useRef<HTMLDivElement>(null);
+
+    const customers = useMemo<Customer[]>(
+      () => (Array.isArray(data?.customers) ? data.customers.filter(Boolean) : []),
+      [data?.customers],
+    );
+
+    const normalizedCustomerSearch = useMemo(
+      () => normalizeArabic(String(customerSearch || "").trim()),
+      [customerSearch],
+    );
+    const normalizedCustomerSearchPhone = useMemo(
+      () => normalizePhoneDigits(customerSearch),
+      [customerSearch],
+    );
+
+    const matchingCustomers = useMemo(() => {
+      const rows = customers.filter((customer) => {
+        const name = normalizeArabic(String(customer?.name || ""));
+        const phone = normalizePhoneDigits(customer?.phone);
+        if (!customerSearch.trim()) return true;
+        return name.includes(normalizedCustomerSearch) ||
+          (normalizedCustomerSearchPhone.length > 0 && phone.includes(normalizedCustomerSearchPhone));
+      });
+      return rows
+        .sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "ar"))
+        .slice(0, 20);
+    }, [customers, customerSearch, normalizedCustomerSearch, normalizedCustomerSearchPhone]);
+
+    const exactCustomerSearchMatch = useMemo(() => {
+      const raw = customerSearch.trim();
+      if (!raw) return null;
+      return customers.find((customer) =>
+        phonesMatch(customer?.phone, raw) ||
+        normalizeArabic(String(customer?.name || "")) === normalizedCustomerSearch,
+      ) || null;
+    }, [customers, customerSearch, normalizedCustomerSearch]);
+
+    const duplicateNewCustomer = useMemo(() => {
+      const phone = normalizePhoneDigits(customerPhone);
+      if (!isNewCustomer || phone.length !== 8) return null;
+      return customers.find((customer) => phonesMatch(customer?.phone, phone)) || null;
+    }, [customers, customerPhone, isNewCustomer]);
+
+    const selectExistingCustomer = (customer: Customer) => {
+      setSelectedCustomerId(String(customer.id || ""));
+      setCustomerSearch(String(customer.name || customer.phone || "عميل مسجل"));
+      setCustomerPhone(normalizePhoneDigits(customer.phone));
+      setNewCustomerName("");
+      setIsNewCustomer(false);
+      setShowCustomerDropdown(false);
+      setAddressModified(false);
+      toast.success(`تم اختيار ${customer.name || "العميل المسجل"}`);
+    };
+
+    useEffect(() => {
+      const closePicker = (event: PointerEvent) => {
+        if (customerPickerRef.current && !customerPickerRef.current.contains(event.target as Node)) {
+          setShowCustomerDropdown(false);
+        }
+      };
+      document.addEventListener("pointerdown", closePicker);
+      return () => document.removeEventListener("pointerdown", closePicker);
+    }, []);
 
     // Delivery Fields
     const [deliveryCompany, setDeliveryCompany] = useState("");
@@ -164,9 +217,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
         }
       >
     >({});
-    const [invoiceDate, setInvoiceDate] = useState(
-      new Date().toISOString().slice(0, 10),
-    );
+    const [invoiceDate, setInvoiceDate] = useState(() => getKuwaitDateInputValue());
     const [openCheaperHintId, setOpenCheaperHintId] = useState<string | null>(null);
     const getBestPriceInfo = (product: Product) => {
       const others = (data?.products || []).filter(
@@ -424,7 +475,7 @@ Alturath.kw`;
           (i) => i.id === editingInvoiceId,
         );
         if (inv) {
-          setSelectedCustomerId(inv.customerId);
+          setSelectedCustomerId(String(inv.customerId || ""));
           setDeliveryFee(inv.deliveryFee);
           setDeliveryType(inv.deliveryType || "company");
           if (inv.deliveryInfo) {
@@ -473,13 +524,13 @@ Alturath.kw`;
             };
           });
           setCart(newCart);
-          setInvoiceDate(inv.date.slice(0, 10));
+          setInvoiceDate((inv as any).invoiceDateKey || getKuwaitDateInputValue(resolveInvoiceDisplayDate(inv)));
           setDiscountValue(inv.discount || 0);
           setPaymentMethod(inv.paymentMethod || "KNet");
           
-          const customer = (data.customers || []).find((c) => c.id === inv.customerId);
+          const customer = customers.find((c) => String(c.id) === String(inv.customerId));
           if (customer) {
-            setCustomerSearch(customer.name);
+            setCustomerSearch(String(customer.name || customer.phone || ""));
           } else if ((inv as any).customerName) {
             setCustomerSearch((inv as any).customerName);
           }
@@ -497,7 +548,7 @@ Alturath.kw`;
           setNotesText(inv.notes || "");
         }
       }
-    }, [editingInvoiceId]);
+    }, [editingInvoiceId, data.invoices, data.products, customers, activeZones]);
 
     const handleZoneChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
       const val = e.target.value;
@@ -533,11 +584,11 @@ Alturath.kw`;
 
     useEffect(() => {
       if (selectedCustomerId) {
-        const customer = (data.customers || []).find(
-          (c) => c.id === selectedCustomerId,
+        const customer = customers.find(
+          (c) => String(c.id) === String(selectedCustomerId),
         );
         if (customer && !addressModified) {
-          setCustomerPhone(customer.phone);
+          setCustomerPhone(normalizePhoneDigits(customer.phone));
           if (customer.address && typeof customer.address === "object") {
             const addr = customer.address as any;
             setAddressDetails({
@@ -555,7 +606,7 @@ Alturath.kw`;
           }
         }
       }
-    }, [selectedCustomerId]);
+    }, [selectedCustomerId, customers, addressModified, activeZones]);
 
     const filteredProducts = React.useMemo(() => {
       const normalizedSearch = normalizeArabic(searchQuery.trim());
@@ -829,21 +880,30 @@ Alturath.kw`;
         : discountValue;
     const totalValue = Math.max(0, subtotal + deliveryFee - discountAmount);
     const handleCreateInvoice = async () => {
-      if (isNewCustomer && normalizePhoneDigits(customerPhone).length !== 8) {
+      const normalizedNewCustomerPhone = normalizePhoneDigits(customerPhone);
+      if (isNewCustomer && normalizedNewCustomerPhone.length !== 8) {
         toast.error("رقم التلفون لازم يكون 8 أرقام");
+        return;
+      }
+      if (isNewCustomer && duplicateNewCustomer) {
+        toast.error("هذا العميل موجود مسبقاً", {
+          description: `الرقم مسجل باسم ${duplicateNewCustomer.name || "عميل مسجل"}. اختر العميل الموجود ولن يتم إنشاء سجل مكرر.`,
+          duration: 6000,
+        });
+        setShowCustomerDropdown(false);
         return;
       }
       let targetId = selectedCustomerId;
       let newCustomerObj: Customer | null = null;
 
       if (isNewCustomer) {
-        if (!newCustomerName || !customerPhone)
+        if (!newCustomerName.trim() || !normalizedNewCustomerPhone)
           return toast.error("اكتب اسم ورقم تلفون العميل الجديد");
         targetId = `cust-${Date.now()}`;
         newCustomerObj = {
           id: targetId,
-          name: newCustomerName,
-          phone: customerPhone,
+          name: newCustomerName.trim(),
+          phone: normalizedNewCustomerPhone,
           status: "active",
           totalOrders: 0,
           totalSpent: 0,
@@ -884,7 +944,7 @@ Alturath.kw`;
         editingInvoiceId || generateNextInvoiceId(data.invoices);
       const zone = activeZones.find((z) => z.id === selectedZoneId);
       const regionName = zone ? zone.name : "غير محدد";
-      const customer = newCustomerObj || (data.customers || []).find((c) => c.id === targetId);
+      const customer = newCustomerObj || customers.find((c) => String(c.id) === String(targetId));
 
       const existingInvoice = editingInvoiceId ? data.invoices.find((i) => i.id === editingInvoiceId) : null;
 
@@ -982,19 +1042,15 @@ Alturath.kw`;
         }
       }
 
-      // Compute proper date representation as requested by the user
+      // Use the Kuwait calendar day, not UTC. This keeps invoices created after
+      // midnight on the correct date and preserves the original Kuwait clock when edited.
       const finalInvoiceDate = (() => {
         if (existingInvoice) {
-          // If the day shown in input matches original day, keep original date timestamp exactly.
-          if (existingInvoice.date.slice(0, 10) === invoiceDate) {
-            return existingInvoice.date;
-          } else {
-            // Otherwise, preserve original hours/minutes/seconds but replace day
-            const tPart = existingInvoice.date.includes("T") ? existingInvoice.date.split("T")[1] : "12:00:00.000Z";
-            return `${invoiceDate}T${tPart}`;
-          }
+          const existingKuwaitDay = (existingInvoice as any).invoiceDateKey || getKuwaitDateInputValue(existingInvoice.date);
+          if (existingKuwaitDay === invoiceDate) return existingInvoice.date;
+          return mergeKuwaitDateWithTime(invoiceDate, existingInvoice.date);
         }
-        return mergeDateWithCurrentTime(invoiceDate);
+        return mergeKuwaitDateWithTime(invoiceDate);
       })();
 
       const fullAddressValue = [
@@ -1022,6 +1078,8 @@ Alturath.kw`;
         ...(existingInvoice || {}),
         id: invoiceId,
         createdAt: (existingInvoice as any)?.createdAt || finalInvoiceDate,
+        issuedAt: (existingInvoice as any)?.issuedAt || new Date().toISOString(),
+        invoiceDateKey: invoiceDate,
         updatedAt: new Date().toISOString(),
         ledgerVisible: true,
         customerId: targetId,
@@ -1410,16 +1468,16 @@ Alturath.kw`;
                 />
               </div>
 
-              <div className="relative">
+              <div ref={customerPickerRef} className="relative">
                 <input
                   type="text"
                   value={customerSearch}
                   onChange={(e) => {
                     let val = normalizeArabicNumerals(e.target.value);
-                    if (/^[0-9]*$/.test(val)) {
-                      val = val.slice(0, 8);
-                    }
+                    if (/^[0-9+\s-]*$/.test(val)) val = normalizePhoneDigits(val);
                     setCustomerSearch(val);
+                    setSelectedCustomerId("");
+                    setIsNewCustomer(false);
                     setShowCustomerDropdown(true);
                   }}
                   onFocus={() => setShowCustomerDropdown(true)}
@@ -1432,65 +1490,48 @@ Alturath.kw`;
                 />
 
                 {showCustomerDropdown && (
-                  <div className="absolute top-full right-0 left-0 bg-white border rounded-2xl mt-1 shadow-2xl z-50 max-h-60 overflow-y-auto">
-                    {customerSearch.length > 0 &&
-                      !data.customers.some(
-                        (c) =>
-                          c.phone === customerSearch ||
-                          c.name === customerSearch,
-                      ) && (
-                        <div
-                          onClick={() => {
-                            setIsNewCustomer(true);
-                            setNewCustomerName(customerSearch);
-                            setCustomerPhone(
-                              customerSearch.replace(/[^0-9]/g, ""),
-                            );
-                            setShowCustomerDropdown(false);
-                            toast.info("اخترت إنشاء عميل جديد");
-                          }}
-                          className="p-4 hover:bg-primary/5 cursor-pointer text-right border-b border-slate-100 flex items-center justify-between group"
-                        >
-                          <PlusCircle
-                            size={16}
-                            className="text-primary opacity-0 group-hover:opacity-100 transition-opacity"
-                          />
-                          <div className="flex flex-col items-end">
-                            <span className="font-bold text-primary">
-                              إضافة عميل جديد: {customerSearch}
-                            </span>
-                            <span className="text-[10px] text-slate-400">
-                              سيتم حفظ البيانات عند إصدار الفاتورة
-                            </span>
-                          </div>
+                  <div className="absolute top-full right-0 left-0 bg-white border border-slate-200 rounded-2xl mt-1 shadow-2xl z-[250] max-h-72 overflow-y-auto">
+                    {customerSearch.trim().length > 0 && !exactCustomerSearchMatch && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCustomerId("");
+                          setIsNewCustomer(true);
+                          setNewCustomerName(/^[0-9]+$/.test(customerSearch) ? "" : customerSearch.trim());
+                          setCustomerPhone(normalizePhoneDigits(customerSearch));
+                          setShowCustomerDropdown(false);
+                          toast.info("اخترت إنشاء عميل جديد");
+                        }}
+                        className="w-full p-4 hover:bg-primary/5 cursor-pointer text-right border-b border-slate-100 flex items-center justify-between group"
+                      >
+                        <PlusCircle size={16} className="text-primary opacity-60 group-hover:opacity-100 transition-opacity" />
+                        <div className="flex flex-col items-end">
+                          <span className="font-bold text-primary">إضافة عميل جديد: {customerSearch}</span>
+                          <span className="text-[10px] text-slate-400">سيتم التحقق من رقم الهاتف قبل الحفظ</span>
                         </div>
-                      )}
-                    {data.customers
-                      .filter(
-                        (c) =>
-                          normalizeArabic(c.name).includes(
-                            normalizeArabic(customerSearch),
-                          ) || c.phone.includes(customerSearch),
-                      )
-                      .slice(0, 10)
-                      .map((c) => (
-                        <div
-                          key={c.id}
-                          onClick={() => {
-                            setSelectedCustomerId(c.id);
-                            setCustomerSearch(c.name);
-                            setIsNewCustomer(false);
-                            setShowCustomerDropdown(false);
-                            toast.success(`تم اختيار ${c.name}`);
-                          }}
-                          className="p-4 hover:bg-slate-50 cursor-pointer text-right border-b border-slate-100 font-bold flex flex-col"
-                        >
-                          <span>{c.name}</span>
-                          <span className="text-xs text-slate-400">
-                            {c.phone}
+                      </button>
+                    )}
+
+                    {matchingCustomers.map((customer) => (
+                      <button
+                        type="button"
+                        key={String(customer.id || customer.phone)}
+                        onClick={() => selectExistingCustomer(customer)}
+                        className="w-full p-4 hover:bg-slate-50 cursor-pointer text-right border-b border-slate-100 font-bold flex flex-col items-end"
+                      >
+                        <span>{customer.name || "عميل بدون اسم"}</span>
+                        <span dir="ltr" className="text-xs text-slate-400">{normalizePhoneDigits(customer.phone) || customer.phone}</span>
+                        {(customer.area || customer.address) && (
+                          <span className="text-[10px] text-slate-400 mt-1 line-clamp-1">
+                            {[customer.area, formatFullAddress(customer.address)].filter(Boolean).join(" · ")}
                           </span>
-                        </div>
-                      ))}
+                        )}
+                      </button>
+                    ))}
+
+                    {matchingCustomers.length === 0 && customerSearch.trim().length === 0 && (
+                      <div className="p-4 text-center text-xs font-bold text-slate-400">لا توجد بيانات عملاء متاحة</div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1512,12 +1553,39 @@ Alturath.kw`;
                   />
                   <input
                     value={customerPhone}
-                    onChange={(e) =>
-                      setCustomerPhone(normalizePhoneDigits(e.target.value))
-                    }
+                    onChange={(e) => setCustomerPhone(normalizePhoneDigits(e.target.value))}
                     placeholder="رقم التلفون"
-                    className="w-full bg-white border rounded-xl p-2 text-right text-sm"
+                    inputMode="numeric"
+                    maxLength={8}
+                    className={cn(
+                      "w-full bg-white border rounded-xl p-2 text-right text-sm outline-none",
+                      duplicateNewCustomer ? "border-rose-400 ring-2 ring-rose-100" : "border-slate-200",
+                    )}
                   />
+                  {duplicateNewCustomer && (
+                    <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-right">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle size={18} className="mt-0.5 shrink-0 text-rose-600" />
+                        <div className="min-w-0 flex-1">
+                          <div className="font-black text-rose-700">هذا الرقم مسجل مسبقاً</div>
+                          <div className="mt-1 font-bold text-slate-800">{duplicateNewCustomer.name || "عميل مسجل"}</div>
+                          <div dir="ltr" className="text-xs font-bold text-slate-500">{normalizePhoneDigits(duplicateNewCustomer.phone)}</div>
+                          {(duplicateNewCustomer.area || duplicateNewCustomer.address) && (
+                            <div className="mt-1 text-[11px] font-bold text-slate-500">
+                              {[duplicateNewCustomer.area, formatFullAddress(duplicateNewCustomer.address)].filter(Boolean).join(" · ")}
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => selectExistingCustomer(duplicateNewCustomer)}
+                            className="mt-3 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-800"
+                          >
+                            استخدام العميل الموجود
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
 

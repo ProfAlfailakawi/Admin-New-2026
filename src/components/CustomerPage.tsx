@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { AppState, Customer } from '../types';
 import { DEFAULT_SQUADS } from '../data';
-import { cn, formatCustomerAddress, normalizeArabic, normalizeAddressObject, formatFullAddress, normalizeArabicNumerals, formatKuwaitiDateOnly } from '../lib/utils';
+import { cn, formatCustomerAddress, normalizeArabic, normalizeAddressObject, formatFullAddress, normalizeArabicNumerals, formatKuwaitiDateOnly, normalizePhoneDigits, phonesMatch } from '../lib/utils';
 import { isPaidStatus } from '../lib/status-utils';
 import { calculateCustomerSentiment, generateCustomerSmartMessage } from '../lib/ai-engine';
 import { motion, AnimatePresence } from 'motion/react';
@@ -36,6 +36,10 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  const [search, setSearch] = useState('');
  const [selectedCustomerInvoices, setSelectedCustomerInvoices] = useState<{name: string, invoices: any[]} | null>(null);
  const [visibleCount, setVisibleCount] = useState(30);
+ const customers = React.useMemo<Customer[]>(
+  () => (Array.isArray(data?.customers) ? data.customers.filter(Boolean) : []),
+  [data?.customers],
+ );
 
  React.useEffect(() => {
   if (deepLinkData?.search) {
@@ -45,15 +49,15 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
     if (input) input.focus();
    }, 100);
    if (deepLinkData.exactId) {
-    const exactCustomer = (data?.customers || []).find(c => c.id === deepLinkData.exactId);
+    const exactCustomer = customers.find(c => String(c.id) === String(deepLinkData.exactId));
     if (exactCustomer) {
      const custInvs = (data?.invoices || []).filter(inv => !inv.isDeleted && inv.customerId === exactCustomer.id);
-     setSelectedCustomerInvoices({ name: exactCustomer.name, invoices: custInvs });
+     setSelectedCustomerInvoices({ name: String(exactCustomer.name || "عميل بدون اسم"), invoices: custInvs });
     }
    }
    if (onClearDeepLink) onClearDeepLink();
   }
- }, [deepLinkData, data?.customers, data?.invoices, onClearDeepLink]);
+ }, [deepLinkData, customers, data?.invoices, onClearDeepLink]);
 
  const [filterType, setFilterType] = useState<string>('all');
  const [sentimentFilter, setSentimentFilter] = useState<string>('all');
@@ -106,7 +110,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 
  const customerStatsMap = React.useMemo(() => {
   const stats = new Map<string, { totalOrders: number, totalSpent: number }>();
-  (data?.customers || []).forEach(c => {
+  customers.forEach(c => {
     stats.set(String(c.id), { totalOrders: 0, totalSpent: 0 });
   });
   activeInvoices.forEach(inv => {
@@ -119,7 +123,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
     current.totalSpent += (inv.totalAmount || 0);
   });
   return stats;
- }, [activeInvoices, data?.customers]);
+ }, [activeInvoices, customers]);
 
  const getCustomerStats = React.useCallback((customerId: string) => {
   return customerStatsMap.get(String(customerId)) || { totalOrders: 0, totalSpent: 0 };
@@ -129,9 +133,10 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  const normalizedSearch = React.useMemo(() => normalizeArabic(search), [search]);
 
  const filteredCustomers = React.useMemo(() => {
-  return (data?.customers || []).filter(c => {
-   const matchesSearch = normalizeArabic(c.name || '').includes(normalizedSearch) || 
-   (c.phone || '').includes(search);
+  return customers.filter(c => {
+   const normalizedPhoneSearch = normalizePhoneDigits(search);
+   const matchesSearch = normalizeArabic(String(c.name || '')).includes(normalizedSearch) ||
+   (normalizedPhoneSearch.length > 0 && normalizePhoneDigits(c.phone).includes(normalizedPhoneSearch));
    
    let matchesStatus = true;
    if (filterType !== 'all') {
@@ -159,35 +164,42 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
    }
 
    return matchesSearch && matchesStatus && matchesSentiment;
-  }).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
- }, [data?.customers, normalizedSearch, search, filterType, sentimentFilter, now, getCustomerStats, invoicesByCustomerMap]);
+  }).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+ }, [customers, normalizedSearch, search, filterType, sentimentFilter, now, getCustomerStats, invoicesByCustomerMap]);
 
- const totalCustomers = (data?.customers || []).length;
+ const totalCustomers = customers.length;
  const vipCustomers = React.useMemo(() => {
-  return (data?.customers || []).filter(c => {
+  return customers.filter(c => {
    const stats = getCustomerStats(c.id);
    return stats.totalSpent >= 800 || stats.totalOrders >= 20;
   }).length;
- }, [data?.customers, getCustomerStats]);
+ }, [customers, getCustomerStats]);
 
  const slowCustomers = React.useMemo(() => {
-  return (data?.customers || []).filter(c => {
+  return customers.filter(c => {
    if (!c.lastOrderDate) return false;
    const diff = (now.getTime() - new Date(c.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24);
    return diff > 30 && diff <= 90;
   }).length;
- }, [data?.customers, now]);
+ }, [customers, now]);
 
  const inactiveCustomers = React.useMemo(() => {
-  return (data?.customers || []).filter(c => {
+  return customers.filter(c => {
    if (!c.lastOrderDate) return true;
    const diff = (now.getTime() - new Date(c.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24);
    return diff > 90;
   }).length;
- }, [data?.customers, now]);
+ }, [customers, now]);
+
+ const duplicateCustomerInForm = React.useMemo(() => {
+  const phone = normalizePhoneDigits(customerForm.phone);
+  if (phone.length !== 8) return null;
+  return customers.find(c => phonesMatch(c.phone, phone) && String(c.id) !== String(editingId || '')) || null;
+ }, [customers, customerForm.phone, editingId]);
 
  const handleSaveCustomer = () => {
-    if (!customerForm.name || !customerForm.phone) {
+    const normalizedPhone = normalizePhoneDigits(customerForm.phone);
+    if (!customerForm.name?.trim() || !normalizedPhone) {
       toast.error("بيانات ناقصة", { description: "اكتب الاسم ورقم التلفون." });
       return;
     }
@@ -202,16 +214,14 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
       }
     }
     
-    const phoneRegex = /^[0-9]{8}$/;
-    if (!phoneRegex.test(customerForm.phone)) {
+    if (normalizedPhone.length !== 8) {
       toast.error("الرقم مو مضبوط", { description: "رقم التلفون لازم يكون 8 أرقام إنجليزية فقط (مثال: 99881122)." });
       return;
     }
 
-    const isDuplicate = (data?.customers || []).some(c => c.phone === customerForm.phone && c.id !== editingId);
-    if (isDuplicate) {
-      toast.warning("تنبيه: الرقم مسجل مسبقاً", { 
-        description: "هذا الرقم موجود في سجلات المطعم. يمنع التكرار لضمان دقة نقاط الولاء."
+    if (duplicateCustomerInForm) {
+      toast.warning("العميل موجود مسبقاً", { 
+        description: `الرقم مسجل باسم ${duplicateCustomerInForm.name || 'عميل مسجل'}. لا يمكن إنشاء سجل مكرر.`
       });
       return;
     }
@@ -224,7 +234,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
     if (editingId) {
       setData(prev => {
         const updatedCustomers = (prev?.customers || []).map(c => 
-          c.id === editingId ? { ...c, ...customerForm, address: finalAddress } : c
+          c.id === editingId ? { ...c, ...customerForm, name: customerForm.name.trim(), phone: normalizedPhone, address: finalAddress } : c
         );
         return {
           ...prev,
@@ -238,8 +248,8 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
         ...prev,
         customers: [...(prev?.customers || []), { 
           id, 
-          name: customerForm.name,
-          phone: customerForm.phone,
+          name: customerForm.name.trim(),
+          phone: normalizedPhone,
           status: customerForm.status,
           area: customerForm.area,
           address: finalAddress,
@@ -248,7 +258,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
           totalSpent: 0 
         }]
       }));
-      toast.success("تم الحفظ بنجاح ✨", { description: `تمت إضافة العميل ${customerForm.name} لقاعدة البيانات.` });
+      toast.success("تم الحفظ بنجاح ✨", { description: `تمت إضافة العميل ${customerForm.name.trim()} لقاعدة البيانات.` });
     }
     closeModal();
   };
@@ -296,8 +306,8 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
     }
     
     setCustomerForm({ 
-      name: customer.name, 
-      phone: customer.phone, 
+      name: String(customer.name || ""), 
+      phone: normalizePhoneDigits(customer.phone), 
       status: customer.status, 
       area: customer.area || '',
       sentiment: customer.sentiment || 'neutral',
@@ -343,7 +353,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
   const handleSendMessage = (customer: Customer) => {
     const message = `\u2728 ${generateCustomerSmartMessage(customer, data.invoices || [], data.products || [])}\n\nhttps://alturathkw.shop`;
     const encodedMessage = encodeURIComponent(sanitizeWhatsAppText(message));
-    window.open(`https://api.whatsapp.com/send?phone=965${customer.phone}&text=${encodedMessage}`, '_blank');
+    window.open(`https://api.whatsapp.com/send?phone=965${normalizePhoneDigits(customer.phone)}&text=${encodedMessage}`, '_blank');
     toast.success("تم تجهيز الرسالة الذكية", { 
       description: "تم دمج بيانات العميل مع مقترحات الأطباق المفضلة وعروض التوصيل.",
       icon: <Sparkles className="text-indigo-500" />
@@ -470,14 +480,14 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
        const custInvs = invoicesByCustomerMap.get(String(customer.id)) || [];
        const sentiment = calculateCustomerSentiment(customer, custInvs);
        return (
-        <tr key={customer.id} className="hover:bg-indigo-50/30 transition-all group cursor-default">
+        <tr key={String(customer.id || customer.phone || customer.name)} className="hover:bg-indigo-50/30 transition-all group cursor-default">
          <td className="p-6">
           <div className="flex items-center gap-4">
            <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center font-black text-slate-500 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500 shadow-sm">
-            {customer.name[0]}
+            {String(customer.name || "ع").charAt(0)}
            </div>
            <div>
-             <div className="font-black text-slate-800 text-base lg:text-lg tracking-tight">{customer.name}</div>
+             <div className="font-black text-slate-800 text-base lg:text-lg tracking-tight">{customer.name || "عميل بدون اسم"}</div>
             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{customer.lastOrderDate ? `آخر طلب: ${formatKuwaitiDateOnly(customer.lastOrderDate)}` : 'عميل جديد'}</div>
            </div>
           </div>
@@ -511,7 +521,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
          <td className="p-6 text-indigo-700">
            <div className="flex items-center gap-2 font-mono text-sm bg-slate-100 px-3 py-1.5 rounded-full w-fit group-hover:bg-indigo-100 group-hover:text-indigo-700 transition-all font-bold">
              <Phone size={12} />
-             {customer.phone}
+             {normalizePhoneDigits(customer.phone) || customer.phone || "—"}
            </div>
          </td>
           <td className="p-6">
@@ -648,7 +658,17 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 
          <div className="space-y-2">
            <label className="text-xs font-bold text-slate-500 uppercase mr-1">رقم التلفون *</label>
-           <NumericInput value={customerForm.phone} onChange={val => setCustomerForm({...customerForm, phone: val.toString()})} className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 text-sm font-bold font-mono text-left" maxLength={8} />
+           <NumericInput value={customerForm.phone} onChange={val => setCustomerForm({...customerForm, phone: normalizePhoneDigits(val)})} className={cn("w-full bg-slate-50 border rounded-2xl py-3 px-4 outline-none focus:ring-2 text-sm font-bold font-mono text-left", duplicateCustomerInForm ? "border-rose-400 ring-2 ring-rose-100 focus:ring-rose-100" : "border-slate-200/60 focus:ring-primary/20")} maxLength={8} />
+           {duplicateCustomerInForm && (
+             <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 p-3">
+               <div className="font-black text-rose-700">هذا الرقم مسجل باسم: {duplicateCustomerInForm.name || 'عميل مسجل'}</div>
+               <div dir="ltr" className="mt-1 text-xs font-bold text-slate-500">{normalizePhoneDigits(duplicateCustomerInForm.phone)}</div>
+               {(duplicateCustomerInForm.area || duplicateCustomerInForm.address) && (
+                 <div className="mt-1 text-xs font-bold text-slate-500">{[duplicateCustomerInForm.area, formatFullAddress(duplicateCustomerInForm.address)].filter(Boolean).join(' · ')}</div>
+               )}
+               <div className="mt-2 text-[11px] font-bold text-rose-600">لن يقبل النظام حفظ سجل مكرر.</div>
+             </div>
+           )}
          </div>
 
          <div className="grid grid-cols-1 gap-4">
