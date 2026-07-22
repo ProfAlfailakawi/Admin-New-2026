@@ -5896,7 +5896,7 @@ const [isPending, startTransition] = useTransition();
                                   onNavigate("suppliers");
                                 else if (insight.type === "opportunity")
                                   onNavigate("customers");
-                                else onNavigate("what-if");
+                                else onNavigate("growth-simulator");
                               }}
                               className="w-full py-2 mt-4 bg-indigo-600 rounded-xl text-[10px] font-bold uppercase hover:bg-indigo-500 transition-colors"
                             >
