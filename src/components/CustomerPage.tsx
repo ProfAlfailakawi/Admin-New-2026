@@ -88,16 +88,17 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  }, [search, filterType, sentimentFilter]);
 
  const cancelledOrderInvoiceIds = React.useMemo(() => {
-  return new Set((data.orders || []).filter(o => o.status === 'cancelled' && o.isConvertedToInvoice && o.linkedInvoiceId).map(o => o.linkedInvoiceId));
- }, [data.orders]);
+  return new Set((data?.orders || []).filter(o => o && o.status === 'cancelled' && o.isConvertedToInvoice && o.linkedInvoiceId).map(o => o.linkedInvoiceId));
+ }, [data?.orders]);
 
  const activeInvoices = React.useMemo(() => {
-  return (data?.invoices || []).filter(inv => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id) && (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined));
+  return (data?.invoices || []).filter(inv => inv && !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id) && (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined));
  }, [data?.invoices, cancelledOrderInvoiceIds]);
 
  const invoicesByCustomerMap = React.useMemo(() => {
   const map = new Map<string, any[]>();
   activeInvoices.forEach(inv => {
+    if (!inv) return;
     let list = map.get(String(inv.customerId));
     if (!list) {
       list = [];
@@ -111,16 +112,19 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  const customerStatsMap = React.useMemo(() => {
   const stats = new Map<string, { totalOrders: number, totalSpent: number }>();
   customers.forEach(c => {
+    if (!c) return;
     stats.set(String(c.id), { totalOrders: 0, totalSpent: 0 });
   });
   activeInvoices.forEach(inv => {
+    if (!inv) return;
     let current = stats.get(String(inv.customerId));
     if (!current) {
       current = { totalOrders: 0, totalSpent: 0 };
       stats.set(String(inv.customerId), current);
     }
     current.totalOrders += 1;
-    current.totalSpent += (inv.totalAmount || 0);
+    const invVal = Number(inv.totalAmount ?? inv.total ?? inv.amount ?? 0) || 0;
+    current.totalSpent += invVal;
   });
   return stats;
  }, [activeInvoices, customers]);
@@ -134,9 +138,10 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 
  const filteredCustomers = React.useMemo(() => {
   return customers.filter(c => {
+   if (!c) return false;
    const normalizedPhoneSearch = normalizePhoneDigits(search);
    const matchesSearch = normalizeArabic(String(c.name || '')).includes(normalizedSearch) ||
-   (normalizedPhoneSearch.length > 0 && normalizePhoneDigits(c.phone).includes(normalizedPhoneSearch));
+   (normalizedPhoneSearch.length > 0 && normalizePhoneDigits(c.phone || '').includes(normalizedPhoneSearch));
    
    let matchesStatus = true;
    if (filterType !== 'all') {
@@ -147,7 +152,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
     
     if (filterType === 'vip') {
      const stats = getCustomerStats(c.id);
-     matchesStatus = stats.totalSpent >= 800 || stats.totalOrders >= 20;
+     matchesStatus = Number(stats.totalSpent || 0) >= 800 || Number(stats.totalOrders || 0) >= 20;
     }
    }
 
@@ -156,6 +161,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
     matchesSentiment = (() => {
      const custInvs = invoicesByCustomerMap.get(String(c.id)) || [];
      const sentiment = calculateCustomerSentiment(c, custInvs);
+     if (!sentiment) return true;
      if (sentimentFilter === 'positive') return sentiment.score >= 70;
      if (sentimentFilter === 'neutral') return sentiment.score >= 45 && sentiment.score < 70;
      if (sentimentFilter === 'negative') return sentiment.score < 45;
@@ -170,14 +176,15 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  const totalCustomers = customers.length;
  const vipCustomers = React.useMemo(() => {
   return customers.filter(c => {
+   if (!c) return false;
    const stats = getCustomerStats(c.id);
-   return stats.totalSpent >= 800 || stats.totalOrders >= 20;
+   return Number(stats.totalSpent || 0) >= 800 || Number(stats.totalOrders || 0) >= 20;
   }).length;
  }, [customers, getCustomerStats]);
 
  const slowCustomers = React.useMemo(() => {
   return customers.filter(c => {
-   if (!c.lastOrderDate) return false;
+   if (!c || !c.lastOrderDate) return false;
    const diff = (now.getTime() - new Date(c.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24);
    return diff > 30 && diff <= 90;
   }).length;
@@ -185,6 +192,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 
  const inactiveCustomers = React.useMemo(() => {
   return customers.filter(c => {
+   if (!c) return false;
    if (!c.lastOrderDate) return true;
    const diff = (now.getTime() - new Date(c.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24);
    return diff > 90;
@@ -506,7 +514,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
          <td className="p-6">
            <div className="flex flex-col">
              <div className="flex items-baseline gap-1">
-               <span className="font-black text-slate-900 text-lg tabular-nums">{stats.totalSpent.toFixed(3)}</span>
+               <span className="font-black text-slate-900 text-lg tabular-nums">{(Number(stats?.totalSpent) || 0).toFixed(3)}</span>
                <span className="text-xs text-slate-400 font-bold">د.ك</span>
              </div>
              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stats.totalOrders} طلبيات موثقة</span>
@@ -515,7 +523,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
          <td className="p-6">
            <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-2 rounded-2xl border border-amber-100 w-fit shadow-sm">
              <Gift size={14} className="text-amber-500" />
-             <span className="font-black text-lg tabular-nums">{Math.floor(stats.totalSpent)}</span>
+             <span className="font-black text-lg tabular-nums">{Math.floor(Number(stats?.totalSpent) || 0)}</span>
            </div>
          </td>
          <td className="p-6 text-indigo-700">

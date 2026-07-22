@@ -83,6 +83,38 @@ const WhatIfSimulator = React.lazy(() => import('./components/WhatIfSimulator').
 const RealProfitGuard = React.lazy(() => import('./components/RealProfitGuard'));
 const WhatsAppSupportInbox = React.lazy(() => import('./components/WhatsAppSupportInbox'));
 
+class PageErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("Page Rendering Error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-3xl border border-slate-200 shadow-sm my-8 gap-4" dir="rtl">
+          <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center font-black text-xl">!</div>
+          <h2 className="text-xl font-black text-slate-800">حدث خطأ أثنا تحميل هذه الصفحة</h2>
+          <p className="text-sm font-bold text-slate-500 max-w-md">يرجى الضغط على الزر أدناه لإعادة تحميل البيانات وتنشيط الصفحة بشكل صحيح.</p>
+          <button
+            type="button"
+            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            className="px-6 py-3 bg-indigo-600 text-white font-black text-sm rounded-2xl hover:bg-indigo-700 transition-all shadow-md"
+          >
+            إعادة تحميل الصفحة
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const CommandBar = React.lazy(() => import('./components/CommandBar'));
 const ProactiveAlerts = React.lazy(() => import('./components/ProactiveAlerts'));
 const InstallPrompt = React.lazy(() => import('./components/InstallPrompt'));
@@ -1202,8 +1234,8 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
         </section>
       )}
       {showProduct && <section className={cn("admin-smart-panel product-score-panel smart-collapsible-panel", openSmartPanel==='product' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('product')}><div><span>Product Score</span><h2>مؤشر قوة المنتج</h2><p>أفضل الأصناف حسب المبيعات والربحية.</p></div><span className="toggle-pill">{openSmartPanel==='product' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='product' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></div>}</section>}
-      {showCustomers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='customers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('customers')}><div><span>Customer Board</span><h2>لوحة العملاء</h2><p>مختصر الولاء والقيمة الشرائية.</p></div><span className="toggle-pill">{openSmartPanel==='customers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='customers' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{c.spend.toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></div>}</section>}
-      {showSuppliers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='suppliers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('suppliers')}><div><span>Supplier Radar</span><h2>رادار الموردين</h2><p>أولوية السداد وتأثير التوريد.</p></div><span className="toggle-pill">{openSmartPanel==='suppliers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='suppliers' && <div className="smart-panel-body"><div className="supplier-radar-guide"><span><b>سداد عالي:</b> مستحق كبير.</span><span><b>مورد مؤثر:</b> مرتبط بعدة منتجات.</span><span><b>مستقر:</b> لا إجراء عاجل.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>سداد</span><b>→</b><span>توفر</span><b>→</b><span>ربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات · {sup.debt.toFixed(3)} د.ك</p><strong title="الحالة محسوبة من المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk} · {sup.priorityScore}/100</strong><p className="mt-2 text-[11px] font-bold text-slate-500">{sup.recommendation}</p></div>)}</div></div>}</section>}
+      {showCustomers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='customers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('customers')}><div><span>Customer Board</span><h2>لوحة العملاء</h2><p>مختصر الولاء والقيمة الشرائية.</p></div><span className="toggle-pill">{openSmartPanel==='customers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='customers' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{(Number(c.spend) || 0).toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></div>}</section>}
+      {showSuppliers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='suppliers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('suppliers')}><div><span>Supplier Radar</span><h2>رادار الموردين</h2><p>أولوية السداد وتأثير التوريد.</p></div><span className="toggle-pill">{openSmartPanel==='suppliers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='suppliers' && <div className="smart-panel-body"><div className="supplier-radar-guide"><span><b>سداد عالي:</b> مستحق كبير.</span><span><b>مورد مؤثر:</b> مرتبط بعدة منتجات.</span><span><b>مستقر:</b> لا إجراء عاجل.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>سداد</span><b>→</b><span>توفر</span><b>→</b><span>ربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات · {(Number(sup.debt) || 0).toFixed(3)} د.ك</p><strong title="الحالة محسوبة من المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk} · {sup.priorityScore}/100</strong><p className="mt-2 text-[11px] font-bold text-slate-500">{sup.recommendation}</p></div>)}</div></div>}</section>}
       {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح عروض التراث</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span>تأثير الربح: {tone}</span></div>})}</div></section>}
       {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>Smart Lab Gallery</span><h2>معرض التراث الذكي</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو التراث الذكي</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
         { label: 'تحليل العملاء', page: 'customers' },
@@ -4590,11 +4622,13 @@ const MainApp: React.FC = () => {
               className="w-full min-h-full relative z-10 px-4 md:px-6"
             >
               <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /><p className="text-slate-500 text-sm font-bold animate-pulse">نحمّل...</p></div>}>
-                 {userRole === 'partner' ? renderAppContent() : (
-                  <AdminExperienceFrame page={currentPage} data={data} onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }}>
-                    {renderAppContent()}
-                  </AdminExperienceFrame>
-                 )}
+                 <PageErrorBoundary>
+                   {userRole === 'partner' ? renderAppContent() : (
+                    <AdminExperienceFrame page={currentPage} data={data} onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }}>
+                      {renderAppContent()}
+                    </AdminExperienceFrame>
+                   )}
+                 </PageErrorBoundary>
               </React.Suspense>
             </motion.div>
           </AnimatePresence>
