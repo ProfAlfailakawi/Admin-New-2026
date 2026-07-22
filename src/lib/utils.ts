@@ -191,6 +191,49 @@ export function formatDeliveryTimeDisplay(timeStr?: string): string {
   return trimmed;
 }
 
+export function formatTimeInput(value: string): string {
+  const normalized = normalizeArabicNumerals(value);
+  const digits = normalized.replace(/\D/g, '').slice(0, 4);
+  if (digits.length <= 2) {
+    return digits;
+  } else {
+    const hh = digits.slice(0, 2);
+    const mm = digits.slice(2);
+    return `${hh}:${mm}`;
+  }
+}
+
+export function validateAndCleanTime(value: string): string {
+  if (!value) return '';
+  const normalized = normalizeArabicNumerals(value);
+  
+  const isPm = value.includes('م');
+  const isAm = value.includes('ص');
+  const period = isPm ? 'م' : (isAm ? 'ص' : '');
+  
+  const digits = normalized.replace(/\D/g, '').slice(0, 4);
+  if (!digits) return '';
+  
+  let hh = 12;
+  let mm = 0;
+  
+  if (digits.length <= 2) {
+    hh = parseInt(digits, 10) || 12;
+  } else {
+    hh = parseInt(digits.slice(0, 2), 10) || 12;
+    mm = parseInt(digits.slice(2), 10) || 0;
+  }
+  
+  if (hh > 12) hh = 12;
+  if (hh < 1) hh = 1;
+  if (mm > 59) mm = 59;
+  
+  const formattedHh = String(hh).padStart(2, '0');
+  const formattedMm = String(mm).padStart(2, '0');
+  
+  return period ? `${formattedHh}:${formattedMm} ${period}` : `${formattedHh}:${formattedMm}`;
+}
+
 export function parseTimeTo24h(timeStr?: string): string {
   if (!timeStr) return '';
   const trimmed = String(timeStr).trim();

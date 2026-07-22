@@ -23,7 +23,7 @@ import {
   Dices,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { cn, normalizeArabic, robustNormalize, normalizeArabicNumerals, formatKuwaitiDate, formatKuwaitiDateOnly, formatDeliveryDateDisplay, formatDeliveryTimeDisplay, parseTimeTo24h } from '../lib/utils';
+import { cn, normalizeArabic, robustNormalize, normalizeArabicNumerals, formatKuwaitiDate, formatKuwaitiDateOnly, formatDeliveryDateDisplay, formatDeliveryTimeDisplay, parseTimeTo24h, formatTimeInput, validateAndCleanTime } from '../lib/utils';
 import {
   recalculateStateBalances,
   generateNextInvoiceId,
@@ -3038,9 +3038,22 @@ Alturath.kw`;
                                     value={orderDeliveryTime}
                                     onChange={(e) => {
                                       const val = e.target.value;
-                                      setOrderDeliveryTime(val);
+                                      const hasAm = val.includes('ص');
+                                      const hasPm = val.includes('م');
+                                      const period = hasPm ? ' م' : (hasAm ? ' ص' : '');
+                                      const cleanDigits = val.replace(/\s*[صم]\s*/g, "");
+                                      const formattedDigits = formatTimeInput(cleanDigits);
+                                      const newVal = `${formattedDigits}${period}`;
+                                      setOrderDeliveryTime(newVal);
                                       if (selectedOrder) {
-                                        updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: val });
+                                        updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: newVal });
+                                      }
+                                    }}
+                                    onBlur={(e) => {
+                                      const cleaned = validateAndCleanTime(e.target.value);
+                                      setOrderDeliveryTime(cleaned);
+                                      if (selectedOrder) {
+                                        updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: cleaned });
                                       }
                                     }}
                                     className="w-full bg-slate-800/90 border border-amber-400/40 text-white rounded-lg px-3 py-1.5 text-center font-bold text-xs outline-none focus:ring-2 focus:ring-amber-400/50"
@@ -3051,8 +3064,9 @@ Alturath.kw`;
                                       onClick={() => {
                                         let current = orderDeliveryTime || "";
                                         current = current.replace(/\s*[صم]\s*/g, "").trim();
-                                        if (!current) current = "12:00";
-                                        const newVal = `${current} ص`;
+                                        const cleaned = validateAndCleanTime(current);
+                                        const baseTime = cleaned ? cleaned.replace(/\s*[صم]\s*/g, "").trim() : "12:00";
+                                        const newVal = `${baseTime} ص`;
                                         setOrderDeliveryTime(newVal);
                                         if (selectedOrder) {
                                           updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: newVal });
@@ -3073,8 +3087,9 @@ Alturath.kw`;
                                       onClick={() => {
                                         let current = orderDeliveryTime || "";
                                         current = current.replace(/\s*[صم]\s*/g, "").trim();
-                                        if (!current) current = "12:00";
-                                        const newVal = `${current} م`;
+                                        const cleaned = validateAndCleanTime(current);
+                                        const baseTime = cleaned ? cleaned.replace(/\s*[صم]\s*/g, "").trim() : "12:00";
+                                        const newVal = `${baseTime} م`;
                                         setOrderDeliveryTime(newVal);
                                         if (selectedOrder) {
                                           updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: newVal });
