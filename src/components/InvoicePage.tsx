@@ -1483,15 +1483,15 @@ Alturath.kw`;
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">وقت التوصيل</label>
-                    <div className="relative flex items-center">
+                    <div className="flex items-center gap-2">
                       <input
                         type="text"
                         placeholder="12:30 م"
                         value={deliveryTime}
                         onChange={(e) => setDeliveryTime(e.target.value)}
-                        className="w-full bg-white border border-amber-200/90 rounded-xl pl-16 pr-3 py-2 text-center font-bold text-xs outline-none transition-all focus:ring-2 focus:ring-amber-500/30"
+                        className="w-full bg-white border border-amber-200/90 rounded-xl px-3 py-2 text-center font-bold text-xs outline-none transition-all focus:ring-2 focus:ring-amber-500/30"
                       />
-                      <div className="absolute left-1.5 flex gap-1">
+                      <div className="flex border border-slate-200/80 rounded-lg p-0.5 bg-slate-100 shrink-0 gap-0.5">
                         <button
                           type="button"
                           onClick={() => {
@@ -1501,10 +1501,10 @@ Alturath.kw`;
                             setDeliveryTime(`${current} ص`);
                           }}
                           className={cn(
-                            "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer",
+                            "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
                             deliveryTime.includes("ص")
                               ? "bg-amber-500 text-white font-black"
-                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              : "text-slate-500 hover:bg-slate-200"
                           )}
                           title="صباحاً"
                         >
@@ -1519,10 +1519,10 @@ Alturath.kw`;
                             setDeliveryTime(`${current} م`);
                           }}
                           className={cn(
-                            "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer",
+                            "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
                             deliveryTime.includes("م")
                               ? "bg-amber-500 text-white font-black"
-                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              : "text-slate-500 hover:bg-slate-200"
                           )}
                           title="مساءً"
                         >
