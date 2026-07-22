@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
 import LZString from 'lz-string';
 import { compressToBase64ViaWorker } from './lib/snapshotCompressor';
+import { buildLogicalShardWritePlan, commitLogicalShardWritePlan, readLogicalAppDataShard } from './lib/firestoreShardStorage';
 import { 
   ArrowUp,
   BarChart3, 
@@ -153,21 +154,6 @@ const saveCloudSnapshotMirror = (snapshotStr: string | null | undefined) => {
   const ric = (typeof window !== 'undefined' && (window as any).requestIdleCallback) || null;
   if (ric) ric(runFlush, { timeout: 2000 });
   else setTimeout(runFlush, 300);
-};
-
-// يبني محتوى الـshard المُرسَل للسحابة بنفس الصيغة تماماً ({ compressedData, isCompressed: true }
-// للحمولات الكبيرة، أو { [key], isCompressed: false } للصغيرة). الفرق الوحيد: الضغط الثقيل
-// (LZString) يجري داخل Web Worker خارج الخيط الرئيسي حتى لا تتجمّد الواجهة عند حفظ تعديل ضخم.
-// عند تعذّر الـWorker نرجع للضغط المتزامن السابق نفسه — فلا تغيير في البيانات المكتوبة إطلاقاً.
-const COMPRESS_SHARD_THRESHOLD = 500000;
-const buildShardContentAsync = async (key: string, value: any): Promise<any> => {
-  const payloadStr = JSON.stringify(value);
-  if (payloadStr.length > COMPRESS_SHARD_THRESHOLD) {
-    let compressed = await compressToBase64ViaWorker(payloadStr);
-    if (!compressed) compressed = LZString.compressToBase64(payloadStr); // مسار احتياطي مطابق
-    return { compressedData: compressed, isCompressed: true };
-  }
-  return JSON.parse(JSON.stringify({ [key]: value, isCompressed: false }));
 };
 
 // ── Cloud boot pre-warm ────────────────────────────────────────────────────────
@@ -2536,29 +2522,30 @@ const MainApp: React.FC = () => {
       
       const rootForStudioAndApp = withGoogleStudioRootMirror(rootDocDataWithMeta, splitData);
       const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
-      const preparedShardContents: Record<string, any> = {};
+      const preparedShardPlans: Record<string, Awaited<ReturnType<typeof buildLogicalShardWritePlan>>> = {};
       
       for (const key of SHARDED_KEYS) {
 	         if (shardedPayloads[key]) {
             if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) continue;
-            preparedShardContents[key] = await buildShardContentAsync(key, shardedPayloads[key]);
+            preparedShardPlans[key] = await buildLogicalShardWritePlan(key, shardedPayloads[key], {
+              __adminDataGenerationId: generationId,
+              __adminLastAuthoritativeWriteAt: new Date().toISOString(),
+            });
          }
       }
 
-      const savePromises: Promise<any>[] = [
-        enqueuePersistenceWrite('root', async () => {
-          await setDoc(rootDataRef, sanitizedRoot, { merge: true });
-        })
-      ];
-
-      for (const key of Object.keys(preparedShardContents)) {
-        savePromises.push(enqueuePersistenceWrite(`shard:${key}`, async () => {
-          const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-          await setDoc(shardRef, preparedShardContents[key], { merge: false });
+      const shardSavePromises: Promise<any>[] = [];
+      for (const key of Object.keys(preparedShardPlans)) {
+        shardSavePromises.push(enqueuePersistenceWrite(`shard:${key}`, async () => {
+          await commitLogicalShardWritePlan(user.uid, user.email, preparedShardPlans[key]);
         }));
       }
-      
-      await Promise.all(savePromises);
+
+      // Publish the root generation only after every logical shard is safely committed.
+      await Promise.all(shardSavePromises);
+      await enqueuePersistenceWrite('root', async () => {
+        await setDoc(rootDataRef, sanitizedRoot, { merge: true });
+      });
       addToast("تمت المزامنة ✨", "تم حفظ كافة البيانات في السحابة بنجاح.", "success");
     } catch (err) {
       console.error(err);
@@ -2788,24 +2775,48 @@ const MainApp: React.FC = () => {
 	        const rootForStudioAndApp = withGoogleStudioRootMirror(authoritativeRoot, splitData);
 	        const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
 	        const serializedRootCurrent = stableStringify(sanitizedRoot);
-	        const savePromises = [setDoc(rootDataRef, sanitizedRoot, { merge: false })];
-        
+        const preparedShardPlans: Record<string, Awaited<ReturnType<typeof buildLogicalShardWritePlan>>> = {};
+
 	        for (const key of SHARDED_KEYS) {
 	           if (shardedPayloads[key] !== undefined) {
               if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) continue;
-	              const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-              const shardContent = await buildShardContentAsync(key, shardedPayloads[key]);
-	              savePromises.push(setDoc(shardRef, shardContent, { merge: false }));
+              preparedShardPlans[key] = await buildLogicalShardWritePlan(key, shardedPayloads[key], {
+                __adminDataGenerationId: generationId,
+                __adminLastAuthoritativeWriteAt: new Date(authoritativeWriteAt).toISOString(),
+              });
 	           }
 	        }
 
+        // Commit every authoritative shard first. Each logical shard uses immutable,
+        // generation-specific part documents and switches its manifest only after all parts exist.
+        // The root generation marker is written last so a failed shard can never be reported as a
+        // successful completed import.
+        await Promise.all(Object.keys(preparedShardPlans).map((key) =>
+          enqueuePersistenceWrite(`shard:${key}`, async () => {
+            await commitLogicalShardWritePlan(user.uid, user.email, preparedShardPlans[key]);
+          })
+        ));
+        await enqueuePersistenceWrite('root', async () => {
+          await setDoc(rootDataRef, sanitizedRoot, { merge: false });
+        });
+
+        // Read back the two critical transaction ledgers before confirming success.
+        for (const key of ['invoices', 'orders'] as const) {
+          if (shardedPayloads[key] === undefined) continue;
+          const verified = await readLogicalAppDataShard(user.uid, user.email, key, true);
+          if (!verified.exists || stableStringify(verified.value) !== stableStringify(shardedPayloads[key])) {
+            throw new Error(`CLOUD_IMPORT_VERIFICATION_FAILED:${key}`);
+          }
+        }
+
+        const mirrorPromises: Promise<any>[] = [];
 	        try {
 	          const squadsSnap = await getDocs(collection(db, 'squads'));
-	          squadsSnap.docs.forEach((squadDoc) => savePromises.push(deleteDoc(squadDoc.ref)));
+	          squadsSnap.docs.forEach((squadDoc) => mirrorPromises.push(deleteDoc(squadDoc.ref)));
 	          if (Array.isArray(shardedPayloads.squads)) {
 	            shardedPayloads.squads.forEach((sq: any) => {
 	              if (sq && sq.id !== undefined) {
-	                savePromises.push(setDoc(doc(db, 'squads', String(sq.id)), JSON.parse(JSON.stringify({
+	                mirrorPromises.push(setDoc(doc(db, 'squads', String(sq.id)), JSON.parse(JSON.stringify({
 	                  ...sq,
 	                  __adminDataGenerationId: generationId,
 	                  __adminSyncedFromSharedCompanyDataAt: new Date().toISOString(),
@@ -2813,11 +2824,10 @@ const MainApp: React.FC = () => {
 	              }
 	            });
 	          }
+          await Promise.all(mirrorPromises);
 	        } catch (mirrorErr) {
 	          console.warn('[DATA_GUARD] Could not fully refresh root squads mirror during import:', mirrorErr);
 	        }
-	        
-	        await Promise.all(savePromises);
         
         lastRemoteKeysRef.current['__root__'] = serializedRootCurrent;
         cloudRootExistsRef.current = true;
@@ -3386,19 +3396,9 @@ const MainApp: React.FC = () => {
         const canUseLocalCloudSnapshot = Boolean(localCloudSnapshot) && (!cloudGenerationId || localSnapshotGenerationId === cloudGenerationId);
 
 	        const shardResults = await Promise.all(SHARDED_KEYS.map(async (key) => {
-          const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
           try {
-            const shardSnap = await getDocFromServer(shardRef).catch(() => getDoc(shardRef));
-	            if (!shardSnap.exists()) return { key, exists: false, value: undefined };
-	            const shardData = shardSnap.data() as any;
-	            let parsedData: any = undefined;
-	            if (shardData?.isCompressed && shardData.compressedData) {
-              const decompressed = LZString.decompressFromBase64(shardData.compressedData);
-              if (decompressed) parsedData = JSON.parse(decompressed);
-            } else if (shardData && shardData[key] !== undefined) {
-              parsedData = shardData[key];
-            }
-            return { key, exists: true, value: parsedData };
+            const result = await readLogicalAppDataShard(user.uid, user.email, key, true);
+            return { key, exists: result.exists, value: result.value };
           } catch (err) {
             console.error(`Shard load error for ${key}:`, err);
             return { key, exists: false, value: undefined };
@@ -3596,15 +3596,17 @@ const MainApp: React.FC = () => {
               const latestSnapshot = stableStringify(latestValue);
               if (latestSnapshot !== snapshots[key]) return;
 
-              const shardContent = await buildShardContentAsync(key, latestValue);
+              const shardPlan = await buildLogicalShardWritePlan(key, latestValue, {
+                __adminDataGenerationId: getAdminDataGenerationId(),
+                __adminLastAuthoritativeWriteAt: new Date().toISOString(),
+              });
               if (cancelled) return;
 
               const newestValue = (latestDataRef.current as any)?.[key] || [];
               const newestSnapshot = stableStringify(newestValue);
               if (newestSnapshot !== latestSnapshot) return;
 
-              const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-              await setDoc(shardRef, shardContent, { merge: false });
+              await commitLogicalShardWritePlan(user.uid, user.email, shardPlan);
 
               lastRemoteKeysRef.current[key] = latestSnapshot;
               loadedCloudShardKeysRef.current.add(key);
@@ -3713,31 +3715,25 @@ const MainApp: React.FC = () => {
 
           // 3. Prepare every shard fully before starting any Firestore write. Previously writes
           // began while later shards were still compressing, allowing an older run to finish last.
-          const preparedShardContents: Record<string, any> = {};
+          const preparedShardPlans: Record<string, Awaited<ReturnType<typeof buildLogicalShardWritePlan>>> = {};
           for (const key of Object.keys(shardedPayloadsToSave)) {
             if (isStaleRun()) return;
-            preparedShardContents[key] = await buildShardContentAsync(key, shardedPayloadsToSave[key]);
+            preparedShardPlans[key] = await buildLogicalShardWritePlan(key, shardedPayloadsToSave[key], {
+              __adminDataGenerationId: getAdminDataGenerationId(),
+              __adminLastAuthoritativeWriteAt: new Date().toISOString(),
+            });
             if (isStaleRun()) return;
           }
 
           if (isStaleRun()) return;
-          const savePromises: Promise<any>[] = [];
-
-          if (hasRootChanged || !cloudRootExistsRef.current) {
-            console.log('Saving root modifications to Firestore with Google Studio mirror...');
-            savePromises.push(enqueuePersistenceWrite('root', async () => {
-              if (isStaleRun()) return;
-              await setDoc(rootDataRef, sanitizedRootPreview, { merge: false });
-            }));
-          }
+          const shardSavePromises: Promise<any>[] = [];
 
           for (const key of Object.keys(shardedPayloadsToSave)) {
             console.log(`Saving modified shard '${key}' to Firestore...`);
-            savePromises.push(enqueuePersistenceWrite(`shard:${key}`, async () => {
+            shardSavePromises.push(enqueuePersistenceWrite(`shard:${key}`, async () => {
               if (isStaleRun()) return;
 
-              const shardRef = getSmartDoc('appData', user.uid, user.email, `shards/${key}`);
-              await setDoc(shardRef, preparedShardContents[key], { merge: false });
+              await commitLogicalShardWritePlan(user.uid, user.email, preparedShardPlans[key]);
 
               // Realtime mirror for diwaniyas/squads is serialized with the authoritative shard.
               if (key === 'squads' && Array.isArray(shardedPayloadsToSave.squads)) {
@@ -3788,7 +3784,16 @@ const MainApp: React.FC = () => {
             }));
           }
 
-          await Promise.all(savePromises);
+          await Promise.all(shardSavePromises);
+
+          if (isStaleRun()) return;
+          if (hasRootChanged || !cloudRootExistsRef.current) {
+            console.log('Saving root modifications to Firestore with Google Studio mirror...');
+            await enqueuePersistenceWrite('root', async () => {
+              if (isStaleRun()) return;
+              await setDoc(rootDataRef, sanitizedRootPreview, { merge: false });
+            });
+          }
 
           // If a newer edit arrived after the network writes started, do not mark this old state
           // as the current baseline. The newer effect remains responsible for the final write.

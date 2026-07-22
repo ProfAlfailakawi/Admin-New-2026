@@ -1063,58 +1063,18 @@ function patchPaymentArray(key: "orders" | "invoices", items: any[], identifiers
   return { next, updated, matchedIds };
 }
 
-function readArrayFromShardData(key: "orders" | "invoices", shardData: any) {
-  if (!shardData) return [];
-  if (shardData?.isCompressed && shardData?.compressedData) {
-    const decompressed =
-      LZString.decompressFromBase64(String(shardData.compressedData)) ||
-      LZString.decompressFromUTF16(String(shardData.compressedData)) ||
-      "";
-    if (!decompressed) return [];
-    try {
-      const parsed = JSON.parse(decompressed);
-      if (Array.isArray(parsed)) return parsed;
-      if (Array.isArray(parsed?.[key])) return parsed[key];
-      return [];
-    } catch {
-      return [];
-    }
-  }
-
-  if (Array.isArray(shardData?.[key])) return shardData[key];
-  if (Array.isArray(shardData?.items)) return shardData.items;
-  return [];
-}
-
 async function syncSharedShardArray(key: "orders" | "invoices", identifiers: PaymentSyncIdentifiers, state: PaymentSyncState, meta: any) {
-  const ref = db.collection("appData").doc("shared_company_data").collection("shards").doc(key);
-  const snap = await ref.get();
-  if (!snap.exists) return { updated: 0, matchedIds: [] as string[] };
-
-  const shardData = snap.data() || {};
-  const current = readArrayFromShardData(key, shardData);
+  const rootRef = db.collection("appData").doc("shared_company_data");
+  const current = await loadFullAppDataShard(rootRef, key);
   if (!Array.isArray(current) || current.length === 0) return { updated: 0, matchedIds: [] as string[] };
 
   const patched = patchPaymentArray(key, current, identifiers, state, meta);
   if (patched.updated <= 0) return { updated: 0, matchedIds: [] as string[] };
 
-  const serialized = JSON.stringify(patched.next);
-  const shouldCompress = Boolean(shardData?.isCompressed) || serialized.length > 500000;
-  const payload = shouldCompress
-    ? {
-        compressedData: LZString.compressToBase64(serialized),
-        isCompressed: true,
-        updatedAt: new Date().toISOString(),
-        lastPaymentStatusSync: removeUndefinedDeep({ state, at: new Date().toISOString(), ...meta }),
-      }
-    : {
-        [key]: patched.next,
-        isCompressed: false,
-        updatedAt: new Date().toISOString(),
-        lastPaymentStatusSync: removeUndefinedDeep({ state, at: new Date().toISOString(), ...meta }),
-      };
-
-  await ref.set(payload, { merge: false });
+  await writeFullAppDataShard(rootRef, key, patched.next, {
+    updatedAt: new Date().toISOString(),
+    lastPaymentStatusSync: removeUndefinedDeep({ state, at: new Date().toISOString(), ...meta }),
+  });
   return { updated: patched.updated, matchedIds: patched.matchedIds };
 }
 
@@ -1387,11 +1347,10 @@ async function collectPaymentContextForTarget(invoiceId: any, provided: any = {}
     console.warn("[PAYMENT_SYNC] shared root context lookup failed:", error?.message || error);
   }
 
+  const paymentSharedRootRef = db.collection("appData").doc("shared_company_data");
   for (const key of ["invoices", "orders"] as const) {
     try {
-      const shardSnap = await db.collection("appData").doc("shared_company_data").collection("shards").doc(key).get();
-      if (!shardSnap.exists) continue;
-      const list = readArrayFromShardData(key, shardSnap.data() || {});
+      const list = await loadFullAppDataShard(paymentSharedRootRef, key);
       (Array.isArray(list) ? list : []).forEach((item: any) => {
         const ids = paymentItemIds(item);
         if (ids.some((id) => targetIds.includes(id))) appendPaymentItemIdentifiers(identifiers, item);
@@ -1637,6 +1596,164 @@ const BOOT_DEFERRED_APPDATA_SHARD_KEYS = new Set([
   "nameMatchMemory",
 ]);
 
+
+const FIRESTORE_SAFE_SHARD_DOCUMENT_BYTES = 850_000;
+const FIRESTORE_SHARD_BASE64_PART_CHARS = 600_000;
+const FIRESTORE_SHARD_JSON_PART_CHARS = 180_000;
+
+function firestoreShardByteSize(value: any) {
+  const text = typeof value === "string" ? value : JSON.stringify(value);
+  return Buffer.byteLength(text, "utf8");
+}
+
+function firestoreShardGeneration() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function splitFirestoreShardText(value: string, maxChars: number) {
+  const chunks: string[] = [];
+  for (let offset = 0; offset < value.length; offset += maxChars) {
+    chunks.push(value.slice(offset, offset + maxChars));
+  }
+  return chunks.length ? chunks : [""];
+}
+
+function decodeEncodedFullAppDataShard(key: string, encoded: string, encoding: string) {
+  const rawJson = encoding === "lz64"
+    ? (LZString.decompressFromBase64(encoded) || LZString.decompressFromUTF16(encoded) || "")
+    : encoded;
+  if (!rawJson) return [];
+  const parsed = JSON.parse(rawJson);
+  if (Array.isArray(parsed)) return parsed;
+  if (Array.isArray(parsed?.[key])) return parsed[key];
+  return parsed?.[key] !== undefined ? parsed[key] : parsed;
+}
+
+async function loadFullAppDataShard(rootRef: any, key: string, knownManifestData?: any) {
+  const baseRef = rootRef.collection("shards").doc(key);
+  let shardData = knownManifestData;
+  if (!shardData) {
+    const snap = await baseRef.get();
+    if (!snap.exists) return [];
+    shardData = snap.data() || {};
+  }
+
+  if (!shardData?.__segmentedShard) {
+    return decodeFullAppDataShard(key, shardData);
+  }
+
+  const partIds = Array.isArray(shardData.partIds)
+    ? shardData.partIds.map((id: any) => String(id || "")).filter(Boolean)
+    : [];
+  if (!partIds.length || partIds.length !== Number(shardData.partCount || 0)) {
+    throw new Error(`Segmented shard '${key}' has an invalid manifest.`);
+  }
+
+  const partSnaps = await Promise.all(
+    partIds.map((id: string) => rootRef.collection("shards").doc(id).get()),
+  );
+  const chunks = partSnaps.map((snap: any, index: number) => {
+    if (!snap.exists) throw new Error(`Segmented shard '${key}' part ${index + 1} is missing.`);
+    const part = snap.data() || {};
+    if (
+      !part.__shardPart ||
+      String(part.key || "") !== key ||
+      String(part.generation || "") !== String(shardData.generation || "") ||
+      Number(part.index) !== index
+    ) {
+      throw new Error(`Segmented shard '${key}' part ${index + 1} failed integrity validation.`);
+    }
+    return String(part.chunk || "");
+  });
+
+  const encoded = chunks.join("");
+  if (encoded.length !== Number(shardData.encodedLength || encoded.length)) {
+    throw new Error(`Segmented shard '${key}' failed length validation.`);
+  }
+  return decodeEncodedFullAppDataShard(key, encoded, String(shardData.encoding || "json"));
+}
+
+async function writeFullAppDataShard(rootRef: any, key: string, value: any, extraMeta: any = {}) {
+  const cleanValue = JSON.parse(JSON.stringify(value));
+  const rawJson = JSON.stringify(cleanValue);
+  const baseRef = rootRef.collection("shards").doc(key);
+  const previousSnap = await baseRef.get().catch(() => null);
+  const previousData = previousSnap?.exists ? (previousSnap.data() || {}) : {};
+  const previousPartIds = previousData?.__segmentedShard && Array.isArray(previousData.partIds)
+    ? previousData.partIds.map((id: any) => String(id || "")).filter(Boolean)
+    : [];
+
+  let baseContent: any = { ...extraMeta, [key]: cleanValue, isCompressed: false };
+  let partDocuments: Array<{ id: string; content: any }> = [];
+
+  if (firestoreShardByteSize(baseContent) > FIRESTORE_SAFE_SHARD_DOCUMENT_BYTES) {
+    const compressed = LZString.compressToBase64(rawJson) || "";
+    const compressedContent = { ...extraMeta, compressedData: compressed, isCompressed: true };
+    if (compressed && firestoreShardByteSize(compressedContent) <= FIRESTORE_SAFE_SHARD_DOCUMENT_BYTES) {
+      baseContent = compressedContent;
+    } else {
+      const encoding = compressed ? "lz64" : "json";
+      const encoded = compressed || rawJson;
+      const generation = firestoreShardGeneration();
+      const chunks = splitFirestoreShardText(
+        encoded,
+        encoding === "lz64" ? FIRESTORE_SHARD_BASE64_PART_CHARS : FIRESTORE_SHARD_JSON_PART_CHARS,
+      );
+      const partIds = chunks.map((_chunk, index) =>
+        `${key}__v2__${generation}__${String(index + 1).padStart(4, "0")}`,
+      );
+      partDocuments = chunks.map((chunk, index) => ({
+        id: partIds[index],
+        content: {
+          __shardPart: true,
+          formatVersion: 2,
+          key,
+          generation,
+          index,
+          partCount: chunks.length,
+          chunk,
+        },
+      }));
+      baseContent = {
+        ...extraMeta,
+        [key]: [],
+        isCompressed: false,
+        __segmentedShard: true,
+        formatVersion: 2,
+        key,
+        generation,
+        encoding,
+        partIds,
+        partCount: partIds.length,
+        encodedLength: encoded.length,
+        rawByteLength: firestoreShardByteSize(rawJson),
+        storedByteLength: firestoreShardByteSize(encoded),
+        updatedAt: new Date().toISOString(),
+      };
+    }
+  }
+
+  for (const part of partDocuments) {
+    const size = firestoreShardByteSize(part.content);
+    if (size > FIRESTORE_SAFE_SHARD_DOCUMENT_BYTES) {
+      throw new Error(`Shard part '${part.id}' is too large (${size} bytes).`);
+    }
+  }
+
+  if (partDocuments.length) {
+    await Promise.all(
+      partDocuments.map((part) => rootRef.collection("shards").doc(part.id).set(part.content, { merge: false })),
+    );
+  }
+  await baseRef.set(baseContent, { merge: false });
+
+  const currentPartIds = new Set(partDocuments.map((part) => part.id));
+  const stalePartIds = previousPartIds.filter((id: string) => !currentPartIds.has(id));
+  if (stalePartIds.length) {
+    await Promise.allSettled(stalePartIds.map((id: string) => rootRef.collection("shards").doc(id).delete()));
+  }
+}
+
 function decodeFullAppDataShard(key: string, shardData: any) {
   if (!shardData) return [];
   if (shardData?.isCompressed && shardData?.compressedData) {
@@ -1706,14 +1823,14 @@ async function initBootCache() {
         appDataCache.rootData = rootSnap.data() || {};
       }
 
-      shardSnaps.forEach((doc: any, index: number) => {
+      await Promise.all(shardSnaps.map(async (doc: any, index: number) => {
         const key = bootKeys[index];
         if (doc && doc.exists) {
-          appDataCache.shards[key] = decodeFullAppDataShard(key, doc.data() || {});
+          appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
         } else {
           appDataCache.shards[key] = [];
         }
-      });
+      }));
 
       appDataCache.bootInitialized = true;
       const elapsed = Date.now() - startedAt;
@@ -1733,10 +1850,14 @@ async function initBootCache() {
       });
 
       bootKeys.forEach(key => {
-        rootRef.collection("shards").doc(key).onSnapshot((doc: any) => {
+        rootRef.collection("shards").doc(key).onSnapshot(async (doc: any) => {
           if (doc && doc.exists) {
-            appDataCache.shards[key] = decodeFullAppDataShard(key, doc.data() || {});
-            console.log(`[CACHE] Live sync: Boot shard ${key} updated.`);
+            try {
+              appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
+              console.log(`[CACHE] Live sync: Boot shard ${key} updated.`);
+            } catch (decodeError: any) {
+              console.error(`[CACHE] Failed to decode live boot shard ${key}:`, decodeError?.message || decodeError);
+            }
           }
         }, (err: any) => {
           console.error(`[CACHE] Real-time sync error for boot key ${key}:`, err);
@@ -1777,24 +1898,28 @@ async function initDeferredCache() {
         }))
       );
 
-      shardSnaps.forEach((doc: any, index: number) => {
+      await Promise.all(shardSnaps.map(async (doc: any, index: number) => {
         const key = deferredKeys[index];
         if (doc && doc.exists) {
-          appDataCache.shards[key] = decodeFullAppDataShard(key, doc.data() || {});
+          appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
         } else {
           appDataCache.shards[key] = [];
         }
-      });
+      }));
 
       appDataCache.fullInitialized = true;
       const elapsed = Date.now() - startedAt;
       console.log(`[CACHE] Stage-2 deferred cache hot in ${elapsed}ms! Loaded ${deferredKeys.length} background shards.`);
 
       deferredKeys.forEach(key => {
-        rootRef.collection("shards").doc(key).onSnapshot((doc: any) => {
+        rootRef.collection("shards").doc(key).onSnapshot(async (doc: any) => {
           if (doc && doc.exists) {
-            appDataCache.shards[key] = decodeFullAppDataShard(key, doc.data() || {});
-            console.log(`[CACHE] Live sync: Deferred shard ${key} updated.`);
+            try {
+              appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
+              console.log(`[CACHE] Live sync: Deferred shard ${key} updated.`);
+            } catch (decodeError: any) {
+              console.error(`[CACHE] Failed to decode live deferred shard ${key}:`, decodeError?.message || decodeError);
+            }
           }
         }, (err: any) => {
           console.error(`[CACHE] Real-time sync error for deferred key ${key}:`, err);
@@ -2708,9 +2833,8 @@ async function waFindCustomAutoReply(text: string, phone: string) {
 async function waReadSharedShard(key: string) {
   if (!db || !firebaseInitialized) return [];
   try {
-    const snap = await db.collection("appData").doc("shared_company_data").collection("shards").doc(key).get();
-    if (!snap.exists) return [];
-    return decodeFullAppDataShard(key, snap.data() || {});
+    const rootRef = db.collection("appData").doc("shared_company_data");
+    return await loadFullAppDataShard(rootRef, key);
   } catch (error: any) {
     console.warn(`[WHATSAPP] Could not read shared shard ${key}:`, error?.message || error);
     return [];
@@ -5627,16 +5751,19 @@ app.get("/api/admin-dashboard-data", async (_req, res) => {
 
     let sharedData: any = {};
     try {
-      const sharedSnap = await db.collection("appData").doc("shared_company_data").get();
+      const sharedRootRef = db.collection("appData").doc("shared_company_data");
+      const sharedSnap = await sharedRootRef.get();
       if (sharedSnap.exists) sharedData = sharedSnap.data() || {};
-      if (!Array.isArray(sharedData.squads) || sharedData.squads.length === 0) {
-        const squadsShardSnap = await db.collection("appData").doc("shared_company_data").collection("shards").doc("squads").get();
-        if (squadsShardSnap.exists) {
-          const shardSquads = squadsShardSnap.data()?.squads;
-          if (Array.isArray(shardSquads) && shardSquads.length > 0) {
-            sharedData = { ...sharedData, squads: shardSquads };
-          }
-        }
+
+      const [shardSquads, shardOrders] = await Promise.all([
+        loadFullAppDataShard(sharedRootRef, "squads").catch(() => []),
+        loadFullAppDataShard(sharedRootRef, "orders").catch(() => []),
+      ]);
+      if (Array.isArray(shardSquads) && shardSquads.length > 0) {
+        sharedData = { ...sharedData, squads: shardSquads };
+      }
+      if (Array.isArray(shardOrders) && shardOrders.length > 0) {
+        sharedData = { ...sharedData, orders: shardOrders };
       }
     } catch (e: any) {
       console.warn("[admin-dashboard-data] Could not read appData/shared_company_data:", e?.message || e);
@@ -6467,10 +6594,8 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
           for (const key of ["orders", "invoices"] as const) {
             try {
-              const shardSnap = await appDataRef.collection("shards").doc(key).get();
-              const shardData = shardSnap.exists ? (shardSnap.data() || {}) : {};
-              const shardItems = Array.isArray(shardData.items) ? shardData.items : (Array.isArray(shardData[key]) ? shardData[key] : []);
-              if (shardItems.length > 0) candidateLists.push(shardItems);
+              const shardItems = await loadFullAppDataShard(appDataRef, key);
+              if (Array.isArray(shardItems) && shardItems.length > 0) candidateLists.push(shardItems);
             } catch (shardError: any) {
               if (!String(shardError?.message || shardError).includes("PERMISSION_DENIED")) {
                 console.warn(`[order-created-alert] Failed to load ${key} shard:`, shardError?.message || shardError);
@@ -6905,10 +7030,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       // نقرأ من هناك عند فراغ الحقل المباشر، بنفس الطريقة المستخدمة في باقي هذا الملف.
       if (sharedOrders.length === 0) {
         try {
-          const ordersShardSnap = await appDataRef.collection("shards").doc("orders").get();
-          if (ordersShardSnap.exists) {
-            sharedOrders = readArrayFromShardData("orders", ordersShardSnap.data() || {});
-          }
+          sharedOrders = await loadFullAppDataShard(appDataRef, "orders");
         } catch (shardError: any) {
           if (!String(shardError?.message || shardError).includes("PERMISSION_DENIED")) {
             console.warn("[ALERTS] Failed to load orders shard:", shardError?.message || shardError);
@@ -8074,13 +8196,11 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       console.warn("[PAYMENT_RECONCILE] Could not inspect shared_company_data root:", error?.message || error);
     }
 
+    const reconcileSharedRootRef = db.collection("appData").doc("shared_company_data");
     for (const key of ["invoices", "orders"] as const) {
       try {
-        const shardSnap = await db.collection("appData").doc("shared_company_data").collection("shards").doc(key).get();
-        if (shardSnap.exists) {
-          const items = readArrayFromShardData(key, shardSnap.data() || {});
-          if (Array.isArray(items)) items.forEach(inspectItem);
-        }
+        const items = await loadFullAppDataShard(reconcileSharedRootRef, key);
+        if (Array.isArray(items)) items.forEach(inspectItem);
       } catch (error: any) {
         console.warn(`[PAYMENT_RECONCILE] Could not inspect shared shard ${key}:`, error?.message || error);
       }
@@ -8876,10 +8996,8 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       // Keep the existing payment/waiting logic exactly the same; only make the alert worker read the live arrays.
       for (const key of ["orders", "invoices"] as const) {
         try {
-          const shardSnap = await ref.collection("shards").doc(key).get();
-          const shardData = shardSnap.exists ? (shardSnap.data() || {}) : {};
-          const shardItems = Array.isArray(shardData.items) ? shardData.items : (Array.isArray(shardData[key]) ? shardData[key] : []);
-          if (shardItems.length > 0) {
+          const shardItems = await loadFullAppDataShard(ref, key);
+          if (Array.isArray(shardItems) && shardItems.length > 0) {
             const rootItems = Array.isArray(data[key]) ? data[key] : [];
             const mergedMap = new Map<string, any>();
             const keyForItem = (item: any, idx: number) => String(

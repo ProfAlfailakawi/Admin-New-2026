@@ -73,6 +73,7 @@ import {
 import { db, auth, getSmartDoc } from "../firebase";
 import { Toggle } from "./ui/Toggle";
 import { INITIAL_DATA } from "../data";
+import { readLogicalAppDataShard, writeLogicalAppDataShard } from "../lib/firestoreShardStorage";
 
 import { EnableNotificationsButton } from "./EnableNotificationsButton";
 import {
@@ -2236,28 +2237,22 @@ const GeneralSettings: React.FC<Props> = ({
             if (key !== "products" && cleanRoot[key] !== undefined)
               cleanRoot[key] = [];
           });
-          await setDoc(dataRef, JSON.parse(JSON.stringify(cleanRoot)), {
-            merge: false,
-          });
-
+          // Empty every logical shard first. The helper also deletes any old segmented
+          // invoice/order parts. A single failed shard now aborts the reset instead of being
+          // silently ignored and later reappearing after the page reload.
           await Promise.all(
-            SHARDED_KEYS.map(async (key) => {
-              try {
-                const shardRef = getSmartDoc(
-                  "appData",
-                  currentUser.uid,
-                  currentUser.email,
-                  `shards/${key}`,
-                );
-                await setDoc(
-                  shardRef,
-                  { [key]: [], isCompressed: false },
-                  { merge: false },
-                );
-              } catch (e) {
-                console.warn(`Shard ${key} skip:`, e);
-              }
-            }),
+            SHARDED_KEYS.map((key) =>
+              writeLogicalAppDataShard(
+                currentUser.uid,
+                currentUser.email,
+                key,
+                [],
+                {
+                  __adminDataGenerationId: generationId,
+                  __adminLastAuthoritativeWriteAt: new Date().toISOString(),
+                },
+              ),
+            ),
           );
 
           const deleteCollectionInBatches = async (collectionName: string) => {
@@ -2281,6 +2276,25 @@ const GeneralSettings: React.FC<Props> = ({
           for (const collectionName of ["orders", "invoices", "squads"]) {
             await deleteCollectionInBatches(collectionName);
           }
+
+          // Verify the two critical ledgers are truly empty before publishing the new root
+          // generation. This prevents a partial reset from ever being reported as successful.
+          for (const key of ["invoices", "orders"] as const) {
+            const verification = await readLogicalAppDataShard(
+              currentUser.uid,
+              currentUser.email,
+              key,
+              true,
+            );
+            if (!verification.exists || !Array.isArray(verification.value) || verification.value.length !== 0) {
+              throw new Error(`CLOUD_RESET_VERIFICATION_FAILED:${key}`);
+            }
+          }
+
+          // Publish the reset generation only after all shards and live collections are clean.
+          await setDoc(dataRef, JSON.parse(JSON.stringify(cleanRoot)), {
+            merge: false,
+          });
 
           // Arm the next boot check only after every authoritative delete succeeds.
           // This prevents a stale server cache from restoring the just-deleted data.
@@ -3157,9 +3171,49 @@ const GeneralSettings: React.FC<Props> = ({
             return;
           }
 
+          const restoreSplitExcelColumns = (row: any) => {
+            if (!row || typeof row !== "object" || Array.isArray(row)) return row;
+            const restored: Record<string, any> = { ...row };
+            const grouped = new Map<string, Array<{ part: number; value: string }>>();
+
+            Object.keys(row).forEach((columnName) => {
+              const match = columnName.match(/^(.*)_part_(\d+)$/);
+              if (!match) return;
+              const baseName = match[1];
+              const partNumber = Number(match[2]);
+              if (!grouped.has(baseName)) grouped.set(baseName, []);
+              grouped.get(baseName)!.push({
+                part: partNumber,
+                value: String(row[columnName] ?? ""),
+              });
+            });
+
+            grouped.forEach((parts, baseName) => {
+              const hasBasePart = Object.prototype.hasOwnProperty.call(row, baseName);
+              const sortedParts = parts.sort((a, b) => a.part - b.part);
+              const expectedStart = hasBasePart ? 2 : 1;
+              sortedParts.forEach((part, index) => {
+                if (part.part !== expectedStart + index) {
+                  throw new Error(
+                    `CORRUPT_SPLIT_EXCEL_COLUMN:${baseName}:EXPECTED_${expectedStart + index}:FOUND_${part.part}`,
+                  );
+                }
+              });
+
+              const firstPart = hasBasePart ? String(row[baseName] ?? "") : "";
+              restored[baseName] = firstPart + sortedParts
+                .map((part) => part.value)
+                .join("");
+              sortedParts.forEach((part) => delete restored[`${baseName}_part_${part.part}`]);
+            });
+
+            return restored;
+          };
+
           const safeSheetToObj = (sheetName: string) => {
             if (workbook.SheetNames.includes(sheetName)) {
-              return XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) || [];
+              const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) || [];
+              return (rows as any[]).map(restoreSplitExcelColumns);
             }
             return [];
           };
@@ -3425,6 +3479,12 @@ const GeneralSettings: React.FC<Props> = ({
               INITIAL_DATA.settings,
           };
 
+          const importIntegrity = {
+            invoiceRows: 0,
+            invoiceItemRows: 0,
+            orderRows: 0,
+          };
+
           const restoredWhatsAppQuickRepliesCount =
             workbook.SheetNames.includes(WHATSAPP_QUICK_REPLIES_SHEET)
               ? restoreWhatsAppQuickRepliesFromBackup(
@@ -3434,6 +3494,7 @@ const GeneralSettings: React.FC<Props> = ({
 
           if (workbook.SheetNames.includes("Invoices")) {
             const invoiceItemsRows = safeSheetToObj("InvoiceItems") as any[];
+            importIntegrity.invoiceItemRows = invoiceItemsRows.length;
             const invoiceItemsByInvoice = new Map<string, any[]>();
             invoiceItemsRows.forEach((row: any) => {
               const invoiceId = String(row.invoiceId || "").trim();
@@ -3456,34 +3517,72 @@ const GeneralSettings: React.FC<Props> = ({
                 .get(invoiceId)!
                 .push(stripUndefined(restoredItem));
             });
-            const invoicesSheet = workbook.Sheets["Invoices"];
-            const rawInvoices = XLSX.utils.sheet_to_json(
-              invoicesSheet,
-            ) as any[];
-            newState.invoices = rawInvoices.map((inv) => {
+            const rawInvoices = safeSheetToObj("Invoices") as any[];
+            importIntegrity.invoiceRows = rawInvoices.length;
+            newState.invoices = rawInvoices.map((inv, invoiceIndex) => {
+              const rawInvoiceText = String(inv.rawInvoice || "").trim();
+              const rawInvoice = parseSafeJson(rawInvoiceText, false);
+              if (
+                rawInvoiceText &&
+                (!rawInvoice || typeof rawInvoice !== "object" || Array.isArray(rawInvoice))
+              ) {
+                throw new Error(`INVALID_RAW_INVOICE_BACKUP_ROW:${invoiceIndex + 2}`);
+              }
+              const merged =
+                rawInvoice && typeof rawInvoice === "object" && !Array.isArray(rawInvoice)
+                  ? { ...rawInvoice }
+                  : { ...inv };
+
               const isDeleted =
-                inv.isDeleted === true ||
-                inv.isDeleted === "TRUE" ||
-                inv.isDeleted === "true";
-              const parsedItems = parseSafeJson(inv.items, true);
+                merged.isDeleted === true ||
+                merged.isDeleted === "TRUE" ||
+                merged.isDeleted === "true";
+              const parsedItems = parseSafeJson(merged.items, true);
               const itemRows =
-                invoiceItemsByInvoice.get(String(inv.id || "").trim()) || [];
+                invoiceItemsByInvoice.get(String(merged.id || "").trim()) || [];
               const parsedAddress =
-                parseSafeJson(inv.address, false) ||
-                parseSafeJson(inv.rawAddress, false) ||
-                makeAddressFromRow(inv) ||
-                inv.address;
+                parseSafeJson(merged.address, false) ||
+                parseSafeJson(merged.rawAddress, false) ||
+                makeAddressFromRow(merged) ||
+                merged.address;
               const parsedDeliveryInfo =
-                parseSafeJson(inv.deliveryInfo, false) || inv.deliveryInfo;
+                parseSafeJson(merged.deliveryInfo, false) || merged.deliveryInfo;
+
+              // These fields exist only to make the Excel workbook readable/recoverable.
+              // Keeping them inside the live invoice duplicates the full invoice JSON and can
+              // inflate the Firestore shard beyond 1 MiB after an otherwise valid import.
+              [
+                "rawInvoice",
+                "rawAddress",
+                "addressFull",
+                "addressRegion",
+                "addressArea",
+                "addressBlock",
+                "addressStreet",
+                "addressJaddah",
+                "addressBuilding",
+                "addressFloor",
+                "addressApartment",
+                "addressNotes",
+                "subtotal",
+                "المنطقة",
+                "القطعة",
+                "الشارع",
+                "الجادة",
+                "المنزل",
+                "الدور",
+                "الشقة",
+                "العنوان الكامل",
+              ].forEach((field) => delete merged[field]);
 
               return stripUndefined({
-                ...inv,
+                ...merged,
                 isDeleted,
                 items: parsedItems.length ? parsedItems : itemRows,
                 address:
                   typeof parsedAddress === "object"
                     ? parsedAddress
-                    : inv.address,
+                    : merged.address,
                 deliveryInfo:
                   typeof parsedDeliveryInfo === "object" &&
                   parsedDeliveryInfo !== null
@@ -3491,22 +3590,34 @@ const GeneralSettings: React.FC<Props> = ({
                     : undefined,
               });
             });
+            if (newState.invoices.length !== importIntegrity.invoiceRows) {
+              throw new Error(
+                `INVOICE_IMPORT_COUNT_MISMATCH:${newState.invoices.length}/${importIntegrity.invoiceRows}`,
+              );
+            }
           }
 
           if (workbook.SheetNames.includes("Orders")) {
-            const ordersSheet = workbook.Sheets["Orders"];
-            const rawOrders = XLSX.utils.sheet_to_json(ordersSheet) as any[];
-            newState.orders = rawOrders.map((o) => {
-              const parsedItems = parseSafeJson(o.items, true);
-              const parsedAddress =
-                parseSafeJson(o.address, false) ||
-                makeAddressFromRow(o) ||
-                o.address;
-              const rawOrder = parseSafeJson(o.rawOrder, false);
+            const rawOrders = safeSheetToObj("Orders") as any[];
+            importIntegrity.orderRows = rawOrders.length;
+            newState.orders = rawOrders.map((o, orderIndex) => {
+              const rawOrderText = String(o.rawOrder || "").trim();
+              const rawOrder = parseSafeJson(rawOrderText, false);
+              if (
+                rawOrderText &&
+                (!rawOrder || typeof rawOrder !== "object" || Array.isArray(rawOrder))
+              ) {
+                throw new Error(`INVALID_RAW_ORDER_BACKUP_ROW:${orderIndex + 2}`);
+              }
               const merged =
-                rawOrder && typeof rawOrder === "object"
-                  ? { ...rawOrder, ...o }
+                rawOrder && typeof rawOrder === "object" && !Array.isArray(rawOrder)
+                  ? { ...rawOrder }
                   : { ...o };
+              const parsedItems = parseSafeJson(merged.items, true);
+              const parsedAddress =
+                parseSafeJson(merged.address, false) ||
+                makeAddressFromRow(merged) ||
+                merged.address;
               delete merged.rawOrder;
               delete merged.addressFull;
               delete merged.addressRegion;
@@ -3522,9 +3633,14 @@ const GeneralSettings: React.FC<Props> = ({
                 ...merged,
                 items: parsedItems,
                 address:
-                  typeof parsedAddress === "object" ? parsedAddress : o.address,
+                  typeof parsedAddress === "object" ? parsedAddress : merged.address,
               });
             });
+            if (newState.orders.length !== importIntegrity.orderRows) {
+              throw new Error(
+                `ORDER_IMPORT_COUNT_MISMATCH:${newState.orders.length}/${importIntegrity.orderRows}`,
+              );
+            }
           }
           if (workbook.SheetNames.includes("Zones")) {
             newState.zones = stripUndefined(
@@ -3550,7 +3666,7 @@ const GeneralSettings: React.FC<Props> = ({
                   .then(() => {
                     addToast(
                       "تمت العملية",
-                      `تم استيراد بيانات Excel ومزامنتها سحابياً بنجاح ✨${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ""}`,
+                      `تم استيراد ${importIntegrity.invoiceRows} فاتورة و${importIntegrity.invoiceItemRows} بند و${importIntegrity.orderRows} طلب، ثم التحقق من حفظها سحابياً بنجاح ✨${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ""}`,
                       "success",
                     );
                   })
@@ -3584,7 +3700,7 @@ const GeneralSettings: React.FC<Props> = ({
                 setData(finalizedState);
                 addToast(
                   "تمت العملية",
-                  `تم استيراد بيانات Excel ومزامنة الأرصدة محلياً بنجاح${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ""}`,
+                  `تم استيراد ${importIntegrity.invoiceRows} فاتورة و${importIntegrity.invoiceItemRows} بند و${importIntegrity.orderRows} طلب، ومزامنة الأرصدة محلياً بنجاح${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ""}`,
                   "success",
                 );
               }
