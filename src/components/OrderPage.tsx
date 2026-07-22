@@ -725,6 +725,26 @@ const OrderPage: React.FC<OrderPageProps> = ({
           invoices: updatedInvoices,
         });
       });
+
+      // Sync direct order document in Firestore immediately
+      try {
+        const orderDocRef = doc(db, "orders", orderId);
+        await updateDoc(orderDocRef, {
+          status:
+            newStatus === "paid" || newStatus === "تم الدفع"
+              ? "تم الدفع بنجاح"
+              : (newStatus as any),
+          paymentStatus:
+            newStatus === "paid" || newStatus === "تم الدفع"
+              ? "paid"
+              : order.paymentStatus,
+          updatedAt: new Date().toISOString(),
+          ...additionalUpdates,
+        });
+      } catch (err) {
+        console.warn("Direct order Firestore update failed:", err);
+      }
+
       toast.success("تم تحديث حالة الطلب");
       if (selectedOrder?.id === orderId) {
         setSelectedOrder((prev) =>
@@ -3011,7 +3031,7 @@ Alturath.kw`;
                               </div>
                               <div>
                                 <span className="block text-[10px] text-white/70 font-bold mb-1">وقت التوصيل</span>
-                                <div className="relative flex items-center">
+                                <div className="flex items-center gap-2">
                                   <input
                                     type="text"
                                     placeholder="12:30 م"
@@ -3023,9 +3043,9 @@ Alturath.kw`;
                                         updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: val });
                                       }
                                     }}
-                                    className="w-full bg-slate-800/90 border border-amber-400/40 text-white rounded-lg pl-16 pr-3 py-1.5 text-center font-bold text-xs outline-none focus:ring-2 focus:ring-amber-400/50"
+                                    className="w-full bg-slate-800/90 border border-amber-400/40 text-white rounded-lg px-3 py-1.5 text-center font-bold text-xs outline-none focus:ring-2 focus:ring-amber-400/50"
                                   />
-                                  <div className="absolute left-1.5 flex gap-1">
+                                  <div className="flex border border-slate-700 rounded-lg p-0.5 bg-slate-900/50 shrink-0 gap-0.5">
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -3039,10 +3059,10 @@ Alturath.kw`;
                                         }
                                       }}
                                       className={cn(
-                                        "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer",
+                                        "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
                                         orderDeliveryTime.includes("ص")
                                           ? "bg-amber-500 text-slate-950 font-black"
-                                          : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                          : "text-slate-400 hover:bg-slate-800"
                                       )}
                                       title="صباحاً"
                                     >
@@ -3061,10 +3081,10 @@ Alturath.kw`;
                                         }
                                       }}
                                       className={cn(
-                                        "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer",
+                                        "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
                                         orderDeliveryTime.includes("م")
                                           ? "bg-amber-500 text-slate-950 font-black"
-                                          : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                          : "text-slate-400 hover:bg-slate-800"
                                       )}
                                       title="مساءً"
                                     >
