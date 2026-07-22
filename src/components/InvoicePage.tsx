@@ -59,6 +59,8 @@ import {
   resolveInvoiceDisplayDate,
   parseTimeTo24h,
   formatDeliveryTimeDisplay,
+  formatTimeInput,
+  validateAndCleanTime,
 } from "../lib/utils";
 import {
   computeInvoiceTotal,
@@ -1488,7 +1490,19 @@ Alturath.kw`;
                         type="text"
                         placeholder="12:30 م"
                         value={deliveryTime}
-                        onChange={(e) => setDeliveryTime(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const hasAm = val.includes('ص');
+                          const hasPm = val.includes('م');
+                          const period = hasPm ? ' م' : (hasAm ? ' ص' : '');
+                          const cleanDigits = val.replace(/\s*[صم]\s*/g, "");
+                          const formattedDigits = formatTimeInput(cleanDigits);
+                          setDeliveryTime(`${formattedDigits}${period}`);
+                        }}
+                        onBlur={(e) => {
+                          const cleaned = validateAndCleanTime(e.target.value);
+                          setDeliveryTime(cleaned);
+                        }}
                         className="w-full bg-white border border-amber-200/90 rounded-xl px-3 py-2 text-center font-bold text-xs outline-none transition-all focus:ring-2 focus:ring-amber-500/30"
                       />
                       <div className="flex border border-slate-200/80 rounded-lg p-0.5 bg-slate-100 shrink-0 gap-0.5">
@@ -1497,8 +1511,9 @@ Alturath.kw`;
                           onClick={() => {
                             let current = deliveryTime || "";
                             current = current.replace(/\s*[صم]\s*/g, "").trim();
-                            if (!current) current = "12:00";
-                            setDeliveryTime(`${current} ص`);
+                            const cleaned = validateAndCleanTime(current);
+                            const baseTime = cleaned ? cleaned.replace(/\s*[صم]\s*/g, "").trim() : "12:00";
+                            setDeliveryTime(`${baseTime} ص`);
                           }}
                           className={cn(
                             "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
@@ -1515,8 +1530,9 @@ Alturath.kw`;
                           onClick={() => {
                             let current = deliveryTime || "";
                             current = current.replace(/\s*[صم]\s*/g, "").trim();
-                            if (!current) current = "12:00";
-                            setDeliveryTime(`${current} م`);
+                            const cleaned = validateAndCleanTime(current);
+                            const baseTime = cleaned ? cleaned.replace(/\s*[صم]\s*/g, "").trim() : "12:00";
+                            setDeliveryTime(`${baseTime} م`);
                           }}
                           className={cn(
                             "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
