@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { ShoppingCart, Lock, User, ArrowLeft, Chrome, DownloadCloud, Share, X } from 'lucide-react';
+import { Chrome, DownloadCloud, Share, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { loginWithGoogle } from '../firebase';
@@ -11,14 +10,11 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('Alturath');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isStandalone, setIsStandalone] = useState(true);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showIOSPrompt, setShowIOSPrompt] = useState(false);
-  const [showLocalLogin, setShowLocalLogin] = useState(false);
 
   const showInstallToast = async () => {
     const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
@@ -70,15 +66,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
   const handleCloseIOSPrompt = () => {
     setShowIOSPrompt(false);
     sessionStorage.setItem('pwa_prompt_dismissed', 'true');
-  };
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (username === 'admin' && password === 'Alturath') {
-      onLogin('local');
-    } else {
-      setError('اسم المستخدم أو كلمة المرور غير صحيحة');
-    }
   };
 
   const handleGoogleLogin = async () => {
@@ -143,22 +130,16 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
         </section>
 
         <section className="login-form-stage login-form-stage-cloud-first">
-          {localStorage.getItem('appMode') === 'cloud' && (
-            <div className="login-cloud-note">
-              استخدمت التخزين السحابي قريب. سجل دخول بـ Google عشان توصل لبياناتك.
-            </div>
-          )}
+          <div className="login-cloud-note">
+            النظام سحابي بالكامل. يلزم اتصال فعلي بالسحابة وتسجيل الدخول عبر Google.
+          </div>
 
           <button onClick={handleGoogleLogin} disabled={loading} className="login-google-btn" type="button">
             <Chrome size={20} />
             <span>{loading ? 'نحمّل...' : 'تسجيل الدخول السحابي Google'}</span>
           </button>
 
-          <button type="button" onClick={() => setShowLocalLogin(true)} className="login-local-link-btn">
-            أو الدخول المحلي للتجربة
-          </button>
-
-          {error && !showLocalLogin && (
+          {error && (
             <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="login-error-box">
               <span /> {error}
             </motion.div>
@@ -171,57 +152,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
           )}
         </section>
 
-        <AnimatePresence>
-          {showLocalLogin && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="login-local-modal-backdrop"
-              onClick={() => setShowLocalLogin(false)}
-            >
-              <motion.form
-                onSubmit={handleLogin}
-                initial={{ opacity: 0, y: 24, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 18, scale: 0.96 }}
-                className="login-local-modal login-premium-form"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <button type="button" className="login-local-modal-close" onClick={() => setShowLocalLogin(false)} aria-label="إغلاق">
-                  <X size={18} />
-                </button>
-                <div className="login-local-modal-head">
-                  <strong>الدخول المحلي</strong>
-                  <small>للتجربة على هذا الجهاز فقط</small>
-                </div>
-                <label className="login-field">
-                  <span>اسم المستخدم</span>
-                  <div>
-                    <User size={18} />
-                    <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="اكتب اسم المستخدم" required />
-                  </div>
-                </label>
-                <label className="login-field">
-                  <span>كلمة المرور</span>
-                  <div>
-                    <Lock size={18} />
-                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
-                  </div>
-                </label>
-                {error && (
-                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="login-error-box">
-                    <span /> {error}
-                  </motion.div>
-                )}
-                <button type="submit" className="login-local-btn">
-                  <span>دخول محلي</span>
-                  <ArrowLeft size={18} />
-                </button>
-              </motion.form>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
 
       <AnimatePresence>

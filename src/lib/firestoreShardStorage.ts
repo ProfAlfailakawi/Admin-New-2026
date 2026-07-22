@@ -257,7 +257,7 @@ export async function readLogicalAppDataShard(
 ): Promise<{ exists: boolean; value: any; manifest: any }> {
   const baseRef = getSmartDoc('appData', uid, userEmail, `shards/${key}`);
   const baseSnap = preferServer
-    ? await getDocFromServer(baseRef).catch(() => getDoc(baseRef))
+    ? await getDocFromServer(baseRef)
     : await getDoc(baseRef);
 
   if (!baseSnap.exists()) return { exists: false, value: undefined, manifest: null };
@@ -282,7 +282,7 @@ export async function readLogicalAppDataShard(
     partIds.map((id) => {
       const ref = getSmartDoc('appData', uid, userEmail, `shards/${id}`);
       return preferServer
-        ? getDocFromServer(ref).catch(() => getDoc(ref))
+        ? getDocFromServer(ref)
         : getDoc(ref);
     }),
   );

@@ -5572,6 +5572,74 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+// Live cloud probe used by the admin UI while it is open. Unlike /api/health, this
+// endpoint performs a real Firestore server read, so an internet connection alone is
+// never mistaken for a healthy cloud database. Results are cached briefly to avoid
+// unnecessary reads when more than one admin tab is open.
+let cloudHealthCache = { checkedAt: 0, reachable: false, documentExists: false, error: "" };
+app.get("/api/cloud-health", async (_req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  const now = Date.now();
+
+  if (!db || !firebaseInitialized) {
+    return res.status(503).json({
+      success: false,
+      firestoreReachable: false,
+      reason: "firestore_not_ready",
+      ts: now,
+    });
+  }
+
+  if (now - cloudHealthCache.checkedAt < 4_000) {
+    const status = cloudHealthCache.reachable ? 200 : 503;
+    return res.status(status).json({
+      success: cloudHealthCache.reachable,
+      firestoreReachable: cloudHealthCache.reachable,
+      documentExists: cloudHealthCache.documentExists,
+      cached: true,
+      error: cloudHealthCache.error || undefined,
+      ts: now,
+    });
+  }
+
+  try {
+    const timeout = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("FIRESTORE_HEALTH_TIMEOUT")), 4_500);
+    });
+    const snap: any = await Promise.race([
+      db.collection("appData").doc("shared_company_data").get(),
+      timeout,
+    ]);
+
+    cloudHealthCache = {
+      checkedAt: Date.now(),
+      reachable: true,
+      documentExists: Boolean(snap?.exists),
+      error: "",
+    };
+    return res.json({
+      success: true,
+      firestoreReachable: true,
+      documentExists: cloudHealthCache.documentExists,
+      cached: false,
+      ts: Date.now(),
+    });
+  } catch (error: any) {
+    cloudHealthCache = {
+      checkedAt: Date.now(),
+      reachable: false,
+      documentExists: false,
+      error: error?.message || String(error),
+    };
+    return res.status(503).json({
+      success: false,
+      firestoreReachable: false,
+      error: cloudHealthCache.error,
+      ts: Date.now(),
+    });
+  }
+});
+
 // Proactive warm-up: kick the boot cache without blocking the caller. The client
 // fires this the moment the PWA regains focus, and a keep-warm pinger can hit it too,
 // so the heavy Firestore boot read happens BEFORE the user reaches /api/appdata/full.

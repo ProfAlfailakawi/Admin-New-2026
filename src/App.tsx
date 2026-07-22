@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
-import LZString from 'lz-string';
-import { compressToBase64ViaWorker } from './lib/snapshotCompressor';
 import { buildLogicalShardWritePlan, commitLogicalShardWritePlan, readLogicalAppDataShard } from './lib/firestoreShardStorage';
 import { 
   ArrowUp,
@@ -102,59 +100,14 @@ import { Toaster, toast } from 'sonner';
 import { playNewOrderAlert } from './lib/sounds';
 import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils';
 import { refreshPushRegistrationIfAlreadyAllowed } from './lib/pushNotifications';
-import { getProtectedStorageItem, getProtectedStorageItemFast, hasMeaningfulData, safeMergeData, setProtectedStorageItem } from './lib/dataGuard';
+import { hasMeaningfulData, safeMergeData } from './lib/dataGuard';
 import { useLiveFaviconStatus } from './lib/faviconStatus';
 
-// ── أداء الإقلاع: حفظ مرآة السحابة المحلية بدون تجميد الواجهة ──────────────────────
-// نسخة الـ snapshot مجرد مرآة قابلة للاستبدال لبيانات السحابة (عرض فوري عند الفتح + عمل دون إنترنت).
-// المشكلة: setProtectedStorageItem للمفاتيح الكبيرة يقوم — بشكل متزامن — بفكّ ضغط + JSON.parse +
-// دمج عميق + JSON.stringify + عدة عمليات LZString.compress لنص بحجم ميغابايتات، فيجمّد الـ main-thread
-// ثوانٍ طويلة عند كل تحميل سحابي. الحل: ضغط مرة واحدة + استبدال مباشر، ومؤجّل لوقت الخمول حتى لا يحجب
-// أي تفاعل. السحابة هي مصدر الحقيقة، لذلك الاستبدال المباشر (بلا دمج/نسخ احتياطية) آمن تماماً.
-let __pendingCloudSnapshot: string | null = null;
-let __cloudSnapshotFlushQueued = false;
-let __cloudSnapshotBusy = false; // يمنع إطلاق عدة عمليات ضغط ثقيلة متوازية
-const __persistCloudSnapshot = (compressed: string) => {
-  try { localStorage.setItem('ktk_cloud_offline_snapshot_last_good', compressed); } catch {}
-  try { localStorage.setItem('ktk_cloud_offline_snapshot', compressed); } catch {}
-};
-const saveCloudSnapshotMirror = (snapshotStr: string | null | undefined) => {
-  if (!snapshotStr) return;
-  __pendingCloudSnapshot = snapshotStr; // احتفظ دائماً بالأحدث فقط (coalescing)
-  if (__cloudSnapshotFlushQueued || __cloudSnapshotBusy) return; // مجدول/قيد التنفيذ بالفعل سيلتقط الأحدث
-  __cloudSnapshotFlushQueued = true;
-  const runFlush = () => {
-    __cloudSnapshotFlushQueued = false;
-    const latest = __pendingCloudSnapshot;
-    __pendingCloudSnapshot = null;
-    if (!latest) return;
-    __cloudSnapshotBusy = true;
-    const finish = () => {
-      __cloudSnapshotBusy = false;
-      // لو وصلت لقطة أحدث أثناء الضغط، جدول جولة جديدة لها.
-      if (__pendingCloudSnapshot) saveCloudSnapshotMirror(__pendingCloudSnapshot);
-    };
-    // الضغط الثقيل (~14 ثانية على بيانات ضخمة) يجري داخل Web Worker حتى لا يتجمّد الخيط الرئيسي
-    // فتبقى الواجهة (القائمة/الفاتورة الجديدة) سريعة فوراً. عند تعذّر الـWorker نرجع للمسار
-    // المتزامن السابق نفسه دون أي تغيير في السلوك.
-    compressToBase64ViaWorker(latest)
-      .then((b64) => {
-        if (b64) {
-          __persistCloudSnapshot('lz64:' + b64);
-        } else {
-          try { __persistCloudSnapshot('lz64:' + LZString.compressToBase64(latest)); } catch {}
-        }
-        finish();
-      })
-      .catch(() => {
-        try { __persistCloudSnapshot('lz64:' + LZString.compressToBase64(latest)); } catch {}
-        finish();
-      });
-  };
-  const ric = (typeof window !== 'undefined' && (window as any).requestIdleCallback) || null;
-  if (ric) ric(runFlush, { timeout: 2000 });
-  else setTimeout(runFlush, 300);
-};
+// ── Cloud-only data policy ───────────────────────────────────────────────────
+// The browser never stores or restores an operational copy of company data.
+// This function remains as a compatibility no-op for older call sites; Firestore
+// is the only source of truth and the UI is blocked whenever cloud health is lost.
+const saveCloudSnapshotMirror = (_snapshotStr: string | null | undefined) => {};
 
 // ── Cloud boot pre-warm ────────────────────────────────────────────────────────
 // Cloud Run scales to zero, so the first request after idle pays a 3-10s cold-start
@@ -985,7 +938,7 @@ const CloudConnectionGate: React.FC<{
   onRetry?: () => void;
 }> = ({ name, phase, onRetry }) => {
   const isOffline = phase === 'offline';
-  const title = isOffline ? 'لا يوجد اتصال بالسحابة' : 'جاري الاتصال بالسحابة…';
+  const title = isOffline ? 'تم إيقاف النظام مؤقتاً' : 'جاري التحقق من السحابة…';
   const statusLabel = isOffline ? 'الاتصال متوقف' : phase === 'auth' ? 'تثبيت الجلسة' : 'بوابة السحابة';
   const orbitItems = isOffline
     ? [ShieldAlert, RefreshCw, Database]
@@ -1122,7 +1075,7 @@ const CloudConnectionGate: React.FC<{
 
           {isOffline ? (
             <p className="mx-auto mt-4 max-w-[420px] text-sm font-bold leading-7 text-slate-300">
-              يرجى الاتصال بالإنترنت ثم إعادة فحص الاتصال.
+              فُقد الاتصال بالإنترنت أو Firestore. تم حجب النظام بالكامل لحماية البيانات، ولا يمكن إدخال أو تعديل أي معلومة حتى يعود الاتصال ويتم التحقق منه.
             </p>
           ) : (
             <div className="mx-auto mt-6 flex w-full max-w-[330px] items-center justify-center gap-2" aria-label="cloud-connection-loader">
@@ -1269,176 +1222,115 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
 const MainApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
-  // CLOUD CONNECTION SPEEDUP: On warm reloads (returning users), skip the
-  // "Connecting to cloud" gate entirely. Firebase still validates the session
-  // in the background via onAuthStateChanged; if it ever returns a null user
-  // or rejects authorization, the existing handler will toast and log out.
-  // This eliminates the 1–5s cold-start flash users were seeing on every open.
-  const [authLoading, setAuthLoading] = useState(() => {
-    try {
-      return localStorage.getItem('isAuthenticated') !== 'true';
-    } catch {
-      return true;
-    }
-  });
+  // Authentication may persist, but company data never does. A live Firestore probe
+  // must succeed before the application can be viewed or edited.
+  const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [activePersistenceWrites, setActivePersistenceWrites] = useState(0);
-  // cloudGateForceRelease: SAFETY NET ONLY. The cloud splash deliberately blocks ALL
-  // interaction until real cloud data is loaded — employees must never edit on top of a
-  // stale snapshot, because those edits get clobbered by the incoming sync ("nothing
-  // uploaded"). This flag exists only so a genuinely hung load (server unreachable AND the
-  // browser fallback stalled) can't trap the user forever; it fires after a long window,
-  // never as a fast cosmetic release.
-  const [cloudGateForceRelease, setCloudGateForceRelease] = useState(false);
-  const [hasInstantCloudSnapshot, setHasInstantCloudSnapshot] = useState(() => {
-    try {
-      // Fast length-check only — no LZString decompression on the initial render.
-      // Full validation runs in startDataSync(); false positives are safe (gate stays open).
-      const raw = window.localStorage.getItem('ktk_cloud_offline_snapshot_last_good')
-               || window.localStorage.getItem('ktk_cloud_offline_snapshot');
-      return Boolean(raw && raw.length > 200);
-    } catch {}
-    return false;
-  });
+  const [hasInstantCloudSnapshot, setHasInstantCloudSnapshot] = useState(false);
   const [deferredChromeReady, setDeferredChromeReady] = useState(false);
   const [triggerSyncReload, setTriggerSyncReload] = useState(0);
-  const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
-  const [dismissedOfflineModal, setDismissedOfflineModal] = useState(false);
+  const [isOnline, setIsOnline] = useState(false); // means verified cloud, not merely Wi-Fi
+  const [cloudChecking, setCloudChecking] = useState(true);
   const [retryingOffline, setRetryingOffline] = useState(false);
+  const cloudProbeSequenceRef = useRef(0);
 
-  useEffect(() => {
-    if (isOnline) {
-      setDismissedOfflineModal(false);
-    }
-  }, [isOnline]);
-
-  const handleManualRetryOffline = async () => {
-    setRetryingOffline(true);
-    try {
-      const isActuallyOnlineState = typeof navigator === 'undefined' ? true : navigator.onLine;
-      if (isActuallyOnlineState) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
-        await fetch('/api/health', { signal: controller.signal });
-        clearTimeout(timeoutId);
-        setIsOnline(true);
-        toast.success("تم الاتصال بنجاح ✨", {
-          description: "أنت متصل بالإنترنت مجدداً وتم تفعيل وضع الكتابة والحفظ.",
-          position: 'bottom-right',
-          className: 'arabic-font'
-        });
-      } else {
-        toast.warning("ما زلت غير متصل", {
-          description: "يرجى التحقق من اتصال الواي فاي أو شبكة البيانات الخاصة بك.",
-          position: 'bottom-right',
-          className: 'arabic-font'
-        });
+  const probeCloudConnection = React.useCallback(async (showFeedback = false): Promise<boolean> => {
+    const sequence = ++cloudProbeSequenceRef.current;
+    const browserOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
+    if (!browserOnline) {
+      if (sequence === cloudProbeSequenceRef.current) {
+        setCloudChecking(false);
         setIsOnline(false);
       }
-    } catch {
-      toast.warning("تعذر الاتصال بالمزود", {
-        description: "يوجد اتصال بالشبكة المحلية ولكن يتعذر الوصول لخادم السحاب حالياً.",
-        position: 'bottom-right',
-        className: 'arabic-font'
-      });
-      setIsOnline(false);
-    } finally {
-      setRetryingOffline(false);
+      return false;
     }
+
+    setCloudChecking(true);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 5_500);
+    try {
+      const response = await fetch(`/api/cloud-health?ts=${Date.now()}`, {
+        cache: 'no-store',
+        signal: controller.signal,
+        headers: { 'x-ktk-cloud-probe': '1' },
+      });
+      const payload = await response.json().catch(() => null);
+      const healthy = Boolean(response.ok && payload?.success && payload?.firestoreReachable);
+      if (sequence === cloudProbeSequenceRef.current) {
+        setIsOnline(healthy);
+        setCloudChecking(false);
+      }
+      if (showFeedback && healthy) {
+        toast.success('عاد الاتصال بالسحابة ✨', {
+          description: 'تم التحقق من Firestore، وعاد النظام للعمل والحفظ بأمان.',
+          position: 'bottom-right',
+          className: 'arabic-font',
+        });
+      }
+      return healthy;
+    } catch {
+      if (sequence === cloudProbeSequenceRef.current) {
+        setIsOnline(false);
+        setCloudChecking(false);
+      }
+      return false;
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  }, []);
+
+  const handleManualRetryOffline = async () => {
+    if (retryingOffline) return;
+    setRetryingOffline(true);
+    const healthy = await probeCloudConnection(true);
+    if (!healthy) {
+      toast.warning('السحابة ما زالت غير متاحة', {
+        description: 'سيبقى النظام مقفلاً لحماية البيانات، وسنعيد الفحص تلقائياً.',
+        position: 'bottom-right',
+        className: 'arabic-font',
+      });
+    }
+    setRetryingOffline(false);
   };
 
-  const renderBeautifulOfflineModal = () => {
-    if (isOnline || dismissedOfflineModal || !isAuthenticated) return null;
-    return (
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[200000] flex items-center justify-center p-4 md:p-6 text-center google-sans" dir="rtl">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 30 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 30 }}
-          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-sm w-full shadow-2xl relative border border-slate-100 flex flex-col items-center justify-center"
-        >
-          <div className="bg-slate-50 text-slate-400 p-5 rounded-3xl mx-auto mb-6 w-20 h-20 flex items-center justify-center border border-slate-100/80">
-            <svg
-              width="42"
-              height="42"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-slate-400"
-            >
-              <line x1="1" y1="1" x2="23" y2="23"></line>
-              <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.5"></path>
-              <path d="M5 12.5a10.94 10.94 0 0 1 5.17-2.39"></path>
-              <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
-              <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
-              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-              <line x1="12" y1="20" x2="12.01" y2="20"></line>
-            </svg>
-          </div>
-
-          <h3 className="text-[22px] font-extrabold text-slate-900 mb-2 leading-tight tracking-tight">
-            لا يوجد اتصال بالإنترنت
-          </h3>
-          <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
-            سنعيد الاتصال تلقائياً فور عودة الشبكة.
-          </p>
-
-          <button
-            onClick={handleManualRetryOffline}
-            disabled={retryingOffline}
-            className="w-full py-4 px-6 bg-gradient-to-r from-indigo-700 via-indigo-600 to-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/10 hover:shadow-indigo-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 text-base cursor-pointer"
-          >
-            {retryingOffline ? (
-              <Loader2 className="animate-spin animate-duration-1000" size={18} />
-            ) : (
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" />
-              </svg>
-            )}
-            <span>إعادة المحاولة</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setDismissedOfflineModal(true);
-              toast.info("تم تفعيل تصفح القراءة فقط 👁️", {
-                description: "يمكنك استخدام وتصفح التطبيق ولكن لا يمكنك إضافة أو تعديل البيانات.",
-                position: 'bottom-right',
-                className: 'arabic-font',
-                duration: 4000
-              });
-            }}
-            className="mt-5 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider cursor-pointer"
-          >
-            تصفح البرنامج (للقراءة فقط) 👁️
-          </button>
-        </motion.div>
-      </div>
-    );
-  };
+  const renderBeautifulOfflineModal = () => null;
 
   useEffect(() => {
-    const updateOnline = () => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine);
-    window.addEventListener('online', updateOnline);
-    window.addEventListener('offline', updateOnline);
-    return () => {
-      window.removeEventListener('online', updateOnline);
-      window.removeEventListener('offline', updateOnline);
+    let cancelled = false;
+    const verify = () => {
+      if (cancelled) return;
+      void probeCloudConnection(false);
     };
-  }, []);
+    const markOffline = () => {
+      cloudProbeSequenceRef.current += 1;
+      setCloudChecking(false);
+      setIsOnline(false);
+    };
+    const onOnline = () => verify();
+    const onFocus = () => verify();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') verify();
+    };
+
+    verify();
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') verify();
+    }, 5_000);
+
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', markOffline);
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', markOffline);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [probeCloudConnection]);
 
   
   // Persist authentication state
@@ -1517,27 +1409,31 @@ const MainApp: React.FC = () => {
     setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
   }, []);
   
-  // Persist app mode state
-  const [appMode, setAppMode] = useState<'local' | 'cloud'>(() => {
-    const savedMode = localStorage.getItem('appMode') as 'local' | 'cloud' | null;
-    // Always default to cloud for authorized users if no preference is set
-    return savedMode || 'cloud';
-  });
-
-  const onboardingRole: 'admin' | 'partner' | 'demo' = appMode === 'local' ? 'demo' : (userRole === 'partner' ? 'partner' : 'admin');
+  // This installation is cloud-only. Legacy local/offline modes and browser data
+  // snapshots are purged so they can never supersede Firestore again.
+  const [appMode, setAppMode] = useState<'local' | 'cloud'>('cloud');
+  const onboardingRole: 'admin' | 'partner' | 'demo' = userRole === 'partner' ? 'partner' : 'admin';
   const [onboardingOpen, setOnboardingOpen] = useState(false);
 
-  // Safety net for the cloud splash. On a HEALTHY connection the gate releases the instant
-  // real data is loaded (see shouldHoldCloudEntry, keyed on hasLoadedDataRef) — with the
-  // warmed server that is ~1–2s. This timer only covers the pathological case where the
-  // load never terminates (server unreachable for the whole fetch budget AND the browser
-  // fallback hangs): rather than locking the user out forever, it releases after a long
-  // window so they can at least see cached data and retry. NOT a fast cosmetic release.
   useEffect(() => {
-    if (!isAuthenticated || appMode !== 'cloud' || cloudGateForceRelease) return;
-    const timer = setTimeout(() => setCloudGateForceRelease(true), 90_000);
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, appMode, cloudGateForceRelease]);
+    try {
+      localStorage.setItem('appMode', 'cloud');
+      [
+        'ktk_cloud_offline_snapshot',
+        'ktk_cloud_offline_snapshot_last_good',
+        'ktk_cloud_offline_snapshot_backup',
+        'ktk_cloud_offline_snapshot_safety_restore',
+        'ktk_local_accounting_data',
+        'ktk_local_accounting_data_last_good',
+        'ktk_local_accounting_data_backup',
+        'ktk_local_accounting_data_safety_restore',
+        'ktk_accounting_data',
+        'ktk_accounting_data_backup',
+      ].forEach((key) => localStorage.removeItem(key));
+    } catch {}
+    setAppMode('cloud');
+    setHasInstantCloudSnapshot(false);
+  }, []);
 
   // Keep the Cloud Run instance warm across PWA resumes. When the installed app is
   // reopened (or the tab is refocused) after a while, the backing instance may have
@@ -1545,7 +1441,6 @@ const MainApp: React.FC = () => {
   // BEFORE the user signs in, so the real data fetch lands on an already-warm instance
   // instead of paying the cold start at the worst possible moment. Touches no Firestore.
   useEffect(() => {
-    if (appMode === 'local') return;
     const warm = () => {
       if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
       try { fetch('/api/warmup', { cache: 'no-store', keepalive: true }).catch(() => {}); } catch {}
@@ -1553,7 +1448,7 @@ const MainApp: React.FC = () => {
     warm();
     document.addEventListener('visibilitychange', warm);
     return () => document.removeEventListener('visibilitychange', warm);
-  }, [appMode]);
+  }, []);
 
   // Safety net for the auth gate: if Firebase's onAuthStateChanged is unusually
   // slow to fire (rare cold-start, ad blocker interference, flaky Wi-Fi), we
@@ -1647,9 +1542,8 @@ const MainApp: React.FC = () => {
     localStorage.removeItem('currentPage');
   }, [isAuthenticated]);
 
-  // Demo/local mode must remain fully local. Do not auto-switch it to cloud.
+  // Keep every authenticated session pinned to the cloud-only mode.
   useEffect(() => {
-    if (appMode === 'local') return;
     if (user && appMode === 'cloud') {
       const email = user.email?.toLowerCase() || '';
       if (AUTHORIZED_EMAILS.includes(email) || AUTHORIZED_PARTNERS.includes(email)) {
@@ -1846,7 +1740,7 @@ const MainApp: React.FC = () => {
       ? valueOrUpdater(currentData)
       : valueOrUpdater;
 
-    if (!isOnline && hasLoadedDataRef.current && !isCloudSyncApplyingRef.current) {
+    if (!isOnline && isAuthenticated && !isCloudSyncApplyingRef.current) {
       const collections: (keyof AppState)[] = ['orders', 'invoices', 'customers', 'products', 'expenses', 'suppliers', 'settings', 'squads'];
       let isActuallyWrite = false;
       for (const col of collections) {
@@ -1858,7 +1752,7 @@ const MainApp: React.FC = () => {
 
       if (isActuallyWrite) {
         toast.error("يتعذر التعديل دون اتصال ⚠️", {
-          description: "البرنامج يعمل حالياً بالوضع للقراءة فقط بسبب انقطاع الإنترنت. لا يمكن إدخال أو تعديل البيانات.",
+          description: "تم حجب النظام بالكامل لأن الاتصال بالسحابة غير موثّق. لا يمكن إدخال أو تعديل أي معلومة.",
           position: 'bottom-right',
           className: 'arabic-font',
           duration: 4000
@@ -1871,7 +1765,7 @@ const MainApp: React.FC = () => {
     latestDataRef.current = nextData;
     dataRevisionRef.current += 1;
     setRawData(nextData);
-  }, [isOnline]);
+  }, [isOnline, isAuthenticated]);
   const visibleNotifications = useMemo(
     () => getVisibleAdminNotifications(data?.notifications || []),
     [data?.notifications]
@@ -1928,9 +1822,10 @@ const MainApp: React.FC = () => {
   useEffect(() => { dataRef.current = data; }, [data]);
 
   useEffect(() => {
-    if (!isAuthenticated || dataLoading) return;
+    if (!isAuthenticated || dataLoading || !isOnline) return;
     
     const checkPendingPayments = async () => {
+      if (!isOnline) return;
       const currentData = dataRef.current;
       const allPendingInvoices = (currentData.invoices || []).filter((i: any) => {
         if (!i || i.isDeleted) return false;
@@ -1995,7 +1890,7 @@ const MainApp: React.FC = () => {
           if (!verified && !failed) {
              // Fallback: Check if the global Firestore document was updated by return/webhook sync.
              try {
-                 const docSnap = await getDoc(doc(db, 'invoices', invoiceId));
+                 const docSnap = await getDocFromServer(doc(db, 'invoices', invoiceId));
                  if (docSnap.exists()) {
                    const remoteData: any = docSnap.data();
                    if (isPaidStatus(remoteData.paymentStatus) || isPaidStatus(remoteData.status)) {
@@ -2074,7 +1969,14 @@ const MainApp: React.FC = () => {
             }
           }
         } catch (e) {
-          // Keep the interface responsive; the next scheduled pass will retry safely.
+          // A payment lookup failure must never create an offline working mode.
+          // Verify the cloud immediately; if Firestore/server is unavailable, lock the UI.
+          const healthy = await probeCloudConnection(false);
+          if (!healthy) {
+            setIsOnline(false);
+            hasLoadedDataRef.current = false;
+            break;
+          }
         }
       }
 
@@ -2109,7 +2011,7 @@ const MainApp: React.FC = () => {
       clearInterval(intervalId);
       clearTimeout(timeoutId);
     };
-  }, [isAuthenticated, dataLoading]);
+  }, [isAuthenticated, dataLoading, isOnline, probeCloudConnection]);
   
   // PWA Install Prompt Logic
   /* Removed PWA Install Prompt Logic in favor of Login component implementation */
@@ -2430,34 +2332,17 @@ const MainApp: React.FC = () => {
   const [quotaError, setQuotaError] = useState<string | null>(null);
 
   const switchMode = (newMode: 'local' | 'cloud') => {
-    // Reset data loading flags first to prevent premature auto-saving
-    hasLoadedDataRef.current = false;
-    setDataLoading(true);
-    setCloudGateForceRelease(false);
-    
-    setAppMode(newMode);
-    localStorage.setItem('appMode', newMode);
-    
-    // Reset to initial data to clear cross-mode leakage
-    setData(INITIAL_DATA); 
-
     if (newMode === 'local') {
-      setHasInstantCloudSnapshot(false);
-    } else {
-      try {
-        const raw = getProtectedStorageItem('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItem('ktk_cloud_offline_snapshot');
-        if (raw) {
-          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-          setHasInstantCloudSnapshot(hasMeaningfulData(parsed));
-        } else {
-          setHasInstantCloudSnapshot(false);
-        }
-      } catch {
-        setHasInstantCloudSnapshot(false);
-      }
+      toast.info('النظام سحابي فقط', {
+        description: 'تم إلغاء التخزين المحلي نهائياً لحماية البيانات ومنع ظهور نسخ قديمة.',
+        position: 'bottom-right',
+        className: 'arabic-font',
+      });
+      return;
     }
-    
-    addToast("تبديل الوضع", `تم الانتقال إلى وضع ${newMode === 'cloud' ? 'التزامن السحابي' : 'التخزين المحلي'}`, "info");
+    setAppMode('cloud');
+    localStorage.setItem('appMode', 'cloud');
+    void probeCloudConnection(false);
   };
 
   const [showTopButton, setShowTopButton] = useState(false);
@@ -2502,7 +2387,10 @@ const MainApp: React.FC = () => {
   const scrollProgressOffset = scrollProgressCircle - (scrollProgress / 100) * scrollProgressCircle;
 
   const handleManualSync = async () => {
-    if (!user) return;
+    if (!user || !isOnline) {
+      setIsOnline(false);
+      return;
+    }
     setDataLoading(true);
     try {
       const rootDataRef = getSmartDoc('appData', user.uid, user.email);
@@ -2549,7 +2437,8 @@ const MainApp: React.FC = () => {
       addToast("تمت المزامنة ✨", "تم حفظ كافة البيانات في السحابة بنجاح.", "success");
     } catch (err) {
       console.error(err);
-      addToast("المزامنة تعثرت", "ما قدرنا نحفظ البيانات الحين. تأكد من جودة الاتصال.", "warning");
+      setIsOnline(false);
+      addToast("تم إيقاف النظام", "فُقد الاتصال بالسحابة أثناء الحفظ. لم نسمح بمتابعة العمل.", "warning");
     } finally {
       setDataLoading(false);
     }
@@ -2573,11 +2462,18 @@ const MainApp: React.FC = () => {
   const persistenceWriteChainsRef = useRef<Record<string, Promise<void>>>({});
 
   const enqueuePersistenceWrite = (key: string, task: () => Promise<void>): Promise<void> => {
+    if (!isOnline) {
+      return Promise.reject(new Error('CLOUD_CONNECTION_REQUIRED'));
+    }
     const previous = persistenceWriteChainsRef.current[key] || Promise.resolve();
     const next = previous.catch(() => {}).then(async () => {
+      if (!isOnline) throw new Error('CLOUD_CONNECTION_REQUIRED');
       setActivePersistenceWrites(count => count + 1);
       try {
         await task();
+      } catch (error) {
+        setIsOnline(false);
+        throw error;
       } finally {
         setActivePersistenceWrites(count => Math.max(0, count - 1));
       }
@@ -2886,7 +2782,8 @@ const MainApp: React.FC = () => {
   // Auth Listener - Optimized session management
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      const currentMode = localStorage.getItem('appMode');
+      const currentMode = 'cloud';
+      localStorage.setItem('appMode', 'cloud');
       
       if (currentUser) {
           const rawEmail = (currentUser.email || currentUser.providerData?.[0]?.email || '');
@@ -2918,25 +2815,16 @@ const MainApp: React.FC = () => {
 
         // Delay state updates to prevent "Cannot update a component while rendering"
         setTimeout(() => {
-          // Cloud login only: never pull the demo/local mode into cloud.
-          if (currentMode === 'cloud') {
-            if (isAuthorized || isPartner) {
-              setAppMode('cloud');
-              localStorage.setItem('appMode', 'cloud');
-              // Maintain isolated cloud caches when logging in; never touch local database
-              // Keep the last healthy cloud snapshot available for recovery.
-            }
-
-            setUser(currentUser);
-            setUserRole(isAuthorized ? 'admin' : 'partner');
-            setIsAuthenticated(true);
-            localStorage.setItem('isAuthenticated', 'true');
-            setCurrentPage(getInitialPageFromDeepLink());
-          } else {
-            // Demo/local mode is isolated: local data only, admin experience, no cloud role.
-            setUser(null);
-            setUserRole('admin');
+          // Cloud-only system: a browser copy is never treated as an operating mode.
+          if (isAuthorized || isPartner) {
+            setAppMode('cloud');
+            localStorage.setItem('appMode', 'cloud');
           }
+          setUser(currentUser);
+          setUserRole(isAuthorized ? 'admin' : 'partner');
+          setIsAuthenticated(true);
+          localStorage.setItem('isAuthenticated', 'true');
+          setCurrentPage(getInitialPageFromDeepLink());
 
           setAuthError(null);
           setAuthLoading(false);
@@ -2944,11 +2832,11 @@ const MainApp: React.FC = () => {
       } else {
         setTimeout(() => {
           setUser(null);
-          // Auto-logout removed as requested by the user
-          // if (localStorage.getItem('appMode') === 'cloud') {
-          //    setIsAuthenticated(false);
-          //    localStorage.setItem('isAuthenticated', 'false');
-          // }
+          setUserRole(null);
+          setIsAuthenticated(false);
+          localStorage.removeItem('isAuthenticated');
+          localStorage.setItem('appMode', 'cloud');
+          hasLoadedDataRef.current = false;
           setAuthLoading(false);
         }, 0);
       }
@@ -2963,56 +2851,10 @@ const MainApp: React.FC = () => {
     let invoicesUnsubscribe: (() => void) | null = null;
 
     const startDataSync = async () => {
-      // If mode is 'local', load from Local Storage 
-      if (appMode === 'local') {
-          let savedDataStr = getProtectedStorageItem('ktk_local_accounting_data');
-          if (!savedDataStr) {
-              // Legacy migration
-              savedDataStr = getProtectedStorageItem('ktk_accounting_data');
-              if (savedDataStr) {
-                  try {
-                      setProtectedStorageItem('ktk_local_accounting_data', savedDataStr);
-                  } catch (e) {}
-              }
-          }
-          if (savedDataStr) {
-              try {
-                  const parsed = JSON.parse(savedDataStr);
-                  const joined = joinProductsFromDatabase(parsed);
-                  if (joined.zones) {
-                     // Check if they are on the old zones list
-                     const hasOldZones = joined.zones.some((z: any) => ['الشويخ التجارية', 'المقبرة', 'أم العيش', 'الحزام الأخضر', 'الصليبية الزراعية', 'الصليبية الصناعية'].includes(z.name));
-                     if (hasOldZones) {
-                         const zoneMap = new Map(joined.zones.map((z: any) => [z.name, z]));
-                         joined.zones = INITIAL_DATA.zones.map(z => {
-                            const existing = zoneMap.get(z.name) as any;
-                            return existing ? { ...z, cost: existing.cost, profit: existing.profit, finalPrice: existing.finalPrice, isActive: existing.isActive } : z;
-                         });
-                     } else {
-                         // Missing from initially but they have good zones, let's just make sure they are sorted alphabetically.
-                         joined.zones = [...joined.zones].sort((a: any, b: any) => a.name.localeCompare(b.name, 'ar'));
-                     }
-                  } else {
-                     joined.zones = INITIAL_DATA.zones;
-                  }
-                  
-                  // Recalculate derived state (like supplier balances) upon load
-                  const finalProcessedState = recalculateStateBalances(joined);
-                  setData(finalProcessedState);
-              } catch (e) {
-                  console.error('Failed to parse local data', e);
-                  setData(INITIAL_DATA);
-              }
-          } else {
-              setData(INITIAL_DATA);
-          }
-          hasLoadedDataRef.current = true;
-          setDataLoading(false);
-          return;
-      }
-
+      // Cloud-only: never hydrate company data from Local Storage.
       // Mode is 'cloud', wait for user authentication
-      if (!user) {
+      if (!user || !isOnline) {
+        hasLoadedDataRef.current = false;
         setDataLoading(false);
         return;
       }
@@ -3023,32 +2865,7 @@ const MainApp: React.FC = () => {
 	      loadedCloudShardKeysRef.current = new Set();
 	      lastRemoteKeysRef.current = {};
       authoritativeDataWrittenAtRef.current = 0;
-      // Removed the rAF stall: with hasInstantCloudSnapshot the user already
-      // skips the gate, so the extra frame just delayed the snapshot paint by
-      // ~16ms without any UX benefit. Setting state in a single batch lets the
-      // first paint already show the cached data.
-      // جهّز آخر نسخة موثوقة خلف بوابة السحابة. لا نفعّل auto-save هنا لأن dataLoading ما زال true و isCloudSyncApplyingRef سيمنع أي كتابة عكسية.
-      try {
-        const instantSnapshot = parseStoredState(
-          getProtectedStorageItemFast('ktk_cloud_offline_snapshot_last_good') || getProtectedStorageItemFast('ktk_cloud_offline_snapshot')
-        );
-        if (instantSnapshot) {
-          // Show cached data immediately so the UI is clickable right away.
-          startTransition(() => setData(instantSnapshot));
-          setHasInstantCloudSnapshot(hasMeaningfulData(instantSnapshot));
-          // Defer the heavy JSON.stringify (used only for dedup) to idle — it would
-          // otherwise block the main thread for up to ~2s on huge datasets right here.
-          const _snap = instantSnapshot;
-          const _ric = (window as any).requestIdleCallback;
-          const _work = () => { try { lastRemoteSnapshotRef.current = JSON.stringify(_snap); } catch {} };
-          if (typeof _ric === 'function') _ric(_work, { timeout: 3000 });
-          else setTimeout(_work, 60);
-        } else {
-          setHasInstantCloudSnapshot(false);
-        }
-      } catch {
-        setHasInstantCloudSnapshot(false);
-      }
+      setHasInstantCloudSnapshot(false);
 
       // 1. Sync orders independently (Legacy/Customer App)
       try {
@@ -3088,6 +2905,8 @@ const MainApp: React.FC = () => {
                 return prev;
             });
          }, (err) => {
+            setIsOnline(false);
+            hasLoadedDataRef.current = false;
             if (!String(err).includes("Missing or insufficient permissions")) {
                console.error("orders sync error: ", err);
             }
@@ -3176,6 +2995,8 @@ const MainApp: React.FC = () => {
                 return prev;
             });
          }, (err) => {
+            setIsOnline(false);
+            hasLoadedDataRef.current = false;
             if (!String(err).includes("Missing or insufficient permissions")) {
                console.error("invoices sync error: ", err);
             }
@@ -3250,7 +3071,10 @@ const MainApp: React.FC = () => {
             const finalProcessedState = recalculateStateBalances(loadedState);
             finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
 
-            // حقن البيانات كـ transition: تبقى الواجهة قابلة للنقر فوراً أثناء الرسم بدل تجميد الـ main-thread.
+            const fastStillHealthy = await probeCloudConnection(false);
+            if (!fastStillHealthy) throw new Error('CLOUD_CONNECTION_LOST_DURING_FAST_LOAD');
+
+            // Expose data only after the live cloud check succeeds.
             startTransition(() => setData(finalProcessedState));
             setHasInstantCloudSnapshot(true);
 
@@ -3331,6 +3155,9 @@ const MainApp: React.FC = () => {
                   }));
                 } catch (backgroundLoadErr) {
                   console.warn('[FAST_APPDATA] Deferred shard background load failed:', backgroundLoadErr);
+                  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                    setIsOnline(false);
+                  }
                 }
               }, 0);
             }
@@ -3352,9 +3179,8 @@ const MainApp: React.FC = () => {
       try {
         isCloudSyncApplyingRef.current = true;
         const dataRef = getSmartDoc('appData', user.uid, user.email);
-        const rootSnap = await getDocFromServer(dataRef).catch(() => getDoc(dataRef));
+        const rootSnap = await getDocFromServer(dataRef);
         let loadedState: any = { ...INITIAL_DATA };
-        const localCloudSnapshot = parseStoredState(getProtectedStorageItem('ktk_cloud_offline_snapshot'));
 
         if (rootSnap.exists()) {
           cloudRootExistsRef.current = true;
@@ -3390,10 +3216,6 @@ const MainApp: React.FC = () => {
 	          cloudRootExistsRef.current = false;
 	          lastRemoteKeysRef.current['__root__'] = stableStringify(splitProductsForDatabase(INITIAL_DATA));
 	        }
-
-        const cloudGenerationId = String(loadedState?.__adminDataGenerationId || "");
-        const localSnapshotGenerationId = String((localCloudSnapshot as any)?.__adminDataGenerationId || "");
-        const canUseLocalCloudSnapshot = Boolean(localCloudSnapshot) && (!cloudGenerationId || localSnapshotGenerationId === cloudGenerationId);
 
 	        const shardResults = await Promise.all(SHARDED_KEYS.map(async (key) => {
           try {
@@ -3467,9 +3289,13 @@ const MainApp: React.FC = () => {
         // Sync read state from localStorage to ensure read status is kept fundamentally.
         finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
 
-        // حقن البيانات كـ transition: واجهة قابلة للنقر فوراً أثناء الرسم.
+        // Do not expose data until a fresh server-side Firestore probe succeeds.
+        const stillHealthy = await probeCloudConnection(false);
+        if (!stillHealthy) throw new Error('CLOUD_CONNECTION_LOST_DURING_LOAD');
+
         startTransition(() => setData(finalProcessedState));
         setHasInstantCloudSnapshot(true);
+        hasLoadedDataRef.current = true;
         // Defer ALL heavy stableStringify/JSON.stringify to idle — eliminates UI freeze
         const _fbState = loadedState;
         const _fbProcessed = finalProcessedState;
@@ -3507,11 +3333,12 @@ const MainApp: React.FC = () => {
           );
         } else {
           console.error("Cloud load error:", err);
-          toast.error("تعذر تحميل البيانات السحابية. لم يتم استبدالها بالبيانات المحلية.");
+          setIsOnline(false);
+          hasLoadedDataRef.current = false;
+          toast.error("تعذر الاتصال بالسحابة. تم حجب النظام بالكامل لحماية البيانات.");
         }
       } finally {
         isCloudSyncApplyingRef.current = false;
-        hasLoadedDataRef.current = true;
         setDataLoading(false);
       }
 
@@ -3524,7 +3351,7 @@ const MainApp: React.FC = () => {
       if (ordersUnsubscribe) ordersUnsubscribe();
       if (invoicesUnsubscribe) invoicesUnsubscribe();
     };
-  }, [user, appMode, triggerSyncReload]);
+  }, [user, appMode, triggerSyncReload, isOnline, probeCloudConnection]);
 
   // Financial records are accounting-critical. Persist expenses and supplier payments quickly,
   // independently of the large 8-second full-state save. The previous supplier-only effect also
@@ -3539,6 +3366,7 @@ const MainApp: React.FC = () => {
     if (
       dataLoading ||
       !hasLoadedDataRef.current ||
+      !isOnline ||
       isCloudSyncApplyingRef.current ||
       (window as any).__ktkAdminResetInProgress
     ) return;
@@ -3571,21 +3399,7 @@ const MainApp: React.FC = () => {
         ) return;
 
         try {
-          if (appMode === 'local') {
-            const latestLocalData = latestDataRef.current;
-            const localDataStr = JSON.stringify(latestLocalData);
-            if (localDataStr && localDataStr !== '{}' && hasMeaningfulData(latestLocalData)) {
-              setProtectedStorageItem('ktk_local_accounting_data_last_good', localDataStr);
-              setProtectedStorageItem('ktk_local_accounting_data', localDataStr);
-              changedKeys.forEach(key => {
-                const latestSnapshot = stableStringify((latestLocalData as any)?.[key] || []);
-                if (latestSnapshot === snapshots[key]) baselines[key] = latestSnapshot;
-              });
-            }
-            return;
-          }
-
-          if (!user || appMode !== 'cloud') return;
+          if (!user || appMode !== 'cloud' || !isOnline) return;
 
           for (const key of changedKeys) {
             if (cancelled) return;
@@ -3615,6 +3429,8 @@ const MainApp: React.FC = () => {
           }
         } catch (e) {
           console.error('Financial fast-save error', e);
+          setIsOnline(false);
+          hasLoadedDataRef.current = false;
         }
       };
 
@@ -3625,7 +3441,7 @@ const MainApp: React.FC = () => {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [data?.expenses, data?.supplierTransfers, dataLoading, user, appMode]);
+  }, [data?.expenses, data?.supplierTransfers, dataLoading, user, appMode, isOnline]);
 
   // Auto-save: Handle Local and Cloud separately with debounce for performance.
   // Every run carries the state revision that created it. If any newer state arrives while
@@ -3634,6 +3450,7 @@ const MainApp: React.FC = () => {
     // Strictly prevent auto-saving INITIAL_DATA or cloud snapshots while loading/applying remote data.
     if (
       !hasLoadedDataRef.current ||
+      !isOnline ||
       isCloudSyncApplyingRef.current ||
       (window as any).__ktkAdminResetInProgress
     ) return;
@@ -3644,6 +3461,7 @@ const MainApp: React.FC = () => {
       cancelled ||
       scheduledRevision !== dataRevisionRef.current ||
       !hasLoadedDataRef.current ||
+      !isOnline ||
       isCloudSyncApplyingRef.current ||
       (window as any).__ktkAdminResetInProgress
     );
@@ -3651,18 +3469,8 @@ const MainApp: React.FC = () => {
     const timeoutId = setTimeout(async () => {
       if (isStaleRun()) return;
 
-      // Save to Local Storage if explicitly in local mode.
-      if (appMode === 'local') {
-        const localDataStr = JSON.stringify(data);
-        if (!isStaleRun() && localDataStr && localDataStr !== '{}' && hasMeaningfulData(data)) {
-          setProtectedStorageItem('ktk_local_accounting_data_last_good', localDataStr);
-          setProtectedStorageItem('ktk_local_accounting_data', localDataStr);
-        }
-        return;
-      }
-
-      // Auto-save to Cloud if in cloud mode and authenticated.
-      if (user && appMode === 'cloud') {
+      // Auto-save is cloud-only and requires a currently verified connection.
+      if (user && appMode === 'cloud' && isOnline) {
         try {
           const sanitizedDataStr = JSON.stringify(data);
           if (!sanitizedDataStr || sanitizedDataStr === '{}' || !hasMeaningfulData(data)) return;
@@ -3815,9 +3623,11 @@ const MainApp: React.FC = () => {
           const isPermissionError = String(e).includes('Missing or insufficient permissions') || String(e).includes('PERMISSION_DENIED');
           if (!isPermissionError) console.error('Firestore auto-save error', e);
 
-          if (user && !isPermissionError && !cancelled) {
+          if (user && !cancelled) {
             const errorMsg = e instanceof Error ? e.message : String(e);
-            toast.error(`تعذر الحفظ السحابي. الخطأ: ${errorMsg}. تم الاحتفاظ بآخر نسخة سليمة محلياً.`);
+            setIsOnline(false);
+            hasLoadedDataRef.current = false;
+            toast.error(`تعذر الحفظ السحابي: ${errorMsg}. تم إيقاف النظام فوراً ولم تُنشأ أي نسخة تشغيل محلية.`);
           }
         }
       }
@@ -3827,7 +3637,7 @@ const MainApp: React.FC = () => {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [data, user, appMode]);
+  }, [data, user, appMode, isOnline]);
 
   // Deduplication handling logic below here
 
@@ -3852,47 +3662,21 @@ const MainApp: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    const prevMode = appMode;
-
     setHasInstantCloudSnapshot(false);
-    setCloudGateForceRelease(false);
     sessionStorage.removeItem('hideSampleDataPrompt');
     await logout();
+    setUser(null);
+    setUserRole(null);
     setIsAuthenticated(false);
     localStorage.removeItem('isAuthenticated');
+    localStorage.setItem('appMode', 'cloud');
+    setAppMode('cloud');
     setCurrentPage('dashboard');
-
-    // Never delete cloud data during logout or local/cloud mode transitions.
-
-    // If logging out of cloud mode, switch appMode to 'local' and immediately load local mode storage
-    if (prevMode === 'cloud') {
-      localStorage.setItem('appMode', 'local');
-      setAppMode('local');
-      
-      // Stop cloud sync from auto-saving the loading/empty state
-      hasLoadedDataRef.current = false;
-      setDataLoading(true);
-
-      try {
-	        const savedDataStr = getProtectedStorageItem('ktk_local_accounting_data') || getProtectedStorageItem('ktk_accounting_data');
-        if (savedDataStr) {
-          const parsed = JSON.parse(savedDataStr);
-          const joined = joinProductsFromDatabase(parsed);
-          
-          // Recalculate derived state (like supplier balances) upon load
-          const finalProcessedState = recalculateStateBalances(joined);
-          setData(finalProcessedState);
-        } else {
-          setData(INITIAL_DATA);
-        }
-      } catch (e) {
-        setData(INITIAL_DATA);
-      }
-      hasLoadedDataRef.current = true;
-      setDataLoading(false);
-    } else {
-      setData(INITIAL_DATA);
-    }
+    hasLoadedDataRef.current = false;
+    setDataLoading(false);
+    latestDataRef.current = INITIAL_DATA;
+    dataRevisionRef.current += 1;
+    setRawData(INITIAL_DATA);
   };
 
   const path = window.location.pathname;
@@ -3940,8 +3724,8 @@ const MainApp: React.FC = () => {
         <CloudConnectionGate
           logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
           name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
-          phase={isOnline ? 'auth' : 'offline'}
-          onRetry={() => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine)}
+          phase={cloudChecking ? 'sync' : (isOnline ? 'auth' : 'offline')}
+          onRetry={handleManualRetryOffline}
         />
         <Toaster richColors position="bottom-right" closeButton />
       </>
@@ -4048,12 +3832,9 @@ const MainApp: React.FC = () => {
     );
   };
 
-  // Hold the cloud splash until real data is genuinely loaded (write-safe) — NOT merely
-  // because a cached snapshot exists. Letting an employee edit on top of a stale snapshot
-  // before the sync lands is exactly how their work gets clobbered ("nothing uploaded").
-  // The gate blocks all interaction until hasLoadedDataRef flips true (fast on a warm
-  // server), with cloudGateForceRelease as a long-timeout safety valve against a hung load.
-  const shouldHoldCloudEntry = isAuthenticated && appMode === 'cloud' && !cloudGateForceRelease && (!isOnline || dataLoading || !hasLoadedDataRef.current);
+  // Full runtime cloud gate: it remains authoritative after login and reappears instantly
+  // whenever internet/Firestore is lost. There is no timeout bypass and no local mode.
+  const shouldHoldCloudEntry = isAuthenticated && (!isOnline || dataLoading || !hasLoadedDataRef.current);
 
   if (shouldHoldCloudEntry) {
     return (
@@ -4063,8 +3844,23 @@ const MainApp: React.FC = () => {
         <CloudConnectionGate
           logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
           name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
-          phase={!isOnline ? 'offline' : 'sync'}
-          onRetry={() => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine)}
+          phase={cloudChecking ? 'sync' : (!isOnline ? 'offline' : 'sync')}
+          onRetry={handleManualRetryOffline}
+        />
+        <Toaster richColors position="bottom-right" closeButton />
+      </>
+    );
+  }
+
+  if (!isAuthenticated && !isOnline) {
+    return (
+      <>
+        {renderAuthError()}
+        <CloudConnectionGate
+          logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
+          name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
+          phase={cloudChecking ? 'sync' : 'offline'}
+          onRetry={handleManualRetryOffline}
         />
         <Toaster richColors position="bottom-right" closeButton />
       </>
@@ -4078,23 +3874,16 @@ const MainApp: React.FC = () => {
         {renderQuotaError()}
         <Login 
           logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
-          onLogin={(mode) => {
-            // Strictly reset to INITIAL_DATA before entering the app
+          onLogin={() => {
             hasLoadedDataRef.current = false;
             setDataLoading(true);
             setData(INITIAL_DATA);
-            
-            setAppMode(mode);
-            localStorage.setItem('appMode', mode);
-            if (mode === 'local') {
-              // Demo login is admin-style and local-only; no partner/cloud session leakage.
-              setUser(null);
-              setUserRole('admin');
-              setQuotaError(null);
-            }
+            setAppMode('cloud');
+            localStorage.setItem('appMode', 'cloud');
             setIsAuthenticated(true);
             localStorage.setItem('isAuthenticated', 'true');
             setCurrentPage(getInitialPageFromDeepLink());
+            void probeCloudConnection(false);
           }} 
         />
         <Toaster richColors position="bottom-right" closeButton />
@@ -4207,7 +3996,7 @@ const MainApp: React.FC = () => {
   };
 
   const showExecutiveFloatingTools = currentPage === 'dashboard' && dashboardTab === 'pulse';
-  const floatingToolRole = appMode === 'local' ? 'local' : userRole;
+  const floatingToolRole = userRole;
   
   // Instagram Wand: admin/local stays limited to dashboard pulse; partner gets it on the partner dashboard.
   const showInstagramFloatingTool = showExecutiveFloatingTools || (floatingToolRole === 'partner' && currentPage === 'dashboard');
@@ -4441,24 +4230,7 @@ const MainApp: React.FC = () => {
       <div className={cn(
         "flex-1 flex flex-col relative overflow-hidden transition-colors duration-1000"
       )}>
-        {!isOnline && (
-          <div className="bg-rose-50 border-b border-rose-150 text-rose-700 py-2 px-3 text-center text-[10px] sm:text-xs font-bold flex items-center justify-center gap-2 relative z-[101] overflow-hidden shrink-0" dir="rtl">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-            <span className="truncate">لا يوجد اتصال بالإنترنت... وضع القراءة فقط</span>
-            <button
-              onClick={handleManualRetryOffline}
-              disabled={retryingOffline}
-              className="mr-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full transition-all flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
-              title="إعادة المحاولة"
-            >
-              {retryingOffline ? (
-                <Loader2 size={11} className="animate-spin" />
-              ) : (
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" /></svg>
-              )}
-            </button>
-          </div>
-        )}
+        {/* Runtime cloud loss is handled by the full-screen CloudConnectionGate above. */}
         {/* Top Header */}
         <header 
           onClick={closeAllMenus}
@@ -4932,7 +4704,7 @@ const MainApp: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {deferredChromeReady && (isAuthenticated || appMode === 'local') && showInstagramFloatingTool && (
+      {deferredChromeReady && isAuthenticated && showInstagramFloatingTool && (
         <React.Suspense fallback={null}>
           <InstagramMagicWand data={data} currentPage={currentPage} userRole={floatingToolRole} />
         </React.Suspense>
