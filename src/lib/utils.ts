@@ -191,6 +191,38 @@ export function formatDeliveryTimeDisplay(timeStr?: string): string {
   return trimmed;
 }
 
+export function parseTimeTo24h(timeStr?: string): string {
+  if (!timeStr) return '';
+  const trimmed = String(timeStr).trim();
+  if (!trimmed) return '';
+
+  // If it's already exactly HH:MM (24-hour format)
+  if (/^\d{2}:\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+  if (/^\d{1}:\d{2}$/.test(trimmed)) {
+    return '0' + trimmed;
+  }
+
+  // Detect PM/AM indicators
+  const isPm = trimmed.includes('م') || trimmed.includes('مساءً') || trimmed.toLowerCase().includes('pm');
+  const isAm = trimmed.includes('ص') || trimmed.includes('صباحاً') || trimmed.toLowerCase().includes('am');
+
+  const match = trimmed.match(/(\d{1,2}):(\d{2})/);
+  if (match) {
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    if (isPm && hours < 12) {
+      hours += 12;
+    } else if (isAm && hours === 12) {
+      hours = 0;
+    }
+    const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
+    return `${formattedHours}:${minutes}`;
+  }
+  return '';
+}
+
 export function formatDeliveryDateDisplay(dateStr?: string): string {
   if (!dateStr) return '';
   const trimmed = String(dateStr).trim();
